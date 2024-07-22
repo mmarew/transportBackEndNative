@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Test</title>
+  </head>
+  <body>
+    <h1>WebSocket Client</h1>
+    <div>
+      <input type="text" id="messageInput" placeholder="Enter message" />
+      <button id="sendButton">Send Message</button>
+    </div>
+    <div>
+      <h2>Messages:</h2>
+      <ul id="messagesList"></ul>
+    </div>
+    <script>
+      // Establish a connection with the WebSocket server
+      const phoneNumber = "0922112480"; // Replace with the actual phone number
+      const hostServer = `wss://transport.digitalmegazen.com`;
+      const hostLocal = `ws://localhost:3000`;
+      const ws = new WebSocket(
+        `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=0922112480`
+      );
+
+      // Function to send messages to the WebSocket server
+      function sendMessage(event) {
+        event.preventDefault(); // Prevent the default form submission behavior
+        const messageInput = document.getElementById("messageInput");
+        const message = messageInput.value;
+        ws.send(message);
+        // messageInput.value = ""; // Clear the input field after sending
+      }
+
+      // Listen for messages from the WebSocket server
+      ws.addEventListener("message", (event) => {
+        console.log("Message from server:", event.data);
+        const messagesList = document.getElementById("messagesList");
+        const newMessage = document.createElement("li");
+        newMessage.textContent = event.data;
+        messagesList.appendChild(newMessage);
+      });
+
+      // Listen for connection open event
+      ws.addEventListener("open", () => {
+        console.log("Connected to WebSocket server");
+      });
+
+      // Listen for connection close event
+      ws.addEventListener("close", () => {
+        console.log("Disconnected from WebSocket server");
+      });
+
+      // Add event listener to the button
+      // document
+      //   .getElementById("sendButton")
+      //   .addEventListener("click", sendMessage);
+    </script>
+  </body>
+</html>
