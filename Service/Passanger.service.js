@@ -5,6 +5,9 @@ const { v4: uuidv4 } = require("uuid");
 const { WsServerSMSResponder } = require("../Utils/WsServerResponder");
 const createJWT = require("../Utils/createJWT");
 const FindDriverForPassanger = require("../Utils/FindDriverToPassanger");
+const {
+  verifyExistanceOfPassangerInWaitingStage,
+} = require("../Validator/Passenger.validator");
 
 // Service to get many passengers
 const getManyPassengers = async () => {};
@@ -122,8 +125,19 @@ const deletePassenger = async (uuid) => {
 };
 const registerPassangerRequestToGetCars = async (body, user) => {
   try {
-    console.log("body =====> ", body);
     const { passengerUniqueId } = user?.data;
+    // create a function if a passanger is in waiting stage or not in table passengerRequests , where passangers passengerUniqueId
+
+    const foundResult = await verifyExistanceOfPassangerInWaitingStage(
+      passengerUniqueId
+    );
+    console.log("@registerPassangerRequestToGetCars body =====> ", body);
+    if (foundResult.length > 0) {
+      return {
+        message: "success",
+        data: "passanger is already in waiting stage",
+      };
+    }
     const uniqueid = uuidv4();
     const passangersState = body.passangersState;
     const { destination, vechle, originLocation } = passangersState;
@@ -135,7 +149,7 @@ const registerPassangerRequestToGetCars = async (body, user) => {
       };
     }
     const sqlToInsert =
-      "insert into passengerRequests (requestUniqueId,passengerUniqueId,vehicleTypeUniqueId,originLatitude,originLongitude,originPlace,destinationLatitude,destinationLongitude,destinationPlace) values (?,?,?,?,?,?,?,?)";
+      "insert into passengerRequests (requestUniqueId,passengerUniqueId,vehicleTypeUniqueId,originLatitude,originLongitude,originPlace,destinationLatitude,destinationLongitude,destinationPlace) values (?,?,?,?,?,?,?,?,?)";
     const values = [
       uniqueid,
       passengerUniqueId,
@@ -148,7 +162,8 @@ const registerPassangerRequestToGetCars = async (body, user) => {
       destination.description,
     ];
     const [queryResult] = await pool.query(sqlToInsert, values);
-    if (queryResult.length > 0) {
+    console.log("inserts queryResult=====>", queryResult);
+    if (queryResult.affectedRows > 0) {
       const driver = await FindDriverForPassanger(body);
       return {
         mesage: "success",
@@ -157,6 +172,7 @@ const registerPassangerRequestToGetCars = async (body, user) => {
       };
     } else return { message: "error", error: "unable to create request" };
   } catch (error) {
+    console.log("@registerPassangerRequestToGetCars catch error", error);
     return { message: "error", error: "unable to create request" };
   }
 };

@@ -12,6 +12,9 @@ const registerDecision = async ({ requestUniqueId, waitUniqueId, actor }) => {
         message: "success",
         data: "Decision registered successfully",
         decisionUniqueId,
+        requestUniqueId,
+        waitUniqueId,
+        actor,
       };
     } else {
       return { message: "error", data: "Decision registration failed" };

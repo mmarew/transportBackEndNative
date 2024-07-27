@@ -56,7 +56,7 @@ const createTable = async () => {
     destinationLongitude VARCHAR(22) NOT NULL,
     destinationPlace VARCHAR(255),
     requestTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('pending', 'accepted', 'completed', 'cancelled','journey started') DEFAULT 'pending',
+    status ENUM('waiting','requested', 'accepted', 'completed', 'driver cancelled', 'passenger cancelled', 'journey started','ongoing','completed') DEFAULT 'waiting',
     FOREIGN KEY (passengerUniqueId) REFERENCES passenger(passengerUniqueId)
 ) CHARSET=utf8 COLLATE=utf8_general_ci;
 `;
@@ -68,7 +68,7 @@ const createTable = async () => {
     waitLatitude VARCHAR(22) NOT NULL,
     waitLongitude VARCHAR(22) NOT NULL,
     waitTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('waiting','requested','journey started', 'accepted', 'rejected','cancelled') DEFAULT 'waiting',
+    status ENUM('waiting','requested','journey started', 'accepted', 'completed','driver cancelled', 'passenger cancelled') DEFAULT 'waiting',
     FOREIGN KEY (driverUniqueId) REFERENCES driversInfo(driverUniqueId)
 ) CHARSET=utf8 COLLATE=utf8_general_ci;`;
   // -- JourneyDecisions Table
@@ -78,20 +78,20 @@ const createTable = async () => {
     passengerRequestUniqueId VARCHAR(150) NOT NULL,
     driverWaitUniqueId VARCHAR(150) NOT NULL,
     actor ENUM('driver', 'passenger') NOT NULL,
-    decision ENUM('pending','accepted', 'rejected', 'agreed','noAnswer') NOT NULL DEFAULT 'accepted',
+    decision ENUM('waiting','accepted', 'driver cancelled', 'passenger cancelled', 'agreed','no answer from driver','no answer from passenger','journey started','ongoing','completed') NOT NULL DEFAULT 'waiting',
     decisionTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (passengerRequestUniqueId) REFERENCES passengerRequests(requestUniqueId),
     FOREIGN KEY (driverWaitUniqueId) REFERENCES driverWaits(waitUniqueId)
 ) CHARSET=utf8 COLLATE=utf8_general_ci;
 `;
-  // -- Journeys Table
+  // -- Journeys Table journey
   const createJourneysTable = `CREATE TABLE IF NOT EXISTS journeys (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId VARCHAR(150) UNIQUE NOT NULL,
     decisionUniqueId VARCHAR(150) NOT NULL,
     startTime TIMESTAMP,
     endTime TIMESTAMP default null,
-    status ENUM('ongoing', 'completed', 'cancelled') DEFAULT 'ongoing',
+    status ENUM('journey started','ongoing', 'completed', 'cancelled by driver', 'cancelled by passenger', 'cancelled by system') DEFAULT 'ongoing',
     FOREIGN KEY (decisionUniqueId) REFERENCES journeyDecisions(decisionUniqueId)
 ) CHARSET=utf8 COLLATE=utf8_general_ci;
 `;

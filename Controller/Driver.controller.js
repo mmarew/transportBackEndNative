@@ -12,8 +12,8 @@ const verifyDriverByOTP = async (req, res, next) => {
   ServerResponder(res, await services.verifyDriverByOTP(req));
 };
 
-const cancelWaittingRequest = async (req, res, next) => {
-  ServerResponder(res, await services.cancelWaittingRequest(req));
+const cancelRequest = async (req, res, next) => {
+  ServerResponder(res, await services.cancelRequest(req));
 };
 const registerDriverToGetPassengerRequest = async (req, res, next) => {
   ServerResponder(res, await services.registerDriverToGetPassengerRequest(req));
@@ -43,5 +43,5 @@ module.exports = {
   registerDriver,
   checkGetMethodes,
   verifyDriverByOTP,
-  cancelWaittingRequest,
+  cancelRequest,
 };

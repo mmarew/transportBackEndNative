@@ -1,9 +1,10 @@
 const { pool } = require("../Middleware/Database.config");
-const FindDriverForPassanger = require("../Utils/FindDriverToPassanger");
-const FindPassangerForDriver = require("../Utils/FindPassangerForDriver");
 const { v4: uuidv4 } = require("uuid");
 const registerDecision = require("../Utils/registerDecision");
-const { verifyExistanceOfDriversWaiting } = require("../Utils/DriversWSUtils");
+const { findPassengerForDriver } = require("./Driver.service");
+const {
+  verifyExistenceOfDriversWaiting,
+} = require("../Validator/Driver.validator");
 const registerPassangerRequest = async (message) => {
   try {
     const passenger = message.user;
@@ -24,7 +25,7 @@ const registerPassangerRequest = async (message) => {
     ];
     const [result] = await pool.query(sql, values);
     if (result.affectedRows > 0) {
-      const driver = await FindDriverForPassanger(message);
+      const driver = await findPassengerForDriver(message);
       return {
         responseType: "registerPassangerRequestToGetCars",
         message: "success",
@@ -54,7 +55,7 @@ const registerDriverWaiting = async (message) => {
     const { driverUniqueId } = user;
     const { latitude, longitude } = currentLocation;
     const waitUniqueId = uuidv4();
-    const existanceOfDriver = await verifyExistanceOfDriversWaiting(
+    const existanceOfDriver = await verifyExistenceOfDriversWaiting(
       driverUniqueId
     );
     // if there is no existance of driver in waiting, register driver in waiting
@@ -66,7 +67,7 @@ const registerDriverWaiting = async (message) => {
       insertedRows = rows;
     }
     if (insertedRows.affectedRows > 0 || existanceOfDriver?.length > 0) {
-      let passenger = await FindPassangerForDriver();
+      let passenger = await findPassengerForDriver();
       if (passenger?.length > 0) {
         // register decision to agree with passenger or not to agree
         const decisionResult = await registerDecision({

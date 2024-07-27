@@ -11,11 +11,7 @@ Router.post(
   controller.registerDriver
 );
 Router.get("/drivers/verifyDriverByOTP/", controller.verifyDriverByOTP);
-Router.put(
-  "/drivers/cancelWaittingRequest",
-  verifyToken,
-  controller.cancelWaittingRequest
-);
+Router.put("/drivers/cancelRequest", verifyToken, controller.cancelRequest);
 Router.post(
   "/drivers/registerDriverToGetPassengerRequest",
   verifyToken,
