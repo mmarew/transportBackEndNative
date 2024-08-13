@@ -9,7 +9,7 @@ function removeWSFromList(ws) {
     if (ws.listType === "driver") {
       const index = listOfDriverWs.findIndex((item) => item.WS === ws);
       if (index !== -1) listOfDriverWs.splice(index, 1);
-    } else if (ws.listType === "passanger") {
+    } else if (ws.listType === "passenger") {
       const index = listOfPassangerWs.findIndex((item) => item.WS === ws);
       if (index !== -1) listOfPassangerWs.splice(index, 1);
     } else if (ws.listType === "SMSSender") {

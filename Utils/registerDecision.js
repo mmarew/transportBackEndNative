@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getDataOfSingleDecision } = require("../CRUD/Read/ReadData");
 
 const registerDecision = async ({ requestUniqueId, waitUniqueId, actor }) => {
   const decisionUniqueId = uuidv4();
@@ -8,13 +9,14 @@ const registerDecision = async ({ requestUniqueId, waitUniqueId, actor }) => {
   try {
     const [rows] = await pool.query(sql, value);
     if (rows.affectedRows > 0) {
+      const decision = await getDataOfSingleDecision(
+        "decisionUniqueId",
+        decisionUniqueId
+      );
       return {
+        ...decision,
         message: "success",
         data: "Decision registered successfully",
-        decisionUniqueId,
-        requestUniqueId,
-        waitUniqueId,
-        actor,
       };
     } else {
       return { message: "error", data: "Decision registration failed" };

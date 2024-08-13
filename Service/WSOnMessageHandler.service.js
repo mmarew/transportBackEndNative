@@ -27,21 +27,18 @@ const registerPassangerRequest = async (message) => {
     if (result.affectedRows > 0) {
       const driver = await findPassengerForDriver(message);
       return {
-        responseType: "registerPassangerRequestToGetCars",
         message: "success",
         data: "Passenger request registered successfully",
         driver,
       };
     } else {
       return {
-        responseType: "registerPassangerRequestToGetCars",
         message: "error",
         data: "Passenger request registration failed",
       };
     }
   } catch (error) {
     return {
-      responseType: "registerPassangerRequestToGetCars",
       message: "error",
       data: error,
     };

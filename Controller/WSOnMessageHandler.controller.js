@@ -1,8 +1,8 @@
 const WSOnMessageService = require("../Service/WSOnMessageHandler.service");
 const { WSServerTextMessageResponder } = require("../Utils/WsServerResponder");
 const handleOnMessage = async (ws, data) => {
-  console.log(typeof data);
-
+  console.log("@ handleOnMessage", typeof data);
+  return;
   const { messageType, message } = JSON.parse(data);
   console.log("messageType", messageType);
   if (messageType === "registerPassangerRequestToGetCars") {

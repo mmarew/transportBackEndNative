@@ -3,40 +3,42 @@ const Router = require("express").Router();
 
 Router.get("/", controller.checkGetMethodes);
 const upload = require("../Config/multerConfig");
-const verifyToken = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
-Router.post(
-  "/drivers/registerDriver",
-
-  controller.registerDriver
-);
+Router.post("/drivers/registerDriver", controller.registerDriver);
 Router.get("/drivers/verifyDriverByOTP/", controller.verifyDriverByOTP);
-Router.put("/drivers/cancelRequest", verifyToken, controller.cancelRequest);
+Router.delete("/deleteTablesData", controller.deleteTablesData);
+Router.put(
+  "/drivers/cancelRequest",
+  verifyTokenOfAxios,
+  controller.cancelRequest
+);
 Router.post(
   "/drivers/registerDriverToGetPassengerRequest",
-  verifyToken,
+  verifyTokenOfAxios,
   controller.registerDriverToGetPassengerRequest
 );
 Router.get(
   "/drivers/verifyStatusOfDriver",
-  verifyToken,
+  verifyTokenOfAxios,
   controller.verifyStatusOfDriver
 );
 //  rejectPassangersRequest, acceptPassangersRequest;
 Router.put(
   "/rejectPassangersRequest",
-  verifyToken,
+  verifyTokenOfAxios,
   controller.rejectPassangersRequest
 );
+// 6120
 Router.put(
   "/acceptPassangersRequest",
-  verifyToken,
+  verifyTokenOfAxios,
   controller.acceptPassangersRequest
 );
-Router.put("/startJourney", verifyToken, controller.startJourney);
+Router.put("/startJourney", verifyTokenOfAxios, controller.startJourney);
 Router.put(
   "/driverArrivedDestination",
-  verifyToken,
+  verifyTokenOfAxios,
   controller.driverArrivedDestination
 );
 module.exports = Router;

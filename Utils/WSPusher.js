@@ -12,16 +12,17 @@ async function WSPusher(urlParams, WS) {
   WS.listType = user;
   if (user == "driver") {
     const token = urlParams.get("token");
-    const mytoken = verifyToken(token);
+    const mytoken = await verifyToken.verifyTokenOfWS(token);
     console.log("mytoken", mytoken);
-    if (mytoken.valid) listOfDriverWs.push({ phoneNumber, WS });
-    else return WS.send("you are not authorized");
-  } else if (user == "passanger") {
+    if (mytoken.valid) {
+      listOfDriverWs.push({ phoneNumber, WS });
+      WS.send("socket connection created successfully");
+    } else return WS.send("you are not authorized");
+  } else if (user == "passenger") {
     const token = urlParams.get("token");
     // console.log("user", user, " phoneNumber ", phoneNumber);
-    listOfPassangerWs.push({ phoneNumber, WS });
-    console.log("listOfPassangerWs", listOfPassangerWs);
-    const mytoken = verifyToken(token);
+    // listOfPassangerWs.push({ phoneNumber, WS });
+    const mytoken = await verifyToken.verifyTokenOfWS(token);
     if (mytoken.valid) {
       listOfPassangerWs.push({ phoneNumber, WS });
       WS.send("socket connection created successfully");

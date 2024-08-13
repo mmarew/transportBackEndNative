@@ -15,11 +15,16 @@
       <h2>Messages:</h2>
       <ul id="messagesList"></ul>
     </div>
+    <div class="latAndLng"></div>
     <script>
       // Establish a connection with the WebSocket server
       const phoneNumber = "0922112480"; // Replace with the actual phone number
       const hostServer = `wss://transport.digitalmegazen.com`;
       const hostLocal = `ws://localhost:3000`;
+      //  http
+      // ftp
+      // ws
+
       const ws = new WebSocket(
         `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=0922112480`
       );
@@ -43,14 +48,38 @@
       });
 
       // Listen for connection open event
-      ws.addEventListener("open", () => {
-        console.log("Connected to WebSocket server");
-      });
+      function onOpen() {
+        ws.addEventListener("open", () => {
+          console.log("Connected to WebSocket server");
+        });
+      }
 
       // Listen for connection close event
       ws.addEventListener("close", () => {
         console.log("Disconnected from WebSocket server");
+        onOpen();
       });
+      function getCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const latitude = position.coords.latitude;
+              const longitude = position.coords.longitude;
+              document.getElementsByClassName(
+                "latAndLng"
+              )[0].innerHTML = `you are in Latitude: ${latitude}, Longitude: ${longitude}`;
+              console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+            },
+            (error) => {
+              console.error(`Error Code = ${error.code} - ${error.message}`);
+            }
+          );
+        } else {
+          console.log("Geolocation is not supported by this browser.");
+        }
+      }
+
+      getCurrentLocation();
 
       // Add event listener to the button
       // document

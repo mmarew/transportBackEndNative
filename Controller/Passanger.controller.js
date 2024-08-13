@@ -89,6 +89,20 @@ const registerPassangerRequestToGetCars = async (req, res) => {
       req.body,
       req.user
     );
+    console.log("Responces=====>", Responces);
+    // return;
+    ServerResponder(res, Responces);
+  } catch (error) {
+    console.log("error", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Passenger registration failed",
+    });
+  }
+};
+const verifyStatusOfPassenger = async (req, res) => {
+  try {
+    const Responces = await services.verifyStatusOfPassenger(req);
     ServerResponder(res, Responces);
   } catch (error) {
     console.log("error", error);
@@ -99,8 +113,22 @@ const registerPassangerRequestToGetCars = async (req, res) => {
     // res.status(500).json({ error: error.message });
   }
 };
-
+const cancelRequest = async (req, res) => {
+  try {
+    const Responces = await services.cancelRequest(req);
+    ServerResponder(res, Responces);
+  } catch (error) {
+    console.log("error", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Passenger registration failed",
+    });
+    // res.status(500).json({ error: error.message });
+  }
+};
 module.exports = {
+  cancelRequest,
+  verifyStatusOfPassenger,
   registerPassangerRequestToGetCars,
   verifyPassangersOTPController,
   getManyPassengersController,

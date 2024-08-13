@@ -24,6 +24,7 @@ const verifyStatusOfDriver = async (req, res, next) => {
 const acceptPassangersRequest = async (req, res) => {
   ServerResponder(res, await services.acceptPassangersRequest(req));
 };
+
 const rejectPassangersRequest = async (req, res) => {
   ServerResponder(res, await services.rejectPassangersRequest(req));
 };
@@ -32,6 +33,9 @@ const startJourney = async (req, res) => {
 };
 const driverArrivedDestination = async (req, res) => {
   ServerResponder(res, await services.driverArrivedDestination(req));
+};
+const deleteTablesData = async (req, res) => {
+  ServerResponder(res, await services.deleteTablesData(req));
 };
 module.exports = {
   driverArrivedDestination,
@@ -44,4 +48,5 @@ module.exports = {
   checkGetMethodes,
   verifyDriverByOTP,
   cancelRequest,
+  deleteTablesData,
 };
