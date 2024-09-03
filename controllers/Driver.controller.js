@@ -1,15 +1,8 @@
-const services = require("../Service/Driver.service");
+const services = require("../services/Driver.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const checkGetMethodes = async (req, res, next) => {
   ServerResponder(res, await services.checkGetMethodes());
-};
-const registerDriver = async (req, res, next) => {
-  // console.log("registerDriver", req.body);
-  ServerResponder(res, await services.registerDriver(req));
-};
-const verifyDriverByOTP = async (req, res, next) => {
-  ServerResponder(res, await services.verifyDriverByOTP(req));
 };
 
 const cancelRequest = async (req, res, next) => {
@@ -44,9 +37,7 @@ module.exports = {
   acceptPassangersRequest,
   verifyStatusOfDriver,
   registerDriverToGetPassengerRequest,
-  registerDriver,
   checkGetMethodes,
-  verifyDriverByOTP,
   cancelRequest,
   deleteTablesData,
 };

@@ -1,11 +1,8 @@
-const {
-  getSingleDataOfPassengerRequest,
-  getDataOfSingleDriverWaiting,
-} = require("../CRUD/Read/ReadData");
+const { verifyExistanceOfData } = require("../CRUD/Read/ReadData");
 const {
   updateDriverWaittingStatus,
-  updatePassengerRequestStatus,
-} = require("../CRUD/Update/Driver.update");
+  updateuserJourneyStatus,
+} = require("../CRUD/Update/Data.update");
 const { pool } = require("../Middleware/Database.config");
 const registerDecision = require("../Utils/registerDecision");
 
@@ -19,21 +16,17 @@ const FindDriverForPassenger = async (requestUniqueId) => {
     };
 
     // Fetch the latest driver who is waiting
-    const sqlToGetDriverWaiting = `
-      SELECT * 
-      FROM driverWaits
-      JOIN driversInfo ON driverWaits.driverUniqueId = driversInfo.driverUniqueId 
-      WHERE status = 'waiting' 
-      ORDER BY waitId DESC 
-      LIMIT 1
-    `;
+    const sqlToGetDriverWaiting = `SELECT * FROM Requests JOIN Users ON Requests.userUniqueId = Users.userUniqueId 
+      WHERE requestType = 'DRIVER' AND journeyStatusId = '1' ORDER BY requestId DESC 
+      LIMIT 1`;
+
     const [searchedDriverData] = await pool.query(sqlToGetDriverWaiting);
 
     if (searchedDriverData.length > 0) {
       const { waitUniqueId } = searchedDriverData[0];
 
       // Update passenger and driver statuses
-      await updatePassengerRequestStatus(requestUniqueId, "requested");
+      await updateuserJourneyStatus(requestUniqueId, "requested");
       await updateDriverWaittingStatus(waitUniqueId, "requested");
 
       // Register the decision made by the passenger
@@ -47,18 +40,21 @@ const FindDriverForPassenger = async (requestUniqueId) => {
       responseData.decision = decisionResult;
 
       // Fetch the driver details
-      responseData.driver = await getDataOfSingleDriverWaiting(
-        "waitUniqueId",
-        waitUniqueId
-      );
+
+      responseData.driver = await verifyExistanceOfData({
+        tableName: "DriverWait",
+        conditions: {
+          waitUniqueId,
+        },
+      });
     }
 
-    // Fetch the passenger details
-    responseData.passenger = await getSingleDataOfPassengerRequest(
-      "requestUniqueId",
-      requestUniqueId
-    );
-
+    responseData.passenger = await verifyExistanceOfData({
+      tableName: "PassengerRequest",
+      conditions: {
+        requestUniqueId,
+      },
+    });
     return {
       message: "success",
       ...responseData,

@@ -1,12 +1,10 @@
-const controller = require("../Controller/Driver.controller");
+const controller = require("../controllers/Driver.controller");
 const Router = require("express").Router();
 
 Router.get("/", controller.checkGetMethodes);
 const upload = require("../Config/multerConfig");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
-Router.post("/drivers/registerDriver", controller.registerDriver);
-Router.get("/drivers/verifyDriverByOTP/", controller.verifyDriverByOTP);
 Router.delete("/deleteTablesData", controller.deleteTablesData);
 Router.put(
   "/drivers/cancelRequest",

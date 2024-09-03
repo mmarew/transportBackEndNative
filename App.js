@@ -8,8 +8,8 @@ const Routes = require("./Routes/index.js");
 const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
-const handleOnMessage = require("./Controller/WSOnMessageHandler.controller.js");
-const { addSMSSender } = require("./Service/WSSMSSender.service.js");
+const handleOnMessage = require("./controllers/WSOnMessageHandler.controller.js");
+const { addSMSSender } = require("./services/WSSMSSender.service.js");
 
 // Initialize Express app
 const app = express();
@@ -32,6 +32,7 @@ const wss = new WebSocket.Server({ server });
 // WebSocket connection handling
 wss.on("connection", (ws, req) => {
   const urlParams = new URLSearchParams(req.url.split("?")[1]);
+  console.log("urlParams", urlParams);
   WSPusher(urlParams, ws);
 
   ws.on("message", (incomingMessage) => {

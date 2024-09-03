@@ -70,7 +70,59 @@ const registerCanceledJourney = async (data) => {
       error: "Failed to create cancilation reasons",
     };
 };
+
+const registerDriverTostartJob = async ({
+  waitUniqueId,
+  userUniqueId,
+  latitude,
+  longitude,
+  placeName,
+  driverWaitStatusId,
+  waitTime,
+}) => {
+  const sql = `INSERT INTO DriverWait (driverWaitUniqueId, userUniqueId, driverWaitLatitude, driverWaitLongitude,driverWaitPlaceName,driverWaitStatusId,driverWaitStartTime) VALUES (?, ?, ?, ?,?,?,?)`;
+  const values = [
+    waitUniqueId,
+    userUniqueId,
+    latitude,
+    longitude,
+    placeName,
+    driverWaitStatusId,
+    waitTime,
+  ];
+  const [rows] = await pool.query(sql, values);
+  console.log("rows", rows);
+  return rows;
+};
+// create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
+const insertData = async ({ tableName, colAndVal }) => {
+  // Extract columns and values from the colAndVal object
+  const columns = Object.keys(colAndVal);
+  const values = Object.values(colAndVal);
+
+  if (columns.length === 0 || values.length === 0) {
+    throw new Error("Columns and values cannot be empty.");
+  }
+
+  // Build the SQL query dynamically
+  const columnsString = columns.join(", ");
+  const placeholders = columns.map(() => "?").join(", ");
+
+  const sqlQuery = `INSERT INTO ${tableName} (${columnsString}) VALUES (${placeholders})`;
+
+  try {
+    const [result] = await pool.query(sqlQuery, values);
+    return result;
+  } catch (error) {
+    console.error("Error inserting data:", error);
+    throw error;
+  }
+};
+
 module.exports = {
+  insertData,
+  registerDriverTostartJob,
+  // registerUserToUsersTable,
   insertJourneyData,
   registerCancilationReasons,
   registerCanceledJourney,

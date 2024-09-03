@@ -2,12 +2,9 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const getFormattedDateTime = require("../Utils/currentDate");
 const {
-  WsServerSMSResponder,
   WSServerTextMessageResponder,
   listOfPassangerWs,
 } = require("../Utils/WsServerResponder");
-const verifyDriverExistence = require("../Middleware/verifyDriverExistence");
-const { deleteFile } = require("../Utils/fileUtils");
 const createJWT = require("../Utils/createJWT");
 const registerDecision = require("../Utils/registerDecision");
 const {
@@ -15,20 +12,21 @@ const {
 } = require("../Validator/Driver.validator");
 const {
   updateDriverWaittingStatus,
-  updatePassengerRequestStatus,
+  updateuserJourneyStatus,
   updateDecisionStatus,
   updateJourneyStatus,
-} = require("../CRUD/Update/Driver.update");
+  updateOTPToUsersCredentials,
+} = require("../CRUD/Update/Data.update");
 const {
   getDataOfSingleDriverWaiting,
-  getSingleDataOfPassengerWaiting,
   getSingleDataOfPassengerRequest,
   getDataOfSingleDecision,
   getSingleDataOfJourney,
 } = require("../CRUD/Read/ReadData");
 const {
-  insertDecisionData,
   insertJourneyData,
+  registerDriverTostartJob,
+  registerUserToUsersTable,
 } = require("../CRUD/Create/CreateData");
 
 const checkGetMethodes = async () => {
@@ -38,188 +36,17 @@ const checkGetMethodes = async () => {
   };
 };
 async function findPassengerForDriver() {
-  // create sql to get passanger request in the database with table name of PassengerRequests
-  const sql = `SELECT * FROM passengerRequests join passenger on passengerRequests.passengerUniqueId = passenger.passengerUniqueId and passengerRequests.status = "waiting" ORDER BY requestId DESC LIMIT 1`;
+  // create sql to get passanger request in the database with table name of PassengerRequest
+  const sql = `SELECT * FROM PassengerRequest join Users on PassengerRequest.userUniqueId = Users.userUniqueId and PassengerRequest.status = "waiting" ORDER BY requestId DESC LIMIT 1`;
   const [rows] = await pool.query(sql);
   return rows;
 }
 
-async function insertToDriversData({
-  uniqueId,
-  fullName,
-  phoneNumber,
-  email,
-  OTP,
-}) {
-  const sqlToRegisterDriver = `INSERT INTO driversInfo (driverUniqueId, fullName, phoneNumber, email) 
-    VALUES (?, ?, ?, ?)`;
-
-  const sqlToRegisterDriverCredentials = `
-    INSERT INTO driversCredentials (driversCredentialUniqueId,driverUniqueId, driversPinCode) 
-    VALUES (?,?, ?);
-  `;
-
-  const [resultOfDriversRegistration] = await pool.query(sqlToRegisterDriver, [
-    uniqueId,
-    fullName,
-    phoneNumber,
-    email,
-  ]);
-  console.log("resultOfDriversRegistration", resultOfDriversRegistration);
-  if (resultOfDriversRegistration.affectedRows === 0) {
-    return {
-      message: "error",
-      error: "Unable to register driver",
-    };
-  }
-
-  const [resultOfDriversCredentialsRegistration] = await pool.query(
-    sqlToRegisterDriverCredentials,
-    [uuidv4(), uniqueId, OTP]
-  );
-  console.log(
-    "resultOfDriversCredentialsRegistration",
-    resultOfDriversCredentialsRegistration
-  );
-  if (resultOfDriversCredentialsRegistration.affectedRows > 0) {
-    return await WsServerSMSResponder(phoneNumber, OTP);
-  } else {
-    return {
-      message: "error",
-      error: "Unable to register driver credentials",
-    };
-  }
-}
-
-async function registerDriver(req) {
-  console.log("first req.body", req.body);
-  const { fullName, phoneNumber, email } = req.body;
-  // return;
-  try {
-    // Check if driver is already registered
-    const existingDrivers = await verifyDriverExistence(email, phoneNumber);
-    console.log("existingDrivers", existingDrivers);
-    const OTP = Math.floor(1000 + Math.random() * 900000);
-    if (existingDrivers.length > 0) {
-      const { driverUniqueId } = existingDrivers[0];
-      const registerOTPResult = await updateOTPToDriver({
-        driverUniqueId,
-        OTP,
-        phoneNumber,
-      });
-      console.log("registerOTPResult", registerOTPResult);
-      if (registerOTPResult.message === "success") {
-        // fetch driver details from existingDrivers
-        return {
-          message: "success",
-          messageDetail: "Driver already registered, OTP sent successfully",
-        };
-      } else {
-        return {
-          message: "error",
-          error: "Unable to send OTP to driver",
-        };
-      }
-    }
-
-    const uniqueId = uuidv4();
-
-    try {
-      const registerResult = await insertToDriversData({
-        uniqueId,
-        fullName,
-        phoneNumber,
-        email,
-        OTP,
-      });
-
-      if (registerResult.message === "success") {
-        return {
-          message: "success",
-          messageDetail: "Driver registered successfully",
-        };
-      } else {
-        throw new Error("Unable to register driver");
-      }
-    } catch (error) {
-      console.error("Error registering driver:", error);
-      return { message: "error", error: "Unable to register driver" };
-    }
-  } catch (error) {
-    console.error("Error in register Driver:", error);
-    return {
-      message: "error",
-      error: error.message || "Unable to register driver",
-    };
-  }
-}
-
-// Placeholder for updateOTPToDriver function
-async function updateOTPToDriver({ OTP, driverUniqueId, phoneNumber }) {
-  console.log(
-    " OTP, driverUniqueId, phoneNumber",
-    OTP,
-    driverUniqueId,
-    phoneNumber
-  );
-  const updateSql = `UPDATE driversCredentials SET driversPinCode = ? WHERE driverUniqueId = ?`;
-  let [updateResult] = await pool.query(updateSql, [OTP, driverUniqueId]);
-  if (updateResult.affectedRows > 0) {
-    return WsServerSMSResponder(phoneNumber, OTP);
-  } else return "fail to create OTP";
-}
-
-const verifyDriverByOTP = async (req) => {
-  try {
-    const { OTP, phoneNumber } = req.query;
-    console.log("req.query======", req.query);
-    console.log("OTP=======", OTP, "phoneNumber=====", phoneNumber);
-    const result = await verifyDriverExistence(phoneNumber, phoneNumber);
-    console.log("result on verifyDriverExistence ", result);
-    // return;
-    if (result.length == 0) {
-      return { message: "error", error: "Driver not found" };
-    }
-    const {
-      driverUniqueId,
-      fullName,
-      email,
-      drivingLicenceFileName,
-      drivingLicenceNumber,
-    } = result[0];
-
-    const token = createJWT({
-      driverUniqueId,
-      fullName,
-      phoneNumber,
-      email,
-
-      driverStatus: "active",
-    });
-
-    const sqlToSelect = `SELECT driversPinCode FROM driversCredentials WHERE driverUniqueId = ?`;
-    const [selectResult] = await pool.query(sqlToSelect, [driverUniqueId]);
-    console.log(
-      "selectResult=========>",
-      selectResult,
-      " driverUniqueId",
-      driverUniqueId
-    );
-    if (selectResult[0].driversPinCode == OTP) {
-      return { token, message: "success", data: "OTP verified successfully" };
-    } else {
-      return { message: "error", error: "OTP verification failed" };
-    }
-  } catch (error) {
-    console.error("Error in verifyDriverByOTP:", error.message);
-    return { message: "error", error: "Unable to verify driver" };
-  }
-};
-
 const cancelRequest = async (req) => {
   try {
-    const body = req?.body;
-    const requestUniqueId = body?.requestUniqueId;
+    const body = req?.body,
+      passengerPhone = body?.passengerPhone,
+      requestUniqueId = body?.requestUniqueId;
     const waitUniqueId = body?.waitUniqueId;
     const decisionUniqueId = body?.decisionUniqueId;
 
@@ -236,18 +63,20 @@ const cancelRequest = async (req) => {
     if (!userData) {
       return { message: "error", error: "User not found" };
     }
+    console.log("under userData");
     if (waitUniqueId) {
       const driverStatus = await updateDriverWaittingStatus(
         waitUniqueId,
         "cancelled by driver"
       );
-
+      console.log("driverStatus", driverStatus);
       if (driverStatus.affectedRows == 0) {
         return { message: "error", error: "Request cancellation failed" };
       }
     }
+    console.log("after waitUniqueId");
     if (requestUniqueId) {
-      const passangerRequest = await updatePassengerRequestStatus(
+      const passangerRequest = await updateuserJourneyStatus(
         requestUniqueId,
         "cancelled by driver"
       );
@@ -258,12 +87,16 @@ const cancelRequest = async (req) => {
     if (decisionUniqueId) {
       const decisionResult = await updateDecisionStatus(
         decisionUniqueId,
-        "driver cancelled"
+        "cancelled by driver"
       );
       if (decisionResult.affectedRows == 0) {
         return { message: "error", error: "Request cancellation failed" };
       }
     }
+    sendAcceptanceNotificationToPassanger({
+      phoneNumber: passengerPhone,
+      message: { status: "cancelled by driver" },
+    });
     return {
       status: "cancelled by driver",
       message: "success",
@@ -277,21 +110,23 @@ const cancelRequest = async (req) => {
 
 const registerDriverToGetPassengerRequest = async (req) => {
   try {
-    const { currentLocation } = req.body;
+    const { currentLocation, driverWaitStatusId } = req.body;
     console.log("currentLocation", currentLocation);
-    const { driverUniqueId } = req.user.data;
-    const { latitude, longitude } = currentLocation;
+    const { userUniqueId } = req.user.data;
+    const { latitude, longitude, placeName } = currentLocation;
     let waitUniqueId = uuidv4();
     let decision = null,
       driverWaiting = null,
       driverStatus = null,
       passenger = null,
       journey = null;
-
-    const existingDriver = await verifyExistenceOfDriverInWaitingState(
-      driverUniqueId
-    );
+    console.log("userUniqueId", userUniqueId);
+    // return;
+    const existingDriver = await verifyExistenceOfDriverInWaitingState({
+      userUniqueId,
+    });
     // console.log("existingDriver ==========> ", existingDriver);
+    // return;
     if (existingDriver?.length > 0) {
       driverStatus = existingDriver?.at(0).status;
       // if status is in ('accepted','requested','journey started')
@@ -311,18 +146,20 @@ const registerDriverToGetPassengerRequest = async (req) => {
         const passengerRequestUniqueId = decision?.passengerRequestUniqueId;
         // console.log("decision=============>", decision);
         console.log("passengerRequestUniqueId", passengerRequestUniqueId);
+        // get data of passenger
         if (passengerRequestUniqueId)
           passenger = await getSingleDataOfPassengerRequest(
             "requestUniqueId",
             passengerRequestUniqueId
           );
+        // get data of journey
         if (decisionUniqueId)
           journey = await getSingleDataOfJourney(
             "decisionUniqueId",
             decisionUniqueId
           );
-        console.log("passenger", passenger);
-        return {
+        const phoneNumber = passenger?.passengerPhone;
+        const message = {
           status: driverStatus,
           journey,
           message: "success",
@@ -330,34 +167,40 @@ const registerDriverToGetPassengerRequest = async (req) => {
           driver: existingDriver?.at(0),
           decision,
         };
+        sendAcceptanceNotificationToPassanger({
+          message,
+          phoneNumber,
+        });
+        return message;
       }
     }
     // If the driver is not in waiting, register the driver in waiting
     let insertedRows = { affectedRows: 0 };
     if (existingDriver?.length === 0) {
       const waitTime = getFormattedDateTime();
-      const sql = `INSERT INTO driverWaits (waitUniqueId, driverUniqueId, waitLatitude, waitLongitude,waitTime) VALUES (?, ?, ?, ?,?)`;
-      const values = [
+
+      const registeredResult = await registerDriverTostartJob({
         waitUniqueId,
-        driverUniqueId,
+        userUniqueId,
         latitude,
         longitude,
+        placeName,
+        driverWaitStatusId,
         waitTime,
-      ];
+      });
+      console.log("registerResult=>", registeredResult);
 
-      const [rows] = await pool.query(sql, values);
-      if (rows.affectedRows > 0) {
-        insertedRows = rows;
-        driverWaiting = {
-          waitId: rows.insertId,
-          waitUniqueId,
-          driverUniqueId,
-          waitLatitude: latitude,
-          waitLongitude: longitude,
-          status: "waiting",
-          waitTime,
+      if (registeredResult.affectedRows > 0) {
+        insertedRows.affectedRows = 1;
+        driverWaiting = await getDataOfSingleDriverWaiting(
+          "waitUniqueId",
+          waitUniqueId
+        );
+      } else {
+        return {
+          message: "error",
+          error: "Failed to start journey",
         };
-        driverStatus = "waiting";
       }
     } else {
       waitUniqueId = existingDriver?.at(0)?.waitUniqueId;
@@ -369,13 +212,13 @@ const registerDriverToGetPassengerRequest = async (req) => {
       //  if passanger exists set passanger status requested
       if (passenger?.length > 0) {
         const requestUniqueId = passenger?.at(0)?.requestUniqueId;
-        const passengerRequestStatus = await updatePassengerRequestStatus(
+        const userJourneyStatus = await updateuserJourneyStatus(
           requestUniqueId,
           "requested"
         );
-        if (passengerRequestStatus?.affectedRows === 1) {
+        if (userJourneyStatus?.affectedRows === 1) {
         } else {
-          // Respond with error message from passengerRequestStatus
+          // Respond with error message from userJourneyStatus
           return {
             message: "error",
             error: "unable to update passenger request status",
@@ -398,21 +241,25 @@ const registerDriverToGetPassengerRequest = async (req) => {
             waitUniqueId,
             "requested"
           );
-          driverWaiting.status = "requested";
+          driverWaiting = await getDataOfSingleDriverWaiting(
+            "waitUniqueId",
+            waitUniqueId
+          );
         } else {
           // Respond with error message from decisionResult
           return decisionResult;
         }
         // sendAcceptanceNotificationToPassanger();
       }
-      return {
+      const message = {
         status: driverStatus,
         decision,
         driver: driverWaiting,
-        passenger: passenger.length > 0 ? passenger?.at(0) : null,
+        passenger: Users.length > 0 ? passenger?.at(0) : null,
         message: "success",
         data: "Driver wait registered successfully",
       };
+      return message;
     } else {
       return { message: "error", data: "Driver can't connect to start job" };
     }
@@ -424,11 +271,11 @@ const registerDriverToGetPassengerRequest = async (req) => {
 
 const verifyStatusOfDriver = async (req) => {
   try {
-    const { driverUniqueId } = req.user.data;
-    // console.log("driverUniqueId", driverUniqueId);
-    const sqlToVerifyWaiting = `SELECT * FROM driverWaits WHERE driverUniqueId = ? order by waitId desc limit 1 `;
+    const { userUniqueId } = req.user.data;
+    // console.log("userUniqueId", userUniqueId);
+    const sqlToVerifyWaiting = `SELECT * FROM driverWaits WHERE userUniqueId = ? order by waitId desc limit 1 `;
     const [driverWaitResult] = await pool.query(sqlToVerifyWaiting, [
-      driverUniqueId,
+      userUniqueId,
     ]);
     // console.log("driverWaitResult", driverWaitResult);
     let status = null,
@@ -471,7 +318,7 @@ const verifyStatusOfDriver = async (req) => {
         const passengerRequestUniqueId = rows?.at(0)?.passengerRequestUniqueId;
         // get decision data
         decision = rows?.at(0);
-        const sqlToGetPassengerRequest = `select * from passengerRequests,passenger where requestUniqueId = ? and passenger.passengerUniqueId = passengerRequests.passengerUniqueId`;
+        const sqlToGetPassengerRequest = `select * from PassengerRequest,passenger where requestUniqueId = ? and Users.userUniqueId = PassengerRequest.userUniqueId`;
         const [passengerRequest] = await pool.query(sqlToGetPassengerRequest, [
           passengerRequestUniqueId,
         ]);
@@ -527,7 +374,7 @@ const verifyStatusOfDriver = async (req) => {
         );
         if (waitingResult.affectedRows == 0)
           return { message: "error", error: "Unable to update waiting data" };
-        const passengerRequestResult = await updatePassengerRequestStatus(
+        const passengerRequestResult = await updateuserJourneyStatus(
           requestUniqueId,
           "requested"
         );
@@ -562,30 +409,32 @@ const verifyStatusOfDriver = async (req) => {
 
 const rejectPassangersRequest = async (req) => {
   try {
-    const { decisionUniqueId, requestUniqueId, waitUniqueId } = req.body;
-
+    const { decisionUniqueId, requestUniqueId, waitUniqueId, passengerPhone } =
+      req.body;
+    // console.log("passengerPhone==============", passengerPhone);
     // console.log("req.body", req.body);
     // return;
     const driverWaitStatus = await updateDriverWaittingStatus(
       waitUniqueId,
-      "driver cancelled"
+      "cancelled by driver"
     );
-    const passangerRequsetStatus = await updatePassengerRequestStatus(
+    const passangerRequsetStatus = await updateuserJourneyStatus(
       requestUniqueId,
-      "waiting"
+      "cancelled by driver"
     );
     const decisionStatus = await updateDecisionStatus(
       decisionUniqueId,
-      "driver cancelled"
+      "cancelled by driver"
     );
 
-    console.log("passangerRequsetStatus", passangerRequsetStatus);
-    console.log("decisionStatus", decisionStatus);
-    console.log("driverWaitStatus", driverWaitStatus);
     if (
       passangerRequsetStatus.affectedRows > 0 &&
       decisionStatus.affectedRows > 0
     ) {
+      sendAcceptanceNotificationToPassanger({
+        message: { status: "cancelled by driver", message: "success" },
+        phoneNumber: passengerPhone,
+      });
       return { message: "success", data: "Request rejected successfully" };
     } else {
       return { message: "error", error: "Request rejection failed" };
@@ -602,7 +451,7 @@ const acceptPassangersRequest = async (req) => {
       decisionUniqueId,
       "accepted"
     );
-    const updateResultOfPassangerRequest = await updatePassengerRequestStatus(
+    const updateResultOfPassangerRequest = await updateuserJourneyStatus(
       requestUniqueId,
       "accepted"
     );
@@ -622,18 +471,26 @@ const acceptPassangersRequest = async (req) => {
       updateResultOfDriverWaiting.affectedRows == 1 &&
       updateResultOfPassangerRequest.affectedRows == 1
     ) {
+      console.log("waitUniqueId", waitUniqueId);
       const driver = await getDataOfSingleDriverWaiting(
         "waitUniqueId",
         waitUniqueId
       );
+      if (!driver)
+        return { message: "error", data: "un able to get driver data" };
+      console.log("driver data is =>", driver);
       const passenger = await getSingleDataOfPassengerRequest(
         "requestUniqueId",
         requestUniqueId
       );
+      if (!passenger)
+        return { message: "error", data: "un able to get passenger data" };
       const decision = await getDataOfSingleDecision(
         "decisionUniqueId",
         decisionUniqueId
       );
+      if (!decision)
+        return { message: "error", data: "unable to get decision data" };
       const phoneNumber = passenger?.passengerPhone;
 
       const message = {
@@ -643,7 +500,6 @@ const acceptPassangersRequest = async (req) => {
         journey: null,
         status: "accepted",
       };
-
       const result = await sendAcceptanceNotificationToPassanger({
         message,
         phoneNumber,
@@ -663,12 +519,10 @@ const sendAcceptanceNotificationToPassanger = async ({
   message,
   phoneNumber,
 }) => {
+  // console.log("listOfPassangerWs", listOfPassangerWs);
   listOfPassangerWs.forEach((passanger) => {
+    // console.log("passanger.phoneNumber", passanger.phoneNumber);
     if (passanger.phoneNumber == phoneNumber) {
-      console.log(
-        " phoneNumber in sendAcceptanceNotificationToPassanger",
-        phoneNumber
-      );
       WSServerTextMessageResponder(passanger.WS, message);
     }
   });
@@ -684,7 +538,7 @@ const startJourney = async (req) => {
       waitUniqueId,
       "journey started"
     );
-    const passengerRequestStatus = await updatePassengerRequestStatus(
+    const userJourneyStatus = await updateuserJourneyStatus(
       requestUniqueId,
       "journey started"
     );
@@ -695,7 +549,7 @@ const startJourney = async (req) => {
     // Check if all updates were successful
     if (
       waitStatusResult.affectedRows > 0 &&
-      passengerRequestStatus.affectedRows > 0 &&
+      userJourneyStatus.affectedRows > 0 &&
       decisionStatusResult.affectedRows > 0
     ) {
       const passenger = await getSingleDataOfPassengerRequest(
@@ -808,11 +662,11 @@ const driverArrivedDestination = async (req) => {
     }
 
     // Update passenger request status
-    const passengerRequestStatus = await updatePassengerRequestStatus(
+    const userJourneyStatus = await updateuserJourneyStatus(
       requestUniqueId,
       "completed"
     );
-    if (passengerRequestStatus.affectedRows === 0) {
+    if (userJourneyStatus.affectedRows === 0) {
       return {
         message: "error",
         error: "Failed to update passenger request status",
@@ -849,15 +703,22 @@ const driverArrivedDestination = async (req) => {
   }
 };
 const deleteTablesData = async (req) => {
-  let tables = req.body.tables;
-  console.log("in deleteTablesData ===>", req.body.tables);
-  // return;
-  tables.map(async (table) => {
-    const deleteSql = `delete from ${table}`;
-    const Result = await pool.query(deleteSql);
-    console.log("Result", Result);
-  });
-  return { message: "success" };
+  try {
+    let tables = req.body.tables;
+    console.log("in deleteTablesData ===>", req.body.tables);
+    // return;
+    tables.map(async (table) => {
+      const deleteSql = `delete from ${table}`;
+      const Result = await pool.query(deleteSql);
+      console.log("Result", Result);
+    });
+    return { message: "success" };
+  } catch (error) {
+    console.log("error", error);
+    return {
+      message: "error",
+    };
+  }
 };
 module.exports = {
   findPassengerForDriver,
@@ -868,8 +729,6 @@ module.exports = {
   verifyStatusOfDriver,
   registerDriverToGetPassengerRequest,
   cancelRequest,
-  verifyDriverByOTP,
-  registerDriver,
   checkGetMethodes,
   deleteTablesData,
 };

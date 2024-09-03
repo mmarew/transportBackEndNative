@@ -1,9 +1,9 @@
 const { pool } = require("../Middleware/Database.config");
 
-const verifyExistanceOfPassangerInWaitingStage = async (passengerUniqueId) => {
+const verifyExistanceOfPassangerInWaitingStage = async (userUniqueId) => {
   // Query to check existence in the passenger table
-  const passengerSql = `SELECT * FROM passenger WHERE passengerUniqueId = ?`;
-  const passengerValues = [passengerUniqueId];
+  const passengerSql = `SELECT * FROM Users WHERE userUniqueId = ?`;
+  const passengerValues = [userUniqueId];
   const [passengerResult] = await pool.query(passengerSql, passengerValues);
 
   if (passengerResult.length === 0) {
@@ -12,9 +12,9 @@ const verifyExistanceOfPassangerInWaitingStage = async (passengerUniqueId) => {
     return { message: "error", error: "passenger not found" };
   }
 
-  // Query to check existence in the passengerRequests table
-  const requestSql = `SELECT * FROM passengerRequests WHERE passengerUniqueId = ? AND status IN ('waiting', 'requested', 'accepted','journey started')`;
-  const requestValues = [passengerUniqueId];
+  // Query to check existence in the PassengerRequest table
+  const requestSql = `SELECT * FROM PassengerRequest WHERE userUniqueId = ? AND userJourneyStatusId IN ('1', '2', '3','4')`;
+  const requestValues = [userUniqueId];
   const [requestResult] = await pool.query(requestSql, requestValues);
 
   // Combine the results (if necessary) or return the request results directly

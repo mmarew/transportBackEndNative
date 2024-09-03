@@ -7,6 +7,7 @@ const createJWT = (userData) => {
   // Create the token
   const token = jwt.sign(
     {
+      // 11337.4
       data: { ...userData },
     },
     secretKey

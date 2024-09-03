@@ -4,7 +4,7 @@ const {
   deleteCancilationReasons,
   updateCancilationReasons,
   getCancilationReasons,
-} = require("../Controller/Cancilation.controller");
+} = require("../controllers/Cancilation.controller");
 const Router = express.Router();
 Router.post("/addCancilationReasons", addCancilationReasons);
 Router.get("/getCancilationReasons", getCancilationReasons);

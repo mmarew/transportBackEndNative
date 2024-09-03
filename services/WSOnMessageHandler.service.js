@@ -11,11 +11,11 @@ const registerPassangerRequest = async (message) => {
     const originLocation = message.originLocation;
     const destination = message.destination;
     const uuid = uuidv4();
-    const sql = `INSERT INTO PassengerRequests (requestUniqueId, passengerUniqueId,originLatitude, originLongitude, originPlace, destinationLatitude, destinationLongitude, destinationPlace) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO PassengerRequest (requestUniqueId, userUniqueId,originLatitude, originLongitude, originPlace, destinationLatitude, destinationLongitude, destinationPlace) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const values = [
       uuid,
-      passenger.passengerUniqueId,
+      Users.userUniqueId,
       originLocation.latitude,
       originLocation.longitude,
       originLocation.description,

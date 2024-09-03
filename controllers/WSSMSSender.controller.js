@@ -1,4 +1,4 @@
-const service = require("../Service/WSSMSSender.service");
+const service = require("../services/WSSMSSender.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const addSMSSender = async (req, res) => {

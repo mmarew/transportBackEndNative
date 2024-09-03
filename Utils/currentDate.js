@@ -1,4 +1,4 @@
-const getFormattedDateTime = () => {
+const currentDate = () => {
   const now = new Date();
 
   const year = now.getFullYear();
@@ -11,5 +11,5 @@ const getFormattedDateTime = () => {
   return `${year}-${month}-${day}:${hours}:${minutes}:${seconds}`;
 };
 
-console.log(getFormattedDateTime());
-module.exports = getFormattedDateTime;
+console.log(currentDate());
+module.exports = currentDate;

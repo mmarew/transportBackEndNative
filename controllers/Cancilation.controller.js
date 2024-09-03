@@ -1,4 +1,4 @@
-const Services = require("../Service/Cancilation.service");
+const Services = require("../services/Cancilation.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const updateCancilationReasons = async (req, res) => {

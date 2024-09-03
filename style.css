@@ -1,0 +1,87 @@
+/* General form styling */
+form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+/* Form title */
+form h1 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+/* Input fields */
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form input[type="tel"] {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+/* Checkbox */
+form input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+/* Terms and Services link */
+form label a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+form label a:hover {
+  text-decoration: underline;
+}
+
+/* Submit button */
+form button[type="submit"] {
+  width: 100%;
+  padding: 12px;
+  background-color: #0a4c77;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+form button[type="submit"]:hover {
+  background-color: #073b5e;
+}
+
+/* Sign up link */
+form .signup-link {
+  text-align: center;
+  margin-top: 15px;
+}
+
+form .signup-link a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+form .signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* Container to center the form vertically and horizontally */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+}

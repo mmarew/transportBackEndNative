@@ -8,57 +8,46 @@
   <body>
     <h1>WebSocket Client</h1>
     <div>
-      <input type="text" id="messageInput" placeholder="Enter message" />
-      <button id="sendButton">Send Message</button>
-    </div>
-    <div>
       <h2>Messages:</h2>
       <ul id="messagesList"></ul>
     </div>
     <div class="latAndLng"></div>
     <script>
-      // Establish a connection with the WebSocket server
       const phoneNumber = "0922112480"; // Replace with the actual phone number
       const hostServer = `wss://transport.digitalmegazen.com`;
       const hostLocal = `ws://localhost:3000`;
-      //  http
-      // ftp
-      // ws
+      let ws;
 
-      const ws = new WebSocket(
-        `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=0922112480`
-      );
+      function connectWebSocket() {
+        ws = new WebSocket(
+          `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=0922112480`
+        );
 
-      // Function to send messages to the WebSocket server
-      function sendMessage(event) {
-        event.preventDefault(); // Prevent the default form submission behavior
-        const messageInput = document.getElementById("messageInput");
-        const message = messageInput.value;
-        ws.send(message);
-        // messageInput.value = ""; // Clear the input field after sending
-      }
-
-      // Listen for messages from the WebSocket server
-      ws.addEventListener("message", (event) => {
-        console.log("Message from server:", event.data);
-        const messagesList = document.getElementById("messagesList");
-        const newMessage = document.createElement("li");
-        newMessage.textContent = event.data;
-        messagesList.appendChild(newMessage);
-      });
-
-      // Listen for connection open event
-      function onOpen() {
         ws.addEventListener("open", () => {
           console.log("Connected to WebSocket server");
         });
+
+        ws.addEventListener("message", (event) => {
+          console.log("Message from server:", event.data);
+          const messagesList = document.getElementById("messagesList");
+          const newMessage = document.createElement("li");
+          newMessage.textContent = event.data;
+          messagesList.appendChild(newMessage);
+        });
+
+        ws.addEventListener("close", () => {
+          console.log(
+            "Disconnected from WebSocket server. Attempting to reconnect..."
+          );
+          setTimeout(connectWebSocket, 5000); // Attempt to reconnect after 5 seconds
+        });
+
+        ws.addEventListener("error", (error) => {
+          console.error("WebSocket error:", error);
+          ws.close(); // Close the WebSocket connection and trigger reconnection
+        });
       }
 
-      // Listen for connection close event
-      ws.addEventListener("close", () => {
-        console.log("Disconnected from WebSocket server");
-        onOpen();
-      });
       function getCurrentLocation() {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
@@ -67,7 +56,7 @@
               const longitude = position.coords.longitude;
               document.getElementsByClassName(
                 "latAndLng"
-              )[0].innerHTML = `you are in Latitude: ${latitude}, Longitude: ${longitude}`;
+              )[0].innerHTML = `You are in Latitude: ${latitude}, Longitude: ${longitude}`;
               console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
             },
             (error) => {
@@ -79,12 +68,11 @@
         }
       }
 
-      getCurrentLocation();
+      // Start the WebSocket connection
+      connectWebSocket();
 
-      // Add event listener to the button
-      // document
-      //   .getElementById("sendButton")
-      //   .addEventListener("click", sendMessage);
+      // Get the current location
+      getCurrentLocation();
     </script>
   </body>
 </html>

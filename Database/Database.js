@@ -1,194 +1,185 @@
 const { pool } = require("../Middleware/Database.config");
-
 const createTable = async () => {
-  const SMSSenderTable = `CREATE TABLE IF NOT EXISTS SMSSender (
-    SMSSenderId INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-    smsSenderUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    phoneNumber VARCHAR(14),
-    password VARCHAR(256),
-    status ENUM('active', 'inactive') DEFAULT 'active'
-  ) CHARSET=utf8 COLLATE=utf8_general_ci`;
+  const sqlQuery = `
+  -- Roles Table
+   CREATE TABLE IF NOT EXISTS Roles (
+    roleId INT AUTO_INCREMENT PRIMARY KEY,
+    roleUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    roleName VARCHAR(50) NOT NULL,
+    roleDescription VARCHAR(255) NULL,
+    roleCreatedAt DATETIME NOT NULL,
+    roleDeletedAt DATETIME NULL
+);
 
-  const sqlTcreateDriversInfoTable = `CREATE TABLE IF NOT EXISTS driversInfo (
-    driversInfoId SERIAL PRIMARY KEY,
-    driverUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    fullName VARCHAR(100),
-    phoneNumber VARCHAR(14),
-    email VARCHAR(25),
-    drivingLicenceFileName VARCHAR(100),
-    drivingLicenceNumber VARCHAR(100),
-    driverStatus ENUM('active', 'inactive', 'blocked') DEFAULT 'active'
-  ) CHARSET=utf8 COLLATE=utf8_general_ci`;
+-- Users Table
+CREATE TABLE IF NOT EXISTS Users (
+    userId INT AUTO_INCREMENT PRIMARY KEY,
+    userUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    fullName VARCHAR(255) NOT NULL,
+    phoneNumber VARCHAR(15) NOT NULL,
+    email VARCHAR(255) NULL,
+    createdAt DATETIME NOT NULL
+);
 
-  const sqlToCreateDriversCredential = `CREATE TABLE IF NOT EXISTS driversCredentials (
-    driversCredentialId INT PRIMARY KEY AUTO_INCREMENT,
-    driversCredentialUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    driversPinCode INT,
-    driverUniqueId VARCHAR(150)
-    ) CHARSET=utf8 COLLATE=utf8_general_ci`;
-  // FOREIGN KEY (driverUniqueId) REFERENCES driversInfo(driverUniqueId)
+ 
 
-  const sqlToCreateTablePassenger = `CREATE TABLE IF NOT EXISTS passenger (
-    passengerId INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
-    passengerUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    passengerFullName VARCHAR(60) NOT NULL,
-    passengerEmail VARCHAR(30) NOT NULL,
-    passengerPhone VARCHAR(20) NOT NULL
-  ) CHARSET=utf8 COLLATE=utf8_general_ci`;
+-- Status Table
+CREATE TABLE IF NOT EXISTS Statuses (
+    statusId INT AUTO_INCREMENT PRIMARY KEY,
+    statusUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    statusName VARCHAR(50) NOT NULL,
+    statusCreatedAt DATETIME NOT NULL,
+    statusDeletedAt DATETIME NULL
+);
 
-  const passengersCredentialTable = `CREATE TABLE IF NOT EXISTS passengerCredentials (
-    passengerCredentialId INT PRIMARY KEY AUTO_INCREMENT,
-    passengerCredentialUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    passengerOTP INT(6) NOT NULL,
-    passengerStatus ENUM('active', 'inactive', 'blocked') DEFAULT 'active',
-    passengerUniqueId VARCHAR(150)
-    ) CHARSET=utf8 COLLATE=utf8_general_ci`;
-  // FOREIGN KEY (passengerUniqueId) REFERENCES passenger(passengerUniqueId)
-  const createPassengerRequestsTable = `CREATE TABLE IF NOT EXISTS passengerRequests (
+-- UserRoleStatuses Table , this table register userid roleid and status id
+CREATE TABLE IF NOT EXISTS UserRoleStatuses (
+    userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    userRoleStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    statusId INT NOT NULL,
+    userUniqueId VARCHAR(150) NOT NULL,
+    RoleId INT NOT NULL,
+    FOREIGN KEY (userUniqueId) REFERENCES users(userUniqueId),
+    FOREIGN KEY (statusId) REFERENCES Statuses(statusId),
+    FOREIGN KEY (RoleId) REFERENCES Role(RoleId)
+);
+
+
+-- UsersCredential Table
+CREATE TABLE IF NOT EXISTS usersCredential (
+    credentialId INT AUTO_INCREMENT PRIMARY KEY,
+    credentialUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    userUniqueId VARCHAR(150) NOT NULL,
+    hashedPassword VARCHAR(255) NOT NULL,
+    OTP VARCHAR(255) NULL,
+    createdAt DATETIME NOT NULL,
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
+);
+-- Create the JourneyStatus table
+CREATE TABLE IF NOT EXISTS JourneyStatus (
+    journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    journeyStatusName VARCHAR(50) NOT NULL, 
+    createdAt DATETIME NOT NULL
+); 
+ -- Create the Requests table
+    CREATE TABLE IF NOT EXISTS Requests (
     requestId INT AUTO_INCREMENT PRIMARY KEY,
     requestUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    passengerUniqueId VARCHAR(150) NOT NULL,
-    vehicleTypeUniqueId VARCHAR(150) NOT NULL,
+    userUniqueId VARCHAR(150) NOT NULL,
+    vehicleTypeId VARCHAR(150) NOT NULL,
     originLatitude VARCHAR(22) NOT NULL,
     originLongitude VARCHAR(22) NOT NULL,
-    originPlace VARCHAR(255),
+    originPlace VARCHAR(255) NULL,
     destinationLatitude VARCHAR(22) NOT NULL,
     destinationLongitude VARCHAR(22) NOT NULL,
-    destinationPlace VARCHAR(255),
-    requestTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('waiting','requested', 'accepted', 'completed', 'cancelled by driver', 'cancelled by passenger', 'journey started','ongoing','completed') DEFAULT 'waiting'
-    ) CHARSET=utf8 COLLATE=utf8_general_ci;
-    `;
-  // FOREIGN KEY (passengerUniqueId) REFERENCES passenger(passengerUniqueId)
-  // -- DriverWaits Table
-  const createDriverWaitsTable = `CREATE TABLE IF NOT EXISTS driverWaits (
-    waitId INT AUTO_INCREMENT PRIMARY KEY,
-    waitUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    driverUniqueId VARCHAR(150) NOT NULL,
-    waitLatitude VARCHAR(22) NOT NULL,
-    waitLongitude VARCHAR(22) NOT NULL,
-    waitTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('waiting','requested','journey started', 'accepted', 'completed','cancelled by driver', 'cancelled by passenger') DEFAULT 'waiting'
-    ) CHARSET=utf8 COLLATE=utf8_general_ci;`;
-  // FOREIGN KEY (driverUniqueId) REFERENCES driversInfo(driverUniqueId)
+    destinationPlace VARCHAR(255) NULL,
+    requestTime TIMESTAMP NOT NULL,
+    requestType ENUM('PASSENGER', 'DRIVER') NOT NULL, 
+    -- Identifies if it's a passenger or driver request
+    journeyStatusId INT NOT NULL,
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+);
 
-  // -- JourneyDecisions Table
-  const createJourneyDecisionsTable = `CREATE TABLE IF NOT EXISTS journeyDecisions (
-    decisionId INT AUTO_INCREMENT PRIMARY KEY,
-    decisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    passengerRequestUniqueId VARCHAR(150) NOT NULL,
-    driverWaitUniqueId VARCHAR(150) NOT NULL,
-    actor ENUM('driver', 'passenger') NOT NULL,
-    decision ENUM('waiting','accepted', 'cancelled by passenger', 'cancelled by driver', 'agreed','no answer from driver','no answer from passenger','journey started','ongoing','completed') NOT NULL DEFAULT 'waiting',
-    decisionTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) CHARSET=utf8 COLLATE=utf8_general_ci;
-    `;
-  // FOREIGN KEY (passengerRequestUniqueId) REFERENCES passengerRequests(requestUniqueId),
-  // FOREIGN KEY (driverWaitUniqueId) REFERENCES driverWaits(waitUniqueId)
-  // -- Journeys Table journey
-  const createJourneysTable = `CREATE TABLE IF NOT EXISTS journeys (
+-- Create the JourneyDecisions table
+CREATE TABLE IF NOT EXISTS JourneyDecisions (
+    journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyDecisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    passengerRequestId varchar(150) NOT NULL UNIQUE,
+    driverWaitId varchar(150) NOT NULL UNIQUE,
+    journeyStatusId INT NOT NULL ,  
+    -- References JourneyStatus table
+    decisionTime TIMESTAMP NOT NULL,
+    FOREIGN KEY (passengerRequestId) REFERENCES Requests(requestUniqueId),
+    FOREIGN KEY (driverWaitId) REFERENCES Requests(requestUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+);
+
+-- Create the Journey table
+CREATE TABLE IF NOT EXISTS Journey (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    decisionUniqueId VARCHAR(150) NOT NULL UNIQUE,
-    startTime TIMESTAMP,
-    endTime TIMESTAMP default null,
-    status ENUM('journey started','ongoing', 'completed', 'cancelled by driver', 'cancelled by passenger', 'cancelled by system') DEFAULT 'ongoing'
-    ) CHARSET=utf8 COLLATE=utf8_general_ci;
-    `;
-  // FOREIGN KEY (decisionUniqueId) REFERENCES journeyDecisions(decisionUniqueId)
-  // journeyLocations
-  const createJourneyLocationsTable = `CREATE TABLE IF NOT EXISTS journeyLocations (
-    locationId INT AUTO_INCREMENT PRIMARY KEY,
-    locationUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    journeyUniqueId VARCHAR(150) NOT NULL,
-    latitude varchar(22) NOT NULL,
-    longitude varchar(22) NOT NULL,
-    recordedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) CHARSET=utf8 COLLATE=utf8_general_ci`;
-  // FOREIGN KEY (journeyUniqueId) REFERENCES journeys(journeyUniqueId)
+    journeyDecisionUniqueId INT NOT NULL,
+    startTime TIMESTAMP NOT NULL,
+    endTime TIMESTAMP NOT NULL,
+    fare DECIMAL(10, 2) NOT NULL,
+    journeyStatusId INT NOT NULL, 
+     -- References JourneyStatus table
+    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions (journeyDecisionUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+);
 
-  //  vechles table
-  const createVechlesTable = `CREATE TABLE IF NOT EXISTS vehicles (
-    vehicleId INT AUTO_INCREMENT PRIMARY KEY, 
-    driverUniqueId VARCHAR(150)   NOT NULL, 
-    vehicleTypeUniqueId VARCHAR(150) NOT NULL,
-    vehicleUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    make VARCHAR(50) NOT NULL,
-    model VARCHAR(50) NOT NULL,
-    year INT NOT NULL,
-    plateNumber VARCHAR(20) NOT NULL,
-    color VARCHAR(20) NOT NULL,
-    status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) CHARSET=utf8 COLLATE=utf8_general_ci;
-    `;
-  // FOREIGN KEY (driverUniqueId) REFERENCES driversInfo(driverUniqueId),
-  // FOREIGN KEY (vehicleTypeUniqueId) REFERENCES vehicleType(vehicleTypeUniqueId)
 
-  const createVechleType = `CREATE TABLE IF NOT EXISTS vechleType (
+-- Payments Table
+    CREATE TABLE IF NOT EXISTS Payments (
+    paymentId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyId VARCHAR(150) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    paymentMethodUniqueId VARCHAR(150) NOT NULL,
+    paymentStatusUniqueId VARCHAR(150) NOT NULL,
+    paymentTime TIMESTAMP NOT NULL,
+    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
+    FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
+    FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
+);
+
+-- PaymentStatus Table
+CREATE TABLE IF NOT EXISTS PaymentStatus (
+    paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    paymentStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    paymentStatusList VARCHAR(50) NOT NULL,
+    createdAt DATETIME NOT NULL
+);
+
+-- PaymentMethod Table
+CREATE TABLE IF NOT EXISTS PaymentMethod (
+    paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
+    paymentMethodUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    paymentMethod VARCHAR(50) NOT NULL,
+    createdAt DATETIME NOT NULL
+);
+
+-- Vehicle Table
+CREATE TABLE IF NOT EXISTS Vehicle (
+    vehicleId INT AUTO_INCREMENT PRIMARY KEY,
+    driverId VARCHAR(150) NOT NULL,
+    vehicleType VARCHAR(50) NOT NULL,
+    licensePlate VARCHAR(50) NOT NULL,
+    vehicleStatus VARCHAR(50) NOT NULL,
+    FOREIGN KEY (driverId) REFERENCES Users(userId)
+);
+
+-- VehicleType Table
+CREATE TABLE IF NOT EXISTS VehicleType (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(150) UNIQUE NOT NULL,
     vehicleTypeName VARCHAR(50) NOT NULL,
-    carryingCapacity INT NOT NULL,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) CHARSET=utf8 COLLATE=utf8_general_ci;
+    vehicleTypeDescription VARCHAR(3000) NULL,
+    vehicleTypeCreatedAt DATETIME NOT NULL,
+    vehicleTypeDeletedAt DATETIME NULL
+);
+
+
+-- Ratings Table
+CREATE TABLE IF NOT EXISTS Ratings (
+    ratingId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyId VARCHAR(150) NOT NULL,
+    ratedBy VARCHAR(150) NOT NULL,
+    rating INT NOT NULL,
+    comment TEXT NULL,
+    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
+    FOREIGN KEY (ratedBy) REFERENCES Users(userId)
+);
+-- smssender
+CREATE TABLE IF NOT EXISTS SMSSender (
+    SMSSenderId INT AUTO_INCREMENT PRIMARY KEY, 
+    phoneNumber VARCHAR(50) NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
 `;
-  const CancilationReasonTypes = `CREATE TABLE IF NOT EXISTS cancilationReasonsType (
-  cancilationReasonTypeId INT AUTO_INCREMENT PRIMARY KEY,
-  cancilationReasonTypeUniqueId VARCHAR(150) UNIQUE NOT NULL,
-  cancilationReasonType VARCHAR(100) NOT NULL  ,
-  caneledBy ENUM('driver', 'passenger') NOT NULL
-)`;
-  const canceledJourneyRequests = `CREATE TABLE IF NOT EXISTS canceledJourneyRequests (
-  cancellationId INT AUTO_INCREMENT PRIMARY KEY,
-  cancellationUniqueId VARCHAR(150) NOT NULL UNIQUE,
-  cancellationReasonTypeUniqueId VARCHAR(150) NOT NULL,
-  requestUniqueId VARCHAR(150),
-  waitUniqueId VARCHAR(150),
-  cancellationBy ENUM('driver', 'passenger') NOT NULL,
-  cancellationTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`;
-
-  // FOREIGN KEY (requestUniqueId) REFERENCES passengerRequests(requestUniqueId),
-  // FOREIGN KEY (waitUniqueId) REFERENCES driverWaits(waitUniqueId),
-  // FOREIGN KEY (cancellationReasonTypeUniqueId) REFERENCES cancellationReasonsType(cancellationReasonTypeUniqueId)
-  const tablesSQL = [
-    sqlTcreateDriversInfoTable,
-    sqlToCreateTablePassenger,
-
-    sqlToCreateDriversCredential,
-    passengersCredentialTable,
-
-    createPassengerRequestsTable,
-    createDriverWaitsTable,
-
-    createJourneyDecisionsTable,
-    createJourneysTable,
-
-    createJourneyLocationsTable,
-
-    createVechlesTable,
-
-    SMSSenderTable,
-    createVechleType,
-
-    CancilationReasonTypes,
-    canceledJourneyRequests,
-  ];
-  try {
-    tablesSQL.map(async (tableSQL) => {
-      try {
-        await pool.query(tableSQL);
-      } catch (error) {
-        console.log("in tablesSQL ====> ", error);
-      }
-    });
-  } catch (error) {
-    console.error("Error creating table:", error);
-  }
+  const [queryResult] = await pool.query(sqlQuery);
+  //   console.log("queryResult", queryResult);
 };
 
 module.exports = { createTable };
-//

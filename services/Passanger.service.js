@@ -3,7 +3,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const {
-  WsServerSMSResponder,
+  sendOtpViaWebSocket,
   listOfDriverWs,
   WSServerTextMessageResponder,
 } = require("../Utils/WsServerResponder");
@@ -17,17 +17,21 @@ const {
   getDataOfSingleDecision,
   getDataOfSingleDriverWaiting,
   getSingleDataOfJourney,
-  getSingleDataOfPassengerRequest,
+  verifyExistanceOfData,
 } = require("../CRUD/Read/ReadData");
 const {
   updateDriverWaittingStatus,
   updateJourneyStatus,
   updateDecisionStatus,
-  updatePassengerRequestStatus,
-} = require("../CRUD/Update/Driver.update");
+  updateuserJourneyStatus,
+  updateOTPToUsersCredentials,
+} = require("../CRUD/Update/Data.update");
 const { getListOfVechleType } = require("./VechleType.service");
 const { getCancilationReasons } = require("./Cancilation.service");
-const { registerCanceledJourney } = require("../CRUD/Create/CreateData");
+const {
+  registerCanceledJourney,
+  registerUserToUsersTable,
+} = require("../CRUD/Create/CreateData");
 const getFormattedDateTime = require("../Utils/currentDate");
 
 // Service to get many passengers
@@ -40,16 +44,16 @@ const getOnePassenger = async (id) => {};
 const updateOnePassenger = async (id, data) => {};
 const verifyPassangersOTP = async (body) => {
   const { passengerPhone, passengerOTP } = body;
-  const sql = `SELECT * FROM passengerCredentials, passenger WHERE passenger.passengerPhone=? AND passengerCredentials.passengerOTP=? and passenger.passengerUniqueId=passengerCredentials.passengerUniqueId`;
-  const values = [passengerPhone, passengerOTP];
+  const sql = `SELECT * FROM usersCredential,Users WHERE (Users.phoneNumber=? OR Users.email=?) AND usersCredential.OTP=? and Users.userUniqueId=usersCredential.userUniqueId`;
+  const values = [passengerPhone, passengerPhone, passengerOTP];
   const [result] = await pool.query(sql, values);
   if (result.length > 0) {
-    const { passengerFullName, passengerEmail, passengerUniqueId } = result[0];
+    const { passengerFullName, passengerEmail, userUniqueId } = result[0];
     const passengersToken = createJWT({
       passengerPhone,
       passengerFullName,
       passengerEmail,
-      passengerUniqueId,
+      userUniqueId,
     });
     return {
       passengersToken,
@@ -65,70 +69,17 @@ const verifyExistanceOfPassanger = async (email, phone) => {
   const values = [email, phone];
   const [result] = await pool.query(findPassanger, values);
   if (result.length > 0) {
-    const passengerUniqueId = result[0].passengerUniqueId;
+    const userUniqueId = result[0].userUniqueId;
     return {
       isFound: true,
-      passengerUniqueId,
+      userUniqueId,
     };
   } else {
     return { isFound: false };
   }
 };
-const updatePassangersOTP = async (passengerUniqueId, phoneNumber, OTP) => {
-  const sql = `UPDATE passengerCredentials SET passengerOTP=? WHERE passengerUniqueId=?`;
-  const values = [OTP, passengerUniqueId];
-  const [result] = await pool.query(sql, values);
-  if (result.affectedRows > 0) {
-    return WsServerSMSResponder(phoneNumber, OTP);
-  } else {
-    return {
-      message: "error",
-      error: "unable to create otp",
-    };
-  }
-};
-// Service to register a new passenger
-const registerPassenger = async (body) => {
-  const { passengerFullName, passengerEmail, passengerPhone } = body;
-  const sixDigitPinCode = Math.floor(100000 + Math.random() * 900000);
-  const passangerData = await verifyExistanceOfPassanger(
-    passengerEmail,
-    passengerPhone
-  );
-  if (passangerData?.isFound == true) {
-    return await updatePassangersOTP(
-      passangerData.passengerUniqueId,
-      passengerPhone,
-      sixDigitPinCode
-    );
-  }
-  const sql = `INSERT INTO passenger (passengerFullName, passengerEmail, passengerPhone, passengerUniqueId)
-VALUES (?,?,?,?)`;
-  const uuid = uuidv4();
-  const values = [passengerFullName, passengerEmail, passengerPhone, uuid];
-  const [result] = await pool.query(sql, values);
-  if (result.affectedRows > 0) {
-    const sqlToCredential = `INSERT INTO passengerCredentials (passengerUniqueId, passengerOTP) values (?,?)`;
 
-    const [resultOfCredentials] = await pool.query(sqlToCredential, [
-      uuid,
-      sixDigitPinCode,
-    ]);
-    if (resultOfCredentials.affectedRows > 0) {
-      WsServerSMSResponder(passengerPhone, sixDigitPinCode);
-      return {
-        message: "success",
-        data: "Passenger registered successfully",
-      };
-    } else {
-      // remove passenger from database if otp creation failed
-      deletePassenger(uuid);
-      return { message: "error", data: "Passenger registration failed" };
-    }
-  } else {
-    return { message: "error", data: "Passenger registration failed" };
-  }
-};
+// Service to register a new passenger
 
 // Service to delete a passenger by ID
 const deletePassenger = async (uuid) => {
@@ -144,23 +95,28 @@ const deletePassenger = async (uuid) => {
     return { message: "error", data: "Passenger deletion failed" };
   }
 };
-const registerPassangerRequestToGetCars = async (body, user) => {
+const usersRequest = async (body, user) => {
   try {
-    // return;
-    const { passengerUniqueId } = user?.data;
+    const { userUniqueId } = user?.data;
     let passenger = null,
       status = null,
       driver = null,
       decision = null,
       journey = null;
-    // create a function if a passanger is in waiting stage or not in table passengerRequests , where passangers passengerUniqueId
+    // create a function if a passanger is in waiting stage or not in table PassengerRequest , where passangers userUniqueId
 
-    const foundResult = await verifyExistanceOfPassangerInWaitingStage(
-      passengerUniqueId
-    );
+    const existedUser = await verifyExistanceOfData({
+      tableName: "Users",
+      conditions: { userUniqueId },
+    });
     console.log("foundResult ========> ", foundResult);
-    if (foundResult.message == "error") return foundResult;
+    if (existedUser.length <= 0)
+      return { message: "error", error: "user not found" };
     //  message: "success";
+    const foundResult = await verifyExistanceOfData({
+      tableName: "Requests",
+      conditions: { userUniqueId },
+    });
     if (foundResult?.message == "success") {
       passenger = foundResult?.passenger;
       status = passenger?.status;
@@ -236,17 +192,18 @@ const registerPassangerRequestToGetCars = async (body, user) => {
       };
     }
     const sqlToInsert =
-      "insert into passengerRequests (requestUniqueId,passengerUniqueId,vehicleTypeUniqueId,originLatitude,originLongitude,originPlace,destinationLatitude,destinationLongitude,destinationPlace) values (?,?,?,?,?,?,?,?,?)";
+      "insert into PassengerRequest (requestUniqueId,userUniqueId, vehicleTypeId, originLatitude,originLongitude, originPlace, destinationLatitude,destinationLongitude, destinationPlace,userJourneyStatusId) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       uniqueid,
-      passengerUniqueId,
-      vechle.vehicleTypeUniqueId,
+      userUniqueId,
+      vechle.vehicleTypeId,
       originLocation.latitude,
       originLocation.longitude,
       originLocation.description,
       destination.latitude,
       destination.longitude,
       destination.description,
+      1,
     ];
 
     const [resultOfRegisterPassenger] = await pool.query(sqlToInsert, values);
@@ -275,14 +232,14 @@ const registerPassangerRequestToGetCars = async (body, user) => {
       }
     } else return { message: "error", error: "unable to create request" };
   } catch (error) {
-    console.log("@registerPassangerRequestToGetCars catch error", error);
+    console.log("@usersRequest catch error", error);
     return { message: "error", error: "unable to create request" };
   }
 };
 const verifyStatusOfPassenger = async (req) => {
   try {
-    console.log("in verifyStatusOfPassenger", req.user.data.passengerUniqueId);
-    const passengerUniqueId = req?.user?.data?.passengerUniqueId;
+    console.log("in verifyStatusOfPassenger", req.user.data.userUniqueId);
+    const userUniqueId = req?.user?.data?.userUniqueId;
 
     let driver = null,
       decision = null,
@@ -295,26 +252,22 @@ const verifyStatusOfPassenger = async (req) => {
     if (listOfCancilationReasons.message == "success")
       listOfCancilationReasons = listOfCancilationReasons?.data;
 
-    const sqlToGetPassangerData = `select * from passengerRequests,passenger where passenger.passengerUniqueId = ? and passenger.passengerUniqueId = passengerRequests.passengerUniqueId order by requestId desc limit 1 `;
+    const sqlToGetPassangerData = `select * from PassengerRequest,passenger where Users.userUniqueId = ? and Users.userUniqueId = PassengerRequest.userUniqueId order by requestId desc limit 1 `;
     const [passengerInfo] = await pool.query(sqlToGetPassangerData, [
-      passengerUniqueId,
+      userUniqueId,
     ]);
-    console.log("passengerInfo", passengerInfo);
-    // return;
+
     if (passengerInfo.length > 0) {
       const vehicleTypeUniqueId = passengerInfo[0]?.vehicleTypeUniqueId;
       const requestUniqueId = passengerInfo[0]?.requestUniqueId;
       passangerStatus = passengerInfo[0]?.status;
       passenger = passengerInfo[0];
       console.log("passangerStatus", passangerStatus);
-      // return;
       if (passangerStatus == "waiting") {
         const searchedDriverData = await FindDriverForPassanger(
           "requestUniqueId",
           requestUniqueId
         );
-        console.log("searchedDriverData", searchedDriverData);
-        // return;
         driver = searchedDriverData.driver;
         decision = searchedDriverData.decision;
         // vecheles data
@@ -429,13 +382,15 @@ const verifyStatusOfPassenger = async (req) => {
 };
 const cancelRequest = async (req) => {
   try {
-    console.log("req.body===========>", Object.keys(req.body));
     const body = req.body;
     const requestUniqueId = body?.requestUniqueId,
       decisionUniqueId = body?.decisionUniqueId,
       journeyUniqueId = body?.journeyUniqueId,
       waitUniqueId = body?.waitUniqueId,
-      cancilationReasonTypeUniqueId = body?.cancilationReasonTypeUniqueId;
+      cancilationReasonTypeUniqueId = body?.cancilationReasonTypeUniqueId,
+      driverPhoneNumber = body?.driverPhoneNumber;
+    // console.log("driverPhoneNumber", driverPhoneNumber);
+    // return;
     if (cancilationReasonTypeUniqueId) {
       const cancellationBy = "passenger";
       body.cancellationBy = cancellationBy;
@@ -466,35 +421,31 @@ const cancelRequest = async (req) => {
       console.log("decisionStatus", decisionStatus);
     }
     if (requestUniqueId) {
-      const requestStatus = await updatePassengerRequestStatus(
+      const requestStatus = await updateuserJourneyStatus(
         requestUniqueId,
         "cancelled by passenger"
       );
 
       console.log("requestStatus", requestStatus);
     }
-
-    return { message: "success", data: "connected" };
+    if (driverPhoneNumber)
+      sendNotificationToDriver({
+        message: { status: "cancelled by passenger" },
+        phoneNumber: driverPhoneNumber,
+      });
+    console.log("sendNotificationToDriver it is good ");
+    return { message: "success", data: "cancelled by passenger" };
   } catch (error) {
     console.log("first catch error", error);
   }
 };
-const sendNotificationToDriver = async ({ message, phoneNumber }) => {
-  listOfDriverWs.forEach((driver) => {
-    if (driver.phoneNumber == phoneNumber) {
-      console.log(" phoneNumber in sendNotificattionToDriver", phoneNumber);
-      WSServerTextMessageResponder(driver.WS, message);
-    }
-  });
-  return { message: "success", data: "Request accepted successfully" };
-};
+
 module.exports = {
   cancelRequest,
   verifyStatusOfPassenger,
-  registerPassangerRequestToGetCars,
+  usersRequest,
   getManyPassengers,
   getOnePassenger,
-  registerPassenger,
   deletePassenger,
   updateOnePassenger,
   verifyPassangersOTP,

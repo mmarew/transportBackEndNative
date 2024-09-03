@@ -1,34 +1,84 @@
 const { pool } = require("../../Middleware/Database.config");
 
-const getDataOfVehicleTypes = async (columnName, colValue) => {
-  const sqlToGetVechle = `select * from vechleType where ${columnName} = ?`;
-  const [vechleInfo] = await pool.query(sqlToGetVechle, [colValue]);
-  return vechleInfo[0];
+/**
+ * Verifies the existence of data in a table using specified conditions.
+ *
+ * @param {Object} params - The parameters for the function.
+ * @param {string} params.tableName - The name of the table to query.
+ * @param {Object} params.conditions - An object containing column-value pairs for the conditions.
+ * @param {string} [params.operator='AND'] - The logical operator to use between conditions ('AND' or 'OR').
+ * @returns {Promise} - A promise that resolves with the first matching row or undefined if no match is found.
+ */
+const verifyExistanceOfData = async ({
+  tableName,
+  conditions,
+  operator = "AND",
+}) => {
+  // Validate the operator
+  if (operator !== "AND" && operator !== "OR") {
+    throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
+  }
+
+  // Build the WHERE clause dynamically based on the conditions object
+  const whereClause = Object.keys(conditions)
+    .map((col) => {
+      const value = conditions[col];
+      if (Array.isArray(value)) {
+        // If the value is an array, use the IN clause
+        const placeholders = value.map(() => "?").join(", ");
+        return `${col} IN (${placeholders})`;
+      } else {
+        // Otherwise, use the standard equality check
+        return `${col} = ?`;
+      }
+    })
+    .join(` ${operator} `);
+  // Flatten the values array, since some elements might be arrays themselves
+  const values = Object.values(conditions).flat();
+  const sqlQuery = `SELECT * FROM ${tableName} WHERE ${whereClause}`;
+  try {
+    const [result] = await pool.query(sqlQuery, values);
+    return result; // Return the result set
+  } catch (error) {
+    console.error("Error querying data:", error);
+    throw error;
+  }
 };
-const getDataOfSingleDriverWaiting = async (columnName, colValue) => {
-  const sqlToGetDriver = `select * from driverWaits, driversInfo where ${columnName} = ? and driverWaits.driverUniqueId=driversInfo.driverUniqueId`;
-  const [driverInfo] = await pool.query(sqlToGetDriver, [colValue]);
-  return driverInfo[0];
+
+const findDriverForPassenger = async (userUniqueId) => {
+  // find driver who is in waiting
+  const driverRequestData = await verifyExistanceOfData({
+    tableName: "Requests",
+    conditions: { journeyStatusId: 1, requestType: "DRIVER" },
+    operator: "AND",
+  });
+  let driverUserUniqueId = null,
+    userDriverInfo = null;
+  // if driver found
+  if (driverRequestData.length > 0) {
+    driverUserUniqueId = driverRequestData[0]?.userUniqueId;
+    // find detailes of driver
+    userDriverInfo = await verifyExistanceOfData({
+      tableName: "Users",
+      conditions: { userUniqueId: driverUserUniqueId },
+      operator: "AND",
+    });
+    return { ...userDriverInfo[0], ...driverRequestData[0] };
+  } else {
+    console.log("no driver found");
+    return null;
+  }
 };
-const getDataOfSingleDecision = async (columnName, colValue) => {
-  const sqlToGetDecision = `select * from journeyDecisions where ${columnName} = ?`;
-  const [decisionInfo] = await pool.query(sqlToGetDecision, [colValue]);
-  return decisionInfo[0];
-};
-const getSingleDataOfJourney = async (columnName, colValue) => {
-  const sqlToGetVechle = `select * from journeys where ${columnName} = ?`;
-  const [journeyInfo] = await pool.query(sqlToGetVechle, [colValue]);
-  return journeyInfo[0];
-};
-const getSingleDataOfPassengerRequest = async (columnName, colValue) => {
-  const sqlToGetVechle = `select * from passengerRequests,passenger where ${columnName} = ? and passenger.passengerUniqueId = passengerRequests.passengerUniqueId`;
-  const [requestInfo] = await pool.query(sqlToGetVechle, [colValue]);
-  return requestInfo[0];
+const findPassengerForDriver = async (userUniqueId) => {
+  const driverData = await verifyExistanceOfData({
+    tableName: "Requests",
+    conditions: { journeyStatusId: 1, requestType: "PASSENGER" },
+    operator: "AND",
+  });
+  return driverData[0];
 };
 module.exports = {
-  getDataOfVehicleTypes,
-  getDataOfSingleDriverWaiting,
-  getDataOfSingleDecision,
-  getSingleDataOfPassengerRequest,
-  getSingleDataOfJourney,
+  findDriverForPassenger,
+  findPassengerForDriver,
+  verifyExistanceOfData,
 };

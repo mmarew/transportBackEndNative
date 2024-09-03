@@ -3,13 +3,11 @@
 const {
   getManyPassengers,
   getOnePassenger,
-  registerPassenger,
   deletePassenger,
   updateOnePassenger,
-  verifyPassangersOTP,
-} = require("../Service/Passanger.service");
+} = require("../services/Passanger.service");
 const ServerResponder = require("../Utils/ServerResponder");
-const services = require("../Service/Passanger.service");
+const services = require("../services/Passanger.service");
 // Controller to get many passengers
 const getManyPassengersController = async (req, res) => {
   try {
@@ -31,34 +29,6 @@ const getOnePassengerController = async (req, res) => {
     res.status(200).json(passenger);
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-};
-const verifyPassangersOTPController = async (req, res) => {
-  try {
-    const Responces = await verifyPassangersOTP(req.body);
-    ServerResponder(res, Responces);
-  } catch (error) {
-    console.log("error", error);
-    ServerResponder(res, {
-      message: "error",
-      data: "Passenger registration failed",
-    });
-    // res.status(500).json({ error: error.message });
-  }
-};
-// Controller to register a new passenger
-const registerPassengerController = async (req, res) => {
-  try {
-    console.log("req.body", req.body);
-    const Responces = await registerPassenger(req.body);
-    ServerResponder(res, Responces);
-  } catch (error) {
-    console.log("error", error);
-    ServerResponder(res, {
-      message: "error",
-      data: "Passenger registration failed",
-    });
-    // res.status(500).json({ error: error.message });
   }
 };
 
@@ -83,12 +53,9 @@ const updateOnePassengerController = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-const registerPassangerRequestToGetCars = async (req, res) => {
+const usersRequest = async (req, res) => {
   try {
-    const Responces = await services.registerPassangerRequestToGetCars(
-      req.body,
-      req.user
-    );
+    const Responces = await services.usersRequest(req.body, req.user);
     console.log("Responces=====>", Responces);
     // return;
     ServerResponder(res, Responces);
@@ -129,11 +96,9 @@ const cancelRequest = async (req, res) => {
 module.exports = {
   cancelRequest,
   verifyStatusOfPassenger,
-  registerPassangerRequestToGetCars,
-  verifyPassangersOTPController,
+  usersRequest,
   getManyPassengersController,
   getOnePassengerController,
-  registerPassengerController,
   deletePassengerController,
   updateOnePassengerController,
 };
