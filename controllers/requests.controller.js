@@ -4,11 +4,18 @@ const {
   updateRequest,
   deleteRequest,
 } = require("../services/requests.service");
-
+const service = require("../services/requests.service");
+const ServerResponder = require("../Utils/ServerResponder");
+const verifyStatusOfUser = async (req, res) => {
+  try {
+    const result = await service.verifyStatusOfUser(req);
+    ServerResponder(res, result);
+  } catch (error) {}
+};
 const createRequestController = async (req, res) => {
   try {
     const result = await createRequest(req.body, req.user);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     res.status(500).json({ message: "error", data: error.message });
   }
@@ -17,7 +24,7 @@ const createRequestController = async (req, res) => {
 const getRequestController = async (req, res) => {
   try {
     const result = await getRequestById(req.params.id);
-    res.status(200).json({ message: "success", data: result });
+    ServerResponder(res, result);
   } catch (error) {
     res.status(500).json({ message: "error", data: error.message });
   }
@@ -26,7 +33,7 @@ const getRequestController = async (req, res) => {
 const updateRequestController = async (req, res) => {
   try {
     const result = await updateRequest(req.params.id, req.body);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     res.status(500).json({ message: "error", data: error.message });
   }
@@ -35,13 +42,14 @@ const updateRequestController = async (req, res) => {
 const deleteRequestController = async (req, res) => {
   try {
     const result = await deleteRequest(req.params.id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     res.status(500).json({ message: "error", data: error.message });
   }
 };
 
 module.exports = {
+  verifyStatusOfUser,
   createRequestController,
   getRequestController,
   updateRequestController,

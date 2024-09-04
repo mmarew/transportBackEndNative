@@ -21,44 +21,44 @@ const FindDriverForPassenger = async (requestUniqueId) => {
       LIMIT 1`;
 
     const [searchedDriverData] = await pool.query(sqlToGetDriverWaiting);
+    return searchedDriverData?.at(0);
+    // if (searchedDriverData.length > 0) {
+    //   const { waitUniqueId } = searchedDriverData[0];
 
-    if (searchedDriverData.length > 0) {
-      const { waitUniqueId } = searchedDriverData[0];
+    //   // Update passenger and driver statuses
+    //   await updateuserJourneyStatus(requestUniqueId, "requested");
+    //   await updateDriverWaittingStatus(waitUniqueId, "requested");
 
-      // Update passenger and driver statuses
-      await updateuserJourneyStatus(requestUniqueId, "requested");
-      await updateDriverWaittingStatus(waitUniqueId, "requested");
+    //   // Register the decision made by the passenger
+    //   const decisionResult = await registerDecision({
+    //     requestUniqueId,
+    //     waitUniqueId,
+    //     actor: "passenger",
+    //   });
 
-      // Register the decision made by the passenger
-      const decisionResult = await registerDecision({
-        requestUniqueId,
-        waitUniqueId,
-        actor: "passenger",
-      });
+    //   responseData.status = "requested";
+    //   responseData.decision = decisionResult;
 
-      responseData.status = "requested";
-      responseData.decision = decisionResult;
+    //   // Fetch the driver details
 
-      // Fetch the driver details
+    //   responseData.driver = await verifyExistanceOfData({
+    //     tableName: "DriverWait",
+    //     conditions: {
+    //       waitUniqueId,
+    //     },
+    //   });
+    // }
 
-      responseData.driver = await verifyExistanceOfData({
-        tableName: "DriverWait",
-        conditions: {
-          waitUniqueId,
-        },
-      });
-    }
-
-    responseData.passenger = await verifyExistanceOfData({
-      tableName: "PassengerRequest",
-      conditions: {
-        requestUniqueId,
-      },
-    });
-    return {
-      message: "success",
-      ...responseData,
-    };
+    // responseData.passenger = await verifyExistanceOfData({
+    //   tableName: "PassengerRequest",
+    //   conditions: {
+    //     requestUniqueId,
+    //   },
+    // });
+    // return {
+    //   message: "success",
+    //   ...responseData,
+    // };
   } catch (error) {
     console.error("Error finding driver:", error);
     return {

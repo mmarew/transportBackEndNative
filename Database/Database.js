@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     journeyStatusName VARCHAR(50) NOT NULL, 
     createdAt DATETIME NOT NULL
 ); 
- -- Create the Requests table
+ -- Create the Requests table, it can store passenger and driver requests 
     CREATE TABLE IF NOT EXISTS Requests (
     requestId INT AUTO_INCREMENT PRIMARY KEY,
     requestUniqueId VARCHAR(150) UNIQUE NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
 
--- Create the JourneyDecisions table
+-- Create the JourneyDecisions table this is based on Requests of passenger and driver
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
@@ -96,21 +96,21 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
 
--- Create the Journey table
+
+
+-- Create the Journey table based on JourneyDecisions
 CREATE TABLE IF NOT EXISTS Journey (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    journeyDecisionUniqueId INT NOT NULL,
+    journeyDecisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
     startTime TIMESTAMP NOT NULL,
-    endTime TIMESTAMP NOT NULL,
-    fare DECIMAL(10, 2) NOT NULL,
+    endTime TIMESTAMP  null,
+    fare DECIMAL(10, 2) default 0,
     journeyStatusId INT NOT NULL, 
      -- References JourneyStatus table
     FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions (journeyDecisionUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
-
-
 -- Payments Table
     CREATE TABLE IF NOT EXISTS Payments (
     paymentId INT AUTO_INCREMENT PRIMARY KEY,

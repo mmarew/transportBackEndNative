@@ -16,11 +16,7 @@ Router.post(
   verifyTokenOfAxios,
   controller.registerDriverToGetPassengerRequest
 );
-Router.get(
-  "/drivers/verifyStatusOfDriver",
-  verifyTokenOfAxios,
-  controller.verifyStatusOfDriver
-);
+
 //  rejectPassangersRequest, acceptPassangersRequest;
 Router.put(
   "/rejectPassangersRequest",

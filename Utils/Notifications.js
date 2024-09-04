@@ -13,7 +13,6 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
   return { message: "success", data: "Request accepted successfully" };
 };
 const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
-  console.log("phoneNumber ==========>", phoneNumber);
   listOfPassangerWs.forEach((passenger) => {
     if (passenger.phoneNumber == phoneNumber) {
       WSServerTextMessageResponder(passenger.WS, message);

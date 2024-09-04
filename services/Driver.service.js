@@ -16,18 +16,25 @@ const {
   updateDecisionStatus,
   updateJourneyStatus,
   updateOTPToUsersCredentials,
+  updateData,
 } = require("../CRUD/Update/Data.update");
 const {
   getDataOfSingleDriverWaiting,
   getSingleDataOfPassengerRequest,
   getDataOfSingleDecision,
   getSingleDataOfJourney,
+  verifyExistanceOfData,
+  performJoinSelect,
+  findPassengerForDriver,
 } = require("../CRUD/Read/ReadData");
 const {
   insertJourneyData,
   registerDriverTostartJob,
   registerUserToUsersTable,
+  insertData,
 } = require("../CRUD/Create/CreateData");
+const { sendNotificationToPassenger } = require("../Utils/Notifications");
+const currentDate = require("../Utils/currentDate");
 
 const checkGetMethodes = async () => {
   return {
@@ -35,12 +42,6 @@ const checkGetMethodes = async () => {
     data: "checkGetMethodes",
   };
 };
-async function findPassengerForDriver() {
-  // create sql to get passanger request in the database with table name of PassengerRequest
-  const sql = `SELECT * FROM PassengerRequest join Users on PassengerRequest.userUniqueId = Users.userUniqueId and PassengerRequest.status = "waiting" ORDER BY requestId DESC LIMIT 1`;
-  const [rows] = await pool.query(sql);
-  return rows;
-}
 
 const cancelRequest = async (req) => {
   try {
@@ -49,16 +50,6 @@ const cancelRequest = async (req) => {
       requestUniqueId = body?.requestUniqueId;
     const waitUniqueId = body?.waitUniqueId;
     const decisionUniqueId = body?.decisionUniqueId;
-
-    console.log(
-      "requestUniqueId=========",
-      requestUniqueId,
-      " decisionUniqueId======",
-      decisionUniqueId,
-      " waitUniqueId==========",
-      waitUniqueId
-    );
-    // return;
     const userData = req?.user?.data;
     if (!userData) {
       return { message: "error", error: "User not found" };
@@ -269,144 +260,6 @@ const registerDriverToGetPassengerRequest = async (req) => {
   }
 };
 
-const verifyStatusOfDriver = async (req) => {
-  try {
-    const { userUniqueId } = req.user.data;
-    // console.log("userUniqueId", userUniqueId);
-    const sqlToVerifyWaiting = `SELECT * FROM driverWaits WHERE userUniqueId = ? order by waitId desc limit 1 `;
-    const [driverWaitResult] = await pool.query(sqlToVerifyWaiting, [
-      userUniqueId,
-    ]);
-    // console.log("driverWaitResult", driverWaitResult);
-    let status = null,
-      waitUniqueId = null,
-      decision = null,
-      passenger = null,
-      driverWaiting = null,
-      journey = null;
-    if (driverWaitResult?.length > 0) {
-      status = driverWaitResult?.at(0)?.status;
-      waitUniqueId = driverWaitResult?.at(0)?.waitUniqueId;
-      driverWaiting = driverWaitResult?.at(0);
-    } else {
-      return { message: "Success", data: "driver can start job" };
-    }
-    // console.log("status of driver ", status);
-    if (!status) {
-      return { message: "error", error: "unknown status of driver" };
-    }
-    if (
-      status == "accepted" ||
-      status == "journey started" ||
-      status == "requested"
-    ) {
-      const waitUniqueId = driverWaitResult[0].waitUniqueId;
-      const sqlToGetDecisionStatus = `select * from journeyDecisions  where driverWaitUniqueId = ? order by decisionId desc limit 1 `;
-      const [rows] = await pool.query(sqlToGetDecisionStatus, waitUniqueId);
-      const decisionUniqueId = rows?.at(0)?.decisionUniqueId;
-      if (rows?.length > 0) {
-        if (status == "journey started") {
-          const sqlToGetDataOfJourney = `select * from journeys where decisionUniqueId = ?`;
-          const [resultOfJourney] = await pool.query(
-            sqlToGetDataOfJourney,
-            decisionUniqueId
-          );
-          console.log("resultOfJourney", resultOfJourney);
-          journey = resultOfJourney?.at(0);
-        }
-
-        const passengerRequestUniqueId = rows?.at(0)?.passengerRequestUniqueId;
-        // get decision data
-        decision = rows?.at(0);
-        const sqlToGetPassengerRequest = `select * from PassengerRequest,passenger where requestUniqueId = ? and Users.userUniqueId = PassengerRequest.userUniqueId`;
-        const [passengerRequest] = await pool.query(sqlToGetPassengerRequest, [
-          passengerRequestUniqueId,
-        ]);
-        if (passengerRequest.length == 0)
-          return {
-            message: "error",
-            error: "Unable to get passenger request data",
-          };
-        passenger = passengerRequest[0];
-        const responseData = {
-          message: "success",
-          status,
-          passenger,
-          decision,
-          driver: driverWaiting,
-          journey: journey ? journey : "",
-        };
-        return responseData;
-      } else {
-        return { message: "error", error: "driver did not give any yet" };
-      }
-    } else if (status == "waiting") {
-      // findPassengerForDriver
-      const passenger = await findPassengerForDriver();
-      console.log("passenger====>", passenger);
-      if (passenger?.length == 0)
-        return {
-          message: "success",
-          status,
-          passenger: null,
-          decision,
-          driver: driverWaiting,
-          journey: journey ? journey : "",
-          data: "passenger not found",
-        };
-      // register decision to agree with passenger or not to agree
-      const requestUniqueId = passenger?.at(0)?.requestUniqueId;
-      if (!requestUniqueId)
-        return { message: "error", error: "Unable to get passangers detail" };
-      // let decisionResult = await verifyExistanceOfPassangerInDecision(
-      //   requestUniqueId
-      // );
-      let registerOnDecision = await registerDecision({
-        requestUniqueId,
-        waitUniqueId,
-        actor: "driver",
-      });
-
-      if (registerOnDecision?.message == "success") {
-        const waitingResult = await updateDriverWaittingStatus(
-          waitUniqueId,
-          "requested"
-        );
-        if (waitingResult.affectedRows == 0)
-          return { message: "error", error: "Unable to update waiting data" };
-        const passengerRequestResult = await updateuserJourneyStatus(
-          requestUniqueId,
-          "requested"
-        );
-        if (passengerRequestResult.affectedRows == 0)
-          return {
-            message: "error",
-            error: "Unable to update passanger request data",
-          };
-        status = "requested";
-        return {
-          message: "success",
-          status,
-          passenger: passenger?.at(0),
-          decision: registerOnDecision,
-          driver: driverWaiting,
-          journey: journey ? journey : "",
-        };
-      } else {
-        return { message: "error", error: "Unable to register decision" };
-      }
-    } else {
-      console.log("status", status);
-
-      // console.log("  else in verify status of driver", error);
-      return { message: "succsee", data: "driver can start job" };
-    }
-  } catch (error) {
-    console.error("Error in verifyStatusOfDriver:", error);
-    return { message: "error", error: "Unable to verify current status" };
-  }
-};
-
 const rejectPassangersRequest = async (req) => {
   try {
     const { decisionUniqueId, requestUniqueId, waitUniqueId, passengerPhone } =
@@ -446,68 +299,74 @@ const rejectPassangersRequest = async (req) => {
 };
 const acceptPassangersRequest = async (req) => {
   try {
-    const { decisionUniqueId, waitUniqueId, requestUniqueId } = req.body;
-    const updateResultOfDecision = await updateDecisionStatus(
-      decisionUniqueId,
-      "accepted"
-    );
-    const updateResultOfPassangerRequest = await updateuserJourneyStatus(
-      requestUniqueId,
-      "accepted"
-    );
-    console.log("requestUniqueId", requestUniqueId);
-    // return;
-
-    const updateResultOfDriverWaiting = await updateDriverWaittingStatus(
-      waitUniqueId,
-      "accepted"
-    );
-    console.log(
-      "updateResultOfPassangerRequest",
-      updateResultOfPassangerRequest
-    );
+    const {
+      journeyDecisionUniqueId,
+      passengerRequestUniqueId,
+      driverWaitUniqueId,
+    } = req.body;
+    // update journey Decisions
+    const journeyDecisionStatus = await updateData({
+      tableName: "journeyDecisions",
+      updateValues: { journeyStatusId: 3 },
+      conditions: { journeyDecisionUniqueId },
+    });
+    //update passengers Reqests journey status
+    const passangerRequestStatus = await updateData({
+      tableName: "Requests",
+      updateValues: { journeyStatusId: 3 },
+      conditions: { requestUniqueId: passengerRequestUniqueId },
+    });
+    // update drivers request waitting status
+    const driverWaitStatus = await updateData({
+      tableName: "Requests",
+      updateValues: { journeyStatusId: 3 },
+      conditions: { requestUniqueId: driverWaitUniqueId },
+    });
     if (
-      updateResultOfDecision.affectedRows == 1 &&
-      updateResultOfDriverWaiting.affectedRows == 1 &&
-      updateResultOfPassangerRequest.affectedRows == 1
+      journeyDecisionStatus.affectedRows > 0 &&
+      driverWaitStatus.affectedRows > 0 &&
+      passangerRequestStatus.affectedRows > 0
     ) {
-      console.log("waitUniqueId", waitUniqueId);
-      const driver = await getDataOfSingleDriverWaiting(
-        "waitUniqueId",
-        waitUniqueId
-      );
-      if (!driver)
-        return { message: "error", data: "un able to get driver data" };
-      console.log("driver data is =>", driver);
-      const passenger = await getSingleDataOfPassengerRequest(
-        "requestUniqueId",
-        requestUniqueId
-      );
-      if (!passenger)
-        return { message: "error", data: "un able to get passenger data" };
-      const decision = await getDataOfSingleDecision(
-        "decisionUniqueId",
-        decisionUniqueId
-      );
-      if (!decision)
-        return { message: "error", data: "unable to get decision data" };
-      const phoneNumber = passenger?.passengerPhone;
+      // get passengers inf and current request
+      const passenger = await performJoinSelect({
+          baseTable: "Users",
+          joins: [
+            {
+              table: "Requests",
+              on: "Requests.userUniqueId = Users.userUniqueId",
+            },
+          ],
 
-      const message = {
-        passenger,
-        decision,
-        driver,
-        journey: null,
-        status: "accepted",
-      };
-      const result = await sendAcceptanceNotificationToPassanger({
-        message,
-        phoneNumber,
+          conditions: { requestUniqueId: passengerRequestUniqueId },
+        }),
+        driver = await performJoinSelect({
+          baseTable: "Users",
+          joins: [
+            {
+              table: "Requests",
+              on: "Requests.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: { requestUniqueId: driverWaitUniqueId },
+        }),
+        decision = await verifyExistanceOfData({
+          tableName: "journeyDecisions",
+          conditions: { journeyDecisionUniqueId },
+        });
+      const userPassengerPhoneNumber = passenger[0].phoneNumber;
+      sendNotificationToPassenger({
+        phoneNumber: userPassengerPhoneNumber,
+        message: {
+          status: 3,
+          message: {
+            driver: driver[0],
+            passenger: passenger[0],
+            decision: decision[0],
+          },
+        },
       });
-
-      return message;
+      return { message: "success", data: "Request accepted successfully" };
     } else {
-      console.log("error in accept passangers request");
       return { message: "error", error: "Request acceptance failed" };
     }
   } catch (error) {
@@ -531,105 +390,89 @@ const sendAcceptanceNotificationToPassanger = async ({
 
 const startJourney = async (req) => {
   try {
-    const { waitUniqueId, requestUniqueId, decisionUniqueId } = req.body;
-
-    // Update statuses for driver, passenger, and decision
-    const waitStatusResult = await updateDriverWaittingStatus(
-      waitUniqueId,
-      "journey started"
-    );
-    const userJourneyStatus = await updateuserJourneyStatus(
-      requestUniqueId,
-      "journey started"
-    );
-    const decisionStatusResult = await updateDecisionStatus(
-      decisionUniqueId,
-      "journey started"
-    );
-    // Check if all updates were successful
-    if (
-      waitStatusResult.affectedRows > 0 &&
-      userJourneyStatus.affectedRows > 0 &&
-      decisionStatusResult.affectedRows > 0
-    ) {
-      const passenger = await getSingleDataOfPassengerRequest(
-        "requestUniqueId",
-        requestUniqueId
-      );
-      const passengerPhone = passenger?.passengerPhone;
-      // check if decisionUniqueId is in journey
-      let journeyResult = await getSingleDataOfJourney(
-        "decisionUniqueId",
-        decisionUniqueId
-      );
-
-      const driver = await getDataOfSingleDriverWaiting(
-        "waitUniqueId",
-        waitUniqueId
-      );
-      const decision = await getDataOfSingleDecision(
-        "decisionUniqueId",
-        decisionUniqueId
-      );
-      let journey = await getSingleDataOfJourney(
-        "decisionUniqueId",
-        decisionUniqueId
-      );
-
-      if (journeyResult) {
-        sendAcceptanceNotificationToPassanger({
-          message: {
-            message: "journey started",
-            status: "journey started",
-            driver,
-            decision,
-            journey,
-            passenger,
+    const {
+      journeyDecisionUniqueId,
+      passengerRequestUniqueId,
+      driverWaitUniqueId,
+    } = req.body;
+    console.log("req.body============>", req.body);
+    // update journey Decisions
+    const decisionStatus = await updateData({
+      tableName: "journeyDecisions",
+      updateValues: { journeyStatusId: 4 },
+      conditions: { journeyDecisionUniqueId },
+    });
+    // update passengers Reqests journey status
+    const passangerRequestStatus = await updateData({
+      tableName: "Requests",
+      updateValues: { journeyStatusId: 4 },
+      conditions: { requestUniqueId: passengerRequestUniqueId },
+    });
+    // update drivers request waitting status
+    const driverWaitStatus = await updateData({
+      tableName: "Requests",
+      updateValues: { journeyStatusId: 4 },
+      conditions: { requestUniqueId: driverWaitUniqueId },
+    });
+    // get passengers info and current request
+    const passenger = await performJoinSelect({
+        baseTable: "Users",
+        joins: [
+          {
+            table: "Requests",
+            on: "Requests.userUniqueId = Users.userUniqueId",
           },
-          phoneNumber: passengerPhone,
-        });
-        return {
-          message: "success",
-          journey: journeyResult,
-          status: "journey started",
-          driver,
-          decision,
-          journey,
-          passenger,
-        };
-      } else {
-        // Insert new journey record
-        const journeyInsertResult = await insertJourneyData({
-          decisionUniqueId,
-        });
-        if (journeyInsertResult.message == "success") {
-          journey = journeyInsertResult;
-          sendAcceptanceNotificationToPassanger({
-            message: {
-              message: "journey started",
-              status: "journey started",
-              driver,
-              decision,
-              journey,
-              passenger,
-            },
-            phoneNumber: passengerPhone,
-          });
-          return {
-            message: "success",
-            data: "Journey started successfully",
-            journey: journeyInsertResult,
-          };
-        } else {
-          return { message: "error", error: "Failed to start journey" };
-        }
-      }
-    } else {
-      return {
-        message: "error",
-        error: "Failed to update statuses for journey start",
-      };
+        ],
+
+        conditions: { requestUniqueId: passengerRequestUniqueId },
+      }),
+      // get drivers info and current request
+      driver = await performJoinSelect({
+        baseTable: "Users",
+        joins: [
+          {
+            table: "Requests",
+            on: "Requests.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { requestUniqueId: driverWaitUniqueId },
+      }),
+      // update journey decisions
+      decision = await verifyExistanceOfData({
+        tableName: "journeyDecisions",
+        conditions: { journeyDecisionUniqueId },
+      });
+    // verify if journey exists
+    let journey = await verifyExistanceOfData({
+      tableName: "Journey",
+      conditions: { journeyDecisionUniqueId },
+    });
+    if (journey.length <= 0) {
+      // insert data to journey table if journey doesn't exist
+      const journeyUniqueId = uuidv4();
+      const registerJourney = await insertData({
+        tableName: "Journey",
+        colAndVal: {
+          journeyUniqueId,
+          journeyDecisionUniqueId,
+          startTime: currentDate(),
+          journeyStatusId: 4,
+        },
+      });
+      journey = await verifyExistanceOfData({
+        tableName: "Journey",
+        conditions: { journeyUniqueId },
+      });
     }
+    return {
+      message: "success",
+      data: {
+        passenger: passenger[0],
+        driver: driver[0],
+        decision: decision[0],
+        journey: journey[0],
+      },
+    };
   } catch (error) {
     console.error("Error starting journey:", error);
     return { message: "error", error: "Failed to start journey" };
@@ -638,65 +481,87 @@ const startJourney = async (req) => {
 
 const driverArrivedDestination = async (req) => {
   try {
-    const { waitUniqueId, requestUniqueId, decisionUniqueId, journeyUniqueId } =
-      req.body;
-    console.log("req.body====", req.body);
-    const decisionStatus = await updateDecisionStatus(
-      decisionUniqueId,
-      "completed"
-    );
-    console.log("decisionStatus=======> ", decisionStatus);
-    if (decisionStatus.affectedRows === 0) {
-      return { message: "error", error: "Failed to update decision status" };
-    }
-    // Update driver waiting status
-    const waitStatusResult = await updateDriverWaittingStatus(
-      waitUniqueId,
-      "completed"
-    );
-    if (waitStatusResult.affectedRows === 0) {
-      return {
-        message: "error",
-        error: "Failed to update driver waiting status",
-      };
-    }
+    const {
+      journeyDecisionUniqueId,
+      passengerRequestUniqueId,
+      driverWaitUniqueId,
+    } = req.body;
+    // update journey Decisions
+    const decisionStatus = await updateData({
+        tableName: "journeyDecisions",
+        updateValues: { journeyStatusId: 5 },
+        conditions: { journeyDecisionUniqueId },
+      }),
+      // update passengers Reqests journey status
+      passangerRequestStatus = await updateData({
+        tableName: "Requests",
+        updateValues: { journeyStatusId: 5 },
+        conditions: { requestUniqueId: passengerRequestUniqueId },
+      }),
+      // update drivers request waitting status
+      driverWaitStatus = await updateData({
+        tableName: "Requests",
+        updateValues: { journeyStatusId: 5 },
+        conditions: { requestUniqueId: driverWaitUniqueId },
+      }),
+      // get passengers info and current request
+      passenger = await performJoinSelect({
+        baseTable: "Users",
+        joins: [
+          {
+            table: "Requests",
+            on: "Requests.userUniqueId = Users.userUniqueId",
+          },
+        ],
 
-    // Update passenger request status
-    const userJourneyStatus = await updateuserJourneyStatus(
-      requestUniqueId,
-      "completed"
-    );
-    if (userJourneyStatus.affectedRows === 0) {
-      return {
-        message: "error",
-        error: "Failed to update passenger request status",
-      };
-    }
-
-    // Update journey status
-    const journeyStatusResult = await updateJourneyStatus(
-      journeyUniqueId,
-      "completed"
-    );
-    const passangerData = await getSingleDataOfPassengerRequest(
-      "requestUniqueId",
-      requestUniqueId
-    );
-    const passengerPhone = passangerData?.passengerPhone;
-    console.log("passengerPhone", passangerData.passengerPhone);
-    sendAcceptanceNotificationToPassanger({
-      message: {
-        message: "success",
-        data: "Journey completed successfully",
-        status: "completed",
+        conditions: { requestUniqueId: passengerRequestUniqueId },
+      }),
+      // get drivers info and current request
+      driver = await performJoinSelect({
+        baseTable: "Users",
+        joins: [
+          {
+            table: "Requests",
+            on: "Requests.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { requestUniqueId: driverWaitUniqueId },
+      }),
+      decision = await verifyExistanceOfData({
+        tableName: "journeyDecisions",
+        conditions: { journeyDecisionUniqueId },
+      }),
+      // insert data to journey table
+      updateJourney = await updateData({
+        tableName: "Journey",
+        conditions: { journeyDecisionUniqueId },
+        updateValues: { journeyStatusId: 5 },
+      }),
+      journey = await verifyExistanceOfData({
+        tableName: "Journey",
+        conditions: { journeyDecisionUniqueId },
+      }),
+      passengersPhoneNumber = passenger[0].phoneNumber,
+      Notifications = await sendNotificationToPassenger({
+        phoneNumber: passengersPhoneNumber,
+        message: {
+          passenger: passenger[0],
+          driver: driver[0],
+          decision: decision[0],
+          journey: journey[0],
+          status: 5,
+        },
+      });
+    return {
+      message: "success",
+      data: {
+        passenger: passenger[0],
+        driver: driver[0],
+        decision: decision[0],
+        journey: journey[0],
+        status: 5,
       },
-      phoneNumber: passengerPhone,
-    });
-    if (journeyStatusResult.affectedRows === 0) {
-      return { message: "error", error: "Failed to update journey status" };
-    }
-
-    return { message: "success", data: "Journey completed successfully" };
+    };
   } catch (error) {
     console.error("Error completing journey:", error);
     return { message: "error", error: "Failed to complete journey" };
@@ -721,12 +586,10 @@ const deleteTablesData = async (req) => {
   }
 };
 module.exports = {
-  findPassengerForDriver,
   driverArrivedDestination,
   startJourney,
   rejectPassangersRequest,
   acceptPassangersRequest,
-  verifyStatusOfDriver,
   registerDriverToGetPassengerRequest,
   cancelRequest,
   checkGetMethodes,

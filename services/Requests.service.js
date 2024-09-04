@@ -4,6 +4,7 @@ const {
   verifyExistanceOfData,
   findDriverForPassenger,
   findPassengerForDriver,
+  performJoinSelect,
 } = require("../CRUD/Read/ReadData");
 const { v4: uuidv4 } = require("uuid");
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -12,6 +13,7 @@ const {
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
 const FindDriverForPassenger = require("../Utils/FindDriverToPassanger");
+const { pool } = require("../Middleware/Database.config");
 // begin of createRequest
 const createRequest = async (body, user) => {
   try {
@@ -154,18 +156,8 @@ const processDriverRequest = async (existedUser, existingRequest) => {
   // Notify passengers about the driver's availability
   passenger = await findPassengerForDriver(existedUser.userUniqueId);
   if (passenger) {
-    await handlePassengerFoundForDriver(passenger, existingRequest);
-
-    // Check if a journey decision exists
-    decision = await verifyExistanceOfData({
-      tableName: "JourneyDecisions",
-      conditions: {
-        driverRequestId: requestUniqueId,
-        passengerWaitId: passenger.requestUniqueId,
-      },
-    });
+    decision = await handlePassengerFoundForDriver(passenger, existingRequest);
   }
-
   // Prepare the driver object for the response
   let driver = { ...existedUser, ...existingRequest };
 
@@ -186,6 +178,7 @@ const handleExistingRequest = async (
 ) => {
   let status = existingRequest.journeyStatusId;
   const requestUniqueId = existingRequest.requestUniqueId;
+  console.log("status=========>", status);
   // journeyStatusId 1 is in waiting stage
   if (status === 1) {
     if (requestType === "PASSENGER") {
@@ -346,6 +339,12 @@ const handleDriverFoundForPassenger = async (driver, request) => {
     conditions: { requestUniqueId: request?.requestUniqueId },
     updateValues: { journeyStatusId: status },
   });
+  // update the driver's request status
+  await updateData({
+    tableName: "Requests",
+    conditions: { requestUniqueId: driver?.requestUniqueId },
+    updateValues: { journeyStatusId: status },
+  });
 
   // Insert data into JourneyDecisions table
   const journeyDecisionUniqueId = uuidv4();
@@ -360,7 +359,7 @@ const handleDriverFoundForPassenger = async (driver, request) => {
     },
   });
   // get the decision data
-  decision = verifyExistanceOfData({
+  decision = await verifyExistanceOfData({
     tableName: "JourneyDecisions",
     conditions: { journeyDecisionUniqueId },
   });
@@ -471,8 +470,214 @@ const deleteRequest = async (requestId) => {
   }
 };
 // end of deleteRequest
+const verifyStatusOfUser = async (req) => {
+  try {
+    const { userUniqueId } = req.user.data;
+
+    // Fetch the latest request from the Requests table for the user
+    const sqlToVerifyWaiting = `SELECT * FROM Users 
+                                JOIN Requests ON Requests.userUniqueId = Users.userUniqueId 
+                                WHERE Requests.userUniqueId = ? 
+                                ORDER BY requestId DESC LIMIT 1`;
+    const [userWaitResult] = await pool.query(sqlToVerifyWaiting, [
+      userUniqueId,
+    ]);
+
+    let status = null,
+      requestUniqueId = null,
+      decision = null,
+      driver = null,
+      passenger = null,
+      journey = null;
+
+    if (userWaitResult?.length > 0) {
+      status = userWaitResult[0]?.journeyStatusId;
+      requestUniqueId = userWaitResult[0]?.requestUniqueId;
+    } else {
+      return { message: "Success", data: "User canmake a request" };
+    }
+
+    if (!status) {
+      return { message: "error", error: "Unknown status of user" };
+    }
+
+    const requestType = userWaitResult[0]?.requestType; // Check if the user is a passenger or a driver
+
+    // Handle statuses 2, 3, or 4
+    if (status === 2 || status === 3 || status === 4) {
+      const sqlToGetDecisionStatus = `SELECT * FROM JourneyDecisions 
+                                      WHERE ${
+                                        requestType === "DRIVER"
+                                          ? "driverWaitId"
+                                          : "passengerRequestId"
+                                      } = ? 
+                                      ORDER BY journeyDecisionId DESC LIMIT 1`;
+      const [decisionRows] = await pool.query(
+        sqlToGetDecisionStatus,
+        requestUniqueId
+      );
+      const journeyDecisionUniqueId = decisionRows[0]?.journeyDecisionUniqueId;
+
+      if (decisionRows?.length > 0) {
+        decision = decisionRows[0];
+
+        if (status === 4) {
+          journey = await verifyExistanceOfData({
+            tableName: "Journey",
+            conditions: { journeyDecisionUniqueId },
+          });
+          journey = journey?.at(0);
+        }
+
+        const otherPartyRequestId =
+          requestType === "DRIVER"
+            ? decisionRows[0]?.passengerRequestId
+            : decisionRows[0]?.driverWaitId;
+
+        // Fetch the other party's request (Driver if user is passenger, Passenger if user is driver)
+        const otherPartyRequest = await performJoinSelect({
+          baseTable: "Users",
+          joins: [
+            {
+              table: "Requests",
+              on: "Requests.userUniqueId=Users.userUniqueId",
+            },
+          ],
+          conditions: { "Requests.requestUniqueId": otherPartyRequestId },
+        });
+
+        if (!otherPartyRequest?.length) {
+          return {
+            message: "error",
+            error: "Unable to get the other party's request data",
+          };
+        }
+
+        if (requestType === "DRIVER") {
+          passenger = otherPartyRequest[0]; // The other party is the passenger
+          driver = userWaitResult[0]; // The current user is the driver
+        } else {
+          driver = otherPartyRequest[0]; // The other party is the driver
+          passenger = userWaitResult[0]; // The current user is the passenger
+        }
+
+        const responseData = {
+          message: "success",
+          status,
+          driver,
+          passenger,
+          decision,
+          journey: journey || null,
+        };
+        return responseData;
+      } else {
+        return {
+          message: "error",
+          error: "No decision has been made yet",
+        };
+      }
+    }
+
+    // If the status is "waiting"
+    else if (status === 1) {
+      let otherParty = null;
+
+      if (requestType === "DRIVER") {
+        // Driver is waiting for a passenger
+        otherParty = await findPassengerForDriver(userUniqueId);
+      } else {
+        // Passenger is waiting for a driver
+        otherParty = await findDriverForPassenger(userUniqueId);
+      }
+
+      if (!otherParty?.length) {
+        return {
+          message: "success",
+          status,
+          driver: requestType === "DRIVER" ? userWaitResult[0] : null,
+          passenger: requestType === "PASSENGER" ? userWaitResult[0] : null,
+          decision: null,
+          journey: journey || null,
+          data: `${
+            requestType === "DRIVER" ? "Passenger" : "Driver"
+          } not found`,
+        };
+      }
+
+      const otherPartyRequestUniqueId = otherParty[0]?.requestUniqueId;
+      if (!otherPartyRequestUniqueId) {
+        return {
+          message: "error",
+          error: "Unable to get the other party's details",
+        };
+      }
+
+      const journeyDecisionUniqueId = uuidv4();
+      const registerDecision = await insertData({
+        tableName: "JourneyDecisions",
+        colAndVal: {
+          journeyDecisionUniqueId,
+          passengerRequestId:
+            requestType === "PASSENGER"
+              ? requestUniqueId
+              : otherPartyRequestUniqueId,
+          driverWaitId:
+            requestType === "DRIVER"
+              ? requestUniqueId
+              : otherPartyRequestUniqueId,
+          journeyStatusId: 2,
+          decisionTime: currentDate(),
+        },
+      });
+
+      if (registerDecision?.message === "success") {
+        // Update the status for both the user and the other party
+        const waitingResult = await updateData({
+          tableName: "Requests",
+          conditions: { requestUniqueId },
+          updateValues: { journeyStatusId: 2 },
+        });
+
+        const otherPartyResult = await updateData({
+          tableName: "Requests",
+          conditions: { requestUniqueId: otherPartyRequestUniqueId },
+          updateValues: { journeyStatusId: 2 },
+        });
+
+        if (
+          waitingResult.affectedRows === 0 ||
+          otherPartyResult.affectedRows === 0
+        ) {
+          return {
+            message: "error",
+            error: "Unable to update the request status",
+          };
+        }
+
+        return {
+          message: "success",
+          status: "requested",
+          driver: requestType === "DRIVER" ? userWaitResult[0] : otherParty[0],
+          passenger:
+            requestType === "PASSENGER" ? userWaitResult[0] : otherParty[0],
+          decision: registerDecision,
+          journey: journey || "",
+        };
+      } else {
+        return { message: "error", error: "Unable to register decision" };
+      }
+    } else {
+      return { message: "success", data: "User can start job" };
+    }
+  } catch (error) {
+    console.error("Error in verifyStatusOfUser:", error);
+    return { message: "error", error: "Unable to verify current status" };
+  }
+};
+
 // module exports part
 module.exports = {
+  verifyStatusOfUser,
   createRequest,
   getRequestById,
   updateRequest,

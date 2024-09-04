@@ -11,9 +11,7 @@ const cancelRequest = async (req, res, next) => {
 const registerDriverToGetPassengerRequest = async (req, res, next) => {
   ServerResponder(res, await services.registerDriverToGetPassengerRequest(req));
 };
-const verifyStatusOfDriver = async (req, res, next) => {
-  ServerResponder(res, await services.verifyStatusOfDriver(req));
-};
+
 const acceptPassangersRequest = async (req, res) => {
   ServerResponder(res, await services.acceptPassangersRequest(req));
 };
@@ -35,7 +33,6 @@ module.exports = {
   startJourney,
   rejectPassangersRequest,
   acceptPassangersRequest,
-  verifyStatusOfDriver,
   registerDriverToGetPassengerRequest,
   checkGetMethodes,
   cancelRequest,

@@ -77,7 +77,69 @@ const findPassengerForDriver = async (userUniqueId) => {
   });
   return driverData[0];
 };
+const performJoinSelect = async ({
+  baseTable,
+  joins = [],
+  conditions = {},
+  operator = "AND",
+}) => {
+  // Validate the operator
+  if (operator !== "AND" && operator !== "OR") {
+    throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
+  }
+
+  // Build the WHERE clause dynamically based on the conditions object
+  const whereClause = Object.keys(conditions)
+    .map((col) => {
+      const value = conditions[col];
+      if (Array.isArray(value)) {
+        // If the value is an array, use the IN clause
+        const placeholders = value.map(() => "?").join(", ");
+        return `${col} IN (${placeholders})`;
+      } else {
+        // Otherwise, use the standard equality check
+        return `${col} = ?`;
+      }
+    })
+    .join(` ${operator} `);
+
+  // Flatten the values array, since some elements might be arrays themselves
+  const values = Object.values(conditions).flat();
+
+  // Build the JOIN clauses dynamically
+  const joinClauses = joins
+    .map(({ table, on }) => `JOIN ${table} ON ${on}`)
+    .join(" ");
+
+  // Combine everything into a complete SQL query
+  const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} WHERE ${whereClause}`;
+
+  try {
+    const [result] = await pool.query(sqlQuery, values);
+    return result; // Return the result set
+  } catch (error) {
+    console.error("Error querying data:", error);
+    throw error;
+  }
+};
+// const result = await performJoinSelect({
+//   baseTable: "Requests",
+//   joins: [
+//     {
+//       table: "Users",
+//       on: "Requests.userUniqueId = Users.userUniqueId",
+//     },
+//     // You can add more joins if needed
+//   ],
+//   conditions: {
+//     "Users.userUniqueId": "some-unique-id",
+//     "Requests.requestType": "PASSENGER",
+//     "Requests.journeyStatusId": [1, 2, 3], // Multiple values using IN
+//   },
+// });
+
 module.exports = {
+  performJoinSelect,
   findDriverForPassenger,
   findPassengerForDriver,
   verifyExistanceOfData,
