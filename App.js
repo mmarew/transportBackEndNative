@@ -8,7 +8,6 @@ const Routes = require("./Routes/index.js");
 const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
-const handleOnMessage = require("./controllers/WSOnMessageHandler.controller.js");
 const { addSMSSender } = require("./services/WSSMSSender.service.js");
 
 // Initialize Express app
@@ -40,7 +39,6 @@ wss.on("connection", (ws, req) => {
     console.log("textMessage", textMessage);
 
     if (textMessage) {
-      handleOnMessage(ws, textMessage);
     }
   });
 

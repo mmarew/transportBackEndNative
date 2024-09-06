@@ -9,11 +9,7 @@ const { pool } = require("../../Middleware/Database.config");
  * @param {string} [params.operator='AND'] - The logical operator to use between conditions ('AND' or 'OR').
  * @returns {Promise} - A promise that resolves with the first matching row or undefined if no match is found.
  */
-const verifyExistanceOfData = async ({
-  tableName,
-  conditions,
-  operator = "AND",
-}) => {
+const getData = async ({ tableName, conditions, operator = "AND" }) => {
   // Validate the operator
   if (operator !== "AND" && operator !== "OR") {
     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
@@ -47,7 +43,7 @@ const verifyExistanceOfData = async ({
 
 const findDriverForPassenger = async (userUniqueId) => {
   // find driver who is in waiting
-  const driverRequestData = await verifyExistanceOfData({
+  const driverRequestData = await getData({
     tableName: "Requests",
     conditions: { journeyStatusId: 1, requestType: "DRIVER" },
     operator: "AND",
@@ -58,7 +54,7 @@ const findDriverForPassenger = async (userUniqueId) => {
   if (driverRequestData.length > 0) {
     driverUserUniqueId = driverRequestData[0]?.userUniqueId;
     // find detailes of driver
-    userDriverInfo = await verifyExistanceOfData({
+    userDriverInfo = await getData({
       tableName: "Users",
       conditions: { userUniqueId: driverUserUniqueId },
       operator: "AND",
@@ -70,7 +66,7 @@ const findDriverForPassenger = async (userUniqueId) => {
   }
 };
 const findPassengerForDriver = async (userUniqueId) => {
-  const driverData = await verifyExistanceOfData({
+  const driverData = await getData({
     tableName: "Requests",
     conditions: { journeyStatusId: 1, requestType: "PASSENGER" },
     operator: "AND",
@@ -142,5 +138,5 @@ module.exports = {
   performJoinSelect,
   findDriverForPassenger,
   findPassengerForDriver,
-  verifyExistanceOfData,
+  getData,
 };

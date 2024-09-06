@@ -1,23 +1,30 @@
 const {
-  createRequest,
   getRequestById,
-  updateRequest,
   deleteRequest,
 } = require("../services/requests.service");
 const service = require("../services/requests.service");
 const ServerResponder = require("../Utils/ServerResponder");
+const updateServices = require("../services/Request.update.service");
 const verifyStatusOfUser = async (req, res) => {
   try {
     const result = await service.verifyStatusOfUser(req);
     ServerResponder(res, result);
-  } catch (error) {}
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to verify status of user",
+    });
+  }
 };
-const createRequestController = async (req, res) => {
+const createRequest = async (req, res) => {
   try {
-    const result = await createRequest(req.body, req.user);
+    const result = await service.createRequest(req.body, req.user);
     ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({ message: "error", data: error.message });
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to create request",
+    });
   }
 };
 
@@ -26,16 +33,23 @@ const getRequestController = async (req, res) => {
     const result = await getRequestById(req.params.id);
     ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({ message: "error", data: error.message });
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to  get request",
+    });
   }
 };
 
-const updateRequestController = async (req, res) => {
+const acceptPassengerRequest = async (req, res) => {
   try {
-    const result = await updateRequest(req.params.id, req.body);
+    const result = await updateServices.acceptPassengerRequest(req);
     ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({ message: "error", data: error.message });
+    console.log("error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to accept request",
+    });
   }
 };
 
@@ -44,14 +58,53 @@ const deleteRequestController = async (req, res) => {
     const result = await deleteRequest(req.params.id);
     ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({ message: "error", data: error.message });
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to delete request",
+    });
   }
 };
 
+const startJourney = async (req, res) => {
+  try {
+    const result = await updateServices.startJourney(req);
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to start journey",
+    });
+  }
+};
+const cancelRequest = async (req, res) => {
+  try {
+    const result = await service.cancelRequest(req);
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to cancel request",
+    });
+  }
+};
+const journeyCompleted = async (req, res) => {
+  try {
+    const result = await updateServices.journeyCompleted(req);
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to complete journey",
+    });
+  }
+};
 module.exports = {
+  startJourney,
+  journeyCompleted,
+  cancelRequest,
   verifyStatusOfUser,
-  createRequestController,
+  createRequest,
   getRequestController,
-  updateRequestController,
+  acceptPassengerRequest,
   deleteRequestController,
 };

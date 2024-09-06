@@ -1,28 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
-const getFormattedDateTime = require("../../Utils/currentDate");
 
-const insertJourneyData = async ({ decisionUniqueId }) => {
-  const now = getFormattedDateTime();
-  const journeyUniqueId = uuidv4();
-  const sqlToStartJourney = `INSERT INTO journeys (journeyUniqueId, decisionUniqueId, startTime, status) VALUES (?, ?, ?, ?)`;
-  const values = [journeyUniqueId, decisionUniqueId, now, "journey started"];
-  const [result] = await pool.query(sqlToStartJourney, values);
-  const journeyData = {
-    journeyUniqueId: journeyUniqueId,
-    decisionUniqueId: decisionUniqueId,
-    startTime: now,
-    status: "journey started",
-    message: "success",
-  };
-  if (result.affectedRows > 0) {
-    return journeyData;
-  } else
-    return {
-      message: "error",
-      error: "Failed to start journey",
-    };
-};
 const registerCancilationReasons = async (body) => {
   const { reason } = body;
   const sql = `INSERT INTO cancilationReasons (reason) VALUES (?)`;
@@ -71,29 +49,6 @@ const registerCanceledJourney = async (data) => {
     };
 };
 
-const registerDriverTostartJob = async ({
-  waitUniqueId,
-  userUniqueId,
-  latitude,
-  longitude,
-  placeName,
-  driverWaitStatusId,
-  waitTime,
-}) => {
-  const sql = `INSERT INTO DriverWait (driverWaitUniqueId, userUniqueId, driverWaitLatitude, driverWaitLongitude,driverWaitPlaceName,driverWaitStatusId,driverWaitStartTime) VALUES (?, ?, ?, ?,?,?,?)`;
-  const values = [
-    waitUniqueId,
-    userUniqueId,
-    latitude,
-    longitude,
-    placeName,
-    driverWaitStatusId,
-    waitTime,
-  ];
-  const [rows] = await pool.query(sql, values);
-  console.log("rows", rows);
-  return rows;
-};
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal }) => {
   // Extract columns and values from the colAndVal object
@@ -121,9 +76,6 @@ const insertData = async ({ tableName, colAndVal }) => {
 
 module.exports = {
   insertData,
-  registerDriverTostartJob,
-  // registerUserToUsersTable,
-  insertJourneyData,
   registerCancilationReasons,
   registerCanceledJourney,
 };

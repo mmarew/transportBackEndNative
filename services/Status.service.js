@@ -1,25 +1,28 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const currentDate = require("../Utils/currentDate");
-const { verifyExistanceOfData } = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
+const { insertData } = require("../CRUD/Create/CreateData");
 
 const createStatus = async (body) => {
   const { statusName } = body;
   const statusUniqueId = uuidv4();
 
-  const verifyResult = await verifyExistanceOfData({
+  const verifyResult = await getData({
     tableName: "Statuses",
     conditions: { statusName },
   });
   if (verifyResult) {
     return { message: "error", data: "Status already exists" };
   }
-  const sql = `INSERT INTO Statuses (statusUniqueId, statusName, statusCreatedAt) 
-               VALUES (?, ?,?)`;
-  const values = [statusUniqueId, statusName, currentDate()];
 
   try {
-    const [result] = await pool.query(sql, values);
+    // Insert the new status into the database
+    const result = await insertData({
+      tableName: "Statuses",
+      colAndVal: { statusUniqueId, statusName, statusCreatedAt: currentDate() },
+    });
+
     if (result.affectedRows > 0) {
       return { message: "success", data: "Status created successfully" };
     }
@@ -34,7 +37,7 @@ const createStatus = async (body) => {
 };
 
 const getStatus = async (id) => {
-  const sql = `SELECT * FROM Statuses WHERE statusId = ? AND statusDeletedAt IS NULL`;
+  const sql = `SELECT * FROM Statuses WHERE statusUniqueId = ? AND statusDeletedAt IS NULL`;
 
   try {
     const [rows] = await pool.query(sql, [id]);
@@ -53,7 +56,7 @@ const getStatus = async (id) => {
 
 const updateStatus = async (id, body) => {
   const { statusName } = body;
-  const sql = `UPDATE Statuses SET statusName = ? WHERE statusId = ? AND statusDeletedAt IS NULL`;
+  const sql = `UPDATE Statuses SET statusName = ? WHERE statusUniqueId = ? AND statusDeletedAt IS NULL`;
   const values = [statusName, id];
 
   try {
@@ -69,7 +72,7 @@ const updateStatus = async (id, body) => {
 };
 
 const deleteStatus = async (id) => {
-  const sql = `UPDATE Statuses SET statusDeletedAt = NOW() WHERE statusId = ?`;
+  const sql = `UPDATE Statuses SET statusDeletedAt = NOW() WHERE statusUniqueId = ?`;
 
   try {
     const [result] = await pool.query(sql, [id]);

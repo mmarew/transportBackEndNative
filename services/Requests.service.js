@@ -1,460 +1,630 @@
 const { insertData } = require("../CRUD/Create/CreateData");
-const deleteData = require("../CRUD/Delete/deleteData");
+const { v4: uuidv4 } = require("uuid");
+const { pool } = require("../Middleware/Database.config");
+const { updateData } = require("../CRUD/Update/Data.update");
 const {
-  verifyExistanceOfData,
-  findDriverForPassenger,
+  getData,
   findPassengerForDriver,
+  findDriverForPassenger,
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
-const { v4: uuidv4 } = require("uuid");
-const { updateData } = require("../CRUD/Update/Data.update");
 const {
   sendNotificationToDriver,
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
-const FindDriverForPassenger = require("../Utils/FindDriverToPassanger");
-const { pool } = require("../Middleware/Database.config");
-// begin of createRequest
+
+/**
+ * Creates a new request for a user.
+ *
+ * @param {Object} body - The request body containing the request type.
+ * @param {Object} user - The user object containing the user's unique ID.
+ * @return {Object} An object containing the result of the request creation.
+ */
+
+// This code snippet creates a new request for a user in a ride-hailing system. It checks if the user exists and if they have an active request (in states 1, 2, 3, or 4). If they do, it handles the existing request; otherwise, it creates a new one.
 const createRequest = async (body, user) => {
   try {
     const { userUniqueId } = user?.data;
     const { requestType } = body; // 'PASSENGER' or 'DRIVER'
 
-    // Step 1: Verify if the user exists
-    const existedUser = await verifyExistanceOfData({
+    const existedUser = await getData({
       tableName: "Users",
       conditions: { userUniqueId },
     });
-
-    if (existedUser.length <= 0) {
+    if (!existedUser.length)
       return { message: "error", error: "User not found" };
-    }
 
-    // Step 2: Check if the user already has an active request
-    const requestResults = await verifyExistanceOfData({
+    const activeRequest = await getData({
       tableName: "Requests",
       conditions: { userUniqueId, requestType, journeyStatusId: [1, 2, 3, 4] }, // Active states
-      operator: "AND",
     });
 
-    if (requestResults.length > 0) {
-      return await handleExistingRequest(
-        requestResults[0],
-        existedUser[0],
-        requestType
-      );
-    }
-
-    // Step 3: Validate and create a new request
-    return await handleNewRequest(
-      body,
-      userUniqueId,
-      existedUser[0],
-      requestType
-    );
+    return activeRequest.length
+      ? await handleExistingRequest(
+          activeRequest[0],
+          existedUser[0],
+          requestType
+        )
+      : await handleNewRequest(body, userUniqueId, existedUser[0], requestType);
   } catch (error) {
     console.error("@createRequest catch error", error);
     return { message: "error", error: "Unable to create request" };
   }
 };
-const getJourneyDetails = async (decision) => {
-  try {
-    // Use verifyExistanceOfData to fetch journey details based on the journeyDecisionUniqueId
-    const journeyDetails = await verifyExistanceOfData({
-      tableName: "Journey",
-      conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
-    });
 
-    return journeyDetails; // Returning the journey details found
-  } catch (error) {
-    console.error("Error fetching journey details:", error);
-    throw error; // Handle or re-throw the error as needed
-  }
-};
-
-const handlePassengerFoundForDriver = async (passenger, request) => {
-  const status = 2; // 'requested'
-
-  // Update the driver's request status
-  await updateData({
-    tableName: "Requests",
-    conditions: { requestUniqueId: request?.requestUniqueId },
-    updateValues: { journeyStatusId: status },
-  });
-
-  // Insert data into JourneyDecisions table
-  const journeyDecisionUniqueId = uuidv4();
-  let decision = await insertData({
-    tableName: "JourneyDecisions",
-    colAndVal: {
-      journeyDecisionUniqueId,
-      passengerRequestId: passenger?.requestUniqueId,
-      driverWaitId: request?.requestUniqueId,
-      journeyStatusId: status,
-      decisionTime: new Date(),
-    },
-  });
-
-  // Fetch the decision details
-
-  decision = await verifyExistanceOfData({
-    tableName: "JourneyDecisions",
-    conditions: {
-      journeyDecisionUniqueId,
-    },
-  });
-  decision = decision?.at(0);
-  // Notify the passenger
-  await sendNotificationToPassenger({
-    message: { passenger, request, decision },
-    phoneNumber: passenger?.phoneNumber,
-  });
-
-  return decision;
-};
-
-// handle passenger request
-const processPassengerRequest = async (existedUser, existingRequest) => {
-  const requestUniqueId = existingRequest.requestUniqueId;
-  let driver = null;
-  let decision = null;
-
-  // Find a driver for the passenger
-  driver = await FindDriverForPassenger(existedUser.userUniqueId);
-  if (driver) {
-    // it will return decision object , that shows driver and passenger are requested or accepted
-    decision = await handleDriverFoundForPassenger(driver, existingRequest);
-  }
-
-  // Prepare the passenger object for the response
-  let passenger = { ...existedUser, ...existingRequest };
-
-  // Build and return the response
-  return buildResponse({
-    passenger,
-    driver,
-    status: existingRequest.journeyStatusId,
-    decision,
-  });
-};
-const buildResponse = ({ passenger, driver, status, decision, journey }) => {
-  return {
-    message: "success", // Indicates the operation was successful
-    passenger: passenger ? passenger : null, // If passenger data is provided, include it; otherwise, set it to null
-    driver: driver ? driver : null, // If driver data is provided, include it; otherwise, set it to null
-    status: status !== undefined ? status : null, // Include journey status if available, otherwise set to null
-    decision: decision ? decision : null, // Include decision details if available, otherwise set to null
-    journey: journey ? journey : null, // Include journey details if available, otherwise set to null
-  };
-};
-
-const processDriverRequest = async (existedUser, existingRequest) => {
-  const requestUniqueId = existingRequest.requestUniqueId;
-  let passenger = null;
-  let decision = null;
-
-  // Notify passengers about the driver's availability
-  passenger = await findPassengerForDriver(existedUser.userUniqueId);
-  if (passenger) {
-    decision = await handlePassengerFoundForDriver(passenger, existingRequest);
-  }
-  // Prepare the driver object for the response
-  let driver = { ...existedUser, ...existingRequest };
-
-  // Build and return the response
-  return buildResponse({
-    passenger,
-    driver,
-    status: existingRequest.journeyStatusId,
-    decision,
-  });
-};
-
-// Handle existing request logic
 const handleExistingRequest = async (
   existingRequest,
   existedUser,
   requestType
 ) => {
-  let status = existingRequest.journeyStatusId;
-  const requestUniqueId = existingRequest.requestUniqueId;
-  console.log("status=========>", status);
-  // journeyStatusId 1 is in waiting stage
-  if (status === 1) {
-    if (requestType === "PASSENGER") {
-      return await processPassengerRequest(existedUser, existingRequest);
-    } else if (requestType === "DRIVER") {
-      return await processDriverRequest(existedUser, existingRequest);
-    }
-  } else if ([2, 3, 4].includes(status)) {
-    return await handleOngoingJourney(
-      existedUser,
-      existingRequest,
-      requestType,
-      requestUniqueId
-    );
+  if (existingRequest.journeyStatusId === 1) {
+    return requestType === "PASSENGER"
+      ? await processPassengerRequest(existedUser, existingRequest)
+      : await processDriverRequest(existedUser, existingRequest);
   }
+  return await handleOngoingJourney(existedUser, existingRequest, requestType);
 };
+/** This code snippet defines an asynchronous function called `handleNewRequest`. It takes in three parameters: `body`, `userUniqueId`, and `requestType`.
 
-// Process new request logic
+// Inside the function, it first calls a function called `buildRequestPayload` to generate a `requestPayload` object. Then, it calls another function called `insertData` with the `Requests` table name and the `requestPayload` as arguments. The result of this operation is stored in a variable called `resultOfRegisterRequest`.
+
+// After that, it checks if the `affectedRows` property of `resultOfRegisterRequest` is greater than 0. If it is, it calls either the `handleNewPassengerRequest` or `handleNewDriverRequest` function based on the value of `requestType`. These functions are not shown in the code snippet, but they likely handle the logic for handling new passenger or driver requests.
+
+// If the `affectedRows` property is not greater than 0, it returns an object with a `message` property set to "error" and an `error` property set to "Unable to create request".
+
+// Overall, this code snippet handles the creation of a new request by building the request payload, inserting it into the database, and handling the logic for new passenger or driver requests.
+
+
+ * Handles the creation of a new request by building the request payload,
+ * inserting it into the database, and handling the logic for new passenger or driver requests.
+ *
+ * @param {object} body - The request body containing relevant information.
+ * @param {string} userUniqueId - The unique identifier of the user making the request.
+ * @param {object} existedUser - The user object that already exists in the system.
+ * @param {string} requestType - The type of request being made (PASSENGER or DRIVER).
+ * @return {object} An object containing a message and error (if any) or the result of handling the new request.
+ */
 const handleNewRequest = async (
   body,
   userUniqueId,
   existedUser,
   requestType
 ) => {
-  const uniqueid = uuidv4();
+  const requestPayload = buildRequestPayload(body, userUniqueId, requestType);
+  const resultOfRegisterRequest = await insertData({
+    tableName: "Requests",
+    colAndVal: requestPayload,
+  });
 
-  if (requestType === "PASSENGER") {
-    const { originLocation, destination, vehicle } = body;
-
-    if (!originLocation || !destination || !vehicle) {
-      return {
-        message: "error",
-        error: "Please provide current location, destination, and vehicle",
-      };
-    }
-
-    // Insert the passenger's request into the database
-    const resultOfRegisterRequest = await insertData({
-      tableName: "Requests",
-      colAndVal: {
-        requestUniqueId: uniqueid,
-        userUniqueId,
-        vehicleTypeId: vehicle.vehicleTypeId,
-        originLatitude: originLocation.latitude,
-        originLongitude: originLocation.longitude,
-        originPlace: originLocation.description,
-        destinationLatitude: destination.latitude,
-        destinationLongitude: destination.longitude,
-        destinationPlace: destination.description,
-        requestTime: new Date(),
-        requestType, // 'PASSENGER'
-        journeyStatusId: 1, // Initial status: 'waiting'
-      },
-    });
-
-    if (resultOfRegisterRequest.affectedRows > 0) {
-      return await handleNewPassengerRequest(
-        userUniqueId,
-        uniqueid,
-        existedUser
-      );
-    } else {
-      return { message: "error", error: "Unable to create request" };
-    }
+  if (resultOfRegisterRequest.affectedRows > 0) {
+    return requestType === "PASSENGER"
+      ? await handleNewPassengerRequest(
+          userUniqueId,
+          requestPayload.requestUniqueId,
+          existedUser
+        )
+      : await handleNewDriverRequest(
+          userUniqueId,
+          requestPayload.requestUniqueId,
+          existedUser
+        );
   }
-
-  if (requestType === "DRIVER") {
-    const { currentLocation, vehicle } = body;
-
-    if (!currentLocation || !vehicle) {
-      return {
-        message: "error",
-        error: "Please provide current location and vehicle",
-      };
-    }
-
-    // Insert the driver's request into the database
-    const resultOfRegisterRequest = await insertData({
-      tableName: "Requests",
-      colAndVal: {
-        requestUniqueId: uniqueid,
-        userUniqueId,
-        vehicleTypeId: vehicle.vehicleTypeId,
-        originLatitude: currentLocation.latitude,
-        originLongitude: currentLocation.longitude,
-        originPlace: currentLocation.description || null, // Optional description
-        requestTime: new Date(),
-        requestType, // 'DRIVER'
-        journeyStatusId: 1, // Initial status: 'waiting'
-      },
-    });
-
-    if (resultOfRegisterRequest.affectedRows > 0) {
-      return await handleNewDriverRequest(userUniqueId, uniqueid, existedUser);
-    } else {
-      return { message: "error", error: "Unable to create request" };
-    }
-  }
+  return { message: "error", error: "Unable to create request" };
 };
 
-// Process a new passenger request
+/** 
+This function, `buildRequestPayload`, constructs a payload object for a new request based on the provided parameters. It determines whether the request is for a passenger or driver and sets the corresponding location fields (origin and destination) accordingly. The function returns an object containing the request information, including a unique request ID, user ID, vehicle type, location details, request time, request type, and initial journey status ('waiting').
+ * Builds the payload for a new request based on the provided parameters.
+ *
+ * @param {object} body - The request body containing relevant information.
+ * @param {string} userUniqueId - The unique identifier of the user making the request.
+ * @param {string} requestType - The type of request being made (PASSENGER or DRIVER).
+ * @return {object} The payload object containing the request information.
+ */
+const buildRequestPayload = (body, userUniqueId, requestType) => {
+  const requestUniqueId = uuidv4();
+  const isPassenger = requestType === "PASSENGER";
+  const { originLocation, destination, vehicle, currentLocation } = body;
+
+  return {
+    requestUniqueId,
+    userUniqueId,
+    vehicleTypeId: vehicle.vehicleTypeId,
+    originLatitude: isPassenger
+      ? originLocation.latitude
+      : currentLocation.latitude,
+    originLongitude: isPassenger
+      ? originLocation.longitude
+      : currentLocation.longitude,
+    originPlace: isPassenger
+      ? originLocation.description
+      : currentLocation.description,
+    destinationLatitude: isPassenger ? destination.latitude : null,
+    destinationLongitude: isPassenger ? destination.longitude : null,
+    destinationPlace: isPassenger ? destination.description : null,
+    requestTime: new Date(),
+    requestType,
+    journeyStatusId: 1, // Initial status: 'waiting'
+  };
+};
+
+/** 
+This function processes a passenger's request by finding a matching driver and handling the decision. It returns a response object containing the passenger's information, the matched driver's information, the current status of the journey, and the decision made (e.g., whether the driver accepted or rejected the request).
+ * Process a passenger request by finding a matching driver and handling the decision.
+ *
+ * @param {object} existedUser - The existing user object.
+ * @param {object} existingRequest - The existing request object.
+ * @return {object} A response object containing the passenger, driver, status, and decision.
+ */
+const processPassengerRequest = async (existedUser, existingRequest) => {
+  const driver = await findDriverForPassenger(existedUser.userUniqueId);
+  const decision = driver
+    ? await handleDriverFoundForPassenger(driver, existingRequest)
+    : null;
+  const passenger = { ...existedUser, ...existingRequest };
+  return buildResponse({
+    passenger,
+    driver,
+    status: existingRequest.journeyStatusId,
+    decision,
+  });
+};
+
+/** 
+This function processes a driver's request by finding a matching passenger and handling the decision. It returns a response object containing the passenger's information, the driver's information, the current status of the journey, and the decision made.
+ * Process a driver request by finding a matching passenger and handling the decision.
+ *
+ * @param {object} existedUser - The existing user object.
+ * @param {object} existingRequest - The existing request object.
+ * @return {object} A response object containing the passenger, driver, status, and decision.
+ */
+const processDriverRequest = async (existedUser, existingRequest) => {
+  const passenger = await findPassengerForDriver(existedUser.userUniqueId);
+  const decision = passenger
+    ? await handlePassengerFoundForDriver(passenger, existingRequest)
+    : null;
+  const driver = { ...existedUser, ...existingRequest };
+  return buildResponse({
+    passenger,
+    driver,
+    status: existingRequest.journeyStatusId,
+    decision,
+  });
+};
+
+/**
+
+
+This JavaScript function, `handleNewPassengerRequest`, handles the creation of a new passenger request by finding a matching driver, making a decision, and building a response object. It takes in the user's unique ID, the request's unique ID, and the existing user object. 
+
+Here's what it does:
+
+1. It finds a matching driver for the passenger using the `findDriverForPassenger` function.
+2. If a driver is found, it makes a decision using the `handleDriverFoundForPassenger` function.
+3. It retrieves the passenger's request data from the "Requests" table using the `getData` function.
+4. It merges the existing user data with the request data to create a passenger object.
+5. It builds a response object containing the passenger, driver, status (set to 1), and decision using the `buildResponse` function.
+
+The function returns this response object.
+ * Handles the creation of a new passenger request by finding a matching driver,
+ * handling the decision, and building a response object.
+ *
+ * @param {string} userUniqueId - The unique identifier of the user making the request.
+ * @param {string} requestUniqueId - The unique identifier of the request.
+ * @param {object} existedUser - The existing user object.
+ * @return {object} A response object containing the passenger, driver, status, and decision.
+ */
 const handleNewPassengerRequest = async (
   userUniqueId,
   requestUniqueId,
   existedUser
 ) => {
-  let driver = await findDriverForPassenger(userUniqueId);
-  let decision = null;
-
-  if (driver) {
-    decision = await handleDriverFoundForPassenger(driver, {
-      requestUniqueId,
-      userUniqueId,
-    });
-  }
-
-  const passengerRequest = await verifyExistanceOfData({
+  const driver = await findDriverForPassenger(userUniqueId);
+  const decision = driver
+    ? await handleDriverFoundForPassenger(driver, {
+        requestUniqueId,
+        userUniqueId,
+      })
+    : null;
+  const passengerRequest = await getData({
     tableName: "Requests",
     conditions: { requestUniqueId },
   });
-
-  let passenger = { ...existedUser, ...passengerRequest[0] };
+  const passenger = { ...existedUser, ...passengerRequest[0] };
   return buildResponse({ passenger, driver, status: 1, decision });
 };
 
-// Process a new driver request
+/**
+
+
+This JavaScript function, `handleNewDriverRequest`, handles a new driver request by finding a matching passenger, making a decision, and building a response object. It takes in the user's unique ID, the request's unique ID, and the existing user object. The function returns a response object containing the passenger's information, the driver's information, the current status of the journey, and the decision made.
+ * Handles the creation of a new driver request by finding a matching passenger,
+ * handling the decision, and building a response object.
+ *
+ * @param {string} userUniqueId - The unique identifier of the user making the request.
+ * @param {string} requestUniqueId - The unique identifier of the request.
+ * @param {object} existedUser - The existing user object.
+ * @return {object} A response object containing the passenger, driver, status, and decision.
+ */
 const handleNewDriverRequest = async (
   userUniqueId,
   requestUniqueId,
   existedUser
 ) => {
-  let passenger = await findPassengerForDriver(userUniqueId);
-  let decision = null;
-
-  if (passenger) {
-    decision = await handlePassengerFoundForDriver(passenger, {
-      requestUniqueId,
-      userUniqueId,
-    });
-  }
-
-  const driverRequest = await verifyExistanceOfData({
+  const passenger = await findPassengerForDriver(userUniqueId);
+  const decision = passenger
+    ? await handlePassengerFoundForDriver(passenger, {
+        requestUniqueId,
+        userUniqueId,
+      })
+    : null;
+  const driverRequest = await getData({
     tableName: "Requests",
     conditions: { requestUniqueId },
   });
-
-  let driver = { ...existedUser, ...driverRequest[0] };
+  const driver = { ...existedUser, ...driverRequest[0] };
   return buildResponse({ passenger, driver, status: 1, decision });
 };
 
+const handlePassengerFoundForDriver = async (passenger, request) => {
+  return await handleFoundRequest(passenger, request, "Passenger");
+};
+
+/**
+
+This JavaScript function, `handleDriverFoundForPassenger`, handles the decision when a driver is found for a passenger. It takes in the driver and request objects, and calls another function `handleFoundRequest` with the driver, request, and the string "Driver" as parameters. The function returns the result of `handleFoundRequest` as a decision object.
+ * Handles the decision when a driver is found for a passenger.
+ *
+ * @param {object} driver - The driver object.
+ * @param {object} request - The request object containing the requestUniqueId and userUniqueId.
+ * @return {object} The decision object.
+ */
 const handleDriverFoundForPassenger = async (driver, request) => {
+  return await handleFoundRequest(driver, request, "Driver");
+};
+
+/**
+
+
+This JavaScript function, `handleFoundRequest`, handles a found request by updating the journey status, creating a new journey decision, retrieving the decision, and sending a notification to a specified role. It takes in a user object, a request object, and a role string, and returns the decision object.
+
+Here's a step-by-step breakdown:
+
+1. Set the journey status to "requested" (status = 2).
+2. Generate a unique ID for the journey decision (journeyDecisionUniqueId).
+3. Update the journey status using the `updateJourneyStatus` function.
+4. Insert a new journey decision using the `insertJourneyDecision` function.
+5. Retrieve the decision using the `getJourneyDecision` function.
+6. Send a notification to the specified role using the `sendNotification` function.
+7. Return the decision object.
+ * Handles the found request by updating the journey status, inserting a new journey decision,
+ * retrieving the decision, and sending a notification to the specified role.
+ *
+ * @param {object} user - The user object.
+ * @param {object} request - The request object containing the requestUniqueId and userUniqueId.
+ * @param {string} role - The role to which the notification will be sent.
+ * @return {object} The decision object.
+ */
+const handleFoundRequest = async (user, request, role) => {
   const status = 2; // 'requested'
-  const driverPhoneNumber = driver?.phoneNumber;
-
-  // Update the passenger's request status
-  await updateData({
-    tableName: "Requests",
-    conditions: { requestUniqueId: request?.requestUniqueId },
-    updateValues: { journeyStatusId: status },
-  });
-  // update the driver's request status
-  await updateData({
-    tableName: "Requests",
-    conditions: { requestUniqueId: driver?.requestUniqueId },
-    updateValues: { journeyStatusId: status },
-  });
-
-  // Insert data into JourneyDecisions table
   const journeyDecisionUniqueId = uuidv4();
-  let decision = await insertData({
+  await updateJourneyStatus(
+    request?.requestUniqueId,
+    status,
+    user?.requestUniqueId
+  );
+  await insertJourneyDecision(
+    request?.requestUniqueId,
+    user?.requestUniqueId,
+    journeyDecisionUniqueId,
+    status
+  );
+
+  const decision = await getJourneyDecision(journeyDecisionUniqueId);
+  await sendNotification(role, { user, request, decision });
+  return decision;
+};
+
+/**
+This code snippet defines an asynchronous function called `updateJourneyStatus` that updates the journey status for a given request. It takes in three parameters: `requestUniqueId` (the unique ID of the request to update), `status` (the new journey status), and `otherUserRequestUniqueId` (an optional unique ID of another user's request to update).
+
+Inside the function, it calls another asynchronous function called `updateData` twice. The first call updates the journey status for the request specified by `requestUniqueId` to the new `status`. The second call, if `otherUserRequestUniqueId` is provided, updates the journey status for the request specified by `otherUserRequestUniqueId` to the new `status`.
+
+The function returns a `Promise<void>`, indicating that it is an asynchronous function that does not return a value.
+
+ * Updates the journey status for a given request and optionally for another user's request.
+ *
+ * @param {string} requestUniqueId - The unique ID of the request to update.
+ * @param {number} status - The new journey status.
+ * @param {string} [otherUserRequestUniqueId] - The unique ID of another user's request to update.
+ * @return {Promise<void>}
+ */
+const updateJourneyStatus = async (
+  requestUniqueId,
+  status,
+  otherUserRequestUniqueId
+) => {
+  await updateData({
+    tableName: "Requests",
+    conditions: { requestUniqueId },
+    updateValues: { journeyStatusId: status },
+  });
+  if (otherUserRequestUniqueId) {
+    await updateData({
+      tableName: "Requests",
+      conditions: { requestUniqueId: otherUserRequestUniqueId },
+      updateValues: { journeyStatusId: status },
+    });
+  }
+};
+
+/**
+This code snippet defines an asynchronous function called `insertJourneyDecision` that inserts a new journey decision into a database. It takes in four parameters: `passengerRequestId`, `driverWaitId`, `journeyDecisionUniqueId`, and `status`. It returns a promise that resolves to the inserted journey decision.
+
+Inside the function, it calls another asynchronous function called `insertData` and passes an object as an argument. The object has two properties: `tableName` and `colAndVal`. `tableName` is set to "JourneyDecisions" and `colAndVal` is an object that contains the values to be inserted into the "JourneyDecisions" table. These values include `journeyDecisionUniqueId`, `passengerRequestId`, `driverWaitId`, `journeyStatusId`, and `decisionTime`. The `decisionTime` is set to the current date and time.
+
+The `insertData` function is not shown in this code snippet, but it is assumed to be defined elsewhere and is responsible for performing the actual database insertion.
+
+Overall, this code snippet provides a way to insert a new journey decision into a database, specifying the unique identifiers of the passenger request, driver waiting, and the journey decision, as well as the status of the journey.
+
+ * Inserts a new journey decision into the database.
+ *
+ * @param {string} passengerRequestId - The unique identifier of the passenger request.
+ * @param {string} driverWaitId - The unique identifier of the driver waiting.
+ * @param {string} journeyDecisionUniqueId - The unique identifier of the journey decision.
+ * @param {number} status - The status of the journey.
+ * @return {Promise<Object>} A promise that resolves to the inserted journey decision.
+ */
+const insertJourneyDecision = async (
+  passengerRequestId,
+  driverWaitId,
+  journeyDecisionUniqueId,
+  status
+) => {
+  return await insertData({
     tableName: "JourneyDecisions",
     colAndVal: {
       journeyDecisionUniqueId,
-      passengerRequestId: request?.requestUniqueId,
-      driverWaitId: driver?.requestUniqueId,
+      passengerRequestId,
+      driverWaitId,
       journeyStatusId: status,
       decisionTime: new Date(),
     },
   });
-  // get the decision data
-  decision = await verifyExistanceOfData({
+};
+
+/**
+
+
+This function retrieves a journey decision from the database using its unique identifier. It calls `getData` to query the database, and returns the first matching decision object if found, or `undefined` if not.
+ * Retrieves a journey decision from the database based on a unique identifier.
+ *
+ * @param {string} journeyDecisionUniqueId - The unique identifier of the journey decision.
+ * @return {Object} The journey decision object if found, otherwise undefined.
+ */
+const getJourneyDecision = async (journeyDecisionUniqueId) => {
+  const decision = await getData({
     tableName: "JourneyDecisions",
     conditions: { journeyDecisionUniqueId },
   });
-  decision = decision?.at(0);
-
-  // Notify the driver
-  await sendNotificationToDriver({
-    message: { driver, request, decision },
-    phoneNumber: driverPhoneNumber,
-  });
-
-  return decision;
+  return decision?.at(0);
 };
 
-// Process ongoing journey logic
+/**
+
+
+This function sends a notification to a user based on their role. It takes in the user's role and an object containing the user, request, and decision data. It then sends the notification to either the driver or passenger using separate functions, `sendNotificationToDriver` or `sendNotificationToPassenger`, depending on the user's role.
+ * Sends a notification to a user based on their role.
+ *
+ * @param {string} role - The role of the user, either "Driver" or "Passenger".
+ * @param {Object} notificationData - An object containing the user, request, and decision data.
+ * @param {Object} notificationData.user - The user object.
+ * @param {Object} notificationData.request - The request object.
+ * @param {Object} notificationData.decision - The decision object.
+ * @return {Promise} A promise that resolves to the result of sending the notification.
+ */
+const sendNotification = async (role, { user, request, decision }) => {
+  const phoneNumber = user?.phoneNumber;
+  const message = { user, request, decision };
+  return role === "Driver"
+    ? await sendNotificationToDriver({ message, phoneNumber })
+    : await sendNotificationToPassenger({ message, phoneNumber });
+};
+/**
+
+
+This is a JavaScript function named `verifyStatusOfUser` that verifies the status of a user based on their latest request in a ride-hailing system. Here's a succinct explanation of what the function does:
+
+1. It takes a request object `req` as input, which contains the user's data.
+2. It fetches the latest request for the user from the database using a SQL query.
+3. If no request is found, it returns a success message indicating that the user can make a new request.
+4. If a request is found, it checks the request type (passenger or driver) and the journey status (waiting, requested, etc.).
+5. Based on the status, it performs different actions:
+	* If the status is waiting, it finds the other party (passenger or driver) and processes the request.
+	* If the status is requested, it retrieves the journey decision and other user details.
+6. It returns a response object containing the verification result, including a message and data.
+
+The function uses various helper functions, such as `getJourneyDecisionByType`, `getOtherUser`, `mapUsersToRole`, and `buildResponse`, to perform the necessary actions. It also handles errors and returns a corresponding error message if any issues occur during the verification process.
+ * Verifies the status of a user based on their latest request.
+ *
+ * @param {Object} req - The request object containing user data.
+ * @return {Object} An object containing the verification result, including a message and data.
+ */
+const verifyStatusOfUser = async (req) => {
+  try {
+    const { userUniqueId } = req.user.data;
+
+    // Fetch the latest request for the user
+    const sqlToVerifyWaiting = `SELECT * FROM Users 
+                                JOIN Requests ON Requests.userUniqueId = Users.userUniqueId 
+                                WHERE Requests.userUniqueId = ? 
+                                ORDER BY requestId DESC LIMIT 1`;
+    const [userWaitResult] = await pool.query(sqlToVerifyWaiting, [
+      userUniqueId,
+    ]);
+
+    if (userWaitResult?.length === 0) {
+      return { message: "Success", data: "User can make a request" };
+    }
+
+    const requestType = userWaitResult[0]?.requestType; // Either 'PASSENGER' or 'DRIVER'
+    const status = userWaitResult[0]?.journeyStatusId;
+    const requestUniqueId = userWaitResult[0]?.requestUniqueId;
+
+    // Check if the user is a passenger or a driver and handle accordingly
+    if ([2, 3, 4].includes(status)) {
+      const decision = await getJourneyDecisionByType(
+        requestUniqueId,
+        requestType
+      );
+      const otherUser = await getOtherUser(decision, requestType);
+      const journey = await getJourneyDetails(decision);
+
+      const { driver, passenger } = mapUsersToRole(
+        userWaitResult[0],
+        userWaitResult[0],
+        otherUser,
+        requestType
+      );
+      return buildResponse({ driver, passenger, status, decision, journey });
+    }
+
+    // If the status is 'waiting', find the other party (passenger/driver) and process
+    if (status === 1) {
+      const otherParty =
+        requestType === "DRIVER"
+          ? await findPassengerForDriver(userUniqueId)
+          : await findDriverForPassenger(userUniqueId);
+
+      if (!otherParty?.length) {
+        return {
+          message: "success",
+          driver: requestType === "DRIVER" ? userWaitResult[0] : null,
+          passenger: requestType === "PASSENGER" ? userWaitResult[0] : null,
+          data: `${
+            requestType === "DRIVER" ? "Passenger" : "Driver"
+          } not found`,
+        };
+      }
+
+      const journeyDecisionUniqueId = uuidv4();
+      const registerDecision = await insertJourneyDecision(
+        requestType === "PASSENGER"
+          ? requestUniqueId
+          : otherParty[0]?.requestUniqueId,
+        requestType === "DRIVER"
+          ? requestUniqueId
+          : otherParty[0]?.requestUniqueId,
+        journeyDecisionUniqueId,
+        2 // 'requested' status
+      );
+
+      if (registerDecision?.message === "success") {
+        await updateJourneyStatus(
+          requestUniqueId,
+          2,
+          otherParty[0]?.requestUniqueId
+        );
+        return buildResponse({
+          driver: requestType === "DRIVER" ? userWaitResult[0] : otherParty[0],
+          passenger:
+            requestType === "PASSENGER" ? userWaitResult[0] : otherParty[0],
+          status: "requested",
+          decision: registerDecision,
+        });
+      } else {
+        return { message: "error", error: "Unable to register decision" };
+      }
+    }
+
+    return { message: "success", data: "User can start a new journey" };
+  } catch (error) {
+    console.error("Error in verifyStatusOfUser:", error);
+    return { message: "error", error: "Unable to verify current status" };
+  }
+};
+
 const handleOngoingJourney = async (
   existedUser,
   existingRequest,
-  requestType,
-  requestUniqueId
+  requestType
 ) => {
-  let decision = await verifyExistanceOfData({
-    tableName: "JourneyDecisions",
-    conditions:
-      requestType === "PASSENGER"
-        ? { passengerRequestId: requestUniqueId }
-        : { driverWaitId: requestUniqueId },
-  });
-  decision = decision?.at(0);
+  const decision = await getJourneyDecisionByType(
+    existingRequest.requestUniqueId,
+    requestType
+  );
+  const otherUser = await getOtherUser(decision, requestType);
+  const journey = await getJourneyDetails(decision);
 
-  let otherUserRequest = await verifyExistanceOfData({
-    tableName: "Requests",
-    conditions:
-      requestType === "PASSENGER"
-        ? { requestUniqueId: decision?.driverWaitId }
-        : { requestUniqueId: decision?.passengerRequestId },
-  });
-
-  let otherUser = await verifyExistanceOfData({
-    tableName: "Users",
-    conditions: { userUniqueId: otherUserRequest[0]?.userUniqueId },
-  });
-
-  let driver, passenger;
-  if (requestType === "PASSENGER") {
-    passenger = { ...existedUser, ...existingRequest };
-    driver = { ...otherUser[0], ...otherUserRequest[0] };
-  } else {
-    driver = { ...existedUser, ...existingRequest };
-    passenger = { ...otherUser[0], ...otherUserRequest[0] };
-  }
-
-  let journey = await getJourneyDetails(decision);
-  journey = journey?.at(0);
+  const { driver, passenger } = mapUsersToRole(
+    existedUser,
+    existingRequest,
+    otherUser,
+    requestType
+  );
   return buildResponse({
-    passenger,
     driver,
+    passenger,
     status: existingRequest.journeyStatusId,
     decision,
     journey,
   });
 };
 
-// start of getRequestById
-const getRequestById = async (requestId) => {
-  try {
-    const result = await verifyExistanceOfData({
-      tableName: "Requests",
-      conditions: { requestId },
-      operator: "AND",
-    });
-    return result[0];
-  } catch (error) {
-    throw new Error(`Error fetching request: ${error.message}`);
-  }
+const getJourneyDecisionByType = async (requestUniqueId, requestType) => {
+  const conditions =
+    requestType === "PASSENGER"
+      ? { passengerRequestId: requestUniqueId }
+      : { driverWaitId: requestUniqueId };
+  const decision = await getData({
+    tableName: "JourneyDecisions",
+    conditions,
+  });
+  return decision?.at(0);
 };
-// end of getRequestById
-// start of updateRequest
-const updateRequest = async (requestId, updateData) => {
-  try {
-    const result = await updateData({
-      tableName: "Requests",
-      updateValues: updateData,
-      conditions: { requestId },
-    });
 
-    return result.affectedRows > 0
-      ? { message: "success", data: "Request updated successfully" }
-      : { message: "error", data: "Failed to update request" };
-  } catch (error) {
-    throw new Error(`Error updating request: ${error.message}`);
-  }
+const getOtherUser = async (decision, requestType) => {
+  const otherUserRequestUniqueId =
+    requestType === "PASSENGER"
+      ? decision?.driverWaitId
+      : decision?.passengerRequestId;
+  return await performJoinSelect({
+    baseTable: "Requests",
+    joins: [
+      { table: "Users", on: "Requests.userUniqueId = Users.userUniqueId" },
+    ],
+    conditions: { requestUniqueId: otherUserRequestUniqueId },
+  });
 };
-// end of updateRequest
-// start of deleteRequest
+
+const mapUsersToRole = (
+  existedUser,
+  existingRequest,
+  otherUser,
+  requestType
+) => {
+  return requestType === "PASSENGER"
+    ? {
+        driver: otherUser[0],
+        passenger: { ...existedUser, ...existingRequest },
+      }
+    : {
+        driver: { ...existedUser, ...existingRequest },
+        passenger: otherUser[0],
+      };
+};
+
+const getJourneyDetails = async (decision) => {
+  const journeyDetails = await getData({
+    tableName: "Journey",
+    conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
+  });
+  return journeyDetails?.at(0);
+};
+
+const buildResponse = ({ passenger, driver, status, decision, journey }) => {
+  return { message: "success", passenger, driver, status, decision, journey };
+};
 const deleteRequest = async (requestId) => {
   try {
     const result = await deleteData({
@@ -469,217 +639,139 @@ const deleteRequest = async (requestId) => {
     throw new Error(`Error deleting request: ${error.message}`);
   }
 };
-// end of deleteRequest
-const verifyStatusOfUser = async (req) => {
+const updateRequestById = async (requestId, updates) => {
+  if (!requestId || !updates) {
+    throw new Error("requestId and updates cannot be null or undefined");
+  }
   try {
-    const { userUniqueId } = req.user.data;
+    const updateResult = await updateData({
+      tableName: "Requests",
+      updateValues: updates,
+      conditions: { requestId },
+    });
 
-    // Fetch the latest request from the Requests table for the user
-    const sqlToVerifyWaiting = `SELECT * FROM Users 
-                                JOIN Requests ON Requests.userUniqueId = Users.userUniqueId 
-                                WHERE Requests.userUniqueId = ? 
-                                ORDER BY requestId DESC LIMIT 1`;
-    const [userWaitResult] = await pool.query(sqlToVerifyWaiting, [
-      userUniqueId,
-    ]);
-
-    let status = null,
-      requestUniqueId = null,
-      decision = null,
-      driver = null,
-      passenger = null,
-      journey = null;
-
-    if (userWaitResult?.length > 0) {
-      status = userWaitResult[0]?.journeyStatusId;
-      requestUniqueId = userWaitResult[0]?.requestUniqueId;
-    } else {
-      return { message: "Success", data: "User canmake a request" };
+    if (!updateResult || updateResult.affectedRows === 0) {
+      throw new Error("Failed to update request");
     }
 
-    if (!status) {
-      return { message: "error", error: "Unknown status of user" };
-    }
-
-    const requestType = userWaitResult[0]?.requestType; // Check if the user is a passenger or a driver
-
-    // Handle statuses 2, 3, or 4
-    if (status === 2 || status === 3 || status === 4) {
-      const sqlToGetDecisionStatus = `SELECT * FROM JourneyDecisions 
-                                      WHERE ${
-                                        requestType === "DRIVER"
-                                          ? "driverWaitId"
-                                          : "passengerRequestId"
-                                      } = ? 
-                                      ORDER BY journeyDecisionId DESC LIMIT 1`;
-      const [decisionRows] = await pool.query(
-        sqlToGetDecisionStatus,
-        requestUniqueId
-      );
-      const journeyDecisionUniqueId = decisionRows[0]?.journeyDecisionUniqueId;
-
-      if (decisionRows?.length > 0) {
-        decision = decisionRows[0];
-
-        if (status === 4) {
-          journey = await verifyExistanceOfData({
-            tableName: "Journey",
-            conditions: { journeyDecisionUniqueId },
-          });
-          journey = journey?.at(0);
-        }
-
-        const otherPartyRequestId =
-          requestType === "DRIVER"
-            ? decisionRows[0]?.passengerRequestId
-            : decisionRows[0]?.driverWaitId;
-
-        // Fetch the other party's request (Driver if user is passenger, Passenger if user is driver)
-        const otherPartyRequest = await performJoinSelect({
-          baseTable: "Users",
-          joins: [
-            {
-              table: "Requests",
-              on: "Requests.userUniqueId=Users.userUniqueId",
-            },
-          ],
-          conditions: { "Requests.requestUniqueId": otherPartyRequestId },
-        });
-
-        if (!otherPartyRequest?.length) {
-          return {
-            message: "error",
-            error: "Unable to get the other party's request data",
-          };
-        }
-
-        if (requestType === "DRIVER") {
-          passenger = otherPartyRequest[0]; // The other party is the passenger
-          driver = userWaitResult[0]; // The current user is the driver
-        } else {
-          driver = otherPartyRequest[0]; // The other party is the driver
-          passenger = userWaitResult[0]; // The current user is the passenger
-        }
-
-        const responseData = {
-          message: "success",
-          status,
-          driver,
-          passenger,
-          decision,
-          journey: journey || null,
-        };
-        return responseData;
-      } else {
-        return {
-          message: "error",
-          error: "No decision has been made yet",
-        };
-      }
-    }
-
-    // If the status is "waiting"
-    else if (status === 1) {
-      let otherParty = null;
-
-      if (requestType === "DRIVER") {
-        // Driver is waiting for a passenger
-        otherParty = await findPassengerForDriver(userUniqueId);
-      } else {
-        // Passenger is waiting for a driver
-        otherParty = await findDriverForPassenger(userUniqueId);
-      }
-
-      if (!otherParty?.length) {
-        return {
-          message: "success",
-          status,
-          driver: requestType === "DRIVER" ? userWaitResult[0] : null,
-          passenger: requestType === "PASSENGER" ? userWaitResult[0] : null,
-          decision: null,
-          journey: journey || null,
-          data: `${
-            requestType === "DRIVER" ? "Passenger" : "Driver"
-          } not found`,
-        };
-      }
-
-      const otherPartyRequestUniqueId = otherParty[0]?.requestUniqueId;
-      if (!otherPartyRequestUniqueId) {
-        return {
-          message: "error",
-          error: "Unable to get the other party's details",
-        };
-      }
-
-      const journeyDecisionUniqueId = uuidv4();
-      const registerDecision = await insertData({
-        tableName: "JourneyDecisions",
-        colAndVal: {
-          journeyDecisionUniqueId,
-          passengerRequestId:
-            requestType === "PASSENGER"
-              ? requestUniqueId
-              : otherPartyRequestUniqueId,
-          driverWaitId:
-            requestType === "DRIVER"
-              ? requestUniqueId
-              : otherPartyRequestUniqueId,
-          journeyStatusId: 2,
-          decisionTime: currentDate(),
-        },
-      });
-
-      if (registerDecision?.message === "success") {
-        // Update the status for both the user and the other party
-        const waitingResult = await updateData({
-          tableName: "Requests",
-          conditions: { requestUniqueId },
-          updateValues: { journeyStatusId: 2 },
-        });
-
-        const otherPartyResult = await updateData({
-          tableName: "Requests",
-          conditions: { requestUniqueId: otherPartyRequestUniqueId },
-          updateValues: { journeyStatusId: 2 },
-        });
-
-        if (
-          waitingResult.affectedRows === 0 ||
-          otherPartyResult.affectedRows === 0
-        ) {
-          return {
-            message: "error",
-            error: "Unable to update the request status",
-          };
-        }
-
-        return {
-          message: "success",
-          status: "requested",
-          driver: requestType === "DRIVER" ? userWaitResult[0] : otherParty[0],
-          passenger:
-            requestType === "PASSENGER" ? userWaitResult[0] : otherParty[0],
-          decision: registerDecision,
-          journey: journey || "",
-        };
-      } else {
-        return { message: "error", error: "Unable to register decision" };
-      }
-    } else {
-      return { message: "success", data: "User can start job" };
-    }
+    return { message: "success", data: "Request updated successfully" };
   } catch (error) {
-    console.error("Error in verifyStatusOfUser:", error);
-    return { message: "error", error: "Unable to verify current status" };
+    console.error("Error updating request:", error);
+    return { message: "error", error: "Failed to update request" };
   }
 };
 
-// module exports part
+/**
+ * Retrieves a request by its ID.
+ *
+ * @param {number} requestId - The ID of the request to retrieve.
+ * @returns {Promise<Object>} - A promise that resolves with the request object or undefined if not found.
+ * @throws {Error} - If an error occurs while fetching the request.
+ */
+const getRequestById = async (requestId) => {
+  try {
+    const result = await getData({
+      tableName: "Requests",
+      conditions: { requestId },
+      operator: "AND",
+    });
+
+    return result?.[0];
+  } catch (error) {
+    throw new Error(`Error fetching request: ${error.message}`);
+  }
+};
+const cancelRequest = async (req) => {
+  try {
+    const body = req?.body;
+    const {
+      journeyDecisionUniqueId,
+      passengerRequestUniqueId,
+      driverWaitUniqueId,
+      requestType,
+    } = body;
+
+    console.log("Request body: ", body);
+
+    let journeyStatusId;
+    const activeStatusIds = [1, 2, 3]; // List of active statuses
+
+    // Determine journeyStatusId based on request type
+    switch (requestType) {
+      case "PASSENGER":
+        journeyStatusId = 6; // Passenger cancel
+        break;
+      case "DRIVER":
+        journeyStatusId = 7; // Driver cancel
+        break;
+      case "ADMIN":
+        journeyStatusId = 8; // Admin cancel
+        break;
+      default:
+        return { message: "error", error: "Invalid request type" };
+    }
+
+    // Helper function to update a table
+    const updateJourneyStatus = async (tableName, conditions) => {
+      return updateData({
+        tableName,
+        conditions: {
+          ...conditions,
+          journeyStatusId: activeStatusIds, // Make sure it's active status
+        },
+        updateValues: { journeyStatusId },
+      });
+    };
+
+    // Collect all updates into an array for parallel execution
+    const updates = [];
+
+    if (journeyDecisionUniqueId) {
+      updates.push(
+        updateJourneyStatus("JourneyDecisions", { journeyDecisionUniqueId })
+      );
+      updates.push(updateJourneyStatus("Journey", { journeyDecisionUniqueId }));
+    }
+
+    if (passengerRequestUniqueId) {
+      updates.push(
+        updateJourneyStatus("Requests", {
+          requestUniqueId: passengerRequestUniqueId,
+        })
+      );
+    }
+
+    if (driverWaitUniqueId) {
+      updates.push(
+        updateJourneyStatus("Requests", { requestUniqueId: driverWaitUniqueId })
+      );
+    }
+
+    // Execute all updates in parallel
+    const updateResults = await Promise.all(updates);
+
+    // Check if any updates affected rows
+    const hasUpdated = updateResults.some((result) => result?.affectedRows > 0);
+
+    if (hasUpdated) {
+      return {
+        message: "success",
+        data: "Request cancelled successfully",
+        status: journeyStatusId,
+      };
+    } else {
+      return { message: "error", error: "No data found to be canceled" };
+    }
+  } catch (error) {
+    console.error("Error in cancelRequest:", error.message);
+    return { message: "error", error: "Unable to cancel request" };
+  }
+}; // Exporting the functions
 module.exports = {
-  verifyStatusOfUser,
+  cancelRequest,
   createRequest,
+  verifyStatusOfUser,
   getRequestById,
-  updateRequest,
+  updateRequestById,
   deleteRequest,
 };

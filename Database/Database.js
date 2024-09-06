@@ -68,12 +68,14 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     requestUniqueId VARCHAR(150) UNIQUE NOT NULL,
     userUniqueId VARCHAR(150) NOT NULL,
     vehicleTypeId VARCHAR(150) NOT NULL,
-    originLatitude VARCHAR(22) NOT NULL,
+    originLatitude VARCHAR(22) NOT NULL ,
     originLongitude VARCHAR(22) NOT NULL,
-    originPlace VARCHAR(255) NULL,
-    destinationLatitude VARCHAR(22) NOT NULL,
-    destinationLongitude VARCHAR(22) NOT NULL,
-    destinationPlace VARCHAR(255) NULL,
+    originPlace VARCHAR(255) NOT NULL default 0.0,
+
+    destinationLatitude VARCHAR(22) NUll  default 0.0,
+    destinationLongitude VARCHAR(22) NULL default 0.0,
+    destinationPlace VARCHAR(255) NULL default 0.0,
+
     requestTime TIMESTAMP NOT NULL,
     requestType ENUM('PASSENGER', 'DRIVER') NOT NULL, 
     -- Identifies if it's a passenger or driver request

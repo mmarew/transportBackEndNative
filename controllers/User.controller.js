@@ -68,8 +68,21 @@ const getAllUsersController = async (req, res) => {
     });
   }
 };
+const updateUserController = async (req, res) => {
+  try {
+    const response = await services.updateUser(req.body);
+    ServerResponder(res, response);
+  } catch (error) {
+    console.error("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Failed to update user",
+    });
+  }
+};
 
 module.exports = {
+  updateUserController,
   verifyUserByOTP,
   createUserController,
   getUserController,

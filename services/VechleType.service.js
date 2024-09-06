@@ -1,7 +1,7 @@
 // services/vehicleTypeService.js
 
 const { v4: uuidv4 } = require("uuid");
-const { verifyExistanceOfData } = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const currentDate = require("../Utils/currentDate");
 
@@ -9,7 +9,7 @@ const registerVehicleType = async (body) => {
   const { vehicleTypeName, vehicleTypeDescription } = body;
 
   // Verify existence (you'll need to implement this function)
-  const results = await verifyExistanceOfData({
+  const results = await getData({
     tableName: "VehicleType",
     conditions: { vehicleTypeName },
   });
