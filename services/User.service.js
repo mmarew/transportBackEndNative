@@ -1,7 +1,7 @@
 // services/userService.js
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { verifyExistanceOfData } = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
 
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
@@ -21,7 +21,7 @@ const createUser = async (body) => {
   const OTP = Math.floor(100000 + Math.random() * 900000);
   try {
     // Check if the user already exists
-    const savedUser = await verifyExistanceOfData({
+    const savedUser = await getData({
       tableName: "Users",
       conditions: { phoneNumber, email },
       operator: "OR",
@@ -39,7 +39,7 @@ const createUser = async (body) => {
         };
       }
 
-      const verifyUsersRoleStatus = await verifyExistanceOfData({
+      const verifyUsersRoleStatus = await getData({
         tableName: "UserRoleStatuses",
         conditions: {
           roleId,
@@ -152,12 +152,12 @@ const createUser = async (body) => {
     return { message: "error", data: "An error occurred during user creation" };
   }
 };
-
+// 0911288817
 const verifyUserByOTP = async (req) => {
   try {
     console.log("first");
     const { OTP, phoneNumber } = req.query;
-    const verifyUserExistance = await verifyExistanceOfData({
+    const verifyUserExistance = await getData({
       tableName: "Users",
       conditions: {
         phoneNumber,
@@ -175,7 +175,7 @@ const verifyUserByOTP = async (req) => {
       phoneNumber,
       email,
     });
-    const selectResult = await verifyExistanceOfData({
+    const selectResult = await getData({
       tableName: "usersCredential",
       conditions: {
         userUniqueId,
@@ -243,8 +243,117 @@ const getAllUsers = async () => {
     };
   }
 };
+const updateUser = async (body) => {
+  const { userUniqueId, fullName, phoneNumber, email, roleId, statusId } = body;
+
+  // Ensure required fields are provided
+  if (!userUniqueId) {
+    return {
+      message: "error",
+      data: "userUniqueId is required",
+    };
+  }
+
+  // Optional fields for update
+  const updateValues = {};
+  if (fullName) updateValues.fullName = fullName;
+  if (phoneNumber) updateValues.phoneNumber = phoneNumber;
+  if (email) updateValues.email = email;
+
+  console.log("body", body);
+
+  try {
+    // Check if the user exists
+    const savedUser = await getData({
+      tableName: "Users",
+      conditions: { userUniqueId },
+    });
+
+    if (savedUser.length <= 0) {
+      return {
+        message: "error",
+        data: "User not found",
+      };
+    }
+
+    // Update the user's information if there are any fields to update
+    if (Object.keys(updateValues).length > 0) {
+      const updateUserResult = await updateData({
+        tableName: "Users",
+        updateValues,
+        conditions: { userUniqueId },
+      });
+
+      if (updateUserResult.affectedRows <= 0) {
+        return {
+          message: "error",
+          data: "Failed to update user details",
+        };
+      }
+    }
+
+    // Check if roleId or statusId needs to be updated
+    if (roleId || statusId) {
+      const existingRoleStatus = await getData({
+        tableName: "UserRoleStatuses",
+        conditions: {
+          userUniqueId,
+        },
+      });
+
+      if (existingRoleStatus.length > 0) {
+        // Update the role or status if needed
+        const updateRoleStatusResult = await updateData({
+          tableName: "UserRoleStatuses",
+          updateValues: {
+            ...(roleId && { roleId }),
+            ...(statusId && { statusId }),
+          },
+          conditions: { userUniqueId },
+        });
+
+        if (updateRoleStatusResult.affectedRows <= 0) {
+          return {
+            message: "error",
+            data: "Failed to update user role/status",
+          };
+        }
+      } else {
+        // If no existing role/status, insert new one
+        const insertRoleStatusResult = await insertData({
+          tableName: "UserRoleStatuses",
+          colAndVal: {
+            userRoleStatusUniqueId: uuidv4(),
+            userUniqueId,
+            ...(roleId && { roleId }),
+            ...(statusId && { statusId }),
+          },
+        });
+
+        if (insertRoleStatusResult.affectedRows <= 0) {
+          return {
+            message: "error",
+            data: "Failed to create user role/status",
+          };
+        }
+      }
+    }
+
+    return {
+      message: "success",
+      data: "User updated successfully",
+    };
+  } catch (error) {
+    console.error("Error:", error);
+    return {
+      message: "error",
+      data: "An error occurred during user update",
+    };
+  }
+};
 
 module.exports = {
+  updateUser,
   verifyUserByOTP,
   createUser,
   getUser,

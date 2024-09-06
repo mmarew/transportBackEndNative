@@ -1,26 +1,40 @@
 const express = require("express");
 const verifyToken = require("../Middleware/verifyToken");
 const {
-  createRequestController,
-  getRequestController,
-  updateRequestController,
+  acceptPassengerRequest,
   deleteRequestController,
 } = require("../controllers/requests.controller");
 const controller = require("../controllers/requests.controller");
 const router = express.Router();
-
 router.post(
-  "/requests",
+  "/api/request/createRequest",
   verifyToken.verifyTokenOfAxios,
-  createRequestController
+  controller.createRequest
 );
+router.put(
+  "/api/request/acceptPassengerRequest",
+  verifyToken.verifyTokenOfAxios,
+  acceptPassengerRequest
+);
+router.put(
+  "/startJourney",
+  verifyToken.verifyTokenOfAxios,
+  controller.startJourney
+);
+router.put(
+  "/api/request/journeyCompleted",
+  verifyToken.verifyTokenOfAxios,
+  controller.journeyCompleted
+);
+
 router.get(
-  "/verifyStatusOfUser",
+  "/api/request/verifyStatusOfUser",
   verifyToken.verifyTokenOfAxios,
   controller.verifyStatusOfUser
 );
-router.get("/requests/:id", getRequestController);
-router.put("/requests/:id", updateRequestController);
-router.delete("/requests/:id", deleteRequestController);
+router.get("/api/request/:id", controller.getRequestController);
+// router.put("/requests/:id", updateRequestController);
+router.put("/api/request/cancelRequest", controller.cancelRequest);
+router.delete("/request/:id", deleteRequestController);
 
 module.exports = router;

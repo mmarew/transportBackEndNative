@@ -1,11 +1,11 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { verifyExistanceOfData } = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
 
 const createUserRoleStatus = async (body) => {
   const { statusId, userRoleId } = body;
   const userRoleStatusUniqueId = uuidv4();
-  const verifyResult = await verifyExistanceOfData({
+  const verifyResult = await getData({
     tableName: "UserRoleStatuses",
     conditions: { userRoleStatusUniqueId },
   });

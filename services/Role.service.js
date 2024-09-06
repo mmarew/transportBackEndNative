@@ -1,16 +1,16 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const currentDate = require("../Utils/currentDate");
-const { verifyExistanceOfData } = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
 const createRole = async (body) => {
   const { roleName, roleDescription } = body;
   const roleUniqueId = uuidv4();
-  const existedData = await verifyExistanceOfData({
+  const existedData = await getData({
     tableName: "Roles",
     conditions: { roleName },
   });
-
-  if (existedData) {
+  console.log("existed role Data", existedData);
+  if (existedData?.length > 0) {
     return { message: "error", data: "Role already exists" };
   }
   const sql = `INSERT INTO Roles (roleUniqueId, roleName, roleDescription, roleCreatedAt) VALUES (?, ?, ?, ?)`;
@@ -29,7 +29,7 @@ const createRole = async (body) => {
 };
 
 const getRole = async (id) => {
-  const sql = `SELECT * FROM Roles WHERE roleId = ? AND roleDeletedAt IS NULL`;
+  const sql = `SELECT * FROM Roles WHERE roleUniqueId = ? AND roleDeletedAt IS NULL`;
 
   try {
     const [rows] = await pool.query(sql, [id]);
@@ -48,7 +48,7 @@ const getRole = async (id) => {
 
 const updateRole = async (id, body) => {
   const { roleName, roleDescription } = body;
-  const sql = `UPDATE Roles SET roleName = ?, roleDescription = ? WHERE roleId = ? AND roleDeletedAt IS NULL`;
+  const sql = `UPDATE Roles SET roleName = ?, roleDescription = ? WHERE roleUniqueId = ? AND roleDeletedAt IS NULL`;
   const values = [roleName, roleDescription, id];
 
   try {
@@ -64,7 +64,7 @@ const updateRole = async (id, body) => {
 };
 
 const deleteRole = async (id) => {
-  const sql = `UPDATE Roles SET roleDeletedAt = NOW() WHERE roleId = ?`;
+  const sql = `UPDATE Roles SET roleDeletedAt = NOW() WHERE roleUniqueId = ?`;
 
   try {
     const [result] = await pool.query(sql, [id]);
