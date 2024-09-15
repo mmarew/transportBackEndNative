@@ -11,6 +11,7 @@ const { insertData } = require("../CRUD/Create/CreateData");
 
 const createUser = async (body) => {
   const { fullName, phoneNumber, email, roleId, statusId } = body;
+  console.log("body =============> ", body);
   if (!fullName || !phoneNumber || !email || !roleId || !statusId) {
     return {
       message: "error",
@@ -152,10 +153,13 @@ const createUser = async (body) => {
     return { message: "error", data: "An error occurred during user creation" };
   }
 };
-// 0911288817
 const verifyUserByOTP = async (req) => {
   try {
     console.log("first");
+    if (!req.query || !req.query.OTP || !req.query.phoneNumber) {
+      return { message: "error", error: "OTP and phoneNumber are required" };
+    }
+
     const { OTP, phoneNumber } = req.query;
     const verifyUserExistance = await getData({
       tableName: "Users",
@@ -164,9 +168,10 @@ const verifyUserByOTP = async (req) => {
       },
     });
 
-    if (verifyUserExistance.length == 0) {
+    if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }
+
     const { userUniqueId, fullName, email } = verifyUserExistance[0];
 
     const token = createJWT({
@@ -175,17 +180,25 @@ const verifyUserByOTP = async (req) => {
       phoneNumber,
       email,
     });
+
     const selectResult = await getData({
       tableName: "usersCredential",
       conditions: {
         userUniqueId,
       },
     });
-    console.log("selectResult", selectResult);
-    if (selectResult[0].OTP == OTP) {
-      return { token, message: "success", data: "OTP verified successfully" };
-    } else {
+
+    if (!selectResult || selectResult.length === 0) {
+      return {
+        message: "error",
+        error: "Unable to verify user. Please try again later.",
+      };
+    }
+
+    if (selectResult[0].OTP !== OTP) {
       return { message: "error", error: "OTP verification failed" };
+    } else {
+      return { token, message: "success", data: "OTP verified successfully" };
     }
   } catch (error) {
     console.error("Error in verifyDriverByOTP:", error.message);

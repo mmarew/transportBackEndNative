@@ -1,7 +1,9 @@
+const { insertData } = require("../CRUD/Create/CreateData");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const uuidv4 = require("uuid").v4;
+const { currentDate } = require("../Utils/currentDate");
 const acceptPassengerRequest = async (req) => {
   try {
     const {
@@ -9,6 +11,7 @@ const acceptPassengerRequest = async (req) => {
       passengerRequestUniqueId,
       driverWaitUniqueId,
     } = req.body;
+    console.log("req.body", req.body);
 
     const isDataInCorrectStatus = await verifyRecordsByConditions([
       {
@@ -34,9 +37,11 @@ const acceptPassengerRequest = async (req) => {
       },
     ]);
 
+    // console.log("isDataInCorrectStatus", isDataInCorrectStatus);
     if (!isDataInCorrectStatus) {
       return { message: "error", error: "Request not in correct status" };
     }
+    // return;
     // update journey Decisions
     const journeyDecisionStatus = await updateData({
       tableName: "journeyDecisions",

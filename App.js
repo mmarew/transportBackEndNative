@@ -66,5 +66,5 @@ app.get("", (req, res) => {
 });
 // Start the HTTP server on port 3000
 server.listen(process.env.PORT || 3000, () => {
-  console.log("Server started on port 3000");
+  console.log("Server started on port http://localhost:3000");
 });

@@ -6,20 +6,33 @@ const { pool } = require("../Middleware/Database.config");
 const currentDate = require("../Utils/currentDate");
 
 const registerVehicleType = async (body) => {
-  const { vehicleTypeName, vehicleTypeDescription } = body;
+  // verify  vehicleTypeName and vehicleTypeDescription are in body
+  if (!body.vehicleTypeName || !body.carryingCapacity) {
+    return {
+      message: "error",
+      data: "Missing vehicle type name or carrying capacity",
+    };
+  }
+  const { vehicleTypeName, carryingCapacity } = body;
 
   // Verify existence (you'll need to implement this function)
   const results = await getData({
     tableName: "VehicleType",
     conditions: { vehicleTypeName },
   });
-
-  if (results) return { message: "error", data: "Vehicle type already exists" };
+  console.log("results", results);
+  if (results?.length > 0)
+    return { message: "error", data: "Vehicle type already exists" };
 
   const vehicleTypeUniqueId = uuidv4();
-  const sql = `INSERT INTO VehicleType (vehicleTypeUniqueId, vehicleTypeName, vehicleTypeDescription, vehicleTypeCreatedAt) 
-               VALUES (?, ?, ?, ${currentDate()})`;
-  const values = [vehicleTypeUniqueId, vehicleTypeName, vehicleTypeDescription];
+  const sql = `INSERT INTO VehicleType (vehicleTypeUniqueId, vehicleTypeName, carryingCapacity, vehicleTypeCreatedAt) 
+  VALUES (?, ?, ?,  ?)`;
+  const values = [
+    vehicleTypeUniqueId,
+    vehicleTypeName,
+    carryingCapacity,
+    currentDate(),
+  ];
 
   try {
     const [result] = await pool.query(sql, values);

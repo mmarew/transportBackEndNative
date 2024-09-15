@@ -617,7 +617,7 @@ const mapUsersToRole = (
 const getJourneyDetails = async (decision) => {
   const journeyDetails = await getData({
     tableName: "Journey",
-    conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
+    conditions: { journeyDecisionUniqueId: decision?.journeyDecisionUniqueId },
   });
   return journeyDetails?.at(0);
 };

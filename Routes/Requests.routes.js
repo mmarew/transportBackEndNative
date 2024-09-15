@@ -17,7 +17,7 @@ router.put(
   acceptPassengerRequest
 );
 router.put(
-  "/startJourney",
+  "/api/request/startJourney",
   verifyToken.verifyTokenOfAxios,
   controller.startJourney
 );

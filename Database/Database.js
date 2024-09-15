@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS VehicleType (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(150) UNIQUE NOT NULL,
     vehicleTypeName VARCHAR(50) NOT NULL,
-    vehicleTypeDescription VARCHAR(3000) NULL,
+    carryingCapacity VARCHAR(3000) NULL,
     vehicleTypeCreatedAt DATETIME NOT NULL,
     vehicleTypeDeletedAt DATETIME NULL
 );

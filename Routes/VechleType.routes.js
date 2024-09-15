@@ -14,6 +14,6 @@ router.post("/api/admin/registerVehicleType", registerVehicleTypeController);
 router.get("/api/admin/getVehicleType/:id", getVehicleTypeController);
 router.put("/api/admin/updateVehicleType/:id", updateVehicleTypeController);
 router.delete("/api/admin/deleteVehicleType/:id", deleteVehicleTypeController);
-router.get("/api/admin/getAllVehicleTypes", getAllVehicleTypesController);
+router.get("/api/user/getAllVehicleTypes", getAllVehicleTypesController);
 
 module.exports = router;
