@@ -12,7 +12,8 @@ const {
   sendNotificationToDriver,
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
-
+const { getAllVehicleTypes } = require("../services/VechleType.service");
+const { getCancilationReasons } = require("../services/Cancilation.service");
 /**
  * Creates a new request for a user.
  *
@@ -162,7 +163,7 @@ const processPassengerRequest = async (existedUser, existingRequest) => {
     ? await handleDriverFoundForPassenger(driver, existingRequest)
     : null;
   const passenger = { ...existedUser, ...existingRequest };
-  return buildResponse({
+  return await buildResponse({
     passenger,
     driver,
     status: existingRequest.journeyStatusId,
@@ -184,7 +185,7 @@ const processDriverRequest = async (existedUser, existingRequest) => {
     ? await handlePassengerFoundForDriver(passenger, existingRequest)
     : null;
   const driver = { ...existedUser, ...existingRequest };
-  return buildResponse({
+  return await buildResponse({
     passenger,
     driver,
     status: existingRequest.journeyStatusId,
@@ -203,7 +204,7 @@ Here's what it does:
 2. If a driver is found, it makes a decision using the `handleDriverFoundForPassenger` function.
 3. It retrieves the passenger's request data from the "Requests" table using the `getData` function.
 4. It merges the existing user data with the request data to create a passenger object.
-5. It builds a response object containing the passenger, driver, status (set to 1), and decision using the `buildResponse` function.
+5. It builds a response object containing the passenger, driver, status (set to 1), and decision using the `await buildResponse` function.
 
 The function returns this response object.
  * Handles the creation of a new passenger request by finding a matching driver,
@@ -231,7 +232,7 @@ const handleNewPassengerRequest = async (
     conditions: { requestUniqueId },
   });
   const passenger = { ...existedUser, ...passengerRequest[0] };
-  return buildResponse({ passenger, driver, status: 1, decision });
+  return await buildResponse({ passenger, driver, status: 1, decision });
 };
 
 /**
@@ -263,7 +264,7 @@ const handleNewDriverRequest = async (
     conditions: { requestUniqueId },
   });
   const driver = { ...existedUser, ...driverRequest[0] };
-  return buildResponse({ passenger, driver, status: 1, decision });
+  return await buildResponse({ passenger, driver, status: 1, decision });
 };
 
 const handlePassengerFoundForDriver = async (passenger, request) => {
@@ -444,7 +445,7 @@ This is a JavaScript function named `verifyStatusOfUser` that verifies the statu
 	* If the status is requested, it retrieves the journey decision and other user details.
 6. It returns a response object containing the verification result, including a message and data.
 
-The function uses various helper functions, such as `getJourneyDecisionByType`, `getOtherUser`, `mapUsersToRole`, and `buildResponse`, to perform the necessary actions. It also handles errors and returns a corresponding error message if any issues occur during the verification process.
+The function uses various helper functions, such as `getJourneyDecisionByType`, `getOtherUser`, `mapUsersToRole`, and `await buildResponse`, to perform the necessary actions. It also handles errors and returns a corresponding error message if any issues occur during the verification process.
  * Verifies the status of a user based on their latest request.
  *
  * @param {Object} req - The request object containing user data.
@@ -464,7 +465,13 @@ const verifyStatusOfUser = async (req) => {
     ]);
 
     if (userWaitResult?.length === 0) {
-      return { message: "Success", data: "User can make a request" };
+      return await buildResponse({
+        decision: null,
+        passenger: null,
+        journey: null,
+        driver: null,
+        status: null,
+      });
     }
 
     const requestType = userWaitResult[0]?.requestType; // Either 'PASSENGER' or 'DRIVER'
@@ -486,7 +493,13 @@ const verifyStatusOfUser = async (req) => {
         otherUser,
         requestType
       );
-      return buildResponse({ driver, passenger, status, decision, journey });
+      return await buildResponse({
+        driver,
+        passenger,
+        status,
+        decision,
+        journey,
+      });
     }
 
     // If the status is 'waiting', find the other party (passenger/driver) and process
@@ -497,14 +510,14 @@ const verifyStatusOfUser = async (req) => {
           : await findDriverForPassenger(userUniqueId);
 
       if (!otherParty?.length) {
-        return {
+        return await buildResponse({
           message: "success",
           driver: requestType === "DRIVER" ? userWaitResult[0] : null,
           passenger: requestType === "PASSENGER" ? userWaitResult[0] : null,
           data: `${
             requestType === "DRIVER" ? "Passenger" : "Driver"
           } not found`,
-        };
+        });
       }
 
       const journeyDecisionUniqueId = uuidv4();
@@ -525,7 +538,7 @@ const verifyStatusOfUser = async (req) => {
           2,
           otherParty[0]?.requestUniqueId
         );
-        return buildResponse({
+        return await buildResponse({
           driver: requestType === "DRIVER" ? userWaitResult[0] : otherParty[0],
           passenger:
             requestType === "PASSENGER" ? userWaitResult[0] : otherParty[0],
@@ -562,7 +575,7 @@ const handleOngoingJourney = async (
     otherUser,
     requestType
   );
-  return buildResponse({
+  return await buildResponse({
     driver,
     passenger,
     status: existingRequest.journeyStatusId,
@@ -622,8 +635,28 @@ const getJourneyDetails = async (decision) => {
   return journeyDetails?.at(0);
 };
 
-const buildResponse = ({ passenger, driver, status, decision, journey }) => {
-  return { message: "success", passenger, driver, status, decision, journey };
+const buildResponse = async ({
+  passenger,
+  driver,
+  status,
+  decision,
+  journey,
+}) => {
+  // get data of vechle types,
+  const listOfVechlesType = (await getAllVehicleTypes())?.data;
+  // get data of cancilation reasones
+  const listOfCancilationReasons = (await getCancilationReasons())?.data;
+
+  return {
+    message: "success",
+    passenger,
+    driver,
+    status,
+    decision,
+    journey,
+    listOfVechlesType,
+    listOfCancilationReasons,
+  };
 };
 const deleteRequest = async (requestId) => {
   try {
@@ -691,7 +724,7 @@ const cancelRequest = async (req) => {
       requestType,
     } = body;
 
-    console.log("Request body: ", body);
+    console.log("Request body in cancelRequest : ", body);
 
     let journeyStatusId;
     const activeStatusIds = [1, 2, 3]; // List of active statuses

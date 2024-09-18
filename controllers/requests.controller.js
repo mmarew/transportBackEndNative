@@ -79,6 +79,7 @@ const startJourney = async (req, res) => {
 const cancelRequest = async (req, res) => {
   try {
     const result = await service.cancelRequest(req);
+    console.log("@ cancelRequest result ======> ", result);
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {

@@ -34,7 +34,11 @@ router.get(
 );
 router.get("/api/request/:id", controller.getRequestController);
 // router.put("/requests/:id", updateRequestController);
-router.put("/api/request/cancelRequest", controller.cancelRequest);
+router.put(
+  "/api/request/cancelRequest",
+  verifyToken.verifyTokenOfAxios,
+  controller.cancelRequest
+);
 router.delete("/request/:id", deleteRequestController);
 
 module.exports = router;

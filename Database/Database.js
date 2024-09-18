@@ -179,6 +179,9 @@ CREATE TABLE IF NOT EXISTS SMSSender (
     phoneNumber VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL
 );
+-- cancilationReasonsType
+create table if not exists cancilationReasonsType
+(cancilationReasonsTypeId int AUTO_INCREMENT PRIMARY KEY, cancilationReasonTypeUniqueId varchar(150),cancilationReasonType varchar(150),caneledBy varchar(150))
 `;
   const [queryResult] = await pool.query(sqlQuery);
   //   console.log("queryResult", queryResult);
