@@ -12,6 +12,7 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 const router = express.Router();
 
+router.post("/api/user/createUser", createUserController);
 router.post("/api/admin/createUser", verifyTokenOfAxios, createUserController);
 router.get("/api/user/verifyUserByOTP", verifyUserByOTP);
 router.put("/api/user/updateUser", verifyTokenOfAxios, updateUserController);

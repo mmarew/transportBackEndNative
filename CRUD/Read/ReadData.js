@@ -1,14 +1,5 @@
 const { pool } = require("../../Middleware/Database.config");
 
-/**
- * Verifies the existence of data in a table using specified conditions.
- *
- * @param {Object} params - The parameters for the function.
- * @param {string} params.tableName - The name of the table to query.
- * @param {Object} params.conditions - An object containing column-value pairs for the conditions.
- * @param {string} [params.operator='AND'] - The logical operator to use between conditions ('AND' or 'OR').
- * @returns {Promise} - A promise that resolves with the first matching row or undefined if no match is found.
- */
 const getData = async ({ tableName, conditions, operator = "AND" }) => {
   // Validate the operator
   if (operator !== "AND" && operator !== "OR") {
@@ -41,38 +32,98 @@ const getData = async ({ tableName, conditions, operator = "AND" }) => {
   }
 };
 
-const findDriverForPassenger = async (userUniqueId) => {
-  // find driver who is in waiting
-  const driverRequestData = await getData({
-    tableName: "Requests",
-    conditions: { journeyStatusId: 1, requestType: "DRIVER" },
-    operator: "AND",
-  });
-  let driverUserUniqueId = null,
-    userDriverInfo = null;
-  // if driver found
-  if (driverRequestData.length > 0) {
-    driverUserUniqueId = driverRequestData[0]?.userUniqueId;
-    // find detailes of driver
-    userDriverInfo = await getData({
-      tableName: "Users",
-      conditions: { userUniqueId: driverUserUniqueId },
-      operator: "AND",
-    });
-    return { ...userDriverInfo[0], ...driverRequestData[0] };
-  } else {
-    console.log("no driver found");
-    return null;
+const findNearbyDrivers = async ({ passengerRequest }) => {
+  try {
+    // Destructure the relevant data from the passengerRequest
+    const { originLatitude, originLongitude, vehicleTypeUniqueId } =
+      passengerRequest;
+
+    // Define the search range for latitude and longitude (0.01 degree ~ 1 km)
+    const latitudeRange = {
+      min: parseFloat(originLatitude) - 0.01,
+      max: parseFloat(originLatitude) + 0.01,
+    };
+    const longitudeRange = {
+      min: parseFloat(originLongitude) - 0.01,
+      max: parseFloat(originLongitude) + 0.01,
+    };
+
+    // Create SQL query to find nearby drivers with matching vehicle type and within the coordinate range
+    const sqlQuery = `
+      SELECT 
+         * 
+      FROM DriverRequest
+      JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
+      JOIN VehicleOwnership ON VehicleOwnership.userUniqueId = Users.userUniqueId
+      JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
+      JOIN VehicleType ON Vehicle.vehicleTypeUniqueId = VehicleType.vehicleTypeUniqueId
+      WHERE 
+        DriverRequest.originLatitude BETWEEN ? AND ?
+        AND DriverRequest.originLongitude BETWEEN ? AND ?
+        AND DriverRequest.journeyStatusId = 1 -- Status 'Waiting'
+        AND Vehicle.vehicleTypeUniqueId = ?
+    `;
+
+    // Values to be passed to the query for parameterized SQL
+    const values = [
+      latitudeRange.min,
+      latitudeRange.max, // Latitude range
+      longitudeRange.min,
+      longitudeRange.max, // Longitude range
+      vehicleTypeUniqueId, // Vehicle type
+    ];
+
+    // Execute the query
+    const [drivers] = await pool.query(sqlQuery, values);
+
+    // Return the list of nearby drivers
+    return drivers;
+  } catch (error) {
+    console.error("Error finding nearby drivers:", error);
+    return { message: "error", error: "Unable to find nearby drivers." };
   }
 };
-const findPassengerForDriver = async (userUniqueId) => {
-  const driverData = await getData({
-    tableName: "Requests",
-    conditions: { journeyStatusId: 1, requestType: "PASSENGER" },
-    operator: "AND",
-  });
-  return driverData[0];
+
+const findNearbyPassengers = async ({
+  originLatitude,
+  originLongitude,
+  vehicleTypeUniqueId,
+}) => {
+  const latitudeRange = {
+    min: parseFloat(originLatitude) - 0.01,
+    max: parseFloat(originLatitude) + 0.01,
+  };
+  const longitudeRange = {
+    min: parseFloat(originLongitude) - 0.01,
+    max: parseFloat(originLongitude) + 0.01,
+  };
+
+  return (
+    await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "PassengerRequest",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        "passengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
+        "PassengerRequest.originLatitude": [
+          latitudeRange.min,
+          latitudeRange.max,
+        ],
+        "PassengerRequest.originLongitude": [
+          longitudeRange.min,
+          longitudeRange.max,
+        ],
+        "PassengerRequest.journeyStatusId": 1, // Status 1: Waiting for a driver
+      },
+      operator: "AND",
+    })
+  )?.at(0);
 };
+
 const performJoinSelect = async ({
   baseTable,
   joins = [],
@@ -85,11 +136,15 @@ const performJoinSelect = async ({
   }
 
   // Build the WHERE clause dynamically based on the conditions object
-  const whereClause = Object.keys(conditions)
+  const colomns = Object.keys(conditions);
+  const whereClause = colomns
     .map((col) => {
       const value = conditions[col];
-      if (Array.isArray(value)) {
-        // If the value is an array, use the IN clause
+      if (Array.isArray(value) && value.length === 2) {
+        // If the value is an array of length 2, use BETWEEN for range-based queries
+        return `${col} BETWEEN ? AND ?`;
+      } else if (Array.isArray(value)) {
+        // If the value is an array of more than 2 elements, use IN clause
         const placeholders = value.map(() => "?").join(", ");
         return `${col} IN (${placeholders})`;
       } else {
@@ -109,6 +164,8 @@ const performJoinSelect = async ({
 
   // Combine everything into a complete SQL query
   const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} WHERE ${whereClause}`;
+  console.log("sqlQuery", sqlQuery);
+  console.log("values", values);
 
   try {
     const [result] = await pool.query(sqlQuery, values);
@@ -118,25 +175,58 @@ const performJoinSelect = async ({
     throw error;
   }
 };
-// const result = await performJoinSelect({
-//   baseTable: "Requests",
-//   joins: [
-//     {
-//       table: "Users",
-//       on: "Requests.userUniqueId = Users.userUniqueId",
-//     },
-//     // You can add more joins if needed
-//   ],
-//   conditions: {
-//     "Users.userUniqueId": "some-unique-id",
-//     "Requests.requestType": "PASSENGER",
-//     "Requests.journeyStatusId": [1, 2, 3], // Multiple values using IN
-//   },
-// });
+
+const checkUserExists = async (userUniqueId) => {
+  const existingUser = await getData({
+    tableName: "Users",
+    conditions: { userUniqueId },
+  });
+
+  return existingUser?.length ? existingUser[0] : null;
+};
+
+const checkActivePassengerRequest = async (userUniqueId) => {
+  const activeRequest = await getData({
+    tableName: "PassengerRequest",
+    conditions: {
+      userUniqueId,
+      journeyStatusId: [1, 2, 3, 4], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+    },
+  });
+
+  return activeRequest;
+};
+
+const checkActiveDriverRequest = async (userUniqueId) => {
+  try {
+    // Example query to check if a driver has an active request (e.g., status 1 or 2)
+    const result = await performJoinSelect({
+      baseTable: "DriverRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "DriverRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        "DriverRequest.userUniqueId": userUniqueId,
+        "DriverRequest.journeyStatusId": [1, 2, 3, 4], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+      },
+    });
+
+    return result; // Returns an array of active requests (if any)
+  } catch (error) {
+    console.error("Error checking active driver request:", error);
+    throw error;
+  }
+};
 
 module.exports = {
+  checkActiveDriverRequest,
+  checkActivePassengerRequest,
+  checkUserExists,
   performJoinSelect,
-  findDriverForPassenger,
-  findPassengerForDriver,
+  findNearbyDrivers,
+  findNearbyPassengers,
   getData,
 };

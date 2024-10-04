@@ -79,6 +79,7 @@ const startJourney = async (req, res) => {
 const cancelRequest = async (req, res) => {
   try {
     const result = await service.cancelRequest(req);
+    console.log("@ cancelRequest result ======> ", result);
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {
@@ -98,7 +99,20 @@ const journeyCompleted = async (req, res) => {
     });
   }
 };
+const getRecentCompletedJourneys = async (req, res) => {
+  try {
+    console.log("@ getRecentCompletedJourneys", req.body);
+    const result = await service.getRecentCompletedJourneys(req);
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to get recent completed journeys",
+    });
+  }
+};
 module.exports = {
+  getRecentCompletedJourneys,
   startJourney,
   journeyCompleted,
   cancelRequest,

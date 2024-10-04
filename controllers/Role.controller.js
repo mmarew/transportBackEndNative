@@ -5,12 +5,14 @@ const {
   deleteRole,
   getAllRoles,
 } = require("../services/Role.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 const createRoleController = async (req, res) => {
   try {
     const response = await createRole(req.body);
-    res.status(201).json(response);
+    ServerResponder(res, response);
   } catch (error) {
+    ServerResponder(res, error.message);
     console.error("Error:", error);
     res.status(500).json({ message: "Role creation failed" });
   }

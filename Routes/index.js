@@ -7,8 +7,17 @@ const usersRoleStatuseRouter = require("./usersRoleStatuse.routes");
 const userRoutes = require("./User.routes");
 const roles = require("./Role.routes");
 const Status = require("./Status.routes");
-const Requests = require("./Requests.routes");
-Routes.use(Requests);
+const Vehicles = require("./vehicle.routes");
+const vehicleOwnership = require("./vehicleOwnership.routes");
+const Passenger = require("./Passenger.routes");
+const Driver = require("./Driver.routes");
+
+Routes.use(Driver);
+Routes.use(Passenger);
+
+Routes.use(vehicleOwnership);
+
+Routes.use(Vehicles);
 Routes.use(Status);
 Routes.use(roles);
 Routes.use(userRoutes);

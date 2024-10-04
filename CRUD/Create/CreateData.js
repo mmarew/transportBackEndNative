@@ -74,7 +74,74 @@ const insertData = async ({ tableName, colAndVal }) => {
   }
 };
 
+const createPassengerRequest = async (body, userUniqueId) => {
+  const { vehicle, destination, originLocation } = body;
+  const { vehicleTypeUniqueId } = vehicle;
+
+  const originLatitude = originLocation.latitude,
+    originLongitude = originLocation.longitude,
+    originPlace = originLocation.description;
+
+  const destinationLatitude = destination.latitude || null,
+    destinationLongitude = destination.longitude || null,
+    destinationPlace = destination.description || null;
+
+  const passengerRequestUniqueId = uuidv4();
+  const requestPayload = {
+    passengerRequestUniqueId,
+    userUniqueId,
+    vehicleTypeUniqueId,
+    originLatitude,
+    originLongitude,
+    originPlace,
+    destinationLatitude,
+    destinationLongitude,
+    destinationPlace,
+    requestTime: new Date(),
+    journeyStatusId: 1, // Initial status: Waiting
+  };
+
+  // Insert the new request into the database
+  const result = await insertData({
+    tableName: "PassengerRequest",
+    colAndVal: requestPayload,
+  });
+
+  return result;
+};
+const createDriverRequest = async (body, userUniqueId) => {
+  // Extract the relevant data from the request body
+  const { currentLocation } = body;
+
+  const originLatitude = currentLocation.latitude,
+    originLongitude = currentLocation.longitude,
+    originPlace = currentLocation.description;
+
+  const driverRequestUniqueId = uuidv4(); // Generate a unique ID for this driver request
+
+  // Build the request payload
+  const requestPayload = {
+    driverRequestUniqueId,
+    userUniqueId,
+    originLatitude,
+    originLongitude,
+    originPlace,
+    requestTime: new Date(),
+    journeyStatusId: 1, // Initial status: Waiting (driver is waiting for a passenger)
+  };
+
+  // Insert the new request into the database
+  const result = await insertData({
+    tableName: "DriverRequest",
+    colAndVal: requestPayload,
+  });
+
+  return result; // Return the result of the insert operation
+};
+
 module.exports = {
+  createDriverRequest,
+  createPassengerRequest,
   insertData,
   registerCancilationReasons,
   registerCanceledJourney,
