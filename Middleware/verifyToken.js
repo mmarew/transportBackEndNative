@@ -3,6 +3,7 @@ require("dotenv").config();
 const secretKey = process.env.SECRET_KEY;
 
 const verifyTokenOfAxios = (req, res, next) => {
+  console.log("req.url====>", req.url);
   const authHeader = req?.headers?.authorization;
   if (authHeader) {
     const token = authHeader.split(" ")[1]; // Extract token from "Bearer <token>"

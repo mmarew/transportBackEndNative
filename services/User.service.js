@@ -2,7 +2,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { getData } = require("../CRUD/Read/ReadData");
-
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
 const createJWT = require("../Utils/createJWT");
@@ -97,7 +96,6 @@ const createUser = async (body) => {
     // Generate unique ids for user and credentials
     const userUniqueId = uuidv4();
     const credentialUniqueId = uuidv4();
-
     const insertToUsers = await insertData({
       tableName: "Users",
       colAndVal: {
@@ -155,7 +153,7 @@ const createUser = async (body) => {
 };
 const verifyUserByOTP = async (req) => {
   try {
-    console.log("first");
+    console.log("req.query in verifyUserByOTP", req.query);
     if (!req.query || !req.query.OTP || !req.query.phoneNumber) {
       return { message: "error", error: "OTP and phoneNumber are required" };
     }

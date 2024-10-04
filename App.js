@@ -9,9 +9,11 @@ const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const { addSMSSender } = require("./services/WSSMSSender.service.js");
+const path = require("path");
 
 // Initialize Express app
 const app = express();
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
 app.use(cors());
 app.use(Routes);
@@ -31,7 +33,6 @@ const wss = new WebSocket.Server({ server });
 // WebSocket connection handling
 wss.on("connection", (ws, req) => {
   const urlParams = new URLSearchParams(req.url.split("?")[1]);
-  console.log("urlParams", urlParams);
   WSPusher(urlParams, ws);
 
   ws.on("message", (incomingMessage) => {
@@ -65,6 +66,6 @@ app.get("", (req, res) => {
   res.json({ message: "Server is running" });
 });
 // Start the HTTP server on port 3000
-server.listen(process.env.PORT || 3000, () => {
+server.listen(process.env.PORT || 3000, "0.0.0.0", () => {
   console.log("Server started on port http://localhost:3000");
 });

@@ -1,12 +1,12 @@
 // utils/fileUtils.js
 const fs = require("fs");
 
-const deleteFile = (filePath) => {
-  fs.unlink(filePath, (err) => {
+const deleteFile = (fullPath) => {
+  fs.unlink(fullPath, (err) => {
     if (err) {
-      console.error(`Error deleting file: ${filePath}`, err);
+      console.error(`Error deleting file: ${fullPath}`, err);
     } else {
-      console.log(`File deleted: ${filePath}`);
+      console.log(`File deleted: ${fullPath}`);
     }
   });
 };

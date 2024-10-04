@@ -1,0 +1,119 @@
+const { v4: uuidv4 } = require("uuid");
+const { pool } = require("../Middleware/Database.config");
+
+const createVehicleOwnership = async (body) => {
+  const { vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate } =
+    body;
+  const ownershipUniqueId = uuidv4();
+
+  const sql = `INSERT INTO VehicleOwnership (ownershipUniqueId, vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate) 
+               VALUES (?, ?, ?, ?, ?, ?)`;
+  const values = [
+    ownershipUniqueId,
+    vehicleId,
+    userId,
+    roleId,
+    ownershipStartDate,
+    ownershipEndDate || null,
+  ];
+
+  try {
+    const [result] = await pool.query(sql, values);
+    if (result.affectedRows > 0) {
+      return {
+        message: "success",
+        data: "Vehicle ownership created successfully",
+      };
+    }
+    return { message: "error", data: "Vehicle ownership creation failed" };
+  } catch (error) {
+    console.error("Error creating vehicle ownership:", error);
+    return {
+      message: "error",
+      data: "An error occurred during vehicle ownership creation",
+    };
+  }
+};
+
+const getVehicleOwnership = async (ownershipId) => {
+  const sql = `SELECT * FROM VehicleOwnership WHERE ownershipId = ?`;
+  try {
+    const [result] = await pool.query(sql, [ownershipId]);
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("Error fetching vehicle ownership:", error);
+    throw error;
+  }
+};
+
+const updateVehicleOwnership = async (ownershipId, body) => {
+  const { vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate } =
+    body;
+  const sql = `UPDATE VehicleOwnership SET vehicleId = ?, userId = ?, roleId = ?, ownershipStartDate = ?, ownershipEndDate = ? 
+               WHERE ownershipId = ?`;
+  const values = [
+    vehicleId,
+    userId,
+    roleId,
+    ownershipStartDate,
+    ownershipEndDate || null,
+    ownershipId,
+  ];
+
+  try {
+    const [result] = await pool.query(sql, values);
+    if (result.affectedRows > 0) {
+      return {
+        message: "success",
+        data: "Vehicle ownership updated successfully",
+      };
+    }
+    return { message: "error", data: "Vehicle ownership update failed" };
+  } catch (error) {
+    console.error("Error updating vehicle ownership:", error);
+    return {
+      message: "error",
+      data: "An error occurred during vehicle ownership update",
+    };
+  }
+};
+
+const deleteVehicleOwnership = async (ownershipId) => {
+  const sql = `DELETE FROM VehicleOwnership WHERE ownershipId = ?`;
+
+  try {
+    const [result] = await pool.query(sql, [ownershipId]);
+    if (result.affectedRows > 0) {
+      return {
+        message: "success",
+        data: "Vehicle ownership deleted successfully",
+      };
+    }
+    return { message: "error", data: "Vehicle ownership not found" };
+  } catch (error) {
+    console.error("Error deleting vehicle ownership:", error);
+    return {
+      message: "error",
+      data: "An error occurred during vehicle ownership deletion",
+    };
+  }
+};
+
+const getAllVehicleOwnerships = async () => {
+  const sql = `SELECT * FROM VehicleOwnership`;
+  try {
+    const [result] = await pool.query(sql);
+    return result;
+  } catch (error) {
+    console.error("Error fetching vehicle ownerships:", error);
+    throw error;
+  }
+};
+
+module.exports = {
+  createVehicleOwnership,
+  getVehicleOwnership,
+  updateVehicleOwnership,
+  deleteVehicleOwnership,
+  getAllVehicleOwnerships,
+};

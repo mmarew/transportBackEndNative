@@ -11,7 +11,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const registerVehicleTypeController = async (req, res) => {
   try {
-    const response = await registerVehicleType(req.body);
+    const response = await registerVehicleType(req?.body, req?.file);
     ServerResponder(res, response);
   } catch (error) {
     console.error("Error:", error);

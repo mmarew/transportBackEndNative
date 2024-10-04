@@ -1,5 +1,4 @@
 const { pool } = require("../../Middleware/Database.config");
-const { sendOtpViaWebSocket } = require("../../Utils/WsServerResponder");
 
 const updateData = async ({
   tableName,
@@ -46,21 +45,6 @@ const updateData = async ({
     throw error;
   }
 };
-
-// // Example usage
-// const updateResult = await updateData({
-//   tableName: "Users",
-//   updateValues: {
-//     fullName: "John Doe Updated",
-//     email: "newemail@example.com",
-//   },
-//   conditions: {
-//     userId: 1,
-//   },
-//   operator: "AND", // Use 'OR' or 'AND' depending on your needs
-// });
-
-// console.log("Update Result:", updateResult);
 
 module.exports = {
   updateData,

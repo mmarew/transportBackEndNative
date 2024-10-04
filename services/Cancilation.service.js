@@ -55,7 +55,7 @@ const addCancilationReasons = async (req, res) => {
     const reason = req.body.reason;
     const isAvailable = await verifyExistanceOfCancilationReasons(reason);
     if (isAvailable)
-      return { message: "error", data: "cancilation reason already exist" };
+      return { message: "error", error: "cancilation reason already exist" };
     const sqlToAddReasones = `insert into  cancilationReasonsType (cancilationReasonTypeUniqueId,cancilationReasonType,caneledBy ) values(?,?,?)`;
 
     const reasonValues = [reasonUniqueId, reason, cancilationBy];

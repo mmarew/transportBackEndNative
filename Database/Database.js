@@ -12,16 +12,13 @@ const createTable = async () => {
 );
 
 -- Users Table
-CREATE TABLE IF NOT EXISTS Users (
+    CREATE TABLE IF NOT EXISTS Users (
     userId INT AUTO_INCREMENT PRIMARY KEY,
     userUniqueId VARCHAR(150) UNIQUE NOT NULL,
     fullName VARCHAR(255) NOT NULL,
     phoneNumber VARCHAR(15) NOT NULL,
     email VARCHAR(255) NULL,
-    createdAt DATETIME NOT NULL
-);
-
- 
+    createdAt DATETIME NOT NULL ); 
 
 -- Status Table
 CREATE TABLE IF NOT EXISTS Statuses (
@@ -60,26 +57,40 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
     journeyStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
     journeyStatusName VARCHAR(50) NOT NULL, 
-    createdAt DATETIME NOT NULL
+    journeyStatusDescription VARCHAR(255) NULL,
+    createdAt DATETIME NOT NULL,
+    deletedAt DATETIME NULL
+    
 ); 
  -- Create the Requests table, it can store passenger and driver requests 
-    CREATE TABLE IF NOT EXISTS Requests (
-    requestId INT AUTO_INCREMENT PRIMARY KEY,
-    requestUniqueId VARCHAR(150) UNIQUE NOT NULL,
+  CREATE TABLE IF NOT EXISTS PassengerRequest (
+    passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
+    passengerRequestUniqueId VARCHAR(150) UNIQUE NOT NULL,
     userUniqueId VARCHAR(150) NOT NULL,
-    vehicleTypeId VARCHAR(150) NOT NULL,
-    originLatitude VARCHAR(22) NOT NULL ,
+    vehicleTypeUniqueId VARCHAR(150) NOT NULL,
+    originLatitude VARCHAR(22) NOT NULL,
     originLongitude VARCHAR(22) NOT NULL,
-    originPlace VARCHAR(255) NOT NULL default 0.0,
-
-    destinationLatitude VARCHAR(22) NUll  default 0.0,
-    destinationLongitude VARCHAR(22) NULL default 0.0,
-    destinationPlace VARCHAR(255) NULL default 0.0,
-
+    originPlace VARCHAR(255) NOT NULL,
+    destinationLatitude VARCHAR(22) NULL DEFAULT 0.0,
+    destinationLongitude VARCHAR(22) NULL DEFAULT 0.0,
+    destinationPlace VARCHAR(255) NULL DEFAULT 0.0,
     requestTime TIMESTAMP NOT NULL,
-    requestType ENUM('PASSENGER', 'DRIVER') NOT NULL, 
-    -- Identifies if it's a passenger or driver request
-    journeyStatusId INT NOT NULL,
+    journeyStatusId INT NOT NULL, -- Foreign Key to JourneyStatus
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+);
+
+-- Create the driverWaiting table, it can store drivers waiting for a passenger 
+    CREATE TABLE IF NOT EXISTS DriverRequest (
+    driverRequestId INT AUTO_INCREMENT PRIMARY KEY,
+    driverRequestUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    userUniqueId VARCHAR(150) NOT NULL,
+    originLatitude VARCHAR(22) NOT NULL,
+    originLongitude VARCHAR(22) NOT NULL,
+    originPlace VARCHAR(255) NOT NULL,
+    requestTime TIMESTAMP NOT NULL,
+    journeyStatusId INT NOT NULL, -- Foreign Key to JourneyStatus
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
@@ -88,17 +99,14 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    passengerRequestId varchar(150) NOT NULL UNIQUE,
-    driverWaitId varchar(150) NOT NULL UNIQUE,
-    journeyStatusId INT NOT NULL ,  
-    -- References JourneyStatus table
+    passengerRequestId INT NOT NULL, -- Foreign Key to PassengerRequest table
+    driverRequestId INT NOT NULL, -- Foreign Key to DriverRequest table
+    journeyStatusId INT NOT NULL, -- Foreign Key to JourneyStatus table
     decisionTime TIMESTAMP NOT NULL,
-    FOREIGN KEY (passengerRequestId) REFERENCES Requests(requestUniqueId),
-    FOREIGN KEY (driverWaitId) REFERENCES Requests(requestUniqueId),
+    FOREIGN KEY (passengerRequestId) REFERENCES PassengerRequest(passengerRequestId),
+    FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
-
-
 
 -- Create the Journey table based on JourneyDecisions
 CREATE TABLE IF NOT EXISTS Journey (
@@ -143,13 +151,29 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
 );
 
 -- Vehicle Table
-CREATE TABLE IF NOT EXISTS Vehicle (
+    CREATE TABLE IF NOT EXISTS Vehicle (
     vehicleId INT AUTO_INCREMENT PRIMARY KEY,
-    driverId VARCHAR(150) NOT NULL,
-    vehicleType VARCHAR(50) NOT NULL,
+    vehicleUniqueId VARCHAR(150) NOT NULL,
+    vehicleTypeUniqueId VARCHAR(50) NOT NULL,
     licensePlate VARCHAR(50) NOT NULL,
-    vehicleStatus VARCHAR(50) NOT NULL,
-    FOREIGN KEY (driverId) REFERENCES Users(userId)
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId)
+);
+-- VehicleStatusType Table
+CREATE TABLE IF NOT EXISTS VehicleStatusType (
+    statusTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    statusTypeName VARCHAR(50) NOT NULL,
+    statusTypeDescription VARCHAR(255) NULL,
+    createdAt DATETIME NOT NULL,
+    deletedAt DATETIME NULL
+); 
+CREATE TABLE IF NOT EXISTS VehicleStatus (
+    vehicleStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    vehicleId INT NOT NULL,
+    statusTypeId INT NOT NULL,
+    statusStartDate DATETIME NOT NULL,
+    statusEndDate DATETIME NULL,
+    FOREIGN KEY (vehicleId) REFERENCES Vehicle(vehicleId),
+    FOREIGN KEY (statusTypeId) REFERENCES VehicleStatusType(statusTypeId)
 );
 
 -- VehicleType Table
@@ -158,10 +182,23 @@ CREATE TABLE IF NOT EXISTS VehicleType (
     vehicleTypeUniqueId VARCHAR(150) UNIQUE NOT NULL,
     vehicleTypeName VARCHAR(50) NOT NULL,
     carryingCapacity VARCHAR(3000) NULL,
+    vehicleImage VARCHAR(150) NULL,
     vehicleTypeCreatedAt DATETIME NOT NULL,
     vehicleTypeDeletedAt DATETIME NULL
 );
-
+-- VehicleOwnership which can show which vehicle is owned by which user and who can drive it
+CREATE TABLE IF NOT EXISTS VehicleOwnership (
+    ownershipId INT AUTO_INCREMENT PRIMARY KEY,
+    ownershipUniqueId VARCHAR(150) UNIQUE NOT NULL,
+    vehicleUniqueId INT NOT NULL,
+    userUniqueId varchar(150) NOT NULL,
+    roleId INT NOT NULL,
+    ownershipStartDate DATETIME NOT NULL,
+    ownershipEndDate DATETIME NULL,
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId)
+);
 
 -- Ratings Table
 CREATE TABLE IF NOT EXISTS Ratings (
