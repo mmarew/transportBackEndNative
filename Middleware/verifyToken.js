@@ -52,7 +52,6 @@ const verifyTokenOfAxios = (req, res, next) => {
 };
 const verifyTokenOfWS = async (tokenData) => {
   const token = tokenData.split(" ")[1]; // Extract token from "Bearer <token>"
-
   try {
     const decoded = jwt.verify(token, secretKey);
     decoded.valid = true;

@@ -19,8 +19,9 @@
       let ws;
 
       function connectWebSocket() {
+        const token = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InBob25lTnVtYmVyIjoiMDkyMjExMjQ4MCIsInR5cGUiOiJTTVNTZW5kZXIifSwiaWF0IjoxNzI4MzgxMDc4fQ.gI3z1-01z1ywhmBzNDQKt2TOCzQwHfhiLhUyCasnTSY`;
         ws = new WebSocket(
-          `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=0922112480`
+          `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=123&token=${token}`
         );
 
         ws.addEventListener("open", () => {
@@ -76,3 +77,31 @@
     </script>
   </body>
 </html>
+<!--
+ =>driver in waiting state
+ => driving license
+ => 3rd party insurance
+ => driver image
+ => license image
+ => librea image
+ => deligation if deligation
+ => tin number
+ => bank letter if it is hold by bank
+
+ financial part 
+ ====================================================
+=> store deposite in bank
+=> use ebirr with telebirr for payment deduction
+
+how to get passenger
+==============================
+1) call center 
+2) driver pick up the passenger
+3) passenger call via app 
+
+
+ferese corporate
+==============================
+=> company order to there employee  also via deposite in bank
+=> security of user passenger by verifing id of passenger
+-->

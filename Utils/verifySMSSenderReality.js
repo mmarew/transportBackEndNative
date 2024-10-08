@@ -1,24 +1,29 @@
 const bcrypt = require("bcrypt");
 const { pool } = require("../Middleware/Database.config");
+const verifyPassword = require("./VerifyPassword");
+const { getData } = require("../CRUD/Read/ReadData");
 
 const verifySMSSenderReality = async (phoneNumber, password) => {
-  const sql = `SELECT * FROM SMSSender WHERE phoneNumber = ?`;
-
-  const [result] = await pool.query(sql, [phoneNumber]);
-
+  const result = await getData({
+    tableName: "SMSSender",
+    conditions: { phoneNumber },
+  });
   if (result.length === 0) {
-    return { message: "error", error: "SMSSender not found" };
+    return { message: "error", error: "This phone number is not found" };
   }
-
   const smssender = result[0];
 
   // Verify the password
-  const isMatch = await bcrypt.compare(password, smssender.password);
-  if (!isMatch) {
-    return { message: "error", error: "Invalid password" };
+  const { message, data } = await verifyPassword({
+    hashedPassword: smssender.password,
+    notHashedPassword: password,
+  });
+
+  if (message === "error") {
+    return { message: "error", error: data };
   }
 
-  return { message: "success", data: smssender };
+  return { message, data };
 };
 
 module.exports = verifySMSSenderReality;

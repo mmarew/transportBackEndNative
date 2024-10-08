@@ -18,22 +18,17 @@ const { sendNotificationToDriver } = require("../Utils/Notifications");
 const createRequest = async (body, user) => {
   try {
     const { userUniqueId } = user?.data;
-    console.log("user", user);
     // 1. Check if the user exists
     const existingUser = await checkUserExists(userUniqueId);
     if (!existingUser) {
       return { message: "error", error: "User not found" };
     }
-
     // 2. Check if the user already has an active request
     const activeRequest = await checkActivePassengerRequest(userUniqueId);
-    console.log("activeRequest of create", activeRequest);
     if (activeRequest?.length == 0) {
       await createPassengerRequest(body, userUniqueId);
     }
-
     // 3. Create a new passenger request
-
     return await verifyPassengerStatus({ userUniqueId, activeRequest });
   } catch (error) {
     console.error("Error in createRequest:", error);
@@ -100,7 +95,6 @@ const deleteRequest = async (requestId) => {
 };
 
 const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
-  console.log("userUniqueId", userUniqueId);
   try {
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
     if (!activeRequest || activeRequest?.length == 0)
@@ -179,6 +173,8 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
         updateValues: { journeyStatusId: 2 },
       });
       const message = {
+        message: "success",
+        status: 2,
         passenger,
         driver,
         journey: null,
@@ -193,7 +189,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       // 5. Return response with passenger, driver, and journey decision data
       return {
         message: "success",
-        status: 1,
+        status: 2,
         ...message,
       };
     }
@@ -224,6 +220,8 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     const driver = driverData[0];
     const phoneNumber = driver?.phoneNumber;
     const message = {
+      message: "success",
+      status: driver?.journeyStatusId,
       passenger,
       driver,
       journey: journey[0] || null,
@@ -236,9 +234,9 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       });
     // 7. Return the final response
     return {
-      ...message,
       message: "success",
-      status: "Active journey found",
+      status: driver?.journeyStatusId,
+      ...message,
     };
   } catch (error) {
     console.error("Error in verifyPassengerStatus:", error);

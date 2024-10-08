@@ -8,7 +8,6 @@ const Routes = require("./Routes/index.js");
 const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
-const { addSMSSender } = require("./services/WSSMSSender.service.js");
 const path = require("path");
 
 // Initialize Express app
@@ -52,11 +51,6 @@ wss.on("connection", (ws, req) => {
 const onStartUp = async () => {
   try {
     createTable();
-    const SmsSenderPhone = {
-      body: { phoneNumber: "0922112480", password: "0922112480" },
-    };
-    const result = await addSMSSender(SmsSenderPhone);
-    console.log(result);
   } catch (error) {
     console.log("error", error);
   }

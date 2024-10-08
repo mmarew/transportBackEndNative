@@ -1,4 +1,9 @@
 const ServerResponder = async (res, data) => {
+  // status code 201 for create and update
+  // server error 500
+  // bad request 400
+  // not found 404 and wrong media type
+  // status code 204 for delete
   try {
     // console.log("ServerResponder", data);
     let { message } = data;

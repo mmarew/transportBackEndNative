@@ -1,6 +1,7 @@
 let listOfDriverWs = [];
 let listOfPassangerWs = [];
 let listOfSMSSenderWs = [];
+const listOfAdminWs = [];
 
 const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
   try {
@@ -16,6 +17,7 @@ const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
 const WSServerTextMessageResponder = async (ws, message) => {
   console.log("message", message);
   ws.send(JSON.stringify({ message }));
+  return { message: "success", data: "message sent successfully" };
 };
 module.exports = {
   WSServerTextMessageResponder,
@@ -23,4 +25,5 @@ module.exports = {
   listOfDriverWs,
   listOfPassangerWs,
   listOfSMSSenderWs,
+  listOfAdminWs,
 };

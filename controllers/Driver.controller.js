@@ -28,7 +28,10 @@ const getRequestByIdController = async (req, res) => {
 
 const acceptPassengerRequest = async (req, res) => {
   try {
+    const { userUniqueId } = req.user.data;
     req.body.journeyStatusId = 3;
+    req.body.previousStatusId = 2;
+    req.body.userUniqueId = userUniqueId;
     const result = await services.acceptPassengerRequest(req.body);
 
     ServerResponder(res, result, 200);
@@ -67,6 +70,7 @@ const startJourney = async (req, res) => {
     const { userUniqueId } = req.user.data;
     req.body.journeyStatusId = 4;
     req.body.userUniqueId = userUniqueId;
+    req.body.previousStatusId = 3;
     const result = await services.startJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
@@ -79,6 +83,7 @@ const noAnswerFromDriver = async (req, res) => {
     const { userUniqueId } = req.user.data;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 11;
+    req.body.previousStatusId = 2;
     // journeyStatusId=11 is for no answer from driver
     const result = await services.noAnswerFromDriver(req.body);
     ServerResponder(res, result);
@@ -92,6 +97,7 @@ const journeyCompleted = async (req, res) => {
     const { userUniqueId } = req.user.data;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 5;
+    req.body.previousStatusId = 4;
     const result = await services.journeyCompleted(req.body);
     ServerResponder(res, result);
   } catch (error) {
@@ -104,6 +110,7 @@ const canceledByDriver = async (req, res) => {
     const { userUniqueId } = req.user.data;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 7;
+    req.body.previousStatusId = [1, 2, 3, 4];
     const result = await services.canceledByDriver(req.body);
     ServerResponder(res, result);
   } catch (error) {
@@ -111,6 +118,7 @@ const canceledByDriver = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
+
 module.exports = {
   canceledByDriver,
   journeyCompleted,

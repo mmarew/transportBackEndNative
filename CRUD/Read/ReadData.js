@@ -1,6 +1,14 @@
 const { pool } = require("../../Middleware/Database.config");
 
-const getData = async ({ tableName, conditions, operator = "AND" }) => {
+const getData = async ({
+  tableName,
+  conditions,
+  operator = "AND",
+  orderBy = null,
+  orderDirection = "ASC",
+  limit = null,
+  offset = null,
+}) => {
   // Validate the operator
   if (operator !== "AND" && operator !== "OR") {
     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
@@ -10,19 +18,39 @@ const getData = async ({ tableName, conditions, operator = "AND" }) => {
   const whereClause = Object.keys(conditions)
     .map((col) => {
       const value = conditions[col];
-      if (Array.isArray(value)) {
-        // If the value is an array, use the IN clause
+      if (value === null) {
+        return `${col} IS NULL`;
+      } else if (Array.isArray(value)) {
         const placeholders = value.map(() => "?").join(", ");
         return `${col} IN (${placeholders})`;
       } else {
-        // Otherwise, use the standard equality check
         return `${col} = ?`;
       }
     })
     .join(` ${operator} `);
-  // Flatten the values array, since some elements might be arrays themselves
-  const values = Object.values(conditions).flat();
-  const sqlQuery = `SELECT * FROM ${tableName} WHERE ${whereClause}`;
+
+  // Flatten the values array, excluding null values
+  const values = Object.values(conditions)
+    .filter((value) => value !== null)
+    .flat();
+
+  // Initialize the base query
+  let sqlQuery = `SELECT * FROM ${tableName} WHERE ${whereClause}`;
+
+  // Add ORDER BY clause if provided
+  if (orderBy) {
+    sqlQuery += ` ORDER BY ${orderBy} ${orderDirection}`;
+  }
+
+  // Add LIMIT clause if provided
+  if (limit) {
+    sqlQuery += ` LIMIT ${limit}`;
+    if (offset) {
+      sqlQuery += ` OFFSET ${offset}`;
+    }
+  }
+
+  // Execute the query and return the result
   try {
     const [result] = await pool.query(sqlQuery, values);
     return result; // Return the result set
@@ -98,37 +126,35 @@ const findNearbyPassengers = async ({
     max: parseFloat(originLongitude) + 0.01,
   };
 
-  return (
-    await performJoinSelect({
-      baseTable: "Users",
-      joins: [
-        {
-          table: "PassengerRequest",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-        },
-      ],
-      conditions: {
-        "passengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
-        "PassengerRequest.originLatitude": [
-          latitudeRange.min,
-          latitudeRange.max,
-        ],
-        "PassengerRequest.originLongitude": [
-          longitudeRange.min,
-          longitudeRange.max,
-        ],
-        "PassengerRequest.journeyStatusId": 1, // Status 1: Waiting for a driver
+  return await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "PassengerRequest",
+        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
       },
-      operator: "AND",
-    })
-  )?.at(0);
+    ],
+    conditions: {
+      "passengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
+      "PassengerRequest.originLatitude": [latitudeRange.min, latitudeRange.max],
+      "PassengerRequest.originLongitude": [
+        longitudeRange.min,
+        longitudeRange.max,
+      ],
+      "PassengerRequest.journeyStatusId": 1, // Status 1: Waiting for a driver
+    },
+    operator: "AND",
+  });
 };
-
 const performJoinSelect = async ({
   baseTable,
   joins = [],
   conditions = {},
   operator = "AND",
+  orderBy = null,
+  orderDirection = "ASC",
+  limit = null, // New parameter to handle LIMIT
+  offset = null, // New parameter to handle OFFSET (for pagination)
 }) => {
   // Validate the operator
   if (operator !== "AND" && operator !== "OR") {
@@ -136,15 +162,15 @@ const performJoinSelect = async ({
   }
 
   // Build the WHERE clause dynamically based on the conditions object
-  const colomns = Object.keys(conditions);
-  const whereClause = colomns
+  const columns = Object.keys(conditions);
+  const whereClause = columns
     .map((col) => {
       const value = conditions[col];
       if (Array.isArray(value) && value.length === 2) {
         // If the value is an array of length 2, use BETWEEN for range-based queries
         return `${col} BETWEEN ? AND ?`;
       } else if (Array.isArray(value)) {
-        // If the value is an array of more than 2 elements, use IN clause
+        // If the value is an array, use IN clause
         const placeholders = value.map(() => "?").join(", ");
         return `${col} IN (${placeholders})`;
       } else {
@@ -154,7 +180,7 @@ const performJoinSelect = async ({
     })
     .join(` ${operator} `);
 
-  // Flatten the values array, since some elements might be arrays themselves
+  // Flatten the values array
   const values = Object.values(conditions).flat();
 
   // Build the JOIN clauses dynamically
@@ -162,10 +188,15 @@ const performJoinSelect = async ({
     .map(({ table, on }) => `JOIN ${table} ON ${on}`)
     .join(" ");
 
+  // Build the ORDER BY clause if provided
+  const orderByClause = orderBy ? `ORDER BY ${orderBy} ${orderDirection}` : "";
+
+  // Build the LIMIT and OFFSET clauses if provided
+  const limitClause = limit ? `LIMIT ${limit}` : "";
+  const offsetClause = offset ? `OFFSET ${offset}` : "";
+
   // Combine everything into a complete SQL query
-  const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} WHERE ${whereClause}`;
-  console.log("sqlQuery", sqlQuery);
-  console.log("values", values);
+  const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} WHERE ${whereClause} ${orderByClause} ${limitClause} ${offsetClause}`;
 
   try {
     const [result] = await pool.query(sqlQuery, values);

@@ -1,227 +1,293 @@
 const { pool } = require("../Middleware/Database.config");
+
 const createTable = async () => {
-  const sqlQuery = `
-  -- Roles Table
-   CREATE TABLE IF NOT EXISTS Roles (
+  const sqlQuery = `-- Create the Roles Table
+CREATE TABLE IF NOT EXISTS Roles (
     roleId INT AUTO_INCREMENT PRIMARY KEY,
-    roleUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    roleName VARCHAR(50) NOT NULL,
-    roleDescription VARCHAR(255) NULL,
-    roleCreatedAt DATETIME NOT NULL,
-    roleDeletedAt DATETIME NULL
-);
+    roleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the role
+    roleName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the role
+    roleDescription VARCHAR(255) NULL,  -- Description of the role
+    roleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the role
+    roleUpdatedBy VARCHAR(36) NULL,  -- Who updated the role
+    roleDeletedBy VARCHAR(36) NULL,  -- Who deleted the role
+    roleCreatedAt DATETIME NOT NULL,  -- When the role was created
+    roleDeletedAt DATETIME NULL  -- When the role was deleted
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Users Table
-    CREATE TABLE IF NOT EXISTS Users (
+-- Create the Users Table
+CREATE TABLE IF NOT EXISTS Users (
     userId INT AUTO_INCREMENT PRIMARY KEY,
-    userUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    fullName VARCHAR(255) NOT NULL,
-    phoneNumber VARCHAR(15) NOT NULL,
-    email VARCHAR(255) NULL,
-    createdAt DATETIME NOT NULL ); 
+    userUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the user
+    fullName VARCHAR(255) NOT NULL,  -- Full name of the user
+    phoneNumber VARCHAR(15) NOT NULL,  -- Phone number of the user
+    email VARCHAR(255) NULL,  -- Email of the user
+    createdAt DATETIME NOT NULL,  -- When the user was created
+    createdBy VARCHAR(36) NULL,  -- Who created the user
+    updatedBy VARCHAR(36) NULL,  -- Who updated the user
+    deletedBy VARCHAR(36) NULL,  -- Who deleted the user
+    updatedAt DATETIME NULL,  -- When the user was updated
+    deletedAt DATETIME NULL  -- When the user was deleted
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Status Table
+-- Create the Statuses Table
 CREATE TABLE IF NOT EXISTS Statuses (
     statusId INT AUTO_INCREMENT PRIMARY KEY,
-    statusUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    statusName VARCHAR(50) NOT NULL,
-    statusCreatedAt DATETIME NOT NULL,
-    statusDeletedAt DATETIME NULL
-);
+    statusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the status
+    statusName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the status
+    statusDescription VARCHAR(255) NULL,  -- Description of the status
+    statusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
+    statusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
+    statusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
+    statusCreatedAt DATETIME NOT NULL,  -- When the status was created
+    statusDeletedAt DATETIME NULL,  -- When the status was deleted
+    FOREIGN KEY (statusCreatedBy) REFERENCES Users(userUniqueId)  -- Foreign key to Users
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- UserRoleStatuses Table , this table register userid roleid and status id
-CREATE TABLE IF NOT EXISTS UserRoleStatuses (
+-- Create the UserRole Table
+CREATE TABLE IF NOT EXISTS UserRole (
+    userRoleId INT AUTO_INCREMENT PRIMARY KEY,
+    userRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role link
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    roleId INT NOT NULL,  -- Foreign key to Roles
+    userRoleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the user role
+    userRoleUpdatedBy VARCHAR(36) NULL,  -- Who updated the user role
+    userRoleDeletedBy VARCHAR(36) NULL,  -- Who deleted the user role
+    userRoleCreatedAt DATETIME NOT NULL,  -- When the user role was created
+    userRoleDeletedAt DATETIME NULL,  -- When the user role was deleted
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the UserRoleStatus Table
+CREATE TABLE IF NOT EXISTS UserRoleStatus (
     userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    userRoleStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    statusId INT NOT NULL,
-    userUniqueId VARCHAR(150) NOT NULL,
-    RoleId INT NOT NULL,
-    FOREIGN KEY (userUniqueId) REFERENCES users(userUniqueId),
-    FOREIGN KEY (statusId) REFERENCES Statuses(statusId),
-    FOREIGN KEY (RoleId) REFERENCES Role(RoleId)
-);
+    userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link
+    statusId INT NOT NULL,  -- Foreign key to Statuses
+    userRoleId INT NOT NULL,  -- Foreign key to UserRole
+    userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
+    userRoleStatusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
+    userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
+    userRoleStatusDescription TEXT NULL,  -- Description of the role status
+    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the role status was created
+    userRoleStatusUpdatedAt DATETIME NULL,  -- When the role status was updated
+    userRoleStatusDeletedAt DATETIME NULL,  -- When the role status was deleted
+    isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active
+    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole
+    FOREIGN KEY (statusId) REFERENCES Statuses(statusId)  -- Link to Statuses
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- UsersCredential Table
+-- Create the UsersCredential Table
 CREATE TABLE IF NOT EXISTS usersCredential (
     credentialId INT AUTO_INCREMENT PRIMARY KEY,
-    credentialUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    userUniqueId VARCHAR(150) NOT NULL,
-    hashedPassword VARCHAR(255) NOT NULL,
-    OTP VARCHAR(255) NULL,
-    createdAt DATETIME NOT NULL,
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
-);
--- Create the JourneyStatus table
+    credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    hashedPassword VARCHAR(255) NOT NULL,  -- Hashed password
+    OTP VARCHAR(6) NULL,  -- Optional one-time password
+    usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
+    usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Additional tables such as JourneyStatus, PassengerRequest, etc. go here...
+ 
+ -- Create the JourneyStatus table
 CREATE TABLE IF NOT EXISTS JourneyStatus (
     journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    journeyStatusName VARCHAR(50) NOT NULL, 
-    journeyStatusDescription VARCHAR(255) NULL,
-    createdAt DATETIME NOT NULL,
-    deletedAt DATETIME NULL
-    
-); 
- -- Create the Requests table, it can store passenger and driver requests 
-  CREATE TABLE IF NOT EXISTS PassengerRequest (
+    journeyStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey status
+    journeyStatusName VARCHAR(50) NOT NULL,  -- Name of the journey status
+    journeyStatusDescription VARCHAR(255) NULL,  -- Description of the journey status
+    journeyStatusCreatedAt DATETIME NOT NULL,  -- When the journey status was created
+    journeyStatusDeletedAt DATETIME NULL  -- When the journey status was deleted
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the PassengerRequest table
+CREATE TABLE IF NOT EXISTS PassengerRequest (
     passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
-    passengerRequestUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    userUniqueId VARCHAR(150) NOT NULL,
-    vehicleTypeUniqueId VARCHAR(150) NOT NULL,
-    originLatitude VARCHAR(22) NOT NULL,
-    originLongitude VARCHAR(22) NOT NULL,
-    originPlace VARCHAR(255) NOT NULL,
-    destinationLatitude VARCHAR(22) NULL DEFAULT 0.0,
-    destinationLongitude VARCHAR(22) NULL DEFAULT 0.0,
-    destinationPlace VARCHAR(255) NULL DEFAULT 0.0,
-    requestTime TIMESTAMP NOT NULL,
-    journeyStatusId INT NOT NULL, -- Foreign Key to JourneyStatus
+    passengerRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the passenger request
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
+    originLatitude DECIMAL(10, 8) NOT NULL,  -- Latitude of origin
+    originLongitude DECIMAL(11, 8) NOT NULL,  -- Longitude of origin
+    originPlace VARCHAR(255) NOT NULL,  -- Origin place
+    destinationLatitude DECIMAL(10, 8) NULL DEFAULT 0.0,  -- Latitude of destination
+    destinationLongitude DECIMAL(11, 8) NULL DEFAULT 0.0,  -- Longitude of destination
+    destinationPlace VARCHAR(255) NULL DEFAULT 0.0,  -- Destination place
+    requestTime TIMESTAMP NOT NULL,  -- Time of the request
+    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the driverWaiting table, it can store drivers waiting for a passenger 
-    CREATE TABLE IF NOT EXISTS DriverRequest (
+-- Create the DriverRequest table
+CREATE TABLE IF NOT EXISTS DriverRequest (
     driverRequestId INT AUTO_INCREMENT PRIMARY KEY,
-    driverRequestUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    userUniqueId VARCHAR(150) NOT NULL,
-    originLatitude VARCHAR(22) NOT NULL,
-    originLongitude VARCHAR(22) NOT NULL,
-    originPlace VARCHAR(255) NOT NULL,
-    requestTime TIMESTAMP NOT NULL,
-    journeyStatusId INT NOT NULL, -- Foreign Key to JourneyStatus
+    driverRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the driver request
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    originLatitude DECIMAL(10, 8) NOT NULL,  -- Latitude of origin
+    originLongitude DECIMAL(11, 8) NOT NULL,  -- Longitude of origin
+    originPlace VARCHAR(255) NOT NULL,  -- Origin place
+    requestTime TIMESTAMP NOT NULL,  -- Time of the request
+    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the JourneyDecisions table this is based on Requests of passenger and driver
+-- Create the JourneyDecisions table
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyDecisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    passengerRequestId INT NOT NULL, -- Foreign Key to PassengerRequest table
-    driverRequestId INT NOT NULL, -- Foreign Key to DriverRequest table
-    journeyStatusId INT NOT NULL, -- Foreign Key to JourneyStatus table
-    decisionTime TIMESTAMP NOT NULL,
+    journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey decision
+    passengerRequestId INT NOT NULL,  -- Foreign key to PassengerRequest
+    driverRequestId INT NOT NULL,  -- Foreign key to DriverRequest
+    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
+    decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
+    decisionBy ENUM('passenger', 'driver', 'admin') NOT NULL,  -- Who made the decision
     FOREIGN KEY (passengerRequestId) REFERENCES PassengerRequest(passengerRequestId),
     FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the Journey table based on JourneyDecisions
+-- Create the Journey table
 CREATE TABLE IF NOT EXISTS Journey (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    journeyDecisionUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    startTime TIMESTAMP NOT NULL,
-    endTime TIMESTAMP  null,
-    fare DECIMAL(10, 2) default 0,
-    journeyStatusId INT NOT NULL, 
-     -- References JourneyStatus table
-    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions (journeyDecisionUniqueId),
+    journeyUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the journey
+    journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- Foreign key to JourneyDecisions
+    startTime TIMESTAMP NOT NULL,  -- Journey start time
+    endTime TIMESTAMP NULL,  -- Journey end time
+    fare DECIMAL(10, 2) DEFAULT 0,  -- Fare for the journey
+    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
+    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-);
--- Payments Table
-    CREATE TABLE IF NOT EXISTS Payments (
-    paymentId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyId VARCHAR(150) NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    paymentMethodUniqueId VARCHAR(150) NOT NULL,
-    paymentStatusUniqueId VARCHAR(150) NOT NULL,
-    paymentTime TIMESTAMP NOT NULL,
-    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
-    FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
-    FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- PaymentStatus Table
-CREATE TABLE IF NOT EXISTS PaymentStatus (
-    paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    paymentStatusUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    paymentStatusList VARCHAR(50) NOT NULL,
-    createdAt DATETIME NOT NULL
-);
-
--- PaymentMethod Table
-CREATE TABLE IF NOT EXISTS PaymentMethod (
-    paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
-    paymentMethodUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    paymentMethod VARCHAR(50) NOT NULL,
-    createdAt DATETIME NOT NULL
-);
-
--- Vehicle Table
-    CREATE TABLE IF NOT EXISTS Vehicle (
+-- Create the Vehicle table
+CREATE TABLE IF NOT EXISTS Vehicle (
     vehicleId INT AUTO_INCREMENT PRIMARY KEY,
-    vehicleUniqueId VARCHAR(150) NOT NULL,
-    vehicleTypeUniqueId VARCHAR(50) NOT NULL,
-    licensePlate VARCHAR(50) NOT NULL,
+    vehicleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
+    licensePlate VARCHAR(50) NOT NULL,  -- License plate of the vehicle
+    color VARCHAR(50) NOT NULL,  -- Color of the vehicle
+    createdAt DATETIME NOT NULL,  -- Vehicle creation date
+    deletedAt DATETIME NULL,  -- Vehicle deletion date
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId)
-);
--- VehicleStatusType Table
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the VehicleStatusType table
 CREATE TABLE IF NOT EXISTS VehicleStatusType (
     statusTypeId INT AUTO_INCREMENT PRIMARY KEY,
-    statusTypeName VARCHAR(50) NOT NULL,
-    statusTypeDescription VARCHAR(255) NULL,
-    createdAt DATETIME NOT NULL,
-    deletedAt DATETIME NULL
-); 
+    statusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
+    statusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
+    createdAt DATETIME NOT NULL,  -- Creation time
+    deletedAt DATETIME NULL  -- Deletion time
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the VehicleStatus table
 CREATE TABLE IF NOT EXISTS VehicleStatus (
     vehicleStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    vehicleId INT NOT NULL,
-    statusTypeId INT NOT NULL,
-    statusStartDate DATETIME NOT NULL,
-    statusEndDate DATETIME NULL,
-    FOREIGN KEY (vehicleId) REFERENCES Vehicle(vehicleId),
+    vehicleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle status
+    vehicleUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Vehicle
+    statusTypeId INT NOT NULL,  -- Foreign key to VehicleStatusType
+    statusStartDate DATETIME NOT NULL,  -- Status start date
+    statusEndDate DATETIME NULL,  -- Status end date
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (statusTypeId) REFERENCES VehicleStatusType(statusTypeId)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- VehicleType Table
+-- Create the VehicleType table
 CREATE TABLE IF NOT EXISTS VehicleType (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
-    vehicleTypeUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    vehicleTypeName VARCHAR(50) NOT NULL,
-    carryingCapacity VARCHAR(3000) NULL,
-    vehicleImage VARCHAR(150) NULL,
-    vehicleTypeCreatedAt DATETIME NOT NULL,
-    vehicleTypeDeletedAt DATETIME NULL
-);
--- VehicleOwnership which can show which vehicle is owned by which user and who can drive it
+    vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
+    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
+    vehicleImage VARCHAR(255) NULL,  -- Image URL of the vehicle
+    vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
+    vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the VehicleOwnership table
 CREATE TABLE IF NOT EXISTS VehicleOwnership (
     ownershipId INT AUTO_INCREMENT PRIMARY KEY,
-    ownershipUniqueId VARCHAR(150) UNIQUE NOT NULL,
-    vehicleUniqueId INT NOT NULL,
-    userUniqueId varchar(150) NOT NULL,
-    roleId INT NOT NULL,
-    ownershipStartDate DATETIME NOT NULL,
-    ownershipEndDate DATETIME NULL,
+    ownershipUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for ownership
+    vehicleUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Vehicle
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    roleId INT NOT NULL,  -- Foreign key to Roles
+    ownershipStartDate DATETIME NOT NULL,  -- Ownership start date
+    ownershipEndDate DATETIME NULL,  -- Ownership end date
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Ratings Table
+-- Create the Ratings table
 CREATE TABLE IF NOT EXISTS Ratings (
     ratingId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyId VARCHAR(150) NOT NULL,
-    ratedBy VARCHAR(150) NOT NULL,
-    rating INT NOT NULL,
-    comment TEXT NULL,
+    journeyId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
+    ratedBy VARCHAR(36) NOT NULL,  -- Foreign key to Users (who gave the rating)
+    rating INT NOT NULL,  -- Rating score
+    comment TEXT NULL,  -- Rating comment
     FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
-    FOREIGN KEY (ratedBy) REFERENCES Users(userId)
-);
--- smssender
+    FOREIGN KEY (ratedBy) REFERENCES Users(userUniqueId)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the SMSSender table
 CREATE TABLE IF NOT EXISTS SMSSender (
     SMSSenderId INT AUTO_INCREMENT PRIMARY KEY, 
-    phoneNumber VARCHAR(50) NOT NULL,
-    password VARCHAR(255) NOT NULL
-);
--- cancilationReasonsType
-create table if not exists cancilationReasonsType
-(cancilationReasonsTypeId int AUTO_INCREMENT PRIMARY KEY, cancilationReasonTypeUniqueId varchar(150),cancilationReasonType varchar(150),caneledBy varchar(150))
-`;
-  const [queryResult] = await pool.query(sqlQuery);
-  //   console.log("queryResult", queryResult);
+    phoneNumber VARCHAR(50) NOT NULL,  -- Phone number of SMS sender
+    password VARCHAR(255) NOT NULL  -- Password of SMS sender
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ -- Create the CancellationReasonsType table
+CREATE TABLE IF NOT EXISTS CancellationReasonsType (
+    cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
+    cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
+    cancellationReasonType VARCHAR(150) NOT NULL,  -- Type of cancellation reason
+    canceledBy VARCHAR(150) NOT NULL  -- Who canceled (could be driver, passenger, or admin)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the Payments table
+CREATE TABLE IF NOT EXISTS Payments (
+    paymentId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
+    amount DECIMAL(10, 2) NOT NULL,  -- Payment amount
+    paymentMethodUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentMethod
+    paymentStatusUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentStatus
+    paymentTime TIMESTAMP NOT NULL,  -- Time of payment
+    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
+    FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
+    FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the PaymentStatus table
+CREATE TABLE IF NOT EXISTS PaymentStatus (
+    paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
+    paymentStatusList VARCHAR(50) NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
+    createdAt DATETIME NOT NULL,  -- Creation time of the payment status
+    deletedAt DATETIME NULL  -- Deletion time of the payment status
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the PaymentMethod table
+CREATE TABLE IF NOT EXISTS PaymentMethod (
+    paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
+    paymentMethodUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment method
+    paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., Credit Card, PayPal)
+    createdAt DATETIME NOT NULL  -- Creation time of the payment method
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+  try {
+    const [queryResult] = await pool.query(sqlQuery);
+
+    console.log("queryResult", queryResult);
+    roleList.map(async (role) => {
+      console.log("role is ", role);
+      await insertData({ tableName: "Roles", colAndVal: { ...role } });
+    });
+    statusList.map(async (status) => {
+      await insertData({ tableName: "Statuses", colAndVal: status });
+      console.log("statuses", status);
+    });
+  } catch (error) {
+    console.log("Error executing query", error);
+  }
 };
 
 module.exports = { createTable };

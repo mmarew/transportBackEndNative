@@ -15,6 +15,7 @@ console.log(
   "DATABASE",
   DATABASE
 );
+
 if (!HOST || !USER || !DATABASE) {
   throw new Error(
     "Missing required environment variables for database connection"
