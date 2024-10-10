@@ -14,7 +14,11 @@ const vehicleStatusType = require("./vehicleStatusType.routes");
 const userRole = require("./userRole.routes");
 const UserStatuses = require("./userStatuse.routes");
 const UserRoleStatus = require("./UserRoleStatus.routes");
+const documentTypes = require("./documentTypes.routes");
+const attachedDocuments = require("./attachedDocuments.routes");
 
+Routes.use(attachedDocuments);
+Routes.use(documentTypes);
 Routes.use(UserRoleStatus);
 Routes.use(userRole);
 Routes.use(UserStatuses);

@@ -125,7 +125,7 @@ const verifyDriversIdentity = async (req, res, next) => {
   if (userRoleStatus.length === 0) {
     return res.status(500).json({
       message: "error",
-      error: "User role status not found",
+      error: "User role status of driver not found",
       status: null,
     });
   }

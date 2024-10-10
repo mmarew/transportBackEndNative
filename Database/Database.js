@@ -1,5 +1,9 @@
+const { insertData } = require("../CRUD/Create/CreateData");
 const { pool } = require("../Middleware/Database.config");
-
+const { createDocumentType } = require("../services/documentTypes.service");
+const { listOfDocuments } = require("../Utils/listOfFixedData");
+const roleList = require("../Utils/listOfFixedData").roleList;
+const statusList = require("../Utils/listOfFixedData").statusList;
 const createTable = async () => {
   const sqlQuery = `-- Create the Roles Table
 CREATE TABLE IF NOT EXISTS Roles (
@@ -19,14 +23,74 @@ CREATE TABLE IF NOT EXISTS Users (
     userId INT AUTO_INCREMENT PRIMARY KEY,
     userUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the user
     fullName VARCHAR(255) NOT NULL,  -- Full name of the user
-    phoneNumber VARCHAR(15) NOT NULL,  -- Phone number of the user
-    email VARCHAR(255) NULL,  -- Email of the user
+    phoneNumber VARCHAR(15) NOT NULL UNIQUE,  -- Phone number of the user
+    email VARCHAR(55) not NULL UNIQUE,  -- Email of the user
     createdAt DATETIME NOT NULL,  -- When the user was created
     createdBy VARCHAR(36) NULL,  -- Who created the user
     updatedBy VARCHAR(36) NULL,  -- Who updated the user
     deletedBy VARCHAR(36) NULL,  -- Who deleted the user
     updatedAt DATETIME NULL,  -- When the user was updated
     deletedAt DATETIME NULL  -- When the user was deleted
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ 
+-- Create the DocumentTypes Table
+CREATE TABLE IF NOT EXISTS DocumentTypes (
+    documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
+    documentTypeName VARCHAR(255) NOT NULL,  -- Name of the document type (e.g., "ID", "License", "Plate")
+    documentTypeDescription  TEXT(2000)  not NULL ,  -- Optional description of the document type
+    documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
+    documentTypeUpdatedBy VARCHAR(36) NULL,  -- Who last updated the document type
+    documentTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the document type
+    documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
+    documentTypeUpdatedAt DATETIME NULL,  -- When the document type was updated
+    documentTypeDeletedAt DATETIME NULL,  -- When the document type was deleted
+    INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
+    FOREIGN KEY (documentTypeCreatedBy) REFERENCES Users(userUniqueId)  -- Link to the Users table
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the DocumentTypesHistory Table 
+
+CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
+    documentTypeHistoryId INT AUTO_INCREMENT PRIMARY KEY,
+    documentTypeId INT NOT NULL,  -- Reference to the original DocumentTypes
+    documentTypeUniqueId VARCHAR(36) NOT NULL,  -- UUID
+    documentTypeName VARCHAR(255) NOT NULL,
+    documentTypeDescription VARCHAR(255) NULL,
+    documentTypeCreatedBy VARCHAR(36) NOT NULL,
+    documentTypeUpdatedBy VARCHAR(36) NULL,
+    documentTypeDeletedBy VARCHAR(36) NULL,
+    documentTypeCreatedAt DATETIME NOT NULL,
+    documentTypeUpdatedAt DATETIME NULL,
+    documentTypeDeletedAt DATETIME NULL,
+    documentTypeVersion INT NOT NULL,  -- Version of the document type, starting from 1
+    changeType ENUM('UPDATE', 'DELETE') NOT NULL,  -- Whether it was an update or delete
+    changedByUserId VARCHAR(36) NOT NULL,  -- The user who made the change
+    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time when the change was made
+
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the AttachedDocuments Table
+CREATE TABLE IF NOT EXISTS AttachedDocuments (
+    attachedDocumentId INT AUTO_INCREMENT PRIMARY KEY,
+    attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
+    attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
+    attachedDocumentPath VARCHAR(255) NOT NULL,  -- Path of the attached document (file storage location)
+    documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
+    documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
+    attachedDocumentIsDeleted BOOLEAN NOT NULL DEFAULT FALSE,  -- Is the attached document deleted
+    createdByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
+    updatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
+    deletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document
+    createdAt DATETIME NOT NULL,  -- When the attached document was created
+    deletedAt DATETIME NULL,  -- When the attached document was deleted
+    INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
+    INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the Statuses Table
@@ -72,6 +136,10 @@ CREATE TABLE IF NOT EXISTS UserRoleStatus (
     userRoleStatusUpdatedAt DATETIME NULL,  -- When the role status was updated
     userRoleStatusDeletedAt DATETIME NULL,  -- When the role status was deleted
     isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active
+    
+    FOREIGN KEY (userRoleStatusDeletedBy) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (userRoleStatusUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
     FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole
     FOREIGN KEY (statusId) REFERENCES Statuses(statusId)  -- Link to Statuses
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -276,14 +344,23 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
   try {
     const [queryResult] = await pool.query(sqlQuery);
 
-    console.log("queryResult", queryResult);
-    roleList.map(async (role) => {
-      console.log("role is ", role);
-      await insertData({ tableName: "Roles", colAndVal: { ...role } });
-    });
-    statusList.map(async (status) => {
-      await insertData({ tableName: "Statuses", colAndVal: status });
-      console.log("statuses", status);
+    // console.log("queryResult", queryResult);
+    // roleList.map(async (role) => {
+    //   //   console.log("role is ", role);
+    //   await insertData({ tableName: "Roles", colAndVal: { ...role } });
+    // });
+    // statusList.map(async (status) => {
+    //   await insertData({ tableName: "Statuses", colAndVal: status });
+    //   //   console.log("statuses", status);
+    // });
+    listOfDocuments.map((document) => {
+      console.log("document", document);
+      createDocumentType({
+        body: document,
+        user: {
+          data: { userUniqueId: "279a62b8-203a-4e59-a757-44b85565c36a" },
+        },
+      });
     });
   } catch (error) {
     console.log("Error executing query", error);

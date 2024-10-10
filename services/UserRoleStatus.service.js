@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendNotificationToDriver } = require("../Utils/Notifications");
 const currentDate = require("../Utils/currentDate");
@@ -42,85 +42,118 @@ const createUserRoleStatus = async (body) => {
 };
 
 // Get UserRoleStatus by unique ID
-const getUserRoleStatusById = async (userRoleStatusUniqueId) => {
-  const result = await getData({
-    tableName: "UserRoleStatus",
-    conditions: { userRoleStatusUniqueId },
+const getUserRoleStatus = async (body) => {
+  console.log("body", body);
+  const { phoneNumber, fullName, email } = body;
+  const userData = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "Users.userUniqueId = UserRole.userUniqueId",
+      },
+      {
+        table: "UserRoleStatus",
+        on: "UserRole.roleId = UserRoleStatus.userRoleId",
+      },
+    ],
+    conditions: {
+      isUserRoleStatusActive: true,
+      phoneNumber,
+    },
   });
-
-  if (result.length === 0) {
-    return { message: "error", data: "UserRoleStatus not found" };
-  }
-
-  return { message: "success", data: result[0] };
+  console.log("userData", userData);
+  return userData;
 };
 
 // Update UserRoleStatus
-const updateUserRoleStatus = async (
-  userRoleStatusUniqueId,
-  updateDataValues
-) => {
-  console.log("userRoleStatusUniqueId", userRoleStatusUniqueId);
-  // Check if the UserRoleStatus exists
-  userRoleStatusUniqueId = updateDataValues?.userRoleStatusUniqueId;
-  const existingUserRoleStatus = await getData({
-    tableName: "UserRoleStatus",
-    conditions: { userRoleStatusUniqueId },
-  });
-  console.log("existingUserRoleStatus", existingUserRoleStatus);
-  if (existingUserRoleStatus?.length === 0) {
-    return { message: "error", data: "UserRoleStatus not found" };
-  }
-  const phoneNumber = updateDataValues?.phoneNumber;
-  const userRoleStatusDescription = updateDataValues.userRoleStatusDescription;
-  const statusId = updateDataValues.statusId;
-  // Update UserRoleStatus to inactive status and set time to it's updated date
-  const result = await updateData({
-    tableName: "UserRoleStatus",
-    conditions: { userRoleStatusUniqueId },
-    updateValues: {
-      userRoleStatusUpdatedAt: new Date(),
-      isUserRoleStatusActive: false,
-    },
-  });
-  //check if user has active status in this role
-  const activeUserRoleStatus = await getData({
-    tableName: "UserRoleStatus",
-    conditions: {
-      userRoleId: existingUserRoleStatus[0].userRoleId,
-      statusId: 1,
-    },
-  });
-  console.log("activeUserRoleStatus", activeUserRoleStatus);
-  if (activeUserRoleStatus.length > 0) {
-    return { message: "error", data: "UserRoleStatus already exists" };
-  }
-  const insertNewUserRoleStatus = {
-    userRoleStatusUniqueId: uuidv4(),
-    statusId,
-    userRoleId: existingUserRoleStatus[0].userRoleId,
-    userRoleStatusDescription,
-    userRoleStatusUpdatedAt: currentDate(),
-  };
-  await insertData({
-    tableName: "UserRoleStatus",
-    colAndVal: insertNewUserRoleStatus,
-  });
-
-  if (phoneNumber) {
-    sendNotificationToDriver({
-      message: {
-        message: { from: "admin", message: userRoleStatusDescription },
-      },
+const updateUserRoleStatus = async (updateDataValues) => {
+  try {
+    const {
+      user,
+      userRoleStatusUniqueId,
+      userRoleId,
+      statusId,
+      userRoleStatusDescription,
       phoneNumber,
+    } = updateDataValues;
+    const userUniqueId = user?.data?.userUniqueId;
+    // Check if the UserRoleStatus exists by userRoleStatusUniqueId
+    const existingUserRoleStatus = await getData({
+      tableName: "UserRoleStatus",
+      conditions: { userRoleStatusUniqueId },
     });
-  }
 
-  return {
-    message: "success",
-    data: "UserRoleStatus updated successfully",
-    result,
-  };
+    if (existingUserRoleStatus.length === 0) {
+      return { message: "error", data: "UserRoleStatus not found" };
+    }
+
+    // Ensure no duplicate active status for the same role and user combination
+    const activeUserRoleStatus = await getData({
+      tableName: "UserRoleStatus",
+      conditions: {
+        userRoleId,
+        isUserRoleStatusActive: true,
+        statusId: statusId,
+      },
+    });
+
+    if (activeUserRoleStatus.length > 0) {
+      return {
+        message: "error",
+        data: "UserRoleStatus with the same status already exists",
+      };
+    }
+
+    // Deactivate the previous active status (if any) and update the 'updatedAt' field
+    await updateData({
+      tableName: "UserRoleStatus",
+      conditions: { userRoleId },
+      updateValues: {
+        userRoleStatusUpdatedAt: new Date(),
+        isUserRoleStatusActive: false,
+        userRoleStatusUpdatedBy: userUniqueId,
+      },
+    });
+
+    // Create a new UserRoleStatus entry with the new status
+    const newUserRoleStatus = {
+      userRoleStatusUniqueId: uuidv4(), // New UUID
+      statusId: statusId,
+      userRoleId,
+      userRoleStatusDescription: userRoleStatusDescription,
+      userRoleStatusCreatedAt: new Date(),
+      isUserRoleStatusActive: true, // Mark new status as active
+      userRoleStatusCreatedBy: userUniqueId,
+    };
+
+    // Insert the new status record into the database
+    await insertData({
+      tableName: "UserRoleStatus",
+      colAndVal: newUserRoleStatus,
+    });
+
+    // Optionally, send a notification to the driver if a phone number is provided
+    if (phoneNumber) {
+      sendNotificationToDriver({
+        message: {
+          message: { from: "admin", message: userRoleStatusDescription },
+        },
+        phoneNumber,
+      });
+    }
+
+    return {
+      message: "success",
+      data: newUserRoleStatus,
+    };
+  } catch (error) {
+    console.error("Error in updateUserRoleStatus:", error);
+    return {
+      message: "error",
+      error: "An error occurred while updating UserRoleStatus",
+    };
+  }
 };
 
 // Delete UserRoleStatus
@@ -148,10 +181,31 @@ const deleteUserRoleStatus = async (userRoleStatusUniqueId) => {
     result,
   };
 };
-
+const userRoleStatusByPhone = async (phoneNumber) => {
+  const userData = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "Users.userUniqueId = UserRole.userUniqueId",
+      },
+      {
+        table: "UserRoleStatus",
+        on: "UserRole.roleId = UserRoleStatus.userRoleId",
+      },
+    ],
+    conditions: {
+      isUserRoleStatusActive: true,
+      phoneNumber,
+    },
+  });
+  console.log("userData", userData);
+  return userData;
+};
 module.exports = {
+  userRoleStatusByPhone,
   createUserRoleStatus,
-  getUserRoleStatusById,
+  getUserRoleStatus,
   updateUserRoleStatus,
   deleteUserRoleStatus,
 };

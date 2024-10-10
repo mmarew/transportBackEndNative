@@ -118,8 +118,19 @@ const canceledByDriver = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
-
+const attachRequiredDocuments = async (req, res) => {
+  try {
+    const { userUniqueId } = req.user.data;
+    req.body.userUniqueId = userUniqueId;
+    const result = await services.attachRequiredDocuments(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error in attachRequiredDocuments:", error);
+    ServerResponder(res, error.message);
+  }
+};
 module.exports = {
+  attachRequiredDocuments,
   canceledByDriver,
   journeyCompleted,
   noAnswerFromDriver,

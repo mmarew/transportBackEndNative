@@ -489,8 +489,20 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     return { message: "error", error: "Unable to verify driver status" };
   }
 };
-
+const attachRequiredDocuments = async (body) => {
+  try {
+    const result = await insertData({
+      tableName: "DriverRequestDocuments",
+      colAndVal: body,
+    });
+    return result;
+  } catch (error) {
+    console.error("Error in attachRequiredDocuments:", error);
+    return { message: "error", error: "Unable to attach required documents" };
+  }
+};
 module.exports = {
+  attachRequiredDocuments,
   journeyCompleted,
   noAnswerFromDriver,
   startJourney,

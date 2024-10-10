@@ -38,7 +38,7 @@ const createUser = async (body) => {
       operator: "OR",
     });
 
-    if (savedUser.length > 0) {
+    const handleExistingUser = async () => {
       const user = savedUser[0];
 
       // Check if phone number or email doesn't match
@@ -64,57 +64,64 @@ const createUser = async (body) => {
         phoneNumber
       );
       return otpUpdated;
-    }
+    };
 
     // If the user does not exist, create new user, credentials, role, and status
-    const userUniqueId = uuidv4();
-    const credentialUniqueId = uuidv4();
+    const registerNewUser = async () => {
+      const userUniqueId = uuidv4();
+      const credentialUniqueId = uuidv4();
 
-    const userCreationSuccess = await Promise.all([
-      insertData({
-        tableName: "Users",
-        colAndVal: {
+      const userCreationSuccess = await Promise.all([
+        insertData({
+          tableName: "Users",
+          colAndVal: {
+            userUniqueId,
+            fullName,
+            phoneNumber,
+            email,
+            createdAt: currentDate(),
+          },
+        }),
+        insertData({
+          tableName: "usersCredential",
+          colAndVal: {
+            credentialUniqueId,
+            userUniqueId,
+            OTP,
+          },
+        }),
+      ]);
+
+      if (userCreationSuccess.every((result) => result.affectedRows > 0)) {
+        // Insert UserRole and UserRoleStatus
+        await handleUserRoleStatus(
           userUniqueId,
-          fullName,
-          phoneNumber,
-          email,
-          createdAt: currentDate(),
-        },
-      }),
-      insertData({
-        tableName: "usersCredential",
-        colAndVal: {
-          credentialUniqueId,
-          userUniqueId,
-          OTP,
-        },
-      }),
-    ]);
+          roleId,
+          statusId,
+          userRoleStatusDescription
+        );
 
-    if (userCreationSuccess.every((result) => result.affectedRows > 0)) {
-      // Insert UserRole and UserRoleStatus
-      await handleUserRoleStatus(
-        userUniqueId,
-        roleId,
-        statusId,
-        userRoleStatusDescription
-      );
-
-      // Send OTP to the user
-      const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
-      if (smsResult.message === "success") {
-        return {
-          message: "success",
-          messageDetail: "User created successfully, OTP sent successfully",
-        };
+        // Send OTP to the user
+        const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+        if (smsResult.message === "success") {
+          return {
+            message: "success",
+            messageDetail: "User created successfully, OTP sent successfully",
+          };
+        }
+        return smsResult;
       }
-      return smsResult;
+
+      return {
+        message: "error",
+        data: "An error occurred during user creation",
+      };
+    };
+    if (savedUser.length > 0) {
+      return handleExistingUser();
     }
 
-    return {
-      message: "error",
-      data: "An error occurred during user creation",
-    };
+    return await registerNewUser();
   } catch (error) {
     console.error("Error in createUser:", error);
     return {
@@ -135,7 +142,6 @@ const handleUserRoleStatus = async (
       tableName: "UserRole",
       conditions: { userUniqueId, roleId },
     });
-
     let userRoleId = null;
     // if user is not found in this role, register new user role
     if (userRole.length === 0) {
@@ -191,11 +197,17 @@ const handleUserRoleStatus = async (
         ],
         conditions: { "Users.userUniqueId": userUniqueId },
       });
-      await sendNotificationToAdmin({ message: newUser });
+      // if user is driver send notification to admin to verify its account using driver license etc
+      if (roleId == 2) {
+        await sendNotificationToAdmin({ message: newUser });
+      }
+      return {
+        message: "success",
+        data: { ...newUser[0] },
+      };
     } else {
       return {
-        message: "error",
-        error: "User role status already exists",
+        message: "success",
       };
     }
   } catch (error) {

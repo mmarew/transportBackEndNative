@@ -9,6 +9,7 @@ const {
   noAnswerFromDriver,
   journeyCompleted,
   canceledByDriver,
+  attachRequiredDocuments,
 } = require("../controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
@@ -71,6 +72,11 @@ router.get(
   verifyTokenOfAxios,
   verifyDriversIdentity,
   verifyDriverStatusController
+);
+router.put(
+  "/driver/attachRequiredDocuments",
+  verifyTokenOfAxios,
+  attachRequiredDocuments
 );
 
 module.exports = router;
