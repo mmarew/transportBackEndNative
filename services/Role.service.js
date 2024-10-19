@@ -13,7 +13,7 @@ const createRole = async (body) => {
   if (existedData?.length > 0) {
     return { message: "error", data: "Role already exists" };
   }
-  const sql = `INSERT INTO Roles (roleUniqueId, roleName, roleDescription, roleCreatedAt) VALUES (?, ?, ?, ?)`;
+  const sql = `INSERT INTO Roles (roleUniqueId, roleName, roleDescription, roleCreatedAt,roleCreatedBy) VALUES (?, ?, ?, ?)`;
   const values = [roleUniqueId, roleName, roleDescription, currentDate()];
 
   try {

@@ -67,6 +67,15 @@ const createVehicle = async (body) => {
       },
     });
 
+    await insertData({
+      tableName: "VehicleStatus",
+      colAndVal: {
+        vehicleStatusUniqueId: uuidv4(),
+        vehicleUniqueId,
+        statusTypeId: 1,
+        statusStartDate: currentDate(),
+      },
+    });
     if (result.affectedRows > 0) {
       return { message: "success", data: "Vehicle created successfully" };
     }

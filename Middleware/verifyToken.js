@@ -1,8 +1,9 @@
 const jwt = require("jsonwebtoken");
+const { getData } = require("../CRUD/Read/ReadData");
 require("dotenv").config();
 const secretKey = process.env.SECRET_KEY;
 
-const verifyTokenOfAxios = (req, res, next) => {
+const verifyTokenOfAxios = async (req, res, next) => {
   console.log("req.url====>", req.url);
   const authHeader = req?.headers?.authorization;
   if (authHeader) {
@@ -11,7 +12,20 @@ const verifyTokenOfAxios = (req, res, next) => {
     try {
       const decoded = jwt.verify(token, secretKey);
       req.user = decoded; // Attach decoded token to request
-      next(); // Proceed to the next middleware/controller
+      const data = req.user.data;
+      const userUniqueId = data?.userUniqueId;
+      console.log("@verifyTokenOfAxios userUniqueId", userUniqueId);
+      const user = await getData({
+        tableName: "users",
+        conditions: { userUniqueId },
+      });
+      if (user.length > 0) {
+        next(); // Proceed to the next middleware/controller
+      } else {
+        return res
+          .status(401)
+          .json({ message: "error", error: "User not found in the token" });
+      }
     } catch (error) {
       let response;
       switch (error.name) {
@@ -52,7 +66,6 @@ const verifyTokenOfAxios = (req, res, next) => {
 };
 const verifyTokenOfWS = async (tokenData) => {
   const token = tokenData.split(" ")[1]; // Extract token from "Bearer <token>"
-
   try {
     const decoded = jwt.verify(token, secretKey);
     decoded.valid = true;

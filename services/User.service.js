@@ -1,24 +1,36 @@
 // services/userService.js
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
 const createJWT = require("../Utils/createJWT");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
+const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const { getUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createUser = async (body) => {
-  const { fullName, phoneNumber, email, roleId, statusId } = body;
-  console.log("body =============> ", body);
+  const {
+    fullName,
+    phoneNumber,
+    email,
+    roleId,
+    statusId,
+    userRoleStatusDescription,
+  } = body;
+
+  // Validate input data
   if (!fullName || !phoneNumber || !email || !roleId || !statusId) {
     return {
       message: "error",
       data: "All fields are required",
     };
   }
-  console.log("body", body);
+
+  // Generate OTP
   const OTP = Math.floor(100000 + Math.random() * 900000);
+
   try {
     // Check if the user already exists
     const savedUser = await getData({
@@ -26,131 +38,211 @@ const createUser = async (body) => {
       conditions: { phoneNumber, email },
       operator: "OR",
     });
-    console.log("savedUser", savedUser);
 
-    if (savedUser.length > 0) {
-      if (
-        email !== savedUser[0].email ||
-        phoneNumber !== savedUser[0].phoneNumber
-      ) {
+    const handleExistingUser = async () => {
+      const user = savedUser[0];
+
+      // Check if phone number or email doesn't match
+      if (email !== user.email || phoneNumber !== user.phoneNumber) {
         return {
           message: "error",
           data: "Invalid email or phone number",
         };
       }
 
-      const verifyUsersRoleStatus = await getData({
-        tableName: "UserRoleStatuses",
-        conditions: {
-          roleId,
-          userUniqueId: savedUser[0].userUniqueId,
-        },
-      });
-      console.log("verifyUsersRoleStatus============>", verifyUsersRoleStatus);
-      if (verifyUsersRoleStatus.length == 0) {
-        const insertedRoleMessage = await insertData({
-          tableName: "UserRoleStatuses",
+      // Handle existing user: Insert/Update roles and statuses
+      await handleUserRoleStatus(
+        user.userUniqueId,
+        roleId,
+        statusId,
+        userRoleStatusDescription
+      );
+
+      // Update OTP for existing user
+      const otpUpdated = await updateOtpForUser(
+        user.userUniqueId,
+        OTP,
+        phoneNumber
+      );
+      return otpUpdated;
+    };
+
+    // If the user does not exist, create new user, credentials, role, and status
+    const registerNewUser = async () => {
+      const userUniqueId = uuidv4();
+      const credentialUniqueId = uuidv4();
+
+      const userCreationSuccess = await Promise.all([
+        insertData({
+          tableName: "Users",
           colAndVal: {
-            userRoleStatusUniqueId: uuidv4(),
-            userUniqueId: savedUser[0].userUniqueId,
-            roleId,
-            statusId,
+            userUniqueId,
+            fullName,
+            phoneNumber,
+            email,
+            createdAt: currentDate(),
           },
-        });
+        }),
+        insertData({
+          tableName: "usersCredential",
+          colAndVal: {
+            credentialUniqueId,
+            userUniqueId,
+            OTP,
+          },
+        }),
+      ]);
 
-        if (insertedRoleMessage.affectedRows <= 0) {
-          return {
-            message: "error",
-            error: "Unable to update user role status",
-          };
-        }
-      }
+      if (userCreationSuccess.every((result) => result.affectedRows > 0)) {
+        // Insert UserRole and UserRoleStatus
+        await handleUserRoleStatus(
+          userUniqueId,
+          roleId,
+          statusId,
+          userRoleStatusDescription
+        );
 
-      const updateOtpResult = await updateData({
-        tableName: "usersCredential",
-        updateValues: {
-          OTP: OTP,
-        },
-        conditions: { userUniqueId: savedUser[0].userUniqueId },
-      });
-
-      if (updateOtpResult.affectedRows > 0) {
+        // Send OTP to the user
         const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
-        console.log("smsResult", smsResult);
-        if (smsResult.message === "success")
+        if (smsResult.message === "success") {
           return {
             message: "success",
-            messageDetail: "user created successfully, OTP sent successfully",
+            messageDetail: "User created successfully, OTP sent successfully",
           };
-        else {
-          return smsResult;
         }
-      } else {
-        return {
-          message: "error",
-          error: "Unable to update  OTP",
-        };
-      }
-    }
-
-    // Generate unique ids for user and credentials
-    const userUniqueId = uuidv4();
-    const credentialUniqueId = uuidv4();
-    const insertToUsers = await insertData({
-      tableName: "Users",
-      colAndVal: {
-        userUniqueId,
-        fullName,
-        phoneNumber,
-        email,
-        createdAt: currentDate(),
-      },
-    });
-
-    const insertToCredentials = await insertData({
-      tableName: "usersCredential",
-      colAndVal: {
-        credentialUniqueId,
-        userUniqueId,
-        OTP,
-      },
-    });
-
-    const insertToUserRoleStatuses = await insertData({
-      tableName: "UserRoleStatuses",
-      colAndVal: {
-        userRoleStatusUniqueId: uuidv4(),
-        statusId,
-        roleId,
-        userUniqueId,
-      },
-    });
-
-    if (
-      insertToUserRoleStatuses.affectedRows > 0 &&
-      insertToCredentials.affectedRows > 0 &&
-      insertToUsers.affectedRows > 0
-    ) {
-      const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
-      if (smsResult.message === "success") {
-        return {
-          message: "success",
-          messageDetail: "User created successfully, OTP sent successfully",
-        };
-      } else {
         return smsResult;
       }
-    } else {
+
       return {
         message: "error",
         data: "An error occurred during user creation",
       };
+    };
+    if (savedUser.length > 0) {
+      return handleExistingUser();
     }
+
+    return await registerNewUser();
   } catch (error) {
-    console.error("Error:", error);
-    return { message: "error", data: "An error occurred during user creation" };
+    console.error("Error in createUser:", error);
+    return {
+      message: "error",
+      data: "An error occurred during user creation",
+    };
   }
 };
+const handleUserRoleStatus = async (
+  userUniqueId,
+  roleId,
+  statusId,
+  userRoleStatusDescription
+) => {
+  try {
+    // Check if the UserRole already exists
+    const userRole = await getData({
+      tableName: "UserRole",
+      conditions: { userUniqueId, roleId },
+    });
+    let userRoleId = null;
+    // if user is not found in this role, register new user role
+    if (userRole.length === 0) {
+      const insertUserRole = await insertData({
+        tableName: "UserRole",
+        colAndVal: {
+          userRoleUniqueId: uuidv4(),
+          userUniqueId,
+          roleId,
+          userRoleCreatedAt: currentDate(),
+          userRoleCreatedBy: userUniqueId,
+        },
+      });
+
+      if (insertUserRole.affectedRows > 0) {
+        userRoleId = insertUserRole.insertId;
+      }
+    } else {
+      userRoleId = userRole[0].userRoleId;
+    }
+
+    // Check if the UserRole is in UserRoleStatus already exists
+    const userRoleStatus = await getData({
+      tableName: "UserRoleStatus",
+      conditions: { userRoleId },
+    });
+    console.log("roleId in roleId roleId roleId", roleId);
+    if (userRoleStatus.length === 0) {
+      // Insert new UserRoleStatus if not found
+      await insertData({
+        tableName: "UserRoleStatus",
+        colAndVal: {
+          userRoleStatusUniqueId: uuidv4(),
+          userRoleStatusCreatedBy: userUniqueId,
+          userRoleId,
+          userRoleStatusDescription,
+          // if role is 2, user is a driver, then statusId will be 2 for driver because drivers data must be active after aproval by admin
+          statusId: roleId == 2 ? 2 : statusId,
+          userRoleStatusCreatedAt: currentDate(),
+        },
+      });
+      const newUser = await performJoinSelect({
+        baseTable: "Users",
+        joins: [
+          {
+            table: "UserRole",
+            on: "Users.userUniqueId = UserRole.userUniqueId",
+          },
+          {
+            table: "UserRoleStatus",
+            on: "UserRole.userRoleId = UserRoleStatus.userRoleId",
+          },
+        ],
+        conditions: { "Users.userUniqueId": userUniqueId },
+      });
+      // if user is driver send notification to admin to verify its account using driver license etc
+      if (roleId == 2) {
+        await sendNotificationToAdmin({ message: newUser });
+      }
+      return {
+        message: "success",
+        data: { ...newUser[0] },
+      };
+    } else {
+      return {
+        message: "success",
+      };
+    }
+  } catch (error) {
+    console.error("Error in handleUserRoleStatus:", error);
+    throw error;
+  }
+};
+
+// Helper function to update OTP and send notification
+const updateOtpForUser = async (userUniqueId, OTP, phoneNumber) => {
+  const updateOtpResult = await updateData({
+    tableName: "usersCredential",
+    updateValues: { OTP },
+    conditions: { userUniqueId },
+  });
+
+  if (updateOtpResult.affectedRows > 0) {
+    const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+    if (smsResult.message === "success") {
+      return {
+        message: "success",
+        messageDetail: "OTP updated and sent successfully",
+      };
+    } else {
+      return smsResult;
+    }
+  } else {
+    return {
+      message: "error",
+      error: "Unable to update OTP",
+    };
+  }
+};
+
 const verifyUserByOTP = async (req) => {
   try {
     console.log("req.query in verifyUserByOTP", req.query);
@@ -165,7 +257,7 @@ const verifyUserByOTP = async (req) => {
         phoneNumber,
       },
     });
-
+    const roleId = req.body.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }
@@ -177,6 +269,7 @@ const verifyUserByOTP = async (req) => {
       fullName,
       phoneNumber,
       email,
+      roleId,
     });
 
     const selectResult = await getData({
@@ -196,7 +289,11 @@ const verifyUserByOTP = async (req) => {
     if (selectResult[0].OTP !== OTP) {
       return { message: "error", error: "OTP verification failed" };
     } else {
-      return { token, message: "success", data: "OTP verified successfully" };
+      return {
+        token,
+        message: "success",
+        data: "OTP verified successfully",
+      };
     }
   } catch (error) {
     console.error("Error in verifyDriverByOTP:", error.message);

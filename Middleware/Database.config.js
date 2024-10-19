@@ -5,16 +5,7 @@ const HOST = process.env.HOST;
 const USER = process.env.USER;
 const PASSWORD = process.env.PASSWORD;
 const DATABASE = process.env.DATABASE;
-console.log(
-  "HOST= ",
-  HOST,
-  "USER",
-  USER,
-  "PASSWORD",
-  PASSWORD,
-  "DATABASE",
-  DATABASE
-);
+
 if (!HOST || !USER || !DATABASE) {
   throw new Error(
     "Missing required environment variables for database connection"

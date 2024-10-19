@@ -1,5 +1,12 @@
 const Router = require("express").Router();
 const AdminController = require("../controllers/Admin.controller");
+const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+// Route to get all drivers
+Router.get("/api/admin/drivers", AdminController.getAllDrivers);
+
+// Route to get all passengers
+Router.get("/api/admin/passengers", AdminController.getAllPassengers);
 
 // Existing routes
 Router.get(
@@ -57,5 +64,10 @@ Router.delete(
   "/api/admin/deleteCancellation/:cancellationId",
   AdminController.deleteCancellation
 );
-
+Router.get(
+  "/getunAuthorizedDriver",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  AdminController.getunAuthorizedDriver
+);
 module.exports = Router;
