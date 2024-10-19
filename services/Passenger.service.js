@@ -21,7 +21,7 @@ const createRequest = async (body, user) => {
     // 1. Check if the user exists
     const existingUser = await checkUserExists(userUniqueId);
     if (!existingUser) {
-      return { message: "error", error: "User not found" };
+      return { message: "error", error: "User passenger not found" };
     }
     // 2. Check if the user already has an active request
     const activeRequest = await checkActivePassengerRequest(userUniqueId);

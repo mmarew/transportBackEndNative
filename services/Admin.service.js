@@ -1,6 +1,25 @@
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
+const { verifyUsersDocumentStatus } = require("./attachedDocuments.service");
 
 const adminServices = {
+  // Service to get users by roleId (1 for passengers, 2 for drivers)
+  getUsersByRole: async (roleId) => {
+    const users = await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "UserRole",
+          on: "Users.userUniqueId = UserRole.userUniqueId",
+        },
+      ],
+      conditions: {
+        "UserRole.roleId": roleId, // Filter users based on roleId (1 for passengers, 2 for drivers)
+      },
+    });
+
+    return users;
+  },
   // Fetch all cancellations
   getAllCancellations: async (req) => {
     const query = `
@@ -268,6 +287,40 @@ const adminServices = {
     `;
     const [results] = await pool.query(query, [cancellationId]);
     return results;
+  },
+  getunAuthorizedDriver: async () => {
+    // Fetch unauthorized users using a join query
+    const unAuthorizedUsers = await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "UserRole",
+          on: "Users.userUniqueId = UserRole.userUniqueId",
+        },
+        {
+          table: "UserRoleStatus",
+          on: "UserRole.roleId = UserRoleStatus.userRoleId",
+        },
+      ],
+      conditions: {
+        "UserRoleStatus.statusId": [2, 3], // Filtering for the required statuses
+      },
+    });
+
+    // Use Promise.all to wait for all verifyUsersDocumentStatus calls to resolve
+    const usersWithDocuments = await Promise.all(
+      unAuthorizedUsers.map(async (user) => {
+        const documentOwnerUserUniqueId = user.userUniqueId;
+        const documents = await verifyUsersDocumentStatus({
+          user,
+          ...user,
+          documentOwnerUserUniqueId,
+        });
+        return { ...user, documents }; // Return user along with documents
+      })
+    );
+
+    return usersWithDocuments; // Return the array of users with their documents
   },
 };
 

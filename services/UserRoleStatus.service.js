@@ -1,7 +1,10 @@
 const { v4: uuidv4 } = require("uuid");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
-const { sendNotificationToDriver } = require("../Utils/Notifications");
+const {
+  sendNotificationToDriver,
+  sendNotificationToAdmin,
+} = require("../Utils/Notifications");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 
@@ -44,7 +47,7 @@ const createUserRoleStatus = async (body) => {
 // Get UserRoleStatus by unique ID
 const getUserRoleStatus = async (body) => {
   console.log("body", body);
-  const { phoneNumber, fullName, email } = body;
+  const { phoneNumber, fullName, email, roleId } = body;
   const userData = await performJoinSelect({
     baseTable: "Users",
     joins: [
@@ -56,8 +59,13 @@ const getUserRoleStatus = async (body) => {
         table: "UserRoleStatus",
         on: "UserRole.roleId = UserRoleStatus.userRoleId",
       },
+      {
+        table: "Statuses",
+        on: "UserRoleStatus.statusId = Statuses.statusId",
+      },
     ],
     conditions: {
+      "UserRole.roleId": roleId,
       isUserRoleStatusActive: true,
       phoneNumber,
     },
@@ -71,13 +79,17 @@ const updateUserRoleStatus = async (updateDataValues) => {
   try {
     const {
       user,
+      roleId,
       userRoleStatusUniqueId,
       userRoleId,
-      statusId,
+      statusId, //new roleId
       userRoleStatusDescription,
       phoneNumber,
     } = updateDataValues;
-    const userUniqueId = user?.data?.userUniqueId;
+
+    const userUniqueId = user?.userUniqueId;
+    const currentUserRoleId = user?.roleId;
+    console.log("currentUserRoleId=================>", currentUserRoleId);
     // Check if the UserRoleStatus exists by userRoleStatusUniqueId
     const existingUserRoleStatus = await getData({
       tableName: "UserRoleStatus",
@@ -85,7 +97,21 @@ const updateUserRoleStatus = async (updateDataValues) => {
     });
 
     if (existingUserRoleStatus.length === 0) {
-      return { message: "error", data: "UserRoleStatus not found" };
+      return { message: "error", data: "active user role status not found" };
+    }
+
+    // Check if current and saved status are the same, if so, handle responses directly
+    if (
+      existingUserRoleStatus[0].statusId === statusId &&
+      existingUserRoleStatus[0].userRoleId === userRoleId
+    ) {
+      return await handleUpdateResponces({
+        currentUserRoleId,
+        roleId,
+        statusId,
+        phoneNumber,
+        newUserRoleStatus: existingUserRoleStatus[0],
+      });
     }
 
     // Ensure no duplicate active status for the same role and user combination
@@ -94,15 +120,19 @@ const updateUserRoleStatus = async (updateDataValues) => {
       conditions: {
         userRoleId,
         isUserRoleStatusActive: true,
-        statusId: statusId,
+        statusId,
       },
     });
 
     if (activeUserRoleStatus.length > 0) {
-      return {
-        message: "error",
-        data: "UserRoleStatus with the same status already exists",
-      };
+      // return existing user role status
+      return await handleUpdateResponces({
+        currentUserRoleId,
+        roleId,
+        statusId,
+        phoneNumber,
+        newUserRoleStatus: activeUserRoleStatus[0],
+      });
     }
 
     // Deactivate the previous active status (if any) and update the 'updatedAt' field
@@ -117,13 +147,14 @@ const updateUserRoleStatus = async (updateDataValues) => {
     });
 
     // Create a new UserRoleStatus entry with the new status
+    const newUserRoleStatusUniqueId = uuidv4();
     const newUserRoleStatus = {
-      userRoleStatusUniqueId: uuidv4(), // New UUID
-      statusId: statusId,
+      userRoleStatusUniqueId: newUserRoleStatusUniqueId,
+      statusId,
       userRoleId,
-      userRoleStatusDescription: userRoleStatusDescription,
+      userRoleStatusDescription,
       userRoleStatusCreatedAt: new Date(),
-      isUserRoleStatusActive: true, // Mark new status as active
+      isUserRoleStatusActive: true,
       userRoleStatusCreatedBy: userUniqueId,
     };
 
@@ -133,25 +164,75 @@ const updateUserRoleStatus = async (updateDataValues) => {
       colAndVal: newUserRoleStatus,
     });
 
-    // Optionally, send a notification to the driver if a phone number is provided
-    if (phoneNumber) {
-      sendNotificationToDriver({
-        message: {
-          message: { from: "admin", message: userRoleStatusDescription },
-        },
-        phoneNumber,
-      });
-    }
-
-    return {
-      message: "success",
-      data: newUserRoleStatus,
-    };
+    // Handle the responses after the new status is created
+    return await handleUpdateResponces({
+      currentUserRoleId,
+      roleId,
+      statusId,
+      phoneNumber,
+      newUserRoleStatus,
+    });
   } catch (error) {
     console.error("Error in updateUserRoleStatus:", error);
     return {
       message: "error",
       error: "An error occurred while updating UserRoleStatus",
+    };
+  }
+};
+
+// Separated out the handleResponces function for better clarity
+const handleUpdateResponces = async ({
+  currentUserRoleId,
+  roleId,
+  statusId,
+  phoneNumber,
+  newUserRoleStatus,
+}) => {
+  try {
+    // If the user is a driver and waiting for approval, send notification to admin
+    if (currentUserRoleId == 2 && statusId == 3) {
+      const driver = await getUserRoleStatus({ roleId, phoneNumber });
+      newUserRoleStatus = driver[0];
+      await sendNotificationToAdmin({
+        message: {
+          message: "success",
+          request: "approve or reject drivers document",
+          driver,
+        },
+        phoneNumber,
+      });
+    }
+    // If the user is an admin, send notifications to the driver for approval/rejection
+    else if (currentUserRoleId == 3) {
+      if (statusId == 1) {
+        await sendNotificationToDriver({
+          message: {
+            message: "success",
+            request: "User document approved by admin",
+          },
+          phoneNumber,
+        });
+      } else if (statusId == 4) {
+        await sendNotificationToDriver({
+          message: {
+            message: "success",
+            request: "User document rejected by admin",
+          },
+          phoneNumber,
+        });
+      }
+    }
+    console.log("@handleUpdateResponces newUserRoleStatus", newUserRoleStatus);
+    return {
+      message: "success",
+      userRoleStatus: newUserRoleStatus,
+    };
+  } catch (error) {
+    console.error("Error in handleResponces:", error);
+    return {
+      message: "error",
+      error: "An error occurred while handling responses",
     };
   }
 };
@@ -202,6 +283,7 @@ const userRoleStatusByPhone = async (phoneNumber) => {
   console.log("userData", userData);
   return userData;
 };
+
 module.exports = {
   userRoleStatusByPhone,
   createUserRoleStatus,

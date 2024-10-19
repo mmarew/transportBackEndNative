@@ -16,7 +16,9 @@ const UserStatuses = require("./userStatuse.routes");
 const UserRoleStatus = require("./UserRoleStatus.routes");
 const documentTypes = require("./documentTypes.routes");
 const attachedDocuments = require("./attachedDocuments.routes");
+const RoleDocumentRequirements = require("./RoleDocumentRequirements.routes");
 
+Routes.use(RoleDocumentRequirements);
 Routes.use(attachedDocuments);
 Routes.use(documentTypes);
 Routes.use(UserRoleStatus);

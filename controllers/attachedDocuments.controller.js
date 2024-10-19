@@ -1,41 +1,89 @@
 const attachedDocumentsService = require("../services/attachedDocuments.service");
-
-const createAttachedDocument = async (req, res) => {
+const ServerResponder = require("../Utils/ServerResponder");
+const createAttachedDocuments = async (req, res) => {
   try {
-    const {
-      userUniqueId,
-      documentDescription,
-      documentName,
-      userDocumentListId,
-    } = req.body;
+    const userUniqueId = req.user.data.userUniqueId;
+    const createdByUserId = userUniqueId;
 
-    // File details from Multer
-    const documentPath = req.file ? req.file.path : null;
-
-    if (!documentPath) {
-      return res.status(400).json({ message: "No document uploaded" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
 
-    const result = await attachedDocumentsService.createAttachedDocument({
-      userUniqueId,
-      documentName,
-      documentDescription,
-      userDocumentListId,
-      documentPath,
-      createdBy: req.user?.userUniqueId, // Assuming req.user contains user data
+    const uploadResults = []; // To track success or failure of each file upload
+    const documentsToRegister = [];
+
+    // Loop through all uploaded files
+    req.files.forEach((file) => {
+      const expirationDateKey = `${file.fieldname}ExpirationDate`; // Dynamic expiration date field name
+      const typeIdKey = `${file.fieldname}TypeId`; // Dynamic type ID field name
+      const descriptionKey = `${file.fieldname}Description`; // Dynamic description field name
+
+      const documentExpirationDate = req.body[expirationDateKey] || null;
+      const attachedDocumentDescription = req.body[descriptionKey] || null;
+      const documentTypeId = req.body[typeIdKey];
+
+      if (!documentTypeId) {
+        uploadResults.push({
+          file: file.fieldname,
+          status: "failed",
+          reason: "Document type ID is required",
+        });
+      } else {
+        documentsToRegister.push({
+          userUniqueId,
+          attachedDocumentDescription,
+          attachedDocumentName: file.filename, // File path where it's stored
+          documentTypeId,
+          documentExpirationDate,
+          createdByUserId,
+        });
+      }
     });
 
-    return res.status(201).json(result);
+    const fileErrors = [];
+    const fileSuccesses = [];
+
+    // Save all documents
+    for (const document of documentsToRegister) {
+      const resultOfCreateFiles =
+        await attachedDocumentsService.createAttachedDocument({
+          ...document,
+        });
+
+      if (resultOfCreateFiles.message === "error") {
+        fileErrors.push(document.attachedDocumentName); // Track failed files
+        uploadResults.push({
+          file: document.attachedDocumentName,
+          status: "failed",
+          reason: resultOfCreateFiles.data, // Reason for failure
+        });
+      } else {
+        fileSuccesses.push(document.attachedDocumentName); // Track successful files
+        uploadResults.push({
+          file: document.attachedDocumentName,
+          status: "success",
+        });
+      }
+    }
+
+    // Return the detailed upload results for each file
+    return res.status(200).json({
+      message: "Upload completed",
+      data: uploadResults, // Contains detailed info about each file (success or failure)
+    });
   } catch (error) {
+    console.error("Error uploading documents:", error);
     return res
       .status(500)
-      .json({ message: "Error creating attached document", error });
+      .json({ message: "Error uploading documents", error });
   }
 };
 
-const getAllAttachedDocuments = async (req, res) => {
+const getAttachedDocumentsByUser = async (req, res) => {
   try {
-    const result = await attachedDocumentsService.getAllAttachedDocuments();
+    const result = await attachedDocumentsService.getAttachedDocumentsByUser(
+      req.body.userUniqueId
+    );
     return res.status(200).json(result);
   } catch (error) {
     return res
@@ -105,10 +153,47 @@ const deleteAttachedDocument = async (req, res) => {
       .json({ message: "Error deleting attached document", error });
   }
 };
-
+const verifyUsersDocumentStatus = async (req, res) => {
+  try {
+    const user = req.user;
+    const documentOwnerUserUniqueId = req.params.userUniqueId;
+    req.body.user = user.data;
+    req.body.documentOwnerUserUniqueId = documentOwnerUserUniqueId;
+    const result = await attachedDocumentsService.verifyUsersDocumentStatus(
+      req.body
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("first error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
+  }
+};
+const acceptRejectAttachedDocuments = async (req, res) => {
+  const user = req.user.data;
+  req.body.user = user;
+  const documentOwnerUserUniqueId = req.params.userUniqueId;
+  req.body.documentOwnerUserUniqueId = documentOwnerUserUniqueId;
+  try {
+    const result = await attachedDocumentsService.acceptRejectAttachedDocuments(
+      req.body
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
+  }
+};
 module.exports = {
-  createAttachedDocument,
-  getAllAttachedDocuments,
+  acceptRejectAttachedDocuments,
+  verifyUsersDocumentStatus,
+  createAttachedDocuments,
+  getAttachedDocumentsByUser,
   getAttachedDocumentById,
   updateAttachedDocument,
   deleteAttachedDocument,

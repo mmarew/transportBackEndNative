@@ -117,7 +117,7 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 };
 
 // send notification to admin
-const sendNotificationToAdmin = async ({ message }) => {
+const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
   try {
     // Send notification to the matching admin using a for...of loop
     if (listOfAdminWs && listOfAdminWs.length > 0) {

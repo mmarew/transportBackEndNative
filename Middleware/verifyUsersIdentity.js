@@ -2,7 +2,7 @@ const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // Verify if the user is an Admin and is in an active status
 const verifyAdminsIdentity = async (req, res, next) => {
-  const userUniqueId = req.user.data.userUniqueId;
+  const userUniqueId = req?.user?.data?.userUniqueId;
 
   // Step 1: Check if the user exists
   const user = await getData({
@@ -13,7 +13,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
   if (!user[0]) {
     return res.status(500).json({
       message: "error",
-      error: "User not found",
+      error: "User admin not found",
       status: null,
     });
   }
@@ -85,7 +85,7 @@ const verifyDriversIdentity = async (req, res, next) => {
   if (!user[0]) {
     return res.status(500).json({
       message: "error",
-      error: "User not found",
+      error: "User driver not found",
       status: null,
     });
   }
@@ -156,7 +156,7 @@ const verifyPassengersIdentity = async (req, res, next) => {
   if (!user[0]) {
     return res.status(500).json({
       message: "error",
-      error: "User not found",
+      error: "User passenger not found",
       status: null,
     });
   }

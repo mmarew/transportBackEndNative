@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 const attachedDocumentsController = require("../controllers/attachedDocuments.controller");
 const multer = require("multer");
-
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 // Configure Multer for file uploading
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -15,29 +16,41 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Define routes for CRUD operations with file upload capability
+// Define routes for handling multiple file uploads
 router.post(
-  "/attachedDocuments",
-  upload.single("document"), // Handle file upload for a single document
-  attachedDocumentsController.createAttachedDocument
+  "/api/user/attachDocuments",
+  verifyTokenOfAxios,
+  upload.any(),
+  attachedDocumentsController.createAttachedDocuments
 );
 
 router.get(
-  "/attachedDocuments",
-  attachedDocumentsController.getAllAttachedDocuments
+  "/api/admin/attachedDocumentsByUser/:UUID",
+  attachedDocumentsController.getAttachedDocumentsByUser
 );
 router.get(
-  "/attachedDocuments/:id",
+  "/api/user/attachedDocuments/:id",
   attachedDocumentsController.getAttachedDocumentById
 );
 router.put(
-  "/attachedDocuments/:id",
+  "/api/user/attachedDocuments/:id",
   upload.single("document"), // Handle file upload for updates
   attachedDocumentsController.updateAttachedDocument
 );
 router.delete(
-  "/attachedDocuments/:id",
+  "/api/user/attachedDocuments/:id",
   attachedDocumentsController.deleteAttachedDocument
+);
+router.get(
+  "/api/user/verifyUsersDocumentStatus/:userUniqueId",
+  verifyTokenOfAxios,
+  attachedDocumentsController.verifyUsersDocumentStatus
+);
+router.put(
+  "/api/admin/acceptRejectAttachedDocuments/:userUniqueId",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  attachedDocumentsController.acceptRejectAttachedDocuments
 );
 
 module.exports = router;

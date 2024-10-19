@@ -23,7 +23,7 @@ const createRequest = async (body, user) => {
     const userUniqueId = user?.data?.userUniqueId;
     const existingUser = await checkUserExists(userUniqueId);
     if (!existingUser) {
-      return { message: "error", error: "User not found" };
+      return { message: "error", error: "User driver not found" };
     }
     // 2. Check if the driver already has an active request
     const activeRequest = await checkActiveDriverRequest(userUniqueId);

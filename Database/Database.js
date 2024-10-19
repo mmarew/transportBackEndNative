@@ -1,7 +1,14 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const { pool } = require("../Middleware/Database.config");
 const { createDocumentType } = require("../services/documentTypes.service");
-const { listOfDocuments } = require("../Utils/listOfFixedData");
+const {
+  createMapping,
+} = require("../services/RoleDocumentRequirements.service");
+const {
+  listOfDocuments,
+  RoleDocumentRequirements,
+  driversDocumentRequirement,
+} = require("../Utils/listOfFixedData");
 const roleList = require("../Utils/listOfFixedData").roleList;
 const statusList = require("../Utils/listOfFixedData").statusList;
 const createTable = async () => {
@@ -32,12 +39,64 @@ CREATE TABLE IF NOT EXISTS Users (
     updatedAt DATETIME NULL,  -- When the user was updated
     deletedAt DATETIME NULL  -- When the user was deleted
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
- 
+
+-- Create the UserRole Table
+CREATE TABLE IF NOT EXISTS UserRole (
+    userRoleId INT AUTO_INCREMENT PRIMARY KEY,
+    userRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role link
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    roleId INT NOT NULL,  -- Foreign key to Roles
+    userRoleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the user role
+    userRoleUpdatedBy VARCHAR(36) NULL,  -- Who updated the user role
+    userRoleDeletedBy VARCHAR(36) NULL,  -- Who deleted the user role
+    userRoleCreatedAt DATETIME NOT NULL,  -- When the user role was created
+    userRoleDeletedAt DATETIME NULL,  -- When the user role was deleted
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the UsersCredential Table
+CREATE TABLE IF NOT EXISTS usersCredential (
+    credentialId INT AUTO_INCREMENT PRIMARY KEY,
+    credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    hashedPassword VARCHAR(255) NOT NULL,  -- Hashed password
+    OTP VARCHAR(6) NULL,  -- Optional one-time password
+    usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
+    usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the UserRoleStatus Table
+CREATE TABLE IF NOT EXISTS UserRoleStatus (
+    userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link
+    statusId INT NOT NULL,  -- Foreign key to Statuses
+    userRoleId INT NOT NULL,  -- Foreign key to UserRole
+    userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
+    userRoleStatusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
+    userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
+    userRoleStatusDescription TEXT NULL,  -- Description of the role status
+    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the role status was created
+    userRoleStatusUpdatedAt DATETIME NULL,  -- When the role status was updated
+    userRoleStatusDeletedAt DATETIME NULL,  -- When the role status was deleted
+    isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active
+    FOREIGN KEY (userRoleStatusDeletedBy) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (userRoleStatusUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole
+    FOREIGN KEY (statusId) REFERENCES Statuses(statusId)  -- Link to Statuses
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create the DocumentTypes Table
 CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
     documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
     documentTypeName VARCHAR(255) NOT NULL,  -- Name of the document type (e.g., "ID", "License", "Plate")
+    uploadedDocumentName  VARCHAR(50) NOT NULL, -- it is used in file input fieled of front end 
+    uploadedDocumentTypeId  VARCHAR(50) NOT NULL, -- it is used in file input fieled of front end
+    uploadedDocumentDescription  VARCHAR(255) NOT NULL, -- it is used in file input fieled of front end
+    uploadedDocumentExpirationDate  VARCHAR(255) NOT NULL, -- it is used in file input fieled of front end
     documentTypeDescription  TEXT(2000)  not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeUpdatedBy VARCHAR(36) NULL,  -- Who last updated the document type
@@ -71,22 +130,48 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Create the RoleDocumentRequirements Table
+
+    CREATE TABLE IF NOT EXISTS RoleDocumentRequirements(
+    roleDocumentRequirementId INT AUTO_INCREMENT PRIMARY KEY,
+    roleDocumentRequirementUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the requirement
+    roleId INT NOT NULL,  -- Foreign key to the Roles table
+    documentTypeId INT NOT NULL,  -- Foreign key to the DocumentTypes table
+    isDocumentMandatory BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the document is mandatory for the role
+    roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
+    roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
+    roleDocumentRequirementDeletedBy VARCHAR(36) NULL,  -- Who deleted the requirement
+    createdAt DATETIME NOT NULL,  -- When the requirement was created
+    updatedAt DATETIME NULL,  -- When the requirement was updated
+    deletedAt DATETIME NULL,  -- When the requirement was deleted
+    FOREIGN KEY (roleDocumentRequirementCreatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
+    FOREIGN KEY (roleDocumentRequirementUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
+    FOREIGN KEY (roleDocumentRequirementDeletedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
+
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId),  -- Link to the Roles table
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId),  -- Link to the DocumentTypes table
+    UNIQUE (roleId, documentTypeId)  -- Ensure each role can have each document type only once
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create the AttachedDocuments Table
 CREATE TABLE IF NOT EXISTS AttachedDocuments (
     attachedDocumentId INT AUTO_INCREMENT PRIMARY KEY,
     attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
     attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
-    attachedDocumentPath VARCHAR(255) NOT NULL,  -- Path of the attached document (file storage location)
+    attachedDocumentName VARCHAR(255) NOT NULL,  -- Path of the attached document (file storage location)
     documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
     documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
+    attachedDocumentAcceptance enum('PENDING', 'ACCEPTED', 'REJECTED' ) NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
+    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,  -- Is the attached document expired
     attachedDocumentIsDeleted BOOLEAN NOT NULL DEFAULT FALSE,  -- Is the attached document deleted
-    createdByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
-    updatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    deletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document
-    createdAt DATETIME NOT NULL,  -- When the attached document was created
-    deletedAt DATETIME NULL,  -- When the attached document was deleted
+    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
+    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
+    attachedDocumentDeletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document
+    attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
+    attachedDocumentUpdatedAt DATETIME NULL,  -- When the attached document was updated
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
+    attachedDocumentDeletedAt DATETIME NULL,  -- When the attached document was deleted
     INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
@@ -107,56 +192,6 @@ CREATE TABLE IF NOT EXISTS Statuses (
     FOREIGN KEY (statusCreatedBy) REFERENCES Users(userUniqueId)  -- Foreign key to Users
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the UserRole Table
-CREATE TABLE IF NOT EXISTS UserRole (
-    userRoleId INT AUTO_INCREMENT PRIMARY KEY,
-    userRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role link
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    roleId INT NOT NULL,  -- Foreign key to Roles
-    userRoleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the user role
-    userRoleUpdatedBy VARCHAR(36) NULL,  -- Who updated the user role
-    userRoleDeletedBy VARCHAR(36) NULL,  -- Who deleted the user role
-    userRoleCreatedAt DATETIME NOT NULL,  -- When the user role was created
-    userRoleDeletedAt DATETIME NULL,  -- When the user role was deleted
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create the UserRoleStatus Table
-CREATE TABLE IF NOT EXISTS UserRoleStatus (
-    userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link
-    statusId INT NOT NULL,  -- Foreign key to Statuses
-    userRoleId INT NOT NULL,  -- Foreign key to UserRole
-    userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
-    userRoleStatusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
-    userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
-    userRoleStatusDescription TEXT NULL,  -- Description of the role status
-    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the role status was created
-    userRoleStatusUpdatedAt DATETIME NULL,  -- When the role status was updated
-    userRoleStatusDeletedAt DATETIME NULL,  -- When the role status was deleted
-    isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active
-    
-    FOREIGN KEY (userRoleStatusDeletedBy) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (userRoleStatusUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole
-    FOREIGN KEY (statusId) REFERENCES Statuses(statusId)  -- Link to Statuses
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create the UsersCredential Table
-CREATE TABLE IF NOT EXISTS usersCredential (
-    credentialId INT AUTO_INCREMENT PRIMARY KEY,
-    credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    hashedPassword VARCHAR(255) NOT NULL,  -- Hashed password
-    OTP VARCHAR(6) NULL,  -- Optional one-time password
-    usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
-    usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Additional tables such as JourneyStatus, PassengerRequest, etc. go here...
  
  -- Create the JourneyStatus table
 CREATE TABLE IF NOT EXISTS JourneyStatus (
@@ -345,23 +380,39 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
     const [queryResult] = await pool.query(sqlQuery);
 
     // console.log("queryResult", queryResult);
-    // roleList.map(async (role) => {
-    //   //   console.log("role is ", role);
+    // for (const role of roleList) {
     //   await insertData({ tableName: "Roles", colAndVal: { ...role } });
-    // });
-    // statusList.map(async (status) => {
-    //   await insertData({ tableName: "Statuses", colAndVal: status });
-    //   //   console.log("statuses", status);
-    // });
-    listOfDocuments.map((document) => {
-      console.log("document", document);
-      createDocumentType({
-        body: document,
-        user: {
-          data: { userUniqueId: "279a62b8-203a-4e59-a757-44b85565c36a" },
-        },
-      });
-    });
+    // }
+
+    // for (const status of statusList) {
+    //   try {
+    //     await insertData({ tableName: "Statuses", colAndVal: status });
+    //     console.log("Status inserted:", status);
+    //   } catch (error) {
+    //     console.error("Error inserting status:", error);
+    //   }
+    // }
+
+    // for (const document of listOfDocuments) {
+    //   try {
+    //     const responces = await createDocumentType({
+    //       body: document,
+    //       user: {
+    //         data: { userUniqueId: "acbf1fe0-2ed9-4e5d-89d3-3a652d9e85e4" },
+    //       },
+    //     });
+    //     console.log("Document processed:", responces);
+    //   } catch (error) {
+    //     console.error("Error processing document:", error);
+    //   }
+    // }
+
+    // for (const role of driversDocumentRequirement) {
+    //   const body = role,
+    //     userUniqueId = "da9534f3-d5a2-4697-b5bf-6ef826d69417";
+    //   await createMapping({ body, userUniqueId });
+    //   console.log("role", role);
+    // }
   } catch (error) {
     console.log("Error executing query", error);
   }

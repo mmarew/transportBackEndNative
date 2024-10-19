@@ -8,6 +8,7 @@ const createJWT = require("../Utils/createJWT");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const { getUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createUser = async (body) => {
   const {
@@ -256,7 +257,7 @@ const verifyUserByOTP = async (req) => {
         phoneNumber,
       },
     });
-
+    const roleId = req.body.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }
@@ -268,6 +269,7 @@ const verifyUserByOTP = async (req) => {
       fullName,
       phoneNumber,
       email,
+      roleId,
     });
 
     const selectResult = await getData({
@@ -287,7 +289,11 @@ const verifyUserByOTP = async (req) => {
     if (selectResult[0].OTP !== OTP) {
       return { message: "error", error: "OTP verification failed" };
     } else {
-      return { token, message: "success", data: "OTP verified successfully" };
+      return {
+        token,
+        message: "success",
+        data: "OTP verified successfully",
+      };
     }
   } catch (error) {
     console.error("Error in verifyDriverByOTP:", error.message);

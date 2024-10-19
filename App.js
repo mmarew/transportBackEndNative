@@ -3,7 +3,6 @@ require("dotenv").config();
 const http = require("http");
 const WebSocket = require("ws");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 const Routes = require("./Routes/index.js");
 const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
@@ -14,38 +13,37 @@ const path = require("path");
 const app = express();
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(Routes);
-
-// Middleware to parse JSON bodies
-app.use(bodyParser.json());
-
-// Middleware to parse URL-encoded bodies
-app.use(bodyParser.urlencoded({ extended: true }));
 
 // Create HTTP server and attach the Express app to it
 const server = http.createServer(app);
 
 // Initialize WebSocket server instance
 const wss = new WebSocket.Server({ server });
+const handleMessage = (incomingMessage) => {
+  const textMessage = incomingMessage.toString();
+  console.log("textMessage", textMessage);
 
-// WebSocket connection handling
-wss.on("connection", (ws, req) => {
+  if (textMessage) {
+    ws.send("i get text messages from clients");
+  }
+};
+const handleClose = (ws) => {
+  removeWSFromList(ws);
+};
+const handleConnection = (ws, req) => {
   const urlParams = new URLSearchParams(req.url.split("?")[1]);
   WSPusher(urlParams, ws);
 
-  ws.on("message", (incomingMessage) => {
-    const textMessage = incomingMessage.toString();
-    console.log("textMessage", textMessage);
+  ws.on("message", () => handleMessage(ws));
 
-    if (textMessage) {
-    }
-  });
+  ws.on("close", () => handleClose(ws));
+};
 
-  ws.on("close", () => {
-    removeWSFromList(ws);
-  });
-});
+// WebSocket connection handling
+wss.on("connection", handleConnection);
 
 // Create tables in the database
 const onStartUp = async () => {

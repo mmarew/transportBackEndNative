@@ -5,9 +5,23 @@ const { pool } = require("../Middleware/Database.config");
 const uuidv4 = require("uuid").v4;
 
 const createDocumentType = async ({ body, user }) => {
-  const { documentTypeName, documentTypeDescription } = body;
+  const {
+    documentTypeName,
+    documentTypeDescription,
+    uploadedDocumentName,
+    uploadedDocumentExpirationDate,
+    uploadedDocumentTypeId,
+    uploadedDocumentDescription,
+  } = body;
   const { userUniqueId } = user.data;
-
+  // verify if userUniqueId is valid and active
+  const userExists = await getData({
+    tableName: "Users",
+    conditions: { userUniqueId },
+  });
+  if (userExists.length === 0) {
+    return { message: "error", data: "User not found" };
+  }
   // Check if the document type already exists
   const existingDocumentType = await getData({
     tableName: "DocumentTypes",
@@ -21,7 +35,11 @@ const createDocumentType = async ({ body, user }) => {
   // Create a new document type
   const documentTypeUniqueId = uuidv4();
   const newDocumentType = {
+    uploadedDocumentTypeId,
+    uploadedDocumentDescription,
+    uploadedDocumentName,
     documentTypeUniqueId,
+    uploadedDocumentExpirationDate,
     documentTypeName,
     documentTypeDescription,
     documentTypeCreatedBy: userUniqueId,

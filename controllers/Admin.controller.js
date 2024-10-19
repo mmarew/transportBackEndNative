@@ -80,6 +80,15 @@ const AdminController = {
       await adminServices.deleteCancellation(cancellationId, req)
     );
   },
+  getunAuthorizedDriver: async (req, res) => {
+    ServerResponder(res, await adminServices.getunAuthorizedDriver(req));
+  },
+  getAllPassengers: async (req, res) => {
+    ServerResponder(res, await adminServices.getUsersByRole(1));
+  },
+  getAllDrivers: async (req, res) => {
+    ServerResponder(res, await adminServices.getUsersByRole(2));
+  },
 };
 
 module.exports = AdminController;
