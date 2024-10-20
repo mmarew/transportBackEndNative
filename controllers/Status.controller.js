@@ -5,14 +5,45 @@ const {
   deleteStatus,
   getAllStatuses,
 } = require("../services/Status.service");
-
+const { statusList } = require("../Utils/listOfFixedData");
 const createStatusController = async (req, res) => {
   try {
-    const response = await createStatus(req.body);
-    res.status(201).json(response);
+    const results = [];
+    const errors = [];
+
+    for (const status of statusList) {
+      try {
+        const createdRole = await createStatus({
+          ...status,
+          user: req.body.user,
+        });
+        if (createdRole.message == "success") {
+          console.log("Status inserted:", status);
+          results.push({ status, message: "Status inserted successfully" });
+        } else {
+          errors.push({ status, error: createdRole.error });
+        }
+      } catch (error) {
+        console.error("Error inserting status:", error);
+        errors.push({ status, error: "Failed to insert status" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(207).json({
+        message: "Some statuses failed to insert",
+        insertedStatuses: results,
+        failedStatuses: errors,
+      });
+    }
+
+    return res.status(201).json({
+      message: "All statuses inserted successfully",
+      data: results,
+    });
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({ message: "Status creation failed" });
+    return res.status(500).json({ message: "Status creation failed" });
   }
 };
 

@@ -73,6 +73,7 @@ const createUser = async (body) => {
       const credentialUniqueId = uuidv4();
 
       const userCreationSuccess = await Promise.all([
+        // register users profile
         insertData({
           tableName: "Users",
           colAndVal: {
@@ -83,6 +84,7 @@ const createUser = async (body) => {
             createdAt: currentDate(),
           },
         }),
+        // register users credential
         insertData({
           tableName: "usersCredential",
           colAndVal: {
@@ -166,14 +168,14 @@ const handleUserRoleStatus = async (
 
     // Check if the UserRole is in UserRoleStatus already exists
     const userRoleStatus = await getData({
-      tableName: "UserRoleStatus",
+      tableName: "UserRoleStatusCurrent",
       conditions: { userRoleId },
     });
     console.log("roleId in roleId roleId roleId", roleId);
     if (userRoleStatus.length === 0) {
       // Insert new UserRoleStatus if not found
       await insertData({
-        tableName: "UserRoleStatus",
+        tableName: "UserRoleStatusCurrent",
         colAndVal: {
           userRoleStatusUniqueId: uuidv4(),
           userRoleStatusCreatedBy: userUniqueId,
@@ -192,8 +194,8 @@ const handleUserRoleStatus = async (
             on: "Users.userUniqueId = UserRole.userUniqueId",
           },
           {
-            table: "UserRoleStatus",
-            on: "UserRole.userRoleId = UserRoleStatus.userRoleId",
+            table: "UserRoleStatusCurrent",
+            on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
           },
         ],
         conditions: { "Users.userUniqueId": userUniqueId },

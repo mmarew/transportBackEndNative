@@ -5,16 +5,16 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { insertData } = require("../CRUD/Create/CreateData");
 
 const createStatus = async (body) => {
-  const { statusName, statusDescription } = body;
+  const { statusName, statusDescription, user } = body;
+  const userUniqueId = user?.userUniqueId;
   const statusUniqueId = uuidv4();
-  console.log("statusName, statusDescription", statusName, statusDescription);
   const verifyResult = await getData({
     tableName: "Statuses",
     conditions: { statusName },
   });
   console.log("@createStatus verifyResult", verifyResult);
   if (verifyResult.length > 0) {
-    return { message: "error", data: "Status already exists" };
+    return { message: "error", error: "Status already exists" };
   }
 
   try {
@@ -24,8 +24,9 @@ const createStatus = async (body) => {
       colAndVal: {
         statusUniqueId,
         statusName,
-        statusCreatedAt: currentDate(),
         statusDescription,
+        statusCreatedBy: userUniqueId,
+        statusCreatedAt: currentDate(),
       },
     });
 

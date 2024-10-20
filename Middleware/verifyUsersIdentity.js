@@ -35,15 +35,15 @@ const verifyAdminsIdentity = async (req, res, next) => {
   // Step 3: Check if the Admin is in an active status
   const adminRole = userRoles[0];
   const userRoleStatus = await performJoinSelect({
-    baseTable: "UserRoleStatus",
+    baseTable: "UserRoleStatusCurrent",
     joins: [
       {
         table: "Statuses",
-        on: "Statuses.statusId = UserRoleStatus.statusId",
+        on: "Statuses.statusId = UserRoleStatusCurrent.statusId",
       },
     ],
     conditions: {
-      "UserRoleStatus.userRoleId": adminRole.userRoleId,
+      "UserRoleStatusCurrent.userRoleId": adminRole.userRoleId,
     },
     orderBy: "userRoleStatusCreatedAt",
     orderDirection: "DESC",

@@ -1,15 +1,52 @@
 const documentTypesService = require("../services/documentTypes.service");
 const ServerResponder = require("../utils/ServerResponder");
-
+const listOfDocuments = require("../Utils/listOfFixedData").listOfDocuments;
 const createDocumentType = async (req, res) => {
   try {
-    // console.log("req.user ==========> ", req.user.data.userUniqueId);
-    // return;
-    const result = await documentTypesService.createDocumentType({
-      body: req.body,
-      user: req.user,
-    });
-    return ServerResponder(res, result, 201);
+    const userUniqueId =
+      req?.user?.data?.userUniqueId || "acbf1fe0-2ed9-4e5d-89d3-3a652d9e85e4"; // Fallback userUniqueId
+
+    if (!Array.isArray(listOfDocuments) || listOfDocuments.length === 0) {
+      return ServerResponder(res, "No documents provided", 400);
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const document of listOfDocuments) {
+      try {
+        const response = await createDocumentType({
+          body: document,
+          user: { data: { userUniqueId } },
+        });
+        console.log("Document processed:", response);
+        results.push({ document, response });
+      } catch (error) {
+        console.error("Error processing document:", error);
+        errors.push({ document, error: "Failed to process document" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return ServerResponder(
+        res,
+        {
+          message: "Some documents failed to process",
+          processedDocuments: results,
+          failedDocuments: errors,
+        },
+        207
+      );
+    }
+
+    return ServerResponder(
+      res,
+      {
+        message: "All documents processed successfully",
+        data: results,
+      },
+      201
+    );
   } catch (error) {
     console.error("Error in createDocumentType:", error);
     return ServerResponder(res, "Failed to create document type", 500);

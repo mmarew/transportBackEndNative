@@ -20,6 +20,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
         conditions: { userUniqueId },
       });
       if (user.length > 0) {
+        req.body.user = data;
         next(); // Proceed to the next middleware/controller
       } else {
         return res

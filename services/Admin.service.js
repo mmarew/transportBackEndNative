@@ -305,7 +305,10 @@ const adminServices = {
       conditions: {
         "UserRoleStatus.statusId": [2, 3], // Filtering for the required statuses
       },
+      groupBy: "Users.userUniqueId",
     });
+    // console.log("unAuthorizedUsers", unAuthorizedUsers);
+    // return unAuthorizedUsers;
 
     // Use Promise.all to wait for all verifyUsersDocumentStatus calls to resolve
     const usersWithDocuments = await Promise.all(

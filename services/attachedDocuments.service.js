@@ -49,12 +49,11 @@ const createAttachedDocument = async ({
         data: `Document already exists for this user and document type`,
       };
     }
-
+    console.log("first");
     // Determine if the document is expired (based on expiration date)
     const isExpired = documentExpirationDate
       ? new Date(documentExpirationDate) < new Date()
       : false;
-
     const newDocument = {
       attachedDocumentUniqueId: uuidv4(),
       userUniqueId, // The user who own the created  document
@@ -71,7 +70,7 @@ const createAttachedDocument = async ({
       attachedDocumentCreatedAt: new Date(),
       attachedDocumentDeletedAt: null, // Not deleted yet
     };
-
+    console.log(newDocument);
     // Insert the new document into the database
     const result = await insertData({
       tableName: "AttachedDocuments",
@@ -258,6 +257,7 @@ const verifyUsersDocumentStatus = async (body) => {
       userRoleStatusDescription,
       phoneNumber,
     });
+    sendNotificationToAdmin({});
     return {
       message: "success",
       ...userData,
@@ -354,4 +354,10 @@ module.exports = {
   getAttachedDocumentById,
   updateAttachedDocument,
   deleteAttachedDocument,
+};
+const data = {
+  uploadedDocumentName: "delegation",
+  uploadedDocumentTypeId: "delegationTypeId",
+  uploadedDocumentDescription: "delegationDescription",
+  uploadedDocumentExpirationDate: "delegationExpirationDate",
 };

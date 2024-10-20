@@ -3,14 +3,12 @@ const { v4: uuidv4 } = require("uuid");
 
 const roleList = [
   {
-    roleCreatedBy: "adminUserUUID",
     roleUniqueId: uuidv4(),
     roleName: "Passenger",
     roleDescription: "a person who can make order to driver to load goods",
     roleCreatedAt: currentDate(),
   },
   {
-    roleCreatedBy: "adminUserUUID",
     roleUniqueId: uuidv4(),
     roleName: "driver",
     roleDescription:
@@ -18,14 +16,12 @@ const roleList = [
     roleCreatedAt: currentDate(),
   },
   {
-    roleCreatedBy: "adminUserUUID",
     roleUniqueId: uuidv4(),
     roleName: "Admin",
     roleDescription: "a person who can manage the system, driver and passenger",
     roleCreatedAt: currentDate(),
   },
   {
-    roleCreatedBy: "adminUserUUID",
     roleUniqueId: uuidv4(),
     roleName: "vehicle owner",
     roleDescription: "a person who brought the car for delivery",
@@ -116,7 +112,7 @@ const listOfDocuments = [
   {
     uploadedDocumentTypeId: "profilePhotoTypeId",
     uploadedDocumentDescription: "profilePhotoDescription",
-    uploadedDocumentExpirationDate: "delegationExpirationDate",
+    uploadedDocumentExpirationDate: "profilePhotoExpirationDate",
     uploadedDocumentName: "profilePhoto",
     documentTypeName: " Profile Photo",
     documentTypeDescription: "Profile Photo",

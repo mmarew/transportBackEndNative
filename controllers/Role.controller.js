@@ -6,15 +6,43 @@ const {
   getAllRoles,
 } = require("../services/Role.service");
 const ServerResponder = require("../Utils/ServerResponder");
+const roleList = require("../Utils/listOfFixedData").roleList;
 
 const createRoleController = async (req, res) => {
   try {
-    const response = await createRole(req.body);
-    ServerResponder(res, response);
+    const failedRoles = [];
+    const user = req.user;
+    // Process the predefined role list
+    for (const role of roleList) {
+      try {
+        await createRole({ ...role, user });
+        console.log(`Role inserted: `, { ...role, user });
+      } catch (error) {
+        console.error(`Error inserting role: ${role.roleName}`, error);
+        failedRoles.push(role.roleName); // Collect failed roles
+      }
+    }
+    // return;
+    // If any roles failed to insert, return an error response
+    if (failedRoles.length > 0) {
+      return ServerResponder(
+        res,
+        `Failed to insert the following roles: ${failedRoles.join(", ")}`,
+        500
+      );
+    }
+
+    // Process the role from the request body, if provided
+    // if (req.body && Object.keys(req.body).length > 0) {
+    //   const response = await createRole(req.body);
+    //   return ServerResponder(res, response, 201);
+    // }
+
+    // Return success response if no body is provided and all predefined roles were inserted
+    return ServerResponder(res, "Predefined roles inserted successfully", 201);
   } catch (error) {
-    ServerResponder(res, error.message);
-    console.error("Error:", error);
-    res.status(500).json({ message: "Role creation failed" });
+    console.error("Error in createRoleController:", error);
+    return ServerResponder(res, "Role creation failed", 500);
   }
 };
 

@@ -40,6 +40,18 @@ CREATE TABLE IF NOT EXISTS Users (
     deletedAt DATETIME NULL  -- When the user was deleted
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Create the UsersCredential Table
+CREATE TABLE IF NOT EXISTS usersCredential (
+    credentialId INT AUTO_INCREMENT PRIMARY KEY,
+    credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    hashedPassword VARCHAR(255) NOT NULL,  -- Hashed password
+    OTP VARCHAR(6) NULL,  -- Optional one-time password
+    usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
+    usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create the UserRole Table
 CREATE TABLE IF NOT EXISTS UserRole (
     userRoleId INT AUTO_INCREMENT PRIMARY KEY,
@@ -55,37 +67,60 @@ CREATE TABLE IF NOT EXISTS UserRole (
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the UsersCredential Table
-CREATE TABLE IF NOT EXISTS usersCredential (
-    credentialId INT AUTO_INCREMENT PRIMARY KEY,
-    credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    hashedPassword VARCHAR(255) NOT NULL,  -- Hashed password
-    OTP VARCHAR(6) NULL,  -- Optional one-time password
-    usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
-    usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
+
+-- Create the Statuses Table
+CREATE TABLE IF NOT EXISTS Statuses (
+    statusId INT AUTO_INCREMENT PRIMARY KEY,
+    statusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the status
+    statusName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the status
+    statusDescription VARCHAR(255) NULL,  -- Description of the status
+    statusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
+    statusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
+    statusUpdatedAt DATETIME NULL,  -- When the status was updated
+    statusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
+    statusDeletedAt DATETIME NULL,  -- When the status was deleted
+    statusCreatedAt DATETIME NOT NULL,  -- When the status was created
+     FOREIGN KEY (statusCreatedBy) REFERENCES Users(userUniqueId)  -- Foreign key to Users
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the UserRoleStatus Table
-CREATE TABLE IF NOT EXISTS UserRoleStatus (
+-- Table to hold the current status of each user-role combination
+CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
     userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link
     statusId INT NOT NULL,  -- Foreign key to Statuses
     userRoleId INT NOT NULL,  -- Foreign key to UserRole
-    userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
+    userRoleStatusDescription TEXT NULL,  -- Description of the current role status
+    userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
+    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the current status was created
+    isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active (should always be TRUE in current table)
+    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table
+    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole table
+    FOREIGN KEY (statusId) REFERENCES Statuses(statusId),  -- Link to Statuses table
+    INDEX (userRoleId),  -- Index for faster lookups on user roles
+    INDEX (statusId)  -- Index for faster lookups on status
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Table to hold the history of all user-role statuses, including updates and deletions
+CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
+    userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link (copied from current table)
+    statusId INT NOT NULL,  -- Foreign key to Statuses
+    userRoleId INT NOT NULL,  -- Foreign key to UserRole
+    userRoleStatusDescription TEXT NULL,  -- Description of the role status (copied from current table)
+    userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status (copied from current table)
+    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the status was created (copied from current table)
     userRoleStatusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
+    userRoleStatusUpdatedAt DATETIME NULL,  -- When the status was updated
     userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
-    userRoleStatusDescription TEXT NULL,  -- Description of the role status
-    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the role status was created
-    userRoleStatusUpdatedAt DATETIME NULL,  -- When the role status was updated
-    userRoleStatusDeletedAt DATETIME NULL,  -- When the role status was deleted
-    isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active
-    FOREIGN KEY (userRoleStatusDeletedBy) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (userRoleStatusUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole
-    FOREIGN KEY (statusId) REFERENCES Statuses(statusId)  -- Link to Statuses
+    userRoleStatusDeletedAt DATETIME NULL,  -- When the status was deleted
+    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table
+    FOREIGN KEY (userRoleStatusUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table (for updates)
+    FOREIGN KEY (userRoleStatusDeletedBy) REFERENCES Users(userUniqueId),  -- Link to Users table (for deletions)
+    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole table
+    FOREIGN KEY (statusId) REFERENCES Statuses(statusId),  -- Link to Statuses table
+    INDEX (userRoleId),  -- Index for faster lookups on user roles
+    INDEX (statusId)  -- Index for faster lookups on status
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the DocumentTypes Table
@@ -96,7 +131,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     uploadedDocumentName  VARCHAR(50) NOT NULL, -- it is used in file input fieled of front end 
     uploadedDocumentTypeId  VARCHAR(50) NOT NULL, -- it is used in file input fieled of front end
     uploadedDocumentDescription  VARCHAR(255) NOT NULL, -- it is used in file input fieled of front end
-    uploadedDocumentExpirationDate  VARCHAR(255) NOT NULL, -- it is used in file input fieled of front end
+    uploadedDocumentExpirationDate  VARCHAR(255)   NULL, -- it is used in file input fieled of front end
     documentTypeDescription  TEXT(2000)  not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeUpdatedBy VARCHAR(36) NULL,  -- Who last updated the document type
@@ -138,6 +173,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     roleId INT NOT NULL,  -- Foreign key to the Roles table
     documentTypeId INT NOT NULL,  -- Foreign key to the DocumentTypes table
     isDocumentMandatory BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the document is mandatory for the role
+    isExpirationDateRequired BOOLEAN NOT NULL DEFAULT FALSE,  -- Whether the expiration date is required for the document
     roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
     roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
     roleDocumentRequirementDeletedBy VARCHAR(36) NULL,  -- Who deleted the requirement
@@ -159,7 +195,6 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
     attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
-    attachedDocumentName VARCHAR(255) NOT NULL,  -- Path of the attached document (file storage location)
     documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
     documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
     attachedDocumentAcceptance enum('PENDING', 'ACCEPTED', 'REJECTED' ) NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
@@ -178,31 +213,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the Statuses Table
-CREATE TABLE IF NOT EXISTS Statuses (
-    statusId INT AUTO_INCREMENT PRIMARY KEY,
-    statusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the status
-    statusName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the status
-    statusDescription VARCHAR(255) NULL,  -- Description of the status
-    statusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
-    statusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
-    statusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
-    statusCreatedAt DATETIME NOT NULL,  -- When the status was created
-    statusDeletedAt DATETIME NULL,  -- When the status was deleted
-    FOREIGN KEY (statusCreatedBy) REFERENCES Users(userUniqueId)  -- Foreign key to Users
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
  
- -- Create the JourneyStatus table
-CREATE TABLE IF NOT EXISTS JourneyStatus (
-    journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey status
-    journeyStatusName VARCHAR(50) NOT NULL,  -- Name of the journey status
-    journeyStatusDescription VARCHAR(255) NULL,  -- Description of the journey status
-    journeyStatusCreatedAt DATETIME NOT NULL,  -- When the journey status was created
-    journeyStatusDeletedAt DATETIME NULL  -- When the journey status was deleted
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- Create the PassengerRequest table
 CREATE TABLE IF NOT EXISTS PassengerRequest (
     passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
@@ -263,6 +274,27 @@ CREATE TABLE IF NOT EXISTS Journey (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ -- Create the JourneyStatus table
+CREATE TABLE IF NOT EXISTS JourneyStatus (
+    journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey status
+    journeyStatusName VARCHAR(50) NOT NULL,  -- Name of the journey status
+    journeyStatusDescription VARCHAR(255) NULL,  -- Description of the journey status
+    journeyStatusCreatedAt DATETIME NOT NULL,  -- When the journey status was created
+    journeyStatusDeletedAt DATETIME NULL  -- When the journey status was deleted
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create the VehicleType table
+   CREATE TABLE IF NOT EXISTS VehicleType (
+    vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
+    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
+    vehicleImage VARCHAR(255) NULL,  -- Image URL of the vehicle
+    vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
+    vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create the Vehicle table
 CREATE TABLE IF NOT EXISTS Vehicle (
     vehicleId INT AUTO_INCREMENT PRIMARY KEY,
@@ -294,17 +326,6 @@ CREATE TABLE IF NOT EXISTS VehicleStatus (
     statusEndDate DATETIME NULL,  -- Status end date
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (statusTypeId) REFERENCES VehicleStatusType(statusTypeId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create the VehicleType table
-CREATE TABLE IF NOT EXISTS VehicleType (
-    vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
-    vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
-    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
-    carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
-    vehicleImage VARCHAR(255) NULL,  -- Image URL of the vehicle
-    vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
-    vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the VehicleOwnership table
@@ -378,41 +399,6 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
   try {
     const [queryResult] = await pool.query(sqlQuery);
-
-    // console.log("queryResult", queryResult);
-    // for (const role of roleList) {
-    //   await insertData({ tableName: "Roles", colAndVal: { ...role } });
-    // }
-
-    // for (const status of statusList) {
-    //   try {
-    //     await insertData({ tableName: "Statuses", colAndVal: status });
-    //     console.log("Status inserted:", status);
-    //   } catch (error) {
-    //     console.error("Error inserting status:", error);
-    //   }
-    // }
-
-    // for (const document of listOfDocuments) {
-    //   try {
-    //     const responces = await createDocumentType({
-    //       body: document,
-    //       user: {
-    //         data: { userUniqueId: "acbf1fe0-2ed9-4e5d-89d3-3a652d9e85e4" },
-    //       },
-    //     });
-    //     console.log("Document processed:", responces);
-    //   } catch (error) {
-    //     console.error("Error processing document:", error);
-    //   }
-    // }
-
-    // for (const role of driversDocumentRequirement) {
-    //   const body = role,
-    //     userUniqueId = "da9534f3-d5a2-4697-b5bf-6ef826d69417";
-    //   await createMapping({ body, userUniqueId });
-    //   console.log("role", role);
-    // }
   } catch (error) {
     console.log("Error executing query", error);
   }

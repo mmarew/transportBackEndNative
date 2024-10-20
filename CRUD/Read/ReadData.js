@@ -153,50 +153,42 @@ const performJoinSelect = async ({
   operator = "AND",
   orderBy = null,
   orderDirection = "ASC",
-  limit = null, // New parameter to handle LIMIT
-  offset = null, // New parameter to handle OFFSET (for pagination)
+  limit = null,
+  offset = null,
+  groupBy = null, // Optional group by column
 }) => {
   // Validate the operator
   if (operator !== "AND" && operator !== "OR") {
     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
   }
 
-  // Build the WHERE clause dynamically based on the conditions object
+  // Build WHERE clause dynamically based on conditions
   const columns = Object.keys(conditions);
   const whereClause = columns
     .map((col) => {
       const value = conditions[col];
       if (Array.isArray(value) && value.length === 2) {
-        // If the value is an array of length 2, use BETWEEN for range-based queries
         return `${col} BETWEEN ? AND ?`;
       } else if (Array.isArray(value)) {
-        // If the value is an array, use IN clause
         const placeholders = value.map(() => "?").join(", ");
         return `${col} IN (${placeholders})`;
       } else {
-        // Otherwise, use the standard equality check
         return `${col} = ?`;
       }
     })
     .join(` ${operator} `);
 
-  // Flatten the values array
   const values = Object.values(conditions).flat();
-
-  // Build the JOIN clauses dynamically
   const joinClauses = joins
     .map(({ table, on }) => `JOIN ${table} ON ${on}`)
     .join(" ");
-
-  // Build the ORDER BY clause if provided
   const orderByClause = orderBy ? `ORDER BY ${orderBy} ${orderDirection}` : "";
-
-  // Build the LIMIT and OFFSET clauses if provided
   const limitClause = limit ? `LIMIT ${limit}` : "";
   const offsetClause = offset ? `OFFSET ${offset}` : "";
+  const groupByClause = groupBy ? `GROUP BY ${groupBy}` : ""; // Optional group by
 
-  // Combine everything into a complete SQL query
-  const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} WHERE ${whereClause} ${orderByClause} ${limitClause} ${offsetClause}`;
+  // Use baseTable.* to select all columns from the base table
+  const sqlQuery = `SELECT  * FROM ${baseTable} ${joinClauses} WHERE ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
 
   try {
     const [result] = await pool.query(sqlQuery, values);
