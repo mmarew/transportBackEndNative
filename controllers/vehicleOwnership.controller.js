@@ -1,10 +1,13 @@
+const { response } = require("express");
 const {
   createVehicleOwnership,
   getVehicleOwnership,
   updateVehicleOwnership,
   deleteVehicleOwnership,
   getAllVehicleOwnerships,
+  getVehicleOwnershipByUserUniqueId,
 } = require("../services/vehicleOwnership.service");
+const ServerResponder = require("../utils/ServerResponder");
 
 const createVehicleOwnershipController = async (req, res) => {
   try {
@@ -70,8 +73,22 @@ const getAllVehicleOwnershipsController = async (req, res) => {
     res.status(500).json({ message: "Error fetching vehicle ownerships" });
   }
 };
+const getVehicleOwnershipByUserUniqueIdController = async (req, res) => {
+  try {
+    const userUniqueId = req.params.userUniqueId;
+    const response = await getVehicleOwnershipByUserUniqueId(userUniqueId);
+    ServerResponder(res, response);
+  } catch (error) {
+    console.error("Error fetching vehicle ownerships:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching vehicle ownerships",
+    });
+  }
+};
 
 module.exports = {
+  getVehicleOwnershipByUserUniqueIdController,
   createVehicleOwnershipController,
   getVehicleOwnershipController,
   updateVehicleOwnershipController,

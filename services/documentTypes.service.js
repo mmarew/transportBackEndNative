@@ -4,7 +4,7 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const { pool } = require("../Middleware/Database.config");
 const uuidv4 = require("uuid").v4;
 
-const createDocumentType = async ({ body, user }) => {
+const createDocumentType = async ({ body }) => {
   const {
     documentTypeName,
     documentTypeDescription,
@@ -12,8 +12,10 @@ const createDocumentType = async ({ body, user }) => {
     uploadedDocumentExpirationDate,
     uploadedDocumentTypeId,
     uploadedDocumentDescription,
+    user,
   } = body;
-  const { userUniqueId } = user.data;
+  console.log("createDocumentType", body);
+  const userUniqueId = user?.userUniqueId;
   // verify if userUniqueId is valid and active
   const userExists = await getData({
     tableName: "Users",

@@ -3,21 +3,16 @@ const ServerResponder = require("../utils/ServerResponder");
 const listOfDocuments = require("../Utils/listOfFixedData").listOfDocuments;
 const createDocumentType = async (req, res) => {
   try {
-    const userUniqueId =
-      req?.user?.data?.userUniqueId || "acbf1fe0-2ed9-4e5d-89d3-3a652d9e85e4"; // Fallback userUniqueId
-
+    const user = req?.body?.user;
     if (!Array.isArray(listOfDocuments) || listOfDocuments.length === 0) {
       return ServerResponder(res, "No documents provided", 400);
     }
-
     const results = [];
     const errors = [];
-
     for (const document of listOfDocuments) {
       try {
-        const response = await createDocumentType({
-          body: document,
-          user: { data: { userUniqueId } },
+        const response = await documentTypesService.createDocumentType({
+          body: { ...document, user },
         });
         console.log("Document processed:", response);
         results.push({ document, response });
@@ -77,8 +72,8 @@ const getDocumentTypeById = async (req, res) => {
 
 const updateDocumentType = async (req, res) => {
   try {
-    const user = req.user.data;
-    req.body.user = user;
+    const user = req?.user;
+    req.user = user;
     const result = await documentTypesService.updateDocumentType({
       documentTypeUniqueId: req.params.id,
       updateDataValues: req.body,

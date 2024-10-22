@@ -11,8 +11,7 @@ const {
 } = require("../Utils/listOfFixedData");
 const roleList = require("../Utils/listOfFixedData").roleList;
 const statusList = require("../Utils/listOfFixedData").statusList;
-const createTable = async () => {
-  const sqlQuery = `-- Create the Roles Table
+const sqlQuery = `-- Create the Roles Table
 CREATE TABLE IF NOT EXISTS Roles (
     roleId INT AUTO_INCREMENT PRIMARY KEY,
     roleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the role
@@ -22,7 +21,8 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleUpdatedBy VARCHAR(36) NULL,  -- Who updated the role
     roleDeletedBy VARCHAR(36) NULL,  -- Who deleted the role
     roleCreatedAt DATETIME NOT NULL,  -- When the role was created
-    roleDeletedAt DATETIME NULL  -- When the role was deleted
+    roleDeletedAt DATETIME,  -- When the role was deleted
+    foreign key (roleCreatedBy) references Users(userUniqueId)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the Users Table
@@ -92,7 +92,6 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleStatusDescription TEXT NULL,  -- Description of the current role status
     userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
     userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the current status was created
-    isUserRoleStatusActive BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the status is active (should always be TRUE in current table)
     FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table
     FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole table
     FOREIGN KEY (statusId) REFERENCES Statuses(statusId),  -- Link to Statuses table
@@ -161,7 +160,6 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     changeType ENUM('UPDATE', 'DELETE') NOT NULL,  -- Whether it was an update or delete
     changedByUserId VARCHAR(36) NOT NULL,  -- The user who made the change
     changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time when the change was made
-
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -289,8 +287,10 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
     vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
+    vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
+    vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
     carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
-    vehicleImage VARCHAR(255) NULL,  -- Image URL of the vehicle
     vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -382,6 +382,7 @@ CREATE TABLE IF NOT EXISTS Payments (
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the PaymentStatus table
+
 CREATE TABLE IF NOT EXISTS PaymentStatus (
     paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
     paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
@@ -397,11 +398,5 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
     paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., Credit Card, PayPal)
     createdAt DATETIME NOT NULL  -- Creation time of the payment method
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
-  try {
-    const [queryResult] = await pool.query(sqlQuery);
-  } catch (error) {
-    console.log("Error executing query", error);
-  }
-};
 
-module.exports = { createTable };
+module.exports = { sqlQuery };

@@ -58,7 +58,7 @@ const getDriverRequestById = async (requestId) => {
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
-const acceptPassengerRequest = async (body) => {
+const acceptPassengerRequest = async (body, userUniqueId) => {
   const existingRequest = await getData({
     tableName: "DriverRequest",
     conditions: { driverRequestUniqueId: body.driverRequestUniqueId },

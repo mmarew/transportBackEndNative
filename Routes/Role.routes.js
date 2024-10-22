@@ -14,12 +14,7 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const router = express.Router();
 
 // Define CRUD routes
-router.post(
-  "/api/admin/roles",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  createRoleController
-); // Create a new role
+router.post("/api/admin/roles", verifyTokenOfAxios, createRoleController); // Create a new role
 router.get(
   "/api/admin/roles/:id",
   verifyTokenOfAxios,

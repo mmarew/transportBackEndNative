@@ -7,7 +7,8 @@ const {
 } = require("../Utils/Notifications");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
-
+const deleteData = require("../CRUD/Delete/DeleteData");
+const { pool } = require("../Middleware/Database.config");
 // Create UserRoleStatus
 const createUserRoleStatus = async (body) => {
   const { statusId, userRoleId, userRoleStatusDescription, createdByUserId } =
@@ -68,7 +69,6 @@ const getUserRoleStatus = async (body) => {
     ],
     conditions: {
       "UserRole.roleId": roleId,
-      isUserRoleStatusActive: true,
       phoneNumber,
     },
   });
@@ -81,24 +81,25 @@ const updateUserRoleStatus = async (updateDataValues) => {
     const {
       user,
       roleId,
-      userRoleStatusUniqueId,
       userRoleId,
-      statusId,
+      newStatusId,
       userRoleStatusDescription,
       phoneNumber,
     } = updateDataValues;
 
     const userUniqueId = user?.userUniqueId;
 
-    // Check if the UserRoleStatus exists in current
-    const existingUserRoleStatus = await getData({
-      tableName: "UserRoleStatusCurrent",
-      conditions: { userRoleStatusUniqueId },
-    });
+    const sql = `SELECT UserRoleStatusCurrent.* FROM UserRoleStatusCurrent,Statuses, UserRole,Users WHERE  UserRoleStatusCurrent.statusId = Statuses.statusId AND UserRole.userRoleId = UserRoleStatusCurrent.userRoleId AND Users.userUniqueId  = UserRole.userUniqueId AND Users.userUniqueId = ?  AND UserRole.roleId = ?  `;
+    const [existingUserRoleStatus] = await pool.query(sql, [
+      userUniqueId,
+      roleId,
+    ]);
 
     if (existingUserRoleStatus.length === 0) {
       return { message: "error", data: "Active user role status not found" };
     }
+    const userRoleStatusUniqueId = await existingUserRoleStatus[0]
+      .userRoleStatusUniqueId;
 
     // Move current status to history
     await insertData({
@@ -111,25 +112,19 @@ const updateUserRoleStatus = async (updateDataValues) => {
     });
 
     // Deactivate the current status in UserRoleStatusCurrent
-    await updateData({
+    await deleteData({
       tableName: "UserRoleStatusCurrent",
-      conditions: { userRoleId },
-      updateValues: {
-        userRoleStatusUpdatedAt: new Date(),
-        isUserRoleStatusActive: false,
-        userRoleStatusUpdatedBy: userUniqueId,
-      },
+      conditions: { userRoleStatusUniqueId },
     });
 
     // Insert a new UserRoleStatus entry with the new status in current
     const newUserRoleStatusUniqueId = uuidv4();
     const newUserRoleStatus = {
       userRoleStatusUniqueId: newUserRoleStatusUniqueId,
-      statusId,
+      statusId: newStatusId,
       userRoleId,
       userRoleStatusDescription,
       userRoleStatusCreatedAt: new Date(),
-      isUserRoleStatusActive: true,
       userRoleStatusCreatedBy: userUniqueId,
     };
 
@@ -141,7 +136,7 @@ const updateUserRoleStatus = async (updateDataValues) => {
     // Handle the responses after the new status is created
     return await handleUpdateResponces({
       roleId,
-      statusId,
+      statusId: newStatusId,
       phoneNumber,
       newUserRoleStatus,
     });

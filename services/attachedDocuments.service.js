@@ -57,7 +57,6 @@ const createAttachedDocument = async ({
     const newDocument = {
       attachedDocumentUniqueId: uuidv4(),
       userUniqueId, // The user who own the created  document
-      attachedDocumentName,
       attachedDocumentDescription,
       documentTypeId,
       documentExpirationDate,
@@ -137,7 +136,6 @@ const updateAttachedDocument = async (
 
   // Update the document details
   const updateValues = {
-    attachedDocumentName: documentName,
     attachedDocumentDescription: documentDescription,
     documentTypeId,
     attachedDocumentPath:
@@ -190,7 +188,7 @@ const deleteAttachedDocument = async (attachedDocumentId, deletedByUserId) => {
 const verifyUsersDocumentStatus = async (body) => {
   const documentOwnerUserUniqueId = body.documentOwnerUserUniqueId;
   const userRoleStatusUniqueId = body.userRoleStatusUniqueId;
-  const statusId = body.statusId;
+  const newStatusId = body.newStatusId;
   const user = body.user;
   const roleId = body.roleId;
   const userRoleId = body.userRoleId;
@@ -253,7 +251,7 @@ const verifyUsersDocumentStatus = async (body) => {
       roleId,
       userRoleStatusUniqueId,
       userRoleId,
-      statusId,
+      newStatusId,
       userRoleStatusDescription,
       phoneNumber,
     });

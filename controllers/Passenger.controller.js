@@ -55,7 +55,7 @@ const deleteRequest = async (req, res) => {
 const verifyPassengerStatus = async (req, res) => {
   try {
     // return "verifyPassengerStatus";
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     const result = await PassengerService.verifyPassengerStatus({
       userUniqueId,
     });

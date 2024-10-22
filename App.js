@@ -4,7 +4,6 @@ const http = require("http");
 const WebSocket = require("ws");
 const cors = require("cors");
 const Routes = require("./Routes/index.js");
-const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const path = require("path");
@@ -48,7 +47,6 @@ wss.on("connection", handleConnection);
 // Create tables in the database
 const onStartUp = async () => {
   try {
-    createTable();
   } catch (error) {
     console.log("error", error);
   }

@@ -70,7 +70,6 @@ router.delete(
 router.get(
   "/driver/verifyDriverStatus",
   verifyTokenOfAxios,
-  verifyDriversIdentity,
   verifyDriverStatusController
 );
 router.put(

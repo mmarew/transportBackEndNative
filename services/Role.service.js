@@ -19,8 +19,8 @@ const createRole = async (body) => {
     roleUniqueId,
     roleName,
     roleDescription,
-    roleCreatedAt: currentDate(),
     roleCreatedBy: userUniqueId,
+    roleCreatedAt: currentDate(),
   };
   const tableName = "Roles";
   try {

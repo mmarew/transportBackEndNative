@@ -28,10 +28,9 @@ const getRequestByIdController = async (req, res) => {
 
 const acceptPassengerRequest = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.journeyStatusId = 3;
     req.body.previousStatusId = 2;
-    req.body.userUniqueId = userUniqueId;
     const result = await services.acceptPassengerRequest(req.body);
 
     ServerResponder(res, result, 200);
@@ -57,7 +56,7 @@ const deleteRequestController = async (req, res) => {
 
 const verifyDriverStatusController = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     const result = await services.verifyDriverStatus({ userUniqueId });
     ServerResponder(res, result, 200);
   } catch (error) {
@@ -67,10 +66,10 @@ const verifyDriverStatusController = async (req, res) => {
 };
 const startJourney = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.journeyStatusId = 4;
-    req.body.userUniqueId = userUniqueId;
     req.body.previousStatusId = 3;
+    req.body.userUniqueId = userUniqueId;
     const result = await services.startJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
@@ -80,7 +79,7 @@ const startJourney = async (req, res) => {
 };
 const noAnswerFromDriver = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 11;
     req.body.previousStatusId = 2;
@@ -94,7 +93,7 @@ const noAnswerFromDriver = async (req, res) => {
 };
 const journeyCompleted = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 5;
     req.body.previousStatusId = 4;
@@ -107,7 +106,7 @@ const journeyCompleted = async (req, res) => {
 };
 const canceledByDriver = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 7;
     req.body.previousStatusId = [1, 2, 3, 4];
@@ -120,7 +119,7 @@ const canceledByDriver = async (req, res) => {
 };
 const attachRequiredDocuments = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     const result = await services.attachRequiredDocuments(req.body);
     ServerResponder(res, result);

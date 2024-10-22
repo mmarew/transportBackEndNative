@@ -15,7 +15,7 @@ const createStatusController = async (req, res) => {
       try {
         const createdRole = await createStatus({
           ...status,
-          user: req.body.user,
+          user: req?.user,
         });
         if (createdRole.message == "success") {
           console.log("Status inserted:", status);

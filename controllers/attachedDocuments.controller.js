@@ -2,7 +2,8 @@ const attachedDocumentsService = require("../services/attachedDocuments.service"
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
-    const userUniqueId = req.user.data.userUniqueId;
+    // Use req.user instead of req?.user to get user data
+    const userUniqueId = req?.user?.userUniqueId;
     const createdByUserId = userUniqueId;
 
     if (!req.files || req.files.length === 0) {
@@ -46,9 +47,7 @@ const createAttachedDocuments = async (req, res) => {
     // Save all documents
     for (const document of documentsToRegister) {
       const resultOfCreateFiles =
-        await attachedDocumentsService.createAttachedDocument({
-          ...document,
-        });
+        await attachedDocumentsService.createAttachedDocument({ ...document });
 
       if (resultOfCreateFiles.message === "error") {
         fileErrors.push(document.attachedDocumentName); // Track failed files
@@ -155,9 +154,12 @@ const deleteAttachedDocument = async (req, res) => {
 };
 const verifyUsersDocumentStatus = async (req, res) => {
   try {
-    const user = req.user;
-    const documentOwnerUserUniqueId = req.params.userUniqueId;
-    req.body.user = user.data;
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    let documentOwnerUserUniqueId = req.params.userUniqueId;
+    if (documentOwnerUserUniqueId == "selfDocument")
+      documentOwnerUserUniqueId = userUniqueId;
+    req.body.user = user;
     req.body.documentOwnerUserUniqueId = documentOwnerUserUniqueId;
     const result = await attachedDocumentsService.verifyUsersDocumentStatus(
       req.body
@@ -172,8 +174,8 @@ const verifyUsersDocumentStatus = async (req, res) => {
   }
 };
 const acceptRejectAttachedDocuments = async (req, res) => {
-  const user = req.user.data;
-  req.body.user = user;
+  const user = req?.user;
+  req.user = user;
   const documentOwnerUserUniqueId = req.params.userUniqueId;
   req.body.documentOwnerUserUniqueId = documentOwnerUserUniqueId;
   try {

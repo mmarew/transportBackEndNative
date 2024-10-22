@@ -74,78 +74,86 @@ const verifyAdminsIdentity = async (req, res, next) => {
 
 // Verify if the user is a Driver and is in an active status
 const verifyDriversIdentity = async (req, res, next) => {
-  const userUniqueId = req.user.data.userUniqueId;
+  try {
+    const userUniqueId = req?.user.userUniqueId;
 
-  // Step 1: Check if the user exists
-  const user = await getData({
-    tableName: "Users",
-    conditions: { userUniqueId },
-  });
-
-  if (!user[0]) {
-    return res.status(500).json({
-      message: "error",
-      error: "User driver not found",
-      status: null,
+    // Step 1: Check if the user exists
+    const user = await getData({
+      tableName: "Users",
+      conditions: { userUniqueId },
     });
-  }
 
-  // Step 2: Verify if the user has a Driver role
-  const userRoles = await getData({
-    tableName: "UserRole",
-    conditions: { userUniqueId, roleId: 2 }, // 2 indicates the Driver role
-  });
+    if (!user[0]) {
+      return res.status(500).json({
+        message: "error",
+        error: "User driver not found",
+        status: null,
+      });
+    }
 
-  if (!userRoles?.length) {
-    return res.status(500).json({
-      message: "error",
-      error: "User driver role not found",
-      status: null,
+    // Step 2: Verify if the user has a Driver role
+    const userRoles = await getData({
+      tableName: "UserRole",
+      conditions: { userUniqueId, roleId: 2 }, // 2 indicates the Driver role
     });
-  }
 
-  // Step 3: Check if the Driver is in an active status
-  const driverRole = userRoles[0];
-  const userRoleStatus = await performJoinSelect({
-    baseTable: "UserRoleStatus",
-    joins: [
-      {
-        table: "Statuses",
-        on: "Statuses.statusId = UserRoleStatus.statusId",
+    if (!userRoles?.length) {
+      return res.status(500).json({
+        message: "error",
+        error: "User driver role not found",
+        status: null,
+      });
+    }
+
+    // Step 3: Check if the Driver is in an active status
+    const driverRole = userRoles[0];
+    const userRoleStatus = await performJoinSelect({
+      baseTable: "UserRoleStatusCurrent",
+      joins: [
+        {
+          table: "Statuses",
+          on: "Statuses.statusId = UserRoleStatusCurrent.statusId",
+        },
+      ],
+      conditions: {
+        "UserRoleStatusCurrent.userRoleId": driverRole.userRoleId,
       },
-    ],
-    conditions: {
-      "UserRoleStatus.userRoleId": driverRole.userRoleId,
-    },
-    orderBy: "userRoleStatusId",
-    orderDirection: "DESC",
-    limit: 1,
-  });
+      orderBy: "userRoleStatusId",
+      orderDirection: "DESC",
+      limit: 1,
+    });
 
-  if (userRoleStatus.length === 0) {
+    if (userRoleStatus.length === 0) {
+      return res.status(500).json({
+        message: "error",
+        error: "User role status of driver not found",
+        status: null,
+      });
+    }
+
+    const statusId = userRoleStatus[0]?.statusId;
+    if (statusId !== 1) {
+      return res.status(403).json({
+        message: "error",
+        status: "Driver in inactive status",
+        userRoleStatus: userRoleStatus[0],
+      });
+    }
+
+    // Proceed to the next middleware if the Driver is valid and active
+    next();
+  } catch (error) {
     return res.status(500).json({
       message: "error",
-      error: "User role status of driver not found",
+      error: error.message,
       status: null,
     });
   }
-
-  const statusId = userRoleStatus[0]?.statusId;
-  if (statusId !== 1) {
-    return res.status(403).json({
-      message: "error",
-      status: "Driver in inactive status",
-      userRoleStatus: userRoleStatus[0],
-    });
-  }
-
-  // Proceed to the next middleware if the Driver is valid and active
-  next();
 };
 
 // Verify if the user is a Passenger and is in an active status
 const verifyPassengersIdentity = async (req, res, next) => {
-  const userUniqueId = req.user.data.userUniqueId;
+  const userUniqueId = req?.user.userUniqueId;
 
   // Step 1: Check if the user exists
   const user = await getData({

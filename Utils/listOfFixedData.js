@@ -36,12 +36,16 @@ const statusList = [
     statusDescription:
       "User can perform tasks according to their assigned role.",
     statusCreatedAt: currentDate(),
-    statusCreatedBy: "admin",
   },
   {
     statusUniqueId: uuidv4(),
     statusName: "inactive - driver must upload documents",
     statusDescription: " driver must upload documents",
+  },
+  {
+    statusUniqueId: uuidv4(),
+    statusName: "inactive - driver must register vehicle",
+    statusDescription: "driver must register its vehicle",
   },
   {
     statusUniqueId: uuidv4(),
@@ -98,7 +102,7 @@ const listOfDocuments = [
     uploadedDocumentName: "vehicleRegistration",
     documentTypeName: " Vehicle Registration(librea)",
     documentTypeDescription:
-      " Proof of ownership or right to use the vehicle for rideshare services. It confirms the vehicle is legally registered.",
+      "Proof of ownership or right to use the vehicle for ride share services. It confirms the vehicle is legally registered.",
   },
   {
     uploadedDocumentTypeId: "insuranceTypeId",
@@ -144,7 +148,34 @@ const driversDocumentRequirement = [
   { roleId: "2", documentTypeId: "5", isDocumentMandatory: true },
   { roleId: "2", documentTypeId: "6", isDocumentMandatory: true },
 ];
+const vehicleTypes = [
+  {
+    vehicleTypeName: "Isuzu FSR",
+    carryingCapacity: "10 ton (100 kuintal)",
+    createdAt: null,
+    updatedAt: null,
+  },
+  {
+    vehicleTypeName: "Isuzu NPR",
+    carryingCapacity: "5 ton (50 kuintal)",
+    createdAt: null,
+    updatedAt: null,
+  },
+  {
+    vehicleTypeName: "Euro tracker",
+    carryingCapacity: "40 ton (400 kuintal)",
+    createdAt: null,
+    updatedAt: null,
+  },
+  {
+    vehicleTypeName: "Sino truck",
+    carryingCapacity: "10 ton (100 kuintal)",
+    createdAt: null,
+    updatedAt: null,
+  },
+];
 module.exports = {
+  vehicleTypes,
   driversDocumentRequirement,
   listOfDocuments,
   roleList,

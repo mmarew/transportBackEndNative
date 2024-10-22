@@ -10,19 +10,39 @@ const roleList = require("../Utils/listOfFixedData").roleList;
 
 const createRoleController = async (req, res) => {
   try {
-    const failedRoles = [];
-    const user = req.user;
+    const failedRoles = [],
+      successRoles = [];
+    const user = req?.user;
     // Process the predefined role list
     for (const role of roleList) {
       try {
-        await createRole({ ...role, user });
-        console.log(`Role inserted: `, { ...role, user });
+        const result = await createRole({ ...role, user });
+        if (result.message == "success") {
+          successRoles.push(role.roleName);
+        } else {
+          failedRoles.push(role.roleName);
+        }
       } catch (error) {
         console.error(`Error inserting role: ${role.roleName}`, error);
         failedRoles.push(role.roleName); // Collect failed roles
       }
     }
-    // return;
+
+    // prepare responces if all roles are inserted
+    if (successRoles.length == roleList.length) {
+      return ServerResponder(res, { message: "success", data: successRoles });
+    } else if (failedRoles.length == roleList.length) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "All roles are not registered",
+        data: successRoles,
+      });
+    } else if (failedRoles.length > 0 && successRoles.length > 0) {
+      return ServerResponder(res, {
+        message: "partiallysuccess",
+        data: { successRoles, failedRoles },
+      });
+    }
     // If any roles failed to insert, return an error response
     if (failedRoles.length > 0) {
       return ServerResponder(

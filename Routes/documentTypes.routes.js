@@ -8,7 +8,6 @@ const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 router.post(
   "/documentTypes",
   verifyTokenOfAxios,
-  verifyAdminsIdentity,
   documentTypesController.createDocumentType
 );
 router.get(
