@@ -18,7 +18,7 @@ router.post(
 
 // Route to get all vehicle types
 router.get(
-  "/api/admin/vehicleTypes",
+  "/api/user/vehicleTypes",
   verifyTokenOfAxios,
   getAllVehicleTypesController
 );

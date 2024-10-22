@@ -313,11 +313,11 @@ const adminServices = {
     // Use Promise.all to wait for all verifyUsersDocumentStatus calls to resolve
     const usersWithDocuments = await Promise.all(
       unAuthorizedUsers.map(async (user) => {
-        const documentOwnerUserUniqueId = user.userUniqueId;
+        const ownerUserUniqueId = user.userUniqueId;
         const documents = await verifyUsersDocumentStatus({
           user,
           ...user,
-          documentOwnerUserUniqueId,
+          ownerUserUniqueId,
         });
         return { ...user, documents }; // Return user along with documents
       })

@@ -5,10 +5,12 @@ const {
   deleteVehicle,
   getAllVehicles,
 } = require("../services/vehicle.service");
+const services = require("../services/vehicle.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createVehicleController = async (req, res) => {
   try {
+    req.body.user = req.user;
     const response = await createVehicle(req.body);
     ServerResponder(res, response);
   } catch (error) {
@@ -68,8 +70,24 @@ const getAllVehiclesController = async (req, res) => {
     res.status(500).json({ message: "Error fetching vehicles" });
   }
 };
+const verifyUsersVehicle = async (req, res) => {
+  try {
+    req.body.user = req.user;
+    const { ownerUserUniqueId } = req.params;
+    req.body.ownerUserUniqueId = ownerUserUniqueId;
 
+    const response = await services.verifyUsersVehicle(req.body);
+    if (response) {
+      return res.status(200).json(response);
+    }
+    res.status(404).json({ message: "Vehicle not found" });
+  } catch (error) {
+    console.error("Error fetching vehicle:", error);
+    res.status(500).json({ message: "Error fetching vehicle" });
+  }
+};
 module.exports = {
+  verifyUsersVehicle,
   createVehicleController,
   getVehicleController,
   updateVehicleController,

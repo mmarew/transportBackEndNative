@@ -118,9 +118,6 @@ const verifyDriversIdentity = async (req, res, next) => {
       conditions: {
         "UserRoleStatusCurrent.userRoleId": driverRole.userRoleId,
       },
-      orderBy: "userRoleStatusId",
-      orderDirection: "DESC",
-      limit: 1,
     });
 
     if (userRoleStatus.length === 0) {

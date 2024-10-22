@@ -182,7 +182,28 @@ const handleUpdateResponces = async ({
         });
       }
     }
-    return { message: "success", userRoleStatus: newUserRoleStatus };
+    const userData = await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "UserRole",
+          on: "Users.userUniqueId = UserRole.userUniqueId",
+        },
+        {
+          table: "UserRoleStatusCurrent",
+          on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+        },
+        {
+          table: "Statuses",
+          on: "UserRoleStatusCurrent.statusId = Statuses.statusId",
+        },
+      ],
+      conditions: {
+        "UserRole.roleId": roleId,
+        phoneNumber,
+      },
+    });
+    return { message: "success", userData: userData };
   } catch (error) {
     console.error("Error in handleUpdateResponces:", error);
     return {

@@ -128,7 +128,27 @@ const attachRequiredDocuments = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
+const driversRequirement = async (req, res) => {
+  try {
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    let ownerUserUniqueId = req.params.userUniqueId;
+
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
+    req.body.user = user;
+    req.body.ownerUserUniqueId = ownerUserUniqueId;
+    const result = await services.driversRequirement(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("first error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
+  }
+};
 module.exports = {
+  driversRequirement,
   attachRequiredDocuments,
   canceledByDriver,
   journeyCompleted,

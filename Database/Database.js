@@ -1,16 +1,3 @@
-const { insertData } = require("../CRUD/Create/CreateData");
-const { pool } = require("../Middleware/Database.config");
-const { createDocumentType } = require("../services/documentTypes.service");
-const {
-  createMapping,
-} = require("../services/RoleDocumentRequirements.service");
-const {
-  listOfDocuments,
-  RoleDocumentRequirements,
-  driversDocumentRequirement,
-} = require("../Utils/listOfFixedData");
-const roleList = require("../Utils/listOfFixedData").roleList;
-const statusList = require("../Utils/listOfFixedData").statusList;
 const sqlQuery = `-- Create the Roles Table
 CREATE TABLE IF NOT EXISTS Roles (
     roleId INT AUTO_INCREMENT PRIMARY KEY,
@@ -72,7 +59,7 @@ CREATE TABLE IF NOT EXISTS UserRole (
 CREATE TABLE IF NOT EXISTS Statuses (
     statusId INT AUTO_INCREMENT PRIMARY KEY,
     statusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the status
-    statusName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the status
+    statusName VARCHAR(150) UNIQUE NOT NULL,  -- Name of the status
     statusDescription VARCHAR(255) NULL,  -- Description of the status
     statusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the status
     statusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
@@ -296,16 +283,19 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the Vehicle table
-CREATE TABLE IF NOT EXISTS Vehicle (
+    CREATE TABLE IF NOT EXISTS Vehicle (
     vehicleId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
     licensePlate VARCHAR(50) NOT NULL,  -- License plate of the vehicle
     color VARCHAR(50) NOT NULL,  -- Color of the vehicle
-    createdAt DATETIME NOT NULL,  -- Vehicle creation date
-    deletedAt DATETIME NULL,  -- Vehicle deletion date
+    vehicleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle
+    vehicleUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle
+    vehicleDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle
+    vehicleCreatedAt DATETIME NOT NULL,  -- Vehicle creation date
+    vehicleDeletedAt DATETIME NULL,  -- Vehicle deletion date
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; 
 
 -- Create the VehicleStatusType table
 CREATE TABLE IF NOT EXISTS VehicleStatusType (

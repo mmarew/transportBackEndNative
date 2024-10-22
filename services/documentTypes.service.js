@@ -14,7 +14,6 @@ const createDocumentType = async ({ body }) => {
     uploadedDocumentDescription,
     user,
   } = body;
-  console.log("createDocumentType", body);
   const userUniqueId = user?.userUniqueId;
   // verify if userUniqueId is valid and active
   const userExists = await getData({

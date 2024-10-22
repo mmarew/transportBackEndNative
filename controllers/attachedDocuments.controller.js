@@ -1,4 +1,4 @@
-const attachedDocumentsService = require("../services/attachedDocuments.service");
+const attachedDocumentsService = require("../Services/attachedDocuments.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
@@ -152,32 +152,12 @@ const deleteAttachedDocument = async (req, res) => {
       .json({ message: "Error deleting attached document", error });
   }
 };
-const verifyUsersDocumentStatus = async (req, res) => {
-  try {
-    const user = req?.user;
-    const userUniqueId = user?.userUniqueId;
-    let documentOwnerUserUniqueId = req.params.userUniqueId;
-    if (documentOwnerUserUniqueId == "selfDocument")
-      documentOwnerUserUniqueId = userUniqueId;
-    req.body.user = user;
-    req.body.documentOwnerUserUniqueId = documentOwnerUserUniqueId;
-    const result = await attachedDocumentsService.verifyUsersDocumentStatus(
-      req.body
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("first error", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to see usersDocument",
-    });
-  }
-};
+
 const acceptRejectAttachedDocuments = async (req, res) => {
   const user = req?.user;
   req.user = user;
-  const documentOwnerUserUniqueId = req.params.userUniqueId;
-  req.body.documentOwnerUserUniqueId = documentOwnerUserUniqueId;
+  const ownerUserUniqueId = req.params.userUniqueId;
+  req.body.ownerUserUniqueId = ownerUserUniqueId;
   try {
     const result = await attachedDocumentsService.acceptRejectAttachedDocuments(
       req.body
@@ -193,7 +173,6 @@ const acceptRejectAttachedDocuments = async (req, res) => {
 };
 module.exports = {
   acceptRejectAttachedDocuments,
-  verifyUsersDocumentStatus,
   createAttachedDocuments,
   getAttachedDocumentsByUser,
   getAttachedDocumentById,

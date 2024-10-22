@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
-const attachedDocumentsController = require("../controllers/attachedDocuments.controller");
+const attachedDocumentsController = require("../Controllers/attachedDocuments.controller");
 const multer = require("multer");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 // Configure Multer for file uploading
@@ -41,11 +41,7 @@ router.delete(
   "/api/user/attachedDocuments/:id",
   attachedDocumentsController.deleteAttachedDocument
 );
-router.get(
-  "/api/user/verifyUsersDocumentStatus/:userUniqueId",
-  verifyTokenOfAxios,
-  attachedDocumentsController.verifyUsersDocumentStatus
-);
+
 router.put(
   "/api/admin/acceptRejectAttachedDocuments/:userUniqueId",
   verifyTokenOfAxios,

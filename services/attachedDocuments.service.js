@@ -1,13 +1,8 @@
 const { insertData } = require("../CRUD/Create/CreateData");
-const {
-  getData,
-
-  performJoinSelect,
-} = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
 const uuidv4 = require("uuid").v4;
 const path = require("path");
 const { deleteFile } = require("../Utils/fileUtils");
-const { updateUserRoleStatus } = require("./UserRoleStatus.service");
 const { updateData } = require("../CRUD/Update/Data.update");
 const {
   sendNotificationToAdmin,
@@ -185,96 +180,10 @@ const deleteAttachedDocument = async (attachedDocumentId, deletedByUserId) => {
     return { message: "error", data: "Failed to delete document" };
   }
 };
-const verifyUsersDocumentStatus = async (body) => {
-  const documentOwnerUserUniqueId = body.documentOwnerUserUniqueId;
-  const userRoleStatusUniqueId = body.userRoleStatusUniqueId;
-  const newStatusId = body.newStatusId;
-  const user = body.user;
-  const roleId = body.roleId;
-  const userRoleId = body.userRoleId;
-  const userRoleStatusDescription = body.userRoleStatusDescription;
-  const phoneNumber = body.phoneNumber;
-
-  // Fetch attached documents for the user
-  const AttachedDocuments = await getData({
-    tableName: "AttachedDocuments",
-    conditions: { userUniqueId: documentOwnerUserUniqueId },
-  });
-
-  // Fetch required documents for the user's role
-  const requiredDocuments = await performJoinSelect({
-    baseTable: "RoleDocumentRequirements",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-    ],
-    conditions: { roleId },
-  });
-
-  if (requiredDocuments.length === 0) {
-    return { message: "error", data: "No documents required for this role" };
-  }
-
-  // Find unattached document types
-  const unAttachedDocumentTypes = requiredDocuments.filter(
-    (requiredDocument) =>
-      !AttachedDocuments.some(
-        (attachedDocument) =>
-          attachedDocument.documentTypeId === requiredDocument.documentTypeId
-      )
-  );
-
-  // Group attached documents by their status (PENDING, ACCEPTED, REJECTED)
-  const attachedDocumentsByStatus = {
-    PENDING: [],
-    ACCEPTED: [],
-    REJECTED: [],
-  };
-
-  AttachedDocuments.forEach((attachedDocument) => {
-    const documentStatus = attachedDocument.attachedDocumentAcceptance;
-    if (documentStatus === "PENDING") {
-      attachedDocumentsByStatus.PENDING.push(attachedDocument);
-    } else if (documentStatus === "ACCEPTED") {
-      attachedDocumentsByStatus.ACCEPTED.push(attachedDocument);
-    } else if (documentStatus === "REJECTED") {
-      attachedDocumentsByStatus.REJECTED.push(attachedDocument);
-    }
-  });
-
-  // If all required documents are attached, update the user's role status
-  if (unAttachedDocumentTypes.length === 0) {
-    const userData = await updateUserRoleStatus({
-      user,
-      roleId,
-      userRoleStatusUniqueId,
-      userRoleId,
-      newStatusId,
-      userRoleStatusDescription,
-      phoneNumber,
-    });
-    sendNotificationToAdmin({});
-    return {
-      message: "success",
-      ...userData,
-      attachedDocumentsByStatus,
-      unAttachedDocumentTypes: [], // No unattached documents
-    };
-  }
-
-  // Return unattached documents and attached documents by their status
-  return {
-    message: "success",
-    unAttachedDocumentTypes, // Documents that are required but not attached
-    attachedDocumentsByStatus, // Grouped attached documents by status
-  };
-};
 
 const acceptRejectAttachedDocuments = async (body) => {
   const userUniqueId = body?.user?.userUniqueId; // Admin's unique ID
-  const documentOwnerUserUniqueId = body?.documentOwnerUserUniqueId; // The driver (document owner's) unique ID
+  const ownerUserUniqueId = body?.ownerUserUniqueId; // The driver (document owner's) unique ID
   const attachedDocumentUniqueId = body?.attachedDocumentUniqueId; // Unique ID of the document to update
   const action = body?.action; // Accept or Reject (from the request body)
   const adminDecisionReason = body?.reason || null; // Optional reason for acceptance or rejection
@@ -284,7 +193,7 @@ const acceptRejectAttachedDocuments = async (body) => {
   // Ensure that all required fields are provided
   if (
     !userUniqueId ||
-    !documentOwnerUserUniqueId ||
+    !ownerUserUniqueId ||
     !attachedDocumentUniqueId ||
     !action
   ) {
@@ -304,7 +213,7 @@ const acceptRejectAttachedDocuments = async (body) => {
     tableName: "AttachedDocuments",
     conditions: {
       attachedDocumentUniqueId,
-      userUniqueId: documentOwnerUserUniqueId, // Ensure the document belongs to the driver (owner)
+      userUniqueId: ownerUserUniqueId, // Ensure the document belongs to the driver (owner)
     },
   });
   attachedDocument[0].attachedDocumentAcceptance = action;
@@ -346,16 +255,9 @@ const acceptRejectAttachedDocuments = async (body) => {
 
 module.exports = {
   acceptRejectAttachedDocuments,
-  verifyUsersDocumentStatus,
   createAttachedDocument,
   getAttachedDocumentsByUser,
   getAttachedDocumentById,
   updateAttachedDocument,
   deleteAttachedDocument,
-};
-const data = {
-  uploadedDocumentName: "delegation",
-  uploadedDocumentTypeId: "delegationTypeId",
-  uploadedDocumentDescription: "delegationDescription",
-  uploadedDocumentExpirationDate: "delegationExpirationDate",
 };

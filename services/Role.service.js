@@ -11,7 +11,6 @@ const createRole = async (body) => {
     tableName: "Roles",
     conditions: { roleName },
   });
-  console.log("existed role Data", existedData);
   if (existedData?.length > 0) {
     return { message: "error", data: "Role already exists" };
   }

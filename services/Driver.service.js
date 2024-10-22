@@ -15,7 +15,15 @@ const {
 } = require("../CRUD/Create/CreateData");
 
 const { v4: uuidv4 } = require("uuid");
-const { sendNotificationToPassenger } = require("../Utils/Notifications");
+const {
+  sendNotificationToPassenger,
+  sendNotificationToAdmin,
+} = require("../Utils/Notifications");
+const { verifyUsersDocumentStatus } = require("./attachedDocuments.service");
+const {
+  updateUserRoleStatus,
+  getUserRoleStatus,
+} = require("./UserRoleStatus.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -501,7 +509,166 @@ const attachRequiredDocuments = async (body) => {
     return { message: "error", error: "Unable to attach required documents" };
   }
 };
+const driversRequirement = async (body) => {
+  const ownerUserUniqueId = body.ownerUserUniqueId;
+  const userRoleStatusUniqueId = body.userRoleStatusUniqueId;
+  const user = body.user;
+  const roleId = body.roleId;
+  const userRoleId = body.userRoleId;
+  const userRoleStatusDescription = body.userRoleStatusDescription;
+  const phoneNumber = body.phoneNumber;
+
+  // Fetch required documents for the driver's role
+  const requiredDocuments = await performJoinSelect({
+    baseTable: "RoleDocumentRequirements",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+      },
+    ],
+    conditions: { roleId },
+  });
+
+  if (requiredDocuments.length === 0) {
+    return { message: "error", data: "No documents required for this role" };
+  }
+
+  // Fetch attached documents for the driver
+  const attachedDocuments = await getData({
+    tableName: "AttachedDocuments",
+    conditions: { userUniqueId: ownerUserUniqueId },
+  });
+
+  // Find unattached document types
+  const unAttachedDocumentTypes = requiredDocuments.filter(
+    (requiredDocument) =>
+      !attachedDocuments.some(
+        (attachedDocument) =>
+          attachedDocument.documentTypeId === requiredDocument.documentTypeId
+      )
+  );
+
+  // Group attached documents by their status (PENDING, ACCEPTED, REJECTED)
+  const attachedDocumentsByStatus = {
+    PENDING: [],
+    ACCEPTED: [],
+    REJECTED: [],
+  };
+
+  attachedDocuments.forEach((attachedDocument) => {
+    const documentStatus = attachedDocument.attachedDocumentAcceptance;
+    attachedDocumentsByStatus[documentStatus].push(attachedDocument);
+  });
+
+  // Check vehicle registration for the driver role
+  const userVehicle = await performJoinSelect({
+    baseTable: "VehicleOwnership",
+    joins: [
+      {
+        table: "Vehicle",
+        on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+      },
+    ],
+    conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
+  });
+
+  const vehicleRegistered = userVehicle.length > 0;
+
+  // Determine the appropriate status based on documents and vehicle
+  let finalStatusId = null;
+  // console.log("vehicleRegistered", vehicleRegistered);
+  // return;
+  // If the vehicle is registered
+  if (vehicleRegistered) {
+    if (unAttachedDocumentTypes.length === 0) {
+      // All documents attached
+      if (
+        attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
+      ) {
+        finalStatusId = 1; // "active"
+      } else if (
+        attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+      ) {
+        finalStatusId = 14; // "inactive - all documents rejected, vehicle registered"
+      } else if (
+        attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+      ) {
+        finalStatusId = 13; // "inactive - all documents pending, vehicle registered"
+      } else if (
+        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+        attachedDocumentsByStatus.PENDING.length > 0
+      ) {
+        finalStatusId = 11; // "inactive - some documents accepted, some pending, vehicle registered"
+      } else if (
+        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+        attachedDocumentsByStatus.REJECTED.length > 0
+      ) {
+        finalStatusId = 12; // "inactive - some documents accepted, some rejected, vehicle registered"
+      } else {
+        finalStatusId = 19; // "inactive - documents have mixed statuses, vehicle registered"
+      }
+    } else {
+      finalStatusId = 17; // "inactive - some documents not attached, vehicle registered"
+    }
+  } else {
+    // If the vehicle is not registered
+    if (unAttachedDocumentTypes.length === 0) {
+      // All documents attached
+      if (
+        attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
+      ) {
+        finalStatusId = 7; // "inactive - all documents accepted, vehicle not registered"
+      } else if (
+        attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+      ) {
+        finalStatusId = 16; // "inactive - all documents rejected, vehicle not registered"
+      } else if (
+        attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+      ) {
+        finalStatusId = 15; // "inactive - all documents pending, vehicle not registered"
+      } else if (
+        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+        attachedDocumentsByStatus.PENDING.length > 0
+      ) {
+        finalStatusId = 6; // "inactive - some documents accepted, some pending, vehicle not registered"
+      } else if (
+        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+        attachedDocumentsByStatus.REJECTED.length > 0
+      ) {
+        finalStatusId = 5; // "inactive - some documents accepted, some rejected, vehicle not registered"
+      } else {
+        finalStatusId = 20; // "inactive - documents have mixed statuses, vehicle not registered"
+      }
+    } else {
+      finalStatusId = 18; // "inactive - some documents not attached, vehicle not registered"
+    }
+  }
+
+  // Update the user's role status based on the determined final status
+  let updatedUserData = await updateUserRoleStatus({
+    user,
+    roleId,
+    userRoleStatusUniqueId,
+    userRoleId,
+    newStatusId: finalStatusId,
+    userRoleStatusDescription,
+    phoneNumber,
+  });
+
+  sendNotificationToAdmin({});
+
+  return {
+    message: "success",
+    userVehicle: userVehicle[0],
+    userData: updatedUserData?.userData[0],
+    attachedDocumentsByStatus,
+    unAttachedDocumentTypes, // Documents that are required but not attached
+  };
+};
+
 module.exports = {
+  driversRequirement,
   attachRequiredDocuments,
   journeyCompleted,
   noAnswerFromDriver,
