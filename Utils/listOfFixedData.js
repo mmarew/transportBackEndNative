@@ -307,7 +307,58 @@ const vehicleTypes = [
     updatedAt: null,
   },
 ];
+const journeyStatus = [
+  {
+    journeyStatusId: 1,
+    journeyStatusName: "waitting",
+  },
+
+  {
+    journeyStatusId: 2,
+    journeyStatusName: "requested",
+  },
+
+  {
+    journeyStatusId: 3,
+    journeyStatusName: "accepted by driver ",
+  },
+
+  {
+    journeyStatusId: 4,
+    journeyStatusName: "journey started",
+  },
+
+  {
+    journeyStatusId: 5,
+    journeyStatusName: "journey completed",
+  },
+
+  {
+    journeyStatusId: 6,
+    journeyStatusName: "cancelled by passenger",
+  },
+
+  {
+    journeyStatusId: 7,
+    journeyStatusName: "cancelled by driver",
+  },
+
+  {
+    journeyStatusId: 8,
+    journeyStatusName: "cancelled by admin",
+  },
+
+  {
+    journeyStatusId: 9,
+    journeyStatusName: "completed by admin",
+  },
+  {
+    journeyStatusId: 10,
+    journeyStatusName: "canceled by system",
+  },
+];
 module.exports = {
+  journeyStatus,
   vehicleTypes,
   driversDocumentRequirement,
   listOfDocuments,

@@ -17,7 +17,7 @@ const { sendNotificationToDriver } = require("../Utils/Notifications");
 
 const createRequest = async (body, user) => {
   try {
-    const { userUniqueId } = user?.data;
+    const { userUniqueId } = user;
     // 1. Check if the user exists
     const existingUser = await checkUserExists(userUniqueId);
     if (!existingUser) {
@@ -243,8 +243,23 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     return { message: "error", error: "Unable to verify passenger status" };
   }
 };
-
+const cancelPassengerRequest = async ({ userUniqueId }) => {
+  try {
+    const getActiveRequest = await checkActivePassengerRequest(userUniqueId);
+    console.log("getActiveRequest", getActiveRequest);
+    const passengerRequestUniqueId =
+      getActiveRequest[0].passengerRequestUniqueId;
+    await updateData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestUniqueId },
+      updateValues: { journeyStatusId: 6 },
+    });
+  } catch (error) {
+    return { message: "error", error: "Unable to cancel passenger request" };
+  }
+};
 module.exports = {
+  cancelPassengerRequest,
   verifyPassengerStatus,
   createRequest,
   getRequestById,

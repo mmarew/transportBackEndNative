@@ -80,8 +80,11 @@ const createAttachedDocuments = async (req, res) => {
 
 const getAttachedDocumentsByUser = async (req, res) => {
   try {
+    const userUniqueId = req.params.userUniqueId;
+    let ownerUserUniqueId = userUniqueId;
+    if (userUniqueId == "self") ownerUserUniqueId = req.user.userUniqueId;
     const result = await attachedDocumentsService.getAttachedDocumentsByUser(
-      req.body.userUniqueId
+      ownerUserUniqueId
     );
     return res.status(200).json(result);
   } catch (error) {
@@ -155,7 +158,7 @@ const deleteAttachedDocument = async (req, res) => {
 
 const acceptRejectAttachedDocuments = async (req, res) => {
   const user = req?.user;
-  req.user = user;
+  req.body.user = user;
   const ownerUserUniqueId = req.params.userUniqueId;
   req.body.ownerUserUniqueId = ownerUserUniqueId;
   try {

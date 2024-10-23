@@ -25,7 +25,7 @@ router.post(
 );
 
 router.get(
-  "/api/admin/attachedDocumentsByUser/:UUID",
+  "/api/admin/attachedDocumentsByUser/:userUniqueId",
   attachedDocumentsController.getAttachedDocumentsByUser
 );
 router.get(

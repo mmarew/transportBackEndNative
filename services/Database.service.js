@@ -256,6 +256,8 @@ const installPreDefinedData = async (req, res) => {
       failedOnDocumentRequirement,
       "DocumentRequirement"
     );
+    // 6 . Process journeyStatus stages
+    await processDataSequentially(journeyStatus, createJourneyStatus, [], []);
     // Final response
     return {
       message: "success",

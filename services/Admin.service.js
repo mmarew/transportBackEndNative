@@ -1,6 +1,9 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
-const { verifyUsersDocumentStatus } = require("./attachedDocuments.service");
+const {
+  verifyUsersDocumentStatus,
+  getAttachedDocumentsByUser,
+} = require("./attachedDocuments.service");
 
 const adminServices = {
   // Service to get users by roleId (1 for passengers, 2 for drivers)
@@ -290,23 +293,9 @@ const adminServices = {
   },
   getunAuthorizedDriver: async () => {
     // Fetch unauthorized users using a join query
-    const unAuthorizedUsers = await performJoinSelect({
-      baseTable: "Users",
-      joins: [
-        {
-          table: "UserRole",
-          on: "Users.userUniqueId = UserRole.userUniqueId",
-        },
-        {
-          table: "UserRoleStatus",
-          on: "UserRole.roleId = UserRoleStatus.userRoleId",
-        },
-      ],
-      conditions: {
-        "UserRoleStatus.statusId": [2, 3], // Filtering for the required statuses
-      },
-      groupBy: "Users.userUniqueId",
-    });
+    const sql = `select * from Users ,UserRole, UserRoleStatusCurrent where Users.userUniqueId = UserRole.userUniqueId and UserRole.userRoleId = UserRoleStatusCurrent.userRoleId and UserRoleStatusCurrent.statusId !=?`;
+    const [unAuthorizedUsers] = await pool.query(sql, [1]);
+
     // console.log("unAuthorizedUsers", unAuthorizedUsers);
     // return unAuthorizedUsers;
 
@@ -314,11 +303,7 @@ const adminServices = {
     const usersWithDocuments = await Promise.all(
       unAuthorizedUsers.map(async (user) => {
         const ownerUserUniqueId = user.userUniqueId;
-        const documents = await verifyUsersDocumentStatus({
-          user,
-          ...user,
-          ownerUserUniqueId,
-        });
+        const documents = await getAttachedDocumentsByUser(ownerUserUniqueId);
         return { ...user, documents }; // Return user along with documents
       })
     );

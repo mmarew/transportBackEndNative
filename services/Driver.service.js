@@ -1,7 +1,6 @@
 const {
   getData,
   findNearbyPassengers,
-  checkUserExists,
   checkActiveDriverRequest,
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
@@ -19,20 +18,13 @@ const {
   sendNotificationToPassenger,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
-const { verifyUsersDocumentStatus } = require("./attachedDocuments.service");
-const {
-  updateUserRoleStatus,
-  getUserRoleStatus,
-} = require("./UserRoleStatus.service");
+const { updateUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createRequest = async (body, user) => {
   try {
     // 1. Check if the user exists
-    const userUniqueId = user?.data?.userUniqueId;
-    const existingUser = await checkUserExists(userUniqueId);
-    if (!existingUser) {
-      return { message: "error", error: "User driver not found" };
-    }
+    const userUniqueId = user?.userUniqueId;
+
     // 2. Check if the driver already has an active request
     const activeRequest = await checkActiveDriverRequest(userUniqueId);
     // 3. Create a new driver request
@@ -312,14 +304,9 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
           table: "VehicleType",
           on: "Vehicle.vehicleTypeUniqueId = VehicleType.vehicleTypeUniqueId",
         },
-        {
-          table: "VehicleStatus",
-          on: "Vehicle.vehicleUniqueId = VehicleStatus.vehicleUniqueId",
-        },
       ],
       conditions: {
         "VehicleOwnership.userUniqueId": userUniqueId,
-        "VehicleStatus.statusTypeId": 1,
       },
     });
 

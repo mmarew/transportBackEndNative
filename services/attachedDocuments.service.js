@@ -1,5 +1,5 @@
 const { insertData } = require("../CRUD/Create/CreateData");
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const uuidv4 = require("uuid").v4;
 const path = require("path");
 const { deleteFile } = require("../Utils/fileUtils");
@@ -86,10 +86,18 @@ const createAttachedDocument = async ({
 };
 
 // Retrieve all attached documents
-const getAttachedDocumentsByUser = async (body) => {
-  return await getData({
-    tableName: "AttachedDocuments",
-    conditions: {},
+const getAttachedDocumentsByUser = async (userUniqueId) => {
+  return await performJoinSelect({
+    baseTable: "AttachedDocuments",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+      },
+    ],
+    conditions: {
+      userUniqueId: userUniqueId,
+    },
   });
 };
 

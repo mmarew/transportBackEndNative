@@ -18,7 +18,9 @@ const documentTypes = require("./documentTypes.routes");
 const attachedDocuments = require("./attachedDocuments.routes");
 const RoleDocumentRequirements = require("./RoleDocumentRequirements.routes");
 const database = require("./Database.routes");
+const journeyStatus = require("./JourneyStatus.routes");
 
+Routes.use(journeyStatus);
 Routes.use(database);
 Routes.use(RoleDocumentRequirements);
 Routes.use(attachedDocuments);

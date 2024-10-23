@@ -36,4 +36,9 @@ router.get(
   verifyTokenOfAxios,
   controller.verifyPassengerStatus
 );
+router.put(
+  "/api/passenger/cancelPassengerRequest/:userUniqueId",
+  verifyTokenOfAxios,
+  controller.cancelPassengerRequest
+);
 module.exports = router;

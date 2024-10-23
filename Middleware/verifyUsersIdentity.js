@@ -2,7 +2,7 @@ const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // Verify if the user is an Admin and is in an active status
 const verifyAdminsIdentity = async (req, res, next) => {
-  const userUniqueId = req?.user?.data?.userUniqueId;
+  const userUniqueId = req?.user?.userUniqueId;
 
   // Step 1: Check if the user exists
   const user = await getData({
@@ -82,7 +82,7 @@ const verifyDriversIdentity = async (req, res, next) => {
       tableName: "Users",
       conditions: { userUniqueId },
     });
-
+    console.log("user", user);
     if (!user[0]) {
       return res.status(500).json({
         message: "error",
@@ -183,15 +183,15 @@ const verifyPassengersIdentity = async (req, res, next) => {
   // Step 3: Check if the Passenger is in an active status
   const passengerRole = userRoles[0];
   const userRoleStatus = await performJoinSelect({
-    baseTable: "UserRoleStatus",
+    baseTable: "UserRoleStatusCurrent",
     joins: [
       {
         table: "Statuses",
-        on: "Statuses.statusId = UserRoleStatus.statusId",
+        on: "Statuses.statusId = UserRoleStatusCurrent.statusId",
       },
     ],
     conditions: {
-      "UserRoleStatus.userRoleId": passengerRole.userRoleId,
+      "UserRoleStatusCurrent.userRoleId": passengerRole.userRoleId,
     },
     orderBy: "userRoleStatusCreatedAt",
     orderDirection: "DESC",
