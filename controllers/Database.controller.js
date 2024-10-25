@@ -6,7 +6,6 @@ const createTableController = async (req, res) => {
     const response = await DatabaseService.createTable(req.body);
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@createTableController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create table",
@@ -19,7 +18,6 @@ const getAllTablesController = async (req, res) => {
     const response = await DatabaseService.getAllTables();
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@getAllTablesController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to retrieve tables",
@@ -32,7 +30,6 @@ const dropTableController = async (req, res) => {
     const response = await DatabaseService.dropTable(req.params.tableName);
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@dropTableController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: `Failed to drop table ${req.params.tableName}`,
@@ -45,7 +42,6 @@ const dropAllTablesController = async (req, res) => {
     const response = await DatabaseService.dropAllTables();
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@dropAllTablesController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to drop all tables",
@@ -61,7 +57,6 @@ const updateTableController = async (req, res) => {
     );
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@updateTableController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: `Failed to update table ${req.params.tableName}`,
@@ -79,7 +74,6 @@ const changeColumnPropertyController = async (req, res) => {
     );
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@changeColumnPropertyController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: `Failed to change column properties in table ${req.params.tableName}`,
@@ -94,7 +88,6 @@ const dropColumnController = async (req, res) => {
     const response = await DatabaseService.dropColumn(tableName, columnName);
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@dropColumnController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: `Failed to drop column ${req.params.columnName} in table ${req.params.tableName}`,
@@ -108,7 +101,6 @@ const getTableColumnsController = async (req, res) => {
     );
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@getTableColumnsController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: `Failed to retrieve columns for table ${req.params.tableName}`,
@@ -121,7 +113,6 @@ const installPreDefinedDataController = async (req, res) => {
     const response = await DatabaseService.installPreDefinedData(req, res);
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@installPreDefinedDataController error === ", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to install pre-defined data",

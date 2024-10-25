@@ -5,7 +5,6 @@ const ServerResponder = async (res, data) => {
   // not found 404 and wrong media type
   // status code 204 for delete
   try {
-    // console.log("ServerResponder", data);
     let { message } = data;
     if (message == "error") {
       res.status(500).json(data);

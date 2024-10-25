@@ -26,19 +26,22 @@ router.post(
 
 router.get(
   "/api/admin/attachedDocumentsByUser/:userUniqueId",
+  verifyTokenOfAxios,
   attachedDocumentsController.getAttachedDocumentsByUser
 );
 router.get(
-  "/api/user/attachedDocuments/:id",
-  attachedDocumentsController.getAttachedDocumentById
+  "/api/user/attachedDocuments/:attachedDocumentUniqueId",
+  attachedDocumentsController.getAttachedDocumentByUniqueId
 );
 router.put(
-  "/api/user/attachedDocuments/:id",
-  upload.single("document"), // Handle file upload for updates
+  "/api/user/attachedDocuments/:attachedDocumentUniqueId",
+  verifyTokenOfAxios,
+  upload.any(), // Handle file upload for updates
   attachedDocumentsController.updateAttachedDocument
 );
 router.delete(
-  "/api/user/attachedDocuments/:id",
+  "/api/user/attachedDocuments/:attachedDocumentUniqueId",
+  verifyTokenOfAxios,
   attachedDocumentsController.deleteAttachedDocument
 );
 

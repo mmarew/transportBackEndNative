@@ -20,15 +20,10 @@ async function WSPusher(urlParams, WS) {
     if (!token) {
       return WS.send("Token is required for connection");
     }
-    ///////////////////////////////
     const tokenValidation = await verifyToken.verifyTokenOfWS(token);
-    ///////////////////////////
-    console.log("tokenValidation", tokenValidation);
-    ////////////////////////
     if (!tokenValidation?.valid) {
       return WS.send("You are not authorized");
     }
-
     // Clean phone number (remove spaces and non-digit characters)
     const cleanedPhoneNumber = phoneNumber?.replace(/\D/g, "");
 

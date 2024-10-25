@@ -82,7 +82,6 @@ const verifyDriversIdentity = async (req, res, next) => {
       tableName: "Users",
       conditions: { userUniqueId },
     });
-    console.log("user", user);
     if (!user[0]) {
       return res.status(500).json({
         message: "error",

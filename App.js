@@ -23,7 +23,6 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const handleMessage = (incomingMessage) => {
   const textMessage = incomingMessage.toString();
-  console.log("textMessage", textMessage);
 
   if (textMessage) {
     ws.send("i get text messages from clients");

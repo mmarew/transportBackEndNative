@@ -51,6 +51,7 @@ const createUserRoleStatus = async (body) => {
 // Get UserRoleStatus by unique ID
 const getUserRoleStatus = async (body) => {
   const { phoneNumber, roleId } = body;
+  console.log("@getUserRoleStatus body", body);
   const userData = await performJoinSelect({
     baseTable: "Users",
     joins: [
@@ -72,6 +73,7 @@ const getUserRoleStatus = async (body) => {
       phoneNumber,
     },
   });
+  console.log("  userData", userData);
   return userData;
 };
 

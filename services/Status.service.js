@@ -12,7 +12,6 @@ const createStatus = async (body) => {
     tableName: "Statuses",
     conditions: { statusName },
   });
-  console.log("@createStatus verifyResult", verifyResult);
   if (verifyResult.length > 0) {
     return { message: "error", error: "Status already exists" };
   }

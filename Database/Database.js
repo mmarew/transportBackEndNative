@@ -120,11 +120,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     uploadedDocumentExpirationDate  VARCHAR(255)   NULL, -- it is used in file input fieled of front end
     documentTypeDescription  TEXT(2000)  not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
-    documentTypeUpdatedBy VARCHAR(36) NULL,  -- Who last updated the document type
-    documentTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the document type
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
-    documentTypeUpdatedAt DATETIME NULL,  -- When the document type was updated
-    documentTypeDeletedAt DATETIME NULL,  -- When the document type was deleted
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
     FOREIGN KEY (documentTypeCreatedBy) REFERENCES Users(userUniqueId)  -- Link to the Users table
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -138,12 +134,6 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     documentTypeName VARCHAR(255) NOT NULL,
     documentTypeDescription VARCHAR(255) NULL,
     documentTypeCreatedBy VARCHAR(36) NOT NULL,
-    documentTypeUpdatedBy VARCHAR(36) NULL,
-    documentTypeDeletedBy VARCHAR(36) NULL,
-    documentTypeCreatedAt DATETIME NOT NULL,
-    documentTypeUpdatedAt DATETIME NULL,
-    documentTypeDeletedAt DATETIME NULL,
-    documentTypeVersion INT NOT NULL,  -- Version of the document type, starting from 1
     changeType ENUM('UPDATE', 'DELETE') NOT NULL,  -- Whether it was an update or delete
     changedByUserId VARCHAR(36) NOT NULL,  -- The user who made the change
     changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time when the change was made
@@ -168,30 +158,56 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     FOREIGN KEY (roleDocumentRequirementCreatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementDeletedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
-
     FOREIGN KEY (roleId) REFERENCES Roles(roleId),  -- Link to the Roles table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId),  -- Link to the DocumentTypes table
     UNIQUE (roleId, documentTypeId)  -- Ensure each role can have each document type only once
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ 
 
--- Create the AttachedDocuments Table
+-- Create the AttachedDocuments Table (Active Documents Only)
 CREATE TABLE IF NOT EXISTS AttachedDocuments (
     attachedDocumentId INT AUTO_INCREMENT PRIMARY KEY,
     attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users and is used to show owner of documents
+    attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
+    documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
+    documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
+    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
+    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
+    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
+    attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
+    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
+    attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
+    INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
+    INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
+-- Create the AttachedDocumentsHistory Table (for Historical Records)
+CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
+    attachedDocumentHistoryId INT AUTO_INCREMENT PRIMARY KEY,
+    attachedDocumentUniqueId VARCHAR(36) NOT NULL,  -- UUID for the attached document (links to the current active document)
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
     attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
     documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
     documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
-    attachedDocumentAcceptance enum('PENDING', 'ACCEPTED', 'REJECTED' ) NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
-    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,  -- Is the attached document expired
-    attachedDocumentIsDeleted BOOLEAN NOT NULL DEFAULT FALSE,  -- Is the attached document deleted
+    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,  -- Status of the attached document
+     attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
+    attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
+  attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
     attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
     attachedDocumentUpdatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
     attachedDocumentDeletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document
     attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
     attachedDocumentUpdatedAt DATETIME NULL,  -- When the attached document was updated
-    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
     attachedDocumentDeletedAt DATETIME NULL,  -- When the attached document was deleted
+    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,  -- Was the attached document expired
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
+    documentVersion INT NOT NULL DEFAULT 1,  -- Document version number (to track changes)
     INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table

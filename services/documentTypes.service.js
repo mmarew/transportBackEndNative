@@ -90,7 +90,6 @@ const updateDocumentType = async ({
   });
   const { documentTypeName, documentTypeDescription, updatedByUserId, user } =
     updateDataValues;
-  console.log("user", user);
   const userUniqueId = user?.userUniqueId;
   if (existingDocumentType.length === 0) {
     return { message: "error", data: "Document type not found" };

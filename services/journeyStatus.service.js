@@ -2,12 +2,12 @@ const { v4: uuidv4 } = require("uuid");
 const { getData } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
+const { insertData } = require("../CRUD/Create/CreateData");
 
 // Create a new journey status
 const createJourneyStatus = async (body) => {
   const { journeyStatusName, journeyStatusDescription } = body;
   const journeyStatusUniqueId = uuidv4();
-
   // Check if the journey status already exists
   const existingJourneyStatus = await getData({
     tableName: "JourneyStatus",

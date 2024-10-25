@@ -4,7 +4,6 @@ const { driversDocumentRequirement } = require("../Utils/listOfFixedData");
 // Create a new role-document mapping
 const createMapping = async (req, res) => {
   try {
-    console.log("req.user  ========> ", req.user?.data);
     const userUniqueId = req?.user?.data?.userUniqueId;
 
     // Ensure driversDocumentRequirement exists and is an array
@@ -27,7 +26,6 @@ const createMapping = async (req, res) => {
         userUniqueId,
       });
       results.push(result); // Collect the results
-      console.log("Created mapping for role:", role);
     }
 
     return res

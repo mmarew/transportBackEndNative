@@ -8,7 +8,6 @@ const createJWT = require("../Utils/createJWT");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
-const { getUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createUser = async (body) => {
   const {

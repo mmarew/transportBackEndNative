@@ -58,12 +58,14 @@ const getDriverRequestById = async (requestId) => {
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
-const acceptPassengerRequest = async (body, userUniqueId) => {
+const acceptPassengerRequest = async (body) => {
+  const userUniqueId = body.userUniqueId;
   const existingRequest = await getData({
     tableName: "DriverRequest",
     conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
   });
-  console.log("existingRequest", existingRequest);
+  if (!existingRequest?.length)
+    return { message: "error", error: "Request not found" };
   const journeyStatusId = existingRequest[0].journeyStatusId;
   if (journeyStatusId === 2) await updateJourneyStatus(body);
   const message = await verifyDriverStatus({
@@ -73,14 +75,13 @@ const acceptPassengerRequest = async (body, userUniqueId) => {
   const phoneNumber = passenger?.phoneNumber;
   if (phoneNumber && journeyStatusId === 2)
     sendNotificationToPassenger({
-      message,
+      message: { ...message, status: 3 },
       phoneNumber,
     });
 
   return message;
 };
 const startJourney = async (body) => {
-  console.log("/driver/startJourney", body);
   const journeyUniqueId = uuidv4();
   // check if driver has active journey request by journeyDecisionUniqueId,
   const exisistingJourney = await getData({
@@ -141,79 +142,130 @@ const noAnswerFromDriver = async (body) => {
   return message;
 };
 const journeyCompleted = async (body) => {
-  const passengerRequestUniqueId = body.passengerRequestUniqueId;
-
-  const existingRequest = await getData({
-    tableName: "DriverRequest",
-    conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
-  });
-  console.log("===============>", existingRequest);
-  const journeyStatusId = existingRequest[0]?.journeyStatusId;
-
-  const passenger = await performJoinSelect({
-    baseTable: "PassengerRequest",
-    joins: [
-      {
-        table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-      },
-    ],
-    conditions: { passengerRequestUniqueId },
-  });
-  const userUniqueId = body.userUniqueId;
   await updateJourneyStatus(body);
-  const message = await verifyDriverStatus({
-    userUniqueId,
-  });
-  if (journeyStatusId == 4) {
-    sendNotificationToPassenger({
-      message: { message: "success", data: "Journey completed", status: 5 },
-      phoneNumber: passenger[0]?.phoneNumber,
-    });
-  }
 
-  return message;
+  return {
+    message: "success",
+    data: "Journey completed successfully",
+    status: 5,
+  };
 };
 
-const canceledByDriver = async (body) => {
-  const passengerRequestUniqueId = body.passengerRequestUniqueId;
-  const existingRequest = await getData({
-    tableName: "DriverRequest",
-    conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
-  });
-  const journeyStatusId = existingRequest[0]?.journeyStatusId;
+const cancelDriverRequest = async (body) => {
+  try {
+    const user = body.user;
+    const userUniqueId = user?.userUniqueId;
+    const ownerUserUniqueId = body.ownerUserUniqueId;
 
-  const userUniqueId = body.userUniqueId;
-  const passenger = await performJoinSelect({
-    baseTable: "PassengerRequest",
-    joins: [
-      {
-        table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-      },
-    ],
-    conditions: { passengerRequestUniqueId },
-  });
-  if ([1, 2, 3, 4].includes(journeyStatusId)) {
-    await updateJourneyStatus(body);
-  }
+    // Check if the driver has any active requests
+    const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
+    if (getActiveRequest.length === 0) {
+      return {
+        message: "error",
+        error: "No active driver requests found for this user",
+      };
+    }
 
-  const message = await verifyDriverStatus({
-    userUniqueId,
-  });
-  if ([1, 2, 3, 4].includes(journeyStatusId)) {
-    sendNotificationToPassenger({
+    const driverRequestId = getActiveRequest[0].driverRequestId;
+
+    // Update the DriverRequest to reflect the cancellation
+    await updateData({
+      tableName: "DriverRequest",
+      conditions: { driverRequestId },
+      updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
+    });
+
+    // Check if the request exists in JourneyDecisions
+    const journeyDecisions = await getData({
+      tableName: "JourneyDecisions",
+      conditions: { driverRequestId },
+    });
+
+    if (journeyDecisions.length === 0) {
+      return {
+        message: "success",
+        data: "You have successfully cancelled your request.",
+      };
+    }
+
+    const passengerRequestId = journeyDecisions[0].passengerRequestId;
+    const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
+
+    // Update the PassengerRequest to reflect the cancellation
+    await updateData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestId },
+      updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
+    });
+
+    // Fetch passenger details
+    const passenger = await performJoinSelect({
+      baseTable: "PassengerRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: { passengerRequestId },
+    });
+
+    if (!passenger || passenger.length === 0 || !passenger[0]?.phoneNumber) {
+      return {
+        message: "error",
+        data: "Unable to fetch passenger details or phone number",
+      };
+    }
+    console.log(
+      "passenger in cancel request phoneNumber ",
+      passenger[0]?.phoneNumber
+    );
+    // Send notification to the passenger
+    const notificationResult = await sendNotificationToPassenger({
       message: {
         message: "success",
-        data: "Journey canceled by driver",
-        status: 7,
+        data:
+          userUniqueId === ownerUserUniqueId
+            ? "Driver cancelled your request."
+            : "Admin cancelled your request.",
+        status: userUniqueId === ownerUserUniqueId ? 7 : 8,
       },
       phoneNumber: passenger[0]?.phoneNumber,
     });
-  }
 
-  return message;
+    // if (!notificationResult.success) {
+    //   return {
+    //     message: "error",
+    //     data: "Failed to send notification to passenger.",
+    //   };
+    // }
+
+    // Update JourneyDecisions to reflect the cancellation
+    await updateData({
+      tableName: "JourneyDecisions",
+      conditions: { journeyDecisionUniqueId },
+      updateValues: {
+        journeyStatusId: userUniqueId === ownerUserUniqueId ? 7 : 8, // 7 for driver, 8 for admin
+      },
+    });
+
+    // Update the Journey table (if the journey had already started)
+    await updateData({
+      tableName: "Journey",
+      conditions: { journeyDecisionUniqueId },
+      updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
+    });
+
+    return {
+      message: "success",
+      data: "You have successfully cancelled your request.",
+    };
+  } catch (error) {
+    console.error("Error cancelling driver request:", error);
+    return { message: "error", error: "Unable to cancel driver request" };
+  }
 };
+
 const updateJourneyStatus = async (body) => {
   const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
   const passengerRequestUniqueId = body?.passengerRequestUniqueId;
@@ -236,7 +288,7 @@ const updateJourneyStatus = async (body) => {
       tableName: "PassengerRequest",
       conditions: {
         passengerRequestUniqueId,
-        journeyStatusId: previousStatusId,
+        // journeyStatusId: previousStatusId,
       },
       updateValues: {
         journeyStatusId,
@@ -249,7 +301,7 @@ const updateJourneyStatus = async (body) => {
       tableName: "JourneyDecisions",
       conditions: {
         journeyDecisionUniqueId,
-        journeyStatusId: previousStatusId,
+        // journeyStatusId: previousStatusId,
       },
       updateValues: {
         journeyStatusId,
@@ -260,7 +312,9 @@ const updateJourneyStatus = async (body) => {
   if (driverRequestUniqueId) {
     await updateData({
       tableName: "DriverRequest",
-      conditions: { driverRequestUniqueId, journeyStatusId: previousStatusId },
+      conditions: {
+        driverRequestUniqueId, //journeyStatusId: previousStatusId
+      },
       updateValues: {
         journeyStatusId,
       },
@@ -459,6 +513,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
 
     // Step 8: Return response with driver, passenger, journey, and decisions
     const responseMessage = {
+      status: journeyStatusId,
       driver,
       vehicle: vehicle[0],
       passenger: passenger || null,
@@ -496,15 +551,38 @@ const attachRequiredDocuments = async (body) => {
     return { message: "error", error: "Unable to attach required documents" };
   }
 };
-const driversRequirement = async (body) => {
+const driversDocumentVehicleRequirement = async (body) => {
   const ownerUserUniqueId = body.ownerUserUniqueId;
-  const userRoleStatusUniqueId = body.userRoleStatusUniqueId;
   const user = body.user;
   const roleId = body.roleId;
-  const userRoleId = body.userRoleId;
   const userRoleStatusDescription = body.userRoleStatusDescription;
-  const phoneNumber = body.phoneNumber;
-
+  let userData = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "Users.userUniqueId = UserRole.userUniqueId",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+      },
+      {
+        table: "Statuses",
+        on: "UserRoleStatusCurrent.statusId = Statuses.statusId",
+      },
+      { table: "Roles", on: "UserRole.roleId = Roles.roleId" },
+    ],
+    conditions: {
+      "Users.userUniqueId": ownerUserUniqueId,
+      "UserRole.roleId": roleId,
+    },
+  });
+  if (userData.length === 0) {
+    return { message: "error", data: "User data not found" };
+  }
+  const { userRoleStatusUniqueId, userRoleId, phoneNumber, statusId } =
+    userData[0];
   // Fetch required documents for the driver's role
   const requiredDocuments = await performJoinSelect({
     baseTable: "RoleDocumentRequirements",
@@ -563,77 +641,14 @@ const driversRequirement = async (body) => {
   const vehicleRegistered = userVehicle.length > 0;
 
   // Determine the appropriate status based on documents and vehicle
-  let finalStatusId = null;
-  // console.log("vehicleRegistered", vehicleRegistered);
-  // return;
-  // If the vehicle is registered
-  if (vehicleRegistered) {
-    if (unAttachedDocumentTypes.length === 0) {
-      // All documents attached
-      if (
-        attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
-      ) {
-        finalStatusId = 1; // "active"
-      } else if (
-        attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-      ) {
-        finalStatusId = 14; // "inactive - all documents rejected, vehicle registered"
-      } else if (
-        attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
-      ) {
-        finalStatusId = 13; // "inactive - all documents pending, vehicle registered"
-      } else if (
-        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-        attachedDocumentsByStatus.PENDING.length > 0
-      ) {
-        finalStatusId = 11; // "inactive - some documents accepted, some pending, vehicle registered"
-      } else if (
-        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-        attachedDocumentsByStatus.REJECTED.length > 0
-      ) {
-        finalStatusId = 12; // "inactive - some documents accepted, some rejected, vehicle registered"
-      } else {
-        finalStatusId = 19; // "inactive - documents have mixed statuses, vehicle registered"
-      }
-    } else {
-      finalStatusId = 17; // "inactive - some documents not attached, vehicle registered"
-    }
-  } else {
-    // If the vehicle is not registered
-    if (unAttachedDocumentTypes.length === 0) {
-      // All documents attached
-      if (
-        attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
-      ) {
-        finalStatusId = 7; // "inactive - all documents accepted, vehicle not registered"
-      } else if (
-        attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-      ) {
-        finalStatusId = 16; // "inactive - all documents rejected, vehicle not registered"
-      } else if (
-        attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
-      ) {
-        finalStatusId = 15; // "inactive - all documents pending, vehicle not registered"
-      } else if (
-        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-        attachedDocumentsByStatus.PENDING.length > 0
-      ) {
-        finalStatusId = 6; // "inactive - some documents accepted, some pending, vehicle not registered"
-      } else if (
-        attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-        attachedDocumentsByStatus.REJECTED.length > 0
-      ) {
-        finalStatusId = 5; // "inactive - some documents accepted, some rejected, vehicle not registered"
-      } else {
-        finalStatusId = 20; // "inactive - documents have mixed statuses, vehicle not registered"
-      }
-    } else {
-      finalStatusId = 18; // "inactive - some documents not attached, vehicle not registered"
-    }
-  }
-
-  // Update the user's role status based on the determined final status
-  let updatedUserData = await updateUserRoleStatus({
+  let finalStatusId = findStatusByVehicleAndDocuments({
+    attachedDocuments,
+    attachedDocumentsByStatus,
+    requiredDocuments,
+    vehicleRegistered,
+    unAttachedDocumentTypes,
+  });
+  const userRoleStatusData = {
     user,
     roleId,
     userRoleStatusUniqueId,
@@ -641,21 +656,238 @@ const driversRequirement = async (body) => {
     newStatusId: finalStatusId,
     userRoleStatusDescription,
     phoneNumber,
-  });
-
-  sendNotificationToAdmin({});
-
+  };
+  if (statusId !== finalStatusId) {
+    // Update the user's role status based on the determined final status
+    userData = await updateUserRoleStatus({ ...userRoleStatusData });
+  }
+  {
+    console.log("no changes in data");
+  }
+  console.log("driversDocumentVehicleRequirement", userData);
   return {
     message: "success",
     userVehicle: userVehicle[0],
-    userData: updatedUserData?.userData[0],
+    userData: userData[0],
     attachedDocumentsByStatus,
     unAttachedDocumentTypes, // Documents that are required but not attached
   };
 };
+const findStatusByVehicleAndDocuments = ({
+  vehicleRegistered,
+  attachedDocumentsByStatus,
+  requiredDocuments,
+  attachedDocuments,
+  unAttachedDocumentTypes,
+}) => {
+  let finalStatusId = null;
+  // 1. All Documents Accepted, Vehicle Registered (Active)
+  if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 1;
+  }
+  // 2. No Document, No Vehicle Registered
+  else if (!vehicleRegistered && attachedDocuments.length === 0) {
+    finalStatusId = 2;
+  }
+  // 3. All Documents Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 3;
+  }
+  // 4. All Documents Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 4;
+  }
+  // 5. Some Documents Accepted, Some Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 5;
+  }
+  // 6. Some Documents Accepted, Some Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 6;
+  }
+  // 7. All Documents Accepted, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 7;
+  }
+  // 8. No Document Attached, Vehicle Registered
+  else if (vehicleRegistered && attachedDocuments.length === 0) {
+    finalStatusId = 8;
+  }
+  // 9. All Documents Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 9;
+  }
+  // 10. All Documents Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 10;
+  }
+  // 11. Some Documents Accepted, Some Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 11;
+  }
+  // 12. Some Documents Accepted, Some Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 12;
+  }
 
+  // 13. All Documents Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 13;
+  }
+  // 14. All Documents Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 14;
+  }
+  // 15. All Documents Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 15;
+  }
+  // 16. All Documents Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 16;
+  }
+  // 17. Vehicle Registered, Some Documents Not Attached
+  else if (vehicleRegistered && unAttachedDocumentTypes.length > 0) {
+    finalStatusId = 17;
+  }
+  // 18. No Vehicle Registered, Some Documents Not Attached
+  else if (!vehicleRegistered && unAttachedDocumentTypes.length > 0) {
+    finalStatusId = 18;
+  }
+  // 19. Vehicle Registered, All Documents Attached, Mixed Statuses
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    (attachedDocumentsByStatus.PENDING.length > 0 ||
+      attachedDocumentsByStatus.REJECTED.length > 0)
+  ) {
+    finalStatusId = 19;
+  }
+  // 20. Vehicle Not Registered, All Documents Attached, Mixed Statuses
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    (attachedDocumentsByStatus.PENDING.length > 0 ||
+      attachedDocumentsByStatus.REJECTED.length > 0)
+  ) {
+    finalStatusId = 20;
+  }
+  // 21. Some Documents Accepted, Some Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 21;
+  }
+  // 22. Some Documents Accepted, Some Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 22;
+  }
+  // 23. Some Documents Accepted, Some Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 23;
+  }
+  // 24. Some Documents Accepted, Some Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 24;
+  }
+  // 25. All Documents Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 25;
+  }
+  // 26. All Documents Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 26;
+  }
+  // 27. No Document Attached, Vehicle Registered
+  else if (vehicleRegistered && attachedDocuments.length === 0) {
+    finalStatusId = 27;
+  }
+  // 28. Vehicle Registered, All Documents Attached, Mixed Statuses
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    (attachedDocumentsByStatus.PENDING.length > 0 ||
+      attachedDocumentsByStatus.REJECTED.length > 0)
+  ) {
+    finalStatusId = 28;
+  }
+  // Default error case
+  else {
+    return {
+      message: "error",
+      data: "Unable to determine driver's status.",
+    };
+  }
+  return finalStatusId;
+};
 module.exports = {
-  driversRequirement,
+  driversDocumentVehicleRequirement,
   attachRequiredDocuments,
   journeyCompleted,
   noAnswerFromDriver,
@@ -665,5 +897,5 @@ module.exports = {
   acceptPassengerRequest,
   deleteDriverRequest,
   verifyDriverStatus,
-  canceledByDriver,
+  cancelDriverRequest,
 };

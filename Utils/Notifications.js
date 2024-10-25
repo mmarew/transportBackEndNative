@@ -21,17 +21,12 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 
     // Validate the cleaned phone number using regex
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      console.log(
-        "Invalid phone number format for driver:",
-        cleanedPhoneNumber
-      );
       return { message: "error", data: "Invalid phone number format" };
     }
 
     // Send notification to the matching driver using a for...of loop
     for (const driver of listOfDriverWs) {
       if (driver.phoneNumber === cleanedPhoneNumber) {
-        console.log("sendNotificationToDriver===>", driver);
         try {
           const res = await WSServerTextMessageResponder(driver.WS, message);
           if (res.message == "error") {
@@ -62,6 +57,7 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 // Send notification to the passenger based on the phone number
 const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
   try {
+    if (!phoneNumber) console.log("phoneNumber required to ws connection ");
     // Clean the phone number before processing
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
@@ -73,7 +69,6 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
       );
       return { message: "error", data: "Invalid phone number format" };
     }
-
     // Send notification to the matching passenger using a for...of loop
     if (listOfPassangerWs && listOfPassangerWs.length > 0) {
       for (const passenger of listOfPassangerWs) {

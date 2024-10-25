@@ -14,7 +14,6 @@ const createDocumentType = async (req, res) => {
         const response = await documentTypesService.createDocumentType({
           body: { ...document, user },
         });
-        console.log("Document processed:", response);
         results.push({ document, response });
       } catch (error) {
         console.error("Error processing document:", error);

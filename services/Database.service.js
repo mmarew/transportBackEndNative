@@ -6,8 +6,10 @@ const {
   statusList,
   roleList,
   listOfDocuments,
+  journeyStatus,
 } = require("../Utils/listOfFixedData");
 const { createDocumentType } = require("./documentTypes.service");
+const { createJourneyStatus } = require("./journeyStatus.service");
 const { createRole } = require("./Role.service");
 const { createMapping } = require("./RoleDocumentRequirements.service");
 const { createStatus } = require("./Status.service");
@@ -205,10 +207,18 @@ const installPreDefinedData = async (req, res) => {
       successDocumentTypes = [],
       failedDocumentTypes = [],
       successOnDocumentRequirement = [],
-      failedOnDocumentRequirement = [];
+      failedOnDocumentRequirement = [],
+      failedJourneyStatus = [],
+      successJourneyStatus = [];
 
     // Process predefined data in order
-
+    await processDataSequentially(
+      journeyStatus,
+      (status) => createJourneyStatus({ ...status, user }),
+      successJourneyStatus,
+      failedJourneyStatus,
+      "JourneyStatus"
+    );
     // 1. Process statuses
     await processDataSequentially(
       statusList,

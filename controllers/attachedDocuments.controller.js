@@ -1,9 +1,13 @@
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const attachedDocumentsService = require("../Services/attachedDocuments.service");
+const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
+    const user = req?.user;
     // Use req.user instead of req?.user to get user data
-    const userUniqueId = req?.user?.userUniqueId;
+    const userUniqueId = user?.userUniqueId;
+    const roleId = user?.roleId;
     const createdByUserId = userUniqueId;
 
     if (!req.files || req.files.length === 0) {
@@ -31,6 +35,8 @@ const createAttachedDocuments = async (req, res) => {
         });
       } else {
         documentsToRegister.push({
+          fieldname: file.fieldname,
+          user,
           userUniqueId,
           attachedDocumentDescription,
           attachedDocumentName: file.filename, // File path where it's stored
@@ -52,19 +58,46 @@ const createAttachedDocuments = async (req, res) => {
       if (resultOfCreateFiles.message === "error") {
         fileErrors.push(document.attachedDocumentName); // Track failed files
         uploadResults.push({
-          file: document.attachedDocumentName,
+          file: document.fieldname,
           status: "failed",
-          reason: resultOfCreateFiles.data, // Reason for failure
+          reason: resultOfCreateFiles.error, // Reason for failure
         });
       } else {
         fileSuccesses.push(document.attachedDocumentName); // Track successful files
         uploadResults.push({
-          file: document.attachedDocumentName,
+          file: document.fieldname,
           status: "success",
         });
       }
     }
-
+    if (fileSuccesses.length > 0) {
+      // get user data
+      const userData = await performJoinSelect({
+        baseTable: "Users",
+        joins: [
+          {
+            table: "UserRole",
+            on: "users.userUniqueId = UserRole.userUniqueId",
+          },
+          {
+            table: "UserRoleStatusCurrent",
+            on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+          },
+        ],
+        conditions: {
+          "Users.userUniqueId": userUniqueId,
+          "UserRole.roleId": roleId,
+        },
+      });
+      const document =
+        await attachedDocumentsService.getAttachedDocumentsByUser(userUniqueId);
+      const message = {
+        ...userData[0],
+        document,
+        message: "verify users document",
+      };
+      sendNotificationToAdmin({ message });
+    }
     // Return the detailed upload results for each file
     return res.status(200).json({
       message: "Upload completed",
@@ -80,9 +113,9 @@ const createAttachedDocuments = async (req, res) => {
 
 const getAttachedDocumentsByUser = async (req, res) => {
   try {
-    const userUniqueId = req.params.userUniqueId;
-    let ownerUserUniqueId = userUniqueId;
-    if (userUniqueId == "self") ownerUserUniqueId = req.user.userUniqueId;
+    let ownerUserUniqueId = req.params.userUniqueId;
+    let userUniqueId = req.user.userUniqueId;
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
     const result = await attachedDocumentsService.getAttachedDocumentsByUser(
       ownerUserUniqueId
     );
@@ -94,10 +127,12 @@ const getAttachedDocumentsByUser = async (req, res) => {
   }
 };
 
-const getAttachedDocumentById = async (req, res) => {
+const getAttachedDocumentByUniqueId = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await attachedDocumentsService.getAttachedDocumentById(id);
+    const { attachedDocumentUniqueId } = req.params;
+    const result = await attachedDocumentsService.getAttachedDocumentByUniqueId(
+      attachedDocumentUniqueId
+    );
     if (!result) {
       return res.status(404).json({ message: "Attached document not found" });
     }
@@ -111,28 +146,37 @@ const getAttachedDocumentById = async (req, res) => {
 
 const updateAttachedDocument = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { attachedDocumentUniqueId } = req.params;
     const {
       userUniqueId,
       documentDescription,
-      documentName,
-      userDocumentListId,
+      documentTypeId,
+      documentExpirationDate,
     } = req.body;
 
-    // Check for file update
-    const documentPath = req.file ? req.file.path : null;
+    // Check if files were uploaded
+    let attachedDocumentName = null;
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0]; // Assuming only one file is uploaded
+      attachedDocumentName = file.filename; // Store the file name of the uploaded file
+    }
 
-    const result = await attachedDocumentsService.updateAttachedDocument(id, {
-      userUniqueId,
-      documentName,
-      documentDescription,
-      userDocumentListId,
-      documentPath,
-      updatedBy: req.user?.userUniqueId, // Assuming req.user contains user data
-    });
+    // Pass file details and body data to the service for handling
+    const result = await attachedDocumentsService.updateAttachedDocument(
+      attachedDocumentUniqueId,
+      {
+        userUniqueId,
+        documentDescription,
+        documentTypeId,
+        documentExpirationDate,
+        attachedDocumentName, // Pass the file name if available
+        updatedByUserId: req.user?.userUniqueId, // Assuming req.user contains user data
+      }
+    );
 
     return res.status(200).json(result);
   } catch (error) {
+    console.log("error", error);
     return res
       .status(500)
       .json({ message: "Error updating attached document", error });
@@ -141,8 +185,11 @@ const updateAttachedDocument = async (req, res) => {
 
 const deleteAttachedDocument = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await attachedDocumentsService.deleteAttachedDocument(id);
+    const { attachedDocumentUniqueId } = req.params;
+
+    const result = await attachedDocumentsService.deleteAttachedDocument(
+      attachedDocumentUniqueId
+    );
     if (!result) {
       return res.status(404).json({ message: "Attached document not found" });
     }
@@ -150,6 +197,7 @@ const deleteAttachedDocument = async (req, res) => {
       .status(200)
       .json({ message: "Attached document deleted successfully" });
   } catch (error) {
+    console.log("first error", error);
     return res
       .status(500)
       .json({ message: "Error deleting attached document", error });
@@ -178,7 +226,7 @@ module.exports = {
   acceptRejectAttachedDocuments,
   createAttachedDocuments,
   getAttachedDocumentsByUser,
-  getAttachedDocumentById,
+  getAttachedDocumentByUniqueId,
   updateAttachedDocument,
   deleteAttachedDocument,
 };

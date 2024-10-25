@@ -296,7 +296,6 @@ const adminServices = {
     const sql = `select * from Users ,UserRole, UserRoleStatusCurrent where Users.userUniqueId = UserRole.userUniqueId and UserRole.userRoleId = UserRoleStatusCurrent.userRoleId and UserRoleStatusCurrent.statusId !=?`;
     const [unAuthorizedUsers] = await pool.query(sql, [1]);
 
-    // console.log("unAuthorizedUsers", unAuthorizedUsers);
     // return unAuthorizedUsers;
 
     // Use Promise.all to wait for all verifyUsersDocumentStatus calls to resolve

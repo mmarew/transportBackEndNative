@@ -18,7 +18,6 @@ const createStatusController = async (req, res) => {
           user: req?.user,
         });
         if (createdRole.message == "success") {
-          console.log("Status inserted:", status);
           results.push({ status, message: "Status inserted successfully" });
         } else {
           errors.push({ status, error: createdRole.error });

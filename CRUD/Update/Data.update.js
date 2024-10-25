@@ -33,7 +33,14 @@ const updateData = async ({
 
   const whereClause = conditionClauses.join(` ${operator} `);
   const sqlQuery = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`;
-  console.log("sqlQuery", sqlQuery, "conditionValues", conditionValues);
+  console.log(
+    "sqlQuery",
+    sqlQuery,
+    "conditionValues",
+    conditionValues,
+    "setValues ===========> ",
+    setValues
+  );
   // return;
   try {
     const [result] = await pool.query(sqlQuery, [
