@@ -53,9 +53,11 @@ const getMappingByRoleId = async (req, res) => {
 // Get all role-document mappings
 const getAllMappings = async (req, res) => {
   try {
-    const result = await RoleDocumentRequirementsService.getAllMappings();
+    const roleId = req?.params?.roleId;
+    const result = await RoleDocumentRequirementsService.getAllMappings(roleId);
     return res.status(200).json(result);
   } catch (error) {
+    console.log("@getAllMappings error", error);
     return res.status(500).json({ message: "Error fetching mappings", error });
   }
 };

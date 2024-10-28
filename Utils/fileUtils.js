@@ -12,7 +12,6 @@ const deleteFile = (attachedDocumentName) => {
     if (err) {
       console.error(`Error deleting file: ${fullPath}`, err);
     } else {
-      console.log(`File deleted: ${fullPath}`);
     }
   });
 };

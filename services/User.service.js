@@ -8,6 +8,7 @@ const createJWT = require("../Utils/createJWT");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const deleteData = require("../CRUD/Delete/DeleteData");
 
 const createUser = async (body) => {
   const {
@@ -170,7 +171,6 @@ const handleUserRoleStatus = async (
       tableName: "UserRoleStatusCurrent",
       conditions: { userRoleId },
     });
-    console.log("roleId in roleId roleId roleId", roleId);
     if (userRoleStatus.length === 0) {
       // Insert new UserRoleStatus if not found
       await insertData({
@@ -301,18 +301,34 @@ const verifyUserByOTP = async (req) => {
     return { message: "error", error: "Unable to verify user" };
   }
 };
+const getUserById = async (id) => {
+  const user = await getData({
+    tableName: "Users",
+    conditions: { userUniqueId: id },
+  });
 
-const getUser = async (id) => {
-  const sql = `SELECT * FROM Users WHERE userId = ?`;
+  if (!user || user.length === 0) {
+    return { message: "error", error: "User not found" };
+  }
+  return { message: "success", data: user[0] };
+};
+const getUserByEmailOrNameOrPhoneNumber = async (data) => {
+  const getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
 
   try {
-    const [rows] = await pool.query(sql, [id]);
+    const [rows] = await pool.query(getUserQuery, [
+      data,
+      `%${data}%`,
+      `%${data}%`,
+      `%${data}%`,
+    ]);
+
     if (rows.length > 0) {
       return { message: "success", data: rows[0] };
     }
+
     return { message: "error", data: "User not found" };
   } catch (error) {
-    console.error("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving the user",
@@ -320,19 +336,20 @@ const getUser = async (id) => {
   }
 };
 
-const deleteUser = async (id) => {
-  const sql = `DELETE FROM Users WHERE userId = ?`;
+const deleteUser = async (userUniqueId) => {
+  const result = await deleteData({
+    tableName: "Users",
+    conditions: { userUniqueId },
+  });
+  const deleteCredential = await deleteData({
+    tableName: "usersCredential",
+    conditions: { userUniqueId },
+  });
 
-  try {
-    const [result] = await pool.query(sql, [id]);
-    if (result.affectedRows > 0) {
-      return { message: "success", data: "User deleted successfully" };
-    }
-    return { message: "error", data: "User deletion failed" };
-  } catch (error) {
-    console.error("Error:", error);
-    return { message: "error", data: "An error occurred during user deletion" };
-  }
+  //  delete requests of user
+
+  //  delete requests of user
+  return { message: "success", data: "user deleted successfully" };
 };
 
 const getAllUsers = async () => {
@@ -368,8 +385,6 @@ const updateUser = async (body) => {
   if (fullName) updateValues.fullName = fullName;
   if (phoneNumber) updateValues.phoneNumber = phoneNumber;
   if (email) updateValues.email = email;
-
-  console.log("body", body);
 
   try {
     // Check if the user exists
@@ -462,10 +477,11 @@ const updateUser = async (body) => {
 };
 
 module.exports = {
+  getUserById,
   updateUser,
   verifyUserByOTP,
   createUser,
-  getUser,
+  getUserByEmailOrNameOrPhoneNumber,
   deleteUser,
   getAllUsers,
 };

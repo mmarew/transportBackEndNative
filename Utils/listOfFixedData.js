@@ -321,54 +321,36 @@ const statusList = [
 
 const listOfDocuments = [
   {
-    uploadedDocumentTypeId: "drivingLicenseTypeId",
-    uploadedDocumentDescription: "drivingLicenseDescription",
-    uploadedDocumentExpirationDate: "drivingLicenseExpirationDate",
-    uploadedDocumentName: "drivingLicense",
+    isExpirationDateRequired: true,
     documentTypeName: "Driver’s License",
     documentTypeDescription:
       " A valid and unexpired driver’s license. The admin needs this to ensure the driver is legally permitted to operate a vehicle.",
   },
   {
-    uploadedDocumentTypeId: "vehicleRegistrationTypeId",
-    uploadedDocumentDescription: "vehicleRegistrationDescription",
-    uploadedDocumentExpirationDate: "vehicleRegistrationExpirationDate",
-    uploadedDocumentName: "vehicleRegistration",
+    isExpirationDateRequired: true,
     documentTypeName: " Vehicle Registration(librea)",
     documentTypeDescription:
       "Proof of ownership or right to use the vehicle for ride share services. It confirms the vehicle is legally registered.",
   },
   {
-    uploadedDocumentTypeId: "insuranceTypeId",
-    uploadedDocumentDescription: "insuranceDescription",
-    uploadedDocumentExpirationDate: "insuranceExpirationDate",
-    uploadedDocumentName: "insurance",
+    isExpirationDateRequired: true,
     documentTypeName: "Insurance Document",
     documentTypeDescription:
       "Proof of insurance coverage, ensuring that the driver and passengers are protected in the event of an accident.",
   },
   {
-    uploadedDocumentTypeId: "profilePhotoTypeId",
-    uploadedDocumentDescription: "profilePhotoDescription",
-    uploadedDocumentExpirationDate: "profilePhotoExpirationDate",
-    uploadedDocumentName: "profilePhoto",
+    isExpirationDateRequired: true,
     documentTypeName: " Profile Photo",
     documentTypeDescription: "Profile Photo",
   },
   {
-    uploadedDocumentTypeId: "tinTypeId",
-    uploadedDocumentDescription: "tinDescription",
-    uploadedDocumentExpirationDate: "tinExpirationDate",
-    uploadedDocumentName: "tin",
+    isExpirationDateRequired: true,
     documentTypeName: "Tax Identification Number",
     documentTypeDescription:
       "document that certifies the driver is registered with tax authorities, especially if they are working as an independent contractor.",
   },
   {
-    uploadedDocumentTypeId: "delegationTypeId",
-    uploadedDocumentDescription: "delegationDescription",
-    uploadedDocumentExpirationDate: "delegationExpirationDate",
-    uploadedDocumentName: "delegation",
+    isExpirationDateRequired: false,
     documentTypeName: "Delegation of Vehicle Use",
     documentTypeDescription:
       "A formal document that provides proof that the owner of the vehicle has granted the driver permission to use the vehicle for commercial purposes (ride-sharing).",
@@ -387,30 +369,30 @@ const driversDocumentRequirement = [
     isDocumentMandatory: true,
     isExpirationDateRequired: true,
   },
-  {
-    roleId: "2",
-    documentTypeId: "3",
-    isDocumentMandatory: true,
-    isExpirationDateRequired: true,
-  },
-  {
-    roleId: "2",
-    documentTypeId: "4",
-    isDocumentMandatory: true,
-    isExpirationDateRequired: true,
-  },
-  {
-    roleId: "2",
-    documentTypeId: "5",
-    isDocumentMandatory: true,
-    isExpirationDateRequired: true,
-  },
-  {
-    roleId: "2",
-    documentTypeId: "6",
-    isDocumentMandatory: true,
-    isExpirationDateRequired: true,
-  },
+  // {
+  //   roleId: "2",
+  //   documentTypeId: "3",
+  //   isDocumentMandatory: true,
+  //   isExpirationDateRequired: true,
+  // },
+  // {
+  //   roleId: "2",
+  //   documentTypeId: "4",
+  //   isDocumentMandatory: true,
+  //   isExpirationDateRequired: true,
+  // },
+  // {
+  //   roleId: "2",
+  //   documentTypeId: "5",
+  //   isDocumentMandatory: true,
+  //   isExpirationDateRequired: true,
+  // },
+  // {
+  //   roleId: "2",
+  //   documentTypeId: "6",
+  //   isDocumentMandatory: true,
+  //   isExpirationDateRequired: true,
+  // },
 ];
 const vehicleTypes = [
   {
@@ -493,8 +475,38 @@ const journeyStatus = [
     journeyStatusDescription: "Cancelled by system",
   },
 ];
+const cancellationReasons = [
+  { reason: "Too late", cancellationBy: "passenger" },
+  { reason: "Change of plans", cancellationBy: "passenger" },
+  { reason: "Driver took too long", cancellationBy: "passenger" },
+  { reason: "Found another ride", cancellationBy: "passenger" },
+  { reason: "Driver did not meet my location", cancellationBy: "passenger" },
+  { reason: "Incorrect route", cancellationBy: "passenger" },
+  {
+    reason: "Driver's vehicle didn't match description",
+    cancellationBy: "passenger",
+  },
+  { reason: "Driver was rude or unprofessional", cancellationBy: "passenger" },
+
+  { reason: "Passenger didn’t show up", cancellationBy: "driver" },
+  { reason: "Passenger was unresponsive", cancellationBy: "driver" },
+  { reason: "Safety concerns", cancellationBy: "driver" },
+  { reason: "Incorrect pickup location", cancellationBy: "driver" },
+  { reason: "Passenger had too many people", cancellationBy: "driver" },
+  { reason: "Passenger was disrespectful", cancellationBy: "driver" },
+  {
+    reason: "Passenger requested an illegal or unsafe route",
+    cancellationBy: "driver",
+  },
+  { reason: "Vehicle issue", cancellationBy: "driver" },
+
+  { reason: "App-related technical issue", cancellationBy: "system" },
+  { reason: "Route unavailable", cancellationBy: "system" },
+  { reason: "Driver no longer available", cancellationBy: "system" },
+];
 
 module.exports = {
+  cancellationReasons,
   journeyStatus,
   vehicleTypes,
   driversDocumentRequirement,

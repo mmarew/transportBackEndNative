@@ -7,7 +7,12 @@ const {
   roleList,
   listOfDocuments,
   journeyStatus,
+  cancellationReasons,
 } = require("../Utils/listOfFixedData");
+const {
+  addCancilationReasons,
+  addCancellationReason,
+} = require("./Cancilation.service");
 const { createDocumentType } = require("./documentTypes.service");
 const { createJourneyStatus } = require("./journeyStatus.service");
 const { createRole } = require("./Role.service");
@@ -43,13 +48,19 @@ const getAllTables = async () => {
 
 const dropTable = async (tableName) => {
   const sqlQuery = `DROP TABLE IF EXISTS ${tableName}`;
-
   try {
-    await pool.query(sqlQuery);
-    return {
-      message: "success",
-      data: `Table ${tableName} dropped successfully`,
-    };
+    const [result] = await pool.query(sqlQuery);
+    if (result.affectedRows === 0) {
+      return {
+        message: "success",
+        data: `Table ${tableName} dropped successfully`,
+      };
+    } else {
+      return {
+        message: "error",
+        error: `Failed to drop table ${tableName}`,
+      };
+    }
   } catch (error) {
     console.error(`Error dropping table ${tableName}:`, error);
     return { message: "error", error: `Failed to drop table ${tableName}` };
@@ -80,7 +91,6 @@ const dropAllTables = async () => {
   try {
     // Execute the query
     await pool.query(sqlQuery);
-    console.log("All tables dropped successfully");
     return {
       message: "success",
       data: "All tables dropped successfully",
@@ -209,8 +219,9 @@ const installPreDefinedData = async (req, res) => {
       successOnDocumentRequirement = [],
       failedOnDocumentRequirement = [],
       failedJourneyStatus = [],
-      successJourneyStatus = [];
-
+      successJourneyStatus = [],
+      cancellationReasonsSuccess = [],
+      cancellationReasonsErrors = [];
     // Process predefined data in order
     await processDataSequentially(
       journeyStatus,
@@ -267,7 +278,21 @@ const installPreDefinedData = async (req, res) => {
       "DocumentRequirement"
     );
     // 6 . Process journeyStatus stages
-    await processDataSequentially(journeyStatus, createJourneyStatus, [], []);
+    await processDataSequentially(
+      journeyStatus,
+      createJourneyStatus,
+      successJourneyStatus,
+      failedJourneyStatus,
+      "JourneyStatus"
+    );
+    // 7. Process cancellationReasons
+    await processDataSequentially(
+      cancellationReasons,
+      addCancellationReason,
+      cancellationReasonsSuccess,
+      cancellationReasonsErrors,
+      "CancellationReason"
+    );
     // Final response
     return {
       message: "success",
@@ -285,6 +310,14 @@ const installPreDefinedData = async (req, res) => {
         documentRequirements: {
           success: successOnDocumentRequirement,
           errors: failedOnDocumentRequirement,
+        },
+        journeyStatus: {
+          success: successJourneyStatus,
+          errors: failedJourneyStatus,
+        },
+        cancellationReasons: {
+          success: cancellationReasonsSuccess,
+          errors: cancellationReasonsErrors,
         },
       },
     };

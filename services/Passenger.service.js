@@ -99,7 +99,6 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
     if (!activeRequest || activeRequest?.length == 0)
       activeRequest = await checkActivePassengerRequest(userUniqueId);
-    console.log("activeRequest in verifyPassengerStatus", activeRequest);
     // If no active request, return an error
     if (activeRequest?.length == 0) {
       return {
@@ -133,7 +132,6 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       const nearbyDrivers = await findNearbyDrivers({
         passengerRequest,
       });
-      console.log("nearbyDrivers", nearbyDrivers);
       // If no drivers are found, return the status
       if (!nearbyDrivers?.length) {
         return {
@@ -252,7 +250,6 @@ const cancelPassengerRequest = async (body) => {
     const getActiveRequest = await checkActivePassengerRequest(
       ownerUserUniqueId
     );
-    console.log("getActiveRequest", getActiveRequest);
 
     if (getActiveRequest.length == 0) {
       return {
@@ -335,7 +332,7 @@ const cancelPassengerRequest = async (body) => {
       data: "You have successfully cancelled your request.",
     };
   } catch (error) {
-    console.log("error", error);
+    console.log("@cancelPassengerRequest error", error);
     return { message: "error", error: "Unable to cancel passenger request" };
   }
 };

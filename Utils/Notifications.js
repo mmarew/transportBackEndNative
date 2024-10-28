@@ -63,10 +63,6 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 
     // Validate the cleaned phone number using regex
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      console.log(
-        "Invalid phone number format for passenger:",
-        cleanedPhoneNumber
-      );
       return { message: "error", data: "Invalid phone number format" };
     }
     // Send notification to the matching passenger using a for...of loop
@@ -120,10 +116,6 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
         if (admin && admin?.WS) {
           try {
             const res = await WSServerTextMessageResponder(admin.WS, message);
-            console.log(
-              "@sendNotificationToAdmin res is ===============> ",
-              res
-            );
             if (res.message === "error") {
               return {
                 message: "error",
@@ -143,11 +135,9 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
             };
           }
         } else {
-          console.log("admin.WS is null");
         }
       }
     } else {
-      console.log("listOfAdminWs is null or empty");
     }
 
     // If loop completes without error

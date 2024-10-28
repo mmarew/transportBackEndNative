@@ -73,7 +73,6 @@ const getUserRoleStatus = async (body) => {
       phoneNumber,
     },
   });
-  console.log("  userData", userData);
   return userData;
 };
 
@@ -152,12 +151,7 @@ const updateUserRoleStatus = async (updateDataValues) => {
 };
 
 // Handle responses when updating user role status
-const handleUpdateResponces = async ({
-  roleId,
-  statusId,
-  phoneNumber,
-  newUserRoleStatus,
-}) => {
+const handleUpdateResponces = async ({ roleId, statusId, phoneNumber }) => {
   try {
     if (roleId == 2 && statusId == 3) {
       const driver = await getUserRoleStatus({ roleId, phoneNumber });

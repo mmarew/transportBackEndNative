@@ -303,7 +303,7 @@ const adminServices = {
       unAuthorizedUsers.map(async (user) => {
         const ownerUserUniqueId = user.userUniqueId;
         const documents = await getAttachedDocumentsByUser(ownerUserUniqueId);
-        return { ...user, documents }; // Return user along with documents
+        return { user, documents }; // Return user along with documents
       })
     );
 

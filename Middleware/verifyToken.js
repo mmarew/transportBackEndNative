@@ -11,15 +11,13 @@ const verifyTokenOfAxios = async (req, res, next) => {
       const decoded = jwt.verify(token, secretKey);
       const data = decoded.data;
       const userUniqueId = data?.userUniqueId;
-      console.log("@verifyTokenOfAxios userUniqueId", userUniqueId);
-
       const user = await getData({
         tableName: "users",
         conditions: { userUniqueId },
       });
 
       if (user.length > 0) {
-        req.user = data; // Attach user data to req instead of req.body
+        req.user = { ...user[0], ...data }; // Attach user data to req instead of req.body
         next(); // Proceed to the next middleware/controller
       } else {
         return res

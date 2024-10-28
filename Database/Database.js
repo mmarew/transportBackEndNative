@@ -12,19 +12,28 @@ CREATE TABLE IF NOT EXISTS Roles (
     foreign key (roleCreatedBy) references Users(userUniqueId)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create the Users Table
+-- Create the Users Table 
 CREATE TABLE IF NOT EXISTS Users (
     userId INT AUTO_INCREMENT PRIMARY KEY,
     userUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the user
-    fullName VARCHAR(255) NOT NULL,  -- Full name of the user
+    fullName VARCHAR(255) ,  -- Full name of the user
     phoneNumber VARCHAR(15) NOT NULL UNIQUE,  -- Phone number of the user
-    email VARCHAR(55) not NULL UNIQUE,  -- Email of the user
+    email VARCHAR(55) ,  -- Email of the user
     createdAt DATETIME NOT NULL,  -- When the user was created
-    createdBy VARCHAR(36) NULL,  -- Who created the user
-    updatedBy VARCHAR(36) NULL,  -- Who updated the user
-    deletedBy VARCHAR(36) NULL,  -- Who deleted the user
-    updatedAt DATETIME NULL,  -- When the user was updated
-    deletedAt DATETIME NULL  -- When the user was deleted
+    createdBy VARCHAR(36) not null -- NULL  -- Who created the user
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ -- Create the UsersHistory Table
+CREATE TABLE IF NOT EXISTS UsersHistory (
+    userHistoryId INT AUTO_INCREMENT PRIMARY KEY,
+    userUniqueId VARCHAR(36) NOT NULL,  -- UUID of the user, foreign key to Users table
+    fullName VARCHAR(255) NOT NULL,  -- Full name of the user
+    phoneNumber VARCHAR(15) NOT NULL,  -- Phone number of the user
+    email VARCHAR(55) NOT NULL,  -- Email of the user
+    actionType ENUM('UPDATED', 'DELETED') NOT NULL,  -- Action that triggered this record
+    actionBy VARCHAR(36) NULL,  -- User who triggered the update/delete action
+    actionAt DATETIME NOT NULL,  -- When the action was taken
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Reference to Users table
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the UsersCredential Table
@@ -113,12 +122,12 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
 CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
     documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
-    documentTypeName VARCHAR(255) NOT NULL,  -- Name of the document type (e.g., "ID", "License", "Plate")
-    uploadedDocumentName  VARCHAR(50) NOT NULL, -- it is used in file input fieled of front end 
-    uploadedDocumentTypeId  VARCHAR(50) NOT NULL, -- it is used in file input fieled of front end
-    uploadedDocumentDescription  VARCHAR(255) NOT NULL, -- it is used in file input fieled of front end
-    uploadedDocumentExpirationDate  VARCHAR(255)   NULL, -- it is used in file input fieled of front end
-    documentTypeDescription  TEXT(2000)  not NULL ,  -- Optional description of the document type
+    documentTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the document type (e.g., "ID", "License", "Plate")
+    uploadedDocumentName  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end 
+    uploadedDocumentTypeId  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
+    uploadedDocumentDescription  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
+    uploadedDocumentExpirationDate  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
+     documentTypeDescription  TEXT(2000)    not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
@@ -174,6 +183,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
     attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
     attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
+    documentVersion INT NOT NULL DEFAULT 1,  -- Document version number (to track changes)
     attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
     attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
     attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
@@ -190,6 +200,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
 -- Create the AttachedDocumentsHistory Table (for Historical Records)
 CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     attachedDocumentHistoryId INT AUTO_INCREMENT PRIMARY KEY,
+    attachedDocumentId INT NOT NULL,  -- Reference to the original AttachedDocuments
     attachedDocumentUniqueId VARCHAR(36) NOT NULL,  -- UUID for the attached document (links to the current active document)
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
     attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
@@ -371,7 +382,8 @@ CREATE TABLE IF NOT EXISTS CancellationReasonsType (
     cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
     cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
     cancellationReasonType VARCHAR(150) NOT NULL,  -- Type of cancellation reason
-    canceledBy VARCHAR(150) NOT NULL  -- Who canceled (could be driver, passenger, or admin)
+    roleId VARCHAR(150) NOT NULL,  -- Who canceled (could be driver, passenger, or admin)
+    foreign key (roleId) references Roles(roleId)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the Payments table
@@ -403,6 +415,17 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
     paymentMethodUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment method
     paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., Credit Card, PayPal)
     createdAt DATETIME NOT NULL  -- Creation time of the payment method
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;  
+ 
+-- cancilationReasonsType  
+
+CREATE TABLE IF NOT EXISTS cancellationReasonsType ( 
+    cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
+    cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
+    cancellationReasonType VARCHAR(150) NOT NULL,  -- Type of cancellation reason   
+   roleId VARCHAR(150) NOT NULL , -- Who canceled (could be  1 passenger, 2 driver, 3 admin)
+foreign key (roleId) references Roles(roleId)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;   
+`;
 
 module.exports = { sqlQuery };

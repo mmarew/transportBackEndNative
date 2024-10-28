@@ -15,7 +15,6 @@ const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
 };
 
 const WSServerTextMessageResponder = async (ws, message) => {
-  console.log("message", message);
   ws.send(JSON.stringify({ message }));
   return { message: "success", data: "message sent successfully" };
 };

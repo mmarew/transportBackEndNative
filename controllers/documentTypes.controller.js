@@ -1,46 +1,14 @@
 const documentTypesService = require("../services/documentTypes.service");
 const ServerResponder = require("../utils/ServerResponder");
-const listOfDocuments = require("../Utils/listOfFixedData").listOfDocuments;
 const createDocumentType = async (req, res) => {
   try {
     const user = req?.body?.user;
-    if (!Array.isArray(listOfDocuments) || listOfDocuments.length === 0) {
-      return ServerResponder(res, "No documents provided", 400);
-    }
-    const results = [];
-    const errors = [];
-    for (const document of listOfDocuments) {
-      try {
-        const response = await documentTypesService.createDocumentType({
-          body: { ...document, user },
-        });
-        results.push({ document, response });
-      } catch (error) {
-        console.error("Error processing document:", error);
-        errors.push({ document, error: "Failed to process document" });
-      }
-    }
 
-    if (errors.length > 0) {
-      return ServerResponder(
-        res,
-        {
-          message: "Some documents failed to process",
-          processedDocuments: results,
-          failedDocuments: errors,
-        },
-        207
-      );
-    }
-
-    return ServerResponder(
-      res,
-      {
-        message: "All documents processed successfully",
-        data: results,
-      },
-      201
-    );
+    req.body.user = user;
+    const response = await documentTypesService.createDocumentType({
+      body: req.body,
+    });
+    return ServerResponder(res, response);
   } catch (error) {
     console.error("Error in createDocumentType:", error);
     return ServerResponder(res, "Failed to create document type", 500);

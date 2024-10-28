@@ -60,14 +60,11 @@ async function WSPusher(urlParams, WS) {
           tableName: "SMSSender",
           conditions: { phoneNumber },
         });
-        console.log("result to get data from SMSSender", result);
         const hashedPassword = result[0]?.password;
         const verification = await verifyPassword({
           hashedPassword,
           notHashedPassword: password,
         });
-        // console.log("verification", verification);
-        // return;
         if (verification.message === "success") {
           listOfSMSSenderWs.push({ phoneNumber: cleanedPhoneNumber, WS });
           // WS.send("SMS Sender connected successfully");

@@ -30,6 +30,7 @@ const dropTableController = async (req, res) => {
     const response = await DatabaseService.dropTable(req.params.tableName);
     ServerResponder(res, response);
   } catch (error) {
+    console.log("@dropTableController  error", error);
     ServerResponder(res, {
       message: "error",
       error: `Failed to drop table ${req.params.tableName}`,

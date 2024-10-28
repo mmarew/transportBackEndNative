@@ -19,7 +19,7 @@ const addCancilationReasons = async (req, res) => {
 
     const responders = await ServerResponder(res, result);
   } catch (error) {
-    console.log("error", error);
+    console.log("@addCancilationReasons error", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };

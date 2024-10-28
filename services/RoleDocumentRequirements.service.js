@@ -1,9 +1,14 @@
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 // Create a new mapping
 const createMapping = async ({ body, userUniqueId }) => {
-  const { roleId, documentTypeId, isDocumentMandatory = true } = body;
+  const {
+    roleId,
+    documentTypeId,
+    isDocumentMandatory = true,
+    isExpirationDateRequired,
+  } = body;
   // verify existance of roleid
   const roleExists = await getData({
     tableName: "Roles",
@@ -34,13 +39,14 @@ const createMapping = async ({ body, userUniqueId }) => {
 
   // Insert new mapping
   const result = await pool.query(
-    "INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, createdAt) VALUES (?, ?, ?, ?, ?,?)",
+    "INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, isExpirationDateRequired,createdAt) VALUES (?, ?, ?, ?, ?,?,?)",
     [
       uuidv4(),
       userUniqueId,
       roleId,
       documentTypeId,
       isDocumentMandatory,
+      isExpirationDateRequired,
       new Date(),
     ]
   );
@@ -60,10 +66,21 @@ const getMappingByRoleId = async (id) => {
 };
 
 // Get all mappings
-const getAllMappings = async () => {
-  const [rows] = await pool.query(
-    "SELECT * FROM RoleDocumentRequirements join Roles on Roles.roleId=RoleDocumentRequirements.roleId"
-  );
+const getAllMappings = async (roleId) => {
+  const rows = await performJoinSelect({
+    baseTable: "RoleDocumentRequirements",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+      },
+      {
+        table: "Roles",
+        on: "RoleDocumentRequirements.roleId=Roles.roleId",
+      },
+    ],
+    conditions: { "Roles.roleId": roleId },
+  });
   return rows;
 };
 

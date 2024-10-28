@@ -18,7 +18,10 @@ const {
   sendNotificationToPassenger,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
-const { updateUserRoleStatus } = require("./UserRoleStatus.service");
+const {
+  updateUserRoleStatus,
+  getUserRoleStatus,
+} = require("./UserRoleStatus.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -88,8 +91,7 @@ const startJourney = async (body) => {
     tableName: "Journey",
     conditions: { journeyDecisionUniqueId: body.journeyDecisionUniqueId },
   });
-  // console.log("exisistingJourney", exisistingJourney);
-  // return;
+ 
   if (exisistingJourney.length == 0) {
     await insertData({
       tableName: "Journey",
@@ -128,7 +130,6 @@ const noAnswerFromDriver = async (body) => {
       error: "driver request not found",
     };
   }
-  console.log("@noAnswerFromDriver userUniqueId===========> ", userUniqueId);
   await updateJourneyStatus(body);
   const message = await verifyDriverStatus({
     userUniqueId,
@@ -216,10 +217,6 @@ const cancelDriverRequest = async (body) => {
         data: "Unable to fetch passenger details or phone number",
       };
     }
-    console.log(
-      "passenger in cancel request phoneNumber ",
-      passenger[0]?.phoneNumber
-    );
     // Send notification to the passenger
     const notificationResult = await sendNotificationToPassenger({
       message: {
@@ -233,12 +230,13 @@ const cancelDriverRequest = async (body) => {
       phoneNumber: passenger[0]?.phoneNumber,
     });
 
-    // if (!notificationResult.success) {
-    //   return {
-    //     message: "error",
-    //     data: "Failed to send notification to passenger.",
-    //   };
-    // }
+    sendNotificationToAdmin({
+      message: {
+        message: "error",
+        error: "driver cancelled passengers request",
+        detailInfo: { passenger: passenger[0], driver: getActiveRequest[0] },
+      },
+    });
 
     // Update JourneyDecisions to reflect the cancellation
     await updateData({
@@ -398,7 +396,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       };
     }
     const driverRequest = activeRequest[0];
-    console.log("driverRequest", driverRequest);
     const journeyStatusId = driverRequest.journeyStatusId;
 
     // Step 3: Fetch driver details
@@ -555,34 +552,17 @@ const driversDocumentVehicleRequirement = async (body) => {
   const ownerUserUniqueId = body.ownerUserUniqueId;
   const user = body.user;
   const roleId = body.roleId;
+  const phoneNumber = user.phoneNumber;
   const userRoleStatusDescription = body.userRoleStatusDescription;
-  let userData = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        table: "UserRole",
-        on: "Users.userUniqueId = UserRole.userUniqueId",
-      },
-      {
-        table: "UserRoleStatusCurrent",
-        on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
-      },
-      {
-        table: "Statuses",
-        on: "UserRoleStatusCurrent.statusId = Statuses.statusId",
-      },
-      { table: "Roles", on: "UserRole.roleId = Roles.roleId" },
-    ],
-    conditions: {
-      "Users.userUniqueId": ownerUserUniqueId,
-      "UserRole.roleId": roleId,
-    },
-  });
-  if (userData.length === 0) {
+
+  // Fetch initial user data based on role ID and phone number
+  let userData = await getUserRoleStatus({ roleId, phoneNumber });
+  if (!userData || userData.length === 0) {
     return { message: "error", data: "User data not found" };
   }
-  const { userRoleStatusUniqueId, userRoleId, phoneNumber, statusId } =
-    userData[0];
+
+  const { userRoleStatusUniqueId, userRoleId, statusId } = userData[0];
+
   // Fetch required documents for the driver's role
   const requiredDocuments = await performJoinSelect({
     baseTable: "RoleDocumentRequirements",
@@ -595,7 +575,7 @@ const driversDocumentVehicleRequirement = async (body) => {
     conditions: { roleId },
   });
 
-  if (requiredDocuments.length === 0) {
+  if (!requiredDocuments || requiredDocuments.length === 0) {
     return { message: "error", data: "No documents required for this role" };
   }
 
@@ -620,13 +600,14 @@ const driversDocumentVehicleRequirement = async (body) => {
     ACCEPTED: [],
     REJECTED: [],
   };
-
   attachedDocuments.forEach((attachedDocument) => {
     const documentStatus = attachedDocument.attachedDocumentAcceptance;
-    attachedDocumentsByStatus[documentStatus].push(attachedDocument);
+    if (attachedDocumentsByStatus[documentStatus]) {
+      attachedDocumentsByStatus[documentStatus].push(attachedDocument);
+    }
   });
 
-  // Check vehicle registration for the driver role
+  // Check if the user has a registered vehicle
   const userVehicle = await performJoinSelect({
     baseTable: "VehicleOwnership",
     joins: [
@@ -637,42 +618,46 @@ const driversDocumentVehicleRequirement = async (body) => {
     ],
     conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
   });
-
   const vehicleRegistered = userVehicle.length > 0;
 
-  // Determine the appropriate status based on documents and vehicle
-  let finalStatusId = findStatusByVehicleAndDocuments({
+  // Determine the final status based on documents and vehicle status
+  const finalStatusId = findStatusByVehicleAndDocuments({
     attachedDocuments,
     attachedDocumentsByStatus,
     requiredDocuments,
     vehicleRegistered,
     unAttachedDocumentTypes,
   });
-  const userRoleStatusData = {
-    user,
-    roleId,
-    userRoleStatusUniqueId,
-    userRoleId,
-    newStatusId: finalStatusId,
-    userRoleStatusDescription,
-    phoneNumber,
-  };
+
+  // Update role status if necessary
   if (statusId !== finalStatusId) {
-    // Update the user's role status based on the determined final status
-    userData = await updateUserRoleStatus({ ...userRoleStatusData });
+    const userRoleStatusData = {
+      user,
+      roleId,
+      userRoleStatusUniqueId,
+      userRoleId,
+      newStatusId: finalStatusId,
+      userRoleStatusDescription,
+      phoneNumber,
+    };
+
+    const updatedUserData = await updateUserRoleStatus(userRoleStatusData);
+    if (updatedUserData && updatedUserData.length > 0) {
+      userData = updatedUserData; // Only update userData if update was successful
+    }
+  } else {
   }
-  {
-    console.log("no changes in data");
-  }
-  console.log("driversDocumentVehicleRequirement", userData);
+
+
   return {
     message: "success",
-    userVehicle: userVehicle[0],
-    userData: userData[0],
+    userVehicle: userVehicle[0] || null,
+    userData: userData[0] || null,
     attachedDocumentsByStatus,
     unAttachedDocumentTypes, // Documents that are required but not attached
   };
 };
+
 const findStatusByVehicleAndDocuments = ({
   vehicleRegistered,
   attachedDocumentsByStatus,

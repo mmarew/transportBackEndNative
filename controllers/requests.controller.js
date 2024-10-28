@@ -45,7 +45,7 @@ const acceptPassengerRequest = async (req, res) => {
     const result = await updateServices.acceptPassengerRequest(req);
     ServerResponder(res, result);
   } catch (error) {
-    console.log("error", error);
+    console.log("@acceptPassengerRequest error", error);
     ServerResponder(res, {
       message: "error",
       error: "Unable to accept request",
@@ -100,7 +100,6 @@ const journeyCompleted = async (req, res) => {
 };
 const getRecentCompletedJourneys = async (req, res) => {
   try {
-    console.log("@ getRecentCompletedJourneys", req.body);
     const result = await service.getRecentCompletedJourneys(req);
     ServerResponder(res, result);
   } catch (error) {
