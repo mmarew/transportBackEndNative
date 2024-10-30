@@ -8,8 +8,9 @@ const {
   startJourney,
   noAnswerFromDriver,
   journeyCompleted,
-  canceledByDriver,
   attachRequiredDocuments,
+  cancelDriverRequest,
+  driversDocumentVehicleRequirement,
 } = require("../controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
@@ -47,10 +48,10 @@ router.put(
   noAnswerFromDriver
 );
 router.put(
-  "/driver/canceledByDriver",
+  "/driver/cancelDriverRequest/:userUniqueId",
   verifyTokenOfAxios,
   verifyDriversIdentity,
-  canceledByDriver
+  cancelDriverRequest
 );
 router.put(
   "/driver/journeyCompleted",
@@ -77,6 +78,11 @@ router.put(
   "/driver/attachRequiredDocuments",
   verifyTokenOfAxios,
   attachRequiredDocuments
+);
+router.get(
+  "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
+  verifyTokenOfAxios,
+  driversDocumentVehicleRequirement
 );
 
 module.exports = router;

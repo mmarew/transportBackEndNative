@@ -8,8 +8,10 @@ const createJWT = require("../Utils/createJWT");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
-const { getUserRoleStatus } = require("./UserRoleStatus.service");
-
+const deleteData = require("../CRUD/Delete/DeleteData");
+const bcrypt = require("bcrypt");
+const { verify } = require("jsonwebtoken");
+const verifyPassword = require("../Utils/VerifyPassword");
 const createUser = async (body) => {
   const {
     fullName,
@@ -49,7 +51,22 @@ const createUser = async (body) => {
           data: "Invalid email or phone number",
         };
       }
-
+      const userUniqueId = user.userUniqueId;
+      const credential = await getData({
+        tableName: "usersCredential",
+        conditions: { userUniqueId },
+      });
+      if (credential.length === 0) {
+        //create new credential
+        await insertData({
+          tableName: "usersCredential",
+          colAndVal: {
+            credentialUniqueId: uuidv4(),
+            userUniqueId,
+            OTP: await bcrypt.hash(String(OTP), 10),
+          },
+        });
+      }
       // Handle existing user: Insert/Update roles and statuses
       await handleUserRoleStatus(
         user.userUniqueId,
@@ -57,13 +74,16 @@ const createUser = async (body) => {
         statusId,
         userRoleStatusDescription
       );
-
+      console.log("to be hashed otp ", OTP); //to be hashed otp  615949
+      const hashedOTP = await bcrypt.hash(String(OTP), 10);
+      console.log("hashedOTP", hashedOTP);
       // Update OTP for existing user
-      const otpUpdated = await updateOtpForUser(
-        user.userUniqueId,
+      const otpUpdated = await updateOtpForUser({
+        userUniqueId: user.userUniqueId,
+        hashedOTP: hashedOTP,
+        phoneNumber,
         OTP,
-        phoneNumber
-      );
+      });
       return otpUpdated;
     };
 
@@ -73,7 +93,8 @@ const createUser = async (body) => {
       const credentialUniqueId = uuidv4();
 
       const userCreationSuccess = await Promise.all([
-        insertData({
+        // register users profile
+        await insertData({
           tableName: "Users",
           colAndVal: {
             userUniqueId,
@@ -83,12 +104,13 @@ const createUser = async (body) => {
             createdAt: currentDate(),
           },
         }),
-        insertData({
+        // register users credential
+        await insertData({
           tableName: "usersCredential",
           colAndVal: {
             credentialUniqueId,
             userUniqueId,
-            OTP,
+            OTP: await bcrypt.hash(String(OTP), 10),
           },
         }),
       ]);
@@ -166,14 +188,13 @@ const handleUserRoleStatus = async (
 
     // Check if the UserRole is in UserRoleStatus already exists
     const userRoleStatus = await getData({
-      tableName: "UserRoleStatus",
+      tableName: "UserRoleStatusCurrent",
       conditions: { userRoleId },
     });
-    console.log("roleId in roleId roleId roleId", roleId);
     if (userRoleStatus.length === 0) {
       // Insert new UserRoleStatus if not found
       await insertData({
-        tableName: "UserRoleStatus",
+        tableName: "UserRoleStatusCurrent",
         colAndVal: {
           userRoleStatusUniqueId: uuidv4(),
           userRoleStatusCreatedBy: userUniqueId,
@@ -192,8 +213,8 @@ const handleUserRoleStatus = async (
             on: "Users.userUniqueId = UserRole.userUniqueId",
           },
           {
-            table: "UserRoleStatus",
-            on: "UserRole.userRoleId = UserRoleStatus.userRoleId",
+            table: "UserRoleStatusCurrent",
+            on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
           },
         ],
         conditions: { "Users.userUniqueId": userUniqueId },
@@ -218,10 +239,15 @@ const handleUserRoleStatus = async (
 };
 
 // Helper function to update OTP and send notification
-const updateOtpForUser = async (userUniqueId, OTP, phoneNumber) => {
+const updateOtpForUser = async ({
+  userUniqueId,
+  OTP,
+  phoneNumber,
+  hashedOTP,
+}) => {
   const updateOtpResult = await updateData({
     tableName: "usersCredential",
-    updateValues: { OTP },
+    updateValues: { OTP: hashedOTP },
     conditions: { userUniqueId },
   });
 
@@ -251,19 +277,34 @@ const verifyUserByOTP = async (req) => {
     }
 
     const { OTP, phoneNumber } = req.query;
-    const verifyUserExistance = await getData({
-      tableName: "Users",
+    const verifyUserExistance = await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "usersCredential",
+          on: "Users.userUniqueId = usersCredential.userUniqueId",
+        },
+      ],
       conditions: {
         phoneNumber,
       },
     });
+
     const roleId = req.body.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }
 
     const { userUniqueId, fullName, email } = verifyUserExistance[0];
-
+    const hashedOTP = verifyUserExistance[0].OTP;
+    const verifyOTP = await verifyPassword({
+      hashedPassword: hashedOTP,
+      notHashedPassword: OTP,
+    });
+    console.log("verifyOTP", verifyOTP);
+    if (verifyOTP.error) {
+      return { message: "error", error: "OTP verification failed" };
+    }
     const token = createJWT({
       userUniqueId,
       fullName,
@@ -271,47 +312,44 @@ const verifyUserByOTP = async (req) => {
       email,
       roleId,
     });
-
-    const selectResult = await getData({
-      tableName: "usersCredential",
-      conditions: {
-        userUniqueId,
-      },
-    });
-
-    if (!selectResult || selectResult.length === 0) {
-      return {
-        message: "error",
-        error: "Unable to verify user. Please try again later.",
-      };
-    }
-
-    if (selectResult[0].OTP !== OTP) {
-      return { message: "error", error: "OTP verification failed" };
-    } else {
-      return {
-        token,
-        message: "success",
-        data: "OTP verified successfully",
-      };
-    }
+    return {
+      token,
+      message: "success",
+      data: "OTP verified successfully",
+    };
   } catch (error) {
     console.error("Error in verifyDriverByOTP:", error.message);
     return { message: "error", error: "Unable to verify user" };
   }
 };
+const getUserById = async (id) => {
+  const user = await getData({
+    tableName: "Users",
+    conditions: { userUniqueId: id },
+  });
 
-const getUser = async (id) => {
-  const sql = `SELECT * FROM Users WHERE userId = ?`;
+  if (!user || user.length === 0) {
+    return { message: "error", error: "User not found" };
+  }
+  return { message: "success", data: user[0] };
+};
+const getUserByEmailOrNameOrPhoneNumber = async (data) => {
+  const getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
 
   try {
-    const [rows] = await pool.query(sql, [id]);
+    const [rows] = await pool.query(getUserQuery, [
+      data,
+      `%${data}%`,
+      `%${data}%`,
+      `%${data}%`,
+    ]);
+
     if (rows.length > 0) {
       return { message: "success", data: rows[0] };
     }
+
     return { message: "error", data: "User not found" };
   } catch (error) {
-    console.error("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving the user",
@@ -319,19 +357,20 @@ const getUser = async (id) => {
   }
 };
 
-const deleteUser = async (id) => {
-  const sql = `DELETE FROM Users WHERE userId = ?`;
+const deleteUser = async (userUniqueId) => {
+  const result = await deleteData({
+    tableName: "Users",
+    conditions: { userUniqueId },
+  });
+  const deleteCredential = await deleteData({
+    tableName: "usersCredential",
+    conditions: { userUniqueId },
+  });
 
-  try {
-    const [result] = await pool.query(sql, [id]);
-    if (result.affectedRows > 0) {
-      return { message: "success", data: "User deleted successfully" };
-    }
-    return { message: "error", data: "User deletion failed" };
-  } catch (error) {
-    console.error("Error:", error);
-    return { message: "error", data: "An error occurred during user deletion" };
-  }
+  //  delete requests of user
+
+  //  delete requests of user
+  return { message: "success", data: "user deleted successfully" };
 };
 
 const getAllUsers = async () => {
@@ -367,8 +406,6 @@ const updateUser = async (body) => {
   if (fullName) updateValues.fullName = fullName;
   if (phoneNumber) updateValues.phoneNumber = phoneNumber;
   if (email) updateValues.email = email;
-
-  console.log("body", body);
 
   try {
     // Check if the user exists
@@ -461,10 +498,11 @@ const updateUser = async (body) => {
 };
 
 module.exports = {
+  getUserById,
   updateUser,
   verifyUserByOTP,
   createUser,
-  getUser,
+  getUserByEmailOrNameOrPhoneNumber,
   deleteUser,
   getAllUsers,
 };

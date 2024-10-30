@@ -17,7 +17,7 @@ const { sendNotificationToDriver } = require("../Utils/Notifications");
 
 const createRequest = async (body, user) => {
   try {
-    const { userUniqueId } = user?.data;
+    const { userUniqueId } = user;
     // 1. Check if the user exists
     const existingUser = await checkUserExists(userUniqueId);
     if (!existingUser) {
@@ -99,12 +99,11 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
     if (!activeRequest || activeRequest?.length == 0)
       activeRequest = await checkActivePassengerRequest(userUniqueId);
-    console.log("activeRequest in verifyPassengerStatus", activeRequest);
     // If no active request, return an error
     if (activeRequest?.length == 0) {
       return {
         message: "success",
-        data: "No active requests found for this user",
+        data: "No active  status found for this user",
         status: null,
       };
     }
@@ -133,7 +132,6 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       const nearbyDrivers = await findNearbyDrivers({
         passengerRequest,
       });
-      console.log("nearbyDrivers", nearbyDrivers);
       // If no drivers are found, return the status
       if (!nearbyDrivers?.length) {
         return {
@@ -243,8 +241,104 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     return { message: "error", error: "Unable to verify passenger status" };
   }
 };
+const cancelPassengerRequest = async (body) => {
+  try {
+    const user = body.user;
+    const ownerUserUniqueId = body?.ownerUserUniqueId;
+    const { userUniqueId } = user;
+    // Check if the user has any active passenger requests
+    const getActiveRequest = await checkActivePassengerRequest(
+      ownerUserUniqueId
+    );
+
+    if (getActiveRequest.length == 0) {
+      return {
+        message: "error",
+        error: "No active requests found for this user",
+      };
+    }
+
+    const passengerRequestId = getActiveRequest[0].passengerRequestId;
+
+    // Update the PassengerRequest to reflect the cancellation
+    await updateData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestId },
+      updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+    });
+
+    // Check if the request exists in JourneyDecisions
+    const journeyDecisions = await getData({
+      tableName: "JourneyDecisions",
+      conditions: { passengerRequestId },
+    });
+
+    if (journeyDecisions.length == 0) {
+      // If there's no journey decision related to this request, return success
+      return {
+        message: "success",
+        data: "You have successfully cancelled your request.",
+      };
+    }
+
+    const driverRequestId = journeyDecisions[0].driverRequestId;
+    const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
+
+    // Update the DriverRequest to reflect the cancellation
+    await updateData({
+      tableName: "DriverRequest",
+      conditions: { driverRequestId },
+      updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+    });
+    const driverData = await performJoinSelect({
+      baseTable: "DriverRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "DriverRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: { driverRequestId },
+    });
+    const driver = driverData[0];
+    const phoneNumber = driver?.phoneNumber;
+    await sendNotificationToDriver({
+      message: {
+        message: "success",
+        data:
+          userUniqueId === ownerUserUniqueId
+            ? "passenger cancelled your request."
+            : "system cancelled your request.",
+      },
+      phoneNumber,
+    });
+
+    // Update JourneyDecisions to reflect the cancellation
+    await updateData({
+      tableName: "JourneyDecisions",
+      conditions: { journeyDecisionUniqueId },
+      updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+    });
+
+    // Update the Journey table (if the journey had already started)
+    await updateData({
+      tableName: "Journey",
+      conditions: { journeyDecisionUniqueId },
+      updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+    });
+
+    return {
+      message: "success",
+      data: "You have successfully cancelled your request.",
+    };
+  } catch (error) {
+    console.log("@cancelPassengerRequest error", error);
+    return { message: "error", error: "Unable to cancel passenger request" };
+  }
+};
 
 module.exports = {
+  cancelPassengerRequest,
   verifyPassengerStatus,
   createRequest,
   getRequestById,

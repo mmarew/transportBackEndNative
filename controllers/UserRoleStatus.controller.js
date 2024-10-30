@@ -23,8 +23,8 @@ const getUserRoleStatus = async (req, res) => {
 
 const updateUserRoleStatus = async (req, res) => {
   try {
-    const user = req.user.data;
-    req.body.user = user;
+    const user = req?.user;
+    req.user = user;
 
     const result = await userRoleStatusService.updateUserRoleStatus(req.body);
     ServerResponder(res, result, 200);

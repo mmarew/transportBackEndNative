@@ -20,15 +20,11 @@ async function WSPusher(urlParams, WS) {
     if (!token) {
       return WS.send("Token is required for connection");
     }
-    ///////////////////////////////
     const tokenValidation = await verifyToken.verifyTokenOfWS(token);
-    ///////////////////////////
     console.log("tokenValidation", tokenValidation);
-    ////////////////////////
     if (!tokenValidation?.valid) {
       return WS.send("You are not authorized");
     }
-
     // Clean phone number (remove spaces and non-digit characters)
     const cleanedPhoneNumber = phoneNumber?.replace(/\D/g, "");
 
@@ -61,18 +57,22 @@ async function WSPusher(urlParams, WS) {
         if (!password) {
           return WS.send("Password is required for SMS sender");
         }
-        const result = await getData({
+        const smsSenderData = await getData({
           tableName: "SMSSender",
           conditions: { phoneNumber },
         });
-        console.log("result to get data from SMSSender", result);
-        const hashedPassword = result[0]?.password;
+        if (smsSenderData.length === 0) {
+          return WS.send("This phone number is not found");
+        }
+
+        console.log("smsSenderData", smsSenderData);
+        const hashedPassword = smsSenderData[0]?.password;
+
         const verification = await verifyPassword({
           hashedPassword,
           notHashedPassword: password,
         });
-        // console.log("verification", verification);
-        // return;
+        console.log("verification of password ", verification);
         if (verification.message === "success") {
           listOfSMSSenderWs.push({ phoneNumber: cleanedPhoneNumber, WS });
           // WS.send("SMS Sender connected successfully");

@@ -2,29 +2,39 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const currentDate = require("../Utils/currentDate");
 const { getData } = require("../CRUD/Read/ReadData");
+const { insertData } = require("../CRUD/Create/CreateData");
 const createRole = async (body) => {
-  const { roleName, roleDescription } = body;
+  const { roleName, roleDescription, user } = body;
   const roleUniqueId = uuidv4();
+  const userUniqueId = user?.userUniqueId;
   const existedData = await getData({
     tableName: "Roles",
     conditions: { roleName },
   });
-  console.log("existed role Data", existedData);
   if (existedData?.length > 0) {
     return { message: "error", data: "Role already exists" };
   }
-  const sql = `INSERT INTO Roles (roleUniqueId, roleName, roleDescription, roleCreatedAt,roleCreatedBy) VALUES (?, ?, ?, ?)`;
-  const values = [roleUniqueId, roleName, roleDescription, currentDate()];
-
+  const colAndVal = {
+    roleUniqueId,
+    roleName,
+    roleDescription,
+    roleCreatedBy: userUniqueId,
+    roleCreatedAt: currentDate(),
+  };
+  const tableName = "Roles";
   try {
-    const [result] = await pool.query(sql, values);
-    if (result.affectedRows > 0) {
+    const registeredRole = await insertData({ tableName, colAndVal });
+
+    if (registeredRole.affectedRows > 0) {
       return { message: "success", data: "Role created successfully" };
     }
     return { message: "error", data: "Role creation failed" };
   } catch (error) {
     console.error("Error:", error);
-    return { message: "error", data: "An error occurred during role creation" };
+    return {
+      message: "error",
+      data: "An error occurred during role creation",
+    };
   }
 };
 

@@ -6,34 +6,39 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create Passenger Request
 router.post(
-  "/api/passenger/createRequest",
+  "/api/passengerRequest/createRequest",
   verifyTokenOfAxios,
   controller.createRequest
 );
 
 // Get Passenger Request by ID
 router.get(
-  "/api/passenger/getById/:id",
+  "/api/passengerRequest/getById/:id",
   verifyTokenOfAxios,
   controller.getRequestById
 );
 
 // Update Passenger Request by ID
 router.put(
-  "/api/passenger/getById/:id",
+  "/api/passengerRequest/getById/:id",
   verifyTokenOfAxios,
   controller.updateRequestById
 );
 
 // Delete Passenger Request by ID
 router.delete(
-  "/api/passenger/getById/:id",
+  "/api/passengerRequest/getById/:id",
   verifyTokenOfAxios,
   controller.deleteRequest
 );
 router.get(
-  "/api/passenger/verifyPassengerStatus",
+  "/api/passengerRequest/verifyPassengerStatus",
   verifyTokenOfAxios,
   controller.verifyPassengerStatus
+);
+router.put(
+  "/api/passengerRequest/cancelPassengerRequest/:userUniqueId",
+  verifyTokenOfAxios,
+  controller.cancelPassengerRequest
 );
 module.exports = router;

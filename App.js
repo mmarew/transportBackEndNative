@@ -4,7 +4,6 @@ const http = require("http");
 const WebSocket = require("ws");
 const cors = require("cors");
 const Routes = require("./Routes/index.js");
-const { createTable } = require("./Database/Database.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const path = require("path");
@@ -24,7 +23,6 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const handleMessage = (incomingMessage) => {
   const textMessage = incomingMessage.toString();
-  console.log("textMessage", textMessage);
 
   if (textMessage) {
     ws.send("i get text messages from clients");
@@ -48,7 +46,6 @@ wss.on("connection", handleConnection);
 // Create tables in the database
 const onStartUp = async () => {
   try {
-    createTable();
   } catch (error) {
     console.log("error", error);
   }

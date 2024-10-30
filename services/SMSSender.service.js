@@ -1,68 +1,85 @@
-const bcrypt = require("bcrypt");
-const verifySMSSenderReality = require("../Utils/verifySMSSenderReality");
 const { pool } = require("../Middleware/Database.config");
-const verifyPassword = require("../Utils/VerifyPassword");
+const { getData } = require("../CRUD/Read/ReadData");
 const createJWT = require("../Utils/createJWT");
-const { insertData } = require("../CRUD/Create/CreateData");
+const bcrypt = require("bcrypt");
+const verifyPassword = require("../Utils/VerifyPassword");
+// Create a new SMS sender
+const createSMSSender = async ({ phoneNumber, password }) => {
+  const existedData = await getData({
+    conditions: { phoneNumber },
 
-const addSMSSender = async (req) => {
-  const { phoneNumber, password } = req.body;
-
-  try {
-    // Check if the phone number already exists
-    const checkSql = `SELECT * FROM SMSSender WHERE phoneNumber = ?`;
-    const [existingSMSSenders] = await pool.query(checkSql, [phoneNumber]);
-    console.log("existingSMSSenders", existingSMSSenders);
-    if (existingSMSSenders.length > 0) {
-      const savedPassword = existingSMSSenders[0]?.password;
-      // Verify the password
-      const { message, data } = await verifyPassword({
-        hashedPassword: savedPassword,
-        notHashedPassword: password,
-      });
-      if (message === "error") {
-        return { message: "error", error: data };
+    tableName: "SMSSender",
+  });
+  console.log("existedData =========> ", existedData);
+  if (existedData.length > 0) {
+    let hashedPassword = existedData[0].password;
+    const { message, data } = await verifyPassword({
+      hashedPassword,
+      notHashedPassword: password,
+    });
+    console.log("message", message, "data", data);
+    if (data && message === "success") {
+      {
+        const token = createJWT({ phoneNumber, type: "SMSSender" });
+        return {
+          token,
+          message: "success",
+          data: "This phone number is already registered",
+        };
       }
-      const token = await createJWT({ phoneNumber, type: "SMSSender" });
+    } else {
       return {
-        token,
-        message: "success",
-        data: "SMSSender already registered before and password verified successfully",
+        message: "error",
+        data: "Invalid password",
+        error: "Invalid password",
       };
     }
-
-    // Encrypt the password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    const result = await insertData({
-      tableName: "SMSSender",
-      colAndVal: { phoneNumber, password: hashedPassword },
-    });
-    if (result.affectedRows === 0) {
-      throw new Error("Unable to add SMSSender");
-    }
-    const token = createJWT({ phoneNumber, type: "SMSSender" });
-    return { token, message: "success", data: "SMSSender added successfully" };
-  } catch (error) {
-    console.error("Error adding SMSSender:", error);
-    return { message: "error", error: "Unable to add SMSSender" };
   }
+
+  // create hashed password
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const sql = `INSERT INTO SMSSender (phoneNumber, password) VALUES (?, ?)`;
+  const [result] = await pool.query(sql, [phoneNumber, hashedPassword]);
+  const token = createJWT({ phoneNumber, type: "SMSSender" });
+  return {
+    message: "success",
+    data: "OTP sender registered successfully.",
+    token,
+  };
 };
 
-const getSMSSender = async (req) => {
-  try {
-    const { phoneNumber, password } = req.query;
-    let result = await verifySMSSenderReality(phoneNumber, password);
-    if (result.message == "error") {
-      return { message: "error", error: result.error };
-    } else {
-      return { message: "success", data: result.data };
-    }
-  } catch (error) {
-    console.log("  error", error);
-    return { message: "error", error: "Unable to verify SMSSender" };
-  }
+// Get all SMS senders
+const getAllSMSSenders = async () => {
+  const sql = `SELECT * FROM SMSSender`;
+  const [result] = await pool.query(sql);
+  return result;
 };
 
-module.exports = { addSMSSender, getSMSSender };
+// Get a single SMS sender by ID
+const getSMSSenderById = async (id) => {
+  const sql = `SELECT * FROM SMSSender WHERE SMSSenderId = ?`;
+  const [result] = await pool.query(sql, [id]);
+  return result[0];
+};
+
+// Update an SMS sender by ID
+const updateSMSSender = async (id, { phoneNumber, password }) => {
+  const sql = `UPDATE SMSSender SET phoneNumber = ?, password = ? WHERE SMSSenderId = ?`;
+  const [result] = await pool.query(sql, [phoneNumber, password, id]);
+  return result;
+};
+
+// Delete an SMS sender by ID
+const deleteSMSSender = async (id) => {
+  const sql = `DELETE FROM SMSSender WHERE SMSSenderId = ?`;
+  const [result] = await pool.query(sql, [id]);
+  return result;
+};
+
+module.exports = {
+  createSMSSender,
+  getAllSMSSenders,
+  getSMSSenderById,
+  updateSMSSender,
+  deleteSMSSender,
+};

@@ -11,5 +11,4 @@ const currentDate = () => {
   return `${year}-${month}-${day}:${hours}:${minutes}:${seconds}`;
 };
 
-console.log(currentDate());
 module.exports = currentDate;

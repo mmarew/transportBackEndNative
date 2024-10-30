@@ -1,0 +1,83 @@
+const journeyStatusService = require("../Services/JourneyStatus.service");
+const ServerResponder = require("../utils/ServerResponder");
+
+// Create a new journey status
+const createJourneyStatus = async (req, res) => {
+  try {
+    const result = await journeyStatusService.createJourneyStatus(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error creating journey status:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create journey status",
+    });
+  }
+};
+
+// Get all journey statuses
+const getAllJourneyStatuses = async (req, res) => {
+  try {
+    const result = await journeyStatusService.getAllJourneyStatuses();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error fetching journey statuses:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey statuses",
+    });
+  }
+};
+
+// Get a single journey status by ID
+const getJourneyStatusById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await journeyStatusService.getJourneyStatusById(id);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error fetching journey status by ID:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey status by ID",
+    });
+  }
+};
+
+// Update a journey status by ID
+const updateJourneyStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await journeyStatusService.updateJourneyStatus(id, req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error updating journey status:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update journey status",
+    });
+  }
+};
+
+// Delete a journey status by ID
+const deleteJourneyStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await journeyStatusService.deleteJourneyStatus(id);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error deleting journey status:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete journey status",
+    });
+  }
+};
+
+module.exports = {
+  createJourneyStatus,
+  getAllJourneyStatuses,
+  getJourneyStatusById,
+  updateJourneyStatus,
+  deleteJourneyStatus,
+};

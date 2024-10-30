@@ -11,7 +11,7 @@ router.post(
 
 // Get all role-document mappings
 router.get(
-  "/RoleDocumentRequirements",
+  "/RoleDocumentRequirementsByRole/:roleId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.getAllMappings
 );

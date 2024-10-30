@@ -21,17 +21,12 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 
     // Validate the cleaned phone number using regex
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      console.log(
-        "Invalid phone number format for driver:",
-        cleanedPhoneNumber
-      );
       return { message: "error", data: "Invalid phone number format" };
     }
 
     // Send notification to the matching driver using a for...of loop
     for (const driver of listOfDriverWs) {
       if (driver.phoneNumber === cleanedPhoneNumber) {
-        console.log("sendNotificationToDriver===>", driver);
         try {
           const res = await WSServerTextMessageResponder(driver.WS, message);
           if (res.message == "error") {
@@ -62,18 +57,14 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 // Send notification to the passenger based on the phone number
 const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
   try {
+    if (!phoneNumber) console.log("phoneNumber required to ws connection ");
     // Clean the phone number before processing
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
     // Validate the cleaned phone number using regex
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      console.log(
-        "Invalid phone number format for passenger:",
-        cleanedPhoneNumber
-      );
       return { message: "error", data: "Invalid phone number format" };
     }
-
     // Send notification to the matching passenger using a for...of loop
     if (listOfPassangerWs && listOfPassangerWs.length > 0) {
       for (const passenger of listOfPassangerWs) {
@@ -125,10 +116,6 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
         if (admin && admin?.WS) {
           try {
             const res = await WSServerTextMessageResponder(admin.WS, message);
-            console.log(
-              "@sendNotificationToAdmin res is ===============> ",
-              res
-            );
             if (res.message === "error") {
               return {
                 message: "error",
@@ -148,11 +135,9 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
             };
           }
         } else {
-          console.log("admin.WS is null");
         }
       }
     } else {
-      console.log("listOfAdminWs is null or empty");
     }
 
     // If loop completes without error

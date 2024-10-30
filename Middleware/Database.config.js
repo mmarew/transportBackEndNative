@@ -29,7 +29,6 @@ let pool;
 
 try {
   pool = mysql.createPool(config);
-  console.log("Database connection pool created successfully");
 } catch (error) {
   console.error("Error creating database connection pool:", error);
   throw error; // Re-throw the error to ensure the application fails fast

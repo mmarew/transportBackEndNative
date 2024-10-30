@@ -1,14 +1,9 @@
 const { insertData } = require("../CRUD/Create/CreateData");
-const {
-  getData,
-
-  performJoinSelect,
-} = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const uuidv4 = require("uuid").v4;
-const path = require("path");
 const { deleteFile } = require("../Utils/fileUtils");
-const { updateUserRoleStatus } = require("./UserRoleStatus.service");
 const { updateData } = require("../CRUD/Update/Data.update");
+const deleteData = require("../CRUD/Delete/DeleteData");
 const {
   sendNotificationToAdmin,
   sendNotificationToDriver,
@@ -23,55 +18,71 @@ const createAttachedDocument = async ({
   documentExpirationDate, // Expiration date of the document
   createdByUserId,
   userUniqueId,
+  roleId,
 }) => {
   try {
+    const documentType = await getData({
+      tableName: "RoleDocumentRequirements",
+      conditions: {
+        documentTypeId,
+        roleId: roleId,
+      },
+    });
+    if (documentType.length === 0) {
+      deleteFile(attachedDocumentName);
+      return {
+        message: "error",
+        error: `Document type not found`,
+      };
+    }
+    const isExpirationDateRequired = documentType[0].isExpirationDateRequired;
+    if (isExpirationDateRequired && !documentExpirationDate) {
+      deleteFile(attachedDocumentName);
+      return {
+        message: "error",
+        error: `Document expiration date is required`,
+      };
+    }
     // Check if the document already exists for the same user and document type
     const existingDocument = await getData({
       tableName: "AttachedDocuments",
       conditions: {
         userUniqueId,
         documentTypeId,
-        attachedDocumentIsDeleted: false, // Check only active (non-deleted) documents
       },
     });
 
     if (existingDocument.length > 0) {
-      const fullPath = path.resolve(
-        __dirname, // Get the file path relative to the current file's directory
-        "..", // Navigate up one level (from services folder)
-        "uploads/" + attachedDocumentName
-      );
       // Remove file if already existed
-      deleteFile(fullPath);
+      deleteFile(attachedDocumentName);
 
       return {
         message: "error",
-        data: `Document already exists for this user and document type`,
+        error: `Document already exists for this user and document type`,
       };
     }
-
     // Determine if the document is expired (based on expiration date)
     const isExpired = documentExpirationDate
       ? new Date(documentExpirationDate) < new Date()
       : false;
-
+    if (isExpired) {
+      deleteFile(attachedDocumentName);
+      return {
+        message: "error",
+        error: `Document is expired`,
+      };
+    }
     const newDocument = {
       attachedDocumentUniqueId: uuidv4(),
       userUniqueId, // The user who own the created  document
-      attachedDocumentName,
       attachedDocumentDescription,
+      attachedDocumentName,
       documentTypeId,
       documentExpirationDate,
       attachedDocumentAcceptance: "PENDING", // Default status when document is created
-      attachedDocumentIsExpired: isExpired, // Set based on expiration date
-      attachedDocumentIsDeleted: false, // Default to not deleted
       attachedDocumentCreatedByUserId: createdByUserId,
-      attachedDocumentUpdatedByUserId: null, // Not updated yet
-      attachedDocumentDeletedByUserId: null, // Not deleted yet
       attachedDocumentCreatedAt: new Date(),
-      attachedDocumentDeletedAt: null, // Not deleted yet
     };
-
     // Insert the new document into the database
     const result = await insertData({
       tableName: "AttachedDocuments",
@@ -81,30 +92,40 @@ const createAttachedDocument = async ({
     if (result?.affectedRows > 0) {
       return { message: "success", data: "Document created successfully" };
     } else {
-      return { message: "error", data: "Failed to create document" };
+      deleteFile(attachedDocumentName);
+      return { message: "error", error: "Failed to create document" };
     }
   } catch (error) {
+    deleteFile(attachedDocumentName);
     console.error("Error creating attached document:", error);
     return {
       message: "error",
-      data: "An error occurred while creating the document",
+      error: "An error occurred while creating the document",
     };
   }
 };
 
 // Retrieve all attached documents
-const getAttachedDocumentsByUser = async (body) => {
-  return await getData({
-    tableName: "AttachedDocuments",
-    conditions: {},
+const getAttachedDocumentsByUser = async (userUniqueId) => {
+  return await performJoinSelect({
+    baseTable: "AttachedDocuments",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+      },
+    ],
+    conditions: {
+      userUniqueId: userUniqueId,
+    },
   });
 };
 
 // Retrieve an attached document by ID
-const getAttachedDocumentById = async (attachedDocumentId) => {
+const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
   const result = await getData({
     tableName: "AttachedDocuments",
-    conditions: { attachedDocumentId },
+    conditions: { attachedDocumentUniqueId },
   });
 
   if (result.length === 0) {
@@ -114,47 +135,87 @@ const getAttachedDocumentById = async (attachedDocumentId) => {
   return result[0];
 };
 
-// Update an attached document
 const updateAttachedDocument = async (
-  attachedDocumentId,
+  attachedDocumentUniqueId,
   {
-    documentName,
     documentDescription,
     documentTypeId,
-    documentPath,
     documentExpirationDate,
+    attachedDocumentName, // File name (existing or new)
     updatedByUserId,
   }
 ) => {
-  // Check if the document exists
+  // Validation of required fields
+  if (!attachedDocumentUniqueId) {
+    return {
+      message: "error",
+      data: "Attached document unique ID is required",
+    };
+  }
+  if (!updatedByUserId) {
+    return { message: "error", data: "Updated by user ID is required" };
+  }
+
+  // Check if documentExpirationDate is valid and determine if expired
+  let isExpired = false;
+  if (documentExpirationDate) {
+    const expirationDate = new Date(documentExpirationDate);
+    if (isNaN(expirationDate.getTime())) {
+      return { message: "error", data: "Invalid date format for expiration" };
+    }
+    isExpired = expirationDate < new Date();
+  }
+
+  // Fetch existing document data
   const existingDocument = await getData({
     tableName: "AttachedDocuments",
-    conditions: { attachedDocumentId },
+    conditions: { attachedDocumentUniqueId },
   });
-
   if (existingDocument.length === 0) {
     return { message: "error", data: "Document not found" };
   }
 
-  // Update the document details
-  const updateValues = {
-    attachedDocumentName: documentName,
-    attachedDocumentDescription: documentDescription,
-    documentTypeId,
-    attachedDocumentPath:
-      documentPath || existingDocument[0].attachedDocumentPath, // Retain old path if not updated
-    documentExpirationDate,
-    updatedByUserId,
+  // Prepare historical data with version increment
+  const documentVersion = existingDocument[0].documentVersion || 1;
+  const historyDocument = {
+    ...existingDocument[0],
+    attachedDocumentUpdatedByUserId: updatedByUserId,
     attachedDocumentUpdatedAt: new Date(),
+    documentVersion: documentVersion + 1,
   };
 
-  const result = await updateData({
+  // Insert historical record
+  const historyResult = await insertData({
+    tableName: "AttachedDocumentsHistory",
+    colAndVal: historyDocument,
+  });
+  if (historyResult.affectedRows === 0) {
+    return { message: "error", data: "Failed to archive current document" };
+  }
+
+  // Prepare updated document data
+  const updatedDocument = {
+    attachedDocumentDescription:
+      documentDescription || existingDocument[0].attachedDocumentDescription,
+    documentTypeId: documentTypeId || existingDocument[0].documentTypeId,
+    attachedDocumentName:
+      attachedDocumentName || existingDocument[0].attachedDocumentName,
+    documentExpirationDate:
+      documentExpirationDate || existingDocument[0].documentExpirationDate,
+    attachedDocumentAcceptance: "PENDING",
+    attachedDocumentCreatedByUserId:
+      existingDocument[0].attachedDocumentCreatedByUserId,
+    attachedDocumentCreatedAt: existingDocument[0].attachedDocumentCreatedAt,
+  };
+
+  // Update the AttachedDocuments table with the new data
+  const updateResult = await updateData({
     tableName: "AttachedDocuments",
-    conditions: { attachedDocumentId },
-    updateValues,
+    conditions: { attachedDocumentUniqueId },
+    updateValues: { ...updatedDocument },
   });
 
-  if (result.affectedRows > 0) {
+  if (updateResult.affectedRows > 0) {
     return { message: "success", data: "Document updated successfully" };
   } else {
     return { message: "error", data: "Failed to update document" };
@@ -162,121 +223,24 @@ const updateAttachedDocument = async (
 };
 
 // Delete an attached document (soft delete by marking as deleted)
-const deleteAttachedDocument = async (attachedDocumentId, deletedByUserId) => {
-  const existingDocument = await getData({
-    tableName: "AttachedDocuments",
-    conditions: { attachedDocumentId },
-  });
-
-  if (existingDocument.length === 0) {
-    return { message: "error", data: "Document not found" };
-  }
-
-  const result = await updateData({
-    tableName: "AttachedDocuments",
-    conditions: { attachedDocumentId },
-    updateValues: {
-      attachedDocumentIsDeleted: true,
-      deletedByUserId,
-      attachedDocumentDeletedAt: new Date(),
-    },
-  });
-
-  if (result.affectedRows > 0) {
-    return { message: "success", data: "Document deleted successfully" };
-  } else {
-    return { message: "error", data: "Failed to delete document" };
-  }
-};
-const verifyUsersDocumentStatus = async (body) => {
-  const documentOwnerUserUniqueId = body.documentOwnerUserUniqueId;
-  const userRoleStatusUniqueId = body.userRoleStatusUniqueId;
-  const statusId = body.statusId;
-  const user = body.user;
-  const roleId = body.roleId;
-  const userRoleId = body.userRoleId;
-  const userRoleStatusDescription = body.userRoleStatusDescription;
-  const phoneNumber = body.phoneNumber;
-
-  // Fetch attached documents for the user
-  const AttachedDocuments = await getData({
-    tableName: "AttachedDocuments",
-    conditions: { userUniqueId: documentOwnerUserUniqueId },
-  });
-
-  // Fetch required documents for the user's role
-  const requiredDocuments = await performJoinSelect({
-    baseTable: "RoleDocumentRequirements",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-    ],
-    conditions: { roleId },
-  });
-
-  if (requiredDocuments.length === 0) {
-    return { message: "error", data: "No documents required for this role" };
-  }
-
-  // Find unattached document types
-  const unAttachedDocumentTypes = requiredDocuments.filter(
-    (requiredDocument) =>
-      !AttachedDocuments.some(
-        (attachedDocument) =>
-          attachedDocument.documentTypeId === requiredDocument.documentTypeId
-      )
+const deleteAttachedDocument = async (attachedDocumentUniqueId) => {
+  // get attached document first
+  const attachedDocument = await getAttachedDocumentByUniqueId(
+    attachedDocumentUniqueId
   );
+  const attachedDocumentName = attachedDocument?.attachedDocumentName;
+  if (attachedDocumentName) deleteFile(attachedDocumentName);
 
-  // Group attached documents by their status (PENDING, ACCEPTED, REJECTED)
-  const attachedDocumentsByStatus = {
-    PENDING: [],
-    ACCEPTED: [],
-    REJECTED: [],
-  };
-
-  AttachedDocuments.forEach((attachedDocument) => {
-    const documentStatus = attachedDocument.attachedDocumentAcceptance;
-    if (documentStatus === "PENDING") {
-      attachedDocumentsByStatus.PENDING.push(attachedDocument);
-    } else if (documentStatus === "ACCEPTED") {
-      attachedDocumentsByStatus.ACCEPTED.push(attachedDocument);
-    } else if (documentStatus === "REJECTED") {
-      attachedDocumentsByStatus.REJECTED.push(attachedDocument);
-    }
+  const data = await deleteData({
+    tableName: "AttachedDocuments",
+    conditions: { attachedDocumentUniqueId },
   });
-
-  // If all required documents are attached, update the user's role status
-  if (unAttachedDocumentTypes.length === 0) {
-    const userData = await updateUserRoleStatus({
-      user,
-      roleId,
-      userRoleStatusUniqueId,
-      userRoleId,
-      statusId,
-      userRoleStatusDescription,
-      phoneNumber,
-    });
-    return {
-      message: "success",
-      ...userData,
-      attachedDocumentsByStatus,
-      unAttachedDocumentTypes: [], // No unattached documents
-    };
-  }
-
-  // Return unattached documents and attached documents by their status
-  return {
-    message: "success",
-    unAttachedDocumentTypes, // Documents that are required but not attached
-    attachedDocumentsByStatus, // Grouped attached documents by status
-  };
+  return { message: "success", data: "Document deleted successfully" };
 };
 
 const acceptRejectAttachedDocuments = async (body) => {
   const userUniqueId = body?.user?.userUniqueId; // Admin's unique ID
-  const documentOwnerUserUniqueId = body?.documentOwnerUserUniqueId; // The driver (document owner's) unique ID
+  const ownerUserUniqueId = body?.ownerUserUniqueId; // The driver (document owner's) unique ID
   const attachedDocumentUniqueId = body?.attachedDocumentUniqueId; // Unique ID of the document to update
   const action = body?.action; // Accept or Reject (from the request body)
   const adminDecisionReason = body?.reason || null; // Optional reason for acceptance or rejection
@@ -286,7 +250,7 @@ const acceptRejectAttachedDocuments = async (body) => {
   // Ensure that all required fields are provided
   if (
     !userUniqueId ||
-    !documentOwnerUserUniqueId ||
+    !ownerUserUniqueId ||
     !attachedDocumentUniqueId ||
     !action
   ) {
@@ -306,9 +270,18 @@ const acceptRejectAttachedDocuments = async (body) => {
     tableName: "AttachedDocuments",
     conditions: {
       attachedDocumentUniqueId,
-      userUniqueId: documentOwnerUserUniqueId, // Ensure the document belongs to the driver (owner)
+      userUniqueId: ownerUserUniqueId, // Ensure the document belongs to the driver (owner)
     },
   });
+
+  if (attachedDocument.length === 0) {
+    return {
+      message: "error",
+      data: "Document not found or does not belong to this user",
+    };
+  }
+
+  // Update the document's acceptance status
   attachedDocument[0].attachedDocumentAcceptance = action;
   if (attachedDocument.length === 0) {
     return {
@@ -323,8 +296,8 @@ const acceptRejectAttachedDocuments = async (body) => {
     conditions: { attachedDocumentUniqueId },
     updateValues: {
       attachedDocumentAcceptance: action, // Update status to 'ACCEPTED' or 'REJECTED'
-      attachedDocumentUpdatedByUserId: userUniqueId, // Record admin's unique ID for tracking
-      attachedDocumentUpdatedAt: new Date(), // Set the update timestamp
+      attachedDocumentAcceptedRejectedByUserId: userUniqueId, // Record admin's unique ID for tracking
+      attachedDocumentAcceptedRejectedAt: new Date(),
       attachedDocumentAcceptanceReason: adminDecisionReason, // Record reason if provided
     },
   });
@@ -348,10 +321,9 @@ const acceptRejectAttachedDocuments = async (body) => {
 
 module.exports = {
   acceptRejectAttachedDocuments,
-  verifyUsersDocumentStatus,
   createAttachedDocument,
   getAttachedDocumentsByUser,
-  getAttachedDocumentById,
+  getAttachedDocumentByUniqueId,
   updateAttachedDocument,
   deleteAttachedDocument,
 };

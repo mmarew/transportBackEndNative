@@ -28,10 +28,10 @@ const getRequestByIdController = async (req, res) => {
 
 const acceptPassengerRequest = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
+    req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 3;
     req.body.previousStatusId = 2;
-    req.body.userUniqueId = userUniqueId;
     const result = await services.acceptPassengerRequest(req.body);
 
     ServerResponder(res, result, 200);
@@ -57,7 +57,7 @@ const deleteRequestController = async (req, res) => {
 
 const verifyDriverStatusController = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     const result = await services.verifyDriverStatus({ userUniqueId });
     ServerResponder(res, result, 200);
   } catch (error) {
@@ -67,10 +67,10 @@ const verifyDriverStatusController = async (req, res) => {
 };
 const startJourney = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.journeyStatusId = 4;
-    req.body.userUniqueId = userUniqueId;
     req.body.previousStatusId = 3;
+    req.body.userUniqueId = userUniqueId;
     const result = await services.startJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
@@ -80,7 +80,7 @@ const startJourney = async (req, res) => {
 };
 const noAnswerFromDriver = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 11;
     req.body.previousStatusId = 2;
@@ -94,7 +94,7 @@ const noAnswerFromDriver = async (req, res) => {
 };
 const journeyCompleted = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 5;
     req.body.previousStatusId = 4;
@@ -105,13 +105,15 @@ const journeyCompleted = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
-const canceledByDriver = async (req, res) => {
+const cancelDriverRequest = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
-    req.body.userUniqueId = userUniqueId;
-    req.body.journeyStatusId = 7;
-    req.body.previousStatusId = [1, 2, 3, 4];
-    const result = await services.canceledByDriver(req.body);
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    let ownerUserUniqueId = req.params.userUniqueId;
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
+    req.body.ownerUserUniqueId = ownerUserUniqueId;
+    req.body.user = user;
+    const result = await services.cancelDriverRequest(req.body);
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error in canceledByDriver:", error);
@@ -120,7 +122,7 @@ const canceledByDriver = async (req, res) => {
 };
 const attachRequiredDocuments = async (req, res) => {
   try {
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     const result = await services.attachRequiredDocuments(req.body);
     ServerResponder(res, result);
@@ -129,9 +131,29 @@ const attachRequiredDocuments = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
+const driversDocumentVehicleRequirement = async (req, res) => {
+  try {
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    let ownerUserUniqueId = req.params.userUniqueId;
+
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
+    req.body.user = user;
+    req.body.ownerUserUniqueId = ownerUserUniqueId;
+    const result = await services.driversDocumentVehicleRequirement(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@driversDocumentVehicleRequirement error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
+  }
+};
 module.exports = {
+  driversDocumentVehicleRequirement,
   attachRequiredDocuments,
-  canceledByDriver,
+  cancelDriverRequest,
   journeyCompleted,
   noAnswerFromDriver,
   startJourney,

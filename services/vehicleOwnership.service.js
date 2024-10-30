@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 
 const createVehicleOwnership = async (body) => {
   const { vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate } =
@@ -109,8 +110,25 @@ const getAllVehicleOwnerships = async () => {
     throw error;
   }
 };
-
+const getVehicleOwnershipByUserUniqueId = async (userUniqueId) => {
+  const vehicle = await performJoinSelect({
+    baseTable: "Vehicle",
+    joins: [
+      {
+        table: "VehicleOwnership",
+        on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+      },
+      {
+        table: "User",
+        on: "VehicleOwnership.userUniqueId = User.userUniqueId",
+      },
+    ],
+    conditions: { "VehicleOwnership.userUniqueId": userUniqueId },
+  });
+  return vehicle;
+};
 module.exports = {
+  getVehicleOwnershipByUserUniqueId,
   createVehicleOwnership,
   getVehicleOwnership,
   updateVehicleOwnership,

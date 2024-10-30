@@ -55,7 +55,7 @@ const deleteRequest = async (req, res) => {
 const verifyPassengerStatus = async (req, res) => {
   try {
     // return "verifyPassengerStatus";
-    const { userUniqueId } = req.user.data;
+    const { userUniqueId } = req?.user;
     const result = await PassengerService.verifyPassengerStatus({
       userUniqueId,
     });
@@ -64,7 +64,22 @@ const verifyPassengerStatus = async (req, res) => {
     ServerResponder(res, result, 200);
   }
 };
+const cancelPassengerRequest = async (req, res) => {
+  try {
+    let ownerUserUniqueId = req.params.userUniqueId;
+    const { userUniqueId } = req?.user;
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
+    req.body.ownerUserUniqueId = ownerUserUniqueId;
+    const user = req.user;
+    req.body.user = user;
+    const result = await PassengerService.cancelPassengerRequest(req.body);
+    ServerResponder(res, result, 200);
+  } catch (error) {
+    ServerResponder(res, result, 200);
+  }
+};
 module.exports = {
+  cancelPassengerRequest,
   verifyPassengerStatus,
   createRequest,
   getRequestById,

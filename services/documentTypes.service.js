@@ -4,23 +4,34 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const { pool } = require("../Middleware/Database.config");
 const uuidv4 = require("uuid").v4;
 
-const createDocumentType = async ({ body, user }) => {
-  const {
-    documentTypeName,
-    documentTypeDescription,
-    uploadedDocumentName,
-    uploadedDocumentExpirationDate,
-    uploadedDocumentTypeId,
-    uploadedDocumentDescription,
-  } = body;
-  const { userUniqueId } = user.data;
+const createDocumentType = async ({ body }) => {
+  const { documentTypeName, documentTypeDescription, user } = body;
+
+  // Utility function to convert string to camelCase
+  const toCamelCase = (str) => {
+    return str
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, "") // Remove any non a-z characters
+      .replace(/(?:^\w|\b\w)/g, (match, index) =>
+        index === 0 ? match.toLowerCase() : match.toUpperCase()
+      )
+      .replace(/\s+/g, ""); // Remove all spaces
+  };
+
+  const camelCaseDocumentName = toCamelCase(documentTypeName);
+
+  const uploadedDocumentName = camelCaseDocumentName,
+    uploadedDocumentExpirationDate = camelCaseDocumentName + "ExpirationDate",
+    uploadedDocumentTypeId = camelCaseDocumentName + "TypeId",
+    uploadedDocumentDescription = camelCaseDocumentName + "Description";
+  const userUniqueId = user?.userUniqueId;
   // verify if userUniqueId is valid and active
   const userExists = await getData({
     tableName: "Users",
     conditions: { userUniqueId },
   });
   if (userExists.length === 0) {
-    return { message: "error", data: "User not found" };
+    return { message: "error", data: "User not found to create document type" };
   }
   // Check if the document type already exists
   const existingDocumentType = await getData({
@@ -89,7 +100,6 @@ const updateDocumentType = async ({
   });
   const { documentTypeName, documentTypeDescription, updatedByUserId, user } =
     updateDataValues;
-  console.log("user", user);
   const userUniqueId = user?.userUniqueId;
   if (existingDocumentType.length === 0) {
     return { message: "error", data: "Document type not found" };

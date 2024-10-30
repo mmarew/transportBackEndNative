@@ -1,83 +1,91 @@
-// controllers/vehicleTypeController.js
-
-const {
-  registerVehicleType,
-  getVehicleType,
-  updateVehicleType,
-  deleteVehicleType,
-  getAllVehicleTypes,
-} = require("../services/VechleType.service");
+const VehicleTypeService = require("../services/VechleType.service");
+const { vehicleTypes } = require("../Utils/listOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder");
-
-const registerVehicleTypeController = async (req, res) => {
+const createVehicleTypeController = async (req, res) => {
   try {
-    const response = await registerVehicleType(req?.body, req?.file);
-    ServerResponder(res, response);
-  } catch (error) {
-    console.error("Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      data: "Vehicle type registration failed",
-    });
-  }
-};
+    const user = req?.user;
+    const { vehicleTypeName, carryingCapacity } = req.body;
 
-const getVehicleTypeController = async (req, res) => {
-  try {
-    const response = await getVehicleType(req.params.id);
-    ServerResponder(res, response);
+    const result = await VehicleTypeService.createVehicleType(
+      { vehicleTypeName, carryingCapacity },
+      user.userUniqueId
+    );
+    ServerResponder(res, result);
   } catch (error) {
-    console.error("Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      data: "Failed to retrieve vehicle type",
-    });
-  }
-};
+    // Log the error for debugging
+    console.error("Error in createVehicleTypeController:", error);
 
-const updateVehicleTypeController = async (req, res) => {
-  try {
-    const response = await updateVehicleType(req.params.id, req.body);
-    ServerResponder(res, response);
-  } catch (error) {
-    console.error("Error:", error);
-    ServerResponder(res, {
+    // Send error response
+    return ServerResponder(res, {
       message: "error",
-      data: "Failed to update vehicle type",
-    });
-  }
-};
-
-const deleteVehicleTypeController = async (req, res) => {
-  try {
-    const response = await deleteVehicleType(req.params.id);
-    ServerResponder(res, response);
-  } catch (error) {
-    console.error("Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      data: "Failed to delete vehicle type",
+      error: "Failed to create vehicle type",
     });
   }
 };
 
 const getAllVehicleTypesController = async (req, res) => {
   try {
-    const response = await getAllVehicleTypes();
-    ServerResponder(res, response);
+    const result = await VehicleTypeService.getAllVehicleTypes();
+    ServerResponder(res, result);
   } catch (error) {
-    console.error("Error:", error);
-    ServerResponder(res, {
+    return ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve vehicle types",
+      error: "Failed to get vehicle type",
+    });
+  }
+};
+
+const getVehicleTypeByIdController = async (req, res) => {
+  try {
+    const vehicleTypeId = req.params.vehicleTypeId;
+    const result = await VehicleTypeService.getVehicleTypeById(vehicleTypeId);
+    ServerResponder(res, result);
+  } catch (error) {
+    return ServerResponder(res, {
+      message: "error",
+      error: "Failed to get vehicle type",
+    });
+  }
+};
+
+const updateVehicleTypeController = async (req, res) => {
+  try {
+    const vehicleTypeId = req.params.vehicleTypeId;
+    const result = await VehicleTypeService.updateVehicleType(
+      vehicleTypeId,
+      req.body,
+      req?.user.userUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    return ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete vehicle type",
+    });
+  }
+};
+
+const deleteVehicleTypeController = async (req, res) => {
+  try {
+    const vehicleTypeId = req.params.vehicleTypeId;
+    const result = await VehicleTypeService.deleteVehicleType(
+      vehicleTypeId,
+      req?.user.userUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error deleting vehicle type:", error);
+    return ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete vehicle type",
     });
   }
 };
 
 module.exports = {
-  registerVehicleTypeController,
-  getVehicleTypeController,
+  createVehicleTypeController,
+  getAllVehicleTypesController,
+  getVehicleTypeByIdController,
   updateVehicleTypeController,
   deleteVehicleTypeController,
-  getAllVehicleTypesController,
 };

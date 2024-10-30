@@ -1,0 +1,125 @@
+const { v4: uuidv4 } = require("uuid");
+const { getData } = require("../CRUD/Read/ReadData");
+const { updateData } = require("../CRUD/Update/Data.update");
+const deleteData = require("../CRUD/Delete/DeleteData");
+const { insertData } = require("../CRUD/Create/CreateData");
+
+// Create a new journey status
+const createJourneyStatus = async (body) => {
+  const { journeyStatusName, journeyStatusDescription } = body;
+  const journeyStatusUniqueId = uuidv4();
+  // Check if the journey status already exists
+  const existingJourneyStatus = await getData({
+    tableName: "JourneyStatus",
+    conditions: { journeyStatusName },
+  });
+
+  if (existingJourneyStatus.length > 0) {
+    return {
+      message: "error",
+      error: "Journey status already exists",
+    };
+  }
+
+  const newJourneyStatus = {
+    journeyStatusUniqueId,
+    journeyStatusName,
+    journeyStatusDescription,
+    journeyStatusCreatedAt: new Date(),
+  };
+
+  const result = await insertData({
+    tableName: "JourneyStatus",
+    colAndVal: newJourneyStatus,
+  });
+
+  if (result.affectedRows > 0) {
+    return {
+      message: "success",
+      data: newJourneyStatus,
+    };
+  } else {
+    return {
+      message: "error",
+      error: "Failed to create journey status",
+    };
+  }
+};
+
+// Get all journey statuses
+const getAllJourneyStatuses = async () => {
+  const result = await getData({ tableName: "JourneyStatus" });
+  return {
+    message: "success",
+    data: result,
+  };
+};
+
+// Get a journey status by ID
+const getJourneyStatusById = async (journeyStatusId) => {
+  const result = await getData({
+    tableName: "JourneyStatus",
+    conditions: { journeyStatusId },
+  });
+
+  if (result.length > 0) {
+    return {
+      message: "success",
+      data: result[0],
+    };
+  } else {
+    return {
+      message: "error",
+      error: "Journey status not found",
+    };
+  }
+};
+
+// Update a journey status by ID
+const updateJourneyStatus = async (journeyStatusId, body) => {
+  const result = await updateData({
+    tableName: "JourneyStatus",
+    conditions: { journeyStatusId },
+    updateValues: body,
+  });
+
+  if (result.affectedRows > 0) {
+    return {
+      message: "success",
+      data: `Journey status with ID ${journeyStatusId} updated successfully`,
+    };
+  } else {
+    return {
+      message: "error",
+      error: "Failed to update journey status",
+    };
+  }
+};
+
+// Delete a journey status by ID
+const deleteJourneyStatus = async (journeyStatusId) => {
+  const result = await deleteData({
+    tableName: "JourneyStatus",
+    conditions: { journeyStatusId },
+  });
+
+  if (result.affectedRows > 0) {
+    return {
+      message: "success",
+      data: `Journey status with ID ${journeyStatusId} deleted successfully`,
+    };
+  } else {
+    return {
+      message: "error",
+      error: "Failed to delete journey status",
+    };
+  }
+};
+
+module.exports = {
+  createJourneyStatus,
+  getAllJourneyStatuses,
+  getJourneyStatusById,
+  updateJourneyStatus,
+  deleteJourneyStatus,
+};

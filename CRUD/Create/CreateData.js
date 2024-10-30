@@ -24,7 +24,6 @@ const registerCanceledJourney = async (data) => {
     cancellationBy,
     cancellationTime,
   } = data;
-  console.log("data", data);
   // return;
   const cancellationUniqueId = uuidv4();
   const sqlToRegisterCanceledJourney = `INSERT INTO canceledJourneyRequests (cancellationUniqueId,cancellationReasonTypeUniqueId, requestUniqueId, waitUniqueId, cancellationBy, cancellationTime) VALUES (?, ?, ?, ?, ?, ?)`;

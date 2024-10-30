@@ -24,9 +24,7 @@
           `${hostLocal}?phoneNumber=${phoneNumber}&user=SMSSender&password=123&token=${token}`
         );
 
-        ws.addEventListener("open", () => {
-          console.log("Connected to WebSocket server");
-        });
+        ws.addEventListener("open", () => {});
 
         ws.addEventListener("message", (event) => {
           console.log("Message from server:", event.data);
@@ -89,19 +87,19 @@
  => bank letter if it is hold by bank
 
  financial part 
- ====================================================
+ 
 => store deposite in bank
 => use ebirr with telebirr for payment deduction
 
 how to get passenger
-==============================
+==
 1) call center 
 2) driver pick up the passenger
 3) passenger call via app 
 
 
 ferese corporate
-==============================
+==
 => company order to there employee  also via deposite in bank
 => security of user passenger by verifing id of passenger
 -->

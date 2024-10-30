@@ -12,7 +12,6 @@ const acceptPassengerRequest = async (req) => {
       passengerRequestUniqueId,
       driverWaitUniqueId,
     } = req.body;
-    console.log("req.body", req.body);
 
     const isDataInCorrectStatus = await verifyRecordsByConditions([
       {
@@ -38,12 +37,9 @@ const acceptPassengerRequest = async (req) => {
       },
     ]);
 
-    // console.log("isDataInCorrectStatus", isDataInCorrectStatus);
     if (!isDataInCorrectStatus) {
       return { message: "error", error: "Request not in correct status" };
     }
-    // return;
-    // update journey Decisions
     const journeyDecisionStatus = await updateData({
       tableName: "journeyDecisions",
       updateValues: { journeyStatusId: 3 },
@@ -93,7 +89,6 @@ const acceptPassengerRequest = async (req) => {
           conditions: { journeyDecisionUniqueId },
         });
       const userPassengerPhoneNumber = passenger[0].phoneNumber;
-      console.log("userPassengerPhoneNumber", userPassengerPhoneNumber);
       sendNotificationToPassenger({
         phoneNumber: userPassengerPhoneNumber,
         message: {
@@ -132,7 +127,6 @@ const verifyRecordsByConditions = async (dataArray) => {
 
   // Wait for all promises to resolve
   const results = await Promise.all(promises);
-  console.log("results", results);
   // Check if all results have entries (length > 0)
   return results.every((result) => result.length > 0);
 };
@@ -143,7 +137,6 @@ const startJourney = async (req) => {
       passengerRequestUniqueId,
       driverWaitUniqueId,
     } = req.body;
-    console.log("startJourney");
     // return;
     const expectedStatusId = 3;
     // verify if records exist
@@ -170,7 +163,6 @@ const startJourney = async (req) => {
         },
       },
     ]);
-    console.log("isDataExist", isDataExist);
 
     if (!isDataExist) {
       return { message: "error", error: "Request not found" };

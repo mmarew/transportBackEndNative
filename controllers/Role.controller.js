@@ -9,12 +9,13 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createRoleController = async (req, res) => {
   try {
-    const response = await createRole(req.body);
-    ServerResponder(res, response);
+    const user = req.user;
+    req.body.user = user;
+    const result = await createRole(req.body);
+    return ServerResponder(res, result);
   } catch (error) {
-    ServerResponder(res, error.message);
-    console.error("Error:", error);
-    res.status(500).json({ message: "Role creation failed" });
+    console.error("Error in createRoleController:", error);
+    return ServerResponder(res, "Role creation failed", 500);
   }
 };
 

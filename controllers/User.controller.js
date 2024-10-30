@@ -1,15 +1,9 @@
-const {
-  createUser,
-  getUser,
-  deleteUser,
-  getAllUsers,
-} = require("../services/User.service");
 const services = require("../services/User.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
-const createUserController = async (req, res) => {
+const createUser = async (req, res) => {
   try {
-    const response = await createUser(req.body);
+    const response = await services.createUser(req.body);
     ServerResponder(res, response);
   } catch (error) {
     console.error("Error:", error);
@@ -19,20 +13,34 @@ const createUserController = async (req, res) => {
     });
   }
 };
+const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
+  try {
+    const response = await services.getUserByEmailOrNameOrPhoneNumber(
+      req.params.data
+    );
+    ServerResponder(res, response);
+  } catch (error) {
+    console.error("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Failed to retrieve user",
+    });
+  }
+};
 const verifyUserByOTP = async (req, res, next) => {
   try {
     ServerResponder(res, await services.verifyUserByOTP(req));
   } catch (error) {
-    console.log("error in verifyUserByOTP controller error", error);
+    console.log("@verifyUserByOTP in verifyUserByOTP error", error);
     ServerResponder(res, {
       message: "error",
       data: "User creation failed",
     });
   }
 };
-const getUserController = async (req, res) => {
+const getUser = async (req, res) => {
   try {
-    const response = await getUser(req.params.id);
+    const response = await services.getUser(req.params.id);
     ServerResponder(res, response);
   } catch (error) {
     console.error("Error:", error);
@@ -43,9 +51,9 @@ const getUserController = async (req, res) => {
   }
 };
 
-const deleteUserController = async (req, res) => {
+const deleteUser = async (req, res) => {
   try {
-    const response = await deleteUser(req.params.id);
+    const response = await services.deleteUser(req.params.userUniqueId);
     ServerResponder(res, response);
   } catch (error) {
     console.error("Error:", error);
@@ -56,9 +64,9 @@ const deleteUserController = async (req, res) => {
   }
 };
 
-const getAllUsersController = async (req, res) => {
+const getAllUsers = async (req, res) => {
   try {
-    const response = await getAllUsers();
+    const response = await services.getAllUsers();
     ServerResponder(res, response);
   } catch (error) {
     console.error("Error:", error);
@@ -68,7 +76,7 @@ const getAllUsersController = async (req, res) => {
     });
   }
 };
-const updateUserController = async (req, res) => {
+const updateUser = async (req, res) => {
   try {
     const response = await services.updateUser(req.body);
     ServerResponder(res, response);
@@ -82,10 +90,11 @@ const updateUserController = async (req, res) => {
 };
 
 module.exports = {
-  updateUserController,
+  getUserByEmailOrNameOrPhoneNumber,
+  updateUser,
   verifyUserByOTP,
-  createUserController,
-  getUserController,
-  deleteUserController,
-  getAllUsersController,
+  createUser,
+  getUser,
+  deleteUser,
+  getAllUsers,
 };

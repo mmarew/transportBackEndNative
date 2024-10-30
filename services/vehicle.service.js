@@ -6,77 +6,90 @@ const currentDate = require("../Utils/currentDate");
 
 const createVehicle = async (body) => {
   try {
-    const { vehicleTypeUniqueId, licensePlate, userUniqueId } = body;
+    const { vehicleTypeUniqueId, licensePlate, color, user } = body; // Added 'color'
+    const userUniqueId = user?.userUniqueId;
 
-    if (!licensePlate || !vehicleTypeUniqueId) {
+    // Validate required fields
+    if (!licensePlate || !vehicleTypeUniqueId || !color) {
       return {
         message: "error",
-        data: "All fields (vehicleTypeUniqueId, licensePlate, vehicleStatus) are required",
+        data: "All fields (vehicleTypeUniqueId, licensePlate, color) are required",
       };
     }
 
-    let vehicleUniqueId = uuidv4();
+    // Check if the vehicle type exists
+    const vehicleType = await getData({
+      tableName: "VehicleType",
+      conditions: { vehicleTypeUniqueId },
+    });
+    if (vehicleType.length === 0) {
+      return { message: "error", error: "Vehicle type not found" };
+    }
 
-    // Verify if vehicle already exists
-    const vehicle = await getData({
+    // Check if the vehicle already exists by license plate
+    const existingVehicle = await getData({
       tableName: "Vehicle",
       conditions: { licensePlate },
     });
-    if (vehicle.length == 0) {
-      // Insert new vehicle
-      const result = await insertData({
+
+    let vehicleUniqueId =
+      existingVehicle.length > 0
+        ? existingVehicle[0].vehicleUniqueId
+        : uuidv4();
+
+    // Handle existing vehicle
+    if (existingVehicle.length > 0) {
+      // Check if the vehicle is already owned by a user
+      const vehicleOwnership = await getData({
+        tableName: "VehicleOwnership",
+        conditions: { vehicleUniqueId },
+      });
+
+      if (vehicleOwnership.length > 0) {
+        const ownerUserUniqueId = vehicleOwnership[0].userUniqueId;
+        if (ownerUserUniqueId !== userUniqueId) {
+          return {
+            message: "error",
+            data: "This vehicle is already owned by another user",
+          };
+        } else {
+          return {
+            message: "success",
+            data: "This vehicle is already owned by this user",
+          };
+        }
+      }
+    }
+
+    // If the vehicle does not exist, proceed to create the vehicle record
+    if (existingVehicle.length === 0) {
+      await insertData({
         tableName: "Vehicle",
         colAndVal: {
           vehicleUniqueId,
           vehicleTypeUniqueId,
           licensePlate,
+          color, // Add color field when creating a vehicle
+          vehicleCreatedBy: userUniqueId,
+          vehicleCreatedAt: currentDate(),
         },
       });
-    } else vehicleUniqueId = vehicle[0].vehicleUniqueId;
-    // verify if the owner already have this vechle.
-    const relation = await performJoinSelect({
-      baseTable: "VehicleOwnership",
-      joins: [
-        {
-          table: "Users",
-          on: "VehicleOwnership.userUniqueId = Users.userUniqueId",
-        },
-        {
-          table: "Vehicle",
-          on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
-        },
-      ],
-      conditions: {
-        "VehicleOwnership.userUniqueId": userUniqueId,
-        licensePlate,
-      },
-    });
-    // create ownership
-    if (relation?.length > 0)
-      return { message: "error", data: "User already have this vehicle" };
-    const ownershipUniqueId = uuidv4();
+    }
 
-    const result = await insertData({
+    // Create vehicle ownership record
+    const ownershipUniqueId = uuidv4();
+    const ownershipResult = await insertData({
       tableName: "VehicleOwnership",
       colAndVal: {
         ownershipUniqueId,
         vehicleUniqueId,
         userUniqueId,
-        roleId: 1,
+        roleId: 2, // Assuming roleId 2 means the user is the driver
         ownershipStartDate: currentDate(),
       },
     });
 
-    await insertData({
-      tableName: "VehicleStatus",
-      colAndVal: {
-        vehicleStatusUniqueId: uuidv4(),
-        vehicleUniqueId,
-        statusTypeId: 1,
-        statusStartDate: currentDate(),
-      },
-    });
-    if (result.affectedRows > 0) {
+    if (ownershipResult.affectedRows > 0) {
       return { message: "success", data: "Vehicle created successfully" };
     }
 
@@ -88,6 +101,28 @@ const createVehicle = async (body) => {
       data: "An error occurred during vehicle creation",
     };
   }
+};
+const verifyUsersVehicle = async (body) => {
+  let { ownerUserUniqueId } = body;
+  if (ownerUserUniqueId == "self") {
+    ownerUserUniqueId = body.user.userUniqueId;
+  }
+
+  const result = await performJoinSelect({
+    baseTable: "Vehicle",
+    joins: [
+      {
+        table: "VehicleOwnership",
+        on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+      },
+      {
+        table: "Users",
+        on: "VehicleOwnership.userUniqueId = Users.userUniqueId",
+      },
+    ],
+    conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
+  });
+  return result;
 };
 
 const getVehicle = async (vehicleUniqueId) => {
@@ -193,6 +228,7 @@ const getAllVehicles = async () => {
 };
 
 module.exports = {
+  verifyUsersVehicle,
   createVehicle,
   getVehicle,
   updateVehicle,

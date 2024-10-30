@@ -6,9 +6,16 @@ const {
   updateVehicleController,
   deleteVehicleController,
   getAllVehiclesController,
+  verifyUsersVehicle,
 } = require("../controllers/vehicle.controller");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
-router.post("/api/admin/vehicles", createVehicleController); // Create a new vehicle
+router.post("/api/user/vehicles", verifyTokenOfAxios, createVehicleController); // Create a new vehicle
+router.get(
+  "/api/user/verifyUsersVehicle/:ownerUserUniqueId",
+  verifyTokenOfAxios,
+  verifyUsersVehicle
+); // Get vehicle by ID
 router.get("/api/admin/vehicles/:vehicleId", getVehicleController); // Get vehicle by ID
 router.put("/api/admin/vehicles/:vehicleId", updateVehicleController); // Update vehicle
 router.delete("/api/admin/vehicles/:vehicleId", deleteVehicleController); // Delete vehicle

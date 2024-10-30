@@ -1,27 +1,33 @@
 // routes/userRoutes.js
 const express = require("express");
-const {
-  createUserController,
-  getUserController,
-  deleteUserController,
-  getAllUsersController,
-  verifyUserByOTP,
-  updateUserController,
-} = require("../controllers/User.controller");
+const constroller = require("../controllers/User.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 const router = express.Router();
-
-router.post("/api/user/createUser", createUserController);
-router.post("/api/admin/createUser", verifyTokenOfAxios, createUserController);
-router.get("/api/user/verifyUserByOTP", verifyUserByOTP);
-router.put("/api/user/updateUser", verifyTokenOfAxios, updateUserController);
-router.get("/api/admin/getUser/:id", verifyTokenOfAxios, getUserController);
-router.delete(
-  "/api/admin/deleteUser/:id",
+router.get(
+  "/api/admin/getUserByEmailOrNameOrPhoneNumber/:data",
   verifyTokenOfAxios,
-  deleteUserController
+
+  constroller.getUserByEmailOrNameOrPhoneNumber
 );
-router.get("/api/admin/getAllUsers", verifyTokenOfAxios, getAllUsersController);
+router.post("/api/user/createUser", constroller.createUser);
+router.post(
+  "/api/admin/createUser",
+  verifyTokenOfAxios,
+  constroller.createUser
+);
+router.get("/api/user/verifyUserByOTP", constroller.verifyUserByOTP);
+router.put("/api/user/updateUser", verifyTokenOfAxios, constroller.updateUser);
+router.get("/api/admin/getUser/:id", verifyTokenOfAxios, constroller.getUser);
+router.delete(
+  "/api/user/deleteUser/:userUniqueId",
+  verifyTokenOfAxios,
+  constroller.deleteUser
+);
+router.get(
+  "/api/admin/getAllUsers",
+  verifyTokenOfAxios,
+  constroller.getAllUsers
+);
 
 module.exports = router;

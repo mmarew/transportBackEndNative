@@ -1,15 +1,14 @@
-const documentTypesService = require("../services/documentTypes.service");
+const documentTypesService = require("../Services/DocumentTypes.service");
 const ServerResponder = require("../utils/ServerResponder");
-
 const createDocumentType = async (req, res) => {
   try {
-    // console.log("req.user ==========> ", req.user.data.userUniqueId);
-    // return;
-    const result = await documentTypesService.createDocumentType({
+    const user = req?.body?.user;
+
+    req.body.user = user;
+    const response = await documentTypesService.createDocumentType({
       body: req.body,
-      user: req.user,
     });
-    return ServerResponder(res, result, 201);
+    return ServerResponder(res, response);
   } catch (error) {
     console.error("Error in createDocumentType:", error);
     return ServerResponder(res, "Failed to create document type", 500);
@@ -40,8 +39,8 @@ const getDocumentTypeById = async (req, res) => {
 
 const updateDocumentType = async (req, res) => {
   try {
-    const user = req.user.data;
-    req.body.user = user;
+    const user = req?.user;
+    req.user = user;
     const result = await documentTypesService.updateDocumentType({
       documentTypeUniqueId: req.params.id,
       updateDataValues: req.body,
