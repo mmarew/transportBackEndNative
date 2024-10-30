@@ -23,6 +23,7 @@ const {
   getUserRoleStatus,
 } = require("./UserRoleStatus.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
+const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -113,6 +114,7 @@ const acceptPassengerRequest = async (body) => {
 };
 const startJourney = async (body) => {
   const journeyUniqueId = uuidv4();
+  const { latitude, longitude } = body;
   // check if driver has active journey request by journeyDecisionUniqueId,
   const exisistingJourney = await getData({
     tableName: "Journey",
@@ -120,7 +122,7 @@ const startJourney = async (body) => {
   });
 
   if (exisistingJourney.length == 0) {
-    await insertData({
+    const insertResult = await insertData({
       tableName: "Journey",
       colAndVal: {
         journeyUniqueId,
@@ -128,7 +130,12 @@ const startJourney = async (body) => {
         journeyStatusId: body.journeyStatusId,
       },
     });
+    const insertId = insertResult.insertId;
+    await createJourneyRoutePoint({ journeyId: insertId, latitude, longitude });
     await updateJourneyStatus(body);
+  } else {
+    const journeyId = exisistingJourney[0].journeyId;
+    await createJourneyRoutePoint({ journeyId, latitude, longitude });
   }
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,

@@ -1,4 +1,4 @@
-const documentTypesService = require("../services/documentTypes.service");
+const documentTypesService = require("../Services/DocumentTypes.service");
 const ServerResponder = require("../utils/ServerResponder");
 const createDocumentType = async (req, res) => {
   try {

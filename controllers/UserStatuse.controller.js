@@ -1,4 +1,4 @@
-const userStatusesService = require("../services/userStatuse.service");
+const userStatusesService = require("../Services/UserStatuse.service");
 const ServerResponder = require("../utils/ServerResponder");
 
 const createUserStatus = async (req, res) => {

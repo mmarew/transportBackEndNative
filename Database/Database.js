@@ -110,10 +110,8 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleId INT NOT NULL,  -- Foreign key to UserRole
     userRoleStatusDescription TEXT NULL,  -- Description of the current role status
     userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
-    userRoleStatusCreatedAt DATETIME NOT NULL  -- When the current status was created
-    
+    userRoleStatusCreatedAt DATETIME NOT NULL  -- When the current status was created    
 ) ;
-
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
 CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
@@ -299,6 +297,15 @@ CREATE TABLE IF NOT EXISTS Journey (
     FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
+-- Create the JourneyRoutePoints table
+CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
+    pointId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyId INT NOT NULL,  -- Foreign key to the Journey table
+    latitude DECIMAL(10, 8) NOT NULL,  -- Latitude of the GPS point
+    longitude DECIMAL(11, 8) NOT NULL,  -- Longitude of the GPS point
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp of when the GPS point was recorded
+    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId) ON DELETE CASCADE  -- Link to the Journey table
+);
 
 
 -- Create the Vehicle table
@@ -382,15 +389,15 @@ CREATE TABLE IF NOT EXISTS CancellationReasonsType (
 CREATE TABLE IF NOT EXISTS PaymentMethod (
     paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
     paymentMethodUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment method
-    paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., Credit Card, PayPal)
+    paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., on cash, by bank, by tele birr)
     createdAt DATETIME NOT NULL  -- Creation time of the payment method
 ) ;  
- -- Create the PaymentStatus table
 
+ -- Create the PaymentStatus table
 CREATE TABLE IF NOT EXISTS PaymentStatus (
     paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
     paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
-    paymentStatusList VARCHAR(50) NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
+    paymentStatus VARCHAR(50) NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
     createdAt DATETIME NOT NULL,  -- Creation time of the payment status
     deletedAt DATETIME NULL  -- Deletion time of the payment status
 ) ;

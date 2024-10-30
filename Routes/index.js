@@ -20,6 +20,11 @@ const RoleDocumentRequirements = require("./RoleDocumentRequirements.routes");
 const database = require("./Database.routes");
 const journeyStatus = require("./JourneyStatus.routes");
 const canceledJourney = require("./CanceledJourneys.routes");
+const JourneyRoutePoints = require("./JourneyRoutePoints.routes");
+const paymentMethod = require("./paymentMethod.routes");
+
+Routes.use(paymentMethod);
+Routes.use(JourneyRoutePoints);
 Routes.use(canceledJourney);
 Routes.use(journeyStatus);
 Routes.use(database);

@@ -1,4 +1,4 @@
-const journeyStatusService = require("../Services/journeyStatus.service");
+const journeyStatusService = require("../Services/JourneyStatus.service");
 const ServerResponder = require("../utils/ServerResponder");
 
 // Create a new journey status

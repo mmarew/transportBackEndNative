@@ -1,5 +1,5 @@
 const { performJoinSelect, getData } = require("../CRUD/Read/ReadData");
-const attachedDocumentsService = require("../Services/attachedDocuments.service");
+const attachedDocumentsService = require("../Services/AttachedDocuments.service");
 const { deleteFile } = require("../Utils/fileUtils");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");

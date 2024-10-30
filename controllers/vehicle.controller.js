@@ -4,8 +4,8 @@ const {
   updateVehicle,
   deleteVehicle,
   getAllVehicles,
-} = require("../services/vehicle.service");
-const services = require("../services/vehicle.service");
+} = require("../Services/Vehicle.service");
+const services = require("../Services/Vehicle.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createVehicleController = async (req, res) => {

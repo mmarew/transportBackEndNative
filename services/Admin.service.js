@@ -1,6 +1,6 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
-const { getAttachedDocumentsByUser } = require("./attachedDocuments.service");
+const { getAttachedDocumentsByUser } = require("./AttachedDocuments.service");
 
 const adminServices = {
   // Fetch completed journeys

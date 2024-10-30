@@ -8,11 +8,8 @@ const {
   startJourney,
   noAnswerFromDriver,
   journeyCompleted,
-  canceledByDriver,
   attachRequiredDocuments,
-  driversRequirement,
   cancelDriverRequest,
-  driversDocumentRequirement,
   driversDocumentVehicleRequirement,
 } = require("../controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");

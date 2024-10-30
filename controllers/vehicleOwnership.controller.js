@@ -6,7 +6,7 @@ const {
   deleteVehicleOwnership,
   getAllVehicleOwnerships,
   getVehicleOwnershipByUserUniqueId,
-} = require("../services/vehicleOwnership.service");
+} = require("../Services/VehicleOwnership.service");
 const ServerResponder = require("../utils/ServerResponder");
 
 const createVehicleOwnershipController = async (req, res) => {

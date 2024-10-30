@@ -510,8 +510,26 @@ const cancellationReasons = [
   { reason: "Route unavailable", cancellationByRoleId: 3 },
   { reason: "Driver no longer available", cancellationByRoleId: 3 },
 ];
+const paymentStatus = [
+  {
+    paymentStatusId: 1,
+    paymentStatus: "pending",
+    paymentStatusDescription: "Payment is pending",
+  },
+  {
+    paymentStatusId: 2,
+    paymentStatus: "completed",
+    paymentStatusDescription: "Payment is completed",
+  },
+  {
+    paymentStatusId: 3,
+    paymentStatus: "failed",
+    paymentStatusDescription: "Payment failed",
+  },
+];
 
 module.exports = {
+  paymentStatus,
   cancellationReasons,
   journeyStatus,
   vehicleTypes,
