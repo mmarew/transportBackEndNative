@@ -5,26 +5,26 @@ const { getData } = require("../CRUD/Read/ReadData");
 const addCancellationReason = async (body) => {
   try {
     const cancellationReasonTypeUniqueId = uuidv4();
-    const roleId = body.cancellationBy;
-    const cancellationReasonType = body.reason;
+    const roleId = body.cancellationByRoleId;
+    const cancellationReason = body.reason;
 
     // Check if the reason already exists
     const isAvailable = await getData({
-      tableName: "cancellationReasonsType",
-      conditions: { cancellationReasonType },
+      tableName: "CancellationReasonsType",
+      conditions: { cancellationReason },
     });
     if (isAvailable.length > 0)
       return { message: "error", error: "Cancellation reason already exists" };
 
     const sqlToAddReason = `
-      INSERT INTO cancellationReasonsType 
-      (cancellationReasonTypeUniqueId, cancellationReasonType, roleId) 
+      INSERT INTO CancellationReasonsType 
+      (cancellationReasonTypeUniqueId, cancellationReason, roleId) 
       VALUES (?, ?, ?)
     `;
 
     const reasonValues = [
       cancellationReasonTypeUniqueId,
-      cancellationReasonType,
+      cancellationReason,
       roleId,
     ];
 
@@ -51,7 +51,7 @@ const addCancellationReason = async (body) => {
 
 // Function to get all cancellation reasons
 const getCancellationReasons = async () => {
-  const sqlToGetAllReasons = `SELECT * FROM cancellationReasonsType`;
+  const sqlToGetAllReasons = `SELECT * FROM CancellationReasonsType`;
   const [result] = await pool.query(sqlToGetAllReasons);
   return { message: "success", data: result };
 };
@@ -59,7 +59,7 @@ const getCancellationReasons = async () => {
 // Function to delete a cancellation reason by unique ID
 const deleteCancellationReason = async (req, res) => {
   const sqlToDeleteReason = `
-    DELETE FROM cancellationReasonsType 
+    DELETE FROM CancellationReasonsType 
     WHERE cancellationReasonTypeUniqueId = ?
   `;
   const cancellationReasonTypeUniqueId =
@@ -76,8 +76,8 @@ const deleteCancellationReason = async (req, res) => {
 // Function to update a cancellation reason by unique ID
 const updateCancellationReason = async (req, res) => {
   const sqlToUpdateReason = `
-    UPDATE cancellationReasonsType 
-    SET cancellationReasonType = ?, roleId = ? 
+    UPDATE CancellationReasonsType 
+    SET cancellationReason = ?, roleId = ? 
     WHERE cancellationReasonTypeUniqueId = ?
   `;
   const { reason, roleId, cancellationReasonTypeUniqueId } = req.body;

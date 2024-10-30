@@ -82,7 +82,7 @@ const createAttachedDocuments = async (req, res) => {
         joins: [
           {
             table: "UserRole",
-            on: "users.userUniqueId = UserRole.userUniqueId",
+            on: "Users.userUniqueId = UserRole.userUniqueId",
           },
           {
             table: "UserRoleStatusCurrent",

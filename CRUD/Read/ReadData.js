@@ -135,7 +135,7 @@ const findNearbyPassengers = async ({
       },
     ],
     conditions: {
-      "passengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
+      "PassengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
       "PassengerRequest.originLatitude": [latitudeRange.min, latitudeRange.max],
       "PassengerRequest.originLongitude": [
         longitudeRange.min,

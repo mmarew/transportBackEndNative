@@ -4,13 +4,13 @@ const { v4: uuidv4 } = require("uuid");
 const roleList = [
   {
     roleUniqueId: uuidv4(),
-    roleName: "Passenger",
+    roleName: 1,
     roleDescription: "a person who can make order to driver to load goods",
     roleCreatedAt: currentDate(),
   },
   {
     roleUniqueId: uuidv4(),
-    roleName: "driver",
+    roleName: 2,
     roleDescription:
       "a person who can recive order from passenger to load goods",
     roleCreatedAt: currentDate(),
@@ -476,33 +476,39 @@ const journeyStatus = [
   },
 ];
 const cancellationReasons = [
-  { reason: "Too late", cancellationBy: "passenger" },
-  { reason: "Change of plans", cancellationBy: "passenger" },
-  { reason: "Driver took too long", cancellationBy: "passenger" },
-  { reason: "Found another ride", cancellationBy: "passenger" },
-  { reason: "Driver did not meet my location", cancellationBy: "passenger" },
-  { reason: "Incorrect route", cancellationBy: "passenger" },
+  { reason: "Driver too late", cancellationByRoleId: 1 },
+  { reason: "Change of plans", cancellationByRoleId: 1 },
+  { reason: "Driver took too long", cancellationByRoleId: 1 },
+  { reason: "Found another ride", cancellationByRoleId: 1 },
+  {
+    reason: "Driver did not meet my location",
+    cancellationByRoleId: 1,
+  },
+  { reason: "Incorrect route", cancellationByRoleId: 1 },
   {
     reason: "Driver's vehicle didn't match description",
-    cancellationBy: "passenger",
+    cancellationByRoleId: 1,
   },
-  { reason: "Driver was rude or unprofessional", cancellationBy: "passenger" },
+  {
+    reason: "Driver was rude or unprofessional",
+    cancellationByRoleId: 1,
+  },
 
-  { reason: "Passenger didn’t show up", cancellationBy: "driver" },
-  { reason: "Passenger was unresponsive", cancellationBy: "driver" },
-  { reason: "Safety concerns", cancellationBy: "driver" },
-  { reason: "Incorrect pickup location", cancellationBy: "driver" },
-  { reason: "Passenger had too many people", cancellationBy: "driver" },
-  { reason: "Passenger was disrespectful", cancellationBy: "driver" },
+  { reason: "Passenger didn’t show up", cancellationByRoleId: 2 },
+  { reason: "Passenger was unresponsive", cancellationByRoleId: 2 },
+  { reason: "Safety concerns", cancellationByRoleId: 2 },
+  { reason: "Incorrect pickup location", cancellationByRoleId: 2 },
+  { reason: "Passenger had too many people", cancellationByRoleId: 2 },
+  { reason: "Passenger was disrespectful", cancellationByRoleId: 2 },
   {
     reason: "Passenger requested an illegal or unsafe route",
-    cancellationBy: "driver",
+    cancellationByRoleId: 2,
   },
-  { reason: "Vehicle issue", cancellationBy: "driver" },
+  { reason: "Vehicle issue", cancellationByRoleId: 2 },
 
-  { reason: "App-related technical issue", cancellationBy: "system" },
-  { reason: "Route unavailable", cancellationBy: "system" },
-  { reason: "Driver no longer available", cancellationBy: "system" },
+  { reason: "App-related technical issue", cancellationByRoleId: 3 },
+  { reason: "Route unavailable", cancellationByRoleId: 3 },
+  { reason: "Driver no longer available", cancellationByRoleId: 3 },
 ];
 
 module.exports = {

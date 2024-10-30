@@ -1,15 +1,15 @@
 const Routes = require("express").Router();
 const WSSMSSenderRouter = require("./SMSSender.routes");
 const VechleRouter = require("./VechleType.routes");
-const CancilationRouter = require("./Cancilation.routes");
+const CancilationRouter = require("./CancilationReasonsType.routes");
 const AdminRouter = require("./Admin.routes");
 const userRoutes = require("./User.routes");
 const roles = require("./Role.routes");
 const Status = require("./Status.routes");
 const Vehicles = require("./vehicle.routes");
 const vehicleOwnership = require("./vehicleOwnership.routes");
-const Passenger = require("./Passenger.routes");
-const Driver = require("./Driver.routes");
+const Passenger = require("./PassengerRequest.routes");
+const Driver = require("./DriverRequest.routes");
 const vehicleStatusType = require("./vehicleStatusType.routes");
 const userRole = require("./userRole.routes");
 const UserStatuses = require("./userStatuse.routes");
@@ -19,7 +19,8 @@ const attachedDocuments = require("./attachedDocuments.routes");
 const RoleDocumentRequirements = require("./RoleDocumentRequirements.routes");
 const database = require("./Database.routes");
 const journeyStatus = require("./JourneyStatus.routes");
-
+const canceledJourney = require("./CanceledJourneys.routes");
+Routes.use(canceledJourney);
 Routes.use(journeyStatus);
 Routes.use(database);
 Routes.use(RoleDocumentRequirements);

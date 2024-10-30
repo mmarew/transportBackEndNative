@@ -12,7 +12,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
       const data = decoded.data;
       const userUniqueId = data?.userUniqueId;
       const user = await getData({
-        tableName: "users",
+        tableName: "Users",
         conditions: { userUniqueId },
       });
 

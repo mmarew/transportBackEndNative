@@ -9,7 +9,9 @@ const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const deleteData = require("../CRUD/Delete/DeleteData");
-
+const bcrypt = require("bcrypt");
+const { verify } = require("jsonwebtoken");
+const verifyPassword = require("../Utils/VerifyPassword");
 const createUser = async (body) => {
   const {
     fullName,
@@ -49,7 +51,22 @@ const createUser = async (body) => {
           data: "Invalid email or phone number",
         };
       }
-
+      const userUniqueId = user.userUniqueId;
+      const credential = await getData({
+        tableName: "usersCredential",
+        conditions: { userUniqueId },
+      });
+      if (credential.length === 0) {
+        //create new credential
+        await insertData({
+          tableName: "usersCredential",
+          colAndVal: {
+            credentialUniqueId: uuidv4(),
+            userUniqueId,
+            OTP: await bcrypt.hash(String(OTP), 10),
+          },
+        });
+      }
       // Handle existing user: Insert/Update roles and statuses
       await handleUserRoleStatus(
         user.userUniqueId,
@@ -57,13 +74,16 @@ const createUser = async (body) => {
         statusId,
         userRoleStatusDescription
       );
-
+      console.log("to be hashed otp ", OTP); //to be hashed otp  615949
+      const hashedOTP = await bcrypt.hash(String(OTP), 10);
+      console.log("hashedOTP", hashedOTP);
       // Update OTP for existing user
-      const otpUpdated = await updateOtpForUser(
-        user.userUniqueId,
+      const otpUpdated = await updateOtpForUser({
+        userUniqueId: user.userUniqueId,
+        hashedOTP: hashedOTP,
+        phoneNumber,
         OTP,
-        phoneNumber
-      );
+      });
       return otpUpdated;
     };
 
@@ -74,7 +94,7 @@ const createUser = async (body) => {
 
       const userCreationSuccess = await Promise.all([
         // register users profile
-        insertData({
+        await insertData({
           tableName: "Users",
           colAndVal: {
             userUniqueId,
@@ -85,12 +105,12 @@ const createUser = async (body) => {
           },
         }),
         // register users credential
-        insertData({
+        await insertData({
           tableName: "usersCredential",
           colAndVal: {
             credentialUniqueId,
             userUniqueId,
-            OTP,
+            OTP: await bcrypt.hash(String(OTP), 10),
           },
         }),
       ]);
@@ -219,10 +239,15 @@ const handleUserRoleStatus = async (
 };
 
 // Helper function to update OTP and send notification
-const updateOtpForUser = async (userUniqueId, OTP, phoneNumber) => {
+const updateOtpForUser = async ({
+  userUniqueId,
+  OTP,
+  phoneNumber,
+  hashedOTP,
+}) => {
   const updateOtpResult = await updateData({
     tableName: "usersCredential",
-    updateValues: { OTP },
+    updateValues: { OTP: hashedOTP },
     conditions: { userUniqueId },
   });
 
@@ -252,19 +277,34 @@ const verifyUserByOTP = async (req) => {
     }
 
     const { OTP, phoneNumber } = req.query;
-    const verifyUserExistance = await getData({
-      tableName: "Users",
+    const verifyUserExistance = await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "usersCredential",
+          on: "Users.userUniqueId = usersCredential.userUniqueId",
+        },
+      ],
       conditions: {
         phoneNumber,
       },
     });
+
     const roleId = req.body.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }
 
     const { userUniqueId, fullName, email } = verifyUserExistance[0];
-
+    const hashedOTP = verifyUserExistance[0].OTP;
+    const verifyOTP = await verifyPassword({
+      hashedPassword: hashedOTP,
+      notHashedPassword: OTP,
+    });
+    console.log("verifyOTP", verifyOTP);
+    if (verifyOTP.error) {
+      return { message: "error", error: "OTP verification failed" };
+    }
     const token = createJWT({
       userUniqueId,
       fullName,
@@ -272,30 +312,11 @@ const verifyUserByOTP = async (req) => {
       email,
       roleId,
     });
-
-    const selectResult = await getData({
-      tableName: "usersCredential",
-      conditions: {
-        userUniqueId,
-      },
-    });
-
-    if (!selectResult || selectResult.length === 0) {
-      return {
-        message: "error",
-        error: "Unable to verify user. Please try again later.",
-      };
-    }
-
-    if (selectResult[0].OTP !== OTP) {
-      return { message: "error", error: "OTP verification failed" };
-    } else {
-      return {
-        token,
-        message: "success",
-        data: "OTP verified successfully",
-      };
-    }
+    return {
+      token,
+      message: "success",
+      data: "OTP verified successfully",
+    };
   } catch (error) {
     console.error("Error in verifyDriverByOTP:", error.message);
     return { message: "error", error: "Unable to verify user" };

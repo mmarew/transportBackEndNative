@@ -8,9 +8,32 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleUpdatedBy VARCHAR(36) NULL,  -- Who updated the role
     roleDeletedBy VARCHAR(36) NULL,  -- Who deleted the role
     roleCreatedAt DATETIME NOT NULL,  -- When the role was created
-    roleDeletedAt DATETIME,  -- When the role was deleted
-    foreign key (roleCreatedBy) references Users(userUniqueId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    roleDeletedAt DATETIME  -- When the role was deleted
+ ) ;
+
+-- Create the VehicleType table
+   CREATE TABLE IF NOT EXISTS VehicleType (
+    vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
+    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
+    vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
+    vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
+    carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
+    vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
+    vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
+) ;
+
+
+ -- Create the JourneyStatus table
+CREATE TABLE IF NOT EXISTS JourneyStatus (
+    journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    journeyStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey status
+    journeyStatusName VARCHAR(50) NOT NULL,  -- Name of the journey status
+    journeyStatusDescription VARCHAR(255) NULL,  -- Description of the journey status
+    journeyStatusCreatedAt DATETIME NOT NULL,  -- When the journey status was created
+    journeyStatusDeletedAt DATETIME NULL  -- When the journey status was deleted
+) ;
 
 -- Create the Users Table 
 CREATE TABLE IF NOT EXISTS Users (
@@ -20,8 +43,8 @@ CREATE TABLE IF NOT EXISTS Users (
     phoneNumber VARCHAR(15) NOT NULL UNIQUE,  -- Phone number of the user
     email VARCHAR(55) ,  -- Email of the user
     createdAt DATETIME NOT NULL,  -- When the user was created
-    createdBy VARCHAR(36) not null -- NULL  -- Who created the user
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    createdBy VARCHAR(36) not null -- NULL Who created the user
+) ;
 
  -- Create the UsersHistory Table
 CREATE TABLE IF NOT EXISTS UsersHistory (
@@ -34,7 +57,7 @@ CREATE TABLE IF NOT EXISTS UsersHistory (
     actionBy VARCHAR(36) NULL,  -- User who triggered the update/delete action
     actionAt DATETIME NOT NULL,  -- When the action was taken
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Reference to Users table
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the UsersCredential Table
 CREATE TABLE IF NOT EXISTS usersCredential (
@@ -42,11 +65,11 @@ CREATE TABLE IF NOT EXISTS usersCredential (
     credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
     hashedPassword VARCHAR(255) NOT NULL,  -- Hashed password
-    OTP VARCHAR(6) NULL,  -- Optional one-time password
+    OTP VARCHAR(100) NULL,  -- Optional one-time password
     usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
     usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the UserRole Table
 CREATE TABLE IF NOT EXISTS UserRole (
@@ -58,10 +81,10 @@ CREATE TABLE IF NOT EXISTS UserRole (
     userRoleUpdatedBy VARCHAR(36) NULL,  -- Who updated the user role
     userRoleDeletedBy VARCHAR(36) NULL,  -- Who deleted the user role
     userRoleCreatedAt DATETIME NOT NULL,  -- When the user role was created
-    userRoleDeletedAt DATETIME NULL,  -- When the user role was deleted
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
-    FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    userRoleDeletedAt DATETIME NULL  -- When the user role was deleted
+    -- ,FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
+    -- FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
+) ;
 
 
 -- Create the Statuses Table
@@ -77,7 +100,7 @@ CREATE TABLE IF NOT EXISTS Statuses (
     statusDeletedAt DATETIME NULL,  -- When the status was deleted
     statusCreatedAt DATETIME NOT NULL,  -- When the status was created
      FOREIGN KEY (statusCreatedBy) REFERENCES Users(userUniqueId)  -- Foreign key to Users
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Table to hold the current status of each user-role combination
 CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
@@ -87,13 +110,9 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleId INT NOT NULL,  -- Foreign key to UserRole
     userRoleStatusDescription TEXT NULL,  -- Description of the current role status
     userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
-    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the current status was created
-    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table
-    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole table
-    FOREIGN KEY (statusId) REFERENCES Statuses(statusId),  -- Link to Statuses table
-    INDEX (userRoleId),  -- Index for faster lookups on user roles
-    INDEX (statusId)  -- Index for faster lookups on status
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    userRoleStatusCreatedAt DATETIME NOT NULL  -- When the current status was created
+    
+) ;
 
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
@@ -108,15 +127,10 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
     userRoleStatusUpdatedBy VARCHAR(36) NULL,  -- Who updated the status
     userRoleStatusUpdatedAt DATETIME NULL,  -- When the status was updated
     userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
-    userRoleStatusDeletedAt DATETIME NULL,  -- When the status was deleted
-    FOREIGN KEY (userRoleStatusCreatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table
-    FOREIGN KEY (userRoleStatusUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to Users table (for updates)
-    FOREIGN KEY (userRoleStatusDeletedBy) REFERENCES Users(userUniqueId),  -- Link to Users table (for deletions)
-    FOREIGN KEY (userRoleId) REFERENCES UserRole(userRoleId),  -- Link to UserRole table
-    FOREIGN KEY (statusId) REFERENCES Statuses(statusId),  -- Link to Statuses table
+    userRoleStatusDeletedAt DATETIME NULL, -- When the status was deleted
     INDEX (userRoleId),  -- Index for faster lookups on user roles
     INDEX (statusId)  -- Index for faster lookups on status
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the DocumentTypes Table
 CREATE TABLE IF NOT EXISTS DocumentTypes (
@@ -132,7 +146,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
     FOREIGN KEY (documentTypeCreatedBy) REFERENCES Users(userUniqueId)  -- Link to the Users table
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the DocumentTypesHistory Table 
 
@@ -147,7 +161,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     changedByUserId VARCHAR(36) NOT NULL,  -- The user who made the change
     changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time when the change was made
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the RoleDocumentRequirements Table
 
@@ -170,7 +184,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     FOREIGN KEY (roleId) REFERENCES Roles(roleId),  -- Link to the Roles table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId),  -- Link to the DocumentTypes table
     UNIQUE (roleId, documentTypeId)  -- Ensure each role can have each document type only once
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
  
 
 -- Create the AttachedDocuments Table (Active Documents Only)
@@ -193,7 +207,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 
 
@@ -223,7 +237,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
  
 -- Create the PassengerRequest table
@@ -243,7 +257,7 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the DriverRequest table
 CREATE TABLE IF NOT EXISTS DriverRequest (
@@ -257,7 +271,7 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the JourneyDecisions table
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
@@ -271,7 +285,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     FOREIGN KEY (passengerRequestId) REFERENCES PassengerRequest(passengerRequestId),
     FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the Journey table
 CREATE TABLE IF NOT EXISTS Journey (
@@ -284,30 +298,8 @@ CREATE TABLE IF NOT EXISTS Journey (
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
- -- Create the JourneyStatus table
-CREATE TABLE IF NOT EXISTS JourneyStatus (
-    journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey status
-    journeyStatusName VARCHAR(50) NOT NULL,  -- Name of the journey status
-    journeyStatusDescription VARCHAR(255) NULL,  -- Description of the journey status
-    journeyStatusCreatedAt DATETIME NOT NULL,  -- When the journey status was created
-    journeyStatusDeletedAt DATETIME NULL  -- When the journey status was deleted
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create the VehicleType table
-   CREATE TABLE IF NOT EXISTS VehicleType (
-    vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
-    vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
-    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
-    vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
-    vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
-    vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
-    carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
-    vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
-    vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create the Vehicle table
     CREATE TABLE IF NOT EXISTS Vehicle (
@@ -322,7 +314,7 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     vehicleCreatedAt DATETIME NOT NULL,  -- Vehicle creation date
     vehicleDeletedAt DATETIME NULL,  -- Vehicle deletion date
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; 
+) ; 
 
 -- Create the VehicleStatusType table
 CREATE TABLE IF NOT EXISTS VehicleStatusType (
@@ -331,7 +323,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatusType (
     statusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
     createdAt DATETIME NOT NULL,  -- Creation time
     deletedAt DATETIME NULL  -- Deletion time
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the VehicleStatus table
 CREATE TABLE IF NOT EXISTS VehicleStatus (
@@ -343,7 +335,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatus (
     statusEndDate DATETIME NULL,  -- Status end date
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (statusTypeId) REFERENCES VehicleStatusType(statusTypeId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the VehicleOwnership table
 CREATE TABLE IF NOT EXISTS VehicleOwnership (
@@ -357,7 +349,7 @@ CREATE TABLE IF NOT EXISTS VehicleOwnership (
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
 -- Create the Ratings table
 CREATE TABLE IF NOT EXISTS Ratings (
@@ -365,26 +357,44 @@ CREATE TABLE IF NOT EXISTS Ratings (
     journeyId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
     ratedBy VARCHAR(36) NOT NULL,  -- Foreign key to Users (who gave the rating)
     rating INT NOT NULL,  -- Rating score
-    comment TEXT NULL,  -- Rating comment
-    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
-    FOREIGN KEY (ratedBy) REFERENCES Users(userUniqueId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    comment TEXT NULL  -- Rating comment
+    -- ,FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
+    --  FOREIGN KEY (ratedBy) REFERENCES Users(userUniqueId)
+) ;
 
 -- Create the SMSSender table
 CREATE TABLE IF NOT EXISTS SMSSender (
     SMSSenderId INT AUTO_INCREMENT PRIMARY KEY, 
     phoneNumber VARCHAR(50) NOT NULL,  -- Phone number of SMS sender
     password VARCHAR(255) NOT NULL  -- Password of SMS sender
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ;
 
  -- Create the CancellationReasonsType table
 CREATE TABLE IF NOT EXISTS CancellationReasonsType (
     cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
     cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
-    cancellationReasonType VARCHAR(150) NOT NULL,  -- Type of cancellation reason
-    roleId VARCHAR(150) NOT NULL,  -- Who canceled (could be driver, passenger, or admin)
-    foreign key (roleId) references Roles(roleId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    cancellationReason VARCHAR(150) NOT NULL,  -- Type of cancellation reason
+    roleId int NOT NULL  -- Who canceled (could be driver, passenger, or admin)
+    ,foreign key (roleId) references Roles(roleId)
+) ;
+ 
+-- Create the PaymentMethod table
+CREATE TABLE IF NOT EXISTS PaymentMethod (
+    paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
+    paymentMethodUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment method
+    paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., Credit Card, PayPal)
+    createdAt DATETIME NOT NULL  -- Creation time of the payment method
+) ;  
+ -- Create the PaymentStatus table
+
+CREATE TABLE IF NOT EXISTS PaymentStatus (
+    paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
+    paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
+    paymentStatusList VARCHAR(50) NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
+    createdAt DATETIME NOT NULL,  -- Creation time of the payment status
+    deletedAt DATETIME NULL  -- Deletion time of the payment status
+) ;
+
 
 -- Create the Payments table
 CREATE TABLE IF NOT EXISTS Payments (
@@ -393,39 +403,24 @@ CREATE TABLE IF NOT EXISTS Payments (
     amount DECIMAL(10, 2) NOT NULL,  -- Payment amount
     paymentMethodUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentMethod
     paymentStatusUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentStatus
-    paymentTime TIMESTAMP NOT NULL,  -- Time of payment
-    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
-    FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
-    FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create the PaymentStatus table
-
-CREATE TABLE IF NOT EXISTS PaymentStatus (
-    paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
-    paymentStatusList VARCHAR(50) NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
-    createdAt DATETIME NOT NULL,  -- Creation time of the payment status
-    deletedAt DATETIME NULL  -- Deletion time of the payment status
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Create the PaymentMethod table
-CREATE TABLE IF NOT EXISTS PaymentMethod (
-    paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
-    paymentMethodUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment method
-    paymentMethod VARCHAR(50) NOT NULL,  -- Name of the payment method (e.g., Credit Card, PayPal)
-    createdAt DATETIME NOT NULL  -- Creation time of the payment method
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;  
+    paymentTime TIMESTAMP NOT NULL  -- Time of payment
+    -- , FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
+    -- FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
+    -- FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
+) ;
+ --  CREATE TABLE CanceledJourneys 
  
--- cancilationReasonsType  
-
-CREATE TABLE IF NOT EXISTS cancellationReasonsType ( 
-    cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
-    cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
-    cancellationReasonType VARCHAR(150) NOT NULL,  -- Type of cancellation reason   
-   roleId VARCHAR(150) NOT NULL , -- Who canceled (could be  1 passenger, 2 driver, 3 admin)
-foreign key (roleId) references Roles(roleId)
-) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;   
+ CREATE TABLE IF NOT EXISTS CanceledJourneys (
+    canceledJourneyId INT AUTO_INCREMENT PRIMARY KEY,
+    canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
+    contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
+    contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey') NOT NULL,  -- Type of context being referenced
+    canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
+    cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
+    canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
+    FOREIGN KEY (cancellationReasonsTypeId) REFERENCES CancellationReasonsType(cancellationReasonsTypeId),
+    FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)
+); 
 `;
 
 module.exports = { sqlQuery };

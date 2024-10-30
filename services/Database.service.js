@@ -9,10 +9,7 @@ const {
   journeyStatus,
   cancellationReasons,
 } = require("../Utils/listOfFixedData");
-const {
-  addCancilationReasons,
-  addCancellationReason,
-} = require("./Cancilation.service");
+const { addCancellationReason } = require("./Cancilation.service");
 const { createDocumentType } = require("./documentTypes.service");
 const { createJourneyStatus } = require("./journeyStatus.service");
 const { createRole } = require("./Role.service");
@@ -20,7 +17,7 @@ const { createMapping } = require("./RoleDocumentRequirements.service");
 const { createStatus } = require("./Status.service");
 const { createVehicleType } = require("./VechleType.service");
 
-const createTable = async (tableData) => {
+const createTable = async () => {
   try {
     await pool.query(sqlQuery);
 
@@ -39,7 +36,7 @@ const getAllTables = async () => {
 
   try {
     const [tables] = await pool.query(sqlQuery);
-    return { message: "success", data: tables };
+    return { message: "success", data: tables, numberOfTables: tables.length };
   } catch (error) {
     console.error("Error fetching tables:", error);
     return { message: "error", error: "Failed to retrieve tables" };
@@ -47,56 +44,93 @@ const getAllTables = async () => {
 };
 
 const dropTable = async (tableName) => {
-  const sqlQuery = `DROP TABLE IF EXISTS ${tableName}`;
+  const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
+  const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
+  const sqlQuery = `DROP TABLE IF EXISTS \`${tableName}\`;`;
+
   try {
-    const [result] = await pool.query(sqlQuery);
-    if (result.affectedRows === 0) {
-      return {
-        message: "success",
-        data: `Table ${tableName} dropped successfully`,
-      };
-    } else {
-      return {
-        message: "error",
-        error: `Failed to drop table ${tableName}`,
-      };
-    }
+    // Disable foreign key checks
+    await pool.query(disableForeignKeyChecks);
+
+    // Attempt to drop the table
+    await pool.query(sqlQuery);
+
+    return {
+      message: "success",
+      data: `Table ${tableName} dropped successfully`,
+    };
   } catch (error) {
     console.error(`Error dropping table ${tableName}:`, error);
     return { message: "error", error: `Failed to drop table ${tableName}` };
+  } finally {
+    // Re-enable foreign key checks
+    await pool.query(enableForeignKeyChecks);
   }
 };
-
 const dropAllTables = async () => {
-  const sqlQuery = `
-    SET FOREIGN_KEY_CHECKS = 0;   
-
-    -- Select all table names into a variable
-    SELECT GROUP_CONCAT(table_name) INTO @tables
-    FROM information_schema.tables
-    WHERE table_schema = 'transport';
-
-    -- Check if @tables is not NULL, then prepare and execute drop statement
-    SET @tables = IFNULL(@tables, 'None');
-    SET @dropCommand = IF(@tables = 'None', 'SELECT "No tables to drop"', CONCAT('DROP TABLE ', @tables));
-
-    -- Prepare and execute the drop statement if tables exist
-    PREPARE stmt FROM @dropCommand;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-
-    SET FOREIGN_KEY_CHECKS = 1;
-  `;
+  const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
+  const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
+  const maxRetries = 3;
 
   try {
-    // Execute the query
-    await pool.query(sqlQuery);
-    return {
-      message: "success",
-      data: "All tables dropped successfully",
-    };
+    // Disable foreign key checks
+    await pool.query(disableForeignKeyChecks);
+
+    // Get all tables
+    const sqlQuery = `SHOW TABLES`;
+    const [tables] = await pool.query(sqlQuery);
+
+    // Extract table names into an array
+    const tableNames = tables.map((table) => Object.values(table)[0]);
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const remainingTables = [];
+
+      // Attempt to drop each table
+      for (const tableName of tableNames) {
+        const sqlToDropTable = `DROP TABLE IF EXISTS \`${tableName}\``;
+        try {
+          await pool.query(sqlToDropTable);
+          console.log(
+            `Table ${tableName} dropped successfully on attempt ${attempt}`
+          );
+        } catch (error) {
+          if (error.code === "ER_ROW_IS_REFERENCED_2") {
+            remainingTables.push(tableName); // Re-try tables with foreign key constraints
+          } else {
+            console.error(`Error dropping table ${tableName}:`, error);
+          }
+        }
+      }
+
+      // If no tables are left to drop, break out of the loop
+      if (remainingTables.length === 0) break;
+
+      // If there are still tables left after max retries, log an error
+      if (attempt === maxRetries && remainingTables.length > 0) {
+        console.error(
+          `Unable to drop tables after ${maxRetries} attempts:`,
+          remainingTables
+        );
+        return {
+          message: "error",
+          data: `Failed to drop all tables after ${maxRetries} attempts`,
+          remainingTables,
+        };
+      }
+    }
+
+    return { message: "success", data: "All tables dropped successfully" };
   } catch (error) {
     console.error("Error dropping all tables:", error);
+    return {
+      message: "error",
+      data: "Failed to drop all tables, please try again.",
+      error: error.message,
+    };
+  } finally {
+    // Re-enable foreign key checks
+    await pool.query(enableForeignKeyChecks);
   }
 };
 
@@ -291,7 +325,7 @@ const installPreDefinedData = async (req, res) => {
       addCancellationReason,
       cancellationReasonsSuccess,
       cancellationReasonsErrors,
-      "CancellationReason"
+      "CancellationReasonsType"
     );
     // Final response
     return {

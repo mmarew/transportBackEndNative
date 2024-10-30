@@ -22,6 +22,7 @@ const {
   updateUserRoleStatus,
   getUserRoleStatus,
 } = require("./UserRoleStatus.service");
+const { createCanceledJourney } = require("./CanceledJourneys.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -62,13 +63,39 @@ const getDriverRequestById = async (requestId) => {
   }
 };
 const acceptPassengerRequest = async (body) => {
-  const userUniqueId = body.userUniqueId;
-  const existingRequest = await getData({
-    tableName: "DriverRequest",
-    conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
+  const {
+    passengerRequestUniqueId,
+    journeyDecisionUniqueId,
+    driverRequestUniqueId,
+  } = body;
+  const existingRequest = await performJoinSelect({
+    baseTable: "DriverRequest",
+    joins: [
+      {
+        table: "JourneyDecisions",
+        on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+      },
+      {
+        table: "PassengerRequest",
+        on: "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+      },
+    ],
+    conditions: {
+      "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
+    },
   });
+  console.log("existingRequest", existingRequest);
   if (!existingRequest?.length)
     return { message: "error", error: "Request not found" };
+  if (
+    !existingRequest[0].journeyDecisionUniqueId == journeyDecisionUniqueId ||
+    !existingRequest[0].passengerRequestUniqueId == passengerRequestUniqueId
+  ) {
+    return {
+      message: "error",
+      error: "Request   found is not valid to accept",
+    };
+  }
   const journeyStatusId = existingRequest[0].journeyStatusId;
   if (journeyStatusId === 2) await updateJourneyStatus(body);
   const message = await verifyDriverStatus({
@@ -91,7 +118,7 @@ const startJourney = async (body) => {
     tableName: "Journey",
     conditions: { journeyDecisionUniqueId: body.journeyDecisionUniqueId },
   });
- 
+
   if (exisistingJourney.length == 0) {
     await insertData({
       tableName: "Journey",
@@ -144,6 +171,30 @@ const noAnswerFromDriver = async (body) => {
 };
 const journeyCompleted = async (body) => {
   await updateJourneyStatus(body);
+  const passengerRequestUniqueId = body?.passengerRequestUniqueId;
+
+  const passenger = await performJoinSelect({
+    baseTable: "PassengerRequest",
+    joins: [
+      {
+        table: "Users",
+        on: "PassengerRequest.userUniqueId=Users.userUniqueId",
+      },
+    ],
+    conditions: {
+      "PassengerRequest.passengerRequestUniqueId": passengerRequestUniqueId,
+    },
+  });
+  console.log("passenger", passenger);
+  const phoneNumber = passenger[0]?.phoneNumber;
+  sendNotificationToPassenger({
+    message: {
+      message: "success",
+      status: 5,
+      data: "Journey completed successfully",
+    },
+    phoneNumber,
+  });
 
   return {
     message: "success",
@@ -157,9 +208,12 @@ const cancelDriverRequest = async (body) => {
     const user = body.user;
     const userUniqueId = user?.userUniqueId;
     const ownerUserUniqueId = body.ownerUserUniqueId;
-
+    const cancellationReasonsTypeId = body.cancellationReasonsTypeId;
+    // console.log("@cancelDriverRequest body", body);
+    // return;
     // Check if the driver has any active requests
     const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
+
     if (getActiveRequest.length === 0) {
       return {
         message: "error",
@@ -183,6 +237,14 @@ const cancelDriverRequest = async (body) => {
     });
 
     if (journeyDecisions.length === 0) {
+      // register cancillation in to createCanceledJourney table
+
+      await createCanceledJourney({
+        contextId: driverRequestId,
+        contextType: "DriverRequest",
+        canceledBy: userUniqueId,
+        cancellationReasonsTypeId,
+      });
       return {
         message: "success",
         data: "You have successfully cancelled your request.",
@@ -191,6 +253,7 @@ const cancelDriverRequest = async (body) => {
 
     const passengerRequestId = journeyDecisions[0].passengerRequestId;
     const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
+    const journeyDecisionId = journeyDecisions[0].journeyDecisionId;
 
     // Update the PassengerRequest to reflect the cancellation
     await updateData({
@@ -246,7 +309,29 @@ const cancelDriverRequest = async (body) => {
         journeyStatusId: userUniqueId === ownerUserUniqueId ? 7 : 8, // 7 for driver, 8 for admin
       },
     });
+    // check if the driver has any active requests in Journey table
+    const getActiveJourney = await getData({
+      tableName: "Journey",
+      conditions: {
+        "Journey.journeyDecisionUniqueId": journeyDecisionUniqueId,
+      },
+    });
 
+    if (getActiveJourney.length === 0) {
+      // register cancillation in to createCanceledJourney table
+
+      await createCanceledJourney({
+        contextId: journeyDecisionId,
+        contextType: "JourneyDecisions",
+        canceledBy: userUniqueId,
+        cancellationReasonsTypeId,
+      });
+      return {
+        message: "success",
+        data: "You have successfully cancelled your request.",
+      };
+    }
+    const journeyId = getActiveJourney[0].journeyId;
     // Update the Journey table (if the journey had already started)
     await updateData({
       tableName: "Journey",
@@ -254,6 +339,12 @@ const cancelDriverRequest = async (body) => {
       updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
     });
 
+    await createCanceledJourney({
+      contextId: journeyId,
+      contextType: "Journey",
+      canceledBy: userUniqueId,
+      cancellationReasonsTypeId,
+    });
     return {
       message: "success",
       data: "You have successfully cancelled your request.",
@@ -641,14 +732,11 @@ const driversDocumentVehicleRequirement = async (body) => {
       phoneNumber,
     };
 
-    const updatedUserData = await updateUserRoleStatus(userRoleStatusData);
-    if (updatedUserData && updatedUserData.length > 0) {
-      userData = updatedUserData; // Only update userData if update was successful
-    }
-  } else {
+    await updateUserRoleStatus(userRoleStatusData);
   }
+  //get latest user role status
 
-
+  userData = await getUserRoleStatus({ roleId, phoneNumber });
   return {
     message: "success",
     userVehicle: userVehicle[0] || null,

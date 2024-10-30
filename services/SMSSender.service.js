@@ -2,6 +2,7 @@ const { pool } = require("../Middleware/Database.config");
 const { getData } = require("../CRUD/Read/ReadData");
 const createJWT = require("../Utils/createJWT");
 const bcrypt = require("bcrypt");
+const verifyPassword = require("../Utils/VerifyPassword");
 // Create a new SMS sender
 const createSMSSender = async ({ phoneNumber, password }) => {
   const existedData = await getData({
@@ -9,11 +10,30 @@ const createSMSSender = async ({ phoneNumber, password }) => {
 
     tableName: "SMSSender",
   });
+  console.log("existedData =========> ", existedData);
   if (existedData.length > 0) {
-    return {
-      message: "error",
-      error: "This phone number is already registered",
-    };
+    let hashedPassword = existedData[0].password;
+    const { message, data } = await verifyPassword({
+      hashedPassword,
+      notHashedPassword: password,
+    });
+    console.log("message", message, "data", data);
+    if (data && message === "success") {
+      {
+        const token = createJWT({ phoneNumber, type: "SMSSender" });
+        return {
+          token,
+          message: "success",
+          data: "This phone number is already registered",
+        };
+      }
+    } else {
+      return {
+        message: "error",
+        data: "Invalid password",
+        error: "Invalid password",
+      };
+    }
   }
 
   // create hashed password
@@ -26,7 +46,6 @@ const createSMSSender = async ({ phoneNumber, password }) => {
     data: "OTP sender registered successfully.",
     token,
   };
-  return result;
 };
 
 // Get all SMS senders
