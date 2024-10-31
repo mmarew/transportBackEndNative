@@ -1,4 +1,6 @@
-const sqlQuery = `-- Create the Roles Table
+const sqlQuery = `
+
+-- Create the Roles Table
 CREATE TABLE IF NOT EXISTS Roles (
     roleId INT AUTO_INCREMENT PRIMARY KEY,
     roleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the role
@@ -22,8 +24,7 @@ CREATE TABLE IF NOT EXISTS Roles (
     carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
     vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
-) ;
-
+) ; 
 
  -- Create the JourneyStatus table
 CREATE TABLE IF NOT EXISTS JourneyStatus (
@@ -84,8 +85,7 @@ CREATE TABLE IF NOT EXISTS UserRole (
     userRoleDeletedAt DATETIME NULL  -- When the user role was deleted
     -- ,FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
     -- FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
-) ;
-
+) ; 
 
 -- Create the Statuses Table
 CREATE TABLE IF NOT EXISTS Statuses (
@@ -182,8 +182,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     FOREIGN KEY (roleId) REFERENCES Roles(roleId),  -- Link to the Roles table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId),  -- Link to the DocumentTypes table
     UNIQUE (roleId, documentTypeId)  -- Ensure each role can have each document type only once
-) ;
- 
+) ; 
 
 -- Create the AttachedDocuments Table (Active Documents Only)
 CREATE TABLE IF NOT EXISTS AttachedDocuments (
@@ -205,10 +204,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-) ;
-
-
-
+) ; 
 -- Create the AttachedDocumentsHistory Table (for Historical Records)
 CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     attachedDocumentHistoryId INT AUTO_INCREMENT PRIMARY KEY,
@@ -415,6 +411,7 @@ CREATE TABLE IF NOT EXISTS Payments (
     -- FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
     -- FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
 ) ;
+ 
  --  CREATE TABLE CanceledJourneys 
  
  CREATE TABLE IF NOT EXISTS CanceledJourneys (

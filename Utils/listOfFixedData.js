@@ -4,13 +4,13 @@ const { v4: uuidv4 } = require("uuid");
 const roleList = [
   {
     roleUniqueId: uuidv4(),
-    roleName: 1,
+    roleName: "Passenger",
     roleDescription: "a person who can make order to driver to load goods",
     roleCreatedAt: currentDate(),
   },
   {
     roleUniqueId: uuidv4(),
-    roleName: 2,
+    roleName: "Driver",
     roleDescription:
       "a person who can recive order from passenger to load goods",
     roleCreatedAt: currentDate(),
@@ -447,7 +447,7 @@ const journeyStatus = [
   {
     journeyStatusId: 5,
     journeyStatusName: "journeyCompleted",
-    journeyStatusDescription: "Journey completed by driver or passenger",
+    journeyStatusDescription: "Journey completed by driver ",
   },
   {
     journeyStatusId: 6,

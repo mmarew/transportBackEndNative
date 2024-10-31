@@ -22,7 +22,13 @@ const journeyStatus = require("./JourneyStatus.routes");
 const canceledJourney = require("./CanceledJourneys.routes");
 const JourneyRoutePoints = require("./JourneyRoutePoints.routes");
 const paymentMethod = require("./paymentMethod.routes");
+const Journey = require("./Journey.routes");
+const JourneyDecision = require("./JourneyDecisions.routes");
+const Rating = require("./Ratings.routes");
 
+Routes.use(Rating);
+Routes.use(JourneyDecision);
+Routes.use(Journey);
 Routes.use(paymentMethod);
 Routes.use(JourneyRoutePoints);
 Routes.use(canceledJourney);
