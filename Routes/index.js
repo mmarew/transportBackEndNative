@@ -25,7 +25,20 @@ const paymentMethod = require("./paymentMethod.routes");
 const Journey = require("./Journey.routes");
 const JourneyDecision = require("./JourneyDecisions.routes");
 const Rating = require("./Ratings.routes");
+const payments = require("./Payments.routes");
+const TarrifRate = require("./TarrifRate.routes");
 
+const TarrifRateForVehcleTypes = require("./TarrifRateForVehcleTypes.routes");
+const CommissionRates = require("./CommissionRates.routes");
+const Commission = require("./Commission.routes");
+
+const DriverDeposit = require("./DriverDeposit.routes");
+Routes.use(DriverDeposit);
+Routes.use(Commission);
+Routes.use(CommissionRates);
+Routes.use(TarrifRateForVehcleTypes);
+Routes.use(TarrifRate);
+Routes.use(payments);
 Routes.use(Rating);
 Routes.use(JourneyDecision);
 Routes.use(Journey);

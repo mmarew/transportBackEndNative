@@ -4,9 +4,9 @@ const paymentMethodService = require("../Services/PaymentMethod.service");
 exports.createPaymentMethod = async (req, res) => {
   try {
     const { paymentMethod } = req.body;
-    const result = await paymentMethodService.createPaymentMethod(
-      paymentMethod
-    );
+    const result = await paymentMethodService.createPaymentMethod({
+      paymentMethod,
+    });
     res.status(201).json(result);
   } catch (error) {
     console.error("Error creating payment method:", error);

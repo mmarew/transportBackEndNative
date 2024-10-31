@@ -9,10 +9,12 @@ const {
   journeyStatus,
   cancellationReasons,
   paymentStatus,
+  paymentMethod,
 } = require("../Utils/listOfFixedData");
 const { addCancellationReason } = require("./Cancilation.service");
 const { createDocumentType } = require("./DocumentTypes.service");
 const { createJourneyStatus } = require("./JourneyStatus.service");
+const { createPaymentMethod } = require("./PaymentMethod.service");
 const { createPaymentStatus } = require("./paymentStatus.service");
 const { createRole } = require("./Role.service");
 const { createMapping } = require("./RoleDocumentRequirements.service");
@@ -259,7 +261,9 @@ const installPreDefinedData = async (req, res) => {
       cancellationReasonsSuccess = [],
       cancellationReasonsErrors = [],
       paymentStatusSuccess = [],
-      paymentStatusErrors = [];
+      paymentStatusErrors = [],
+      createPaymentMethodSuccess = [],
+      createPaymentMethodErrors = [];
     // Process predefined data in order
     await processDataSequentially(
       journeyStatus,
@@ -338,6 +342,14 @@ const installPreDefinedData = async (req, res) => {
       paymentStatusSuccess,
       paymentStatusErrors,
       "PaymentStatus"
+    );
+    //  9. Process paymentMethod
+    await processDataSequentially(
+      paymentMethod,
+      createPaymentMethod,
+      createPaymentMethodSuccess,
+      createPaymentMethodErrors,
+      "PaymentMethod"
     );
     // Final response
     return {

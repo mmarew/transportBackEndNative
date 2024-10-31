@@ -1,52 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
-
-const registerCancilationReasons = async (body) => {
-  const { reason } = body;
-  const sql = `INSERT INTO cancilationReasons (reason) VALUES (?)`;
-  const values = [reason];
-  const [result] = await pool.query(sql, values);
-  if (result.affectedRows > 0) {
-    return {
-      message: "success",
-    };
-  } else
-    return {
-      message: "error",
-      error: "Failed to create cancilation reasons",
-    };
-};
-const registerCanceledJourney = async (data) => {
-  const {
-    cancilationReasonTypeUniqueId,
-    requestUniqueId,
-    waitUniqueId,
-    cancellationBy,
-    cancellationTime,
-  } = data;
-  // return;
-  const cancellationUniqueId = uuidv4();
-  const sqlToRegisterCanceledJourney = `INSERT INTO canceledJourneyRequests (cancellationUniqueId,cancellationReasonTypeUniqueId, requestUniqueId, waitUniqueId, cancellationBy, cancellationTime) VALUES (?, ?, ?, ?, ?, ?)`;
-
-  const values = [
-    cancellationUniqueId,
-    cancilationReasonTypeUniqueId,
-    requestUniqueId,
-    waitUniqueId,
-    cancellationBy,
-    cancellationTime,
-  ];
-  const [result] = await pool.query(sqlToRegisterCanceledJourney, values);
-  if (result.affectedRows > 0) {
-    return {
-      message: "success",
-    };
-  } else
-    return {
-      message: "error",
-      error: "Failed to create cancilation reasons",
-    };
-};
+const { getData } = require("../Read/ReadData");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal }) => {
@@ -76,7 +30,13 @@ const insertData = async ({ tableName, colAndVal }) => {
 const createPassengerRequest = async (body, userUniqueId) => {
   const { vehicle, destination, originLocation } = body;
   const { vehicleTypeUniqueId } = vehicle;
-
+  const verifyVehicleType = await getData({
+    tableName: "VehicleType",
+    conditions: { vehicleTypeUniqueId },
+  });
+  console.log("verifyVehicleType ============ ", verifyVehicleType);
+  if (verifyVehicleType.length === 0)
+    return { message: "error", error: "Vehicle type not found" };
   const originLatitude = originLocation.latitude,
     originLongitude = originLocation.longitude,
     originPlace = originLocation.description;
@@ -106,7 +66,7 @@ const createPassengerRequest = async (body, userUniqueId) => {
     colAndVal: requestPayload,
   });
 
-  return result;
+  return { message: "success", data: result };
 };
 const createDriverRequest = async (body, userUniqueId) => {
   // Extract the relevant data from the request body
@@ -142,6 +102,4 @@ module.exports = {
   createDriverRequest,
   createPassengerRequest,
   insertData,
-  registerCancilationReasons,
-  registerCanceledJourney,
 };

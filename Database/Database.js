@@ -425,6 +425,66 @@ CREATE TABLE IF NOT EXISTS Payments (
     FOREIGN KEY (cancellationReasonsTypeId) REFERENCES CancellationReasonsType(cancellationReasonsTypeId),
     FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)
 ); 
+-- tarrif rate table
+    CREATE TABLE IF NOT EXISTS TarrifRate (
+    tarrifRateId INT AUTO_INCREMENT PRIMARY KEY,
+    tarrifRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
+    standingTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate wher driver comes to passangers pick up place
+    journeyTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate between a place where driver pick up a passangers up to destination place and can be calculated by km
+    timingTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate between a place where driver pick up a passangers up to destination place and can be calculated by time
+    tarifRateDescription TEXT NOT NULL,  -- Description of tarrif rate
+    createdBy VARCHAR(36) NOT NULL,  -- Who created the tarrif rate
+    createdAt DATETIME NOT NULL  -- Creation time of the tarrif rate
+) ;
+ -- Create the TarrifRateForVehcleTypes table
+CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
+    tarrifRateForVehcleTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    tarrifRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
+    tarrifRateId INT NOT NULL,  -- Foreign key to TarrifRate
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+    FOREIGN KEY (tarrifRateId) REFERENCES TarrifRate(tarrifRateId)
+) ;
+ -- Create the CommissionRates table
+ CREATE TABLE IF NOT EXISTS CommissionRates (
+    commissionRateId INT AUTO_INCREMENT PRIMARY KEY,
+    commissionRate DECIMAL(5, 2) NOT NULL,  -- Commission rate as a percentage (e.g., 10 for 10%)
+    effectiveDate DATE NOT NULL,            -- The date from which this rate is effective
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- commision table for every payment 
+    CREATE TABLE IF NOT EXISTS Commission (
+    commissionId INT AUTO_INCREMENT PRIMARY KEY,
+    commissionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for commission
+    paymentId INT NOT NULL,  -- Foreign key to Payments
+    commissionRateId INT NOT NULL,  -- Foreign key to CommissionRates
+    commissionAmount DECIMAL(10, 2) NOT NULL,  -- Commission amount
+    FOREIGN KEY (paymentId) REFERENCES Payments(paymentId),
+    FOREIGN KEY (commissionRateId) REFERENCES CommissionRates(commissionRateId)
+);
+-- a table to store drivers deposit to pay for commision 
+  CREATE TABLE IF NOT EXISTS DriverDeposit (
+    driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
+    driverDepositUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver deposit
+    driverUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    amount DECIMAL(10, 2) NOT NULL,  -- Amount of deposit
+    commissionId INT NOT NULL,  -- Foreign key to Commission
+    depositTime DATETIME NOT NULL,  -- Time of deposit
+    FOREIGN KEY (commissionId) REFERENCES Commission(commissionId),
+    FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
+);
+-- a table to store drivers balance after payment or deposit
+CREATE TABLE IF NOT EXISTS DriverBalance (
+    driverBalanceId INT AUTO_INCREMENT PRIMARY KEY,
+    driverBalanceUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver balance
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    transactionType enum('deposit', 'payment') NOT NULL,  -- Type of transaction
+    transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for DriverDeposit or DriverPayment
+    transactionTime DATETIME NOT NULL,  -- Time of transaction
+    netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - payment)
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
+) ;
 `;
 
 module.exports = { sqlQuery };

@@ -527,8 +527,26 @@ const paymentStatus = [
     paymentStatusDescription: "Payment failed",
   },
 ];
+const paymentMethod = [
+  {
+    paymentMethodId: 1,
+    paymentMethod: "cash",
+    paymentMethodDescription: "Payment by cash",
+  },
+  {
+    paymentMethodId: 2,
+    paymentMethod: "bank",
+    paymentMethodDescription: "Payment by bank",
+  },
+  {
+    paymentMethodId: 3,
+    paymentMethod: "telebirr",
+    paymentMethodDescription: "Payment by telebirr",
+  },
+];
 
 module.exports = {
+  paymentMethod,
   paymentStatus,
   cancellationReasons,
   journeyStatus,
