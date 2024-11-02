@@ -1,25 +1,47 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const {
+  getDriverLastBalanceByUserUniqueId,
+  createDriverBalance,
+} = require("./DriverBalance.service");
 
 // Create a new driver deposit record
 exports.createDriverDeposit = async (data) => {
+  const userUniqueId = data.user.userUniqueId;
+  const clientSideRequestId = data.clientSideRequestId;
+  // verify if clientSideRequestId existed in DriverDeposit table and if it does not exist, create a new record
   const sql = `
     INSERT INTO DriverDeposit (
       driverDepositUniqueId,
       driverUniqueId,
-      amount,
-      commissionId,
+      depositAmount,
       depositTime
-    ) VALUES (?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?)
   `;
+  const driverDepositUniqueId = uuidv4();
   const values = [
-    uuidv4(),
-    data.driverUniqueId,
-    data.amount,
-    data.commissionId,
+    driverDepositUniqueId,
+    userUniqueId,
+    data.depositAmount,
     new Date(),
   ];
   const [result] = await pool.query(sql, values);
+  const lastDriverBalance = await getDriverLastBalanceByUserUniqueId(
+    userUniqueId
+  );
+  const previousNetBalance = lastDriverBalance?.netBalance;
+  const currnetNetBalance =
+    parseFloat(previousNetBalance ? previousNetBalance : 0) +
+    parseFloat(data.depositAmount);
+  console.log("previousNetBalance", previousNetBalance);
+  console.log("currnetNetBalance", currnetNetBalance);
+  const balanceData = {
+    userUniqueId,
+    transactionType: "deposit",
+    transactionUniqueId: driverDepositUniqueId,
+    netBalance: currnetNetBalance,
+  };
+  await createDriverBalance(balanceData);
   return {
     message: "Driver deposit record created successfully",
     data: result,

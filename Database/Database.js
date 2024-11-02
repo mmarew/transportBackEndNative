@@ -484,11 +484,9 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
     driverDepositUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver deposit
     driverUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    amount DECIMAL(10, 2) NOT NULL,  -- Amount of deposit
-    commissionId INT NOT NULL,  -- Foreign key to Commission
-    depositTime DATETIME NOT NULL,  -- Time of deposit
-    FOREIGN KEY (commissionId) REFERENCES Commission(commissionId),
-    FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
+    depositAmount DECIMAL(10, 2) NOT NULL,  -- Amount of deposit
+     depositTime DATETIME NOT NULL,  -- Time of deposit
+     FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
 );
 -- a table to store drivers balance after payment or deposit
 CREATE TABLE IF NOT EXISTS DriverBalance (

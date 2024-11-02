@@ -70,3 +70,14 @@ exports.deleteDriverBalance = async (req, res) => {
       .json({ message: "Failed to delete driver balance record", error });
   }
 };
+exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
+  try {
+    const result =
+      await driverBalanceService.getDriverLastBalanceByUserUniqueId(
+        userUniqueId
+      );
+    return result;
+  } catch (error) {
+    console.log("first error", error);
+  }
+};

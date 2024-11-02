@@ -1,20 +1,33 @@
 const express = require("express");
 const router = express.Router();
 const ratingsController = require("../Controllers/Ratings.controller");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create a new rating
-router.post("/api/ratings", ratingsController.createRating);
+router.post("/api/ratings", verifyTokenOfAxios, ratingsController.createRating);
 
 // Get all ratings
-router.get("/api/ratings", ratingsController.getAllRatings);
+router.get("/api/ratings", verifyTokenOfAxios, ratingsController.getAllRatings);
 
 // Get a specific rating by ID
-router.get("/api/ratings/:id", ratingsController.getRatingById);
+router.get(
+  "/api/ratings/:id",
+  verifyTokenOfAxios,
+  ratingsController.getRatingById
+);
 
 // Update a specific rating by ID
-router.put("/api/ratings/:id", ratingsController.updateRating);
+router.put(
+  "/api/ratings/:id",
+  verifyTokenOfAxios,
+  ratingsController.updateRating
+);
 
 // Delete a specific rating by ID
-router.delete("/api/ratings/:id", ratingsController.deleteRating);
+router.delete(
+  "/api/ratings/:id",
+  verifyTokenOfAxios,
+  ratingsController.deleteRating
+);
 
 module.exports = router;

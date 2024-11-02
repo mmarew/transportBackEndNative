@@ -183,6 +183,7 @@ const noAnswerFromDriver = async (body) => {
   return message;
 };
 const journeyCompleted = async (body) => {
+  // set journey status to be completed
   await updateJourneyStatus(body);
   const {
     userUniqueId,
@@ -219,19 +220,19 @@ const journeyCompleted = async (body) => {
     journeyUniqueId,
     passengerRequestUniqueId,
   });
+  const totalMoney = paymentData.totalMoney;
   if (paymentData.message == "error") return paymentData;
   // register payment in to Payment table
   const newPayment = await createPayment(
     journeyUniqueId,
-    paymentData.totalMoney,
+    totalMoney,
     paymentMethodUniqueId,
     paymentStatusUniqueId
   );
   // console.log("newPayment", newPayment);
   const paymentUniqueId = newPayment?.data?.paymentUniqueId;
   // calculate commision and add to commision table
-  const commisionData = await calculateCommision(paymentData?.totalMoney);
-  console.log("commisionData", commisionData);
+  const commisionData = await calculateCommision(totalMoney);
 
   const data = {
     paymentUniqueId,
@@ -239,7 +240,6 @@ const journeyCompleted = async (body) => {
     commissionAmount: commisionData?.commissionAmount,
   };
   const newCommission = await createCommission(data);
-  console.log("newCommission", newCommission);
   const transactionUniqueId = newCommission.data.commissionUniqueId;
 
   const commissionAmount = newCommission.data.commissionAmount;
@@ -257,11 +257,12 @@ const journeyCompleted = async (body) => {
     date: new Date(),
     netBalance,
   };
-  const newDriverBalance = await createDriverBalance({
+  await createDriverBalance({
     ...dataOfBalance,
   });
-  console.log("newDriverBalance", newDriverBalance);
   return {
+    totalMoney,
+    netBalance,
     message: "success",
     data: "Journey completed successfully",
     status: 5,

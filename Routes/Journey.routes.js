@@ -1,20 +1,41 @@
 const express = require("express");
 const router = express.Router();
 const journeyController = require("../Controllers/Journey.controller");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create a new journey
-router.post("/api/journey", journeyController.createJourney);
+router.post(
+  "/api/journey",
+  verifyTokenOfAxios,
+  journeyController.createJourney
+);
 
 // Get all journeys
-router.get("/api/journey", journeyController.getAllJourneys);
+router.get(
+  "/api/journey",
+  verifyTokenOfAxios,
+  journeyController.getAllJourneys
+);
 
 // Get a specific journey by ID
-router.get("/api/journey/:id", journeyController.getJourneyById);
+router.get(
+  "/api/journey/:id",
+  verifyTokenOfAxios,
+  journeyController.getJourneyById
+);
 
 // Update a specific journey by ID
-router.put("/api/journey/:id", journeyController.updateJourney);
+router.put(
+  "/api/journey/:id",
+  verifyTokenOfAxios,
+  journeyController.updateJourney
+);
 
 // Delete a specific journey by ID
-router.delete("/api/journey/:id", journeyController.deleteJourney);
+router.delete(
+  "/api/journey/:id",
+  verifyTokenOfAxios,
+  journeyController.deleteJourney
+);
 
 module.exports = router;

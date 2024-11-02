@@ -1,5 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getData } = require("../CRUD/Read/ReadData");
+const { insertData } = require("../CRUD/Create/CreateData");
 
 // Create a new commission record
 exports.createCommission = async ({
@@ -19,25 +21,26 @@ exports.createCommission = async ({
       data: existedCommission[0],
     };
   }
-  const sql = `
-    INSERT INTO Commission (
-      commissionUniqueId,
-      paymentUniqueId,
-      commissionRateUniqueId,
-      commissionAmount
-    ) VALUES (?, ?, ?, ?)
-  `;
-  const commisionUniqueId = uuidv4();
-  const values = [
-    commisionUniqueId,
+
+  const commissionUniqueId = uuidv4();
+  const values = {
+    commissionUniqueId,
     paymentUniqueId,
     commissionRateUniqueId,
     commissionAmount,
-  ];
-  const [result] = await pool.query(sql, values);
+  };
+  const createCommissionData = await insertData({
+    tableName: "Commission",
+    colAndVal: { ...values },
+  });
+  const [commisionData] = await getData({
+    tableName: "Commission",
+    conditions: { commissionUniqueId: commissionUniqueId },
+  });
+
   return {
     message: "success",
-    data: { ...data, commisionUniqueId },
+    data: { ...commisionData },
   };
 };
 

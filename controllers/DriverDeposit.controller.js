@@ -3,9 +3,12 @@ const driverDepositService = require("../Services/DriverDeposit.service");
 // Create a new driver deposit record
 exports.createDriverDeposit = async (req, res) => {
   try {
+    const user = req.user;
+    req.body.user = user;
     const result = await driverDepositService.createDriverDeposit(req.body);
     res.status(201).json(result);
   } catch (error) {
+    console.log("first error", error);
     res
       .status(500)
       .json({ message: "Failed to create driver deposit record", error });

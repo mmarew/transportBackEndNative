@@ -16,9 +16,21 @@ router.get(
   verifyTokenOfAxios,
   verifyUsersVehicle
 ); // Get vehicle by ID
-router.get("/api/admin/vehicles/:vehicleId", getVehicleController); // Get vehicle by ID
-router.put("/api/admin/vehicles/:vehicleId", updateVehicleController); // Update vehicle
-router.delete("/api/admin/vehicles/:vehicleId", deleteVehicleController); // Delete vehicle
-router.get("/api/admin/vehicles", getAllVehiclesController); // Get all vehicles
+router.get(
+  "/api/admin/vehicles/:vehicleId",
+  verifyTokenOfAxios,
+  getVehicleController
+); // Get vehicle by ID
+router.put(
+  "/api/admin/vehicles/:vehicleId",
+  verifyTokenOfAxios,
+  updateVehicleController
+); // Update vehicle
+router.delete(
+  "/api/admin/vehicles/:vehicleId",
+  verifyTokenOfAxios,
+  deleteVehicleController
+); // Delete vehicle
+router.get("/api/admin/vehicles", verifyTokenOfAxios, getAllVehiclesController); // Get all vehicles
 
 module.exports = router;
