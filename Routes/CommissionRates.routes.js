@@ -1,35 +1,32 @@
 const express = require("express");
 const router = express.Router();
 const commissionRatesController = require("../Controllers/CommissionRates.controller");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
-// Create a new commission rate
 router.post(
-  "/api/admin/commissionRate",
+  "/api/admin/commissionRates",
+  verifyTokenOfAxios,
   commissionRatesController.createCommissionRate
 );
-
-// Get all commission rates
 router.get(
-  "/api/admin/commissionRate",
+  "/api/admin/commissionRates",
+  verifyTokenOfAxios,
   commissionRatesController.getAllCommissionRates
 );
-
-// Get a commission rate by ID
 router.get(
-  "/api/admin/commissionRate/:id",
-  commissionRatesController.getCommissionRateById
+  "/api/admin/commissionRates/:commissionRateUniqueId",
+  verifyTokenOfAxios,
+  commissionRatesController.getCommissionRateByUniqueId
 );
-
-// Update a commission rate by ID
 router.put(
-  "/api/admin/commissionRate/:id",
-  commissionRatesController.updateCommissionRate
+  "/api/admin/commissionRates/:commissionRateUniqueId",
+  verifyTokenOfAxios,
+  commissionRatesController.updateCommissionRateByUniqueId
 );
-
-// Delete a commission rate by ID
 router.delete(
-  "/api/admin/commissionRate/:id",
-  commissionRatesController.deleteCommissionRate
+  "/api/admin/commissionRates/:commissionRateUniqueId",
+  verifyTokenOfAxios,
+  commissionRatesController.deleteCommissionRateByUniqueId
 );
 
 module.exports = router;

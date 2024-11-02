@@ -2,23 +2,43 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 
 // Create a new commission record
-exports.createCommission = async (data) => {
+exports.createCommission = async ({
+  paymentUniqueId,
+  commissionRateUniqueId,
+  commissionAmount,
+}) => {
+  // ferst check existance of paymentUniqueId in Payment Commission
+  const [existedCommission] = await pool.query(
+    `SELECT * FROM Commission WHERE paymentUniqueId = ?`,
+    [paymentUniqueId]
+  );
+  if (existedCommission.length > 0) {
+    return {
+      message: "error",
+      error: "Payment already have commission",
+      data: existedCommission[0],
+    };
+  }
   const sql = `
     INSERT INTO Commission (
       commissionUniqueId,
-      paymentId,
-      commissionRateId,
+      paymentUniqueId,
+      commissionRateUniqueId,
       commissionAmount
     ) VALUES (?, ?, ?, ?)
   `;
+  const commisionUniqueId = uuidv4();
   const values = [
-    uuidv4(),
-    data.paymentId,
-    data.commissionRateId,
-    data.commissionAmount,
+    commisionUniqueId,
+    paymentUniqueId,
+    commissionRateUniqueId,
+    commissionAmount,
   ];
   const [result] = await pool.query(sql, values);
-  return { message: "Commission record created successfully", data: result };
+  return {
+    message: "success",
+    data: { ...data, commisionUniqueId },
+  };
 };
 
 // Get all commission records

@@ -28,7 +28,7 @@ exports.getAllDriverDeposits = async (req, res) => {
 exports.getDriverDepositById = async (req, res) => {
   try {
     const result = await driverDepositService.getDriverDepositById(
-      req.params.id
+      req.params.driverDepositUniqueId
     );
     if (result) {
       res.status(200).json(result);
@@ -46,7 +46,7 @@ exports.getDriverDepositById = async (req, res) => {
 exports.updateDriverDeposit = async (req, res) => {
   try {
     const result = await driverDepositService.updateDriverDeposit(
-      req.params.id,
+      req.params.driverDepositUniqueId,
       req.body
     );
     res.status(200).json(result);
@@ -61,7 +61,7 @@ exports.updateDriverDeposit = async (req, res) => {
 exports.deleteDriverDeposit = async (req, res) => {
   try {
     const result = await driverDepositService.deleteDriverDeposit(
-      req.params.id
+      req.params.driverDepositUniqueId
     );
     res.status(200).json(result);
   } catch (error) {

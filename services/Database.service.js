@@ -10,8 +10,12 @@ const {
   cancellationReasons,
   paymentStatus,
   paymentMethod,
+  CommissionRates,
+  TarrifRateForVehcleTypes,
+  TarrifRateList,
 } = require("../Utils/listOfFixedData");
 const { addCancellationReason } = require("./Cancilation.service");
+const { createCommissionRate } = require("./CommissionRates.service");
 const { createDocumentType } = require("./DocumentTypes.service");
 const { createJourneyStatus } = require("./JourneyStatus.service");
 const { createPaymentMethod } = require("./PaymentMethod.service");
@@ -19,6 +23,10 @@ const { createPaymentStatus } = require("./paymentStatus.service");
 const { createRole } = require("./Role.service");
 const { createMapping } = require("./RoleDocumentRequirements.service");
 const { createStatus } = require("./Status.service");
+const { createTarrifRate } = require("./TarrifRate.service");
+const {
+  createTarrifRateForVehicleType,
+} = require("./TarrifRateForVehicleTypes.service");
 const { createVehicleType } = require("./VechleType.service");
 
 const createTable = async () => {
@@ -263,7 +271,13 @@ const installPreDefinedData = async (req, res) => {
       paymentStatusSuccess = [],
       paymentStatusErrors = [],
       createPaymentMethodSuccess = [],
-      createPaymentMethodErrors = [];
+      createPaymentMethodErrors = [],
+      successCommissionRates = [],
+      failedCommissionRates = [],
+      successTarrifRateForVehicleType = [],
+      failedTarrifRateForVehicleType = [],
+      successTarrifRate = [],
+      failedTarrifRate = [];
     // Process predefined data in order
     await processDataSequentially(
       journeyStatus,
@@ -351,10 +365,42 @@ const installPreDefinedData = async (req, res) => {
       createPaymentMethodErrors,
       "PaymentMethod"
     );
-    // Final response
+    //10. CommissionRates,
+    await processDataSequentially(
+      CommissionRates,
+      createCommissionRate,
+      successCommissionRates,
+      failedCommissionRates,
+      "CommissionRates"
+    );
+    // 11.TarrifRateForVehcleTypes,
+    await processDataSequentially(
+      TarrifRateForVehcleTypes,
+      createTarrifRateForVehicleType,
+      successTarrifRateForVehicleType,
+      failedTarrifRateForVehicleType,
+      "TarrifRateForVehcleTypes"
+    );
+    // 12.TarrifRateList,
+    await processDataSequentially(
+      TarrifRateList,
+      createTarrifRate,
+      successTarrifRate,
+      failedTarrifRate,
+      "TarrifRateList"
+    );
+
+    //  Final response
+
     return {
       message: "success",
       data: {
+        CommissionRates: { successCommissionRates, failedCommissionRates },
+        TarrifRateForVehcleTypes: {
+          successTarrifRateForVehicleType,
+          failedTarrifRateForVehicleType,
+        },
+        TarrifRateList: { successTarrifRate, failedTarrifRate },
         paymentStatus: {
           success: paymentStatusSuccess,
           errors: paymentStatusErrors,

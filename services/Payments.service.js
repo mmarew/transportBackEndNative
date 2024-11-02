@@ -1,28 +1,43 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getData } = require("../CRUD/Read/ReadData");
 
 // Create a new payment
 exports.createPayment = async (
-  journeyId,
+  journeyUniqueId,
   amount,
   paymentMethodUniqueId,
   paymentStatusUniqueId,
   paymentTime
 ) => {
-  const sql = `INSERT INTO Payments (journeyId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) VALUES (?, ?, ?, ?, ?)`;
+  const existedPayment = await getData({
+    tableName: "Payments",
+    conditions: { journeyUniqueId: journeyUniqueId },
+  });
+  if (existedPayment.length > 0) {
+    return {
+      message: "error",
+      error: "Payment already exists for this journey",
+      data: existedPayment?.[0],
+    };
+  }
+  const paymentUniqueId = uuidv4();
+  const sql = `INSERT INTO Payments (paymentUniqueId,journeyUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) VALUES (?, ?, ?, ?, ?,?)`;
   const values = [
-    journeyId,
+    paymentUniqueId,
+    journeyUniqueId,
     amount,
     paymentMethodUniqueId,
     paymentStatusUniqueId,
-    paymentTime,
+    new Date(),
   ];
   const [result] = await pool.query(sql, values);
 
   return {
     message: "success",
     data: {
-      journeyId,
+      paymentUniqueId,
+      journeyUniqueId,
       amount,
       paymentMethodUniqueId,
       paymentStatusUniqueId,

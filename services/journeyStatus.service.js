@@ -49,6 +49,7 @@ const createJourneyStatus = async (body) => {
 // Get all journey statuses
 const getAllJourneyStatuses = async () => {
   const result = await getData({ tableName: "JourneyStatus" });
+
   return {
     message: "success",
     data: result,
@@ -56,10 +57,10 @@ const getAllJourneyStatuses = async () => {
 };
 
 // Get a journey status by ID
-const getJourneyStatusById = async (journeyStatusId) => {
+const getJourneyStatusById = async (journeyStatusUniqueId) => {
   const result = await getData({
     tableName: "JourneyStatus",
-    conditions: { journeyStatusId },
+    conditions: { journeyStatusUniqueId },
   });
 
   if (result.length > 0) {
@@ -76,17 +77,17 @@ const getJourneyStatusById = async (journeyStatusId) => {
 };
 
 // Update a journey status by ID
-const updateJourneyStatus = async (journeyStatusId, body) => {
+const updateJourneyStatus = async (journeyStatusUniqueId, body) => {
   const result = await updateData({
     tableName: "JourneyStatus",
-    conditions: { journeyStatusId },
+    conditions: { journeyStatusUniqueId },
     updateValues: body,
   });
 
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Journey status with ID ${journeyStatusId} updated successfully`,
+      data: `Journey status with journeyS tatus Unique Id ${journeyStatusUniqueId} updated successfully`,
     };
   } else {
     return {
@@ -97,16 +98,16 @@ const updateJourneyStatus = async (journeyStatusId, body) => {
 };
 
 // Delete a journey status by ID
-const deleteJourneyStatus = async (journeyStatusId) => {
+const deleteJourneyStatus = async (journeyStatusUniqueId) => {
   const result = await deleteData({
     tableName: "JourneyStatus",
-    conditions: { journeyStatusId },
+    conditions: { journeyStatusUniqueId },
   });
 
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Journey status with ID ${journeyStatusId} deleted successfully`,
+      data: `Journey status with ID ${journeyStatusUniqueId} deleted successfully`,
     };
   } else {
     return {

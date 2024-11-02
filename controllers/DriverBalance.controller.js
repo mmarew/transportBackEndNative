@@ -28,7 +28,7 @@ exports.getAllDriverBalances = async (req, res) => {
 exports.getDriverBalanceById = async (req, res) => {
   try {
     const result = await driverBalanceService.getDriverBalanceById(
-      req.params.id
+      req.params.driverBalanceUniqueId
     );
     if (result) {
       res.status(200).json(result);
@@ -46,7 +46,7 @@ exports.getDriverBalanceById = async (req, res) => {
 exports.updateDriverBalance = async (req, res) => {
   try {
     const result = await driverBalanceService.updateDriverBalance(
-      req.params.id,
+      req.params.driverBalanceUniqueId,
       req.body
     );
     res.status(200).json(result);
@@ -61,7 +61,7 @@ exports.updateDriverBalance = async (req, res) => {
 exports.deleteDriverBalance = async (req, res) => {
   try {
     const result = await driverBalanceService.deleteDriverBalance(
-      req.params.id
+      req.params.driverBalanceUniqueId
     );
     res.status(200).json(result);
   } catch (error) {

@@ -1,16 +1,32 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getData } = require("../CRUD/Read/ReadData");
 
 // Create a new tariff rate for a vehicle type
 exports.createTarrifRateForVehicleType = async (data) => {
+  // verify existance of data
+  const existedData = await getData({
+    tableName: "TarrifRateForVehcleTypes",
+    conditions: {
+      vehicleTypeUniqueId: data.vehicleTypeUniqueId,
+      tarrifRateUniqueId: data.tarrifRateUniqueId,
+    },
+  });
+
+  if (existedData.length > 0) {
+    return {
+      message: "error",
+      error: "Tariff rate for vehicle type already exists",
+    };
+  }
   const sql = `
     INSERT INTO TarrifRateForVehcleTypes (
       tarrifRateForVehcleTypeUniqueId,
       vehicleTypeUniqueId,
-      tarrifRateId
+      tarrifRateUniqueId 
     ) VALUES (?, ?, ?)
   `;
-  const values = [uuidv4(), data.vehicleTypeUniqueId, data.tarrifRateId];
+  const values = [uuidv4(), data.vehicleTypeUniqueId, data.tarrifRateUniqueId];
   const [result] = await pool.query(sql, values);
   return {
     message: "Tariff rate for vehicle type created successfully",

@@ -544,8 +544,40 @@ const paymentMethod = [
     paymentMethodDescription: "Payment by telebirr",
   },
 ];
+const TarrifRateList = [
+  {
+    tarrifRateId: 1,
+    standingTarrifRate: 100,
+    journeyTarrifRate: 25,
+    timingTarrifRate: 10,
+    tarifRateDescription: "some descriptions ",
+  },
 
+  {
+    tarrifRateId: 2,
+    standingTarrifRate: 150,
+    journeyTarrifRate: 45,
+    timingTarrifRate: 30,
+    tarifRateDescription: "some descriptions ",
+  },
+];
+const TarrifRateForVehcleTypes = [
+  {
+    vehicleTypeUniqueId: "106eba58-3ce9-4cba-b387-347751e02489",
+    tarrifRateUniqueId: "772c2316-0f18-43e5-9785-9d98d65db854",
+  },
+];
+const CommissionRates = [
+  {
+    commissionRateId: 1,
+    commissionRate: 10,
+    effectiveDate: "2022-01-01",
+  },
+];
 module.exports = {
+  CommissionRates,
+  TarrifRateForVehcleTypes,
+  TarrifRateList,
   paymentMethod,
   paymentStatus,
   cancellationReasons,

@@ -1,48 +1,110 @@
-const { v4: uuidv4 } = require("uuid");
+// commissionRateService.js
+
 const { pool } = require("../Middleware/Database.config");
 
-// Create a new commission rate
-exports.createCommissionRate = async (data) => {
-  const sql = `
+// Create a commission rate
+exports.createCommissionRate = async ({
+  commissionRateUniqueId,
+  commissionRate,
+  commissionRateEffectiveDate,
+  commissionRateCreatedBy,
+}) => {
+  // First check if there is an active rate
+  const sqlQueryToCheck = `
+  SELECT * 
+  FROM CommissionRates 
+  WHERE commissionRateExpirationDate IS NULL 
+    AND commissionRateDeletedAt IS NULL 
+    AND commissionRateEffectiveDate < NOW()
+  ORDER BY commissionRateEffectiveDate DESC
+`;
+  const [existedRate] = await pool.query(sqlQueryToCheck);
+  if (existedRate.length > 0) {
+    return {
+      message: "error",
+      error: "There is already an active commission rate",
+    };
+  }
+  const sqlQueryToInsert = `
     INSERT INTO CommissionRates (
+      commissionRateUniqueId,
       commissionRate,
-      effectiveDate
-    ) VALUES (?, ?)
+      commissionRateEffectiveDate,
+      commissionRateCreatedBy
+     ) VALUES (?, ?, ?, ?)
   `;
-  const values = [data.commissionRate, data.effectiveDate];
-  const [result] = await pool.query(sql, values);
-  return { message: "Commission rate created successfully", data: result };
-};
 
-// Get all commission rates
-exports.getAllCommissionRates = async () => {
-  const sql = `SELECT * FROM CommissionRates ORDER BY effectiveDate DESC`;
-  const [result] = await pool.query(sql);
+  const values = [
+    commissionRateUniqueId,
+    commissionRate,
+    commissionRateEffectiveDate,
+    commissionRateCreatedBy,
+  ];
+
+  const [result] = await pool.query(sqlQueryToInsert, values);
   return result;
 };
 
-// Get a commission rate by ID
-exports.getCommissionRateById = async (id) => {
-  const sql = `SELECT * FROM CommissionRates WHERE commissionRateId = ?`;
-  const [result] = await pool.query(sql, [id]);
-  return result[0];
+// Retrieve all commission rates
+exports.getAllCommissionRates = async () => {
+  const sqlQuery = `SELECT * FROM CommissionRates WHERE commissionRateDeletedAt IS NULL`;
+  const [rows] = await pool.query(sqlQuery);
+  return rows;
 };
 
-// Update a commission rate by ID
-exports.updateCommissionRate = async (id, data) => {
-  const sql = `
-    UPDATE CommissionRates
-    SET commissionRate = ?, effectiveDate = ?
-    WHERE commissionRateId = ?
+// Retrieve a commission rate by its unique ID
+exports.getCommissionRateByUniqueId = async (commissionRateUniqueId) => {
+  const sqlQuery = `SELECT * FROM CommissionRates WHERE commissionRateUniqueId = ? AND commissionRateDeletedAt IS NULL`;
+  const [rows] = await pool.query(sqlQuery, [commissionRateUniqueId]);
+  return rows[0];
+};
+
+// Update a commission rate by its unique ID
+exports.updateCommissionRateByUniqueId = async ({
+  commissionRateUniqueId,
+  commissionRate,
+  commissionRateEffectiveDate,
+  commissionRateExpirationDate,
+  commissionRateUpdatedBy,
+}) => {
+  const sqlQuery = `
+    UPDATE CommissionRates 
+    SET 
+      commissionRate = ?, 
+      commissionRateEffectiveDate = ?, 
+      commissionRateExpirationDate = ?, 
+      commissionRateUpdatedAt = CURRENT_TIMESTAMP,
+      commissionRateUpdatedBy = ?
+    WHERE commissionRateUniqueId = ?
   `;
-  const values = [data.commissionRate, data.effectiveDate, id];
-  const [result] = await pool.query(sql, values);
-  return { message: "Commission rate updated successfully", data: result };
+
+  const values = [
+    commissionRate,
+    commissionRateEffectiveDate,
+    commissionRateExpirationDate,
+    commissionRateUpdatedBy,
+    commissionRateUniqueId,
+  ];
+
+  const [result] = await pool.query(sqlQuery, values);
+  return result;
 };
 
-// Delete a commission rate by ID
-exports.deleteCommissionRate = async (id) => {
-  const sql = `DELETE FROM CommissionRates WHERE commissionRateId = ?`;
-  const [result] = await pool.query(sql, [id]);
-  return { message: "Commission rate deleted successfully", data: result };
+// Soft delete a commission rate by its unique ID
+exports.deleteCommissionRateByUniqueId = async ({
+  commissionRateUniqueId,
+  commissionRateDeletedBy,
+}) => {
+  const sqlQuery = `
+    UPDATE CommissionRates 
+    SET 
+      commissionRateDeletedAt = CURRENT_TIMESTAMP,
+      commissionRateDeletedBy = ?
+    WHERE commissionRateUniqueId = ?
+  `;
+
+  const values = [commissionRateDeletedBy, commissionRateUniqueId];
+
+  const [result] = await pool.query(sqlQuery, values);
+  return result;
 };

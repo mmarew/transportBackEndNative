@@ -2,24 +2,24 @@ const { pool } = require("../Middleware/Database.config");
 
 // Create a new journey route point
 exports.createJourneyRoutePoint = async ({
-  journeyId,
+  journeyUniqueId,
   latitude,
   longitude,
 }) => {
-  const sql = `INSERT INTO JourneyRoutePoints (journeyId, latitude, longitude) VALUES (?, ?, ?)`;
-  const values = [journeyId, latitude, longitude];
+  const sql = `INSERT INTO JourneyRoutePoints (journeyUniqueId, latitude, longitude) VALUES (?, ?, ?)`;
+  const values = [journeyUniqueId, latitude, longitude];
   const [result] = await pool.query(sql, values);
 
   return {
     message: "success",
-    data: { journeyId, latitude, longitude, pointId: result.insertId },
+    data: { journeyUniqueId, latitude, longitude, pointId: result.insertId },
   };
 };
 
 // Get all route points for a specific journey
-exports.getJourneyRoutePoints = async (journeyId) => {
-  const sql = `SELECT * FROM JourneyRoutePoints WHERE journeyId = ? ORDER BY timestamp`;
-  const [result] = await pool.query(sql, [journeyId]);
+exports.getJourneyRoutePoints = async (journeyUniqueId) => {
+  const sql = `SELECT * FROM JourneyRoutePoints WHERE journeyUniqueId = ? ORDER BY timestamp`;
+  const [result] = await pool.query(sql, [journeyUniqueId]);
 
   return { message: "success", data: result };
 };

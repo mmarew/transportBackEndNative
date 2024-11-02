@@ -32,8 +32,10 @@ const getAllJourneyStatuses = async (req, res) => {
 // Get a single journey status by ID
 const getJourneyStatusById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await journeyStatusService.getJourneyStatusById(id);
+    const { journeyStatusUniqueId } = req.params;
+    const result = await journeyStatusService.getJourneyStatusById(
+      journeyStatusUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching journey status by ID:", error);
@@ -47,8 +49,11 @@ const getJourneyStatusById = async (req, res) => {
 // Update a journey status by ID
 const updateJourneyStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await journeyStatusService.updateJourneyStatus(id, req.body);
+    const { journeyStatusUniqueId } = req.params;
+    const result = await journeyStatusService.updateJourneyStatus(
+      journeyStatusUniqueId,
+      req.body
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error updating journey status:", error);
@@ -62,8 +67,10 @@ const updateJourneyStatus = async (req, res) => {
 // Delete a journey status by ID
 const deleteJourneyStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await journeyStatusService.deleteJourneyStatus(id);
+    const { journeyStatusUniqueId } = req.params;
+    const result = await journeyStatusService.deleteJourneyStatus(
+      journeyStatusUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error deleting journey status:", error);

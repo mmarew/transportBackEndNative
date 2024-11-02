@@ -16,7 +16,7 @@ router.get(
 
 // Get a driver deposit record by ID
 router.get(
-  "/api/admin/driverDeposit/:id",
+  "/api/admin/driverDeposit/:driverDepositUniqueId",
   driverDepositController.getDriverDepositById
 );
 

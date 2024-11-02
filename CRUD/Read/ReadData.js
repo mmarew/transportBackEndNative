@@ -2,7 +2,7 @@ const { pool } = require("../../Middleware/Database.config");
 
 const getData = async ({
   tableName,
-  conditions,
+  conditions = {}, // Default to an empty object
   operator = "AND",
   orderBy = null,
   orderDirection = "ASC",
@@ -14,28 +14,35 @@ const getData = async ({
     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
   }
 
-  // Build the WHERE clause dynamically based on the conditions object
-  const whereClause = Object.keys(conditions)
-    .map((col) => {
-      const value = conditions[col];
-      if (value === null) {
-        return `${col} IS NULL`;
-      } else if (Array.isArray(value)) {
-        const placeholders = value.map(() => "?").join(", ");
-        return `${col} IN (${placeholders})`;
-      } else {
-        return `${col} = ?`;
-      }
-    })
-    .join(` ${operator} `);
+  let whereClause = "";
+  let values = [];
 
-  // Flatten the values array, excluding null values
-  const values = Object.values(conditions)
-    .filter((value) => value !== null)
-    .flat();
+  // Build the WHERE clause dynamically based on the conditions object
+  if (Object.keys(conditions).length > 0) {
+    whereClause =
+      "WHERE " +
+      Object.keys(conditions)
+        .map((col) => {
+          const value = conditions[col];
+          if (value === null) {
+            return `${col} IS NULL`;
+          } else if (Array.isArray(value)) {
+            const placeholders = value.map(() => "?").join(", ");
+            return `${col} IN (${placeholders})`;
+          } else {
+            return `${col} = ?`;
+          }
+        })
+        .join(` ${operator} `);
+
+    // Flatten the values array, excluding null values
+    values = Object.values(conditions)
+      .filter((value) => value !== null)
+      .flat();
+  }
 
   // Initialize the base query
-  let sqlQuery = `SELECT * FROM ${tableName} WHERE ${whereClause}`;
+  let sqlQuery = `SELECT * FROM ${tableName} ${whereClause}`;
 
   // Add ORDER BY clause if provided
   if (orderBy) {

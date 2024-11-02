@@ -296,11 +296,11 @@ CREATE TABLE IF NOT EXISTS Journey (
 -- Create the JourneyRoutePoints table
 CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     pointId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyId INT NOT NULL,  -- Foreign key to the Journey table
+    journeyUniqueId varchar(36) NOT NULL,  -- Foreign key to the Journey table
     latitude DECIMAL(10, 8) NOT NULL,  -- Latitude of the GPS point
     longitude DECIMAL(11, 8) NOT NULL,  -- Longitude of the GPS point
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp of when the GPS point was recorded
-    FOREIGN KEY (journeyId) REFERENCES Journey(journeyId) ON DELETE CASCADE  -- Link to the Journey table
+    FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId) ON DELETE CASCADE  -- Link to the Journey table
 );
 
 
@@ -402,14 +402,15 @@ CREATE TABLE IF NOT EXISTS PaymentStatus (
 -- Create the Payments table
 CREATE TABLE IF NOT EXISTS Payments (
     paymentId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
+    paymentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment
+    journeyUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
     amount DECIMAL(10, 2) NOT NULL,  -- Payment amount
     paymentMethodUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentMethod
     paymentStatusUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentStatus
     paymentTime TIMESTAMP NOT NULL  -- Time of payment
-    -- , FOREIGN KEY (journeyId) REFERENCES Journey(journeyId),
-    -- FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
-    -- FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
+ , FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId),
+     FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
+     FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
 ) ;
  
  --  CREATE TABLE CanceledJourneys 
@@ -436,34 +437,49 @@ CREATE TABLE IF NOT EXISTS Payments (
     createdBy VARCHAR(36) NOT NULL,  -- Who created the tarrif rate
     createdAt DATETIME NOT NULL  -- Creation time of the tarrif rate
 ) ;
+
  -- Create the TarrifRateForVehcleTypes table
+
 CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     tarrifRateForVehcleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     tarrifRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
-    tarrifRateId INT NOT NULL,  -- Foreign key to TarrifRate
-    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
-    FOREIGN KEY (tarrifRateId) REFERENCES TarrifRate(tarrifRateId)
+    tarrifRateUniqueId varchar(36) NOT NULL  -- Foreign key to TarrifRate
+   , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+    FOREIGN KEY (tarrifRateUniqueId) REFERENCES TarrifRate(tarrifRateUniqueId)
 ) ;
  -- Create the CommissionRates table
  CREATE TABLE IF NOT EXISTS CommissionRates (
     commissionRateId INT AUTO_INCREMENT PRIMARY KEY,
+    commissionRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for commission
     commissionRate DECIMAL(5, 2) NOT NULL,  -- Commission rate as a percentage (e.g., 10 for 10%)
-    effectiveDate DATE NOT NULL,            -- The date from which this rate is effective
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+    commissionRateEffectiveDate DATE NOT NULL,            -- The date from which this rate is effective
+    commissionRateExpirationDate DATE NOT NULL,            -- The date after which this rate is no longer effective
+    commissionRateCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    commissionRateUpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    commissionRateDeletedAt DATETIME NULL,
+    commissionRateCreatedBy VARCHAR(36) NOT NULL,  -- Who created the commission rate
+    commissionRateUpdatedBy VARCHAR(36) NULL,  -- Who updated the commission rate
+    commissionRateDeletedBy VARCHAR(36) NULL, -- Who deleted the commission rate
+    FOREIGN KEY (commissionRateCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (commissionRateUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (commissionRateDeletedBy) REFERENCES Users(userUniqueId)
+ );
 
 -- commision table for every payment 
+
     CREATE TABLE IF NOT EXISTS Commission (
     commissionId INT AUTO_INCREMENT PRIMARY KEY,
     commissionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for commission
-    paymentId INT NOT NULL,  -- Foreign key to Payments
-    commissionRateId INT NOT NULL,  -- Foreign key to CommissionRates
+    paymentUniqueId varchar(36) NOT NULL,  -- Foreign key to Payments
+    commissionRateUniqueId varchar(36) NOT NULL,  -- Foreign key to CommissionRates
     commissionAmount DECIMAL(10, 2) NOT NULL,  -- Commission amount
-    FOREIGN KEY (paymentId) REFERENCES Payments(paymentId),
-    FOREIGN KEY (commissionRateId) REFERENCES CommissionRates(commissionRateId)
+    FOREIGN KEY (paymentUniqueId) REFERENCES Payments(paymentUniqueId),
+    FOREIGN KEY (commissionRateUniqueId) REFERENCES CommissionRates(commissionRateUniqueId)
 );
+
 -- a table to store drivers deposit to pay for commision 
+
   CREATE TABLE IF NOT EXISTS DriverDeposit (
     driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
     driverDepositUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver deposit

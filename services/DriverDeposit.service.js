@@ -34,14 +34,14 @@ exports.getAllDriverDeposits = async () => {
 };
 
 // Get a driver deposit record by ID
-exports.getDriverDepositById = async (id) => {
-  const sql = `SELECT * FROM DriverDeposit WHERE driverDepositId = ?`;
-  const [result] = await pool.query(sql, [id]);
+exports.getDriverDepositById = async (driverDepositUniqueId) => {
+  const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
+  const [result] = await pool.query(sql, [driverDepositUniqueId]);
   return result[0];
 };
 
 // Update a driver deposit record by ID
-exports.updateDriverDeposit = async (id, data) => {
+exports.updateDriverDeposit = async (driverDepositUniqueId, data) => {
   const sql = `
     UPDATE DriverDeposit
     SET driverUniqueId = ?, amount = ?, commissionId = ?, depositTime = ?
@@ -52,7 +52,7 @@ exports.updateDriverDeposit = async (id, data) => {
     data.amount,
     data.commissionId,
     data.depositTime,
-    id,
+    driverDepositUniqueId,
   ];
   const [result] = await pool.query(sql, values);
   return {
@@ -63,8 +63,8 @@ exports.updateDriverDeposit = async (id, data) => {
 
 // Delete a driver deposit record by ID
 exports.deleteDriverDeposit = async (id) => {
-  const sql = `DELETE FROM DriverDeposit WHERE driverDepositId = ?`;
-  const [result] = await pool.query(sql, [id]);
+  const sql = `DELETE FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
+  const [result] = await pool.query(sql, [driverDepositUniqueId]);
   return {
     message: "Driver deposit record deleted successfully",
     data: result,

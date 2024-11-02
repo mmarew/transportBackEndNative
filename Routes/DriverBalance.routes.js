@@ -16,19 +16,19 @@ router.get(
 
 // Get a driver balance record by ID
 router.get(
-  "/api/admin/driverBalance/:id",
+  "/api/admin/driverBalance/:driverBalanceUniqueId",
   driverBalanceController.getDriverBalanceById
 );
 
 // Update a driver balance record by ID
 router.put(
-  "/api/admin/driverBalance/:id",
+  "/api/admin/driverBalance/:driverBalanceUniqueId",
   driverBalanceController.updateDriverBalance
 );
 
 // Delete a driver balance record by ID
 router.delete(
-  "/api/admin/driverBalance/:id",
+  "/api/admin/driverBalance/:driverBalanceUniqueId",
   driverBalanceController.deleteDriverBalance
 );
 
