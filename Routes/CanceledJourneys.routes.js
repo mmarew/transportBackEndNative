@@ -13,18 +13,22 @@ router.get(
 );
 
 router.get(
-  "/api/admin/canceledJourney/:id",
+  "/api/admin/canceledJourney/:canceledJourneyUniqueId",
   canceledJourneyController.getCanceledJourneyById
 );
 
 router.put(
-  "/api/admin/canceledJourney/:id",
+  "/api/admin/canceledJourney/:canceledJourneyUniqueId",
   canceledJourneyController.updateCanceledJourney
 );
 
 router.delete(
-  "/api/admin/canceledJourney/:id",
+  "/api/admin/canceledJourney/:canceledJourneyUniqueId",
   canceledJourneyController.deleteCanceledJourney
 );
-
+// Get canceled journeys by user unique ID and role ID of user
+router.get(
+  "/api/admin/getCanceledJourneysByUserUniqueIdAndRoleId/:userUniqueId/:roleId",
+  canceledJourneyController.getCanceledJourneysByUserUniqueId
+);
 module.exports = router;

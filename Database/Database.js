@@ -419,10 +419,12 @@ CREATE TABLE IF NOT EXISTS Payments (
     canceledJourneyId INT AUTO_INCREMENT PRIMARY KEY,
     canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
     contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
+    roleId INT NOT NULL,  -- ID from the Roles table
     contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey') NOT NULL,  -- Type of context being referenced
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
+   FOREIGN KEY (roleId) references Roles(roleId),
     FOREIGN KEY (cancellationReasonsTypeId) REFERENCES CancellationReasonsType(cancellationReasonsTypeId),
     FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)
 ); 

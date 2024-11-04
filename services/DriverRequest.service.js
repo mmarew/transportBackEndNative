@@ -713,6 +713,7 @@ const driversDocumentVehicleRequirement = async (body) => {
       conditions: { userUniqueId: ownerUserUniqueId },
     })
   )[0];
+
   const roleId = 2;
   const phoneNumber = user.phoneNumber;
   const userRoleStatusDescription = body.userRoleStatusDescription;
