@@ -10,9 +10,9 @@ router.post(
   userRoleController.createUserRole
 );
 router.get(
-  "/userRole/:id",
+  "api/admin/userRole/:userUniqueId",
   verifyTokenOfAxios,
-  userRoleController.getUserRoleById
+  userRoleController.getUserRoleByUserUniqueId
 );
 router.put(
   "/userRole/:id",

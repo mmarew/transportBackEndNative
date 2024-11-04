@@ -15,9 +15,11 @@ const createUserRole = async (req, res) => {
   }
 };
 
-const getUserRoleById = async (req, res) => {
+const getUserRoleByUserUniqueId = async (req, res) => {
   try {
-    const result = await userRoleService.getUserRoleById(req.params.id);
+    const result = await userRoleService.getUserRoleByUserUniqueId(
+      req.params.id
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error in getUserRoleByIdController:", error);
@@ -62,7 +64,7 @@ const deleteUserRole = async (req, res) => {
 
 module.exports = {
   createUserRole,
-  getUserRoleById,
+  getUserRoleByUserUniqueId,
   updateUserRole,
   deleteUserRole,
 };

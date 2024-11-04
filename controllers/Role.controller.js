@@ -58,7 +58,6 @@ const getAllRolesController = async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve roles" });
   }
 };
-
 module.exports = {
   createRoleController,
   getRoleController,

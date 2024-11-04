@@ -358,14 +358,14 @@ const getUserByEmailOrNameOrPhoneNumber = async (data) => {
 };
 
 const deleteUser = async (userUniqueId) => {
-  const result = await deleteData({
-    tableName: "Users",
-    conditions: { userUniqueId },
-  });
-  const deleteCredential = await deleteData({
-    tableName: "usersCredential",
-    conditions: { userUniqueId },
-  });
+  // const result = await deleteData({
+  //   tableName: "Users",
+  //   conditions: { userUniqueId },
+  // });
+  // const deleteCredential = await deleteData({
+  //   tableName: "usersCredential",
+  //   conditions: { userUniqueId },
+  // });
 
   //  delete requests of user
 
