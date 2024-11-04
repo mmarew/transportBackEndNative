@@ -3,13 +3,13 @@ const journeyRoutePointsService = require("../Services/JourneyRoutePoints.servic
 // Create a new journey route point
 exports.createJourneyRoutePoint = async (req, res) => {
   try {
-    const { journeyId, latitude, longitude } = req.body;
+    const { journeyUniqueId, latitude, longitude } = req.body;
 
-    const result = await journeyRoutePointsService.createJourneyRoutePoint(
-      journeyId,
+    const result = await journeyRoutePointsService.createJourneyRoutePoint({
+      journeyUniqueId,
       latitude,
-      longitude
-    );
+      longitude,
+    });
     res.status(201).json(result);
   } catch (error) {
     console.error("Error creating journey route point:", error);
@@ -22,9 +22,9 @@ exports.createJourneyRoutePoint = async (req, res) => {
 // Get all route points for a specific journey
 exports.getJourneyRoutePoints = async (req, res) => {
   try {
-    const { journeyId } = req.params;
+    const { journeyUniqueId } = req.params;
     const result = await journeyRoutePointsService.getJourneyRoutePoints(
-      journeyId
+      journeyUniqueId
     );
     res.status(200).json(result);
   } catch (error) {

@@ -18,7 +18,11 @@ router.post(
 );
 router.get("/api/user/verifyUserByOTP", constroller.verifyUserByOTP);
 router.put("/api/user/updateUser", verifyTokenOfAxios, constroller.updateUser);
-router.get("/api/admin/getUser/:id", verifyTokenOfAxios, constroller.getUser);
+router.get(
+  "/api/admin/getUser/:userUniqueId",
+  verifyTokenOfAxios,
+  constroller.getUser
+);
 router.delete(
   "/api/user/deleteUser/:userUniqueId",
   verifyTokenOfAxios,

@@ -24,6 +24,14 @@ const {
 } = require("./UserRoleStatus.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
+const PaymentCalculator = require("../Utils/PaymentCalculator");
+const { createPayment } = require("./Payments.service");
+const calculateCommision = require("../Utils/calculateCommision");
+const { createCommission } = require("./Commission.service");
+const {
+  createDriverBalance,
+  getDriverLastBalanceByUserUniqueId,
+} = require("./DriverBalance.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -131,16 +139,14 @@ const startJourney = async (body) => {
       },
     });
     const insertId = insertResult.insertId;
-    await createJourneyRoutePoint({ journeyId: insertId, latitude, longitude });
+    await createJourneyRoutePoint({ journeyUniqueId, latitude, longitude });
     await updateJourneyStatus(body);
   } else {
-    const journeyId = exisistingJourney[0].journeyId;
-    await createJourneyRoutePoint({ journeyId, latitude, longitude });
   }
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
-  const passenger = message.passenger;
+  const passenger = message?.passenger;
   phoneNumber = passenger?.phoneNumber;
   // send notification to passenger if driver has a active journey request and passenger has a phone number
   if (phoneNumber && exisistingJourney[0]?.journeyStatusId === 3)
@@ -177,9 +183,16 @@ const noAnswerFromDriver = async (body) => {
   return message;
 };
 const journeyCompleted = async (body) => {
+  // set journey status to be completed
   await updateJourneyStatus(body);
-  const passengerRequestUniqueId = body?.passengerRequestUniqueId;
-
+  const {
+    userUniqueId,
+    vehicleTypeUniqueId,
+    journeyUniqueId,
+    passengerRequestUniqueId,
+    paymentMethodUniqueId,
+    paymentStatusUniqueId,
+  } = body;
   const passenger = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -192,18 +205,64 @@ const journeyCompleted = async (body) => {
       "PassengerRequest.passengerRequestUniqueId": passengerRequestUniqueId,
     },
   });
-  console.log("passenger", passenger);
-  const phoneNumber = passenger[0]?.phoneNumber;
-  sendNotificationToPassenger({
-    message: {
-      message: "success",
-      status: 5,
-      data: "Journey completed successfully",
-    },
-    phoneNumber,
+  const phoneNumber = passenger?.at(0)?.phoneNumber;
+  if (phoneNumber)
+    sendNotificationToPassenger({
+      message: {
+        message: "success",
+        status: 5,
+        data: "Journey completed successfully",
+      },
+      phoneNumber,
+    });
+  const paymentData = await PaymentCalculator({
+    vehicleTypeUniqueId,
+    journeyUniqueId,
+    passengerRequestUniqueId,
   });
+  const totalMoney = paymentData.totalMoney;
+  if (paymentData.message == "error") return paymentData;
+  // register payment in to Payment table
+  const newPayment = await createPayment(
+    journeyUniqueId,
+    totalMoney,
+    paymentMethodUniqueId,
+    paymentStatusUniqueId
+  );
+  // console.log("newPayment", newPayment);
+  const paymentUniqueId = newPayment?.data?.paymentUniqueId;
+  // calculate commision and add to commision table
+  const commisionData = await calculateCommision(totalMoney);
 
+  const data = {
+    paymentUniqueId,
+    commissionRateUniqueId: commisionData?.commissionRateUniqueId,
+    commissionAmount: commisionData?.commissionAmount,
+  };
+  const newCommission = await createCommission(data);
+  const transactionUniqueId = newCommission.data.commissionUniqueId;
+
+  const commissionAmount = newCommission.data.commissionAmount;
+  const driversCurrentBalance = await getDriverLastBalanceByUserUniqueId(
+    userUniqueId
+  );
+
+  let currentBalance = driversCurrentBalance?.netBalance;
+  if (!currentBalance) currentBalance = 0;
+  const netBalance = parseFloat(currentBalance) - parseFloat(commissionAmount);
+  const dataOfBalance = {
+    userUniqueId,
+    transactionType: "payment",
+    transactionUniqueId,
+    date: new Date(),
+    netBalance,
+  };
+  await createDriverBalance({
+    ...dataOfBalance,
+  });
   return {
+    totalMoney,
+    netBalance,
     message: "success",
     data: "Journey completed successfully",
     status: 5,

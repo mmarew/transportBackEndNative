@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 
 // Create a new payment method
-exports.createPaymentMethod = async (paymentMethod) => {
+exports.createPaymentMethod = async ({ paymentMethod }) => {
   const paymentMethodUniqueId = uuidv4();
   const createdAt = new Date();
   const sql = `INSERT INTO PaymentMethod (paymentMethodUniqueId, paymentMethod, createdAt) VALUES (?, ?, ?)`;

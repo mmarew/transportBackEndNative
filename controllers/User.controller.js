@@ -40,7 +40,9 @@ const verifyUserByOTP = async (req, res, next) => {
 };
 const getUser = async (req, res) => {
   try {
-    const response = await services.getUser(req.params.id);
+    const response = await services.getUserByUserUniqueId(
+      req.params.userUniqueId
+    );
     ServerResponder(res, response);
   } catch (error) {
     console.error("Error:", error);

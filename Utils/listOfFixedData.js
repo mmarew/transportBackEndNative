@@ -4,13 +4,13 @@ const { v4: uuidv4 } = require("uuid");
 const roleList = [
   {
     roleUniqueId: uuidv4(),
-    roleName: 1,
+    roleName: "Passenger",
     roleDescription: "a person who can make order to driver to load goods",
     roleCreatedAt: currentDate(),
   },
   {
     roleUniqueId: uuidv4(),
-    roleName: 2,
+    roleName: "Driver",
     roleDescription:
       "a person who can recive order from passenger to load goods",
     roleCreatedAt: currentDate(),
@@ -447,7 +447,7 @@ const journeyStatus = [
   {
     journeyStatusId: 5,
     journeyStatusName: "journeyCompleted",
-    journeyStatusDescription: "Journey completed by driver or passenger",
+    journeyStatusDescription: "Journey completed by driver ",
   },
   {
     journeyStatusId: 6,
@@ -527,8 +527,59 @@ const paymentStatus = [
     paymentStatusDescription: "Payment failed",
   },
 ];
+const paymentMethod = [
+  {
+    paymentMethodId: 1,
+    paymentMethod: "cash",
+    paymentMethodDescription: "Payment by cash",
+  },
+  {
+    paymentMethodId: 2,
+    paymentMethod: "bank",
+    paymentMethodDescription: "Payment by bank",
+  },
+  {
+    paymentMethodId: 3,
+    paymentMethod: "telebirr",
+    paymentMethodDescription: "Payment by telebirr",
+  },
+];
+const TarrifRateList = [
+  {
+    tarrifRateId: 1,
+    standingTarrifRate: 100,
+    journeyTarrifRate: 25,
+    timingTarrifRate: 10,
+    tarifRateDescription: "some descriptions ",
+  },
 
+  {
+    tarrifRateId: 2,
+    standingTarrifRate: 150,
+    journeyTarrifRate: 45,
+    timingTarrifRate: 30,
+    tarifRateDescription: "some descriptions ",
+  },
+];
+const TarrifRateForVehcleTypes = [
+  {
+    vehicleTypeUniqueId: "cd7f98a4-eceb-4a62-a8cb-822d63080e93",
+    tarrifRateUniqueId: "993b23d2-a47f-467c-98e8-baa0b86c2a1b",
+  },
+];
+const CommissionRates = [
+  {
+    commissionRateUniqueId: uuidv4(),
+    commissionRateId: 1,
+    commissionRate: 10,
+    commissionRateEffectiveDate: "2022-01-01",
+  },
+];
 module.exports = {
+  CommissionRates,
+  TarrifRateForVehcleTypes,
+  TarrifRateList,
+  paymentMethod,
   paymentStatus,
   cancellationReasons,
   journeyStatus,

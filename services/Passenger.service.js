@@ -6,6 +6,7 @@ const {
   checkActivePassengerRequest,
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
+const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
 const {
@@ -25,8 +26,13 @@ const createRequest = async (body, user) => {
     }
     // 2. Check if the user already has an active request
     const activeRequest = await checkActivePassengerRequest(userUniqueId);
+    console.log("activeRequest", activeRequest);
     if (activeRequest?.length == 0) {
-      await createPassengerRequest(body, userUniqueId);
+      const newRequest = await createPassengerRequest(body, userUniqueId);
+      console.log("newRequest", newRequest);
+      if (newRequest?.message === "error") {
+        return newRequest;
+      }
     }
     // 3. Create a new passenger request
     return await verifyPassengerStatus({ userUniqueId, activeRequest });
@@ -103,7 +109,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     if (activeRequest?.length == 0) {
       return {
         message: "success",
-        data: "No active  status found for this user",
+        data: "No active  request found for this user",
         status: null,
       };
     }
@@ -244,7 +250,8 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
 const cancelPassengerRequest = async (body) => {
   try {
     const user = body.user;
-    const ownerUserUniqueId = body?.ownerUserUniqueId;
+    const ownerUserUniqueId = body?.ownerUserUniqueId,
+      cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
     const { userUniqueId } = user;
     // Check if the user has any active passenger requests
     const getActiveRequest = await checkActivePassengerRequest(
@@ -274,15 +281,25 @@ const cancelPassengerRequest = async (body) => {
     });
 
     if (journeyDecisions.length == 0) {
-      // If there's no journey decision related to this request, return success
-      return {
-        message: "success",
-        data: "You have successfully cancelled your request.",
-      };
+      // register cancillation data on CanceledJourney
+      const canceledJourney = await createCanceledJourney({
+        canceledBy: userUniqueId,
+        canceledTime: null,
+        contextId: passengerRequestId,
+        contextType: "PassengerRequest",
+        cancellationReasonsTypeId,
+      });
+      // If there's no journey decision related to this request and cancellation is successfully registered, return success
+      if (canceledJourney.message === "success")
+        return {
+          message: "success",
+          data: "You have successfully cancelled your request.",
+        };
     }
 
     const driverRequestId = journeyDecisions[0].driverRequestId;
     const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
+    const journeyDecisionId = journeyDecisions[0].journeyDecisionId;
 
     // Update the DriverRequest to reflect the cancellation
     await updateData({
@@ -319,13 +336,26 @@ const cancelPassengerRequest = async (body) => {
       conditions: { journeyDecisionUniqueId },
       updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
-
+    const existingJourneyData = await getData({
+      tableName: "Journey",
+      conditions: { journeyDecisionUniqueId },
+    });
     // Update the Journey table (if the journey had already started)
-    await updateData({
+    const updatedJourneyData = await updateData({
       tableName: "Journey",
       conditions: { journeyDecisionUniqueId },
       updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
+    console.log("existingJourneyData ================> ", existingJourneyData);
+    const journeyId = existingJourneyData.at(0)?.journeyId;
+    const canceledJourney = await createCanceledJourney({
+      canceledBy: userUniqueId,
+      canceledTime: null,
+      contextId: journeyId ? journeyId : journeyDecisionId,
+      contextType: journeyId ? "Journey" : "JourneyDecisions",
+      cancellationReasonsTypeId,
+    });
+    console.log("canceledJourney", canceledJourney);
 
     return {
       message: "success",

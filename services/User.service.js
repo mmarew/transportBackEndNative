@@ -322,10 +322,10 @@ const verifyUserByOTP = async (req) => {
     return { message: "error", error: "Unable to verify user" };
   }
 };
-const getUserById = async (id) => {
+const getUserByUserUniqueId = async (userUniqueId) => {
   const user = await getData({
     tableName: "Users",
-    conditions: { userUniqueId: id },
+    conditions: { userUniqueId: userUniqueId },
   });
 
   if (!user || user.length === 0) {
@@ -498,7 +498,7 @@ const updateUser = async (body) => {
 };
 
 module.exports = {
-  getUserById,
+  getUserByUserUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,

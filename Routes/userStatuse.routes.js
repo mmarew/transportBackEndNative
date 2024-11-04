@@ -1,11 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const userStatusesController = require("../controllers/UserStatuse.controller");
+const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Routes for CRUD operations
-router.post("/userStatuses/create", userStatusesController.createUserStatus);
-router.get("/userStatuses/:id", userStatusesController.getUserStatusById);
-router.put("/userStatuses/:id", userStatusesController.updateUserStatus);
-router.delete("/userStatuses/:id", userStatusesController.deleteUserStatus);
+router.post(
+  "/userStatuses/create",
+  verifyTokenOfAxios,
+  userStatusesController.createUserStatus
+);
+router.get(
+  "/userStatuses/:id",
+  verifyTokenOfAxios,
+  userStatusesController.getUserStatusById
+);
+router.put(
+  "/userStatuses/:id",
+  verifyTokenOfAxios,
+  userStatusesController.updateUserStatus
+);
+router.delete(
+  "/userStatuses/:id",
+  verifyTokenOfAxios,
+  userStatusesController.deleteUserStatus
+);
 
 module.exports = router;

@@ -1,7 +1,13 @@
 const { pool } = require("../Middleware/Database.config");
 const uuidv4 = require("uuid").v4;
-// Create a new canceled journey
-exports.createCanceledJourney = async (data) => {
+// Create a new canceled journey,
+exports.createCanceledJourney = async ({
+  contextId,
+  contextType,
+  canceledBy,
+  cancellationReasonsTypeId,
+  canceledTime,
+}) => {
   const canceledJourneyUniqueId = uuidv4();
   const sql = `
         INSERT INTO CanceledJourneys (canceledJourneyUniqueId, contextId, contextType, canceledBy, cancellationReasonsTypeId, canceledTime)
@@ -9,15 +15,16 @@ exports.createCanceledJourney = async (data) => {
     `;
   const values = [
     canceledJourneyUniqueId,
-    data.contextId,
-    data.contextType,
-    data.canceledBy,
-    data.cancellationReasonsTypeId,
-    data.canceledTime || new Date(),
+    contextId,
+    contextType,
+    canceledBy,
+    cancellationReasonsTypeId,
+    canceledTime || new Date(),
   ];
   const [result] = await pool.query(sql, values);
   return {
-    message: "Canceled journey created successfully",
+    message: "success",
+    data: "Canceled journey created successfully",
     canceledJourneyId: result.insertId,
   };
 };
