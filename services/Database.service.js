@@ -366,8 +366,11 @@ const installPreDefinedData = async (req, res) => {
       "PaymentMethod"
     );
     //10. CommissionRates,
+    let updatedCommissionRates = CommissionRates.map((item) => {
+      return { ...item, commissionRateCreatedBy: user.userUniqueId };
+    });
     await processDataSequentially(
-      CommissionRates,
+      updatedCommissionRates,
       createCommissionRate,
       successCommissionRates,
       failedCommissionRates,

@@ -563,15 +563,16 @@ const TarrifRateList = [
 ];
 const TarrifRateForVehcleTypes = [
   {
-    vehicleTypeUniqueId: "106eba58-3ce9-4cba-b387-347751e02489",
-    tarrifRateUniqueId: "772c2316-0f18-43e5-9785-9d98d65db854",
+    vehicleTypeUniqueId: "cd7f98a4-eceb-4a62-a8cb-822d63080e93",
+    tarrifRateUniqueId: "993b23d2-a47f-467c-98e8-baa0b86c2a1b",
   },
 ];
 const CommissionRates = [
   {
+    commissionRateUniqueId: uuidv4(),
     commissionRateId: 1,
     commissionRate: 10,
-    effectiveDate: "2022-01-01",
+    commissionRateEffectiveDate: "2022-01-01",
   },
 ];
 module.exports = {

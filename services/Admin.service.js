@@ -16,13 +16,11 @@ const adminServices = {
   // Fetch unauthorized drivers
   getUnauthorizedDriver: async () => {
     const sql = `
-      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*
-      FROM Users
-      JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
-      WHERE UserRoleStatusCurrent.statusId != ?
+      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* 
+      FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId WHERE UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
     `;
-    const [unauthorizedUsers] = await pool.query(sql, [1]);
+    const [unauthorizedUsers] = await pool.query(sql, [1, 2]);
 
     const usersWithDocuments = await Promise.all(
       unauthorizedUsers.map(async (user) => {
