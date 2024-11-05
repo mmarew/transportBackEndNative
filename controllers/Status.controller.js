@@ -4,7 +4,7 @@ const {
   updateStatus,
   deleteStatus,
   getAllStatuses,
-} = require("../services/Status.service");
+} = require("../Services/Status.service");
 const { statusList } = require("../Utils/listOfFixedData");
 const createStatusController = async (req, res) => {
   try {

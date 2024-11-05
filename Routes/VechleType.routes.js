@@ -6,7 +6,7 @@ const {
   getVehicleTypeByIdController,
   updateVehicleTypeController,
   deleteVehicleTypeController,
-} = require("../controllers/VechleType.controller");
+} = require("../Controllers/VechleType.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Route to create a new vehicle type

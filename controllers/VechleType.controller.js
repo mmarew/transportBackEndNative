@@ -1,4 +1,4 @@
-const VehicleTypeService = require("../services/VechleType.service");
+const VehicleTypeService = require("../Services/VechleType.service");
 const { vehicleTypes } = require("../Utils/listOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder");
 const createVehicleTypeController = async (req, res) => {

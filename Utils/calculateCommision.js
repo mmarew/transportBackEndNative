@@ -1,6 +1,6 @@
 const {
   getAllCommissionRates,
-} = require("../services/CommissionRates.service");
+} = require("../Services/CommissionRates.service");
 
 const calculateCommision = async (amount) => {
   // get commision rate from db

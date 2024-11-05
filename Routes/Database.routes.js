@@ -10,7 +10,7 @@ const {
   dropColumnController,
   getTableColumnsController,
   installPreDefinedDataController, // New
-} = require("../controllers/database.controller");
+} = require("../Controllers/Database.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Route to create a new table

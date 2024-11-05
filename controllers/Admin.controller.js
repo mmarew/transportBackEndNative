@@ -1,4 +1,4 @@
-const adminServices = require("../services/Admin.service");
+const adminServices = require("../Services/Admin.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const AdminController = {

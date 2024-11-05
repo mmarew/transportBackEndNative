@@ -7,7 +7,7 @@ const {
   deleteVehicleController,
   getAllVehiclesController,
   verifyUsersVehicle,
-} = require("../controllers/vehicle.controller");
+} = require("../Controllers/vehicle.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 router.post("/api/user/vehicles", verifyTokenOfAxios, createVehicleController); // Create a new vehicle

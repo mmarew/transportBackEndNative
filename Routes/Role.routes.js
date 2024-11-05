@@ -10,7 +10,7 @@ const {
   getAllRolesController,
   getRoleByUserUniqueId,
   getRoleByUserUniqueIdController,
-} = require("../controllers/Role.controller");
+} = require("../Controllers/Role.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 const router = express.Router();

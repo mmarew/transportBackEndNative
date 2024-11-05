@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const documentTypesController = require("../controllers/documentTypes.controller");
+const documentTypesController = require("../Controllers/DocumentTypes.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 

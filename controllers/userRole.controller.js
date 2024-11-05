@@ -1,5 +1,5 @@
 const userRoleService = require("../Services/UserRole.service");
-const ServerResponder = require("../utils/ServerResponder");
+const ServerResponder = require("../Utils/ServerResponder");
 
 const createUserRole = async (req, res) => {
   try {

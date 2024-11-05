@@ -1,6 +1,6 @@
 // controllers/vehicleStatusType.controller.js
 const vehicleStatusTypeService = require("../Services/VehicleStatusType.service");
-const ServerResponder = require("../utils/ServerResponder"); // Assuming you have a utility for consistent responses
+const ServerResponder = require("../Utils/ServerResponder"); // Assuming you have a utility for consistent responses
 
 // Create a new VehicleStatusType
 const createVehicleStatusType = async (req, res) => {

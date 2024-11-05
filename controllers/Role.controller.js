@@ -4,7 +4,7 @@ const {
   updateRole,
   deleteRole,
   getAllRoles,
-} = require("../services/Role.service");
+} = require("../Services/Role.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createRoleController = async (req, res) => {

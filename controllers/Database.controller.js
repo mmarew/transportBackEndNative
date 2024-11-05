@@ -1,4 +1,4 @@
-const DatabaseService = require("../services/database.service");
+const DatabaseService = require("../Services/Database.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createTableController = async (req, res) => {

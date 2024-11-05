@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const RoleDocumentRequirementsController = require("../controllers/RoleDocumentRequirements.controller");
+const RoleDocumentRequirementsController = require("../Controllers/RoleDocumentRequirements.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 // Create a new role-document mapping
 router.post(

@@ -1,5 +1,5 @@
-const userRoleStatusService = require("../services/UserRoleStatus.service");
-const ServerResponder = require("../utils/ServerResponder"); // Helper to handle responses
+const userRoleStatusService = require("../Services/UserRoleStatus.service");
+const ServerResponder = require("../Utils/ServerResponder"); // Helper to handle responses
 
 const createUserRoleStatus = async (req, res) => {
   try {

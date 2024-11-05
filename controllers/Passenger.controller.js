@@ -1,5 +1,5 @@
 // controllers/Passenger.controller.js
-const PassengerService = require("../services/Passenger.service");
+const PassengerService = require("../Services/Passenger.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createRequest = async (req, res) => {

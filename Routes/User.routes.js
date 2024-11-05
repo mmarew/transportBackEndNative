@@ -1,6 +1,6 @@
 // routes/userRoutes.js
 const express = require("express");
-const constroller = require("../controllers/User.controller");
+const constroller = require("../Controllers/User.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 
