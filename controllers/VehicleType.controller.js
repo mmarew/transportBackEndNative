@@ -1,17 +1,24 @@
 // controllers/vehicleTypeController.js
 const vehicleTypeService = require("../Services/VehicleType.service");
+const { deleteFile } = require("../Utils/fileUtils");
 const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createVehicleType = async (req, res) => {
   try {
+    console.log("in controller create vehicle type");
     const vehicleTypeIconName = req.file ? req.file.filename : null;
     if (!vehicleTypeIconName)
-      return { message: "error", error: "Please attach vehicle type icon" };
+      return ServerResponder(res, {
+        message: "error",
+        error: "Please attach vehicle type icon",
+      });
     req.body.user = req.user;
-
+    console.log("req.body", req.body);
     const data = { ...req.body, vehicleTypeIconName };
     const result = await vehicleTypeService.createVehicleType(data);
-    ServerResponder(res, result);
+    console.log("result =========== ", result);
+    if (result.message == "error") deleteFile(vehicleTypeIconName);
+    return ServerResponder(res, result);
   } catch (error) {
     console.log("error", error);
     ServerResponder(res, {
@@ -36,7 +43,7 @@ exports.getAllVehicleTypes = async (req, res) => {
 exports.getVehicleTypeByUniqueId = async (req, res) => {
   try {
     const vehicleType = await vehicleTypeService.getVehicleTypeByUniqueId(
-      req.params.uniqueId
+      req.params.vehicleTypeUniqueId
     );
     if (!vehicleType) {
       return ServerResponder(res, {
@@ -44,11 +51,9 @@ exports.getVehicleTypeByUniqueId = async (req, res) => {
         message: "error",
       });
     }
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to get vehicle type",
-    });
+    ServerResponder(res, vehicleType);
   } catch (error) {
+    console.log("error", error);
     ServerResponder(res, {
       message: "error",
       error: "unable to get vehicle type",
@@ -58,20 +63,23 @@ exports.getVehicleTypeByUniqueId = async (req, res) => {
 
 exports.updateVehicleType = async (req, res) => {
   try {
-    const vehicleTypeIconName = req.file
-      ? req.file.filename
-      : req.body.vehicleTypeIconName;
-    const data = { ...req.body, vehicleTypeIconName };
+    // Check if file is provided, set filename if available or null otherwise
+    const file = req.file ? req.file : null;
+    const data = { ...req.body };
+
+    // Pass both `data` and `file` to the service function
     const result = await vehicleTypeService.updateVehicleType(
       req.params.uniqueId,
-      data
+      data,
+      file
     );
 
     ServerResponder(res, result);
   } catch (error) {
+    console.error("Error in updateVehicleType controller:", error);
     ServerResponder(res, {
       message: "error",
-      error: "unable to update vehicle type",
+      error: "Unable to update vehicle type",
     });
   }
 };

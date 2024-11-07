@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleDeletedAt DATETIME  -- When the role was deleted
  ) ;
 
--- Create the VehicleType table
+-- Create the vehicleTypes table
 
-   CREATE TABLE IF NOT EXISTS VehicleType (
+   CREATE TABLE IF NOT EXISTS vehicleTypes (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
     vehicleTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the vehicle type
@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS Roles (
     vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
     vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
     carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
+    vehicleTypeUpdatedAt DATETIME NULL,  -- Vehicle type update date
     vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
 ) ; 
@@ -251,7 +252,7 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     destinationPlace VARCHAR(255) NULL DEFAULT 0.0,  -- Destination place
     requestTime TIMESTAMP NOT NULL,  -- Time of the request
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
-    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
@@ -319,7 +320,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     vehicleDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle
     vehicleCreatedAt DATETIME NOT NULL,  -- Vehicle creation date
     vehicleDeletedAt DATETIME NULL,  -- Vehicle deletion date
-    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId)
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId)
 ) ; 
 
 -- Create the VehicleStatusType table
@@ -450,7 +451,7 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     tarrifRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
     tarrifRateUniqueId varchar(36) NOT NULL  -- Foreign key to TarrifRate
-   , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+   , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (tarrifRateUniqueId) REFERENCES TarrifRate(tarrifRateUniqueId)
 ) ;
  -- Create the CommissionRates table

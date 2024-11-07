@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const canceledJourneyController = require("../Controllers/CanceledJourneys.controllers");
+const canceledJourneyController = require("../Controllers/CanceledJourneys.controller");
 
 router.post(
   "/api/admin/canceledJourney",

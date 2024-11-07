@@ -1,6 +1,6 @@
 const Routes = require("express").Router();
 const WSSMSSenderRouter = require("./SMSSender.routes");
-const VechleRouter = require("./VehicleType.routes");
+const vehicleType = require("./VehicleType.routes");
 const CancilationRouter = require("./CancilationReasonsType.routes");
 const AdminRouter = require("./Admin.routes");
 const userRoutes = require("./User.routes");
@@ -70,6 +70,6 @@ Routes.use(roles);
 Routes.use(userRoutes);
 Routes.use(AdminRouter);
 Routes.use(CancilationRouter);
-Routes.use(VechleRouter);
+Routes.use(vehicleType);
 Routes.use(WSSMSSenderRouter);
 module.exports = Routes;

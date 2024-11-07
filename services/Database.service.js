@@ -397,15 +397,8 @@ const installPreDefinedData = async (req, res) => {
       failedCommissionRates,
       "CommissionRates"
     );
-    // 11.TarrifRateForVehcleTypes,
-    await processDataSequentially(
-      TarrifRateForVehcleTypes,
-      createTarrifRateForVehicleType,
-      successTarrifRateForVehicleType,
-      failedTarrifRateForVehicleType,
-      "TarrifRateForVehcleTypes"
-    );
-    // 12.TarrifRateList,
+
+    // 11.TarrifRateList,
     await processDataSequentially(
       TarrifRateList,
       createTarrifRate,
@@ -413,8 +406,6 @@ const installPreDefinedData = async (req, res) => {
       failedTarrifRate,
       "TarrifRateList"
     );
-
-    //  Final response
 
     return {
       message: "success",
