@@ -15,7 +15,6 @@ router.post(
   "/api/admin/createUser",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
-
   constroller.createUser
 );
 router.get("/api/user/verifyUserByOTP", constroller.verifyUserByOTP);

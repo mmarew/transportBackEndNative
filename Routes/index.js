@@ -1,6 +1,6 @@
 const Routes = require("express").Router();
 const WSSMSSenderRouter = require("./SMSSender.routes");
-const VechleRouter = require("./VechleType.routes");
+const VechleRouter = require("./VehicleType.routes");
 const CancilationRouter = require("./CancilationReasonsType.routes");
 const AdminRouter = require("./Admin.routes");
 const userRoutes = require("./User.routes");

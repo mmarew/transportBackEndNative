@@ -27,7 +27,7 @@ const { createTarrifRate } = require("./TarrifRate.service");
 const {
   createTarrifRateForVehicleType,
 } = require("./TarrifRateForVehicleTypes.service");
-const { createVehicleType } = require("./VechleType.service");
+const { createVehicleType } = require("./VehicleType.service");
 
 const createTable = async () => {
   try {
@@ -54,6 +54,18 @@ const getAllTables = async () => {
     return { message: "error", error: "Failed to retrieve tables" };
   }
 };
+const checkTableExists = async (tableName) => {
+  console.log("tableName", tableName);
+  const sqlQuery = `
+    SELECT COUNT(*) AS tableExists 
+    FROM information_schema.tables 
+    WHERE table_schema = DATABASE() 
+    AND table_name = ?;
+  `;
+  const [rows] = await pool.query(sqlQuery, [tableName]);
+  console.log("rows", rows);
+  return rows[0].tableExists > 0;
+};
 
 const dropTable = async (tableName) => {
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
@@ -67,7 +79,15 @@ const dropTable = async (tableName) => {
     // Attempt to drop the table
     await pool.query(sqlQuery);
 
+    // Check if the table still exists
+    const tableExists = await checkTableExists(tableName);
+
+    if (tableExists) {
+      throw new Error(`Table ${tableName} still exists after drop attempt.`);
+    }
+
     return {
+      tableExists,
       message: "success",
       data: `Table ${tableName} dropped successfully`,
     };
@@ -79,6 +99,7 @@ const dropTable = async (tableName) => {
     await pool.query(enableForeignKeyChecks);
   }
 };
+
 const dropAllTables = async () => {
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
   const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;

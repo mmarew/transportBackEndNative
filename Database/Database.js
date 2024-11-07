@@ -14,10 +14,13 @@ CREATE TABLE IF NOT EXISTS Roles (
  ) ;
 
 -- Create the VehicleType table
+
    CREATE TABLE IF NOT EXISTS VehicleType (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
-    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    vehicleTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the vehicle type
+    vehicleTypeIconName VARCHAR(50) NULL,  -- Icon name of the vehicle type
+    vehicleTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle type
     vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
     vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
     vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
