@@ -31,7 +31,7 @@ const createPassengerRequest = async (body, userUniqueId) => {
   const { vehicle, destination, originLocation } = body;
   const { vehicleTypeUniqueId } = vehicle;
   const verifyVehicleType = await getData({
-    tableName: "VehicleType",
+    tableName: "VehicleTypes",
     conditions: { vehicleTypeUniqueId },
   });
   console.log("verifyVehicleType ============ ", verifyVehicleType);
