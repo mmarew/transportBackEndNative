@@ -24,7 +24,7 @@ const getCancilationReasons = async (req, res) => {
 };
 const addCancilationReasons = async (req, res) => {
   try {
-    const result = await Services.addCancellationReason(req, res);
+    const result = await Services.addCancellationReason(req.body, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {
     console.log("@addCancilationReasons error", error);
