@@ -9,7 +9,9 @@ const {
   sendNotificationToDriver,
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
-
+const {
+  driversDocumentVehicleRequirement,
+} = require("./DriverRequest.service");
 // Create a new attached document
 const createAttachedDocument = async ({
   attachedDocumentDescription,
@@ -306,10 +308,16 @@ const acceptRejectAttachedDocuments = async (body) => {
     message: "success",
     data: `Document has been ${action.toLowerCase()}`,
   };
-  if (roleId == 3) sendNotificationToAdmin({ message, phoneNumber });
-  if (roleId == 2) sendNotificationToDriver({ message, phoneNumber });
-  if (roleId == 1) sendNotificationToPassenger({ message, phoneNumber });
   if (updatedDocument.affectedRows > 0) {
+    if (roleId == 3) sendNotificationToAdmin({ message, phoneNumber });
+    // adjust drivers role status based on document acceptance
+    const statusOfDriver = await driversDocumentVehicleRequirement({
+      ownerUserUniqueId,
+    });
+    if (roleId == 2)
+      sendNotificationToDriver({ message: statusOfDriver, phoneNumber });
+    if (roleId == 1) sendNotificationToPassenger({ message, phoneNumber });
+
     return {
       message: "success",
       data: `Document has been ${action.toLowerCase()}`,

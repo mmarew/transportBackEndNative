@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const userRoleController = require("../controllers/userRole.controller");
+const userRoleController = require("../Controllers/userRole.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Routes for CRUD operations
@@ -10,9 +10,9 @@ router.post(
   userRoleController.createUserRole
 );
 router.get(
-  "/userRole/:id",
+  "api/admin/userRole/:userUniqueId",
   verifyTokenOfAxios,
-  userRoleController.getUserRoleById
+  userRoleController.getUserRoleByUserUniqueId
 );
 router.put(
   "/userRole/:id",

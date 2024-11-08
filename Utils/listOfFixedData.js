@@ -561,12 +561,7 @@ const TarrifRateList = [
     tarifRateDescription: "some descriptions ",
   },
 ];
-const TarrifRateForVehcleTypes = [
-  {
-    vehicleTypeUniqueId: "cd7f98a4-eceb-4a62-a8cb-822d63080e93",
-    tarrifRateUniqueId: "993b23d2-a47f-467c-98e8-baa0b86c2a1b",
-  },
-];
+
 const CommissionRates = [
   {
     commissionRateUniqueId: uuidv4(),
@@ -577,7 +572,6 @@ const CommissionRates = [
 ];
 module.exports = {
   CommissionRates,
-  TarrifRateForVehcleTypes,
   TarrifRateList,
   paymentMethod,
   paymentStatus,

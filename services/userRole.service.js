@@ -1,6 +1,6 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const deleteData = require("../CRUD/Delete/DeleteData");
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 
 // Service to create UserRole
@@ -27,10 +27,20 @@ const createUserRole = async (body) => {
 };
 
 // Service to get UserRole by ID
-const getUserRoleById = async (id) => {
-  const result = await getData({
-    tableName: "UserRole",
-    conditions: { userRoleId: id },
+const getUserRoleByUserUniqueId = async (UserUniqueId) => {
+  const result = await performJoinSelect({
+    baseTable: "UserRole",
+    joins: [
+      {
+        table: "Users",
+        on: "UserRole.userUniqueId = Users.userUniqueId",
+      },
+      {
+        table: "Roles",
+        on: "UserRole.roleId = Roles.roleId",
+      },
+    ],
+    conditions: { "Users.userUniqueId": UserUniqueId },
   });
 
   if (!result.length) {
@@ -71,7 +81,7 @@ const deleteUserRole = async (id) => {
 
 module.exports = {
   createUserRole,
-  getUserRoleById,
+  getUserRoleByUserUniqueId,
   updateUserRole,
   deleteUserRole,
 };

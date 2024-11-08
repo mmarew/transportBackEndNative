@@ -10,6 +10,7 @@ const path = require("path");
 
 // Initialize Express app
 const app = express();
+console.log('path.join(__dirname, "uploads")', path.join(__dirname, "uploads"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

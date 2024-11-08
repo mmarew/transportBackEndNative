@@ -13,15 +13,19 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleDeletedAt DATETIME  -- When the role was deleted
  ) ;
 
--- Create the VehicleType table
-   CREATE TABLE IF NOT EXISTS VehicleType (
+-- Create the vehicleTypes table
+
+   CREATE TABLE IF NOT EXISTS vehicleTypes (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
-    vehicleTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle type
+    vehicleTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the vehicle type
+    vehicleTypeIconName VARCHAR(50) NULL,  -- Icon name of the vehicle type
+    vehicleTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle type
     vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
     vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
     vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
     carryingCapacity VARCHAR(255) NULL,  -- Carrying capacity of the vehicle
+    vehicleTypeUpdatedAt DATETIME NULL,  -- Vehicle type update date
     vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
 ) ; 
@@ -248,7 +252,7 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     destinationPlace VARCHAR(255) NULL DEFAULT 0.0,  -- Destination place
     requestTime TIMESTAMP NOT NULL,  -- Time of the request
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
-    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
@@ -316,7 +320,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     vehicleDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle
     vehicleCreatedAt DATETIME NOT NULL,  -- Vehicle creation date
     vehicleDeletedAt DATETIME NULL,  -- Vehicle deletion date
-    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId)
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId)
 ) ; 
 
 -- Create the VehicleStatusType table
@@ -419,10 +423,12 @@ CREATE TABLE IF NOT EXISTS Payments (
     canceledJourneyId INT AUTO_INCREMENT PRIMARY KEY,
     canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
     contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
+    roleId INT NOT NULL,  -- ID from the Roles table
     contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey') NOT NULL,  -- Type of context being referenced
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
+   FOREIGN KEY (roleId) references Roles(roleId),
     FOREIGN KEY (cancellationReasonsTypeId) REFERENCES CancellationReasonsType(cancellationReasonsTypeId),
     FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)
 ); 
@@ -445,7 +451,7 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     tarrifRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
     tarrifRateUniqueId varchar(36) NOT NULL  -- Foreign key to TarrifRate
-   , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleType(vehicleTypeUniqueId),
+   , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (tarrifRateUniqueId) REFERENCES TarrifRate(tarrifRateUniqueId)
 ) ;
  -- Create the CommissionRates table

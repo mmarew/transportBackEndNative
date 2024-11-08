@@ -11,7 +11,7 @@ const {
   attachRequiredDocuments,
   cancelDriverRequest,
   driversDocumentVehicleRequirement,
-} = require("../controllers/Driver.controller");
+} = require("../Controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
 

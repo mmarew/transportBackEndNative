@@ -1,4 +1,4 @@
-const paymentsService = require("../services/payments.service");
+const paymentsService = require("../Services/payments.service");
 
 // Create a new payment
 exports.createPayment = async (req, res) => {

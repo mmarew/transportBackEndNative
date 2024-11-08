@@ -8,7 +8,9 @@ const {
   updateRoleController,
   deleteRoleController,
   getAllRolesController,
-} = require("../controllers/Role.controller");
+  getRoleByUserUniqueId,
+  getRoleByUserUniqueIdController,
+} = require("../Controllers/Role.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 const router = express.Router();

@@ -1,4 +1,4 @@
-const RoleDocumentRequirementsService = require("../services/RoleDocumentRequirements.service");
+const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements.service");
 const { driversDocumentRequirement } = require("../Utils/listOfFixedData");
 
 // Create a new role-document mapping
