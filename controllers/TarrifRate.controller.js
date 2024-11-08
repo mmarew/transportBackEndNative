@@ -3,9 +3,12 @@ const tarrifRateService = require("../Services/TarrifRate.service");
 // Create a new tariff rate
 exports.createTarrifRate = async (req, res) => {
   try {
+    const user = req.user;
+    req.body.user = user;
     const result = await tarrifRateService.createTarrifRate(req.body);
     res.status(201).json(result);
   } catch (error) {
+    console.log("@createTarrifRate error", error);
     res.status(500).json({ message: "Failed to create tariff rate", error });
   }
 };
