@@ -2,6 +2,7 @@
 
 const commissionRateService = require("../Services/CommissionRates.service");
 const { v4: uuidv4 } = require("uuid");
+const ServerResponder = require("../Utils/ServerResponder");
 // Create a new commission rate
 exports.createCommissionRate = async (req, res) => {
   const commissionRateUniqueId = uuidv4();
@@ -15,13 +16,10 @@ exports.createCommissionRate = async (req, res) => {
       commissionRateEffectiveDate,
       commissionRateCreatedBy: userUniqueId,
     });
-    res.status(201).json({
-      message: "Commission rate created successfully",
-      data: result,
-    });
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error creating commission rate:", error);
-    res.status(500).json({ message: "Error creating commission rate", error });
+    ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
 
@@ -29,10 +27,10 @@ exports.createCommissionRate = async (req, res) => {
 exports.getAllCommissionRates = async (req, res) => {
   try {
     const commissionRates = await commissionRateService.getAllCommissionRates();
-    res.status(200).json({ data: commissionRates });
+    ServerResponder(res, commissionRates);
   } catch (error) {
     console.error("Error fetching commission rates:", error);
-    res.status(500).json({ message: "Error fetching commission rates", error });
+    ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
 
@@ -46,14 +44,10 @@ exports.getCommissionRateByUniqueId = async (req, res) => {
         commissionRateUniqueId
       );
 
-    if (!commissionRate) {
-      return res.status(404).json({ message: "Commission rate not found" });
-    }
-
-    res.status(200).json({ data: commissionRate });
+    ServerResponder(res, commissionRate);
   } catch (error) {
     console.error("Error fetching commission rate:", error);
-    res.status(500).json({ message: "Error fetching commission rate", error });
+    ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
 
@@ -76,16 +70,10 @@ exports.updateCommissionRateByUniqueId = async (req, res) => {
       commissionRateUpdatedBy,
     });
 
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "Commission rate not found or no changes made" });
-    }
-
-    res.status(200).json({ message: "Commission rate updated successfully" });
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error updating commission rate:", error);
-    res.status(500).json({ message: "Error updating commission rate", error });
+    ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
 
@@ -100,15 +88,9 @@ exports.deleteCommissionRateByUniqueId = async (req, res) => {
       commissionRateDeletedBy,
     });
 
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "Commission rate not found or already deleted" });
-    }
-
-    res.status(200).json({ message: "Commission rate deleted successfully" });
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error deleting commission rate:", error);
-    res.status(500).json({ message: "Error deleting commission rate", error });
+    ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };

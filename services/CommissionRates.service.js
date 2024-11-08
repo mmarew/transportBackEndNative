@@ -42,21 +42,30 @@ exports.createCommissionRate = async ({
   ];
 
   const [result] = await pool.query(sqlQueryToInsert, values);
-  return result;
+  return {
+    message: "success",
+    data: "Commission rate created successfully",
+  };
 };
 
 // Retrieve all commission rates
 exports.getAllCommissionRates = async () => {
   const sqlQuery = `SELECT * FROM CommissionRates WHERE commissionRateDeletedAt IS NULL`;
   const [rows] = await pool.query(sqlQuery);
-  return rows;
+  return {
+    message: "success",
+    data: rows,
+  };
 };
 
 // Retrieve a commission rate by its unique ID
 exports.getCommissionRateByUniqueId = async (commissionRateUniqueId) => {
   const sqlQuery = `SELECT * FROM CommissionRates WHERE commissionRateUniqueId = ? AND commissionRateDeletedAt IS NULL`;
   const [rows] = await pool.query(sqlQuery, [commissionRateUniqueId]);
-  return rows[0];
+  return {
+    message: "success",
+    data: rows[0],
+  };
 };
 
 // Update a commission rate by its unique ID
@@ -87,7 +96,7 @@ exports.updateCommissionRateByUniqueId = async ({
   ];
 
   const [result] = await pool.query(sqlQuery, values);
-  return result;
+  return { message: "success", data: "Commission rate updated successfully" };
 };
 
 // Soft delete a commission rate by its unique ID
@@ -106,5 +115,5 @@ exports.deleteCommissionRateByUniqueId = async ({
   const values = [commissionRateDeletedBy, commissionRateUniqueId];
 
   const [result] = await pool.query(sqlQuery, values);
-  return result;
+  return { message: "success", data: "Commission rate deleted successfully" };
 };
