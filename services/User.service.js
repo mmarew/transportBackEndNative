@@ -290,7 +290,7 @@ const verifyUserByOTP = async (req) => {
       },
     });
 
-    const roleId = req.body.roleId;
+    const roleId = req.query.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }
@@ -305,13 +305,29 @@ const verifyUserByOTP = async (req) => {
     if (verifyOTP.error) {
       return { message: "error", error: "OTP verification failed" };
     }
-    const token = createJWT({
+    console.log("userUniqueId", userUniqueId);
+    console.log("roleId", roleId);
+    const userInRoleId = await getData({
+      tableName: "UserRole",
+      conditions: { roleId, userUniqueId },
+    });
+    console.log("userInRoleId", userInRoleId);
+    if (userInRoleId.length === 0) {
+      return { message: "error", error: "user not found in this role" };
+    }
+    const JWTData = createJWT({
       userUniqueId,
       fullName,
       phoneNumber,
       email,
       roleId,
     });
+    const resMessage = JWTData.message;
+    if (resMessage === "error") {
+      return JWTData;
+    }
+
+    const token = JWTData.token;
     return {
       token,
       message: "success",

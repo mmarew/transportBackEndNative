@@ -9,6 +9,7 @@ exports.createCanceledJourney = async (req, res) => {
     req.body.userUniqueId = userUniqueId;
     req.body.roleId = roleId;
     const data = req.body;
+
     const result = await canceledJourneyService?.createCanceledJourney(data);
     res.status(201).json(result);
   } catch (error) {

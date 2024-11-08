@@ -84,7 +84,11 @@ async function WSPusher(urlParams, WS) {
         WS.send("Invalid user type");
         break;
     }
-    WS.send("Socket connection created successfully for user " + user);
+    const message = {
+      message: "success",
+      data: "Socket connection created successfully for user " + user,
+    };
+    WS.send(JSON.stringify(message));
   } catch (error) {
     console.error("Error in WSPusher:", error);
     WS.send("An error occurred during the connection process");

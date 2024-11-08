@@ -50,8 +50,13 @@ const addCancellationReason = async (body) => {
 };
 
 // Function to get all cancellation reasons
-const getCancellationReasons = async () => {
-  const sqlToGetAllReasons = `SELECT * FROM CancellationReasonsType`;
+const getCancellationReasons = async (req) => {
+  const user = req.user;
+  const roleId = user.roleId;
+  if (!roleId) {
+    return { message: "error", error: "User not found" };
+  }
+  const sqlToGetAllReasons = `SELECT * FROM CancellationReasonsType where roleId = ${roleId}`;
   const [result] = await pool.query(sqlToGetAllReasons);
   return { message: "success", data: result };
 };

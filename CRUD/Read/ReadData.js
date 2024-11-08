@@ -91,7 +91,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       JOIN VehicleOwnership ON VehicleOwnership.userUniqueId = Users.userUniqueId
       JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
-      JOIN VehicleType ON Vehicle.vehicleTypeUniqueId = VehicleType.vehicleTypeUniqueId
+      JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
       WHERE 
         DriverRequest.originLatitude BETWEEN ? AND ?
         AND DriverRequest.originLongitude BETWEEN ? AND ?
