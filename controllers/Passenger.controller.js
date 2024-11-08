@@ -68,8 +68,11 @@ const cancelPassengerRequest = async (req, res) => {
   try {
     let ownerUserUniqueId = req.params.userUniqueId;
     const { userUniqueId } = req?.user;
+
     if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
     req.body.ownerUserUniqueId = ownerUserUniqueId;
+    req.body.user = req.user;
+
     const user = req.user;
     req.body.user = user;
     const result = await PassengerService.cancelPassengerRequest(req.body);

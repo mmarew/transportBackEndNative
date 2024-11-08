@@ -10,6 +10,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, secretKey);
       const data = decoded.data;
+      console.log("@verifyTokenOfAxios data", data);
       const userUniqueId = data?.userUniqueId;
       const user = await getData({
         tableName: "Users",

@@ -250,6 +250,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
 const cancelPassengerRequest = async (body) => {
   try {
     const user = body.user;
+    const roleId = user?.roleId;
     const ownerUserUniqueId = body?.ownerUserUniqueId,
       cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
     const { userUniqueId } = user;
@@ -288,6 +289,7 @@ const cancelPassengerRequest = async (body) => {
         contextId: passengerRequestId,
         contextType: "PassengerRequest",
         cancellationReasonsTypeId,
+        roleId,
       });
       // If there's no journey decision related to this request and cancellation is successfully registered, return success
       if (canceledJourney.message === "success")

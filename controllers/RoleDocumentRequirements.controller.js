@@ -1,39 +1,21 @@
 const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements.service");
 const { driversDocumentRequirement } = require("../Utils/listOfFixedData");
-
+const ServerResponder = require("../Utils/ServerResponder");
 // Create a new role-document mapping
 const createMapping = async (req, res) => {
   try {
-    const userUniqueId = req?.user?.data?.userUniqueId;
-
-    // Ensure driversDocumentRequirement exists and is an array
-    if (
-      !Array.isArray(driversDocumentRequirement) ||
-      driversDocumentRequirement.length === 0
-    ) {
-      return res
-        .status(400)
-        .json({ message: "No document requirements provided" });
-    }
-
-    const results = [];
-
-    // Loop through the document requirements and create mappings
-    for (const role of driversDocumentRequirement) {
-      const body = role; // Define the role document body
-      const result = await RoleDocumentRequirementsService.createMapping({
-        body,
-        userUniqueId,
-      });
-      results.push(result); // Collect the results
-    }
-
-    return res
-      .status(201)
-      .json({ message: "Mappings created successfully", data: results });
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    req.body.userUniqueId = userUniqueId;
+    const result = await RoleDocumentRequirementsService.createMapping({
+      body: req.body,
+    });
+    ServerResponder(res, result);
   } catch (error) {
-    console.log("@createMapping error", error);
-    return res.status(500).json({ message: "Error creating mapping", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to create mapping",
+    });
   }
 };
 

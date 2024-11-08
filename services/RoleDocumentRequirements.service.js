@@ -2,13 +2,15 @@ const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 // Create a new mapping
-const createMapping = async ({ body, userUniqueId }) => {
+const createMapping = async ({ body }) => {
   const {
     roleId,
     documentTypeId,
     isDocumentMandatory = true,
     isExpirationDateRequired,
+    userUniqueId,
   } = body;
+
   // verify existance of roleid
   const roleExists = await getData({
     tableName: "Roles",

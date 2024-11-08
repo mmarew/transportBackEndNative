@@ -480,6 +480,7 @@ const cancellationReasons = [
   { reason: "Change of plans", cancellationByRoleId: 1 },
   { reason: "Driver took too long", cancellationByRoleId: 1 },
   { reason: "Found another ride", cancellationByRoleId: 1 },
+  { reason: "Wrong vehicle description", cancellationByRoleId: 1 },
   {
     reason: "Driver did not meet my location",
     cancellationByRoleId: 1,

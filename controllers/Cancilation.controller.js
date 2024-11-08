@@ -10,8 +10,17 @@ const deleteCancilationReasons = async (req, res) => {
   const responders = await ServerResponder(res, result);
 };
 const getCancilationReasons = async (req, res) => {
-  const result = await Services.getCancellationReasons(req, res);
-  const responders = await ServerResponder(res, result);
+  try {
+    console.log("@getCancilationReasons req.user =======> ", req.user);
+    const result = await Services.getCancellationReasons(req, res);
+    const responders = await ServerResponder(res, result);
+  } catch (error) {
+    console.log("@ getCancilationReasons error", error);
+    await ServerResponder(res, {
+      message: "error",
+      error: "something went wrong",
+    });
+  }
 };
 const addCancilationReasons = async (req, res) => {
   try {
