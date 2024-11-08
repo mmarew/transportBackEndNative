@@ -9,7 +9,9 @@ exports.createTarrifRate = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.log("@createTarrifRate error", error);
-    res.status(500).json({ message: "Failed to create tariff rate", error });
+    res
+      .status(500)
+      .json({ message: "error", error: "Failed to create tariff rate" });
   }
 };
 
@@ -19,7 +21,9 @@ exports.getAllTarrifRates = async (req, res) => {
     const result = await tarrifRateService.getAllTarrifRates();
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ message: "Failed to retrieve tariff rates", error });
+    res
+      .status(500)
+      .json({ message: "error", error: "Failed to retrieve tariff rates" });
   }
 };
 
@@ -30,10 +34,15 @@ exports.getTarrifRateById = async (req, res) => {
     if (result) {
       res.status(200).json(result);
     } else {
-      res.status(404).json({ message: "Tariff rate not found" });
+      res
+        .status(404)
+        .json({ message: "error", error: "Tariff rate not found" });
     }
   } catch (error) {
-    res.status(500).json({ message: "Failed to retrieve tariff rate", error });
+    res.status(500).json({
+      message: "error",
+      error: "Failed to retrieve tariff rate",
+    });
   }
 };
 
@@ -46,7 +55,9 @@ exports.updateTarrifRate = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ message: "Failed to update tariff rate", error });
+    res
+      .status(500)
+      .json({ message: "error", error: "Failed to update tariff rate" });
   }
 };
 
@@ -56,6 +67,8 @@ exports.deleteTarrifRate = async (req, res) => {
     const result = await tarrifRateService.deleteTarrifRate(req.params.id);
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete tariff rate", error });
+    res
+      .status(500)
+      .json({ message: "error", error: "Failed to delete tariff rate" });
   }
 };
