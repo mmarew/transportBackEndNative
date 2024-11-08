@@ -5,13 +5,13 @@ const { getData } = require("../CRUD/Read/ReadData");
 const addCancellationReason = async (body) => {
   try {
     const cancellationReasonTypeUniqueId = uuidv4();
-    const roleId = body.cancellationByRoleId;
-    const cancellationReason = body.reason;
+    const roleId = body.roleId;
+    const cancellationReason = body.cancellationReason;
 
     // Check if the reason already exists
     const isAvailable = await getData({
       tableName: "CancellationReasonsType",
-      conditions: { cancellationReason },
+      conditions: { cancellationReason, roleId },
     });
     if (isAvailable.length > 0)
       return { message: "error", error: "Cancellation reason already exists" };

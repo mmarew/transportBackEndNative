@@ -64,7 +64,9 @@ const getMappingByRoleId = async (id) => {
     "SELECT roleId,uploadedDocumentName,documentTypeUniqueId,uploadedDocumentExpirationDate FROM RoleDocumentRequirements  join DocumentTypes on DocumentTypes.documentTypeId=RoleDocumentRequirements.documentTypeId WHERE RoleDocumentRequirements.roleId = ?",
     [id]
   );
-  return rows;
+  return {
+    message: "success",
+  };
 };
 
 // Get all mappings
@@ -83,7 +85,7 @@ const getAllMappings = async (roleId) => {
     ],
     conditions: { "Roles.roleId": roleId },
   });
-  return rows;
+  return { message: "success", data: rows };
 };
 
 // Get a mapping by ID
@@ -92,7 +94,7 @@ const getMappingById = async (id) => {
     "SELECT * FROM RoleDocumentRequirements  WHERE roleDocumentRequirementId = ?",
     [id]
   );
-  return rows[0];
+  return { message: "success", data: rows[0] };
 };
 
 // Update a mapping by ID
@@ -103,7 +105,7 @@ const updateMapping = async (id, data) => {
     [isDocumentMandatory, new Date(), id]
   );
 
-  return result[0].affectedRows > 0;
+  return { message: "success", data: result[0].affectedRows > 0 };
 };
 
 // Delete a mapping by ID
@@ -112,7 +114,7 @@ const deleteMapping = async (id) => {
     "DELETE FROM RoleDocumentRequirements  WHERE roleDocumentRequirementId = ?",
     [id]
   );
-  return result[0].affectedRows > 0;
+  return { message: "success", data: result[0].affectedRows > 0 };
 };
 
 module.exports = {

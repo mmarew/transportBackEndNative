@@ -24,12 +24,12 @@ const getMappingByRoleId = async (req, res) => {
     const result = await RoleDocumentRequirementsService.getMappingByRoleId(
       req.params.id
     );
-    if (!result) {
-      return res.status(404).json({ message: "Mapping not found" });
-    }
-    return res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    return res.status(500).json({ message: "Error fetching mapping", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to get data",
+    });
   }
 };
 // Get all role-document mappings
@@ -37,10 +37,13 @@ const getAllMappings = async (req, res) => {
   try {
     const roleId = req?.params?.roleId;
     const result = await RoleDocumentRequirementsService.getAllMappings(roleId);
-    return res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("@getAllMappings error", error);
-    return res.status(500).json({ message: "Error fetching mappings", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to get data",
+    });
   }
 };
 
@@ -50,12 +53,12 @@ const getMappingById = async (req, res) => {
     const result = await RoleDocumentRequirementsService.getMappingById(
       req.params.id
     );
-    if (!result) {
-      return res.status(404).json({ message: "Mapping not found" });
-    }
-    return res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    return res.status(500).json({ message: "Error fetching mapping", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to data",
+    });
   }
 };
 
@@ -66,12 +69,12 @@ const updateMapping = async (req, res) => {
       req.params.id,
       req.body
     );
-    if (!result) {
-      return res.status(404).json({ message: "Mapping not found" });
-    }
-    return res.status(200).json({ message: "Mapping updated successfully" });
+    ServerResponder(res, result);
   } catch (error) {
-    return res.status(500).json({ message: "Error updating mapping", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to update data",
+    });
   }
 };
 
@@ -81,12 +84,12 @@ const deleteMapping = async (req, res) => {
     const result = await RoleDocumentRequirementsService.deleteMapping(
       req.params.id
     );
-    if (!result) {
-      return res.status(404).json({ message: "Mapping not found" });
-    }
-    return res.status(200).json({ message: "Mapping deleted successfully" });
+    ServerResponder(res, result);
   } catch (error) {
-    return res.status(500).json({ message: "Error deleting mapping", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to delete data",
+    });
   }
 };
 
