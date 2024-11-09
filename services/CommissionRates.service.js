@@ -13,7 +13,7 @@ exports.createCommissionRate = async ({
   const sqlQueryToCheck = `
   SELECT * 
   FROM CommissionRates 
-  WHERE commissionRateExpirationDate IS NULL 
+  WHERE (commissionRateExpirationDate IS NULL or commissionRateExpirationDate > NOW())
     AND commissionRateDeletedAt IS NULL 
     AND commissionRateEffectiveDate < NOW()
   ORDER BY commissionRateEffectiveDate DESC
