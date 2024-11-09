@@ -1,8 +1,22 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getData } = require("../CRUD/Read/ReadData");
 
 // Create a new payment status
 exports.createPaymentStatus = async ({ paymentStatus }) => {
+  // first check if paymentStatus is already exists
+  const existedPaymentStatus = await getData({
+    tableName: "PaymentStatus",
+    conditions: { paymentStatus: paymentStatus },
+  });
+  if (existedPaymentStatus.length > 0) {
+    return {
+      message: "error",
+      data: "Payment status already exists",
+    };
+  }
+  console.log("existedPaymentStatus =============> ", existedPaymentStatus);
+  // return;
   const paymentStatusUniqueId = uuidv4();
   const createdAt = new Date();
   const sql = `INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES (?, ?, ?)`;

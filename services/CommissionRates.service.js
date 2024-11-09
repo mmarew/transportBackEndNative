@@ -13,12 +13,10 @@ exports.createCommissionRate = async ({
   const sqlQueryToCheck = `
   SELECT * 
   FROM CommissionRates 
-  WHERE (commissionRateExpirationDate IS NULL or commissionRateExpirationDate > NOW())
-    AND commissionRateDeletedAt IS NULL 
-    AND commissionRateEffectiveDate < NOW()
-  ORDER BY commissionRateEffectiveDate DESC
+  WHERE commissionRate=?
 `;
-  const [existedRate] = await pool.query(sqlQueryToCheck);
+  const [existedRate] = await pool.query(sqlQueryToCheck, commissionRate);
+  console.log("existedRate", existedRate);
   if (existedRate.length > 0) {
     return {
       message: "error",

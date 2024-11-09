@@ -397,7 +397,7 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
 CREATE TABLE IF NOT EXISTS PaymentStatus (
     paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
     paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
-    paymentStatus VARCHAR(50) NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
+    paymentStatus VARCHAR(50) UNIQUE NOT NULL,  -- Payment status (e.g., Pending, Completed, Failed)
     createdAt DATETIME NOT NULL,  -- Creation time of the payment status
     deletedAt DATETIME NULL  -- Deletion time of the payment status
 ) ;
