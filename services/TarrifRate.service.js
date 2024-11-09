@@ -42,7 +42,7 @@ exports.createTarrifRate = async (data) => {
     userUniqueId,
   ];
   const [result] = await pool.query(sql, values);
-  return { message: "Tariff rate created successfully", data: result };
+  return { message: "success", data: "Tariff rate created successfully" };
 };
 
 // Get all tariff rates
@@ -56,7 +56,7 @@ exports.getAllTarrifRates = async () => {
 exports.getTarrifRateById = async (id) => {
   const sql = `SELECT * FROM TarrifRate WHERE tarrifRateId = ?`;
   const [result] = await pool.query(sql, [id]);
-  return result[0];
+  return { message: "success", data: result[0] };
 };
 
 // Update a tariff rate by ID
@@ -76,12 +76,12 @@ exports.updateTarrifRate = async (id, data) => {
     id,
   ];
   const [result] = await pool.query(sql, values);
-  return { message: "Tariff rate updated successfully", data: result };
+  return { message: "success", data: "Tariff rate updated successfully" };
 };
 
 // Delete a tariff rate by ID
 exports.deleteTarrifRate = async (id) => {
   const sql = `DELETE FROM TarrifRate WHERE tarrifRateId = ?`;
   const [result] = await pool.query(sql, [id]);
-  return { message: "Tariff rate deleted successfully", data: result };
+  return { message: "success", data: "Tariff rate deleted successfully" };
 };
