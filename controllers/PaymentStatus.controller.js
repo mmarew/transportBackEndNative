@@ -7,10 +7,13 @@ exports.createPaymentStatus = async (req, res) => {
     const result = await paymentStatusService.createPaymentStatus({
       paymentStatus,
     });
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error creating payment status:", error);
-    res.status(500).json({ message: "Error creating payment status", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error creating payment status",
+    });
   }
 };
 
@@ -18,10 +21,13 @@ exports.createPaymentStatus = async (req, res) => {
 exports.getAllPaymentStatuses = async (req, res) => {
   try {
     const result = await paymentStatusService.getAllPaymentStatuses();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching payment statuses:", error);
-    res.status(500).json({ message: "Error fetching payment statuses", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching payment statuses",
+    });
   }
 };
 
@@ -30,10 +36,13 @@ exports.getPaymentStatusById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await paymentStatusService.getPaymentStatusById(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching payment status:", error);
-    res.status(500).json({ message: "Error fetching payment status", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching payment status",
+    });
   }
 };
 
@@ -46,10 +55,13 @@ exports.updatePaymentStatus = async (req, res) => {
       id,
       paymentStatus
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error updating payment status:", error);
-    res.status(500).json({ message: "Error updating payment status", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error updating payment status",
+    });
   }
 };
 
@@ -61,6 +73,9 @@ exports.deletePaymentStatus = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error("Error deleting payment status:", error);
-    res.status(500).json({ message: "Error deleting payment status", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error deleting payment status",
+    });
   }
 };
