@@ -20,9 +20,17 @@ const createSMSSender = async ({ phoneNumber, password }) => {
     console.log("message", message, "data", data);
     if (data && message === "success") {
       {
-        const token = createJWT({ phoneNumber, type: "SMSSender" });
+        const createdToken = createJWT({
+          phoneNumber,
+          type: "SMSSender",
+          userUniqueId: "SMSSender userUniqueId",
+          fullName: "SMSSender fullName",
+          email: "SMSSender email",
+          roleId: "SMSSender roleId",
+        });
+
         return {
-          token,
+          token: createdToken.token,
           message: "success",
           data: "This phone number is already registered",
         };
