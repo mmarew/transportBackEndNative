@@ -10,6 +10,13 @@ exports.createTarrifRate = async (data) => {
     timingTarrifRate,
     tarifRateDescription,
   } = data;
+  // validate if all  tariff rate exists
+  if (!standingTarrifRate || !journeyTarrifRate || !timingTarrifRate) {
+    return {
+      message: "error",
+      error: "All tariff rates are required",
+    };
+  }
   const existedTariffRate = await getData({
     tableName: "TarrifRate",
     conditions: { standingTarrifRate, journeyTarrifRate, timingTarrifRate },
