@@ -448,6 +448,7 @@ CREATE TABLE IF NOT EXISTS Payments (
 
 CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     tarrifRateForVehcleTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    
     tarrifRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
     tarrifRateUniqueId varchar(36) NOT NULL  -- Foreign key to TarrifRate

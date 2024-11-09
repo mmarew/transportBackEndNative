@@ -1,5 +1,5 @@
 const tarrifRateForVehicleTypesService = require("../Services/TarrifRateForVehicleTypes.service");
-
+const ServerResponder = require("../Utils/ServerResponder");
 // Create a new tariff rate for a vehicle type
 exports.createTarrifRateForVehicleType = async (req, res) => {
   try {
@@ -7,11 +7,12 @@ exports.createTarrifRateForVehicleType = async (req, res) => {
       await tarrifRateForVehicleTypesService.createTarrifRateForVehicleType(
         req.body
       );
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to create tariff rate for vehicle type",
-      error,
+    console.log("@createTarrifRateForVehicleType error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create tariff rate for vehicle type",
     });
   }
 };
@@ -21,11 +22,12 @@ exports.getAllTarrifRatesForVehicleTypes = async (req, res) => {
   try {
     const result =
       await tarrifRateForVehicleTypesService.getAllTarrifRatesForVehicleTypes();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to retrieve tariff rates for vehicle types",
-      error,
+    console.log("@getAllTarrifRatesForVehicleTypes", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve tariff rates for vehicle types",
     });
   }
 };
@@ -37,17 +39,12 @@ exports.getTarrifRateForVehicleTypeById = async (req, res) => {
       await tarrifRateForVehicleTypesService.getTarrifRateForVehicleTypeById(
         req.params.id
       );
-    if (result) {
-      res.status(200).json(result);
-    } else {
-      res
-        .status(404)
-        .json({ message: "Tariff rate for vehicle type not found" });
-    }
+    ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to retrieve tariff rate for vehicle type",
-      error,
+    console.log("getTarrifRateForVehicleTypeById", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve tariff rate for vehicle type",
     });
   }
 };
@@ -60,11 +57,11 @@ exports.updateTarrifRateForVehicleType = async (req, res) => {
         req.params.id,
         req.body
       );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to update tariff rate for vehicle type",
-      error,
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update tariff rate for vehicle type",
     });
   }
 };
@@ -76,11 +73,11 @@ exports.deleteTarrifRateForVehicleType = async (req, res) => {
       await tarrifRateForVehicleTypesService.deleteTarrifRateForVehicleType(
         req.params.id
       );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to delete tariff rate for vehicle type",
-      error,
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete tariff rate for vehicle type",
     });
   }
 };
