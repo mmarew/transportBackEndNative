@@ -171,19 +171,22 @@ const performJoinSelect = async ({
 
   // Build WHERE clause dynamically based on conditions
   const columns = Object.keys(conditions);
-  const whereClause = columns
-    .map((col) => {
-      const value = conditions[col];
-      if (Array.isArray(value) && value.length === 2) {
-        return `${col} BETWEEN ? AND ?`;
-      } else if (Array.isArray(value)) {
-        const placeholders = value.map(() => "?").join(", ");
-        return `${col} IN (${placeholders})`;
-      } else {
-        return `${col} = ?`;
-      }
-    })
-    .join(` ${operator} `);
+  const whereClause =
+    columns.length > 0
+      ? `WHERE ${columns
+          .map((col) => {
+            const value = conditions[col];
+            if (Array.isArray(value) && value.length === 2) {
+              return `${col} BETWEEN ? AND ?`;
+            } else if (Array.isArray(value)) {
+              const placeholders = value.map(() => "?").join(", ");
+              return `${col} IN (${placeholders})`;
+            } else {
+              return `${col} = ?`;
+            }
+          })
+          .join(` ${operator} `)}`
+      : ""; // No WHERE clause if conditions are empty
 
   const values = Object.values(conditions).flat();
   const joinClauses = joins
@@ -194,8 +197,8 @@ const performJoinSelect = async ({
   const offsetClause = offset ? `OFFSET ${offset}` : "";
   const groupByClause = groupBy ? `GROUP BY ${groupBy}` : ""; // Optional group by
 
-  // Use baseTable.* to select all columns from the base table
-  const sqlQuery = `SELECT  * FROM ${baseTable} ${joinClauses} WHERE ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
+  // Construct the final SQL query
+  const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
 
   try {
     const [result] = await pool.query(sqlQuery, values);
