@@ -34,8 +34,10 @@ exports.getAllPaymentStatuses = async (req, res) => {
 // Get a specific payment status by ID
 exports.getPaymentStatusById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await paymentStatusService.getPaymentStatusById(id);
+    const { paymentStatusUniqueId } = req.params;
+    const result = await paymentStatusService.getPaymentStatusById(
+      paymentStatusUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching payment status:", error);
@@ -49,10 +51,10 @@ exports.getPaymentStatusById = async (req, res) => {
 // Update a specific payment status by ID
 exports.updatePaymentStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { paymentStatusUniqueId } = req.params;
     const { paymentStatus } = req.body;
     const result = await paymentStatusService.updatePaymentStatus(
-      id,
+      paymentStatusUniqueId,
       paymentStatus
     );
     ServerResponder(res, result);

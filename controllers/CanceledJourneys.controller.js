@@ -1,12 +1,13 @@
-const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const { cancelPassengerRequest } = require("../Services/Passenger.service");
+const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const serverResponder = require("../Utils/ServerResponder");
-const canceledJourneyBySystem = async (req, res) => {
+// Function to create a canceled journey by the system
+const canceledJourneyBySystem = async (req = { body: null }, res = null) => {
   try {
-    // get all active journey of passenger request which are in journey status of 1 and requestTime is geater than 5 munites
-    // get user system from table where its role is 5
+    // Get the system user from Users table where roleId is 5
     const [user] = await performJoinSelect({
       baseTable: "Users",
       joins: [
@@ -19,44 +20,68 @@ const canceledJourneyBySystem = async (req, res) => {
         "userRole.roleId": 5, // role id of system
       },
     });
-    console.log("user", user);
-    const sqlQuery = `
-      SELECT * 
-      FROM PassengerRequest 
-      WHERE journeyStatusId = 1 
-      AND requestTime < DATE_SUB(NOW(), INTERVAL 5 MINUTE)
-    `;
+
+    if (!user) {
+      throw new Error("System user with role id 5 not found");
+    }
+
+    // SQL query to get active passenger requests with journeyStatusId 1 and requestTime older than 5 minutes
+    const sqlQuery = `SELECT PassengerRequest.*, Users.phoneNumber FROM PassengerRequest   JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId WHERE PassengerRequest.journeyStatusId = 1   AND PassengerRequest.requestTime < DATE_SUB(NOW(), INTERVAL 5 MINUTE) `;
 
     // Execute the query
     const [activeRequests] = await pool.query(sqlQuery);
-    // console.log("activeRequests", activeRequests);
-    if (activeRequests.length == 0 && res) {
-      return serverResponder(res, {
-        message: "error",
-        error: "No active requests found",
-      });
+
+    if (!activeRequests || activeRequests.length === 0) {
+      if (res) {
+        return serverResponder(res, {
+          message: "error",
+          error: "No active requests found",
+        });
+      }
+      return;
     }
+
     req.body.user = user;
-    activeRequests.map(async (request) => {
-      const ownerUserUniqueId = activeRequests[0]?.userUniqueId;
+
+    for (const request of activeRequests) {
+      const ownerUserUniqueId = request.userUniqueId;
       req.body.ownerUserUniqueId = ownerUserUniqueId;
       req.body.cancellationReasonsTypeId = 1;
+
+      // Call cancelPassengerRequest to cancel the journey
       const result = await cancelPassengerRequest(req.body);
-    });
-    if (res) serverResponder(res, result);
+
+      // Notify the passenger
+      await sendNotificationToPassenger({
+        phoneNumber: request.phoneNumber,
+        message:
+          "Dear customer, we apologize to inform you. Your request has been canceled by the system because no vehicle is available nearby. Please try again later.",
+      });
+
+      // If there's a response object, send success message after each cancellation
+      if (res) {
+        serverResponder(res, {
+          message: "success",
+          data: result,
+        });
+      }
+    }
   } catch (error) {
     console.error("Error creating canceled journey:", error);
-    if (res)
+    if (res) {
       serverResponder(res, {
         message: "error",
-        error: "Failed to create canceled",
+        error: "Failed to create canceled journey",
       });
+    }
   }
 };
-// update in every five munites
+
+// Schedule the canceledJourneyBySystem to run every 5 minutes (300000 ms)
 setInterval(() => {
-  canceledJourneyBySystem({ body: { user: null } });
-}, 50000);
+  canceledJourneyBySystem();
+}, 300000); // 300,000 ms = 5 minutes
+
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {
   try {

@@ -9,33 +9,20 @@ router.post(
   RoleDocumentRequirementsController.createMapping
 );
 
-// Get all role-document mappings
 router.get(
-  "/RoleDocumentRequirementsByRole/:roleId",
-  verifyTokenOfAxios,
-  RoleDocumentRequirementsController.getAllMappings
-);
-
-// Get a specific mapping by ID
-router.get(
-  "/RoleDocumentRequirements/:id",
-  verifyTokenOfAxios,
-  RoleDocumentRequirementsController.getMappingById
-);
-router.get(
-  "/api/admin/getMappingByRoleId/:id",
-  RoleDocumentRequirementsController.getMappingByRoleId
+  "/api/admin/getMappingByRoleUniqueId/:roleUniqueId",
+  RoleDocumentRequirementsController.getMappingByRoleUniqueId
 );
 // Update a mapping by ID
 router.put(
-  "/RoleDocumentRequirements/:id",
+  "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.updateMapping
 );
 
 // Delete a mapping by ID
 router.delete(
-  "/RoleDocumentRequirements/:id",
+  "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.deleteMapping
 );

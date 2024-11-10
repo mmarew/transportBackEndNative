@@ -59,18 +59,7 @@ const createMapping = async ({ body }) => {
     return { message: "error", data: "Failed to create mapping" };
   }
 };
-const getMappingByRoleId = async (id) => {
-  const [rows] = await pool.query(
-    "SELECT roleId,uploadedDocumentName,documentTypeUniqueId,uploadedDocumentExpirationDate FROM RoleDocumentRequirements  join DocumentTypes on DocumentTypes.documentTypeId=RoleDocumentRequirements.documentTypeId WHERE RoleDocumentRequirements.roleId = ?",
-    [id]
-  );
-  return {
-    message: "success",
-  };
-};
-
-// Get all mappings
-const getAllMappings = async (roleId) => {
+const getMappingByRoleUniqueId = async (roleUniqueId) => {
   const rows = await performJoinSelect({
     baseTable: "RoleDocumentRequirements",
     joins: [
@@ -83,45 +72,43 @@ const getAllMappings = async (roleId) => {
         on: "RoleDocumentRequirements.roleId=Roles.roleId",
       },
     ],
-    conditions: { "Roles.roleId": roleId },
+    conditions: { "Roles.roleUniqueId": roleUniqueId },
   });
-  return { message: "success", data: rows };
-};
-
-// Get a mapping by ID
-const getMappingById = async (id) => {
-  const [rows] = await pool.query(
-    "SELECT * FROM RoleDocumentRequirements  WHERE roleDocumentRequirementId = ?",
-    [id]
-  );
-  return { message: "success", data: rows[0] };
+  return {
+    message: "success",
+    rows,
+  };
 };
 
 // Update a mapping by ID
-const updateMapping = async (id, data) => {
+const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
   const { isDocumentMandatory } = data;
   const result = await pool.query(
-    "UPDATE RoleDocumentRequirements  SET isDocumentMandatory = ?, updatedAt = ? WHERE roleDocumentRequirementId = ?",
-    [isDocumentMandatory, new Date(), id]
+    "UPDATE RoleDocumentRequirements  SET isDocumentMandatory = ?, updatedAt = ? WHERE roleDocumentRequirementUniqueId = ?",
+    [isDocumentMandatory, new Date(), roleDocumentRequirementUniqueId]
   );
+  if (result[0].affectedRows === 0) {
+    return { message: "error", data: "Failed to update mapping" };
+  }
 
-  return { message: "success", data: result[0].affectedRows > 0 };
+  return { message: "success", data: "Mapping updated successfully" };
 };
 
 // Delete a mapping by ID
-const deleteMapping = async (id) => {
+const deleteMapping = async (roleDocumentRequirementUniqueId) => {
   const result = await pool.query(
-    "DELETE FROM RoleDocumentRequirements  WHERE roleDocumentRequirementId = ?",
-    [id]
+    "DELETE FROM RoleDocumentRequirements  WHERE roleDocumentRequirementUniqueId = ?",
+    [roleDocumentRequirementUniqueId]
   );
-  return { message: "success", data: result[0].affectedRows > 0 };
+  if (result[0].affectedRows === 0) {
+    return { message: "error", data: "Failed to delete mapping" };
+  }
+  return { message: "success", data: "Mapping deleted successfully" };
 };
 
 module.exports = {
-  getMappingByRoleId,
+  getMappingByRoleUniqueId,
   createMapping,
-  getAllMappings,
-  getMappingById,
   updateMapping,
   deleteMapping,
 };
