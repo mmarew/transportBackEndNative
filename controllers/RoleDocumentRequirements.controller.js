@@ -1,5 +1,4 @@
 const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements.service");
-const { driversDocumentRequirement } = require("../Utils/listOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder");
 // Create a new role-document mapping
 const createMapping = async (req, res) => {
@@ -19,45 +18,18 @@ const createMapping = async (req, res) => {
   }
 };
 
-const getMappingByRoleId = async (req, res) => {
+const getMappingByRoleUniqueId = async (req, res) => {
   try {
-    const result = await RoleDocumentRequirementsService.getMappingByRoleId(
-      req.params.id
-    );
+    const result =
+      await RoleDocumentRequirementsService.getMappingByRoleUniqueId(
+        req.params.roleUniqueId
+      );
     ServerResponder(res, result);
   } catch (error) {
+    console.log("error @ getMappingByRoleUniqueId", error);
     ServerResponder(res, {
       message: "error",
       error: "unable to get data",
-    });
-  }
-};
-// Get all role-document mappings
-const getAllMappings = async (req, res) => {
-  try {
-    const roleId = req?.params?.roleId;
-    const result = await RoleDocumentRequirementsService.getAllMappings(roleId);
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("@getAllMappings error", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to get data",
-    });
-  }
-};
-
-// Get a specific mapping by ID
-const getMappingById = async (req, res) => {
-  try {
-    const result = await RoleDocumentRequirementsService.getMappingById(
-      req.params.id
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to data",
     });
   }
 };
@@ -66,7 +38,7 @@ const getMappingById = async (req, res) => {
 const updateMapping = async (req, res) => {
   try {
     const result = await RoleDocumentRequirementsService.updateMapping(
-      req.params.id,
+      req.params.roleDocumentRequirementUniqueId,
       req.body
     );
     ServerResponder(res, result);
@@ -82,7 +54,7 @@ const updateMapping = async (req, res) => {
 const deleteMapping = async (req, res) => {
   try {
     const result = await RoleDocumentRequirementsService.deleteMapping(
-      req.params.id
+      req.params.roleDocumentRequirementUniqueId
     );
     ServerResponder(res, result);
   } catch (error) {
@@ -94,10 +66,8 @@ const deleteMapping = async (req, res) => {
 };
 
 module.exports = {
-  getMappingByRoleId,
+  getMappingByRoleUniqueId,
   createMapping,
-  getAllMappings,
-  getMappingById,
   updateMapping,
   deleteMapping,
 };

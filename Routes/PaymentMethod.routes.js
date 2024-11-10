@@ -19,7 +19,7 @@ router.get(
 
 // Get a specific payment method by ID
 router.get(
-  "/api/paymentMethod/:id",
+  "/api/paymentMethod/:paymentMethodUniqueId",
   verifyTokenOfAxios,
 
   paymentMethodController.getPaymentMethodById
@@ -27,7 +27,7 @@ router.get(
 
 // Update a specific payment method by ID
 router.put(
-  "/api/paymentMethod/:id",
+  "/api/paymentMethod/:paymentMethodUniqueId",
   verifyTokenOfAxios,
 
   paymentMethodController.updatePaymentMethod
@@ -35,7 +35,7 @@ router.put(
 
 // Delete a specific payment method by ID
 router.delete(
-  "/api/paymentMethod/:id",
+  "/api/paymentMethod/:paymentMethodUniqueId",
   verifyTokenOfAxios,
 
   paymentMethodController.deletePaymentMethod

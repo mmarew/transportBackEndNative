@@ -19,7 +19,7 @@ router.get(
 
 // Get a specific payment status by ID
 router.get(
-  "/api/paymentStatus/:id",
+  "/api/paymentStatus/:paymentStatusUniqueId",
   verifyTokenOfAxios,
 
   paymentStatusController.getPaymentStatusById
@@ -27,7 +27,7 @@ router.get(
 
 // Update a specific payment status by ID
 router.put(
-  "/api/paymentStatus/:id",
+  "/api/paymentStatus/:paymentStatusUniqueId",
   verifyTokenOfAxios,
 
   paymentStatusController.updatePaymentStatus
@@ -35,7 +35,7 @@ router.put(
 
 // Delete a specific payment status by ID
 router.delete(
-  "/api/paymentStatus/:id",
+  "/api/paymentStatus/:paymentStatusUniqueId",
   verifyTokenOfAxios,
 
   paymentStatusController.deletePaymentStatus

@@ -43,9 +43,9 @@ exports.getAllPaymentStatuses = async () => {
 };
 
 // Get a specific payment status by ID
-exports.getPaymentStatusById = async (paymentStatusId) => {
-  const sql = `SELECT * FROM PaymentStatus WHERE paymentStatusId = ? AND deletedAt IS NULL`;
-  const [result] = await pool.query(sql, [paymentStatusId]);
+exports.getPaymentStatusById = async (paymentStatusUniqueId) => {
+  const sql = `SELECT * FROM PaymentStatus WHERE paymentStatusUniqueId = ? AND deletedAt IS NULL`;
+  const [result] = await pool.query(sql, [paymentStatusUniqueId]);
 
   return result.length > 0
     ? { message: "success", data: result[0] }
@@ -53,27 +53,33 @@ exports.getPaymentStatusById = async (paymentStatusId) => {
 };
 
 // Update a specific payment status by ID
-exports.updatePaymentStatus = async (paymentStatusId, paymentStatus) => {
-  const sql = `UPDATE PaymentStatus SET paymentStatus = ? WHERE paymentStatusId = ? AND deletedAt IS NULL`;
-  const [result] = await pool.query(sql, [paymentStatus, paymentStatusId]);
+exports.updatePaymentStatus = async (paymentStatusUniqueId, paymentStatus) => {
+  const sql = `UPDATE PaymentStatus SET paymentStatus = ? WHERE paymentStatusUniqueId = ? AND deletedAt IS NULL`;
+  const [result] = await pool.query(sql, [
+    paymentStatus,
+    paymentStatusUniqueId,
+  ]);
 
   if (result.affectedRows > 0) {
-    return { message: "success", data: { paymentStatusId, paymentStatus } };
+    return {
+      message: "success",
+      data: { paymentStatusUniqueId, paymentStatus },
+    };
   } else {
     return { message: "error", data: "Failed to update payment status" };
   }
 };
 
 // Soft delete a specific payment status by ID
-exports.deletePaymentStatus = async (paymentStatusId) => {
+exports.deletePaymentStatus = async (paymentStatusUniqueId) => {
   const deletedAt = new Date();
-  const sql = `UPDATE PaymentStatus SET deletedAt = ? WHERE paymentStatusId = ? AND deletedAt IS NULL`;
-  const [result] = await pool.query(sql, [deletedAt, paymentStatusId]);
+  const sql = `UPDATE PaymentStatus SET deletedAt = ? WHERE paymentStatusUniqueId = ? AND deletedAt IS NULL`;
+  const [result] = await pool.query(sql, [deletedAt, paymentStatusUniqueId]);
 
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Payment status with ID ${paymentStatusId} deleted successfully`,
+      data: `Payment status with ID ${paymentStatusUniqueId} deleted successfully`,
     };
   } else {
     return { message: "error", data: "Failed to delete payment status" };

@@ -29,9 +29,9 @@ exports.getAllPaymentMethods = async () => {
 };
 
 // Get a specific payment method by ID
-exports.getPaymentMethodById = async (paymentMethodId) => {
-  const sql = `SELECT * FROM PaymentMethod WHERE paymentMethodId = ?`;
-  const [result] = await pool.query(sql, [paymentMethodId]);
+exports.getPaymentMethodById = async (paymentMethodUniqueId) => {
+  const sql = `SELECT * FROM PaymentMethod WHERE paymentMethodUniqueId = ?`;
+  const [result] = await pool.query(sql, [paymentMethodUniqueId]);
 
   return result.length > 0
     ? { message: "success", data: result[0] }
@@ -39,27 +39,30 @@ exports.getPaymentMethodById = async (paymentMethodId) => {
 };
 
 // Update a specific payment method by ID
-exports.updatePaymentMethod = async (paymentMethodId, paymentMethod) => {
-  const sql = `UPDATE PaymentMethod SET paymentMethod = ? WHERE paymentMethodId = ?`;
-  const values = [paymentMethod, paymentMethodId];
+exports.updatePaymentMethod = async (paymentMethodUniqueId, paymentMethod) => {
+  const sql = `UPDATE PaymentMethod SET paymentMethod = ? WHERE paymentMethodUniqueId = ?`;
+  const values = [paymentMethod, paymentMethodUniqueId];
   const [result] = await pool.query(sql, values);
 
   if (result.affectedRows > 0) {
-    return { message: "success", data: { paymentMethodId, paymentMethod } };
+    return {
+      message: "success",
+      data: { paymentMethodUniqueId, paymentMethod },
+    };
   } else {
     return { message: "error", data: "Failed to update payment method" };
   }
 };
 
 // Delete a specific payment method by ID
-exports.deletePaymentMethod = async (paymentMethodId) => {
+exports.deletePaymentMethod = async (paymentMethodUniqueId) => {
   const sql = `DELETE FROM PaymentMethod WHERE paymentMethodId = ?`;
-  const [result] = await pool.query(sql, [paymentMethodId]);
+  const [result] = await pool.query(sql, [paymentMethodUniqueId]);
 
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Payment method with ID ${paymentMethodId} deleted successfully`,
+      data: `Payment method with ID ${paymentMethodUniqueId} deleted successfully`,
     };
   } else {
     return { message: "error", data: "Failed to delete payment method" };

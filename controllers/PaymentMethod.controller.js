@@ -28,8 +28,10 @@ exports.getAllPaymentMethods = async (req, res) => {
 // Get a specific payment method by ID
 exports.getPaymentMethodById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await paymentMethodService.getPaymentMethodById(id);
+    const { paymentMethodUniqueId } = req.params;
+    const result = await paymentMethodService.getPaymentMethodById(
+      paymentMethodUniqueId
+    );
     res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching payment method:", error);
@@ -40,10 +42,10 @@ exports.getPaymentMethodById = async (req, res) => {
 // Update a specific payment method by ID
 exports.updatePaymentMethod = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { paymentMethodUniqueId } = req.params;
     const { paymentMethod } = req.body;
     const result = await paymentMethodService.updatePaymentMethod(
-      id,
+      paymentMethodUniqueId,
       paymentMethod
     );
     res.status(200).json(result);
@@ -56,8 +58,10 @@ exports.updatePaymentMethod = async (req, res) => {
 // Delete a specific payment method by ID
 exports.deletePaymentMethod = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await paymentMethodService.deletePaymentMethod(id);
+    const { paymentMethodUniqueId } = req.params;
+    const result = await paymentMethodService.deletePaymentMethod(
+      paymentMethodUniqueId
+    );
     res.status(200).json(result);
   } catch (error) {
     console.error("Error deleting payment method:", error);
