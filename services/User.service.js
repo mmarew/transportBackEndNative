@@ -307,7 +307,7 @@ const verifyUserByOTP = async (req) => {
       },
     });
 
-    const roleId = req.body.roleId;
+    const roleId = req.query.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found" };
     }

@@ -5,21 +5,21 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create a new payment status
 router.post(
-  "/api/paymentStatus",
+  "/api/admin/paymentStatus",
   verifyTokenOfAxios,
   paymentStatusController.createPaymentStatus
 );
 
 // Get all payment statuses
 router.get(
-  "/api/paymentStatus",
+  "/api/admin/paymentStatus",
   verifyTokenOfAxios,
   paymentStatusController.getAllPaymentStatuses
 );
 
 // Get a specific payment status by ID
 router.get(
-  "/api/paymentStatus/:paymentStatusUniqueId",
+  "/api/admin/paymentStatus/:paymentStatusUniqueId",
   verifyTokenOfAxios,
 
   paymentStatusController.getPaymentStatusById
@@ -27,7 +27,7 @@ router.get(
 
 // Update a specific payment status by ID
 router.put(
-  "/api/paymentStatus/:paymentStatusUniqueId",
+  "/api/admin/paymentStatus/:paymentStatusUniqueId",
   verifyTokenOfAxios,
 
   paymentStatusController.updatePaymentStatus
@@ -35,7 +35,7 @@ router.put(
 
 // Delete a specific payment status by ID
 router.delete(
-  "/api/paymentStatus/:paymentStatusUniqueId",
+  "/api/admin/paymentStatus/:paymentStatusUniqueId",
   verifyTokenOfAxios,
 
   paymentStatusController.deletePaymentStatus

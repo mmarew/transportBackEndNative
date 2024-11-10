@@ -1,4 +1,5 @@
 const paymentMethodService = require("../Services/PaymentMethod.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new payment method
 exports.createPaymentMethod = async (req, res) => {
@@ -7,10 +8,13 @@ exports.createPaymentMethod = async (req, res) => {
     const result = await paymentMethodService.createPaymentMethod({
       paymentMethod,
     });
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error creating payment method:", error);
-    res.status(500).json({ message: "Error creating payment method", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error creating payment method",
+    });
   }
 };
 
@@ -21,7 +25,10 @@ exports.getAllPaymentMethods = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching payment methods:", error);
-    res.status(500).json({ message: "Error fetching payment methods", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching payment methods",
+    });
   }
 };
 
@@ -32,10 +39,13 @@ exports.getPaymentMethodById = async (req, res) => {
     const result = await paymentMethodService.getPaymentMethodById(
       paymentMethodUniqueId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching payment method:", error);
-    res.status(500).json({ message: "Error fetching payment method", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching payment method",
+    });
   }
 };
 
@@ -48,10 +58,13 @@ exports.updatePaymentMethod = async (req, res) => {
       paymentMethodUniqueId,
       paymentMethod
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error updating payment method:", error);
-    res.status(500).json({ message: "Error updating payment method", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error updating payment method",
+    });
   }
 };
 
@@ -62,9 +75,12 @@ exports.deletePaymentMethod = async (req, res) => {
     const result = await paymentMethodService.deletePaymentMethod(
       paymentMethodUniqueId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.error("Error deleting payment method:", error);
-    res.status(500).json({ message: "Error deleting payment method", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error deleting payment method",
+    });
   }
 };
