@@ -27,12 +27,14 @@ const { createTarrifRate } = require("./TarrifRate.service");
 const {
   createTarrifRateForVehicleType,
 } = require("./TarrifRateForVehicleTypes.service");
+const { createUserSystem } = require("./User.service");
 const { createVehicleType } = require("./VehicleType.service");
 
 const createTable = async () => {
   try {
     await pool.query(sqlQuery);
-
+    const userResult = await createUserSystem();
+    console.log("userResult", userResult);
     return {
       message: "success",
       data: `Tables created successfully`,

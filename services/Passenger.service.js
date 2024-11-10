@@ -272,7 +272,8 @@ const cancelPassengerRequest = async (body) => {
     await updateData({
       tableName: "PassengerRequest",
       conditions: { passengerRequestId },
-      updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+      // 6 is canceled by passenger, 7 is canceled by driver, 8 is canceled by admin, 10 is canceled by system
+      updateValues: { journeyStatusId: roleId == 1 ? 6 : roleId == 3 ? 8 : 10 }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
 
     // Check if the request exists in JourneyDecisions
