@@ -1,13 +1,25 @@
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const { cancelPassengerRequest } = require("../Services/Passenger.service");
 const serverResponder = require("../Utils/ServerResponder");
-exports.canceledJourneyBySystem = async (req, res) => {
+const canceledJourneyBySystem = async (req, res) => {
   try {
     // get all active journey of passenger request which are in journey status of 1 and requestTime is geater than 5 munites
-    // Define the SQL query to select active passenger requests older than 5 minutes
-    const user = { userUniqueId: "676-9090hkj-898989-3434", roleId: 5 };
+    // get user system from table where its role is 5
+    const [user] = await performJoinSelect({
+      baseTable: "Users",
+      joins: [
+        {
+          table: "userRole",
+          on: "Users.userUniqueId = userRole.userUniqueId",
+        },
+      ],
+      conditions: {
+        "userRole.roleId": 5, // role id of system
+      },
+    });
+    console.log("user", user);
     const sqlQuery = `
       SELECT * 
       FROM PassengerRequest 
@@ -17,8 +29,8 @@ exports.canceledJourneyBySystem = async (req, res) => {
 
     // Execute the query
     const [activeRequests] = await pool.query(sqlQuery);
-    console.log("activeRequests", activeRequests);
-    if (activeRequests.length == 0) {
+    // console.log("activeRequests", activeRequests);
+    if (activeRequests.length == 0 && res) {
       return serverResponder(res, {
         message: "error",
         error: "No active requests found",
@@ -31,17 +43,22 @@ exports.canceledJourneyBySystem = async (req, res) => {
       req.body.cancellationReasonsTypeId = 1;
       const result = await cancelPassengerRequest(req.body);
     });
-    serverResponder(res, result);
+    if (res) serverResponder(res, result);
   } catch (error) {
     console.error("Error creating canceled journey:", error);
-    serverResponder(res, {
-      message: "error",
-      error: "Failed to create canceled",
-    });
+    if (res)
+      serverResponder(res, {
+        message: "error",
+        error: "Failed to create canceled",
+      });
   }
 };
+// update in every five munites
+setInterval(() => {
+  canceledJourneyBySystem({ body: { user: null } });
+}, 50000);
 // Create a new canceled journey
-exports.createCanceledJourney = async (req, res) => {
+const createCanceledJourney = async (req, res) => {
   try {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
@@ -60,7 +77,7 @@ exports.createCanceledJourney = async (req, res) => {
     });
   }
 };
-exports.getCanceledJourneysByUserUniqueId = async (req, res) => {
+const getCanceledJourneysByUserUniqueId = async (req, res) => {
   try {
     const { userUniqueId, roleId } = req.params;
     if (!userUniqueId || !roleId) {
@@ -78,7 +95,7 @@ exports.getCanceledJourneysByUserUniqueId = async (req, res) => {
   }
 };
 // Get canceled journeys filtered by type, date range, and limit
-exports.getCanceledJourneysFiltered = async (req, res) => {
+const getCanceledJourneysFiltered = async (req, res) => {
   try {
     const { canceledByRoleId, startDate, endDate } = req.body;
 
@@ -97,7 +114,7 @@ exports.getCanceledJourneysFiltered = async (req, res) => {
 };
 
 // Get a specific canceled journey by ID
-exports.getCanceledJourneyById = async (req, res) => {
+const getCanceledJourneyById = async (req, res) => {
   try {
     const { canceledJourneyUniqueId } = req.params;
     const result = await canceledJourneyService.getCanceledJourneyById(
@@ -113,7 +130,7 @@ exports.getCanceledJourneyById = async (req, res) => {
 };
 
 // Update a specific canceled journey by ID
-exports.updateCanceledJourney = async (req, res) => {
+const updateCanceledJourney = async (req, res) => {
   try {
     const { canceledJourneyUniqueId } = req.params;
     const data = req.body;
@@ -131,7 +148,7 @@ exports.updateCanceledJourney = async (req, res) => {
 };
 
 // Delete a specific canceled journey by ID
-exports.deleteCanceledJourney = async (req, res) => {
+const deleteCanceledJourney = async (req, res) => {
   try {
     const { canceledJourneyUniqueId } = req.params;
     const result = await canceledJourneyService.deleteCanceledJourney(
@@ -144,4 +161,14 @@ exports.deleteCanceledJourney = async (req, res) => {
       .status(500)
       .json({ message: "Failed to delete canceled journey", error });
   }
+};
+
+module.exports = {
+  canceledJourneyBySystem,
+  deleteCanceledJourney,
+  updateCanceledJourney,
+  getCanceledJourneyById,
+  getCanceledJourneysByUserUniqueId,
+  getCanceledJourneysFiltered,
+  createCanceledJourney,
 };
