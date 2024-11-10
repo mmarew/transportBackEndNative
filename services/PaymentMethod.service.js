@@ -1,8 +1,15 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getData } = require("../CRUD/Read/ReadData");
 
 // Create a new payment method
 exports.createPaymentMethod = async ({ paymentMethod }) => {
+  const existedPaymentMethodes = await getData({
+    tableName: "PaymentMethod",
+    conditions: { paymentMethod },
+  });
+  if (existedPaymentMethodes.length > 0)
+    return { message: "error", error: "Payment method already existed" };
   const paymentMethodUniqueId = uuidv4();
   const createdAt = new Date();
   const sql = `INSERT INTO PaymentMethod (paymentMethodUniqueId, paymentMethod, createdAt) VALUES (?, ?, ?)`;
@@ -11,12 +18,7 @@ exports.createPaymentMethod = async ({ paymentMethod }) => {
 
   return {
     message: "success",
-    data: {
-      paymentMethodUniqueId,
-      paymentMethod,
-      createdAt,
-      paymentMethodId: result.insertId,
-    },
+    data: "payment methodes created successfully",
   };
 };
 
@@ -35,7 +37,7 @@ exports.getPaymentMethodById = async (paymentMethodUniqueId) => {
 
   return result.length > 0
     ? { message: "success", data: result[0] }
-    : { message: "error", data: "Payment method not found" };
+    : { message: "error", error: "Payment method not found" };
 };
 
 // Update a specific payment method by ID
@@ -50,7 +52,7 @@ exports.updatePaymentMethod = async (paymentMethodUniqueId, paymentMethod) => {
       data: { paymentMethodUniqueId, paymentMethod },
     };
   } else {
-    return { message: "error", data: "Failed to update payment method" };
+    return { message: "error", error: "Failed to update payment method" };
   }
 };
 
@@ -65,6 +67,6 @@ exports.deletePaymentMethod = async (paymentMethodUniqueId) => {
       data: `Payment method with ID ${paymentMethodUniqueId} deleted successfully`,
     };
   } else {
-    return { message: "error", data: "Failed to delete payment method" };
+    return { message: "error", error: "Failed to delete payment method" };
   }
 };

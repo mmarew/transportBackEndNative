@@ -5,7 +5,10 @@ const { cancelPassengerRequest } = require("../Services/Passenger.service");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const serverResponder = require("../Utils/ServerResponder");
 // Function to create a canceled journey by the system
-const canceledJourneyBySystem = async (req = { body: null }, res = null) => {
+const canceledJourneyBySystem = async (
+  req = { body: { user: null } },
+  res = null
+) => {
   try {
     // Get the system user from Users table where roleId is 5
     const [user] = await performJoinSelect({
@@ -20,7 +23,6 @@ const canceledJourneyBySystem = async (req = { body: null }, res = null) => {
         "userRole.roleId": 5, // role id of system
       },
     });
-
     if (!user) {
       throw new Error("System user with role id 5 not found");
     }
@@ -30,7 +32,6 @@ const canceledJourneyBySystem = async (req = { body: null }, res = null) => {
 
     // Execute the query
     const [activeRequests] = await pool.query(sqlQuery);
-
     if (!activeRequests || activeRequests.length === 0) {
       if (res) {
         return serverResponder(res, {
@@ -80,7 +81,7 @@ const canceledJourneyBySystem = async (req = { body: null }, res = null) => {
 // Schedule the canceledJourneyBySystem to run every 5 minutes (300000 ms)
 setInterval(() => {
   canceledJourneyBySystem();
-}, 300000); // 300,000 ms = 5 minutes
+}, 3000); // 300,000 ms = 5 minutes
 
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {
