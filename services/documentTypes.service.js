@@ -31,7 +31,10 @@ const createDocumentType = async ({ body }) => {
     conditions: { userUniqueId },
   });
   if (userExists.length === 0) {
-    return { message: "error", data: "User not found to create document type" };
+    return {
+      message: "error",
+      error: "User not found to create document type",
+    };
   }
   // Check if the document type already exists
   const existingDocumentType = await getData({

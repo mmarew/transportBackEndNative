@@ -12,6 +12,23 @@ const deleteData = require("../CRUD/Delete/DeleteData");
 const bcrypt = require("bcrypt");
 const { verify } = require("jsonwebtoken");
 const verifyPassword = require("../Utils/VerifyPassword");
+const createUserSystem = async (body) => {
+  const fullName = "system",
+    phoneNumber = "0922112480",
+    email = "system@system.com",
+    roleId = 5,
+    statusId = 1,
+    userRoleStatusDescription =
+      "this can manage things by itself based on written programs";
+  return await createUser({
+    fullName,
+    phoneNumber,
+    email,
+    roleId,
+    statusId,
+    userRoleStatusDescription,
+  });
+};
 const createUser = async (body) => {
   const {
     fullName,
@@ -514,6 +531,7 @@ const updateUser = async (body) => {
 };
 
 module.exports = {
+  createUserSystem,
   getUserByUserUniqueId,
   updateUser,
   verifyUserByOTP,

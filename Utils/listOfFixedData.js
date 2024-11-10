@@ -27,6 +27,12 @@ const roleList = [
     roleDescription: "a person who brought the car for delivery",
     roleCreatedAt: currentDate(),
   },
+  {
+    roleUniqueId: uuidv4(),
+    roleName: "System",
+    roleDescription: "some codes writen in app an do jobs by itself",
+    roleCreatedAt: currentDate(),
+  },
 ];
 const statusList = [
   // 1. All Documents Accepted, Vehicle Registered (Active)

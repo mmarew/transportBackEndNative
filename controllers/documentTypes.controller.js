@@ -2,7 +2,7 @@ const documentTypesService = require("../Services/DocumentTypes.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const createDocumentType = async (req, res) => {
   try {
-    const user = req?.body?.user;
+    const user = req?.user;
 
     req.body.user = user;
     const response = await documentTypesService.createDocumentType({
