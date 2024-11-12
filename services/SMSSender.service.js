@@ -48,7 +48,15 @@ const createSMSSender = async ({ phoneNumber, password }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const sql = `INSERT INTO SMSSender (phoneNumber, password) VALUES (?, ?)`;
   const [result] = await pool.query(sql, [phoneNumber, hashedPassword]);
-  const token = createJWT({ phoneNumber, type: "SMSSender" });
+  const token = createJWT({
+    phoneNumber,
+    type: "SMSSender",
+    type: "SMSSender",
+    userUniqueId: "SMSSender userUniqueId",
+    fullName: "SMSSender fullName",
+    email: "SMSSender email",
+    roleId: "SMSSender roleId",
+  });
   return {
     message: "success",
     data: "OTP sender registered successfully.",

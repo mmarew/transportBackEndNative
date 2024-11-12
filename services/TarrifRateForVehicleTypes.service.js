@@ -54,9 +54,27 @@ exports.getAllTarrifRatesForVehicleTypes = async () => {
     data: result,
   };
 };
-
+// get tarrif rate by vehicle type unique id
+exports.getTarrifRateByVehicleTypeUniqueId = async (vehicleTypeUniqueId) => {
+  const result = await performJoinSelect({
+    baseTable: "TarrifRateForVehcleTypes",
+    joins: [
+      {
+        table: "TarrifRate",
+        on: "TarrifRateForVehcleTypes.tarrifRateUniqueId = TarrifRate.tarrifRateUniqueId",
+      },
+    ],
+    conditions: {
+      vehicleTypeUniqueId: vehicleTypeUniqueId,
+    },
+  });
+  return {
+    message: "success",
+    data: result,
+  };
+};
 // Get a tariff rate for vehicle type by ID
-exports.getTarrifRateForVehicleTypeById = async (id) => {
+exports.getTarrifRateForVehicleTypeById = async (tarrifRateForVehcleTypeId) => {
   const result = await performJoinSelect({
     baseTable: "TarrifRateForVehcleTypes",
     joins: [
@@ -70,7 +88,7 @@ exports.getTarrifRateForVehicleTypeById = async (id) => {
       },
     ],
     conditions: {
-      tarrifRateForVehcleTypeId: id,
+      tarrifRateForVehcleTypeId: tarrifRateForVehcleTypeId,
     },
   });
 

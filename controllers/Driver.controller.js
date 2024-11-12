@@ -110,9 +110,11 @@ const cancelDriverRequest = async (req, res) => {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
     let ownerUserUniqueId = req.params.userUniqueId;
+    const roleId = req.params.roleId;
     if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
     req.body.ownerUserUniqueId = ownerUserUniqueId;
     req.body.user = user;
+    req.body.roleId = roleId;
     const result = await services.cancelDriverRequest(req.body);
     ServerResponder(res, result);
   } catch (error) {

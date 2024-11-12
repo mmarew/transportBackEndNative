@@ -48,7 +48,7 @@ router.put(
   noAnswerFromDriver
 );
 router.put(
-  "/driver/cancelDriverRequest/:userUniqueId",
+  "/driver/cancelDriverRequest/:userUniqueId/:roleId",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   cancelDriverRequest
