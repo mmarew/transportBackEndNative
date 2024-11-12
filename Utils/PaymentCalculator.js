@@ -34,11 +34,7 @@ const calculateDistances = (journeyRoutePoints) => {
 
   return totalDistance;
 };
-async function PaymentCalculator({
-  vehicleTypeUniqueId,
-  journeyUniqueId,
-  passengerRequestUniqueId,
-}) {
+async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
   try {
     // first get all tarrif rate based on vehicle types uniqueid
     const TarrifRateForVehcleTypes = await performJoinSelect({

@@ -19,7 +19,7 @@ const createVehicle = async (body) => {
 
     // Check if the vehicle type exists
     const vehicleType = await getData({
-      tableName: "VehicleType",
+      tableName: "VehicleTypes",
       conditions: { vehicleTypeUniqueId },
     });
     if (vehicleType.length === 0) {

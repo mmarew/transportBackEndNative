@@ -439,9 +439,11 @@ CREATE TABLE IF NOT EXISTS Payments (
     standingTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate wher driver comes to passangers pick up place
     journeyTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate between a place where driver pick up a passangers up to destination place and can be calculated by km
     timingTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate between a place where driver pick up a passangers up to destination place and can be calculated by time
+    tarrifRateEffectiveDate DATE NOT NULL,  -- The date from which this rate is effective
+    tarrifRateExpirationDate DATE NOT NULL,  -- The date after which this rate is no longer effective
     tarifRateDescription TEXT NOT NULL,  -- Description of tarrif rate
-    createdBy VARCHAR(36) NOT NULL,  -- Who created the tarrif rate
-    createdAt DATETIME NOT NULL  -- Creation time of the tarrif rate
+    tarrifRateCreatedBy VARCHAR(36) NOT NULL,  -- Who created the tarrif rate
+    tarrifRateCreatedAt DATETIME NOT NULL  -- Creation time of the tarrif rate
 ) ;
 
  -- Create the TarrifRateForVehcleTypes table

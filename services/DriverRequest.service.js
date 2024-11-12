@@ -32,6 +32,12 @@ const {
   createDriverBalance,
   getDriverLastBalanceByUserUniqueId,
 } = require("./DriverBalance.service");
+const {
+  getVehicleOwnershipByUserUniqueId,
+} = require("./VehicleOwnership.service");
+const {
+  getTarrifRateByVehicleTypeUniqueId,
+} = require("./TarrifRateForVehicleTypes.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -182,6 +188,7 @@ const noAnswerFromDriver = async (body) => {
 
   return message;
 };
+
 const journeyCompleted = async (body) => {
   // set journey status to be completed
   await updateJourneyStatus(body);
@@ -205,23 +212,28 @@ const journeyCompleted = async (body) => {
       "PassengerRequest.passengerRequestUniqueId": passengerRequestUniqueId,
     },
   });
+  const paymentData = await PaymentCalculator({
+    vehicleTypeUniqueId,
+    journeyUniqueId,
+  });
+  const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
+  if (paymentData.message == "error") return paymentData;
   const phoneNumber = passenger?.at(0)?.phoneNumber;
   if (phoneNumber)
     sendNotificationToPassenger({
       message: {
+        driver: { vehicle: vehicleData?.at(0) },
+        passenger: passenger?.at(0),
         message: "success",
         status: 5,
         data: "Journey completed successfully",
+        fare: paymentData.totalMoney,
       },
       phoneNumber,
     });
-  const paymentData = await PaymentCalculator({
-    vehicleTypeUniqueId,
-    journeyUniqueId,
-    passengerRequestUniqueId,
-  });
+
   const totalMoney = paymentData.totalMoney;
-  if (paymentData.message == "error") return paymentData;
+
   // register payment in to Payment table
   const newPayment = await createPayment(
     journeyUniqueId,
@@ -229,11 +241,12 @@ const journeyCompleted = async (body) => {
     paymentMethodUniqueId,
     paymentStatusUniqueId
   );
-  // console.log("newPayment", newPayment);
+  if (newPayment.message == "error") {
+    // return newPayment;
+  }
   const paymentUniqueId = newPayment?.data?.paymentUniqueId;
   // calculate commision and add to commision table
   const commisionData = await calculateCommision(totalMoney);
-
   const data = {
     paymentUniqueId,
     commissionRateUniqueId: commisionData?.commissionRateUniqueId,
@@ -257,7 +270,7 @@ const journeyCompleted = async (body) => {
     date: new Date(),
     netBalance,
   };
-  await createDriverBalance({
+  const dataOfDriverBalance = await createDriverBalance({
     ...dataOfBalance,
   });
   return {
@@ -272,6 +285,7 @@ const journeyCompleted = async (body) => {
 const cancelDriverRequest = async (body) => {
   try {
     const user = body.user;
+    const roleId = body?.roleId;
     const userUniqueId = user?.userUniqueId;
     const ownerUserUniqueId = body.ownerUserUniqueId;
     const cancellationReasonsTypeId = body.cancellationReasonsTypeId;
@@ -310,6 +324,7 @@ const cancelDriverRequest = async (body) => {
         contextType: "DriverRequest",
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
+        roleId,
       });
       return {
         message: "success",
@@ -391,6 +406,7 @@ const cancelDriverRequest = async (body) => {
         contextType: "JourneyDecisions",
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
+        roleId,
       });
       return {
         message: "success",
@@ -510,8 +526,8 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
           on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
         },
         {
-          table: "VehicleType",
-          on: "Vehicle.vehicleTypeUniqueId = VehicleType.vehicleTypeUniqueId",
+          table: "VehicleTypes",
+          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
         },
       ],
       conditions: {
@@ -528,7 +544,10 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     const vehicleTypeUniqueId = vehicle[0].vehicleTypeUniqueId;
-
+    // get tarrif rate by vehicle type unique id
+    const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
+      vehicleTypeUniqueId
+    );
     // Step 2: If no activeRequest, check for an active driver request
     if (!activeRequest || activeRequest.length === 0) {
       activeRequest = await checkActiveDriverRequest(userUniqueId);
@@ -582,8 +601,15 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
         return {
           message: "success",
           status: 1, // Waiting
-          driver,
-          vehicle: vehicle[0],
+          uniqueIds: {
+            driverRequestUniqueId: driver?.driverRequestUniqueId,
+          },
+          driver: {
+            driver,
+            vehicle: vehicle[0],
+            vehicleTarrifRate: vehicleTarrifRate.data[0],
+          },
+
           passenger: null,
           journey: null,
           decisions: null,
@@ -622,13 +648,24 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       ]);
 
       // Step 6: Notify passenger and return response
+      const uniqueIds = {
+        driverRequestUniqueId: driver?.driverRequestUniqueId,
+        passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
+        journeyDecisionUniqueId:
+          journeyDecisionPayload?.journeyDecisionUniqueId,
+      };
       const message = {
-        driver,
-        vehicle: vehicle[0],
+        uniqueIds,
+        driver: {
+          driver,
+          vehicle: vehicle[0],
+          vehicleTarrifRate: vehicleTarrifRate.data[0],
+        },
         passenger,
         journey: null,
         decisions: journeyDecisionPayload,
       };
+
       const phoneNumber = passenger?.phoneNumber;
       if (phoneNumber) {
         await sendNotificationToPassenger({ message, phoneNumber });
@@ -667,9 +704,18 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
 
     // Step 8: Return response with driver, passenger, journey, and decisions
     const responseMessage = {
+      uniqueIds: {
+        driverRequestUniqueId: driver?.driverRequestUniqueId,
+        passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
+        journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
+        journeyUniqueId: journey?.journeyUniqueId,
+      },
       status: journeyStatusId,
-      driver,
-      vehicle: vehicle[0],
+      driver: {
+        driver,
+        vehicle: vehicle[0],
+        vehicleTarrifRate: vehicleTarrifRate.data[0],
+      },
       passenger: passenger || null,
       journey: journey || null,
       decisions: journeyDecision || null,

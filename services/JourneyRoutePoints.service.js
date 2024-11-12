@@ -12,7 +12,7 @@ exports.createJourneyRoutePoint = async ({
 
   return {
     message: "success",
-    data: { journeyUniqueId, latitude, longitude, pointId: result.insertId },
+    data: "journey route point created successfully",
   };
 };
 

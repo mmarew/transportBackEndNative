@@ -15,6 +15,12 @@ const {
 } = require("../CRUD/Create/CreateData");
 const { v4: uuidv4 } = require("uuid");
 const { sendNotificationToDriver } = require("../Utils/Notifications");
+const {
+  getVehicleOwnershipByUserUniqueId,
+} = require("./VehicleOwnership.service");
+const {
+  getTarrifRateByVehicleTypeUniqueId,
+} = require("./TarrifRateForVehicleTypes.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -180,7 +186,11 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
         message: "success",
         status: 2,
         passenger,
-        driver,
+        driver: {
+          driver,
+          vehicleOfDriver: "to be seen",
+          vehicleTarrifRate: "to be seen",
+        },
         journey: null,
         decisions: journeyDecisionPayload,
       };
@@ -223,11 +233,25 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     });
     const driver = driverData[0];
     const phoneNumber = driver?.phoneNumber;
+
+    const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
+      driver?.userUniqueId
+    );
+    const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
+      vehicleOfDriver[0]?.vehicleTypeUniqueId
+    );
+    console.log("vehicleTarrifRate", vehicleTarrifRate);
+    console.log("vehicleOfDriver ===========> ", vehicleOfDriver);
+    // return;
     const message = {
       message: "success",
       status: driver?.journeyStatusId,
       passenger,
-      driver,
+      driver: {
+        vehicleOfDriver: vehicleOfDriver[0],
+        driver,
+        vehicleTarrifRate: vehicleTarrifRate?.data[0],
+      },
       journey: journey[0] || null,
       decisions: journeyDecision[0] || null,
     };
@@ -349,7 +373,6 @@ const cancelPassengerRequest = async (body) => {
       conditions: { journeyDecisionUniqueId },
       updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
-    console.log("existingJourneyData ================> ", existingJourneyData);
     const journeyId = existingJourneyData.at(0)?.journeyId;
     const canceledJourney = await createCanceledJourney({
       canceledBy: userUniqueId,
@@ -357,6 +380,7 @@ const cancelPassengerRequest = async (body) => {
       contextId: journeyId ? journeyId : journeyDecisionId,
       contextType: journeyId ? "Journey" : "JourneyDecisions",
       cancellationReasonsTypeId,
+      roleId,
     });
     console.log("canceledJourney", canceledJourney);
 
