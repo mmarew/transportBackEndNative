@@ -1,13 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
-const attachedDocumentsController = require("../Controllers/attachedDocuments.controller");
+const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
 const multer = require("multer");
-const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
-// Configure Multer for file uploading
-// Configure Multer for file uploading
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/"); // Specify where the files will be stored

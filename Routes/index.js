@@ -6,6 +6,7 @@ const AdminRouter = require("./Admin.routes");
 const userRoutes = require("./User.routes");
 const roles = require("./Role.routes");
 const Status = require("./Status.routes");
+
 const Vehicles = require("./Vehicle.routes");
 const vehicleOwnership = require("./VehicleOwnership.routes");
 const Passenger = require("./PassengerRequest.routes");
@@ -21,7 +22,7 @@ const database = require("./Database.routes");
 const journeyStatus = require("./JourneyStatus.routes");
 const canceledJourney = require("./CanceledJourneys.routes");
 const JourneyRoutePoints = require("./JourneyRoutePoints.routes");
-const paymentMethod = require("./paymentMethod.routes");
+const paymentMethod = require("./PaymentMethod.routes");
 const Journey = require("./Journey.routes");
 const JourneyDecision = require("./JourneyDecisions.routes");
 const Rating = require("./Ratings.routes");

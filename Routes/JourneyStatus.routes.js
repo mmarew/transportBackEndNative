@@ -1,13 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const journeyStatusController = require("../Controllers/journeyStatus.controller");
+const journeyStatusController = require("../Controllers/JourneyStatus.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create a new journey status
 router.post(
   "/api/admin/journeyStatus",
   verifyTokenOfAxios,
-
   journeyStatusController.createJourneyStatus
 );
 
@@ -15,7 +14,6 @@ router.post(
 router.get(
   "/api/admin/journeyStatus",
   verifyTokenOfAxios,
-
   journeyStatusController.getAllJourneyStatuses
 );
 
@@ -23,7 +21,6 @@ router.get(
 router.get(
   "/api/admin/journeyStatus/:journeyStatusUniqueId",
   verifyTokenOfAxios,
-
   journeyStatusController.getJourneyStatusById
 );
 
@@ -31,7 +28,6 @@ router.get(
 router.put(
   "/api/admin/journeyStatus/:journeyStatusUniqueId",
   verifyTokenOfAxios,
-
   journeyStatusController.updateJourneyStatus
 );
 
@@ -39,7 +35,6 @@ router.put(
 router.delete(
   "/api/admin/journeyStatus/:journeyStatusUniqueId",
   verifyTokenOfAxios,
-
   journeyStatusController.deleteJourneyStatus
 );
 

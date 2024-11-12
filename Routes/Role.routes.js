@@ -8,8 +8,6 @@ const {
   updateRoleController,
   deleteRoleController,
   getAllRolesController,
-  getRoleByUserUniqueId,
-  getRoleByUserUniqueIdController,
 } = require("../Controllers/Role.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 

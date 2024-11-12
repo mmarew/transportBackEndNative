@@ -12,7 +12,7 @@ const {
   insertData,
   createDriverRequest,
 } = require("../CRUD/Create/CreateData");
-
+const { getUserByUserUniqueId } = require("./User.service");
 const { v4: uuidv4 } = require("uuid");
 const {
   sendNotificationToPassenger,
@@ -217,12 +217,14 @@ const journeyCompleted = async (body) => {
     journeyUniqueId,
   });
   const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
+  const driver = await getUserByUserUniqueId(userUniqueId);
+  console.log("@journeyCompleted driver", driver);
   if (paymentData.message == "error") return paymentData;
   const phoneNumber = passenger?.at(0)?.phoneNumber;
   if (phoneNumber)
     sendNotificationToPassenger({
       message: {
-        driver: { vehicle: vehicleData?.at(0) },
+        driver: { vehicle: vehicleData?.at(0), driver: driver.data },
         passenger: passenger?.at(0),
         message: "success",
         status: 5,
