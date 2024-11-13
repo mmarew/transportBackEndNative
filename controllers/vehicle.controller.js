@@ -30,7 +30,7 @@ const getVehicleController = async (req, res) => {
     }
     res.status(404).json({ message: "Vehicle not found" });
   } catch (error) {
-    console.error("Error fetching vehicle:", error);
+    console.log("Error fetching vehicle:", error);
     res.status(500).json({ message: "Error fetching vehicle" });
   }
 };
@@ -43,7 +43,7 @@ const updateVehicleController = async (req, res) => {
     }
     res.status(400).json(response);
   } catch (error) {
-    console.error("Error updating vehicle:", error);
+    console.log("Error updating vehicle:", error);
     res.status(500).json({ message: "Vehicle update failed" });
   }
 };
@@ -56,7 +56,7 @@ const deleteVehicleController = async (req, res) => {
     }
     res.status(404).json({ message: "Vehicle not found" });
   } catch (error) {
-    console.error("Error deleting vehicle:", error);
+    console.log("Error deleting vehicle:", error);
     res.status(500).json({ message: "Vehicle deletion failed" });
   }
 };
@@ -66,7 +66,7 @@ const getAllVehiclesController = async (req, res) => {
     const response = await getAllVehicles();
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error fetching vehicles:", error);
+    console.log("Error fetching vehicles:", error);
     res.status(500).json({ message: "Error fetching vehicles" });
   }
 };
@@ -82,7 +82,7 @@ const verifyUsersVehicle = async (req, res) => {
     }
     res.status(404).json({ message: "Vehicle not found" });
   } catch (error) {
-    console.error("Error fetching vehicle:", error);
+    console.log("Error fetching vehicle:", error);
     res.status(500).json({ message: "Error fetching vehicle" });
   }
 };

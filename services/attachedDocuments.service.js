@@ -99,7 +99,7 @@ const createAttachedDocument = async ({
     }
   } catch (error) {
     deleteFile(attachedDocumentName);
-    console.error("Error creating attached document:", error);
+    console.log("Error creating attached document:", error);
     return {
       message: "error",
       error: "An error occurred while creating the document",

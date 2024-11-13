@@ -8,9 +8,12 @@ const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const path = require("path");
 const { createUserSystem } = require("./Services/User.service.js");
+const loggingMiddleware = require("./Middleware/loggingMiddleware.js");
 
 // Initialize Express app
 const app = express();
+// app.use(loggingMiddleware);
+loggingMiddleware();
 console.log('path.join(__dirname, "uploads")', path.join(__dirname, "uploads"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());

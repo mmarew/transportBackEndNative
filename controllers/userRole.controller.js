@@ -6,7 +6,7 @@ const createUserRole = async (req, res) => {
     const result = await userRoleService.createUserRole(req.body);
     ServerResponder(res, result, 201); // Respond with 201 Created
   } catch (error) {
-    console.error("Error in createUserRoleController:", error);
+    console.log("Error in createUserRoleController:", error);
     ServerResponder(
       res,
       { message: "error", error: "UserRole creation failed" },
@@ -22,7 +22,7 @@ const getUserRoleByUserUniqueId = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in getUserRoleByIdController:", error);
+    console.log("Error in getUserRoleByIdController:", error);
     ServerResponder(
       res,
       { message: "error", error: "Unable to retrieve UserRole" },
@@ -39,7 +39,7 @@ const updateUserRole = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in updateUserRoleController:", error);
+    console.log("Error in updateUserRoleController:", error);
     ServerResponder(
       res,
       { message: "error", error: "Unable to update UserRole" },
@@ -53,7 +53,7 @@ const deleteUserRole = async (req, res) => {
     const result = await userRoleService.deleteUserRole(req.params.id);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in deleteUserRoleController:", error);
+    console.log("Error in deleteUserRoleController:", error);
     ServerResponder(
       res,
       { message: "error", error: "Unable to delete UserRole" },

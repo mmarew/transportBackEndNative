@@ -42,7 +42,7 @@ const updateData = async ({
     ]);
     return result; // Return the result object containing affectedRows, etc.
   } catch (error) {
-    console.error("Error updating data:", error);
+    console.log("Error updating data:", error);
     throw error;
   }
 };

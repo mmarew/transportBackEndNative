@@ -18,7 +18,7 @@ exports.createCommissionRate = async (req, res) => {
     });
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error creating commission rate:", error);
+    console.log("Error creating commission rate:", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
@@ -29,7 +29,7 @@ exports.getAllCommissionRates = async (req, res) => {
     const commissionRates = await commissionRateService.getAllCommissionRates();
     ServerResponder(res, commissionRates);
   } catch (error) {
-    console.error("Error fetching commission rates:", error);
+    console.log("Error fetching commission rates:", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
@@ -46,7 +46,7 @@ exports.getCommissionRateByUniqueId = async (req, res) => {
 
     ServerResponder(res, commissionRate);
   } catch (error) {
-    console.error("Error fetching commission rate:", error);
+    console.log("Error fetching commission rate:", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
@@ -72,7 +72,7 @@ exports.updateCommissionRateByUniqueId = async (req, res) => {
 
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error updating commission rate:", error);
+    console.log("Error updating commission rate:", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
@@ -90,7 +90,7 @@ exports.deleteCommissionRateByUniqueId = async (req, res) => {
 
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error deleting commission rate:", error);
+    console.log("Error deleting commission rate:", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };

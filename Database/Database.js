@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS Roles (
 
 -- Create the vehicleTypes table
 
-   CREATE TABLE IF NOT EXISTS vehicleTypes (
+   CREATE TABLE IF NOT EXISTS VehicleTypes (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
     vehicleTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the vehicle type
@@ -177,9 +177,9 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
     roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
     roleDocumentRequirementDeletedBy VARCHAR(36) NULL,  -- Who deleted the requirement
-    createdAt DATETIME NOT NULL,  -- When the requirement was created
-    updatedAt DATETIME NULL,  -- When the requirement was updated
-    deletedAt DATETIME NULL,  -- When the requirement was deleted
+    roleDocumentRequirementcreatedAt DATETIME NOT NULL,  -- When the requirement was created
+    roleDocumentRequirementupdatedAt DATETIME NULL,  -- When the requirement was updated
+    roleDocumentRequirementdeletedAt DATETIME NULL,  -- When the requirement was deleted
     FOREIGN KEY (roleDocumentRequirementCreatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementDeletedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
@@ -251,10 +251,11 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     destinationLongitude DECIMAL(11, 8) NULL DEFAULT 0.0,  -- Longitude of destination
     destinationPlace VARCHAR(255) NULL DEFAULT 0.0,  -- Destination place
     requestTime TIMESTAMP NOT NULL,  -- Time of the request
-    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
+    journeyStatusId INT NOT NULL
+     ,  -- Foreign key to JourneyStatus
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
 
 -- Create the DriverRequest table

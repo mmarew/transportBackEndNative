@@ -7,7 +7,7 @@ const createRequest = async (req, res) => {
     const result = await services.createRequest(req.body, req.user);
     ServerResponder(res, result, 201);
   } catch (error) {
-    console.error("Error in createRequestController:", error);
+    console.log("Error in createRequestController:", error);
     ServerResponder(res, "Driver request creation failed", 500);
   }
 };
@@ -21,7 +21,7 @@ const getRequestByIdController = async (req, res) => {
     }
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in getRequestByIdController:", error);
+    console.log("Error in getRequestByIdController:", error);
     ServerResponder(res, "Unable to retrieve driver request", 500);
   }
 };
@@ -36,7 +36,7 @@ const acceptPassengerRequest = async (req, res) => {
 
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in updateRequestByIdController:", error);
+    console.log("Error in updateRequestByIdController:", error);
     ServerResponder(res, "Unable to update driver request", 500);
   }
 };
@@ -50,7 +50,7 @@ const deleteRequestController = async (req, res) => {
     }
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in deleteRequestController:", error);
+    console.log("Error in deleteRequestController:", error);
     ServerResponder(res, "Unable to delete driver request", 500);
   }
 };
@@ -61,7 +61,7 @@ const verifyDriverStatusController = async (req, res) => {
     const result = await services.verifyDriverStatus({ userUniqueId });
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in verifyDriverStatusController:", error);
+    console.log("Error in verifyDriverStatusController:", error);
     ServerResponder(res, "Unable to verify driver status", 500);
   }
 };
@@ -74,7 +74,7 @@ const startJourney = async (req, res) => {
     const result = await services.startJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in startJourney:", error);
+    console.log("Error in startJourney:", error);
     ServerResponder(res, error.message);
   }
 };
@@ -88,7 +88,7 @@ const noAnswerFromDriver = async (req, res) => {
     const result = await services.noAnswerFromDriver(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in noAnswerFromDriver:", error);
+    console.log("Error in noAnswerFromDriver:", error);
     ServerResponder(res, error.message);
   }
 };
@@ -101,7 +101,7 @@ const journeyCompleted = async (req, res) => {
     const result = await services.journeyCompleted(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in journeyCompleted:", error);
+    console.log("Error in journeyCompleted:", error);
     ServerResponder(res, error.message);
   }
 };
@@ -118,7 +118,7 @@ const cancelDriverRequest = async (req, res) => {
     const result = await services.cancelDriverRequest(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in canceledByDriver:", error);
+    console.log("Error in canceledByDriver:", error);
     ServerResponder(res, error.message);
   }
 };
@@ -129,7 +129,7 @@ const attachRequiredDocuments = async (req, res) => {
     const result = await services.attachRequiredDocuments(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in attachRequiredDocuments:", error);
+    console.log("Error in attachRequiredDocuments:", error);
     ServerResponder(res, error.message);
   }
 };

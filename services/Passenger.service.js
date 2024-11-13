@@ -43,7 +43,7 @@ const createRequest = async (body, user) => {
     // 3. Create a new passenger request
     return await verifyPassengerStatus({ userUniqueId, activeRequest });
   } catch (error) {
-    console.error("Error in createRequest:", error);
+    console.log("Error in createRequest:", error);
     return { message: "error", error: "Unable to create request" };
   }
 };
@@ -61,7 +61,7 @@ const getRequestById = async (requestId) => {
 
     return { message: "success", data: result[0] };
   } catch (error) {
-    console.error("Error in getRequestById:", error);
+    console.log("Error in getRequestById:", error);
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
@@ -83,7 +83,7 @@ const updateRequestById = async (requestId, updates) => {
 
     return { message: "success", data: "Request updated successfully" };
   } catch (error) {
-    console.error("Error in updateRequestById:", error);
+    console.log("Error in updateRequestById:", error);
     return { message: "error", error: "Unable to update request" };
   }
 };
@@ -101,7 +101,7 @@ const deleteRequest = async (requestId) => {
 
     return { message: "success", data: "Request deleted successfully" };
   } catch (error) {
-    console.error("Error in deleteRequest:", error);
+    console.log("Error in deleteRequest:", error);
     return { message: "error", error: "Unable to delete request" };
   }
 };
@@ -267,7 +267,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       ...message,
     };
   } catch (error) {
-    console.error("Error in verifyPassengerStatus:", error);
+    console.log("Error in verifyPassengerStatus:", error);
     return { message: "error", error: "Unable to verify passenger status" };
   }
 };

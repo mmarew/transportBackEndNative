@@ -109,7 +109,7 @@ const createAttachedDocuments = async (req, res) => {
       data: uploadResults, // Contains detailed info about each file (success or failure)
     });
   } catch (error) {
-    console.error("Error uploading documents:", error);
+    console.log("Error uploading documents:", error);
     return res
       .status(500)
       .json({ message: "Error uploading documents", error });
@@ -206,7 +206,7 @@ const updateAttachedDocument = async (req, res) => {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Error updating attached document:", error);
+    console.log("Error updating attached document:", error);
     return res
       .status(500)
       .json({ message: "Error updating attached document", error });

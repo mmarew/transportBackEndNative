@@ -71,7 +71,7 @@ const getAllDocumentTypes = async () => {
     const [documentTypes] = await pool.query({ sql });
     return { message: "success", data: documentTypes };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving document types",

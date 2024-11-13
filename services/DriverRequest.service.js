@@ -55,7 +55,7 @@ const createRequest = async (body, user) => {
       activeRequest,
     });
   } catch (error) {
-    console.error("Error in createDriverRequest:", error);
+    console.log("Error in createDriverRequest:", error);
     return { message: "error", error: "Unable to create request" };
   }
 };
@@ -73,7 +73,7 @@ const getDriverRequestById = async (requestId) => {
 
     return { message: "success", data: result[0] };
   } catch (error) {
-    console.error("Error in getDriverRequestById:", error);
+    console.log("Error in getDriverRequestById:", error);
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
@@ -434,7 +434,7 @@ const cancelDriverRequest = async (body) => {
       data: "You have successfully cancelled your request.",
     };
   } catch (error) {
-    console.error("Error cancelling driver request:", error);
+    console.log("Error cancelling driver request:", error);
     return { message: "error", error: "Unable to cancel driver request" };
   }
 };
@@ -512,7 +512,7 @@ const deleteDriverRequest = async (requestId) => {
 
     return { message: "success", data: "Request deleted successfully" };
   } catch (error) {
-    console.error("Error in deleteDriverRequest:", error);
+    console.log("Error in deleteDriverRequest:", error);
     return { message: "error", error: "Unable to delete request" };
   }
 };
@@ -737,7 +737,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       ...responseMessage,
     };
   } catch (error) {
-    console.error("Error in verifyDriverStatus:", error);
+    console.log("Error in verifyDriverStatus:", error);
     return { message: "error", error: "Unable to verify driver status" };
   }
 };
@@ -749,7 +749,7 @@ const attachRequiredDocuments = async (body) => {
     });
     return result;
   } catch (error) {
-    console.error("Error in attachRequiredDocuments:", error);
+    console.log("Error in attachRequiredDocuments:", error);
     return { message: "error", error: "Unable to attach required documents" };
   }
 };

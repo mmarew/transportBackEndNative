@@ -30,7 +30,7 @@ let pool;
 try {
   pool = mysql.createPool(config);
 } catch (error) {
-  console.error("Error creating database connection pool:", error);
+  console.log("Error creating database connection pool:", error);
   throw error; // Re-throw the error to ensure the application fails fast
 }
 
@@ -40,7 +40,7 @@ async function getConnection() {
     const connection = await pool.getConnection();
     return connection;
   } catch (error) {
-    console.error("Error getting connection from the pool:", error);
+    console.log("Error getting connection from the pool:", error);
     throw error;
   }
 }

@@ -90,7 +90,7 @@ async function WSPusher(urlParams, WS) {
     };
     WS.send(JSON.stringify(message));
   } catch (error) {
-    console.error("Error in WSPusher:", error);
+    console.log("Error in WSPusher:", error);
     WS.send("An error occurred during the connection process");
   }
 }

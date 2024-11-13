@@ -34,7 +34,7 @@ const createStatus = async (body) => {
     }
     return { message: "error", data: "Status creation failed" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred during status creation",
@@ -52,7 +52,7 @@ const getStatus = async (id) => {
     }
     return { message: "error", data: "Status not found" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving the status",
@@ -72,7 +72,7 @@ const updateStatus = async (id, body) => {
     }
     return { message: "error", data: "Status update failed" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return { message: "error", data: "An error occurred during status update" };
   }
 };
@@ -87,7 +87,7 @@ const deleteStatus = async (id) => {
     }
     return { message: "error", data: "Status deletion failed" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred during status deletion",
@@ -105,7 +105,7 @@ const getAllStatuses = async () => {
     }
     return { message: "error", data: "No statuses found" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving the statuses",

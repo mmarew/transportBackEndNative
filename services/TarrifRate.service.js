@@ -34,8 +34,8 @@ exports.createTarrifRate = async (data) => {
       journeyTarrifRate,
       timingTarrifRate,
       tarifRateDescription,
-      createdBy,
-      createdAt
+      tarrifRateCreatedBy,
+      tarrifRateCreatedAt
     ) VALUES (?, ?, ?, ?, ?, ?, NOW())
   `;
   const user = data.user;

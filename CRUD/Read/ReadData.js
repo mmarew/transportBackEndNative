@@ -62,7 +62,7 @@ const getData = async ({
     const [result] = await pool.query(sqlQuery, values);
     return result; // Return the result set
   } catch (error) {
-    console.error("Error querying data:", error);
+    console.log("Error querying data:", error);
     throw error;
   }
 };
@@ -114,7 +114,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
     // Return the list of nearby drivers
     return drivers;
   } catch (error) {
-    console.error("Error finding nearby drivers:", error);
+    console.log("Error finding nearby drivers:", error);
     return { message: "error", error: "Unable to find nearby drivers." };
   }
 };
@@ -204,7 +204,7 @@ const performJoinSelect = async ({
     const [result] = await pool.query(sqlQuery, values);
     return result; // Return the result set
   } catch (error) {
-    console.error("Error querying data:", error);
+    console.log("Error querying data:", error);
     throw error;
   }
 };
@@ -249,7 +249,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
 
     return result; // Returns an array of active requests (if any)
   } catch (error) {
-    console.error("Error checking active driver request:", error);
+    console.log("Error checking active driver request:", error);
     throw error;
   }
 };

@@ -1,0 +1,38 @@
+[2024-11-13T09:07:07.930Z] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:07:07.947Z] Server started on port http://localhost:3000
+[2024-11-13T09:28:05.682Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:28:05.694Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:31:27.815Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:31:27.830Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:31:56.905Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:31:56.918Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:32:35.638Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:32:35.650Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:33:16.654Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:33:16.667Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:33:43.694Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:33:43.708Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:33:56.212Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:33:56.224Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:34:04.465Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:34:04.479Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:34:50.316Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:34:50.333Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:35:19.977Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:35:20.086Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:35:21.110Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:35:21.120Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:42:29.951Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:42:29.970Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T09:44:37.398Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T09:44:37.412Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T10:38:34.995Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T10:38:35.000Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T10:44:14.431Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T10:44:14.413Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T10:46:00.107Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T10:46:00.121Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T10:46:32.550Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T10:46:32.563Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T10:51:19.814Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T10:51:19.832Z] [LOG] Server started on port http://localhost:3000

@@ -19,7 +19,7 @@ exports.createJourney = async (req, res) => {
     );
     res.status(201).json(result);
   } catch (error) {
-    console.error("Error creating journey:", error);
+    console.log("Error creating journey:", error);
     res.status(500).json({ message: "Error creating journey", error });
   }
 };
@@ -30,7 +30,7 @@ exports.getAllJourneys = async (req, res) => {
     const result = await journeyService.getAllJourneys();
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching journeys:", error);
+    console.log("Error fetching journeys:", error);
     res.status(500).json({ message: "Error fetching journeys", error });
   }
 };
@@ -42,7 +42,7 @@ exports.getJourneyById = async (req, res) => {
     const result = await journeyService.getJourneyById(id);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching journey:", error);
+    console.log("Error fetching journey:", error);
     res.status(500).json({ message: "Error fetching journey", error });
   }
 };
@@ -60,7 +60,7 @@ exports.updateJourney = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error updating journey:", error);
+    console.log("Error updating journey:", error);
     res.status(500).json({ message: "Error updating journey", error });
   }
 };
@@ -72,7 +72,7 @@ exports.deleteJourney = async (req, res) => {
     const result = await journeyService.deleteJourney(id);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error deleting journey:", error);
+    console.log("Error deleting journey:", error);
     res.status(500).json({ message: "Error deleting journey", error });
   }
 };

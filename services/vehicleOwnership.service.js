@@ -28,7 +28,7 @@ const createVehicleOwnership = async (body) => {
     }
     return { message: "error", data: "Vehicle ownership creation failed" };
   } catch (error) {
-    console.error("Error creating vehicle ownership:", error);
+    console.log("Error creating vehicle ownership:", error);
     return {
       message: "error",
       data: "An error occurred during vehicle ownership creation",
@@ -42,7 +42,7 @@ const getVehicleOwnership = async (ownershipId) => {
     const [result] = await pool.query(sql, [ownershipId]);
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    console.error("Error fetching vehicle ownership:", error);
+    console.log("Error fetching vehicle ownership:", error);
     throw error;
   }
 };
@@ -71,7 +71,7 @@ const updateVehicleOwnership = async (ownershipId, body) => {
     }
     return { message: "error", data: "Vehicle ownership update failed" };
   } catch (error) {
-    console.error("Error updating vehicle ownership:", error);
+    console.log("Error updating vehicle ownership:", error);
     return {
       message: "error",
       data: "An error occurred during vehicle ownership update",
@@ -92,7 +92,7 @@ const deleteVehicleOwnership = async (ownershipId) => {
     }
     return { message: "error", data: "Vehicle ownership not found" };
   } catch (error) {
-    console.error("Error deleting vehicle ownership:", error);
+    console.log("Error deleting vehicle ownership:", error);
     return {
       message: "error",
       data: "An error occurred during vehicle ownership deletion",
@@ -106,7 +106,7 @@ const getAllVehicleOwnerships = async () => {
     const [result] = await pool.query(sql);
     return result;
   } catch (error) {
-    console.error("Error fetching vehicle ownerships:", error);
+    console.log("Error fetching vehicle ownerships:", error);
     throw error;
   }
 };

@@ -4,23 +4,26 @@ const createJWT = require("../Utils/createJWT");
 const bcrypt = require("bcrypt");
 const verifyPassword = require("../Utils/VerifyPassword");
 // Create a new SMS sender
+// service createSMSSenderconst bcrypt = require('bcrypt');
 const createSMSSender = async ({ phoneNumber, password }) => {
-  const existedData = await getData({
-    conditions: { phoneNumber },
-
-    tableName: "SMSSender",
-  });
-  console.log("existedData =========> ", existedData);
-  if (existedData.length > 0) {
-    let hashedPassword = existedData[0].password;
-    const { message, data } = await verifyPassword({
-      hashedPassword,
-      notHashedPassword: password,
+  try {
+    // Check if phone number already exists
+    const existingUser = await getData({
+      conditions: { phoneNumber },
+      tableName: "SMSSender",
     });
-    console.log("message", message, "data", data);
-    if (data && message === "success") {
-      {
-        const createdToken = createJWT({
+
+    if (existingUser.length > 0) {
+      // If user exists, verify the password
+      const hashedPassword = existingUser[0].password;
+      const { message, data: isPasswordValid } = await verifyPassword({
+        hashedPassword,
+        notHashedPassword: password,
+      });
+
+      if (isPasswordValid && message === "success") {
+        // If password is valid, generate a JWT
+        const token = createJWT({
           phoneNumber,
           type: "SMSSender",
           userUniqueId: "SMSSender userUniqueId",
@@ -30,38 +33,51 @@ const createSMSSender = async ({ phoneNumber, password }) => {
         });
 
         return {
-          token: createdToken.token,
+          token: token.token,
           message: "success",
           data: "This phone number is already registered",
         };
+      } else {
+        return {
+          message: "error",
+          data: "Invalid password",
+          error: "Invalid password",
+        };
       }
-    } else {
-      return {
-        message: "error",
-        data: "Invalid password",
-        error: "Invalid password",
-      };
     }
-  }
 
-  // create hashed password
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const sql = `INSERT INTO SMSSender (phoneNumber, password) VALUES (?, ?)`;
-  const [result] = await pool.query(sql, [phoneNumber, hashedPassword]);
-  const token = createJWT({
-    phoneNumber,
-    type: "SMSSender",
-    type: "SMSSender",
-    userUniqueId: "SMSSender userUniqueId",
-    fullName: "SMSSender fullName",
-    email: "SMSSender email",
-    roleId: "SMSSender roleId",
-  });
-  return {
-    message: "success",
-    data: "OTP sender registered successfully.",
-    token,
-  };
+    // If user does not exist, hash the password and create a new record
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const sql = `INSERT INTO SMSSender (phoneNumber, password) VALUES (?, ?)`;
+    const [result] = await pool.query(sql, [phoneNumber, hashedPassword]);
+
+    if (result.affectedRows === 0) {
+      throw new Error("Failed to create SMSSender record");
+    }
+
+    // Generate a token for the new user
+    const token = createJWT({
+      phoneNumber,
+      type: "SMSSender",
+      userUniqueId: "SMSSender userUniqueId",
+      fullName: "SMSSender fullName",
+      email: "SMSSender email",
+      roleId: "SMSSender roleId",
+    });
+
+    return {
+      message: "success",
+      data: "OTP sender registered successfully.",
+      token: token.token,
+    };
+  } catch (error) {
+    console.error(
+      "Error in createSMSSender service:",
+      error.message || error,
+      error.stack
+    );
+    throw error; // Rethrow the error to be caught by the controller
+  }
 };
 
 // Get all SMS senders

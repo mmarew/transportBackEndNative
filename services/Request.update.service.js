@@ -247,7 +247,7 @@ const startJourney = async (req) => {
       },
     };
   } catch (error) {
-    console.error("Error starting journey:", error);
+    console.log("Error starting journey:", error);
     return { message: "error", error: "Failed to start journey" };
   }
 };
@@ -365,7 +365,7 @@ const journeyCompleted = async (req) => {
       },
     };
   } catch (error) {
-    console.error("Error completing journey:", error);
+    console.log("Error completing journey:", error);
     return { message: "error", error: "Failed to complete journey" };
   }
 };

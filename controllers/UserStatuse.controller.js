@@ -6,7 +6,7 @@ const createUserStatus = async (req, res) => {
     const result = await userStatusesService.createUserStatus(req.body);
     ServerResponder(res, result, 201); // Respond with 201 Created
   } catch (error) {
-    console.error("Error in createUserStatusController:", error);
+    console.log("Error in createUserStatusController:", error);
     ServerResponder(
       res,
       { message: "error", error: "UserStatus creation failed" },
@@ -20,7 +20,7 @@ const getUserStatusById = async (req, res) => {
     const result = await userStatusesService.getUserStatusById(req.params.id);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in getUserStatusByIdController:", error);
+    console.log("Error in getUserStatusByIdController:", error);
     ServerResponder(
       res,
       { message: "error", error: "Unable to retrieve UserStatus" },
@@ -37,7 +37,7 @@ const updateUserStatus = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in updateUserStatusController:", error);
+    console.log("Error in updateUserStatusController:", error);
     ServerResponder(
       res,
       { message: "error", error: "Unable to update UserStatus" },
@@ -51,7 +51,7 @@ const deleteUserStatus = async (req, res) => {
     const result = await userStatusesService.deleteUserStatus(req.params.id);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in deleteUserStatusController:", error);
+    console.log("Error in deleteUserStatusController:", error);
     ServerResponder(
       res,
       { message: "error", error: "Unable to delete UserStatus" },
