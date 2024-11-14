@@ -93,10 +93,13 @@ const verifyUsersVehicle = async (req, res) => {
 
     const response = await services.verifyUsersVehicle(req.body);
     if (response) {
-return ServerResponder(res, response)    }
-ServerResponder(res, { message: "error", error: "Vehicle not found" } )  } catch (error) {
+      return ServerResponder(res, response);
+    }
+    ServerResponder(res, { message: "error", error: "Vehicle not found" });
+  } catch (error) {
     console.log("Error fetching vehicle:", error);
-ServerResponder(res, { message: "error", error: "Error fetching vehicle" })  }
+    ServerResponder(res, { message: "error", error: "Error fetching vehicle" });
+  }
 };
 module.exports = {
   verifyUsersVehicle,
