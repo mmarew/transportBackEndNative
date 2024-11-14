@@ -13,7 +13,10 @@ const createAttachedDocuments = async (req, res) => {
     const createdByUserId = userUniqueId;
 
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
+      return ServerResponder(res, {
+        message: error,
+        error: "No files uploaded",
+      });
     }
 
     const uploadResults = []; // To track success or failure of each file upload
@@ -104,15 +107,16 @@ const createAttachedDocuments = async (req, res) => {
       sendNotificationToAdmin({ message });
     }
     // Return the detailed upload results for each file
-    return res.status(200).json({
-      message: "Upload completed",
-      data: uploadResults, // Contains detailed info about each file (success or failure)
+    ServerResponder(res, {
+      message: "success",
+      data: "documents uploaded successfully",
     });
   } catch (error) {
     console.log("Error uploading documents:", error);
-    return res
-      .status(500)
-      .json({ message: "Error uploading documents", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to upload documents",
+    });
   }
 };
 
@@ -124,11 +128,13 @@ const getAttachedDocumentsByUser = async (req, res) => {
     const result = await attachedDocumentsService.getAttachedDocumentsByUser(
       ownerUserUniqueId
     );
-    return res.status(200).json(result);
+    return ServerResponder(res, result);
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Error fetching attached documents", error });
+    console.log(" error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
   }
 };
 
@@ -138,14 +144,12 @@ const getAttachedDocumentByUniqueId = async (req, res) => {
     const result = await attachedDocumentsService.getAttachedDocumentByUniqueId(
       attachedDocumentUniqueId
     );
-    if (!result) {
-      return res.status(404).json({ message: "Attached document not found" });
-    }
-    return res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Error fetching attached document", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
   }
 };
 
@@ -168,7 +172,10 @@ const updateAttachedDocument = async (req, res) => {
     });
 
     if (getDocument.length === 0) {
-      return res.status(404).json({ message: "Attached document not found" });
+      ServerResponder(res, {
+        message: "error",
+        error: "Attached document not found",
+      });
     }
 
     // Destructure the values from the existing document to compare with new data
@@ -204,12 +211,13 @@ const updateAttachedDocument = async (req, res) => {
       }
     );
 
-    return res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error updating attached document:", error);
-    return res
-      .status(500)
-      .json({ message: "Error updating attached document", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to update attached document",
+    });
   }
 };
 
@@ -220,17 +228,12 @@ const deleteAttachedDocument = async (req, res) => {
     const result = await attachedDocumentsService.deleteAttachedDocument(
       attachedDocumentUniqueId
     );
-    if (!result) {
-      return res.status(404).json({ message: "Attached document not found" });
-    }
-    return res
-      .status(200)
-      .json({ message: "Attached document deleted successfully" });
+    ServerResponder(res, result);
   } catch (error) {
-    console.log("@deleteAttachedDocument error", error);
-    return res
-      .status(500)
-      .json({ message: "Error deleting attached document", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to delete attached document",
+    });
   }
 };
 

@@ -39,9 +39,6 @@ function loggingMiddleware(req, res, next) {
     // Also print to the original console function (log or error)
     originalFunction(...args);
   }
-
-  // Proceed to the next middleware
-  //   next();
 }
 
 module.exports = loggingMiddleware;

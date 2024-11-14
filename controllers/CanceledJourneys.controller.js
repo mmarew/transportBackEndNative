@@ -3,6 +3,7 @@ const { pool } = require("../Middleware/Database.config");
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const { cancelPassengerRequest } = require("../Services/Passenger.service");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
+const ServerResponder = require("../Utils/ServerResponder");
 const serverResponder = require("../Utils/ServerResponder");
 // Function to create a canceled journey by the system
 const canceledJourneyBySystem = async (
@@ -130,7 +131,7 @@ const getCanceledJourneysFiltered = async (req, res) => {
       startDate,
       endDate,
     });
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching filtered canceled journeys:", error);
     res

@@ -1,4 +1,5 @@
 const tarrifRateService = require("../Services/TarrifRate.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new tariff rate
 exports.createTarrifRate = async (req, res) => {
@@ -6,12 +7,13 @@ exports.createTarrifRate = async (req, res) => {
     const user = req.user;
     req.body.user = user;
     const result = await tarrifRateService.createTarrifRate(req.body);
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("@createTarrifRate error", error);
-    res
-      .status(500)
-      .json({ message: "error", error: "Failed to create tariff rate" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create tariff rate",
+    });
   }
 };
 
@@ -19,7 +21,7 @@ exports.createTarrifRate = async (req, res) => {
 exports.getAllTarrifRates = async (req, res) => {
   try {
     const result = await tarrifRateService.getAllTarrifRates();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     res
       .status(500)
