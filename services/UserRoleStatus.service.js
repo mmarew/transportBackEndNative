@@ -142,7 +142,7 @@ const updateUserRoleStatus = async (updateDataValues) => {
       newUserRoleStatus,
     });
   } catch (error) {
-    console.error("Error in updateUserRoleStatus:", error);
+    console.log("Error in updateUserRoleStatus:", error);
     return {
       message: "error",
       error: "An error occurred while updating UserRoleStatus",
@@ -201,7 +201,7 @@ const handleUpdateResponces = async ({ roleId, statusId, phoneNumber }) => {
     });
     return { message: "success", userData: userData };
   } catch (error) {
-    console.error("Error in handleUpdateResponces:", error);
+    console.log("Error in handleUpdateResponces:", error);
     return {
       message: "error",
       error: "An error occurred while handling responses",

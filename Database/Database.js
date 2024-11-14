@@ -1,6 +1,7 @@
 const sqlQuery = `
 
 -- Create the Roles Table
+
 CREATE TABLE IF NOT EXISTS Roles (
     roleId INT AUTO_INCREMENT PRIMARY KEY,
     roleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the role
@@ -15,7 +16,7 @@ CREATE TABLE IF NOT EXISTS Roles (
 
 -- Create the vehicleTypes table
 
-   CREATE TABLE IF NOT EXISTS vehicleTypes (
+   CREATE TABLE IF NOT EXISTS VehicleTypes (
     vehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle type
     vehicleTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the vehicle type
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS Roles (
 ) ; 
 
  -- Create the JourneyStatus table
+
 CREATE TABLE IF NOT EXISTS JourneyStatus (
     journeyStatusId INT AUTO_INCREMENT PRIMARY KEY,
     journeyStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey status
@@ -40,7 +42,8 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
     journeyStatusDeletedAt DATETIME NULL  -- When the journey status was deleted
 ) ;
 
--- Create the Users Table 
+-- Create the Users Table
+
 CREATE TABLE IF NOT EXISTS Users (
     userId INT AUTO_INCREMENT PRIMARY KEY,
     userUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the user
@@ -52,6 +55,7 @@ CREATE TABLE IF NOT EXISTS Users (
 ) ;
 
  -- Create the UsersHistory Table
+
 CREATE TABLE IF NOT EXISTS UsersHistory (
     userHistoryId INT AUTO_INCREMENT PRIMARY KEY,
     userUniqueId VARCHAR(36) NOT NULL,  -- UUID of the user, foreign key to Users table
@@ -65,6 +69,7 @@ CREATE TABLE IF NOT EXISTS UsersHistory (
 ) ;
 
 -- Create the UsersCredential Table
+
 CREATE TABLE IF NOT EXISTS usersCredential (
     credentialId INT AUTO_INCREMENT PRIMARY KEY,
     credentialUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for credentials
@@ -77,6 +82,7 @@ CREATE TABLE IF NOT EXISTS usersCredential (
 ) ;
 
 -- Create the UserRole Table
+
 CREATE TABLE IF NOT EXISTS UserRole (
     userRoleId INT AUTO_INCREMENT PRIMARY KEY,
     userRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role link
@@ -92,6 +98,7 @@ CREATE TABLE IF NOT EXISTS UserRole (
 ) ; 
 
 -- Create the Statuses Table
+
 CREATE TABLE IF NOT EXISTS Statuses (
     statusId INT AUTO_INCREMENT PRIMARY KEY,
     statusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the status
@@ -107,6 +114,7 @@ CREATE TABLE IF NOT EXISTS Statuses (
 ) ;
 
 -- Table to hold the current status of each user-role combination
+
 CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
     userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link
@@ -118,6 +126,7 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
 ) ;
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
+
 CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
     userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
     userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link (copied from current table)
@@ -135,6 +144,7 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
 ) ;
 
 -- Create the DocumentTypes Table
+
 CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
     documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
@@ -177,9 +187,9 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
     roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
     roleDocumentRequirementDeletedBy VARCHAR(36) NULL,  -- Who deleted the requirement
-    createdAt DATETIME NOT NULL,  -- When the requirement was created
-    updatedAt DATETIME NULL,  -- When the requirement was updated
-    deletedAt DATETIME NULL,  -- When the requirement was deleted
+    roleDocumentRequirementCreatedAt DATETIME NOT NULL,  -- When the requirement was created
+    roleDocumentRequirementUpdatedAt DATETIME NULL,  -- When the requirement was updated
+    roleDocumentRequirementDeletedAt DATETIME NULL,  -- When the requirement was deleted
     FOREIGN KEY (roleDocumentRequirementCreatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementDeletedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
@@ -189,6 +199,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
 ) ; 
 
 -- Create the AttachedDocuments Table (Active Documents Only)
+
 CREATE TABLE IF NOT EXISTS AttachedDocuments (
     attachedDocumentId INT AUTO_INCREMENT PRIMARY KEY,
     attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
@@ -210,6 +221,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
 ) ; 
 -- Create the AttachedDocumentsHistory Table (for Historical Records)
+
 CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     attachedDocumentHistoryId INT AUTO_INCREMENT PRIMARY KEY,
     attachedDocumentId INT NOT NULL,  -- Reference to the original AttachedDocuments
@@ -239,6 +251,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
 
  
 -- Create the PassengerRequest table
+
 CREATE TABLE IF NOT EXISTS PassengerRequest (
     passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
     passengerRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the passenger request
@@ -251,13 +264,15 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     destinationLongitude DECIMAL(11, 8) NULL DEFAULT 0.0,  -- Longitude of destination
     destinationPlace VARCHAR(255) NULL DEFAULT 0.0,  -- Destination place
     requestTime TIMESTAMP NOT NULL,  -- Time of the request
-    journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
+    journeyStatusId INT NOT NULL
+     ,  -- Foreign key to JourneyStatus
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
 
 -- Create the DriverRequest table
+
 CREATE TABLE IF NOT EXISTS DriverRequest (
     driverRequestId INT AUTO_INCREMENT PRIMARY KEY,
     driverRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the driver request
@@ -272,6 +287,7 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
 ) ;
 
 -- Create the JourneyDecisions table
+
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey decision
@@ -286,6 +302,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
 ) ;
 
 -- Create the Journey table
+
 CREATE TABLE IF NOT EXISTS Journey (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the journey
@@ -298,6 +315,7 @@ CREATE TABLE IF NOT EXISTS Journey (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
 -- Create the JourneyRoutePoints table
+
 CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     pointId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId varchar(36) NOT NULL,  -- Foreign key to the Journey table
@@ -309,6 +327,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
 
 
 -- Create the Vehicle table
+
     CREATE TABLE IF NOT EXISTS Vehicle (
     vehicleId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle
@@ -324,6 +343,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
 ) ; 
 
 -- Create the VehicleStatusType table
+
 CREATE TABLE IF NOT EXISTS VehicleStatusType (
     statusTypeId INT AUTO_INCREMENT PRIMARY KEY,
     statusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
@@ -333,6 +353,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatusType (
 ) ;
 
 -- Create the VehicleStatus table
+
 CREATE TABLE IF NOT EXISTS VehicleStatus (
     vehicleStatusId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle status
@@ -345,6 +366,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatus (
 ) ;
 
 -- Create the VehicleOwnership table
+
 CREATE TABLE IF NOT EXISTS VehicleOwnership (
     ownershipId INT AUTO_INCREMENT PRIMARY KEY,
     ownershipUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for ownership
@@ -359,6 +381,7 @@ CREATE TABLE IF NOT EXISTS VehicleOwnership (
 ) ;
 
 -- Create the Ratings table
+
 CREATE TABLE IF NOT EXISTS Ratings (
     ratingId INT AUTO_INCREMENT PRIMARY KEY,
     journeyId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
@@ -370,6 +393,7 @@ CREATE TABLE IF NOT EXISTS Ratings (
 ) ;
 
 -- Create the SMSSender table
+
 CREATE TABLE IF NOT EXISTS SMSSender (
     SMSSenderId INT AUTO_INCREMENT PRIMARY KEY, 
     phoneNumber VARCHAR(50) NOT NULL,  -- Phone number of SMS sender
@@ -377,6 +401,7 @@ CREATE TABLE IF NOT EXISTS SMSSender (
 ) ;
 
  -- Create the CancellationReasonsType table
+
 CREATE TABLE IF NOT EXISTS CancellationReasonsType (
     cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
     cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
@@ -386,6 +411,7 @@ CREATE TABLE IF NOT EXISTS CancellationReasonsType (
 ) ;
  
 -- Create the PaymentMethod table
+
 CREATE TABLE IF NOT EXISTS PaymentMethod (
     paymentMethodId INT AUTO_INCREMENT PRIMARY KEY,
     paymentMethodUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment method
@@ -394,6 +420,7 @@ CREATE TABLE IF NOT EXISTS PaymentMethod (
 ) ;  
 
  -- Create the PaymentStatus table
+
 CREATE TABLE IF NOT EXISTS PaymentStatus (
     paymentStatusId INT AUTO_INCREMENT PRIMARY KEY,
     paymentStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment status
@@ -404,6 +431,7 @@ CREATE TABLE IF NOT EXISTS PaymentStatus (
 
 
 -- Create the Payments table
+
 CREATE TABLE IF NOT EXISTS Payments (
     paymentId INT AUTO_INCREMENT PRIMARY KEY,
     paymentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment
@@ -433,6 +461,7 @@ CREATE TABLE IF NOT EXISTS Payments (
     FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)
 ); 
 -- tarrif rate table
+
     CREATE TABLE IF NOT EXISTS TarrifRate (
     tarrifRateId INT AUTO_INCREMENT PRIMARY KEY,
     tarrifRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
@@ -458,6 +487,7 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     FOREIGN KEY (tarrifRateUniqueId) REFERENCES TarrifRate(tarrifRateUniqueId)
 ) ;
  -- Create the CommissionRates table
+
  CREATE TABLE IF NOT EXISTS CommissionRates (
     commissionRateId INT AUTO_INCREMENT PRIMARY KEY,
     commissionRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for commission
@@ -497,7 +527,9 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
      depositTime DATETIME NOT NULL,  -- Time of deposit
      FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
 );
+
 -- a table to store drivers balance after payment or deposit
+
 CREATE TABLE IF NOT EXISTS DriverBalance (
     driverBalanceId INT AUTO_INCREMENT PRIMARY KEY,
     driverBalanceUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver balance

@@ -53,7 +53,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
   if (userRoleStatus.length === 0) {
     return res.status(500).json({
       message: "error",
-      error: "User role status not found",
+      error: "Admin's user role status not found",
       status: null,
     });
   }
@@ -200,7 +200,7 @@ const verifyPassengersIdentity = async (req, res, next) => {
   if (userRoleStatus.length === 0) {
     return res.status(500).json({
       message: "error",
-      error: "User role status not found",
+      error: "User passenger role status not found",
       status: null,
     });
   }

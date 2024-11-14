@@ -12,7 +12,7 @@ exports.createRating = async (req, res) => {
     );
     res.status(201).json(result);
   } catch (error) {
-    console.error("Error creating rating:", error);
+    console.log("Error creating rating:", error);
     res.status(500).json({ message: "Error creating rating", error });
   }
 };
@@ -23,7 +23,7 @@ exports.getAllRatings = async (req, res) => {
     const result = await ratingsService.getAllRatings();
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching ratings:", error);
+    console.log("Error fetching ratings:", error);
     res.status(500).json({ message: "Error fetching ratings", error });
   }
 };
@@ -35,7 +35,7 @@ exports.getRatingById = async (req, res) => {
     const result = await ratingsService.getRatingById(id);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching rating:", error);
+    console.log("Error fetching rating:", error);
     res.status(500).json({ message: "Error fetching rating", error });
   }
 };
@@ -48,7 +48,7 @@ exports.updateRating = async (req, res) => {
     const result = await ratingsService.updateRating(id, rating, comment);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error updating rating:", error);
+    console.log("Error updating rating:", error);
     res.status(500).json({ message: "Error updating rating", error });
   }
 };
@@ -60,7 +60,7 @@ exports.deleteRating = async (req, res) => {
     const result = await ratingsService.deleteRating(id);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error deleting rating:", error);
+    console.log("Error deleting rating:", error);
     res.status(500).json({ message: "Error deleting rating", error });
   }
 };

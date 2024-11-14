@@ -42,7 +42,7 @@
         });
 
         ws.addEventListener("error", (error) => {
-          console.error("WebSocket error:", error);
+          console.log("WebSocket error:", error);
           ws.close(); // Close the WebSocket connection and trigger reconnection
         });
       }
@@ -59,7 +59,7 @@
               console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
             },
             (error) => {
-              console.error(`Error Code = ${error.code} - ${error.message}`);
+              console.log(`Error Code = ${error.code} - ${error.message}`);
             }
           );
         } else {

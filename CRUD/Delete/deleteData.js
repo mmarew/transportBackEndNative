@@ -19,7 +19,7 @@ const deleteData = async ({ tableName, conditions, operator = "AND" }) => {
     const [result] = await pool.query(sqlQuery, values);
     return result; // Return the result object containing affectedRows, etc.
   } catch (error) {
-    console.error("Error deleting data:", error);
+    console.log("Error deleting data:", error);
     throw error;
   }
 };

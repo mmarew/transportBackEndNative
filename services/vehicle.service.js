@@ -95,7 +95,7 @@ const createVehicle = async (body) => {
 
     return { message: "error", data: "Vehicle creation failed" };
   } catch (error) {
-    console.error("Error creating vehicle:", error);
+    console.log("Error creating vehicle:", error);
     return {
       message: "error",
       data: "An error occurred during vehicle creation",
@@ -140,7 +140,7 @@ const getVehicle = async (vehicleUniqueId) => {
       ? result[0]
       : { message: "error", data: "Vehicle not found" };
   } catch (error) {
-    console.error("Error fetching vehicle:", error);
+    console.log("Error fetching vehicle:", error);
     return {
       message: "error",
       data: "An error occurred while fetching vehicle",
@@ -177,7 +177,7 @@ const updateVehicle = async (vehicleUniqueId, body) => {
       data: "Vehicle not found or no changes were made",
     };
   } catch (error) {
-    console.error("Error updating vehicle:", error);
+    console.log("Error updating vehicle:", error);
     return {
       message: "error",
       data: "An error occurred during vehicle update",
@@ -201,7 +201,7 @@ const deleteVehicle = async (vehicleUniqueId) => {
 
     return { message: "error", data: "Vehicle not found" };
   } catch (error) {
-    console.error("Error deleting vehicle:", error);
+    console.log("Error deleting vehicle:", error);
     return {
       message: "error",
       data: "An error occurred during vehicle deletion",
@@ -219,7 +219,7 @@ const getAllVehicles = async () => {
 
     return { message: "error", data: "No vehicles found" };
   } catch (error) {
-    console.error("Error fetching vehicles:", error);
+    console.log("Error fetching vehicles:", error);
     return {
       message: "error",
       data: "An error occurred while fetching vehicles",

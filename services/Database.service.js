@@ -40,7 +40,7 @@ const createTable = async () => {
       data: `Tables created successfully`,
     };
   } catch (error) {
-    console.error("Error creating table:", error);
+    console.log("Error creating table:", error);
     return { message: "error", error: "Failed to create table" };
   }
 };
@@ -52,7 +52,7 @@ const getAllTables = async () => {
     const [tables] = await pool.query(sqlQuery);
     return { message: "success", data: tables, numberOfTables: tables.length };
   } catch (error) {
-    console.error("Error fetching tables:", error);
+    console.log("Error fetching tables:", error);
     return { message: "error", error: "Failed to retrieve tables" };
   }
 };
@@ -94,7 +94,7 @@ const dropTable = async (tableName) => {
       data: `Table ${tableName} dropped successfully`,
     };
   } catch (error) {
-    console.error(`Error dropping table ${tableName}:`, error);
+    console.log(`Error dropping table ${tableName}:`, error);
     return { message: "error", error: `Failed to drop table ${tableName}` };
   } finally {
     // Re-enable foreign key checks
@@ -133,7 +133,7 @@ const dropAllTables = async () => {
           if (error.code === "ER_ROW_IS_REFERENCED_2") {
             remainingTables.push(tableName); // Re-try tables with foreign key constraints
           } else {
-            console.error(`Error dropping table ${tableName}:`, error);
+            console.log(`Error dropping table ${tableName}:`, error);
           }
         }
       }
@@ -143,7 +143,7 @@ const dropAllTables = async () => {
 
       // If there are still tables left after max retries, log an error
       if (attempt === maxRetries && remainingTables.length > 0) {
-        console.error(
+        console.log(
           `Unable to drop tables after ${maxRetries} attempts:`,
           remainingTables
         );
@@ -157,7 +157,7 @@ const dropAllTables = async () => {
 
     return { message: "success", data: "All tables dropped successfully" };
   } catch (error) {
-    console.error("Error dropping all tables:", error);
+    console.log("Error dropping all tables:", error);
     return {
       message: "error",
       data: "Failed to drop all tables, please try again.",
@@ -180,7 +180,7 @@ const updateTable = async (tableName, updateData) => {
       data: `Table ${tableName} updated successfully`,
     };
   } catch (error) {
-    console.error(`Error updating table ${tableName}:`, error);
+    console.log(`Error updating table ${tableName}:`, error);
     return { message: "error", error: `Failed to update table ${tableName}` };
   }
 };
@@ -199,7 +199,7 @@ const changeColumnProperty = async (
       data: `Column ${oldColumnName} changed to ${newColumnName} with type ${newColumnType}`,
     };
   } catch (error) {
-    console.error(`Error altering column in table ${tableName}:`, error);
+    console.log(`Error altering column in table ${tableName}:`, error);
     return {
       message: "error",
       error: `Failed to change column in table ${tableName}`,
@@ -218,7 +218,7 @@ const dropColumn = async (tableName, columnName) => {
       data: `Column ${columnName} dropped from table ${tableName}`,
     };
   } catch (error) {
-    console.error(
+    console.log(
       `Error dropping column ${columnName} from table ${tableName}:`,
       error
     );
@@ -234,7 +234,7 @@ const getTableColumns = async (tableName) => {
     const [columns] = await pool.query(sqlQuery);
     return { message: "success", data: columns };
   } catch (error) {
-    console.error(`Error fetching columns for table ${tableName}:`, error);
+    console.log(`Error fetching columns for table ${tableName}:`, error);
     return {
       message: "error",
       error: `Failed to fetch columns for table ${tableName}`,
@@ -244,6 +244,7 @@ const getTableColumns = async (tableName) => {
 const installPreDefinedData = async (req, res) => {
   try {
     const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
 
     // Helper function to insert data sequentially
     const processDataSequentially = async (
@@ -255,7 +256,7 @@ const installPreDefinedData = async (req, res) => {
     ) => {
       for (const item of list) {
         try {
-          const result = await createFunction({ ...item, user });
+          const result = await createFunction({ ...item, user, userUniqueId });
           if (result.message === "success") {
             successArray.push({ label, item });
           } else {
@@ -266,7 +267,7 @@ const installPreDefinedData = async (req, res) => {
             });
           }
         } catch (error) {
-          console.error(`Error inserting ${label}:`, item, error);
+          console.log(`Error inserting ${label}:`, item, error);
           errorArray.push({
             label,
             item,
@@ -447,7 +448,7 @@ const installPreDefinedData = async (req, res) => {
       },
     };
   } catch (error) {
-    console.error("Error installing predefined data:", error);
+    console.log("Error installing predefined data:", error);
     return {
       message: "error",
       error: "Failed to install predefined data",

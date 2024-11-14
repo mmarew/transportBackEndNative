@@ -7,7 +7,7 @@ const createJourneyStatus = async (req, res) => {
     const result = await journeyStatusService.createJourneyStatus(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error creating journey status:", error);
+    console.log("Error creating journey status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create journey status",
@@ -21,7 +21,7 @@ const getAllJourneyStatuses = async (req, res) => {
     const result = await journeyStatusService.getAllJourneyStatuses();
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error fetching journey statuses:", error);
+    console.log("Error fetching journey statuses:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch journey statuses",
@@ -38,7 +38,7 @@ const getJourneyStatusById = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error fetching journey status by ID:", error);
+    console.log("Error fetching journey status by ID:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch journey status by ID",
@@ -56,7 +56,7 @@ const updateJourneyStatus = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error updating journey status:", error);
+    console.log("Error updating journey status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to update journey status",
@@ -73,7 +73,7 @@ const deleteJourneyStatus = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error deleting journey status:", error);
+    console.log("Error deleting journey status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to delete journey status",

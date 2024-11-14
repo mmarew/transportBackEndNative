@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
+
 const { pool } = require("../Middleware/Database.config");
 const { getData } = require("../CRUD/Read/ReadData");
 
@@ -34,8 +35,8 @@ exports.createTarrifRate = async (data) => {
       journeyTarrifRate,
       timingTarrifRate,
       tarifRateDescription,
-      createdBy,
-      createdAt
+      tarrifRateCreatedBy,
+      tarrifRateCreatedAt
     ) VALUES (?, ?, ?, ?, ?, ?, NOW())
   `;
   const user = data.user;

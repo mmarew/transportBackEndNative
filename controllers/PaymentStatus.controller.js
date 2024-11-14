@@ -1,4 +1,4 @@
-const paymentStatusService = require("../Services/paymentStatus.service");
+const paymentStatusService = require("../Services/PaymentStatus.service");
 const ServerResponder = require("../Utils/ServerResponder");
 // Create a new payment status
 exports.createPaymentStatus = async (req, res) => {
@@ -9,7 +9,7 @@ exports.createPaymentStatus = async (req, res) => {
     });
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error creating payment status:", error);
+    console.log("Error creating payment status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Error creating payment status",
@@ -23,7 +23,7 @@ exports.getAllPaymentStatuses = async (req, res) => {
     const result = await paymentStatusService.getAllPaymentStatuses();
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error fetching payment statuses:", error);
+    console.log("Error fetching payment statuses:", error);
     ServerResponder(res, {
       message: "error",
       error: "Error fetching payment statuses",
@@ -40,7 +40,7 @@ exports.getPaymentStatusById = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error fetching payment status:", error);
+    console.log("Error fetching payment status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Error fetching payment status",
@@ -59,7 +59,7 @@ exports.updatePaymentStatus = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error updating payment status:", error);
+    console.log("Error updating payment status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Error updating payment status",
@@ -74,7 +74,7 @@ exports.deletePaymentStatus = async (req, res) => {
     const result = await paymentStatusService.deletePaymentStatus(id);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error deleting payment status:", error);
+    console.log("Error deleting payment status:", error);
     ServerResponder(res, {
       message: "error",
       error: "Error deleting payment status",

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../Controllers/vehicleOwnership.controller");
+const controller = require("../Controllers/VehicleOwnership.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 router.post(

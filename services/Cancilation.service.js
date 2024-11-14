@@ -41,7 +41,7 @@ const addCancellationReason = async (body) => {
       };
     }
   } catch (error) {
-    console.error("Error adding cancellation reason:", error);
+    console.log("Error adding cancellation reason:", error);
     return {
       message: "error",
       data: "Cancellation reason registration failed",

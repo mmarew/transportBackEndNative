@@ -76,7 +76,7 @@ exports.updateVehicleType = async (req, res) => {
 
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error in updateVehicleType controller:", error);
+    console.log("Error in updateVehicleType controller:", error);
     ServerResponder(res, {
       message: "error",
       error: "Unable to update vehicle type",

@@ -41,7 +41,7 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
             };
           }
         } catch (error) {
-          console.error("Error sending message to driver:", error);
+          console.log("Error sending message to driver:", error);
           return { message: "error", data: "Failed to send message to driver" };
         }
       }
@@ -82,7 +82,7 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
                 };
               }
             } catch (error) {
-              console.error("Error sending message to passenger:", error);
+              console.log("Error sending message to passenger:", error);
               return {
                 message: "error",
                 data: "Failed to send message to passenger",
@@ -128,7 +128,7 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
               };
             }
           } catch (error) {
-            console.error("Error sending message to admin:", error);
+            console.log("Error sending message to admin:", error);
             return {
               message: "error",
               error: "An error occurred while sending a message to admin",
@@ -146,7 +146,7 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
       data: "Message to admin sent successfully",
     };
   } catch (error) {
-    console.error("Error in sendNotificationToAdmin:", error);
+    console.log("Error in sendNotificationToAdmin:", error);
     return { message: "error", error: "Message can't be sent to admin" };
   }
 };

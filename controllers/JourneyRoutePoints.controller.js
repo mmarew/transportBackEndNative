@@ -12,7 +12,7 @@ exports.createJourneyRoutePoint = async (req, res) => {
     });
     res.status(201).json(result);
   } catch (error) {
-    console.error("Error creating journey route point:", error);
+    console.log("Error creating journey route point:", error);
     res
       .status(500)
       .json({ message: "Error creating journey route point", error });
@@ -28,7 +28,7 @@ exports.getJourneyRoutePoints = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching journey route points:", error);
+    console.log("Error fetching journey route points:", error);
     res
       .status(500)
       .json({ message: "Error fetching journey route points", error });
@@ -47,7 +47,7 @@ exports.updateJourneyRoutePoint = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error updating journey route point:", error);
+    console.log("Error updating journey route point:", error);
     res
       .status(500)
       .json({ message: "Error updating journey route point", error });
@@ -63,7 +63,7 @@ exports.deleteJourneyRoutePoint = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error deleting journey route point:", error);
+    console.log("Error deleting journey route point:", error);
     res
       .status(500)
       .json({ message: "Error deleting journey route point", error });

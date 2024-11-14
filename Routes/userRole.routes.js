@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const userRoleController = require("../Controllers/userRole.controller");
+const userRoleController = require("../Controllers/UserRole.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Routes for CRUD operations

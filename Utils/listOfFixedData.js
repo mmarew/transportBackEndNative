@@ -482,40 +482,49 @@ const journeyStatus = [
   },
 ];
 const cancellationReasons = [
-  { reason: "Driver too late", cancellationByRoleId: 1 },
-  { reason: "Change of plans", cancellationByRoleId: 1 },
-  { reason: "Driver took too long", cancellationByRoleId: 1 },
-  { reason: "Found another ride", cancellationByRoleId: 1 },
-  { reason: "Wrong vehicle description", cancellationByRoleId: 1 },
+  { cancellationReason: "Driver too late", roleId: 1 },
+  { cancellationReason: "Change of plans", roleId: 1 },
+  { cancellationReason: "Driver took too long", roleId: 1 },
+  { cancellationReason: "Found another ride", roleId: 1 },
+  { cancellationReason: "Wrong vehicle description", roleId: 1 },
   {
-    reason: "Driver did not meet my location",
-    cancellationByRoleId: 1,
+    cancellationReason: "Driver did not meet my location",
+    roleId: 1,
   },
-  { reason: "Incorrect route", cancellationByRoleId: 1 },
+  { cancellationReason: "Incorrect route", roleId: 1 },
   {
-    reason: "Driver's vehicle didn't match description",
-    cancellationByRoleId: 1,
+    cancellationReason: "Driver's vehicle didn't match description",
+    roleId: 1,
   },
   {
-    reason: "Driver was rude or unprofessional",
-    cancellationByRoleId: 1,
+    cancellationReason: "Driver was rude or unprofessional",
+    roleId: 1,
   },
 
-  { reason: "Passenger didn’t show up", cancellationByRoleId: 2 },
-  { reason: "Passenger was unresponsive", cancellationByRoleId: 2 },
-  { reason: "Safety concerns", cancellationByRoleId: 2 },
-  { reason: "Incorrect pickup location", cancellationByRoleId: 2 },
-  { reason: "Passenger had too many people", cancellationByRoleId: 2 },
-  { reason: "Passenger was disrespectful", cancellationByRoleId: 2 },
+  { cancellationReason: "Passenger didn’t show up", roleId: 2 },
+  { cancellationReason: "Passenger was unresponsive", roleId: 2 },
+  { cancellationReason: "Safety concerns", roleId: 2 },
+  { cancellationReason: "Incorrect pickup location", roleId: 2 },
   {
-    reason: "Passenger requested an illegal or unsafe route",
-    cancellationByRoleId: 2,
+    cancellationReason: "Passenger had too many people",
+    roleId: 2,
   },
-  { reason: "Vehicle issue", cancellationByRoleId: 2 },
+  {
+    cancellationReason: "Passenger was disrespectful",
+    roleId: 2,
+  },
+  {
+    cancellationReason: "Passenger requested an illegal or unsafe route",
+    roleId: 2,
+  },
+  { cancellationReason: "Vehicle issue", roleId: 2 },
 
-  { reason: "App-related technical issue", cancellationByRoleId: 3 },
-  { reason: "Route unavailable", cancellationByRoleId: 3 },
-  { reason: "Driver no longer available", cancellationByRoleId: 3 },
+  {
+    cancellationReason: "App-related technical issue",
+    roleId: 3,
+  },
+  { cancellationReason: "Route unavailable", roleId: 3 },
+  { cancellationReason: "Driver no longer available", roleId: 3 },
 ];
 const paymentStatus = [
   {

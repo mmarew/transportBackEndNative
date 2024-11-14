@@ -2,6 +2,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { deleteFile } = require("../Utils/fileUtils");
+const { getData } = require("../CRUD/Read/ReadData");
 // Create a new vehicle type
 const createVehicleType = async (data, file) => {
   const vehicleTypeUniqueId = uuidv4();
@@ -13,7 +14,15 @@ const createVehicleType = async (data, file) => {
     carryingCapacity,
     vehicleTypeIconName,
   } = data;
-
+  // first verify existances of vehicleTypeName and vehicleTypeIconName
+  const existedData = await getData({
+    tableName: "VehicleTypes",
+    conditions: {
+      vehicleTypeName,
+    },
+  });
+  if (existedData.length > 0)
+    return { message: "error", error: "Vehicle type already exists" };
   const query = `
     INSERT INTO VehicleTypes (
       vehicleTypeUniqueId,
@@ -124,7 +133,7 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
     }
     return { message: "success", data: "Vehicle type updated successfully" };
   } catch (error) {
-    console.error("Error updating vehicle type:", error);
+    console.log("Error updating vehicle type:", error);
     return { message: "error", error: "Unable to update vehicle type" };
   }
 };

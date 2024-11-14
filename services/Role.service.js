@@ -30,7 +30,7 @@ const createRole = async (body) => {
     }
     return { message: "error", data: "Role creation failed" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred during role creation",
@@ -48,7 +48,7 @@ const getRole = async (id) => {
     }
     return { message: "error", data: "Role not found" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving the role",
@@ -68,7 +68,7 @@ const updateRole = async (id, body) => {
     }
     return { message: "error", data: "Role update failed" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return { message: "error", data: "An error occurred during role update" };
   }
 };
@@ -83,7 +83,7 @@ const deleteRole = async (id) => {
     }
     return { message: "error", data: "Role deletion failed" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return { message: "error", data: "An error occurred during role deletion" };
   }
 };
@@ -98,7 +98,7 @@ const getAllRoles = async () => {
     }
     return { message: "error", data: "No roles found" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving the roles",

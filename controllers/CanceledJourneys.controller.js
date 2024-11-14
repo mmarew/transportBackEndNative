@@ -3,6 +3,7 @@ const { pool } = require("../Middleware/Database.config");
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const { cancelPassengerRequest } = require("../Services/Passenger.service");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
+const ServerResponder = require("../Utils/ServerResponder");
 const serverResponder = require("../Utils/ServerResponder");
 // Function to create a canceled journey by the system
 const canceledJourneyBySystem = async (
@@ -15,12 +16,12 @@ const canceledJourneyBySystem = async (
       baseTable: "Users",
       joins: [
         {
-          table: "userRole",
-          on: "Users.userUniqueId = userRole.userUniqueId",
+          table: "UserRole",
+          on: "Users.userUniqueId = UserRole.userUniqueId",
         },
       ],
       conditions: {
-        "userRole.roleId": 5, // role id of system
+        "UserRole.roleId": 5, // role id of system
       },
     });
     if (!user) {
@@ -68,7 +69,7 @@ const canceledJourneyBySystem = async (
       }
     }
   } catch (error) {
-    console.error("Error creating canceled journey:", error);
+    console.log("Error creating canceled journey:", error);
     if (res) {
       serverResponder(res, {
         message: "error",
@@ -81,7 +82,7 @@ const canceledJourneyBySystem = async (
 // Schedule the canceledJourneyBySystem to run every 5 minutes (300000 ms)
 setInterval(() => {
   canceledJourneyBySystem();
-}, 3000); // 300,000 ms = 5 minutes
+}, 30000); // 300,000 ms = 5 minutes
 
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {
@@ -96,7 +97,7 @@ const createCanceledJourney = async (req, res) => {
     const result = await canceledJourneyService?.createCanceledJourney(data);
     serverResponder(res, result);
   } catch (error) {
-    console.error("Error creating canceled journey:", error);
+    console.log("Error creating canceled journey:", error);
     serverResponder(res, {
       message: "error",
       error: "Failed to create canceled",
@@ -116,7 +117,7 @@ const getCanceledJourneysByUserUniqueId = async (req, res) => {
       );
     serverResponder(res, result);
   } catch (error) {
-    console.error("Error fetching canceled journeys by user unique ID:", error);
+    console.log("Error fetching canceled journeys by user unique ID:", error);
     serverResponder;
   }
 };
@@ -130,9 +131,9 @@ const getCanceledJourneysFiltered = async (req, res) => {
       startDate,
       endDate,
     });
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    console.error("Error fetching filtered canceled journeys:", error);
+    console.log("Error fetching filtered canceled journeys:", error);
     res
       .status(500)
       .json({ message: "Failed to fetch canceled journeys", error });
@@ -148,7 +149,7 @@ const getCanceledJourneyById = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching canceled journey by ID:", error);
+    console.log("Error fetching canceled journey by ID:", error);
     res
       .status(500)
       .json({ message: "Failed to fetch canceled journey by ID", error });
@@ -166,7 +167,7 @@ const updateCanceledJourney = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error updating canceled journey:", error);
+    console.log("Error updating canceled journey:", error);
     res
       .status(500)
       .json({ message: "Failed to update canceled journey", error });
@@ -182,7 +183,7 @@ const deleteCanceledJourney = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error deleting canceled journey:", error);
+    console.log("Error deleting canceled journey:", error);
     res
       .status(500)
       .json({ message: "Failed to delete canceled journey", error });

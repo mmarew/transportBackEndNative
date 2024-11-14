@@ -10,7 +10,7 @@ const deleteFile = (attachedDocumentName) => {
   );
   fs.unlink(fullPath, (err) => {
     if (err) {
-      console.error(`Error deleting file: ${fullPath}`, err);
+      console.log(`Error deleting file: ${fullPath}`, err);
     } else {
     }
   });

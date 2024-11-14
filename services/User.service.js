@@ -163,7 +163,7 @@ const createUser = async (body) => {
 
     return await registerNewUser();
   } catch (error) {
-    console.error("Error in createUser:", error);
+    console.log("Error in createUser:", error);
     return {
       message: "error",
       data: "An error occurred during user creation",
@@ -250,7 +250,7 @@ const handleUserRoleStatus = async (
       };
     }
   } catch (error) {
-    console.error("Error in handleUserRoleStatus:", error);
+    console.log("Error in handleUserRoleStatus:", error);
     throw error;
   }
 };
@@ -351,7 +351,7 @@ const verifyUserByOTP = async (req) => {
       data: "OTP verified successfully",
     };
   } catch (error) {
-    console.error("Error in verifyDriverByOTP:", error.message);
+    console.log("Error in verifyDriverByOTP:", error.message);
     return { message: "error", error: "Unable to verify user" };
   }
 };
@@ -416,7 +416,7 @@ const getAllUsers = async () => {
     }
     return { message: "error", data: "No users found" };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred while retrieving users",
@@ -522,7 +522,7 @@ const updateUser = async (body) => {
       data: "User updated successfully",
     };
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return {
       message: "error",
       data: "An error occurred during user update",

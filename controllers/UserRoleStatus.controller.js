@@ -6,7 +6,7 @@ const createUserRoleStatus = async (req, res) => {
     const result = await userRoleStatusService.createUserRoleStatus(req.body);
     ServerResponder(res, result, 201);
   } catch (error) {
-    console.error("Error in createUserRoleStatus:", error);
+    console.log("Error in createUserRoleStatus:", error);
     ServerResponder(res, "Unable to create UserRoleStatus", 500);
   }
 };
@@ -16,7 +16,7 @@ const getUserRoleStatus = async (req, res) => {
     const result = await userRoleStatusService.getUserRoleStatus(req.body);
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in getUserRoleStatusById:", error);
+    console.log("Error in getUserRoleStatusById:", error);
     ServerResponder(res, "Unable to retrieve UserRoleStatus", 500);
   }
 };
@@ -29,7 +29,7 @@ const updateUserRoleStatus = async (req, res) => {
     const result = await userRoleStatusService.updateUserRoleStatus(req.body);
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in updateUserRoleStatus:", error);
+    console.log("Error in updateUserRoleStatus:", error);
     ServerResponder(res, "Unable to update UserRoleStatus", 500);
   }
 };
@@ -42,7 +42,7 @@ const deleteUserRoleStatus = async (req, res) => {
     );
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in deleteUserRoleStatus:", error);
+    console.log("Error in deleteUserRoleStatus:", error);
     ServerResponder(res, "Unable to delete UserRoleStatus", 500);
   }
 };
@@ -54,7 +54,7 @@ const userRoleStatusByPhone = async (req, res) => {
     );
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.error("Error in userRoleStatusByPhone:", error);
+    console.log("Error in userRoleStatusByPhone:", error);
     ServerResponder(res, "Unable to retrieve UserRoleStatus", 500);
   }
 };

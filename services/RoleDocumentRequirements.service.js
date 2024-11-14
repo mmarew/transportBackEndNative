@@ -41,7 +41,7 @@ const createMapping = async ({ body }) => {
 
   // Insert new mapping
   const result = await pool.query(
-    "INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, isExpirationDateRequired,createdAt) VALUES (?, ?, ?, ?, ?,?,?)",
+    "INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, isExpirationDateRequired,roleDocumentRequirementCreatedAt) VALUES (?, ?, ?, ?, ?,?,?)",
     [
       uuidv4(),
       userUniqueId,

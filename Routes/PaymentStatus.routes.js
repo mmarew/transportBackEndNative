@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const paymentStatusController = require("../Controllers/paymentStatus.controller");
+const paymentStatusController = require("../Controllers/PaymentStatus.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create a new payment status

@@ -6,7 +6,7 @@ const createUser = async (req, res) => {
     const response = await services.createUser(req.body);
     ServerResponder(res, response);
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
       data: "User creation failed",
@@ -20,7 +20,7 @@ const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
     );
     ServerResponder(res, response);
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
       data: "Failed to retrieve user",
@@ -45,7 +45,7 @@ const getUser = async (req, res) => {
     );
     ServerResponder(res, response);
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
       data: "Failed to retrieve user",
@@ -58,7 +58,7 @@ const deleteUser = async (req, res) => {
     const response = await services.deleteUser(req.params.userUniqueId);
     ServerResponder(res, response);
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
       data: "Failed to delete user",
@@ -71,7 +71,7 @@ const getAllUsers = async (req, res) => {
     const response = await services.getAllUsers();
     ServerResponder(res, response);
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
       data: "Failed to retrieve users",
@@ -83,7 +83,7 @@ const updateUser = async (req, res) => {
     const response = await services.updateUser(req.body);
     ServerResponder(res, response);
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
       data: "Failed to update user",

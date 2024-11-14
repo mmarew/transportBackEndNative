@@ -22,7 +22,7 @@ const insertData = async ({ tableName, colAndVal }) => {
     const [result] = await pool.query(sqlQuery, values);
     return result;
   } catch (error) {
-    console.error("Error inserting data:", error);
+    console.log("Error inserting data:", error);
     throw error;
   }
 };
