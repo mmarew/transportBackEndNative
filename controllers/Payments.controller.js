@@ -1,4 +1,5 @@
 const paymentsService = require("../Services/Payments.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new payment
 exports.createPayment = async (req, res) => {
@@ -17,10 +18,10 @@ exports.createPayment = async (req, res) => {
       paymentStatusUniqueId,
       paymentTime
     );
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error creating payment:", error);
-    res.status(500).json({ message: "Error creating payment", error });
+    ServerResponder(res, { message: "error", error: "Error creating payment" });
   }
 };
 
@@ -28,10 +29,13 @@ exports.createPayment = async (req, res) => {
 exports.getAllPayments = async (req, res) => {
   try {
     const result = await paymentsService.getAllPayments();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching payments:", error);
-    res.status(500).json({ message: "Error fetching payments", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching payments",
+    });
   }
 };
 
@@ -40,10 +44,10 @@ exports.getPaymentById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await paymentsService.getPaymentById(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching payment:", error);
-    res.status(500).json({ message: "Error fetching payment", error });
+    ServerResponder(res, { message: "error", error: "Error fetching payment" });
   }
 };
 
@@ -64,10 +68,10 @@ exports.updatePayment = async (req, res) => {
       paymentStatusUniqueId,
       paymentTime
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error updating payment:", error);
-    res.status(500).json({ message: "Error updating payment", error });
+    ServerResponder(res, { message: "error", error: "Error updating payment" });
   }
 };
 
@@ -76,9 +80,9 @@ exports.deletePayment = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await paymentsService.deletePayment(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting payment:", error);
-    res.status(500).json({ message: "Error deleting payment", error });
+    ServerResponder(res, { message: "error", error: "Error deleting payment" });
   }
 };

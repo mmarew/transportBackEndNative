@@ -31,7 +31,10 @@ const getVehicleController = async (req, res) => {
     res.status(404).json({ message: "Vehicle not found" });
   } catch (error) {
     console.log("Error fetching vehicle:", error);
-    res.status(500).json({ message: "Error fetching vehicle" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create vehicle",
+    });
   }
 };
 
@@ -41,10 +44,13 @@ const updateVehicleController = async (req, res) => {
     if (response.message === "success") {
       return res.status(200).json(response);
     }
-    res.status(400).json(response);
+    ServerResponder(res, response);
   } catch (error) {
     console.log("Error updating vehicle:", error);
-    res.status(500).json({ message: "Vehicle update failed" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create vehicle",
+    });
   }
 };
 
@@ -54,20 +60,29 @@ const deleteVehicleController = async (req, res) => {
     if (response.message === "success") {
       return res.status(200).json(response);
     }
-    res.status(404).json({ message: "Vehicle not found" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create vehicle",
+    });
   } catch (error) {
     console.log("Error deleting vehicle:", error);
-    res.status(500).json({ message: "Vehicle deletion failed" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create vehicle",
+    });
   }
 };
 
 const getAllVehiclesController = async (req, res) => {
   try {
     const response = await getAllVehicles();
-    res.status(200).json(response);
+    ServerResponder(res, response);
   } catch (error) {
     console.log("Error fetching vehicles:", error);
-    res.status(500).json({ message: "Error fetching vehicles" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching vehicles",
+    });
   }
 };
 const verifyUsersVehicle = async (req, res) => {
@@ -78,12 +93,12 @@ const verifyUsersVehicle = async (req, res) => {
 
     const response = await services.verifyUsersVehicle(req.body);
     if (response) {
-      return res.status(200).json(response);
+      return ServerResponder(res, response);
     }
-    res.status(404).json({ message: "Vehicle not found" });
+    ServerResponder(res, { message: "error", error: "Vehicle not found" });
   } catch (error) {
     console.log("Error fetching vehicle:", error);
-    res.status(500).json({ message: "Error fetching vehicle" });
+    ServerResponder(res, { message: "error", error: "Error fetching vehicle" });
   }
 };
 module.exports = {

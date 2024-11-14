@@ -134,9 +134,10 @@ const getCanceledJourneysFiltered = async (req, res) => {
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching filtered canceled journeys:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch canceled journeys", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch canceled journeys",
+    });
   }
 };
 
@@ -147,12 +148,13 @@ const getCanceledJourneyById = async (req, res) => {
     const result = await canceledJourneyService.getCanceledJourneyById(
       canceledJourneyUniqueId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching canceled journey by ID:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch canceled journey by ID", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch canceled journey",
+    });
   }
 };
 
@@ -165,12 +167,13 @@ const updateCanceledJourney = async (req, res) => {
       canceledJourneyUniqueId,
       data
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error updating canceled journey:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to update canceled journey", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update canceled journey",
+    });
   }
 };
 
@@ -181,12 +184,13 @@ const deleteCanceledJourney = async (req, res) => {
     const result = await canceledJourneyService.deleteCanceledJourney(
       canceledJourneyUniqueId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting canceled journey:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to delete canceled journey", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete canceled journey",
+    });
   }
 };
 

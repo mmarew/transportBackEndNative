@@ -23,9 +23,10 @@ exports.getAllTarrifRates = async (req, res) => {
     const result = await tarrifRateService.getAllTarrifRates();
     ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "error", error: "Failed to retrieve tariff rates" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve tariff rates",
+    });
   }
 };
 
@@ -34,11 +35,12 @@ exports.getTarrifRateById = async (req, res) => {
   try {
     const result = await tarrifRateService.getTarrifRateById(req.params.id);
     if (result) {
-      res.status(200).json(result);
+      ServerResponder(res, result);
     } else {
-      res
-        .status(404)
-        .json({ message: "error", error: "Tariff rate not found" });
+      ServerResponder(res, {
+        message: "error",
+        error: "Tariff rate not found",
+      });
     }
   } catch (error) {
     res.status(500).json({
@@ -55,11 +57,12 @@ exports.updateTarrifRate = async (req, res) => {
       req.params.id,
       req.body
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "error", error: "Failed to update tariff rate" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update tariff rate",
+    });
   }
 };
 
@@ -67,10 +70,11 @@ exports.updateTarrifRate = async (req, res) => {
 exports.deleteTarrifRate = async (req, res) => {
   try {
     const result = await tarrifRateService.deleteTarrifRate(req.params.id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "error", error: "Failed to delete tariff rate" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete tariff rate",
+    });
   }
 };

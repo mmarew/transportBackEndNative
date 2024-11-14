@@ -6,12 +6,13 @@ exports.createDriverDeposit = async (req, res) => {
     const user = req.user;
     req.body.user = user;
     const result = await driverDepositService.createDriverDeposit(req.body);
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("first error", error);
-    res
-      .status(500)
-      .json({ message: "Failed to create driver deposit record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create driver deposit record",
+    });
   }
 };
 
@@ -19,11 +20,12 @@ exports.createDriverDeposit = async (req, res) => {
 exports.getAllDriverDeposits = async (req, res) => {
   try {
     const result = await driverDepositService.getAllDriverDeposits();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve driver deposit records", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve driver deposit records",
+    });
   }
 };
 
@@ -34,14 +36,18 @@ exports.getDriverDepositById = async (req, res) => {
       req.params.driverDepositUniqueId
     );
     if (result) {
-      res.status(200).json(result);
+      ServerResponder(res, result);
     } else {
-      res.status(404).json({ message: "Driver deposit record not found" });
+      ServerResponder(res, {
+        message: "error",
+        error: "Driver deposit not found",
+      });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve driver deposit record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve driver deposit record",
+    });
   }
 };
 
@@ -52,11 +58,12 @@ exports.updateDriverDeposit = async (req, res) => {
       req.params.driverDepositUniqueId,
       req.body
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to update driver deposit record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update driver deposit record",
+    });
   }
 };
 
@@ -66,10 +73,11 @@ exports.deleteDriverDeposit = async (req, res) => {
     const result = await driverDepositService.deleteDriverDeposit(
       req.params.driverDepositUniqueId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to delete driver deposit record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete driver deposit record",
+    });
   }
 };

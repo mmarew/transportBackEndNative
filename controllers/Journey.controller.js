@@ -17,10 +17,13 @@ exports.createJourney = async (req, res) => {
       fare,
       journeyStatusId
     );
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error creating journey:", error);
-    res.status(500).json({ message: "Error creating journey", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create journey",
+    });
   }
 };
 
@@ -28,10 +31,13 @@ exports.createJourney = async (req, res) => {
 exports.getAllJourneys = async (req, res) => {
   try {
     const result = await journeyService.getAllJourneys();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching journeys:", error);
-    res.status(500).json({ message: "Error fetching journeys", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journeys",
+    });
   }
 };
 
@@ -40,10 +46,13 @@ exports.getJourneyById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await journeyService.getJourneyById(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching journey:", error);
-    res.status(500).json({ message: "Error fetching journey", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey",
+    });
   }
 };
 
@@ -58,10 +67,13 @@ exports.updateJourney = async (req, res) => {
       fare,
       journeyStatusId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error updating journey:", error);
-    res.status(500).json({ message: "Error updating journey", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update journey",
+    });
   }
 };
 
@@ -70,9 +82,12 @@ exports.deleteJourney = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await journeyService.deleteJourney(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting journey:", error);
-    res.status(500).json({ message: "Error deleting journey", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete journey",
+    });
   }
 };

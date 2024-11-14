@@ -72,7 +72,7 @@ exports.deletePaymentStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await paymentStatusService.deletePaymentStatus(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting payment status:", error);
     ServerResponder(res, {
