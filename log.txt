@@ -36,3 +36,42 @@
 [2024-11-13T10:46:32.563Z] [LOG] Server started on port http://localhost:3000
 [2024-11-13T10:51:19.814Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
 [2024-11-13T10:51:19.832Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T10:52:39.095Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T10:52:39.100Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T10:52:50.222Z] [LOG] Error querying data: {"message":"connect ECONNABORTED 91.204.209.19:3306","code":"ECONNABORTED","errno":-4079}
+[2024-11-13T10:52:50.257Z] [LOG] Error creating canceled journey: {"message":"connect ECONNABORTED 91.204.209.19:3306","code":"ECONNABORTED","errno":-4079}
+[2024-11-13T10:53:19.830Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:53:19.832Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:53:49.837Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:53:49.839Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:54:19.847Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:54:19.850Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:54:49.858Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:54:49.861Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:55:23.364Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T10:55:23.460Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T11:08:18.874Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T11:08:18.877Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T11:10:25.560Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T11:10:25.573Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T11:14:25.603Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T11:14:25.613Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
+[2024-11-13T11:31:43.161Z] [LOG] req.query in verifyUserByOTP {"OTP":"546891","phoneNumber":"09111111","roleId":"3"}
+[2024-11-13T11:44:52.728Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T11:44:52.744Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T11:45:25.110Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T11:45:25.128Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T11:47:34.168Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-13T11:47:34.748Z] [LOG] Server started on port http://localhost:3000
+[2024-11-13T12:31:54.593Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T12:31:54.582Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T12:32:15.263Z] [LOG] Error querying data: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
+[2024-11-13T12:32:15.264Z] [LOG] Error creating canceled journey: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
+[2024-11-13T12:32:45.269Z] [LOG] Error querying data: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
+[2024-11-13T12:32:45.271Z] [LOG] Error creating canceled journey: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
+[2024-11-13T12:33:15.281Z] [LOG] Error querying data: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
+[2024-11-13T12:33:15.289Z] [LOG] Error creating canceled journey: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
+[2024-11-13T13:29:30.317Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T13:29:30.453Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
+[2024-11-13T15:37:48.758Z] [LOG] Error querying data: {"message":"write ECONNABORTED","code":"ECONNABORTED","errno":-4079}
+[2024-11-13T15:37:48.937Z] [LOG] Error creating canceled journey: {"message":"write ECONNABORTED","code":"ECONNABORTED","errno":-4079}

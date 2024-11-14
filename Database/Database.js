@@ -177,9 +177,9 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
     roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
     roleDocumentRequirementDeletedBy VARCHAR(36) NULL,  -- Who deleted the requirement
-    roleDocumentRequirementcreatedAt DATETIME NOT NULL,  -- When the requirement was created
-    roleDocumentRequirementupdatedAt DATETIME NULL,  -- When the requirement was updated
-    roleDocumentRequirementdeletedAt DATETIME NULL,  -- When the requirement was deleted
+    roleDocumentRequirementCreatedAt DATETIME NOT NULL,  -- When the requirement was created
+    roleDocumentRequirementUpdatedAt DATETIME NULL,  -- When the requirement was updated
+    roleDocumentRequirementDeletedAt DATETIME NULL,  -- When the requirement was deleted
     FOREIGN KEY (roleDocumentRequirementCreatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementUpdatedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (roleDocumentRequirementDeletedBy) REFERENCES Users(userUniqueId),  -- Link to the Users table

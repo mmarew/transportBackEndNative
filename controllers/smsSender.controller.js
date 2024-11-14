@@ -4,14 +4,20 @@ const ServerResponder = require("../Utils/ServerResponder");
 const createSMSSender = async (req, res) => {
   try {
     const { phoneNumber, password } = req.body;
-    console.log("first", phoneNumber, "password", password);
+    console.log("Creating SMS sender for:", phoneNumber);
+
     const result = await smsSenderService.createSMSSender({
       phoneNumber,
       password,
     });
+
     ServerResponder(res, result);
   } catch (error) {
-    console.log("Error creating SMS sender:", error);
+    console.error(
+      "Error creating SMS sender:",
+      error.message || error,
+      error.stack
+    );
     ServerResponder(res, {
       message: "error",
       error: "Failed to create SMS sender",
