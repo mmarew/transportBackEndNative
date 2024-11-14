@@ -12,26 +12,24 @@ const ServerResponder = require("../Utils/ServerResponder");
 const createVehicleOwnershipController = async (req, res) => {
   try {
     const response = await createVehicleOwnership(req.body);
-    if (response.message === "success") {
-      return res.status(201).json(response);
-    }
-    res.status(400).json(response);
+
+    ServerResponder(res, response);
   } catch (error) {
     console.log("Error creating vehicle ownership:", error);
-    res.status(500).json({ message: "Vehicle ownership creation failed" });
+    ServerResponder(res, response);
   }
 };
 
 const getVehicleOwnershipController = async (req, res) => {
   try {
     const response = await getVehicleOwnership(req.params.ownershipId);
-    if (response) {
-      return res.status(200).json(response);
-    }
-    res.status(404).json({ message: "Vehicle ownership not found" });
+
+    ServerResponder(res, response);
   } catch (error) {
-    console.log("Error fetching vehicle ownership:", error);
-    res.status(500).json({ message: "Error fetching vehicle ownership" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Vehicle ownership not found",
+    });
   }
 };
 
@@ -41,36 +39,39 @@ const updateVehicleOwnershipController = async (req, res) => {
       req.params.ownershipId,
       req.body
     );
-    if (response.message === "success") {
-      return res.status(200).json(response);
-    }
-    res.status(400).json(response);
+    ServerResponder(res, response);
   } catch (error) {
     console.log("Error updating vehicle ownership:", error);
-    res.status(500).json({ message: "Vehicle ownership update failed" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create vehicle ownership",
+    });
   }
 };
 
 const deleteVehicleOwnershipController = async (req, res) => {
   try {
     const response = await deleteVehicleOwnership(req.params.ownershipId);
-    if (response.message === "success") {
-      return res.status(200).json(response);
-    }
-    res.status(404).json({ message: "Vehicle ownership not found" });
+    ServerResponder(res, response);
   } catch (error) {
     console.log("Error deleting vehicle ownership:", error);
-    res.status(500).json({ message: "Vehicle ownership deletion failed" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create vehicle ownership",
+    });
   }
 };
 
 const getAllVehicleOwnershipsController = async (req, res) => {
   try {
     const response = await getAllVehicleOwnerships();
-    res.status(200).json(response);
+    ServerResponder(res, response);
   } catch (error) {
     console.log("Error fetching vehicle ownerships:", error);
-    res.status(500).json({ message: "Error fetching vehicle ownerships" });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error fetching vehicle ownerships",
+    });
   }
 };
 const getVehicleOwnershipByUserUniqueIdController = async (req, res) => {

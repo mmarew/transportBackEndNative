@@ -1,10 +1,11 @@
 const driverBalanceService = require("../Services/DriverBalance.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new driver balance record
 exports.createDriverBalance = async (req, res) => {
   try {
     const result = await driverBalanceService.createDriverBalance(req.body);
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     res
       .status(500)
@@ -16,7 +17,7 @@ exports.createDriverBalance = async (req, res) => {
 exports.getAllDriverBalances = async (req, res) => {
   try {
     const result = await driverBalanceService.getAllDriverBalances();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     res
       .status(500)
@@ -31,14 +32,18 @@ exports.getDriverBalanceById = async (req, res) => {
       req.params.driverBalanceUniqueId
     );
     if (result) {
-      res.status(200).json(result);
+      ServerResponder(res, result);
     } else {
-      res.status(404).json({ message: "Driver balance record not found" });
+      ServerResponder(res, {
+        message: "error",
+        error: "Driver balance record not found",
+      });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve driver balance record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve driver balance record",
+    });
   }
 };
 
@@ -49,11 +54,12 @@ exports.updateDriverBalance = async (req, res) => {
       req.params.driverBalanceUniqueId,
       req.body
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to update driver balance record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update driver balance record",
+    });
   }
 };
 
@@ -63,11 +69,12 @@ exports.deleteDriverBalance = async (req, res) => {
     const result = await driverBalanceService.deleteDriverBalance(
       req.params.driverBalanceUniqueId
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to delete driver balance record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete driver balance record",
+    });
   }
 };
 exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
@@ -76,8 +83,11 @@ exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
       await driverBalanceService.getDriverLastBalanceByUserUniqueId(
         userUniqueId
       );
-    return result;
+    ServerResponder(res, result);
   } catch (error) {
-    console.log("first error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve driver balance record",
+    });
   }
 };

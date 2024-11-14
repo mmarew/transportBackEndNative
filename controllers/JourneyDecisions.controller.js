@@ -17,10 +17,13 @@ exports.createJourneyDecision = async (req, res) => {
       decisionTime,
       decisionBy
     );
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error creating journey decision:", error);
-    res.status(500).json({ message: "Error creating journey decision", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error creating journey decision",
+    });
   }
 };
 
@@ -28,12 +31,13 @@ exports.createJourneyDecision = async (req, res) => {
 exports.getAllJourneyDecisions = async (req, res) => {
   try {
     const result = await journeyDecisionsService.getAllJourneyDecisions();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching journey decisions:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching journey decisions", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey decisions",
+    });
   }
 };
 
@@ -42,10 +46,13 @@ exports.getJourneyDecisionById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await journeyDecisionsService.getJourneyDecisionById(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching journey decision:", error);
-    res.status(500).json({ message: "Error fetching journey decision", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey decision",
+    });
   }
 };
 
@@ -60,10 +67,13 @@ exports.updateJourneyDecision = async (req, res) => {
       decisionTime,
       decisionBy
     );
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error updating journey decision:", error);
-    res.status(500).json({ message: "Error updating journey decision", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Error updating journey decision",
+    });
   }
 };
 
@@ -72,9 +82,12 @@ exports.deleteJourneyDecision = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await journeyDecisionsService.deleteJourneyDecision(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting journey decision:", error);
-    res.status(500).json({ message: "Error deleting journey decision", error });
+    ServerResponder(res, {
+      message: error,
+      error: "Error deleting journey decision",
+    });
   }
 };

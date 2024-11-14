@@ -22,7 +22,7 @@ exports.createPaymentMethod = async (req, res) => {
 exports.getAllPaymentMethods = async (req, res) => {
   try {
     const result = await paymentMethodService.getAllPaymentMethods();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching payment methods:", error);
     ServerResponder(res, {

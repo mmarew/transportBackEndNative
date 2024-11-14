@@ -4,11 +4,12 @@ const commissionService = require("../Services/Commission.service");
 exports.createCommission = async (req, res) => {
   try {
     const result = await commissionService.createCommission(req.body);
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to create commission record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create commission record",
+    });
   }
 };
 
@@ -16,11 +17,12 @@ exports.createCommission = async (req, res) => {
 exports.getAllCommissions = async (req, res) => {
   try {
     const result = await commissionService.getAllCommissions();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve commission records", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve commission records",
+    });
   }
 };
 
@@ -29,14 +31,18 @@ exports.getCommissionById = async (req, res) => {
   try {
     const result = await commissionService.getCommissionById(req.params.id);
     if (result) {
-      res.status(200).json(result);
+      ServerResponder(res, result);
     } else {
-      res.status(404).json({ message: "Commission record not found" });
+      ServerResponder(res, {
+        message: "error",
+        error: "Commission record not found",
+      });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve commission record", error });
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve commission record",
+    });
   }
 };
 
@@ -47,11 +53,12 @@ exports.updateCommission = async (req, res) => {
       req.params.id,
       req.body
     );
-    res.status(200).json(result);
+    rServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to update commission record", error });
+    ServerResponder(res, {
+      message: "Failed to update commission record",
+      error,
+    });
   }
 };
 
@@ -59,10 +66,11 @@ exports.updateCommission = async (req, res) => {
 exports.deleteCommission = async (req, res) => {
   try {
     const result = await commissionService.deleteCommission(req.params.id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to delete commission record", error });
+    ServerResponder(res, {
+      message: "Failed to delete commission record",
+      error,
+    });
   }
 };

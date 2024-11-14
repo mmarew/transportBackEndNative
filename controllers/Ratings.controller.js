@@ -1,4 +1,5 @@
 const ratingsService = require("../Services/Ratings.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new rating
 exports.createRating = async (req, res) => {
@@ -10,10 +11,10 @@ exports.createRating = async (req, res) => {
       rating,
       comment
     );
-    res.status(201).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error creating rating:", error);
-    res.status(500).json({ message: "Error creating rating", error });
+    ServerResponder(res, { message: "error", error: "Error creating rating" });
   }
 };
 
@@ -21,10 +22,10 @@ exports.createRating = async (req, res) => {
 exports.getAllRatings = async (req, res) => {
   try {
     const result = await ratingsService.getAllRatings();
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching ratings:", error);
-    res.status(500).json({ message: "Error fetching ratings", error });
+    ServerResponder(res, { message: "error", error: "Error fetching ratings" });
   }
 };
 
@@ -33,10 +34,10 @@ exports.getRatingById = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await ratingsService.getRatingById(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching rating:", error);
-    res.status(500).json({ message: "Error fetching rating", error });
+    ServerResponder(res, { message: "error", error: "Error fetching rating" });
   }
 };
 
@@ -46,10 +47,10 @@ exports.updateRating = async (req, res) => {
     const { id } = req.params;
     const { rating, comment } = req.body;
     const result = await ratingsService.updateRating(id, rating, comment);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error updating rating:", error);
-    res.status(500).json({ message: "Error updating rating", error });
+    ServerResponder(res, { message: "error", error: "Error updating rating" });
   }
 };
 
@@ -58,9 +59,9 @@ exports.deleteRating = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await ratingsService.deleteRating(id);
-    res.status(200).json(result);
+    ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting rating:", error);
-    res.status(500).json({ message: "Error deleting rating", error });
+    ServerResponder(res, { message: "error", error: "Error deleting rating" });
   }
 };
