@@ -18,11 +18,11 @@ const createAttachedDocument = async ({
   attachedDocumentName, // File path where it's stored
   documentTypeId,
   documentExpirationDate, // Expiration date of the document
-  createdByUserId,
-  userUniqueId,
   roleId,
+  user,
 }) => {
   try {
+    const { userUniqueId } = user;
     const documentType = await getData({
       tableName: "RoleDocumentRequirements",
       conditions: {
@@ -82,7 +82,7 @@ const createAttachedDocument = async ({
       documentTypeId,
       documentExpirationDate,
       attachedDocumentAcceptance: "PENDING", // Default status when document is created
-      attachedDocumentCreatedByUserId: createdByUserId,
+      attachedDocumentCreatedByUserId: userUniqueId,
       attachedDocumentCreatedAt: new Date(),
     };
     // Insert the new document into the database
@@ -109,7 +109,7 @@ const createAttachedDocument = async ({
 
 // Retrieve all attached documents
 const getAttachedDocumentsByUser = async (userUniqueId) => {
-  return await performJoinSelect({
+  const documents = await performJoinSelect({
     baseTable: "AttachedDocuments",
     joins: [
       {
@@ -118,9 +118,13 @@ const getAttachedDocumentsByUser = async (userUniqueId) => {
       },
     ],
     conditions: {
-      userUniqueId: userUniqueId,
+      userUniqueId,
     },
   });
+  return {
+    message: "success",
+    data: documents,
+  };
 };
 
 // Retrieve an attached document by ID
@@ -139,27 +143,46 @@ const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
 
 const updateAttachedDocument = async (
   attachedDocumentUniqueId,
-  {
-    documentDescription,
-    documentTypeId,
-    documentExpirationDate,
-    attachedDocumentName, // File name (existing or new)
-    updatedByUserId,
-  }
+  user,
+  requestBody,
+  uploadedFiles
 ) => {
-  // Validation of required fields
+  // Validate inputs
   if (!attachedDocumentUniqueId) {
     return {
       message: "error",
       data: "Attached document unique ID is required",
     };
   }
-  if (!updatedByUserId) {
-    return { message: "error", data: "Updated by user ID is required" };
+  if (!user || !user.userUniqueId) {
+    return { message: "error", data: "User information is missing" };
   }
 
-  // Check if documentExpirationDate is valid and determine if expired
+  const userUniqueId = user.userUniqueId;
+
+  // Fetch existing document details
+  const [existingDocument] = await getData({
+    tableName: "AttachedDocuments",
+    conditions: { attachedDocumentUniqueId },
+  });
+
+  if (!existingDocument) {
+    return { message: "error", data: "Attached document not found" };
+  }
+
+  // Extract new data from the request body
+  const documentDescription =
+    requestBody[existingDocument.uploadedDocumentDescription] || null;
+  const documentTypeId =
+    requestBody[existingDocument.uploadedDocumentTypeId] || null;
+  let documentExpirationDate =
+    requestBody[existingDocument.uploadedDocumentExpirationDate] || null;
+
+  // Validate and process expiration date
   let isExpired = false;
+  if (documentExpirationDate == "null") {
+    documentExpirationDate = null;
+  }
   if (documentExpirationDate) {
     const expirationDate = new Date(documentExpirationDate);
     if (isNaN(expirationDate.getTime())) {
@@ -168,22 +191,40 @@ const updateAttachedDocument = async (
     isExpired = expirationDate < new Date();
   }
 
-  // Fetch existing document data
-  const existingDocument = await getData({
-    tableName: "AttachedDocuments",
-    conditions: { attachedDocumentUniqueId },
-  });
-  if (existingDocument.length === 0) {
-    return { message: "error", data: "Document not found" };
+  // Handle file uploads
+  let attachedDocumentName = existingDocument.attachedDocumentName;
+  if (uploadedFiles && uploadedFiles.length > 0) {
+    const file = uploadedFiles[0];
+    deleteFile(existingDocument.attachedDocumentName); // Delete old file
+    attachedDocumentName = file.filename; // Use new file name
   }
 
-  // Prepare historical data with version increment
-  const documentVersion = existingDocument[0].documentVersion || 1;
+  // Prepare historical record for AttachedDocumentsHistory
   const historyDocument = {
-    ...existingDocument[0],
-    attachedDocumentUpdatedByUserId: updatedByUserId,
+    attachedDocumentId: existingDocument.attachedDocumentId, // ID of the original document
+    attachedDocumentUniqueId: existingDocument.attachedDocumentUniqueId,
+    userUniqueId: existingDocument.userUniqueId,
+    attachedDocumentDescription: existingDocument.attachedDocumentDescription,
+    documentTypeId: existingDocument.documentTypeId,
+    documentExpirationDate: existingDocument.documentExpirationDate,
+    attachedDocumentAcceptance: existingDocument.attachedDocumentAcceptance,
+    attachedDocumentAcceptedRejectedByUserId:
+      existingDocument.attachedDocumentAcceptedRejectedByUserId,
+    attachedDocumentAcceptedRejectedAt:
+      existingDocument.attachedDocumentAcceptedRejectedAt,
+    attachedDocumentName: existingDocument.attachedDocumentName,
+    attachedDocumentCreatedByUserId:
+      existingDocument.attachedDocumentCreatedByUserId,
+    attachedDocumentUpdatedByUserId: userUniqueId, // Current user making the update
+    attachedDocumentDeletedByUserId:
+      existingDocument.attachedDocumentDeletedByUserId,
+    attachedDocumentCreatedAt: existingDocument.attachedDocumentCreatedAt,
     attachedDocumentUpdatedAt: new Date(),
-    documentVersion: documentVersion + 1,
+    attachedDocumentDeletedAt: existingDocument.attachedDocumentDeletedAt,
+    attachedDocumentIsExpired: isExpired,
+    attachedDocumentAcceptanceReason:
+      existingDocument.attachedDocumentAcceptanceReason,
+    documentVersion: (existingDocument.documentVersion || 1) + 1,
   };
 
   // Insert historical record
@@ -191,37 +232,35 @@ const updateAttachedDocument = async (
     tableName: "AttachedDocumentsHistory",
     colAndVal: historyDocument,
   });
-  if (historyResult.affectedRows === 0) {
+
+  if (!historyResult || historyResult.affectedRows === 0) {
     return { message: "error", data: "Failed to archive current document" };
   }
 
-  // Prepare updated document data
+  // Prepare updated document data for AttachedDocuments
   const updatedDocument = {
     attachedDocumentDescription:
-      documentDescription || existingDocument[0].attachedDocumentDescription,
-    documentTypeId: documentTypeId || existingDocument[0].documentTypeId,
+      documentDescription || existingDocument.attachedDocumentDescription,
+    documentTypeId: documentTypeId || existingDocument.documentTypeId,
     attachedDocumentName:
-      attachedDocumentName || existingDocument[0].attachedDocumentName,
+      attachedDocumentName || existingDocument.attachedDocumentName,
     documentExpirationDate:
-      documentExpirationDate || existingDocument[0].documentExpirationDate,
+      documentExpirationDate || existingDocument.documentExpirationDate,
     attachedDocumentAcceptance: "PENDING",
-    attachedDocumentCreatedByUserId:
-      existingDocument[0].attachedDocumentCreatedByUserId,
-    attachedDocumentCreatedAt: existingDocument[0].attachedDocumentCreatedAt,
   };
 
   // Update the AttachedDocuments table with the new data
   const updateResult = await updateData({
     tableName: "AttachedDocuments",
     conditions: { attachedDocumentUniqueId },
-    updateValues: { ...updatedDocument },
+    updateValues: updatedDocument,
   });
 
   if (updateResult.affectedRows > 0) {
     return { message: "success", data: "Document updated successfully" };
-  } else {
-    return { message: "error", data: "Failed to update document" };
   }
+
+  return { message: "error", data: "Failed to update document" };
 };
 
 // Delete an attached document (soft delete by marking as deleted)

@@ -21,7 +21,6 @@ async function WSPusher(urlParams, WS) {
       return WS.send("Token is required for connection");
     }
     const tokenValidation = await verifyToken.verifyTokenOfWS(token);
-    console.log("tokenValidation", tokenValidation);
     if (!tokenValidation?.valid) {
       return WS.send("You are not authorized");
     }

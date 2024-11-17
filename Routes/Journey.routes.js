@@ -37,5 +37,9 @@ router.delete(
   verifyTokenOfAxios,
   journeyController.deleteJourney
 );
-
+router.get(
+  "/api/user/getCompletedJourney",
+  verifyTokenOfAxios,
+  journeyController.getCompletedJourney
+);
 module.exports = router;

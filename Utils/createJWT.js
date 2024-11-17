@@ -5,10 +5,11 @@ require("dotenv").config();
 const createJWT = (userData) => {
   const secretKey = process.env.SECRET_KEY;
   const { userUniqueId, fullName, phoneNumber, email, roleId } = userData;
+  console.log("@createJWT userData ==========> ", userData);
   if (!userUniqueId || !fullName || !phoneNumber || !email || !roleId) {
     return {
       message: "error",
-      error: "All fields are required",
+      error: "All fields are required to create jwt",
     };
   }
   // Create the token

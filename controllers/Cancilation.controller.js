@@ -11,7 +11,6 @@ const deleteCancilationReasons = async (req, res) => {
 };
 const getCancilationReasons = async (req, res) => {
   try {
-    console.log("@getCancilationReasons req.user =======> ", req.user);
     const result = await Services.getCancellationReasons(req, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {

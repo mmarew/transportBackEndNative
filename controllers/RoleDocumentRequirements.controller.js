@@ -1,3 +1,4 @@
+const { getData } = require("../CRUD/Read/ReadData");
 const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements.service");
 const ServerResponder = require("../Utils/ServerResponder");
 // Create a new role-document mapping
@@ -11,6 +12,7 @@ const createMapping = async (req, res) => {
     });
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@createMapping error", error);
     ServerResponder(res, {
       message: "error",
       error: "unable to create mapping",
@@ -20,9 +22,20 @@ const createMapping = async (req, res) => {
 
 const getMappingByRoleUniqueId = async (req, res) => {
   try {
+    const user = req?.user;
+    let roleUniqueId = req.params.roleUniqueId;
+    if (roleUniqueId == "self") {
+      const roleData = await getData({
+        tableName: "Roles",
+        conditions: { roleId: user.roleId },
+      });
+      roleUniqueId = roleData[0]?.roleUniqueId;
+      console.log("roleUniqueId is ======= ", roleUniqueId);
+    }
+
     const result =
       await RoleDocumentRequirementsService.getMappingByRoleUniqueId(
-        req.params.roleUniqueId
+        roleUniqueId
       );
     ServerResponder(res, result);
   } catch (error) {

@@ -76,7 +76,7 @@ const getMappingByRoleUniqueId = async (roleUniqueId) => {
   });
   return {
     message: "success",
-    rows,
+    data: rows,
   };
 };
 

@@ -1,3 +1,7 @@
+const {
+  updateAttachedDocument,
+  createAttachedDocument,
+} = require("../Services/AttachedDocuments.service");
 const services = require("../Services/User.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
@@ -80,13 +84,86 @@ const getAllUsers = async (req, res) => {
 };
 const updateUser = async (req, res) => {
   try {
-    const response = await services.updateUser(req.body);
-    ServerResponder(res, response);
-  } catch (error) {
-    console.log("Error:", error);
-    ServerResponder(res, {
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    const roleId = user?.roleId;
+    const body = { ...req.body, userUniqueId, roleId };
+
+    // Initialize response tracker
+    const updateResponses = { textUpdate: "success", fileUpdate: "success" };
+
+    // Update user text information
+    const textResponse = await services.updateUser(body);
+    updateResponses.textUpdate = textResponse.message;
+    // console.log("textResponse", textResponse);
+    // Handle file upload if files are provided
+    if (req.files && req.files.length > 0) {
+      const {
+        attachedDocumentUniqueId,
+        ProfilePhotoTypeId,
+        ProfilePhotoDescription,
+        ProfilePhotoExpirationDate,
+      } = body;
+
+      // Validate attachedDocumentUniqueId
+      if (
+        !attachedDocumentUniqueId ||
+        attachedDocumentUniqueId === "undefined" ||
+        attachedDocumentUniqueId === "null"
+      ) {
+        // Create a new attached document
+        const fileResponse = await createAttachedDocument({
+          attachedDocumentDescription: ProfilePhotoDescription,
+          attachedDocumentName: req.files[0].filename,
+          documentTypeId: ProfilePhotoTypeId,
+          documentExpirationDate: ProfilePhotoExpirationDate,
+          roleId: user.roleId,
+          user,
+        });
+        updateResponses.fileUpdate = fileResponse.message;
+      } else {
+        // Update the existing attached document
+        const fileResponse = await updateAttachedDocument(
+          attachedDocumentUniqueId,
+          user,
+          body,
+          req.files
+        );
+        console.log("fileResponse", fileResponse);
+        updateResponses.fileUpdate = fileResponse.message;
+      }
+    }
+
+    // Consolidate response based on update results
+    const { textUpdate, fileUpdate } = updateResponses;
+
+    if (textUpdate === "success" && fileUpdate === "success") {
+      return ServerResponder(res, textResponse); // Both updates successful
+    }
+
+    if (textUpdate === "success" && fileUpdate === "error") {
+      return ServerResponder(res, {
+        message: "error",
+        data: "Failed to update profile image, but other information updated successfully.",
+      });
+    }
+
+    if (textUpdate === "error" && fileUpdate === "success") {
+      return ServerResponder(res, {
+        message: "error",
+        data: "Failed to update user information, but profile image updated successfully.",
+      });
+    }
+
+    return ServerResponder(res, {
       message: "error",
-      data: "Failed to update user",
+      data: "Failed to update both user information and profile image.",
+    });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    return ServerResponder(res, {
+      message: "error",
+      data: "Failed to update user profile due to an unexpected error.",
     });
   }
 };
