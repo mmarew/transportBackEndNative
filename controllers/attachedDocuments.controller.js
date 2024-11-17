@@ -42,12 +42,10 @@ const createAttachedDocuments = async (req, res) => {
         documentsToRegister.push({
           fieldname: file.fieldname,
           user,
-          userUniqueId,
           attachedDocumentDescription,
           attachedDocumentName: file.filename, // File path where it's stored
           documentTypeId,
           documentExpirationDate,
-          createdByUserId,
         });
       }
     });
@@ -155,65 +153,21 @@ const getAttachedDocumentByUniqueId = async (req, res) => {
 
 const updateAttachedDocument = async (req, res) => {
   try {
-    const { attachedDocumentUniqueId } = req.params;
+    const { attachedDocumentUniqueId } = req.params; // Extract the document ID
+    const user = req?.user; // Extract the user object from the request
 
-    // Fetch the existing document details from the database
-    const getDocument = await performJoinSelect({
-      baseTable: "AttachedDocuments",
-      joins: [
-        {
-          table: "DocumentTypes",
-          on: "AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId",
-        },
-      ],
-      conditions: {
-        "AttachedDocuments.attachedDocumentUniqueId": attachedDocumentUniqueId,
-      },
-    });
-
-    if (getDocument.length === 0) {
-      ServerResponder(res, {
-        message: "error",
-        error: "Attached document not found",
-      });
-    }
-
-    // Destructure the values from the existing document to compare with new data
-    const {
-      uploadedDocumentTypeId,
-      uploadedDocumentDescription,
-      uploadedDocumentExpirationDate,
-      attachedDocumentName: existingDocumentName, // Existing file name
-    } = getDocument[0];
-
-    // Retrieve updated values from the request body
-    const documentDescription = req.body[uploadedDocumentDescription];
-    const documentTypeId = req.body[uploadedDocumentTypeId];
-    const documentExpirationDate = req.body[uploadedDocumentExpirationDate];
-
-    // Check if a file is uploaded; if so, update the attached document name
-    let attachedDocumentName = existingDocumentName; // Default to the existing name
-    if (req.files && req.files.length > 0) {
-      const file = req.files[0]; // Assuming only one file is uploaded
-      deleteFile(existingDocumentName); // Delete the existing file
-      attachedDocumentName = file.filename; // Update with new file name if uploaded
-    }
-
-    // Call the service to update the document details in the database
+    // Call the service to update the document
     const result = await attachedDocumentsService.updateAttachedDocument(
       attachedDocumentUniqueId,
-      {
-        documentDescription,
-        documentTypeId,
-        documentExpirationDate,
-        attachedDocumentName, // Pass the file name (either existing or new)
-        updatedByUserId: req.user?.userUniqueId, // Assuming req.user contains user data
-      }
+      user,
+      req.body,
+      req.files
     );
 
+    // Respond with the result
     ServerResponder(res, result);
   } catch (error) {
-    console.log("Error updating attached document:", error);
+    console.error("Error updating attached document:", error);
     ServerResponder(res, {
       message: "error",
       error: "Unable to update attached document",

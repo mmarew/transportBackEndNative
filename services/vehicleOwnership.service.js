@@ -123,8 +123,8 @@ const getVehicleOwnershipByUserUniqueId = async (userUniqueId) => {
         on: "VehicleOwnership.userUniqueId = Users.userUniqueId",
       },
       {
-        table: "vehicleTypes",
-        on: "Vehicle.vehicleTypeUniqueId = vehicleTypes.vehicleTypeUniqueId",
+        table: "VehicleTypes",
+        on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
       },
     ],
     conditions: { ["VehicleOwnership.userUniqueId"]: userUniqueId },

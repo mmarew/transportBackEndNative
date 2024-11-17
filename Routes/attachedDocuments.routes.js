@@ -34,12 +34,13 @@ router.post(
   upload.any(),
   attachedDocumentsController.createAttachedDocuments
 );
-
+// get Attached Documents By User unique id
 router.get(
   "/api/admin/attachedDocumentsByUser/:userUniqueId",
   verifyTokenOfAxios,
   attachedDocumentsController.getAttachedDocumentsByUser
 );
+//get attached Document by document UniqueId
 router.get(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   attachedDocumentsController.getAttachedDocumentByUniqueId

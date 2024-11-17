@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // Create a new journey
 exports.createJourney = async (
@@ -82,4 +83,25 @@ exports.deleteJourney = async (journeyId) => {
   } else {
     return { message: "error", data: "Failed to delete journey" };
   }
+};
+exports.getCompletedJourney = async (req) => {
+  const user = req.user;
+  const userUniqueId = user.userUniqueId;
+  const completedJourney = await performJoinSelect({
+    baseTable: "Journey",
+    // baseTable: "passengerRequest",
+    joins: [
+      {
+        table: "JourneyDecisions",
+        on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+      },
+      {
+        table: "PassengerRequest",
+        on: "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+      },
+    ],
+    conditions: { userUniqueId },
+  });
+
+  return { message: "success", data: completedJourney };
 };

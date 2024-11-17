@@ -10,7 +10,8 @@ router.post(
 );
 
 router.get(
-  "/api/admin/getMappingByRoleUniqueId/:roleUniqueId",
+  "/api/user/getMappingByRoleUniqueId/:roleUniqueId",
+  verifyTokenOfAxios,
   RoleDocumentRequirementsController.getMappingByRoleUniqueId
 );
 // Update a mapping by ID

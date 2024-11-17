@@ -1,5 +1,5 @@
 const journeyService = require("../Services/Journey.service");
-
+const ServerResponder = require("../Utils/ServerResponder");
 // Create a new journey
 exports.createJourney = async (req, res) => {
   try {
@@ -82,6 +82,19 @@ exports.deleteJourney = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await journeyService.deleteJourney(id);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error deleting journey:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to delete journey",
+    });
+  }
+};
+// Get all completed journeys
+exports.getCompletedJourney = async (req, res) => {
+  try {
+    const result = await journeyService.getCompletedJourney(req);
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting journey:", error);

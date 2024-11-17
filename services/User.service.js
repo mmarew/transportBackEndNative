@@ -43,7 +43,7 @@ const createUser = async (body) => {
   if (!fullName || !phoneNumber || !email || !roleId || !statusId) {
     return {
       message: "error",
-      data: "All fields are required",
+      data: "All fields are required to create a user",
     };
   }
 
@@ -430,7 +430,7 @@ const updateUser = async (body) => {
   if (!userUniqueId) {
     return {
       message: "error",
-      data: "userUniqueId is required",
+      error: "userUniqueId is required",
     };
   }
 
@@ -441,19 +441,6 @@ const updateUser = async (body) => {
   if (email) updateValues.email = email;
 
   try {
-    // Check if the user exists
-    const savedUser = await getData({
-      tableName: "Users",
-      conditions: { userUniqueId },
-    });
-
-    if (savedUser.length <= 0) {
-      return {
-        message: "error",
-        data: "User not found",
-      };
-    }
-
     // Update the user's information if there are any fields to update
     if (Object.keys(updateValues).length > 0) {
       const updateUserResult = await updateData({
@@ -471,53 +458,61 @@ const updateUser = async (body) => {
     }
 
     // Check if roleId or statusId needs to be updated
-    if (roleId || statusId) {
-      const existingRoleStatus = await getData({
-        tableName: "UserRoleStatuses",
-        conditions: {
-          userUniqueId,
-        },
-      });
+    // if (roleId || statusId) {
+    //   const existingRoleStatus = await getData({
+    //     tableName: "UserRoleStatusCurrent",
+    //     conditions: {
+    //       userUniqueId,
+    //     },
+    //   });
 
-      if (existingRoleStatus.length > 0) {
-        // Update the role or status if needed
-        const updateRoleStatusResult = await updateData({
-          tableName: "UserRoleStatuses",
-          updateValues: {
-            ...(roleId && { roleId }),
-            ...(statusId && { statusId }),
-          },
-          conditions: { userUniqueId },
-        });
+    //   if (existingRoleStatus.length > 0) {
+    //     // Update the role or status if needed
+    //     const updateRoleStatusResult = await updateData({
+    //       tableName: "UserRoleStatusCurrent",
+    //       updateValues: {
+    //         ...(roleId && { roleId }),
+    //         ...(statusId && { statusId }),
+    //       },
+    //       conditions: { userUniqueId },
+    //     });
 
-        if (updateRoleStatusResult.affectedRows <= 0) {
-          return {
-            message: "error",
-            data: "Failed to update user role/status",
-          };
-        }
-      } else {
-        // If no existing role/status, insert new one
-        const insertRoleStatusResult = await insertData({
-          tableName: "UserRoleStatuses",
-          colAndVal: {
-            userRoleStatusUniqueId: uuidv4(),
-            userUniqueId,
-            ...(roleId && { roleId }),
-            ...(statusId && { statusId }),
-          },
-        });
+    //     if (updateRoleStatusResult.affectedRows <= 0) {
+    //       return {
+    //         message: "error",
+    //         data: "Failed to update user role/status",
+    //       };
+    //     }
+    //   } else {
+    //     // If no existing role/status, insert new one
+    //     const insertRoleStatusResult = await insertData({
+    //       tableName: "UserRoleStatuses",
+    //       colAndVal: {
+    //         userRoleStatusUniqueId: uuidv4(),
+    //         userUniqueId,
+    //         ...(roleId && { roleId }),
+    //         ...(statusId && { statusId }),
+    //       },
+    //     });
 
-        if (insertRoleStatusResult.affectedRows <= 0) {
-          return {
-            message: "error",
-            data: "Failed to create user role/status",
-          };
-        }
-      }
-    }
+    //     if (insertRoleStatusResult.affectedRows <= 0) {
+    //       return {
+    //         message: "error",
+    //         data: "Failed to create user role/status",
+    //       };
+    //     }
+    //   }
+    // }
+    const tokenData = createJWT({
+      userUniqueId,
+      fullName,
+      phoneNumber,
+      email,
+      roleId,
+    });
 
     return {
+      token: tokenData.token,
       message: "success",
       data: "User updated successfully",
     };

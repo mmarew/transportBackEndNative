@@ -3,6 +3,7 @@ const express = require("express");
 const constroller = require("../Controllers/User.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
+const upload = require("../Config/MulterConfig");
 
 const router = express.Router();
 router.get(
@@ -18,7 +19,12 @@ router.post(
   constroller.createUser
 );
 router.get("/api/user/verifyUserByOTP", constroller.verifyUserByOTP);
-router.put("/api/user/updateUser", verifyTokenOfAxios, constroller.updateUser);
+router.put(
+  "/api/user/updateUser",
+  verifyTokenOfAxios,
+  upload.any(),
+  constroller.updateUser
+);
 router.get(
   "/api/admin/getUser/:userUniqueId",
   verifyTokenOfAxios,

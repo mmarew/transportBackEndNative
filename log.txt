@@ -1,277 +1,308 @@
-[2024-11-13T09:07:07.930Z] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:07:07.947Z] Server started on port http://localhost:3000
-[2024-11-13T09:28:05.682Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:28:05.694Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:31:27.815Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:31:27.830Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:31:56.905Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:31:56.918Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:32:35.638Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:32:35.650Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:33:16.654Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:33:16.667Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:33:43.694Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:33:43.708Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:33:56.212Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:33:56.224Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:34:04.465Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:34:04.479Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:34:50.316Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:34:50.333Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:35:19.977Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:35:20.086Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:35:21.110Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:35:21.120Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:42:29.951Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:42:29.970Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T09:44:37.398Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T09:44:37.412Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T10:38:34.995Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T10:38:35.000Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T10:44:14.431Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T10:44:14.413Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T10:46:00.107Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T10:46:00.121Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T10:46:32.550Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T10:46:32.563Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T10:51:19.814Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T10:51:19.832Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T10:52:39.095Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T10:52:39.100Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T10:52:50.222Z] [LOG] Error querying data: {"message":"connect ECONNABORTED 91.204.209.19:3306","code":"ECONNABORTED","errno":-4079}
-[2024-11-13T10:52:50.257Z] [LOG] Error creating canceled journey: {"message":"connect ECONNABORTED 91.204.209.19:3306","code":"ECONNABORTED","errno":-4079}
-[2024-11-13T10:53:19.830Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:53:19.832Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:53:49.837Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:53:49.839Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:54:19.847Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:54:19.850Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:54:49.858Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:54:49.861Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:55:23.364Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T10:55:23.460Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T11:08:18.874Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T11:08:18.877Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T11:10:25.560Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T11:10:25.573Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T11:14:25.603Z] [LOG] Error querying data: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T11:14:25.613Z] [LOG] Error creating canceled journey: {"message":"connect ENETUNREACH 91.204.209.19:3306","code":"ENETUNREACH","errno":-4062}
-[2024-11-13T11:31:43.161Z] [LOG] req.query in verifyUserByOTP {"OTP":"546891","phoneNumber":"09111111","roleId":"3"}
-[2024-11-13T11:44:52.728Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T11:44:52.744Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T11:45:25.110Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T11:45:25.128Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T11:47:34.168Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T11:47:34.748Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T12:31:54.593Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T12:31:54.582Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T12:32:15.263Z] [LOG] Error querying data: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
-[2024-11-13T12:32:15.264Z] [LOG] Error creating canceled journey: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
-[2024-11-13T12:32:45.269Z] [LOG] Error querying data: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
-[2024-11-13T12:32:45.271Z] [LOG] Error creating canceled journey: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
-[2024-11-13T12:33:15.281Z] [LOG] Error querying data: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
-[2024-11-13T12:33:15.289Z] [LOG] Error creating canceled journey: {"message":"connect ETIMEDOUT","code":"ETIMEDOUT"}
-[2024-11-13T13:29:30.317Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T13:29:30.453Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-13T15:37:48.758Z] [LOG] Error querying data: {"message":"write ECONNABORTED","code":"ECONNABORTED","errno":-4079}
-[2024-11-13T15:37:48.937Z] [LOG] Error creating canceled journey: {"message":"write ECONNABORTED","code":"ECONNABORTED","errno":-4079}
-[2024-11-13T16:00:10.435Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:00:10.503Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:00:36.920Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:00:36.901Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:00:47.801Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:00:47.817Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:09:19.017Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:09:19.036Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:10:02.590Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:10:02.604Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:10:37.526Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:10:37.539Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:11:05.808Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:11:05.822Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:36:47.053Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:36:47.068Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:40:04.657Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:40:04.760Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T16:43:05.026Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T16:43:05.047Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:02:54.514Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:02:54.532Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:03:17.754Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:03:17.772Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:03:22.733Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:03:22.753Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:04:13.843Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:04:13.876Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:05:11.730Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:05:11.757Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:05:41.903Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:05:41.915Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:10:53.317Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:10:53.332Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:11:06.039Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:11:06.076Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:11:33.819Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:11:33.851Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:11:42.048Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:11:42.063Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:12:11.735Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:12:11.751Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:12:28.466Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:12:28.489Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:12:33.661Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:12:33.675Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:13:07.097Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:13:07.110Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:13:39.732Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:13:39.753Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:14:16.977Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:14:16.990Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:14:20.026Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:14:20.041Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:14:43.891Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:14:43.902Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:15:09.949Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:15:09.964Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:15:33.034Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:15:33.047Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:16:03.758Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:16:03.774Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:16:31.787Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:16:31.803Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:17:30.775Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-13T17:17:30.823Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:17:34.687Z] [LOG] Server started on port http://localhost:3000
-[2024-11-13T17:17:34.674Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:12:19.918Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:12:19.939Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:14:03.290Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:14:03.302Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:14:48.904Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:14:48.914Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:15:01.240Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:15:01.251Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:15:17.427Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:15:17.439Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:15:32.821Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:15:32.833Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:16:24.983Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:16:24.995Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:16:42.823Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:16:42.836Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:16:51.592Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:16:51.614Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:18:00.125Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:18:00.136Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:18:32.124Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:18:32.135Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:18:34.998Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:18:35.014Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:18:59.412Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:18:59.425Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:19:36.165Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:19:36.264Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:20:17.386Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:20:17.375Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:51:13.559Z] [LOG] Error querying data: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-14T05:51:13.563Z] [LOG] Error creating canceled journey: {"message":"read ECONNRESET","code":"ECONNRESET","errno":-4077}
-[2024-11-14T05:56:08.906Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:56:08.920Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:57:22.157Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:57:22.169Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:57:59.670Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:57:59.685Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:58:12.128Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:58:12.160Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:58:30.752Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:58:30.769Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:58:53.351Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:58:53.398Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:59:10.931Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:59:10.948Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:59:28.160Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:59:28.180Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T05:59:42.771Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T05:59:42.782Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:00:55.554Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:00:55.568Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:01:11.035Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:01:11.021Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:01:39.165Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:01:39.182Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:01:56.628Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:01:56.643Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:02:14.679Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:02:14.694Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:02:38.701Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:02:38.712Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:02:57.594Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:02:57.605Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:14:45.232Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:14:45.243Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:15:12.182Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:15:12.198Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:15:15.931Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:15:15.941Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:15:36.815Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:15:36.830Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:16:12.549Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:16:12.561Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:16:24.534Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:16:24.556Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:17:25.251Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:17:25.263Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:18:12.918Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:18:12.931Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:18:41.250Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:18:41.263Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:18:50.847Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:18:50.865Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:19:29.467Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:19:29.481Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:19:39.265Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:19:39.280Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:20:17.926Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:20:17.996Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:20:47.482Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:20:47.497Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:21:03.559Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:21:03.546Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:21:12.722Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:21:12.737Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:21:28.478Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:21:28.490Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:21:45.786Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:21:45.798Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:23:00.155Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:23:00.130Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:23:39.246Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:23:39.262Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:23:56.559Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:23:56.571Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:25:01.342Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:25:01.361Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:25:22.525Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:25:22.588Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:26:08.632Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:26:08.656Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:26:24.065Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:26:24.076Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:26:41.431Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:26:41.444Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:26:56.333Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:26:56.316Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:27:15.752Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:27:15.765Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:27:25.902Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:27:25.914Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:27:51.727Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:27:51.743Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:29:44.325Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:29:44.349Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:34:57.406Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:34:57.417Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:35:04.914Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:35:04.943Z] [LOG] Server started on port http://localhost:3000
-[2024-11-14T06:35:06.095Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-14T06:35:06.108Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T16:50:11.484Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T16:50:11.500Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T16:51:09.161Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T16:51:21.413Z] [LOG] @updateUser ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T16:52:23.400Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T16:52:23.414Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T16:52:51.470Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T16:52:51.475Z] [LOG] req.file ========>  
+[2024-11-16T16:55:24.785Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T16:55:24.786Z] [LOG] req.file ========>  
+[2024-11-16T17:01:01.345Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:01:01.420Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:01:32.959Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:01:32.965Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"67197da6-6a70-4d99-a9ef-bdb766695ace.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\67197da6-6a70-4d99-a9ef-bdb766695ace.jpg","size":3021216}]
+[2024-11-16T17:01:32.967Z] [LOG] attachedDocumentUniqueId =====>  undefined
+[2024-11-16T17:01:32.968Z] [ERROR] Error updating user profile: {}
+[2024-11-16T17:02:44.287Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:02:44.288Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"0e9c1ec4-487b-4e3c-8981-d3ada03abcdc.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\0e9c1ec4-487b-4e3c-8981-d3ada03abcdc.jpg","size":3021216}]
+[2024-11-16T17:02:44.289Z] [LOG] attachedDocumentUniqueId =====>  undefined
+[2024-11-16T17:02:44.289Z] [ERROR] Error updating user profile: {}
+[2024-11-16T17:02:54.602Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:02:54.617Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:03:57.248Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:03:57.251Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"502a5d54-41c9-4cca-afb0-c5fd3339dc69.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\502a5d54-41c9-4cca-afb0-c5fd3339dc69.jpg","size":3021216}]
+[2024-11-16T17:03:57.253Z] [LOG] attachedDocumentUniqueId =====>  undefined
+[2024-11-16T17:03:57.260Z] [LOG]  @ updateUserresponse ==========>  {"message":"success","data":"Document created successfully"}
+[2024-11-16T17:06:27.964Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:08:12.784Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:08:28.328Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:09:36.693Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:10:10.280Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:11:44.719Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:12:30.327Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T17:13:19.865Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:13:19.866Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"4191c9c9-5283-464e-9f4d-d3d1e9043821.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\4191c9c9-5283-464e-9f4d-d3d1e9043821.jpg","size":3021216}]
+[2024-11-16T17:13:19.868Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:13:19.868Z] [ERROR] Error updating user profile: {}
+[2024-11-16T17:14:16.261Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:14:16.273Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:14:37.758Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:14:37.763Z] [ERROR] Error updating user profile: {}
+[2024-11-16T17:14:37.762Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:14:37.760Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"92920a38-1e4c-47d6-81ad-4afec1694e20.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\92920a38-1e4c-47d6-81ad-4afec1694e20.jpg","size":3021216}]
+[2024-11-16T17:15:50.708Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:15:50.758Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:16:24.152Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"fc85b084-1aea-4511-9138-e3efc1678353.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\fc85b084-1aea-4511-9138-e3efc1678353.jpg","size":3021216}]
+[2024-11-16T17:16:24.149Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:16:24.154Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:18:47.257Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:18:47.261Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"30c87ca9-1688-49b9-8182-ed279bb38803.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\30c87ca9-1688-49b9-8182-ed279bb38803.jpg","size":3021216}]
+[2024-11-16T17:18:47.262Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:20:05.139Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:20:05.153Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:20:27.013Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:20:27.018Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"6fa89aaf-ad7d-44ee-b275-f3d0eaf28924.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\6fa89aaf-ad7d-44ee-b275-f3d0eaf28924.jpg","size":3021216}]
+[2024-11-16T17:20:27.020Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:20:27.021Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
+[2024-11-16T17:23:32.666Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:23:32.803Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:24:20.926Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:24:20.932Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"44fb7f36-25ca-49a0-86a0-02d051bc7624.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\44fb7f36-25ca-49a0-86a0-02d051bc7624.jpg","size":3021216}]
+[2024-11-16T17:24:20.934Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:24:20.938Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
+[2024-11-16T17:25:37.338Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
+[2024-11-16T17:25:37.340Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","size":3021216}]
+[2024-11-16T17:25:37.343Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
+[2024-11-16T17:25:37.348Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
+[2024-11-16T17:32:41.992Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:32:42.015Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:32:53.959Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:32:53.970Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:33:09.562Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:33:09.576Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:44:22.161Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:44:22.171Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:44:56.296Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:44:56.319Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:45:59.036Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:45:59.079Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:46:56.548Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:46:56.562Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:47:40.882Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:47:40.893Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:48:54.933Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:48:54.971Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:49:46.046Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:49:46.034Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:49:57.599Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:49:57.590Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:52:31.005Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:52:31.020Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:52:41.377Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:52:41.394Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:54:48.878Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:54:48.869Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:55:16.646Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:55:16.656Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:55:31.934Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:55:31.945Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:56:00.532Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:56:00.546Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:57:04.422Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:57:04.457Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:57:56.402Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:57:56.413Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:58:11.985Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T17:58:11.994Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T17:59:50.822Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:03:02.480Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
+[2024-11-16T18:04:51.958Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:06:19.496Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:06:19.508Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:07:04.310Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
+[2024-11-16T18:09:28.835Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
+[2024-11-16T18:09:42.112Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:09:42.121Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:09:45.791Z] [LOG] existingDocument {"attachedDocumentId":2,"attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentDescription":"","documentTypeId":4,"documentExpirationDate":null,"attachedDocumentAcceptance":"PENDING","attachedDocumentName":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentCreatedAt":"2024-11-16T17:03:57.000Z","attachedDocumentAcceptanceReason":null,"attachedDocumentAcceptedRejectedByUserId":null,"attachedDocumentAcceptedRejectedAt":null,"documentTypeUniqueId":"2314a62a-84f7-4194-a697-fde0f166afe9","documentTypeName":" Profile Photo","uploadedDocumentName":"ProfilePhoto","uploadedDocumentTypeId":"ProfilePhotoTypeId","uploadedDocumentDescription":"ProfilePhotoDescription","uploadedDocumentExpirationDate":"ProfilePhotoExpirationDate","documentTypeDescription":"Profile Photo","documentTypeCreatedBy":"a50a099b-8600-4727-83ec-429aef52654b","documentTypeCreatedAt":"2024-11-07T10:52:47.000Z"}
+[2024-11-16T18:09:45.794Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
+[2024-11-16T18:12:25.866Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:12:25.880Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:12:36.823Z] [LOG] existingDocument {"attachedDocumentId":2,"attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentDescription":"","documentTypeId":4,"documentExpirationDate":null,"attachedDocumentAcceptance":"PENDING","attachedDocumentName":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentCreatedAt":"2024-11-16T17:03:57.000Z","attachedDocumentAcceptanceReason":null,"attachedDocumentAcceptedRejectedByUserId":null,"attachedDocumentAcceptedRejectedAt":null,"documentTypeUniqueId":"2314a62a-84f7-4194-a697-fde0f166afe9","documentTypeName":" Profile Photo","uploadedDocumentName":"ProfilePhoto","uploadedDocumentTypeId":"ProfilePhotoTypeId","uploadedDocumentDescription":"ProfilePhotoDescription","uploadedDocumentExpirationDate":"ProfilePhotoExpirationDate","documentTypeDescription":"Profile Photo","documentTypeCreatedBy":"a50a099b-8600-4727-83ec-429aef52654b","documentTypeCreatedAt":"2024-11-07T10:52:47.000Z"}
+[2024-11-16T18:12:36.828Z] [ERROR] Error updating user profile: {}
+[2024-11-16T18:13:06.087Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:13:06.097Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:13:09.644Z] [LOG] existingDocument {"attachedDocumentId":2,"attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentDescription":"","documentTypeId":4,"documentExpirationDate":null,"attachedDocumentAcceptance":"PENDING","attachedDocumentName":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentCreatedAt":"2024-11-16T17:03:57.000Z","attachedDocumentAcceptanceReason":null,"attachedDocumentAcceptedRejectedByUserId":null,"attachedDocumentAcceptedRejectedAt":null,"documentTypeUniqueId":"2314a62a-84f7-4194-a697-fde0f166afe9","documentTypeName":" Profile Photo","uploadedDocumentName":"ProfilePhoto","uploadedDocumentTypeId":"ProfilePhotoTypeId","uploadedDocumentDescription":"ProfilePhotoDescription","uploadedDocumentExpirationDate":"ProfilePhotoExpirationDate","documentTypeDescription":"Profile Photo","documentTypeCreatedBy":"a50a099b-8600-4727-83ec-429aef52654b","documentTypeCreatedAt":"2024-11-07T10:52:47.000Z"}
+[2024-11-16T18:13:09.648Z] [LOG] documentExpirationDate null
+[2024-11-16T18:13:09.650Z] [LOG] Error inserting data: {"message":"Unknown column 'documentTypeUniqueId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"INSERT INTO AttachedDocumentsHistory (attachedDocumentId, attachedDocumentUniqueId, userUniqueId, attachedDocumentDescription, documentTypeId, documentExpirationDate, attachedDocumentAcceptance, attachedDocumentName, documentVersion, attachedDocumentCreatedByUserId, attachedDocumentCreatedAt, attachedDocumentAcceptanceReason, attachedDocumentAcceptedRejectedByUserId, attachedDocumentAcceptedRejectedAt, documentTypeUniqueId, documentTypeName, uploadedDocumentName, uploadedDocumentTypeId, uploadedDocumentDescription, uploadedDocumentExpirationDate, documentTypeDescription, documentTypeCreatedBy, documentTypeCreatedAt, attachedDocumentUpdatedByUserId, attachedDocumentUpdatedAt) VALUES (2, 'a5a34231-a3a2-4d39-a253-e28fe6351af5', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '', 4, NULL, 'PENDING', '8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg', 2, '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 20:03:57.000', NULL, NULL, NULL, '2314a62a-84f7-4194-a697-fde0f166afe9', ' Profile Photo', 'ProfilePhoto', 'ProfilePhotoTypeId', 'ProfilePhotoDescription', 'ProfilePhotoExpirationDate', 'Profile Photo', 'a50a099b-8600-4727-83ec-429aef52654b', '2024-11-07 13:52:47.000', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 21:13:09.648')","sqlState":"42S22","sqlMessage":"Unknown column 'documentTypeUniqueId' in 'field list'"}
+[2024-11-16T18:13:09.652Z] [ERROR] Error updating user profile: {"message":"Unknown column 'documentTypeUniqueId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"INSERT INTO AttachedDocumentsHistory (attachedDocumentId, attachedDocumentUniqueId, userUniqueId, attachedDocumentDescription, documentTypeId, documentExpirationDate, attachedDocumentAcceptance, attachedDocumentName, documentVersion, attachedDocumentCreatedByUserId, attachedDocumentCreatedAt, attachedDocumentAcceptanceReason, attachedDocumentAcceptedRejectedByUserId, attachedDocumentAcceptedRejectedAt, documentTypeUniqueId, documentTypeName, uploadedDocumentName, uploadedDocumentTypeId, uploadedDocumentDescription, uploadedDocumentExpirationDate, documentTypeDescription, documentTypeCreatedBy, documentTypeCreatedAt, attachedDocumentUpdatedByUserId, attachedDocumentUpdatedAt) VALUES (2, 'a5a34231-a3a2-4d39-a253-e28fe6351af5', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '', 4, NULL, 'PENDING', '8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg', 2, '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 20:03:57.000', NULL, NULL, NULL, '2314a62a-84f7-4194-a697-fde0f166afe9', ' Profile Photo', 'ProfilePhoto', 'ProfilePhotoTypeId', 'ProfilePhotoDescription', 'ProfilePhotoExpirationDate', 'Profile Photo', 'a50a099b-8600-4727-83ec-429aef52654b', '2024-11-07 13:52:47.000', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 21:13:09.648')","sqlState":"42S22","sqlMessage":"Unknown column 'documentTypeUniqueId' in 'field list'"}
+[2024-11-16T18:20:20.288Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:20:20.298Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:20:30.093Z] [LOG] Error deleting file: C:\ReactNativeTransport\Server\uploads\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg {"errno":-4058,"code":"ENOENT","syscall":"unlink","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg"}
+[2024-11-16T18:20:30.100Z] [ERROR] Error updating user profile: {"message":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '251c5012-67bb-45e4-b024-423e85271070.png', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedByUserId = '33269818-d8d3-46e1-99ea-aa35c660bc4c', attachedDocumentUpdatedAt = '2024-11-16 21:20:30.097' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'"}
+[2024-11-16T18:20:30.098Z] [LOG] Error updating data: {"message":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '251c5012-67bb-45e4-b024-423e85271070.png', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedByUserId = '33269818-d8d3-46e1-99ea-aa35c660bc4c', attachedDocumentUpdatedAt = '2024-11-16 21:20:30.097' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'"}
+[2024-11-16T18:21:51.775Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:21:51.783Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:22:53.082Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:23:58.568Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:24:47.819Z] [LOG] Error deleting file: C:\ReactNativeTransport\Server\uploads\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg {"errno":-4058,"code":"ENOENT","syscall":"unlink","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg"}
+[2024-11-16T18:24:47.823Z] [LOG] Error updating data: {"message":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '628f7046-69ed-4425-ade5-011e8b6881f2.jpg', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedAt = '2024-11-16 21:24:47.822' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'"}
+[2024-11-16T18:24:47.824Z] [ERROR] Error updating user profile: {"message":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '628f7046-69ed-4425-ade5-011e8b6881f2.jpg', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedAt = '2024-11-16 21:24:47.822' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'"}
+[2024-11-16T18:25:02.449Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:25:02.457Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:25:08.094Z] [LOG] Error deleting file: C:\ReactNativeTransport\Server\uploads\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg {"errno":-4058,"code":"ENOENT","syscall":"unlink","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg"}
+[2024-11-16T18:25:08.098Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
+[2024-11-16T18:26:01.128Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:26:15.245Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
+[2024-11-16T18:27:46.830Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:27:46.841Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:27:59.215Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:27:59.206Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:29:09.221Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:29:09.229Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:29:43.459Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:29:43.470Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:29:59.148Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:29:59.156Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:30:57.666Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:30:57.677Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:31:16.146Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:31:16.159Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:31:43.127Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:31:43.136Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:32:17.413Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:32:17.422Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:32:22.210Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:32:22.219Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:32:44.558Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:32:44.575Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:33:09.685Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:33:09.698Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:33:47.923Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:33:47.935Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:33:53.822Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:33:53.831Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:34:56.185Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-16T18:34:56.194Z] [LOG] Server started on port http://localhost:3000
+[2024-11-16T18:37:30.179Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:39:46.284Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:40:55.107Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:44:49.531Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:45:17.296Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-16T18:45:35.877Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:24:59.408Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:24:59.423Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:30:39.783Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:31:49.385Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:33:02.861Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:36:21.490Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:36:21.504Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:45:54.851Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:45:54.838Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:47:08.393Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:47:44.092Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:48:07.123Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T05:49:38.466Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:49:38.489Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:51:23.960Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:51:23.976Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:51:30.361Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required"},"message":"success","data":"User updated successfully"}
+[2024-11-17T05:52:27.501Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:52:27.544Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:52:38.527Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:52:38.558Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:52:42.151Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
+[2024-11-17T05:53:00.470Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:53:00.483Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:53:06.629Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:53:06.643Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:53:10.716Z] [LOG] userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com"}
+[2024-11-17T05:53:10.718Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
+[2024-11-17T05:55:59.597Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:55:59.614Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:56:11.744Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com"}
+[2024-11-17T05:56:11.747Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
+[2024-11-17T05:57:22.443Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com"}
+[2024-11-17T05:57:22.444Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
+[2024-11-17T05:57:33.033Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:57:33.047Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:57:37.071Z] [LOG] Error querying data: {"message":"Table 'transport.userrolestatuses' doesn't exist","code":"ER_NO_SUCH_TABLE","errno":1146,"sql":"SELECT * FROM UserRoleStatuses WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S02","sqlMessage":"Table 'transport.userrolestatuses' doesn't exist"}
+[2024-11-17T05:57:37.076Z] [LOG] Error: {"message":"Table 'transport.userrolestatuses' doesn't exist","code":"ER_NO_SUCH_TABLE","errno":1146,"sql":"SELECT * FROM UserRoleStatuses WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S02","sqlMessage":"Table 'transport.userrolestatuses' doesn't exist"}
+[2024-11-17T05:57:37.077Z] [LOG] textResponse {"message":"error","data":"An error occurred during user update"}
+[2024-11-17T05:59:13.744Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T05:59:13.756Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T05:59:17.124Z] [LOG] Error querying data: {"message":"Unknown column 'userUniqueId' in 'where clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM UserRoleStatusCurrent WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S22","sqlMessage":"Unknown column 'userUniqueId' in 'where clause'"}
+[2024-11-17T05:59:17.129Z] [LOG] Error: {"message":"Unknown column 'userUniqueId' in 'where clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM UserRoleStatusCurrent WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S22","sqlMessage":"Unknown column 'userUniqueId' in 'where clause'"}
+[2024-11-17T05:59:17.130Z] [LOG] textResponse {"message":"error","data":"An error occurred during user update"}
+[2024-11-17T06:01:24.205Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T06:01:24.218Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T06:02:11.485Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T06:02:11.498Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T06:03:36.907Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T06:03:36.919Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T06:03:40.491Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T06:03:40.495Z] [LOG] textResponse {"token":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjMzMjY5ODE4LWQ4ZDMtNDZlMS05OWVhLWFhMzVjNjYwYmM0YyIsImZ1bGxOYW1lIjoiTWFyZXcgTWFzcmVzaGEgQWJhdGUiLCJwaG9uZU51bWJlciI6IisyNTE5MjIxMTI0ODAiLCJlbWFpbCI6Im1tYXJld0BnbWFpbC5jb20iLCJyb2xlSWQiOiIxIn0sImlhdCI6MTczMTgyMzQyMH0.cxMzayQB2tPg1v2HgpQUE1uj1auN24Zdz93ctqCza3w","message":"success"},"message":"success","data":"User updated successfully"}
+[2024-11-17T06:04:28.743Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T06:04:28.772Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T06:04:43.149Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T06:04:43.153Z] [LOG] textResponse {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjMzMjY5ODE4LWQ4ZDMtNDZlMS05OWVhLWFhMzVjNjYwYmM0YyIsImZ1bGxOYW1lIjoiTWFyZXcgTWFzcmVzaGEgQWJhdGUiLCJwaG9uZU51bWJlciI6IisyNTE5MjIxMTI0ODAiLCJlbWFpbCI6Im1tYXJld0BnbWFpbC5jb20iLCJyb2xlSWQiOiIxIn0sImlhdCI6MTczMTgyMzQ4M30.V9hGHTXbVbETNFNe5gj4j8Qucy-y5JgegmWXExfMNO0","message":"success","data":"User updated successfully"}
+[2024-11-17T06:06:58.482Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T06:06:58.494Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T06:07:01.059Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T06:07:47.645Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:09:02.758Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T06:09:02.781Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T06:09:07.369Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T06:10:18.512Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:10:32.197Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T06:11:13.882Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:14:08.630Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:14:58.044Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:15:33.627Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:16:32.463Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:16:44.225Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:24:57.282Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:25:15.638Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:25:45.218Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:25:52.429Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T06:30:27.886Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T07:20:04.639Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T07:20:40.618Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T07:20:40.631Z] [LOG] fileResponse {"message":"success","data":"Document updated successfully"}
+[2024-11-17T07:21:00.758Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
+[2024-11-17T07:21:00.762Z] [LOG] fileResponse {"message":"success","data":"Document updated successfully"}
+[2024-11-17T07:22:31.042Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T07:23:36.328Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T07:23:49.029Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
+[2024-11-17T09:29:50.313Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:29:50.327Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:30:41.649Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:30:41.666Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:33:56.372Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:33:56.386Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:34:21.467Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:34:21.562Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:34:46.480Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:34:46.493Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:38:32.995Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:38:33.011Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:39:04.708Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:39:04.722Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:39:32.396Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:39:32.412Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:40:08.594Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:40:08.579Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:44:55.825Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:44:55.811Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:48:49.518Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:48:49.533Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:48:58.769Z] [LOG] Error querying data: {"message":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM passengerRequest JOIN Journey ON PassengerRequest.passengerRequestUniqueId = Journey.passengerRequestUniqueId WHERE userUniqueId = 'b67c3160-8cfa-4b25-962c-7f636282b3b6'    ","sqlState":"42S22","sqlMessage":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'"}
+[2024-11-17T09:48:58.775Z] [LOG] Error deleting journey: {"message":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM passengerRequest JOIN Journey ON PassengerRequest.passengerRequestUniqueId = Journey.passengerRequestUniqueId WHERE userUniqueId = 'b67c3160-8cfa-4b25-962c-7f636282b3b6'    ","sqlState":"42S22","sqlMessage":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'"}
+[2024-11-17T09:50:50.079Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:50:50.094Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:52:20.304Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:52:20.319Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:53:31.462Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:53:31.477Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:54:32.555Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:54:32.568Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T09:55:17.339Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T09:55:17.355Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T16:16:42.860Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T16:16:42.872Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T16:17:29.620Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T16:17:29.632Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T16:20:13.998Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T16:20:14.015Z] [LOG] Server started on port http://localhost:3000
+[2024-11-17T16:20:24.139Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-17T16:20:24.152Z] [LOG] Server started on port http://localhost:3000

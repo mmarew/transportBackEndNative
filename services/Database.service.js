@@ -334,7 +334,7 @@ const installPreDefinedData = async (req, res) => {
       (VehicleType) => createVehicleType({ ...VehicleType }, user.userUniqueId),
       successVehicleTypes,
       failedVehicleTypes,
-      "VehicleType"
+      "VehicleTypes"
     );
 
     // 4. Process document types
