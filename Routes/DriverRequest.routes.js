@@ -16,7 +16,6 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
 
 const router = express.Router();
-// router.use();
 // Create a new driver request
 router.post(
   "/driver/request",

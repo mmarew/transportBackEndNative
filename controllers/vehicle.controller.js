@@ -75,7 +75,8 @@ const getAllVehiclesController = async (req, res) => {
 
 const verifyUsersVehicleController = async (req, res) => {
   try {
-    const { ownerUserUniqueId } = req.params;
+    let ownerUserUniqueId = req.params?.ownerUserUniqueId;
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = req.user.userUniqueId;
     const response = await verifyUsersVehicle(ownerUserUniqueId, req.user);
     ServerResponder(res, response);
   } catch (error) {

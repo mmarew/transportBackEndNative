@@ -28,7 +28,7 @@ router.delete(
 ); // Delete vehicle
 router.get("/api/admin/vehicles", verifyTokenOfAxios, getAllVehiclesController); // Get all vehicles
 router.get(
-  "/vehicles/verify/:ownerUserUniqueId",
+  "/api/user/vehicles/verifyUsersVehicle/:ownerUserUniqueId",
   verifyTokenOfAxios,
   verifyUsersVehicleController
 ); // Verify user's vehicle

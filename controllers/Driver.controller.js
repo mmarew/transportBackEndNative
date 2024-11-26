@@ -139,12 +139,18 @@ const attachRequiredDocuments = async (req, res) => {
 };
 const driversDocumentVehicleRequirement = async (req, res) => {
   try {
+    console.log("@driversDocumentVehicleRequirement", req.body);
     const user = req?.user;
+    const userRoleStatus = req?.userRoleStatus,
+      userRole = req?.userRole;
+
     const userUniqueId = user?.userUniqueId;
     let ownerUserUniqueId = req.params.userUniqueId;
 
     if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
     req.body.user = user;
+    req.body.userRole = userRole;
+    req.body.userRoleStatus = userRoleStatus;
     req.body.ownerUserUniqueId = ownerUserUniqueId;
     const result = await services.driversDocumentVehicleRequirement(req.body);
     console.log("@driversDocumentVehicleRequirement result", result);

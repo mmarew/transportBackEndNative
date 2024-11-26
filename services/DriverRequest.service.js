@@ -762,19 +762,19 @@ const attachRequiredDocuments = async (body) => {
 };
 const driversDocumentVehicleRequirement = async (body) => {
   const ownerUserUniqueId = body.ownerUserUniqueId;
-  const user = body.user;
-
+  const user = body?.user;
+  const { userRole, userRoleStatus } = body;
   const roleId = 2;
-  const phoneNumber = user.phoneNumber;
-  const userRoleStatusDescription = body.userRoleStatusDescription;
+  const phoneNumber = user?.phoneNumber;
+  const userRoleStatusDescription = body?.userRoleStatusDescription;
 
   // Fetch initial user data based on role ID and phone number
-  let userData = await getUserRoleStatus({ roleId, phoneNumber });
-  if (!userData || userData.length === 0) {
-    return { message: "error", data: "User data not found" };
-  }
+  // let userData = await getUserRoleStatus({ roleId, phoneNumber });
+  // if (!userData || userData.length === 0) {
+  //   return { message: "error", data: "User data not found" };
+  // }
 
-  const { userRoleStatusUniqueId, userRoleId, statusId } = userData[0];
+  const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus;
 
   // Fetch required documents for the driver's role
   const requiredDocuments = await performJoinSelect({
