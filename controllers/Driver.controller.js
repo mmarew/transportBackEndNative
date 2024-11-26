@@ -102,7 +102,10 @@ const journeyCompleted = async (req, res) => {
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error in journeyCompleted:", error);
-    ServerResponder(res, error.message);
+    ServerResponder(res, {
+      message: "error",
+      error: "error on journey complete",
+    });
   }
 };
 const cancelDriverRequest = async (req, res) => {
@@ -116,6 +119,7 @@ const cancelDriverRequest = async (req, res) => {
     req.body.user = user;
     req.body.roleId = roleId;
     const result = await services.cancelDriverRequest(req.body);
+    console.log("@cancelDriverRequest result", result);
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error in canceledByDriver:", error);

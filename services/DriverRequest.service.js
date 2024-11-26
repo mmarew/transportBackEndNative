@@ -99,7 +99,6 @@ const acceptPassengerRequest = async (body) => {
       "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
     },
   });
-  console.log("existingRequest", existingRequest);
   if (!existingRequest?.length)
     return { message: "error", error: "Request not found" };
   if (
@@ -142,6 +141,7 @@ const startJourney = async (body) => {
         journeyUniqueId,
         journeyDecisionUniqueId: body.journeyDecisionUniqueId,
         journeyStatusId: body.journeyStatusId,
+        startTime: new Date(),
       },
     });
     const insertId = insertResult.insertId;
@@ -218,9 +218,11 @@ const journeyCompleted = async (body) => {
   });
   const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
   const driver = await getUserByUserUniqueId(userUniqueId);
-  console.log("@journeyCompleted driver", driver);
+  // console.log("@journeyCompleted driver", driver);
   if (paymentData.message == "error") return paymentData;
   const phoneNumber = passenger?.at(0)?.phoneNumber;
+  const totalDistance = paymentData?.totalDistance;
+  const fare = paymentData.totalMoney;
   if (phoneNumber)
     sendNotificationToPassenger({
       message: {
@@ -229,7 +231,8 @@ const journeyCompleted = async (body) => {
         message: "success",
         status: 5,
         data: "Journey completed successfully",
-        fare: paymentData.totalMoney,
+        fare,
+        totalDistance,
       },
       phoneNumber,
     });
@@ -276,6 +279,7 @@ const journeyCompleted = async (body) => {
     ...dataOfBalance,
   });
   return {
+    totalDistance,
     totalMoney,
     netBalance,
     message: "success",
@@ -563,7 +567,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
         vehicle: vehicle[0],
       };
     }
-    // active  request are between 1 and 4
+    // active  request are not between 1 and 4
     if (activeRequest[0].journeyStatusId > 4) {
       return {
         message: "success",
@@ -656,6 +660,9 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
         journeyDecisionUniqueId:
           journeyDecisionPayload?.journeyDecisionUniqueId,
       };
+      // update drivers and passengers journeyStatusId to 2
+      driver.journeyStatusId = 2;
+      passenger.journeyStatusId = 2;
       const message = {
         uniqueIds,
         driver: {
@@ -790,9 +797,17 @@ const driversDocumentVehicleRequirement = async (body) => {
     return { message: "error", data: "No documents required for this role" };
   }
 
-  // Fetch attached documents for the driver
-  const attachedDocuments = await getData({
-    tableName: "AttachedDocuments",
+  // Fetch attached documents with its type for the driver
+  const attachedDocuments = await performJoinSelect({
+    // tableName: "AttachedDocuments",
+    // conditions: { userUniqueId: ownerUserUniqueId },
+    baseTable: "AttachedDocuments",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+      },
+    ],
     conditions: { userUniqueId: ownerUserUniqueId },
   });
 
@@ -859,7 +874,8 @@ const driversDocumentVehicleRequirement = async (body) => {
   userData = await getUserRoleStatus({ roleId, phoneNumber });
   return {
     message: "success",
-    userVehicle: userVehicle[0] || null,
+    messageType: "driversDocumentVehicleRequirement",
+    vehicle: userVehicle[0] || null,
     userData: userData[0] || null,
     attachedDocumentsByStatus,
     unAttachedDocumentTypes, // Documents that are required but not attached

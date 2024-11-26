@@ -34,7 +34,6 @@ const createPassengerRequest = async (body, userUniqueId) => {
     tableName: "VehicleTypes",
     conditions: { vehicleTypeUniqueId },
   });
-  console.log("verifyVehicleType ============ ", verifyVehicleType);
   if (verifyVehicleType.length === 0)
     return { message: "error", error: "Vehicle type not found" };
   const originLatitude = originLocation.latitude,

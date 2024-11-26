@@ -6,11 +6,8 @@ const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
     const user = req?.user;
-
-    // Use req.user instead of req?.user to get user data
     const userUniqueId = user?.userUniqueId;
     const roleId = user?.roleId;
-    const createdByUserId = userUniqueId;
 
     if (!req.files || req.files.length === 0) {
       return ServerResponder(res, {
@@ -25,12 +22,14 @@ const createAttachedDocuments = async (req, res) => {
     // Loop through all uploaded files
     req.files.forEach((file) => {
       const expirationDateKey = `${file.fieldname}ExpirationDate`; // Dynamic expiration date field name
-      const typeIdKey = `${file.fieldname}TypeId`; // Dynamic type ID field name
       const descriptionKey = `${file.fieldname}Description`; // Dynamic description field name
+      const typeIdKey = `${file.fieldname}TypeId`; // Dynamic type ID field name
+      const fileNumberKey = `${file.fieldname}FileNumber`; // Dynamic file number field name
 
       const documentExpirationDate = req.body[expirationDateKey] || null;
       const attachedDocumentDescription = req.body[descriptionKey] || null;
       const documentTypeId = req.body[typeIdKey];
+      const attachedDocumentFileNumber = req.body[fileNumberKey];
 
       if (!documentTypeId) {
         uploadResults.push({
@@ -46,6 +45,7 @@ const createAttachedDocuments = async (req, res) => {
           attachedDocumentName: file.filename, // File path where it's stored
           documentTypeId,
           documentExpirationDate,
+          attachedDocumentFileNumber,
         });
       }
     });
@@ -60,6 +60,10 @@ const createAttachedDocuments = async (req, res) => {
           ...document,
           roleId,
         });
+      console.log(
+        "@createAttachedDocuments controller resultOfCreateFiles",
+        resultOfCreateFiles
+      );
 
       if (resultOfCreateFiles.message === "error") {
         fileErrors.push(document.attachedDocumentName); // Track failed files
@@ -105,6 +109,17 @@ const createAttachedDocuments = async (req, res) => {
       sendNotificationToAdmin({ message });
     }
     // Return the detailed upload results for each file
+    if (fileErrors.length > 0 && fileSuccesses.length > 0) {
+      return ServerResponder(res, {
+        message: "success",
+        data: "some documents uploaded successfully, but some failed",
+      });
+    } else if (fileErrors.length > 0 && fileSuccesses.length === 0) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "all documents failed",
+      });
+    }
     ServerResponder(res, {
       message: "success",
       data: "documents uploaded successfully",

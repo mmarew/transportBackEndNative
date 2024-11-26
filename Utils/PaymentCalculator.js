@@ -76,6 +76,7 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
     const totalMoney =
       parseFloat(standingTarrifRate) + moneyByDistance + moneyByTime;
     return {
+      totalDistance,
       message: "success",
       totalMoney,
     };

@@ -75,27 +75,13 @@ const verifyAdminsIdentity = async (req, res, next) => {
 // Verify if the user is a Driver and is in an active status
 const verifyDriversIdentity = async (req, res, next) => {
   try {
-    const userUniqueId = req?.user.userUniqueId;
-
-    // Step 1: Check if the user exists
-    const user = await getData({
-      tableName: "Users",
-      conditions: { userUniqueId },
-    });
-    if (!user[0]) {
-      return res.status(500).json({
-        message: "error",
-        error: "User driver not found",
-        status: null,
-      });
-    }
+    const userUniqueId = req?.user?.userUniqueId;
 
     // Step 2: Verify if the user has a Driver role
     const userRoles = await getData({
       tableName: "UserRole",
       conditions: { userUniqueId, roleId: 2 }, // 2 indicates the Driver role
     });
-
     if (!userRoles?.length) {
       return res.status(500).json({
         message: "error",
@@ -118,7 +104,6 @@ const verifyDriversIdentity = async (req, res, next) => {
         "UserRoleStatusCurrent.userRoleId": driverRole.userRoleId,
       },
     });
-
     if (userRoleStatus.length === 0) {
       return res.status(500).json({
         message: "error",

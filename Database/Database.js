@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
 ) ;
 
 -- Create the DocumentTypes Table
-
+-- if driver attach required documents like driving license ,uploadedDocumentName is used in file input fieled of front end and in backend to recive file name and same to others also. that is why we used uploadedDocument. it is a standared to transfer files from front end to backend using unique name. 
 CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
     documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
@@ -153,6 +153,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     uploadedDocumentTypeId  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
     uploadedDocumentDescription  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
     uploadedDocumentExpirationDate  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
+    uploadedDocumentFileNumber  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end to store file number
      documentTypeDescription  TEXT(2000)    not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
@@ -183,6 +184,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     roleId INT NOT NULL,  -- Foreign key to the Roles table
     documentTypeId INT NOT NULL,  -- Foreign key to the DocumentTypes table
     isDocumentMandatory BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the document is mandatory for the role
+    isFileNumberRequired BOOLEAN NOT NULL DEFAULT FALSE,  -- Whether a file number is required for the document
     isExpirationDateRequired BOOLEAN NOT NULL DEFAULT FALSE,  -- Whether the expiration date is required for the document
     roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
     roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
@@ -206,6 +208,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users and is used to show owner of documents
     attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
     documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
+    attachedDocumentFileNumber VARCHAR(25) NULL,  -- File number associated with the attached document
     documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
     attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
     attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
@@ -307,7 +310,7 @@ CREATE TABLE IF NOT EXISTS Journey (
     journeyId INT AUTO_INCREMENT PRIMARY KEY,
     journeyUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the journey
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- Foreign key to JourneyDecisions
-    startTime TIMESTAMP NOT NULL,  -- Journey start time
+    startTime TIMESTAMP NOT NULL default CURRENT_TIMESTAMP,  -- Journey start time
     endTime TIMESTAMP NULL,  -- Journey end time
     fare DECIMAL(10, 2) DEFAULT 0,  -- Fare for the journey
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
@@ -336,6 +339,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     color VARCHAR(50) NOT NULL,  -- Color of the vehicle
     vehicleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle
     vehicleUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle
+    vehicleUpdatedAt DATETIME NULL,  -- Vehicle update date
     vehicleDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle
     vehicleCreatedAt DATETIME NOT NULL,  -- Vehicle creation date
     vehicleDeletedAt DATETIME NULL,  -- Vehicle deletion date

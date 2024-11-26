@@ -26,7 +26,7 @@ const server = http.createServer(app);
 
 // Initialize WebSocket server instance
 const wss = new WebSocket.Server({ server });
-const handleMessage = (incomingMessage) => {
+const handleMessage = (ws, incomingMessage) => {
   const textMessage = incomingMessage.toString();
 
   if (textMessage) {
@@ -40,7 +40,9 @@ const handleConnection = (ws, req) => {
   const urlParams = new URLSearchParams(req.url.split("?")[1]);
   WSPusher(urlParams, ws);
 
-  ws.on("message", () => handleMessage(ws));
+  ws.on("message", (incomingMessage) => {
+    handleMessage(ws, incomingMessage);
+  });
 
   ws.on("close", () => handleClose(ws));
 };
