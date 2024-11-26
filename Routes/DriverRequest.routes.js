@@ -16,7 +16,7 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
 
 const router = express.Router();
-
+// router.use();
 // Create a new driver request
 router.post(
   "/driver/request",
@@ -40,7 +40,12 @@ router.put(
   verifyDriversIdentity,
   acceptPassengerRequest
 );
-router.put("/driver/startJourney", verifyTokenOfAxios, startJourney);
+router.put(
+  "/driver/startJourney",
+  verifyTokenOfAxios,
+  verifyDriversIdentity,
+  startJourney
+);
 router.put(
   "/driver/noAnswerFromDriver",
   verifyTokenOfAxios,
@@ -77,11 +82,13 @@ router.get(
 router.put(
   "/driver/attachRequiredDocuments",
   verifyTokenOfAxios,
+  verifyDriversIdentity,
   attachRequiredDocuments
 );
 router.get(
   "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
   verifyTokenOfAxios,
+  verifyDriversIdentity,
   driversDocumentVehicleRequirement
 );
 

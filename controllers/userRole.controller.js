@@ -15,22 +15,20 @@ const createUserRole = async (req, res) => {
   }
 };
 
-const getUserRoleByUserUniqueId = async (req, res) => {
+const getUserRoleListByUserUniqueId = async (req, res) => {
   try {
-    const result = await userRoleService.getUserRoleByUserUniqueId(
-      req.params.id
+    const response = await userRoleService.getUserRoleListByUserUniqueId(
+      req.params.userUniqueId
     );
-    ServerResponder(res, result);
+    ServerResponder(res, response);
   } catch (error) {
-    console.log("Error in getUserRoleByIdController:", error);
-    ServerResponder(
-      res,
-      { message: "error", error: "Unable to retrieve UserRole" },
-      500
-    );
+    console.log("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve role",
+    });
   }
 };
-
 const updateUserRole = async (req, res) => {
   try {
     const result = await userRoleService.updateUserRole(
@@ -63,8 +61,8 @@ const deleteUserRole = async (req, res) => {
 };
 
 module.exports = {
+  getUserRoleListByUserUniqueId,
   createUserRole,
-  getUserRoleByUserUniqueId,
   updateUserRole,
   deleteUserRole,
 };

@@ -8,9 +8,7 @@ const createJWT = require("../Utils/createJWT");
 const currentDate = require("../Utils/currentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
-const deleteData = require("../CRUD/Delete/DeleteData");
 const bcrypt = require("bcrypt");
-const { verify } = require("jsonwebtoken");
 const verifyPassword = require("../Utils/VerifyPassword");
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -28,6 +26,34 @@ const createUserSystem = async (body) => {
     statusId,
     userRoleStatusDescription,
   });
+};
+const getUsersByRoleUniqueId = async (roleUniqueId) => {
+  const rows = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "UserRole.userUniqueId=Users.userUniqueId",
+      },
+      {
+        table: "Roles",
+        on: "UserRole.roleId=Roles.roleId",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
+      },
+      {
+        table: "Statuses",
+        on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
+      },
+    ],
+    conditions: { "Roles.roleUniqueId": roleUniqueId },
+  });
+  return {
+    message: "success",
+    data: rows,
+  };
 };
 const createUser = async (body) => {
   const {
@@ -254,7 +280,40 @@ const handleUserRoleStatus = async (
     throw error;
   }
 };
-
+const getUserByUserUniqueIdAndroleUniqueId = async (
+  userUniqueId,
+  roleUniqueId
+) => {
+  const rows = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "UserRole.userUniqueId=Users.userUniqueId",
+      },
+      {
+        table: "Roles",
+        on: "UserRole.roleId=Roles.roleId",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
+      },
+      {
+        table: "Statuses",
+        on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
+      },
+    ],
+    conditions: {
+      "Roles.roleUniqueId": roleUniqueId,
+      "Users.userUniqueId": userUniqueId,
+    },
+  });
+  return {
+    message: "success",
+    data: rows,
+  };
+};
 // Helper function to update OTP and send notification
 const updateOtpForUser = async ({
   userUniqueId,
@@ -528,6 +587,8 @@ const updateUser = async (body) => {
 module.exports = {
   createUserSystem,
   getUserByUserUniqueId,
+  getUsersByRoleUniqueId,
+  getUserByUserUniqueIdAndroleUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,

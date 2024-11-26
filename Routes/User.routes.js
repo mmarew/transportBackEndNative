@@ -11,6 +11,13 @@ router.get(
   verifyTokenOfAxios,
   constroller.getUserByEmailOrNameOrPhoneNumber
 );
+// get users by role
+router.get(
+  "/api/admin/getUsersByRole/:roleUniqueId",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  constroller.getUsersByRoleUniqueId
+);
 router.post("/api/user/createUser", constroller.createUser);
 router.post(
   "/api/admin/createUser",
@@ -18,7 +25,12 @@ router.post(
   verifyAdminsIdentity,
   constroller.createUser
 );
+router.get(
+  "/api/user/getUserByUserUniqueIdAndroleUniqueId/:userUniqueId/:roleUniqueId",
+  constroller.getUserByUserUniqueIdAndroleUniqueId
+);
 router.get("/api/user/verifyUserByOTP", constroller.verifyUserByOTP);
+
 router.put(
   "/api/user/updateUser",
   verifyTokenOfAxios,

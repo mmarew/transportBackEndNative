@@ -1,27 +1,20 @@
-const {
-  createRole,
-  getRole,
-  updateRole,
-  deleteRole,
-  getAllRoles,
-} = require("../Services/Role.service");
+const services = require("../Services/Role.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createRoleController = async (req, res) => {
   try {
     const user = req.user;
     req.body.user = user;
-    const result = await createRole(req.body);
+    const result = await services.createRole(req.body);
     return ServerResponder(res, result);
   } catch (error) {
     console.log("Error in createRoleController:", error);
     return ServerResponder(res, "Role creation failed", 500);
   }
 };
-
 const getRoleController = async (req, res) => {
   try {
-    const response = await getRole(req.params.id);
+    const response = await services.getRole(req.params.id);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -34,7 +27,7 @@ const getRoleController = async (req, res) => {
 
 const updateRoleController = async (req, res) => {
   try {
-    const response = await updateRole(req.params.id, req.body);
+    const response = await services.updateRole(req.params.id, req.body);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -44,7 +37,7 @@ const updateRoleController = async (req, res) => {
 
 const deleteRoleController = async (req, res) => {
   try {
-    const response = await deleteRole(req.params.id);
+    const response = await services.deleteRole(req.params.id);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -54,7 +47,7 @@ const deleteRoleController = async (req, res) => {
 
 const getAllRolesController = async (req, res) => {
   try {
-    const response = await getAllRoles();
+    const response = await services.getAllRoles();
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);

@@ -762,12 +762,7 @@ const attachRequiredDocuments = async (body) => {
 };
 const driversDocumentVehicleRequirement = async (body) => {
   const ownerUserUniqueId = body.ownerUserUniqueId;
-  const user = (
-    await getData({
-      tableName: "Users",
-      conditions: { userUniqueId: ownerUserUniqueId },
-    })
-  )[0];
+  const user = body.user;
 
   const roleId = 2;
   const phoneNumber = user.phoneNumber;

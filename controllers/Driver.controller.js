@@ -147,8 +147,10 @@ const driversDocumentVehicleRequirement = async (req, res) => {
     req.body.user = user;
     req.body.ownerUserUniqueId = ownerUserUniqueId;
     const result = await services.driversDocumentVehicleRequirement(req.body);
+    console.log("@driversDocumentVehicleRequirement result", result);
     ServerResponder(res, result);
   } catch (error) {
+    console.log("first error", error);
     console.log("@driversDocumentVehicleRequirement error", error);
     ServerResponder(res, {
       message: "error",

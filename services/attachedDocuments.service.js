@@ -163,11 +163,19 @@ const updateAttachedDocument = async (
   const userUniqueId = user.userUniqueId;
 
   // Fetch existing document details
-  const [existingDocument] = await getData({
-    tableName: "AttachedDocuments",
+  const [existingDocument] = await performJoinSelect({
+    baseTable: "AttachedDocuments",
+    joins: [
+      {
+        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+        table: "DocumentTypes",
+      },
+    ],
+    // tableName: "AttachedDocuments",
     conditions: { attachedDocumentUniqueId },
   });
-
+  // console.log("existingDocument", existingDocument);
+  // return;
   if (!existingDocument) {
     return { message: "error", data: "Attached document not found" };
   }
@@ -240,7 +248,7 @@ const updateAttachedDocument = async (
   }
 
   // Prepare updated document data for AttachedDocuments
-  const updatedDocument = {
+  const updateValues = {
     attachedDocumentDescription:
       documentDescription || existingDocument.attachedDocumentDescription,
     documentTypeId: documentTypeId || existingDocument.documentTypeId,
@@ -250,12 +258,13 @@ const updateAttachedDocument = async (
       documentExpirationDate || existingDocument.documentExpirationDate,
     attachedDocumentAcceptance: "PENDING",
   };
-
+  console.log("documentDescription", documentDescription);
+  console.log("updateValues  ===========>  ", updateValues);
   // Update the AttachedDocuments table with the new data
   const updateResult = await updateData({
     tableName: "AttachedDocuments",
     conditions: { attachedDocumentUniqueId },
-    updateValues: updatedDocument,
+    updateValues,
   });
 
   if (updateResult.affectedRows > 0) {
