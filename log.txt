@@ -986,3 +986,106 @@
 [2024-11-26T17:07:43.119Z] [LOG] Error: {}
 [2024-11-26T17:08:24.878Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
 [2024-11-26T17:08:24.892Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:29:00.855Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:29:00.959Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:29:49.784Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:29:49.800Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:38:21.909Z] [LOG] @createUser req.body {"fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","roleId":"2","statusId":"2"}
+[2024-11-26T18:38:33.836Z] [LOG] smsSenderData [{"SMSSenderId":1,"phoneNumber":"0922112480","password":"$2b$10$5Jbm6TpqBDNRtfsNduYuPO3KcJhQb.E16fn4gBgVRm84oPLsBBSwy"}]
+[2024-11-26T18:38:33.971Z] [LOG] verification of password  {"message":"success","data":true}
+[2024-11-26T18:38:38.085Z] [LOG] @createUser req.body {"fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","roleId":"2","statusId":"2"}
+[2024-11-26T18:38:38.089Z] [LOG] to be hashed otp  252174
+[2024-11-26T18:38:38.189Z] [LOG] hashedOTP $2b$10$NVjzeV.qEPtmhAX2G.hb8uZD59frVyed0XS3p37ogjQ6vkT.EG6XO
+[2024-11-26T18:39:08.467Z] [LOG] req.query in verifyUserByOTP {"OTP":"252174","phoneNumber":"0918321165","roleId":"2"}
+[2024-11-26T18:39:08.589Z] [LOG] verifyOTP {"message":"success","data":true}
+[2024-11-26T18:39:08.590Z] [LOG] userUniqueId 02c5b138-1ea4-4d52-87d9-a9734f05f9a3
+[2024-11-26T18:39:08.590Z] [LOG] roleId 2
+[2024-11-26T18:39:08.594Z] [LOG] userInRoleId [{"userRoleId":5,"userRoleUniqueId":"0e0909c6-a6fa-4100-b70e-6619aeaac906","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","roleId":2,"userRoleCreatedBy":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-11-26T18:38:22.000Z","userRoleDeletedAt":null}]
+[2024-11-26T18:39:08.597Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","roleId":"2"}
+[2024-11-26T18:40:05.270Z] [LOG] req.query in verifyUserByOTP {"OTP":"252174","phoneNumber":"0918321165","roleId":"2"}
+[2024-11-26T18:40:05.367Z] [LOG] verifyOTP {"message":"success","data":true}
+[2024-11-26T18:40:05.368Z] [LOG] userUniqueId 02c5b138-1ea4-4d52-87d9-a9734f05f9a3
+[2024-11-26T18:40:05.368Z] [LOG] roleId 2
+[2024-11-26T18:40:05.370Z] [LOG] userInRoleId [{"userRoleId":5,"userRoleUniqueId":"0e0909c6-a6fa-4100-b70e-6619aeaac906","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","roleId":2,"userRoleCreatedBy":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-11-26T18:38:22.000Z","userRoleDeletedAt":null}]
+[2024-11-26T18:40:05.371Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","roleId":"2"}
+[2024-11-26T18:42:34.760Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:42:34.778Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:42:42.092Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:42:42.120Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:42:50.614Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:42:50.635Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:43:21.159Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:43:21.174Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:48:59.852Z] [ERROR] @verifyUsersVehicleController error: {}
+[2024-11-26T18:49:21.774Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:49:21.796Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:51:06.895Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:51:06.911Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:52:37.088Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:52:37.104Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:52:39.688Z] [LOG] @verifyDriversIdentity 02c5b138-1ea4-4d52-87d9-a9734f05f9a3
+[2024-11-26T18:53:26.868Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:53:26.885Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:53:28.666Z] [LOG] @verifyDriversIdentity 02c5b138-1ea4-4d52-87d9-a9734f05f9a3
+[2024-11-26T18:53:28.672Z] [LOG] @verifyDriversIdentity error {}
+[2024-11-26T18:54:09.986Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:54:10.004Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:54:17.495Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:54:17.509Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:54:19.752Z] [LOG] @verifyDriversIdentity 02c5b138-1ea4-4d52-87d9-a9734f05f9a3
+[2024-11-26T18:54:19.762Z] [LOG] @verifyDriversIdentity error {}
+[2024-11-26T18:54:19.758Z] [LOG] @@verifyDriversIdentity userRoleStatus [{"userRoleStatusId":5,"userRoleStatusUniqueId":"19fae35d-5635-4777-bc04-a2511900196c","statusId":2,"userRoleId":5,"userRoleStatusDescription":null,"userRoleStatusCreatedBy":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","userRoleStatusCreatedAt":"2024-11-26T18:38:22.000Z","statusUniqueId":"c962e228-78f0-4fb2-b576-74a5c972c30b","statusName":"inactive - no documents attached, vehicle not registered","statusDescription":"Driver has not registered a vehicle and has not attached any required documents.","statusCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","statusUpdatedBy":null,"statusUpdatedAt":null,"statusDeletedBy":null,"statusDeletedAt":null,"statusCreatedAt":"2024-11-26T16:27:24.000Z"}]
+[2024-11-26T18:54:54.949Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:54:54.962Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:54:58.708Z] [LOG] @verifyDriversIdentity 02c5b138-1ea4-4d52-87d9-a9734f05f9a3
+[2024-11-26T18:54:58.713Z] [LOG] @@verifyDriversIdentity userRoleStatus [{"userRoleStatusId":5,"userRoleStatusUniqueId":"19fae35d-5635-4777-bc04-a2511900196c","statusId":2,"userRoleId":5,"userRoleStatusDescription":null,"userRoleStatusCreatedBy":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","userRoleStatusCreatedAt":"2024-11-26T18:38:22.000Z","statusUniqueId":"c962e228-78f0-4fb2-b576-74a5c972c30b","statusName":"inactive - no documents attached, vehicle not registered","statusDescription":"Driver has not registered a vehicle and has not attached any required documents.","statusCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","statusUpdatedBy":null,"statusUpdatedAt":null,"statusDeletedBy":null,"statusDeletedAt":null,"statusCreatedAt":"2024-11-26T16:27:24.000Z"}]
+[2024-11-26T18:55:31.919Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:55:31.940Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T18:58:08.059Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T18:58:08.076Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:19:44.468Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:19:44.486Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:20:57.157Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:20:57.176Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:21:42.425Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:21:42.436Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:21:59.917Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:21:59.931Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:22:40.350Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:22:40.373Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:23:28.091Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:23:28.107Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:24:19.524Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:24:19.538Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:26:58.366Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:26:58.381Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:28:47.301Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:28:47.320Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:29:22.671Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:29:22.713Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:31:10.590Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:31:10.633Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:32:27.318Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:32:27.342Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:32:43.506Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:32:43.524Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:33:32.755Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:33:32.842Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:34:08.410Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:34:08.430Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:34:49.044Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:34:49.065Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:35:33.360Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:35:33.378Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:35:48.036Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:35:48.053Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:36:54.158Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:36:54.208Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:38:09.831Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:38:09.848Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:38:39.513Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:38:39.501Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:39:38.870Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:39:38.883Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T19:41:34.847Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T19:41:34.866Z] [LOG] Server started on port http://localhost:3000
