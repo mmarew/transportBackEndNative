@@ -1,7 +1,8 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const deleteData = require("../CRUD/Delete/DeleteData");
-const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
+const { getData } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
+const { pool } = require("../Middleware/Database.config");
 
 // Service to create UserRole
 const createUserRole = async (body) => {
@@ -25,30 +26,12 @@ const createUserRole = async (body) => {
 
   return { message: "success", data: result };
 };
-
-// Service to get UserRole by ID
-const getUserRoleByUserUniqueId = async (UserUniqueId) => {
-  const result = await performJoinSelect({
-    baseTable: "UserRole",
-    joins: [
-      {
-        table: "Users",
-        on: "UserRole.userUniqueId = Users.userUniqueId",
-      },
-      {
-        table: "Roles",
-        on: "UserRole.roleId = Roles.roleId",
-      },
-    ],
-    conditions: { "Users.userUniqueId": UserUniqueId },
-  });
-
-  if (!result.length) {
-    return { message: "error", error: "UserRole not found" };
-  }
-
-  return { message: "success", data: result[0] };
+const getUserRoleListByUserUniqueId = async (userUniqueId) => {
+  const sql = `SELECT * FROM UserRole WHERE userUniqueId = ?`;
+  const [rows] = await pool.query(sql, [userUniqueId]);
+  return { message: "success", data: rows };
 };
+// Service to get UserRole by ID
 
 // Service to update UserRole
 const updateUserRole = async (id, updateValues) => {
@@ -80,8 +63,8 @@ const deleteUserRole = async (id) => {
 };
 
 module.exports = {
+  getUserRoleListByUserUniqueId,
   createUserRole,
-  getUserRoleByUserUniqueId,
   updateUserRole,
   deleteUserRole,
 };

@@ -82,14 +82,15 @@ const verifyDriversIdentity = async (req, res, next) => {
       tableName: "UserRole",
       conditions: { userUniqueId, roleId: 2 }, // 2 indicates the Driver role
     });
+
     if (!userRoles?.length) {
       return res.status(500).json({
         message: "error",
-        error: "User driver role not found",
+        error: "Sorry, you are not a valid driver.",
         status: null,
       });
     }
-
+    req.user.userRole = userRoles[0];
     // Step 3: Check if the Driver is in an active status
     const driverRole = userRoles[0];
     const userRoleStatus = await performJoinSelect({
@@ -111,7 +112,7 @@ const verifyDriversIdentity = async (req, res, next) => {
         status: null,
       });
     }
-
+    req.userRoleStatus = req.userRoleStatus[0];
     const statusId = userRoleStatus[0]?.statusId;
     if (statusId !== 1) {
       return res.status(403).json({

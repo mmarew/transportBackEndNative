@@ -7,6 +7,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createUser = async (req, res) => {
   try {
+    console.log("@createUser req.body", req.body);
     const response = await services.createUser(req.body);
     ServerResponder(res, response);
   } catch (error) {
@@ -17,11 +18,41 @@ const createUser = async (req, res) => {
     });
   }
 };
+const getUsersByRoleUniqueId = async (req, res) => {
+  try {
+    const response = await services.getUsersByRoleUniqueId(
+      req.params.roleUniqueId
+    );
+    ServerResponder(res, response);
+  } catch (error) {
+    console.log("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Failed to retrieve users",
+    });
+  }
+};
 const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
   try {
     const response = await services.getUserByEmailOrNameOrPhoneNumber(
       req.params.data
     );
+    ServerResponder(res, response);
+  } catch (error) {
+    console.log("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Failed to retrieve user",
+    });
+  }
+};
+const getUserByUserUniqueIdAndroleUniqueId = async (req, res) => {
+  try {
+    const response = await services.getUserByUserUniqueIdAndroleUniqueId(
+      req.params.userUniqueId,
+      req.params.roleUniqueId
+    );
+    console.log("@getUserByUserUniqueIdAndroleUniqueId response", response);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -170,6 +201,8 @@ const updateUser = async (req, res) => {
 
 module.exports = {
   getUserByEmailOrNameOrPhoneNumber,
+  getUsersByRoleUniqueId,
+  getUserByUserUniqueIdAndroleUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,
