@@ -18,6 +18,7 @@ const createAttachedDocument = async ({
   attachedDocumentName, // File path where it's stored
   documentTypeId,
   documentExpirationDate, // Expiration date of the document
+  attachedDocumentFileNumber,
   roleId,
   user,
 }) => {
@@ -83,6 +84,7 @@ const createAttachedDocument = async ({
       documentExpirationDate,
       attachedDocumentAcceptance: "PENDING", // Default status when document is created
       attachedDocumentCreatedByUserId: userUniqueId,
+      attachedDocumentFileNumber,
       attachedDocumentCreatedAt: new Date(),
     };
     // Insert the new document into the database
@@ -276,6 +278,7 @@ const deleteAttachedDocument = async (attachedDocumentUniqueId) => {
     tableName: "AttachedDocuments",
     conditions: { attachedDocumentUniqueId },
   });
+  console.log("@deleteAttachedDocument data data ===========> ", data);
   return { message: "success", data: "Document deleted successfully" };
 };
 
@@ -285,7 +288,6 @@ const acceptRejectAttachedDocuments = async (body) => {
   const attachedDocumentUniqueId = body?.attachedDocumentUniqueId; // Unique ID of the document to update
   const action = body?.action; // Accept or Reject (from the request body)
   const adminDecisionReason = body?.reason || null; // Optional reason for acceptance or rejection
-  const phoneNumber = body?.phoneNumber || null;
   const roleId = body?.roleId;
 
   // Ensure that all required fields are provided
@@ -307,14 +309,21 @@ const acceptRejectAttachedDocuments = async (body) => {
   }
 
   // Fetch the document to ensure it exists and belongs to the correct user
-  const attachedDocument = await getData({
+  const attachedDocument = await performJoinSelect({
     tableName: "AttachedDocuments",
+    baseTable: "Users",
+    joins: [
+      {
+        table: "AttachedDocuments",
+        on: "AttachedDocuments.userUniqueId = Users.userUniqueId",
+      },
+    ],
     conditions: {
       attachedDocumentUniqueId,
-      userUniqueId: ownerUserUniqueId, // Ensure the document belongs to the driver (owner)
+      ["AttachedDocuments.userUniqueId"]: ownerUserUniqueId, // Ensure the document belongs to the driver (owner)
     },
   });
-
+  const phoneNumber = attachedDocument[0].phoneNumber;
   if (attachedDocument.length === 0) {
     return {
       message: "error",
@@ -347,6 +356,7 @@ const acceptRejectAttachedDocuments = async (body) => {
     message: "success",
     data: `Document has been ${action.toLowerCase()}`,
   };
+
   if (updatedDocument.affectedRows > 0) {
     if (roleId == 3) sendNotificationToAdmin({ message, phoneNumber });
     // adjust drivers role status based on document acceptance
@@ -357,10 +367,7 @@ const acceptRejectAttachedDocuments = async (body) => {
       sendNotificationToDriver({ message: statusOfDriver, phoneNumber });
     if (roleId == 1) sendNotificationToPassenger({ message, phoneNumber });
 
-    return {
-      message: "success",
-      data: `Document has been ${action.toLowerCase()}`,
-    };
+    return message;
   } else {
     return { message: "error", data: "Failed to update the document status" };
   }

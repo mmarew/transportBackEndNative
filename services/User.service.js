@@ -43,7 +43,7 @@ const createUser = async (body) => {
   if (!fullName || !phoneNumber || !email || !roleId || !statusId) {
     return {
       message: "error",
-      data: "All fields are required to create a user",
+      error: "All fields are required to create a user",
     };
   }
 

@@ -4,17 +4,16 @@ const {
   updateVehicle,
   deleteVehicle,
   getAllVehicles,
+  verifyUsersVehicle,
 } = require("../Services/Vehicle.service");
-const services = require("../Services/Vehicle.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createVehicleController = async (req, res) => {
   try {
-    req.body.user = req.user;
-    const response = await createVehicle(req.body);
+    const response = await createVehicle(req.body, req.user);
     ServerResponder(res, response);
   } catch (error) {
-    console.log("@createVehicleController error === ", error);
+    console.error("@createVehicleController error:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create vehicle",
@@ -24,51 +23,39 @@ const createVehicleController = async (req, res) => {
 
 const getVehicleController = async (req, res) => {
   try {
-    const response = await getVehicle(req.params.vehicleId);
-    if (response) {
-      return res.status(200).json(response);
-    }
-    res.status(404).json({ message: "Vehicle not found" });
+    const { vehicleUniqueId } = req.params;
+    const response = await getVehicle(vehicleUniqueId);
+    ServerResponder(res, response);
   } catch (error) {
-    console.log("Error fetching vehicle:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to create vehicle",
-    });
+    console.error("@getVehicleController error:", error);
+    ServerResponder(res, { message: "error", error: "Failed to get vehicle" });
   }
 };
 
 const updateVehicleController = async (req, res) => {
   try {
-    const response = await updateVehicle(req.params.vehicleId, req.body);
-    if (response.message === "success") {
-      return res.status(200).json(response);
-    }
+    const { vehicleUniqueId } = req.params;
+    const response = await updateVehicle(vehicleUniqueId, req.body, req.user);
     ServerResponder(res, response);
   } catch (error) {
-    console.log("Error updating vehicle:", error);
+    console.error("@updateVehicleController error:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Failed to create vehicle",
+      error: "Failed to update vehicle",
     });
   }
 };
 
 const deleteVehicleController = async (req, res) => {
   try {
-    const response = await deleteVehicle(req.params.vehicleId);
-    if (response.message === "success") {
-      return res.status(200).json(response);
-    }
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to create vehicle",
-    });
+    const { vehicleUniqueId } = req.params;
+    const response = await deleteVehicle(vehicleUniqueId, req.user);
+    ServerResponder(res, response);
   } catch (error) {
-    console.log("Error deleting vehicle:", error);
+    console.error("@deleteVehicleController error:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Failed to create vehicle",
+      error: "Failed to delete vehicle",
     });
   }
 };
@@ -78,34 +65,33 @@ const getAllVehiclesController = async (req, res) => {
     const response = await getAllVehicles();
     ServerResponder(res, response);
   } catch (error) {
-    console.log("Error fetching vehicles:", error);
+    console.error("@getAllVehiclesController error:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Error fetching vehicles",
+      error: "Failed to fetch vehicles",
     });
   }
 };
-const verifyUsersVehicle = async (req, res) => {
-  try {
-    req.body.user = req.user;
-    const { ownerUserUniqueId } = req.params;
-    req.body.ownerUserUniqueId = ownerUserUniqueId;
 
-    const response = await services.verifyUsersVehicle(req.body);
-    if (response) {
-      return ServerResponder(res, response);
-    }
-    ServerResponder(res, { message: "error", error: "Vehicle not found" });
+const verifyUsersVehicleController = async (req, res) => {
+  try {
+    const { ownerUserUniqueId } = req.params;
+    const response = await verifyUsersVehicle(ownerUserUniqueId, req.user);
+    ServerResponder(res, response);
   } catch (error) {
-    console.log("Error fetching vehicle:", error);
-    ServerResponder(res, { message: "error", error: "Error fetching vehicle" });
+    console.error("@verifyUsersVehicleController error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to verify vehicle",
+    });
   }
 };
+
 module.exports = {
-  verifyUsersVehicle,
   createVehicleController,
   getVehicleController,
   updateVehicleController,
   deleteVehicleController,
   getAllVehiclesController,
+  verifyUsersVehicleController,
 };

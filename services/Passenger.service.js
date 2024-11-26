@@ -6,6 +6,7 @@ const {
   checkActivePassengerRequest,
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
+const { verifyUsersVehicle } = require("./Vehicle.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
@@ -25,17 +26,11 @@ const {
 const createRequest = async (body, user) => {
   try {
     const { userUniqueId } = user;
-    // 1. Check if the user exists
-    const existingUser = await checkUserExists(userUniqueId);
-    if (!existingUser) {
-      return { message: "error", error: "User passenger not found" };
-    }
     // 2. Check if the user already has an active request
     const activeRequest = await checkActivePassengerRequest(userUniqueId);
     console.log("activeRequest", activeRequest);
     if (activeRequest?.length == 0) {
       const newRequest = await createPassengerRequest(body, userUniqueId);
-      console.log("newRequest", newRequest);
       if (newRequest?.message === "error") {
         return newRequest;
       }
@@ -182,14 +177,24 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
         conditions: { driverRequestId: driver.driverRequestId },
         updateValues: { journeyStatusId: 2 },
       });
+      // update driver's journeyStatusId to 2 (Requested)
+      driver.journeyStatusId = 2;
+      // update passenger's journeyStatusId to 2 (Requested)
+      passengerRequest.journeyStatusId = 2;
+      const ownerUserUniqueId = driver?.userUniqueId;
+      const vehicle = await verifyUsersVehicle({ ownerUserUniqueId });
+      const vehicleTypeUniqueId = vehicle[0]?.vehicleTypeUniqueId;
+      const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
+        vehicleTypeUniqueId
+      );
       const message = {
         message: "success",
         status: 2,
         passenger,
         driver: {
           driver,
-          vehicleOfDriver: "to be seen",
-          vehicleTarrifRate: "to be seen",
+          vehicle: vehicle,
+          vehicleTarrifRate: vehicleTarrifRate?.data[0],
         },
         journey: null,
         decisions: journeyDecisionPayload,
@@ -240,9 +245,6 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
       vehicleOfDriver[0]?.vehicleTypeUniqueId
     );
-    console.log("vehicleTarrifRate", vehicleTarrifRate);
-    console.log("vehicleOfDriver ===========> ", vehicleOfDriver);
-    // return;
     const message = {
       message: "success",
       status: driver?.journeyStatusId,

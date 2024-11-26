@@ -1,5 +1,5 @@
 const { pool } = require("../../Middleware/Database.config");
-
+const searchRange = 0.11;
 const getData = async ({
   tableName,
   conditions = {}, // Default to an empty object
@@ -75,12 +75,12 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
 
     // Define the search range for latitude and longitude (0.01 degree ~ 1 km)
     const latitudeRange = {
-      min: parseFloat(originLatitude) - 0.01,
-      max: parseFloat(originLatitude) + 0.01,
+      min: parseFloat(originLatitude) - searchRange,
+      max: parseFloat(originLatitude) + searchRange,
     };
     const longitudeRange = {
-      min: parseFloat(originLongitude) - 0.01,
-      max: parseFloat(originLongitude) + 0.01,
+      min: parseFloat(originLongitude) - searchRange,
+      max: parseFloat(originLongitude) + searchRange,
     };
 
     // Create SQL query to find nearby drivers with matching vehicle type and within the coordinate range
@@ -125,12 +125,12 @@ const findNearbyPassengers = async ({
   vehicleTypeUniqueId,
 }) => {
   const latitudeRange = {
-    min: parseFloat(originLatitude) - 0.01,
-    max: parseFloat(originLatitude) + 0.01,
+    min: parseFloat(originLatitude) - searchRange,
+    max: parseFloat(originLatitude) + searchRange,
   };
   const longitudeRange = {
-    min: parseFloat(originLongitude) - 0.01,
-    max: parseFloat(originLongitude) + 0.01,
+    min: parseFloat(originLongitude) - searchRange,
+    max: parseFloat(originLongitude) + searchRange,
   };
 
   return await performJoinSelect({

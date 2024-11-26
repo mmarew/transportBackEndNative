@@ -1,308 +1,638 @@
-[2024-11-16T16:50:11.484Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T16:50:11.500Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T16:51:09.161Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T16:51:21.413Z] [LOG] @updateUser ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T16:52:23.400Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T16:52:23.414Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T16:52:51.470Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T16:52:51.475Z] [LOG] req.file ========>  
-[2024-11-16T16:55:24.785Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T16:55:24.786Z] [LOG] req.file ========>  
-[2024-11-16T17:01:01.345Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:01:01.420Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:01:32.959Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:01:32.965Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"67197da6-6a70-4d99-a9ef-bdb766695ace.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\67197da6-6a70-4d99-a9ef-bdb766695ace.jpg","size":3021216}]
-[2024-11-16T17:01:32.967Z] [LOG] attachedDocumentUniqueId =====>  undefined
-[2024-11-16T17:01:32.968Z] [ERROR] Error updating user profile: {}
-[2024-11-16T17:02:44.287Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:02:44.288Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"0e9c1ec4-487b-4e3c-8981-d3ada03abcdc.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\0e9c1ec4-487b-4e3c-8981-d3ada03abcdc.jpg","size":3021216}]
-[2024-11-16T17:02:44.289Z] [LOG] attachedDocumentUniqueId =====>  undefined
-[2024-11-16T17:02:44.289Z] [ERROR] Error updating user profile: {}
-[2024-11-16T17:02:54.602Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:02:54.617Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:03:57.248Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx222","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"undefined","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:03:57.251Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"502a5d54-41c9-4cca-afb0-c5fd3339dc69.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\502a5d54-41c9-4cca-afb0-c5fd3339dc69.jpg","size":3021216}]
-[2024-11-16T17:03:57.253Z] [LOG] attachedDocumentUniqueId =====>  undefined
-[2024-11-16T17:03:57.260Z] [LOG]  @ updateUserresponse ==========>  {"message":"success","data":"Document created successfully"}
-[2024-11-16T17:06:27.964Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:08:12.784Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:08:28.328Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:09:36.693Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:10:10.280Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:11:44.719Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:12:30.327Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T17:13:19.865Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:13:19.866Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"4191c9c9-5283-464e-9f4d-d3d1e9043821.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\4191c9c9-5283-464e-9f4d-d3d1e9043821.jpg","size":3021216}]
-[2024-11-16T17:13:19.868Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:13:19.868Z] [ERROR] Error updating user profile: {}
-[2024-11-16T17:14:16.261Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:14:16.273Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:14:37.758Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:14:37.763Z] [ERROR] Error updating user profile: {}
-[2024-11-16T17:14:37.762Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:14:37.760Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"92920a38-1e4c-47d6-81ad-4afec1694e20.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\92920a38-1e4c-47d6-81ad-4afec1694e20.jpg","size":3021216}]
-[2024-11-16T17:15:50.708Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:15:50.758Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:16:24.152Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"fc85b084-1aea-4511-9138-e3efc1678353.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\fc85b084-1aea-4511-9138-e3efc1678353.jpg","size":3021216}]
-[2024-11-16T17:16:24.149Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:16:24.154Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:18:47.257Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:18:47.261Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"30c87ca9-1688-49b9-8182-ed279bb38803.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\30c87ca9-1688-49b9-8182-ed279bb38803.jpg","size":3021216}]
-[2024-11-16T17:18:47.262Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:20:05.139Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:20:05.153Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:20:27.013Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:20:27.018Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"6fa89aaf-ad7d-44ee-b275-f3d0eaf28924.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\6fa89aaf-ad7d-44ee-b275-f3d0eaf28924.jpg","size":3021216}]
-[2024-11-16T17:20:27.020Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:20:27.021Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
-[2024-11-16T17:23:32.666Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:23:32.803Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:24:20.926Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:24:20.932Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"44fb7f36-25ca-49a0-86a0-02d051bc7624.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\44fb7f36-25ca-49a0-86a0-02d051bc7624.jpg","size":3021216}]
-[2024-11-16T17:24:20.934Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:24:20.938Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
-[2024-11-16T17:25:37.338Z] [LOG] @updateUser body ==========>  {"fullName":"Mohammed Ibrahim","phoneNumber":"+251 - xxx - xxx - xxx","email":"mohammedibrahim4641@gmail.com","attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","ProfilePhotoTypeId":"4","ProfilePhotoDescription":"","ProfilePhotoExpirationDate":"null","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c"}
-[2024-11-16T17:25:37.340Z] [LOG] req.file ========>  [{"fieldname":"ProfilePhoto","originalname":"20241116_135751.jpg","encoding":"7bit","mimetype":"image/jpeg","destination":"C:\\ReactNativeTransport\\Server\\uploads","filename":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","size":3021216}]
-[2024-11-16T17:25:37.343Z] [LOG] attachedDocumentUniqueId =====>  a5a34231-a3a2-4d39-a253-e28fe6351af5
-[2024-11-16T17:25:37.348Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
-[2024-11-16T17:32:41.992Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:32:42.015Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:32:53.959Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:32:53.970Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:33:09.562Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:33:09.576Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:44:22.161Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:44:22.171Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:44:56.296Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:44:56.319Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:45:59.036Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:45:59.079Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:46:56.548Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:46:56.562Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:47:40.882Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:47:40.893Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:48:54.933Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:48:54.971Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:49:46.046Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:49:46.034Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:49:57.599Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:49:57.590Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:52:31.005Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:52:31.020Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:52:41.377Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:52:41.394Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:54:48.878Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:54:48.869Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:55:16.646Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:55:16.656Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:55:31.934Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:55:31.945Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:56:00.532Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:56:00.546Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:57:04.422Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:57:04.457Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:57:56.402Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:57:56.413Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:58:11.985Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T17:58:11.994Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T17:59:50.822Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:03:02.480Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
-[2024-11-16T18:04:51.958Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:06:19.496Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:06:19.508Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:07:04.310Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
-[2024-11-16T18:09:28.835Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
-[2024-11-16T18:09:42.112Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:09:42.121Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:09:45.791Z] [LOG] existingDocument {"attachedDocumentId":2,"attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentDescription":"","documentTypeId":4,"documentExpirationDate":null,"attachedDocumentAcceptance":"PENDING","attachedDocumentName":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentCreatedAt":"2024-11-16T17:03:57.000Z","attachedDocumentAcceptanceReason":null,"attachedDocumentAcceptedRejectedByUserId":null,"attachedDocumentAcceptedRejectedAt":null,"documentTypeUniqueId":"2314a62a-84f7-4194-a697-fde0f166afe9","documentTypeName":" Profile Photo","uploadedDocumentName":"ProfilePhoto","uploadedDocumentTypeId":"ProfilePhotoTypeId","uploadedDocumentDescription":"ProfilePhotoDescription","uploadedDocumentExpirationDate":"ProfilePhotoExpirationDate","documentTypeDescription":"Profile Photo","documentTypeCreatedBy":"a50a099b-8600-4727-83ec-429aef52654b","documentTypeCreatedAt":"2024-11-07T10:52:47.000Z"}
-[2024-11-16T18:09:45.794Z] [LOG] attachedDocumentResponse {"message":"error","data":"Invalid date format for expiration"}
-[2024-11-16T18:12:25.866Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:12:25.880Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:12:36.823Z] [LOG] existingDocument {"attachedDocumentId":2,"attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentDescription":"","documentTypeId":4,"documentExpirationDate":null,"attachedDocumentAcceptance":"PENDING","attachedDocumentName":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentCreatedAt":"2024-11-16T17:03:57.000Z","attachedDocumentAcceptanceReason":null,"attachedDocumentAcceptedRejectedByUserId":null,"attachedDocumentAcceptedRejectedAt":null,"documentTypeUniqueId":"2314a62a-84f7-4194-a697-fde0f166afe9","documentTypeName":" Profile Photo","uploadedDocumentName":"ProfilePhoto","uploadedDocumentTypeId":"ProfilePhotoTypeId","uploadedDocumentDescription":"ProfilePhotoDescription","uploadedDocumentExpirationDate":"ProfilePhotoExpirationDate","documentTypeDescription":"Profile Photo","documentTypeCreatedBy":"a50a099b-8600-4727-83ec-429aef52654b","documentTypeCreatedAt":"2024-11-07T10:52:47.000Z"}
-[2024-11-16T18:12:36.828Z] [ERROR] Error updating user profile: {}
-[2024-11-16T18:13:06.087Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:13:06.097Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:13:09.644Z] [LOG] existingDocument {"attachedDocumentId":2,"attachedDocumentUniqueId":"a5a34231-a3a2-4d39-a253-e28fe6351af5","userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentDescription":"","documentTypeId":4,"documentExpirationDate":null,"attachedDocumentAcceptance":"PENDING","attachedDocumentName":"8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","attachedDocumentCreatedAt":"2024-11-16T17:03:57.000Z","attachedDocumentAcceptanceReason":null,"attachedDocumentAcceptedRejectedByUserId":null,"attachedDocumentAcceptedRejectedAt":null,"documentTypeUniqueId":"2314a62a-84f7-4194-a697-fde0f166afe9","documentTypeName":" Profile Photo","uploadedDocumentName":"ProfilePhoto","uploadedDocumentTypeId":"ProfilePhotoTypeId","uploadedDocumentDescription":"ProfilePhotoDescription","uploadedDocumentExpirationDate":"ProfilePhotoExpirationDate","documentTypeDescription":"Profile Photo","documentTypeCreatedBy":"a50a099b-8600-4727-83ec-429aef52654b","documentTypeCreatedAt":"2024-11-07T10:52:47.000Z"}
-[2024-11-16T18:13:09.648Z] [LOG] documentExpirationDate null
-[2024-11-16T18:13:09.650Z] [LOG] Error inserting data: {"message":"Unknown column 'documentTypeUniqueId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"INSERT INTO AttachedDocumentsHistory (attachedDocumentId, attachedDocumentUniqueId, userUniqueId, attachedDocumentDescription, documentTypeId, documentExpirationDate, attachedDocumentAcceptance, attachedDocumentName, documentVersion, attachedDocumentCreatedByUserId, attachedDocumentCreatedAt, attachedDocumentAcceptanceReason, attachedDocumentAcceptedRejectedByUserId, attachedDocumentAcceptedRejectedAt, documentTypeUniqueId, documentTypeName, uploadedDocumentName, uploadedDocumentTypeId, uploadedDocumentDescription, uploadedDocumentExpirationDate, documentTypeDescription, documentTypeCreatedBy, documentTypeCreatedAt, attachedDocumentUpdatedByUserId, attachedDocumentUpdatedAt) VALUES (2, 'a5a34231-a3a2-4d39-a253-e28fe6351af5', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '', 4, NULL, 'PENDING', '8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg', 2, '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 20:03:57.000', NULL, NULL, NULL, '2314a62a-84f7-4194-a697-fde0f166afe9', ' Profile Photo', 'ProfilePhoto', 'ProfilePhotoTypeId', 'ProfilePhotoDescription', 'ProfilePhotoExpirationDate', 'Profile Photo', 'a50a099b-8600-4727-83ec-429aef52654b', '2024-11-07 13:52:47.000', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 21:13:09.648')","sqlState":"42S22","sqlMessage":"Unknown column 'documentTypeUniqueId' in 'field list'"}
-[2024-11-16T18:13:09.652Z] [ERROR] Error updating user profile: {"message":"Unknown column 'documentTypeUniqueId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"INSERT INTO AttachedDocumentsHistory (attachedDocumentId, attachedDocumentUniqueId, userUniqueId, attachedDocumentDescription, documentTypeId, documentExpirationDate, attachedDocumentAcceptance, attachedDocumentName, documentVersion, attachedDocumentCreatedByUserId, attachedDocumentCreatedAt, attachedDocumentAcceptanceReason, attachedDocumentAcceptedRejectedByUserId, attachedDocumentAcceptedRejectedAt, documentTypeUniqueId, documentTypeName, uploadedDocumentName, uploadedDocumentTypeId, uploadedDocumentDescription, uploadedDocumentExpirationDate, documentTypeDescription, documentTypeCreatedBy, documentTypeCreatedAt, attachedDocumentUpdatedByUserId, attachedDocumentUpdatedAt) VALUES (2, 'a5a34231-a3a2-4d39-a253-e28fe6351af5', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '', 4, NULL, 'PENDING', '8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg', 2, '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 20:03:57.000', NULL, NULL, NULL, '2314a62a-84f7-4194-a697-fde0f166afe9', ' Profile Photo', 'ProfilePhoto', 'ProfilePhotoTypeId', 'ProfilePhotoDescription', 'ProfilePhotoExpirationDate', 'Profile Photo', 'a50a099b-8600-4727-83ec-429aef52654b', '2024-11-07 13:52:47.000', '33269818-d8d3-46e1-99ea-aa35c660bc4c', '2024-11-16 21:13:09.648')","sqlState":"42S22","sqlMessage":"Unknown column 'documentTypeUniqueId' in 'field list'"}
-[2024-11-16T18:20:20.288Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:20:20.298Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:20:30.093Z] [LOG] Error deleting file: C:\ReactNativeTransport\Server\uploads\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg {"errno":-4058,"code":"ENOENT","syscall":"unlink","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg"}
-[2024-11-16T18:20:30.100Z] [ERROR] Error updating user profile: {"message":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '251c5012-67bb-45e4-b024-423e85271070.png', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedByUserId = '33269818-d8d3-46e1-99ea-aa35c660bc4c', attachedDocumentUpdatedAt = '2024-11-16 21:20:30.097' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'"}
-[2024-11-16T18:20:30.098Z] [LOG] Error updating data: {"message":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '251c5012-67bb-45e4-b024-423e85271070.png', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedByUserId = '33269818-d8d3-46e1-99ea-aa35c660bc4c', attachedDocumentUpdatedAt = '2024-11-16 21:20:30.097' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedByUserId' in 'field list'"}
-[2024-11-16T18:21:51.775Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:21:51.783Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:22:53.082Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:23:58.568Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:24:47.819Z] [LOG] Error deleting file: C:\ReactNativeTransport\Server\uploads\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg {"errno":-4058,"code":"ENOENT","syscall":"unlink","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg"}
-[2024-11-16T18:24:47.823Z] [LOG] Error updating data: {"message":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '628f7046-69ed-4425-ade5-011e8b6881f2.jpg', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedAt = '2024-11-16 21:24:47.822' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'"}
-[2024-11-16T18:24:47.824Z] [ERROR] Error updating user profile: {"message":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE AttachedDocuments SET attachedDocumentDescription = '', documentTypeId = 4, attachedDocumentName = '628f7046-69ed-4425-ade5-011e8b6881f2.jpg', documentExpirationDate = NULL, attachedDocumentAcceptance = 'PENDING', attachedDocumentUpdatedAt = '2024-11-16 21:24:47.822' WHERE attachedDocumentUniqueId = 'a5a34231-a3a2-4d39-a253-e28fe6351af5'","sqlState":"42S22","sqlMessage":"Unknown column 'attachedDocumentUpdatedAt' in 'field list'"}
-[2024-11-16T18:25:02.449Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:25:02.457Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:25:08.094Z] [LOG] Error deleting file: C:\ReactNativeTransport\Server\uploads\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg {"errno":-4058,"code":"ENOENT","syscall":"unlink","path":"C:\\ReactNativeTransport\\Server\\uploads\\8d5f6fa0-c633-4155-b07f-30cd70d21753.jpg"}
-[2024-11-16T18:25:08.098Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
-[2024-11-16T18:26:01.128Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:26:15.245Z] [LOG] attachedDocumentResponse {"message":"success","data":"Document updated successfully"}
-[2024-11-16T18:27:46.830Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:27:46.841Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:27:59.215Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:27:59.206Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:29:09.221Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:29:09.229Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:29:43.459Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:29:43.470Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:29:59.148Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:29:59.156Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:30:57.666Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:30:57.677Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:31:16.146Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:31:16.159Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:31:43.127Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:31:43.136Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:32:17.413Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:32:17.422Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:32:22.210Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:32:22.219Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:32:44.558Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:32:44.575Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:33:09.685Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:33:09.698Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:33:47.923Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:33:47.935Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:33:53.822Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:33:53.831Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:34:56.185Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-16T18:34:56.194Z] [LOG] Server started on port http://localhost:3000
-[2024-11-16T18:37:30.179Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:39:46.284Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:40:55.107Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:44:49.531Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:45:17.296Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-16T18:45:35.877Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:24:59.408Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:24:59.423Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:30:39.783Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:31:49.385Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:33:02.861Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:36:21.490Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:36:21.504Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:45:54.851Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:45:54.838Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:47:08.393Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:47:44.092Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:48:07.123Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T05:49:38.466Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:49:38.489Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:51:23.960Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:51:23.976Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:51:30.361Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required"},"message":"success","data":"User updated successfully"}
-[2024-11-17T05:52:27.501Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:52:27.544Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:52:38.527Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:52:38.558Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:52:42.151Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
-[2024-11-17T05:53:00.470Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:53:00.483Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:53:06.629Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:53:06.643Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:53:10.716Z] [LOG] userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com"}
-[2024-11-17T05:53:10.718Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
-[2024-11-17T05:55:59.597Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:55:59.614Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:56:11.744Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com"}
-[2024-11-17T05:56:11.747Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
-[2024-11-17T05:57:22.443Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com"}
-[2024-11-17T05:57:22.444Z] [LOG] textResponse {"token":{"message":"error","error":"All fields are required to create jwt"},"message":"success","data":"User updated successfully"}
-[2024-11-17T05:57:33.033Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:57:33.047Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:57:37.071Z] [LOG] Error querying data: {"message":"Table 'transport.userrolestatuses' doesn't exist","code":"ER_NO_SUCH_TABLE","errno":1146,"sql":"SELECT * FROM UserRoleStatuses WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S02","sqlMessage":"Table 'transport.userrolestatuses' doesn't exist"}
-[2024-11-17T05:57:37.076Z] [LOG] Error: {"message":"Table 'transport.userrolestatuses' doesn't exist","code":"ER_NO_SUCH_TABLE","errno":1146,"sql":"SELECT * FROM UserRoleStatuses WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S02","sqlMessage":"Table 'transport.userrolestatuses' doesn't exist"}
-[2024-11-17T05:57:37.077Z] [LOG] textResponse {"message":"error","data":"An error occurred during user update"}
-[2024-11-17T05:59:13.744Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T05:59:13.756Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T05:59:17.124Z] [LOG] Error querying data: {"message":"Unknown column 'userUniqueId' in 'where clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM UserRoleStatusCurrent WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S22","sqlMessage":"Unknown column 'userUniqueId' in 'where clause'"}
-[2024-11-17T05:59:17.129Z] [LOG] Error: {"message":"Unknown column 'userUniqueId' in 'where clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM UserRoleStatusCurrent WHERE userUniqueId = '33269818-d8d3-46e1-99ea-aa35c660bc4c'","sqlState":"42S22","sqlMessage":"Unknown column 'userUniqueId' in 'where clause'"}
-[2024-11-17T05:59:17.130Z] [LOG] textResponse {"message":"error","data":"An error occurred during user update"}
-[2024-11-17T06:01:24.205Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T06:01:24.218Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T06:02:11.485Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T06:02:11.498Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T06:03:36.907Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T06:03:36.919Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T06:03:40.491Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T06:03:40.495Z] [LOG] textResponse {"token":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjMzMjY5ODE4LWQ4ZDMtNDZlMS05OWVhLWFhMzVjNjYwYmM0YyIsImZ1bGxOYW1lIjoiTWFyZXcgTWFzcmVzaGEgQWJhdGUiLCJwaG9uZU51bWJlciI6IisyNTE5MjIxMTI0ODAiLCJlbWFpbCI6Im1tYXJld0BnbWFpbC5jb20iLCJyb2xlSWQiOiIxIn0sImlhdCI6MTczMTgyMzQyMH0.cxMzayQB2tPg1v2HgpQUE1uj1auN24Zdz93ctqCza3w","message":"success"},"message":"success","data":"User updated successfully"}
-[2024-11-17T06:04:28.743Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T06:04:28.772Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T06:04:43.149Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T06:04:43.153Z] [LOG] textResponse {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6IjMzMjY5ODE4LWQ4ZDMtNDZlMS05OWVhLWFhMzVjNjYwYmM0YyIsImZ1bGxOYW1lIjoiTWFyZXcgTWFzcmVzaGEgQWJhdGUiLCJwaG9uZU51bWJlciI6IisyNTE5MjIxMTI0ODAiLCJlbWFpbCI6Im1tYXJld0BnbWFpbC5jb20iLCJyb2xlSWQiOiIxIn0sImlhdCI6MTczMTgyMzQ4M30.V9hGHTXbVbETNFNe5gj4j8Qucy-y5JgegmWXExfMNO0","message":"success","data":"User updated successfully"}
-[2024-11-17T06:06:58.482Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T06:06:58.494Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T06:07:01.059Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha Abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T06:07:47.645Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:09:02.758Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T06:09:02.781Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T06:09:07.369Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T06:10:18.512Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:10:32.197Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T06:11:13.882Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:14:08.630Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:14:58.044Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:15:33.627Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:16:32.463Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:16:44.225Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:24:57.282Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:25:15.638Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:25:45.218Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:25:52.429Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T06:30:27.886Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T07:20:04.639Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T07:20:40.618Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T07:20:40.631Z] [LOG] fileResponse {"message":"success","data":"Document updated successfully"}
-[2024-11-17T07:21:00.758Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"33269818-d8d3-46e1-99ea-aa35c660bc4c","fullName":"Marew Masresha abate","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"1"}
-[2024-11-17T07:21:00.762Z] [LOG] fileResponse {"message":"success","data":"Document updated successfully"}
-[2024-11-17T07:22:31.042Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T07:23:36.328Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T07:23:49.029Z] [LOG] roleUniqueId is =======  dedf4ac1-2383-4f47-ab66-4a60eb790045
-[2024-11-17T09:29:50.313Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:29:50.327Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:30:41.649Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:30:41.666Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:33:56.372Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:33:56.386Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:34:21.467Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:34:21.562Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:34:46.480Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:34:46.493Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:38:32.995Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:38:33.011Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:39:04.708Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:39:04.722Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:39:32.396Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:39:32.412Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:40:08.594Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:40:08.579Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:44:55.825Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:44:55.811Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:48:49.518Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:48:49.533Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:48:58.769Z] [LOG] Error querying data: {"message":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM passengerRequest JOIN Journey ON PassengerRequest.passengerRequestUniqueId = Journey.passengerRequestUniqueId WHERE userUniqueId = 'b67c3160-8cfa-4b25-962c-7f636282b3b6'    ","sqlState":"42S22","sqlMessage":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'"}
-[2024-11-17T09:48:58.775Z] [LOG] Error deleting journey: {"message":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM passengerRequest JOIN Journey ON PassengerRequest.passengerRequestUniqueId = Journey.passengerRequestUniqueId WHERE userUniqueId = 'b67c3160-8cfa-4b25-962c-7f636282b3b6'    ","sqlState":"42S22","sqlMessage":"Unknown column 'Journey.passengerRequestUniqueId' in 'on clause'"}
-[2024-11-17T09:50:50.079Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:50:50.094Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:52:20.304Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:52:20.319Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:53:31.462Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:53:31.477Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:54:32.555Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:54:32.568Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T09:55:17.339Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T09:55:17.355Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T16:16:42.860Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T16:16:42.872Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T16:17:29.620Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T16:17:29.632Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T16:20:13.998Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T16:20:14.015Z] [LOG] Server started on port http://localhost:3000
-[2024-11-17T16:20:24.139Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-17T16:20:24.152Z] [LOG] Server started on port http://localhost:3000
+ [2024-11-24T21:56:08.652Z] [LOG] activeRequest []
+[2024-11-24T21:56:08.655Z] [LOG] verifyVehicleType ============  [{"vehicleTypeId":1,"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"4777bfbb-8940-47c5-b3d3-e51fe6a6a523","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-20T12:36:12.000Z","vehicleTypeDeletedAt":null}]
+[2024-11-24T21:56:08.671Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-24T21:56:23.909Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-24T21:56:23.920Z] [LOG] Server started on port http://localhost:3000
+[2024-11-24T21:56:25.974Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-24T21:56:27.701Z] [LOG] existingRequest [{"driverRequestId":22,"driverRequestUniqueId":"1374c612-e7af-44ec-88ed-2e656b7703cc","userUniqueId":"c4f3bb4c-b586-4c2f-9149-8871f8abaed4","originLatitude":"9.00322780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-11-24T21:56:09.000Z","journeyStatusId":2,"journeyDecisionId":18,"journeyDecisionUniqueId":"e531cae3-ed7b-4b99-bcc3-dd946d439bd7","passengerRequestId":19,"decisionTime":"2024-11-24T21:56:09.000Z","decisionBy":"passenger","passengerRequestUniqueId":"ce31c447-93ad-4ff7-b4a4-9a9b9aff715e","vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia"}]
+[2024-11-24T21:56:27.710Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-24T21:56:27.710Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-24T21:56:53.000Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-24T21:56:53.016Z] [LOG] Server started on port http://localhost:3000
+[2024-11-24T21:56:55.038Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T04:56:28.402Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T04:56:28.417Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T05:06:26.697Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:06:26.734Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:06:27.267Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:07:10.352Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:07:41.449Z] [LOG] totalTime 0
+[2024-11-25T05:07:41.451Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:08:23.311Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:08:23.315Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:09:41.952Z] [LOG] activeRequest []
+[2024-11-25T05:09:41.965Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T05:09:57.084Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:09:57.084Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:10:05.164Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:19:59.088Z] [LOG] totalTime 0
+[2024-11-25T05:19:59.092Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:24:12.446Z] [LOG] activeRequest []
+[2024-11-25T05:24:12.459Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T05:24:20.659Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:24:20.659Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:24:26.252Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:24:37.822Z] [LOG] totalTime 0
+[2024-11-25T05:24:37.823Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:34:19.932Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T05:34:19.946Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T05:35:55.742Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T05:35:55.728Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T05:36:01.633Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T05:36:01.648Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T05:36:27.447Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T05:36:27.463Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T05:36:59.646Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T05:36:59.664Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T05:38:39.334Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:38:39.344Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:41:57.187Z] [LOG] activeRequest []
+[2024-11-25T05:41:57.198Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T05:42:00.137Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:42:00.138Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:42:02.489Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:42:11.297Z] [LOG] totalTime 0
+[2024-11-25T05:42:11.300Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:45:22.075Z] [LOG] activeRequest []
+[2024-11-25T05:45:22.082Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T05:45:24.993Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:45:24.993Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:45:27.251Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:45:41.531Z] [LOG] totalTime 0
+[2024-11-25T05:45:41.532Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:50:04.934Z] [LOG] activeRequest []
+[2024-11-25T05:50:04.943Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T05:50:06.859Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:50:06.860Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:50:10.891Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:50:32.023Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:50:32.026Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T05:50:32.652Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T05:50:48.175Z] [LOG] totalTime 0
+[2024-11-25T05:50:48.176Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:13:25.423Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:13:25.426Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:13:31.760Z] [LOG] activeRequest []
+[2024-11-25T06:13:33.836Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:18:13.585Z] [LOG] activeRequest [{"passengerRequestId":25,"passengerRequestUniqueId":"d2b67460-eadc-43dd-a01d-5e5c073d9352","userUniqueId":"c4f3bb4c-b586-4c2f-9149-8871f8abaed4","vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","originLatitude":"9.00322780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-11-25T06:13:32.000Z","journeyStatusId":2}]
+[2024-11-25T06:18:13.596Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:18:21.742Z] [LOG] activeRequest [{"passengerRequestId":25,"passengerRequestUniqueId":"d2b67460-eadc-43dd-a01d-5e5c073d9352","userUniqueId":"c4f3bb4c-b586-4c2f-9149-8871f8abaed4","vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","originLatitude":"9.00322780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-11-25T06:13:32.000Z","journeyStatusId":2}]
+[2024-11-25T06:18:21.747Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:18:24.535Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:18:24.551Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T06:18:32.928Z] [LOG] activeRequest []
+[2024-11-25T06:18:32.934Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:19:07.888Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:19:07.893Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:19:08.560Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:19:14.101Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:19:14.102Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:19:16.502Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:19:20.683Z] [LOG] totalTime 0
+[2024-11-25T06:19:20.684Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:23:32.230Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:23:32.234Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:24:02.878Z] [LOG] activeRequest []
+[2024-11-25T06:24:02.884Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:24:05.482Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:24:05.482Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:24:14.611Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:24:44.579Z] [LOG] totalTime 0
+[2024-11-25T06:24:44.580Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:26:38.819Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:26:38.821Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:26:48.219Z] [LOG] activeRequest []
+[2024-11-25T06:26:48.226Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:26:50.851Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:26:50.852Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:26:54.114Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:26:56.315Z] [LOG] totalTime 0
+[2024-11-25T06:26:56.317Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:28:21.999Z] [LOG] activeRequest []
+[2024-11-25T06:28:22.005Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:28:23.698Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:28:23.699Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:28:35.706Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:28:35.709Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:28:36.947Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:28:39.792Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:28:50.965Z] [LOG] totalTime 0
+[2024-11-25T06:28:50.967Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:32:17.409Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:32:17.412Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T06:32:36.369Z] [LOG] activeRequest []
+[2024-11-25T06:32:36.374Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T06:32:40.322Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:32:40.322Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:32:42.226Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T06:32:53.003Z] [LOG] totalTime 0
+[2024-11-25T06:32:53.005Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:46:55.483Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T07:46:55.497Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T07:47:04.924Z] [LOG] activeRequest []
+[2024-11-25T07:47:04.931Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T07:47:07.959Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:47:07.960Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:47:10.521Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:47:14.531Z] [LOG] totalTime 0
+[2024-11-25T07:47:14.532Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:48:16.645Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T07:48:36.833Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T07:48:49.537Z] [LOG] activeRequest []
+[2024-11-25T07:48:49.543Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T07:48:55.092Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:48:55.092Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:49:51.819Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:50:33.828Z] [LOG] totalTime 0
+[2024-11-25T07:50:33.829Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:56:13.096Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T07:56:13.103Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T07:56:27.664Z] [LOG] activeRequest []
+[2024-11-25T07:56:27.671Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T07:56:35.727Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:56:35.727Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:56:40.664Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:56:48.193Z] [LOG] totalTime 0
+[2024-11-25T07:56:48.194Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:57:46.694Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T07:57:57.506Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T07:58:14.364Z] [LOG] activeRequest []
+[2024-11-25T07:58:14.369Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T07:58:15.917Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:58:15.918Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:58:17.596Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T07:58:21.121Z] [LOG] totalTime 0
+[2024-11-25T07:58:21.122Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:07:03.852Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:07:03.857Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:07:35.058Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:07:35.062Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:08:17.192Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:08:17.194Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:08:38.183Z] [LOG] activeRequest []
+[2024-11-25T08:08:38.188Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T08:09:59.002Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:09:59.002Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:11:58.375Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:16:56.422Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:16:56.426Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:18:52.675Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:18:52.678Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:19:24.027Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:19:24.030Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:19:55.131Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:19:55.134Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:19:56.174Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:20:08.385Z] [LOG] totalTime 0
+[2024-11-25T08:20:08.387Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:20:31.477Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:20:31.480Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:22:30.636Z] [LOG] activeRequest []
+[2024-11-25T08:22:30.641Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T08:23:18.809Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:23:18.812Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:23:20.051Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:24:29.548Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:24:29.550Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:24:30.780Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:28:57.108Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:28:57.113Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:28:58.358Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:36:54.435Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:36:54.438Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:36:55.080Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:37:10.162Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:37:10.165Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:37:11.389Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:37:50.688Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:37:50.691Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:37:51.358Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:38:14.189Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:38:14.193Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:38:14.906Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:38:29.108Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:38:29.111Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:38:29.930Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:40:09.804Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:40:09.807Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:40:10.363Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:44:07.753Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:44:07.756Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:44:08.850Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:47:46.038Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:47:46.061Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:47:46.783Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:49:23.444Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:49:23.446Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:49:25.737Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:49:28.036Z] [LOG] totalTime 0
+[2024-11-25T08:49:28.039Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:50:03.440Z] [LOG] activeRequest []
+[2024-11-25T08:50:03.447Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T08:50:39.744Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:50:39.745Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:50:41.887Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:50:48.065Z] [LOG] totalTime 0
+[2024-11-25T08:50:48.082Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:51:10.041Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:51:10.047Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:52:21.259Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:52:21.263Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:54:02.791Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:54:02.795Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:54:39.541Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:54:39.544Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:57:53.106Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:57:53.112Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:58:32.689Z] [LOG] activeRequest []
+[2024-11-25T08:58:32.696Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T08:59:04.890Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:59:04.893Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T08:59:05.408Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:59:15.262Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:59:15.263Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T08:59:48.764Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T09:01:25.698Z] [LOG] totalTime 0
+[2024-11-25T09:01:25.699Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T09:01:41.716Z] [LOG] activeRequest []
+[2024-11-25T09:01:41.720Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T09:01:51.962Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T09:01:51.963Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T09:01:54.680Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:39:50.884Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T10:39:50.954Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T10:41:13.285Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T10:41:13.330Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T10:41:14.498Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:41:19.585Z] [LOG] totalTime 0
+[2024-11-25T10:41:19.590Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:47:11.238Z] [LOG] activeRequest []
+[2024-11-25T10:47:11.249Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T10:47:28.053Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:47:28.054Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:47:30.184Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:47:35.814Z] [LOG] totalTime 0
+[2024-11-25T10:47:35.816Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:52:43.414Z] [LOG] activeRequest []
+[2024-11-25T10:52:43.421Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T10:52:49.647Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:52:49.648Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:53:58.628Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:54:28.735Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T10:54:28.740Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T10:54:30.181Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T10:56:48.505Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T10:56:48.514Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('950ceff3-6989-4cd9-bc10-0ede9d8f567c', NULL, '2024-11-25 13:56:48.508')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:02:51.721Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:02:51.732Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:02:52.854Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:05:50.883Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:05:50.891Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:05:51.834Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:11:03.575Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:11:03.579Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:11:07.090Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:17:09.587Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:17:09.591Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:17:10.753Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:18:16.808Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:18:16.811Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:18:18.216Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:23:51.454Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:23:51.458Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:23:54.861Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:33:48.084Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:33:48.088Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:33:52.327Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:38:34.024Z] [LOG] totalTime 0
+[2024-11-25T11:38:34.025Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:40:40.027Z] [LOG] activeRequest []
+[2024-11-25T11:40:40.034Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T11:40:44.577Z] [LOG] activeRequest [{"passengerRequestId":42,"passengerRequestUniqueId":"f8e42d5e-b9f9-42cd-bb90-dd0762fae3b5","userUniqueId":"c4f3bb4c-b586-4c2f-9149-8871f8abaed4","vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-11-25T11:40:40.000Z","journeyStatusId":2}]
+[2024-11-25T11:40:44.583Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T11:40:48.472Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:40:48.482Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T11:40:54.378Z] [LOG] activeRequest []
+[2024-11-25T11:40:54.384Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T11:41:30.052Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:41:30.055Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:41:31.246Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:41:38.865Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:41:38.865Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:41:42.079Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:43:11.445Z] [LOG] totalTime 0
+[2024-11-25T11:43:11.447Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:43:30.738Z] [LOG] activeRequest []
+[2024-11-25T11:43:30.743Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T11:44:00.362Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:44:00.365Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:44:00.881Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:44:25.115Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:44:25.115Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:45:39.317Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:45:39.320Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:45:39.989Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:46:20.660Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:46:20.662Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:46:21.799Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:47:22.067Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:47:22.071Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:47:22.696Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:50:16.575Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:50:16.578Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T11:50:19.901Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:50:30.480Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T11:51:00.940Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:51:00.942Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('d342d831-2a51-47fd-95eb-1cddb3b57249', NULL, '2024-11-25 14:51:00.941')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:51:30.535Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:51:30.536Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('9950be82-2bb8-44e8-8daa-ed73273ae072', NULL, '2024-11-25 14:51:30.535')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:00.331Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:00.332Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('f244fbea-45fd-4a9a-aafe-8421af462d3c', NULL, '2024-11-25 14:52:00.332')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:29.058Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:29.059Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('6d2c6ec0-b70d-4473-aea6-84768c3d12a8', NULL, '2024-11-25 14:52:29.058')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:32.058Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:32.058Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('c45af8a8-2128-46a2-9e05-214bafabee58', NULL, '2024-11-25 14:52:32.058')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:36.556Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:36.557Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('ade6caef-eb74-4e3f-b3b5-3ffdf598fc7a', NULL, '2024-11-25 14:52:36.556')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:38.094Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:38.095Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('4a458ec7-7f49-476c-9b48-11489fb0040b', NULL, '2024-11-25 14:52:38.094')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:43.228Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:43.228Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b71e4c6a-f6f5-438d-994a-1a9e9e172ac0', NULL, '2024-11-25 14:52:43.228')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:45.228Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:45.229Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('32741484-cebb-418f-986a-0067af9ca88f', NULL, '2024-11-25 14:52:45.229')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:47.047Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:47.048Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('487d9ae3-623b-4ed4-b569-5e326f9415c4', NULL, '2024-11-25 14:52:47.048')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:50.043Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:50.044Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('1b7942a5-3dc7-4a93-81eb-6df86c5dbc28', NULL, '2024-11-25 14:52:50.044')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:53.140Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:53.141Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('9bb2bbab-89d2-4020-9d78-2abdd5cff8cc', NULL, '2024-11-25 14:52:53.140')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:57.284Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:57.287Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b71dae3a-91ff-491e-93dd-703e6d4d8d0b', NULL, '2024-11-25 14:52:57.287')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:52:59.041Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:52:59.042Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('0c9dab56-56a7-4c55-84a8-a031f70a9fed', NULL, '2024-11-25 14:52:59.041')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:02.040Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:02.041Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('095ef0ee-eae3-4efe-9fa7-ec578b596ea4', NULL, '2024-11-25 14:53:02.041')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:06.188Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:06.189Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('00f92110-0f8d-41f7-ba4f-994b5422a118', NULL, '2024-11-25 14:53:06.189')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:08.057Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:08.057Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('85a4726b-d314-48e4-9992-0c5bd85debd5', NULL, '2024-11-25 14:53:08.057')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:11.026Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:11.027Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b2092da7-82b4-410d-bd48-18d21d88b987', NULL, '2024-11-25 14:53:11.027')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:15.950Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:15.951Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('955a9efc-579a-4678-ab1f-dcb0909a8ed4', NULL, '2024-11-25 14:53:15.950')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:18.901Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:18.902Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('aa957f2a-fc4b-4495-872c-a311cde89908', NULL, '2024-11-25 14:53:18.901')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:21.499Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:21.499Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('5ce35029-1ab8-4dd6-b7c2-2644506056a7', NULL, '2024-11-25 14:53:21.499')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:23.299Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:23.299Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b05594e4-74d7-4ff8-a1f8-0af50143255b', NULL, '2024-11-25 14:53:23.299')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:28.536Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:28.537Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('4d6b4471-669c-4803-b851-a6fbc85c8c67', NULL, '2024-11-25 14:53:28.537')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:30.805Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:30.806Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('1faaba15-10ab-45c7-bc90-f8ad188db60d', NULL, '2024-11-25 14:53:30.805')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:32.299Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:32.300Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('f7d66547-9448-4a91-98a2-2ba3772c9a54', NULL, '2024-11-25 14:53:32.299')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:53:37.045Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:53:37.046Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('0dcaf74f-1100-47aa-bd86-2d52037537f6', NULL, '2024-11-25 14:53:37.045')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:36.179Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:36.180Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('a4e7c103-0b3f-4fed-9f41-1e11438fd0b0', NULL, '2024-11-25 14:54:36.179')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.127Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.128Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('f665e4fb-51ae-4fa2-8120-1cbc249539c8', NULL, '2024-11-25 14:54:37.127')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.145Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.145Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('0b571b29-e702-4342-9b66-e2dd72c8d693', NULL, '2024-11-25 14:54:37.145')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.154Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.155Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('4f928f74-b8ef-497d-93ff-abc152bac96f', NULL, '2024-11-25 14:54:37.154')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.639Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.639Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('14f67e10-095d-48b8-aeb2-777e253734ce', NULL, '2024-11-25 14:54:37.639')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.646Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.647Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('a0dba352-22a3-453c-aa48-3a4a9d55b79a', NULL, '2024-11-25 14:54:37.647')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.655Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.655Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('7362d253-650a-4ae8-9eed-c19ab08f6d13', NULL, '2024-11-25 14:54:37.655')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:37.663Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:37.663Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('e5dc6d46-dfe7-4591-966c-2fb3b2c38d95', NULL, '2024-11-25 14:54:37.663')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:38.788Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:38.789Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('61c5c6cb-3096-4064-9478-f6e37288671f', NULL, '2024-11-25 14:54:38.788')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:38.807Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:38.808Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('ddd626e9-76f3-4c73-8fcd-192726f0d0f1', NULL, '2024-11-25 14:54:38.808')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:38.819Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:38.820Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('9584c0a2-6999-40bb-a427-fd9ea54b55c6', NULL, '2024-11-25 14:54:38.819')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:39.567Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:39.569Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('a608dcaf-7669-42b4-a005-bde215016e8f', NULL, '2024-11-25 14:54:39.568')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:39.678Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:39.679Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('ef986541-61e9-434e-808d-71d1564231fc', NULL, '2024-11-25 14:54:39.678')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:39.687Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:39.688Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('a13634f9-322f-43b6-a35d-53e5ddf9da6e', NULL, '2024-11-25 14:54:39.687')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:39.694Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:39.695Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('93051797-9538-4c15-9005-19f6042681df', NULL, '2024-11-25 14:54:39.694')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:39.707Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:39.708Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b31a8ea3-8a8b-4be3-ac3f-3068068bb900', NULL, '2024-11-25 14:54:39.707')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:43.974Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:43.975Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('09dded61-67e5-4349-a66b-cdb6a7eebcbf', NULL, '2024-11-25 14:54:43.974')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:44.806Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:44.807Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('90bf858b-63e0-4a8d-8fa9-0ede77013942', NULL, '2024-11-25 14:54:44.806')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:47.029Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:47.030Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('134bd990-566a-4050-8053-a316872d719e', NULL, '2024-11-25 14:54:47.030')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:49.974Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:49.975Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('5151d5e9-ef1e-4f4b-985f-31fcca2bb7ec', NULL, '2024-11-25 14:54:49.974')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:53.076Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:53.077Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('e82591cc-e785-4d25-bffb-c69364cab626', NULL, '2024-11-25 14:54:53.076')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:56.130Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:56.132Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('3468b4a1-1ee5-4008-a674-58a8f8eb0dd0', NULL, '2024-11-25 14:54:56.131')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:54:58.967Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:54:58.967Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('59cdeb42-efa5-4e7c-9df4-0ff03d935409', NULL, '2024-11-25 14:54:58.967')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:01.966Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:01.966Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('f42b3d0e-d474-4f81-8119-cf7dbb4b0996', NULL, '2024-11-25 14:55:01.966')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:04.973Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:04.973Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('61b4326d-e70d-42cc-85d2-d4eb71704dc3', NULL, '2024-11-25 14:55:04.973')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:07.966Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:07.967Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('77f30eb2-ae7e-4f70-9e91-8a411d8b6810', NULL, '2024-11-25 14:55:07.967')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:10.955Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:10.956Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b55116fb-d75e-4a04-ab83-0c3d6f325602', NULL, '2024-11-25 14:55:10.955')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:13.958Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:13.959Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('ece01183-8761-42ca-b327-e8faaddee8e0', NULL, '2024-11-25 14:55:13.959')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:16.955Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:16.956Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('0469a313-8aeb-40ce-b4a7-55120b78d223', NULL, '2024-11-25 14:55:16.955')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:19.953Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:19.954Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('fb30f90e-5cc9-4289-b5be-c4cfdb08ea18', NULL, '2024-11-25 14:55:19.953')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:23.177Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:23.178Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('d6066b20-dd47-4e1e-a33b-fabb0002884c', NULL, '2024-11-25 14:55:23.178')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:25.951Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:25.951Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('cd330880-e6e0-41d7-8f10-ff4c27d8b734', NULL, '2024-11-25 14:55:25.951')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:28.947Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:28.948Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('ff15fc6d-1958-4a14-b01f-07831039cee7', NULL, '2024-11-25 14:55:28.948')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:31.941Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:31.942Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('e0474b24-19eb-4944-bedb-ad1926746a1d', NULL, '2024-11-25 14:55:31.941')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:34.987Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:34.988Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('69134156-dd86-49ec-91bc-a897bdc21202', NULL, '2024-11-25 14:55:34.987')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:37.944Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:37.945Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('46d14b55-166c-43fe-b1b6-a9cfce656ed8', NULL, '2024-11-25 14:55:37.945')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:40.939Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:40.940Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('83246079-2fed-45ea-8700-120087a9c25f', NULL, '2024-11-25 14:55:40.939')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:43.932Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:43.933Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('08b898fb-9134-402f-b6d0-494cd6506142', NULL, '2024-11-25 14:55:43.932')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:48.216Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:48.216Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('3e3b6f73-2497-4b4e-9a51-897bd13c6aea', NULL, '2024-11-25 14:55:48.216')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:51.218Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:51.218Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('fee735fd-1e28-4dce-bd52-c053352bf7f1', NULL, '2024-11-25 14:55:51.218')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:54.415Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:54.429Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('f78e5e12-a0eb-4949-b15c-dfb60702d43a', NULL, '2024-11-25 14:55:54.429')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:55:57.312Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:55:57.313Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('e568ec7f-e40a-41cf-b069-23d118bca424', NULL, '2024-11-25 14:55:57.312')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:00.210Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:00.211Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('deb7031c-30f7-4017-8a2b-92358bc97d92', NULL, '2024-11-25 14:56:00.210')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:03.287Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:03.287Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('8f42fcab-42f7-4674-889c-a49e94532078', NULL, '2024-11-25 14:56:03.287')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:06.201Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:06.201Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('b3822667-f417-47cc-80db-4a9aad5b8ffc', NULL, '2024-11-25 14:56:06.201')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:09.198Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:09.199Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('5ca2af3f-925d-4861-9877-d80a58de1a76', NULL, '2024-11-25 14:56:09.199')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:12.237Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:12.237Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('0227c899-31ce-4d2e-81c1-0fee1bd53b09', NULL, '2024-11-25 14:56:12.237')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:15.200Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:15.200Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('c8545f2a-3cdf-4fb8-bc72-dd26ba871c9d', NULL, '2024-11-25 14:56:15.200')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:18.223Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:18.224Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('67db9139-04f9-417f-a0e4-6594f9a8a068', NULL, '2024-11-25 14:56:18.224')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:21.196Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:21.196Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('909be976-9f95-4fea-9f34-0908334b2f94', NULL, '2024-11-25 14:56:21.196')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:24.195Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:24.195Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('dd63254f-cabc-4663-84aa-0f9bc96f3a9a', NULL, '2024-11-25 14:56:24.195')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:27.189Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:27.189Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('320f4422-17bb-4fff-8e12-7ebe8796379c', NULL, '2024-11-25 14:56:27.189')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:30.184Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:30.185Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('22a14de6-3f16-47b3-a853-dddacd88b7be', NULL, '2024-11-25 14:56:30.184')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:33.182Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:33.182Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('ac0e4056-6342-4a23-9e96-1ad57ed3dcaf', NULL, '2024-11-25 14:56:33.182')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:36.209Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:36.210Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('82c0012f-d9ef-4f0a-b766-fe5c0d0418cb', NULL, '2024-11-25 14:56:36.209')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:39.223Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:39.224Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('465e8bf2-319a-4ebc-9117-f7e2403d1013', NULL, '2024-11-25 14:56:39.223')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:42.788Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:42.789Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('c938ab28-1a57-48ca-a4eb-f2755a62cc06', NULL, '2024-11-25 14:56:42.788')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:45.218Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:45.218Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('049d1b68-1297-48d5-979c-f391ac20f60b', NULL, '2024-11-25 14:56:45.218')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:48.208Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:48.209Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('105740da-5e25-4276-8aa7-abc33e114e54', NULL, '2024-11-25 14:56:48.208')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:56:51.208Z] [LOG] existedPaymentStatus =============>  []
+[2024-11-25T11:56:51.209Z] [LOG] Error creating payment status: {"message":"Column 'paymentStatus' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO PaymentStatus (paymentStatusUniqueId, paymentStatus, createdAt) VALUES ('c9eb15a5-05fd-4675-88db-5e4342ea9cec', NULL, '2024-11-25 14:56:51.209')","sqlState":"23000","sqlMessage":"Column 'paymentStatus' cannot be null"}
+[2024-11-25T11:57:46.312Z] [LOG] totalTime -33000
+[2024-11-25T11:57:46.314Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T12:01:02.005Z] [LOG] activeRequest []
+[2024-11-25T12:01:02.012Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-25T15:32:30.591Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T15:32:30.756Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T15:37:36.214Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:37:36.443Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:37:37.123Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:38:57.818Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:38:57.825Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:38:58.709Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:46:05.217Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:46:05.224Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:46:08.727Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:46:22.018Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:46:22.018Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:46:24.921Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:46:42.767Z] [LOG] totalTime 0
+[2024-11-25T15:46:42.770Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T15:48:33.571Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T15:50:56.558Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-11-25T15:51:22.431Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T15:51:22.434Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T16:00:50.901Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T16:00:50.908Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T16:10:29.857Z] [LOG] activeRequest []
+[2024-11-25T16:13:39.835Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:13:39.852Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:14:05.573Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:14:05.599Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:14:42.141Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:14:42.167Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:15:02.058Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:15:02.076Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:15:12.573Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:15:12.594Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:15:14.479Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:15:14.559Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:15:44.531Z] [LOG] listOfPassangerWs is null or empty
+[2024-11-25T16:15:54.445Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:15:54.463Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:16:00.014Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:16:00.050Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:27:46.124Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:27:46.157Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:29:23.321Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:29:23.356Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:41:00.039Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:41:00.084Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:44:46.112Z] [LOG] Error updating data: {"message":"Unknown column 'vehicleUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE Vehicle SET vehicleTypeUniqueId = '54976c76-cf1b-49ae-8552-7934ffb04c71', licensePlate = '2333333', color = 'black 🖤', vehicleUpdatedBy = '4777bfbb-8940-47c5-b3d3-e51fe6a6a523', vehicleUpdatedAt = '2024-11-25:19:44:46' WHERE vehicleUniqueId = '2d21c325-bf95-4458-b331-4640bbbf7652'","sqlState":"42S22","sqlMessage":"Unknown column 'vehicleUpdatedAt' in 'field list'"}
+[2024-11-25T16:44:46.118Z] [ERROR] Error @updateVehicle: {"message":"Unknown column 'vehicleUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE Vehicle SET vehicleTypeUniqueId = '54976c76-cf1b-49ae-8552-7934ffb04c71', licensePlate = '2333333', color = 'black 🖤', vehicleUpdatedBy = '4777bfbb-8940-47c5-b3d3-e51fe6a6a523', vehicleUpdatedAt = '2024-11-25:19:44:46' WHERE vehicleUniqueId = '2d21c325-bf95-4458-b331-4640bbbf7652'","sqlState":"42S22","sqlMessage":"Unknown column 'vehicleUpdatedAt' in 'field list'"}
+[2024-11-25T16:45:55.469Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:45:55.491Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:46:12.743Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:46:12.878Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:49:41.810Z] [LOG] Error updating table Vehicle: {"message":"You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'undefined' at line 1","code":"ER_PARSE_ERROR","errno":1064,"sql":"ALTER TABLE Vehicle ADD COLUMN undefined undefined","sqlState":"42000","sqlMessage":"You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'undefined' at line 1"}
+[2024-11-25T16:50:21.864Z] [LOG] Error updating data: {"message":"Unknown column 'vehicleUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE Vehicle SET vehicleTypeUniqueId = '54976c76-cf1b-49ae-8552-7934ffb04c71', licensePlate = '2333333', color = 'black 🖤', vehicleUpdatedBy = '4777bfbb-8940-47c5-b3d3-e51fe6a6a523', vehicleUpdatedAt = '2024-11-25:19:50:21' WHERE vehicleUniqueId = '2d21c325-bf95-4458-b331-4640bbbf7652'","sqlState":"42S22","sqlMessage":"Unknown column 'vehicleUpdatedAt' in 'field list'"}
+[2024-11-25T16:50:21.869Z] [ERROR] Error @updateVehicle: {"message":"Unknown column 'vehicleUpdatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE Vehicle SET vehicleTypeUniqueId = '54976c76-cf1b-49ae-8552-7934ffb04c71', licensePlate = '2333333', color = 'black 🖤', vehicleUpdatedBy = '4777bfbb-8940-47c5-b3d3-e51fe6a6a523', vehicleUpdatedAt = '2024-11-25:19:50:21' WHERE vehicleUniqueId = '2d21c325-bf95-4458-b331-4640bbbf7652'","sqlState":"42S22","sqlMessage":"Unknown column 'vehicleUpdatedAt' in 'field list'"}
+[2024-11-25T16:52:41.737Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:52:41.943Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:52:45.482Z] [LOG] vehicleUniqueId 2d21c325-bf95-4458-b331-4640bbbf7652
+[2024-11-25T16:53:06.032Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:53:06.052Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:53:09.031Z] [LOG] vehicleUniqueId 2d21c325-bf95-4458-b331-4640bbbf7652  data ==============>  {"vehicleTypeUniqueId":"54976c76-cf1b-49ae-8552-7934ffb04c71","licensePlate":"2333333","color":"black 🖤"}
+[2024-11-25T16:54:02.105Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:54:02.143Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:54:49.729Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T16:54:49.826Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T16:55:18.800Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"54976c76-cf1b-49ae-8552-7934ffb04c71","licensePlate":"2333333","color":"black 🖤"}
+[2024-11-25T16:56:57.066Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"54976c76-cf1b-49ae-8552-7934ffb04c71","licensePlate":"2333333","color":"black 🖤"}
+[2024-11-25T16:58:19.910Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T16:58:19.924Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:00:54.340Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-25T17:00:54.353Z] [LOG] Server started on port http://localhost:3000
+[2024-11-25T17:04:37.870Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"54976c76-cf1b-49ae-8552-7934ffb04c71","licensePlate":"2333333","color":"black 🖤"}
+[2024-11-25T17:04:44.849Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"54976c76-cf1b-49ae-8552-7934ffb04c71","licensePlate":"2333333","color":"black 🖤"}
+[2024-11-25T17:05:52.419Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:05:52.430Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:09:05.733Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:09:05.737Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:10:25.630Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:10:25.633Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:11:44.521Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"5428635","color":"black 🖤"}
+[2024-11-25T17:13:25.104Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:13:25.107Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:13:46.667Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"54286765","color":"black 🖤"}
+[2024-11-25T17:14:11.624Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:14:11.631Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:14:50.136Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:14:53.398Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:15:24.577Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:15:27.123Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:15:30.016Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:16:29.725Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:16:29.730Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:16:31.102Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:16:41.112Z] [LOG] vehicleUniqueId f23ca562-8893-4fe7-b16e-aaaea2a33f50  data ==============>  {"vehicleTypeUniqueId":"2d21c325-bf95-4458-b331-4640bbbf7652","licensePlate":"ድሬ 3-5678 aa","color":"black 🖤"}
+[2024-11-25T17:17:56.838Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:17:56.842Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:19:09.469Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:19:09.472Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:21:11.402Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:21:11.407Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:21:54.465Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:21:54.469Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:33:25.322Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:33:25.325Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:35:43.972Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:35:43.975Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:36:23.151Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:36:23.154Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:41:54.027Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-25T17:41:54.029Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-26T01:41:22.338Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T01:41:22.350Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T01:45:55.726Z] [LOG] smsSenderData [{"SMSSenderId":1,"phoneNumber":"0922112480","password":"$2b$10$Ywa7FIhnuGLfJtJ6.qfZUOmuepgkcPHITLwPAt5U0t8/l8E2GWX.a"}]
+[2024-11-26T01:45:55.806Z] [LOG] verification of password  {"message":"success","data":true}
+[2024-11-26T05:43:38.657Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-26T05:43:38.670Z] [LOG] Server started on port http://localhost:3000
+[2024-11-26T05:46:09.387Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-26T05:46:09.435Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}

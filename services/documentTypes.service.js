@@ -23,7 +23,8 @@ const createDocumentType = async ({ body }) => {
   const uploadedDocumentName = camelCaseDocumentName,
     uploadedDocumentExpirationDate = camelCaseDocumentName + "ExpirationDate",
     uploadedDocumentTypeId = camelCaseDocumentName + "TypeId",
-    uploadedDocumentDescription = camelCaseDocumentName + "Description";
+    uploadedDocumentDescription = camelCaseDocumentName + "Description",
+    uploadedDocumentFileNumber = camelCaseDocumentName + "FileNumber";
   const userUniqueId = user?.userUniqueId;
   // verify if userUniqueId is valid and active
   const userExists = await getData({
@@ -56,6 +57,7 @@ const createDocumentType = async ({ body }) => {
     uploadedDocumentExpirationDate,
     documentTypeName,
     documentTypeDescription,
+    uploadedDocumentFileNumber,
     documentTypeCreatedBy: userUniqueId,
     documentTypeCreatedAt: new Date(),
   };

@@ -18,6 +18,7 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
   try {
     // Clean the phone number before processing
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
+    console.log("cleanedPhoneNumber", cleanedPhoneNumber);
 
     // Validate the cleaned phone number using regex
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {

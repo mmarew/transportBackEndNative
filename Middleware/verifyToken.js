@@ -5,6 +5,7 @@ const secretKey = process.env.SECRET_KEY;
 
 const verifyTokenOfAxios = async (req, res, next) => {
   const authHeader = req?.headers?.authorization;
+  // console.log("authHeader", authHeader);
   if (authHeader) {
     const token = authHeader.split(" ")[1]; // Extract token from "Bearer <token>"
     try {
@@ -15,7 +16,6 @@ const verifyTokenOfAxios = async (req, res, next) => {
         tableName: "Users",
         conditions: { userUniqueId },
       });
-
       if (user.length > 0) {
         req.user = { ...user[0], ...data }; // Attach user data to req instead of req.body
         next(); // Proceed to the next middleware/controller
