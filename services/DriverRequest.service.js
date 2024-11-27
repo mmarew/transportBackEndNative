@@ -763,18 +763,17 @@ const attachRequiredDocuments = async (body) => {
 const driversDocumentVehicleRequirement = async (body) => {
   const ownerUserUniqueId = body.ownerUserUniqueId;
   const user = body?.user;
-  const { userRole, userRoleStatus } = body;
   const roleId = 2;
   const phoneNumber = user?.phoneNumber;
   const userRoleStatusDescription = body?.userRoleStatusDescription;
 
   // Fetch initial user data based on role ID and phone number
-  // let userData = await getUserRoleStatus({ roleId, phoneNumber });
-  // if (!userData || userData.length === 0) {
-  //   return { message: "error", data: "User data not found" };
-  // }
+  let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
+  if (!userRoleStatus || userRoleStatus.length === 0) {
+    return { message: "error", data: "User data not found" };
+  }
 
-  const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus;
+  const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
 
   // Fetch required documents for the driver's role
   const requiredDocuments = await performJoinSelect({
@@ -840,7 +839,10 @@ const driversDocumentVehicleRequirement = async (body) => {
     conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
   });
   const vehicleRegistered = userVehicle.length > 0;
-
+  console.log(
+    "@driversDocumentVehicleRequirement vehicleRegistered",
+    vehicleRegistered
+  );
   // Determine the final status based on documents and vehicle status
   const finalStatusId = findStatusByVehicleAndDocuments({
     attachedDocuments,

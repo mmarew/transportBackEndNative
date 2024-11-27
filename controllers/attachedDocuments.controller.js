@@ -5,6 +5,7 @@ const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
+    console.log("@createAttachedDocuments req.body", req.body);
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
     const roleId = user?.roleId;

@@ -87,7 +87,7 @@ router.put(
 router.get(
   "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
   verifyTokenOfAxios,
-  verifyDriversIdentity,
+  // verifyDriversIdentity,
   driversDocumentVehicleRequirement
 );
 

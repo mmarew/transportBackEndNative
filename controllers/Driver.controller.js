@@ -139,7 +139,6 @@ const attachRequiredDocuments = async (req, res) => {
 };
 const driversDocumentVehicleRequirement = async (req, res) => {
   try {
-    console.log("@driversDocumentVehicleRequirement", req.body);
     const user = req?.user;
     const userRoleStatus = req?.userRoleStatus,
       userRole = req?.userRole;
@@ -153,7 +152,6 @@ const driversDocumentVehicleRequirement = async (req, res) => {
     req.body.userRoleStatus = userRoleStatus;
     req.body.ownerUserUniqueId = ownerUserUniqueId;
     const result = await services.driversDocumentVehicleRequirement(req.body);
-    console.log("@driversDocumentVehicleRequirement result", result);
     ServerResponder(res, result);
   } catch (error) {
     console.log("first error", error);

@@ -3,16 +3,21 @@ const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 
 const createVehicleOwnership = async (body) => {
-  const { vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate } =
-    body;
+  const {
+    vehicleUniqueId,
+    userUniqueId,
+    roleId,
+    ownershipStartDate,
+    ownershipEndDate,
+  } = body;
   const ownershipUniqueId = uuidv4();
-
-  const sql = `INSERT INTO VehicleOwnership (ownershipUniqueId, vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate) 
+  // verify if vehice status is active
+  const sql = `INSERT INTO VehicleOwnership (ownershipUniqueId, vehicleUniqueId, userUniqueId, roleId, ownershipStartDate, ownershipEndDate) 
                VALUES (?, ?, ?, ?, ?, ?)`;
   const values = [
     ownershipUniqueId,
-    vehicleId,
-    userId,
+    vehicleUniqueId,
+    userUniqueId,
     roleId,
     ownershipStartDate,
     ownershipEndDate || null,
