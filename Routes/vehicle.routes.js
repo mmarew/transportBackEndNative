@@ -10,7 +10,7 @@ const {
 } = require("../Controllers/Vehicle.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
-router.post("/vehicles", verifyTokenOfAxios, createVehicleController); // Create a new vehicle
+router.post("/api/user/vehicles", verifyTokenOfAxios, createVehicleController); // Create a new vehicle
 router.get(
   "/vehicles/:vehicleUniqueId",
   verifyTokenOfAxios,

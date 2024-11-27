@@ -324,7 +324,31 @@ const statusList = [
     statusCreatedAt: currentDate(),
   },
 ];
-
+const vehicleStatusTypes = [
+  {
+    statusTypeName: "active",
+    statusTypeDescription:
+      "When vehicles are active and ready to be used by drivers.",
+  },
+  {
+    statusTypeName: "inactive",
+    statusTypeDescription:
+      "When vehicles are inactive and not ready to be used by drivers.",
+  },
+  {
+    statusTypeName: "deleted",
+    statusTypeDescription: "When vehicles are deleted by the admin.",
+  },
+  {
+    statusTypeName: "suspended",
+    statusTypeDescription: "When vehicles are suspended by the admin.",
+  },
+  {
+    statusTypeName: "rejected",
+    statusTypeDescription: "When vehicles are rejected by the admin.",
+  },
+  { statusTypeName: "reserved by other driver" },
+];
 const listOfDocuments = [
   {
     isExpirationDateRequired: true,

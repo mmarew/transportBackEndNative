@@ -3,11 +3,12 @@ const currentDate = require("../Utils/currentDate");
 const { getData } = require("../CRUD/Read/ReadData");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
+const { createVehicleOwnership } = require("./VehicleOwnership.service");
 
 const createVehicle = async (data, user) => {
   try {
     const { vehicleTypeUniqueId, licensePlate, color } = data;
-    const vehicleUniqueId = uuidv4();
+    let vehicleUniqueId = uuidv4();
 
     if (!vehicleTypeUniqueId || !licensePlate || !color) {
       return { message: "error", error: "All fields are required" };
@@ -21,19 +22,34 @@ const createVehicle = async (data, user) => {
     if (!vehicleTypeExists.length) {
       return { message: "error", error: "Vehicle type does not exist" };
     }
-
-    await insertData({
+    // verify if vehicle already exists with the same license plate
+    const vehicleExists = await getData({
       tableName: "Vehicle",
-      colAndVal: {
-        vehicleUniqueId,
-        vehicleTypeUniqueId,
-        licensePlate,
-        color,
-        vehicleCreatedBy: user.userUniqueId,
-        vehicleCreatedAt: currentDate(),
-      },
+      conditions: { licensePlate },
     });
-
+    console.log("vehicleExists", vehicleExists);
+    if (vehicleExists?.length == 0) {
+      const vehicle = await insertData({
+        tableName: "Vehicle",
+        colAndVal: {
+          vehicleUniqueId,
+          vehicleTypeUniqueId,
+          licensePlate,
+          color,
+          vehicleCreatedBy: user.userUniqueId,
+          vehicleCreatedAt: currentDate(),
+        },
+      });
+    } else vehicleUniqueId = vehicleExists[0].vehicleUniqueId;
+    // register vehicle ownership\
+    const body = {
+      vehicleUniqueId: vehicleUniqueId,
+      userUniqueId: user.userUniqueId,
+      roleId: 2,
+      ownershipStartDate: currentDate(),
+      ownershipEndDate: null,
+    };
+    createVehicleOwnership(body);
     return { message: "success", data: "Vehicle created successfully" };
   } catch (error) {
     console.error("Error @createVehicle:", error);

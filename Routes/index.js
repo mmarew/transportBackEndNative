@@ -6,7 +6,7 @@ const AdminRouter = require("./Admin.routes");
 const userRoutes = require("./User.routes");
 const roles = require("./Role.routes");
 const Status = require("./Status.routes");
-
+const vehicleStatusRoutes = require("./VehicleStatus.routes");
 const Vehicles = require("./Vehicle.routes");
 const vehicleOwnership = require("./VehicleOwnership.routes");
 const Passenger = require("./PassengerRequest.routes");
@@ -37,6 +37,7 @@ const paymentStatus = require("./PaymentStatus.routes");
 
 const DriverDeposit = require("./DriverDeposit.routes");
 
+Routes.use(vehicleStatusRoutes);
 Routes.use(driverBalance);
 Routes.use(paymentStatus);
 Routes.use(DriverDeposit);
