@@ -316,10 +316,8 @@ const acceptRejectAttachedDocuments = async (body) => {
       data: "Invalid action. Must be 'ACCEPTED' or 'REJECTED'",
     };
   }
-
   // Fetch the document to ensure it exists and belongs to the correct user
   const attachedDocument = await performJoinSelect({
-    tableName: "AttachedDocuments",
     baseTable: "Users",
     joins: [
       {
@@ -333,7 +331,7 @@ const acceptRejectAttachedDocuments = async (body) => {
     },
   });
   const phoneNumber = attachedDocument[0].phoneNumber;
-  if (attachedDocument.length === 0) {
+  if (attachedDocument?.length === 0) {
     return {
       message: "error",
       data: "Document not found or does not belong to this user",
@@ -369,11 +367,18 @@ const acceptRejectAttachedDocuments = async (body) => {
   if (updatedDocument.affectedRows > 0) {
     if (roleId == 3) sendNotificationToAdmin({ message, phoneNumber });
     // adjust drivers role status based on document acceptance
-    const statusOfDriver = await driversDocumentVehicleRequirement({
+    const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
       ownerUserUniqueId,
+      user: attachedDocument[0],
     });
-    if (roleId == 2)
-      sendNotificationToDriver({ message: statusOfDriver, phoneNumber });
+    if (roleId == 2) {
+      // messageType == "acceptOrRejectDriverDocument";
+      documentAndVehicleOfDriver.messageType = "acceptOrRejectDriverDocument";
+      sendNotificationToDriver({
+        message: documentAndVehicleOfDriver,
+        phoneNumber,
+      });
+    }
     if (roleId == 1) sendNotificationToPassenger({ message, phoneNumber });
 
     return message;
