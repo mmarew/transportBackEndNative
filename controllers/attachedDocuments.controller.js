@@ -212,6 +212,7 @@ const deleteAttachedDocument = async (req, res) => {
 };
 
 const acceptRejectAttachedDocuments = async (req, res) => {
+  // console.log("@acceptRejectAttachedDocuments req.body", req.body);
   const user = req?.user;
   req.body.user = user;
   const ownerUserUniqueId = req.params.userUniqueId;

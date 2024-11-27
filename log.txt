@@ -1,243 +1,184 @@
-[2024-11-27T06:04:54.352Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:04:54.365Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:04:58.190Z] [LOG] @driversDocumentVehicleRequirement {}
-[2024-11-27T06:04:58.191Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:04:58.203Z] [LOG] vehicleRegistered false
-[2024-11-27T06:04:58.203Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:04:58.205Z] [LOG] @driversDocumentVehicleRequirement result {"message":"success","messageType":"driversDocumentVehicleRequirement","vehicle":null,"userData":{"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","userRoleId":2,"userRoleUniqueId":"b3e18d08-53a9-4622-90de-ea8b97328231","roleId":2,"userRoleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-11-26T11:01:06.000Z","userRoleDeletedAt":null,"userRoleStatusId":2,"userRoleStatusUniqueId":"04943e67-19ea-4c7a-8a34-8afde9d1342d","statusId":2,"userRoleStatusDescription":null,"userRoleStatusCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","userRoleStatusCreatedAt":"2024-11-26T11:01:06.000Z","statusUniqueId":"c962e228-78f0-4fb2-b576-74a5c972c30b","statusName":"inactive - no documents attached, vehicle not registered","statusDescription":"Driver has not registered a vehicle and has not attached any required documents.","statusCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","statusUpdatedBy":null,"statusUpdatedAt":null,"statusDeletedBy":null,"statusDeletedAt":null,"statusCreatedAt":"2024-11-26T16:27:24.000Z"},"attachedDocumentsByStatus":{"PENDING":[],"ACCEPTED":[],"REJECTED":[]},"unAttachedDocumentTypes":[{"roleDocumentRequirementId":1,"roleDocumentRequirementUniqueId":"d349989f-d5b8-4ebd-952f-7d54166ab34c","roleId":2,"documentTypeId":1,"isDocumentMandatory":1,"isFileNumberRequired":0,"isExpirationDateRequired":1,"roleDocumentRequirementCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","roleDocumentRequirementUpdatedBy":null,"roleDocumentRequirementDeletedBy":null,"roleDocumentRequirementCreatedAt":"2024-11-26T16:27:25.000Z","roleDocumentRequirementUpdatedAt":null,"roleDocumentRequirementDeletedAt":null,"documentTypeUniqueId":"3d73bb10-3cf3-4081-a69e-103065c00071","documentTypeName":"Driver’s License","uploadedDocumentName":"driversLicense","uploadedDocumentTypeId":"driversLicenseTypeId","uploadedDocumentDescription":"driversLicenseDescription","uploadedDocumentExpirationDate":"driversLicenseExpirationDate","uploadedDocumentFileNumber":"driversLicenseFileNumber","documentTypeDescription":" A valid and unexpired driver’s license. The admin needs this to ensure the driver is legally permitted to operate a vehicle.","documentTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","documentTypeCreatedAt":"2024-11-26T16:27:24.000Z"},{"roleDocumentRequirementId":2,"roleDocumentRequirementUniqueId":"a999c917-86c0-4b30-bb87-00e8c81fdb4d","roleId":2,"documentTypeId":2,"isDocumentMandatory":1,"isFileNumberRequired":0,"isExpirationDateRequired":1,"roleDocumentRequirementCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","roleDocumentRequirementUpdatedBy":null,"roleDocumentRequirementDeletedBy":null,"roleDocumentRequirementCreatedAt":"2024-11-26T16:27:25.000Z","roleDocumentRequirementUpdatedAt":null,"roleDocumentRequirementDeletedAt":null,"documentTypeUniqueId":"2ea7b465-e740-4b97-bb1a-8dc46419c8ea","documentTypeName":" Vehicle Registration(librea)","uploadedDocumentName":"VehicleRegistrationlibrea","uploadedDocumentTypeId":"VehicleRegistrationlibreaTypeId","uploadedDocumentDescription":"VehicleRegistrationlibreaDescription","uploadedDocumentExpirationDate":"VehicleRegistrationlibreaExpirationDate","uploadedDocumentFileNumber":"VehicleRegistrationlibreaFileNumber","documentTypeDescription":"Proof of ownership or right to use the vehicle for ride share services. It confirms the vehicle is legally registered.","documentTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","documentTypeCreatedAt":"2024-11-26T16:27:24.000Z"}]}
-[2024-11-27T06:05:09.260Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:05:09.291Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:05:11.976Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:05:11.988Z] [LOG] vehicleRegistered false
-[2024-11-27T06:05:11.989Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:05:11.990Z] [LOG] @driversDocumentVehicleRequirement result {"message":"success","messageType":"driversDocumentVehicleRequirement","vehicle":null,"userData":{"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","userRoleId":2,"userRoleUniqueId":"b3e18d08-53a9-4622-90de-ea8b97328231","roleId":2,"userRoleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-11-26T11:01:06.000Z","userRoleDeletedAt":null,"userRoleStatusId":2,"userRoleStatusUniqueId":"04943e67-19ea-4c7a-8a34-8afde9d1342d","statusId":2,"userRoleStatusDescription":null,"userRoleStatusCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","userRoleStatusCreatedAt":"2024-11-26T11:01:06.000Z","statusUniqueId":"c962e228-78f0-4fb2-b576-74a5c972c30b","statusName":"inactive - no documents attached, vehicle not registered","statusDescription":"Driver has not registered a vehicle and has not attached any required documents.","statusCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","statusUpdatedBy":null,"statusUpdatedAt":null,"statusDeletedBy":null,"statusDeletedAt":null,"statusCreatedAt":"2024-11-26T16:27:24.000Z"},"attachedDocumentsByStatus":{"PENDING":[],"ACCEPTED":[],"REJECTED":[]},"unAttachedDocumentTypes":[{"roleDocumentRequirementId":1,"roleDocumentRequirementUniqueId":"d349989f-d5b8-4ebd-952f-7d54166ab34c","roleId":2,"documentTypeId":1,"isDocumentMandatory":1,"isFileNumberRequired":0,"isExpirationDateRequired":1,"roleDocumentRequirementCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","roleDocumentRequirementUpdatedBy":null,"roleDocumentRequirementDeletedBy":null,"roleDocumentRequirementCreatedAt":"2024-11-26T16:27:25.000Z","roleDocumentRequirementUpdatedAt":null,"roleDocumentRequirementDeletedAt":null,"documentTypeUniqueId":"3d73bb10-3cf3-4081-a69e-103065c00071","documentTypeName":"Driver’s License","uploadedDocumentName":"driversLicense","uploadedDocumentTypeId":"driversLicenseTypeId","uploadedDocumentDescription":"driversLicenseDescription","uploadedDocumentExpirationDate":"driversLicenseExpirationDate","uploadedDocumentFileNumber":"driversLicenseFileNumber","documentTypeDescription":" A valid and unexpired driver’s license. The admin needs this to ensure the driver is legally permitted to operate a vehicle.","documentTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","documentTypeCreatedAt":"2024-11-26T16:27:24.000Z"},{"roleDocumentRequirementId":2,"roleDocumentRequirementUniqueId":"a999c917-86c0-4b30-bb87-00e8c81fdb4d","roleId":2,"documentTypeId":2,"isDocumentMandatory":1,"isFileNumberRequired":0,"isExpirationDateRequired":1,"roleDocumentRequirementCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","roleDocumentRequirementUpdatedBy":null,"roleDocumentRequirementDeletedBy":null,"roleDocumentRequirementCreatedAt":"2024-11-26T16:27:25.000Z","roleDocumentRequirementUpdatedAt":null,"roleDocumentRequirementDeletedAt":null,"documentTypeUniqueId":"2ea7b465-e740-4b97-bb1a-8dc46419c8ea","documentTypeName":" Vehicle Registration(librea)","uploadedDocumentName":"VehicleRegistrationlibrea","uploadedDocumentTypeId":"VehicleRegistrationlibreaTypeId","uploadedDocumentDescription":"VehicleRegistrationlibreaDescription","uploadedDocumentExpirationDate":"VehicleRegistrationlibreaExpirationDate","uploadedDocumentFileNumber":"VehicleRegistrationlibreaFileNumber","documentTypeDescription":"Proof of ownership or right to use the vehicle for ride share services. It confirms the vehicle is legally registered.","documentTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","documentTypeCreatedAt":"2024-11-26T16:27:24.000Z"}]}
-[2024-11-27T06:05:12.789Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:05:12.803Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:05:17.272Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:05:17.284Z] [LOG] vehicleRegistered false
-[2024-11-27T06:05:17.284Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:06:52.236Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:06:52.248Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:07:00.296Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:07:00.308Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:07:00.308Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:12:06.730Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:12:06.718Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:12:09.312Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:12:09.325Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:12:09.326Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:13:29.910Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:13:29.923Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:13:33.552Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:13:33.563Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:13:33.564Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:14:12.269Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:14:12.282Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:14:14.985Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:14:15.000Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:14:15.001Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:16:22.803Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:16:22.817Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:16:23.492Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:16:23.505Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:16:23.506Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:16:32.903Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:16:32.916Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:16:36.308Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:16:36.322Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:16:36.322Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:17:24.993Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:17:25.006Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:17:27.611Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:17:27.624Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:17:27.624Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:18:25.455Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:18:25.467Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:18:28.025Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:18:28.035Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:18:28.036Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:18:44.974Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:18:44.986Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:18:47.865Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:18:47.875Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:18:47.876Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:19:35.743Z] [LOG] Error creating vehicle ownership: {"message":"Column 'vehicleUniqueId' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO VehicleOwnership (ownershipUniqueId, vehicleUniqueId, userUniqueId, roleId, ownershipStartDate, ownershipEndDate) \n               VALUES ('3e2c6087-84f1-4174-adf1-dea23c5cf269', NULL, 'c36b8be2-64c8-49bf-82f8-27ec7e2313a6', 2, '2024-11-27:09:19:35', NULL)","sqlState":"23000","sqlMessage":"Column 'vehicleUniqueId' cannot be null"}
-[2024-11-27T06:20:27.411Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:20:27.400Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:20:30.151Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:20:30.164Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:20:30.164Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:21:08.657Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:21:08.673Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:21:11.286Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:21:11.295Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:21:11.295Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:21:25.275Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:21:25.291Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:21:27.987Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:21:27.995Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:21:27.996Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:21:56.348Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:21:56.360Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:21:58.972Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:21:58.981Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:21:58.982Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:22:35.290Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:22:35.305Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:22:37.795Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:22:37.804Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:22:37.804Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:23:05.433Z] [ERROR] Error @createVehicle: {}
-[2024-11-27T06:23:37.452Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:23:37.466Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:23:41.003Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:23:41.011Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:23:41.011Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:24:52.229Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:24:52.241Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:24:54.916Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:24:54.927Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered false
-[2024-11-27T06:24:54.927Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:25:09.544Z] [LOG] vehicleExists []
-[2024-11-27T06:25:52.454Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:25:52.458Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:25:52.462Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:27:09.196Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:27:09.213Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:27:12.343Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:27:12.351Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:27:12.352Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:32:41.398Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:32:41.414Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:32:43.726Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:32:43.738Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:32:43.740Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:32:49.367Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:32:49.354Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:32:51.610Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:32:51.619Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:32:51.619Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:33:13.022Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:33:13.043Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:33:14.847Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:33:14.854Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:33:14.854Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:33:19.788Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:33:19.799Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:33:21.829Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:33:21.838Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:33:21.839Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:33:58.679Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:33:58.691Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:34:01.102Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:34:01.118Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:34:01.119Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:34:05.175Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:34:05.155Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:34:07.813Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:34:07.820Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:34:07.821Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:34:56.815Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:34:56.828Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:34:59.179Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:34:59.188Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:34:59.189Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:35:29.881Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:35:29.896Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:35:31.962Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:35:31.970Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:35:31.971Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:35:42.382Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:35:42.395Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:35:44.688Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:35:44.695Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:35:44.696Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:36:13.035Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:36:13.047Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:36:15.271Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:36:15.280Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:36:15.281Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:38:39.341Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:38:39.352Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:38:40.618Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:38:40.626Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:38:40.626Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:39:21.924Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:39:21.939Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:39:24.521Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:39:24.528Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:39:24.529Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:40:39.208Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:40:39.191Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:40:41.424Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:40:41.433Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:40:41.433Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:41:13.500Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:41:13.513Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:41:15.768Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:41:15.776Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:41:15.776Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:41:45.263Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:41:45.281Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:41:47.477Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:41:47.487Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:41:47.487Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:42:03.853Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:42:03.864Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:42:06.004Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:42:06.020Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:42:06.020Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:42:18.674Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:42:18.686Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:42:21.021Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:42:21.030Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:42:21.031Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:42:46.097Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:42:46.108Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:42:48.816Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:42:48.825Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:42:48.826Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:43:55.245Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T06:43:55.258Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T06:43:57.387Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T06:43:57.398Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T06:43:57.399Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:21:31.106Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:21:31.110Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:21:31.110Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:21:31.871Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:21:31.874Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:21:31.874Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:24:22.343Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
-[2024-11-27T07:24:22.359Z] [LOG] Server started on port http://localhost:3000
-[2024-11-27T07:24:25.174Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:24:25.184Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:24:25.187Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:24:27.033Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:24:27.037Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:24:27.037Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:25:02.618Z] [LOG] @createAttachedDocuments req.body {"driversLicenseTypeId":"1","driversLicenseDescription":"Vhfg","driversLicenseExpirationDate":"2028-12-11","VehicleRegistrationlibreaTypeId":"2","VehicleRegistrationlibreaDescription":"Jvgggu"}
-[2024-11-27T07:25:02.624Z] [LOG] @createAttachedDocuments controller resultOfCreateFiles {"message":"success","data":"Document created successfully"}
-[2024-11-27T07:25:02.626Z] [LOG] @createAttachedDocuments controller resultOfCreateFiles {"message":"error","error":"Document expiration date is required"}
-[2024-11-27T07:25:23.075Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:25:23.079Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:25:23.084Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:26:02.618Z] [LOG] @createAttachedDocuments req.body {"VehicleRegistrationlibreaTypeId":"2","VehicleRegistrationlibreaDescription":"Iggvg","VehicleRegistrationlibreaExpirationDate":"2029-12-19"}
-[2024-11-27T07:26:02.622Z] [LOG] @createAttachedDocuments controller resultOfCreateFiles {"message":"success","data":"Document created successfully"}
-[2024-11-27T07:26:25.547Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:26:25.552Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:26:25.556Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:29:18.649Z] [LOG] @getUserRoleStatus body {"roleId":2}
-[2024-11-27T07:29:18.652Z] [LOG] cleanedPhoneNumber 251922112480
-[2024-11-27T07:29:36.315Z] [LOG] @getUserRoleStatus body {"roleId":2}
-[2024-11-27T07:29:36.316Z] [LOG] cleanedPhoneNumber 251922112480
-[2024-11-27T07:30:15.235Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:30:15.239Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:30:15.244Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:30:40.528Z] [LOG] @getUserRoleStatus body {"roleId":2}
-[2024-11-27T07:30:40.529Z] [LOG] cleanedPhoneNumber 251922112480
-[2024-11-27T07:31:15.683Z] [LOG] @getUserRoleStatus body {"roleId":2}
-[2024-11-27T07:31:15.685Z] [LOG] cleanedPhoneNumber 251922112480
-[2024-11-27T07:31:46.816Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
-[2024-11-27T07:31:46.819Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
-[2024-11-27T07:31:46.829Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:23:45.067Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:23:45.051Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:23:48.252Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:23:48.263Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:23:48.263Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:23:49.289Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:23:49.293Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:23:49.293Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:23:54.570Z] [LOG] @getUserRoleStatus body {"roleId":2}
+[2024-11-27T13:23:54.571Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:24:56.168Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:24:56.151Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:24:58.590Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:24:58.603Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:24:58.604Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:24:59.896Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:24:59.900Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:24:59.901Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:25:18.430Z] [LOG] @acceptRejectAttachedDocuments body {"phoneNumber":"+251922112480","roleId":"2","attachedDocumentUniqueId":"ed3ae756-41c9-4ef3-860b-c7dac00ac01d","action":"REJECTED","reason":"Document is not valid because it is not visible clearly.","user":{"userId":4,"userUniqueId":"2189245f-2dc0-47b2-ae97-0fd4cb346413","fullName":"Admin full name ","phoneNumber":"09111111","email":"admin11@gmail.com","createdAt":"2024-11-26T16:24:57.000Z","createdBy":"","roleId":"3"},"ownerUserUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6"}
+[2024-11-27T13:25:18.435Z] [LOG] @getUserRoleStatus body {"roleId":2}
+[2024-11-27T13:25:18.437Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:26:06.461Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:26:06.475Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:26:09.221Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:09.232Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:26:09.232Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:10.321Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:10.327Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:26:10.327Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:13.463Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:26:13.476Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:26:16.121Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:16.131Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:26:16.132Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:17.281Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:17.288Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:26:17.288Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:26:18.855Z] [LOG] attachedDocument ==============>  [{"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","attachedDocumentId":1,"attachedDocumentUniqueId":"ed3ae756-41c9-4ef3-860b-c7dac00ac01d","attachedDocumentDescription":"Vhfg","documentTypeId":1,"attachedDocumentFileNumber":null,"documentExpirationDate":"2028-12-10T21:00:00.000Z","attachedDocumentAcceptance":"REJECTED","attachedDocumentName":"2_2007364322_1732692301566-.jpg","documentVersion":1,"attachedDocumentCreatedByUserId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","attachedDocumentCreatedAt":"2024-11-27T07:25:03.000Z","attachedDocumentAcceptanceReason":"Document is not valid because it is not visible clearly.","attachedDocumentAcceptedRejectedByUserId":"2189245f-2dc0-47b2-ae97-0fd4cb346413","attachedDocumentAcceptedRejectedAt":"2024-11-27T13:25:18.000Z"}]
+[2024-11-27T13:26:18.859Z] [LOG] @getUserRoleStatus body {"roleId":2}
+[2024-11-27T13:26:18.861Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:27:41.924Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:27:41.955Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:27:44.737Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:27:44.747Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:27:44.747Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:27:45.866Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:27:45.871Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:27:45.871Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:28.717Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:29:28.746Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:29:31.264Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:31.277Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:29:31.277Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:32.864Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:32.868Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:29:32.869Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:59.667Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:59.673Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:29:59.674Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:29:59.676Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:30:57.522Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:30:57.526Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:30:57.527Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:31:11.891Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:31:11.896Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:31:11.896Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:31:11.900Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:33:49.612Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:33:49.627Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:33:52.460Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:33:52.470Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:33:52.471Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:33:59.956Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:34:00.016Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:34:02.201Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:34:02.210Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:34:02.211Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:34:03.902Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:34:03.908Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:34:03.909Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:36:45.138Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:36:45.143Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:36:45.143Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:36:45.147Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:37:23.303Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:37:23.307Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:37:23.309Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:37:23.311Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:38:32.030Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:38:32.033Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:38:32.034Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:38:32.036Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:39:01.586Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:39:01.592Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:39:01.592Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:39:01.593Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:39:39.503Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:39:39.507Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:39:39.507Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:39:46.967Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:39:46.980Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:39:47.017Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:39:47.020Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:40:12.113Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:40:12.117Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:40:12.117Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:41:26.659Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:41:26.684Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:41:30.210Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:41:30.222Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:41:30.222Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:11.295Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:42:11.310Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:42:14.176Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:14.188Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:42:14.189Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:22.415Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:22.421Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:42:22.422Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:22.425Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:42:27.111Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:27.118Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:42:27.119Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:27.121Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:42:40.352Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:40.357Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:42:40.358Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:40.360Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:42:42.731Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:42.735Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:42:42.735Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:42:42.737Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:43:44.404Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-11-27T13:43:44.419Z] [LOG] Server started on port http://localhost:3000
+[2024-11-27T13:44:02.073Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:02.085Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:44:02.086Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:02.088Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:44:05.624Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:05.629Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:44:05.630Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:09.676Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:09.682Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:44:09.683Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:09.686Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:44:13.414Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:13.422Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:44:13.423Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:13.427Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:44:27.459Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:27.465Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:44:27.465Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:44:27.467Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:45:10.115Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:45:10.118Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:45:10.119Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:45:54.234Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:45:54.238Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:45:54.239Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:45:54.240Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:46:18.707Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:46:18.711Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:46:18.711Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:46:43.875Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:46:43.878Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:46:43.884Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:46:43.886Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:47:14.587Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:47:14.590Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:47:14.590Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:47:52.782Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:47:52.786Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:47:52.788Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:47:52.789Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:48:12.781Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:48:12.784Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:48:12.784Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:48:50.245Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:48:50.248Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:48:50.251Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:48:50.253Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-11-27T13:49:15.606Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-11-27T13:49:15.609Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-11-27T13:49:15.609Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
