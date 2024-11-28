@@ -4,6 +4,7 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { createVehicleOwnership } = require("./VehicleOwnership.service");
+const { createVehicleStatus } = require("./VehicleStatus.service");
 
 const createVehicle = async (data, user) => {
   try {
@@ -27,7 +28,6 @@ const createVehicle = async (data, user) => {
       tableName: "Vehicle",
       conditions: { licensePlate },
     });
-    console.log("vehicleExists", vehicleExists);
     if (vehicleExists?.length == 0) {
       const vehicle = await insertData({
         tableName: "Vehicle",
@@ -40,6 +40,11 @@ const createVehicle = async (data, user) => {
           vehicleCreatedAt: currentDate(),
         },
       });
+      // register vehicle status to be active
+      const vehicleStatusData = { vehicleUniqueId, VehicleStatusTypeId: 1 };
+
+      const vehicleStatusResult = await createVehicleStatus(vehicleStatusData);
+      console.log("vehicleStatusResult", vehicleStatusResult);
     } else vehicleUniqueId = vehicleExists[0].vehicleUniqueId;
     // register vehicle ownership\
     const body = {
@@ -49,7 +54,10 @@ const createVehicle = async (data, user) => {
       ownershipStartDate: currentDate(),
       ownershipEndDate: null,
     };
-    createVehicleOwnership(body);
+    const ownerShipResult = await createVehicleOwnership(body);
+    console.log(" ownerShipResult ==========> ", ownerShipResult);
+    if (ownerShipResult.message == "error")
+      return { message: "error", error: "Failed to create vehicle ownership" };
     return { message: "success", data: "Vehicle created successfully" };
   } catch (error) {
     console.error("Error @createVehicle:", error);

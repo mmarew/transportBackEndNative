@@ -182,7 +182,10 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       // update passenger's journeyStatusId to 2 (Requested)
       passengerRequest.journeyStatusId = 2;
       const ownerUserUniqueId = driver?.userUniqueId;
-      const vehicle = await verifyUsersVehicle({ ownerUserUniqueId });
+      // vehicle owner
+      const vehicle = await getVehicleOwnershipByUserUniqueId(
+        ownerUserUniqueId
+      );
       const vehicleTypeUniqueId = vehicle[0]?.vehicleTypeUniqueId;
       const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
         vehicleTypeUniqueId

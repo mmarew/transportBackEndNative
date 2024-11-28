@@ -16,7 +16,6 @@ exports.createCommissionRate = async ({
   WHERE commissionRate=?
 `;
   const [existedRate] = await pool.query(sqlQueryToCheck, commissionRate);
-  console.log("existedRate", existedRate);
   if (existedRate.length > 0) {
     return {
       message: "error",

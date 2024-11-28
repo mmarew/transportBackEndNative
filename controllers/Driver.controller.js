@@ -99,6 +99,7 @@ const journeyCompleted = async (req, res) => {
     req.body.journeyStatusId = 5;
     req.body.previousStatusId = 4;
     const result = await services.journeyCompleted(req.body);
+    console.log("@journeyCompleted result", result);
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error in journeyCompleted:", error);

@@ -13,7 +13,9 @@ const {
   CommissionRates,
   TarrifRateForVehcleTypes,
   TarrifRateList,
+  vehicleStatusTypes,
 } = require("../Utils/listOfFixedData");
+const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancilation.service");
 const { createCommissionRate } = require("./CommissionRates.service");
 const { createDocumentType } = require("./DocumentTypes.service");
@@ -301,7 +303,22 @@ const installPreDefinedData = async (req, res) => {
       successTarrifRateForVehicleType = [],
       failedTarrifRateForVehicleType = [],
       successTarrifRate = [],
-      failedTarrifRate = [];
+      failedTarrifRate = [],
+      successVehicleStatusTypes = [],
+      failedVehicleStatusTypes = [];
+    // preocess data of vehicleStatusTypes
+
+    await processDataSequentially(
+      vehicleStatusTypes,
+      (vehicleStatusType) =>
+        createVehicleStatusType({
+          ...vehicleStatusType,
+          user,
+        }),
+      successVehicleStatusTypes,
+      failedVehicleStatusTypes,
+      "VehicleStatusType"
+    );
     // Process predefined data in order
     await processDataSequentially(
       journeyStatus,
@@ -413,6 +430,7 @@ const installPreDefinedData = async (req, res) => {
     return {
       message: "success",
       data: {
+        VehicleTypes: { successVehicleStatusTypes, failedVehicleStatusTypes },
         CommissionRates: { successCommissionRates, failedCommissionRates },
         TarrifRateForVehcleTypes: {
           successTarrifRateForVehicleType,
