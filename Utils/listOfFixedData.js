@@ -347,7 +347,10 @@ const vehicleStatusTypes = [
     statusTypeName: "rejected",
     statusTypeDescription: "When vehicles are rejected by the admin.",
   },
-  { statusTypeName: "reserved by other driver" },
+  {
+    statusTypeName: "reserved by other driver",
+    statusTypeDescription: "when other driver has reserved the vehicle",
+  },
 ];
 const listOfDocuments = [
   {
@@ -611,6 +614,7 @@ const CommissionRates = [
   },
 ];
 module.exports = {
+  vehicleStatusTypes,
   CommissionRates,
   TarrifRateList,
   paymentMethod,

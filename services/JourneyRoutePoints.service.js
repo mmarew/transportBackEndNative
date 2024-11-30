@@ -1,15 +1,11 @@
 const { pool } = require("../Middleware/Database.config");
 
 // Create a new journey route point
-exports.createJourneyRoutePoint = async ({
-  journeyUniqueId,
-  latitude,
-  longitude,
-}) => {
+exports.createJourneyRoutePoint = async (body) => {
+  const { journeyUniqueId, latitude, longitude } = body;
   const sql = `INSERT INTO JourneyRoutePoints (journeyUniqueId, latitude, longitude) VALUES (?, ?, ?)`;
   const values = [journeyUniqueId, latitude, longitude];
   const [result] = await pool.query(sql, values);
-
   return {
     message: "success",
     data: "journey route point created successfully",

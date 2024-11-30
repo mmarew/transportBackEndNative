@@ -60,7 +60,7 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
       conditions: { journeyUniqueId },
     });
     // then calculate  distance
-    const totalDistance = calculateDistances(JourneyRoutePoints);
+    const totalDistance = Math.round(calculateDistances(JourneyRoutePoints));
     // then multiply by tarrif rate
     const moneyByDistance = totalDistance * parseFloat(journeyTarrifRate);
     // calculate time
@@ -73,8 +73,9 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
     const totalMunites = totalTime / 1000 / 60;
     // calculate money by time
     const moneyByTime = totalMunites * parseFloat(timingTarrifRate);
-    const totalMoney =
-      parseFloat(standingTarrifRate) + moneyByDistance + moneyByTime;
+    const totalMoney = Math.round(
+      parseFloat(standingTarrifRate) + moneyByDistance + moneyByTime
+    );
     return {
       totalDistance,
       message: "success",

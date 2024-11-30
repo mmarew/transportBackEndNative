@@ -57,6 +57,8 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
 };
 const createUser = async (body) => {
   const {
+    // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin
+    requestedFrom = "passenger",
     fullName,
     phoneNumber,
     email,
@@ -120,7 +122,14 @@ const createUser = async (body) => {
       console.log("to be hashed otp ", OTP); //to be hashed otp  615949
       const hashedOTP = await bcrypt.hash(String(OTP), 10);
       console.log("hashedOTP", hashedOTP);
+      if (requestedFrom == "street") {
+        return {
+          message: "success",
+          dataOfPassenger: user,
+        };
+      }
       // Update OTP for existing user
+
       const otpUpdated = await updateOtpForUser({
         userUniqueId: user.userUniqueId,
         hashedOTP: hashedOTP,
@@ -134,17 +143,19 @@ const createUser = async (body) => {
     const registerNewUser = async () => {
       const userUniqueId = uuidv4();
       const credentialUniqueId = uuidv4();
-
+      const dataOfPassenger = {
+        userUniqueId,
+        fullName,
+        phoneNumber,
+        email,
+        createdAt: currentDate(),
+      };
       const userCreationSuccess = await Promise.all([
         // register users profile
         await insertData({
           tableName: "Users",
           colAndVal: {
-            userUniqueId,
-            fullName,
-            phoneNumber,
-            email,
-            createdAt: currentDate(),
+            ...dataOfPassenger,
           },
         }),
         // register users credential
@@ -166,16 +177,21 @@ const createUser = async (body) => {
           statusId,
           userRoleStatusDescription
         );
-
-        // Send OTP to the user
-        const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
-        if (smsResult.message === "success") {
-          return {
-            message: "success",
-            messageDetail: "User created successfully, OTP sent successfully",
-          };
+        if (requestedFrom == "passenger") {
+          // Send OTP to the user
+          const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+          if (smsResult.message === "success") {
+            return {
+              message: "success",
+              messageDetail: "User created successfully, OTP sent successfully",
+            };
+          }
         }
-        return smsResult;
+        return {
+          message: "success",
+          messageDetail: "User created successfully",
+          dataOfPassenger,
+        };
       }
 
       return {

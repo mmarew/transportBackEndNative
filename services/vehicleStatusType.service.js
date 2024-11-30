@@ -7,23 +7,34 @@ const { updateData } = require("../CRUD/Update/Data.update");
 
 // Create a new VehicleStatusType
 const createVehicleStatusType = async (data) => {
+  const statusTypeName = data.statusTypeName;
+  if (statusTypeName.length > 50) {
+    return { message: "error", error: "Vehicle Status Type name is too long" };
+  }
+  if (statusTypeName.length == 0) {
+    return { message: "error", error: "Vehicle Status Type name is required" };
+  }
   const redisteredType = await getData({
     tableName: "VehicleStatusType",
-    conditions: { statusTypeName: data.statusTypeName },
+    conditions: { VehicleStatusTypeName: statusTypeName },
   });
+
   if (redisteredType?.length) {
-    return { message: "error", error: "VehicleStatusType already exists" };
+    return { message: "error", error: "Vehicle Status Type already exists" };
   }
+  // statusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
+  // statusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
+
   const payload = {
-    statusTypeName: data.statusTypeName,
-    statusTypeDescription: data.statusTypeDescription,
-    createdAt: new Date(),
+    VehicleStatusTypeName: data.statusTypeName,
+    VehicleStatusTypeDescription: data.statusTypeDescription,
+    VehicleStatusTypeCreatedAt: new Date(),
   };
   const result = await insertData({
     tableName: "VehicleStatusType",
     colAndVal: payload,
   });
-  return result;
+  return { message: "success", data: result };
 };
 
 // Get all VehicleStatusTypes
@@ -36,7 +47,7 @@ const getAllVehicleStatusTypes = async () => {
 const getVehicleStatusTypeById = async (id) => {
   const result = await getData({
     tableName: "VehicleStatusType",
-    conditions: { statusTypeId: id },
+    conditions: { VehicleStatusTypeId: id },
   });
   return result;
 };
@@ -44,13 +55,13 @@ const getVehicleStatusTypeById = async (id) => {
 // Update VehicleStatusType by ID
 const updateVehicleStatusType = async (id, data) => {
   const payload = {
-    statusTypeName: data.statusTypeName,
-    statusTypeDescription: data.statusTypeDescription,
-    deletedAt: data.deletedAt || null, // If you want to allow updating this field
+    VehicleStatusTypeName: data.statusTypeName,
+    VehicleStatusTypeDescription: data.statusTypeDescription,
+    VehicleStatusTypeDeletedAt: data.deletedAt || null, // If you want to allow updating this field
   };
   const result = await updateData({
     tableName: "VehicleStatusType",
-    conditions: { statusTypeId: id },
+    conditions: { VehicleStatusTypeId: id },
     updateValues: payload,
   });
   return result;
@@ -60,7 +71,7 @@ const updateVehicleStatusType = async (id, data) => {
 const deleteVehicleStatusType = async (id) => {
   const result = await deleteData({
     tableName: "VehicleStatusType",
-    conditions: { statusTypeId: id },
+    conditions: { VehicleStatusTypeId: id },
   });
   return result;
 };

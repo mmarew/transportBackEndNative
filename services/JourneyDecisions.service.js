@@ -2,13 +2,25 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 
 // Create a new journey decision
-exports.createJourneyDecision = async (
+exports.createJourneyDecision = async ({
   passengerRequestId,
   driverRequestId,
   journeyStatusId,
   decisionTime,
-  decisionBy
-) => {
+  decisionBy,
+}) => {
+  // first check if journey decision is already exists
+  const sqlToCheck = `SELECT * FROM JourneyDecisions WHERE passengerRequestId = ? or driverRequestId = ?`;
+  const [existedData] = await pool.query(sqlToCheck, [
+    passengerRequestId,
+    driverRequestId,
+  ]);
+  if (existedData.length > 0) {
+    return {
+      message: "success",
+      data: existedData,
+    };
+  }
   const journeyDecisionUniqueId = uuidv4();
   const sql = `INSERT INTO JourneyDecisions (journeyDecisionUniqueId, passengerRequestId, driverRequestId, journeyStatusId, decisionTime, decisionBy) VALUES (?, ?, ?, ?, ?, ?)`;
   const values = [

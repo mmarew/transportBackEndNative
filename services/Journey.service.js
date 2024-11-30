@@ -3,13 +3,19 @@ const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // Create a new journey
-exports.createJourney = async (
+exports.createJourney = async ({
   journeyDecisionUniqueId,
   startTime,
   endTime,
   fare,
-  journeyStatusId
-) => {
+  journeyStatusId,
+}) => {
+  // check existance of journeyDecisionUniqueId
+  const sqlToCheck = `select * from JourneyDecisions where journeyDecisionUniqueId = ?`;
+  const [existedData] = await pool.query(sqlToCheck, [journeyDecisionUniqueId]);
+  if (existedData.length > 0) {
+    return { message: "success", data: existedData };
+  }
   const journeyUniqueId = uuidv4();
   const sql = `INSERT INTO Journey (journeyUniqueId, journeyDecisionUniqueId, startTime, endTime, fare, journeyStatusId) VALUES (?, ?, ?, ?, ?, ?)`;
   const values = [
@@ -24,15 +30,17 @@ exports.createJourney = async (
 
   return {
     message: "success",
-    data: {
-      journeyUniqueId,
-      journeyDecisionUniqueId,
-      startTime,
-      endTime,
-      fare,
-      journeyStatusId,
-      journeyId: result.insertId,
-    },
+    data: [
+      {
+        journeyUniqueId,
+        journeyDecisionUniqueId,
+        startTime,
+        endTime,
+        fare,
+        journeyStatusId,
+        journeyId: result.insertId,
+      },
+    ],
   };
 };
 

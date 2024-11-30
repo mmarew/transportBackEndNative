@@ -9,10 +9,10 @@ const createAttachedDocuments = async (req, res) => {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
     const roleId = user?.roleId;
-
+    console.log(" req.files", req.files);
     if (!req.files || req.files.length === 0) {
       return ServerResponder(res, {
-        message: error,
+        message: "error",
         error: "No files uploaded",
       });
     }

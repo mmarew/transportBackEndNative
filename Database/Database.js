@@ -349,12 +349,16 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
 -- Create the VehicleStatusType table
 
 CREATE TABLE IF NOT EXISTS VehicleStatusType (
-    statusTypeId INT AUTO_INCREMENT PRIMARY KEY,
-    statusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
-    statusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
-    createdAt DATETIME NOT NULL,  -- Creation time
-    deletedAt DATETIME NULL  -- Deletion time
-) ;
+    VehicleStatusTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    VehicleStatusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
+    VehicleStatusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
+    VehicleStatusTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle status type
+    VehicleStatusTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle status type
+    VehicleStatusTypeUpdatedAt DATETIME NULL,  -- Updated time
+    VehiclestatusTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle status type
+    VehicleStatusTypeDeletedAt DATETIME NULL,  -- Deleted time
+    VehicleStatusTypeCreatedAt DATETIME NOT NULL  -- Creation time
+ ) ;
 
 -- Create the VehicleStatus table
 
@@ -362,11 +366,11 @@ CREATE TABLE IF NOT EXISTS VehicleStatus (
     vehicleStatusId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the vehicle status
     vehicleUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Vehicle
-    statusTypeId INT NOT NULL,  -- Foreign key to VehicleStatusType
+    VehicleStatusTypeId INT NOT NULL,  -- Foreign key to VehicleStatusType
     statusStartDate DATETIME NOT NULL,  -- Status start date
     statusEndDate DATETIME NULL,  -- Status end date
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
-    FOREIGN KEY (statusTypeId) REFERENCES VehicleStatusType(statusTypeId)
+    FOREIGN KEY (VehicleStatusTypeId) REFERENCES VehicleStatusType(VehicleStatusTypeId)
 ) ;
 
 -- Create the VehicleOwnership table

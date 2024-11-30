@@ -11,8 +11,9 @@ const { deleteData } = require("../CRUD/Delete/DeleteData");
 const {
   insertData,
   createDriverRequest,
+  createPassengerRequest,
 } = require("../CRUD/Create/CreateData");
-const { getUserByUserUniqueId } = require("./User.service");
+const { getUserByUserUniqueId, createUser } = require("./User.service");
 const { v4: uuidv4 } = require("uuid");
 const {
   sendNotificationToPassenger,
@@ -34,10 +35,14 @@ const {
 } = require("./DriverBalance.service");
 const {
   getVehicleOwnershipByUserUniqueId,
+  getVehicleAndOwnershipViaUserUniqueId,
 } = require("./VehicleOwnership.service");
 const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
+const { createJourneyDecision } = require("./JourneyDecisions.service");
+const currentDate = require("../Utils/currentDate");
+const { createJourney } = require("./Journey.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -59,7 +64,103 @@ const createRequest = async (body, user) => {
     return { message: "error", error: "Unable to create request" };
   }
 };
+const takeFromStreet = async (body, user) => {
+  try {
+    const journeyStatusId = 4;
+    const userUniqueId = user?.userUniqueId;
+    const activeRequest = await checkActiveDriverRequest(userUniqueId);
+    if (activeRequest?.length > 0)
+      return await verifyDriverStatus({ userUniqueId, activeRequest });
 
+    const randNumber = Math.floor(Math.random() * 100000000);
+    // driver dosen't have passengers email so using fake email to create a passenger
+    const data = {
+      requestedFrom: "street",
+      fullName: "passenger",
+      email: `fakeEmail_${randNumber}@passenger.com`,
+      roleId: 1,
+      statusId: 1,
+      userRoleStatusDescription: "this is passenger",
+    };
+    const responseData = {
+      passenger: null,
+      driver: null,
+      journey: null,
+      decision: null,
+    };
+
+    // create user passenger in users table. to finishe this job i need to use users table using createUser function from user.service
+    const userPassenger = await createUser({ ...body, ...data });
+
+    // await createDriverRequest(body, userUniqueId);
+    const dataOfPassenger = userPassenger.dataOfPassenger;
+    const passengerUserUniqueId = dataOfPassenger.userUniqueId;
+    // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
+    const passengerRequest = await createPassengerRequest(
+      body,
+      passengerUserUniqueId,
+      journeyStatusId
+    );
+    if (passengerRequest.length == 0) {
+      return {
+        message: "error",
+        error: "Unable to create passenger request",
+      };
+    }
+    const driverRequest = await createDriverRequest(
+      body,
+      userUniqueId,
+      journeyStatusId
+    );
+    const decisionData = {
+      passengerRequestId: passengerRequest.data[0].passengerRequestId,
+      driverRequestId: driverRequest?.data[0].driverRequestId,
+      journeyStatusId,
+      decisionTime: currentDate(),
+      decisionBy: "driver",
+    };
+    // create a decision in JourneyDecisions table
+    const journeyDecision = await createJourneyDecision(decisionData);
+    //create a journey in Journey table using createJourney function from Journey.service
+
+    const journeyDecisionUniqueId =
+      journeyDecision.data[0].journeyDecisionUniqueId;
+    const journeyData = {
+      journeyDecisionUniqueId,
+      startTime: currentDate(),
+      endTime: currentDate(),
+      fare: 0,
+      journeyStatusId,
+    };
+    responseData.decision = journeyDecision.data[0];
+    const journeyServices = await createJourney(journeyData);
+    const journey = journeyServices?.data;
+    responseData;
+    responseData.journey = journey[0];
+    // const vehicle = await verifyUsersVehicle(userUniqueId);
+    const vehicle = await getVehicleAndOwnershipViaUserUniqueId(userUniqueId);
+    const vehicleTypeUniqueId = vehicle?.data[0]?.vehicleTypeUniqueId;
+    const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
+      vehicleTypeUniqueId
+    );
+    const driver = await getUserByUserUniqueId(userUniqueId);
+    const driverData = {
+      driver: driver.data,
+      vehicle: vehicle.data[0],
+      vehicleTarrifRate: vehicleTarrifRate.data[0],
+    };
+    responseData.passenger = {
+      ...userPassenger?.dataOfPassenger,
+      ...passengerRequest.data[0],
+    };
+    responseData.driver = driverData;
+    responseData.status = journeyStatusId;
+    return responseData;
+  } catch (error) {
+    console.log("Error in createDriverRequest:", error);
+    return { message: "error", error: "Unable to create request" };
+  }
+};
 const getDriverRequestById = async (requestId) => {
   try {
     const result = await getData({
@@ -216,6 +317,7 @@ const journeyCompleted = async (body) => {
     vehicleTypeUniqueId,
     journeyUniqueId,
   });
+  console.log("paymentData ==================> ", paymentData);
   const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
   const driver = await getUserByUserUniqueId(userUniqueId);
   // console.log("@journeyCompleted driver", driver);
@@ -524,23 +626,8 @@ const deleteDriverRequest = async (requestId) => {
 const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
   try {
     // Step 1: Check if the driver has a vehicle
-    const vehicle = await performJoinSelect({
-      baseTable: "Vehicle",
-      joins: [
-        {
-          table: "VehicleOwnership",
-          on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
-        },
-        {
-          table: "VehicleTypes",
-          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-        },
-      ],
-      conditions: {
-        "VehicleOwnership.userUniqueId": userUniqueId,
-      },
-    });
-
+    let vehicle = await getVehicleAndOwnershipViaUserUniqueId(userUniqueId);
+    vehicle = vehicle.data[0];
     if (!vehicle || vehicle.length === 0) {
       return {
         message: "error",
@@ -548,8 +635,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
         status: null,
       };
     }
-
-    const vehicleTypeUniqueId = vehicle[0].vehicleTypeUniqueId;
+    const vehicleTypeUniqueId = vehicle.vehicleTypeUniqueId;
     // get tarrif rate by vehicle type unique id
     const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
@@ -1104,4 +1190,5 @@ module.exports = {
   deleteDriverRequest,
   verifyDriverStatus,
   cancelDriverRequest,
+  takeFromStreet,
 };

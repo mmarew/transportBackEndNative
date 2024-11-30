@@ -1,6 +1,11 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { performJoinSelect } = require("../CRUD/Read/ReadData");
+const { performJoinSelect, getData } = require("../CRUD/Read/ReadData");
+const {
+  getStatusOfVehicleByVehicleUniqueId,
+  createVehicleStatus,
+} = require("./VehicleStatus.service");
+const { insertData } = require("../CRUD/Create/CreateData");
 
 const createVehicleOwnership = async (body) => {
   const {
@@ -8,37 +13,60 @@ const createVehicleOwnership = async (body) => {
     userUniqueId,
     roleId,
     ownershipStartDate,
-    ownershipEndDate,
+    ownershipEndDate = null,
   } = body;
-  const ownershipUniqueId = uuidv4();
-  // verify if vehice status is active
-  const sql = `INSERT INTO VehicleOwnership (ownershipUniqueId, vehicleUniqueId, userUniqueId, roleId, ownershipStartDate, ownershipEndDate) 
-               VALUES (?, ?, ?, ?, ?, ?)`;
-  const values = [
-    ownershipUniqueId,
-    vehicleUniqueId,
-    userUniqueId,
-    roleId,
-    ownershipStartDate,
-    ownershipEndDate || null,
-  ];
 
-  try {
-    const [result] = await pool.query(sql, values);
-    if (result.affectedRows > 0) {
-      return {
-        message: "success",
-        data: "Vehicle ownership created successfully",
-      };
-    }
-    return { message: "error", data: "Vehicle ownership creation failed" };
-  } catch (error) {
-    console.log("Error creating vehicle ownership:", error);
+  if (!vehicleUniqueId || !userUniqueId || !roleId || !ownershipStartDate) {
     return {
       message: "error",
-      data: "An error occurred during vehicle ownership creation",
+      error: "All fields are required for vehicle ownership",
     };
   }
+
+  // Verify vehicle status
+  const statusOfVehicle = await getStatusOfVehicleByVehicleUniqueId(
+    vehicleUniqueId
+  );
+
+  if (statusOfVehicle.message === "error") return statusOfVehicle;
+  console.log("@createVehicleOwnership statusOfVehicle", statusOfVehicle);
+  const statusData = statusOfVehicle.data;
+  // if there is no status of vehicle registered before create new active status
+  if (!statusData) {
+    // create new active status of vehicle
+    const data = await createVehicleStatus({
+      vehicleUniqueId,
+      VehicleStatusTypeId: 1,
+    });
+  } else if (statusData.VehicleStatusTypeId !== 1) {
+    return { message: "error", error: "Vehicle is not active" };
+  }
+
+  // Check if ownership already exists
+  const existingOwnership = await getData({
+    tableName: "VehicleOwnership",
+    conditions: { vehicleUniqueId, userUniqueId },
+  });
+
+  if (existingOwnership.length) {
+    return { message: "error", error: "Vehicle ownership already exists" };
+  }
+
+  // Create new ownership
+  const ownershipUniqueId = uuidv4();
+  const result = await insertData({
+    tableName: "VehicleOwnership",
+    colAndVal: {
+      ownershipUniqueId,
+      vehicleUniqueId,
+      userUniqueId,
+      roleId,
+      ownershipStartDate,
+      ownershipEndDate,
+    },
+  });
+
+  return { message: "success", data: result };
 };
 
 const getVehicleOwnership = async (ownershipId) => {
@@ -50,6 +78,25 @@ const getVehicleOwnership = async (ownershipId) => {
     console.log("Error fetching vehicle ownership:", error);
     throw error;
   }
+};
+const getVehicleAndOwnershipViaUserUniqueId = async (userUniqueId) => {
+  const vehicle = await performJoinSelect({
+    baseTable: "Vehicle",
+    joins: [
+      {
+        table: "VehicleOwnership",
+        on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
+      },
+      {
+        table: "VehicleTypes",
+        on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+      },
+    ],
+    conditions: {
+      "VehicleOwnership.userUniqueId": userUniqueId,
+    },
+  });
+  return { message: "success", data: vehicle };
 };
 
 const updateVehicleOwnership = async (ownershipId, body) => {
@@ -137,6 +184,7 @@ const getVehicleOwnershipByUserUniqueId = async (userUniqueId) => {
   return vehicle;
 };
 module.exports = {
+  getVehicleAndOwnershipViaUserUniqueId,
   getVehicleOwnershipByUserUniqueId,
   createVehicleOwnership,
   getVehicleOwnership,
