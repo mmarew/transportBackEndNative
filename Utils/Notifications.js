@@ -113,21 +113,34 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
   try {
     // Send notification to the matching admin using a for...of loop
     if (listOfAdminWs && listOfAdminWs.length > 0) {
+      const errorList = [],
+        successList = [];
       for (const admin of listOfAdminWs) {
         if (admin && admin?.WS) {
           try {
             const res = await WSServerTextMessageResponder(admin.WS, message);
             if (res.message === "error") {
-              return {
+              errorList.push({
                 message: "error",
                 data: "Message can't be sent to admin",
-              };
+                errorOnData: message,
+              });
             } else if (res.message === "success") {
-              return {
+              successList.push({
                 message: "success",
                 data: "Message to admin sent successfully",
-              };
+                successOnData: message,
+              });
             }
+            return {
+              message: successList.length > 0 ? "success" : "error",
+              data:
+                successList.length > 0
+                  ? "Message sent successfully"
+                  : "Message can't be sent to admin",
+              error: errorList,
+              success: successList,
+            };
           } catch (error) {
             console.log("Error sending message to admin:", error);
             return {

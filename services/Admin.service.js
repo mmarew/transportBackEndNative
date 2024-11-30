@@ -16,9 +16,9 @@ const adminServices = {
   // Fetch unauthorized drivers
   getUnauthorizedDriver: async () => {
     const sql = `
-      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* 
+      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* ,Statuses.*
       FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId WHERE UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
     `;
     const [unauthorizedUsers] = await pool.query(sql, [1, 2]);
 

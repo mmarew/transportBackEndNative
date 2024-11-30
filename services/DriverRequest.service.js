@@ -43,7 +43,6 @@ const {
 const { createJourneyDecision } = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/currentDate");
 const { createJourney } = require("./Journey.service");
-const { verifyUsersVehicle } = require("./Vehicle.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -67,14 +66,18 @@ const createRequest = async (body, user) => {
 };
 const takeFromStreet = async (body, user) => {
   try {
+    const journeyStatusId = 4;
     const userUniqueId = user?.userUniqueId;
     const activeRequest = await checkActiveDriverRequest(userUniqueId);
     if (activeRequest?.length > 0)
       return await verifyDriverStatus({ userUniqueId, activeRequest });
+
+    const randNumber = Math.floor(Math.random() * 100000000);
+    // driver dosen't have passengers email so using fake email to create a passenger
     const data = {
       requestedFrom: "street",
       fullName: "passenger",
-      email: "passenger@passenger.com",
+      email: `fakeEmail_${randNumber}@passenger.com`,
       roleId: 1,
       statusId: 1,
       userRoleStatusDescription: "this is passenger",
@@ -95,7 +98,8 @@ const takeFromStreet = async (body, user) => {
     // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
       body,
-      passengerUserUniqueId
+      passengerUserUniqueId,
+      journeyStatusId
     );
     if (passengerRequest.length == 0) {
       return {
@@ -103,11 +107,15 @@ const takeFromStreet = async (body, user) => {
         error: "Unable to create passenger request",
       };
     }
-    const driverRequest = await createDriverRequest(body, userUniqueId);
+    const driverRequest = await createDriverRequest(
+      body,
+      userUniqueId,
+      journeyStatusId
+    );
     const decisionData = {
       passengerRequestId: passengerRequest.data[0].passengerRequestId,
       driverRequestId: driverRequest?.data[0].driverRequestId,
-      journeyStatusId: 4,
+      journeyStatusId,
       decisionTime: currentDate(),
       decisionBy: "driver",
     };
@@ -122,7 +130,7 @@ const takeFromStreet = async (body, user) => {
       startTime: currentDate(),
       endTime: currentDate(),
       fare: 0,
-      journeyStatusId: 4,
+      journeyStatusId,
     };
     responseData.decision = journeyDecision.data[0];
     const journeyServices = await createJourney(journeyData);
@@ -146,6 +154,7 @@ const takeFromStreet = async (body, user) => {
       ...passengerRequest.data[0],
     };
     responseData.driver = driverData;
+    responseData.status = journeyStatusId;
     return responseData;
   } catch (error) {
     console.log("Error in createDriverRequest:", error);

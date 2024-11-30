@@ -27,7 +27,11 @@ const insertData = async ({ tableName, colAndVal }) => {
   }
 };
 
-const createPassengerRequest = async (body, userUniqueId) => {
+const createPassengerRequest = async (
+  body,
+  userUniqueId,
+  journeyStatusId = 1
+) => {
   // check if request exists
   const existingRequest = await getData({
     tableName: "PassengerRequest",
@@ -64,7 +68,7 @@ const createPassengerRequest = async (body, userUniqueId) => {
     destinationLongitude,
     destinationPlace,
     requestTime: new Date(),
-    journeyStatusId: 1, // Initial status: Waiting
+    journeyStatusId, // Initial status: Waiting
   };
 
   // Insert the new request into the database
@@ -75,7 +79,7 @@ const createPassengerRequest = async (body, userUniqueId) => {
 
   return { message: "success", data: [{ ...requestPayload }] };
 };
-const createDriverRequest = async (body, userUniqueId) => {
+const createDriverRequest = async (body, userUniqueId, journeyStatusId) => {
   // first check if user driver has active request existed
   // const existingRequest = await getData({
   //   tableName: "DriverRequest",
@@ -106,7 +110,7 @@ const createDriverRequest = async (body, userUniqueId) => {
     originLongitude,
     originPlace,
     requestTime: new Date(),
-    journeyStatusId: 1, // Initial status: Waiting (driver is waiting for a passenger)
+    journeyStatusId, // Initial status: Waiting (driver is waiting for a passenger)
   };
 
   // Insert the new request into the database
