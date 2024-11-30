@@ -5,16 +5,18 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { createVehicleOwnership } = require("./VehicleOwnership.service");
 const { createVehicleStatus } = require("./VehicleStatus.service");
+const { removeWhiteSpace } = require("../Validator/Validation");
 
+// create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user) => {
   try {
-    const { vehicleTypeUniqueId, licensePlate, color } = data;
-    let vehicleUniqueId = uuidv4();
-
+    let { vehicleTypeUniqueId, licensePlate, color } = data;
+    licensePlate = removeWhiteSpace(licensePlate);
     if (!vehicleTypeUniqueId || !licensePlate || !color) {
       return { message: "error", error: "All fields are required" };
     }
 
+    // Verify if VehicleType exists
     const vehicleTypeExists = await getData({
       tableName: "VehicleTypes",
       conditions: { vehicleTypeUniqueId },
@@ -23,13 +25,17 @@ const createVehicle = async (data, user) => {
     if (!vehicleTypeExists.length) {
       return { message: "error", error: "Vehicle type does not exist" };
     }
-    // verify if vehicle already exists with the same license plate
-    const vehicleExists = await getData({
+
+    // Check if vehicle with the same license plate exists
+    let vehicle = await getData({
       tableName: "Vehicle",
       conditions: { licensePlate },
     });
-    if (vehicleExists?.length == 0) {
-      const vehicle = await insertData({
+
+    if (!vehicle.length) {
+      // Vehicle doesn't exist, create it
+      const vehicleUniqueId = uuidv4();
+      await insertData({
         tableName: "Vehicle",
         colAndVal: {
           vehicleUniqueId,
@@ -40,25 +46,25 @@ const createVehicle = async (data, user) => {
           vehicleCreatedAt: currentDate(),
         },
       });
-      // register vehicle status to be active
-      const vehicleStatusData = { vehicleUniqueId, VehicleStatusTypeId: 1 };
 
-      const vehicleStatusResult = await createVehicleStatus(vehicleStatusData);
-      console.log("vehicleStatusResult", vehicleStatusResult);
-    } else vehicleUniqueId = vehicleExists[0].vehicleUniqueId;
-    // register vehicle ownership\
-    const body = {
-      vehicleUniqueId: vehicleUniqueId,
+      // Register vehicle status as Active (VehicleStatusTypeId = 1)
+      await createVehicleStatus({
+        vehicleUniqueId,
+        VehicleStatusTypeId: 1,
+      });
+
+      vehicle = [{ vehicleUniqueId }]; // Mock structure for return
+    }
+
+    // Register vehicle ownership
+    const ownershipResult = await createVehicleOwnership({
+      vehicleUniqueId: vehicle[0].vehicleUniqueId,
       userUniqueId: user.userUniqueId,
       roleId: 2,
       ownershipStartDate: currentDate(),
-      ownershipEndDate: null,
-    };
-    const ownerShipResult = await createVehicleOwnership(body);
-    console.log(" ownerShipResult ==========> ", ownerShipResult);
-    if (ownerShipResult.message == "error")
-      return { message: "error", error: "Failed to create vehicle ownership" };
-    return { message: "success", data: "Vehicle created successfully" };
+    });
+
+    return ownershipResult;
   } catch (error) {
     console.error("Error @createVehicle:", error);
     return { message: "error", error: "Failed to create vehicle" };

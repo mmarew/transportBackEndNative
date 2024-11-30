@@ -28,6 +28,14 @@ const insertData = async ({ tableName, colAndVal }) => {
 };
 
 const createPassengerRequest = async (body, userUniqueId) => {
+  // check if request exists
+  const existingRequest = await getData({
+    tableName: "PassengerRequest",
+    conditions: { userUniqueId },
+  });
+  if (existingRequest.length > 0) {
+    return { message: "success", data: existingRequest };
+  }
   const { vehicle, destination, originLocation } = body;
   const { vehicleTypeUniqueId } = vehicle;
   const verifyVehicleType = await getData({
@@ -65,9 +73,22 @@ const createPassengerRequest = async (body, userUniqueId) => {
     colAndVal: requestPayload,
   });
 
-  return { message: "success", data: result };
+  return { message: "success", data: [{ ...requestPayload }] };
 };
 const createDriverRequest = async (body, userUniqueId) => {
+  // first check if user driver has active request existed
+  // const existingRequest = await getData({
+  //   tableName: "DriverRequest",
+  //   conditions: { userUniqueId, journeyStatusId <5},
+  // });
+  const sqlToCheckActiveRequest = `select * from DriverRequest where userUniqueId = ? and (journeyStatusId = 1 or journeyStatusId = 2 or journeyStatusId = 3 or journeyStatusId = 4)`;
+  const [existingRequest] = await pool.query(sqlToCheckActiveRequest, [
+    userUniqueId,
+  ]);
+  if (existingRequest.length > 0) {
+    return { message: "success", data: existingRequest };
+  }
+
   // Extract the relevant data from the request body
   const { currentLocation } = body;
 

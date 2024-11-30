@@ -2,40 +2,40 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const { getData } = require("../CRUD/Read/ReadData");
 const { v4: uuidv4 } = require("uuid");
-
+const currentDate = require("../Utils/currentDate");
 const createVehicleStatus = async (data) => {
-  const vehicleUniqueId = data.vehicleUniqueId;
-  if (vehicleUniqueId == null || vehicleUniqueId == undefined) {
-    return { message: "error", error: "vehicleUniqueId is required" };
+  const { vehicleUniqueId, VehicleStatusTypeId, statusEndDate = null } = data;
+  if (!vehicleUniqueId || !VehicleStatusTypeId) {
+    return {
+      message: "error",
+      error: "VehicleUniqueId and VehicleStatusTypeId are required",
+    };
   }
 
-  // Check for duplicate VehicleStatus
+  // Check if the status already exists
   const existingStatus = await getData({
     tableName: "VehicleStatus",
     conditions: { vehicleUniqueId },
   });
-  if (existingStatus?.length) {
+
+  if (existingStatus.length) {
     return { message: "error", error: "VehicleStatus already exists" };
   }
-  const VehicleStatusTypeId = data.VehicleStatusTypeId;
-  if (VehicleStatusTypeId == null || VehicleStatusTypeId == undefined) {
-    return { message: "error", error: "VehicleStatusTypeId is required" };
-  }
-  const vehicleStatusUniqueId = uuidv4();
-  // Prepare payload for insertion
-  const payload = {
-    vehicleStatusUniqueId,
-    vehicleUniqueId,
-    VehicleStatusTypeId,
-    statusStartDate: new Date(),
-    statusEndDate: data.statusEndDate || null,
-  };
 
-  // Insert the data
+  const vehicleStatusUniqueId = uuidv4();
+
+  // Insert new status
   const result = await insertData({
     tableName: "VehicleStatus",
-    colAndVal: payload,
+    colAndVal: {
+      vehicleStatusUniqueId,
+      vehicleUniqueId,
+      VehicleStatusTypeId,
+      statusStartDate: currentDate(),
+      statusEndDate,
+    },
   });
+
   return { message: "success", data: result };
 };
 

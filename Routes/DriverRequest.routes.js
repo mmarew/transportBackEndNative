@@ -11,11 +11,14 @@ const {
   attachRequiredDocuments,
   cancelDriverRequest,
   driversDocumentVehicleRequirement,
+  takeFromStreet,
 } = require("../Controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
 
 const router = express.Router();
+
+router.post("/api/driver/takeFromStreet", verifyTokenOfAxios, takeFromStreet);
 // Create a new driver request
 router.post(
   "/driver/request",

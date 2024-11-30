@@ -11,6 +11,15 @@ const createRequest = async (req, res) => {
     ServerResponder(res, "Driver request creation failed", 500);
   }
 };
+const takeFromStreet = async (req, res) => {
+  try {
+    const result = await services.takeFromStreet(req.body, req.user);
+    ServerResponder(res, result, 201);
+  } catch (error) {
+    console.log("Error in createRequestController:", error);
+    ServerResponder(res, "Driver request creation failed", 500);
+  }
+};
 
 const getRequestByIdController = async (req, res) => {
   try {
@@ -174,5 +183,6 @@ module.exports = {
   getRequestByIdController,
   acceptPassengerRequest,
   deleteRequestController,
+  takeFromStreet,
   verifyDriverStatusController,
 };
