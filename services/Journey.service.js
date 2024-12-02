@@ -10,9 +10,10 @@ exports.createJourney = async ({
   fare,
   journeyStatusId,
 }) => {
-  // check existance of journeyDecisionUniqueId
-  const sqlToCheck = `select * from JourneyDecisions where journeyDecisionUniqueId = ?`;
+  // check existance of journeyDecisionUniqueId in Journey
+  const sqlToCheck = `select * from Journey where journeyDecisionUniqueId = ?`;
   const [existedData] = await pool.query(sqlToCheck, [journeyDecisionUniqueId]);
+  console.log("existedData =============> ", existedData);
   if (existedData.length > 0) {
     return { message: "success", data: existedData };
   }

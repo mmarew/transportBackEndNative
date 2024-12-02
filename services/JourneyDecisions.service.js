@@ -9,6 +9,18 @@ exports.createJourneyDecision = async ({
   decisionTime,
   decisionBy,
 }) => {
+  if (
+    !passengerRequestId ||
+    !driverRequestId ||
+    !journeyStatusId ||
+    !decisionTime ||
+    !decisionBy
+  ) {
+    return {
+      message: "error",
+      data: "Missing required fields in create journey decision",
+    };
+  }
   // first check if journey decision is already exists
   const sqlToCheck = `SELECT * FROM JourneyDecisions WHERE passengerRequestId = ? or driverRequestId = ?`;
   const [existedData] = await pool.query(sqlToCheck, [
@@ -35,15 +47,17 @@ exports.createJourneyDecision = async ({
 
   return {
     message: "success",
-    data: {
-      journeyDecisionUniqueId,
-      passengerRequestId,
-      driverRequestId,
-      journeyStatusId,
-      decisionTime,
-      decisionBy,
-      journeyDecisionId: result.insertId,
-    },
+    data: [
+      {
+        journeyDecisionUniqueId,
+        passengerRequestId,
+        driverRequestId,
+        journeyStatusId,
+        decisionTime,
+        decisionBy,
+        journeyDecisionId: result.insertId,
+      },
+    ],
   };
 };
 

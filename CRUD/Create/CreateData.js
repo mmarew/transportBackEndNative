@@ -32,22 +32,41 @@ const createPassengerRequest = async (
   userUniqueId,
   journeyStatusId = 1
 ) => {
+  if (!body || !userUniqueId || !journeyStatusId) {
+    throw new Error("Invalid input parameters to create passenger request");
+  }
+
   // check if request exists
   const existingRequest = await getData({
     tableName: "PassengerRequest",
     conditions: { userUniqueId },
   });
+
   if (existingRequest.length > 0) {
     return { message: "success", data: existingRequest };
   }
+
   const { vehicle, destination, originLocation } = body;
+
+  if (!vehicle || !destination || !originLocation) {
+    throw new Error("Invalid request body");
+  }
+
   const { vehicleTypeUniqueId } = vehicle;
+
+  if (!vehicleTypeUniqueId) {
+    throw new Error("Invalid vehicle type");
+  }
+
   const verifyVehicleType = await getData({
     tableName: "VehicleTypes",
     conditions: { vehicleTypeUniqueId },
   });
-  if (verifyVehicleType.length === 0)
-    return { message: "error", error: "Vehicle type not found" };
+
+  if (verifyVehicleType.length === 0) {
+    throw new Error("Vehicle type not found");
+  }
+
   const originLatitude = originLocation.latitude,
     originLongitude = originLocation.longitude,
     originPlace = originLocation.description;
@@ -72,54 +91,79 @@ const createPassengerRequest = async (
   };
 
   // Insert the new request into the database
-  const result = await insertData({
-    tableName: "PassengerRequest",
-    colAndVal: requestPayload,
-  });
+  try {
+    const result = await insertData({
+      tableName: "PassengerRequest",
+      colAndVal: requestPayload,
+    });
 
-  return { message: "success", data: [{ ...requestPayload }] };
-};
-const createDriverRequest = async (body, userUniqueId, journeyStatusId) => {
-  // first check if user driver has active request existed
-  // const existingRequest = await getData({
-  //   tableName: "DriverRequest",
-  //   conditions: { userUniqueId, journeyStatusId <5},
-  // });
-  const sqlToCheckActiveRequest = `select * from DriverRequest where userUniqueId = ? and (journeyStatusId = 1 or journeyStatusId = 2 or journeyStatusId = 3 or journeyStatusId = 4)`;
-  const [existingRequest] = await pool.query(sqlToCheckActiveRequest, [
-    userUniqueId,
-  ]);
-  if (existingRequest.length > 0) {
-    return { message: "success", data: existingRequest };
+    return {
+      message: "success",
+      data: [{ ...requestPayload, passengerRequestId: result.insertId }],
+    };
+  } catch (error) {
+    console.log("Error inserting passenger request:", error);
+    throw error;
   }
+};
+const createDriverRequest = async (body, userUniqueId, journeyStatusId = 1) => {
+  try {
+    if (!body || !userUniqueId || !journeyStatusId) {
+      throw new Error("Invalid input parameters to create driver request");
+    }
 
-  // Extract the relevant data from the request body
-  const { currentLocation } = body;
+    const sqlToCheckActiveRequest = `
+      SELECT * FROM DriverRequest
+      WHERE userUniqueId = ?
+        AND journeyStatusId IN (1, 2, 3, 4)
+    `;
+    const [existingRequest] = await pool.query(sqlToCheckActiveRequest, [
+      userUniqueId,
+    ]);
 
-  const originLatitude = currentLocation.latitude,
-    originLongitude = currentLocation.longitude,
-    originPlace = currentLocation.description;
+    if (existingRequest?.length > 0) {
+      return { message: "success", data: existingRequest };
+    }
 
-  const driverRequestUniqueId = uuidv4(); // Generate a unique ID for this driver request
+    const { currentLocation } = body;
+    if (
+      !currentLocation ||
+      !currentLocation.latitude ||
+      !currentLocation.longitude
+      //|| !currentLocation.description
+    ) {
+      throw new Error("Invalid current location data");
+    }
 
-  // Build the request payload
-  const requestPayload = {
-    driverRequestUniqueId,
-    userUniqueId,
-    originLatitude,
-    originLongitude,
-    originPlace,
-    requestTime: new Date(),
-    journeyStatusId, // Initial status: Waiting (driver is waiting for a passenger)
-  };
+    const originLatitude = currentLocation.latitude;
+    const originLongitude = currentLocation.longitude;
+    const originPlace = currentLocation.description;
 
-  // Insert the new request into the database
-  const result = await insertData({
-    tableName: "DriverRequest",
-    colAndVal: requestPayload,
-  });
+    const driverRequestUniqueId = uuidv4();
 
-  return result; // Return the result of the insert operation
+    const requestPayload = {
+      driverRequestUniqueId,
+      userUniqueId,
+      originLatitude,
+      originLongitude,
+      originPlace,
+      requestTime: new Date(),
+      journeyStatusId,
+    };
+
+    const result = await insertData({
+      tableName: "DriverRequest",
+      colAndVal: requestPayload,
+    });
+
+    return {
+      message: "success",
+      data: [{ ...requestPayload, driverRequestId: result.insertId }],
+    };
+  } catch (error) {
+    console.log("Error creating driver request:", error);
+    throw error;
+  }
 };
 
 module.exports = {
