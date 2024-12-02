@@ -23,8 +23,10 @@ const takeFromStreet = async (req, res) => {
 
 const getRequestByIdController = async (req, res) => {
   try {
-    const { requestId } = req.params;
-    const result = await services.getDriverRequestById(requestId);
+    const { driverRequestUniqueId } = req.params;
+    const result = await services.getDriverRequestByRequestUniqueId(
+      driverRequestUniqueId
+    );
     if (result.message === "error") {
       return ServerResponder(res, result.error, 404);
     }

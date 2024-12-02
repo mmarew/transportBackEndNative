@@ -29,7 +29,7 @@ router.post(
 
 // Get a specific driver request by ID
 router.get(
-  "/driver/request/:requestId",
+  "/driver/request/:driverRequestUniqueId",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   getRequestByIdController

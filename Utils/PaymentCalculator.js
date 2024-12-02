@@ -36,7 +36,13 @@ const calculateDistances = (journeyRoutePoints) => {
 };
 async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
   try {
-    // first get all tarrif rate based on vehicle types uniqueid
+    if (!vehicleTypeUniqueId || !journeyUniqueId) {
+      return {
+        message: "error",
+        error: "Missing required parameters",
+      };
+    }
+
     const TarrifRateForVehcleTypes = await performJoinSelect({
       baseTable: "TarrifRateForVehcleTypes",
       joins: [
@@ -47,35 +53,52 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
       ],
       conditions: { vehicleTypeUniqueId },
     });
-    // then get all journey routes
-    if (TarrifRateForVehcleTypes.length === 0)
+
+    if (TarrifRateForVehcleTypes.length === 0) {
       return {
         message: "error",
         error: "No tarrif rate found for this vehicle type",
       };
+    }
+
     const { standingTarrifRate, journeyTarrifRate, timingTarrifRate } =
       TarrifRateForVehcleTypes[0];
+
+    if (!standingTarrifRate || !journeyTarrifRate || !timingTarrifRate) {
+      return {
+        message: "error",
+        error: "Missing required tarrif rate columns",
+      };
+    }
+
     const JourneyRoutePoints = await getData({
       tableName: "JourneyRoutePoints",
       conditions: { journeyUniqueId },
     });
-    // then calculate  distance
+
+    if (!JourneyRoutePoints.length) {
+      return {
+        message: "error",
+        error: "No journey route points found for this journey",
+      };
+    }
+
     const totalDistance = Math.round(calculateDistances(JourneyRoutePoints));
-    // then multiply by tarrif rate
+
     const moneyByDistance = totalDistance * parseFloat(journeyTarrifRate);
-    // calculate time
     const startingTime = JourneyRoutePoints[0].timestamp;
     const endingTime =
       JourneyRoutePoints[JourneyRoutePoints.length - 1].timestamp;
-    // const date = formatDateToReadable();
+
     const totalTime = new Date(endingTime) - new Date(startingTime);
-    console.log("totalTime", totalTime);
     const totalMunites = totalTime / 1000 / 60;
-    // calculate money by time
+
     const moneyByTime = totalMunites * parseFloat(timingTarrifRate);
+
     const totalMoney = Math.round(
       parseFloat(standingTarrifRate) + moneyByDistance + moneyByTime
     );
+
     return {
       totalDistance,
       message: "success",

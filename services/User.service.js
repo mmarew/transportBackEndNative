@@ -58,7 +58,7 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
 const createUser = async (body) => {
   const {
     // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin
-    requestedFrom = "passenger",
+    requestedFrom = "user",
     fullName,
     phoneNumber,
     email,
@@ -88,13 +88,15 @@ const createUser = async (body) => {
 
     const handleExistingUser = async () => {
       const user = savedUser[0];
-
-      // Check if phone number or email doesn't match
-      if (email !== user.email || phoneNumber !== user.phoneNumber) {
-        return {
-          message: "error",
-          data: "Invalid email or phone number",
-        };
+      // if it is not from street
+      if (requestedFrom !== "street") {
+        // Check if phone number or email doesn't match
+        if (email !== user.email || phoneNumber !== user.phoneNumber) {
+          return {
+            message: "error",
+            data: "Invalid email or phone number",
+          };
+        }
       }
       const userUniqueId = user.userUniqueId;
       const credential = await getData({

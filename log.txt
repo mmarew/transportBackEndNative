@@ -1804,3 +1804,1232 @@
 [2024-11-30T13:30:36.946Z] [LOG]  req.files [{"fieldname":"driversLicense","originalname":"vehicleregistration2.jpeg","encoding":"7bit","mimetype":"image/jpeg","destination":"uploads/","filename":"5_96961363_1732973436943-.jpeg","path":"uploads\\5_96961363_1732973436943-.jpeg","size":9110},{"fieldname":"VehicleRegistrationlibrea","originalname":"vehicleregistration1.jpeg","encoding":"7bit","mimetype":"image/jpeg","destination":"uploads/","filename":"5_6796892554_1732973436943-.jpeg","path":"uploads\\5_6796892554_1732973436943-.jpeg","size":10493}]
 [2024-11-30T13:30:36.950Z] [LOG] @createAttachedDocuments controller resultOfCreateFiles {"message":"success","data":"Document created successfully"}
 [2024-11-30T13:30:36.952Z] [LOG] @createAttachedDocuments controller resultOfCreateFiles {"message":"error","error":"Document already exists for this user and document type"}
+[2024-12-01T05:21:41.195Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T05:21:41.213Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T05:28:06.670Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T05:28:06.692Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T05:28:06.692Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:09:11.374Z] [LOG] @createUser req.body {"fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"2","statusId":"2"}
+[2024-12-01T06:09:11.383Z] [LOG] to be hashed otp  357148
+[2024-12-01T06:09:11.454Z] [LOG] hashedOTP $2b$10$hMTqATKcMqw11PhuTM1dN.IEOf0QDWQ7dvw7IpRd3sZ8Wkg/8kPeG
+[2024-12-01T06:09:35.607Z] [LOG] smsSenderData [{"SMSSenderId":1,"phoneNumber":"0922112480","password":"$2b$10$5Jbm6TpqBDNRtfsNduYuPO3KcJhQb.E16fn4gBgVRm84oPLsBBSwy"}]
+[2024-12-01T06:09:35.695Z] [LOG] verification of password  {"message":"success","data":true}
+[2024-12-01T06:09:39.207Z] [LOG] @createUser req.body {"fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"2","statusId":"2"}
+[2024-12-01T06:09:39.210Z] [LOG] to be hashed otp  855485
+[2024-12-01T06:09:39.292Z] [LOG] hashedOTP $2b$10$wmQZKjizD5iYcb86ZemhyuIZM1h.XJfMaMKJ2/V0fj6T3fl/7UzEK
+[2024-12-01T06:09:53.849Z] [LOG] req.query in verifyUserByOTP {"OTP":"855485","phoneNumber":"+251922112480","roleId":"2"}
+[2024-12-01T06:09:53.935Z] [LOG] verifyOTP {"message":"success","data":true}
+[2024-12-01T06:09:53.935Z] [LOG] userUniqueId c36b8be2-64c8-49bf-82f8-27ec7e2313a6
+[2024-12-01T06:09:53.936Z] [LOG] roleId 2
+[2024-12-01T06:09:53.937Z] [LOG] userInRoleId [{"userRoleId":2,"userRoleUniqueId":"b3e18d08-53a9-4622-90de-ea8b97328231","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","roleId":2,"userRoleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-11-26T11:01:06.000Z","userRoleDeletedAt":null}]
+[2024-12-01T06:09:53.939Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"2"}
+[2024-12-01T06:09:55.937Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:09:55.939Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:09:55.939Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:10:24.540Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:10:24.544Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:10:24.545Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:18:21.808Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:18:21.812Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:18:21.812Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:18:52.789Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:18:52.791Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:18:52.792Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:20:47.175Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:20:47.178Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:20:47.178Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:21:30.729Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:21:30.732Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:21:30.732Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:25:18.925Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T06:25:18.927Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T06:25:18.928Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T07:31:24.632Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T07:31:24.635Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T07:31:24.637Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:12:00.029Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:12:00.034Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:12:00.034Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:12:29.446Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:12:29.459Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:12:29.459Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:12:47.306Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:12:47.310Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:12:47.310Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:13:54.982Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:13:54.987Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:13:54.988Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:29:34.196Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:29:34.201Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:29:34.201Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:36:55.116Z] [LOG] Error inserting data: {"message":"Column 'journeyStatusId' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO DriverRequest (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace, requestTime, journeyStatusId) VALUES ('ec5b6ec3-0f61-455c-9235-010da595e51c', 'c36b8be2-64c8-49bf-82f8-27ec7e2313a6', 9.00326, 38.8662083, '2V38+584, Addis Ababa, Ethiopia', '2024-12-01 11:36:55.105', NULL)","sqlState":"23000","sqlMessage":"Column 'journeyStatusId' cannot be null"}
+[2024-12-01T08:36:55.120Z] [LOG] Error in createDriverRequest: {"message":"Column 'journeyStatusId' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO DriverRequest (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace, requestTime, journeyStatusId) VALUES ('ec5b6ec3-0f61-455c-9235-010da595e51c', 'c36b8be2-64c8-49bf-82f8-27ec7e2313a6', 9.00326, 38.8662083, '2V38+584, Addis Ababa, Ethiopia', '2024-12-01 11:36:55.105', NULL)","sqlState":"23000","sqlMessage":"Column 'journeyStatusId' cannot be null"}
+[2024-12-01T08:37:08.624Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:37:29.457Z] [LOG] Error in createDriverRequest: {}
+[2024-12-01T08:38:32.210Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:38:32.214Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:38:32.214Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:41:44.336Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:41:44.340Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:41:44.340Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:41:57.747Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:42:20.975Z] [LOG] Error in createDriverRequest: {}
+[2024-12-01T08:44:17.041Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:44:17.065Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T08:44:19.200Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:44:19.215Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:44:19.216Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:44:20.289Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:44:20.296Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:44:20.296Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:44:27.473Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:44:43.415Z] [LOG] @userPassenger ===========>  {"message":"error","data":"Invalid email or phone number"}
+[2024-12-01T08:44:43.416Z] [LOG] Error in createDriverRequest: {}
+[2024-12-01T08:45:47.194Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:45:47.208Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T08:45:51.838Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:45:51.857Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:45:51.858Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:45:52.987Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:45:52.992Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:45:52.993Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:45:59.211Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:46:16.759Z] [LOG] @userPassenger ===========>  {"message":"error","data":"Invalid email or phone number"}
+[2024-12-01T08:50:33.153Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:50:33.159Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:50:33.159Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:50:40.573Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:51:20.487Z] [LOG] @userPassenger ===========>  {"message":"error","data":"Invalid email or phone number"}
+[2024-12-01T08:51:55.307Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:51:55.320Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T08:51:58.172Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:51:58.190Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:51:58.191Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:52:06.635Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:52:23.756Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T08:52:23.761Z] [LOG] @userPassenger ===========>  {"message":"error","data":"Invalid email or phone number"}
+[2024-12-01T08:53:10.487Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:53:10.501Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T08:53:13.634Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:53:13.653Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:53:13.653Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:53:19.176Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:53:25.185Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:53:25.190Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T08:53:25.191Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T08:53:28.464Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T08:53:44.055Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T08:53:44.059Z] [LOG] user {"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T08:53:44.067Z] [LOG] @userPassenger ===========>  {"message":"error","data":"Invalid email or phone number"}
+[2024-12-01T08:53:48.389Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T08:53:48.393Z] [LOG] user {"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T08:53:48.398Z] [LOG] @userPassenger ===========>  {"message":"error","data":"Invalid email or phone number"}
+[2024-12-01T08:58:50.414Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:58:50.428Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T08:59:51.974Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:59:51.988Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T08:59:58.150Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T08:59:58.179Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:00:17.626Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:00:17.640Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:00:47.075Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:00:47.096Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:01:01.233Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:01:01.250Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:01:01.250Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:01:05.133Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T09:02:24.759Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:02:24.762Z] [LOG] user {"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:02:24.768Z] [LOG] to be hashed otp  875577
+[2024-12-01T09:02:24.861Z] [LOG] hashedOTP $2b$10$3iApfTc8NnDGsaaf44bru.j3QNko9Fq3S9s.JQYzbtniqRNhk8Ua2
+[2024-12-01T09:02:24.861Z] [LOG] @userPassenger ===========>  {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T09:02:24.869Z] [LOG] Error in createDriverRequest: {}
+[2024-12-01T09:04:49.221Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:04:49.207Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:04:52.405Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:04:52.426Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:04:52.427Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:04:55.286Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:04:55.291Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:04:55.292Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:04:55.444Z] [LOG] Error in verifyDriverStatus: {}
+[2024-12-01T09:06:23.404Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:06:23.416Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:06:26.005Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:06:26.024Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:06:26.025Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:06:26.890Z] [LOG] Error in verifyDriverStatus: {}
+[2024-12-01T09:06:39.283Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:06:39.299Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:06:42.617Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:06:42.627Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:06:42.630Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:07:21.387Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:07:21.393Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:07:21.395Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:10:34.187Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:10:34.192Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:10:34.192Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:13:03.942Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:13:03.946Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:13:03.947Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:13:52.876Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:13:52.880Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:13:52.880Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:14:43.993Z] [LOG] {}
+[2024-12-01T09:14:43.994Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-01T09:14:43.996Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-01T09:15:31.639Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:15:31.642Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:15:31.643Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:15:52.339Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T09:15:58.699Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:15:58.701Z] [LOG] user {"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:15:58.707Z] [LOG] to be hashed otp  571449
+[2024-12-01T09:15:58.778Z] [LOG] hashedOTP $2b$10$DDJm7VGJo8J/PzntbppL.el2EWx5WD.CDAyW0TCvgAY3pxqpUUxOW
+[2024-12-01T09:15:58.779Z] [LOG] @userPassenger ===========>  {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T09:19:59.151Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T09:19:59.154Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-01T09:20:25.042Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:20:25.044Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:20:25.048Z] [LOG] to be hashed otp  478103
+[2024-12-01T09:20:25.136Z] [LOG] hashedOTP $2b$10$yIqHD9n.ApiD24dupnzf1uTAK8YPDBok8CAE96axt.JMBDSzPWmly
+[2024-12-01T09:20:25.137Z] [LOG] @userPassenger ===========>  {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T09:22:32.901Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:22:32.903Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:22:32.904Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:22:47.595Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T09:24:51.411Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:24:51.427Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:24:53.808Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:24:53.813Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:24:53.819Z] [LOG] activeRequest [{"driverRequestId":3,"driverRequestUniqueId":"5ca99584-f648-425e-beb2-0c3067631d3a","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T09:20:25.000Z","journeyStatusId":4,"userId":5,"fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":""}]
+[2024-12-01T09:24:53.834Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:24:53.855Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T09:24:53.855Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T09:29:03.288Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:29:03.304Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:29:16.774Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:29:16.785Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:29:22.085Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:29:22.088Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:29:22.092Z] [LOG] activeRequest [{"driverRequestId":3,"driverRequestUniqueId":"5ca99584-f648-425e-beb2-0c3067631d3a","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T09:20:25.000Z","journeyStatusId":4,"userId":5,"fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":""}]
+[2024-12-01T09:36:43.711Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:36:43.697Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:36:45.864Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:36:45.866Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:36:45.871Z] [LOG] activeRequest []
+[2024-12-01T09:36:45.872Z] [LOG] error {}
+[2024-12-01T09:37:40.855Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:37:40.875Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:37:43.492Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:37:43.495Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:37:43.510Z] [LOG] to be hashed otp  298115
+[2024-12-01T09:37:43.604Z] [LOG] hashedOTP $2b$10$/mMHip0RVhsdYLNxcSCaJeWv.pS7JIcVcxNQlw9D17cZ9aV.xjtZG
+[2024-12-01T09:37:43.605Z] [LOG] @userPassenger ===========>  {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T09:37:43.606Z] [LOG] error {}
+[2024-12-01T09:37:55.208Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:37:55.210Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:37:55.215Z] [LOG] to be hashed otp  257385
+[2024-12-01T09:37:55.325Z] [LOG] hashedOTP $2b$10$DCB5HJNTINSR1FDkHsPKZuRLFVsOEJkocpaAZmWjFiwY8sV7YQM2W
+[2024-12-01T09:37:55.325Z] [LOG] @userPassenger ===========>  {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T09:37:55.327Z] [LOG] error {}
+[2024-12-01T09:38:10.153Z] [LOG] user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T09:38:10.152Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T09:38:10.159Z] [LOG] to be hashed otp  441475
+[2024-12-01T09:38:10.247Z] [LOG] hashedOTP $2b$10$SlWsl01IHspiTBK/K7OT3.wI5BH35ZqwnLnlxUrScm5bvRWw80kEO
+[2024-12-01T09:38:10.247Z] [LOG] @userPassenger ===========>  {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T09:38:10.249Z] [LOG] error {}
+[2024-12-01T09:39:16.837Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:39:16.852Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:39:18.876Z] [LOG] to be hashed otp  875591
+[2024-12-01T09:39:18.984Z] [LOG] hashedOTP $2b$10$cSFY5BYBoC/GdIiDOtYr5ecljIHoiPLOcYKdc.bZqCNO.bOBslAR6
+[2024-12-01T09:39:18.990Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"b0bb1a04-1efb-47bb-8fa5-2dfa04ccc47b","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.8","destinationLongitude":"38.9","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T09:39:18.988Z","journeyStatusId":4}]}
+[2024-12-01T09:39:18.994Z] [LOG] error {}
+[2024-12-01T09:39:33.204Z] [LOG] to be hashed otp  609937
+[2024-12-01T09:39:33.286Z] [LOG] hashedOTP $2b$10$7MiZJ/K6gBRUi5.pqJ8ZiuKegBv3HtnPCSDNORLSGsUOVsTYzkcWW
+[2024-12-01T09:39:33.288Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"b0bb1a04-1efb-47bb-8fa5-2dfa04ccc47b","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T09:39:19.000Z","journeyStatusId":4}]}
+[2024-12-01T09:39:33.289Z] [LOG] error {}
+[2024-12-01T09:39:54.361Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:39:54.374Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:40:21.450Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:40:21.463Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:40:29.473Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:40:29.486Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:40:41.631Z] [LOG] to be hashed otp  484771
+[2024-12-01T09:40:41.717Z] [LOG] hashedOTP $2b$10$sfH73MagxK/8qbzI69SqkOVVTTjCBggG8lbJkRhTwLBLlQBItn3PK
+[2024-12-01T09:40:41.724Z] [LOG] driverRequest ==========>  {"message":"success","data":[{"driverRequestUniqueId":"ff8195f4-bb88-4485-b4b7-9918125d397f","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T09:40:41.722Z","journeyStatusId":4}]}
+[2024-12-01T09:40:41.727Z] [LOG] error {}
+[2024-12-01T09:46:34.165Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:46:34.182Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:46:36.624Z] [LOG] driver {"driverRequestId":1,"driverRequestUniqueId":"ff8195f4-bb88-4485-b4b7-9918125d397f","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T09:40:42.000Z","journeyStatusId":4,"userId":5,"fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":""}
+[2024-12-01T09:47:49.214Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:47:49.227Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:47:53.784Z] [LOG] @arrayDriverData [{"driverRequestId":1,"driverRequestUniqueId":"ff8195f4-bb88-4485-b4b7-9918125d397f","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T09:40:42.000Z","journeyStatusId":4,"userId":5,"fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":""}]
+[2024-12-01T09:49:30.645Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:49:30.660Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:49:32.225Z] [LOG] to be hashed otp  837275
+[2024-12-01T09:49:32.297Z] [LOG] hashedOTP $2b$10$HJaU5DMmtV0R5x2kiq6QD.42IWxBEnAsfbnDEQWwhHEqvVcynyWYC
+[2024-12-01T09:49:32.305Z] [LOG] Error in createDriverRequest: {}
+[2024-12-01T09:50:11.274Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:50:11.297Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:50:13.948Z] [LOG] to be hashed otp  277208
+[2024-12-01T09:50:14.032Z] [LOG] hashedOTP $2b$10$cB60LvUfuI3RvBx5U1yfKu5MihIGwwhObkpEjAbeSXEiH3iQo0Udi
+[2024-12-01T09:50:35.292Z] [LOG] to be hashed otp  563088
+[2024-12-01T09:50:35.380Z] [LOG] hashedOTP $2b$10$ElUF41dd3M2vP0w/od2p3ODp2DSZn0/cj1opcVvTkW2otDay/HfEG
+[2024-12-01T09:50:36.468Z] [LOG] to be hashed otp  135023
+[2024-12-01T09:50:36.552Z] [LOG] hashedOTP $2b$10$tzy6OEyOBSGrc25omZQDP.ccLnp2/cLMl45e9y.hAULyTwbs.u/ae
+[2024-12-01T09:50:37.512Z] [LOG] to be hashed otp  235273
+[2024-12-01T09:50:37.603Z] [LOG] hashedOTP $2b$10$wzupMBDgd/sOnD7c2fKJDeOrjdrYaE3bESJw13OWIpvje8xt72DQ6
+[2024-12-01T09:50:38.419Z] [LOG] to be hashed otp  955631
+[2024-12-01T09:50:38.506Z] [LOG] hashedOTP $2b$10$n44greMyaIgt9kzFmjYL..BgVip50sDUUjUKsprLQ5xQ3LywVPOxK
+[2024-12-01T09:54:24.420Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:54:24.431Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:55:43.882Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:55:43.898Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:57:00.220Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:57:00.234Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:57:27.239Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:57:27.252Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:57:44.202Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:57:44.217Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:57:49.917Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:57:49.934Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T09:58:47.278Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T09:58:47.294Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:00:15.625Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:00:15.649Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:02:17.612Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:02:17.632Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:02:20.550Z] [LOG] Error in verifyDriverStatus: {}
+[2024-12-01T10:05:08.602Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:05:08.614Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:05:11.889Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:06:08.334Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:06:08.346Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:07:25.405Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:08:03.941Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:08:03.956Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:08:06.259Z] [LOG] to be hashed otp  342951
+[2024-12-01T10:08:06.344Z] [LOG] hashedOTP $2b$10$SnPZW9KQrxmXP4HsZ9RiKuIB1nxnNOAnALzGgmgqNZSNTH0jPW48S
+[2024-12-01T10:08:25.267Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:08:25.256Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:08:30.376Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:08:50.364Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:08:50.376Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:08:52.796Z] [LOG] to be hashed otp  540273
+[2024-12-01T10:08:52.890Z] [LOG] hashedOTP $2b$10$aqAJ2Wk3GpFDye7xyBGeleg9xvNK0WcIAy.iQci5ZjydoJ2XSPl4O
+[2024-12-01T10:09:21.085Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:09:21.098Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:10:28.125Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:10:28.136Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:10:28.999Z] [LOG] journey 
+[2024-12-01T10:10:29.002Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:11:21.521Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:11:21.534Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:11:24.535Z] [LOG] journeyDecision {"journeyDecisionId":1,"journeyDecisionUniqueId":"920fe44a-cf0a-488c-8d32-98183e6a65fa","passengerRequestId":1,"driverRequestId":1,"journeyStatusId":4,"decisionTime":"2024-12-01T09:49:32.000Z","decisionBy":"driver"}
+[2024-12-01T10:11:24.539Z] [LOG] journey 
+[2024-12-01T10:11:24.542Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:13:02.709Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:13:02.725Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:13:07.398Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:13:07.400Z] [LOG] journey 
+[2024-12-01T10:13:07.403Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:16:25.696Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:16:25.711Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:16:43.708Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:16:43.723Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:16:48.546Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:16:48.548Z] [LOG] journey 
+[2024-12-01T10:16:48.551Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:17:06.693Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:17:06.709Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:17:09.614Z] [LOG] to be hashed otp  316918
+[2024-12-01T10:17:09.691Z] [LOG] hashedOTP $2b$10$VZai5OMxbvQithOOSiDwhOqQFAM8ZOiYd5s.IkYTK2.R6hoeNvBCq
+[2024-12-01T10:17:09.701Z] [LOG] existedData =============>  []
+[2024-12-01T10:17:28.078Z] [LOG] to be hashed otp  186117
+[2024-12-01T10:17:28.170Z] [LOG] hashedOTP $2b$10$y5x7hfGlNWRXD5fyhMtgDuC3jo.heXMPDg32rf/T5jwwRCq0s01i2
+[2024-12-01T10:17:28.174Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"70207437-31d6-498e-8534-7e4e340dd058","journeyDecisionUniqueId":"920fe44a-cf0a-488c-8d32-98183e6a65fa","startTime":"2024-12-01T10:17:09.000Z","endTime":"2024-12-01T10:17:09.000Z","fare":"0.00","journeyStatusId":4}]
+[2024-12-01T10:17:50.343Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:17:50.428Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:17:52.314Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:17:52.316Z] [LOG] journey {"journeyId":1,"journeyUniqueId":"70207437-31d6-498e-8534-7e4e340dd058","journeyDecisionUniqueId":"920fe44a-cf0a-488c-8d32-98183e6a65fa","startTime":"2024-12-01T10:17:09.000Z","endTime":"2024-12-01T10:17:09.000Z","fare":"0.00","journeyStatusId":4}
+[2024-12-01T10:17:52.322Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:19:15.747Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:19:15.773Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:19:18.714Z] [LOG] to be hashed otp  815998
+[2024-12-01T10:19:18.797Z] [LOG] hashedOTP $2b$10$TudC/nBA4COCr9T78Tqf7uCHSAktJOdfxrjSrPwMFvwnUuG6r5yJe
+[2024-12-01T10:19:18.804Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"70207437-31d6-498e-8534-7e4e340dd058","journeyDecisionUniqueId":"920fe44a-cf0a-488c-8d32-98183e6a65fa","startTime":"2024-12-01T10:17:09.000Z","endTime":"2024-12-01T10:17:09.000Z","fare":"0.00","journeyStatusId":4}]
+[2024-12-01T10:19:42.460Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:19:42.475Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:19:44.937Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:19:44.938Z] [LOG] journey {"journeyId":1,"journeyUniqueId":"70207437-31d6-498e-8534-7e4e340dd058","journeyDecisionUniqueId":"920fe44a-cf0a-488c-8d32-98183e6a65fa","startTime":"2024-12-01T10:17:09.000Z","endTime":"2024-12-01T10:17:09.000Z","fare":"0.00","journeyStatusId":4}
+[2024-12-01T10:19:44.944Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:21:06.744Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:21:06.758Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:21:13.286Z] [LOG] @verifyDriverStatus vehicle =============>  {"message":"success","data":[{"vehicleId":2,"vehicleUniqueId":"5d36b9e5-abff-4338-8883-82600f1c4b65","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","licensePlate":"3040","color":"white","vehicleCreatedBy":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","vehicleUpdatedBy":null,"vehicleUpdatedAt":null,"vehicleDeletedBy":null,"vehicleCreatedAt":"2024-11-30T06:36:33.000Z","vehicleDeletedAt":null,"ownershipId":2,"ownershipUniqueId":"c17703a4-7903-4039-ada9-0c335178f41c","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","roleId":2,"ownershipStartDate":"2024-11-30T06:36:33.000Z","ownershipEndDate":null,"vehicleTypeId":1,"vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-26T16:27:24.000Z","vehicleTypeDeletedAt":null}]}
+[2024-12-01T10:21:13.292Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:21:13.297Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:21:41.729Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:21:41.745Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:21:46.136Z] [LOG] @verifyDriverStatus vehicle =============>  {"vehicleId":2,"vehicleUniqueId":"5d36b9e5-abff-4338-8883-82600f1c4b65","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","licensePlate":"3040","color":"white","vehicleCreatedBy":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","vehicleUpdatedBy":null,"vehicleUpdatedAt":null,"vehicleDeletedBy":null,"vehicleCreatedAt":"2024-11-30T06:36:33.000Z","vehicleDeletedAt":null,"ownershipId":2,"ownershipUniqueId":"c17703a4-7903-4039-ada9-0c335178f41c","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","roleId":2,"ownershipStartDate":"2024-11-30T06:36:33.000Z","ownershipEndDate":null,"vehicleTypeId":1,"vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-26T16:27:24.000Z","vehicleTypeDeletedAt":null}
+[2024-12-01T10:21:46.145Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:21:46.149Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:23:09.915Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:23:09.931Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:23:12.304Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:23:12.309Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:24:25.024Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:24:25.121Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:24:28.360Z] [LOG] journeyDecision?.journeyDecisionUniqueId 920fe44a-cf0a-488c-8d32-98183e6a65fa
+[2024-12-01T10:24:28.363Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T10:26:53.586Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T10:26:53.598Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T10:27:00.658Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T13:08:11.118Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:08:11.127Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:08:11.127Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:08:29.653Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:08:36.793Z] [LOG] to be hashed otp  922794
+[2024-12-01T13:08:36.876Z] [LOG] hashedOTP $2b$10$4.MA2lO4ZVKdU31ofbdtduZAILdDk8JDyBcf4UXPTL1ajIzmLfYPG
+[2024-12-01T13:08:36.881Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"70207437-31d6-498e-8534-7e4e340dd058","journeyDecisionUniqueId":"920fe44a-cf0a-488c-8d32-98183e6a65fa","startTime":"2024-12-01T10:17:09.000Z","endTime":"2024-12-01T10:17:09.000Z","fare":"0.00","journeyStatusId":4}]
+[2024-12-01T13:11:34.442Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T13:15:04.184Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:15:04.189Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:15:04.190Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:15:16.842Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:15:34.578Z] [LOG] to be hashed otp  631539
+[2024-12-01T13:15:34.732Z] [LOG] hashedOTP $2b$10$VNm0CGHgTmmLEUN/DTsO4.PSfwATrSPb/WkVnURDZ3Zf/h4UiP0je
+[2024-12-01T13:15:34.741Z] [LOG] Error in createDriverRequest: {"message":"Column 'passengerRequestId' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO JourneyDecisions (journeyDecisionUniqueId, passengerRequestId, driverRequestId, journeyStatusId, decisionTime, decisionBy) VALUES ('38e49de5-21ec-4d87-9e0c-7b2752ae1934', NULL, NULL, 4, '2024-12-01:16:15:34', 'driver')","sqlState":"23000","sqlMessage":"Column 'passengerRequestId' cannot be null"}
+[2024-12-01T13:18:20.008Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:18:20.105Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:18:22.679Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:18:22.694Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:18:22.695Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:18:47.535Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:18:47.549Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:18:52.377Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:18:52.389Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:18:52.390Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:19:04.960Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:19:04.972Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:19:09.992Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:19:10.004Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:19:10.005Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:22:36.642Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:22:36.647Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:22:36.648Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:22:57.916Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:23:02.603Z] [LOG] to be hashed otp  910040
+[2024-12-01T13:23:02.706Z] [LOG] hashedOTP $2b$10$qjRehL8fmJkIse4MAdma4.uSGAN1LWquHix43PwslUJEGq3wRrb0e
+[2024-12-01T13:23:02.714Z] [LOG] @takeFromStreet decisionData {"journeyStatusId":4,"decisionTime":"2024-12-01:16:23:02","decisionBy":"driver"}
+[2024-12-01T13:23:02.718Z] [LOG] existedData =============>  []
+[2024-12-01T13:23:02.721Z] [LOG] Error in createDriverRequest: {"message":"Column 'journeyDecisionUniqueId' cannot be null","code":"ER_BAD_NULL_ERROR","errno":1048,"sql":"INSERT INTO Journey (journeyUniqueId, journeyDecisionUniqueId, startTime, endTime, fare, journeyStatusId) VALUES ('4fcad9fc-c29d-4f3d-b651-e03bd4dbda9d', NULL, '2024-12-01:16:23:02', '2024-12-01:16:23:02', 0, 4)","sqlState":"23000","sqlMessage":"Column 'journeyDecisionUniqueId' cannot be null"}
+[2024-12-01T13:24:52.727Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:24:52.744Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:24:55.957Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:24:55.971Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:24:55.972Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:24:58.568Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:24:58.574Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:24:58.576Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:25:27.179Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:25:27.193Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:25:30.584Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:25:30.587Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:25:30.600Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:25:30.600Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:25:30.606Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:25:30.606Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:25:37.177Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T13:25:37.179Z] [LOG] @takeFromStreet user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T13:25:37.181Z] [LOG] error {}
+[2024-12-01T13:27:42.044Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:27:42.051Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:27:42.053Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:27:56.944Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:28:03.606Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T13:28:03.608Z] [LOG] @takeFromStreet user {"userId":2,"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T13:28:03.609Z] [LOG] error {}
+[2024-12-01T13:28:34.576Z] [LOG] @takeFromStreet body {"phoneNumber":"+251922112482","destination":{"latitude":"9.8","longitude":"38.9","description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"},"currentLocation":{"latitude":9.0042278,"longitude":38.8661227,"description":"Diredawa, Ethiopia"}}
+[2024-12-01T13:28:34.578Z] [LOG] @takeFromStreet user {"userId":5,"userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","fullName":"driver full name ","phoneNumber":"0918321165","email":"driver@gmail.com","createdAt":"2024-11-26T18:38:21.000Z","createdBy":"","roleId":"2"}
+[2024-12-01T13:28:34.579Z] [LOG] error {}
+[2024-12-01T13:29:19.604Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:29:19.591Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:29:22.368Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:29:22.378Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:29:22.379Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:30:06.954Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:30:06.943Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:30:10.179Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:30:10.186Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:30:10.187Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:30:15.827Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:30:19.802Z] [LOG] to be hashed otp  992441
+[2024-12-01T13:30:19.867Z] [LOG] hashedOTP $2b$10$xdveoLXwwXZJA.NP9WPLS.sWgu.qOzyCrHygiG13gI0VzhQdYKt6i
+[2024-12-01T13:30:19.870Z] [LOG] error {}
+[2024-12-01T13:30:19.868Z] [LOG] userPassenger {"message":"success","dataOfPassenger":{"userId":7,"userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","fullName":"passenger","phoneNumber":"+251922112482","email":"passenger@passenger.com","createdAt":"2024-11-30T04:01:52.000Z","createdBy":""}}
+[2024-12-01T13:31:19.290Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:31:19.302Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:31:22.780Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:31:22.790Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:31:22.791Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:31:32.742Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:31:32.758Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:31:35.301Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:31:35.310Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:31:35.311Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:31:46.579Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:31:49.298Z] [LOG] to be hashed otp  917926
+[2024-12-01T13:31:49.364Z] [LOG] hashedOTP $2b$10$aaC8nHwqknzC.L3OzYm54.ZD275OE9LLkIVKZb/Z5ijyoB9Mmg.M6
+[2024-12-01T13:31:49.367Z] [LOG] @takeFromStreet passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"44a430a1-cfa9-4950-bbe3-7742f10896bc","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.8","destinationLongitude":"38.9","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:31:49.366Z","journeyStatusId":4}]}
+[2024-12-01T13:31:49.368Z] [LOG] error {}
+[2024-12-01T13:32:49.170Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:32:49.187Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:32:52.648Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:32:52.659Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:32:52.660Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:32:53.362Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:32:53.367Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:32:53.367Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:33:06.671Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:33:06.676Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:33:06.676Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:34:09.576Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:34:09.589Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:34:12.224Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:34:12.234Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:34:12.235Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:34:20.863Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:34:25.431Z] [LOG] to be hashed otp  513810
+[2024-12-01T13:34:25.527Z] [LOG] hashedOTP $2b$10$S5brvBLjvPy0axwsbNVpR.eU4BIIXKUo4RA1/tyl7tSmBj3phPHX2
+[2024-12-01T13:34:25.534Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"44a430a1-cfa9-4950-bbe3-7742f10896bc","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:31:49.000Z","journeyStatusId":4}]}
+[2024-12-01T13:34:25.536Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"dab3f30c-15b0-4699-9fae-a5161249c81d","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:34:25.532Z","journeyStatusId":4}]}
+[2024-12-01T13:35:04.777Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:35:04.790Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:35:07.907Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:35:07.916Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:35:07.916Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:35:10.774Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:35:10.777Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:35:10.778Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:35:20.350Z] [LOG] {}
+[2024-12-01T13:35:20.352Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-01T13:35:20.354Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-01T13:35:38.022Z] [LOG] {}
+[2024-12-01T13:35:38.023Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-01T13:35:38.024Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-01T13:36:47.773Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:36:47.775Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:36:47.776Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:36:57.964Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T13:37:04.368Z] [LOG] to be hashed otp  432386
+[2024-12-01T13:37:04.439Z] [LOG] hashedOTP $2b$10$3FLRXvFqBWMfSuirDcG.MOzDhU6MmJfN.SMMVyjckwS8cZYnafn16
+[2024-12-01T13:37:04.443Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"44a430a1-cfa9-4950-bbe3-7742f10896bc","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:31:49.000Z","journeyStatusId":4}]}
+[2024-12-01T13:37:04.445Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"aad08952-25fa-46e0-adb2-1214c24dcdbb","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:37:04.442Z","journeyStatusId":4}]}
+[2024-12-01T13:37:04.446Z] [LOG] @takeFromStreet decisionData {"passengerRequestId":1,"journeyStatusId":4,"decisionTime":"2024-12-01:16:37:04","decisionBy":"driver"}
+[2024-12-01T13:37:04.446Z] [LOG] error {}
+[2024-12-01T13:38:02.221Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:38:02.315Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:38:05.080Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:38:05.090Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:38:05.090Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:38:24.758Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:38:24.843Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:38:30.083Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:38:30.096Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:38:30.097Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:38:40.344Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:38:40.329Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:38:43.802Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:38:43.809Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:38:43.810Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:39:12.646Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:39:12.660Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:39:16.864Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:39:16.877Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:39:16.877Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:39:30.042Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-01T13:39:34.059Z] [LOG] to be hashed otp  283527
+[2024-12-01T13:39:34.128Z] [LOG] hashedOTP $2b$10$qm/F31lOw0OwkqsTmEGxoe5I8jtU9C2qLA7B2Bw.U1qkz.6/IY9ai
+[2024-12-01T13:39:34.134Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"f0173935-0da9-4273-b341-5126319dd02c","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:39:34.132Z","journeyStatusId":4,"driverRequestId":3}]}
+[2024-12-01T13:39:34.132Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"44a430a1-cfa9-4950-bbe3-7742f10896bc","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:31:49.000Z","journeyStatusId":4}]}
+[2024-12-01T13:39:34.135Z] [LOG] @takeFromStreet decisionData {"passengerRequestId":1,"driverRequestId":3,"journeyStatusId":4,"decisionTime":"2024-12-01:16:39:34","decisionBy":"driver"}
+[2024-12-01T13:39:34.136Z] [LOG] error {}
+[2024-12-01T13:40:30.836Z] [LOG] to be hashed otp  235506
+[2024-12-01T13:40:30.900Z] [LOG] hashedOTP $2b$10$epiYdcjWIXMXwpp.nOO25uOwZIAYs5/iJR2emQkSJUCLiB/hlWLHq
+[2024-12-01T13:40:30.904Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"9cd950f3-d7f4-41b4-b3c0-ace94fa29cef","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.8","destinationLongitude":"38.9","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:40:30.902Z","journeyStatusId":4,"passengerRequestId":1}]}
+[2024-12-01T13:40:30.906Z] [LOG] @takeFromStreet decisionData {"passengerRequestId":1,"driverRequestId":1,"journeyStatusId":4,"decisionTime":"2024-12-01:16:40:30","decisionBy":"driver"}
+[2024-12-01T13:40:30.907Z] [LOG] error {}
+[2024-12-01T13:40:30.905Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"a2cd00b1-144e-439b-b451-fa0742a1c0f7","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:40:30.904Z","journeyStatusId":4,"driverRequestId":1}]}
+[2024-12-01T13:41:12.404Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:41:12.420Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:41:17.544Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:41:17.558Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:41:17.558Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:42:54.444Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:42:54.433Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:42:59.286Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:42:59.296Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:42:59.297Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:44:03.334Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:44:03.352Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:44:08.514Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:44:08.521Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:44:08.522Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:44:34.123Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:44:34.136Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:44:51.533Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:44:51.542Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:44:51.542Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:44:53.872Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:44:53.877Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:44:53.878Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:45:02.375Z] [LOG] to be hashed otp  152590
+[2024-12-01T13:45:02.456Z] [LOG] hashedOTP $2b$10$.nb9wLFiM52.l.Z60L8d2O0DRZPnu3BakTEDGFG.oWc6B0Gbes0XS
+[2024-12-01T13:45:02.462Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"9cd950f3-d7f4-41b4-b3c0-ace94fa29cef","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:40:31.000Z","journeyStatusId":4}]}
+[2024-12-01T13:45:02.464Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"86d76f68-5089-468d-8434-1d093b5093f6","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:45:02.460Z","journeyStatusId":4,"driverRequestId":2}]}
+[2024-12-01T13:45:02.467Z] [LOG] error {}
+[2024-12-01T13:45:02.466Z] [LOG] @takeFromStreet decisionData {"passengerRequestId":1,"driverRequestId":2,"journeyStatusId":4,"decisionTime":"2024-12-01:16:45:02","decisionBy":"driver"}
+[2024-12-01T13:45:19.271Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:45:19.290Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:45:23.518Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:45:23.530Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:45:23.530Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:45:33.751Z] [LOG] to be hashed otp  348113
+[2024-12-01T13:45:33.831Z] [LOG] hashedOTP $2b$10$RGrBIgzx2U1uCaj8LsHZ4ef42khPTp.CdStUj1JySInfZKdBBmIJ.
+[2024-12-01T13:45:33.835Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"9cd950f3-d7f4-41b4-b3c0-ace94fa29cef","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T13:40:31.000Z","journeyStatusId":4}]}
+[2024-12-01T13:45:33.836Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestId":2,"driverRequestUniqueId":"86d76f68-5089-468d-8434-1d093b5093f6","userUniqueId":"02c5b138-1ea4-4d52-87d9-a9734f05f9a3","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:45:02.000Z","journeyStatusId":4}]}
+[2024-12-01T13:45:33.844Z] [LOG] existedData =============>  []
+[2024-12-01T13:48:30.634Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:48:30.638Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:48:30.639Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:49:56.730Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:49:56.742Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:50:01.553Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:50:01.561Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:50:01.562Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:50:03.109Z] [LOG] @verifyDriverStatus vehicle {"vehicleId":1,"vehicleUniqueId":"24c188f9-874c-44e6-935c-e18bef71ac09","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","licensePlate":"444","color":"White","vehicleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleUpdatedBy":null,"vehicleUpdatedAt":null,"vehicleDeletedBy":null,"vehicleCreatedAt":"2024-11-28T07:44:36.000Z","vehicleDeletedAt":null,"ownershipId":1,"ownershipUniqueId":"250218b3-dd43-42a9-b90f-124e05b88d90","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","roleId":2,"ownershipStartDate":"2024-11-28T07:44:36.000Z","ownershipEndDate":null,"vehicleTypeId":1,"vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-26T16:27:24.000Z","vehicleTypeDeletedAt":null}
+[2024-12-01T13:50:03.110Z] [LOG] error {}
+[2024-12-01T13:50:34.369Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:50:34.382Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:50:38.391Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:50:38.400Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:50:38.401Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:50:40.066Z] [LOG] @verifyDriverStatus vehicle {"vehicleId":1,"vehicleUniqueId":"24c188f9-874c-44e6-935c-e18bef71ac09","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","licensePlate":"444","color":"White","vehicleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleUpdatedBy":null,"vehicleUpdatedAt":null,"vehicleDeletedBy":null,"vehicleCreatedAt":"2024-11-28T07:44:36.000Z","vehicleDeletedAt":null,"ownershipId":1,"ownershipUniqueId":"250218b3-dd43-42a9-b90f-124e05b88d90","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","roleId":2,"ownershipStartDate":"2024-11-28T07:44:36.000Z","ownershipEndDate":null,"vehicleTypeId":1,"vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-26T16:27:24.000Z","vehicleTypeDeletedAt":null}
+[2024-12-01T13:50:40.068Z] [LOG] error {}
+[2024-12-01T13:51:15.578Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:51:15.592Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:51:18.036Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:51:18.045Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:51:18.046Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:51:19.676Z] [LOG] @verifyDriverStatus vehicle {"vehicleId":1,"vehicleUniqueId":"24c188f9-874c-44e6-935c-e18bef71ac09","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","licensePlate":"444","color":"White","vehicleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleUpdatedBy":null,"vehicleUpdatedAt":null,"vehicleDeletedBy":null,"vehicleCreatedAt":"2024-11-28T07:44:36.000Z","vehicleDeletedAt":null,"ownershipId":1,"ownershipUniqueId":"250218b3-dd43-42a9-b90f-124e05b88d90","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","roleId":2,"ownershipStartDate":"2024-11-28T07:44:36.000Z","ownershipEndDate":null,"vehicleTypeId":1,"vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-26T16:27:24.000Z","vehicleTypeDeletedAt":null}
+[2024-12-01T13:51:19.677Z] [LOG] error {}
+[2024-12-01T13:51:36.400Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:51:36.411Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:51:38.696Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:51:38.708Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:51:38.708Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:52:19.683Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:52:19.671Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:52:24.298Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:52:24.306Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:52:24.306Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:54:57.583Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:54:57.596Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:55:02.716Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:55:02.728Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:55:02.729Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:55:04.215Z] [LOG] @handleExistingJourney  handleExistingJourney ===========>  {"driverRequestId":1,"driverRequestUniqueId":"a2cd00b1-144e-439b-b451-fa0742a1c0f7","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:40:31.000Z","journeyStatusId":4,"userId":2,"fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":""}
+[2024-12-01T13:55:06.764Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:55:06.780Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:55:12.635Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:55:12.644Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:55:12.645Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:55:13.712Z] [LOG] @handleExistingJourney  handleExistingJourney ===========>  {"driverRequestId":1,"driverRequestUniqueId":"a2cd00b1-144e-439b-b451-fa0742a1c0f7","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:40:31.000Z","journeyStatusId":4,"userId":2,"fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":""}
+[2024-12-01T13:55:13.713Z] [LOG] error {}
+[2024-12-01T13:56:06.641Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:56:06.655Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:56:09.021Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:56:09.032Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:56:09.032Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:56:09.812Z] [LOG] @handleExistingJourney  handleExistingJourney ===========>  {"driverRequestId":1,"driverRequestUniqueId":"a2cd00b1-144e-439b-b451-fa0742a1c0f7","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T13:40:31.000Z","journeyStatusId":4,"userId":2,"fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","createdAt":"2024-11-26T11:01:06.000Z","createdBy":""}  vehicleTarrifRate {"tarrifRateForVehcleTypeId":1,"tarrifRateForVehcleTypeUniqueId":"e9e54c0f-fdab-4a01-bbe3-dd3b8732f5b2","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","tarrifRateUniqueId":"bc47efaf-a87c-4437-b094-fbf2b4f84929","tarrifRateId":1,"standingTarrifRate":"100","journeyTarrifRate":"25","timingTarrifRate":"10","tarrifRateEffectiveDate":"1899-11-29T21:02:20.000Z","tarrifRateExpirationDate":"1899-11-29T21:02:20.000Z","tarifRateDescription":"some descriptions ","tarrifRateCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","tarrifRateCreatedAt":"2024-11-26T16:27:24.000Z"}  vehicle {"vehicleId":1,"vehicleUniqueId":"24c188f9-874c-44e6-935c-e18bef71ac09","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","licensePlate":"444","color":"White","vehicleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleUpdatedBy":null,"vehicleUpdatedAt":null,"vehicleDeletedBy":null,"vehicleCreatedAt":"2024-11-28T07:44:36.000Z","vehicleDeletedAt":null,"ownershipId":1,"ownershipUniqueId":"250218b3-dd43-42a9-b90f-124e05b88d90","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","roleId":2,"ownershipStartDate":"2024-11-28T07:44:36.000Z","ownershipEndDate":null,"vehicleTypeId":1,"vehicleTypeName":"Isuzu FSR","vehicleTypeIconName":null,"vehicleTypeDescription":null,"vehicleTypeCreatedBy":"2189245f-2dc0-47b2-ae97-0fd4cb346413","vehicleTypeUpdatedBy":null,"vehicleTypeDeletedBy":null,"carryingCapacity":"10 ton (100 kuintal)","vehicleTypeUpdatedAt":null,"vehicleTypeCreatedAt":"2024-11-26T16:27:24.000Z","vehicleTypeDeletedAt":null}
+[2024-12-01T13:56:09.818Z] [LOG] error {}
+[2024-12-01T13:56:50.789Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:56:50.823Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:56:53.143Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:56:53.155Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:56:53.156Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:57:15.217Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:57:15.200Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:57:20.078Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:57:20.089Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:57:20.089Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:57:20.781Z] [LOG] journeyDecision 
+[2024-12-01T13:57:20.782Z] [LOG] journey 
+[2024-12-01T13:58:45.000Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-01T13:58:45.015Z] [LOG] Server started on port http://localhost:3000
+[2024-12-01T13:58:48.920Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:58:48.929Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T13:58:48.930Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T13:58:50.611Z] [LOG] @handleExistingJourney driverRequest.driverRequestId 1
+[2024-12-01T13:58:50.612Z] [LOG] error {}
+[2024-12-01T14:03:13.549Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T14:03:19.074Z] [LOG] to be hashed otp  818085
+[2024-12-01T14:03:19.150Z] [LOG] hashedOTP $2b$10$6V7vUlqHbXljSw.mpOtzr.ybFEZ9I4Pc3khmQExVR/WBXP2UyAQka
+[2024-12-01T14:03:19.156Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.8","destinationLongitude":"38.9","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.153Z","journeyStatusId":4,"passengerRequestId":1}]}
+[2024-12-01T14:03:19.158Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"e77732f8-4d18-40f3-9a06-ed91cb26431e","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T14:03:19.156Z","journeyStatusId":4,"driverRequestId":1}]}
+[2024-12-01T14:03:19.164Z] [LOG] existedData =============>  []
+[2024-12-01T14:04:19.309Z] [LOG] totalTime 54000
+[2024-12-01T14:04:19.309Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":109}
+[2024-12-01T14:04:19.312Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T14:04:19.332Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":109,"netBalance":-37160.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-01T14:05:32.043Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T14:05:38.419Z] [LOG] to be hashed otp  476011
+[2024-12-01T14:05:38.516Z] [LOG] hashedOTP $2b$10$DbNM2L0SzeCb7.rw7yVG/eyQFRXDc9UUgB9mixho.NspJ8YmtRelG
+[2024-12-01T14:05:38.518Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.000Z","journeyStatusId":5}]}
+[2024-12-01T14:05:38.520Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"dfcca786-d4df-4aa4-aae8-a50a65c8e711","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T14:05:38.518Z","journeyStatusId":4,"driverRequestId":2}]}
+[2024-12-01T14:05:38.522Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","journeyDecisionUniqueId":"d37870ff-c4ab-4c8f-b94c-277d1100f2d8","startTime":"2024-12-01T14:03:19.000Z","endTime":"2024-12-01T14:03:19.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-01T14:06:03.971Z] [LOG] totalTime 157000
+[2024-12-01T14:06:03.972Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":126}
+[2024-12-01T14:06:03.973Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T14:06:03.976Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":126,"netBalance":-38250.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-01T14:44:28.381Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T14:44:28.385Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T14:44:28.385Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T14:51:14.220Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T14:51:24.782Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T14:54:02.899Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T14:54:02.902Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T14:54:02.903Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T14:54:04.487Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T14:54:04.490Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T14:54:04.490Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T14:54:21.165Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T14:54:26.963Z] [LOG] to be hashed otp  153908
+[2024-12-01T14:54:27.036Z] [LOG] hashedOTP $2b$10$OuDT6Qw6T0vWJdYmK8lJiecGiwmeM5yrKqXm0nV7c9634JKRcQH9K
+[2024-12-01T14:54:27.038Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.000Z","journeyStatusId":5}]}
+[2024-12-01T14:54:27.040Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"7842de40-fccd-4ee3-9ce6-d0a86e0f28e8","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T14:54:27.037Z","journeyStatusId":4,"driverRequestId":3}]}
+[2024-12-01T14:54:27.042Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","journeyDecisionUniqueId":"d37870ff-c4ab-4c8f-b94c-277d1100f2d8","startTime":"2024-12-01T14:03:19.000Z","endTime":"2024-12-01T14:03:19.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-01T14:59:13.276Z] [LOG] totalTime 3126000
+[2024-12-01T14:59:13.278Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":621}
+[2024-12-01T14:59:13.282Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T14:59:13.288Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":621,"netBalance":-38250.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-01T14:59:18.470Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:11:10.442Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:11:10.446Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:11:10.447Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:11:16.691Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:11:38.547Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:11:38.550Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:11:38.551Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:13:22.486Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:15:40.857Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:15:40.860Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:15:40.861Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:15:45.512Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:16:05.640Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:16:05.644Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:16:05.645Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:16:29.539Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:17:57.360Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:17:57.364Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:17:57.364Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:18:01.058Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:18:45.239Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:18:45.242Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:18:45.242Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:19:03.875Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:49:26.558Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:49:26.563Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:49:26.563Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:49:37.446Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T15:51:40.271Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:51:40.277Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T15:51:40.277Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T15:51:47.413Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T16:08:52.601Z] [LOG] smsSenderData [{"SMSSenderId":1,"phoneNumber":"0922112480","password":"$2b$10$5Jbm6TpqBDNRtfsNduYuPO3KcJhQb.E16fn4gBgVRm84oPLsBBSwy"}]
+[2024-12-01T16:08:52.699Z] [LOG] verification of password  {"message":"success","data":true}
+[2024-12-01T16:09:13.749Z] [LOG] @createUser req.body {"fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"2","statusId":"2"}
+[2024-12-01T16:09:13.753Z] [LOG] to be hashed otp  333690
+[2024-12-01T16:09:13.823Z] [LOG] hashedOTP $2b$10$ySD79FI8gBn0/wlEtJeKo.Lirf7ZlhSbhkxX/vkCQeDQ.PyXVYU1.
+[2024-12-01T16:09:32.799Z] [LOG] req.query in verifyUserByOTP {"OTP":"333690","phoneNumber":"+251922112480","roleId":"2"}
+[2024-12-01T16:09:32.880Z] [LOG] verifyOTP {"message":"success","data":true}
+[2024-12-01T16:09:32.880Z] [LOG] userUniqueId c36b8be2-64c8-49bf-82f8-27ec7e2313a6
+[2024-12-01T16:09:32.880Z] [LOG] roleId 2
+[2024-12-01T16:09:32.881Z] [LOG] userInRoleId [{"userRoleId":2,"userRoleUniqueId":"b3e18d08-53a9-4622-90de-ea8b97328231","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","roleId":2,"userRoleCreatedBy":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-11-26T11:01:06.000Z","userRoleDeletedAt":null}]
+[2024-12-01T16:09:32.889Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","fullName":"Marew Masresha","phoneNumber":"+251922112480","email":"mmarew@gmail.com","roleId":"2"}
+[2024-12-01T16:09:35.399Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:09:35.402Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T16:09:35.403Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:09:40.849Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T16:19:50.236Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T16:27:01.602Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:27:01.605Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T16:27:01.606Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:27:10.952Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T16:43:15.375Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:43:15.379Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T16:43:15.379Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:43:20.905Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T16:46:42.166Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:46:42.169Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T16:46:42.170Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:46:50.883Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T16:47:06.336Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:47:06.339Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-01T16:47:06.339Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-01T16:47:12.334Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-01T17:06:09.095Z] [LOG] to be hashed otp  844558
+[2024-12-01T17:06:09.152Z] [LOG] hashedOTP $2b$10$I2wMWhR.1xNcw8dMztOkS.yazqRoPnjhphkmUNCGrG32aPrTNacVq
+[2024-12-01T17:06:09.156Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"f8ab72bd-80ad-487a-8b79-1b8d01598481","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T17:06:09.154Z","journeyStatusId":4,"driverRequestId":4}]}
+[2024-12-01T17:06:09.155Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.000Z","journeyStatusId":5}]}
+[2024-12-01T17:06:09.160Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","journeyDecisionUniqueId":"d37870ff-c4ab-4c8f-b94c-277d1100f2d8","startTime":"2024-12-01T14:03:19.000Z","endTime":"2024-12-01T14:03:19.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-01T17:06:21.794Z] [LOG] to be hashed otp  469940
+[2024-12-01T17:06:21.852Z] [LOG] hashedOTP $2b$10$/X3yDdPX3vvj8WkBddNo9uJB6LLO0m.iXqHD5bLzig7hrEwX8Zss.
+[2024-12-01T17:06:21.854Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.000Z","journeyStatusId":5}]}
+[2024-12-01T17:06:21.856Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestId":4,"driverRequestUniqueId":"f8ab72bd-80ad-487a-8b79-1b8d01598481","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","requestTime":"2024-12-01T17:06:09.000Z","journeyStatusId":4}]}
+[2024-12-01T17:06:21.858Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","journeyDecisionUniqueId":"d37870ff-c4ab-4c8f-b94c-277d1100f2d8","startTime":"2024-12-01T14:03:19.000Z","endTime":"2024-12-01T14:03:19.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-01T17:06:35.372Z] [LOG] totalTime 3126000
+[2024-12-01T17:06:35.373Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":621}
+[2024-12-01T17:06:35.374Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-01T17:06:35.377Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":621,"netBalance":-38250.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-01T17:06:41.778Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T04:07:26.764Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T04:07:26.783Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T04:12:40.680Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T04:12:40.702Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T04:12:40.702Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T04:12:58.794Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T04:12:58.812Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T04:13:01.703Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T04:13:01.715Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T04:13:01.716Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T04:13:06.060Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T06:35:48.746Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T06:35:48.754Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T06:35:48.754Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T06:35:53.461Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T06:37:31.457Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T06:37:31.460Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T06:37:31.460Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T06:37:46.359Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T06:53:57.628Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T06:56:48.843Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:02:54.127Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:02:54.131Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:02:54.132Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:02.596Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:03:15.526Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:15.531Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:03:15.531Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:21.687Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:03:33.778Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:33.782Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:03:33.782Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:40.074Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:03:51.819Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:51.822Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:03:51.822Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:03:55.991Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:30:33.439Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:30:33.444Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:30:33.445Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:30:45.640Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:30:45.643Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:30:45.644Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:31:33.902Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:31:33.906Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:31:33.906Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:32:49.502Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:32:49.506Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:32:49.506Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:32:58.103Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:32:58.106Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:32:58.106Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:33:30.205Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:33:30.209Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:33:30.209Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:33:46.619Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:34:12.569Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:34:12.573Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:34:12.573Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:36:27.857Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:36:27.861Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:36:27.862Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:36:36.837Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:36:36.841Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:36:36.841Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:36:42.966Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:52:28.727Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:52:28.731Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T07:52:28.732Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T07:54:00.885Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T07:59:31.215Z] [LOG] to be hashed otp  273658
+[2024-12-02T07:59:31.281Z] [LOG] hashedOTP $2b$10$oA83xXmaQUsoI/5AGRdjl.Me7jhQCRq03HUrAXL8kKDnj/oTBcLhS
+[2024-12-02T07:59:31.286Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"c1cc8c54-4a9e-4cda-be6d-ca5af446679a","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0191936,"originLongitude":38.7524635,"originPlace":"Addis Ababa, Ethiopia","destinationLatitude":9.6048717,"destinationLongitude":41.85850809999999,"destinationPlace":"Diredawa, Ethiopia","requestTime":"2024-12-02T07:59:31.284Z","journeyStatusId":4,"passengerRequestId":2}]}
+[2024-12-02T07:59:31.288Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"13966a2b-93c9-475c-b9e8-5643452c8271","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.003272,"originLongitude":38.8662035,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T07:59:31.286Z","journeyStatusId":4,"driverRequestId":5}]}
+[2024-12-02T07:59:31.297Z] [LOG] existedData =============>  []
+[2024-12-02T08:00:02.451Z] [LOG] {}
+[2024-12-02T08:00:02.452Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:00:02.454Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:01:31.131Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T08:01:31.154Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T08:01:38.203Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:01:38.206Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:01:38.218Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:01:38.219Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:01:38.220Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:01:38.221Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:01:46.204Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T08:01:46.219Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T08:01:49.765Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:01:49.777Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:01:49.777Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:01:54.689Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:02:05.656Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:02:05.660Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:02:05.661Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:03:32.520Z] [LOG] to be hashed otp  541294
+[2024-12-02T08:03:32.590Z] [LOG] hashedOTP $2b$10$vwvcnpo9DrcOAshmzxCSSOOhdMPyt7kvGGFhWf4KLWbXd6JCuu0.q
+[2024-12-02T08:03:32.594Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.000Z","journeyStatusId":5}]}
+[2024-12-02T08:03:32.596Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"4f0734ef-9181-493c-8ddb-1676b7a25f85","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0035924,"originLongitude":38.8660116,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T08:03:32.593Z","journeyStatusId":4,"driverRequestId":6}]}
+[2024-12-02T08:03:32.601Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","journeyDecisionUniqueId":"d37870ff-c4ab-4c8f-b94c-277d1100f2d8","startTime":"2024-12-01T14:03:19.000Z","endTime":"2024-12-01T14:03:19.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T08:03:56.381Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:03:56.385Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:03:56.385Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:03:58.244Z] [LOG] journeyDecision 
+[2024-12-02T08:03:58.248Z] [LOG] journey 
+[2024-12-02T08:04:17.423Z] [LOG] journeyUniqueId ================>    vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:04:17.425Z] [LOG] {}
+[2024-12-02T08:04:17.426Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:04:17.428Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:04:20.126Z] [LOG] journeyUniqueId ================>    vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:04:20.127Z] [LOG] {}
+[2024-12-02T08:04:20.128Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:04:20.129Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:04:53.610Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:04:53.613Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:04:53.613Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:04:55.494Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T08:04:55.508Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T08:05:00.365Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:05:00.375Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:05:00.376Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:05:38.936Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:05:38.938Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:05:38.939Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:06:07.587Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:09:32.010Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:09:32.014Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:09:32.015Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:09:40.415Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:10:46.318Z] [LOG] to be hashed otp  141466
+[2024-12-02T08:10:46.382Z] [LOG] hashedOTP $2b$10$Dk1eWJXY0u/E2HiZdH6AIuQdVETwNmBNElox1V5bsyuazOaI8eMuS
+[2024-12-02T08:10:46.385Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":2,"passengerRequestUniqueId":"c1cc8c54-4a9e-4cda-be6d-ca5af446679a","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Diredawa, Ethiopia","requestTime":"2024-12-02T07:59:31.000Z","journeyStatusId":5}]}
+[2024-12-02T08:10:46.386Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"1d09580b-d269-4ef5-8382-3e47073f758a","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0032125,"originLongitude":38.8661144,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T08:10:46.384Z","journeyStatusId":4,"driverRequestId":7}]}
+[2024-12-02T08:10:46.391Z] [LOG] existedData =============>  [{"journeyId":2,"journeyUniqueId":"c3ba0ef5-ce11-4a8c-b6a6-d0fbbb3dd1f7","journeyDecisionUniqueId":"4ebc1bed-b0ae-4994-a7f7-391bf0974728","startTime":"2024-12-02T07:59:31.000Z","endTime":"2024-12-02T07:59:31.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T08:11:05.831Z] [LOG] @PaymentCalculator journeyUniqueId ================>  c3ba0ef5-ce11-4a8c-b6a6-d0fbbb3dd1f7 @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:11:05.834Z] [LOG] {}
+[2024-12-02T08:11:05.835Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:11:05.838Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:13:31.615Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T08:13:31.628Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T08:13:37.278Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:13:37.292Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:13:37.293Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:13:39.864Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:13:39.870Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:13:39.872Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:14:51.705Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:15:27.551Z] [LOG] to be hashed otp  998298
+[2024-12-02T08:15:27.610Z] [LOG] hashedOTP $2b$10$SetgffUY5cjZxIu3hBMJeeGgWJJUIGVB76GD6bL04wwITLsMsfGVC
+[2024-12-02T08:15:27.614Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"e4b411a8-d298-4755-8fbe-43f886c2c094","userUniqueId":"376c4e7b-0cd5-4ede-8c8b-40d4459df6c5","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-01T14:03:19.000Z","journeyStatusId":5}]}
+[2024-12-02T08:15:27.615Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"d82d7a8c-98eb-4ccf-9d5a-f77fb59b321e","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0034056,"originLongitude":38.8661627,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T08:15:27.613Z","journeyStatusId":4,"driverRequestId":8}]}
+[2024-12-02T08:15:27.619Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","journeyDecisionUniqueId":"d37870ff-c4ab-4c8f-b94c-277d1100f2d8","startTime":"2024-12-01T14:03:19.000Z","endTime":"2024-12-01T14:03:19.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T08:15:38.556Z] [LOG] @PaymentCalculator journeyUniqueId ================>  37bba5ea-531f-426e-872d-1ab04b5f1e2d @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:15:38.567Z] [LOG] @PaymentCalculator JourneyRoutePoints ============>  [{"pointId":1097,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00322650","longitude":"38.86612220","timestamp":"2024-12-01T14:03:24.000Z"},{"pointId":1098,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00322650","longitude":"38.86612220","timestamp":"2024-12-01T14:03:26.000Z"},{"pointId":1099,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:28.000Z"},{"pointId":1100,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:30.000Z"},{"pointId":1101,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:33.000Z"},{"pointId":1102,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:35.000Z"},{"pointId":1103,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:37.000Z"},{"pointId":1104,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:39.000Z"},{"pointId":1105,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:42.000Z"},{"pointId":1106,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:44.000Z"},{"pointId":1107,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:46.000Z"},{"pointId":1108,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:48.000Z"},{"pointId":1109,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:51.000Z"},{"pointId":1110,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:53.000Z"},{"pointId":1111,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:55.000Z"},{"pointId":1112,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:03:57.000Z"},{"pointId":1113,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:00.000Z"},{"pointId":1114,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:02.000Z"},{"pointId":1115,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:05.000Z"},{"pointId":1116,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:06.000Z"},{"pointId":1117,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:09.000Z"},{"pointId":1118,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:11.000Z"},{"pointId":1119,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:13.000Z"},{"pointId":1120,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:15.000Z"},{"pointId":1121,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:04:18.000Z"},{"pointId":1122,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:42.000Z"},{"pointId":1123,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:45.000Z"},{"pointId":1124,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:47.000Z"},{"pointId":1125,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:49.000Z"},{"pointId":1126,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:52.000Z"},{"pointId":1127,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:54.000Z"},{"pointId":1128,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:56.000Z"},{"pointId":1129,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:05:59.000Z"},{"pointId":1130,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00314250","longitude":"38.86617690","timestamp":"2024-12-01T14:06:01.000Z"},{"pointId":1131,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:34.000Z"},{"pointId":1132,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:37.000Z"},{"pointId":1133,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:40.000Z"},{"pointId":1134,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:43.000Z"},{"pointId":1135,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:46.000Z"},{"pointId":1136,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:49.000Z"},{"pointId":1137,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:52.000Z"},{"pointId":1138,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:55.000Z"},{"pointId":1139,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:54:58.000Z"},{"pointId":1140,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:01.000Z"},{"pointId":1141,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:04.000Z"},{"pointId":1142,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:07.000Z"},{"pointId":1143,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:10.000Z"},{"pointId":1144,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:13.000Z"},{"pointId":1145,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:16.000Z"},{"pointId":1146,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:19.000Z"},{"pointId":1147,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:22.000Z"},{"pointId":1148,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:25.000Z"},{"pointId":1149,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:28.000Z"},{"pointId":1150,"journeyUniqueId":"37bba5ea-531f-426e-872d-1ab04b5f1e2d","latitude":"9.00294680","longitude":"38.86632810","timestamp":"2024-12-01T14:55:30.000Z"}]
+[2024-12-02T08:15:38.584Z] [LOG] totalTime 3126000
+[2024-12-02T08:15:38.585Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":621}
+[2024-12-02T08:15:38.588Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T08:15:38.605Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":621,"netBalance":-38250.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-02T08:17:36.226Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:18:05.123Z] [LOG] to be hashed otp  778881
+[2024-12-02T08:18:05.187Z] [LOG] hashedOTP $2b$10$sAnNO8THVlB4H3HSK92IpubL/y2H3CXnroRKa0huiebIGx4/GUXm.
+[2024-12-02T08:18:05.190Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":2,"passengerRequestUniqueId":"c1cc8c54-4a9e-4cda-be6d-ca5af446679a","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Diredawa, Ethiopia","requestTime":"2024-12-02T07:59:31.000Z","journeyStatusId":5}]}
+[2024-12-02T08:18:05.191Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"19720ebc-92c6-4b5a-9cee-518c83964e06","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0034056,"originLongitude":38.8661627,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T08:18:05.189Z","journeyStatusId":4,"driverRequestId":9}]}
+[2024-12-02T08:18:05.193Z] [LOG] existedData =============>  [{"journeyId":2,"journeyUniqueId":"c3ba0ef5-ce11-4a8c-b6a6-d0fbbb3dd1f7","journeyDecisionUniqueId":"4ebc1bed-b0ae-4994-a7f7-391bf0974728","startTime":"2024-12-02T07:59:31.000Z","endTime":"2024-12-02T07:59:31.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T08:18:16.414Z] [LOG] @PaymentCalculator journeyUniqueId ================>  c3ba0ef5-ce11-4a8c-b6a6-d0fbbb3dd1f7 @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:18:16.415Z] [LOG] @PaymentCalculator JourneyRoutePoints ============>  []
+[2024-12-02T08:18:16.415Z] [LOG] {}
+[2024-12-02T08:18:16.417Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:18:16.418Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:18:21.878Z] [LOG] @PaymentCalculator journeyUniqueId ================>  c3ba0ef5-ce11-4a8c-b6a6-d0fbbb3dd1f7 @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:18:21.879Z] [LOG] @PaymentCalculator JourneyRoutePoints ============>  []
+[2024-12-02T08:18:21.879Z] [LOG] {}
+[2024-12-02T08:18:21.880Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:18:21.881Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:21:29.650Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:21:29.654Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:21:29.654Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:24:28.511Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:25:38.735Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"3553b84e-9133-4353-958e-1010b837c047","userUniqueId":"ea3f7e02-44e1-45ea-b2dc-2f6b9221e26d","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0191936,"originLongitude":38.7524635,"originPlace":"Addis Ababa, Ethiopia","destinationLatitude":9.6048717,"destinationLongitude":41.85850809999999,"destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T08:25:38.730Z","journeyStatusId":4,"passengerRequestId":3}]}
+[2024-12-02T08:25:38.764Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"736a53d4-cd67-4bd4-968d-4d7795d549cc","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0032278,"originLongitude":38.8661272,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T08:25:38.735Z","journeyStatusId":4,"driverRequestId":10}]}
+[2024-12-02T08:25:38.767Z] [LOG] existedData =============>  []
+[2024-12-02T08:26:01.222Z] [LOG] @PaymentCalculator journeyUniqueId ================>  e01cafc3-7e6f-4ab3-89d1-efafa1296c58 @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T08:26:01.224Z] [LOG] @PaymentCalculator JourneyRoutePoints ============>  []
+[2024-12-02T08:26:01.224Z] [LOG] {}
+[2024-12-02T08:26:01.224Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:26:01.225Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T08:28:44.083Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T08:28:44.330Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T08:35:53.734Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:35:53.742Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:35:53.742Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:40:31.189Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:40:31.193Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:40:31.194Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:40:43.960Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:40:46.272Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T08:46:09.317Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:09.322Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:46:09.324Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:20.386Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:20.388Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:46:20.388Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:32.075Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:32.079Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:46:32.079Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:44.325Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:46:44.329Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:46:44.329Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:56:37.542Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T08:56:37.546Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T08:56:37.546Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:04:19.760Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:04:19.763Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:04:19.763Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:05:58.444Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:05:58.447Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:05:58.448Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:06:30.346Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:06:30.348Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:06:30.349Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:06:50.014Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:06:50.017Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:06:50.017Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:10:25.367Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:10:25.371Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:10:25.371Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:17:04.737Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:17:04.740Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:17:04.741Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:17:55.585Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:17:55.589Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:17:55.590Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:18:04.452Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:18:04.454Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:18:04.455Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:21:17.237Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:21:17.240Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:21:17.240Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:27:21.244Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:27:21.247Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:27:21.247Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:34:10.730Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:34:10.735Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:34:10.735Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:38:16.674Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:38:16.678Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:38:16.678Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:38:37.178Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T09:38:39.234Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T09:38:42.205Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T09:38:53.702Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T09:39:36.382Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T09:41:29.031Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T09:42:20.889Z] [LOG] Error creating driver request: {}
+[2024-12-02T09:42:20.892Z] [LOG] Error in createDriverRequest: {}
+[2024-12-02T09:43:52.048Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T09:43:52.067Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T09:43:55.960Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:43:55.973Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:43:55.973Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:44:00.312Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T09:44:00.316Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T09:44:00.317Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:24:44.404Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T11:24:44.526Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T11:30:16.262Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:30:16.288Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:30:16.287Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T11:40:17.274Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T11:40:17.336Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T11:40:22.952Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:40:22.973Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T11:40:22.974Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:40:25.570Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:40:25.576Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T11:40:25.577Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T11:42:09.165Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"34b1c02e-0dcc-4d80-9794-8b6e628f7f64","userUniqueId":"42192bed-1846-4754-bec1-40203e950c67","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0191936,"originLongitude":38.7524635,"originPlace":"Addis Ababa, Ethiopia","destinationLatitude":9.6048717,"destinationLongitude":41.85850809999999,"destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T11:42:09.163Z","journeyStatusId":4,"passengerRequestId":1}]}
+[2024-12-02T11:42:09.167Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestId":1,"driverRequestUniqueId":"62ff0371-c8ff-4408-a996-4151faa510f9","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00321060","originLongitude":"38.86612410","originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T11:40:28.000Z","journeyStatusId":1}]}
+[2024-12-02T11:42:09.174Z] [LOG] existedData =============>  []
+[2024-12-02T11:47:47.029Z] [LOG] to be hashed otp  794176
+[2024-12-02T11:47:47.124Z] [LOG] hashedOTP $2b$10$IPY7GG5D9O77Uz1W.l/WJ.cRHXzoTiasGITpdnMGyc8eKKexaUsZ.
+[2024-12-02T11:47:47.127Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"34b1c02e-0dcc-4d80-9794-8b6e628f7f64","userUniqueId":"42192bed-1846-4754-bec1-40203e950c67","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T11:42:09.000Z","journeyStatusId":4}]}
+[2024-12-02T11:47:47.130Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestId":1,"driverRequestUniqueId":"62ff0371-c8ff-4408-a996-4151faa510f9","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00321060","originLongitude":"38.86612410","originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T11:40:28.000Z","journeyStatusId":1}]}
+[2024-12-02T11:47:47.134Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","startTime":"2024-12-02T11:42:09.000Z","endTime":"2024-12-02T11:42:09.000Z","fare":"0.00","journeyStatusId":4}]
+[2024-12-02T11:49:07.890Z] [LOG] to be hashed otp  620751
+[2024-12-02T11:49:08.010Z] [LOG] hashedOTP $2b$10$UF0MrSIdtdP74usl92gaROlAMy3U6wVD3nL1tbisCc6OGs4DAh3jm
+[2024-12-02T11:49:08.012Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"34b1c02e-0dcc-4d80-9794-8b6e628f7f64","userUniqueId":"42192bed-1846-4754-bec1-40203e950c67","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T11:42:09.000Z","journeyStatusId":4}]}
+[2024-12-02T11:49:08.013Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestId":1,"driverRequestUniqueId":"62ff0371-c8ff-4408-a996-4151faa510f9","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00321060","originLongitude":"38.86612410","originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T11:40:28.000Z","journeyStatusId":1}]}
+[2024-12-02T11:49:08.016Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","startTime":"2024-12-02T11:42:09.000Z","endTime":"2024-12-02T11:42:09.000Z","fare":"0.00","journeyStatusId":4}]
+[2024-12-02T11:50:06.950Z] [LOG] to be hashed otp  376702
+[2024-12-02T11:50:07.036Z] [LOG] hashedOTP $2b$10$24YfUDvfJoahTHakgNxKM.F7m8p7V8EG6tVPAc9vpgxffcMi24eYG
+[2024-12-02T11:50:07.038Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"34b1c02e-0dcc-4d80-9794-8b6e628f7f64","userUniqueId":"42192bed-1846-4754-bec1-40203e950c67","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T11:42:09.000Z","journeyStatusId":4}]}
+[2024-12-02T11:50:07.040Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestId":1,"driverRequestUniqueId":"62ff0371-c8ff-4408-a996-4151faa510f9","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":"9.00321060","originLongitude":"38.86612410","originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T11:40:28.000Z","journeyStatusId":1}]}
+[2024-12-02T11:50:07.043Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","startTime":"2024-12-02T11:42:09.000Z","endTime":"2024-12-02T11:42:09.000Z","fare":"0.00","journeyStatusId":4}]
+[2024-12-02T17:20:15.909Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T17:20:15.919Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T17:45:35.895Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:45:35.903Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T17:45:35.904Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:45:39.375Z] [LOG] journeyDecision {"journeyDecisionId":1,"journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","passengerRequestId":1,"driverRequestId":1,"journeyStatusId":4,"decisionTime":"2024-12-02T11:42:09.000Z","decisionBy":"driver"}
+[2024-12-02T17:45:39.378Z] [LOG] journey {"journeyId":1,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","startTime":"2024-12-02T11:42:09.000Z","endTime":"2024-12-02T11:42:09.000Z","fare":"0.00","journeyStatusId":4}
+[2024-12-02T17:45:39.380Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T17:45:51.080Z] [LOG] @PaymentCalculator journeyUniqueId ================>  47c3411b-9477-4a71-9781-7a98d4d1b3e7 @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T17:45:51.082Z] [LOG] @PaymentCalculator JourneyRoutePoints ============>  [{"pointId":1151,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","latitude":"9.00322590","longitude":"38.86613420","timestamp":"2024-12-02T17:45:44.000Z"}]
+[2024-12-02T17:45:51.083Z] [LOG] totalTime 0
+[2024-12-02T17:45:51.083Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-02T17:45:51.086Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T17:45:51.098Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-38160.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-02T17:50:24.924Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-02T17:50:44.528Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-02T17:51:31.786Z] [LOG] to be hashed otp  881069
+[2024-12-02T17:51:31.861Z] [LOG] hashedOTP $2b$10$H8DzggilqH94ifh6bU95a.mJYfQHLjWDhTLTMBg6.9BmQEvW/s93C
+[2024-12-02T17:51:31.866Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"13d153ad-cbfc-4c9c-81bd-8e83e0697ebf","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.6048717,"originLongitude":41.85850809999999,"originPlace":"Dire Dawa, Ethiopia","destinationLatitude":9.0191936,"destinationLongitude":38.7524635,"destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-02T17:51:31.863Z","journeyStatusId":4,"passengerRequestId":2}]}
+[2024-12-02T17:51:31.868Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"3f7f19f7-8d67-4313-a6e4-bb9e50a45014","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0031534,"originLongitude":38.8661575,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T17:51:31.866Z","journeyStatusId":4,"driverRequestId":4}]}
+[2024-12-02T17:51:31.871Z] [LOG] existedData =============>  []
+[2024-12-02T17:51:57.526Z] [LOG] @PaymentCalculator journeyUniqueId ================>  b9c698e9-c532-474d-adbe-6c6d8404955a @PaymentCalculator vehicleTypeUniqueId ==============>  8f4d55f9-6e31-43c7-b67e-19d0212ed18d
+[2024-12-02T17:51:57.528Z] [LOG] @PaymentCalculator JourneyRoutePoints ============>  []
+[2024-12-02T17:51:57.528Z] [LOG] {}
+[2024-12-02T17:51:57.530Z] [LOG] paymentData ==================>  {"message":"error","error":"Something went wrong"}
+[2024-12-02T17:51:57.532Z] [LOG] @journeyCompleted result {"message":"error","error":"Something went wrong"}
+[2024-12-02T17:53:00.379Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T17:53:00.398Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T17:53:12.837Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:53:12.845Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T17:53:12.846Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:53:15.444Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:53:15.449Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T17:53:15.449Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:53:48.808Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T17:56:16.768Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestUniqueId":"5c599394-a03f-4552-a4e8-5caddac2ab3c","userUniqueId":"3c9db1c9-a662-4255-a662-c99eca69142d","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":9.0191936,"originLongitude":38.7524635,"originPlace":"Addis Ababa, Ethiopia","destinationLatitude":9.6048717,"destinationLongitude":41.85850809999999,"destinationPlace":"Diredawa, Ethiopia","requestTime":"2024-12-02T17:56:16.766Z","journeyStatusId":4,"passengerRequestId":3}]}
+[2024-12-02T17:56:16.769Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"c88839f8-5297-4ce6-a8f2-caf0266db2c4","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0032305,"originLongitude":38.8661372,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T17:56:16.767Z","journeyStatusId":4,"driverRequestId":5}]}
+[2024-12-02T17:56:16.774Z] [LOG] existedData =============>  []
+[2024-12-02T17:59:33.729Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T17:59:33.743Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T17:59:37.602Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:59:37.606Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:59:37.615Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T17:59:37.615Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:59:37.626Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T17:59:37.627Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T17:59:39.015Z] [LOG] journeyDecision {"journeyDecisionId":3,"journeyDecisionUniqueId":"9feaee58-e23f-40ee-8ed1-f9f75530779e","passengerRequestId":3,"driverRequestId":5,"journeyStatusId":4,"decisionTime":"2024-12-02T17:56:16.000Z","decisionBy":"driver"}
+[2024-12-02T17:59:39.021Z] [LOG] journey {"journeyId":3,"journeyUniqueId":"054d8912-9815-4106-985d-db106ba08351","journeyDecisionUniqueId":"9feaee58-e23f-40ee-8ed1-f9f75530779e","startTime":"2024-12-02T17:56:16.000Z","endTime":"2024-12-02T17:56:16.000Z","fare":"0.00","journeyStatusId":4}
+[2024-12-02T17:59:39.025Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T18:01:07.495Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T18:01:07.506Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T18:02:38.846Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T18:02:38.859Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T18:02:54.285Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T18:02:54.299Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T18:04:09.206Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T18:04:09.219Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T18:04:16.204Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-02T18:04:16.209Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T18:04:16.219Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-39160.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-02T18:04:50.174Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T18:05:46.524Z] [LOG] to be hashed otp  978745
+[2024-12-02T18:05:46.602Z] [LOG] hashedOTP $2b$10$j62xcOF8CDev6GC0FtVQau7sReoSFwZSZALGpxiTf5P9qACTG4HJW
+[2024-12-02T18:05:46.606Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":3,"passengerRequestUniqueId":"5c599394-a03f-4552-a4e8-5caddac2ab3c","userUniqueId":"3c9db1c9-a662-4255-a662-c99eca69142d","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Diredawa, Ethiopia","requestTime":"2024-12-02T17:56:17.000Z","journeyStatusId":5}]}
+[2024-12-02T18:05:46.609Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"c4e94fdc-7e98-4813-b73b-cdbd9366a459","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0032189,"originLongitude":38.8661516,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T18:05:46.605Z","journeyStatusId":4,"driverRequestId":6}]}
+[2024-12-02T18:05:46.622Z] [LOG] existedData =============>  [{"journeyId":3,"journeyUniqueId":"054d8912-9815-4106-985d-db106ba08351","journeyDecisionUniqueId":"9feaee58-e23f-40ee-8ed1-f9f75530779e","startTime":"2024-12-02T17:56:16.000Z","endTime":"2024-12-02T17:56:16.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T18:05:46.624Z] [LOG] @JourneyPoints {"message":"success","data":"journey route point created successfully"}
+[2024-12-02T18:06:51.113Z] [LOG] paymentData ==================>  {"totalDistance":335,"message":"success","totalMoney":8536}
+[2024-12-02T18:06:51.115Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T18:06:51.118Z] [LOG] @journeyCompleted result {"totalDistance":335,"totalMoney":8536,"netBalance":-40160.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-02T18:08:54.462Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-02T18:09:15.304Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-02T18:16:42.571Z] [LOG] to be hashed otp  131500
+[2024-12-02T18:16:42.642Z] [LOG] hashedOTP $2b$10$ll1GWAplmNiXTLHPP4VU7eQfKqEHNERl1HA/YUJvQk1pu5EA4gOhK
+[2024-12-02T18:16:42.644Z] [LOG] Error creating driver request: {}
+[2024-12-02T18:16:42.646Z] [LOG] Error in createDriverRequest: {}
+[2024-12-02T18:16:47.767Z] [LOG] to be hashed otp  812950
+[2024-12-02T18:16:47.823Z] [LOG] hashedOTP $2b$10$DnWDR9Q7QFDZO7cqQLtXGe32GhvSQWbVCMcSkLoxqDGozDQKoLZLm
+[2024-12-02T18:16:47.824Z] [LOG] Error creating driver request: {}
+[2024-12-02T18:16:47.825Z] [LOG] Error in createDriverRequest: {}
+[2024-12-02T18:18:14.411Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T18:18:14.401Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T18:18:36.989Z] [LOG] to be hashed otp  201570
+[2024-12-02T18:18:37.052Z] [LOG] hashedOTP $2b$10$2ufjOtZdaUkOgfWd57GAPOA/NJGgR.0ZAEuo/UZnoDXOl8O3qSwG.
+[2024-12-02T18:18:37.055Z] [LOG] @takeFromStreet body =============>  {"phoneNumber":"+251922112483","destination":{"latitude":9.0191936,"longitude":38.7524635,"description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.6048717,"longitude":41.85850809999999,"description":"Dire Dawa, Ethiopia"},"currentLocation":{"latitude":9.0033397,"longitude":38.8661742,"description":""}}
+[2024-12-02T18:18:37.058Z] [LOG] Error creating driver request: {}
+[2024-12-02T18:18:37.059Z] [LOG] Error in createDriverRequest: {}
+[2024-12-02T18:19:38.413Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-02T18:19:38.421Z] [LOG] Server started on port http://localhost:3000
+[2024-12-02T18:19:42.719Z] [LOG] to be hashed otp  948827
+[2024-12-02T18:19:42.780Z] [LOG] hashedOTP $2b$10$kSetPaa7xgsMCdjoBSL0LuqFsYj1nD0E7crSPr25bsO.3bEV2uE92
+[2024-12-02T18:19:42.782Z] [LOG] @takeFromStreet body =============>  {"phoneNumber":"+251922112483","destination":{"latitude":9.0191936,"longitude":38.7524635,"description":"Addis Ababa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.6048717,"longitude":41.85850809999999,"description":"Dire Dawa, Ethiopia"},"currentLocation":{"latitude":9.0033397,"longitude":38.8661742,"description":""}}
+[2024-12-02T18:19:42.787Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"34b1c02e-0dcc-4d80-9794-8b6e628f7f64","userUniqueId":"42192bed-1846-4754-bec1-40203e950c67","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T11:42:09.000Z","journeyStatusId":5}]}
+[2024-12-02T18:19:42.790Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"99950b10-2b0f-4463-a58a-1e2a1881eba0","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0033397,"originLongitude":38.8661742,"originPlace":"","requestTime":"2024-12-02T18:19:42.786Z","journeyStatusId":4,"driverRequestId":9}]}
+[2024-12-02T18:19:42.795Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","startTime":"2024-12-02T11:42:09.000Z","endTime":"2024-12-02T11:42:09.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T18:19:42.798Z] [LOG] @JourneyPoints {"message":"success","data":"journey route point created successfully"}
+[2024-12-02T18:20:02.078Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-02T18:20:02.081Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T18:20:02.085Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-40160.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-02T18:23:46.691Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T18:25:31.864Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:25:31.870Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:25:31.871Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:25:43.702Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T18:26:17.562Z] [LOG] to be hashed otp  883262
+[2024-12-02T18:26:17.616Z] [LOG] hashedOTP $2b$10$iLBR3Xcm.aeIdYb22K5E5.c.reeKPaBVRB9W5bMPycW0JGzHR241y
+[2024-12-02T18:26:17.618Z] [LOG] @takeFromStreet body =============>  {"phoneNumber":"+251922112483","destination":{"latitude":9.6048717,"longitude":41.85850809999999,"description":"Dire Dawa, Ethiopia"},"vehicle":{"vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d"},"originLocation":{"latitude":9.0191936,"longitude":38.7524635,"description":"Addis Ababa, Ethiopia"},"currentLocation":{"latitude":9.0032275,"longitude":38.8661334,"description":"2V38+584, Addis Ababa, Ethiopia"}}
+[2024-12-02T18:26:17.620Z] [LOG] passengerRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"34b1c02e-0dcc-4d80-9794-8b6e628f7f64","userUniqueId":"42192bed-1846-4754-bec1-40203e950c67","vehicleTypeUniqueId":"8f4d55f9-6e31-43c7-b67e-19d0212ed18d","originLatitude":"9.01919360","originLongitude":"38.75246350","originPlace":"Addis Ababa, Ethiopia","destinationLatitude":"9.60487170","destinationLongitude":"41.85850810","destinationPlace":"Dire Dawa, Ethiopia","requestTime":"2024-12-02T11:42:09.000Z","journeyStatusId":5}]}
+[2024-12-02T18:26:17.621Z] [LOG] first driverRequest {"message":"success","data":[{"driverRequestUniqueId":"89462928-bbf8-47a2-9f06-59785b575230","userUniqueId":"c36b8be2-64c8-49bf-82f8-27ec7e2313a6","originLatitude":9.0032275,"originLongitude":38.8661334,"originPlace":"2V38+584, Addis Ababa, Ethiopia","requestTime":"2024-12-02T18:26:17.619Z","journeyStatusId":4,"driverRequestId":10}]}
+[2024-12-02T18:26:17.623Z] [LOG] existedData =============>  [{"journeyId":1,"journeyUniqueId":"47c3411b-9477-4a71-9781-7a98d4d1b3e7","journeyDecisionUniqueId":"0f32deb4-0da6-48e8-a974-2541a4812f11","startTime":"2024-12-02T11:42:09.000Z","endTime":"2024-12-02T11:42:09.000Z","fare":"0.00","journeyStatusId":5}]
+[2024-12-02T18:26:17.625Z] [LOG] @JourneyPoints {"message":"success","data":"journey route point created successfully"}
+[2024-12-02T18:26:44.277Z] [LOG] paymentData ==================>  {"totalDistance":347,"message":"success","totalMoney":8841}
+[2024-12-02T18:26:44.279Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-02T18:26:44.282Z] [LOG] @journeyCompleted result {"totalDistance":347,"totalMoney":8841,"netBalance":-40160.05,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-02T18:29:28.847Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:29:28.850Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:29:28.850Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:31:15.377Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:31:15.380Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:31:15.381Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:33:06.651Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:33:06.654Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:33:06.654Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:33:52.670Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:33:52.676Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:33:52.676Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:39:26.595Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T18:42:33.628Z] [LOG] @cancelDriverRequest result {"message":"error","error":"No active driver requests found for this user"}
+[2024-12-02T18:45:36.867Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:45:36.871Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:45:36.871Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:45:47.676Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:45:47.680Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:45:47.680Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:46:18.537Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:46:18.541Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:46:18.541Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:50:10.173Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:50:10.177Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T18:50:10.177Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T18:57:12.139Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-02T19:02:08.720Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
+[2024-12-02T19:02:08.723Z] [LOG] @driversDocumentVehicleRequirement vehicleRegistered true
+[2024-12-02T19:02:08.724Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112480"}
