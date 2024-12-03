@@ -77,8 +77,19 @@ const deleteMapping = async (req, res) => {
     });
   }
 };
-
+const getAllMappings = async (req, res) => {
+  try {
+    const result = await RoleDocumentRequirementsService.getAllMappings();
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to get data",
+    });
+  }
+};
 module.exports = {
+  getAllMappings,
   getMappingByRoleUniqueId,
   createMapping,
   updateMapping,

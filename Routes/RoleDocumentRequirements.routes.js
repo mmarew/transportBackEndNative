@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 const RoleDocumentRequirementsController = require("../Controllers/RoleDocumentRequirements.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 // Create a new role-document mapping
@@ -27,5 +28,11 @@ router.delete(
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.deleteMapping
 );
-
+// get all mappings
+router.get(
+  "/api/admin/getAllMappings",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  RoleDocumentRequirementsController.getAllMappings
+);
 module.exports = router;

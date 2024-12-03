@@ -94,8 +94,14 @@ const updateCancellationReason = async (req, res) => {
   }
   return { message: "error", error: "Failed to update cancellation reason" };
 };
+const getAllCancellationReasons = async (req, res) => {
+  const SqlTodetData = `SELECT * FROM CancellationReasonsType,Roles WHERE CancellationReasonsType.roleId = Roles.roleId`;
+  const [result] = await pool.query(SqlTodetData);
+  return { message: "success", data: result };
+};
 
 module.exports = {
+  getAllCancellationReasons,
   addCancellationReason,
   getCancellationReasons,
   deleteCancellationReason,

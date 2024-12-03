@@ -105,8 +105,27 @@ const deleteMapping = async (roleDocumentRequirementUniqueId) => {
   }
   return { message: "success", data: "Mapping deleted successfully" };
 };
-
+const getAllMappings = async () => {
+  const rows = await performJoinSelect({
+    baseTable: "RoleDocumentRequirements",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+      },
+      {
+        table: "Roles",
+        on: "RoleDocumentRequirements.roleId=Roles.roleId",
+      },
+    ],
+  });
+  return {
+    message: "success",
+    data: rows,
+  };
+};
 module.exports = {
+  getAllMappings,
   getMappingByRoleUniqueId,
   createMapping,
   updateMapping,
