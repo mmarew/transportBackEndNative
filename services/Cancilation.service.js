@@ -48,7 +48,14 @@ const addCancellationReason = async (body) => {
     };
   }
 };
-
+const getSingleCancellationReason = async (req, res) => {
+  //cancellationReasonTypeUniqueId
+  const cancellationReasonTypeUniqueId =
+    req.params.cancellationReasonTypeUniqueId;
+  const sqlToGetReason = `SELECT * FROM CancellationReasonsType WHERE cancellationReasonTypeUniqueId = '${cancellationReasonTypeUniqueId}'`;
+  const [result] = await pool.query(sqlToGetReason);
+  return { message: "success", data: result };
+};
 // Function to get all cancellation reasons
 const getCancellationReasons = async (req) => {
   const user = req.user;
@@ -63,12 +70,12 @@ const getCancellationReasons = async (req) => {
 
 // Function to delete a cancellation reason by unique ID
 const deleteCancellationReason = async (req, res) => {
+  const cancellationReasonTypeUniqueId =
+    req.body.cancellationReasonTypeUniqueId;
   const sqlToDeleteReason = `
     DELETE FROM CancellationReasonsType 
     WHERE cancellationReasonTypeUniqueId = ?
   `;
-  const cancellationReasonTypeUniqueId =
-    req.body.cancellationReasonTypeUniqueId;
   const reasonValues = [cancellationReasonTypeUniqueId];
 
   const [result] = await pool.query(sqlToDeleteReason, reasonValues);
@@ -101,6 +108,7 @@ const getAllCancellationReasons = async (req, res) => {
 };
 
 module.exports = {
+  getSingleCancellationReason,
   getAllCancellationReasons,
   addCancellationReason,
   getCancellationReasons,

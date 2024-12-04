@@ -56,6 +56,7 @@ const updateMapping = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@updateMapping error is ", error);
     ServerResponder(res, {
       message: "error",
       error: "unable to update data",
