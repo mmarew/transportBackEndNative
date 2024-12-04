@@ -56,10 +56,12 @@ const getUserRoleStatus = async (body) => {
     baseTable: "Users",
     joins: [
       {
+        // userUniqueId=c36b8be2-64c8-49bf-82f8-27ec7e2313a6
         table: "UserRole",
         on: "Users.userUniqueId = UserRole.userUniqueId",
       },
       {
+        // userRoleId=2
         table: "UserRoleStatusCurrent",
         on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
       },
@@ -113,33 +115,31 @@ const updateUserRoleStatus = async (updateDataValues) => {
     });
 
     // Deactivate the current status in UserRoleStatusCurrent
-    await deleteData({
+    // const resultOfDeletedUserRoleStatus = await deleteData({
+    //   tableName: "UserRoleStatusCurrent",
+    //   conditions: { userRoleStatusUniqueId },
+    // });
+    // console.log("resultOfDeletedUserRoleStatus", resultOfDeletedUserRoleStatus);
+    // Insert a new UserRoleStatus entry with the new status in current
+
+    await updateData({
       tableName: "UserRoleStatusCurrent",
       conditions: { userRoleStatusUniqueId },
+      updateValues: {
+        statusId: newStatusId,
+      },
     });
 
-    // Insert a new UserRoleStatus entry with the new status in current
-    const newUserRoleStatusUniqueId = uuidv4();
-    const newUserRoleStatus = {
-      userRoleStatusUniqueId: newUserRoleStatusUniqueId,
-      statusId: newStatusId,
-      userRoleId,
-      userRoleStatusDescription,
-      userRoleStatusCreatedAt: new Date(),
-      userRoleStatusCreatedBy: userUniqueId,
-    };
-
-    await insertData({
-      tableName: "UserRoleStatusCurrent",
-      colAndVal: newUserRoleStatus,
-    });
-
+    // const newUserRoleStatusResult = await insertData({
+    //   tableName: "UserRoleStatusCurrent",
+    //   colAndVal: newUserRoleStatus,
+    // });
+    // console.log("newUserRoleStatusResult", newUserRoleStatusResult);
     // Handle the responses after the new status is created
     return await handleUpdateResponces({
       roleId,
       statusId: newStatusId,
       phoneNumber,
-      newUserRoleStatus,
     });
   } catch (error) {
     console.log("Error in updateUserRoleStatus:", error);
