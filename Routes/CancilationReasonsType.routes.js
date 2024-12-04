@@ -5,6 +5,7 @@ const {
   updateCancilationReasons,
   getCancilationReasons,
   getAllCancilationReasons,
+  getSingleCancilationReasons,
 } = require("../Controllers/Cancilation.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 const Router = express.Router();
@@ -14,6 +15,12 @@ Router.post(
   "/api/admin/addCancilationReasons",
   verifyTokenOfAxios,
   addCancilationReasons
+);
+Router.get(
+  "/api/admin/getSingleCancilationReasons/:cancellationReasonTypeUniqueId",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  getSingleCancilationReasons
 );
 Router.get(
   "/api/user/getCancilationReasons",
@@ -26,14 +33,13 @@ Router.delete(
   deleteCancilationReasons
 );
 Router.put(
-  "/api/admin/updateCancilationReasons",
+  "/api/admin/updateCancilationReasons/:cancellationReasonTypeUniqueId",
   verifyTokenOfAxios,
   updateCancilationReasons
 );
 Router.get(
   "/api/admin/getAllCancilationReasons",
   verifyTokenOfAxios,
-
   verifyAdminsIdentity,
   getAllCancilationReasons
 );

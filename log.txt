@@ -3282,3 +3282,52 @@
 [2024-12-03T16:02:45.275Z] [LOG] Server started on port http://localhost:3000
 [2024-12-03T16:03:13.567Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
 [2024-12-03T16:03:13.585Z] [LOG] Server started on port http://localhost:3000
+[2024-12-03T16:05:39.547Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-03T16:05:39.560Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:01:30.261Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:01:30.280Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:10:35.762Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:10:35.774Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:11:24.623Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:11:24.647Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:11:47.933Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:11:47.945Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:13:04.272Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:13:04.282Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:14:42.512Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:14:42.525Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:15:05.296Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:15:05.308Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:17:28.841Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:17:28.859Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:19:03.268Z] [LOG] @getSingleCancilationReasons error {"message":"Unknown column '02a223e3' in 'where clause'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"SELECT * FROM CancellationReasonsType WHERE cancellationReasonTypeUniqueId = 02a223e3-adab-43c2-97b0-39fb47995e41","sqlState":"42S22","sqlMessage":"Unknown column '02a223e3' in 'where clause'"}
+[2024-12-04T04:20:03.349Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:20:03.362Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:21:42.801Z] [LOG] roleUniqueId is =======  f193d6a6-bdca-4de6-8bed-3c9da2aff41b
+[2024-12-04T04:21:55.244Z] [LOG] roleUniqueId is =======  f193d6a6-bdca-4de6-8bed-3c9da2aff41b
+[2024-12-04T04:22:27.661Z] [LOG] roleUniqueId is =======  e05ec1e2-d33d-44c6-9363-6ec6b5df75f6
+[2024-12-04T04:24:22.373Z] [LOG] roleUniqueId is =======  e05ec1e2-d33d-44c6-9363-6ec6b5df75f6
+[2024-12-04T04:25:57.423Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:25:57.433Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:25:58.779Z] [LOG] @updateMapping error is  {"message":"Unknown column 'updatedAt' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"UPDATE RoleDocumentRequirements  SET isDocumentMandatory = false, updatedAt = '2024-12-04 07:25:58.778' WHERE roleDocumentRequirementUniqueId = 'd349989f-d5b8-4ebd-952f-7d54166ab34c'","sqlState":"42S22","sqlMessage":"Unknown column 'updatedAt' in 'field list'"}
+[2024-12-04T04:26:47.827Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:26:47.843Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:30:03.937Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:30:03.951Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:30:37.247Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:30:37.261Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:31:29.189Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:31:29.251Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:32:07.695Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:32:07.709Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:32:10.842Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:32:10.856Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:32:32.044Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:32:32.057Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:32:49.867Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:32:49.879Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:32:57.421Z] [LOG] @updateMapping error is  {"message":"Duplicate entry '2-2' for key 'roledocumentrequirements.roleId'","code":"ER_DUP_ENTRY","errno":1062,"sql":"UPDATE RoleDocumentRequirements  SET isDocumentMandatory = false, roleDocumentRequirementUpdatedAt = '2024-12-04 07:32:57.419', roleId = 2, documentTypeId = '2', isExpirationDateRequired = false, isFileNumberRequired = true  WHERE roleDocumentRequirementUniqueId = 'd349989f-d5b8-4ebd-952f-7d54166ab34c' ","sqlState":"23000","sqlMessage":"Duplicate entry '2-2' for key 'roledocumentrequirements.roleId'"}
+[2024-12-04T04:45:09.647Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:45:09.669Z] [LOG] Server started on port http://localhost:3000
+[2024-12-04T04:48:51.230Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-04T04:48:51.245Z] [LOG] Server started on port http://localhost:3000

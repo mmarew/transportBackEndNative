@@ -82,11 +82,47 @@ const getMappingByRoleUniqueId = async (roleUniqueId) => {
 
 // Update a mapping by ID
 const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
-  const { isDocumentMandatory } = data;
-  const result = await pool.query(
-    "UPDATE RoleDocumentRequirements  SET isDocumentMandatory = ?, updatedAt = ? WHERE roleDocumentRequirementUniqueId = ?",
-    [isDocumentMandatory, new Date(), roleDocumentRequirementUniqueId]
+  const {
+    roleId,
+    documentTypeId,
+    isExpirationDateRequired,
+    isDocumentMandatory,
+    isFileNumberRequired,
+  } = data;
+
+  // Check for duplicate roleId and documentTypeId
+  const [existingRecords] = await pool.query(
+    `SELECT * FROM RoleDocumentRequirements
+     WHERE roleId = ? AND documentTypeId = ? AND roleDocumentRequirementUniqueId != ?`,
+    [roleId, documentTypeId, roleDocumentRequirementUniqueId]
   );
+
+  if (existingRecords.length > 0) {
+    console.log(
+      `Duplicate entry for roleId: ${roleId} and documentTypeId: ${documentTypeId}`
+    );
+    return {
+      message: "error",
+      data: "error on update Role Document Requirements",
+    };
+  }
+
+  // Perform the update
+  const result = await pool.query(
+    `UPDATE RoleDocumentRequirements
+     SET isDocumentMandatory = ?, roleDocumentRequirementUpdatedAt = ?, roleId = ?, documentTypeId = ?, isExpirationDateRequired = ?, isFileNumberRequired = ?
+     WHERE roleDocumentRequirementUniqueId = ?`,
+    [
+      isDocumentMandatory,
+      new Date(),
+      roleId,
+      documentTypeId,
+      isExpirationDateRequired,
+      isFileNumberRequired,
+      roleDocumentRequirementUniqueId,
+    ]
+  );
+
   if (result[0].affectedRows === 0) {
     return { message: "error", data: "Failed to update mapping" };
   }

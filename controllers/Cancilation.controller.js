@@ -30,6 +30,15 @@ const addCancilationReasons = async (req, res) => {
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
+const getSingleCancilationReasons = async (req, res) => {
+  try {
+    const result = await Services.getSingleCancellationReason(req, res);
+    const responders = await ServerResponder(res, result);
+  } catch (error) {
+    console.log("@getSingleCancilationReasons error", error);
+    ServerResponder(res, { message: "error", error: "something went wrong" });
+  }
+};
 const getAllCancilationReasons = async (req, res) => {
   try {
     const result = await Services.getAllCancellationReasons(req, res);
@@ -40,6 +49,7 @@ const getAllCancilationReasons = async (req, res) => {
   }
 };
 module.exports = {
+  getSingleCancilationReasons,
   getAllCancilationReasons,
   addCancilationReasons,
   getCancilationReasons,
