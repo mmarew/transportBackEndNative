@@ -28,7 +28,7 @@ Router.get(
   getCancilationReasons
 );
 Router.delete(
-  "/api/admin/deleteCancilationReasons",
+  "/api/admin/deleteCancilationReasons/:cancellationReasonTypeUniqueId",
   verifyTokenOfAxios,
   deleteCancilationReasons
 );

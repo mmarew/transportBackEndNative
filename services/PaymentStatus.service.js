@@ -79,7 +79,7 @@ exports.deletePaymentStatus = async (paymentStatusUniqueId) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Payment status with ID ${paymentStatusUniqueId} deleted successfully`,
+      data: `Payment status deleted successfully`,
     };
   } else {
     return { message: "error", data: "Failed to delete payment status" };

@@ -19,14 +19,14 @@ router.get(
 
 // Get a tariff rate by ID
 router.get(
-  "/api/admin/tarrifRate/:id",
+  "/api/admin/tarrifRate/:tarrifRateUniqueId",
   verifyTokenOfAxios,
   tarrifRateController.getTarrifRateById
 );
 
 // Update a tariff rate by ID
 router.put(
-  "/api/admin/tarrifRate/:id",
+  "/api/admin/tarrifRate/:tarrifRateUniqueId",
   verifyTokenOfAxios,
   tarrifRateController.updateTarrifRate
 );

@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
-const { getData } = require("../Read/ReadData");
+const { getData, checkActivePassengerRequest } = require("../Read/ReadData");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal }) => {
@@ -36,11 +36,8 @@ const createPassengerRequest = async (
     throw new Error("Invalid input parameters to create passenger request");
   }
 
-  // check if request exists
-  const existingRequest = await getData({
-    tableName: "PassengerRequest",
-    conditions: { userUniqueId },
-  });
+  // check if active request exists
+  const existingRequest = await checkActivePassengerRequest(userUniqueId);
 
   if (existingRequest.length > 0) {
     return { message: "success", data: existingRequest };

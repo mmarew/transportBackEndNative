@@ -868,7 +868,7 @@ const driversDocumentVehicleRequirement = async (body) => {
   const roleId = 2;
   const phoneNumber = user?.phoneNumber;
   const userRoleStatusDescription = body?.userRoleStatusDescription;
-
+  console.log(" roleId, phoneNumber", roleId, phoneNumber);
   // Fetch initial user data based on role ID and phone number
   let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
   if (!userRoleStatus || userRoleStatus.length === 0) {
@@ -876,7 +876,7 @@ const driversDocumentVehicleRequirement = async (body) => {
   }
 
   const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
-
+  // return;
   // Fetch required documents for the driver's role
   const requiredDocuments = await performJoinSelect({
     baseTable: "RoleDocumentRequirements",
@@ -941,21 +941,26 @@ const driversDocumentVehicleRequirement = async (body) => {
     conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
   });
   const vehicleRegistered = userVehicle.length > 0;
-  console.log(
-    "@driversDocumentVehicleRequirement vehicleRegistered",
-    vehicleRegistered
-  );
+
   // Determine the final status based on documents and vehicle status
-  const finalStatusId = findStatusByVehicleAndDocuments({
+  const resultOfStatus = findStatusByVehicleAndDocuments({
     attachedDocuments,
     attachedDocumentsByStatus,
     requiredDocuments,
     vehicleRegistered,
     unAttachedDocumentTypes,
   });
-
-  // Update role status if necessary
+  // finalStatusId;
+  console.log(
+    "@driversDocumentVehicleRequirement resultOfStatus",
+    resultOfStatus
+  );
+  if (resultOfStatus?.message == "error") {
+    return resultOfStatus;
+  }
+  const finalStatusId = resultOfStatus?.finalStatusId;
   if (statusId !== finalStatusId) {
+    // Update role status if necessary
     const userRoleStatusData = {
       user,
       roleId,
@@ -970,7 +975,7 @@ const driversDocumentVehicleRequirement = async (body) => {
   }
   //get latest user role status
 
-  userData = await getUserRoleStatus({ roleId, phoneNumber });
+  const userData = await getUserRoleStatus({ roleId, phoneNumber });
   return {
     message: "success",
     messageType: "driversDocumentVehicleRequirement",
@@ -989,10 +994,15 @@ const findStatusByVehicleAndDocuments = ({
   unAttachedDocumentTypes,
 }) => {
   let finalStatusId = null;
+  // console.log("  requiredDocuments", requiredDocuments);
+  // Check for invalid or missing inputs
+
+  // Check if the user has a registered vehicle
+
   // 1. All Documents Accepted, Vehicle Registered (Active)
   if (
     vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
+    attachedDocumentsByStatus.ACCEPTED.length >= requiredDocuments.length
   ) {
     finalStatusId = 1;
   }
@@ -1192,7 +1202,7 @@ const findStatusByVehicleAndDocuments = ({
       data: "Unable to determine driver's status.",
     };
   }
-  return finalStatusId;
+  return { message: "success", finalStatusId: finalStatusId };
 };
 module.exports = {
   driversDocumentVehicleRequirement,

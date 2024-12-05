@@ -61,27 +61,26 @@ exports.getAllTarrifRates = async () => {
 };
 
 // Get a tariff rate by ID
-exports.getTarrifRateById = async (id) => {
-  const sql = `SELECT * FROM TarrifRate WHERE tarrifRateId = ?`;
-  const [result] = await pool.query(sql, [id]);
+exports.getTarrifRateById = async (tarrifRateUniqueId) => {
+  const sql = `SELECT * FROM TarrifRate WHERE tarrifRateUniqueId = ?`;
+  const [result] = await pool.query(sql, [tarrifRateUniqueId]);
   return { message: "success", data: result[0] };
 };
 
 // Update a tariff rate by ID
-exports.updateTarrifRate = async (id, data) => {
+exports.updateTarrifRate = async (tarrifRateUniqueId, data) => {
   const sql = `
     UPDATE TarrifRate
     SET standingTarrifRate = ?, journeyTarrifRate = ?, timingTarrifRate = ?,
-        tarifRateDescription = ?, createdBy = ?
-    WHERE tarrifRateId = ?
+        tarifRateDescription = ?
+    WHERE tarrifRateUniqueId = ?
   `;
   const values = [
     data.standingTarrifRate,
     data.journeyTarrifRate,
     data.timingTarrifRate,
     data.tarifRateDescription,
-    data.createdBy,
-    id,
+    tarrifRateUniqueId,
   ];
   const [result] = await pool.query(sql, values);
   return { message: "success", data: "Tariff rate updated successfully" };

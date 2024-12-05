@@ -71,7 +71,7 @@ const getCancellationReasons = async (req) => {
 // Function to delete a cancellation reason by unique ID
 const deleteCancellationReason = async (req, res) => {
   const cancellationReasonTypeUniqueId =
-    req.body.cancellationReasonTypeUniqueId;
+    req.params.cancellationReasonTypeUniqueId;
   const sqlToDeleteReason = `
     DELETE FROM CancellationReasonsType 
     WHERE cancellationReasonTypeUniqueId = ?

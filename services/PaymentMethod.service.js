@@ -58,13 +58,14 @@ exports.updatePaymentMethod = async (paymentMethodUniqueId, paymentMethod) => {
 
 // Delete a specific payment method by ID
 exports.deletePaymentMethod = async (paymentMethodUniqueId) => {
-  const sql = `DELETE FROM PaymentMethod WHERE paymentMethodId = ?`;
+  console.log("paymentMethodUniqueId", paymentMethodUniqueId);
+  const sql = `DELETE FROM PaymentMethod WHERE paymentMethodUniqueId = ?`;
   const [result] = await pool.query(sql, [paymentMethodUniqueId]);
 
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Payment method with ID ${paymentMethodUniqueId} deleted successfully`,
+      data: `Payment method deleted successfully`,
     };
   } else {
     return { message: "error", error: "Failed to delete payment method" };

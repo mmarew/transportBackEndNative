@@ -122,14 +122,16 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleId INT NOT NULL,  -- Foreign key to UserRole
     userRoleStatusDescription TEXT NULL,  -- Description of the current role status
     userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
-    userRoleStatusCreatedAt DATETIME NOT NULL  -- When the current status was created    
+    userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the current status was created  
+    userRoleStatusCurentVersion int not null default 1  
 ) ;
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
 
 CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
-    userRoleStatusId INT AUTO_INCREMENT PRIMARY KEY,
-    userRoleStatusUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for user-role-status link (copied from current table)
+userRoleStatusHistoryId INT AUTO_INCREMENT PRIMARY KEY,
+    userRoleStatusId int not null, -- Foreign key to UserRoleStatusCurrent
+    userRoleStatusUniqueId VARCHAR(36)  NOT NULL,  -- UUID for user-role-status link (copied from current table)
     statusId INT NOT NULL,  -- Foreign key to Statuses
     userRoleId INT NOT NULL,  -- Foreign key to UserRole
     userRoleStatusDescription TEXT NULL,  -- Description of the role status (copied from current table)
@@ -139,6 +141,7 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusHistory (
     userRoleStatusUpdatedAt DATETIME NULL,  -- When the status was updated
     userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
     userRoleStatusDeletedAt DATETIME NULL, -- When the status was deleted
+    userRoleStatusCurentVersion int not null default 1,
     INDEX (userRoleId),  -- Index for faster lookups on user roles
     INDEX (statusId)  -- Index for faster lookups on status
 ) ;

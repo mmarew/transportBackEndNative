@@ -1,7 +1,9 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
-const { cancelPassengerRequest } = require("../Services/Passenger.service");
+const {
+  cancelPassengerRequest,
+} = require("../Services/PassengerRequest.service");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const serverResponder = require("../Utils/ServerResponder");

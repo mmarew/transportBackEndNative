@@ -179,7 +179,7 @@ const createUser = async (body) => {
           statusId,
           userRoleStatusDescription
         );
-        if (requestedFrom == "passenger") {
+        if (requestedFrom == "user") {
           // Send OTP to the user
           const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
           if (smsResult.message === "success") {
@@ -192,7 +192,7 @@ const createUser = async (body) => {
         return {
           message: "success",
           messageDetail: "User created successfully",
-          dataOfPassenger,
+          dataOfUser: dataOfPassenger,
         };
       }
 
