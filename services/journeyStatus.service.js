@@ -36,7 +36,7 @@ const createJourneyStatus = async (body) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: newJourneyStatus,
+      data: "New Journey Status created successfully",
     };
   } else {
     return {
