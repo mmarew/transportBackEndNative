@@ -1031,3 +1031,62 @@
 [2024-12-05T04:46:24.696Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
 [2024-12-05T04:46:24.697Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
 [2024-12-05T04:46:26.416Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T06:39:27.712Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T06:39:27.724Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T07:31:25.742Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T07:31:25.761Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T07:34:19.589Z] [LOG] to be hashed otp  313179
+[2024-12-05T07:34:19.663Z] [LOG] hashedOTP $2b$10$dvRqstQzSF0DBVHH2fuzBOI9iegm9XJb238u.Y.IUj74ti6UzKuWO
+[2024-12-05T07:35:02.187Z] [LOG] smsSenderData [{"SMSSenderId":1,"phoneNumber":"0922112481","password":"$2b$10$KtLdmmtSN0s9WxGk8fhId.x0c0rI1KtOIcsHv/jh9dsL3/d0KA8dC"}]
+[2024-12-05T07:35:02.291Z] [LOG] verification of password  {"message":"success","data":true}
+[2024-12-05T07:35:12.631Z] [LOG] smsSenderData [{"SMSSenderId":1,"phoneNumber":"0922112481","password":"$2b$10$KtLdmmtSN0s9WxGk8fhId.x0c0rI1KtOIcsHv/jh9dsL3/d0KA8dC"}]
+[2024-12-05T07:35:12.706Z] [LOG] verification of password  {"message":"success","data":true}
+[2024-12-05T07:35:23.844Z] [LOG] to be hashed otp  674026
+[2024-12-05T07:35:23.914Z] [LOG] hashedOTP $2b$10$pQeMA2XK/PiyWzgxqht4rOks685xUxu0urEwb/V9Wf/pKJEV7OglS
+[2024-12-05T07:42:55.861Z] [LOG] req.query in verifyUserByOTP {"phoneNumber":"+251922112481","OTP":"546725","roleId":"1"}
+[2024-12-05T07:42:55.953Z] [LOG] userUniqueId 6c1c7115-2cdb-48b0-8774-1926d2eef381
+[2024-12-05T07:42:55.953Z] [LOG] roleId 1
+[2024-12-05T07:42:55.952Z] [LOG] verifyOTP {"message":"success","data":true}
+[2024-12-05T07:42:55.956Z] [LOG] userInRoleId [{"userRoleId":8,"userRoleUniqueId":"10bfe0f9-e379-491f-8442-36a14504e6df","userUniqueId":"6c1c7115-2cdb-48b0-8774-1926d2eef381","roleId":1,"userRoleCreatedBy":"6c1c7115-2cdb-48b0-8774-1926d2eef381","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-12-05T07:42:30.000Z","userRoleDeletedAt":null}]
+[2024-12-05T07:42:55.959Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"6c1c7115-2cdb-48b0-8774-1926d2eef381","fullName":"Marew Masresha","phoneNumber":"+251922112481","email":"User@gmsil.com","roleId":"1"}
+[2024-12-05T07:43:34.605Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T07:44:06.150Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5950993,"max":9.4150993} longitudeRange {"min":38.4561062,"max":39.276106199999994}
+[2024-12-05T07:44:34.029Z] [LOG] journeyDecision {"journeyDecisionId":8,"journeyDecisionUniqueId":"534afd89-f80c-4e0e-b77c-f736261e97c1","passengerRequestId":8,"driverRequestId":10,"journeyStatusId":3,"decisionTime":"2024-12-05T07:44:06.000Z","decisionBy":"passenger"}
+[2024-12-05T07:44:34.031Z] [LOG] journey 
+[2024-12-05T07:47:22.755Z] [LOG] cleanedPhoneNumber 251930283569
+[2024-12-05T07:48:30.912Z] [LOG] journeyDecision {"journeyDecisionId":8,"journeyDecisionUniqueId":"534afd89-f80c-4e0e-b77c-f736261e97c1","passengerRequestId":8,"driverRequestId":10,"journeyStatusId":4,"decisionTime":"2024-12-05T07:44:06.000Z","decisionBy":"passenger"}
+[2024-12-05T07:48:30.914Z] [LOG] journey {"journeyId":7,"journeyUniqueId":"60502de5-11b0-46b4-af27-0671606a8476","journeyDecisionUniqueId":"534afd89-f80c-4e0e-b77c-f736261e97c1","startTime":"2024-12-05T07:48:31.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T07:51:58.097Z] [LOG] cleanedPhoneNumber 251930283569
+[2024-12-05T07:51:58.100Z] [LOG] canceledJourney {"message":"success","data":"Canceled journey created successfully","canceledJourneyId":9}
+[2024-12-05T07:52:11.437Z] [LOG] Error in createRequest: {}
+[2024-12-05T07:52:46.446Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T11:24:47.960Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:24:47.974Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:26:53.498Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:26:53.622Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:27:18.048Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:27:18.060Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:27:21.764Z] [LOG] @updateCancellationReason req.body
+[2024-12-05T11:27:32.640Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:27:32.657Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:27:35.343Z] [LOG] @updateCancellationReason req.body {"reason":"driver is roo late","roleId":3}
+[2024-12-05T11:28:08.546Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:28:08.562Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:28:10.457Z] [LOG] @updateCancellationReason req.body {"reason":"driver is roo late","roleId":3}
+[2024-12-05T11:28:10.460Z] [LOG] @updateCancellationReason result {"fieldCount":0,"affectedRows":0,"insertId":0,"info":"Rows matched: 0  Changed: 0  Warnings: 0","serverStatus":2,"warningStatus":0,"changedRows":0}
+[2024-12-05T11:29:04.927Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:29:04.941Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:29:13.907Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:29:13.921Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:29:18.587Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:29:18.598Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:29:20.216Z] [LOG] @updateCancellationReason req.body {"reason":"driver is roo late","roleId":3}  cancellationReasonTypeUniqueId f94d584-cb26-49f9-a393-2cfc29e2af1d
+[2024-12-05T11:29:20.222Z] [LOG] @updateCancellationReason result {"fieldCount":0,"affectedRows":0,"insertId":0,"info":"Rows matched: 0  Changed: 0  Warnings: 0","serverStatus":2,"warningStatus":0,"changedRows":0}
+[2024-12-05T11:30:01.666Z] [LOG] @updateCancellationReason req.body {"reason":"driver is roo late","roleId":3}  cancellationReasonTypeUniqueId 7f94d584-cb26-49f9-a393-2cfc29e2af1d
+[2024-12-05T11:30:01.668Z] [LOG] @updateCancellationReason result {"fieldCount":0,"affectedRows":1,"insertId":0,"info":"Rows matched: 1  Changed: 1  Warnings: 0","serverStatus":2,"warningStatus":0,"changedRows":1}
+[2024-12-05T11:30:18.366Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T11:30:18.380Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T11:30:21.345Z] [LOG] @updateCancellationReason req.body {"reason":"driver is roo late","roleId":3}  cancellationReasonTypeUniqueId 7f94d584-cb26-49f9-a393-2cfc29e2af1d
+[2024-12-05T11:30:21.350Z] [LOG] @updateCancellationReason result {"fieldCount":0,"affectedRows":1,"insertId":0,"info":"Rows matched: 1  Changed: 0  Warnings: 0","serverStatus":2,"warningStatus":0,"changedRows":0}
+[2024-12-05T11:30:29.135Z] [LOG] @updateCancellationReason req.body {"reason":"driver is roo late","roleId":3}  cancellationReasonTypeUniqueId 7f94d584-cb26-49f9-a393-2cfc29e2af1d
+[2024-12-05T11:30:29.137Z] [LOG] @updateCancellationReason result {"fieldCount":0,"affectedRows":1,"insertId":0,"info":"Rows matched: 1  Changed: 0  Warnings: 0","serverStatus":2,"warningStatus":0,"changedRows":0}

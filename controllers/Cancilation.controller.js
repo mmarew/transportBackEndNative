@@ -2,8 +2,13 @@ const Services = require("../Services/Cancilation.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const updateCancilationReasons = async (req, res) => {
-  const result = await Services.updateCancellationReason(req, res);
-  const responders = await ServerResponder(res, result);
+  try {
+    const result = await Services.updateCancellationReason(req, res);
+    const responders = await ServerResponder(res, result);
+  } catch (error) {
+    console.log("@updateCancilationReasons error", error);
+    ServerResponder(res, { message: "error", error: "something went wrong" });
+  }
 };
 const deleteCancilationReasons = async (req, res) => {
   const result = await Services.deleteCancellationReason(req, res);
