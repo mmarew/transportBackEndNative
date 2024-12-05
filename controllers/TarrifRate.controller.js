@@ -33,7 +33,9 @@ exports.getAllTarrifRates = async (req, res) => {
 // Get a tariff rate by ID
 exports.getTarrifRateById = async (req, res) => {
   try {
-    const result = await tarrifRateService.getTarrifRateById(req.params.id);
+    const result = await tarrifRateService.getTarrifRateById(
+      req.params.tarrifRateUniqueId
+    );
     if (result) {
       ServerResponder(res, result);
     } else {
@@ -54,11 +56,12 @@ exports.getTarrifRateById = async (req, res) => {
 exports.updateTarrifRate = async (req, res) => {
   try {
     const result = await tarrifRateService.updateTarrifRate(
-      req.params.id,
+      req.params.tarrifRateUniqueId,
       req.body
     );
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@updateTarrifRate", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to update tariff rate",

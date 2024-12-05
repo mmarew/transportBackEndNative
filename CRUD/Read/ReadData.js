@@ -1,5 +1,5 @@
 const { pool } = require("../../Middleware/Database.config");
-const searchRange = 0.11;
+const searchRange = 0.41;
 const getData = async ({
   tableName,
   conditions = {}, // Default to an empty object
@@ -69,6 +69,7 @@ const getData = async ({
 
 const findNearbyDrivers = async ({ passengerRequest }) => {
   try {
+    console.log("@findNearbyDrivers searchRange ==========> ", searchRange);
     // Destructure the relevant data from the passengerRequest
     const { originLatitude, originLongitude, vehicleTypeUniqueId } =
       passengerRequest;
@@ -132,6 +133,14 @@ const findNearbyPassengers = async ({
     min: parseFloat(originLongitude) - searchRange,
     max: parseFloat(originLongitude) + searchRange,
   };
+  console.log(
+    "@findNearbyPassengers searchRange ============> ",
+    searchRange,
+    "latitudeRange",
+    latitudeRange,
+    "longitudeRange",
+    longitudeRange
+  );
 
   return await performJoinSelect({
     baseTable: "Users",

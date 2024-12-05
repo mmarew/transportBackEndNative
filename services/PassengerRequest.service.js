@@ -26,17 +26,11 @@ const {
 const createRequest = async (body, user) => {
   try {
     const { userUniqueId } = user;
-    // 1. Check if the user already has an active request
-    const activeRequest = await checkActivePassengerRequest(userUniqueId);
-    console.log("activeRequest", activeRequest);
-    if (activeRequest?.length == 0) {
-      const newRequest = await createPassengerRequest(body, userUniqueId);
-      if (newRequest?.message === "error") {
-        return newRequest;
-      }
-    }
-    // 2. Create a new passenger request
-    return await verifyPassengerStatus({ userUniqueId, activeRequest });
+    const activeRequest = await createPassengerRequest(body, userUniqueId);
+    return await verifyPassengerStatus({
+      userUniqueId,
+      activeRequest: activeRequest?.data,
+    });
   } catch (error) {
     console.log("Error in createRequest:", error);
     return { message: "error", error: "Unable to create request" };

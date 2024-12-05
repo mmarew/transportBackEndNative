@@ -70,8 +70,10 @@ exports.updatePaymentStatus = async (req, res) => {
 // Delete a specific payment status by ID
 exports.deletePaymentStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await paymentStatusService.deletePaymentStatus(id);
+    const { paymentStatusUniqueId } = req.params;
+    const result = await paymentStatusService.deletePaymentStatus(
+      paymentStatusUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting payment status:", error);

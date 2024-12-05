@@ -141,7 +141,7 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
 // Soft-delete a vehicle type by unique ID
 const deleteVehicleType = async (vehicleTypeUniqueId, deletedBy) => {
   const query = `
-    UPDATE VehicleType 
+    UPDATE VehicleTypes 
     SET 
       vehicleTypeDeletedAt = NOW(), 
       vehicleTypeDeletedBy = ? 
@@ -157,6 +157,7 @@ const deleteVehicleType = async (vehicleTypeUniqueId, deletedBy) => {
       };
     return { message: "Vehicle type deleted successfully" };
   } catch (error) {
+    console.log("@deleteVehicleType error", error);
     return { message: "error", error: "unable to delete vehicle type" };
   }
 };

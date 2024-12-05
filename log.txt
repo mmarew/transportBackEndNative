@@ -478,3 +478,549 @@
 [2024-12-04T18:31:31.298Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
 [2024-12-04T18:31:31.304Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
 [2024-12-04T18:31:31.304Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-04T18:32:35.479Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-04T18:32:49.709Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-04T18:33:28.684Z] [LOG] req.query in verifyUserByOTP {"OTP":"448283","phoneNumber":"0710506059","roleId":"1"}
+[2024-12-04T18:33:28.783Z] [LOG] verifyOTP {"message":"success","data":true}
+[2024-12-04T18:33:28.784Z] [LOG] userUniqueId e3460715-76ab-4bfb-8101-c5e5fcf65ef9
+[2024-12-04T18:33:28.784Z] [LOG] roleId 1
+[2024-12-04T18:33:28.786Z] [LOG] @createJWT userData ==========>  {"userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","fullName":"Passenger full name","phoneNumber":"0710506059","email":"passengerEmail@gmail.com","roleId":"1"}
+[2024-12-04T18:33:28.785Z] [LOG] userInRoleId [{"userRoleId":6,"userRoleUniqueId":"e59476ce-8f4b-48c6-9846-76b48f71df1a","userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","roleId":1,"userRoleCreatedBy":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","userRoleUpdatedBy":null,"userRoleDeletedBy":null,"userRoleCreatedAt":"2024-12-04T18:33:08.000Z","userRoleDeletedAt":null}]
+[2024-12-04T18:34:20.872Z] [LOG] activeRequest []
+[2024-12-04T18:34:20.874Z] [LOG] Error in createRequest: {}
+[2024-12-04T18:34:25.680Z] [LOG] activeRequest []
+[2024-12-04T18:34:25.682Z] [LOG] Error in createRequest: {}
+[2024-12-04T18:35:03.981Z] [LOG] activeRequest []
+[2024-12-04T18:35:03.996Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-12-04T18:36:19.776Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-04T18:36:19.776Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-04T18:36:19.778Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-04T18:36:19.779Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-04T18:37:00.981Z] [LOG] cleanedPhoneNumber 251922112480
+[2024-12-04T18:37:00.985Z] [LOG] canceledJourney {"message":"success","data":"Canceled journey created successfully","canceledJourneyId":4}
+[2024-12-04T18:37:17.652Z] [LOG] activeRequest []
+[2024-12-04T18:37:33.319Z] [LOG] activeRequest []
+[2024-12-04T18:37:38.663Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-04T18:37:56.516Z] [LOG] activeRequest []
+[2024-12-04T18:38:05.400Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-05T03:32:41.863Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:32:42.141Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:39:05.072Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:39:05.073Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:39:05.084Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:39:05.085Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:39:54.594Z] [LOG] activeRequest []
+[2024-12-05T03:43:19.267Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:43:19.278Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:43:24.652Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:43:24.653Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:43:24.662Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:43:24.662Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:43:43.951Z] [LOG] activeRequest []
+[2024-12-05T03:48:51.372Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:48:51.372Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:48:51.377Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:48:51.377Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:17.178Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:50:17.193Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:50:21.115Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:21.113Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:50:21.125Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:50:21.126Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:26.665Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:50:26.678Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:50:30.888Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:50:30.889Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:30.893Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:50:30.893Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:30.901Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:50:30.913Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:30.912Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:50:30.902Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:37.252Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:50:37.267Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:50:41.200Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:50:41.201Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:50:41.210Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:50:41.211Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:18.997Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:51:19.015Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:51:22.498Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:51:22.499Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:22.510Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:51:22.511Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:23.254Z] [LOG] findNearbyPassengers async ({
+  originLatitude,
+  originLongitude,
+  vehicleTypeUniqueId,
+}) => {
+  console.log("findNearbyPassengers", findNearbyPassengers);
+  const latitudeRange = {
+    min: parseFloat(originLatitude) - searchRange,
+    max: parseFloat(originLatitude) + searchRange,
+  };
+  const longitudeRange = {
+    min: parseFloat(originLongitude) - searchRange,
+    max: parseFloat(originLongitude) + searchRange,
+  };
+
+  return await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "PassengerRequest",
+        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+      },
+    ],
+    conditions: {
+      "PassengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
+      "PassengerRequest.originLatitude": [latitudeRange.min, latitudeRange.max],
+      "PassengerRequest.originLongitude": [
+        longitudeRange.min,
+        longitudeRange.max,
+      ],
+      "PassengerRequest.journeyStatusId": 1, // Status 1: Waiting for a driver
+    },
+    operator: "AND",
+  });
+}
+[2024-12-05T03:51:24.336Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:51:24.350Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:51:28.945Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:51:28.946Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:28.957Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:51:28.957Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:29.679Z] [LOG] findNearbyPassengers ============>  async ({
+  originLatitude,
+  originLongitude,
+  vehicleTypeUniqueId,
+}) => {
+  console.log("findNearbyPassengers ============> ", findNearbyPassengers);
+  const latitudeRange = {
+    min: parseFloat(originLatitude) - searchRange,
+    max: parseFloat(originLatitude) + searchRange,
+  };
+  const longitudeRange = {
+    min: parseFloat(originLongitude) - searchRange,
+    max: parseFloat(originLongitude) + searchRange,
+  };
+
+  return await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "PassengerRequest",
+        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+      },
+    ],
+    conditions: {
+      "PassengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
+      "PassengerRequest.originLatitude": [latitudeRange.min, latitudeRange.max],
+      "PassengerRequest.originLongitude": [
+        longitudeRange.min,
+        longitudeRange.max,
+      ],
+      "PassengerRequest.journeyStatusId": 1, // Status 1: Waiting for a driver
+    },
+    operator: "AND",
+  });
+}
+[2024-12-05T03:51:54.254Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:51:54.266Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:51:57.819Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:51:57.821Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:57.829Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:51:57.830Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:51:58.591Z] [LOG] @findNearbyPassengers searchRange ============>  0.41
+[2024-12-05T03:52:43.523Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:52:43.568Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:52:47.370Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:52:47.370Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:52:47.380Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:52:47.380Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:52:48.834Z] [ERROR] Error in verifyDriverStatus: {}
+[2024-12-05T03:52:49.227Z] [ERROR] Error in verifyDriverStatus: {}
+[2024-12-05T03:52:52.098Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:52:52.112Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:52:54.849Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:52:54.850Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:52:54.870Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:52:54.871Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:52:55.798Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.593223,"max":9.413223} longitudeRange {"min":38.4561318,"max":39.276131799999995}
+[2024-12-05T03:54:09.630Z] [LOG] activeRequest []
+[2024-12-05T03:54:09.635Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T03:54:09.647Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T03:54:52.529Z] [LOG] journeyDecision {"journeyDecisionId":1,"journeyDecisionUniqueId":"940e69ce-787a-4b96-b4d0-260727aecbdb","passengerRequestId":1,"driverRequestId":1,"journeyStatusId":3,"decisionTime":"2024-12-05T03:54:10.000Z","decisionBy":"passenger"}
+[2024-12-05T03:54:52.533Z] [LOG] journey 
+[2024-12-05T03:54:52.534Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T03:54:52.534Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T03:54:59.287Z] [LOG] journeyDecision {"journeyDecisionId":1,"journeyDecisionUniqueId":"940e69ce-787a-4b96-b4d0-260727aecbdb","passengerRequestId":1,"driverRequestId":1,"journeyStatusId":4,"decisionTime":"2024-12-05T03:54:10.000Z","decisionBy":"passenger"}
+[2024-12-05T03:54:59.289Z] [LOG] journey {"journeyId":1,"journeyUniqueId":"6a43dc9b-e894-4a6e-8c4f-231808e9ac6b","journeyDecisionUniqueId":"940e69ce-787a-4b96-b4d0-260727aecbdb","startTime":"2024-12-05T03:54:59.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T03:54:59.291Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T03:55:08.120Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-05T03:55:08.123Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T03:55:08.131Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-1000,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-05T03:55:11.453Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T03:55:18.903Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-05T03:55:23.989Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T03:55:26.742Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T03:55:39.663Z] [LOG] activeRequest []
+[2024-12-05T03:55:50.761Z] [LOG] activeRequest []
+[2024-12-05T03:56:07.909Z] [LOG] activeRequest []
+[2024-12-05T03:56:34.234Z] [LOG] activeRequest []
+[2024-12-05T03:57:05.029Z] [LOG] activeRequest []
+[2024-12-05T03:58:24.147Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:58:24.161Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:58:28.242Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:58:28.241Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:58:28.253Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:58:28.254Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:58:29.375Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T03:58:35.807Z] [LOG] @createRequest activeRequest []
+[2024-12-05T03:58:38.336Z] [LOG] @createRequest activeRequest []
+[2024-12-05T03:59:16.011Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T03:59:16.039Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T03:59:19.378Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T03:59:19.379Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:59:19.390Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T03:59:19.390Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T03:59:19.857Z] [LOG] @createRequest activeRequest []
+[2024-12-05T03:59:19.859Z] [LOG] newRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"4424c57b-be99-4a0f-b644-cc114c177557","userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","vehicleTypeUniqueId":"f7961bb4-55fb-4472-ba99-87627a3e0982","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-05T03:54:10.000Z","journeyStatusId":5}]}
+[2024-12-05T03:59:20.153Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T03:59:25.184Z] [LOG] @createRequest activeRequest []
+[2024-12-05T03:59:25.185Z] [LOG] newRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"4424c57b-be99-4a0f-b644-cc114c177557","userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","vehicleTypeUniqueId":"f7961bb4-55fb-4472-ba99-87627a3e0982","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-05T03:54:10.000Z","journeyStatusId":5}]}
+[2024-12-05T04:00:18.667Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:00:18.683Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:00:22.131Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:00:22.132Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:00:22.143Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:00:22.143Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:00:22.952Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T04:00:40.300Z] [LOG] @createRequest activeRequest []
+[2024-12-05T04:00:40.302Z] [LOG] newRequest {"message":"success","data":[{"passengerRequestId":1,"passengerRequestUniqueId":"4424c57b-be99-4a0f-b644-cc114c177557","userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","vehicleTypeUniqueId":"f7961bb4-55fb-4472-ba99-87627a3e0982","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-05T03:54:10.000Z","journeyStatusId":5}]}
+[2024-12-05T04:01:30.132Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:01:30.151Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:01:33.621Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:01:33.622Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:01:33.633Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:01:33.634Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:01:34.371Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932127,"max":9.4132127} longitudeRange {"min":38.456130400000006,"max":39.2761304}
+[2024-12-05T04:01:39.775Z] [LOG] @createRequest activeRequest []
+[2024-12-05T04:01:39.779Z] [LOG] newRequest {"message":"success","data":[{"passengerRequestUniqueId":"b94dfb7a-8e43-4ecc-8618-651021875f85","userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","vehicleTypeUniqueId":"f7961bb4-55fb-4472-ba99-87627a3e0982","originLatitude":9.0042278,"originLongitude":38.8661227,"originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.8","destinationLongitude":"38.9","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-05T04:01:39.777Z","journeyStatusId":1,"passengerRequestId":2}]}
+[2024-12-05T04:01:39.784Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T04:01:39.793Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:02:57.559Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:02:57.585Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:03:00.984Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:03:00.985Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:03:00.996Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:03:00.996Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:03:01.720Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":2,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:03:01.723Z] [LOG] journey 
+[2024-12-05T04:03:01.727Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:03:13.280Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:03:13.300Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:03:16.653Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:03:16.654Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:03:16.664Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:03:16.664Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:03:17.399Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":2,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:03:17.402Z] [LOG] journey 
+[2024-12-05T04:03:17.404Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:03:58.064Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:03:58.079Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:04:01.300Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:04:01.302Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:04:01.312Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:04:01.312Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:04:02.050Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":2,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:04:02.053Z] [LOG] journey 
+[2024-12-05T04:04:02.055Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:04:08.265Z] [LOG] Error in verifyPassengerStatus: {}
+[2024-12-05T04:04:33.876Z] [LOG] Error in verifyPassengerStatus: {}
+[2024-12-05T04:05:37.086Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:05:37.124Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:05:39.317Z] [LOG] activeRequest {"message":"success","data":[{"passengerRequestId":2,"passengerRequestUniqueId":"b94dfb7a-8e43-4ecc-8618-651021875f85","userUniqueId":"e3460715-76ab-4bfb-8101-c5e5fcf65ef9","vehicleTypeUniqueId":"f7961bb4-55fb-4472-ba99-87627a3e0982","originLatitude":"9.00422780","originLongitude":"38.86612270","originPlace":"Diredawa, Ethiopia","destinationLatitude":"9.80000000","destinationLongitude":"38.90000000","destinationPlace":"Addis Ababa, Ethiopia","requestTime":"2024-12-05T04:01:40.000Z","journeyStatusId":2}]}
+[2024-12-05T04:05:40.732Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:05:40.732Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:05:40.739Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:05:40.739Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:05:41.444Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":2,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:05:41.447Z] [LOG] journey 
+[2024-12-05T04:05:41.449Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:06:20.490Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:06:20.504Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:06:25.103Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:06:45.784Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:06:45.797Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:07:10.190Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:07:10.191Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:07:10.200Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:07:10.201Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:07:11.963Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":2,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:07:11.966Z] [LOG] journey 
+[2024-12-05T04:07:11.967Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:07:21.544Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":3,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:07:21.546Z] [LOG] journey 
+[2024-12-05T04:07:21.547Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:07:21.548Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:07:26.436Z] [LOG] journeyDecision {"journeyDecisionId":2,"journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","passengerRequestId":2,"driverRequestId":3,"journeyStatusId":4,"decisionTime":"2024-12-05T04:01:40.000Z","decisionBy":"passenger"}
+[2024-12-05T04:07:26.439Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:07:26.437Z] [LOG] journey {"journeyId":2,"journeyUniqueId":"3280440c-7097-4008-a45c-41633661b7c0","journeyDecisionUniqueId":"6d9200fe-c380-4bd8-b20f-9e4787abcb06","startTime":"2024-12-05T04:07:26.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T04:07:34.836Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-05T04:07:34.839Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:07:34.847Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-2000,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-05T04:07:44.219Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:07:46.420Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:07:53.808Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T04:07:53.813Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:07:58.185Z] [LOG] journeyDecision {"journeyDecisionId":3,"journeyDecisionUniqueId":"1a5833aa-8585-4dc9-95df-28ebb4335666","passengerRequestId":3,"driverRequestId":4,"journeyStatusId":3,"decisionTime":"2024-12-05T04:07:54.000Z","decisionBy":"passenger"}
+[2024-12-05T04:07:58.186Z] [LOG] journey 
+[2024-12-05T04:07:58.187Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:07:58.187Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:08:02.001Z] [LOG] journeyDecision {"journeyDecisionId":3,"journeyDecisionUniqueId":"1a5833aa-8585-4dc9-95df-28ebb4335666","passengerRequestId":3,"driverRequestId":4,"journeyStatusId":4,"decisionTime":"2024-12-05T04:07:54.000Z","decisionBy":"passenger"}
+[2024-12-05T04:08:02.003Z] [LOG] journey {"journeyId":3,"journeyUniqueId":"b42c0fab-cc80-4c8b-a229-3609ec4b80e5","journeyDecisionUniqueId":"1a5833aa-8585-4dc9-95df-28ebb4335666","startTime":"2024-12-05T04:08:02.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T04:08:02.004Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:08:08.747Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-05T04:08:08.748Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:08:08.752Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-3000,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-05T04:08:11.239Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:08:25.734Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:08:25.748Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:08:29.657Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:08:29.658Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:08:29.671Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:08:29.671Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:08:30.613Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:08:34.672Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:08:34.690Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:08:38.208Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:08:38.209Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:08:38.217Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:08:38.218Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:08:38.947Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:09:26.913Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:09:26.925Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:09:30.513Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:09:30.515Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:09:30.526Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:09:30.527Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:09:31.271Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:09:44.096Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T04:09:44.104Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:09:47.846Z] [LOG] journeyDecision {"journeyDecisionId":4,"journeyDecisionUniqueId":"52699049-a6b3-43e8-916b-4872d564b629","passengerRequestId":4,"driverRequestId":5,"journeyStatusId":3,"decisionTime":"2024-12-05T04:09:44.000Z","decisionBy":"passenger"}
+[2024-12-05T04:09:47.849Z] [LOG] journey 
+[2024-12-05T04:09:47.851Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:09:47.852Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:09:52.345Z] [LOG] journeyDecision {"journeyDecisionId":4,"journeyDecisionUniqueId":"52699049-a6b3-43e8-916b-4872d564b629","passengerRequestId":4,"driverRequestId":5,"journeyStatusId":4,"decisionTime":"2024-12-05T04:09:44.000Z","decisionBy":"passenger"}
+[2024-12-05T04:09:52.347Z] [LOG] journey {"journeyId":4,"journeyUniqueId":"586e48f0-e48b-4169-9908-50f447e1e7cb","journeyDecisionUniqueId":"52699049-a6b3-43e8-916b-4872d564b629","startTime":"2024-12-05T04:09:52.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T04:09:52.349Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:09:59.173Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-05T04:09:59.175Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:09:59.185Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-4000,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-05T04:10:01.857Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932244,"max":9.4132244} longitudeRange {"min":38.456132100000005,"max":39.2761321}
+[2024-12-05T04:10:07.547Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T04:10:07.551Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:10:16.897Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:10:16.921Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:10:19.124Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:10:19.126Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:10:19.135Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:10:19.136Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:10:19.859Z] [LOG] journeyDecision {"journeyDecisionId":5,"journeyDecisionUniqueId":"32dca662-4c21-4670-8487-15294c37ba79","passengerRequestId":5,"driverRequestId":6,"journeyStatusId":2,"decisionTime":"2024-12-05T04:10:08.000Z","decisionBy":"passenger"}
+[2024-12-05T04:10:19.862Z] [LOG] journey 
+[2024-12-05T04:10:19.863Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:10:26.266Z] [LOG] journeyDecision {"journeyDecisionId":5,"journeyDecisionUniqueId":"32dca662-4c21-4670-8487-15294c37ba79","passengerRequestId":5,"driverRequestId":6,"journeyStatusId":3,"decisionTime":"2024-12-05T04:10:08.000Z","decisionBy":"passenger"}
+[2024-12-05T04:10:26.267Z] [LOG] journey 
+[2024-12-05T04:10:26.269Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:10:26.269Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:11:30.616Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:11:30.646Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:12:47.393Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:12:47.406Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:13:36.161Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:13:50.003Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:13:50.004Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:13:50.012Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:13:50.012Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:13:52.763Z] [LOG] journeyDecision {"journeyDecisionId":5,"journeyDecisionUniqueId":"32dca662-4c21-4670-8487-15294c37ba79","passengerRequestId":5,"driverRequestId":6,"journeyStatusId":3,"decisionTime":"2024-12-05T04:10:08.000Z","decisionBy":"passenger"}
+[2024-12-05T04:13:52.764Z] [LOG] journey 
+[2024-12-05T04:13:52.765Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:13:59.615Z] [LOG] journeyDecision {"journeyDecisionId":5,"journeyDecisionUniqueId":"32dca662-4c21-4670-8487-15294c37ba79","passengerRequestId":5,"driverRequestId":6,"journeyStatusId":4,"decisionTime":"2024-12-05T04:10:08.000Z","decisionBy":"passenger"}
+[2024-12-05T04:13:59.616Z] [LOG] journey {"journeyId":5,"journeyUniqueId":"8d64e880-2b13-4e58-a242-48406c1f4071","journeyDecisionUniqueId":"32dca662-4c21-4670-8487-15294c37ba79","startTime":"2024-12-05T04:14:00.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T04:13:59.618Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:14:06.194Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-05T04:14:06.196Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:14:06.204Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-5000,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-05T04:14:11.541Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932291,"max":9.4132291} longitudeRange {"min":38.456132600000004,"max":39.2761326}
+[2024-12-05T04:14:13.316Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932291,"max":9.4132291} longitudeRange {"min":38.456132600000004,"max":39.2761326}
+[2024-12-05T04:14:15.832Z] [LOG] @findNearbyDrivers searchRange ==========>  0.41
+[2024-12-05T04:14:15.838Z] [LOG] cleanedPhoneNumber 251922112485
+[2024-12-05T04:14:19.742Z] [LOG] journeyDecision {"journeyDecisionId":6,"journeyDecisionUniqueId":"26309509-d002-4123-9cf4-1a206b0a4b7a","passengerRequestId":6,"driverRequestId":7,"journeyStatusId":3,"decisionTime":"2024-12-05T04:14:16.000Z","decisionBy":"passenger"}
+[2024-12-05T04:14:19.743Z] [LOG] journey 
+[2024-12-05T04:14:19.744Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:14:19.744Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:14:24.459Z] [LOG] journeyDecision {"journeyDecisionId":6,"journeyDecisionUniqueId":"26309509-d002-4123-9cf4-1a206b0a4b7a","passengerRequestId":6,"driverRequestId":7,"journeyStatusId":4,"decisionTime":"2024-12-05T04:14:16.000Z","decisionBy":"passenger"}
+[2024-12-05T04:14:24.460Z] [LOG] journey {"journeyId":6,"journeyUniqueId":"634b9619-c414-4cc4-8c16-5ae91b379a87","journeyDecisionUniqueId":"26309509-d002-4123-9cf4-1a206b0a4b7a","startTime":"2024-12-05T04:14:24.000Z","endTime":null,"fare":"0.00","journeyStatusId":4}
+[2024-12-05T04:14:24.461Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:14:32.169Z] [LOG] paymentData ==================>  {"totalDistance":0,"message":"success","totalMoney":100}
+[2024-12-05T04:14:32.171Z] [LOG] listOfPassangerWs is null or empty
+[2024-12-05T04:14:32.176Z] [LOG] @journeyCompleted result {"totalDistance":0,"totalMoney":100,"netBalance":-6000,"message":"success","data":"Journey completed successfully","status":5}
+[2024-12-05T04:14:35.451Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932291,"max":9.4132291} longitudeRange {"min":38.456132600000004,"max":39.2761326}
+[2024-12-05T04:16:22.282Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:16:22.267Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:16:26.159Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:16:26.160Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:16:26.171Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:16:26.173Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:16:27.269Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932291,"max":9.4132291} longitudeRange {"min":38.456132600000004,"max":39.2761326}
+[2024-12-05T04:16:27.997Z] [LOG] @deleteVehicleType error {"message":"Table 'transport.vehicletype' doesn't exist","code":"ER_NO_SUCH_TABLE","errno":1146,"sql":"\n    UPDATE VehicleType \n    SET \n      vehicleTypeDeletedAt = NOW(), \n      vehicleTypeDeletedBy = NULL \n    WHERE vehicleTypeUniqueId = '94332921-390f-405c-9d3b-26aa12d5b380' AND vehicleTypeDeletedAt IS NULL\n  ","sqlState":"42S02","sqlMessage":"Table 'transport.vehicletype' doesn't exist"}
+[2024-12-05T04:17:33.375Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:17:33.390Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:17:36.930Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:17:36.931Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:17:36.944Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:17:36.945Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:17:38.097Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:17:38.098Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:17:38.102Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:17:38.103Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:17:38.132Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932291,"max":9.4132291} longitudeRange {"min":38.456132600000004,"max":39.2761326}
+[2024-12-05T04:19:10.809Z] [LOG] @cancelDriverRequest result {"message":"success","data":"You have successfully cancelled your request."}
+[2024-12-05T04:19:15.456Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:19:17.601Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:24:40.703Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:24:40.718Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:24:47.372Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:24:47.396Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:25:13.610Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:25:13.622Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:26:52.499Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:26:52.512Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:26:54.456Z] [LOG] @updateTarrifRate {"message":"Unknown column 'createdBy' in 'field list'","code":"ER_BAD_FIELD_ERROR","errno":1054,"sql":"\n    UPDATE TarrifRate\n    SET standingTarrifRate = 10, journeyTarrifRate = 12, timingTarrifRate = 10,\n        tarifRateDescription = 'some descriptione', createdBy = NULL\n    WHERE tarrifRateUniqueId = 'tarrifRateUniqueId'\n  ","sqlState":"42S22","sqlMessage":"Unknown column 'createdBy' in 'field list'"}
+[2024-12-05T04:28:38.926Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:28:38.927Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:28:38.935Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:28:38.935Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:28:39.811Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:30:34.628Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:30:34.642Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:30:38.098Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:30:38.099Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:30:38.113Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:30:38.114Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:30:38.775Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:30:38.760Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:30:39.520Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:30:42.814Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:30:42.815Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:30:42.823Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:30:42.824Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:30:44.005Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:30:44.006Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:30:44.011Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:30:44.011Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:30:44.046Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:30:48.007Z] [LOG] @updateTarrifRate {"message":"You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WHERE tarrifRateUniqueId = '7c2173cc-2cf3-4665-ad53-270b4515d983'' at line 4","code":"ER_PARSE_ERROR","errno":1064,"sql":"\n    UPDATE TarrifRate\n    SET standingTarrifRate = 10, journeyTarrifRate = 12, timingTarrifRate = 10,\n        tarifRateDescription = 'some descriptione',  \n    WHERE tarrifRateUniqueId = '7c2173cc-2cf3-4665-ad53-270b4515d983'\n  ","sqlState":"42000","sqlMessage":"You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WHERE tarrifRateUniqueId = '7c2173cc-2cf3-4665-ad53-270b4515d983'' at line 4"}
+[2024-12-05T04:31:11.491Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:31:11.503Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:31:14.937Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:31:14.936Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:31:14.948Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:31:14.948Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:31:15.722Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:33:47.435Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:33:47.447Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:33:51.193Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:33:51.194Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:33:51.203Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:33:51.204Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:33:51.955Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:33:55.359Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:33:55.370Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:33:59.353Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:33:59.354Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:33:59.387Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:33:59.387Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:34:00.033Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:34:00.051Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:34:00.586Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:34:04.064Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:34:04.064Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:34:04.072Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:34:04.073Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:34:05.255Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:34:05.257Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:34:05.262Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:34:05.263Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:34:05.294Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:35:58.655Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:35:58.669Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:36:02.187Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:36:02.188Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:36:02.197Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:36:02.197Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:36:03.026Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:36:05.173Z] [LOG] paymentMethodUniqueId a1f38db6-9106-4cb2-ad19-cda7fa09f0c3
+[2024-12-05T04:36:39.567Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:36:39.581Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:36:42.884Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:36:42.886Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:36:42.896Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:36:42.898Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:36:43.647Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:36:45.189Z] [LOG] paymentMethodUniqueId a1f38db6-9106-4cb2-ad19-cda7fa09f0c3
+[2024-12-05T04:36:58.140Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:36:58.165Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:37:01.850Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:37:01.850Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:37:01.859Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:37:01.860Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:37:02.630Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:37:03.410Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:37:03.424Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:37:05.318Z] [LOG] paymentMethodUniqueId a1f38db6-9106-4cb2-ad19-cda7fa09f0c3
+[2024-12-05T04:37:08.304Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:37:08.305Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:37:08.317Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:37:08.317Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:37:09.061Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:38:28.513Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:38:28.527Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:38:32.026Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:38:32.027Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:38:32.036Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:38:32.036Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:38:32.861Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:38:37.667Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:38:37.681Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:38:41.228Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:38:41.229Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:38:41.237Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:38:41.237Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:38:41.949Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:39:44.026Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:39:44.041Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:39:47.828Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:39:47.829Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:39:47.839Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:39:47.840Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:39:48.567Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:41:38.769Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:41:38.789Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:41:43.878Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:41:43.880Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:41:43.891Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:41:43.892Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:41:45.337Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:41:45.358Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:41:45.650Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:41:50.111Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:41:50.112Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:41:50.123Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:41:50.124Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:41:51.472Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:41:51.472Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:41:51.476Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:41:51.476Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:41:51.519Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
