@@ -1024,3 +1024,10 @@
 [2024-12-05T04:41:51.476Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
 [2024-12-05T04:41:51.476Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
 [2024-12-05T04:41:51.519Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
+[2024-12-05T04:46:19.721Z] [LOG] path.join(__dirname, "uploads") C:\ReactNativeTransport\Server\uploads
+[2024-12-05T04:46:19.769Z] [LOG] Server started on port http://localhost:3000
+[2024-12-05T04:46:24.684Z] [LOG]  roleId, phoneNumber 2 +251922112485
+[2024-12-05T04:46:24.685Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:46:24.696Z] [LOG] @driversDocumentVehicleRequirement resultOfStatus {"message":"success","finalStatusId":1}
+[2024-12-05T04:46:24.697Z] [LOG] @getUserRoleStatus body {"roleId":2,"phoneNumber":"+251922112485"}
+[2024-12-05T04:46:26.416Z] [LOG] @findNearbyPassengers searchRange ============>  0.41 latitudeRange {"min":8.5932754,"max":9.4132754} longitudeRange {"min":38.456118100000005,"max":39.2761181}
