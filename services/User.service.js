@@ -56,19 +56,17 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
   };
 };
 const createUser = async (body) => {
-  const {
-    // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin
-    requestedFrom = "user",
-    fullName,
-    phoneNumber,
-    email,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-  } = body;
+  // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin
+  const requestedFrom = "user",
+    fullName = body?.fullName,
+    phoneNumber = body?.phoneNumber,
+    email = body?.email,
+    roleId = body?.roleId,
+    statusId = body?.statusId,
+    userRoleStatusDescription = body;
 
   // Validate input data
-  if (!fullName || !phoneNumber || !email || !roleId || !statusId) {
+  if (!phoneNumber || !roleId || !statusId) {
     return {
       message: "error",
       error: "All fields are required to create a user",
@@ -82,29 +80,29 @@ const createUser = async (body) => {
     // Check if the user already exists
     const savedUser = await getData({
       tableName: "Users",
-      conditions: { phoneNumber, email },
-      operator: "OR",
+      conditions: { phoneNumber },
     });
+    console.log("@savedUser", savedUser);
 
     const handleExistingUser = async () => {
       const user = savedUser[0];
       // if it is not from street
-      if (requestedFrom !== "street") {
-        // Check if phone number or email doesn't match
-        if (email !== user.email || phoneNumber !== user.phoneNumber) {
-          return {
-            message: "error",
-            data: "Invalid email or phone number",
-          };
-        }
-      }
+      // if (requestedFrom !== "street") {
+      //   // Check if phone number or email doesn't match
+      //   if (email !== user.email || phoneNumber !== user.phoneNumber) {
+      //     return {
+      //       message: "error",
+      //       data: "Invalid email or phone number",
+      //     };
+      //   }
+      // }
       const userUniqueId = user.userUniqueId;
       const credential = await getData({
         tableName: "usersCredential",
         conditions: { userUniqueId },
       });
       if (credential.length === 0) {
-        //create new credential
+        //create new credential by hashing OTP
         await insertData({
           tableName: "usersCredential",
           colAndVal: {
@@ -437,7 +435,6 @@ const getUserByUserUniqueId = async (userUniqueId) => {
     tableName: "Users",
     conditions: { userUniqueId: userUniqueId },
   });
-
   if (!user || user.length === 0) {
     return { message: "error", error: "User not found" };
   }

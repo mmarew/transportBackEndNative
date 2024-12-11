@@ -29,7 +29,7 @@ exports.createTarrifRateForVehicleType = async (data) => {
   const values = [uuidv4(), data.vehicleTypeUniqueId, data.tarrifRateUniqueId];
   const [result] = await pool.query(sql, values);
   return {
-    message: "",
+    message: "success",
     data: "Tariff rate for vehicle type created successfully",
   };
 };
