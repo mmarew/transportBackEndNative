@@ -87,11 +87,5 @@ router.put(
   verifyDriversIdentity,
   attachRequiredDocuments
 );
-router.get(
-  "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
-  verifyTokenOfAxios,
-  // verifyDriversIdentity,
-  driversDocumentVehicleRequirement
-);
 
 module.exports = router;

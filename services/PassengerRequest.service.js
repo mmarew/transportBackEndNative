@@ -22,6 +22,9 @@ const {
 const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
+const {
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
+} = require("./AttachedDocuments.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -146,7 +149,14 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       }
 
       const driver = nearbyDrivers[0]; // Get the first nearby driver
-
+      const documents =
+        await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+          driver?.userUniqueId,
+          4
+        );
+      const data = documents?.data;
+      const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
+      // console.log("driverProfilePhoto", driverProfilePhoto);
       // 4. Create a new record in JourneyDecisions if driver is found
       const journeyDecisionUniqueId = uuidv4();
       const journeyDecisionPayload = {
@@ -189,7 +199,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
         status: 2,
         passenger,
         driver: {
-          driver,
+          driver: { ...driver, driverProfilePhoto },
           vehicle: vehicle,
           vehicleTarrifRate: vehicleTarrifRate?.data[0],
         },
@@ -234,6 +244,12 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       conditions: { driverRequestId: journeyDecision[0].driverRequestId },
     });
     const driver = driverData[0];
+    const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+      driver?.userUniqueId,
+      4
+    );
+    const data = documents?.data;
+    const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
     const phoneNumber = driver?.phoneNumber;
 
     const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
@@ -248,7 +264,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       passenger,
       driver: {
         vehicleOfDriver: vehicleOfDriver[0],
-        driver,
+        driver: { ...driver, driverProfilePhoto },
         vehicleTarrifRate: vehicleTarrifRate?.data[0],
       },
       journey: journey[0] || null,

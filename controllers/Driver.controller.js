@@ -149,33 +149,8 @@ const attachRequiredDocuments = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
-const driversDocumentVehicleRequirement = async (req, res) => {
-  try {
-    const user = req?.user;
-    const userRoleStatus = req?.userRoleStatus,
-      userRole = req?.userRole;
 
-    const userUniqueId = user?.userUniqueId;
-    let ownerUserUniqueId = req.params.userUniqueId;
-
-    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
-    req.body.user = user;
-    req.body.userRole = userRole;
-    req.body.userRoleStatus = userRoleStatus;
-    req.body.ownerUserUniqueId = ownerUserUniqueId;
-    const result = await services.driversDocumentVehicleRequirement(req.body);
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("first error", error);
-    console.log("@driversDocumentVehicleRequirement error", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to see usersDocument",
-    });
-  }
-};
 module.exports = {
-  driversDocumentVehicleRequirement,
   attachRequiredDocuments,
   cancelDriverRequest,
   journeyCompleted,
