@@ -2,6 +2,7 @@ const {
   getData,
   findNearbyPassengers,
   checkActiveDriverRequest,
+
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
 
@@ -416,6 +417,7 @@ const cancelDriverRequest = async (body) => {
     // console.log("@cancelDriverRequest body", body);
     // return;
     // Check if the driver has any active requests
+
     const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
 
     if (getActiveRequest.length === 0) {
@@ -498,13 +500,13 @@ const cancelDriverRequest = async (body) => {
       phoneNumber: passenger[0]?.phoneNumber,
     });
 
-    sendNotificationToAdmin({
-      message: {
-        message: "error",
-        error: "driver cancelled passengers request",
-        detailInfo: { passenger: passenger[0], driver: getActiveRequest[0] },
-      },
-    });
+    // const adminNotification = await sendNotificationToAdmin({
+    //   message: {
+    //     message: "error",
+    //     error: "driver cancelled passengers request",
+    //     detailInfo: { passenger: passenger[0], driver: getActiveRequest[0] },
+    //   },
+    // });
 
     // Update JourneyDecisions to reflect the cancellation
     await updateData({
@@ -525,13 +527,34 @@ const cancelDriverRequest = async (body) => {
     if (getActiveJourney.length === 0) {
       // register cancillation in to createCanceledJourney table
 
-      await createCanceledJourney({
+      const canceledJourneyResult = await createCanceledJourney({
         contextId: journeyDecisionId,
         contextType: "JourneyDecisions",
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,
       });
+
+      const cancellationDetails = canceledJourneyResult.cancellationDetails;
+      const adminNotification = await sendNotificationToAdmin({
+        message: {
+          message: "success",
+          type: "cancelledJourney",
+
+          data: [
+            {
+              driver: getActiveRequest[0], // Driver details
+              passenger: passenger[0], // Passenger details
+              cancellationReason:
+                cancellationDetails?.cancellationReason || "Unknown reason",
+              canceledTime:
+                cancellationDetails?.canceledTime || new Date().toISOString(),
+              contextType: cancellationDetails?.contextType || "Unknown",
+            },
+          ],
+        },
+      });
+
       return {
         message: "success",
         data: "You have successfully cancelled your request.",

@@ -282,7 +282,14 @@ const handleUserRoleStatus = async (
       });
       // if user is driver send notification to admin to verify its account using driver license etc
       if (roleId == 2) {
-        await sendNotificationToAdmin({ message: newUser });
+        const message = {
+          type: "unauthorizedDriver",
+       ...newUser[0]
+
+        }
+        await sendNotificationToAdmin({
+          message
+         });
       }
       return {
         message: "success",

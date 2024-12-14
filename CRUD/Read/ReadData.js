@@ -1,5 +1,6 @@
 const { pool } = require("../../Middleware/Database.config");
 const searchRange = 0.41;
+
 const getData = async ({
   tableName,
   conditions = {}, // Default to an empty object
@@ -263,6 +264,37 @@ const checkActiveDriverRequest = async (userUniqueId) => {
   }
 };
 
+const getCancellationDetails = async (contextId) => {
+  try {
+    const result = await performJoinSelect({
+      baseTable: "CanceledJourneys",
+      joins: [
+        {
+          table: "CancellationReasonsType",
+          on: "CanceledJourneys.cancellationReasonsTypeId = CancellationReasonsType.cancellationReasonsTypeId",
+        },
+      ],
+      conditions: {
+        "CanceledJourneys.contextId": contextId,
+      },
+      orderBy: "CanceledJourneys.canceledTime",
+      orderDirection: "DESC",
+      limit: 1,
+    });
+
+    if (!result || result.length === 0) return null;
+
+    return {
+      cancellationReason: result[0].cancellationReason,
+      canceledTime: result[0].canceledTime,
+      contextType: result[0].contextType,
+    };
+  } catch (error) {
+    console.error("Error in getCancellationDetails:", error);
+    return null;
+  }
+};
+
 module.exports = {
   checkActiveDriverRequest,
   checkActivePassengerRequest,
@@ -271,4 +303,5 @@ module.exports = {
   findNearbyDrivers,
   findNearbyPassengers,
   getData,
+  getCancellationDetails,
 };

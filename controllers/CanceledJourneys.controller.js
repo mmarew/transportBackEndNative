@@ -142,6 +142,21 @@ const getCanceledJourneysFiltered = async (req, res) => {
     });
   }
 };
+// Get canceled journeys filtered by type, date range, and limit
+const getCanceledJourneysByDriver = async (req, res) => {
+  try {
+    // const { canceledByRoleId, startDate, endDate } = req.body;
+
+    const result = await canceledJourneyService.getCanceledJourneysByDriver();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error fetching  canceled journeys by driver:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch canceled journeys",
+    });
+  }
+};
 
 // Get a specific canceled journey by ID
 const getCanceledJourneyById = async (req, res) => {
@@ -204,4 +219,5 @@ module.exports = {
   getCanceledJourneysByUserUniqueId,
   getCanceledJourneysFiltered,
   createCanceledJourney,
+  getCanceledJourneysByDriver,
 };
