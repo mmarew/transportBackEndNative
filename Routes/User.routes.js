@@ -32,15 +32,14 @@ router.get(
 router.get("/api/user/verifyUserByOTP", constroller.verifyUserByOTP);
 
 router.put(
-  "/api/user/updateUser",
+  "/api/user/updateUser/:ownerUserUniqueId",
   verifyTokenOfAxios,
   upload.any(),
   constroller.updateUser
 );
 router.get(
-  "/api/admin/getUser/:userUniqueId",
+  "/api/user/getUser/:ownerUserUniqueId",
   verifyTokenOfAxios,
-  verifyAdminsIdentity,
   constroller.getUser
 );
 router.delete(

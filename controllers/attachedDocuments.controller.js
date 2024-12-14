@@ -151,7 +151,29 @@ const getAttachedDocumentsByUser = async (req, res) => {
     });
   }
 };
-
+const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
+  req,
+  res
+) => {
+  try {
+    let ownerUserUniqueId = req.params.userUniqueId;
+    let userUniqueId = req.user.userUniqueId;
+    const documentTypeId = req.params.documentTypeId;
+    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
+    const result =
+      await attachedDocumentsService.getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+        ownerUserUniqueId,
+        documentTypeId
+      );
+    return ServerResponder(res, result);
+  } catch (error) {
+    console.log(" error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to see usersDocument",
+    });
+  }
+};
 const getAttachedDocumentByUniqueId = async (req, res) => {
   try {
     const { attachedDocumentUniqueId } = req.params;
@@ -231,6 +253,7 @@ const acceptRejectAttachedDocuments = async (req, res) => {
   }
 };
 module.exports = {
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   acceptRejectAttachedDocuments,
   createAttachedDocuments,
   getAttachedDocumentsByUser,

@@ -40,6 +40,12 @@ router.get(
   verifyTokenOfAxios,
   attachedDocumentsController.getAttachedDocumentsByUser
 );
+// get Attached Documents By User unique id and document type id
+router.get(
+  "/api/admin/attachedDocumentsByUser/:userUniqueId/:documentTypeId",
+  verifyTokenOfAxios,
+  attachedDocumentsController.getAttachedDocumentsByUserUniqueIdAndDocumentTypeId
+);
 //get attached Document by document UniqueId
 router.get(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
