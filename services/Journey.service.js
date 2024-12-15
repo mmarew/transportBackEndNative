@@ -161,6 +161,7 @@ exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
         },
       ],
       conditions: { ...conditions, "Journey.journeyStatusId": 5 },
+      limit: 30,
     });
 
     for (const item of completedJourney) {
