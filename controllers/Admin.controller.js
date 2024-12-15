@@ -36,18 +36,7 @@ const AdminController = {
       });
     }
   },
-  // Fetch completed journeys
-  getCompletedJourney: async (req, res) => {
-    try {
-      ServerResponder(res, await adminServices.getCompletedJourney(req));
-    } catch (error) {
-      console.log("Error in getCompletedJourney:", error);
-      ServerResponder(res, {
-        message: "error",
-        error: "Failed to fetch completed journeys",
-      });
-    }
-  },
+
   getunAuthorizedDriver: async (req, res) => {
     try {
       ServerResponder(res, await adminServices.getUnauthorizedDriver(req));

@@ -94,7 +94,23 @@ exports.deleteJourney = async (req, res) => {
 // Get all completed journeys
 exports.getCompletedJourney = async (req, res) => {
   try {
-    const result = await journeyService.getCompletedJourney(req);
+    const userRoleId = req?.user?.roleId;
+
+    let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
+    // all data has to be fetched by admin only else return data not found
+    if (userRoleId != 3 && ownerUserUniqueId == "all") {
+      return res
+        .status(500)
+        .json({ message: "error", error: "data not found" });
+    }
+    if (ownerUserUniqueId == "self")
+      ownerUserUniqueId = req?.user?.userUniqueId;
+    const roleId = req?.params?.roleId;
+
+    const result = await journeyService.getCompletedJourney(
+      roleId,
+      ownerUserUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error deleting journey:", error);

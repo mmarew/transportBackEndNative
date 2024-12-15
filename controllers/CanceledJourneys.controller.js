@@ -146,8 +146,16 @@ const getCanceledJourneysFiltered = async (req, res) => {
 const getCanceledJourneysByDriver = async (req, res) => {
   try {
     // const { canceledByRoleId, startDate, endDate } = req.body;
+    // all canceled journeys
+    // single driver
+    //self knowing
 
-    const result = await canceledJourneyService.getCanceledJourneysByDriver();
+    let ownerUniqueId = req?.params?.ownerUniqueId;
+    console.log("ownerUniqueId", ownerUniqueId);
+    if (ownerUniqueId == "self") ownerUniqueId = req.user.userUniqueId;
+    const result = await canceledJourneyService.getCanceledJourneysByDriver(
+      ownerUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching  canceled journeys by driver:", error);

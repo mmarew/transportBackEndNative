@@ -9,10 +9,13 @@ exports.createCanceledJourney = async ({
   cancellationReasonsTypeId,
   canceledTime,
   roleId,
+  driverUserUniqueId,
+  passengerUserUniqueId,
 }) => {
   const canceledJourneyUniqueId = uuidv4();
-  const sql = `INSERT INTO CanceledJourneys (canceledJourneyUniqueId, contextId, contextType, canceledBy, cancellationReasonsTypeId, canceledTime, roleId)
-        VALUES (?, ?, ?, ?, ?, ?,?)
+  const sql = `INSERT INTO CanceledJourneys (canceledJourneyUniqueId, contextId, contextType, canceledBy, cancellationReasonsTypeId, canceledTime, roleId,  driverUserUniqueId,
+  passengerUserUniqueId)
+        VALUES (?, ?, ?, ?, ?, ?,?,?,?)
     `;
   const values = [
     canceledJourneyUniqueId,
@@ -22,9 +25,11 @@ exports.createCanceledJourney = async ({
     cancellationReasonsTypeId,
     canceledTime || new Date(),
     roleId,
+    driverUserUniqueId,
+    passengerUserUniqueId,
   ];
   const [result] = await pool.query(sql, values);
-     const cancellationDetails = await getCancellationDetails(contextId);
+  const cancellationDetails = await getCancellationDetails(contextId);
   return {
     message: "success",
     data: "Canceled journey created successfully",
@@ -63,7 +68,7 @@ exports.getCanceledJourneysFiltered = async ({
 // select driver information by joining users and driver request table or journey decisions or journey
 // select passenger information by joining users and passenger request table
 // selection must be to get information about canceled journeys by drivers only from cancelled journey table
-exports.getCanceledJourneysByDriver = async () => {
+exports.getCanceledJourneysByDriver = async (ownerUniqueId) => {
   const fetchDriverDataForJourneyDecision = async (journeyDecisionId) => {
     const sql = `
       SELECT * 
@@ -96,9 +101,9 @@ exports.getCanceledJourneysByDriver = async () => {
     const [result] = await pool.query(sql, [passengerRequestId]);
     return result;
   };
-
+  // if ownerUniqueId is all
   // Main query to fetch canceled journeys and cancellation reasons
-  const sql = `
+  let sql = `
     SELECT 
       cj.*, 
       crt.cancellationReason
@@ -108,8 +113,19 @@ exports.getCanceledJourneysByDriver = async () => {
       CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
     WHERE 
       cj.contextType IN ('JourneyDecisions', 'Journey') 
-      AND cj.roleId = 2`; // Filter by role ID for drivers
-
+      AND cj.roleId = 2 order by cj.canceledTime desc limit 30 `; // Filter by role ID for drivers
+  if (ownerUniqueId != "all")
+    sql = `
+    SELECT 
+      cj.*, 
+      crt.cancellationReason
+    FROM 
+      CanceledJourneys cj
+    JOIN 
+      CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
+    WHERE 
+      cj.contextType IN ('JourneyDecisions', 'Journey') 
+      AND cj.roleId = 2 order by cj.canceledTime desc limit 30 `;
   const [result] = await pool.query(sql);
   const cancelledJourneyData = [];
 

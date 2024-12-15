@@ -25,10 +25,6 @@ Router.get(
 );
 
 Router.get(
-  "/api/admin/getCompletedJourney",
-  AdminController.getCompletedJourney
-);
-Router.get(
   "/getunAuthorizedDriver",
   verifyTokenOfAxios,
   verifyAdminsIdentity,

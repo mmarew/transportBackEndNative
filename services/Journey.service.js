@@ -93,24 +93,51 @@ exports.deleteJourney = async (journeyId) => {
     return { message: "error", data: "Failed to delete journey" };
   }
 };
-exports.getCompletedJourney = async (req) => {
-  const user = req.user;
-  const userUniqueId = user.userUniqueId;
-  const completedJourney = await performJoinSelect({
-    baseTable: "Journey",
-    // baseTable: "passengerRequest",
-    joins: [
-      {
-        table: "JourneyDecisions",
-        on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
+  try {
+    // Define role-based configurations
+    const roleConfig = {
+      1: {
+        joinTable: "PassengerRequest",
+        joinCondition:
+          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
       },
-      {
-        table: "PassengerRequest",
-        on: "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+      2: {
+        joinTable: "DriverRequest",
+        joinCondition:
+          "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
       },
-    ],
-    conditions: { userUniqueId },
-  });
+    };
 
-  return { message: "success", data: completedJourney };
+    // Validate roleId
+    if (!roleConfig[roleId]) {
+      throw new Error("Invalid role ID");
+    }
+
+    const { joinTable, joinCondition } = roleConfig[roleId];
+    const conditions =
+      ownerUserUniqueId !== "all" ? { userUniqueId: ownerUserUniqueId } : {};
+
+    // Perform join select query
+    const completedJourney = await performJoinSelect({
+      baseTable: "Journey",
+      joins: [
+        {
+          table: "JourneyDecisions",
+          on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+        },
+        {
+          table: joinTable,
+          on: joinCondition,
+        },
+      ],
+      conditions,
+    });
+
+    return { message: "success", data: completedJourney };
+  } catch (error) {
+    // Handle errors
+    console.error("Error fetching completed journey:", error.message);
+    return { message: "error", error: error.message };
+  }
 };
