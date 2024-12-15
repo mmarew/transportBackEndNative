@@ -92,12 +92,24 @@ const updateCancellationReason = async (req, res) => {
     SET cancellationReason = ?, roleId = ? 
     WHERE cancellationReasonTypeUniqueId = ?
   `;
-  const { reason, roleId, cancellationReasonTypeUniqueId } = req.body;
+  const cancellationReasonTypeUniqueId =
+    req.params.cancellationReasonTypeUniqueId;
+  console.log(
+    "@updateCancellationReason req.body",
+    req.body,
+    " cancellationReasonTypeUniqueId",
+    cancellationReasonTypeUniqueId
+  );
+  const { reason, roleId } = req.body;
   const reasonValues = [reason, roleId, cancellationReasonTypeUniqueId];
 
   const [result] = await pool.query(sqlToUpdateReason, reasonValues);
+  console.log("@updateCancellationReason result", result);
   if (result.affectedRows > 0) {
-    return { message: "success" };
+    return {
+      message: "success",
+      data: "Cancellation reason updated successfully",
+    };
   }
   return { message: "error", error: "Failed to update cancellation reason" };
 };

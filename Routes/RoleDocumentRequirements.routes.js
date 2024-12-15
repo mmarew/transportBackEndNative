@@ -9,7 +9,12 @@ router.post(
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.createMapping
 );
-
+router.get(
+  "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
+  verifyTokenOfAxios,
+  // verifyDriversIdentity,
+  RoleDocumentRequirementsController.driversDocumentVehicleRequirement
+);
 router.get(
   "/api/user/getMappingByRoleUniqueId/:roleUniqueId",
   verifyTokenOfAxios,
