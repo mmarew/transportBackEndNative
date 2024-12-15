@@ -283,12 +283,12 @@ const getCancellationDetails = async (contextId) => {
     });
 
     if (!result || result.length === 0) return null;
-
-    return {
-      cancellationReason: result[0].cancellationReason,
-      canceledTime: result[0].canceledTime,
-      contextType: result[0].contextType,
-    };
+    return result[0];
+    // return {
+    //   cancellationReason: result[0].cancellationReason,
+    //   canceledTime: result[0].canceledTime,
+    //   contextType: result[0].contextType,
+    // };
   } catch (error) {
     console.error("Error in getCancellationDetails:", error);
     return null;

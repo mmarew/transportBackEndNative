@@ -18,9 +18,9 @@ router.get(
   canceledJourneyController.getCanceledJourneysFiltered // Updated controller method for filtered queries
 );
 router.get(
-  "/api/admin/canceledJourneyByDriver/:ownerUniqueId",
+  "/api/user/canceledJourney/:ownerUniqueId/:roleId",
   verifyTokenOfAxios,
-  canceledJourneyController.getCanceledJourneysByDriver // Updated controller method for filtered queries
+  canceledJourneyController.getCanceledJourneys // Updated controller method for filtered queries
 );
 
 router.get(

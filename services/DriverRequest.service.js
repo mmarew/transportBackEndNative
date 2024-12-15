@@ -20,10 +20,6 @@ const {
   sendNotificationToPassenger,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
-const {
-  updateUserRoleStatus,
-  getUserRoleStatus,
-} = require("./UserRoleStatus.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 const PaymentCalculator = require("../Utils/PaymentCalculator");
@@ -415,10 +411,10 @@ const cancelDriverRequest = async (body) => {
     const user = body.user;
     const roleId = body?.roleId;
     const userUniqueId = user?.userUniqueId;
-    const ownerUserUniqueId = body.ownerUserUniqueId;
-    const cancellationReasonsTypeId = body.cancellationReasonsTypeId;
-    // console.log("@cancelDriverRequest body", body);
-    // return;
+    const ownerUserUniqueId = body?.ownerUserUniqueId,
+      passengerUserUniqueId = body?.passengerUserUniqueId;
+    const cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
+
     // Check if the driver has any active requests
 
     const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
@@ -454,6 +450,8 @@ const cancelDriverRequest = async (body) => {
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,
+        driverUserUniqueId: ownerUserUniqueId,
+        passengerUserUniqueId,
       });
       return {
         message: "success",
@@ -536,6 +534,8 @@ const cancelDriverRequest = async (body) => {
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,
+        driverUserUniqueId: ownerUserUniqueId,
+        passengerUserUniqueId,
       });
 
       const cancellationDetails = canceledJourneyResult.cancellationDetails;
@@ -576,6 +576,8 @@ const cancelDriverRequest = async (body) => {
       contextType: "Journey",
       canceledBy: userUniqueId,
       cancellationReasonsTypeId,
+      driverUserUniqueId: ownerUserUniqueId,
+      passengerUserUniqueId,
     });
     return {
       message: "success",
