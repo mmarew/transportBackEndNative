@@ -1,6 +1,10 @@
-const { getCancellationDetails } = require("../CRUD/Read/ReadData");
+const {
+  getCancellationDetails,
+  getPassengerRequestByRequestUniqueId,
+  getDriverRequestByRequestUniqueId,
+} = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
-const { getUserByUserUniqueId } = require("./User.service");
+
 const uuidv4 = require("uuid").v4;
 // Create a new canceled journey,
 exports.createCanceledJourney = async ({
@@ -88,8 +92,12 @@ exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
       passengerUserUniqueId = result[i].passengerUserUniqueId;
     const contextId = result[i].contextId;
 
-    const driverData = await getUserByUserUniqueId(driverUserUniqueId);
-    const passengerData = await getUserByUserUniqueId(passengerUserUniqueId);
+    const driverData = await getDriverRequestByRequestUniqueId(
+      driverUserUniqueId
+    );
+    const passengerData = await getPassengerRequestByRequestUniqueId(
+      passengerUserUniqueId
+    );
     const cancelationData = await getCancellationDetails(contextId);
 
     data.push({

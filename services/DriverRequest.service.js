@@ -169,31 +169,6 @@ const takeFromStreet = async (body, user) => {
     return { message: "error", error: "Unable to create request" };
   }
 };
-const getDriverRequestByRequestUniqueId = async (driverRequestUniqueId) => {
-  try {
-    const result = await performJoinSelect({
-      baseTable: "DriverRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "DriverRequest.userUniqueId = Users.userUniqueId",
-        },
-      ],
-      conditions: {
-        driverRequestUniqueId: driverRequestUniqueId,
-      },
-    });
-
-    if (!result?.length) {
-      return { message: "error", error: "Request not found" };
-    }
-
-    return { message: "success", data: result[0] };
-  } catch (error) {
-    console.log("Error in getDriverRequestById:", error);
-    return { message: "error", error: "Unable to retrieve request" };
-  }
-};
 const acceptPassengerRequest = async (body) => {
   const {
     passengerRequestUniqueId,
@@ -922,7 +897,6 @@ module.exports = {
   noAnswerFromDriver,
   startJourney,
   createRequest,
-  getDriverRequestByRequestUniqueId,
   acceptPassengerRequest,
   deleteDriverRequest,
   verifyDriverStatus,

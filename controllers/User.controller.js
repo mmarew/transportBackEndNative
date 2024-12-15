@@ -8,7 +8,6 @@ const ServerResponder = require("../Utils/ServerResponder");
 const createUser = async (req, res) => {
   try {
     const response = await services.createUser(req.body);
-    console.log("@ response ==========> ", response);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);

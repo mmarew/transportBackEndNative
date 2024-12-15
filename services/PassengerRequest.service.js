@@ -40,11 +40,11 @@ const createRequest = async (body, user) => {
   }
 };
 
-const getRequestById = async (requestId) => {
+const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
   try {
     const result = await getData({
       tableName: "PassengerRequest",
-      conditions: { passengerRequestId: requestId },
+      conditions: { passengerRequestId },
     });
 
     if (!result?.length) {
@@ -418,7 +418,7 @@ module.exports = {
   cancelPassengerRequest,
   verifyPassengerStatus,
   createRequest,
-  getRequestById,
+  getPassengerRequestByPassengerRequestId,
   updateRequestById,
   deleteRequest,
 };

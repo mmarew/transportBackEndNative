@@ -63,8 +63,8 @@ const createUser = async (body) => {
     email = body?.email,
     roleId = body?.roleId,
     statusId = body?.statusId,
-    userRoleStatusDescription = body;
-
+    userRoleStatusDescription = body?.userRoleStatusDescription;
+  console.log("@createUser body", body);
   // Validate input data
   if (!phoneNumber || !roleId || !statusId) {
     return {
@@ -250,19 +250,21 @@ const handleUserRoleStatus = async (
       tableName: "UserRoleStatusCurrent",
       conditions: { userRoleId },
     });
+    const colAndVal = {
+      userRoleStatusUniqueId: uuidv4(),
+      userRoleStatusCreatedBy: userUniqueId,
+      userRoleId,
+      userRoleStatusDescription,
+      // if role is 2, user is a driver, then statusId will be 2 for driver because drivers data must be active after aproval by admin
+      statusId: roleId == 2 ? 2 : statusId,
+      userRoleStatusCreatedAt: currentDate(),
+    };
+    console.log("colAndVal ============> ", colAndVal);
     if (userRoleStatus.length === 0) {
       // Insert new UserRoleStatus if not found
       await insertData({
         tableName: "UserRoleStatusCurrent",
-        colAndVal: {
-          userRoleStatusUniqueId: uuidv4(),
-          userRoleStatusCreatedBy: userUniqueId,
-          userRoleId,
-          userRoleStatusDescription,
-          // if role is 2, user is a driver, then statusId will be 2 for driver because drivers data must be active after aproval by admin
-          statusId: roleId == 2 ? 2 : statusId,
-          userRoleStatusCreatedAt: currentDate(),
-        },
+        colAndVal,
       });
       const newUser = await performJoinSelect({
         baseTable: "Users",
@@ -282,12 +284,11 @@ const handleUserRoleStatus = async (
       if (roleId == 2) {
         const message = {
           type: "unauthorizedDriver",
-       ...newUser[0]
-
-        }
+          ...newUser[0],
+        };
         await sendNotificationToAdmin({
-          message
-         });
+          message,
+        });
       }
       return {
         message: "success",
