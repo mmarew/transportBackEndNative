@@ -2,11 +2,9 @@
 const {
   getData,
   findNearbyDrivers,
-  checkUserExists,
   checkActivePassengerRequest,
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
-const { verifyUsersVehicle } = require("./Vehicle.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
@@ -47,19 +45,18 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
     //   conditions: { passengerRequestId },
     // });
 
-        const result = await performJoinSelect({
-          baseTable: "PassengerRequest",
-          joins: [
-            {
-              table: "Users",
-              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-            },
-          ],
-          conditions: {
-            passengerRequestId,
-          },
-        });
-
+    const result = await performJoinSelect({
+      baseTable: "PassengerRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        passengerRequestId,
+      },
+    });
 
     if (!result?.length) {
       return { message: "error", error: "Request not found" };

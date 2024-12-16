@@ -1,11 +1,9 @@
-const { performJoinSelect, getData } = require("../CRUD/Read/ReadData");
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const attachedDocumentsService = require("../Services/AttachedDocuments.service");
-const { deleteFile } = require("../Utils/fileUtils");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
-    console.log("@createAttachedDocuments req.body", req.body);
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
     const roleId = user?.roleId;
@@ -148,7 +146,7 @@ const getAttachedDocumentsByUser = async (req, res) => {
     console.log(" error", error);
     ServerResponder(res, {
       message: "error",
-      error: "unable to see usersDocument",
+      error: "unable to get attached document",
     });
   }
 };
@@ -171,7 +169,7 @@ const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
     console.log(" error", error);
     ServerResponder(res, {
       message: "error",
-      error: "unable to see usersDocument",
+      error: "error in getting documents",
     });
   }
 };
@@ -183,9 +181,10 @@ const getAttachedDocumentByUniqueId = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@ getAttachedDocumentByUniqueId error is ", error);
     ServerResponder(res, {
       message: "error",
-      error: "unable to see usersDocument",
+      error: "error to get documents",
     });
   }
 };
@@ -249,7 +248,7 @@ const acceptRejectAttachedDocuments = async (req, res) => {
     console.log("@acceptRejectAttachedDocuments error", error);
     ServerResponder(res, {
       message: "error",
-      error: "unable to see usersDocument",
+      error: "unable to accept or reject attached document",
     });
   }
 };

@@ -39,11 +39,10 @@ const driversDocumentVehicleRequirement = async (req, res) => {
       );
     ServerResponder(res, result);
   } catch (error) {
-    console.log("first error", error);
     console.log("@driversDocumentVehicleRequirement error", error);
     ServerResponder(res, {
       message: "error",
-      error: "unable to see usersDocument",
+      error: "unable to verify requirements",
     });
   }
 };
