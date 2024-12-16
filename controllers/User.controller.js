@@ -74,9 +74,14 @@ const verifyUserByOTP = async (req, res, next) => {
 };
 const getUser = async (req, res) => {
   try {
-    const response = await services.getUserByUserUniqueId(
-      req.params.userUniqueId
-    );
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+    const ownerUserUniqueId =
+      req.params.ownerUserUniqueId == "self"
+        ? userUniqueId
+        : req.params.ownerUserUniqueId;
+    console.log("@getUser ownerUserUniqueId", ownerUserUniqueId);
+    const response = await services.getUserByUserUniqueId(ownerUserUniqueId);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -116,8 +121,12 @@ const updateUser = async (req, res) => {
   try {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
+    const ownerUserUniqueId =
+      req?.params?.ownerUserUniqueId == "self"
+        ? userUniqueId
+        : req?.params?.ownerUserUniqueId;
     const roleId = user?.roleId;
-    const body = { ...req.body, userUniqueId, roleId };
+    const body = { ...req.body, userUniqueId: ownerUserUniqueId, roleId };
 
     // Initialize response tracker
     const updateResponses = { textUpdate: "success", fileUpdate: "success" };
@@ -150,6 +159,7 @@ const updateUser = async (req, res) => {
           roleId: user.roleId,
           user,
         });
+        console.log("fileResponse", fileResponse);
         updateResponses.fileUpdate = fileResponse.message;
       } else {
         // Update the existing attached document
@@ -162,6 +172,8 @@ const updateUser = async (req, res) => {
         console.log("fileResponse", fileResponse);
         updateResponses.fileUpdate = fileResponse.message;
       }
+    } else {
+      updateResponses.fileUpdate = "success";
     }
 
     // Consolidate response based on update results

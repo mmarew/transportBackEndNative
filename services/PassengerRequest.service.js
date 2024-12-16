@@ -22,6 +22,9 @@ const {
 const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
+const {
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
+} = require("./AttachedDocuments.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -37,12 +40,26 @@ const createRequest = async (body, user) => {
   }
 };
 
-const getRequestById = async (requestId) => {
+const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
   try {
-    const result = await getData({
-      tableName: "PassengerRequest",
-      conditions: { passengerRequestId: requestId },
-    });
+    // const result = await getData({
+    //   tableName: "PassengerRequest",
+    //   conditions: { passengerRequestId },
+    // });
+
+        const result = await performJoinSelect({
+          baseTable: "PassengerRequest",
+          joins: [
+            {
+              table: "Users",
+              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: {
+            passengerRequestId,
+          },
+        });
+
 
     if (!result?.length) {
       return { message: "error", error: "Request not found" };
@@ -146,7 +163,14 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       }
 
       const driver = nearbyDrivers[0]; // Get the first nearby driver
-
+      const documents =
+        await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+          driver?.userUniqueId,
+          4
+        );
+      const data = documents?.data;
+      const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
+      // console.log("driverProfilePhoto", driverProfilePhoto);
       // 4. Create a new record in JourneyDecisions if driver is found
       const journeyDecisionUniqueId = uuidv4();
       const journeyDecisionPayload = {
@@ -189,7 +213,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
         status: 2,
         passenger,
         driver: {
-          driver,
+          driver: { ...driver, driverProfilePhoto },
           vehicle: vehicle,
           vehicleTarrifRate: vehicleTarrifRate?.data[0],
         },
@@ -234,6 +258,12 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       conditions: { driverRequestId: journeyDecision[0].driverRequestId },
     });
     const driver = driverData[0];
+    const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+      driver?.userUniqueId,
+      4
+    );
+    const data = documents?.data;
+    const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
     const phoneNumber = driver?.phoneNumber;
 
     const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
@@ -248,7 +278,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
       passenger,
       driver: {
         vehicleOfDriver: vehicleOfDriver[0],
-        driver,
+        driver: { ...driver, driverProfilePhoto },
         vehicleTarrifRate: vehicleTarrifRate?.data[0],
       },
       journey: journey[0] || null,
@@ -275,6 +305,7 @@ const cancelPassengerRequest = async (body) => {
     const user = body.user;
     const roleId = user?.roleId;
     const ownerUserUniqueId = body?.ownerUserUniqueId,
+      driverUserUniqueId = body?.driverUserUniqueId,
       cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
     const { userUniqueId } = user;
     // Check if the user has any active passenger requests
@@ -314,6 +345,8 @@ const cancelPassengerRequest = async (body) => {
         contextType: "PassengerRequest",
         cancellationReasonsTypeId,
         roleId,
+        driverUserUniqueId,
+        passengerUserUniqueId: ownerUserUniqueId,
       });
       // If there's no journey decision related to this request and cancellation is successfully registered, return success
       if (canceledJourney.message === "success")
@@ -380,6 +413,8 @@ const cancelPassengerRequest = async (body) => {
       contextType: journeyId ? "Journey" : "JourneyDecisions",
       cancellationReasonsTypeId,
       roleId,
+      driverUserUniqueId,
+      passengerUserUniqueId: ownerUserUniqueId,
     });
     console.log("canceledJourney", canceledJourney);
 
@@ -397,7 +432,7 @@ module.exports = {
   cancelPassengerRequest,
   verifyPassengerStatus,
   createRequest,
-  getRequestById,
+  getPassengerRequestByPassengerRequestId,
   updateRequestById,
   deleteRequest,
 };

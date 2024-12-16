@@ -9,9 +9,11 @@ const {
   sendNotificationToDriver,
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
+
+const { pool } = require("../Middleware/Database.config");
 const {
   driversDocumentVehicleRequirement,
-} = require("./DriverRequest.service");
+} = require("./RoleDocumentRequirements.service");
 // Create a new attached document
 const createAttachedDocument = async ({
   attachedDocumentDescription,
@@ -128,7 +130,19 @@ const getAttachedDocumentsByUser = async (userUniqueId) => {
     data: documents,
   };
 };
+const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
+  ownerUserUniqueId,
+  documentTypeId
+) => {
+  const sqlToGetDocument = `select * from AttachedDocuments ,DocumentTypes where attachedDocumentCreatedByUserId=? and DocumentTypes.documentTypeId=?`;
+  const values = [ownerUserUniqueId, documentTypeId];
+  const [documents] = await pool.query(sqlToGetDocument, values);
 
+  return {
+    message: "success",
+    data: documents,
+  };
+};
 // Retrieve an attached document by ID
 const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
   const result = await getData({
@@ -388,6 +402,7 @@ const acceptRejectAttachedDocuments = async (body) => {
 };
 
 module.exports = {
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   acceptRejectAttachedDocuments,
   createAttachedDocument,
   getAttachedDocumentsByUser,

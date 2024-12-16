@@ -67,7 +67,31 @@ const getData = async ({
     throw error;
   }
 };
+const getPassengerRequestByRequestUniqueId = async (
+  passengerRequestUniqueId
+) => {
+  try {
+    const result = await performJoinSelect({
+      baseTable: "PassengerRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
 
+      conditions: { passengerRequestUniqueId },
+    }); // Use passengerRequestUniqueId instead of passengerRequestId
+
+    if (!result?.length) {
+      return { message: "error", error: "Request not found" };
+    }
+    return { message: "success", data: result[0] };
+  } catch (error) {
+    console.log("Error in getRequestByRequestUniqueId:", error);
+    return { message: "error", error: "Unable to retrieve request" };
+  }
+};
 const findNearbyDrivers = async ({ passengerRequest }) => {
   try {
     console.log("@findNearbyDrivers searchRange ==========> ", searchRange);
@@ -283,19 +307,46 @@ const getCancellationDetails = async (contextId) => {
     });
 
     if (!result || result.length === 0) return null;
-
-    return {
-      cancellationReason: result[0].cancellationReason,
-      canceledTime: result[0].canceledTime,
-      contextType: result[0].contextType,
-    };
+    return result[0];
+    // return {
+    //   cancellationReason: result[0].cancellationReason,
+    //   canceledTime: result[0].canceledTime,
+    //   contextType: result[0].contextType,
+    // };
   } catch (error) {
     console.error("Error in getCancellationDetails:", error);
     return null;
   }
 };
 
+const getDriverRequestByRequestUniqueId = async (driverRequestUniqueId) => {
+  try {
+    const result = await performJoinSelect({
+      baseTable: "DriverRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "DriverRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        driverRequestUniqueId: driverRequestUniqueId,
+      },
+    });
+
+    if (!result?.length) {
+      return { message: "error", error: "Request not found" };
+    }
+
+    return { message: "success", data: result[0] };
+  } catch (error) {
+    console.log("Error in getDriverRequestById:", error);
+    return { message: "error", error: "Unable to retrieve request" };
+  }
+};
+
 module.exports = {
+  getDriverRequestByRequestUniqueId,
   checkActiveDriverRequest,
   checkActivePassengerRequest,
   checkUserExists,
@@ -303,5 +354,6 @@ module.exports = {
   findNearbyDrivers,
   findNearbyPassengers,
   getData,
+  getPassengerRequestByRequestUniqueId,
   getCancellationDetails,
 };

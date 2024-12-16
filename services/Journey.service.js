@@ -1,6 +1,10 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
+const {
+  getRequestById,
+  getPassengerRequestByPassengerRequestId,
+} = require("./PassengerRequest.service");
 
 // Create a new journey
 exports.createJourney = async ({
@@ -93,6 +97,31 @@ exports.deleteJourney = async (journeyId) => {
     return { message: "error", data: "Failed to delete journey" };
   }
 };
+const getDriverRequestByRequestId = async (driverRequestId) => {
+  try {
+    const result = await performJoinSelect({
+      baseTable: "DriverRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "DriverRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        driverRequestId,
+      },
+    });
+
+    if (!result?.length) {
+      return { message: "error", error: "Request not found" };
+    }
+
+    return { message: "success", data: result[0] };
+  } catch (error) {
+    console.log("Error in getDriverRequestById:", error);
+    return { message: "error", error: "Unable to retrieve request" };
+  }
+};
 exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
   try {
     // Define role-based configurations
@@ -108,7 +137,7 @@ exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
           "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
       },
     };
-
+    // console.log("roleConfig", roleConfig);
     // Validate roleId
     if (!roleConfig[roleId]) {
       throw new Error("Invalid role ID");
@@ -117,7 +146,7 @@ exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
     const { joinTable, joinCondition } = roleConfig[roleId];
     const conditions =
       ownerUserUniqueId !== "all" ? { userUniqueId: ownerUserUniqueId } : {};
-
+    const data = [];
     // Perform join select query
     const completedJourney = await performJoinSelect({
       baseTable: "Journey",
@@ -131,13 +160,83 @@ exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
           on: joinCondition,
         },
       ],
-      conditions,
+      conditions: { ...conditions, "Journey.journeyStatusId": 5 },
+      limit: 30,
     });
 
-    return { message: "success", data: completedJourney };
+    for (const item of completedJourney) {
+      const passengerRequestId = item.passengerRequestId,
+        driverRequestId = item.driverRequestId;
+      const passengerData = await getPassengerRequestByPassengerRequestId(
+        passengerRequestId
+      );
+      const driverData = await getDriverRequestByRequestId(driverRequestId);
+      data.push({ passenger: passengerData.data, driver: driverData.data });
+    }
+
+    return { message: "success", data };
   } catch (error) {
     // Handle errors
     console.error("Error fetching completed journey:", error.message);
+    return { message: "error", error: error.message };
+  }
+};
+exports.getOngoingJourney = async (roleId, ownerUserUniqueId) => {
+  try {
+    // Define role-based configurations
+    const roleConfig = {
+      1: {
+        joinTable: "PassengerRequest",
+        joinCondition:
+          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+      },
+      2: {
+        joinTable: "DriverRequest",
+        joinCondition:
+          "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+      },
+    };
+    // console.log("roleConfig", roleConfig);
+    // Validate roleId
+    if (!roleConfig[roleId]) {
+      throw new Error("Invalid role ID");
+    }
+
+    const { joinTable, joinCondition } = roleConfig[roleId];
+    const conditions =
+      ownerUserUniqueId !== "all" ? { userUniqueId: ownerUserUniqueId } : {};
+    const data = [];
+    // Perform join select query
+    const completedJourney = await performJoinSelect({
+      baseTable: "Journey",
+      joins: [
+        {
+          table: "JourneyDecisions",
+          on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+        },
+        {
+          table: joinTable,
+          on: joinCondition,
+        },
+      ],
+      conditions: { ...conditions, "Journey.journeyStatusId": 4 },
+      limit: 30,
+    });
+
+    for (const item of completedJourney) {
+      const passengerRequestId = item.passengerRequestId,
+        driverRequestId = item.driverRequestId;
+      const passengerData = await getPassengerRequestByPassengerRequestId(
+        passengerRequestId
+      );
+      const driverData = await getDriverRequestByRequestId(driverRequestId);
+      data.push({ passenger: passengerData.data, driver: driverData.data });
+    }
+
+    return { message: "success", data };
+  } catch (error) {
+    // Handle errors
+    console.error("Error fetching ongoing journey:", error.message);
     return { message: "error", error: error.message };
   }
 };

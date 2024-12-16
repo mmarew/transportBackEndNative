@@ -320,7 +320,7 @@ CREATE TABLE IF NOT EXISTS Journey (
     FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 ) ;
--- Create the JourneyRoutePoints table
+-- Create the JourneyRoutePoints table to register each points
 
 CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     pointId INT AUTO_INCREMENT PRIMARY KEY,

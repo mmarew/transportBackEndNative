@@ -1,6 +1,7 @@
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const { getUserRoleStatus } = require("./UserRoleStatus.service");
 // Create a new mapping
 const createMapping = async ({ body }) => {
   const {
@@ -160,7 +161,350 @@ const getAllMappings = async () => {
     data: rows,
   };
 };
+const driversDocumentVehicleRequirement = async (body) => {
+  const ownerUserUniqueId = body.ownerUserUniqueId;
+  const user = body?.user;
+  const roleId = 2;
+  const phoneNumber = user?.phoneNumber;
+  const userRoleStatusDescription = body?.userRoleStatusDescription;
+  console.log(" roleId, phoneNumber", roleId, phoneNumber);
+  // Fetch initial user data based on role ID and phone number
+  let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
+  if (!userRoleStatus || userRoleStatus.length === 0) {
+    return { message: "error", data: "User data not found" };
+  }
+
+  const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
+  // return;
+  // Fetch required documents for the driver's role
+  const requiredDocuments = await performJoinSelect({
+    baseTable: "RoleDocumentRequirements",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+      },
+    ],
+    conditions: { roleId },
+  });
+
+  if (!requiredDocuments || requiredDocuments.length === 0) {
+    return { message: "error", data: "No documents required for this role" };
+  }
+
+  // Fetch attached documents with its type for the driver
+  const attachedDocuments = await performJoinSelect({
+    // tableName: "AttachedDocuments",
+    // conditions: { userUniqueId: ownerUserUniqueId },
+    baseTable: "AttachedDocuments",
+    joins: [
+      {
+        table: "DocumentTypes",
+        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+      },
+    ],
+    conditions: { userUniqueId: ownerUserUniqueId },
+  });
+
+  // Find unattached document types
+  const unAttachedDocumentTypes = requiredDocuments.filter(
+    (requiredDocument) =>
+      !attachedDocuments.some(
+        (attachedDocument) =>
+          attachedDocument.documentTypeId === requiredDocument.documentTypeId
+      )
+  );
+
+  // Group attached documents by their status (PENDING, ACCEPTED, REJECTED)
+  const attachedDocumentsByStatus = {
+    PENDING: [],
+    ACCEPTED: [],
+    REJECTED: [],
+  };
+  attachedDocuments.forEach((attachedDocument) => {
+    const documentStatus = attachedDocument.attachedDocumentAcceptance;
+    if (attachedDocumentsByStatus[documentStatus]) {
+      attachedDocumentsByStatus[documentStatus].push(attachedDocument);
+    }
+  });
+
+  // Check if the user has a registered vehicle
+  const userVehicle = await performJoinSelect({
+    baseTable: "VehicleOwnership",
+    joins: [
+      {
+        table: "Vehicle",
+        on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+      },
+    ],
+    conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
+  });
+  const vehicleRegistered = userVehicle.length > 0;
+
+  // Determine the final status based on documents and vehicle status
+  const resultOfStatus = findStatusByVehicleAndDocuments({
+    attachedDocuments,
+    attachedDocumentsByStatus,
+    requiredDocuments,
+    vehicleRegistered,
+    unAttachedDocumentTypes,
+  });
+  // finalStatusId;
+  console.log(
+    "@driversDocumentVehicleRequirement resultOfStatus",
+    resultOfStatus
+  );
+  if (resultOfStatus?.message == "error") {
+    return resultOfStatus;
+  }
+  const finalStatusId = resultOfStatus?.finalStatusId;
+  if (statusId !== finalStatusId) {
+    // Update role status if necessary
+    const userRoleStatusData = {
+      user,
+      roleId,
+      userRoleStatusUniqueId,
+      userRoleId,
+      newStatusId: finalStatusId,
+      userRoleStatusDescription,
+      phoneNumber,
+    };
+
+    await updateUserRoleStatus(userRoleStatusData);
+  }
+  //get latest user role status
+
+  const userData = await getUserRoleStatus({ roleId, phoneNumber });
+  return {
+    message: "success",
+    messageType: "driversDocumentVehicleRequirement",
+    vehicle: userVehicle[0] || null,
+    userData: userData[0] || null,
+    attachedDocumentsByStatus,
+    unAttachedDocumentTypes, // Documents that are required but not attached
+  };
+};
+
+const findStatusByVehicleAndDocuments = ({
+  vehicleRegistered,
+  attachedDocumentsByStatus,
+  requiredDocuments,
+  attachedDocuments,
+  unAttachedDocumentTypes,
+}) => {
+  let finalStatusId = null;
+  // console.log("  requiredDocuments", requiredDocuments);
+  // Check for invalid or missing inputs
+
+  // Check if the user has a registered vehicle
+
+  // 1. All Documents Accepted, Vehicle Registered (Active)
+  if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length >= requiredDocuments.length
+  ) {
+    finalStatusId = 1;
+  }
+  // 2. No Document, No Vehicle Registered
+  else if (!vehicleRegistered && attachedDocuments.length === 0) {
+    finalStatusId = 2;
+  }
+  // 3. All Documents Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 3;
+  }
+  // 4. All Documents Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 4;
+  }
+  // 5. Some Documents Accepted, Some Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 5;
+  }
+  // 6. Some Documents Accepted, Some Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 6;
+  }
+  // 7. All Documents Accepted, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 7;
+  }
+  // 8. No Document Attached, Vehicle Registered
+  else if (vehicleRegistered && attachedDocuments.length === 0) {
+    finalStatusId = 8;
+  }
+  // 9. All Documents Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 9;
+  }
+  // 10. All Documents Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 10;
+  }
+  // 11. Some Documents Accepted, Some Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 11;
+  }
+  // 12. Some Documents Accepted, Some Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 12;
+  }
+
+  // 13. All Documents Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 13;
+  }
+  // 14. All Documents Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 14;
+  }
+  // 15. All Documents Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 15;
+  }
+  // 16. All Documents Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 16;
+  }
+  // 17. Vehicle Registered, Some Documents Not Attached
+  else if (vehicleRegistered && unAttachedDocumentTypes.length > 0) {
+    finalStatusId = 17;
+  }
+  // 18. No Vehicle Registered, Some Documents Not Attached
+  else if (!vehicleRegistered && unAttachedDocumentTypes.length > 0) {
+    finalStatusId = 18;
+  }
+  // 19. Vehicle Registered, All Documents Attached, Mixed Statuses
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    (attachedDocumentsByStatus.PENDING.length > 0 ||
+      attachedDocumentsByStatus.REJECTED.length > 0)
+  ) {
+    finalStatusId = 19;
+  }
+  // 20. Vehicle Not Registered, All Documents Attached, Mixed Statuses
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    (attachedDocumentsByStatus.PENDING.length > 0 ||
+      attachedDocumentsByStatus.REJECTED.length > 0)
+  ) {
+    finalStatusId = 20;
+  }
+  // 21. Some Documents Accepted, Some Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 21;
+  }
+  // 22. Some Documents Accepted, Some Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 22;
+  }
+  // 23. Some Documents Accepted, Some Pending, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.PENDING.length > 0
+  ) {
+    finalStatusId = 23;
+  }
+  // 24. Some Documents Accepted, Some Rejected, Vehicle Registered
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    attachedDocumentsByStatus.REJECTED.length > 0
+  ) {
+    finalStatusId = 24;
+  }
+  // 25. All Documents Pending, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+  ) {
+    finalStatusId = 25;
+  }
+  // 26. All Documents Rejected, No Vehicle Registered
+  else if (
+    !vehicleRegistered &&
+    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
+  ) {
+    finalStatusId = 26;
+  }
+  // 27. No Document Attached, Vehicle Registered
+  else if (vehicleRegistered && attachedDocuments.length === 0) {
+    finalStatusId = 27;
+  }
+  // 28. Vehicle Registered, All Documents Attached, Mixed Statuses
+  else if (
+    vehicleRegistered &&
+    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
+    (attachedDocumentsByStatus.PENDING.length > 0 ||
+      attachedDocumentsByStatus.REJECTED.length > 0)
+  ) {
+    finalStatusId = 28;
+  }
+  // Default error case
+  else {
+    return {
+      message: "error",
+      data: "Unable to determine driver's status.",
+    };
+  }
+  return { message: "success", finalStatusId: finalStatusId };
+};
 module.exports = {
+  driversDocumentVehicleRequirement,
   getAllMappings,
   getMappingByRoleUniqueId,
   createMapping,

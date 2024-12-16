@@ -1,5 +1,11 @@
-const { getCancellationDetails } = require("../CRUD/Read/ReadData");
+const {
+  getCancellationDetails,
+  getPassengerRequestByRequestUniqueId,
+  getDriverRequestByRequestUniqueId,
+  performJoinSelect,
+} = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
+
 const uuidv4 = require("uuid").v4;
 // Create a new canceled journey,
 exports.createCanceledJourney = async ({
@@ -65,110 +71,104 @@ exports.getCanceledJourneysFiltered = async ({
   return result;
 };
 
-// select driver information by joining users and driver request table or journey decisions or journey
-// select passenger information by joining users and passenger request table
-// selection must be to get information about canceled journeys by drivers only from cancelled journey table
-exports.getCanceledJourneysByDriver = async (ownerUniqueId) => {
-  const fetchDriverDataForJourneyDecision = async (journeyDecisionId) => {
-    const sql = `
-      SELECT * 
-      FROM JourneyDecisions
-      JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
-      WHERE JourneyDecisions.journeyDecisionId = ?`;
-    const [result] = await pool.query(sql, [journeyDecisionId]);
-    return result;
-  };
+//  get drvers information, passengers information, and cancellation details in each canceled journey like [{driver: {}, passenger: {}, cancellationDetails: {}}]
+exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
+  let sql = null,
+    values = [];
+  const userUniqueId =
+    roleId == 2 ? "driverUserUniqueId" : "passengerUserUniqueId";
+  if (ownerUniqueId == "all") {
+    sql = "SELECT * FROM CanceledJourneys where roleId = ?";
+    values = [roleId];
+  } else {
+    sql = `SELECT * FROM CanceledJourneys WHERE ${userUniqueId} =?  and roleId = ?`;
+    values = [ownerUniqueId, roleId];
+  }
+  const [result] = await pool.query(sql, values);
 
-  const fetchDriverDataForJourney = async (journeyId) => {
-    const sql = `
-      SELECT * 
-      FROM Journey
-      JOIN JourneyDecisions ON Journey.journeyId = JourneyDecisions.journeyId
-      JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
-      WHERE Journey.journeyId = ?`;
-    const [result] = await pool.query(sql, [journeyId]);
-    return result;
-  };
-
-  const fetchPassengerData = async (passengerRequestId) => {
-    const sql = `
-      SELECT * 
-      FROM PassengerRequest
-      JOIN Users ON PassengerRequest.userUniqueId = Users.userUniqueId
-      WHERE PassengerRequest.passengerRequestId = ?`;
-    const [result] = await pool.query(sql, [passengerRequestId]);
-    return result;
-  };
-  // if ownerUniqueId is all
-  // Main query to fetch canceled journeys and cancellation reasons
-  let sql = `
-    SELECT 
-      cj.*, 
-      crt.cancellationReason
-    FROM 
-      CanceledJourneys cj
-    JOIN 
-      CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
-    WHERE 
-      cj.contextType IN ('JourneyDecisions', 'Journey') 
-      AND cj.roleId = 2 order by cj.canceledTime desc limit 30 `; // Filter by role ID for drivers
-  if (ownerUniqueId != "all")
-    sql = `
-    SELECT 
-      cj.*, 
-      crt.cancellationReason
-    FROM 
-      CanceledJourneys cj
-    JOIN 
-      CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
-    WHERE 
-      cj.contextType IN ('JourneyDecisions', 'Journey') 
-      AND cj.roleId = 2 order by cj.canceledTime desc limit 30 `;
-  const [result] = await pool.query(sql);
-  const cancelledJourneyData = [];
-
-  for (const canceledJourney of result) {
-    // console.log("@ Canceled Journey: ", canceledJourney);
-    const contextType = canceledJourney.contextType;
-
-    let driverResult = [];
-    let passengerResult = [];
-
-    if (contextType === "JourneyDecisions") {
-      driverResult = await fetchDriverDataForJourneyDecision(
-        canceledJourney.contextId
-      );
-      if (driverResult.length > 0) {
-        passengerResult = await fetchPassengerData(
-          driverResult[0].passengerRequestId
-        );
-      }
-    } else if (contextType === "Journey") {
-      driverResult = await fetchDriverDataForJourney(canceledJourney.contextId);
-      if (driverResult.length > 0) {
-        passengerResult = await fetchPassengerData(
-          driverResult[0].passengerRequestId
-        );
-      }
-    }
-
-    if (driverResult.length > 0) {
-      cancelledJourneyData.push({
-        driver: driverResult[0],
-        passenger: passengerResult.length > 0 ? passengerResult[0] : null, // Handle case where passenger is not found
-        cancellationReason: canceledJourney.cancellationReason, // Include cancellation reason
-        canceledTime: canceledJourney.canceledTime, // Include cancellation time
-        contextType: canceledJourney.contextType, // Include context type
+  const data = [];
+  for (let i = 0; i < result.length; i++) {
+    const contextId = result[i].contextId;
+    const contextType = result[i].contextType;
+    let driverData = null;
+    let passengerData = null;
+    if (contextType == "JourneyDecisions") {
+      passengerData = await performJoinSelect({
+        baseTable: "JourneyDecisions",
+        joins: [
+          {
+            table: "PassengerRequest",
+            on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+          },
+          {
+            table: "Users",
+            on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { "JourneyDecisions.journeyDecisionId": contextId },
+      });
+      driverData = await performJoinSelect({
+        baseTable: "JourneyDecisions",
+        joins: [
+          {
+            table: "DriverRequest",
+            on: "JourneyDecisions.driverRequestId = DriverRequest.driverRequestId",
+          },
+          {
+            table: "Users",
+            on: "DriverRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { "JourneyDecisions.journeyDecisionId": contextId },
+      });
+    } else if (contextType == "Journey") {
+      passengerData = await performJoinSelect({
+        baseTable: "Journey",
+        joins: [
+          {
+            table: "JourneyDecisions",
+            on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+          },
+          {
+            table: "PassengerRequest",
+            on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+          },
+          {
+            table: "Users",
+            on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { "Journey.journeyId": contextId },
+      });
+      driverData = await performJoinSelect({
+        baseTable: "Journey",
+        joins: [
+          {
+            table: "JourneyDecisions",
+            on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+          },
+          {
+            table: "DriverRequest",
+            on: "JourneyDecisions.driverRequestId = DriverRequest.driverRequestId",
+          },
+          {
+            table: "Users",
+            on: "DriverRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { "Journey.journeyId": contextId },
       });
     }
+
+    const cancelationData = await getCancellationDetails(contextId);
+    data.push({
+      driver: driverData[0],
+      passenger: passengerData[0],
+      cancellationDetails: cancelationData,
+    });
   }
 
-  return {
-    message: "success",
-    data: cancelledJourneyData,
-  };
+  return { message: "success", data };
 };
 
 // Get a specific canceled journey by ID
