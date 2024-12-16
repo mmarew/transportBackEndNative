@@ -73,7 +73,6 @@ exports.getCanceledJourneysFiltered = async ({
 
 //  get drvers information, passengers information, and cancellation details in each canceled journey like [{driver: {}, passenger: {}, cancellationDetails: {}}]
 exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
-  console.log("@getCanceledJourneys roleId", roleId);
   let sql = null,
     values = [];
   const userUniqueId =
@@ -89,7 +88,6 @@ exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
 
   const data = [];
   for (let i = 0; i < result.length; i++) {
-    console.log("result [i]", result[i]);
     const contextId = result[i].contextId;
     const contextType = result[i].contextType;
     let driverData = null;
@@ -163,7 +161,6 @@ exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
     }
 
     const cancelationData = await getCancellationDetails(contextId);
-    console.log("driverData", driverData, "passengerData", passengerData);
     data.push({
       driver: driverData[0],
       passenger: passengerData[0],
