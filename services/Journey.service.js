@@ -181,3 +181,62 @@ exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
     return { message: "error", error: error.message };
   }
 };
+exports.getOngoingJourney = async (roleId, ownerUserUniqueId) => {
+  try {
+    // Define role-based configurations
+    const roleConfig = {
+      1: {
+        joinTable: "PassengerRequest",
+        joinCondition:
+          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+      },
+      2: {
+        joinTable: "DriverRequest",
+        joinCondition:
+          "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+      },
+    };
+    // console.log("roleConfig", roleConfig);
+    // Validate roleId
+    if (!roleConfig[roleId]) {
+      throw new Error("Invalid role ID");
+    }
+
+    const { joinTable, joinCondition } = roleConfig[roleId];
+    const conditions =
+      ownerUserUniqueId !== "all" ? { userUniqueId: ownerUserUniqueId } : {};
+    const data = [];
+    // Perform join select query
+    const completedJourney = await performJoinSelect({
+      baseTable: "Journey",
+      joins: [
+        {
+          table: "JourneyDecisions",
+          on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+        },
+        {
+          table: joinTable,
+          on: joinCondition,
+        },
+      ],
+      conditions: { ...conditions, "Journey.journeyStatusId": 4 },
+      limit: 30,
+    });
+
+    for (const item of completedJourney) {
+      const passengerRequestId = item.passengerRequestId,
+        driverRequestId = item.driverRequestId;
+      const passengerData = await getPassengerRequestByPassengerRequestId(
+        passengerRequestId
+      );
+      const driverData = await getDriverRequestByRequestId(driverRequestId);
+      data.push({ passenger: passengerData.data, driver: driverData.data });
+    }
+
+    return { message: "success", data };
+  } catch (error) {
+    // Handle errors
+    console.error("Error fetching ongoing journey:", error.message);
+    return { message: "error", error: error.message };
+  }
+};
