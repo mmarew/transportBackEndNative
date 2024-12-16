@@ -42,10 +42,24 @@ const createRequest = async (body, user) => {
 
 const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
   try {
-    const result = await getData({
-      tableName: "PassengerRequest",
-      conditions: { passengerRequestId },
-    });
+    // const result = await getData({
+    //   tableName: "PassengerRequest",
+    //   conditions: { passengerRequestId },
+    // });
+
+        const result = await performJoinSelect({
+          baseTable: "PassengerRequest",
+          joins: [
+            {
+              table: "Users",
+              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: {
+            passengerRequestId,
+          },
+        });
+
 
     if (!result?.length) {
       return { message: "error", error: "Request not found" };
