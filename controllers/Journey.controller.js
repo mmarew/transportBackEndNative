@@ -113,10 +113,39 @@ exports.getCompletedJourney = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.log("Error deleting journey:", error);
+    console.log("Error getting completed journey:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Failed to delete journey",
+      error: "Failed to get completed journey",
+    });
+  }
+};
+// Get all ongoing journeys
+exports.getOngoingJourney = async (req, res) => {
+  try {
+    const userRoleId = req?.user?.roleId;
+
+    let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
+    // all data has to be fetched by admin only else return data not found
+    if (userRoleId != 3 && ownerUserUniqueId == "all") {
+      return res
+        .status(500)
+        .json({ message: "error", error: "data not found" });
+    }
+    if (ownerUserUniqueId == "self")
+      ownerUserUniqueId = req?.user?.userUniqueId;
+    const roleId = req?.params?.roleId;
+
+    const result = await journeyService.getOngoingJourney(
+      roleId,
+      ownerUserUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error getting ongoing journey:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to get ongoing journey",
     });
   }
 };
