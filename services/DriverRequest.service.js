@@ -71,7 +71,7 @@ const takeFromStreet = async (body, user) => {
     const randNumber = Math.floor(Math.random() * 100000000);
     const data = {
       requestedFrom: "street",
-      fullName: "passenger",
+      fullName: null,
       email: `fakeEmail_${randNumber}@passenger.com`,
       roleId: 1,
       statusId: 1,
@@ -86,11 +86,11 @@ const takeFromStreet = async (body, user) => {
 
     // create user passenger in users table. to finishe this job i need to use users table using createUser function from user.service
     const userPassenger = await createUser({ ...body, ...data });
-
+    console.log("@takeFromStreet userPassenger", userPassenger);
     if (userPassenger.message === "error")
       return { message: "error", error: "Unable to create user" };
     const dataOfPassenger = userPassenger.dataOfPassenger;
-    const passengerUserUniqueId = dataOfPassenger.userUniqueId;
+    const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
     // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
       body,

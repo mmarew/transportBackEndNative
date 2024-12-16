@@ -44,5 +44,10 @@ router.get(
   verifyTokenOfAxios,
   journeyController.getCompletedJourney
 );
+router.get(
+  "/api/user/getOngoingJourney/:ownerUserUniqueId/:roleId",
+  verifyTokenOfAxios,
+  journeyController.getOngoingJourney
+);
 
 module.exports = router;
