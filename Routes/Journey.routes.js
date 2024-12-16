@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const journeyController = require("../Controllers/Journey.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { get } = require("http");
 
 // Create a new journey
 router.post(
@@ -37,9 +38,16 @@ router.delete(
   verifyTokenOfAxios,
   journeyController.deleteJourney
 );
+//
 router.get(
-  "/api/user/getCompletedJourney",
+  "/api/user/getCompletedJourney/:ownerUserUniqueId/:roleId",
   verifyTokenOfAxios,
   journeyController.getCompletedJourney
 );
+router.get(
+  "/api/user/getOngoingJourney/:ownerUserUniqueId/:roleId",
+  verifyTokenOfAxios,
+  journeyController.getOngoingJourney
+);
+
 module.exports = router;

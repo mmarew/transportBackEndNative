@@ -2,6 +2,7 @@ const {
   getData,
   findNearbyPassengers,
   checkActiveDriverRequest,
+
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
 
@@ -19,10 +20,6 @@ const {
   sendNotificationToPassenger,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
-const {
-  updateUserRoleStatus,
-  getUserRoleStatus,
-} = require("./UserRoleStatus.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 const PaymentCalculator = require("../Utils/PaymentCalculator");
@@ -74,7 +71,7 @@ const takeFromStreet = async (body, user) => {
     const randNumber = Math.floor(Math.random() * 100000000);
     const data = {
       requestedFrom: "street",
-      fullName: "passenger",
+      fullName: null,
       email: `fakeEmail_${randNumber}@passenger.com`,
       roleId: 1,
       statusId: 1,
@@ -89,11 +86,11 @@ const takeFromStreet = async (body, user) => {
 
     // create user passenger in users table. to finishe this job i need to use users table using createUser function from user.service
     const userPassenger = await createUser({ ...body, ...data });
-
+    console.log("@takeFromStreet userPassenger", userPassenger);
     if (userPassenger.message === "error")
       return { message: "error", error: "Unable to create user" };
     const dataOfPassenger = userPassenger.dataOfPassenger;
-    const passengerUserUniqueId = dataOfPassenger.userUniqueId;
+    const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
     // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
       body,
@@ -170,31 +167,6 @@ const takeFromStreet = async (body, user) => {
   } catch (error) {
     console.log("Error in createDriverRequest:", error);
     return { message: "error", error: "Unable to create request" };
-  }
-};
-const getDriverRequestByRequestUniqueId = async (driverRequestUniqueId) => {
-  try {
-    const result = await performJoinSelect({
-      baseTable: "DriverRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "DriverRequest.userUniqueId = Users.userUniqueId",
-        },
-      ],
-      conditions: {
-        driverRequestUniqueId: driverRequestUniqueId,
-      },
-    });
-
-    if (!result?.length) {
-      return { message: "error", error: "Request not found" };
-    }
-
-    return { message: "success", data: result[0] };
-  } catch (error) {
-    console.log("Error in getDriverRequestById:", error);
-    return { message: "error", error: "Unable to retrieve request" };
   }
 };
 const acceptPassengerRequest = async (body) => {
@@ -414,11 +386,12 @@ const cancelDriverRequest = async (body) => {
     const user = body.user;
     const roleId = body?.roleId;
     const userUniqueId = user?.userUniqueId;
-    const ownerUserUniqueId = body.ownerUserUniqueId;
-    const cancellationReasonsTypeId = body.cancellationReasonsTypeId;
-    // console.log("@cancelDriverRequest body", body);
-    // return;
+    const ownerUserUniqueId = body?.ownerUserUniqueId,
+      passengerUserUniqueId = body?.passengerUserUniqueId;
+    const cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
+
     // Check if the driver has any active requests
+
     const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
 
     if (getActiveRequest.length === 0) {
@@ -452,6 +425,8 @@ const cancelDriverRequest = async (body) => {
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,
+        driverUserUniqueId: ownerUserUniqueId,
+        passengerUserUniqueId,
       });
       return {
         message: "success",
@@ -501,13 +476,13 @@ const cancelDriverRequest = async (body) => {
       phoneNumber: passenger[0]?.phoneNumber,
     });
 
-    sendNotificationToAdmin({
-      message: {
-        message: "error",
-        error: "driver cancelled passengers request",
-        detailInfo: { passenger: passenger[0], driver: getActiveRequest[0] },
-      },
-    });
+    // const adminNotification = await sendNotificationToAdmin({
+    //   message: {
+    //     message: "error",
+    //     error: "driver cancelled passengers request",
+    //     detailInfo: { passenger: passenger[0], driver: getActiveRequest[0] },
+    //   },
+    // });
 
     // Update JourneyDecisions to reflect the cancellation
     await updateData({
@@ -528,13 +503,36 @@ const cancelDriverRequest = async (body) => {
     if (getActiveJourney.length === 0) {
       // register cancillation in to createCanceledJourney table
 
-      await createCanceledJourney({
+      const canceledJourneyResult = await createCanceledJourney({
         contextId: journeyDecisionId,
         contextType: "JourneyDecisions",
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,
+        driverUserUniqueId: ownerUserUniqueId,
+        passengerUserUniqueId,
       });
+
+      const cancellationDetails = canceledJourneyResult.cancellationDetails;
+      const adminNotification = await sendNotificationToAdmin({
+        message: {
+          message: "success",
+          type: "cancelledJourney",
+
+          data: [
+            {
+              driver: getActiveRequest[0], // Driver details
+              passenger: passenger[0], // Passenger details
+              cancellationReason:
+                cancellationDetails?.cancellationReason || "Unknown reason",
+              canceledTime:
+                cancellationDetails?.canceledTime || new Date().toISOString(),
+              contextType: cancellationDetails?.contextType || "Unknown",
+            },
+          ],
+        },
+      });
+
       return {
         message: "success",
         data: "You have successfully cancelled your request.",
@@ -553,6 +551,8 @@ const cancelDriverRequest = async (body) => {
       contextType: "Journey",
       canceledBy: userUniqueId,
       cancellationReasonsTypeId,
+      driverUserUniqueId: ownerUserUniqueId,
+      passengerUserUniqueId,
     });
     return {
       message: "success",
@@ -897,7 +897,6 @@ module.exports = {
   noAnswerFromDriver,
   startJourney,
   createRequest,
-  getDriverRequestByRequestUniqueId,
   acceptPassengerRequest,
   deleteDriverRequest,
   verifyDriverStatus,

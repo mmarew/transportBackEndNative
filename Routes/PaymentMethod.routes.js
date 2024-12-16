@@ -5,35 +5,35 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 
 // Create a new payment method
 router.post(
-  "/api/paymentMethod",
+  "/api/admin/paymentMethod",
   verifyTokenOfAxios,
   paymentMethodController.createPaymentMethod
 );
 
 // Get all payment methods
 router.get(
-  "/api/paymentMethod",
+  "/api/admin/paymentMethod",
   verifyTokenOfAxios,
   paymentMethodController.getAllPaymentMethods
 );
 
 // Get a specific payment method by ID
 router.get(
-  "/api/paymentMethod/:paymentMethodUniqueId",
+  "/api/admin/paymentMethod/:paymentMethodUniqueId",
   verifyTokenOfAxios,
   paymentMethodController.getPaymentMethodById
 );
 
 // Update a specific payment method by ID
 router.put(
-  "/api/paymentMethod/:paymentMethodUniqueId",
+  "/api/admin/paymentMethod/:paymentMethodUniqueId",
   verifyTokenOfAxios,
   paymentMethodController.updatePaymentMethod
 );
 
 // Delete a specific payment method by ID
 router.delete(
-  "/api/paymentMethod/:paymentMethodUniqueId",
+  "/api/admin/paymentMethod/:paymentMethodUniqueId",
   verifyTokenOfAxios,
   paymentMethodController.deletePaymentMethod
 );

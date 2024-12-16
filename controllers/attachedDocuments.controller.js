@@ -106,6 +106,7 @@ const createAttachedDocuments = async (req, res) => {
         ...userData[0],
         document,
         message: "verify users document",
+        type: "unauthorizedDriver",
       };
       sendNotificationToAdmin({ message });
     }

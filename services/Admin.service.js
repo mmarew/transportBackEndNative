@@ -83,15 +83,6 @@ WHERE
     });
     return { messsage: "success", data };
   },
-  // Fetch completed journeys
-  getCompletedJourney: async () => {
-    const query = `
-      SELECT  * from Journey 
-      WHERE journeyStatusId = 5;
-    `;
-    const [results] = await pool.query(query);
-    return results;
-  },
 
   // Fetch unauthorized drivers
   getUnauthorizedDriver: async () => {

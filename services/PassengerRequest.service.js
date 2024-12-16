@@ -40,12 +40,26 @@ const createRequest = async (body, user) => {
   }
 };
 
-const getRequestById = async (requestId) => {
+const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
   try {
-    const result = await getData({
-      tableName: "PassengerRequest",
-      conditions: { passengerRequestId: requestId },
-    });
+    // const result = await getData({
+    //   tableName: "PassengerRequest",
+    //   conditions: { passengerRequestId },
+    // });
+
+        const result = await performJoinSelect({
+          baseTable: "PassengerRequest",
+          joins: [
+            {
+              table: "Users",
+              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: {
+            passengerRequestId,
+          },
+        });
+
 
     if (!result?.length) {
       return { message: "error", error: "Request not found" };
@@ -291,6 +305,7 @@ const cancelPassengerRequest = async (body) => {
     const user = body.user;
     const roleId = user?.roleId;
     const ownerUserUniqueId = body?.ownerUserUniqueId,
+      driverUserUniqueId = body?.driverUserUniqueId,
       cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
     const { userUniqueId } = user;
     // Check if the user has any active passenger requests
@@ -330,6 +345,8 @@ const cancelPassengerRequest = async (body) => {
         contextType: "PassengerRequest",
         cancellationReasonsTypeId,
         roleId,
+        driverUserUniqueId,
+        passengerUserUniqueId: ownerUserUniqueId,
       });
       // If there's no journey decision related to this request and cancellation is successfully registered, return success
       if (canceledJourney.message === "success")
@@ -396,6 +413,8 @@ const cancelPassengerRequest = async (body) => {
       contextType: journeyId ? "Journey" : "JourneyDecisions",
       cancellationReasonsTypeId,
       roleId,
+      driverUserUniqueId,
+      passengerUserUniqueId: ownerUserUniqueId,
     });
     console.log("canceledJourney", canceledJourney);
 
@@ -413,7 +432,7 @@ module.exports = {
   cancelPassengerRequest,
   verifyPassengerStatus,
   createRequest,
-  getRequestById,
+  getPassengerRequestByPassengerRequestId,
   updateRequestById,
   deleteRequest,
 };
