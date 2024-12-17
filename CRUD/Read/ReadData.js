@@ -344,8 +344,21 @@ const getDriverRequestByRequestUniqueId = async (driverRequestUniqueId) => {
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
+const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
+  ownerUserUniqueId,
+  documentTypeId
+) => {
+  const sqlToGetDocument = `select * from AttachedDocuments ,DocumentTypes where attachedDocumentCreatedByUserId=? and DocumentTypes.documentTypeId=?`;
+  const values = [ownerUserUniqueId, documentTypeId];
+  const [documents] = await pool.query(sqlToGetDocument, values);
 
+  return {
+    message: "success",
+    data: documents,
+  };
+};
 module.exports = {
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   getDriverRequestByRequestUniqueId,
   checkActiveDriverRequest,
   checkActivePassengerRequest,

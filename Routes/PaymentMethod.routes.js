@@ -12,7 +12,7 @@ router.post(
 
 // Get all payment methods
 router.get(
-  "/api/admin/paymentMethod",
+  "/api/user/paymentMethod",
   verifyTokenOfAxios,
   paymentMethodController.getAllPaymentMethods
 );

@@ -464,8 +464,8 @@ CREATE TABLE IF NOT EXISTS Payments (
     contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
     roleId INT NOT NULL,  -- ID from the Roles table
     contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey') NOT NULL,  -- Type of context being referenced
-    driverUserUniqueId VARCHAR(36) NOT NULL, 
-    passengerUserUniqueId VARCHAR(36) NOT NULL,
+    driverUserUniqueId VARCHAR(36) , 
+    passengerUserUniqueId VARCHAR(36),
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation

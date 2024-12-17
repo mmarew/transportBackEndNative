@@ -1,7 +1,10 @@
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const { getUserRoleStatus } = require("./UserRoleStatus.service");
+const {
+  getUserRoleStatus,
+  updateUserRoleStatus,
+} = require("./UserRoleStatus.service");
 // Create a new mapping
 const createMapping = async ({ body }) => {
   const {

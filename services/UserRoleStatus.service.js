@@ -81,14 +81,7 @@ const getUserRoleStatus = async (body) => {
 // Update UserRoleStatus and move old status to history
 const updateUserRoleStatus = async (updateDataValues) => {
   try {
-    const {
-      user,
-      roleId,
-      userRoleId,
-      newStatusId,
-      userRoleStatusDescription,
-      phoneNumber,
-    } = updateDataValues;
+    const { user, roleId, newStatusId, phoneNumber } = updateDataValues;
 
     const userUniqueId = user?.userUniqueId;
 

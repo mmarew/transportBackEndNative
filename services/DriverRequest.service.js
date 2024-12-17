@@ -4,6 +4,7 @@ const {
   checkActiveDriverRequest,
 
   performJoinSelect,
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
 } = require("../CRUD/Read/ReadData");
 
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -40,9 +41,6 @@ const {
 const { createJourneyDecision } = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/currentDate");
 const { createJourney } = require("./Journey.service");
-const {
-  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
-} = require("./AttachedDocuments.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -648,8 +646,8 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleResponse = await getVehicleAndOwnershipViaUserUniqueId(
       userUniqueId
     );
+    console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
     const vehicle = vehicleResponse?.data?.[0];
-
     if (!vehicle) {
       return {
         message: "error",
@@ -661,6 +659,10 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleTypeUniqueId = vehicle.vehicleTypeUniqueId;
     const vehicleTarrifRateResponse = await getTarrifRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
+    );
+    console.log(
+      "@verifyDriverStatus  vehicleTarrifRateResponse",
+      vehicleTarrifRateResponse
     );
     const vehicleTarrifRate = vehicleTarrifRateResponse?.data?.[0];
 
@@ -682,6 +684,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
 
     // Step 3: Validate journey status
     const journeyStatusId = driverRequest.journeyStatusId;
+    console.log("journeyStatusId", journeyStatusId);
     if (journeyStatusId > 4) {
       return {
         message: "success",
@@ -693,21 +696,28 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     if (journeyStatusId === 1) {
-      return await handleJourneyStatusOne(
+      const JourneyStatusOne = await handleJourneyStatusOne(
         driverRequest,
         vehicle,
         vehicleTarrifRate,
         vehicleTypeUniqueId
       );
+      console.log("@JourneyStatusOne", JourneyStatusOne);
+      return JourneyStatusOne;
     }
 
-    return await handleExistingJourney(
+    const existingJourney = await handleExistingJourney(
       driverRequest,
       vehicle,
       vehicleTarrifRate
     );
+    console.log("existingJourney", existingJourney);
+    return existingJourney;
   } catch (error) {
-    console.error("Error in verifyDriverStatus:", error);
+    console.error(
+      "Error in verifyDriverStatus:",
+      JSON.stringify(error) || error
+    );
     return { message: "error", error: "Unable to verify driver status" };
   }
 };

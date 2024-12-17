@@ -70,10 +70,15 @@ const verifyDriverStatusController = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;
     const result = await services.verifyDriverStatus({ userUniqueId });
+    console.log("@verifyDriverStatusController result", result);
     ServerResponder(res, result, 200);
   } catch (error) {
     console.log("Error in verifyDriverStatusController:", error);
-    ServerResponder(res, "Unable to verify driver status", 500);
+    ServerResponder(
+      res,
+      { message: "error", error: "Unable to verify driver status" },
+      500
+    );
   }
 };
 const startJourney = async (req, res) => {

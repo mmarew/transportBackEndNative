@@ -1,4 +1,5 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
+const ReadData = require("../CRUD/Read/ReadData");
 const attachedDocumentsService = require("../Services/AttachedDocuments.service");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
@@ -159,11 +160,10 @@ const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
     let userUniqueId = req.user.userUniqueId;
     const documentTypeId = req.params.documentTypeId;
     if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
-    const result =
-      await attachedDocumentsService.getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
-        ownerUserUniqueId,
-        documentTypeId
-      );
+    const result = ReadData.getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+      ownerUserUniqueId,
+      documentTypeId
+    );
     return ServerResponder(res, result);
   } catch (error) {
     console.log(" error", error);

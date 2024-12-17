@@ -4,6 +4,7 @@ const {
   findNearbyDrivers,
   checkActivePassengerRequest,
   performJoinSelect,
+  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
 } = require("../CRUD/Read/ReadData");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -20,9 +21,7 @@ const {
 const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
-const {
-  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
-} = require("./AttachedDocuments.service");
+require("./AttachedDocuments.service");
 
 const createRequest = async (body, user) => {
   try {
