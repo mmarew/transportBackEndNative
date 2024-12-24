@@ -9,6 +9,13 @@ Router.get(
   verifyAdminsIdentity,
   AdminController.getOnlineDrivers
 );
+Router.get(
+  "/api/admin/searchOnlineDrivers/:query",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  AdminController.searchOnlineDrivers
+);
+
 // route to get offline drivers.
 Router.get(
   "/api/admin/getOfflineDrivers",
@@ -16,6 +23,13 @@ Router.get(
   verifyAdminsIdentity,
   AdminController.getOfflineDrivers
 );
+Router.get(
+  "/api/admin/searchOfflineDrivers/:query",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  AdminController.searchOfflineDrivers
+);
+
 // route to get all active drivers meanse user has fulfieled all documents userRolestatus id 1 and role 2
 Router.get(
   "/api/admin/getAllActiveDrivers",
@@ -30,4 +44,19 @@ Router.get(
   verifyAdminsIdentity,
   AdminController.getunAuthorizedDriver
 );
+
+Router.get(
+  "/api/admin/searchUnauthorizedDriver/:query",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  AdminController.searchUnauthorizedDriver
+);
+Router.get(
+  "/api/admin/searchActiveDrivers/:query",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  AdminController.searchActiveDrivers
+);
+
+
 module.exports = Router;

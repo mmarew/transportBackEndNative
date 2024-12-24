@@ -5,6 +5,7 @@ const {
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
+const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 
 const uuidv4 = require("uuid").v4;
 // Create a new canceled journey,
@@ -72,7 +73,7 @@ exports.getCanceledJourneysFiltered = async ({
 };
 
 //  get drvers information, passengers information, and cancellation details in each canceled journey like [{driver: {}, passenger: {}, cancellationDetails: {}}]
-exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
+const getCanceledJourneys = async (ownerUniqueId, roleId) => {
   let sql = null,
     values = [];
   const userUniqueId =
@@ -170,6 +171,22 @@ exports.getCanceledJourneys = async (ownerUniqueId, roleId) => {
 
   return { message: "success", data };
 };
+const searchCanceledJourneyByUserData = async (userData, roleId) => {
+  const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
+  const users = usersData.data;
+  const driversCanceledJourneys = [];
+  // if (users.length >0) 
+  for (const user of users) {
+    const canceledJourneysData = await getCanceledJourneys(
+      user.userUniqueId,
+      roleId
+    );
+    if (canceledJourneysData.data.length > 0) 
+    driversCanceledJourneys.push(canceledJourneysData.data);
+  }
+  
+  return { message: "success", data: driversCanceledJourneys[0] };
+};
 
 // Get a specific canceled journey by ID
 exports.getCanceledJourneyById = async (canceledJourneyUniqueId) => {
@@ -211,4 +228,8 @@ exports.getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledBy = ? and roleId = ?`;
   const [result] = await pool.query(sql, [userUniqueId, roleId]);
   return result;
+};
+module.exports = {
+  getCanceledJourneys,
+  searchCanceledJourneyByUserData,
 };
