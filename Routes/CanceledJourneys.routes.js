@@ -22,6 +22,12 @@ router.get(
   verifyTokenOfAxios,
   canceledJourneyController.getCanceledJourneys // Updated controller method for filtered queries
 );
+//user data means search by user data like name, email, phone number
+router.get(
+  "/api/user/searchCanceledJourneyByUserData/:userData/:roleId",
+  verifyTokenOfAxios,
+  canceledJourneyController.searchCanceledJourneyByUserData // Updated controller method for filtered queries
+);
 
 router.get(
   "/api/admin/canceledJourney/:canceledJourneyUniqueId",

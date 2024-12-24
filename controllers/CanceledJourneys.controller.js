@@ -162,6 +162,18 @@ const getCanceledJourneys = async (req, res) => {
     });
   }
 };
+const searchCanceledJourneyByUserData = async (req, res) => {
+  try {
+    const { userData, roleId } = req.params;
+    ServerResponder(res, await canceledJourneyService.searchCanceledJourneyByUserData(userData, roleId));
+  } catch (error) {
+    console.log("Error searching canceled journey by user data:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to search canceled journey by user data",
+    });
+  }
+};
 
 // Get a specific canceled journey by ID
 const getCanceledJourneyById = async (req, res) => {
@@ -225,4 +237,5 @@ module.exports = {
   getCanceledJourneysFiltered,
   createCanceledJourney,
   getCanceledJourneys,
+  searchCanceledJourneyByUserData,
 };
