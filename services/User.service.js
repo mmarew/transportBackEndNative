@@ -464,7 +464,7 @@ const getUserByEmailOrNameOrPhoneNumber = async (data) => {
     ]);
 
     if (rows.length > 0) {
-      return { message: "success", data: rows[0] };
+      return { message: "success", data: rows };
     }
 
     return { message: "error", error: "User not found" };
