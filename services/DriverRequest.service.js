@@ -13,7 +13,6 @@ const { deleteData } = require("../CRUD/Delete/DeleteData");
 const {
   insertData,
   createDriverRequest,
-  createPassengerRequest,
 } = require("../CRUD/Create/CreateData");
 const { getUserByUserUniqueId, createUser } = require("./User.service");
 const { v4: uuidv4 } = require("uuid");
@@ -41,6 +40,7 @@ const {
 const { createJourneyDecision } = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/currentDate");
 const { createJourney } = require("./Journey.service");
+const { createPassengerRequest } = require("./PassengerRequest.service");
 
 const createRequest = async (body, user) => {
   try {
@@ -255,10 +255,30 @@ const startJourney = async (body) => {
 };
 const noAnswerFromDriver = async (body) => {
   const userUniqueId = body.userUniqueId;
+  const passengerData = body.passenger;
+  const originLocation = {
+      latitude: passengerData.originLatitude,
+      longitude: passengerData.originLongitude,
+      description: passengerData.originPlace,
+    },
+    vehicle = body.vehicle,
+    destination = {
+      latitude: passengerData.destinationLatitude,
+      longitude: passengerData.destinationLongitude,
+      description: passengerData.destinationPlace,
+    };
+  const passengerRequestData = {
+    destination,
+    vehicle,
+    originLocation,
+  };
+
   const existingRequest = await getData({
     tableName: "DriverRequest",
     conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
   });
+  // console.log("existingRequest", existingRequest);
+  // return existingRequest;
   const journeyStatusId = existingRequest[0].journeyStatusId;
   if (journeyStatusId != 2) {
     return {
@@ -270,12 +290,21 @@ const noAnswerFromDriver = async (body) => {
   const message = await verifyDriverStatus({
     userUniqueId,
   });
-  const passenger = message.passenger;
-  sendNotificationToPassenger({
-    message,
-    phoneNumber: passenger?.phoneNumber,
-  });
 
+  // recreate new passenger request to other driver
+  const newPassengerRequest = await createPassengerRequest(
+    passengerRequestData,
+    passengerData
+  );
+  console.log("newPassengerRequest =========> ", newPassengerRequest);
+  const passenger = message.passenger;
+  console.log("passenger", passenger);
+  sendNotificationToPassenger({
+    message: {
+      ...newPassengerRequest,
+    },
+    phoneNumber: passengerData?.phoneNumber,
+  });
   return message;
 };
 

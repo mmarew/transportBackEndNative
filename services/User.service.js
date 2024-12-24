@@ -10,6 +10,7 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const bcrypt = require("bcrypt");
 const verifyPassword = require("../Utils/VerifyPassword");
+
 const createUserSystem = async (body) => {
   const fullName = "system",
     phoneNumber = "0922112480",
@@ -55,6 +56,59 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
     data: rows,
   };
 };
+
+const handleExistingUser = async ({
+  requestedFrom,
+  user,
+  roleId,
+  statusId,
+  userRoleStatusDescription = "no description",
+}) => {
+  // Generate OTP
+  const OTP = Math.floor(100000 + Math.random() * 900000);
+  const userUniqueId = user.userUniqueId;
+  const credential = await getData({
+    tableName: "usersCredential",
+    conditions: { userUniqueId },
+  });
+  // create new credential if it does not exist
+  if (credential.length === 0) {
+    //create new credential by hashing OTP
+    await insertData({
+      tableName: "usersCredential",
+      colAndVal: {
+        credentialUniqueId: uuidv4(),
+        userUniqueId,
+        OTP: await bcrypt.hash(String(OTP), 10),
+      },
+    });
+  }
+  // Handle existing user: Insert/Update roles and statuses
+  await handleUserRoleStatus(
+    user.userUniqueId,
+    roleId,
+    statusId,
+    userRoleStatusDescription
+  );
+  console.log("to be hashed otp ", OTP); //to be hashed otp  615949
+  const hashedOTP = await bcrypt.hash(String(OTP), 10);
+  console.log("hashedOTP", hashedOTP);
+  if (requestedFrom == "street") {
+    return {
+      message: "success",
+      dataOfPassenger: user,
+    };
+  }
+  // Update OTP for existing user
+
+  const otpUpdated = await updateOtpForUser({
+    userUniqueId: user.userUniqueId,
+    hashedOTP: hashedOTP,
+    phoneNumber: user.phoneNumber,
+    OTP,
+  });
+  return otpUpdated;
+};
 const createUser = async (body) => {
   // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin
   const requestedFrom = body.requestedFrom || "user",
@@ -83,53 +137,6 @@ const createUser = async (body) => {
       conditions: { phoneNumber },
     });
     console.log("@savedUser", savedUser);
-
-    const handleExistingUser = async () => {
-      const user = savedUser[0];
-
-      const userUniqueId = user.userUniqueId;
-      const credential = await getData({
-        tableName: "usersCredential",
-        conditions: { userUniqueId },
-      });
-      // create new credential if it does not exist
-      if (credential.length === 0) {
-        //create new credential by hashing OTP
-        await insertData({
-          tableName: "usersCredential",
-          colAndVal: {
-            credentialUniqueId: uuidv4(),
-            userUniqueId,
-            OTP: await bcrypt.hash(String(OTP), 10),
-          },
-        });
-      }
-      // Handle existing user: Insert/Update roles and statuses
-      await handleUserRoleStatus(
-        user.userUniqueId,
-        roleId,
-        statusId,
-        userRoleStatusDescription
-      );
-      console.log("to be hashed otp ", OTP); //to be hashed otp  615949
-      const hashedOTP = await bcrypt.hash(String(OTP), 10);
-      console.log("hashedOTP", hashedOTP);
-      if (requestedFrom == "street") {
-        return {
-          message: "success",
-          dataOfPassenger: user,
-        };
-      }
-      // Update OTP for existing user
-
-      const otpUpdated = await updateOtpForUser({
-        userUniqueId: user.userUniqueId,
-        hashedOTP: hashedOTP,
-        phoneNumber,
-        OTP,
-      });
-      return otpUpdated;
-    };
 
     // If the user does not exist, create new user, credentials, role, and status
     const registerNewUser = async () => {
@@ -192,7 +199,12 @@ const createUser = async (body) => {
       };
     };
     if (savedUser.length > 0) {
-      return handleExistingUser();
+      return handleExistingUser({
+        user: savedUser[0],
+        roleId,
+        statusId,
+        userRoleStatusDescription,
+      });
     }
 
     return await registerNewUser();
@@ -455,13 +467,31 @@ const getUserByEmailOrNameOrPhoneNumber = async (data) => {
       return { message: "success", data: rows[0] };
     }
 
-    return { message: "error", data: "User not found" };
+    return { message: "error", error: "User not found" };
   } catch (error) {
     return {
       message: "error",
       data: "An error occurred while retrieving the user",
     };
   }
+};
+const loginUser = async (phoneNumber, roleId, statusId) => {
+  const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
+
+  const userData = data?.data;
+  console.log("userData", userData);
+  // return;
+  if (!userData)
+    return {
+      message: "error",
+      error: "User not found",
+    };
+  const res = await handleExistingUser({
+    user: userData,
+    roleId,
+    statusId,
+  });
+  return res;
 };
 
 const deleteUser = async (userUniqueId) => {
@@ -610,4 +640,5 @@ module.exports = {
   getUserByEmailOrNameOrPhoneNumber,
   deleteUser,
   getAllUsers,
+  loginUser,
 };

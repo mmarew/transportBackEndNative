@@ -8,7 +8,7 @@ const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
 router.post(
   "/api/passengerRequest/createRequest",
   verifyTokenOfAxios,
-  controller.createRequest
+  controller.createPassengerRequest
 );
 
 // Get Passenger Request by ID

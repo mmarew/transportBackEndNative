@@ -2,9 +2,12 @@
 const PassengerService = require("../Services/PassengerRequest.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
-const createRequest = async (req, res) => {
+const createPassengerRequest = async (req, res) => {
   try {
-    const result = await PassengerService.createRequest(req.body, req.user);
+    const result = await PassengerService.createPassengerRequest(
+      req.body,
+      req.user
+    );
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {
@@ -84,7 +87,7 @@ const cancelPassengerRequest = async (req, res) => {
 module.exports = {
   cancelPassengerRequest,
   verifyPassengerStatus,
-  createRequest,
+  createPassengerRequest,
   getRequestById,
   updateRequestById,
   deleteRequest,

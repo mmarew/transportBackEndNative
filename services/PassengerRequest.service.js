@@ -10,8 +10,8 @@ const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
 const {
-  createPassengerRequest,
   insertData,
+  createNewPassengerRequest,
 } = require("../CRUD/Create/CreateData");
 const { v4: uuidv4 } = require("uuid");
 const { sendNotificationToDriver } = require("../Utils/Notifications");
@@ -23,10 +23,10 @@ const {
 } = require("./TarrifRateForVehicleTypes.service");
 require("./AttachedDocuments.service");
 
-const createRequest = async (body, user) => {
+const createPassengerRequest = async (body, user) => {
   try {
     const { userUniqueId } = user;
-    const activeRequest = await createPassengerRequest(body, userUniqueId);
+    const activeRequest = await createNewPassengerRequest(body, userUniqueId);
     return await verifyPassengerStatus({
       userUniqueId,
       activeRequest: activeRequest?.data,
@@ -427,7 +427,7 @@ const cancelPassengerRequest = async (body) => {
 module.exports = {
   cancelPassengerRequest,
   verifyPassengerStatus,
-  createRequest,
+  createPassengerRequest,
   getPassengerRequestByPassengerRequestId,
   updateRequestById,
   deleteRequest,

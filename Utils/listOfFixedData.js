@@ -507,6 +507,11 @@ const journeyStatus = [
     journeyStatusName: "cancelledBySystem",
     journeyStatusDescription: "Cancelled by system",
   },
+  {
+    journeyStatusId: 11,
+    journeyStatusName: "noAnswerFromDriver",
+    journeyStatusDescription: "No Answer From Driver",
+  },
 ];
 const cancellationReasons = [
   { cancellationReason: "Driver too late", roleId: 1 },

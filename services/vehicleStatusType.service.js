@@ -7,7 +7,7 @@ const { updateData } = require("../CRUD/Update/Data.update");
 
 // Create a new VehicleStatusType
 const createVehicleStatusType = async (data) => {
-  const statusTypeName = data.statusTypeName;
+  const statusTypeName = data.VehicleStatusTypeName;
   if (statusTypeName.length > 50) {
     return { message: "error", error: "Vehicle Status Type name is too long" };
   }
@@ -26,7 +26,7 @@ const createVehicleStatusType = async (data) => {
   // statusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
 
   const payload = {
-    VehicleStatusTypeName: data.statusTypeName,
+    VehicleStatusTypeName: data.VehicleStatusTypeName,
     VehicleStatusTypeDescription: data.statusTypeDescription,
     VehicleStatusTypeCreatedAt: new Date(),
   };

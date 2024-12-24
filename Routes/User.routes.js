@@ -25,6 +25,11 @@ router.post(
   verifyAdminsIdentity,
   constroller.createUser
 );
+// log in user by phone number
+router.get(
+  "/api/user/loginUser/:phoneNumber/:roleId/:statusId",
+  constroller.loginUser
+);
 router.get(
   "/api/user/getUserByUserUniqueIdAndroleUniqueId/:userUniqueId/:roleUniqueId",
   constroller.getUserByUserUniqueIdAndroleUniqueId

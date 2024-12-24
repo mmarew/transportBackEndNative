@@ -27,7 +27,7 @@ const insertData = async ({ tableName, colAndVal }) => {
   }
 };
 
-const createPassengerRequest = async (
+const createNewPassengerRequest = async (
   body,
   userUniqueId,
   journeyStatusId = 1
@@ -165,6 +165,6 @@ const createDriverRequest = async (body, userUniqueId, journeyStatusId = 1) => {
 
 module.exports = {
   createDriverRequest,
-  createPassengerRequest,
+  createNewPassengerRequest,
   insertData,
 };

@@ -45,6 +45,21 @@ const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
     });
   }
 };
+const loginUser = async (req, res) => {
+  try {
+    const response = await services.loginUser(
+      req.params.phoneNumber,
+      req.params.roleId
+    );
+    ServerResponder(res, response);
+  } catch (error) {
+    console.log("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Failed to retrieve user",
+    });
+  }
+};
 const getUserByUserUniqueIdAndroleUniqueId = async (req, res) => {
   try {
     const response = await services.getUserByUserUniqueIdAndroleUniqueId(
@@ -220,4 +235,5 @@ module.exports = {
   getUser,
   deleteUser,
   getAllUsers,
+  loginUser,
 };

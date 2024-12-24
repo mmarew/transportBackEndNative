@@ -1,7 +1,5 @@
 const {
   getCancellationDetails,
-  getPassengerRequestByRequestUniqueId,
-  getDriverRequestByRequestUniqueId,
   performJoinSelect,
 } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
