@@ -550,11 +550,7 @@ const cancelDriverRequest = async (body) => {
             {
               driver: getActiveRequest[0], // Driver details
               passenger: passenger[0], // Passenger details
-              cancellationReason:
-                cancellationDetails?.cancellationReason || "Unknown reason",
-              canceledTime:
-                cancellationDetails?.canceledTime || new Date().toISOString(),
-              contextType: cancellationDetails?.contextType || "Unknown",
+              cancellationDetails,
             },
           ],
         },
