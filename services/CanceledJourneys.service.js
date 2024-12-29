@@ -7,7 +7,7 @@ const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 
 const uuidv4 = require("uuid").v4;
 // Create a new canceled journey,
-exports.createCanceledJourney = async ({
+const createCanceledJourney = async ({
   contextId,
   contextType,
   canceledBy,
@@ -43,7 +43,7 @@ exports.createCanceledJourney = async ({
   };
 };
 
-exports.getCanceledJourneysFiltered = async ({
+const getCanceledJourneysFiltered = async ({
   canceledByRoleId,
   startDate,
   endDate,
@@ -201,14 +201,14 @@ const searchCanceledJourneyByUserData = async (userData, roleId) => {
 
 
 // Get a specific canceled journey by ID
-exports.getCanceledJourneyById = async (canceledJourneyUniqueId) => {
+const getCanceledJourneyById = async (canceledJourneyUniqueId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?`;
   const [result] = await pool.query(sql, [canceledJourneyUniqueId]);
   return result[0];
 };
 
 // Update a canceled journey by ID
-exports.updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
+const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
   const sql = `
         UPDATE CanceledJourneys 
         SET contextId = ?, contextType = ?, canceledBy = ?, cancellationReasonsTypeId = ?, canceledTime = ?
@@ -229,14 +229,14 @@ exports.updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
 };
 
 // Delete a canceled journey by ID
-exports.deleteCanceledJourney = async (canceledJourneyUniqueId) => {
+const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
   const sql = `DELETE FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?`;
   const [result] = await pool.query(sql, [canceledJourneyUniqueId]);
   return result.affectedRows > 0
     ? { message: "Canceled journey deleted successfully" }
     : { message: "Failed to delete canceled journey" };
 };
-exports.getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
+const getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledBy = ? and roleId = ?`;
   const [result] = await pool.query(sql, [userUniqueId, roleId]);
   return result;
@@ -244,4 +244,9 @@ exports.getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
 module.exports = {
   getCanceledJourneys,
   searchCanceledJourneyByUserData,
+  createCanceledJourney,
+  getCanceledJourneyById,
+  updateCanceledJourney,
+  deleteCanceledJourney,
+  getCanceledJourneysByUserUniqueId,
 };

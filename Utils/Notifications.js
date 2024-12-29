@@ -112,6 +112,8 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
   try {
     // Send notification to the matching admin using a for...of loop
+    console.log("listOfAdminWs", listOfAdminWs);
+    console.log("listOfAdminWs length", listOfAdminWs.length);
     if (listOfAdminWs && listOfAdminWs.length > 0) {
       const errorList = [],
         successList = [];
