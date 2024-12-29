@@ -5,6 +5,7 @@ const {
   getRequestById,
   getPassengerRequestByPassengerRequestId,
 } = require("./PassengerRequest.service");
+const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 
 // Create a new journey
 exports.createJourney = async ({
@@ -122,7 +123,7 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
-exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
+const getCompletedJourney = async (roleId, ownerUserUniqueId) => {
   try {
     // Define role-based configurations
     const roleConfig = {
@@ -181,7 +182,39 @@ exports.getCompletedJourney = async (roleId, ownerUserUniqueId) => {
     return { message: "error", error: error.message };
   }
 };
-exports.getOngoingJourney = async (roleId, ownerUserUniqueId) => {
+const searchCompletedJourneyByUserData = async (userData, roleId) => {
+  const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
+  console.log("usersData", usersData);
+
+  const users = usersData?.data;
+
+  // Check if users is undefined or an empty array
+  if (!users || users.length === 0) {
+    return { message: "failed", data: [] };
+  }
+
+  const driversCompletedJourneys = [];
+
+  for (const user of users) {
+    const completedJourneysData = await getCompletedJourney(
+      roleId,
+      user.userUniqueId
+    );
+    console.log("completedJourneysData", completedJourneysData);
+    if (completedJourneysData?.data?.length > 0) {
+      driversCompletedJourneys.push(...completedJourneysData.data);
+    }
+  }
+
+  if (driversCompletedJourneys.length === 0) {
+    return { message: "failed", data: [] };
+  }
+
+  return { message: "success", data: driversCompletedJourneys };
+};
+
+
+const getOngoingJourney = async (roleId, ownerUserUniqueId) => {
   try {
     // Define role-based configurations
     const roleConfig = {
@@ -239,4 +272,41 @@ exports.getOngoingJourney = async (roleId, ownerUserUniqueId) => {
     console.error("Error fetching ongoing journey:", error.message);
     return { message: "error", error: error.message };
   }
+};
+const searchOngoingJourneyByUserData = async (userData, roleId) => {
+  const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
+  console.log("usersData", usersData);
+
+  const users = usersData?.data;
+
+  // Check if users is undefined or an empty array
+  if (!users || users.length === 0) {
+    return { message: "failed", data: [] };
+  }
+
+  const driversOngoingJourneys = [];
+
+  for (const user of users) {
+    const ongoingJourneysData = await getOngoingJourney(
+      roleId,
+      user.userUniqueId
+    );
+    console.log("ongoingJourneysData", ongoingJourneysData);
+    if (ongoingJourneysData?.data?.length > 0) {
+      driversOngoingJourneys.push(...ongoingJourneysData.data);
+    }
+  }
+
+  if (driversOngoingJourneys.length === 0) {
+    return { message: "failed", data: [] };
+  }
+
+  return { message: "success", data: driversOngoingJourneys };
+};
+
+module.exports = {
+  searchOngoingJourneyByUserData,
+  getOngoingJourney,
+  getCompletedJourney,
+  searchCompletedJourneyByUserData,
 };

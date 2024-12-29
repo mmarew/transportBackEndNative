@@ -45,9 +45,19 @@ router.get(
   journeyController.getCompletedJourney
 );
 router.get(
+  "/api/user/searchCompletedJourneyByUserData/:userData/:roleId",
+  verifyTokenOfAxios,
+  journeyController.searchCompletedJourneyByUserData
+);
+router.get(
   "/api/user/getOngoingJourney/:ownerUserUniqueId/:roleId",
   verifyTokenOfAxios,
   journeyController.getOngoingJourney
+);
+router.get(
+  "/api/user/searchOngoingJourneyByUserData/:userData/:roleId",
+  verifyTokenOfAxios,
+  journeyController.searchOngoingJourneyByUserData
 );
 
 module.exports = router;
