@@ -7,7 +7,7 @@ const upload = require("../Config/MulterConfig");
 
 const router = express.Router();
 router.get(
-  "/api/admin/getUserByEmailOrNameOrPhoneNumber/:data",
+  "/api/admin/getUserByEmailOrNameOrPhoneNumber/:data/:roleId",
   verifyTokenOfAxios,
   constroller.getUserByEmailOrNameOrPhoneNumber
 );
@@ -18,12 +18,7 @@ router.get(
   verifyAdminsIdentity,
   constroller.getUsersByRoleUniqueId
 );
-router.get(
-  "/api/admin/searchUsersByRole/:userData/:roleUniqueId",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  constroller.searchUsersByRole
-);
+
 router.post("/api/user/createUser", constroller.createUser);
 router.post(
   "/api/admin/createUser",

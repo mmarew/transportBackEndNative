@@ -424,8 +424,11 @@ const getUserByUserUniqueId = async (userUniqueId) => {
   }
   return { message: "success", data: user[0] };
 };
-const getUserByEmailOrNameOrPhoneNumber = async (data) => {
-  const getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
+const getUserByEmailOrNameOrPhoneNumber = async (data, roleId) => {
+  let getUserQuery = `SELECT * FROM Users, UserRole, Roles WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ? AND Roles.roleId = ${roleId} AND Users.userUniqueId = UserRole.userUniqueId AND UserRole.roleId = Roles.roleId`;
+  if (!roleId) {
+    getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
+  }
 
   try {
     const [rows] = await pool.query(getUserQuery, [
@@ -435,11 +438,11 @@ const getUserByEmailOrNameOrPhoneNumber = async (data) => {
       `%${data}%`,
     ]);
 
-    if (rows.length > 0) {
+    // if (rows.length > 0) {
       return { message: "success", data: rows };
-    }
+    // }
 
-    return { message: "error", error: "User not found" };
+    // return { message: "failed", error: "User not found" };
   } catch (error) {
     return {
       message: "error",
@@ -476,40 +479,6 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
   };
 };
 
-const searchUsersByRole = async (userData, roleUniqueId) => {
-  try {
-    // Get users based on email, phone, or full name
-    const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
-    console.log("usersData", usersData);
-
-    const users = usersData?.data;
-
-    // Check if users exist
-    if (!users || users.length === 0) {
-      return { message: "failed", data: [] };
-    }
-
-    // Get users with the specified roleUniqueId
-    const passengersUserData = await getUsersByRoleUniqueId(roleUniqueId);
-    console.log("passengersUserData", passengersUserData);
-
-    const passengers = passengersUserData?.data || [];
-
-    // Filter users to only include passengers matching the search criteria
-    const filteredPassengers = passengers.filter((passenger) =>
-      users.some((user) => user.userUniqueId === passenger.userUniqueId)
-    );
-
-    if (filteredPassengers.length === 0) {
-      return { message: "failed", data: [] };
-    }
-
-    return { message: "success", data: filteredPassengers };
-  } catch (error) {
-    console.log("Error:", error);
-    return { message: "error", data: "An error occurred during the search." };
-  }
-};
 
 const loginUser = async (phoneNumber, roleId, statusId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
@@ -677,5 +646,5 @@ module.exports = {
   deleteUser,
   getAllUsers,
   loginUser,
-  searchUsersByRole,
+
 };
