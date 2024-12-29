@@ -120,6 +120,24 @@ exports.getCompletedJourney = async (req, res) => {
     });
   }
 };
+
+// searchCompletedJourneyByUserData;
+exports.searchCompletedJourneyByUserData = async (req, res) => {
+  try {
+    const { userData, roleId } = req.params;
+    ServerResponder(
+      res,
+      await journeyService.searchCompletedJourneyByUserData(userData, roleId)
+    );
+  } catch (error) {
+    console.log("Error searching completed journey by user data:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to search completed journey by user data",
+    });
+  }
+};
+
 // Get all ongoing journeys
 exports.getOngoingJourney = async (req, res) => {
   try {
@@ -149,3 +167,23 @@ exports.getOngoingJourney = async (req, res) => {
     });
   }
 };
+
+exports.searchOngoingJourneyByUserData = async (req, res) => {
+  try {
+    const { userData, roleId } = req.params;
+    ServerResponder(
+      res,
+      await journeyService.searchOngoingJourneyByUserData(userData, roleId)
+    );
+  } catch (error) {
+    console.log("Error searching ongoing journey by user data:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to search ongoing journey by user data",
+    });
+  }
+};
+
+// module.exports = {
+//   searchOngoingJourneyByUserData,
+// };

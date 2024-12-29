@@ -28,34 +28,6 @@ const createUserSystem = async (body) => {
     userRoleStatusDescription,
   });
 };
-const getUsersByRoleUniqueId = async (roleUniqueId) => {
-  const rows = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        table: "UserRole",
-        on: "UserRole.userUniqueId=Users.userUniqueId",
-      },
-      {
-        table: "Roles",
-        on: "UserRole.roleId=Roles.roleId",
-      },
-      {
-        table: "UserRoleStatusCurrent",
-        on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
-      },
-      {
-        table: "Statuses",
-        on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
-      },
-    ],
-    conditions: { "Roles.roleUniqueId": roleUniqueId },
-  });
-  return {
-    message: "success",
-    data: rows,
-  };
-};
 
 const handleExistingUser = async ({
   requestedFrom,
@@ -475,6 +447,70 @@ const getUserByEmailOrNameOrPhoneNumber = async (data) => {
     };
   }
 };
+const getUsersByRoleUniqueId = async (roleUniqueId) => {
+  const rows = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "UserRole.userUniqueId=Users.userUniqueId",
+      },
+      {
+        table: "Roles",
+        on: "UserRole.roleId=Roles.roleId",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
+      },
+      {
+        table: "Statuses",
+        on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
+      },
+    ],
+    conditions: { "Roles.roleUniqueId": roleUniqueId },
+  });
+  return {
+    message: "success",
+    data: rows,
+  };
+};
+
+const searchUsersByRole = async (userData, roleUniqueId) => {
+  try {
+    // Get users based on email, phone, or full name
+    const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
+    console.log("usersData", usersData);
+
+    const users = usersData?.data;
+
+    // Check if users exist
+    if (!users || users.length === 0) {
+      return { message: "failed", data: [] };
+    }
+
+    // Get users with the specified roleUniqueId
+    const passengersUserData = await getUsersByRoleUniqueId(roleUniqueId);
+    console.log("passengersUserData", passengersUserData);
+
+    const passengers = passengersUserData?.data || [];
+
+    // Filter users to only include passengers matching the search criteria
+    const filteredPassengers = passengers.filter((passenger) =>
+      users.some((user) => user.userUniqueId === passenger.userUniqueId)
+    );
+
+    if (filteredPassengers.length === 0) {
+      return { message: "failed", data: [] };
+    }
+
+    return { message: "success", data: filteredPassengers };
+  } catch (error) {
+    console.log("Error:", error);
+    return { message: "error", data: "An error occurred during the search." };
+  }
+};
+
 const loginUser = async (phoneNumber, roleId, statusId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
 
@@ -641,4 +677,5 @@ module.exports = {
   deleteUser,
   getAllUsers,
   loginUser,
+  searchUsersByRole,
 };

@@ -171,20 +171,34 @@ const getCanceledJourneys = async (ownerUniqueId, roleId) => {
 };
 const searchCanceledJourneyByUserData = async (userData, roleId) => {
   const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
-  const users = usersData.data;
+  const users = usersData?.data;
+
+  // Check if users is undefined or an empty array
+  if (!users || users.length === 0) {
+    return { message: "failed", data: [] };
+  }
+
   const driversCanceledJourneys = [];
-  // if (users.length >0) 
+
   for (const user of users) {
     const canceledJourneysData = await getCanceledJourneys(
       user.userUniqueId,
       roleId
     );
-    if (canceledJourneysData.data.length > 0) 
-    driversCanceledJourneys.push(canceledJourneysData.data);
+    if (canceledJourneysData?.data?.length > 0) {
+      driversCanceledJourneys.push(...canceledJourneysData.data);
+    }
   }
-  
-  return { message: "success", data: driversCanceledJourneys[0] };
+
+  if (driversCanceledJourneys.length === 0) {
+    return { message: "failed", data: [] };
+  }
+
+  return { message: "success", data: driversCanceledJourneys };
 };
+
+
+
 
 // Get a specific canceled journey by ID
 exports.getCanceledJourneyById = async (canceledJourneyUniqueId) => {

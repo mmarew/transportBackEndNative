@@ -31,6 +31,19 @@ const getUsersByRoleUniqueId = async (req, res) => {
     });
   }
 };
+const searchUsersByRole = async (req, res) => {
+  try {
+    const { userData, roleUniqueId } = req.params;
+    const response = await services.searchUsersByRole(userData, roleUniqueId);
+    ServerResponder(res, response);
+  } catch (error) {
+    console.log("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      data: "Failed to retrieve users",
+    });
+  }
+};
 const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
   try {
     const response = await services.getUserByEmailOrNameOrPhoneNumber(
@@ -236,4 +249,5 @@ module.exports = {
   deleteUser,
   getAllUsers,
   loginUser,
+  searchUsersByRole,
 };

@@ -18,6 +18,12 @@ router.get(
   verifyAdminsIdentity,
   constroller.getUsersByRoleUniqueId
 );
+router.get(
+  "/api/admin/searchUsersByRole/:userData/:roleUniqueId",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  constroller.searchUsersByRole
+);
 router.post("/api/user/createUser", constroller.createUser);
 router.post(
   "/api/admin/createUser",
