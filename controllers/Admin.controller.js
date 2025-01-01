@@ -3,7 +3,9 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const AdminController = {
   // Fetch online drivers
+
   getOfflineDrivers: async (req, res) => {
+    console.log("get offline drivers");
     try {
       ServerResponder(res, await adminServices.getOfflineDrivers(req));
     } catch (error) {
@@ -14,17 +16,18 @@ const AdminController = {
       });
     }
   },
-  searchOfflineDrivers :async (req, res) => {
-  try {
-    const { query } = req.params; 
-    ServerResponder(res, await adminServices.searchOfflineDrivers(query));
-  } catch (error) {
-    console.error("Error in searchOfflineDrivers:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to search offline drivers",
-    });
-  }
+  searchOfflineDrivers: async (req, res) => {
+    console.log("search offline drivers");
+    try {
+      const { query } = req.params;
+      ServerResponder(res, await adminServices.searchOfflineDrivers(query));
+    } catch (error) {
+      console.error("Error in searchOfflineDrivers:", error);
+      ServerResponder(res, {
+        message: "error",
+        error: "Failed to search offline drivers",
+      });
+    }
   },
 
   getOnlineDrivers: async (req, res) => {
@@ -38,21 +41,22 @@ const AdminController = {
       });
     }
   },
-  searchOnlineDrivers :async (req, res) => {
-  try {
-    const { query } = req.params; 
-   
-    ServerResponder(res, await adminServices.searchOnlineDrivers(query));
-  } catch (error) {
-    console.error("Error in searchOnlineDrivers:", error);
-   ServerResponder(res, {
-      message: "error",
-      error: "Failed to search online drivers",
-    });
-  }
+  searchOnlineDrivers: async (req, res) => {
+    try {
+      const { query } = req.params;
+
+      ServerResponder(res, await adminServices.searchOnlineDrivers(query));
+    } catch (error) {
+      console.error("Error in searchOnlineDrivers:", error);
+      ServerResponder(res, {
+        message: "error",
+        error: "Failed to search online drivers",
+      });
+    }
   },
 
   getAllActiveDrivers: async (req, res) => {
+    console.log("get all active drivers");
     try {
       ServerResponder(res, await adminServices.getAllActiveDrivers(req));
     } catch (error) {
@@ -63,20 +67,20 @@ const AdminController = {
       });
     }
   },
-  searchActiveDrivers :async (req, res) => {
-  try {
-    const { query } = req.params; 
-  
-     ServerResponder(res, await adminServices.searchActiveDrivers(query));
-  } catch (error) {
-    console.log("Error in searchActiveDrivers:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to search active drivers",
-    });
-  }
-},
+  searchActiveDrivers: async (req, res) => {
+    console.log("search active drivers");
+    try {
+      const { query } = req.params;
 
+      ServerResponder(res, await adminServices.searchActiveDrivers(query));
+    } catch (error) {
+      console.log("Error in searchActiveDrivers:", error);
+      ServerResponder(res, {
+        message: "error",
+        error: "Failed to search active drivers",
+      });
+    }
+  },
 
   getunAuthorizedDriver: async (req, res) => {
     try {
@@ -89,21 +93,20 @@ const AdminController = {
       });
     }
   },
-  searchUnauthorizedDriver:async (req, res) => {
-  try {
-    const { query } = req.params; // Extract the search query from the route parameter
-    // const results = await adminServices.searchUnauthorizedDriver(query);
-    // return ServerResponder(res, results);
-    ServerResponder(res, await adminServices.searchUnauthorizedDriver(query));
-  } catch (error) {
-    console.error("Error in searchUnauthorizedDriver:", error);
-     ServerResponder(res, {
-      message: "error",
-      error: "Failed to search unauthorized drivers",
-    });
-  }
-}
-
+  searchUnauthorizedDriver: async (req, res) => {
+    try {
+      const { query } = req.params; // Extract the search query from the route parameter
+      // const results = await adminServices.searchUnauthorizedDriver(query);
+      // return ServerResponder(res, results);
+      ServerResponder(res, await adminServices.searchUnauthorizedDriver(query));
+    } catch (error) {
+      console.error("Error in searchUnauthorizedDriver:", error);
+      ServerResponder(res, {
+        message: "error",
+        error: "Failed to search unauthorized drivers",
+      });
+    }
+  },
 };
 
 module.exports = AdminController;

@@ -161,8 +161,8 @@ const getCanceledJourneys = async (ownerUniqueId, roleId) => {
 
     const cancelationData = await getCancellationDetails(contextId);
     data.push({
-      driver: driverData[0],
-      passenger: passengerData[0],
+      driver: driverData?.[0],
+      passenger: passengerData?.[0],
       cancellationDetails: cancelationData,
     });
   }
@@ -196,9 +196,6 @@ const searchCanceledJourneyByUserData = async (userData, roleId) => {
 
   return { message: "success", data: driversCanceledJourneys };
 };
-
-
-
 
 // Get a specific canceled journey by ID
 const getCanceledJourneyById = async (canceledJourneyUniqueId) => {
@@ -249,4 +246,5 @@ module.exports = {
   updateCanceledJourney,
   deleteCanceledJourney,
   getCanceledJourneysByUserUniqueId,
+  getCanceledJourneysFiltered,
 };
