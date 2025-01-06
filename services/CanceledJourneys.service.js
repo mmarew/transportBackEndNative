@@ -175,7 +175,7 @@ const searchCanceledJourneyByUserData = async (userData, roleId) => {
 
   // Check if users is undefined or an empty array
   if (!users || users.length === 0) {
-    return { message: "failed", data: [] };
+    return { message: "success", data: [] };
   }
 
   const driversCanceledJourneys = [];
@@ -188,10 +188,6 @@ const searchCanceledJourneyByUserData = async (userData, roleId) => {
     if (canceledJourneysData?.data?.length > 0) {
       driversCanceledJourneys.push(...canceledJourneysData.data);
     }
-  }
-
-  if (driversCanceledJourneys.length === 0) {
-    return { message: "failed", data: [] };
   }
 
   return { message: "success", data: driversCanceledJourneys };

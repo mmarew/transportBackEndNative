@@ -29,7 +29,7 @@ router.get(
 
 // Update a tariff rate for vehicle type by ID
 router.put(
-  "/api/admin/tarrifRateForVehicleType/:id",
+  "/api/admin/tarrifRateForVehicleType/:tarrifRateForVehicleTypeUniqueId",
   verifyTokenOfAxios,
 
   tarrifRateForVehicleTypesController.updateTarrifRateForVehicleType
@@ -37,10 +37,9 @@ router.put(
 
 // Delete a tariff rate for vehicle type by ID
 router.delete(
-  "/api/admin/tarrifRateForVehicleType/:id",
+  "/api/admin/tarrifRateForVehicleType/:tarrifRateForVehicleTypeUniqueId",
   verifyTokenOfAxios,
 
   tarrifRateForVehicleTypesController.deleteTarrifRateForVehicleType
 );
-
 module.exports = router;

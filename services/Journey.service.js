@@ -190,7 +190,7 @@ const searchCompletedJourneyByUserData = async (userData, roleId) => {
 
   // Check if users is undefined or an empty array
   if (!users || users.length === 0) {
-    return { message: "failed", data: [] };
+    return { message: "success", data: [] };
   }
 
   const driversCompletedJourneys = [];
@@ -206,9 +206,7 @@ const searchCompletedJourneyByUserData = async (userData, roleId) => {
     }
   }
 
-  if (driversCompletedJourneys.length === 0) {
-    return { message: "failed", data: [] };
-  }
+
 
   return { message: "success", data: driversCompletedJourneys };
 };
@@ -281,7 +279,7 @@ const searchOngoingJourneyByUserData = async (userData, roleId) => {
 
   // Check if users is undefined or an empty array
   if (!users || users.length === 0) {
-    return { message: "failed", data: [] };
+    return { message: "success", data: [] };
   }
 
   const driversOngoingJourneys = [];
@@ -295,10 +293,6 @@ const searchOngoingJourneyByUserData = async (userData, roleId) => {
     if (ongoingJourneysData?.data?.length > 0) {
       driversOngoingJourneys.push(...ongoingJourneysData.data);
     }
-  }
-
-  if (driversOngoingJourneys.length === 0) {
-    return { message: "failed", data: [] };
   }
 
   return { message: "success", data: driversOngoingJourneys };

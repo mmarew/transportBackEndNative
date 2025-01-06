@@ -54,7 +54,7 @@ exports.updateTarrifRateForVehicleType = async (req, res) => {
   try {
     const result =
       await tarrifRateForVehicleTypesService.updateTarrifRateForVehicleType(
-        req.params.id,
+        req.params.tarrifRateForVehicleTypeUniqueId,
         req.body
       );
     ServerResponder(res, result);
@@ -71,7 +71,7 @@ exports.deleteTarrifRateForVehicleType = async (req, res) => {
   try {
     const result =
       await tarrifRateForVehicleTypesService.deleteTarrifRateForVehicleType(
-        req.params.id
+        req.params.tarrifRateForVehicleTypeUniqueId
       );
     ServerResponder(res, result);
   } catch (error) {
