@@ -122,11 +122,8 @@ WHERE
 
   const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
   const [data] = await pool.query(sql, [wildcardQuery, wildcardQuery, wildcardQuery]);
-  if(data.length>0){
     return {message:"success",data:data}
-  }else{
-    return {message:"failed",data:data}
-  }
+
 },
 
 
@@ -234,12 +231,8 @@ WHERE
       return { user, documents };
     })
   );
-
-    if(usersWithDocuments.length>0){
-      return {message:"success",data:usersWithDocuments}
-    }else{
-      return {message:"failed",data:usersWithDocuments}
-    }
+return {message:"success",data:usersWithDocuments}
+ 
     
 }
 

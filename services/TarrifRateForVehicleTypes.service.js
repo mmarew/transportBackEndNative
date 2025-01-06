@@ -96,13 +96,20 @@ exports.getTarrifRateForVehicleTypeById = async (tarrifRateForVehcleTypeId) => {
 };
 
 // Update a tariff rate for vehicle type by ID
-exports.updateTarrifRateForVehicleType = async (id, data) => {
+exports.updateTarrifRateForVehicleType = async (
+  tarrifRateForVehicleTypeUniqueId,
+  data
+) => {
   const sql = `
     UPDATE TarrifRateForVehcleTypes
-    SET vehicleTypeUniqueId = ?, tarrifRateId = ?
-    WHERE tarrifRateForVehcleTypeId = ?
+    SET vehicleTypeUniqueId = ?, tarrifRateUniqueId = ?
+    WHERE tarrifRateForVehcleTypeUniqueId = ?
   `;
-  const values = [data.vehicleTypeUniqueId, data.tarrifRateId, id];
+  const values = [
+    data.vehicleTypeUniqueId,
+    data.tarrifRateUniqueId,
+    tarrifRateForVehicleTypeUniqueId,
+  ];
   const [result] = await pool.query(sql, values);
   return {
     message: "success",
@@ -111,9 +118,11 @@ exports.updateTarrifRateForVehicleType = async (id, data) => {
 };
 
 // Delete a tariff rate for vehicle type by ID
-exports.deleteTarrifRateForVehicleType = async (id) => {
-  const sql = `DELETE FROM TarrifRateForVehcleTypes WHERE tarrifRateForVehcleTypeId = ?`;
-  const [result] = await pool.query(sql, [id]);
+exports.deleteTarrifRateForVehicleType = async (
+  tarrifRateForVehicleTypeUniqueId
+) => {
+  const sql = `DELETE FROM TarrifRateForVehcleTypes WHERE tarrifRateForVehcleTypeUniqueId = ?`;
+  const [result] = await pool.query(sql, [tarrifRateForVehicleTypeUniqueId]);
   return {
     message: "success",
     data: "Tariff rate for vehicle type deleted successfully",

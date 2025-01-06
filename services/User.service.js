@@ -425,24 +425,40 @@ const getUserByUserUniqueId = async (userUniqueId) => {
   return { message: "success", data: user[0] };
 };
 const getUserByEmailOrNameOrPhoneNumber = async (data, roleId) => {
-  let getUserQuery = `SELECT * FROM Users, UserRole, Roles WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ? AND Roles.roleId = ${roleId} AND Users.userUniqueId = UserRole.userUniqueId AND UserRole.roleId = Roles.roleId`;
+  // let getUserQuery = `SELECT * FROM Users, UserRole, Roles WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ? AND Roles.roleId = ${roleId} AND Users.userUniqueId = UserRole.userUniqueId AND UserRole.roleId = Roles.roleId`;
+
+  let getUserQuery = `SELECT *
+FROM Users
+JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+JOIN Roles ON UserRole.roleId = Roles.roleId
+WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
+  AND Roles.roleId = ?`;
   if (!roleId) {
     getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
   }
 
   try {
-    const [rows] = await pool.query(getUserQuery, [
-      data,
-      `%${data}%`,
-      `%${data}%`,
-      `%${data}%`,
-    ]);
+    // const [rows] = await pool.query(getUserQuery, [
+    //   data,
+    //   `%${data}%`,
+    //   `%${data}%`,
+    //   `%${data}%`,
+    // ]);
 
     // if (rows.length > 0) {
-      return { message: "success", data: rows };
+    // return { message: "success", data: rows };
     // }
 
     // return { message: "failed", error: "User not found" };
+
+    const queryParams = roleId
+      ? [`%${data}%`, `%${data}%`, `%${data}%`, roleId]
+      : [`%${data}%`, `%${data}%`, `%${data}%`];
+
+    // Execute the query
+    const [rows] = await pool.query(getUserQuery, queryParams);
+
+    return { message: "success", data: rows };
   } catch (error) {
     return {
       message: "error",
@@ -478,7 +494,6 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
     data: rows,
   };
 };
-
 
 const loginUser = async (phoneNumber, roleId, statusId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
@@ -646,5 +661,4 @@ module.exports = {
   deleteUser,
   getAllUsers,
   loginUser,
-
 };
