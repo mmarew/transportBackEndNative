@@ -24,11 +24,12 @@ const createVehicleStatusType = async (data) => {
   }
   // statusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
   // statusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
-
+  const VehicleStatusTypeCreatedBy = "admin";
   const payload = {
     VehicleStatusTypeName: data.VehicleStatusTypeName,
     VehicleStatusTypeDescription: data.statusTypeDescription,
     VehicleStatusTypeCreatedAt: new Date(),
+    VehicleStatusTypeCreatedBy,
   };
   const result = await insertData({
     tableName: "VehicleStatusType",

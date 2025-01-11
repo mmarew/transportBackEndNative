@@ -69,7 +69,6 @@ const getCanceledJourneysFiltered = async ({
   const [result] = await pool.query(sql, values);
   return result;
 };
-
 //  get drvers information, passengers information, and cancellation details in each canceled journey like [{driver: {}, passenger: {}, cancellationDetails: {}}]
 const getCanceledJourneys = async (ownerUniqueId, roleId) => {
   let sql = null,
@@ -179,18 +178,17 @@ const searchCanceledJourneyByUserData = async (userData, roleId) => {
   }
 
   const driversCanceledJourneys = [];
-
+  // if (users.length >0)
   for (const user of users) {
     const canceledJourneysData = await getCanceledJourneys(
       user.userUniqueId,
       roleId
     );
-    if (canceledJourneysData?.data?.length > 0) {
-      driversCanceledJourneys.push(...canceledJourneysData.data);
-    }
+    if (canceledJourneysData.data.length > 0)
+      driversCanceledJourneys.push(canceledJourneysData.data);
   }
 
-  return { message: "success", data: driversCanceledJourneys };
+  return { message: "success", data: driversCanceledJourneys[0] };
 };
 
 // Get a specific canceled journey by ID
@@ -235,12 +233,13 @@ const getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
   return result;
 };
 module.exports = {
+  createCanceledJourney,
+  getCanceledJourneysFiltered,
+
   getCanceledJourneys,
   searchCanceledJourneyByUserData,
-  createCanceledJourney,
-  getCanceledJourneyById,
-  updateCanceledJourney,
-  deleteCanceledJourney,
   getCanceledJourneysByUserUniqueId,
-  getCanceledJourneysFiltered,
+  deleteCanceledJourney,
+  updateCanceledJourney,
+  getCanceledJourneyById,
 };

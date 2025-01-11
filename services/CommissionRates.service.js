@@ -27,15 +27,17 @@ exports.createCommissionRate = async ({
       commissionRateUniqueId,
       commissionRate,
       commissionRateEffectiveDate,
-      commissionRateCreatedBy
-     ) VALUES (?, ?, ?, ?)
+      commissionRateCreatedBy,commissionRateExpirationDate
+     ) VALUES (?, ?, ?, ?,?)
   `;
+  const commissionRateExpirationDate = "2028-10-10";
 
   const values = [
     commissionRateUniqueId,
     commissionRate,
     commissionRateEffectiveDate,
     commissionRateCreatedBy,
+    commissionRateExpirationDate,
   ];
 
   const [result] = await pool.query(sqlQueryToInsert, values);

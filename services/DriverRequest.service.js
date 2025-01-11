@@ -20,8 +20,7 @@ const {
   sendNotificationToPassenger,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
-const { createCanceledJourney } = require("./CanceledJourneys.service");
-const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
+ const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 const PaymentCalculator = require("../Utils/PaymentCalculator");
 const { createPayment } = require("./Payments.service");
 const calculateCommision = require("../Utils/calculateCommision");
@@ -41,6 +40,7 @@ const { createJourneyDecision } = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/currentDate");
 const { createJourney } = require("./Journey.service");
 const { createPassengerRequest } = require("./PassengerRequest.service");
+const { createCanceledJourney } = require("./CanceledJourneys.service");
 
 const createRequest = async (body, user) => {
   try {

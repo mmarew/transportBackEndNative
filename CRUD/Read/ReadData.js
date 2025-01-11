@@ -226,10 +226,10 @@ const performJoinSelect = async ({
   const joinClauses = joins
     .map(({ table, on }) => `JOIN ${table} ON ${on}`)
     .join(" ");
-  const orderByClause = orderBy ? `ORDER BY ${orderBy} ${orderDirection}` : "";
-  const limitClause = limit ? `LIMIT ${limit}` : "";
-  const offsetClause = offset ? `OFFSET ${offset}` : "";
-  const groupByClause = groupBy ? `GROUP BY ${groupBy}` : ""; // Optional group by
+  const orderByClause = orderBy ? ` ORDER BY ${orderBy} ${orderDirection}` : "";
+  const limitClause = limit ? ` LIMIT ${limit}` : "";
+  const offsetClause = offset ? ` OFFSET ${offset}` : "";
+  const groupByClause = groupBy ? ` GROUP BY ${groupBy}` : ""; // Optional group by
 
   // Construct the final SQL query
   const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;

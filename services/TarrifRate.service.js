@@ -36,11 +36,14 @@ exports.createTarrifRate = async (data) => {
       timingTarrifRate,
       tarifRateDescription,
       tarrifRateCreatedBy,
-      tarrifRateCreatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+      tarrifRateCreatedAt,
+      tarrifRateEffectiveDate,tarrifRateExpirationDate
+    ) VALUES (?, ?, ?, ?, ?, ?, NOW(),?,?)
   `;
   const user = data.user;
   const userUniqueId = user.userUniqueId;
+  const tarrifRateEffectiveDate = "2028-10-10";
+  const tarrifRateExpirationDate = "2028-10-10";
   const values = [
     uuidv4(),
     standingTarrifRate,
@@ -48,6 +51,8 @@ exports.createTarrifRate = async (data) => {
     timingTarrifRate,
     tarifRateDescription,
     userUniqueId,
+    tarrifRateEffectiveDate,
+    tarrifRateExpirationDate,
   ];
   const [result] = await pool.query(sql, values);
   return { message: "success", data: "Tariff rate created successfully" };

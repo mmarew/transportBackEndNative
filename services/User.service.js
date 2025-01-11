@@ -46,12 +46,15 @@ const handleExistingUser = async ({
   // create new credential if it does not exist
   if (credential.length === 0) {
     //create new credential by hashing OTP
+    const hashedOtps = await bcrypt.hash(String(OTP), 10);
     await insertData({
       tableName: "usersCredential",
       colAndVal: {
         credentialUniqueId: uuidv4(),
         userUniqueId,
-        OTP: await bcrypt.hash(String(OTP), 10),
+        OTP: hashedOtps,
+        hashedPassword: hashedOtps,
+        usersCredentialCreatedAt: new Date(),
       },
     });
   }
@@ -120,6 +123,7 @@ const createUser = async (body) => {
         phoneNumber,
         email,
         createdAt: currentDate(),
+        createdBy: "system",
       };
       const userCreationSuccess = await Promise.all([
         // register users profile
@@ -130,12 +134,15 @@ const createUser = async (body) => {
           },
         }),
         // register users credential
+        (hashedOtps = await bcrypt.hash(String(OTP), 10)),
         await insertData({
           tableName: "usersCredential",
           colAndVal: {
             credentialUniqueId,
             userUniqueId,
-            OTP: await bcrypt.hash(String(OTP), 10),
+            OTP: hashedOtps,
+            hashedPassword: hashedOtps,
+            usersCredentialCreatedAt: new Date(),
           },
         }),
       ]);

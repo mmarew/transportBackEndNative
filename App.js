@@ -9,7 +9,9 @@ const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const path = require("path");
 const { createUserSystem } = require("./Services/User.service.js");
 const loggingMiddleware = require("./Middleware/loggingMiddleware.js");
-
+const getLocalIpAddress = require("./Utils/MyIpAddress.js");
+// getLocalIpAddress();
+console.log("getLocalIpAddress", getLocalIpAddress());
 // Initialize Express app
 const app = express();
 // app.use(loggingMiddleware);

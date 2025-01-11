@@ -1,10 +1,16 @@
+require("dotenv").config();
 const mysql = require("mysql2/promise");
 
 // MySQL connection configuration
 const HOST = process.env.HOST;
-const USER = process.env.USER;
+const USER = process.env.DB_USER;
 const PASSWORD = process.env.PASSWORD;
 const DATABASE = process.env.DATABASE;
+const PORT = process.env.DB_PORT;
+console.log("HOST ", HOST);
+console.log("USER ", USER);
+console.log("PASSWORD ", PASSWORD);
+console.log("DATABASE ", DATABASE);
 
 if (!HOST || !USER || !DATABASE) {
   throw new Error(
@@ -18,10 +24,12 @@ const config = {
   password: PASSWORD,
   database: DATABASE,
   waitForConnections: true,
+  port: PORT,
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 10000, // 10 seconds
   multipleStatements: true, // Enable multiple statements
+  Socket: "/Applications/MAMP/tmp/mysql/mysql.sock",
 };
 
 // Create a connection pool
