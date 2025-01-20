@@ -37,13 +37,10 @@ const createPassengerRequest = async (body, user) => {
   }
 };
 
-const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
+const getPassengerRequestByPassengerRequestUniqueId = async (
+  passengerRequestUniqueId
+) => {
   try {
-    // const result = await getData({
-    //   tableName: "PassengerRequest",
-    //   conditions: { passengerRequestId },
-    // });
-
     const result = await performJoinSelect({
       baseTable: "PassengerRequest",
       joins: [
@@ -53,7 +50,7 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
         },
       ],
       conditions: {
-        passengerRequestId,
+        passengerRequestUniqueId,
       },
     });
 
@@ -428,7 +425,7 @@ module.exports = {
   cancelPassengerRequest,
   verifyPassengerStatus,
   createPassengerRequest,
-  getPassengerRequestByPassengerRequestId,
+  getPassengerRequestByPassengerRequestUniqueId,
   updateRequestById,
   deleteRequest,
 };

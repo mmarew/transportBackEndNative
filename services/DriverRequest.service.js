@@ -5,6 +5,7 @@ const {
 
   performJoinSelect,
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
+  getDriverRequestByRequestUniqueId,
 } = require("../CRUD/Read/ReadData");
 
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -19,8 +20,9 @@ const { v4: uuidv4 } = require("uuid");
 const {
   sendNotificationToPassenger,
   sendNotificationToAdmin,
+  sendNotificationToDriver,
 } = require("../Utils/Notifications");
- const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
+const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 const PaymentCalculator = require("../Utils/PaymentCalculator");
 const { createPayment } = require("./Payments.service");
 const calculateCommision = require("../Utils/calculateCommision");
@@ -39,16 +41,21 @@ const {
 const { createJourneyDecision } = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/currentDate");
 const { createJourney } = require("./Journey.service");
-const { createPassengerRequest } = require("./PassengerRequest.service");
+const {
+  createPassengerRequest,
+  getPassengerRequestByPassengerRequestUniqueId,
+} = require("./PassengerRequest.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
+const messageTypes = require("../Utils/MessageTypes");
 
 const createRequest = async (body, user) => {
   try {
-    // 1. Check if the user exists
+    // 1. find user unique id from user object
     const userUniqueId = user?.userUniqueId;
 
     // 2. Check if the driver already has an active request
     const activeRequest = await checkActiveDriverRequest(userUniqueId);
+
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
       await createDriverRequest(body, userUniqueId);
@@ -102,7 +109,6 @@ const takeFromStreet = async (body, user) => {
         error: "Unable to create passenger request",
       };
     }
-    console.log("@takeFromStreet body =============> ", body);
     const driverRequest = await createDriverRequest(
       body,
       userUniqueId,
@@ -254,8 +260,17 @@ const startJourney = async (body) => {
   return message;
 };
 const noAnswerFromDriver = async (body) => {
-  const userUniqueId = body.userUniqueId;
-  const passengerData = body.passenger;
+  const passengerRequestUniqueId = body.passengerRequestUniqueId;
+  const passengerRequest = await getPassengerRequestByPassengerRequestUniqueId(
+    passengerRequestUniqueId
+  );
+  const driverRequestUniqueId = body.driverRequestUniqueId;
+  const driverRequest = await getDriverRequestByRequestUniqueId(
+    driverRequestUniqueId
+  );
+  const driverData = driverRequest.data;
+  const driverPhoneNumber = driverData.phoneNumber;
+  const passengerData = passengerRequest.data;
   const originLocation = {
       latitude: passengerData.originLatitude,
       longitude: passengerData.originLongitude,
@@ -266,46 +281,54 @@ const noAnswerFromDriver = async (body) => {
       latitude: passengerData.destinationLatitude,
       longitude: passengerData.destinationLongitude,
       description: passengerData.destinationPlace,
+    },
+    passengerRequestData = {
+      destination,
+      vehicle,
+      originLocation,
     };
-  const passengerRequestData = {
-    destination,
-    vehicle,
-    originLocation,
-  };
 
   const existingRequest = await getData({
     tableName: "DriverRequest",
     conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
   });
-  // console.log("existingRequest", existingRequest);
-  // return existingRequest;
-  const journeyStatusId = existingRequest[0].journeyStatusId;
-  if (journeyStatusId != 2) {
-    return {
-      message: "error",
-      error: "driver request not found",
-    };
-  }
-  await updateJourneyStatus(body);
-  const message = await verifyDriverStatus({
-    userUniqueId,
-  });
 
-  // recreate new passenger request to other driver
+  const journeyStatusId = existingRequest[0]?.journeyStatusId;
+  // if (journeyStatusId != 2) {
+  //   return {
+  //     message: "error",
+  //     error: "driver request not found",
+  //   };
+  // }
+  await updateJourneyStatus(body);
+
   const newPassengerRequest = await createPassengerRequest(
     passengerRequestData,
     passengerData
   );
-  console.log("newPassengerRequest =========> ", newPassengerRequest);
-  const passenger = message.passenger;
-  console.log("passenger", passenger);
-  sendNotificationToPassenger({
-    message: {
-      ...newPassengerRequest,
-    },
-    phoneNumber: passengerData?.phoneNumber,
+  console.log("newPassengerRequest", newPassengerRequest);
+  const passengerPhoneNumber = newPassengerRequest?.passenger?.phoneNumber;
+  console.log("passengerPhoneNumber", passengerPhoneNumber);
+  const messageToPassenger = {
+    messageType: messageTypes.request_other_driver,
+    ...newPassengerRequest,
+  };
+  const messageToDriver = {
+    message: "success",
+    pasenger: null,
+    driver: null,
+    status: null,
+    messageType: messageTypes.driver_not_answered,
+  };
+  sendNotificationToDriver({
+    message: messageToDriver,
+    phoneNumber: driverPhoneNumber,
   });
-  return message;
+  sendNotificationToPassenger({
+    message: messageToPassenger,
+    phoneNumber: passengerPhoneNumber,
+  });
+  return { message: "success", data: messageTypes.driver_not_answered };
 };
 
 const journeyCompleted = async (body) => {
@@ -671,7 +694,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleResponse = await getVehicleAndOwnershipViaUserUniqueId(
       userUniqueId
     );
-    console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
+    // console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
     const vehicle = vehicleResponse?.data?.[0];
     if (!vehicle) {
       return {
@@ -685,10 +708,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleTarrifRateResponse = await getTarrifRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
     );
-    console.log(
-      "@verifyDriverStatus  vehicleTarrifRateResponse",
-      vehicleTarrifRateResponse
-    );
+
     const vehicleTarrifRate = vehicleTarrifRateResponse?.data?.[0];
 
     // Step 2: Check for an active driver request
@@ -727,7 +747,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
         vehicleTarrifRate,
         vehicleTypeUniqueId
       );
-      console.log("@JourneyStatusOne", JourneyStatusOne);
       return JourneyStatusOne;
     }
 
@@ -736,7 +755,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       vehicle,
       vehicleTarrifRate
     );
-    console.log("existingJourney", existingJourney);
     return existingJourney;
   } catch (error) {
     console.error(
@@ -804,13 +822,18 @@ const handleJourneyStatusOne = async (
   ]);
 
   const message = {
+    status: 2,
     uniqueIds: {
       driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
       passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
       journeyDecisionUniqueId: journeyDecisionPayload?.journeyDecisionUniqueId,
     },
-    driver: { driver: driverRequest, vehicle, vehicleTarrifRate },
-    passenger,
+    driver: {
+      driver: { ...driverRequest, journeyStatusId: 2 },
+      vehicle,
+      vehicleTarrifRate,
+    },
+    passenger: { ...passenger, journeyStatusId: 2 },
     journey: null,
     decisions: journeyDecisionPayload,
   };

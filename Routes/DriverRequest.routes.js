@@ -10,11 +10,13 @@ const {
   journeyCompleted,
   attachRequiredDocuments,
   cancelDriverRequest,
-  driversDocumentVehicleRequirement,
   takeFromStreet,
 } = require("../Controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
-const { verifyDriversIdentity } = require("../Middleware/verifyUsersIdentity");
+const {
+  verifyDriversIdentity,
+  verifyPassengersIdentity,
+} = require("../Middleware/verifyUsersIdentity");
 
 const router = express.Router();
 
@@ -48,6 +50,13 @@ router.put(
   verifyDriversIdentity,
   startJourney
 );
+router.put(
+  "/passenger/noAnswerFromDriver",
+  verifyTokenOfAxios,
+  verifyPassengersIdentity,
+  noAnswerFromDriver
+);
+
 router.put(
   "/driver/noAnswerFromDriver",
   verifyTokenOfAxios,

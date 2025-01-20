@@ -96,6 +96,8 @@ const startJourney = async (req, res) => {
 };
 const noAnswerFromDriver = async (req, res) => {
   try {
+    console.log("@noAnswerFromDriver req.body is ", req.body);
+
     const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = 11;

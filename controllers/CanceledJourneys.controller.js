@@ -4,6 +4,7 @@ const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const {
   cancelPassengerRequest,
 } = require("../Services/PassengerRequest.service");
+const messageTypes = require("../Utils/MessageTypes");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const serverResponder = require("../Utils/ServerResponder");
@@ -58,8 +59,13 @@ const canceledJourneyBySystem = async (
       // Notify the passenger
       await sendNotificationToPassenger({
         phoneNumber: request.phoneNumber,
-        message:
-          "Dear customer, we apologize to inform you. Your request has been canceled by the system because no vehicle is available nearby. Please try again later.",
+        message: {
+          message: "success",
+          statuss: null,
+          driver: null,
+          passenger: null,
+          messageTypes: messageTypes.request_other_driver,
+        },
       });
 
       // If there's a response object, send success message after each cancellation
@@ -165,7 +171,13 @@ const getCanceledJourneys = async (req, res) => {
 const searchCanceledJourneyByUserData = async (req, res) => {
   try {
     const { userData, roleId } = req.params;
-    ServerResponder(res, await canceledJourneyService.searchCanceledJourneyByUserData(userData, roleId));
+    ServerResponder(
+      res,
+      await canceledJourneyService.searchCanceledJourneyByUserData(
+        userData,
+        roleId
+      )
+    );
   } catch (error) {
     console.log("Error searching canceled journey by user data:", error);
     ServerResponder(res, {
