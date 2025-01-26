@@ -58,6 +58,10 @@ const messageTypes = {
     message: "driver is not responding",
     detailes: "driver dont respond to current passengers request ",
   },
+  driver_answred_calls: {
+    message: "driver responded to calls",
+    detailes: "driver respond to passenger calls",
+  },
   online_driver_not_found: {
     message: "online driver not found",
     detailes:

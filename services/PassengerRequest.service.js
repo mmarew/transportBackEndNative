@@ -344,6 +344,7 @@ const cancelPassengerRequest = async (body) => {
       // If there's no journey decision related to this request and cancellation is successfully registered, return success
       if (canceledJourney.message === "success")
         return {
+          status: null,
           message: "success",
           data: "You have successfully cancelled your request.",
         };

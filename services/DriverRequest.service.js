@@ -2,15 +2,12 @@ const {
   getData,
   findNearbyPassengers,
   checkActiveDriverRequest,
-
   performJoinSelect,
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   getDriverRequestByRequestUniqueId,
 } = require("../CRUD/Read/ReadData");
-
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
-
 const {
   insertData,
   createDriverRequest,
@@ -225,10 +222,11 @@ const startJourney = async (body) => {
   const journeyUniqueId = uuidv4();
   const { latitude, longitude } = body;
   // check if driver has active journey request by journeyDecisionUniqueId,
-  const exisistingJourney = await getData({
+  let exisistingJourney = await getData({
     tableName: "Journey",
     conditions: { journeyDecisionUniqueId: body.journeyDecisionUniqueId },
   });
+  console.log("@exisistingJourney", exisistingJourney);
 
   if (exisistingJourney.length == 0) {
     const insertResult = await insertData({
@@ -248,10 +246,13 @@ const startJourney = async (body) => {
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
+
   const passenger = message?.passenger;
   phoneNumber = passenger?.phoneNumber;
+  const journeyStatusId = passenger.journeyStatusId;
+  console.log("@start journey passenger", passenger);
   // send notification to passenger if driver has an active journey request and passenger has a phoneNumber
-  if (phoneNumber && exisistingJourney[0]?.journeyStatusId === 3)
+  if (phoneNumber && journeyStatusId == 4)
     await sendNotificationToPassenger({
       message,
       phoneNumber,
@@ -259,6 +260,7 @@ const startJourney = async (body) => {
 
   return message;
 };
+// as the name indicates when driver not answered calls noAnswerFromDriver will be executed
 const noAnswerFromDriver = async (body) => {
   const passengerRequestUniqueId = body.passengerRequestUniqueId;
   const passengerRequest = await getPassengerRequestByPassengerRequestUniqueId(
@@ -268,9 +270,19 @@ const noAnswerFromDriver = async (body) => {
   const driverRequest = await getDriverRequestByRequestUniqueId(
     driverRequestUniqueId
   );
+  console.log("@passengerRequest", passengerRequest);
+  console.log("@driverRequest", driverRequest);
+
   const driverData = driverRequest.data;
-  const driverPhoneNumber = driverData.phoneNumber;
   const passengerData = passengerRequest.data;
+  if (passengerData.journeyStatusId > 2 && passengerData.journeyStatusId < 5) {
+    return {
+      message: "success",
+      data: messageTypes.driver_answred_calls,
+    };
+  }
+
+  const driverPhoneNumber = driverData.phoneNumber;
   const originLocation = {
       latitude: passengerData.originLatitude,
       longitude: passengerData.originLongitude,
@@ -288,18 +300,6 @@ const noAnswerFromDriver = async (body) => {
       originLocation,
     };
 
-  const existingRequest = await getData({
-    tableName: "DriverRequest",
-    conditions: { driverRequestUniqueId: body.driverRequestUniqueId },
-  });
-
-  const journeyStatusId = existingRequest[0]?.journeyStatusId;
-  // if (journeyStatusId != 2) {
-  //   return {
-  //     message: "error",
-  //     error: "driver request not found",
-  //   };
-  // }
   await updateJourneyStatus(body);
 
   const newPassengerRequest = await createPassengerRequest(
@@ -328,7 +328,11 @@ const noAnswerFromDriver = async (body) => {
     message: messageToPassenger,
     phoneNumber: passengerPhoneNumber,
   });
-  return { message: "success", data: messageTypes.driver_not_answered };
+  return {
+    status: newPassengerRequest?.passenger?.journeyStatusId,
+    message: "success",
+    data: messageTypes.driver_not_answered,
+  };
 };
 
 const journeyCompleted = async (body) => {

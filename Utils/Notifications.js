@@ -58,6 +58,7 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 // Send notification to the passenger based on the phone number
 const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
   try {
+    console.log("@send notification to passenger phoneNumber", phoneNumber);
     if (!phoneNumber) console.log("phoneNumber required to ws connection ");
     // Clean the phone number before processing
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
@@ -81,7 +82,16 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
                   message: "error",
                   data: "Failed to send message to passenger",
                 };
+              } else if (res.message == "success") {
+                return {
+                  message: "success",
+                  data: "message sent to user passenger",
+                };
               }
+              console.log(
+                "@sendNotificationToPassenger res.message ",
+                res.message
+              );
             } catch (error) {
               console.log("Error sending message to passenger:", error);
               return {
