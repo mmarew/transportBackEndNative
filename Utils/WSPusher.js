@@ -84,10 +84,11 @@ async function WSPusher(urlParams, WS) {
         break;
     }
     const message = {
+      status: null,
       message: "success",
       data: "Socket connection created successfully for user " + user,
     };
-    WS.send(JSON.stringify(message));
+    WS.send(JSON.stringify({ message }));
   } catch (error) {
     console.log("Error in WSPusher:", error);
     WS.send("An error occurred during the connection process");
