@@ -413,6 +413,7 @@ const cancelPassengerRequest = async (body) => {
     console.log("canceledJourney", canceledJourney);
 
     return {
+      status: null,
       message: "success",
       data: "You have successfully cancelled your request.",
     };

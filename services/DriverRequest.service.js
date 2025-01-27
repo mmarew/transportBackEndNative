@@ -483,6 +483,7 @@ const cancelDriverRequest = async (body) => {
         passengerUserUniqueId,
       });
       return {
+        status: null,
         message: "success",
         data: "You have successfully cancelled your request.",
       };
@@ -584,6 +585,7 @@ const cancelDriverRequest = async (body) => {
       });
 
       return {
+        status: null,
         message: "success",
         data: "You have successfully cancelled your request.",
       };
@@ -605,6 +607,7 @@ const cancelDriverRequest = async (body) => {
       passengerUserUniqueId,
     });
     return {
+      status: null,
       message: "success",
       data: "You have successfully cancelled your request.",
     };
