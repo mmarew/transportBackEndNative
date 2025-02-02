@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const smsSenderController = require("../Controllers/smsSender.controller");
+const smsSenderController = require("../Controllers/SmsSender.controller");
 
 // Create a new SMS sender
 router.post("/smsSender", smsSenderController.createSMSSender);
