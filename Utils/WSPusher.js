@@ -2,8 +2,8 @@ const { getData } = require("../CRUD/Read/ReadData");
 const verifyToken = require("../Middleware/VerifyToken");
 const {
   getPassengerJourneyStatus,
-} = require("../services/PassengerRequest.service");
-const { getDriverJourneyStatus } = require("../services/DriverRequest.service");
+} = require("../Services/PassengerRequest.service");
+const { getDriverJourneyStatus } = require("../Services/DriverRequest.service");
 const verifyPassword = require("./VerifyPassword");
 const {
   listOfDriverWs,
