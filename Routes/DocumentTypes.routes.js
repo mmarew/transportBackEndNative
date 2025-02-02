@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const documentTypesController = require("../Controllers/DocumentTypes.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 
 // Define routes for CRUD operations with camelCase

@@ -12,7 +12,7 @@ const {
   cancelDriverRequest,
   takeFromStreet,
 } = require("../Controllers/Driver.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
   verifyDriversIdentity,
   verifyPassengersIdentity,

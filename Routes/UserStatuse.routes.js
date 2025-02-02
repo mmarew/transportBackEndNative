@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userStatusesController = require("../Controllers/UserStatuse.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Routes for CRUD operations
 router.post(

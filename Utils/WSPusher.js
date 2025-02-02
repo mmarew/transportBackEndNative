@@ -1,5 +1,5 @@
 const { getData } = require("../CRUD/Read/ReadData");
-const verifyToken = require("../Middleware/verifyToken");
+const verifyToken = require("../Middleware/VerifyToken");
 const {
   getPassengerJourneyStatus,
 } = require("../services/PassengerRequest.service");

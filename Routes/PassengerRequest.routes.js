@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../Controllers/PassengerRequest.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create Passenger Request
 router.post(

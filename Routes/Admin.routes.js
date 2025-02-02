@@ -1,7 +1,7 @@
 const Router = require("express").Router();
 const AdminController = require("../Controllers/Admin.controller");
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 // route to get online drivers
 Router.get(
   "/api/admin/getOnlineDrivers",
@@ -57,6 +57,5 @@ Router.get(
   verifyAdminsIdentity,
   AdminController.searchActiveDrivers
 );
-
 
 module.exports = Router;

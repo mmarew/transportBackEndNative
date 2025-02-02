@@ -3,7 +3,7 @@
 const express = require("express");
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 const controller = require("../Controllers/Role.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 const router = express.Router();
 

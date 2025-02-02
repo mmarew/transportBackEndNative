@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const vehicleTypeController = require("../Controllers/VehicleType.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken"); // Route to create a new vehicle type
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken"); // Route to create a new vehicle type
 const multer = require("multer");
 const upload = require("../Config/MulterConfig");
 

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const driverBalanceController = require("../Controllers/DriverBalance.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create a new driver balance record
 router.post(

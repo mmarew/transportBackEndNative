@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const canceledJourneyController = require("../Controllers/CanceledJourneys.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 router.post(
   "/api/admin/canceledJourney",
   verifyTokenOfAxios,

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const tarrifRateController = require("../Controllers/TarrifRate.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create a new tariff rate
 router.post(

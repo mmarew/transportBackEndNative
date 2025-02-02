@@ -6,7 +6,7 @@ const {
   deleteStatusController,
   getAllStatusesController,
 } = require("../Controllers/Status.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 const router = express.Router();
 

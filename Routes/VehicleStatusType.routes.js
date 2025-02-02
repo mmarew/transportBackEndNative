@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const vehicleStatusTypeController = require("../Controllers/VehicleStatusType.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Define routes for CRUD operations
 router.post(

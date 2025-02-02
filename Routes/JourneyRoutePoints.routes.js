@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const journeyRoutePointsController = require("../Controllers/JourneyRoutePoints.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create a new route point
 router.post(

@@ -4,7 +4,7 @@ const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
 const multer = require("multer");
 const path = require("path");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

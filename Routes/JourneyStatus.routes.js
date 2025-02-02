@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const journeyStatusController = require("../Controllers/JourneyStatus.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create a new journey status
 router.post(

@@ -11,7 +11,7 @@ const {
   getTableColumnsController,
   installPreDefinedDataController, // New
 } = require("../Controllers/Database.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Route to create a new table
 router.post("/api/admin/createTable", createTableController);

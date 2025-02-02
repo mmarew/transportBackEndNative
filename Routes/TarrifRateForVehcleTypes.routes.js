@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const tarrifRateForVehicleTypesController = require("../Controllers/TarrifRateForVehicleTypes.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create a new tariff rate for vehicle type
 router.post(

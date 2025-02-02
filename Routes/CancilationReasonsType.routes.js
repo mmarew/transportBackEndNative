@@ -7,7 +7,7 @@ const {
   getAllCancilationReasons,
   getSingleCancilationReasons,
 } = require("../Controllers/Cancilation.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const Router = express.Router();
 const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
 

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const driverDepositController = require("../Controllers/DriverDeposit.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 // Create a new driver deposit record
 router.post(
   "/api/admin/driverDeposit",

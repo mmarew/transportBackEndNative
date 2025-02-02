@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const commissionRatesController = require("../Controllers/CommissionRates.controller");
-const { verifyTokenOfAxios } = require("../Middleware/verifyToken");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 router.post(
   "/api/admin/commissionRates",
