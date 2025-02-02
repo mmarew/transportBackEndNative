@@ -1,7 +1,7 @@
 // services/vehicleTypeService.js
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { deleteFile } = require("../Utils/fileUtils");
+const { deleteFile } = require("../Utils/FileUtils");
 const { getData } = require("../CRUD/Read/ReadData");
 // Create a new vehicle type
 const createVehicleType = async (data, file) => {

@@ -1,6 +1,6 @@
 // controllers/vehicleTypeController.js
 const vehicleTypeService = require("../Services/VehicleType.service");
-const { deleteFile } = require("../Utils/fileUtils");
+const { deleteFile } = require("../Utils/FileUtils");
 const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createVehicleType = async (req, res) => {

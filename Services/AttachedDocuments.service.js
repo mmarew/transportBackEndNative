@@ -1,7 +1,7 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const uuidv4 = require("uuid").v4;
-const { deleteFile } = require("../Utils/fileUtils");
+const { deleteFile } = require("../Utils/FileUtils");
 const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const {
