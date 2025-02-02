@@ -1,6 +1,6 @@
 const Router = require("express").Router();
 const AdminController = require("../Controllers/Admin.controller");
-const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 // route to get online drivers
 Router.get(

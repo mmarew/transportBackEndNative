@@ -9,7 +9,7 @@ const {
 } = require("../Controllers/Cancilation.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const Router = express.Router();
-const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 
 Router.post(
   "/api/admin/addCancilationReasons",

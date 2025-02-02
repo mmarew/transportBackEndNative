@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
 const multer = require("multer");
 const path = require("path");

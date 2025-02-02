@@ -1,7 +1,7 @@
 // role.routes.js
 
 const express = require("express");
-const { verifyAdminsIdentity } = require("../Middleware/verifyUsersIdentity");
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const controller = require("../Controllers/Role.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 

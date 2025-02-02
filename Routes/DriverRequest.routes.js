@@ -16,7 +16,7 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
   verifyDriversIdentity,
   verifyPassengersIdentity,
-} = require("../Middleware/verifyUsersIdentity");
+} = require("../Middleware/VerifyUsersIdentity");
 
 const router = express.Router();
 
