@@ -68,6 +68,7 @@ const verifyTokenOfWS = async (tokenData) => {
   try {
     const decoded = jwt.verify(token, secretKey);
     decoded.valid = true;
+    console.log("decoded token", decoded);
     return decoded;
   } catch (error) {
     let response;

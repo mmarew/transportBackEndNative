@@ -1,5 +1,9 @@
 const { getData } = require("../CRUD/Read/ReadData");
 const verifyToken = require("../Middleware/verifyToken");
+const {
+  getPassengerJourneyStatus,
+} = require("../services/PassengerRequest.service");
+const { getDriverJourneyStatus } = require("../services/DriverRequest.service");
 const verifyPassword = require("./VerifyPassword");
 const {
   listOfDriverWs,
@@ -21,6 +25,8 @@ async function WSPusher(urlParams, WS) {
       return WS.send("Token is required for connection");
     }
     const tokenValidation = await verifyToken.verifyTokenOfWS(token);
+    const userUniquId = tokenValidation?.data?.userUniqueId;
+    console.log("userUniquId", userUniquId);
     if (!tokenValidation?.valid) {
       return WS.send("You are not authorized");
     }
@@ -83,8 +89,17 @@ async function WSPusher(urlParams, WS) {
         WS.send("Invalid user type");
         break;
     }
+    let status = null;
+    // check status
+    if (user == "passenger") {
+      status = await getPassengerJourneyStatus(userUniquId);
+    }
+    if (user == "driver") {
+      status = await getDriverJourneyStatus(userUniquId);
+    }
+    console.log("status of user ", user, status);
     const message = {
-      status: null,
+      status,
       message: "success",
       data: "Socket connection created successfully for user " + user,
     };

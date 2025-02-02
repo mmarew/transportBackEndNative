@@ -109,10 +109,7 @@ const createDriverRequest = async (body, userUniqueId, journeyStatusId = 1) => {
       throw new Error("Invalid input parameters to create driver request");
     }
 
-    const sqlToCheckActiveRequest = `
-      SELECT * FROM DriverRequest
-      WHERE userUniqueId = ?
-        AND journeyStatusId IN (1, 2, 3, 4)
+    const sqlToCheckActiveRequest = `SELECT * FROM DriverRequest WHERE userUniqueId = ? AND journeyStatusId IN (1, 2, 3, 4)
     `;
     const [existingRequest] = await pool.query(sqlToCheckActiveRequest, [
       userUniqueId,

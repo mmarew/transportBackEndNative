@@ -422,8 +422,25 @@ const cancelPassengerRequest = async (body) => {
     return { message: "error", error: "Unable to cancel passenger request" };
   }
 };
+const getPassengerJourneyStatus = async (userUniqueId) => {
+  try {
+    const [currentRequest] = await getData({
+      tableName: "PassengerRequest",
+      conditions: { userUniqueId },
+      limit: 1,
+      orderBy: "passengerRequestId",
+      orderDirection: "desc",
+    });
 
+    const journeyStatusId = currentRequest?.journeyStatusId;
+    return journeyStatusId && journeyStatusId <= 4 ? journeyStatusId : null;
+  } catch (error) {
+    console.log("Error in getPassengerJourneyStatus:", error);
+    return null;
+  }
+};
 module.exports = {
+  getPassengerJourneyStatus,
   cancelPassengerRequest,
   verifyPassengerStatus,
   createPassengerRequest,

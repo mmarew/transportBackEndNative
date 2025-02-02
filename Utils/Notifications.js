@@ -59,7 +59,11 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
   try {
     console.log("@send notification to passenger phoneNumber", phoneNumber);
-    if (!phoneNumber) console.log("phoneNumber required to ws connection ");
+    if (!phoneNumber) {
+      console.log("phoneNumber required to ws connection");
+      return { message: "error", data: "Phone number is required" };
+    }
+
     // Clean the phone number before processing
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
@@ -67,45 +71,43 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
       return { message: "error", data: "Invalid phone number format" };
     }
+    console.log("listOfPassangerWs", listOfPassangerWs);
     // Send notification to the matching passenger using a for...of loop
     if (listOfPassangerWs && listOfPassangerWs.length > 0) {
       for (const passenger of listOfPassangerWs) {
-        if (passenger && passenger.phoneNumber === cleanedPhoneNumber) {
-          if (passenger.WS) {
-            try {
-              const res = await WSServerTextMessageResponder(
-                passenger.WS,
-                message
-              );
-              if (res.message == "error") {
-                return {
-                  message: "error",
-                  data: "Failed to send message to passenger",
-                };
-              } else if (res.message == "success") {
-                return {
-                  message: "success",
-                  data: "message sent to user passenger",
-                };
-              }
-              console.log(
-                "@sendNotificationToPassenger res.message ",
-                res.message
-              );
-            } catch (error) {
-              console.log("Error sending message to passenger:", error);
+        console.log("passenger", passenger);
+        if (passenger?.phoneNumber === cleanedPhoneNumber && passenger?.WS) {
+          console.log("@after evaluation");
+
+          try {
+            console.log("in try catch");
+            const res = await WSServerTextMessageResponder(
+              passenger.WS,
+              message
+            );
+            if (res.message === "error") {
               return {
                 message: "error",
                 data: "Failed to send message to passenger",
               };
+            } else if (res.message === "success") {
+              return {
+                message: "success",
+                data: "Message sent to passenger successfully",
+              };
             }
-          } else {
-            console.log("passenger.WS is null");
+          } catch (error) {
+            console.log("Error sending message to passenger:", error);
+            return {
+              message: "error",
+              data: "Failed to send message to passenger",
+            };
           }
         }
       }
     } else {
       console.log("listOfPassangerWs is null or empty");
+      return { message: "error", error: "No passengers available" };
     }
 
     return {
@@ -114,7 +116,7 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
     };
   } catch (error) {
     console.log("error in sendNotificationToPassenger", error);
-    return { message: "error", error: "Message can't be sent to passenger" };
+    return { message: "error", data: "Message can't be sent to passenger" };
   }
 };
 

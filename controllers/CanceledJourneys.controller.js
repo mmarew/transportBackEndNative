@@ -61,7 +61,7 @@ const canceledJourneyBySystem = async (
         phoneNumber: request.phoneNumber,
         message: {
           message: "success",
-          statuss: null,
+          status: null,
           driver: null,
           passenger: null,
           messageTypes: messageTypes.request_other_driver,

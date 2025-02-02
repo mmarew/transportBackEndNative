@@ -51,11 +51,12 @@ const createRequest = async (body, user) => {
     const userUniqueId = user?.userUniqueId;
 
     // 2. Check if the driver already has an active request
-    const activeRequest = await checkActiveDriverRequest(userUniqueId);
+    let activeRequest = await checkActiveDriverRequest(userUniqueId);
 
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
       await createDriverRequest(body, userUniqueId);
+      activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
     return await verifyDriverStatus({
       userUniqueId,
@@ -711,7 +712,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       };
     }
 
-    const vehicleTypeUniqueId = vehicle.vehicleTypeUniqueId;
+    const vehicleTypeUniqueId = vehicle?.vehicleTypeUniqueId;
     const vehicleTarrifRateResponse = await getTarrifRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
     );
@@ -744,6 +745,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
         status: null,
         vehicle,
         driver: null,
+        passenger: null,
       };
     }
 
@@ -785,7 +787,8 @@ const handleJourneyStatusOne = async (
     originLongitude,
     vehicleTypeUniqueId,
   });
-
+  console.log("@handleJourneyStatusOne nearbyPassengers is ", nearbyPassengers);
+  // if there is no passenger  near to driver
   if (!nearbyPassengers?.length) {
     return {
       message: "success",
@@ -803,8 +806,8 @@ const handleJourneyStatusOne = async (
   const passenger = nearbyPassengers[0];
   const journeyDecisionPayload = {
     journeyDecisionUniqueId: uuidv4(),
-    passengerRequestId: passenger.passengerRequestId,
-    driverRequestId: driverRequest.driverRequestId,
+    passengerRequestId: passenger?.passengerRequestId,
+    driverRequestId: driverRequest?.driverRequestId,
     journeyStatusId: 2, // Requested
     decisionTime: new Date(),
   };
@@ -956,7 +959,26 @@ const attachRequiredDocuments = async (body) => {
   }
 };
 
+const getDriverJourneyStatus = async (userUniqueId) => {
+  try {
+    const [currentRequest] = await getData({
+      tableName: "DriverRequest",
+      conditions: { userUniqueId },
+      limit: 1,
+      orderBy: "driverRequestId",
+      orderDirection: "desc",
+    });
+    console.log("currentRequest", currentRequest);
+    const journeyStatusId = currentRequest?.journeyStatusId;
+    return journeyStatusId && journeyStatusId <= 4 ? journeyStatusId : null;
+  } catch (error) {
+    console.log("Error in getPassengerJourneyStatus:", error);
+    return null;
+  }
+};
+
 module.exports = {
+  getDriverJourneyStatus,
   attachRequiredDocuments,
   journeyCompleted,
   noAnswerFromDriver,
