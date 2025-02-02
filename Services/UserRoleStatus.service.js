@@ -5,7 +5,7 @@ const {
   sendNotificationToDriver,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
-const currentDate = require("../Utils/currentDate");
+const currentDate = require("../Utils/CurrentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const { pool } = require("../Middleware/Database.config");

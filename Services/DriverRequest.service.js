@@ -36,7 +36,7 @@ const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
 const { createJourneyDecision } = require("./JourneyDecisions.service");
-const currentDate = require("../Utils/currentDate");
+const currentDate = require("../Utils/CurrentDate");
 const { createJourney } = require("./Journey.service");
 const {
   createPassengerRequest,

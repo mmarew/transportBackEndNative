@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const currentDate = require("../Utils/currentDate");
+const currentDate = require("../Utils/CurrentDate");
 const { getData } = require("../CRUD/Read/ReadData");
 const { insertData } = require("../CRUD/Create/CreateData");
 const createRole = async (body) => {
