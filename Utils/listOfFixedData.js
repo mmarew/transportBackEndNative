@@ -1,4 +1,4 @@
-const currentDate = require("../Utils/currentDate");
+const currentDate = require("./CurrentDate");
 const { v4: uuidv4 } = require("uuid");
 
 const roleList = [

@@ -1,6 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { getData } = require("../CRUD/Read/ReadData");
-const createJWT = require("../Utils/createJWT");
+const createJWT = require("../Utils/CreateJWT");
 const bcrypt = require("bcrypt");
 const verifyPassword = require("../Utils/VerifyPassword");
 // Create a new SMS sender
