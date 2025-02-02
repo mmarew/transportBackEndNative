@@ -11,10 +11,9 @@ const {
   paymentStatus,
   paymentMethod,
   CommissionRates,
-  TarrifRateForVehcleTypes,
   TarrifRateList,
   vehicleStatusTypes,
-} = require("../Utils/listOfFixedData");
+} = require("../Utils/ListOfFixedData");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancilation.service");
 const { createCommissionRate } = require("./CommissionRates.service");

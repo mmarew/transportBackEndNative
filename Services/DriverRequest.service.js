@@ -22,7 +22,7 @@ const {
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 const PaymentCalculator = require("../Utils/PaymentCalculator");
 const { createPayment } = require("./Payments.service");
-const calculateCommision = require("../Utils/calculateCommision");
+const calculateCommision = require("../Utils/CalculateCommision");
 const { createCommission } = require("./Commission.service");
 const {
   createDriverBalance,
