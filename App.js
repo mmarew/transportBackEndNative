@@ -7,7 +7,6 @@ const Routes = require("./Routes/index.js");
 const WSPusher = require("./Utils/WSPusher.js");
 const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const path = require("path");
-const { createUserSystem } = require("./Services/User.service.js");
 const loggingMiddleware = require("./Middleware/LoggingMiddleware.js");
 const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 // getLocalIpAddress();

@@ -8,7 +8,7 @@ const {
 const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 
 // Create a new journey
-exports.createJourney = async ({
+const createJourney = async ({
   journeyDecisionUniqueId,
   startTime,
   endTime,
@@ -51,7 +51,7 @@ exports.createJourney = async ({
 };
 
 // Get all journeys
-exports.getAllJourneys = async () => {
+const getAllJourneys = async () => {
   const sql = `SELECT * FROM Journey`;
   const [result] = await pool.query(sql);
 
@@ -59,7 +59,7 @@ exports.getAllJourneys = async () => {
 };
 
 // Get a specific journey by ID
-exports.getJourneyById = async (journeyId) => {
+const getJourneyById = async (journeyId) => {
   const sql = `SELECT * FROM Journey WHERE journeyId = ?`;
   const [result] = await pool.query(sql, [journeyId]);
 
@@ -69,7 +69,7 @@ exports.getJourneyById = async (journeyId) => {
 };
 
 // Update a specific journey by ID
-exports.updateJourney = async (journeyId, endTime, fare, journeyStatusId) => {
+const updateJourney = async (journeyId, endTime, fare, journeyStatusId) => {
   const sql = `UPDATE Journey SET endTime = ?, fare = ?, journeyStatusId = ? WHERE journeyId = ?`;
   const values = [endTime, fare, journeyStatusId, journeyId];
   const [result] = await pool.query(sql, values);
@@ -85,7 +85,7 @@ exports.updateJourney = async (journeyId, endTime, fare, journeyStatusId) => {
 };
 
 // Delete a specific journey by ID
-exports.deleteJourney = async (journeyId) => {
+const deleteJourney = async (journeyId) => {
   const sql = `DELETE FROM Journey WHERE journeyId = ?`;
   const [result] = await pool.query(sql, [journeyId]);
 
@@ -206,11 +206,8 @@ const searchCompletedJourneyByUserData = async (userData, roleId) => {
     }
   }
 
-
-
   return { message: "success", data: driversCompletedJourneys };
 };
-
 
 const getOngoingJourney = async (roleId, ownerUserUniqueId) => {
   try {
@@ -299,7 +296,11 @@ const searchOngoingJourneyByUserData = async (userData, roleId) => {
 };
 
 module.exports = {
+  getJourneyById,
+  createJourney,
+  updateJourney,
   searchOngoingJourneyByUserData,
+  getAllJourneys,
   getOngoingJourney,
   getCompletedJourney,
   searchCompletedJourneyByUserData,

@@ -26,12 +26,14 @@ const createAttachedDocument = async ({
 }) => {
   try {
     const { userUniqueId } = user;
+    const conditions = {
+      documentTypeId,
+      roleId: roleId,
+    };
+    console.log("@conditions", conditions);
     const documentType = await getData({
       tableName: "RoleDocumentRequirements",
-      conditions: {
-        documentTypeId,
-        roleId: roleId,
-      },
+      conditions,
     });
     if (documentType.length === 0) {
       deleteFile(attachedDocumentName);

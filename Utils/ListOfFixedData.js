@@ -373,7 +373,7 @@ const listOfDocuments = [
   },
   {
     isExpirationDateRequired: true,
-    documentTypeName: " Profile Photo",
+    documentTypeName: "Profile Photo",
     documentTypeDescription: "Profile Photo",
   },
   {

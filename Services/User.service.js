@@ -36,6 +36,7 @@ const handleExistingUser = async ({
   statusId,
   userRoleStatusDescription = "no description",
 }) => {
+  console.log("@handleExistingUser  requestedFrom", requestedFrom);
   // Generate OTP
   const OTP = Math.floor(100000 + Math.random() * 900000);
   const userUniqueId = user.userUniqueId;
@@ -179,10 +180,11 @@ const createUser = async (body) => {
     };
     if (savedUser.length > 0) {
       return handleExistingUser({
-        user: savedUser[0],
+        user: { ...savedUser[0] },
         roleId,
         statusId,
         userRoleStatusDescription,
+        requestedFrom,
       });
     }
 
@@ -508,13 +510,13 @@ const loginUser = async (phoneNumber, roleId, statusId) => {
   const userData = data?.data;
   console.log("userData", userData);
   // return;
-  if (!userData)
+  if (!userData?.length)
     return {
       message: "error",
       error: "User not found",
     };
   const res = await handleExistingUser({
-    user: userData,
+    user: userData?.[0],
     roleId,
     statusId,
   });

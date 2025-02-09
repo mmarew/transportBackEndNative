@@ -97,11 +97,11 @@ const takeFromStreet = async (body, user) => {
     // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
       body,
-      passengerUserUniqueId,
+      dataOfPassenger,
       journeyStatusId
     );
-
-    if (passengerRequest.data.length == 0) {
+    console.log("@ptakeFromStreet assengerRequest", passengerRequest);
+    if (!passengerRequest?.passenger) {
       return {
         message: "error",
         error: "Unable to create passenger request",
@@ -116,7 +116,7 @@ const takeFromStreet = async (body, user) => {
     console.log("first driverRequest", driverRequest);
     // return driverRequest;
     const decisionData = {
-      passengerRequestId: passengerRequest.data[0].passengerRequestId,
+      passengerRequestId: passengerRequest.passenger.passengerRequestId,
       driverRequestId: driverRequest?.data[0].driverRequestId,
       journeyStatusId,
       decisionTime: currentDate(),
