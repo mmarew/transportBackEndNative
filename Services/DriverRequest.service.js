@@ -161,7 +161,7 @@ const takeFromStreet = async (body, user) => {
     };
     responseData.passenger = {
       ...userPassenger?.dataOfPassenger,
-      ...passengerRequest.data[0],
+      ...passengerRequest.passenger,
     };
     responseData.driver = driverData;
     responseData.status = journeyStatusId;
@@ -347,6 +347,8 @@ const journeyCompleted = async (body) => {
     paymentMethodUniqueId,
     paymentStatusUniqueId,
   } = body;
+
+  console.log("@journeyCompleted body ", body);
   const passenger = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
