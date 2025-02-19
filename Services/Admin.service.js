@@ -22,8 +22,8 @@ WHERE
     return { message: "success", data: data };
   },
 
-  searchActiveDrivers:async (query) => {
-  const sql = `
+  searchActiveDrivers: async (query) => {
+    const sql = `
     SELECT 
       u.*,
       ur.*,
@@ -40,18 +40,18 @@ WHERE
       AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
   `;
 
-  const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
-    const [data] = await pool.query(sql, [wildcardQuery, wildcardQuery, wildcardQuery]);
-    if(data.length>0){
-      return {message:"success",data:data}
-    }else{
-      return {message:"failed",data:data}
+    const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
+    const [data] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+    ]);
+    if (data.length > 0) {
+      return { message: "success", data: data };
+    } else {
+      return { message: "failed", data: data };
     }
-
-
-},
-
-
+  },
 
   getOfflineDrivers: async (req) => {
     const sqlToGetOfflineDrivers = `SELECT 
@@ -87,8 +87,8 @@ WHERE
     return { message: "success", data: data };
   },
 
-  searchOfflineDrivers:async (query) => {
-  const sql = `
+  searchOfflineDrivers: async (query) => {
+    const sql = `
     SELECT 
       dr.*,
       u.*,
@@ -120,12 +120,14 @@ WHERE
       AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
   `;
 
-  const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
-  const [data] = await pool.query(sql, [wildcardQuery, wildcardQuery, wildcardQuery]);
-    return {message:"success",data:data}
-
-},
-
+    const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
+    const [data] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+    ]);
+    return { message: "success", data: data };
+  },
 
   getOnlineDrivers: async (req) => {
     // driver is online when its journeyStatusId is one in DriverRequest table . also get drivers vehicle detailes from vehicle table and VehicleOwnership table. vehicle is connected to VehicleTypes table
@@ -155,11 +157,11 @@ WHERE
     });
     return { message: "success", data };
   },
-  
-  searchOnlineDrivers:async (query) => {
-  const wildcardQuery = `%${query}%`; // Prepare the wildcard query for LIKE search
 
-  const sql = `
+  searchOnlineDrivers: async (query) => {
+    const wildcardQuery = `%${query}%`; // Prepare the wildcard query for LIKE search
+
+    const sql = `
     SELECT 
       dr.*,
       u.*,
@@ -181,15 +183,18 @@ WHERE
       AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
   `;
 
-  const [data] = await pool.query(sql, [wildcardQuery, wildcardQuery, wildcardQuery]);
+    const [data] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+    ]);
 
-  if(data.length>0){
-    return {message:"success",data:data}
-  }else{
-    return {message:"failed",data:data}
-  }
-},
-
+    if (data.length > 0) {
+      return { message: "success", data: data };
+    } else {
+      return { message: "failed", data: data };
+    }
+  },
 
   // Fetch unauthorized drivers
   getUnauthorizedDriver: async () => {
@@ -209,8 +214,8 @@ WHERE
 
     return usersWithDocuments;
   },
-  searchUnauthorizedDriver : async (query) => {
-  const sql = `
+  searchUnauthorizedDriver: async (query) => {
+    const sql = `
     SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.*, Statuses.*
     FROM Users
     JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
@@ -222,20 +227,23 @@ WHERE
       AND Roles.roleId = ?
   `;
 
-  const wildcardQuery = `%${query}%`; 
-  const [results] = await pool.query(sql, [wildcardQuery, wildcardQuery, wildcardQuery, 1, 2]);
+    const wildcardQuery = `%${query}%`;
+    const [results] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+      1,
+      2,
+    ]);
 
-  const usersWithDocuments = await Promise.all(
-    results.map(async (user) => {
-      const documents = await getAttachedDocumentsByUser(user.userUniqueId);
-      return { user, documents };
-    })
-  );
-return {message:"success",data:usersWithDocuments}
- 
-    
-}
-
+    const usersWithDocuments = await Promise.all(
+      results.map(async (user) => {
+        const documents = await getAttachedDocumentsByUser(user.userUniqueId);
+        return { user, documents };
+      })
+    );
+    return { message: "success", data: usersWithDocuments };
+  },
 };
 
 module.exports = adminServices;

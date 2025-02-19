@@ -95,7 +95,7 @@ exports.deleteJourney = async (req, res) => {
 exports.getCompletedJourney = async (req, res) => {
   try {
     const userRoleId = req?.user?.roleId;
-
+    console.log("@userRoleId", userRoleId);
     let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
     // all data has to be fetched by admin only else return data not found
     if (userRoleId != 3 && ownerUserUniqueId == "all") {

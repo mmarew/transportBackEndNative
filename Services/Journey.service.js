@@ -1,11 +1,11 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
-const {
-  getRequestById,
-  getPassengerRequestByPassengerRequestId,
-} = require("./PassengerRequest.service");
+
 const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
+const {
+  getPassengerRequestByPassengerRequestUniqueId,
+} = require("./PassengerRequest.service");
 
 // Create a new journey
 const createJourney = async ({
@@ -124,6 +124,7 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
   }
 };
 const getCompletedJourney = async (roleId, ownerUserUniqueId) => {
+  console.log("@getCompletedJourney roleId", roleId);
   try {
     // Define role-based configurations
     const roleConfig = {
@@ -168,13 +169,27 @@ const getCompletedJourney = async (roleId, ownerUserUniqueId) => {
     for (const item of completedJourney) {
       const passengerRequestId = item.passengerRequestId,
         driverRequestId = item.driverRequestId;
-      const passengerData = await getPassengerRequestByPassengerRequestId(
-        passengerRequestId
-      );
+      // const passengerData = await getPassengerRequestByPassengerRequestUniqueId(
+      //   passengerRequestId
+      // );
+      const result = await performJoinSelect({
+        baseTable: "PassengerRequest",
+        joins: [
+          {
+            table: "Users",
+            on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: {
+          passengerRequestId,
+        },
+      });
+      // console.log("@result", result);
+      const passengerData = result?.[0];
       const driverData = await getDriverRequestByRequestId(driverRequestId);
-      data.push({ passenger: passengerData.data, driver: driverData.data });
+      data.push({ passenger: passengerData, driver: driverData.data });
     }
-
+    console.log("@data getCompletedJourney data ===========> ", data);
     return { message: "success", data };
   } catch (error) {
     // Handle errors

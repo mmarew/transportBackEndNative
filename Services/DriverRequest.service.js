@@ -247,10 +247,10 @@ const startJourney = async (body) => {
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
-
+  console.log("@message ==============> ", message);
   const passenger = message?.passenger;
   phoneNumber = passenger?.phoneNumber;
-  const journeyStatusId = passenger.journeyStatusId;
+  const journeyStatusId = passenger?.journeyStatusId;
   console.log("@start journey passenger", passenger);
   // send notification to passenger if driver has an active journey request and passenger has a phoneNumber
   if (phoneNumber && journeyStatusId == 4)
