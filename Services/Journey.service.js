@@ -1,11 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
-
 const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
-const {
-  getPassengerRequestByPassengerRequestUniqueId,
-} = require("./PassengerRequest.service");
 
 // Create a new journey
 const createJourney = async ({
@@ -18,7 +14,6 @@ const createJourney = async ({
   // check existance of journeyDecisionUniqueId in Journey
   const sqlToCheck = `select * from Journey where journeyDecisionUniqueId = ?`;
   const [existedData] = await pool.query(sqlToCheck, [journeyDecisionUniqueId]);
-  console.log("existedData =============> ", existedData);
   if (existedData.length > 0) {
     return { message: "success", data: existedData };
   }

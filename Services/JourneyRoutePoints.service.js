@@ -14,6 +14,7 @@ exports.createJourneyRoutePoint = async (body) => {
 
 // Get all route points for a specific journey
 exports.getJourneyRoutePoints = async (journeyUniqueId) => {
+  console.log("@getJourneyRoutePoints journeyUniqueId", journeyUniqueId);
   const sql = `SELECT * FROM JourneyRoutePoints WHERE journeyUniqueId = ? ORDER BY timestamp`;
   const [result] = await pool.query(sql, [journeyUniqueId]);
 
