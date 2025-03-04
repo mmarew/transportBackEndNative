@@ -107,10 +107,15 @@ const createUser = async (body) => {
   const OTP = Math.floor(100000 + Math.random() * 900000);
 
   try {
+    let conditions = {};
+    if (phoneNumber) conditions.phoneNumber = phoneNumber;
+    if (email) conditions.email = email;
+    console.log("@conditions", conditions);
     // Check if the user already exists
     const savedUser = await getData({
       tableName: "Users",
-      conditions: { phoneNumber },
+      conditions,
+      operator: "OR",
     });
     console.log("@savedUser", savedUser);
 
@@ -513,7 +518,7 @@ const loginUser = async (phoneNumber, roleId, statusId) => {
   if (!userData?.length)
     return {
       message: "error",
-      error: "User not found",
+      error: "User not found at this address. Please sign up first.",
     };
   const res = await handleExistingUser({
     user: userData?.[0],

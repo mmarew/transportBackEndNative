@@ -408,12 +408,12 @@ const driversDocumentRequirement = [
   //   isDocumentMandatory: true,
   //   isExpirationDateRequired: true,
   // },
-  // {
-  //   roleId: "2",
-  //   documentTypeId: "4",
-  //   isDocumentMandatory: true,
-  //   isExpirationDateRequired: true,
-  // },
+  {
+    roleId: "2",
+    documentTypeId: "4",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: true,
+  },
   // {
   //   roleId: "2",
   //   documentTypeId: "5",

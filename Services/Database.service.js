@@ -368,7 +368,16 @@ const installPreDefinedData = async (req, res) => {
     // 5. Process document requirements
     await processDataSequentially(
       driversDocumentRequirement,
-      (role) => createMapping({ body: role, userUniqueId: user.userUniqueId }),
+      (document) => {
+        console.log(
+          "@processDataSequentially driversDocumentRequirement",
+          document
+        );
+        return createMapping({
+          body: document,
+          userUniqueId: user.userUniqueId,
+        });
+      },
       successOnDocumentRequirement,
       failedOnDocumentRequirement,
       "DocumentRequirement"

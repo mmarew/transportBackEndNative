@@ -11,7 +11,7 @@ const createMapping = async ({ body }) => {
     roleId,
     documentTypeId,
     isDocumentMandatory = true,
-    isExpirationDateRequired,
+    isExpirationDateRequired = false,
     userUniqueId,
   } = body;
 
