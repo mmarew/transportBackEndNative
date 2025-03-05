@@ -131,29 +131,35 @@ const createUser = async (body) => {
         createdAt: currentDate(),
         createdBy: "system",
       };
-      const userCreationSuccess = await Promise.all([
-        // register users profile
-        await insertData({
-          tableName: "Users",
-          colAndVal: {
-            ...dataOfPassenger,
-          },
-        }),
-        // register users credential
-        (hashedOtps = await bcrypt.hash(String(OTP), 10)),
-        await insertData({
-          tableName: "usersCredential",
-          colAndVal: {
-            credentialUniqueId,
-            userUniqueId,
-            OTP: hashedOtps,
-            hashedPassword: hashedOtps,
-            usersCredentialCreatedAt: new Date(),
-          },
-        }),
-      ]);
-
-      if (userCreationSuccess.every((result) => result.affectedRows > 0)) {
+      const hashedOtps = await bcrypt.hash(String(OTP), 10);
+      // const userCreationSuccess = await Promise.all([
+      // register users profile
+      const insertedUser = await insertData({
+        tableName: "Users",
+        colAndVal: {
+          ...dataOfPassenger,
+        },
+      });
+      // register users credential
+      const insertedCredential = await insertData({
+        tableName: "usersCredential",
+        colAndVal: {
+          credentialUniqueId,
+          userUniqueId,
+          OTP: hashedOtps,
+          hashedPassword: hashedOtps,
+          usersCredentialCreatedAt: new Date(),
+        },
+      });
+      // ]);
+      const userCreationSuccess = [insertedCredential, insertedUser];
+      console.log("@userCreationSuccess", userCreationSuccess);
+      if (
+        userCreationSuccess.every((result) => {
+          console.log("@result?.affectedRows", result?.affectedRows);
+          return result?.affectedRows > 0;
+        })
+      ) {
         // Insert UserRole and UserRoleStatus
         await handleUserRoleStatus(
           userUniqueId,
@@ -174,7 +180,7 @@ const createUser = async (body) => {
         return {
           message: "success",
           messageDetail: "User created successfully",
-          dataOfUser: dataOfPassenger,
+          dataOfPassenger,
         };
       }
 

@@ -92,8 +92,8 @@ const takeFromStreet = async (body, user) => {
     console.log("@takeFromStreet userPassenger", userPassenger);
     if (userPassenger.message === "error")
       return { message: "error", error: "Unable to create user" };
-    const dataOfPassenger = userPassenger.dataOfPassenger;
-    const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
+    const dataOfPassenger = userPassenger?.dataOfPassenger;
+    // const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
     // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
       body,
