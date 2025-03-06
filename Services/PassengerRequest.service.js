@@ -23,10 +23,14 @@ const {
 } = require("./TarrifRateForVehicleTypes.service");
 require("./AttachedDocuments.service");
 
-const createPassengerRequest = async (body, user) => {
+const createPassengerRequest = async (body, user, journeyStatusId) => {
   try {
     const { userUniqueId } = user;
-    const activeRequest = await createNewPassengerRequest(body, userUniqueId);
+    const activeRequest = await createNewPassengerRequest(
+      body,
+      userUniqueId,
+      journeyStatusId
+    );
     return await verifyPassengerStatus({
       userUniqueId,
       activeRequest: activeRequest?.data,
@@ -236,7 +240,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
     const journey = await getData({
       tableName: "Journey",
       conditions: {
-        journeyDecisionUniqueId: journeyDecision[0].journeyDecisionUniqueId,
+        journeyDecisionUniqueId: journeyDecision?.[0]?.journeyDecisionUniqueId,
       },
     });
 
@@ -248,7 +252,7 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
           on: "DriverRequest.userUniqueId = Users.userUniqueId",
         },
       ],
-      conditions: { driverRequestId: journeyDecision[0].driverRequestId },
+      conditions: { driverRequestId: journeyDecision?.[0]?.driverRequestId },
     });
     const driver = driverData[0];
     const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(

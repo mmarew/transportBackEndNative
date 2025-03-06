@@ -72,8 +72,9 @@ const takeFromStreet = async (body, user) => {
     const journeyStatusId = 4;
     const userUniqueId = user?.userUniqueId;
     const randNumber = Math.floor(Math.random() * 100000000);
+    const requestedFrom = "street";
     const data = {
-      requestedFrom: "street",
+      requestedFrom,
       fullName: null,
       email: `fakeEmail_${randNumber}@passenger.com`,
       roleId: 1,
