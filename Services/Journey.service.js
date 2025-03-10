@@ -2,6 +2,9 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
+const {
+  getPassengerRequestByPassengerRequestId,
+} = require("./PassengerRequest.service");
 
 // Create a new journey
 const createJourney = async ({

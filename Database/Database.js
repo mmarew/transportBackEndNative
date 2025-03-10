@@ -147,7 +147,7 @@ userRoleStatusHistoryId INT AUTO_INCREMENT PRIMARY KEY,
 ) ;
 
 -- Create the DocumentTypes Table
--- if driver attach required documents like driving license ,uploadedDocumentName is used in file input fieled of front end and in backend to recive file name and same to others also. that is why we used uploadedDocument. it is a standared to transfer files from front end to backend using unique name. 
+-- if driver attach required documents like driving license ,uploadedDocumentName is used in file input field of front end and in backend to recive file name and same to others also. That is why we used uploadedDocument. It is a standared to transfer files from front end to backend using unique name. 
 CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
     documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     uploadedDocumentDescription  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
     uploadedDocumentExpirationDate  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
     uploadedDocumentFileNumber  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end to store file number
-     documentTypeDescription  TEXT(2000)    not NULL ,  -- Optional description of the document type
+    documentTypeDescription  TEXT(2000)    not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
@@ -237,9 +237,9 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
     documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
     attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,  -- Status of the attached document
-     attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
+    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
     attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
-  attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
+    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
     attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
     attachedDocumentUpdatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
     attachedDocumentDeletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document

@@ -179,7 +179,7 @@ const driversDocumentVehicleRequirement = async (body) => {
 
   const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
   // return;
-  // Fetch required documents for the driver's role
+  // Fetch required documents for the user's role
   const requiredDocuments = await performJoinSelect({
     baseTable: "RoleDocumentRequirements",
     joins: [
@@ -195,18 +195,39 @@ const driversDocumentVehicleRequirement = async (body) => {
     return { message: "error", data: "No documents required for this role" };
   }
 
-  // Fetch attached documents with its type for the driver
+  // Fetch attached documents with its type for the user
+  // const attachedDocuments = await performJoinSelect({
+  //   // tableName: "AttachedDocuments",
+  //   // conditions: { userUniqueId: ownerUserUniqueId },
+  //   baseTable: "AttachedDocuments",
+  //   joins: [
+  //     {
+  //       table: "DocumentTypes",
+  //       on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+  //     },
+  //     {
+  //       table: "RoleDocumentRequirements",
+  //       on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+  //     },
+  //   ],
+  //   conditions: { userUniqueId: ownerUserUniqueId },
+  // });
+
   const attachedDocuments = await performJoinSelect({
-    // tableName: "AttachedDocuments",
-    // conditions: { userUniqueId: ownerUserUniqueId },
     baseTable: "AttachedDocuments",
+    columns: "AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*",
     joins: [
       {
         table: "DocumentTypes",
         on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
       },
+      {
+        table: "RoleDocumentRequirements",
+        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+      },
     ],
     conditions: { userUniqueId: ownerUserUniqueId },
+    groupBy: "AttachedDocuments.attachedDocumentId", // prevents duplicates
   });
 
   // Find unattached document types
@@ -225,10 +246,14 @@ const driversDocumentVehicleRequirement = async (body) => {
     REJECTED: [],
   };
   attachedDocuments.forEach((attachedDocument) => {
+    //
     const documentStatus = attachedDocument.attachedDocumentAcceptance;
+    //
     if (attachedDocumentsByStatus[documentStatus]) {
+      //
       attachedDocumentsByStatus[documentStatus].push(attachedDocument);
     }
+    //
   });
 
   // Check if the user has a registered vehicle
@@ -262,7 +287,7 @@ const driversDocumentVehicleRequirement = async (body) => {
   }
   const finalStatusId = resultOfStatus?.finalStatusId;
   if (statusId !== finalStatusId) {
-    // Update role status if necessary
+    // Update role status if its current status is different from saved one
     const userRoleStatusData = {
       user,
       roleId,
@@ -296,7 +321,18 @@ const findStatusByVehicleAndDocuments = ({
   unAttachedDocumentTypes,
 }) => {
   let finalStatusId = null;
-  // console.log("  requiredDocuments", requiredDocuments);
+  console.log(
+    "vehicleRegistered",
+    vehicleRegistered,
+    "attachedDocumentsByStatus",
+    attachedDocumentsByStatus,
+    "  requiredDocuments",
+    requiredDocuments,
+    "attachedDocuments",
+    attachedDocuments,
+    "unAttachedDocumentTypes",
+    unAttachedDocumentTypes
+  );
   // Check for invalid or missing inputs
 
   // Check if the user has a registered vehicle
@@ -387,7 +423,7 @@ const findStatusByVehicleAndDocuments = ({
   // 13. All Documents Pending, Vehicle Registered
   else if (
     vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+    attachedDocumentsByStatus.PENDING.length >= requiredDocuments.length
   ) {
     finalStatusId = 13;
   }
@@ -473,7 +509,7 @@ const findStatusByVehicleAndDocuments = ({
   // 25. All Documents Pending, No Vehicle Registered
   else if (
     !vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
+    attachedDocumentsByStatus.PENDING.length >= requiredDocuments.length
   ) {
     finalStatusId = 25;
   }
@@ -499,6 +535,12 @@ const findStatusByVehicleAndDocuments = ({
   }
   // Default error case
   else {
+    console.log(
+      "@attachedDocumentsByStatus.PENDING.",
+      attachedDocumentsByStatus.PENDING?.length,
+      "requiredDocuments.length ",
+      requiredDocuments.length
+    );
     return {
       message: "error",
       data: "Unable to determine driver's status.",

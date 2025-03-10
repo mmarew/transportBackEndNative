@@ -40,7 +40,21 @@ const createPassengerRequest = async (body, user, journeyStatusId) => {
     return { message: "error", error: "Unable to create request" };
   }
 };
-
+const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
+  try {
+    const result = await getData({
+      tableName: "PassengerRequest",
+      conditions: passengerRequestId,
+    });
+    return result;
+  } catch (error) {
+    console.log(
+      "@error on getPassengerRequestByPassengerRequestId error is",
+      error
+    );
+    return { message: "error", error: "unable to get data" };
+  }
+};
 const getPassengerRequestByPassengerRequestUniqueId = async (
   passengerRequestUniqueId
 ) => {
@@ -451,4 +465,5 @@ module.exports = {
   getPassengerRequestByPassengerRequestUniqueId,
   updateRequestById,
   deleteRequest,
+  getPassengerRequestByPassengerRequestId,
 };

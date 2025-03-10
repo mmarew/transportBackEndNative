@@ -400,7 +400,7 @@ const driversDocumentRequirement = [
     roleId: "2",
     documentTypeId: "2",
     isDocumentMandatory: true,
-    isExpirationDateRequired: true,
+    isExpirationDateRequired: false,
   },
   // {
   //   roleId: "2",
@@ -412,7 +412,7 @@ const driversDocumentRequirement = [
     roleId: "2",
     documentTypeId: "4",
     isDocumentMandatory: true,
-    isExpirationDateRequired: true,
+    isExpirationDateRequired: false,
   },
   // {
   //   roleId: "2",

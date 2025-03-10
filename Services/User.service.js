@@ -117,7 +117,7 @@ const createUser = async (body) => {
       conditions,
       operator: "OR",
     });
-    console.log("@savedUser", savedUser);
+    console.log("@createUser savedUser", savedUser);
 
     // If the user does not exist, create new user, credentials, role, and status
     const registerNewUser = async () => {
@@ -189,7 +189,19 @@ const createUser = async (body) => {
         data: "An error occurred during user creation",
       };
     };
-    if (savedUser.length > 0) {
+    if (savedUser?.length > 1) {
+      return {
+        message: "error",
+        error: "phone or email is reserved in another user ",
+      };
+    }
+    if (savedUser.length === 1) {
+      if (phoneNumber != savedUser[0]?.phoneNumber) {
+        return {
+          message: "error",
+          error: "Wrong phone match to current email ",
+        };
+      }
       return handleExistingUser({
         user: { ...savedUser[0] },
         roleId,
@@ -371,8 +383,8 @@ const verifyUserByOTP = async (req) => {
     if (!req.query || !req.query.OTP || !req.query.phoneNumber) {
       return { message: "error", error: "OTP and phoneNumber are required" };
     }
-
     const { OTP, phoneNumber } = req.query;
+    console.log("@verifyUserByOTP phoneNumber", phoneNumber);
     const verifyUserExistance = await performJoinSelect({
       baseTable: "Users",
       joins: [
@@ -385,10 +397,10 @@ const verifyUserByOTP = async (req) => {
         phoneNumber,
       },
     });
-
+    console.log("@verifyUserExistance", verifyUserExistance);
     const roleId = req.query.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
-      return { message: "error", error: "user not found" };
+      return { message: "error", error: "user not found in verify otp" };
     }
 
     const { userUniqueId, fullName, email } = verifyUserExistance[0];
@@ -440,7 +452,7 @@ const getUserByUserUniqueId = async (userUniqueId) => {
     conditions: { userUniqueId: userUniqueId },
   });
   if (!user || user.length === 0) {
-    return { message: "error", error: "User not found" };
+    return { message: "error", error: "User not found in verify password" };
   }
   return { message: "success", data: user[0] };
 };
@@ -458,19 +470,6 @@ WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
   }
 
   try {
-    // const [rows] = await pool.query(getUserQuery, [
-    //   data,
-    //   `%${data}%`,
-    //   `%${data}%`,
-    //   `%${data}%`,
-    // ]);
-
-    // if (rows.length > 0) {
-    // return { message: "success", data: rows };
-    // }
-
-    // return { message: "failed", error: "User not found" };
-
     const queryParams = roleId
       ? [`%${data}%`, `%${data}%`, `%${data}%`, roleId]
       : [`%${data}%`, `%${data}%`, `%${data}%`];
