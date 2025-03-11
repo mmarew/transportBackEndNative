@@ -14,7 +14,6 @@ const createRequest = async (req, res) => {
 const takeFromStreet = async (req, res) => {
   try {
     console.log("@ req.user", req.user);
-
     const result = await services.takeFromStreet(req.body, req.user);
     ServerResponder(res, result, 201);
   } catch (error) {

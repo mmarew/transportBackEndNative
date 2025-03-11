@@ -15,16 +15,18 @@ const {
 
 const { default: tableNames } = require("../Config/Tables.confg");
 
-// // Regex for validating phone number (no + sign, no spaces, only digits)
+// Regex for validating phone number (no + sign, no spaces, only digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/; // Only digits, length between 9 and 15 digits
-// // it push data to  listOfDriverWs, listOfPassangerWs, listOfSMSSenderWs, listOfAdminWs,
+// it push data to  listOfDriverWs, listOfPassangerWs, listOfSMSSenderWs, listOfAdminWs,
+
 // async function WSPusher(urlParams, socketId) {
 //   try {
 //     const phoneNumber = urlParams.get("phoneNumber");
 //     const user = urlParams.get("user");
 //     const token = urlParams.get("token");
 
-//     console.log("@WSPusher user", user);
+//     console.log("[WSPusher] Incoming connection for user:", user);
+
 //     // Token validation
 //     if (!token) {
 //       return emitMessage({
@@ -33,9 +35,8 @@ const phoneNumberRegex = /^[0-9]{9,15}$/; // Only digits, length between 9 and 1
 //         messageDetailes: "Token is required for connection.",
 //       });
 //     }
+
 //     const tokenValidation = await verifyToken.verifyTokenOfWS(token);
-//     const userUniquId = tokenValidation?.data?.userUniqueId;
-//     console.log("userUniquId", userUniquId);
 //     if (!tokenValidation?.valid) {
 //       return emitMessage({
 //         socketId,
@@ -43,25 +44,27 @@ const phoneNumberRegex = /^[0-9]{9,15}$/; // Only digits, length between 9 and 1
 //         messageDetailes: "You are not authorized",
 //       });
 //     }
-//     // Clean phone number (remove spaces and non-digit characters)
-//     const cleanedPhoneNumber = phoneNumber?.replace(/\D/g, "");
 
-//     // Phone number validation
+//     const userUniquId = tokenValidation.data.userUniqueId;
+
+//     // Clean and validate phone number
+//     const cleanedPhoneNumber = phoneNumber?.replace(/\D/g, "");
 //     if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
 //       return emitMessage({
 //         socketId,
-//         messageDetailes:
-//           "Invalid phone number: should contain only digits, no spaces or + sign",
 //         messageTitle: "messages",
+//         messageDetailes:
+//           "Invalid phone number: should contain only digits (9-15 digits)",
 //       });
 //     }
 
 //     // User validation
-//     if (!["driver", "passenger", "SMSSender", "admin"].includes(user)) {
+//     const validUserTypes = ["driver", "passenger", "SMSSender", "admin"];
+//     if (!validUserTypes.includes(user)) {
 //       return emitMessage({
 //         socketId,
-//         messageDetailes: "Invalid user type",
 //         messageTitle: "messages",
+//         messageDetailes: "Invalid user type",
 //       });
 //     }
 
@@ -71,96 +74,83 @@ const phoneNumberRegex = /^[0-9]{9,15}$/; // Only digits, length between 9 and 1
 //       user,
 //       token,
 //     };
-//     switch (user) {
-//       case "admin":
-//         listOfAdminWs.push(listOfData);
-//         break;
-//       case "driver":
-//         listOfDriverWs.push(listOfData);
-//         break;
-//       case "passenger":
-//         listOfPassangerWs.push(listOfData);
-//         break;
-//       case "SMSSender":
-//         const password = urlParams.get("password");
-//         if (!password) {
-//           return emitMessage({
-//             socketId,
-//             messageTitle: "messages",
-//             messageDetailes: "Password is required for SMS sender",
-//           });
-//         }
-//         const smsSenderData = await getData({
-//           tableName: "SMSSender",
-//           conditions: { phoneNumber },
-//         });
-//         if (smsSenderData.length === 0) {
-//           return emitMessage({
-//             socketId,
-//             messageTitle: "messages",
-//             messageDetailes: "This phone number is not found",
-//           });
-//         }
 
-//         const hashedPassword = smsSenderData[0]?.password;
-
-//         const verification = await verifyPassword({
-//           hashedPassword,
-//           notHashedPassword: password,
-//         });
-//         if (verification.message === "success") {
-//           listOfSMSSenderWs.push({
-//             phoneNumber: cleanedPhoneNumber,
-
-//             socketId,
-//           });
-//           // WS.send("SMS Sender connected successfully");
-//         } else {
-//           return emitMessage({
-//             socketId,
-//             messageTitle: "messages",
-//             messageDetailes: "You are not authorized",
-//           });
-//         }
-//         break;
-//       default:
-//         emitMessage({
+//     if (user === "SMSSender") {
+//       const password = urlParams.get("password");
+//       if (!password) {
+//         return emitMessage({
 //           socketId,
 //           messageTitle: "messages",
-//           messageDetailes: "Invalid user type",
+//           messageDetailes: "Password is required for SMS sender",
 //         });
-//         // socketIO.io.to(socketId).emit("messages", "Invalid user type");
-//         break;
+//       }
+
+//       const smsSenderData = await getData({
+//         tableName: tableNames.SMSSENDER,
+//         conditions: { phoneNumber: cleanedPhoneNumber },
+//       });
+
+//       if (smsSenderData.length === 0) {
+//         return emitMessage({
+//           socketId,
+//           messageTitle: "messages",
+//           messageDetailes: "This phone number is not found",
+//         });
+//       }
+
+//       const hashedPassword = smsSenderData[0].password;
+//       const verification = await verifyPassword({
+//         hashedPassword,
+//         notHashedPassword: password,
+//       });
+
+//       if (verification.message !== "success") {
+//         return emitMessage({
+//           socketId,
+//           messageTitle: "messages",
+//           messageDetailes: "You are not authorized",
+//         });
+//       }
+
+//       listOfSMSSenderWs.push({ phoneNumber: cleanedPhoneNumber, socketId });
+//     } else {
+//       const userLists = {
+//         admin: listOfAdminWs,
+//         driver: listOfDriverWs,
+//         passenger: listOfPassangerWs,
+//       };
+//       userLists[user].push(listOfData);
 //     }
+
+//     // Check journey status if needed
 //     let status = null;
-//     // check status
-//     if (user == "passenger") {
+//     if (user === "passenger") {
 //       status = await getPassengerJourneyStatus(userUniquId);
-//     }
-//     if (user == "driver") {
+//     } else if (user === "driver") {
 //       status = await getDriverJourneyStatus(userUniquId);
 //     }
-//     console.log("status of user ", user, status);
-//     const message = {
-//       status,
-//       message: "success",
-//       data: "Socket connection created successfully for user " + user,
-//     };
+
+//     console.log("[WSPusher] Journey status:", user, status);
+
 //     return emitMessage({
 //       socketId,
 //       messageTitle: "messages",
-//       messageDetailes: JSON.stringify({ message }),
+//       messageDetailes: JSON.stringify({
+//         status,
+//         message: "success",
+//         data: `Socket connection created successfully for user ${user}`,
+//       }),
 //     });
 //   } catch (error) {
-//     console.log("Error in WSPusher:", error);
+//     console.error("[WSPusher ERROR]:", error);
 //     return emitMessage({
 //       socketId,
 //       messageTitle: "messages",
-//       messageDetailes: "An error occurred during the connection process",
+//       messageDetailes: "An internal server error occurred.",
 //     });
 //   }
 // }
-
+// module.exports = WSPusher;
 async function WSPusher(urlParams, socketId) {
   try {
     const phoneNumber = urlParams.get("phoneNumber");
@@ -169,7 +159,6 @@ async function WSPusher(urlParams, socketId) {
 
     console.log("[WSPusher] Incoming connection for user:", user);
 
-    // Token validation
     if (!token) {
       return emitMessage({
         socketId,
@@ -188,9 +177,8 @@ async function WSPusher(urlParams, socketId) {
     }
 
     const userUniquId = tokenValidation.data.userUniqueId;
-
-    // Clean and validate phone number
     const cleanedPhoneNumber = phoneNumber?.replace(/\D/g, "");
+
     if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
       return emitMessage({
         socketId,
@@ -200,7 +188,6 @@ async function WSPusher(urlParams, socketId) {
       });
     }
 
-    // User validation
     const validUserTypes = ["driver", "passenger", "SMSSender", "admin"];
     if (!validUserTypes.includes(user)) {
       return emitMessage({
@@ -217,6 +204,14 @@ async function WSPusher(urlParams, socketId) {
       token,
     };
 
+    const userLists = {
+      admin: listOfAdminWs,
+      driver: listOfDriverWs,
+      passenger: listOfPassangerWs,
+      SMSSender: listOfSMSSenderWs,
+    };
+
+    // SMS sender special validation
     if (user === "SMSSender") {
       const password = urlParams.get("password");
       if (!password) {
@@ -253,18 +248,20 @@ async function WSPusher(urlParams, socketId) {
           messageDetailes: "You are not authorized",
         });
       }
-
-      listOfSMSSenderWs.push({ phoneNumber: cleanedPhoneNumber, socketId });
-    } else {
-      const userLists = {
-        admin: listOfAdminWs,
-        driver: listOfDriverWs,
-        passenger: listOfPassangerWs,
-      };
-      userLists[user].push(listOfData);
     }
 
-    // Check journey status if needed
+    // Validate and replace existing entry based on phoneNumber
+    const targetList = userLists[user];
+    const existingIndex = targetList.findIndex(
+      (entry) => entry.phoneNumber === cleanedPhoneNumber
+    );
+
+    if (existingIndex !== -1) {
+      targetList[existingIndex] = listOfData; // Replace existing
+    } else {
+      targetList.push(listOfData); // Add new
+    }
+
     let status = null;
     if (user === "passenger") {
       status = await getPassengerJourneyStatus(userUniquId);
@@ -292,4 +289,5 @@ async function WSPusher(urlParams, socketId) {
     });
   }
 }
+
 module.exports = WSPusher;

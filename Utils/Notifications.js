@@ -33,12 +33,12 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
         try {
           const socketId = driver?.socketId;
           console.log("@sendNotificationToDriver driver =========> ", driver);
-          const data = emitMessage({
+          const res = emitMessage({
             messageTitle: "messages",
             messageDetailes: JSON.stringify(message),
             socketId,
           });
-          console.log("@sendNotificationToDriver data", data);
+          console.log("@sendNotificationToDriver res", res);
           // const res = await WSServerTextMessageResponder(driver.WS, message);
           if (res.message == "error") {
             return {
