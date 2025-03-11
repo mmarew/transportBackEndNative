@@ -3,6 +3,7 @@ const {
   WSServerTextMessageResponder,
   listOfPassangerWs,
   listOfAdminWs,
+  emitMessage,
 } = require("./WsServerResponder");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
@@ -10,7 +11,7 @@ const phoneNumberRegex = /^[0-9]{9,15}$/;
 
 // Function to clean phone numbers (remove spaces and + sign)
 const cleanPhoneNumber = (phoneNumber) => {
-  return phoneNumber.replace(/\D/g, "");
+  return phoneNumber?.replace(/\D/g, "");
 };
 
 // Send notification to the driver based on the phone number
@@ -27,9 +28,18 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 
     // Send notification to the matching driver using a for...of loop
     for (const driver of listOfDriverWs) {
+      console.log("@driver sendNotificationToDriver", driver);
       if (driver.phoneNumber === cleanedPhoneNumber) {
         try {
-          const res = await WSServerTextMessageResponder(driver.WS, message);
+          const socketId = driver?.socketId;
+          console.log("@sendNotificationToDriver driver =========> ", driver);
+          const data = emitMessage({
+            messageTitle: "messages",
+            messageDetailes: JSON.stringify(message),
+            socketId,
+          });
+          console.log("@sendNotificationToDriver data", data);
+          // const res = await WSServerTextMessageResponder(driver.WS, message);
           if (res.message == "error") {
             return {
               message: "error",
@@ -76,15 +86,21 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
     if (listOfPassangerWs && listOfPassangerWs.length > 0) {
       for (const passenger of listOfPassangerWs) {
         console.log("passenger", passenger);
-        if (passenger?.phoneNumber === cleanedPhoneNumber && passenger?.WS) {
+        if (passenger?.phoneNumber === cleanedPhoneNumber) {
           console.log("@after evaluation");
 
           try {
             console.log("in try catch");
-            const res = await WSServerTextMessageResponder(
-              passenger.WS,
-              message
-            );
+            // const res = await WSServerTextMessageResponder(
+            //   passenger.WS,
+            //   message
+            // );
+            const socketId = passenger?.socketId;
+            const res = emitMessage({
+              messageDetailes: JSON.stringify(message),
+              messageTitle: "messages",
+              socketId: socketId,
+            });
             if (res.message === "error") {
               return {
                 message: "error",

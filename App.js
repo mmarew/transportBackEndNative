@@ -1,7 +1,7 @@
 const express = require("express");
 require("dotenv").config();
-const http = require("http");
-const WebSocket = require("ws");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
 const cors = require("cors");
 const Routes = require("./Routes/index.js");
 const WSPusher = require("./Utils/WSPusher.js");
@@ -9,60 +9,70 @@ const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
 const path = require("path");
 const loggingMiddleware = require("./Middleware/LoggingMiddleware.js");
 const getLocalIpAddress = require("./Utils/MyIpAddress.js");
-// getLocalIpAddress();
-console.log("getLocalIpAddress", getLocalIpAddress());
+const { socketIO } = require("./Utils/WsServerResponder.js");
+
+// Log local IP address
+console.log("Local IP Address:", getLocalIpAddress());
+
 // Initialize Express app
 const app = express();
-// app.use(loggingMiddleware);
+
+// Apply middleware
 loggingMiddleware();
-console.log('path.join(__dirname, "uploads")', path.join(__dirname, "uploads"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(Routes);
 
-// Create HTTP server and attach the Express app to it
-const server = http.createServer(app);
+// Create HTTP server and attach Express app
+const server = createServer(app);
 
-// Initialize WebSocket server instance
-const wss = new WebSocket.Server({ server });
-const handleMessage = (ws, incomingMessage) => {
-  const textMessage = incomingMessage.toString();
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Adjust according to your security preferences
+  },
+});
 
-  if (textMessage) {
-    ws.send("i get text messages from clients");
-  }
-};
-const handleClose = (ws) => {
-  removeWSFromList(ws);
-};
-const handleConnection = (ws, req) => {
-  const urlParams = new URLSearchParams(req.url.split("?")[1]);
-  WSPusher(urlParams, ws);
+io.on("connection", (socket) => {
+  const socketId = socket.id;
+  console.log("Client connected with socketId :", socketId);
+  const urlParams = new URLSearchParams(socket.handshake.query);
+  console.log("@urlParams", urlParams);
+  socketIO.io = io;
+  WSPusher(urlParams, socketId, io);
 
-  ws.on("message", (incomingMessage) => {
-    handleMessage(ws, incomingMessage);
+  socket.on("message", (incomingMessage) => {
+    const textMessage = incomingMessage.toString();
+    if (textMessage) {
+      socket.emit("response", "I received text messages from clients");
+    }
   });
 
-  ws.on("close", () => handleClose(ws));
-};
+  socket.on("disconnect", () => {
+    removeWSFromList(socket);
+    console.log("Client disconnected:", socket.id);
+  });
+});
 
-// WebSocket connection handling
-wss.on("connection", handleConnection);
-
-// Create tables in the database
+// Create tables in the database (startup logic)
 const onStartUp = async () => {
   try {
+    // Initialization logic here
   } catch (error) {
-    console.log("error", error);
+    console.error("Startup error:", error);
   }
 };
 onStartUp();
-app.get("", (req, res) => {
+
+// Health check endpoint
+app.get("/", (req, res) => {
   res.json({ message: "Server is running" });
 });
-// Start the HTTP server on port 3000
-server.listen(process.env.PORT || 3000, "0.0.0.0", () => {
-  console.log("Server started on port http://localhost:3000");
+
+// Start HTTP server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server started on port http://localhost:${PORT}`);
 });
