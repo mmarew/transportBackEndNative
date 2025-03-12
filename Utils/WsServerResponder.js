@@ -7,18 +7,15 @@ let socketIO = {};
 const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
   try {
     console.log("@sendOtpViaWebSocket listOfSMSSenderWs", listOfSMSSenderWs);
-    listOfSMSSenderWs.map(
-      (ws) => {
-        const socketId = ws.socketId;
-        console.log("@socketId", socketId);
-        emitMessage({
-          socketId,
-          messageDetailes: JSON.stringify({ OTP, phoneNumber }),
-          messageTitle: "messages",
-        });
-      }
-      // ws.WS.send(JSON.stringify({ OTP, phoneNumber }))
-    );
+    listOfSMSSenderWs.map((ws) => {
+      const socketId = ws.socketId;
+      const res = emitMessage({
+        socketId,
+        messageDetailes: JSON.stringify({ OTP, phoneNumber }),
+        messageTitle: "messages",
+      });
+      console.log("@sendOtpViaWebSocket res", res);
+    });
     return { message: "success", data: "OTP sent successfully" };
   } catch (error) {
     return { message: "error", error: "Error in sending OTP" };

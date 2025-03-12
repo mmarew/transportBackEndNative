@@ -187,64 +187,8 @@ const findNearbyPassengers = async ({
     operator: "AND",
   });
 };
-// const performJoinSelect = async ({
-//   baseTable,
-//   joins = [],
-//   conditions = {},
-//   operator = "AND",
-//   orderBy = null,
-//   orderDirection = "ASC",
-//   limit = null,
-//   offset = null,
-//   groupBy = null, // Optional group by column
-// }) => {
-//   // Validate the operator
-//   if (operator !== "AND" && operator !== "OR") {
-//     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
-//   }
-
-//   // Build WHERE clause dynamically based on conditions
-//   const columns = Object.keys(conditions);
-//   const whereClause =
-//     columns.length > 0
-//       ? `WHERE ${columns
-//           .map((col) => {
-//             const value = conditions[col];
-//             if (Array.isArray(value) && value.length === 2) {
-//               return `${col} BETWEEN ? AND ?`;
-//             } else if (Array.isArray(value)) {
-//               const placeholders = value.map(() => "?").join(", ");
-//               return `${col} IN (${placeholders})`;
-//             } else {
-//               return `${col} = ?`;
-//             }
-//           })
-//           .join(` ${operator} `)}`
-//       : ""; // No WHERE clause if conditions are empty
-
-//   const values = Object.values(conditions).flat();
-//   const joinClauses = joins
-//     .map(({ table, on }) => `JOIN ${table} ON ${on}`)
-//     .join(" ");
-//   const orderByClause = orderBy ? ` ORDER BY ${orderBy} ${orderDirection}` : "";
-//   const limitClause = limit ? ` LIMIT ${limit}` : "";
-//   const offsetClause = offset ? ` OFFSET ${offset}` : "";
-//   const groupByClause = groupBy ? ` GROUP BY ${groupBy}` : ""; // Optional group by
-
-//   // Construct the final SQL query
-//   const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
-
-//   try {
-//     const [result] = await pool.query(sqlQuery, values);
-//     return result; // Return the result set
-//   } catch (error) {
-//     console.log("Error querying data:", error);
-//     throw error;
-//   }
-// };
 const performJoinSelect = async ({
   baseTable,
-  columns = "*", // Allow explicit column selection
   joins = [],
   conditions = {},
   operator = "AND",
@@ -252,16 +196,18 @@ const performJoinSelect = async ({
   orderDirection = "ASC",
   limit = null,
   offset = null,
-  groupBy = null,
+  groupBy = null, // Optional group by column
 }) => {
+  // Validate the operator
   if (operator !== "AND" && operator !== "OR") {
     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
   }
 
-  const conditionColumns = Object.keys(conditions);
+  // Build WHERE clause dynamically based on conditions
+  const columns = Object.keys(conditions);
   const whereClause =
-    conditionColumns.length > 0
-      ? `WHERE ${conditionColumns
+    columns.length > 0
+      ? `WHERE ${columns
           .map((col) => {
             const value = conditions[col];
             if (Array.isArray(value) && value.length === 2) {
@@ -274,7 +220,7 @@ const performJoinSelect = async ({
             }
           })
           .join(` ${operator} `)}`
-      : "";
+      : ""; // No WHERE clause if conditions are empty
 
   const values = Object.values(conditions).flat();
   const joinClauses = joins
@@ -283,18 +229,72 @@ const performJoinSelect = async ({
   const orderByClause = orderBy ? ` ORDER BY ${orderBy} ${orderDirection}` : "";
   const limitClause = limit ? ` LIMIT ${limit}` : "";
   const offsetClause = offset ? ` OFFSET ${offset}` : "";
-  const groupByClause = groupBy ? ` GROUP BY ${groupBy}` : "";
+  const groupByClause = groupBy ? ` GROUP BY ${groupBy}` : ""; // Optional group by
 
-  const sqlQuery = `SELECT ${columns} FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
+  // Construct the final SQL query
+  const sqlQuery = `SELECT * FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
 
   try {
     const [result] = await pool.query(sqlQuery, values);
-    return result;
+    return result; // Return the result set
   } catch (error) {
     console.log("Error querying data:", error);
     throw error;
   }
 };
+// const performJoinSelect = async ({
+//   baseTable,
+//   columns = "*", // Allow explicit column selection
+//   joins = [],
+//   conditions = {},
+//   operator = "AND",
+//   orderBy = null,
+//   orderDirection = "ASC",
+//   limit = null,
+//   offset = null,
+//   groupBy = null,
+// }) => {
+//   if (operator !== "AND" && operator !== "OR") {
+//     throw new Error('Invalid operator. Only "AND" and "OR" are allowed.');
+//   }
+
+//   const conditionColumns = Object.keys(conditions);
+//   const whereClause =
+//     conditionColumns.length > 0
+//       ? `WHERE ${conditionColumns
+//           .map((col) => {
+//             const value = conditions[col];
+//             if (Array.isArray(value) && value.length === 2) {
+//               return `${col} BETWEEN ? AND ?`;
+//             } else if (Array.isArray(value)) {
+//               const placeholders = value.map(() => "?").join(", ");
+//               return `${col} IN (${placeholders})`;
+//             } else {
+//               return `${col} = ?`;
+//             }
+//           })
+//           .join(` ${operator} `)}`
+//       : "";
+
+//   const values = Object.values(conditions).flat();
+//   const joinClauses = joins
+//     .map(({ table, on }) => `JOIN ${table} ON ${on}`)
+//     .join(" ");
+//   const orderByClause = orderBy ? ` ORDER BY ${orderBy} ${orderDirection}` : "";
+//   const limitClause = limit ? ` LIMIT ${limit}` : "";
+//   const offsetClause = offset ? ` OFFSET ${offset}` : "";
+//   const groupByClause = groupBy ? ` GROUP BY ${groupBy}` : "";
+
+//   const sqlQuery = `SELECT ${columns} FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
+
+//   try {
+//     const [result] = await pool.query(sqlQuery, values);
+//     return result;
+//   } catch (error) {
+//     console.log("Error querying data:", error);
+//     throw error;
+//   }
+// };
 
 const checkUserExists = async (userUniqueId) => {
   const existingUser = await getData({

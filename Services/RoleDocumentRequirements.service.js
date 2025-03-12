@@ -213,22 +213,39 @@ const driversDocumentVehicleRequirement = async (body) => {
   //   conditions: { userUniqueId: ownerUserUniqueId },
   // });
 
-  const attachedDocuments = await performJoinSelect({
-    baseTable: "AttachedDocuments",
-    columns: "AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
-      },
-      {
-        table: "RoleDocumentRequirements",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-    ],
-    conditions: { userUniqueId: ownerUserUniqueId },
-    groupBy: "AttachedDocuments.attachedDocumentId", // prevents duplicates
-  });
+  // const attachedDocuments = await performJoinSelect({
+  //   baseTable: "AttachedDocuments",
+  //   columns: "AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*",
+  //   joins: [
+  //     {
+  //       table: "DocumentTypes",
+  //       on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+  //     },
+  //     {
+  //       table: "RoleDocumentRequirements",
+  //       on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+  //     },
+  //   ],
+  //   conditions: { userUniqueId: ownerUserUniqueId },
+  //   groupBy: "AttachedDocuments.attachedDocumentId", // prevents duplicates
+  // });
+
+  const sqlQuery = `
+  SELECT 
+    AttachedDocuments.attachedDocumentId, 
+    AttachedDocuments.documentTypeId, 
+    DocumentTypes.documentTypeName, 
+    GROUP_CONCAT(RoleDocumentRequirements.roleDocumentRequirementId) AS roleDocumentRequirementIds
+  FROM AttachedDocuments
+  JOIN DocumentTypes ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
+  JOIN RoleDocumentRequirements ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
+  WHERE AttachedDocuments.userUniqueId = ?
+  GROUP BY AttachedDocuments.attachedDocumentId, AttachedDocuments.documentTypeId, DocumentTypes.documentTypeName
+`;
+
+  const values = [ownerUserUniqueId]; // Dynamic parameter to avoid SQL injection
+
+  const [attachedDocuments] = await pool.query(sqlQuery, values);
 
   // Find unattached document types
   const unAttachedDocumentTypes = requiredDocuments.filter(
