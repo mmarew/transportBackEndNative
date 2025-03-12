@@ -221,9 +221,9 @@ async function WSPusher(urlParams, socketId) {
           messageDetailes: "Password is required for SMS sender",
         });
       }
-
+      console.log("@SMSSENDER", tableNames);
       const smsSenderData = await getData({
-        tableName: tableNames.SMSSENDER,
+        tableName: "SMSSender",
         conditions: { phoneNumber: cleanedPhoneNumber },
       });
 

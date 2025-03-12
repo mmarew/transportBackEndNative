@@ -1,6 +1,5 @@
 const {
   listOfDriverWs,
-  WSServerTextMessageResponder,
   listOfPassangerWs,
   listOfAdminWs,
   emitMessage,
@@ -146,9 +145,15 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
       const errorList = [],
         successList = [];
       for (const admin of listOfAdminWs) {
-        if (admin && admin?.WS) {
+        if (admin) {
           try {
-            const res = await WSServerTextMessageResponder(admin.WS, message);
+            const socketId = admin?.socketId;
+            const res = emitMessage({
+              messageDetailes: JSON.stringify(message),
+              messageTitle: "messages",
+              socketId,
+            });
+            // const res = await WSServerTextMessageResponder(admin.WS, message);
             if (res.message === "error") {
               errorList.push({
                 message: "error",
