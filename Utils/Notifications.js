@@ -27,8 +27,15 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 
     // Send notification to the matching driver using a for...of loop
     for (const driver of listOfDriverWs) {
-      console.log("@driver sendNotificationToDriver", driver);
-      if (driver.phoneNumber === cleanedPhoneNumber) {
+      console.log(
+        "@driver sendNotificationToDriver",
+        driver,
+        "driver?.phoneNumber === cleanedPhoneNumber",
+        driver?.phoneNumber === cleanedPhoneNumber,
+        "driver?.phoneNumber" + driver?.phoneNumber,
+        "cleanedPhoneNumber" + cleanedPhoneNumber
+      );
+      if (driver?.phoneNumber === cleanedPhoneNumber) {
         try {
           const socketId = driver?.socketId;
           console.log("@sendNotificationToDriver driver =========> ", driver);
