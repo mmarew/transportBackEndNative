@@ -231,7 +231,7 @@ const startJourney = async (body) => {
   console.log("@exisistingJourney", exisistingJourney);
 
   if (exisistingJourney.length == 0) {
-    const insertResult = await insertData({
+    await insertData({
       tableName: "Journey",
       colAndVal: {
         journeyUniqueId,
@@ -240,7 +240,6 @@ const startJourney = async (body) => {
         startTime: new Date(),
       },
     });
-    const insertId = insertResult.insertId;
     await createJourneyRoutePoint({ journeyUniqueId, latitude, longitude });
     await updateJourneyStatus(body);
   } else {
@@ -249,6 +248,7 @@ const startJourney = async (body) => {
     userUniqueId: body.userUniqueId,
   });
   console.log("@message ==============> ", message);
+  // return;
   const passenger = message?.passenger;
   phoneNumber = passenger?.phoneNumber;
   const journeyStatusId = passenger?.journeyStatusId;
@@ -366,7 +366,6 @@ const journeyCompleted = async (body) => {
     vehicleTypeUniqueId,
     journeyUniqueId,
   });
-  console.log("paymentData ==================> ", paymentData);
   const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
   const driver = await getUserByUserUniqueId(userUniqueId);
   // console.log("@journeyCompleted driver", driver);
@@ -790,7 +789,6 @@ const handleJourneyStatusOne = async (
     originLongitude,
     vehicleTypeUniqueId,
   });
-  console.log("@handleJourneyStatusOne nearbyPassengers is ", nearbyPassengers);
   // if there is no passenger  near to driver
   if (!nearbyPassengers?.length) {
     return {
@@ -971,7 +969,6 @@ const getDriverJourneyStatus = async (userUniqueId) => {
       orderBy: "driverRequestId",
       orderDirection: "desc",
     });
-    console.log("currentRequest", currentRequest);
     const journeyStatusId = currentRequest?.journeyStatusId;
     return journeyStatusId && journeyStatusId <= 4 ? journeyStatusId : null;
   } catch (error) {

@@ -25,8 +25,6 @@ async function WSPusher(urlParams, socketId) {
     const user = urlParams.get("user");
     const token = urlParams.get("token");
 
-    console.log("[WSPusher] Incoming connection for user:", user);
-
     if (!token) {
       return emitMessage({
         socketId,
@@ -136,8 +134,6 @@ async function WSPusher(urlParams, socketId) {
     } else if (user === "driver") {
       status = await getDriverJourneyStatus(userUniquId);
     }
-
-    console.log("[WSPusher] Journey status:", user, status);
 
     return emitMessage({
       socketId,

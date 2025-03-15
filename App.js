@@ -39,7 +39,6 @@ io.on("connection", (socket) => {
   const socketId = socket.id;
   console.log("Client connected with socketId :", socketId);
   const urlParams = new URLSearchParams(socket.handshake.query);
-  console.log("@urlParams", urlParams);
   socketIO.io = io;
   WSPusher(urlParams, socketId, io);
 

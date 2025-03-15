@@ -6,18 +6,7 @@ const findStatusByVehicleAndDocuments = ({
   unAttachedDocumentTypes,
 }) => {
   let finalStatusId = null;
-  console.log(
-    "vehicleRegistered",
-    vehicleRegistered,
-    "attachedDocumentsByStatus",
-    attachedDocumentsByStatus,
-    "  requiredDocuments",
-    requiredDocuments,
-    "attachedDocuments",
-    attachedDocuments,
-    "unAttachedDocumentTypes",
-    unAttachedDocumentTypes
-  );
+
   // Check for invalid or missing inputs
 
   // Check if the user has a registered vehicle

@@ -158,14 +158,6 @@ const findNearbyPassengers = async ({
     min: parseFloat(originLongitude) - searchRange,
     max: parseFloat(originLongitude) + searchRange,
   };
-  console.log(
-    "@findNearbyPassengers searchRange ============> ",
-    searchRange,
-    "latitudeRange",
-    latitudeRange,
-    "longitudeRange",
-    longitudeRange
-  );
 
   return await performJoinSelect({
     baseTable: "Users",

@@ -25,14 +25,7 @@ const emitMessage = ({ socketId, messageTitle, messageDetailes }) => {
   const socketData = socketIO.io
     .to(socketId)
     .emit(messageTitle, messageDetailes);
-  console.log(
-    "@socketData emitMessage",
-    socketData,
-    "socketId",
-    socketId,
-    "messageTitle",
-    messageTitle
-  );
+
   if (socketData == true)
     return { message: "success", data: "message sent successfully" };
   else return { message: "error", data: "message can't be sent successfully" };

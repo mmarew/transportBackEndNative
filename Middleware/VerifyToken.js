@@ -30,36 +30,38 @@ const verifyTokenOfAxios = async (req, res, next) => {
         case "TokenExpiredError":
           response = {
             valid: false,
-            message: "Token expired",
-            error: error.message,
+            message: "error",
+            error: "Token expired",
           };
           break;
         case "JsonWebTokenError":
           response = {
             valid: false,
-            message: "Invalid token",
-            error: error.message,
+            message: "error",
+            error: "Invalid token",
           };
           break;
         case "NotBeforeError":
           response = {
             valid: false,
-            message: "Token not active",
-            error: error.message,
+            message: "error",
+            error: "Token not active",
           };
           break;
         default:
           response = {
             valid: false,
-            message: "Token verification failed",
-            error: error.message,
+            message: "error",
+            error: "Token verification failed",
           };
           break;
       }
       return res.status(401).json(response); // Send the error response with status 401 (Unauthorized)
     }
   } else {
-    return res.status(401).json({ message: "Authorization header missing" }); // If no auth header present
+    return res
+      .status(401)
+      .json({ message: "error", error: "Authorization header missing" }); // If no auth header present
   }
 };
 
@@ -68,7 +70,6 @@ const verifyTokenOfWS = async (tokenData) => {
   try {
     const decoded = jwt.verify(token, secretKey);
     decoded.valid = true;
-    console.log("decoded token", decoded);
     return decoded;
   } catch (error) {
     let response;

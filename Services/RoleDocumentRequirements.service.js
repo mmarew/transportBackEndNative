@@ -214,7 +214,6 @@ const driversDocumentVehicleRequirement = async (body) => {
     conditions: { userUniqueId: ownerUserUniqueId },
   });
 
-  console.log("@attachedDocumentsattachedDocuments", attachedDocuments);
   // Find unattached document types
   const unAttachedDocumentTypes = requiredDocuments.filter(
     (requiredDocument) =>
@@ -233,10 +232,7 @@ const driversDocumentVehicleRequirement = async (body) => {
   attachedDocuments.forEach((attachedDocument) => {
     //
     const acceptanceStatus = attachedDocument.attachedDocumentAcceptance;
-    console.log(
-      "@ attachedDocument.attachedDocumentAcceptance",
-      attachedDocument.attachedDocumentAcceptance
-    );
+
     if (attachedDocumentsByStatus[acceptanceStatus]) {
       //
       attachedDocumentsByStatus[acceptanceStatus].push(attachedDocument);
@@ -265,11 +261,7 @@ const driversDocumentVehicleRequirement = async (body) => {
     vehicleRegistered,
     unAttachedDocumentTypes,
   });
-  // finalStatusId;
-  console.log(
-    "@driversDocumentVehicleRequirement resultOfStatus",
-    resultOfStatus
-  );
+
   if (resultOfStatus?.message == "error") {
     return resultOfStatus;
   }
