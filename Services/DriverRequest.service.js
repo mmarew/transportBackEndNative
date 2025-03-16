@@ -529,14 +529,6 @@ const cancelDriverRequest = async (body) => {
       phoneNumber: passenger[0]?.phoneNumber,
     });
 
-    // const adminNotification = await sendNotificationToAdmin({
-    //   message: {
-    //     message: "error",
-    //     error: "driver cancelled passengers request",
-    //     detailInfo: { passenger: passenger[0], driver: getActiveRequest[0] },
-    //   },
-    // });
-
     // Update JourneyDecisions to reflect the cancellation
     await updateData({
       tableName: "JourneyDecisions",
@@ -889,20 +881,7 @@ const handleExistingJourney = async (
 
   const passenger = passengerData?.[0];
   const userUniqueId = driverRequest?.userUniqueId;
-  // const documents = await performJoinSelect({
-  //   baseTable: "AttachedDocuments",
-  //   joins: [
-  //     {
-  //       table: "DocumentTypes",
-  //       on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
-  //     },
-  //   ],
-  //   conditions: {
-  //     attachedDocumentCreatedByUserId: userUniqueId,
-  //     "DocumentTypes.documentTypeId": 4,
-  //   },
-  // });
-  // attachedDocumentCreatedByUserId,documentTypeId
+
   const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
     userUniqueId,
     4

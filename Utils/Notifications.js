@@ -30,19 +30,19 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
         try {
           const socketId = driver?.socketId;
           console.log("@sendNotificationToDriver driver =========> ", driver);
-          const res = emitMessage({
+          const res = await emitMessage({
             messageTitle: "messages",
             messageDetailes: JSON.stringify(message),
             socketId,
           });
           console.log("@sendNotificationToDriver res", res);
-          // const res = await WSServerTextMessageResponder(driver.WS, message);
-          if (res.message == "error") {
+
+          if (res.message === "error") {
             return {
               message: "error",
               data: "Failed to send message to driver",
             };
-          } else if (res.message == "success") {
+          } else if (res.message === "success") {
             return {
               message: "success",
               data: "Message to driver sent successfully",
@@ -78,7 +78,9 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
       return { message: "error", data: "Invalid phone number format" };
     }
+
     console.log("listOfPassangerWs", listOfPassangerWs);
+
     // Send notification to the matching passenger using a for...of loop
     if (listOfPassangerWs && listOfPassangerWs.length > 0) {
       for (const passenger of listOfPassangerWs) {
@@ -88,16 +90,13 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 
           try {
             console.log("in try catch");
-            // const res = await WSServerTextMessageResponder(
-            //   passenger.WS,
-            //   message
-            // );
             const socketId = passenger?.socketId;
-            const res = emitMessage({
+            const res = await emitMessage({
               messageDetailes: JSON.stringify(message),
               messageTitle: "messages",
-              socketId: socketId,
+              socketId,
             });
+
             if (res.message === "error") {
               return {
                 message: "error",
@@ -120,7 +119,7 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
       }
     } else {
       console.log("listOfPassangerWs is null or empty");
-      return { message: "error", error: "No passengers available" };
+      return { message: "error", data: "No passengers available" };
     }
 
     return {
@@ -134,13 +133,12 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 };
 
 // send notification to admin
-const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
+const sendNotificationToAdmin = async ({ message }) => {
   try {
-    // Send notification to the matching admin using a for...of loop
+    const errorList = [];
+    const successList = [];
 
     if (listOfAdminWs && listOfAdminWs.length > 0) {
-      const errorList = [],
-        successList = [];
       for (const admin of listOfAdminWs) {
         if (admin) {
           try {
@@ -150,7 +148,7 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
               messageTitle: "messages",
               socketId,
             });
-            // const res = await WSServerTextMessageResponder(admin.WS, message);
+
             if (res.message === "error") {
               errorList.push({
                 message: "error",
@@ -164,39 +162,32 @@ const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
                 successOnData: message,
               });
             }
-            return {
-              message: successList.length > 0 ? "success" : "error",
-              data:
-                successList.length > 0
-                  ? "Message sent successfully"
-                  : "Message can't be sent to admin",
-              error: errorList,
-              success: successList,
-            };
           } catch (error) {
             console.log("Error sending message to admin:", error);
-            return {
+            errorList.push({
               message: "error",
-              error: "An error occurred while sending a message to admin",
-            };
+              data: "An error occurred while sending a message to admin",
+              errorOnData: message,
+            });
           }
-        } else {
         }
       }
-    } else {
     }
 
-    // If loop completes without error
     return {
-      message: "success",
-      data: "Message to admin sent successfully",
+      message: successList.length > 0 ? "success" : "error",
+      data:
+        successList.length > 0
+          ? "Message sent successfully"
+          : "Message can't be sent to admin",
+      error: errorList,
+      success: successList,
     };
   } catch (error) {
     console.log("Error in sendNotificationToAdmin:", error);
     return { message: "error", error: "Message can't be sent to admin" };
   }
 };
-
 module.exports = {
   sendNotificationToAdmin,
   sendNotificationToDriver,
