@@ -18,7 +18,6 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
   try {
     // Clean the phone number before processing
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
-    console.log("cleanedPhoneNumber", cleanedPhoneNumber);
 
     // Validate the cleaned phone number using regex
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
@@ -27,14 +26,6 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 
     // Send notification to the matching driver using a for...of loop
     for (const driver of listOfDriverWs) {
-      console.log(
-        "@driver sendNotificationToDriver",
-        driver,
-        "driver?.phoneNumber === cleanedPhoneNumber",
-        driver?.phoneNumber === cleanedPhoneNumber,
-        "driver?.phoneNumber" + driver?.phoneNumber,
-        "cleanedPhoneNumber" + cleanedPhoneNumber
-      );
       if (driver?.phoneNumber === cleanedPhoneNumber) {
         try {
           const socketId = driver?.socketId;
@@ -146,8 +137,7 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 const sendNotificationToAdmin = async ({ message, phoneNumber }) => {
   try {
     // Send notification to the matching admin using a for...of loop
-    console.log("listOfAdminWs", listOfAdminWs);
-    console.log("listOfAdminWs length", listOfAdminWs.length);
+
     if (listOfAdminWs && listOfAdminWs.length > 0) {
       const errorList = [],
         successList = [];

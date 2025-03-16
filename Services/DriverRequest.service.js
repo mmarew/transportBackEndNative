@@ -272,8 +272,6 @@ const noAnswerFromDriver = async (body) => {
   const driverRequest = await getDriverRequestByRequestUniqueId(
     driverRequestUniqueId
   );
-  console.log("@passengerRequest", passengerRequest);
-  console.log("@driverRequest", driverRequest);
 
   const driverData = driverRequest.data;
   const passengerData = passengerRequest.data;
@@ -308,9 +306,7 @@ const noAnswerFromDriver = async (body) => {
     passengerRequestData,
     passengerData
   );
-  console.log("newPassengerRequest", newPassengerRequest);
   const passengerPhoneNumber = newPassengerRequest?.passenger?.phoneNumber;
-  console.log("passengerPhoneNumber", passengerPhoneNumber);
   const messageToPassenger = {
     messageType: messageTypes.request_other_driver,
     ...newPassengerRequest,
@@ -349,7 +345,6 @@ const journeyCompleted = async (body) => {
     paymentStatusUniqueId,
   } = body;
 
-  console.log("@journeyCompleted body ", body);
   const passenger = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [

@@ -88,23 +88,36 @@ const getVehicle = async (vehicleUniqueId) => {
 
 const updateVehicle = async (vehicleUniqueId, data, user) => {
   try {
-    console.log(
-      "vehicleUniqueId",
-      vehicleUniqueId,
-      " data ==============> ",
-      data
-    );
+    const vehicleTypeUniqueId = data?.vehicleTypeUniqueId,
+      licensePlate = data?.licensePlate,
+      color = data?.color,
+      vehicleRegistrationDocument = data?.vehicleRegistrationDocument;
+    console.log("@vehicleRegistrationDocument", vehicleRegistrationDocument);
     const result = await updateData({
       tableName: "Vehicle",
       conditions: { vehicleUniqueId },
       updateValues: {
-        ...data,
+        color,
+        licensePlate,
+        vehicleTypeUniqueId,
         vehicleUpdatedBy: user.userUniqueId,
         vehicleUpdatedAt: currentDate(),
       },
     });
-
-    return result.affectedRows
+    const attachedDocumentAcceptance =
+      vehicleRegistrationDocument?.attachedDocumentAcceptance;
+    const attachedDocumentUniqueId =
+      vehicleRegistrationDocument?.attachedDocumentUniqueId;
+    // update attached documents acceptance to pending if it is accepted
+    if (attachedDocumentAcceptance == "ACCEPTED") {
+      const updatedDocs = await updateData({
+        tableName: "AttachedDocuments",
+        conditions: { attachedDocumentUniqueId },
+        updateValues: { attachedDocumentAcceptance: "PENDING" },
+      });
+      console.log("@updatedDocs", updatedDocs);
+    }
+    return result?.affectedRows
       ? { message: "success", data: "Vehicle updated successfully" }
       : { message: "error", error: "Vehicle not found or no changes made" };
   } catch (error) {
