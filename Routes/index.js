@@ -74,4 +74,5 @@ Routes.use(AdminRouter);
 Routes.use(CancilationRouter);
 Routes.use(vehicleType);
 Routes.use(WSSMSSenderRouter);
+
 module.exports = Routes;

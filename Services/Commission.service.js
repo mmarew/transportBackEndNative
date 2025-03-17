@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { getData } = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { insertData } = require("../CRUD/Create/CreateData");
 
 // Create a new commission record
@@ -52,10 +52,21 @@ exports.getAllCommissions = async () => {
 };
 
 // Get a commission record by ID
-exports.getCommissionById = async (id) => {
-  const sql = `SELECT * FROM Commission WHERE commissionId = ?`;
-  const [result] = await pool.query(sql, [id]);
-  return result[0];
+exports.getCommissionByUserUniqueId = async (driverUniqueId) => {
+  //  Payments(paymentUniqueId)
+  const result = await performJoinSelect({
+    baseTable: "Payments",
+    joins: [
+      {
+        table: "Commission",
+        on: "Commission.paymentUniqueId = Payments.paymentUniqueId",
+      },
+    ],
+    conditions: { driverUniqueId: driverUniqueId },
+  });
+  console.log("@getCommissionByUserUniqueId result is ", result);
+
+  return { message: "success", data: result };
 };
 
 // Update a commission record by ID

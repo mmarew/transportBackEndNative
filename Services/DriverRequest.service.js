@@ -344,7 +344,7 @@ const journeyCompleted = async (body) => {
     paymentMethodUniqueId,
     paymentStatusUniqueId,
   } = body;
-
+  const paymentTime = currentDate();
   const passenger = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -383,13 +383,18 @@ const journeyCompleted = async (body) => {
     });
 
   const totalMoney = paymentData.totalMoney;
-
+  const driverUserUniqueId = userUniqueId,
+    passengerUserUniqueId = passenger?.at(0)?.userUniqueId;
+  console.warn("@passengerUserUniqueId", passengerUserUniqueId);
   // register payment in to Payment table
   const newPayment = await createPayment(
     journeyUniqueId,
     totalMoney,
     paymentMethodUniqueId,
-    paymentStatusUniqueId
+    paymentStatusUniqueId,
+    paymentTime,
+    driverUserUniqueId,
+    passengerUserUniqueId
   );
   if (newPayment.message == "error") {
     // return newPayment;
@@ -415,7 +420,7 @@ const journeyCompleted = async (body) => {
   const netBalance = parseFloat(currentBalance) - parseFloat(commissionAmount);
   const dataOfBalance = {
     userUniqueId,
-    transactionType: "payment",
+    transactionType: "Commission",
     transactionUniqueId,
     date: new Date(),
     netBalance,

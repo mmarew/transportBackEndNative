@@ -1,4 +1,5 @@
 const commissionService = require("../Services/Commission.service");
+const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new commission record
 exports.createCommission = async (req, res) => {
@@ -19,6 +20,7 @@ exports.getAllCommissions = async (req, res) => {
     const result = await commissionService.getAllCommissions();
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@");
     ServerResponder(res, {
       message: "error",
       error: "Failed to retrieve commission records",
@@ -27,9 +29,26 @@ exports.getAllCommissions = async (req, res) => {
 };
 
 // Get a commission record by ID
-exports.getCommissionById = async (req, res) => {
+exports.getCommissionByUserUniqueId = async (req, res) => {
   try {
-    const result = await commissionService.getCommissionById(req.params.id);
+    let userUniqueId = req?.params?.userUniqueId;
+    const user = req?.user;
+    console.log(
+      "@getCommissionByUserUniqueId userUniqueId   =====================> ",
+      userUniqueId,
+      " user",
+      user
+    );
+    if (userUniqueId == "self") userUniqueId = user?.userUniqueId;
+    const result = await commissionService.getCommissionByUserUniqueId(
+      userUniqueId
+    );
+    console.log(
+      "@getCommissionByUserUniqueId userUniqueId   =====================> ",
+      userUniqueId,
+      "result",
+      result
+    );
     if (result) {
       ServerResponder(res, result);
     } else {
@@ -39,6 +58,7 @@ exports.getCommissionById = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log("@getCommissionByUserUniqueId error", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to retrieve commission record",

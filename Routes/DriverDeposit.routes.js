@@ -11,7 +11,7 @@ router.post(
 
 // Get all driver deposit records
 router.get(
-  "/api/admin/driverDeposit",
+  "/api/admin/driverDeposit/:driverUniqueId",
   verifyTokenOfAxios,
   driverDepositController.getAllDriverDeposits
 );

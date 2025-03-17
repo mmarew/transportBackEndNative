@@ -77,8 +77,16 @@ exports.deleteDriverBalance = async (req, res) => {
     });
   }
 };
-exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
+exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
   try {
+    let userUniqueId = req?.params?.driverUniqueId;
+    const user = req.user;
+    console.log("@userUniqueId", userUniqueId);
+    if (userUniqueId == "self") {
+      userUniqueId = user?.userUniqueId;
+    } else {
+    }
+    console.log("@getDriverLastBalanceByUserUniqueId user", user);
     const result =
       await driverBalanceService.getDriverLastBalanceByUserUniqueId(
         userUniqueId

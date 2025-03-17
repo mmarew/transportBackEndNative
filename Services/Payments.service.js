@@ -8,7 +8,9 @@ exports.createPayment = async (
   amount,
   paymentMethodUniqueId,
   paymentStatusUniqueId,
-  paymentTime
+  paymentTime,
+  driverUniqueId,
+  passengerUniqueId
 ) => {
   const existedPayment = await getData({
     tableName: "Payments",
@@ -22,9 +24,11 @@ exports.createPayment = async (
     };
   }
   const paymentUniqueId = uuidv4();
-  const sql = `INSERT INTO Payments (paymentUniqueId,journeyUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) VALUES (?, ?, ?, ?, ?,?)`;
+  const sql = `INSERT INTO Payments (paymentUniqueId, driverUniqueId, passengerUniqueId, journeyUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) VALUES (?, ?, ?, ?, ?,?,?,?)`;
   const values = [
     paymentUniqueId,
+    driverUniqueId,
+    passengerUniqueId,
     journeyUniqueId,
     amount,
     paymentMethodUniqueId,

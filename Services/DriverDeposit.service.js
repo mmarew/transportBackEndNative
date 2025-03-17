@@ -10,41 +10,41 @@ exports.createDriverDeposit = async (data) => {
   const userUniqueId = data.user.userUniqueId;
   const clientSideRequestId = data.clientSideRequestId;
   // verify if clientSideRequestId existed in DriverDeposit table and if it does not exist, create a new record
-  const sql = `
-    INSERT INTO DriverDeposit (
+  const sql = `INSERT INTO DriverDeposit (
       driverDepositUniqueId,
       driverUniqueId,
       depositAmount,
       depositTime
-    ) VALUES (?, ?, ?, ?)
-  `;
+    ) VALUES (?, ?, ?, ?) `;
+  const depositAmount = data.depositAmount;
   const driverDepositUniqueId = uuidv4();
   const values = [
     driverDepositUniqueId,
     userUniqueId,
-    data.depositAmount,
+    depositAmount,
     new Date(),
   ];
-  const [result] = await pool.query(sql, values);
+  const [result] = await pool?.query(sql, values);
   const lastDriverBalance = await getDriverLastBalanceByUserUniqueId(
     userUniqueId
   );
-  const previousNetBalance = lastDriverBalance?.netBalance;
+  const previousNetBalance = lastDriverBalance?.data?.netBalance;
   const currnetNetBalance =
     parseFloat(previousNetBalance ? previousNetBalance : 0) +
     parseFloat(data.depositAmount);
-  console.log("previousNetBalance", previousNetBalance);
-  console.log("currnetNetBalance", currnetNetBalance);
+
   const balanceData = {
     userUniqueId,
-    transactionType: "deposit",
+    transactionType: "Deposit",
     transactionUniqueId: driverDepositUniqueId,
     netBalance: currnetNetBalance,
   };
+
   await createDriverBalance(balanceData);
+
   return {
-    message: "Driver deposit record created successfully",
-    data: result,
+    message: "success",
+    data: { currnetNetBalance },
   };
 };
 
@@ -55,6 +55,16 @@ exports.getAllDriverDeposits = async () => {
   return result;
 };
 
+exports.getDriverDepositByUserUniquId = async (userUniqueId) => {
+  try {
+    const sql = `select * from  DriverDeposit where driverUniqueId=?`;
+    const [result] = await pool.query(sql, [userUniqueId]);
+    return { message: "success", data: result };
+  } catch (error) {
+    console.log("@getDriverDepositByUserUniquId error", error);
+    return { message: "success", data: "error to get data" };
+  }
+};
 // Get a driver deposit record by ID
 exports.getDriverDepositById = async (driverDepositUniqueId) => {
   const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;

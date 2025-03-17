@@ -1,5 +1,5 @@
 const driverDepositService = require("../Services/DriverDeposit.service");
-
+const ServerResponder = require("../Utils/ServerResponder");
 // Create a new driver deposit record
 exports.createDriverDeposit = async (req, res) => {
   try {
@@ -19,6 +19,16 @@ exports.createDriverDeposit = async (req, res) => {
 // Get all driver deposit records
 exports.getAllDriverDeposits = async (req, res) => {
   try {
+    const driverUniqueId = req?.params?.driverUniqueId;
+    const user = req?.user;
+    let userUniqueId = null;
+    if (driverUniqueId == "self") {
+      userUniqueId = user?.userUniqueId;
+      const result = await driverDepositService.getDriverDepositByUserUniquId(
+        userUniqueId
+      );
+      return ServerResponder(res, result);
+    }
     const result = await driverDepositService.getAllDriverDeposits();
     ServerResponder(res, result);
   } catch (error) {

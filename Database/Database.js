@@ -441,11 +441,13 @@ CREATE TABLE IF NOT EXISTS PaymentStatus (
 ) ;
 
 
--- Create the Payments table
+-- Create the Payments table where passenger pay to driver
 
 CREATE TABLE IF NOT EXISTS Payments (
     paymentId INT AUTO_INCREMENT PRIMARY KEY,
     paymentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for payment
+    driverUniqueId VARCHAR(36) NOT NULL,
+    passengerUniqueId VARCHAR(36) NOT NULL,
     journeyUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Journey
     amount DECIMAL(10, 2) NOT NULL,  -- Payment amount
     paymentMethodUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to PaymentMethod
@@ -453,7 +455,9 @@ CREATE TABLE IF NOT EXISTS Payments (
     paymentTime TIMESTAMP NOT NULL  -- Time of payment
  , FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId),
      FOREIGN KEY (paymentMethodUniqueId) REFERENCES PaymentMethod(paymentMethodUniqueId),
-     FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId)
+     FOREIGN KEY (paymentStatusUniqueId) REFERENCES PaymentStatus(paymentStatusUniqueId),
+     FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (passengerUniqueId) REFERENCES Users(userUniqueId)
 ) ;
  
  --  CREATE TABLE CanceledJourneys 
@@ -541,16 +545,16 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
      FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
 );
 
--- a table to store drivers balance after payment or deposit
+-- a table to store drivers balance after Commission to payment or deposit
 
 CREATE TABLE IF NOT EXISTS DriverBalance (
     driverBalanceId INT AUTO_INCREMENT PRIMARY KEY,
     driverBalanceUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver balance
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    transactionType enum('deposit', 'payment') NOT NULL,  -- Type of transaction
-    transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for DriverDeposit or DriverPayment
+    transactionType enum('Deposit', 'Commission') NOT NULL,  -- Type of transaction
+    transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for DriverDeposit or Payment
     transactionTime DATETIME NOT NULL,  -- Time of transaction
-    netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - payment)
+    netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - Commission)
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
 ) ;
 `;
