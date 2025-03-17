@@ -345,6 +345,18 @@ const journeyCompleted = async (body) => {
     paymentStatusUniqueId,
   } = body;
   const paymentTime = currentDate();
+
+  const paymentData = await PaymentCalculator({
+    vehicleTypeUniqueId,
+    journeyUniqueId,
+  });
+  console.log("@paymentData => ", paymentData);
+  const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
+  const driver = await getUserByUserUniqueId(userUniqueId);
+  // console.log("@journeyCompleted driver", driver);
+  if (paymentData.message == "error") return paymentData;
+
+  // find passenger data
   const passenger = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -357,14 +369,6 @@ const journeyCompleted = async (body) => {
       "PassengerRequest.passengerRequestUniqueId": passengerRequestUniqueId,
     },
   });
-  const paymentData = await PaymentCalculator({
-    vehicleTypeUniqueId,
-    journeyUniqueId,
-  });
-  const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
-  const driver = await getUserByUserUniqueId(userUniqueId);
-  // console.log("@journeyCompleted driver", driver);
-  if (paymentData.message == "error") return paymentData;
   const phoneNumber = passenger?.at(0)?.phoneNumber;
   const totalDistance = paymentData?.totalDistance;
   const fare = paymentData.totalMoney;
@@ -402,6 +406,7 @@ const journeyCompleted = async (body) => {
   const paymentUniqueId = newPayment?.data?.paymentUniqueId;
   // calculate commision and add to commision table
   const commisionData = await calculateCommision(totalMoney);
+  console.log("@commisionData", commisionData);
   const data = {
     paymentUniqueId,
     commissionRateUniqueId: commisionData?.commissionRateUniqueId,
@@ -414,8 +419,13 @@ const journeyCompleted = async (body) => {
   const driversCurrentBalance = await getDriverLastBalanceByUserUniqueId(
     userUniqueId
   );
-
-  let currentBalance = driversCurrentBalance?.netBalance;
+  console.log(
+    "@driversCurrentBalance",
+    driversCurrentBalance,
+    " commissionAmount",
+    commissionAmount
+  );
+  let currentBalance = driversCurrentBalance?.data?.netBalance;
   if (!currentBalance) currentBalance = 0;
   const netBalance = parseFloat(currentBalance) - parseFloat(commissionAmount);
   const dataOfBalance = {

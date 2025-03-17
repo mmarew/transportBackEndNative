@@ -614,8 +614,8 @@ const CommissionRates = [
   {
     commissionRateUniqueId: uuidv4(),
     commissionRateId: 1,
-    commissionRate: 10,
-    commissionRateEffectiveDate: "2022-01-01",
+    commissionRate: 0.1,
+    commissionRateEffectiveDate: "2029-01-01",
   },
 ];
 module.exports = {

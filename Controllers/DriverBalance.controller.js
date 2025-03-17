@@ -91,7 +91,7 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
       await driverBalanceService.getDriverLastBalanceByUserUniqueId(
         userUniqueId
       );
-    ServerResponder(res, result);
+    return ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {
       message: "error",

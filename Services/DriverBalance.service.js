@@ -6,6 +6,7 @@ exports.createDriverBalance = async (data) => {
   try {
     console.log("@createDriverBalance data is ", data);
     // Verify existence of data transactionUniqueId in DriverBalance
+
     const sqlToGetData = `
       SELECT * FROM DriverBalance 
       WHERE transactionUniqueId = ? AND transactionType = ?

@@ -43,9 +43,8 @@ router.delete(
   driverBalanceController.deleteDriverBalance
 );
 router.get(
-  "/api/driver/driverBalance/:driverUniqueId",
+  "/api/driver/driverBalance/:driverUniqueId/:fromDate/:toDate",
   verifyTokenOfAxios,
-
   driverBalanceController.getDriverLastBalanceByUserUniqueId
 );
 module.exports = router;
