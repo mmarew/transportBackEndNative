@@ -464,7 +464,7 @@ FROM Users
 JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
 JOIN Roles ON UserRole.roleUniqueId = Roles.roleUniqueId
 WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
-  AND Roles.roleId = ?`;
+  AND Roles.roleUniqueId = ?`;
   if (!roleId) {
     getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
   }

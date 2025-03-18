@@ -52,7 +52,7 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
       ],
       conditions: { passengerRequestId },
     });
-    return { message: "success", data: result };
+    return { message: "success", data: result[0] };
   } catch (error) {
     console.log(
       "@error on getPassengerRequestByPassengerRequestId error is",
