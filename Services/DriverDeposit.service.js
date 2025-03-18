@@ -1,10 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const {
-  getDriverLastBalanceByUserUniqueId,
-  createDriverBalance,
-} = require("./DriverBalance.service");
-
+const { createDriverBalance } = require("./DriverBalance.service");
 // Create a new driver deposit record
 exports.createDriverDeposit = async (data) => {
   try {
@@ -26,10 +22,16 @@ exports.createDriverDeposit = async (data) => {
       new Date(),
     ];
     const [result] = await pool?.query(sql, values);
-    const lastDriverBalance = await getDriverLastBalanceByUserUniqueId(
-      userUniqueId
-    );
-    const previousNetBalance = lastDriverBalance?.data?.netBalance;
+
+    const sqlToBalance = `
+      SELECT * FROM DriverBalance 
+      WHERE userUniqueId = ? 
+      ORDER BY driverBalanceId DESC 
+      LIMIT 1
+    `;
+    const [results] = await pool.query(sqlToBalance, [userUniqueId]);
+    const previousNetBalance = results?.[0].netBalance;
+    console.log("@previousNetBalance", previousNetBalance);
     const currnetNetBalance =
       parseFloat(previousNetBalance ? previousNetBalance : 0) +
       parseFloat(data.depositAmount);

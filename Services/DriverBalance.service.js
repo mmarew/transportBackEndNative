@@ -1,9 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { getCommissionsByCommissionUniqueId } = require("./Commission.service");
-const {
-  getDriverDepositByDriverDepositUniqueId,
-} = require("./DriverDeposit.service");
 
 // Create a new driver balance record
 exports.createDriverBalance = async (data) => {
@@ -121,10 +118,13 @@ exports.getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
       results.map(async (record) => {
         let TransactionData = { ...record };
         if (record.transactionType === "Deposit") {
-          const depositData = await getDriverDepositByDriverDepositUniqueId(
-            record?.transactionUniqueId
-          );
-          TransactionData = { ...record, ...depositData?.data?.[0] };
+          const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
+          const [result] = await pool.query(sql, [record?.transactionUniqueId]);
+
+          // const depositData = await getDriverDepositByDriverDepositUniqueId(
+          //   record?.transactionUniqueId
+          // );
+          TransactionData = { ...record, ...result?.[0] };
         } else if (record.transactionType === "Commission") {
           const commissionData = await getCommissionsByCommissionUniqueId(
             record.transactionUniqueId
