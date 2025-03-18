@@ -606,6 +606,7 @@ const cancelDriverRequest = async (body) => {
     await createCanceledJourney({
       contextId: journeyId,
       contextType: "Journey",
+      roleId: roleId,
       canceledBy: userUniqueId,
       cancellationReasonsTypeId,
       driverUserUniqueId: ownerUserUniqueId,
