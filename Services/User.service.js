@@ -462,7 +462,7 @@ const getUserByEmailOrNameOrPhoneNumber = async (data, roleId) => {
   let getUserQuery = `SELECT *
 FROM Users
 JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-JOIN Roles ON UserRole.roleUniqueId = Roles.roleUniqueId
+JOIN Roles ON UserRole.roleId = Roles.roleId
 WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
   AND Roles.roleUniqueId = ?`;
   if (!roleId) {
