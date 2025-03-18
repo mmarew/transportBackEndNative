@@ -16,6 +16,12 @@ router.get(
   verifyTokenOfAxios,
   commissionController.getAllCommissions
 );
+// Get single commission records by commissionUniqueId
+router.get(
+  "/api/user/commission/:commissionUniqueId",
+  verifyTokenOfAxios,
+  commissionController.getCommissionsByCommissionUniqueId
+);
 
 // Get a commission record by ID
 router.get(

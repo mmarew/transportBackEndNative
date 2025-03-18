@@ -40,11 +40,12 @@ exports.getAllDriverDeposits = async (req, res) => {
 };
 
 // Get a driver deposit record by ID
-exports.getDriverDepositById = async (req, res) => {
+exports.getDriverDepositByDriverDepositUniqueId = async (req, res) => {
   try {
-    const result = await driverDepositService.getDriverDepositById(
-      req.params.driverDepositUniqueId
-    );
+    const result =
+      await driverDepositService.getDriverDepositByDriverDepositUniqueId(
+        req.params.driverDepositUniqueId
+      );
     if (result) {
       ServerResponder(res, result);
     } else {

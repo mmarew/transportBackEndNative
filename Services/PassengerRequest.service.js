@@ -42,11 +42,17 @@ const createPassengerRequest = async (body, user, journeyStatusId) => {
 };
 const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
   try {
-    const result = await getData({
-      tableName: "PassengerRequest",
-      conditions: passengerRequestId,
+    const result = await performJoinSelect({
+      baseTable: "PassengerRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: { passengerRequestId },
     });
-    return result;
+    return { message: "success", data: result };
   } catch (error) {
     console.log(
       "@error on getPassengerRequestByPassengerRequestId error is",

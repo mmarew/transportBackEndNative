@@ -79,7 +79,12 @@ exports.deleteDriverBalance = async (req, res) => {
 };
 exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
   try {
-    let userUniqueId = req?.params?.driverUniqueId;
+    const params = req?.params;
+    let userUniqueId = params?.driverUniqueId;
+    console.log("@getDriverLastBalanceByUserUniqueId params", params);
+    const fromDate = params?.fromDate,
+      toDate = params?.toDate;
+
     const user = req.user;
     console.log("@userUniqueId", userUniqueId);
     if (userUniqueId == "self") {
@@ -87,10 +92,16 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
     } else {
     }
     console.log("@getDriverLastBalanceByUserUniqueId user", user);
-    const result =
-      await driverBalanceService.getDriverLastBalanceByUserUniqueId(
+    let result = "";
+    if (!fromDate && !toDate)
+      result = await driverBalanceService.getDriverLastBalanceByUserUniqueId(
         userUniqueId
       );
+    else if (fromDate && toDate)
+      result = await driverBalanceService.getDriverBalanceByDateRange({
+        fromDate,
+        toDate,
+      });
     return ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {

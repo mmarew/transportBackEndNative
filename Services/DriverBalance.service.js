@@ -1,5 +1,9 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
+const { getCommissionsByCommissionUniqueId } = require("./Commission.service");
+const {
+  getDriverDepositByDriverDepositUniqueId,
+} = require("./DriverDeposit.service");
 
 // Create a new driver balance record
 exports.createDriverBalance = async (data) => {
@@ -95,18 +99,52 @@ exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
       ORDER BY driverBalanceId DESC 
       LIMIT 1
     `;
-    const [result] = await pool.query(sql, [userUniqueId]);
+    const [results] = await pool.query(sql, [userUniqueId]);
+    // console.log("@getDriverLastBalanceByUserUniqueId results", results);
+
     return {
       message: "success",
-      data: result.length > 0 ? result[0] : null,
+      data: results.length > 0 ? results[0] : null,
     };
   } catch (error) {
     console.error("Error in getDriverLastBalanceByUserUniqueId:", error);
     return { message: "error", error: "Unable to get driver balance" };
   }
 };
+exports.getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
+  try {
+    const sql = `SELECT * FROM DriverBalance WHERE transactionTime BETWEEN ? AND ?`;
+    const values = [fromDate, toDate];
+    const [results] = await pool.query(sql, values);
 
-// Update a driver balance record by ID
+    const fullData = await Promise.all(
+      results.map(async (record) => {
+        let TransactionData = { ...record };
+        if (record.transactionType === "Deposit") {
+          const depositData = await getDriverDepositByDriverDepositUniqueId(
+            record?.transactionUniqueId
+          );
+          TransactionData = { ...record, ...depositData?.data?.[0] };
+        } else if (record.transactionType === "Commission") {
+          const commissionData = await getCommissionsByCommissionUniqueId(
+            record.transactionUniqueId
+          );
+          TransactionData = { ...record, ...commissionData?.data?.[0] };
+        }
+        return TransactionData;
+      })
+    );
+
+    return {
+      message: "success",
+      data: fullData,
+    };
+  } catch (error) {
+    console.log("@getDriverBalanceByRange error", error);
+    return { message: "error", error: "Unable to get driver balance" };
+  }
+};
+
 exports.updateDriverBalance = async (driverBalanceUniqueId, data) => {
   try {
     const sql = `

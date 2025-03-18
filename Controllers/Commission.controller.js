@@ -13,7 +13,21 @@ exports.createCommission = async (req, res) => {
     });
   }
 };
-
+exports.getCommissionsByCommissionUniqueId = async (req, res) => {
+  try {
+    const commissionUniqueId = req?.params?.commissionUniqueId;
+    const result = await commissionService.getCommissionsByCommissionUniqueId(
+      commissionUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@");
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to retrieve commission records",
+    });
+  }
+};
 // Get all commission records
 exports.getAllCommissions = async (req, res) => {
   try {

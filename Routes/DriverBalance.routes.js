@@ -7,7 +7,6 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 router.post(
   "/api/admin/driverBalance",
   verifyTokenOfAxios,
-
   driverBalanceController.createDriverBalance
 );
 
@@ -15,7 +14,6 @@ router.post(
 router.get(
   "/api/admin/driverBalance",
   verifyTokenOfAxios,
-
   driverBalanceController.getAllDriverBalances
 );
 
@@ -23,7 +21,6 @@ router.get(
 router.get(
   "/api/admin/driverBalance/:driverBalanceUniqueId",
   verifyTokenOfAxios,
-
   driverBalanceController.getDriverBalanceById
 );
 
@@ -31,7 +28,6 @@ router.get(
 router.put(
   "/api/admin/driverBalance/:driverBalanceUniqueId",
   verifyTokenOfAxios,
-
   driverBalanceController.updateDriverBalance
 );
 
@@ -39,7 +35,6 @@ router.put(
 router.delete(
   "/api/admin/driverBalance/:driverBalanceUniqueId",
   verifyTokenOfAxios,
-
   driverBalanceController.deleteDriverBalance
 );
 router.get(

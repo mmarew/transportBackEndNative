@@ -20,7 +20,7 @@ router.get(
 router.get(
   "/api/admin/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
-  driverDepositController.getDriverDepositById
+  driverDepositController.getDriverDepositByDriverDepositUniqueId
 );
 
 // Update a driver deposit record by ID
