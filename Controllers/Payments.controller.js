@@ -38,6 +38,26 @@ exports.getAllPayments = async (req, res) => {
     });
   }
 };
+exports.getPaymentsByUserUniqueId = async (req, res) => {
+  try {
+    const params = req.params;
+    let userUniqueId = params?.userUniqueId;
+    const user = req?.user;
+    console.log("@getPaymentsByUserUniqueId user", user);
+    if (params?.userUniqueId == "self") userUniqueId = user?.userUniqueId;
+    const result = await paymentsService.getPaymentsByUserUniqueId(
+      params,
+      userUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@getPaymentsByUserUniqueId error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to fetch data of user payments",
+    });
+  }
+};
 
 // Get a specific payment by ID
 exports.getPaymentById = async (req, res) => {

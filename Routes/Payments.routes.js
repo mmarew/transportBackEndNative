@@ -19,6 +19,12 @@ router.get(
 
 // Get a specific payment by ID
 router.get(
+  "/api/user/payments/getUsersPaymentData/:userUniqueId/:fromDate/:toDate",
+  verifyTokenOfAxios,
+  paymentsController.getPaymentsByUserUniqueId
+);
+// Get a specific payment by ID
+router.get(
   "/api/admin/payments/:id",
   verifyTokenOfAxios,
   paymentsController.getPaymentById

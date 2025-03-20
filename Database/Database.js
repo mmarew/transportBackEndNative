@@ -189,6 +189,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     isDocumentMandatory BOOLEAN NOT NULL DEFAULT TRUE,  -- Whether the document is mandatory for the role
     isFileNumberRequired BOOLEAN NOT NULL DEFAULT FALSE,  -- Whether a file number is required for the document
     isExpirationDateRequired BOOLEAN NOT NULL DEFAULT FALSE,  -- Whether the expiration date is required for the document
+    isDescriptionRequired BOOLEAN NOT NULL DEFAULT FALSE, -- Whether description is required or not 
     roleDocumentRequirementCreatedBy VARCHAR(36) NOT NULL,  -- Who created the requirement
     roleDocumentRequirementUpdatedBy VARCHAR(36) NULL,  -- Who last updated the requirement
     roleDocumentRequirementDeletedBy VARCHAR(36) NULL,  -- Who deleted the requirement

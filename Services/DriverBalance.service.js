@@ -110,9 +110,15 @@ exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
 };
 exports.getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
   try {
-    const sql = `SELECT * FROM DriverBalance WHERE transactionTime BETWEEN ? AND ?`;
-    const values = [fromDate, toDate];
-    const [results] = await pool.query(sql, values);
+    let results = null;
+    if (fromDate == "lastTen" && toDate == "lastTen") {
+      const sql = `SELECT * FROM DriverBalance order by driverBalanceId desc limit 10`;
+      results = (await pool.query(sql))[0];
+    } else {
+      const sql = `SELECT * FROM DriverBalance WHERE transactionTime BETWEEN ? AND ?  order by driverBalanceId desc `;
+      const values = [fromDate, toDate];
+      results = (await pool.query(sql, values))[0];
+    }
 
     const fullData = await Promise.all(
       results.map(async (record) => {

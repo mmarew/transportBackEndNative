@@ -197,23 +197,26 @@ const driversDocumentVehicleRequirement = async (body) => {
   }
 
   // Fetch attached documents with its type for the user
-  const attachedDocuments = await performJoinSelect({
-    // tableName: "AttachedDocuments",
-    // conditions: { userUniqueId: ownerUserUniqueId },
-    baseTable: "AttachedDocuments",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
-      },
-      {
-        table: "RoleDocumentRequirements",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-    ],
-    conditions: { userUniqueId: ownerUserUniqueId },
-  });
-
+  // const attachedDocuments = await performJoinSelect({
+  //   // tableName: "AttachedDocuments",
+  //   // conditions: { userUniqueId: ownerUserUniqueId },
+  //   baseTable: "AttachedDocuments",
+  //   joins: [
+  //     {
+  //       table: "DocumentTypes",
+  //       on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+  //     },
+  //     {
+  //       table: "RoleDocumentRequirements",
+  //       on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+  //     },
+  //   ],
+  //   conditions: { userUniqueId: ownerUserUniqueId },
+  // });
+  const sql = `select * from AttachedDocuments,DocumentTypes,RoleDocumentRequirements where AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId and RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId and userUniqueId=?  `;
+  const values = [ownerUserUniqueId];
+  const [attachedDocuments] = await pool.query(sql, [ownerUserUniqueId]);
+  console.log("@attachedDocuments", attachedDocuments);
   // Find unattached document types
   const unAttachedDocumentTypes = requiredDocuments.filter(
     (requiredDocument) =>

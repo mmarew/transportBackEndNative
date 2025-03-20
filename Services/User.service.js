@@ -397,7 +397,6 @@ const verifyUserByOTP = async (req) => {
         phoneNumber,
       },
     });
-    console.log("@verifyUserExistance", verifyUserExistance);
     const roleId = req.query.roleId;
     if (!verifyUserExistance || verifyUserExistance.length === 0) {
       return { message: "error", error: "user not found in verify otp" };

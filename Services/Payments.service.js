@@ -68,6 +68,26 @@ exports.getPaymentById = async (paymentId) => {
     ? { message: "success", data: result[0] }
     : { message: "error", data: "Payment not found" };
 };
+exports.getPaymentsByUserUniqueId = async (params, userUniqueId) => {
+  console.log("@params", params);
+
+  const fromDate = params?.fromDate,
+    toDate = params?.toDate;
+  let sql = null,
+    result = null,
+    values = [userUniqueId];
+  if (fromDate == "lastTen" && toDate == "lastTen") {
+    sql = `select * from Payments where  driverUniqueId = ? order by paymentId desc limit 10`;
+    values = [userUniqueId];
+    result = (await pool.query(sql, values))?.[0];
+  } else {
+    sql = `select * from Payments where  driverUniqueId =? and paymentTime between ? and ? order by paymentId  desc`;
+    values = [userUniqueId, fromDate, toDate];
+    result = (await pool.query(sql, values))?.[0];
+  }
+
+  return { message: "success", data: result };
+};
 
 // Update a specific payment by ID
 exports.updatePayment = async (
