@@ -89,6 +89,21 @@ const updateMapping = async (req, res) => {
     });
   }
 };
+const getMappingByRoleDocumentRequirementUniqueId = async (req, res) => {
+  try {
+    const result =
+      await RoleDocumentRequirementsService.getMappingByRoleDocumentRequirementUniqueId(
+        req.params.roleDocumentRequirementUniqueId
+      );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@getMappingByRoleDocumentRequirementUniqueId error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to get data",
+    });
+  }
+};
 
 // Delete a mapping by ID
 const deleteMapping = async (req, res) => {
@@ -116,6 +131,7 @@ const getAllMappings = async (req, res) => {
   }
 };
 module.exports = {
+  getMappingByRoleDocumentRequirementUniqueId,
   driversDocumentVehicleRequirement,
   getAllMappings,
   getMappingByRoleUniqueId,

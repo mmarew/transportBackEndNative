@@ -134,7 +134,18 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
 
   return { message: "success", data: "Mapping updated successfully" };
 };
-
+const getMappingByRoleDocumentRequirementUniqueId = async (
+  roleDocumentRequirementUniqueId
+) => {
+  console.log(
+    "@roleDocumentRequirementUniqueId",
+    roleDocumentRequirementUniqueId
+  );
+  const sql = `Select * from RoleDocumentRequirements where roleDocumentRequirementUniqueId=?`;
+  const values = [roleDocumentRequirementUniqueId];
+  const [result] = await pool.query(sql, values);
+  return { message: "success", data: result };
+};
 // Delete a mapping by ID
 const deleteMapping = async (roleDocumentRequirementUniqueId) => {
   const result = await pool.query(
@@ -297,6 +308,7 @@ const driversDocumentVehicleRequirement = async (body) => {
 };
 
 module.exports = {
+  getMappingByRoleDocumentRequirementUniqueId,
   driversDocumentVehicleRequirement,
   getAllMappings,
   getMappingByRoleUniqueId,

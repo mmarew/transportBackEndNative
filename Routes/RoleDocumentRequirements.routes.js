@@ -12,7 +12,7 @@ router.post(
 router.get(
   "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
   verifyTokenOfAxios,
-  // verifyDriversIdentity,
+
   RoleDocumentRequirementsController.driversDocumentVehicleRequirement
 );
 router.get(
@@ -25,6 +25,12 @@ router.put(
   "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.updateMapping
+);
+// Update a mapping by ID
+router.get(
+  "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
+  verifyTokenOfAxios,
+  RoleDocumentRequirementsController.getMappingByRoleDocumentRequirementUniqueId
 );
 
 // Delete a mapping by ID
