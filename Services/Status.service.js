@@ -61,9 +61,10 @@ const getStatus = async (id) => {
 };
 
 const updateStatus = async (id, body) => {
-  const { statusName } = body;
-  const sql = `UPDATE Statuses SET statusName = ? WHERE statusUniqueId = ? AND statusDeletedAt IS NULL`;
-  const values = [statusName, id];
+  const { statusName, statusDescription } = body;
+
+  const sql = `UPDATE Statuses SET statusName = ?,statusDescription = ? WHERE statusUniqueId = ? AND statusDeletedAt IS NULL`;
+  const values = [statusName, statusDescription, id];
 
   try {
     const [result] = await pool.query(sql, values);
