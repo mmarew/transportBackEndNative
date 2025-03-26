@@ -54,6 +54,30 @@ CREATE TABLE IF NOT EXISTS Users (
     createdBy VARCHAR(36) not null -- NULL Who created the user
 ) ;
 
+-- create  JourneyNotifications table which is used as 
+
+
+CREATE TABLE IF NOT EXISTS JourneyNotifications (
+    journeyNotificationId INT AUTO_INCREMENT PRIMARY KEY,  -- Primary key
+    journeyNotificationUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for notification
+    journeyUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Journey (UUID)
+    journeyStatusUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to JourneyStatus (UUID)
+    message VARCHAR(255) NULL,  -- Optional message for notification
+    isSeen TINYINT(1) DEFAULT 0,  -- 0 = Unseen, 1 = Seen
+    journeyNotificationCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Created time
+    journeyNotificationUpdatedAt DATETIME NULL DEFAULT NULL,  -- Updated time (optional)
+    
+    -- Foreign key to Journey table
+    FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId),
+    
+    -- Foreign key to JourneyStatus table
+    FOREIGN KEY (journeyStatusUniqueId) REFERENCES JourneyStatus(journeyStatusUniqueId),
+
+    -- Unique constraint to avoid duplicate journey-status notifications
+    UNIQUE (journeyUniqueId, journeyStatusUniqueId)
+);
+
+
  -- Create the UsersHistory Table
 
 CREATE TABLE IF NOT EXISTS UsersHistory (
