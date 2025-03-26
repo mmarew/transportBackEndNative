@@ -184,6 +184,8 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeDescription  TEXT(2000)    not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
+    documentTypeUpdatedBy VARCHAR(36) NULL,
+    documentTypeUpdatedAt DATETIME NULL,
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
     FOREIGN KEY (documentTypeCreatedBy) REFERENCES Users(userUniqueId)  -- Link to the Users table
 ) ;
@@ -198,8 +200,13 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     documentTypeDescription VARCHAR(255) NULL,
     documentTypeCreatedBy VARCHAR(36) NOT NULL,
     changeType ENUM('UPDATE', 'DELETE') NOT NULL,  -- Whether it was an update or delete
+    documentTypeUpdatedBy VARCHAR(36) NULL,
+    documentTypeDeletedBy VARCHAR(36) NULL,
+    documentTypeCreatedAt DATETIME NOT NULL,
     changedByUserId VARCHAR(36) NOT NULL,  -- The user who made the change
-    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time when the change was made
+    documentTypeUpdatedAt DATETIME NULL,
+    documentTypeDeletedAt DATETIME NULL,
+    documentTypeVersion INT NOT NULL DEFAULT 1,
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 ) ;
 

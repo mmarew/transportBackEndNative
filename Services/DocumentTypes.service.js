@@ -1,6 +1,7 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const { getData } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
+const deleteData = require("../CRUD/Delete/DeleteData");
 const { pool } = require("../Middleware/Database.config");
 const uuidv4 = require("uuid").v4;
 
@@ -103,8 +104,7 @@ const updateDocumentType = async ({
     tableName: "DocumentTypes",
     conditions: { documentTypeUniqueId },
   });
-  const { documentTypeName, documentTypeDescription, updatedByUserId, user } =
-    updateDataValues;
+  const { documentTypeName, documentTypeDescription, user } = updateDataValues;
   const userUniqueId = user?.userUniqueId;
   if (existingDocumentType.length === 0) {
     return { message: "error", data: "Document type not found" };
@@ -115,13 +115,13 @@ const updateDocumentType = async ({
   await insertDocumentTypeHistory({
     documentTypeId,
     changeType,
-    changedByUserId: userUniqueId,
+    // changedByUserId: userUniqueId,
   });
   const updateValues = {
     documentTypeName,
     documentTypeDescription,
-    updatedByUserId: userUniqueId,
-    updatedAt: new Date(),
+    documentTypeUpdatedBy: userUniqueId,
+    documentTypeUpdatedAt: new Date(),
   };
   await updateData({
     tableName: "DocumentTypes",
@@ -154,7 +154,7 @@ const deleteDocumentType = async (documentTypeId) => {
 const insertDocumentTypeHistory = async ({
   documentTypeId,
   changeType,
-  changedByUserId,
+  // changedByUserId,
 }) => {
   // Get the current data of the DocumentType
   const documentType = await getData({
@@ -182,7 +182,7 @@ const insertDocumentTypeHistory = async ({
     documentTypeDeletedAt: currentDocumentType.documentTypeDeletedAt,
     documentTypeVersion: currentDocumentType.documentTypeVersion + 1 || 1, // Increment version
     changeType,
-    changedByUserId,
+    // changedByUserId,
   };
 
   const result = await insertData({
