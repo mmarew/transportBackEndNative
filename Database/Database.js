@@ -505,6 +505,7 @@ CREATE TABLE IF NOT EXISTS Payments (
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
+    isSeenByAdmin TINYINT(1) NOT NULL DEFAULT 0,
    FOREIGN KEY (roleId) references Roles(roleId),
     FOREIGN KEY (cancellationReasonsTypeId) REFERENCES CancellationReasonsType(cancellationReasonsTypeId),
     FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)

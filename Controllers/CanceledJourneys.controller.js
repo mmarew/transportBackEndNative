@@ -203,7 +203,18 @@ const getCanceledJourneyById = async (req, res) => {
     });
   }
 };
-
+const updateSeenByAdmin = async (req, res) => {
+  try {
+    const canceledJourneyUniqueId = req?.params?.canceledJourneyUniqueId;
+    console.log("@canceledJourneyUniqueId", canceledJourneyUniqueId);
+    const result = await canceledJourneyService.updateSeenByAdmin(
+      canceledJourneyUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@error", error);
+  }
+};
 // Update a specific canceled journey by ID
 const updateCanceledJourney = async (req, res) => {
   try {
@@ -241,6 +252,7 @@ const deleteCanceledJourney = async (req, res) => {
 };
 
 module.exports = {
+  updateSeenByAdmin,
   canceledJourneyBySystem,
   deleteCanceledJourney,
   updateCanceledJourney,

@@ -195,7 +195,8 @@ const searchCanceledJourneyByUserData = async (userData, roleId) => {
 const getCanceledJourneyById = async (canceledJourneyUniqueId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?`;
   const [result] = await pool.query(sql, [canceledJourneyUniqueId]);
-  return result[0];
+  // return result[0];
+  return { messag: "success", data: result[0] };
 };
 
 // Update a canceled journey by ID
@@ -215,8 +216,8 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
   ];
   const [result] = await pool.query(sql, values);
   return result.affectedRows > 0
-    ? { message: "Canceled journey updated successfully" }
-    : { message: "Failed to update canceled journey" };
+    ? { messag: "success", data: "Canceled journey updated successfully" }
+    : { message: "error", error: "Failed to update canceled journey" };
 };
 
 // Delete a canceled journey by ID
@@ -224,15 +225,29 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
   const sql = `DELETE FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?`;
   const [result] = await pool.query(sql, [canceledJourneyUniqueId]);
   return result.affectedRows > 0
-    ? { message: "Canceled journey deleted successfully" }
-    : { message: "Failed to delete canceled journey" };
+    ? { messag: "success", data: "Canceled journey deleted successfully" }
+    : { message: "error", error: "Failed to delete canceled journey" };
 };
 const getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledBy = ? and roleId = ?`;
   const [result] = await pool.query(sql, [userUniqueId, roleId]);
-  return result;
+  return { messag: "success", data: result };
+};
+const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
+  try {
+    const sql = `update CanceledJourneys set isSeenByAdmin=? where canceledJourneyUniqueId=?`;
+    const values = [1, canceledJourneyUniqueId];
+    const [result] = await pool.query(sql, values);
+    if (result?.affectedRows > 0)
+      return { messag: "success", data: "data seen" };
+    else return { messag: "error", data: "data not found" };
+  } catch (error) {
+    console.log("@updateSeenByAdmin error", error);
+    return { messag: "error", error: "unable to update data" };
+  }
 };
 module.exports = {
+  updateSeenByAdmin,
   createCanceledJourney,
   getCanceledJourneysFiltered,
 

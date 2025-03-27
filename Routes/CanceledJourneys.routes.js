@@ -52,4 +52,9 @@ router.get(
   verifyTokenOfAxios,
   canceledJourneyController.getCanceledJourneysByUserUniqueId
 );
+router.put(
+  "/api/driver/seenByAdmin/:canceledJourneyUniqueId",
+  verifyTokenOfAxios,
+  canceledJourneyController.updateSeenByAdmin
+);
 module.exports = router;
