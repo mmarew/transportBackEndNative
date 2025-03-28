@@ -6,11 +6,15 @@ const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
     let userUniqueId = req?.params?.userUniqueId;
+    let roleId = 2;
 
     const user = req?.user;
-    if (userUniqueId == "self") userUniqueId = user?.userUniqueId;
+    if (userUniqueId == "self") {
+      userUniqueId = user?.userUniqueId;
+      roleId = user?.roleId;
+    }
 
-    const roleId = user?.roleId;
+    //  roleId = user?.roleId;
     if (!req.files || req.files.length === 0) {
       return ServerResponder(res, {
         message: "error",
@@ -61,6 +65,7 @@ const createAttachedDocuments = async (req, res) => {
         await attachedDocumentsService.createAttachedDocument({
           ...document,
           roleId,
+          userUniqueId,
         });
       console.log(
         "@createAttachedDocuments controller resultOfCreateFiles",
