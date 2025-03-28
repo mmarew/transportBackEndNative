@@ -5,10 +5,12 @@ const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
   try {
+    let userUniqueId = req?.params?.userUniqueId;
+
     const user = req?.user;
-    const userUniqueId = user?.userUniqueId;
+    if (userUniqueId == "self") userUniqueId = user?.userUniqueId;
+
     const roleId = user?.roleId;
-    console.log(" req.files", req.files);
     if (!req.files || req.files.length === 0) {
       return ServerResponder(res, {
         message: "error",

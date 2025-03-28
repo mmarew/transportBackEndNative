@@ -29,7 +29,7 @@ const upload = multer({ storage });
 
 // Define routes for handling multiple file uploads
 router.post(
-  "/api/user/attachDocuments",
+  "/api/user/attachDocuments/:userUniqueId",
   verifyTokenOfAxios,
   upload.any(),
   attachedDocumentsController.createAttachedDocuments
