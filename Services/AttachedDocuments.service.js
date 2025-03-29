@@ -22,10 +22,10 @@ const createAttachedDocument = async ({
   documentExpirationDate, // Expiration date of the document
   attachedDocumentFileNumber,
   roleId,
-  user,
+  userUniqueId,
 }) => {
   try {
-    const { userUniqueId } = user;
+    // const { userUniqueId } = user;
     const conditions = {
       documentTypeId,
       roleId: roleId,
