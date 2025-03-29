@@ -248,16 +248,103 @@ const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
 };
 const getUnseenCanceledJourney = async () => {
   try {
-    const sql = `select * from CanceledJourneys where isSeenByAdmin =?`;
-    const value = [0];
-    const [result] = await pool.query(sql, value);
+    const sql = `SELECT * FROM CanceledJourneys WHERE isSeenByAdmin = ? and roleId=?`;
+    const values = [0, 2];
+    const [result] = await pool.query(sql, values);
 
-    return { messag: "success", data: result };
+    const data = [];
+    for (let i = 0; i < result.length; i++) {
+      const contextId = result[i].contextId;
+      const contextType = result[i].contextType;
+      let driverData = null;
+      let passengerData = null;
+
+      if (contextType == "JourneyDecisions") {
+        passengerData = await performJoinSelect({
+          baseTable: "JourneyDecisions",
+          joins: [
+            {
+              table: "PassengerRequest",
+              on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+            },
+            {
+              table: "Users",
+              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: { "JourneyDecisions.journeyDecisionId": contextId },
+        });
+        driverData = await performJoinSelect({
+          baseTable: "JourneyDecisions",
+          joins: [
+            {
+              table: "DriverRequest",
+              on: "JourneyDecisions.driverRequestId = DriverRequest.driverRequestId",
+            },
+            {
+              table: "Users",
+              on: "DriverRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: { "JourneyDecisions.journeyDecisionId": contextId },
+        });
+      } else if (contextType == "Journey") {
+        passengerData = await performJoinSelect({
+          baseTable: "Journey",
+          joins: [
+            {
+              table: "JourneyDecisions",
+              on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+            },
+            {
+              table: "PassengerRequest",
+              on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+            },
+            {
+              table: "Users",
+              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: { "Journey.journeyId": contextId },
+        });
+        driverData = await performJoinSelect({
+          baseTable: "Journey",
+          joins: [
+            {
+              table: "JourneyDecisions",
+              on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+            },
+            {
+              table: "DriverRequest",
+              on: "JourneyDecisions.driverRequestId = DriverRequest.driverRequestId",
+            },
+            {
+              table: "Users",
+              on: "DriverRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: { "Journey.journeyId": contextId },
+        });
+      }
+
+      const cancellationDetails = await getCancellationDetails(contextId);
+      data.push({
+        driver: driverData?.[0],
+        passenger: passengerData?.[0],
+        cancellationDetails,
+      });
+    }
+
+    return { message: "success", data };
   } catch (error) {
     console.log("@getUnseenCanceledJourney error", error);
-    return { messag: "error", error: "unable to get canceled journey data" };
+    return {
+      message: "error",
+      error: "Unable to get unseen canceled journey data",
+    };
   }
 };
+
 module.exports = {
   getUnseenCanceledJourney,
   updateSeenByAdmin,
