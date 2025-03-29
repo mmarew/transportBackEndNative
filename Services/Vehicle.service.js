@@ -8,7 +8,7 @@ const { createVehicleStatus } = require("./VehicleStatus.service");
 const { removeWhiteSpace } = require("../Validator/Validation");
 
 // create vehicle and create ownership based on status of vehicle.
-const createVehicle = async (data, user) => {
+const createVehicle = async (data, user, ownerUserUniqueId) => {
   try {
     let { vehicleTypeUniqueId, licensePlate, color } = data;
     licensePlate = removeWhiteSpace(licensePlate);
@@ -59,7 +59,7 @@ const createVehicle = async (data, user) => {
     // Register vehicle ownership
     const ownershipResult = await createVehicleOwnership({
       vehicleUniqueId: vehicle[0].vehicleUniqueId,
-      userUniqueId: user.userUniqueId,
+      userUniqueId: ownerUserUniqueId,
       roleId: 2,
       ownershipStartDate: currentDate(),
     });

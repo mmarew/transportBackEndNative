@@ -10,7 +10,8 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createVehicleController = async (req, res) => {
   try {
-    const response = await createVehicle(req.body, req.user);
+    const ownerUserUniqueId = req.params?.ownerUserUniqueId;
+    const response = await createVehicle(req.body, req.user, ownerUserUniqueId);
     ServerResponder(res, response);
   } catch (error) {
     console.error("@createVehicleController error:", error);
