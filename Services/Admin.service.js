@@ -1,6 +1,10 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { getAttachedDocumentsByUser } = require("./AttachedDocuments.service");
+const { getVehicle } = require("./Vehicle.service");
+const {
+  getVehicleAndOwnershipViaUserUniqueId,
+} = require("./VehicleOwnership.service");
 
 const adminServices = {
   getAllActiveDrivers: async (req) => {
@@ -207,8 +211,12 @@ WHERE
 
     const usersWithDocuments = await Promise.all(
       unauthorizedUsers.map(async (user) => {
-        const documents = await getAttachedDocumentsByUser(user.userUniqueId);
-        return { user, documents };
+        const userUniqueId = user.userUniqueId;
+        const documents = await getAttachedDocumentsByUser(userUniqueId);
+        const vehicle = (
+          await getVehicleAndOwnershipViaUserUniqueId(userUniqueId)
+        )?.data;
+        return { user, documents, vehicle };
       })
     );
 
