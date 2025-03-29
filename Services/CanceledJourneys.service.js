@@ -246,10 +246,8 @@ const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
     return { messag: "error", error: "unable to update data" };
   }
 };
-const getUnseenCanceledJourney = async (canceledJourneyUniqueId) => {
+const getUnseenCanceledJourney = async () => {
   try {
-    console.log("@canceledJourneyUniqueId", canceledJourneyUniqueId);
-
     const sql = `select * from CanceledJourneys where isSeenByAdmin =?`;
     const value = [0];
     const [result] = await pool.query(sql, value);

@@ -252,10 +252,7 @@ const deleteCanceledJourney = async (req, res) => {
 };
 const getUnseenCanceledJourney = async (req, res) => {
   try {
-    const canceledJourneyUniqueId = req?.params?.canceledJourneyUniqueId;
-    const result = await canceledJourneyService.getUnseenCanceledJourney(
-      canceledJourneyUniqueId
-    );
+    const result = await canceledJourneyService.getUnseenCanceledJourney();
     ServerResponder(res, result);
   } catch (error) {
     console.log("@getUnseenCanceledJourney error", error);
