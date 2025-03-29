@@ -262,6 +262,10 @@ const driversDocumentVehicleRequirement = async (body) => {
         table: "Vehicle",
         on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
       },
+      {
+        table: "VehicleTypes",
+        on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+      },
     ],
     conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
   });

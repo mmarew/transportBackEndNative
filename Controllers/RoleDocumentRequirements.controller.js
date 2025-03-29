@@ -1,6 +1,8 @@
 const { getData } = require("../CRUD/Read/ReadData");
 const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements.service");
+const { getUserByUserUniqueId } = require("../Services/User.service");
 const ServerResponder = require("../Utils/ServerResponder");
+
 // Create a new role-document mapping
 const createMapping = async (req, res) => {
   try {
@@ -22,16 +24,24 @@ const createMapping = async (req, res) => {
 const driversDocumentVehicleRequirement = async (req, res) => {
   try {
     const user = req?.user;
-    const userRoleStatus = req?.userRoleStatus,
-      userRole = req?.userRole;
+    // const userRoleStatus = req?.userRoleStatus,
+    // userRole = req?.userRole;
+    // console.log("userRoleStatus", userRoleStatus);
+    // console.log("userRole", userRole);
 
     const userUniqueId = user?.userUniqueId;
     let ownerUserUniqueId = req.params.userUniqueId;
 
-    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
-    req.body.user = user;
-    req.body.userRole = userRole;
-    req.body.userRoleStatus = userRoleStatus;
+    if (ownerUserUniqueId == "self") {
+      ownerUserUniqueId = userUniqueId;
+      req.body.user = user;
+    } else {
+      const userData = await getUserByUserUniqueId(ownerUserUniqueId);
+      req.body.user = userData?.data;
+    }
+
+    // req.body.userRole = userRole;
+    // req.body.userRoleStatus = userRoleStatus;
     req.body.ownerUserUniqueId = ownerUserUniqueId;
     const result =
       await RoleDocumentRequirementsService.driversDocumentVehicleRequirement(

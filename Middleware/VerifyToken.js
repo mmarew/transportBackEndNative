@@ -24,7 +24,8 @@ const verifyTokenOfAxios = async (req, res, next) => {
           .status(401)
           .json({ message: "error", error: "User not found in the token" });
       }
-    } catch (error) {
+    }
+     catch (error) {
       let response;
       switch (error.name) {
         case "TokenExpiredError":
