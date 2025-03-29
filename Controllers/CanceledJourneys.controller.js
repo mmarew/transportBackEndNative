@@ -250,8 +250,23 @@ const deleteCanceledJourney = async (req, res) => {
     });
   }
 };
-
+const getUnseenCanceledJourney = async (req, res) => {
+  try {
+    const canceledJourneyUniqueId = req?.params?.canceledJourneyUniqueId;
+    const result = await canceledJourneyService.getUnseenCanceledJourney(
+      canceledJourneyUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@getUnseenCanceledJourney error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to get canceled journey",
+    });
+  }
+};
 module.exports = {
+  getUnseenCanceledJourney,
   updateSeenByAdmin,
   canceledJourneyBySystem,
   deleteCanceledJourney,

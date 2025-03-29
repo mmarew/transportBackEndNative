@@ -57,4 +57,9 @@ router.put(
   verifyTokenOfAxios,
   canceledJourneyController.updateSeenByAdmin
 );
+router.get(
+  "/api/admin/getUnseenCanceledJourney/:canceledJourneyUniqueId",
+  verifyTokenOfAxios,
+  canceledJourneyController.getUnseenCanceledJourney
+);
 module.exports = router;

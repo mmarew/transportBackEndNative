@@ -246,7 +246,22 @@ const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
     return { messag: "error", error: "unable to update data" };
   }
 };
+const getUnseenCanceledJourney = async (canceledJourneyUniqueId) => {
+  try {
+    console.log("@canceledJourneyUniqueId", canceledJourneyUniqueId);
+
+    const sql = `select * from CanceledJourneys where isSeenByAdmin =?`;
+    const value = [0];
+    const [result] = await pool.query(sql, value);
+
+    return { messag: "success", data: result };
+  } catch (error) {
+    console.log("@getUnseenCanceledJourney error", error);
+    return { messag: "error", error: "unable to get canceled journey data" };
+  }
+};
 module.exports = {
+  getUnseenCanceledJourney,
   updateSeenByAdmin,
   createCanceledJourney,
   getCanceledJourneysFiltered,

@@ -62,10 +62,6 @@ const createAttachedDocuments = async (req, res) => {
           ...document,
           roleId,
         });
-      console.log(
-        "@createAttachedDocuments controller resultOfCreateFiles",
-        resultOfCreateFiles
-      );
 
       if (resultOfCreateFiles.message === "error") {
         fileErrors.push(document.attachedDocumentName); // Track failed files
