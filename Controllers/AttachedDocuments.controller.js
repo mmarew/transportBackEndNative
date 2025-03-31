@@ -1,6 +1,9 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const ReadData = require("../CRUD/Read/ReadData");
 const attachedDocumentsService = require("../Services/AttachedDocuments.service");
+const {
+  driversDocumentVehicleRequirement,
+} = require("../Services/RoleDocumentRequirements.service");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const createAttachedDocuments = async (req, res) => {
@@ -104,9 +107,15 @@ const createAttachedDocuments = async (req, res) => {
       });
       const document =
         await attachedDocumentsService.getAttachedDocumentsByUser(userUniqueId);
+      const documentAndVehicleOfDriver =
+        await driversDocumentVehicleRequirement({
+          ownerUserUniqueId: userUniqueId,
+          user: userData[0],
+        });
       const message = {
         ...userData[0],
         document,
+        documentAndVehicleOfDriver,
         message: "verify users document",
         type: "unauthorizedDriver",
       };
