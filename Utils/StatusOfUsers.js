@@ -209,12 +209,6 @@ const findStatusByVehicleAndDocuments = ({
   }
   // Default error case
   else {
-    console.log(
-      "@attachedDocumentsByStatus.PENDING.",
-      attachedDocumentsByStatus.PENDING?.length,
-      "requiredDocuments.length ",
-      requiredDocuments.length
-    );
     return {
       message: "error",
       data: "Unable to determine driver's status.",

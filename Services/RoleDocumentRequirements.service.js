@@ -227,7 +227,6 @@ const driversDocumentVehicleRequirement = async (body) => {
   const sql = `select * from AttachedDocuments,DocumentTypes,RoleDocumentRequirements where AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId and RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId and userUniqueId=?  `;
   const values = [ownerUserUniqueId];
   const [attachedDocuments] = await pool.query(sql, [ownerUserUniqueId]);
-  console.log("@attachedDocuments", attachedDocuments);
   // Find unattached document types
   const unAttachedDocumentTypes = requiredDocuments.filter(
     (requiredDocument) =>

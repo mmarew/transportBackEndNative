@@ -112,13 +112,15 @@ const createAttachedDocuments = async (req, res) => {
           ownerUserUniqueId: userUniqueId,
           user: userData[0],
         });
-      const message = {
-        ...userData[0],
-        document,
-        documentAndVehicleOfDriver,
-        message: "verify users document",
-        type: "unauthorizedDriver",
-      };
+      // const message = {
+      //   // ...userData[0],
+      //   // document,
+      //   documentAndVehicleOfDriver,
+      //   // message: "verify users document",
+      //   // type: "unauthorizedDriver",
+      // };
+
+      const message = documentAndVehicleOfDriver;
       sendNotificationToAdmin({ message });
     }
     // Return the detailed upload results for each file
