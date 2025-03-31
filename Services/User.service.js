@@ -10,6 +10,9 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const bcrypt = require("bcrypt");
 const verifyPassword = require("../Utils/VerifyPassword");
+const {
+  driversDocumentVehicleRequirement,
+} = require("./RoleDocumentRequirements.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -294,9 +297,9 @@ const handleUserRoleStatus = async (
           type: "unauthorizedDriver",
           ...newUser[0],
         };
-        await sendNotificationToAdmin({
-          message,
-        });
+        // await sendNotificationToAdmin({
+        //   message,
+        // });
       }
       return {
         message: "success",
@@ -435,7 +438,21 @@ const verifyUserByOTP = async (req) => {
     }
 
     const token = JWTData.token;
+    const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
+      ownerUserUniqueId: userUniqueId,
+      user: verifyUserExistance[0],
+    });
+    const { unAttachedDocumentTypes, attachedDocumentsByStatus } =
+      documentAndVehicleOfDriver;
+    const { PENDING, REJECTED } = attachedDocumentsByStatus;
+    if (
+      PENDING.length > 0 ||
+      REJECTED.length > 0 ||
+      unAttachedDocumentTypes.length > 0
+    )
+      sendNotificationToAdmin({ message: { ...documentAndVehicleOfDriver } });
     return {
+      documentAndVehicleOfDriver,
       token,
       message: "success",
       data: "OTP verified successfully",

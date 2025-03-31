@@ -198,9 +198,6 @@ const updateAttachedDocument = async (req, res) => {
     const user = req?.user; // Extract the user object from the request
     const files = req.files,
       body = req.body;
-    console.log("files", files);
-    console.log("body", body);
-    console.log("attachedDocumentUniqueId", attachedDocumentUniqueId);
     // Call the service to update the document
     const result = await attachedDocumentsService.updateAttachedDocument(
       attachedDocumentUniqueId,
