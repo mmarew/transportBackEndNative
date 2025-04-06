@@ -577,7 +577,7 @@ const cancelDriverRequest = async (body) => {
       const adminNotification = await sendNotificationToAdmin({
         message: {
           message: "success",
-          type: "cancelledJourney",
+          messageType: "cancelledJourney",
 
           data: [
             {
