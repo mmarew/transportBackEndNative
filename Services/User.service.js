@@ -442,13 +442,17 @@ const verifyUserByOTP = async (req) => {
       ownerUserUniqueId: userUniqueId,
       user: verifyUserExistance[0],
     });
-    const { unAttachedDocumentTypes, attachedDocumentsByStatus } =
-      documentAndVehicleOfDriver;
-    const { PENDING, REJECTED } = attachedDocumentsByStatus;
+    const unAttachedDocumentTypes =
+        documentAndVehicleOfDriver?.unAttachedDocumentTypes,
+      attachedDocumentsByStatus =
+        documentAndVehicleOfDriver?.attachedDocumentsByStatus;
+    const PENDING = attachedDocumentsByStatus?.PENDING,
+      REJECTED = attachedDocumentsByStatus?.REJECTED;
+
     if (
-      PENDING.length > 0 ||
-      REJECTED.length > 0 ||
-      unAttachedDocumentTypes.length > 0
+      PENDING?.length > 0 ||
+      REJECTED?.length > 0 ||
+      unAttachedDocumentTypes?.length > 0
     )
       sendNotificationToAdmin({ message: { ...documentAndVehicleOfDriver } });
     return {
