@@ -15,7 +15,12 @@ router.post(
 router.get(
   "/api/passengerRequest/getById/:id",
   verifyTokenOfAxios,
-  controller.getRequestById
+  controller.getPassengerRequestByPassengerRequestUniqueId
+);
+router.get(
+  "/api/shippingRequest/getAllActiveRequests",
+  verifyTokenOfAxios,
+  controller.getAllActiveRequests
 );
 
 // Update Passenger Request by ID

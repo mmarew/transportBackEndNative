@@ -21,6 +21,7 @@ const {
 const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
+const { pool } = require("../Middleware/Database.config");
 require("./AttachedDocuments.service");
 
 const createPassengerRequest = async (body, user, journeyStatusId) => {
@@ -39,6 +40,17 @@ const createPassengerRequest = async (body, user, journeyStatusId) => {
   } catch (error) {
     console.log("Error in createRequest:", error);
     return { message: "error", error: "Unable to create request" };
+  }
+};
+const getAllActiveRequests = async () => {
+  try {
+    const sqlToGetActiveData = `select * from PassengerRequest where journeyStatusId=? or journeyStatusId=?`;
+    const values = [1, 2];
+    const [results] = await pool.query(sqlToGetActiveData, values);
+    return { message: "success", data: results };
+  } catch (error) {
+    console.log("@error", error);
+    return { error: "unable to get data", message: "error" };
   }
 };
 const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
@@ -465,6 +477,7 @@ const getPassengerJourneyStatus = async (userUniqueId) => {
   }
 };
 module.exports = {
+  getAllActiveRequests,
   getPassengerJourneyStatus,
   cancelPassengerRequest,
   verifyPassengerStatus,

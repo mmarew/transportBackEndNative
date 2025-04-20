@@ -24,10 +24,24 @@ const createPassengerRequest = async (req, res) => {
     });
   }
 };
-
-const getRequestById = async (req, res) => {
+const getAllActiveRequests = async (req, res) => {
   try {
-    const result = await PassengerService.getRequestById(req.params.id);
+    const result = await PassengerService.getAllActiveRequests();
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to get requests",
+    });
+  }
+};
+
+const getPassengerRequestByPassengerRequestUniqueId = async (req, res) => {
+  try {
+    const result =
+      await PassengerService.getPassengerRequestByPassengerRequestUniqueId(
+        req.params.id
+      );
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {
@@ -93,10 +107,11 @@ const cancelPassengerRequest = async (req, res) => {
   }
 };
 module.exports = {
+  getPassengerRequestByPassengerRequestUniqueId,
+  getAllActiveRequests,
   cancelPassengerRequest,
   verifyPassengerStatus,
   createPassengerRequest,
-  getRequestById,
   updateRequestById,
   deleteRequest,
 };

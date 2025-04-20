@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { getData, checkActivePassengerRequest } = require("../Read/ReadData");
+const formatDateToReadable = require("../../Utils/FormatDateToReadable");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal }) => {
@@ -34,8 +35,8 @@ const createNewPassengerRequest = async (
 ) => {
   const shippableItemName = body?.shippableItemName,
     shippableItemQtyInQuintal = body?.shippableItemQtyInQuintal,
-    shippingDate = body?.shippingDate,
-    deliveryDate = body?.deliveryDate,
+    shippingDate = formatDateToReadable(body?.shippingDate),
+    deliveryDate = formatDateToReadable(body?.deliveryDate),
     shippingCost = body?.shippingCost;
 
   if (!body || !userUniqueId || !journeyStatusId) {

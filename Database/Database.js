@@ -287,9 +287,9 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
 
     shippableItemName VARCHAR(100) DEFAULT NULL,           -- Name of the item to ship
     shippableItemQtyInQuintal DECIMAL(15,2) DEFAULT NULL,   -- Quantity in quintals
-    shippingDate DATE DEFAULT NULL,                        -- Date of shipping
-    deliveryDate DATE DEFAULT NULL,                        -- Date of delivery
-    shipmentCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
+    shippingDate DATETIME DEFAULT NULL,                        -- Date of shipping
+    deliveryDate DATETIME DEFAULT NULL,                        -- Date of delivery
+    shippingCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
     
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
