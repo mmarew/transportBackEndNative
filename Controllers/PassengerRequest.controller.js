@@ -4,7 +4,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createPassengerRequest = async (req, res) => {
   try {
-    console.log(" req.body", req.body);
+    console.log("@createPassengerRequest req.body", req.body);
     const { destination, vehicle, originLocation } = req.body;
     if (!destination || !vehicle || !originLocation) {
       return ServerResponder(res, {

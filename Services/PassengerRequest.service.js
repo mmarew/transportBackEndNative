@@ -25,6 +25,7 @@ require("./AttachedDocuments.service");
 
 const createPassengerRequest = async (body, user, journeyStatusId) => {
   try {
+    console.log("@createPassengerRequest body", body);
     const { userUniqueId } = user;
     const activeRequest = await createNewPassengerRequest(
       body,

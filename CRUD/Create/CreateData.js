@@ -32,6 +32,12 @@ const createNewPassengerRequest = async (
   userUniqueId,
   journeyStatusId = 1
 ) => {
+  const shippableItemName = body?.shippableItemName,
+    shippableItemQtyInQuintal = body?.shippableItemQtyInQuintal,
+    shippingDate = body?.shippingDate,
+    deliveryDate = body?.deliveryDate,
+    shippingCost = body?.shippingCost;
+
   if (!body || !userUniqueId || !journeyStatusId) {
     throw new Error("Invalid input parameters to create passenger request");
   }
@@ -85,6 +91,11 @@ const createNewPassengerRequest = async (
     destinationPlace,
     requestTime: new Date(),
     journeyStatusId, // Initial status: Waiting
+    shippableItemName,
+    shippableItemQtyInQuintal,
+    shippingDate,
+    deliveryDate,
+    shippingCost,
   };
 
   // Insert the new request into the database

@@ -270,21 +270,32 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
 CREATE TABLE IF NOT EXISTS PassengerRequest (
     passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
     passengerRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the passenger request
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
-    originLatitude DECIMAL(10, 8) NOT NULL,  -- Latitude of origin
-    originLongitude DECIMAL(11, 8) NOT NULL,  -- Longitude of origin
-    originPlace VARCHAR(255) NOT NULL,  -- Origin place
-    destinationLatitude DECIMAL(10, 8) NULL DEFAULT 0.0,  -- Latitude of destination
-    destinationLongitude DECIMAL(11, 8) NULL DEFAULT 0.0,  -- Longitude of destination
-    destinationPlace VARCHAR(255) NULL DEFAULT 0.0,  -- Destination place
-    requestTime TIMESTAMP NOT NULL,  -- Time of the request
-    journeyStatusId INT NOT NULL
-     ,  -- Foreign key to JourneyStatus
+
+    userUniqueId VARCHAR(36) NOT NULL,                     -- Foreign key to Users
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
+    journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
+
+    originLatitude DECIMAL(10, 8) NOT NULL,                -- Latitude of origin
+    originLongitude DECIMAL(11, 8) NOT NULL,               -- Longitude of origin
+    originPlace VARCHAR(255) NOT NULL,                     -- Origin place
+
+    destinationLatitude DECIMAL(10, 8) DEFAULT 0.0,        -- Latitude of destination
+    destinationLongitude DECIMAL(11, 8) DEFAULT 0.0,       -- Longitude of destination
+    destinationPlace VARCHAR(255) DEFAULT '',              -- Destination place
+
+    requestTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of the request
+
+    shippableItemName VARCHAR(100) DEFAULT NULL,           -- Name of the item to ship
+    shippableItemQtyInQuintal DECIMAL(15,2) DEFAULT NULL,   -- Quantity in quintals
+    shippingDate DATE DEFAULT NULL,                        -- Date of shipping
+    deliveryDate DATE DEFAULT NULL,                        -- Date of delivery
+    shipmentCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
+    
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
-     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
-) ;
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+);
+
 
 -- Create the DriverRequest table
 
