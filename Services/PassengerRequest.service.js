@@ -22,24 +22,47 @@ const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
 const { pool } = require("../Middleware/Database.config");
+const { updateJourneyStatus } = require("./DriverRequest.service");
 require("./AttachedDocuments.service");
 
 const createPassengerRequest = async (body, user, journeyStatusId) => {
   try {
-    console.log("@createPassengerRequest body", body);
     const { userUniqueId } = user;
-    const activeRequest = await createNewPassengerRequest(
+    const newRequest = await createNewPassengerRequest(
       body,
       userUniqueId,
       journeyStatusId
     );
     return await verifyPassengerStatus({
       userUniqueId,
-      activeRequest: activeRequest?.data,
+      activeRequest: newRequest?.data,
     });
   } catch (error) {
     console.log("Error in createRequest:", error);
     return { message: "error", error: "Unable to create request" };
+  }
+};
+const acceptDriverRequest = async (body) => {
+  try {
+    console.log("@acceptDriverRequest body", body);
+    const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
+    const [decisionData] = await getData({
+      tableName: "JourneyDecisions",
+      conditions: { journeyDecisionUniqueId },
+    });
+    const journeyStatusId = decisionData?.journeyStatusId;
+    console.log("@decisionData", decisionData);
+    if (journeyStatusId == 3) return await updateJourneyStatus(body);
+    else {
+      console.log("@acceptDriverRequest journeyStatusId", journeyStatusId);
+      return {
+        message: "error",
+        error: "unable to accept driver request",
+      };
+    }
+  } catch (error) {
+    console.log("@acceptDriverRequest error", error);
+    return { message: "error", error: "unable to accept driver request" };
   }
 };
 const getAllActiveRequests = async () => {
@@ -477,6 +500,7 @@ const getPassengerJourneyStatus = async (userUniqueId) => {
   }
 };
 module.exports = {
+  acceptDriverRequest,
   getAllActiveRequests,
   getPassengerJourneyStatus,
   cancelPassengerRequest,

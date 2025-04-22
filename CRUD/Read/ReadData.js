@@ -44,7 +44,6 @@ const getData = async ({
 
   // Initialize the base query
   let sqlQuery = `SELECT * FROM ${tableName} ${whereClause}`;
-  console.log("my sql query is sqlQuery", sqlQuery);
   // Add ORDER BY clause if provided
   if (orderBy) {
     sqlQuery += ` ORDER BY ${orderBy} ${orderDirection}`;

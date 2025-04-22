@@ -194,6 +194,10 @@ const acceptPassengerRequest = async (body) => {
       "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
     },
   });
+  console.log(
+    "@acceptPassengerRequest existingRequest ==============> ",
+    existingRequest
+  );
   if (!existingRequest?.length)
     return { message: "error", error: "Request not found" };
   if (
@@ -206,6 +210,11 @@ const acceptPassengerRequest = async (body) => {
     };
   }
   const journeyStatusId = existingRequest[0].journeyStatusId;
+  // console.log(
+  //   "@acceptPassengerRequest journeyStatusId ===========> ",
+  //   journeyStatusId
+  // );
+  // return;
   if (journeyStatusId === 2) await updateJourneyStatus(body);
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
@@ -630,7 +639,9 @@ const updateJourneyStatus = async (body) => {
   const journeyUniqueId = body?.journeyUniqueId;
   const journeyStatusId = body?.journeyStatusId;
   const previousStatusId = body?.previousStatusId;
-
+  const shippingCostByDriver = body?.shippingCostByDriver;
+  console.log("@updateJourneyStatus body =========> ", body);
+  // return;
   if (journeyUniqueId) {
     await updateData({
       tableName: "Journey",
@@ -662,6 +673,9 @@ const updateJourneyStatus = async (body) => {
       },
       updateValues: {
         journeyStatusId,
+        shippingCostByDriver: shippingCostByDriver
+          ? shippingCostByDriver
+          : null,
       },
     });
   }
@@ -968,6 +982,7 @@ const getDriverJourneyStatus = async (userUniqueId) => {
 };
 
 module.exports = {
+  updateJourneyStatus,
   getDriverJourneyStatus,
   attachRequiredDocuments,
   journeyCompleted,

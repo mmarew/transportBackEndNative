@@ -17,6 +17,11 @@ router.get(
   verifyTokenOfAxios,
   controller.getPassengerRequestByPassengerRequestUniqueId
 );
+router.put(
+  "/api/passenger/acceptDriverRequest",
+  verifyTokenOfAxios,
+  controller.acceptDriverRequest
+);
 router.get(
   "/api/shippingRequest/getAllActiveRequests",
   verifyTokenOfAxios,

@@ -322,6 +322,11 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
     decisionBy ENUM('passenger', 'driver', 'admin') NOT NULL,  -- Who made the decision
+
+    shippingDateByDriver DATETIME DEFAULT NULL,                        -- Date of shipping
+    deliveryDateByDriver DATETIME DEFAULT NULL,                        -- Date of delivery
+    shippingCostByDriver DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
+    
     FOREIGN KEY (passengerRequestId) REFERENCES PassengerRequest(passengerRequestId),
     FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)

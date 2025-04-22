@@ -474,41 +474,52 @@ const journeyStatus = [
   },
   {
     journeyStatusId: 4,
+    journeyStatusName: "acceptedByPassenger",
+    journeyStatusDescription:
+      "First driver accepted passengers request with drivers price data, then passenger accept one drivers data among many driver acceptances ",
+  },
+  {
+    journeyStatusId: 5,
     journeyStatusName: "journeyStarted",
     journeyStatusDescription: "Journey started by driver",
   },
   {
-    journeyStatusId: 5,
+    journeyStatusId: 6,
     journeyStatusName: "journeyCompleted",
     journeyStatusDescription: "Journey completed by driver ",
   },
   {
-    journeyStatusId: 6,
+    journeyStatusId: 7,
     journeyStatusName: "cancelledByPassenger",
     journeyStatusDescription: "Cancelled by passenger",
   },
   {
-    journeyStatusId: 7,
+    journeyStatusId: 8,
+    journeyStatusName: "rejectedByPassenger",
+    journeyStatusDescription: "Cancelled by passenger",
+  },
+  {
+    journeyStatusId: 9,
     journeyStatusName: "cancelledByDriver",
     journeyStatusDescription: "Cancelled by driver",
   },
   {
-    journeyStatusId: 8,
+    journeyStatusId: 10,
     journeyStatusName: "cancelledByAdmin",
     journeyStatusDescription: "Cancelled by admin",
   },
   {
-    journeyStatusId: 9,
+    journeyStatusId: 11,
     journeyStatusName: "completedByAdmin",
     journeyStatusDescription: "Completed by admin",
   },
   {
-    journeyStatusId: 10,
+    journeyStatusId: 12,
     journeyStatusName: "cancelledBySystem",
     journeyStatusDescription: "Cancelled by system",
   },
   {
-    journeyStatusId: 11,
+    journeyStatusId: 13,
     journeyStatusName: "noAnswerFromDriver",
     journeyStatusDescription: "No Answer From Driver",
   },

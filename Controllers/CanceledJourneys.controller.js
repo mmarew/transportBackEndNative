@@ -88,9 +88,9 @@ const canceledJourneyBySystem = async (
 };
 
 // Schedule the canceledJourneyBySystem to run every 5 minutes (300000 ms)
-setInterval(() => {
-  canceledJourneyBySystem();
-}, 30000); // 300,000 ms = 5 minutes
+// setInterval(() => {
+//   canceledJourneyBySystem();
+// }, 30000); // 300,000 ms = 5 minutes
 
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {

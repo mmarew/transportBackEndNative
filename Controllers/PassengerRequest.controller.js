@@ -24,6 +24,23 @@ const createPassengerRequest = async (req, res) => {
     });
   }
 };
+const acceptDriverRequest = async (req, res) => {
+  try {
+    console.log("req.body", req.body);
+
+    req.body.journeyStatusId = 4;
+    req.body.previousStatusId = 3;
+
+    const result = await PassengerService.acceptDriverRequest(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@acceptDriverRequest error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to accept driver request",
+    });
+  }
+};
 const getAllActiveRequests = async (req, res) => {
   try {
     const result = await PassengerService.getAllActiveRequests();
@@ -107,6 +124,7 @@ const cancelPassengerRequest = async (req, res) => {
   }
 };
 module.exports = {
+  acceptDriverRequest,
   getPassengerRequestByPassengerRequestUniqueId,
   getAllActiveRequests,
   cancelPassengerRequest,
