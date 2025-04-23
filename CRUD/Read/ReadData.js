@@ -1,4 +1,5 @@
 const { pool } = require("../../Middleware/Database.config");
+const { activeStatuses } = require("../../Utils/ListOfFixedData");
 const searchRange = 0.41;
 
 const getData = async ({
@@ -321,7 +322,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
       ],
       conditions: {
         "DriverRequest.userUniqueId": userUniqueId,
-        "DriverRequest.journeyStatusId": [1, 2, 3, 4], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+        "DriverRequest.journeyStatusId": activeStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
       },
     });
 

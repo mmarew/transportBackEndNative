@@ -44,6 +44,10 @@ const {
 } = require("./PassengerRequest.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const messageTypes = require("../Utils/MessageTypes");
+const {
+  journeyStatusMap,
+  activeStatuses,
+} = require("../Utils/ListOfFixedData");
 
 const createRequest = async (body, user) => {
   try {
@@ -237,7 +241,7 @@ const startJourney = async (body) => {
     tableName: "Journey",
     conditions: { journeyDecisionUniqueId: body.journeyDecisionUniqueId },
   });
-  console.log("@exisistingJourney", exisistingJourney);
+  console.log("@startJourney exisistingJourney", exisistingJourney);
 
   if (exisistingJourney.length == 0) {
     await insertData({
@@ -483,7 +487,7 @@ const cancelDriverRequest = async (body) => {
     await updateData({
       tableName: "DriverRequest",
       conditions: { driverRequestId },
-      updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
+      updateValues: { journeyStatusId: 9 }, // Set journeyStatusId to 9 (cancelled by driver)
     });
 
     // Check if the request exists in JourneyDecisions
@@ -519,7 +523,7 @@ const cancelDriverRequest = async (body) => {
     await updateData({
       tableName: "PassengerRequest",
       conditions: { passengerRequestId },
-      updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
+      updateValues: { journeyStatusId: journeyStatusMap.cancelledByDriver }, // Set journeyStatusId to 9 (cancelled by driver)
     });
 
     // Fetch passenger details
@@ -548,7 +552,10 @@ const cancelDriverRequest = async (body) => {
           userUniqueId === ownerUserUniqueId
             ? "Driver cancelled your request."
             : "Admin cancelled your request.",
-        status: userUniqueId === ownerUserUniqueId ? 7 : 8,
+        status:
+          userUniqueId === ownerUserUniqueId
+            ? journeyStatusMap.cancelledByDriver
+            : journeyStatusMap.cancelledByAdmin,
       },
       phoneNumber: passenger[0]?.phoneNumber,
     });
@@ -558,7 +565,10 @@ const cancelDriverRequest = async (body) => {
       tableName: "JourneyDecisions",
       conditions: { journeyDecisionUniqueId },
       updateValues: {
-        journeyStatusId: userUniqueId === ownerUserUniqueId ? 7 : 8, // 7 for driver, 8 for admin
+        journeyStatusId:
+          userUniqueId === ownerUserUniqueId
+            ? journeyStatusMap.cancelledByDriver
+            : journeyStatusMap.cancelledByAdmin, // 9 for driver, 10 for admin
       },
     });
     // check if the driver has any active requests in Journey table
@@ -609,7 +619,7 @@ const cancelDriverRequest = async (body) => {
     await updateData({
       tableName: "Journey",
       conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId: 7 }, // Set journeyStatusId to 7 (cancelled by driver)
+      updateValues: { journeyStatusId: journeyStatusMap.cancelledByDriver }, // Set journeyStatusId to 9 (cancelled by driver)
     });
 
     await createCanceledJourney({
@@ -742,7 +752,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     if (!activeRequest?.length) {
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
-
+    console.log("@verifyDriverStatus activeRequest=======> ", activeRequest);
     const driverRequest = activeRequest?.[0];
 
     if (!driverRequest) {
@@ -757,7 +767,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     // Step 3: Validate journey status
     const journeyStatusId = driverRequest.journeyStatusId;
     console.log("journeyStatusId", journeyStatusId);
-    if (journeyStatusId > 4) {
+    if (journeyStatusId > journeyStatusMap.journeyCompleted) {
       return {
         message: "success",
         data: "This request is not active at the moment",
@@ -768,7 +778,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       };
     }
 
-    if (journeyStatusId === 1) {
+    if (journeyStatusId === journeyStatusMap.waiting) {
       const JourneyStatusOne = await handleJourneyStatusOne(
         driverRequest,
         vehicle,

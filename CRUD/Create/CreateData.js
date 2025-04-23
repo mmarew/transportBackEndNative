@@ -2,6 +2,10 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { getData, checkActivePassengerRequest } = require("../Read/ReadData");
 const formatDateToReadable = require("../../Utils/FormatDateToReadable");
+const {
+  journeyStatusMap,
+  activeStatuses,
+} = require("../../Utils/ListOfFixedData");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal }) => {
@@ -31,7 +35,7 @@ const insertData = async ({ tableName, colAndVal }) => {
 const createNewPassengerRequest = async (
   body,
   userUniqueId,
-  journeyStatusId = 1
+  journeyStatusId = journeyStatusMap.waiting // 1
 ) => {
   const shippableItemName = body?.shippableItemName,
     shippableItemQtyInQuintal = body?.shippableItemQtyInQuintal,
@@ -115,14 +119,25 @@ const createNewPassengerRequest = async (
     throw error;
   }
 };
-const createDriverRequest = async (body, userUniqueId, journeyStatusId = 1) => {
+const createDriverRequest = async (
+  body,
+  userUniqueId,
+  journeyStatusId = journeyStatusMap.waiting
+) => {
   try {
     if (!body || !userUniqueId || !journeyStatusId) {
       throw new Error("Invalid input parameters to create driver request");
     }
 
-    const sqlToCheckActiveRequest = `SELECT * FROM DriverRequest WHERE userUniqueId = ? AND journeyStatusId IN (1, 2, 3, 4)
-    `;
+    // Convert array to SQL-friendly format
+    const activeStatusesSQL = `(${activeStatuses.join(", ")})`;
+
+    const sqlToCheckActiveRequest = `
+  SELECT * FROM DriverRequest 
+  WHERE userUniqueId = ? 
+  AND journeyStatusId IN ${activeStatusesSQL}
+`;
+
     const [existingRequest] = await pool.query(sqlToCheckActiveRequest, [
       userUniqueId,
     ]);

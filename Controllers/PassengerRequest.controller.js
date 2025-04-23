@@ -1,5 +1,6 @@
 // controllers/Passenger.controller.js
 const PassengerService = require("../Services/PassengerRequest.service");
+const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createPassengerRequest = async (req, res) => {
@@ -28,8 +29,8 @@ const acceptDriverRequest = async (req, res) => {
   try {
     console.log("req.body", req.body);
 
-    req.body.journeyStatusId = 4;
-    req.body.previousStatusId = 3;
+    req.body.journeyStatusId = journeyStatusMap.acceptedByPassenger;
+    req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
 
     const result = await PassengerService.acceptDriverRequest(req.body);
     ServerResponder(res, result);

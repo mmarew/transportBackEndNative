@@ -1,4 +1,5 @@
 const services = require("../Services/DriverRequest.service");
+const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 
 const ServerResponder = require("../Utils/ServerResponder");
 
@@ -84,8 +85,8 @@ const verifyDriverStatusController = async (req, res) => {
 const startJourney = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;
-    req.body.journeyStatusId = 4;
-    req.body.previousStatusId = 3;
+    req.body.journeyStatusId = journeyStatusMap.journeyStarted; //5;
+    req.body.previousStatusId = journeyStatusMap.acceptedByPassenger; //4;
     req.body.userUniqueId = userUniqueId;
     const result = await services.startJourney(req.body);
     ServerResponder(res, result);
@@ -114,8 +115,8 @@ const journeyCompleted = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
-    req.body.journeyStatusId = 5;
-    req.body.previousStatusId = 4;
+    req.body.journeyStatusId = journeyStatusMap.journeyCompleted;
+    req.body.previousStatusId = journeyStatusMap.acceptedByPassenger;
     const result = await services.journeyCompleted(req.body);
     console.log("@journeyCompleted result", result);
     ServerResponder(res, result);

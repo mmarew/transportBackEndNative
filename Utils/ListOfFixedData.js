@@ -491,12 +491,14 @@ const journeyStatus = [
   {
     journeyStatusId: 7,
     journeyStatusName: "cancelledByPassenger",
-    journeyStatusDescription: "Cancelled by passenger",
+    journeyStatusDescription:
+      "Cancelled by passenger, all shipment is canceled by shipper",
   },
   {
     journeyStatusId: 8,
     journeyStatusName: "rejectedByPassenger",
-    journeyStatusDescription: "Cancelled by passenger",
+    journeyStatusDescription:
+      "Cancelled by passenger,passenger rejected some drivers request but accept atleast one ",
   },
   {
     journeyStatusId: 9,
@@ -524,6 +526,30 @@ const journeyStatus = [
     journeyStatusDescription: "No Answer From Driver",
   },
 ];
+const journeyStatusMap = {
+  waiting: 1,
+  requested: 2,
+  acceptedByDriver: 3,
+  acceptedByPassenger: 4,
+  journeyStarted: 5,
+  journeyCompleted: 6,
+  cancelledByPassenger: 7,
+  rejectedByPassenger: 8,
+  cancelledByDriver: 9,
+  cancelledByAdmin: 10,
+  completedByAdmin: 11,
+  cancelledBySystem: 12,
+  noAnswerFromDriver: 13,
+};
+// these are active because they can be used to check if it is active or not
+const activeStatuses = [
+  journeyStatusMap.waiting,
+  journeyStatusMap.requested,
+  journeyStatusMap.acceptedByDriver,
+  journeyStatusMap.acceptedByPassenger,
+  journeyStatusMap.journeyStarted,
+];
+
 const cancellationReasons = [
   { cancellationReason: "Driver too late", roleId: 1 },
   { cancellationReason: "Change of plans", roleId: 1 },
@@ -630,6 +656,8 @@ const CommissionRates = [
   },
 ];
 module.exports = {
+  activeStatuses,
+  journeyStatusMap,
   vehicleStatusTypes,
   CommissionRates,
   TarrifRateList,
