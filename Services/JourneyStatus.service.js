@@ -47,12 +47,19 @@ const createJourneyStatus = async (body) => {
 };
 
 // Get all journey statuses
-const getAllJourneyStatuses = async () => {
+const getAllJourneyStatuses = async (requestedBy) => {
   const result = await getData({ tableName: "JourneyStatus" });
-
+  let mapedData = {};
+  if (requestedBy == 1 || requestedBy == 2) {
+    result.map((data) => {
+      mapedData[data.journeyStatusName] = data.journeyStatusId;
+    });
+  } else {
+    mapedData = result;
+  }
   return {
     message: "success",
-    data: result,
+    data: mapedData,
   };
 };
 

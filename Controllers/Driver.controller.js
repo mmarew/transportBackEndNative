@@ -43,8 +43,8 @@ const acceptPassengerRequest = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
-    req.body.journeyStatusId = 3;
-    req.body.previousStatusId = 2;
+    req.body.journeyStatusId = journeyStatusMap.acceptedByDriver;
+    req.body.previousStatusId = journeyStatusMap.requested;
     const result = await services.acceptPassengerRequest(req.body);
 
     ServerResponder(res, result, 200);
@@ -116,7 +116,7 @@ const journeyCompleted = async (req, res) => {
     const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.journeyCompleted;
-    req.body.previousStatusId = journeyStatusMap.acceptedByPassenger;
+    req.body.previousStatusId = journeyStatusMap.journeyStarted;
     const result = await services.journeyCompleted(req.body);
     console.log("@journeyCompleted result", result);
     ServerResponder(res, result);

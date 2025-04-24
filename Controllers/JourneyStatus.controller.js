@@ -18,7 +18,12 @@ const createJourneyStatus = async (req, res) => {
 // Get all journey statuses
 const getAllJourneyStatuses = async (req, res) => {
   try {
-    const result = await journeyStatusService.getAllJourneyStatuses();
+    const requestedBy = req.params.requestedBy;
+
+    console.log("@getAllJourneyStatuses requestedBy", requestedBy);
+    const result = await journeyStatusService.getAllJourneyStatuses(
+      requestedBy
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching journey statuses:", error);

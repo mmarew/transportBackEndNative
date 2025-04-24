@@ -12,7 +12,7 @@ router.post(
 
 // Get all journey statuses
 router.get(
-  "/api/admin/journeyStatus",
+  "/api/admin/journeyStatus/:requestedBy",
   verifyTokenOfAxios,
   journeyStatusController.getAllJourneyStatuses
 );

@@ -182,6 +182,8 @@ const acceptPassengerRequest = async (body) => {
     journeyDecisionUniqueId,
     driverRequestUniqueId,
   } = body;
+  // console.log("@acceptPassengerRequest body =======> ", body);
+  // return;
   const existingRequest = await performJoinSelect({
     baseTable: "DriverRequest",
     joins: [
@@ -214,20 +216,18 @@ const acceptPassengerRequest = async (body) => {
     };
   }
   const journeyStatusId = existingRequest[0].journeyStatusId;
-  // console.log(
-  //   "@acceptPassengerRequest journeyStatusId ===========> ",
-  //   journeyStatusId
-  // );
-  // return;
-  if (journeyStatusId === 2) await updateJourneyStatus(body);
+
+  if (journeyStatusId === journeyStatusMap.requested)
+    await updateJourneyStatus(body);
+
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
   const passenger = message?.passenger;
   const phoneNumber = passenger?.phoneNumber;
-  if (phoneNumber && journeyStatusId === 2)
+  if (phoneNumber && journeyStatusId === journeyStatusMap.requested)
     sendNotificationToPassenger({
-      message: { ...message, status: 3 },
+      message: { ...message, status: journeyStatusMap.acceptedByDriver },
       phoneNumber,
     });
 
@@ -391,7 +391,7 @@ const journeyCompleted = async (body) => {
         driver: { vehicle: vehicleData?.at(0), driver: driver.data },
         passenger: passenger?.at(0),
         message: "success",
-        status: 5,
+        status: journeyStatusMap.journeyCompleted,
         data: "Journey completed successfully",
         fare,
         totalDistance,
@@ -675,18 +675,19 @@ const updateJourneyStatus = async (body) => {
   }
 
   if (journeyDecisionUniqueId) {
+    let updateValues = {
+      journeyStatusId,
+    };
+    // update shipping Cost By Driver if it has values only
+    if (shippingCostByDriver)
+      updateValues.shippingCostByDriver = shippingCostByDriver;
     await updateData({
       tableName: "JourneyDecisions",
       conditions: {
         journeyDecisionUniqueId,
         // journeyStatusId: previousStatusId,
       },
-      updateValues: {
-        journeyStatusId,
-        shippingCostByDriver: shippingCostByDriver
-          ? shippingCostByDriver
-          : null,
-      },
+      updateValues,
     });
   }
 
