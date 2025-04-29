@@ -44,10 +44,12 @@ const {
 } = require("./PassengerRequest.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const messageTypes = require("../Utils/MessageTypes");
+const { journeyStatusMap } = require("../Utils/ListOfFixedData");
+const { updateJourneyStatus } = require("./JourneyStatus.service");
 const {
-  journeyStatusMap,
-  activeStatuses,
-} = require("../Utils/ListOfFixedData");
+  verifyDriverStatus,
+  verifyPassengerStatus,
+} = require("./UsersCurrentStatus");
 
 const createRequest = async (body, user) => {
   try {
@@ -200,10 +202,7 @@ const acceptPassengerRequest = async (body) => {
       "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
     },
   });
-  console.log(
-    "@acceptPassengerRequest existingRequest ==============> ",
-    existingRequest
-  );
+
   if (!existingRequest?.length)
     return { message: "error", error: "Request not found" };
   if (
@@ -225,11 +224,18 @@ const acceptPassengerRequest = async (body) => {
   });
   const passenger = message?.passenger;
   const phoneNumber = passenger?.phoneNumber;
-  if (phoneNumber && journeyStatusId === journeyStatusMap.requested)
+  if (phoneNumber && journeyStatusId === journeyStatusMap.requested) {
+    const passengerStatusData = await verifyPassengerStatus({
+      userUniqueId: passenger.userUniqueId,
+    });
     sendNotificationToPassenger({
-      message: { ...message, status: journeyStatusMap.acceptedByDriver },
+      message: {
+        ...passengerStatusData,
+        status: journeyStatusMap.acceptedByDriver,
+      },
       phoneNumber,
     });
+  }
 
   return message;
 };
@@ -260,12 +266,9 @@ const startJourney = async (body) => {
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
-  console.log("@message ==============> ", message);
-  // return;
   const passenger = message?.passenger;
   phoneNumber = passenger?.phoneNumber;
   const journeyStatusId = passenger?.journeyStatusId;
-  console.log("@start journey passenger", passenger);
   // send notification to passenger if driver has an active journey request and passenger has a phoneNumber
   if (phoneNumber && journeyStatusId == 4)
     await sendNotificationToPassenger({
@@ -388,7 +391,7 @@ const journeyCompleted = async (body) => {
   if (phoneNumber)
     sendNotificationToPassenger({
       message: {
-        driver: { vehicle: vehicleData?.at(0), driver: driver.data },
+        drivers: [{ vehicle: vehicleData?.at(0), driver: driver.data }],
         passenger: passenger?.at(0),
         message: "success",
         status: journeyStatusMap.journeyCompleted,
@@ -457,7 +460,7 @@ const journeyCompleted = async (body) => {
     netBalance,
     message: "success",
     data: "Journey completed successfully",
-    status: 5,
+    status: journeyStatusMap.journeyCompleted,
   };
 };
 
@@ -642,72 +645,6 @@ const cancelDriverRequest = async (body) => {
   }
 };
 
-const updateJourneyStatus = async (body) => {
-  const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
-  const passengerRequestUniqueId = body?.passengerRequestUniqueId;
-  const driverRequestUniqueId = body?.driverRequestUniqueId;
-  const journeyUniqueId = body?.journeyUniqueId;
-  const journeyStatusId = body?.journeyStatusId;
-  const previousStatusId = body?.previousStatusId;
-  const shippingCostByDriver = body?.shippingCostByDriver;
-  console.log("@updateJourneyStatus body =========> ", body);
-  // return;
-  if (journeyUniqueId) {
-    await updateData({
-      tableName: "Journey",
-      conditions: { journeyUniqueId, journeyStatusId: previousStatusId },
-      updateValues: {
-        journeyStatusId,
-      },
-    });
-  }
-  if (passengerRequestUniqueId) {
-    await updateData({
-      tableName: "PassengerRequest",
-      conditions: {
-        passengerRequestUniqueId,
-        // journeyStatusId: previousStatusId,
-      },
-      updateValues: {
-        journeyStatusId,
-      },
-    });
-  }
-
-  if (journeyDecisionUniqueId) {
-    let updateValues = {
-      journeyStatusId,
-    };
-    // update shipping Cost By Driver if it has values only
-    if (shippingCostByDriver)
-      updateValues.shippingCostByDriver = shippingCostByDriver;
-    await updateData({
-      tableName: "JourneyDecisions",
-      conditions: {
-        journeyDecisionUniqueId,
-        // journeyStatusId: previousStatusId,
-      },
-      updateValues,
-    });
-  }
-
-  if (driverRequestUniqueId) {
-    await updateData({
-      tableName: "DriverRequest",
-      conditions: {
-        driverRequestUniqueId, //journeyStatusId: previousStatusId
-      },
-      updateValues: {
-        journeyStatusId,
-      },
-    });
-  }
-  return {
-    message: "success",
-    data: "Request accepted successfully",
-  };
-};
-
 const deleteDriverRequest = async (requestId) => {
   try {
     const result = await deleteData({
@@ -724,242 +661,6 @@ const deleteDriverRequest = async (requestId) => {
     console.log("Error in deleteDriverRequest:", error);
     return { message: "error", error: "Unable to delete request" };
   }
-};
-
-const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
-  try {
-    // Step 1: Check if the driver has a vehicle
-    const vehicleResponse = await getVehicleAndOwnershipViaUserUniqueId(
-      userUniqueId
-    );
-    // console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
-    const vehicle = vehicleResponse?.data?.[0];
-    if (!vehicle) {
-      return {
-        message: "error",
-        error: "No vehicle found for this driver",
-        status: null,
-      };
-    }
-
-    const vehicleTypeUniqueId = vehicle?.vehicleTypeUniqueId;
-    const vehicleTarrifRateResponse = await getTarrifRateByVehicleTypeUniqueId(
-      vehicleTypeUniqueId
-    );
-
-    const vehicleTarrifRate = vehicleTarrifRateResponse?.data?.[0];
-
-    // Step 2: Check for an active driver request
-    if (!activeRequest?.length) {
-      activeRequest = await checkActiveDriverRequest(userUniqueId);
-    }
-    console.log("@verifyDriverStatus activeRequest=======> ", activeRequest);
-    const driverRequest = activeRequest?.[0];
-
-    if (!driverRequest) {
-      return {
-        message: "success",
-        data: "No active requests found for this driver",
-        status: null,
-        vehicle,
-      };
-    }
-
-    // Step 3: Validate journey status
-    const journeyStatusId = driverRequest.journeyStatusId;
-    console.log("journeyStatusId", journeyStatusId);
-    if (journeyStatusId > journeyStatusMap.journeyCompleted) {
-      return {
-        message: "success",
-        data: "This request is not active at the moment",
-        status: null,
-        vehicle,
-        driver: null,
-        passenger: null,
-      };
-    }
-
-    if (journeyStatusId === journeyStatusMap.waiting) {
-      const JourneyStatusOne = await handleJourneyStatusOne(
-        driverRequest,
-        vehicle,
-        vehicleTarrifRate,
-        vehicleTypeUniqueId
-      );
-      return JourneyStatusOne;
-    }
-
-    const existingJourney = await handleExistingJourney(
-      driverRequest,
-      vehicle,
-      vehicleTarrifRate
-    );
-    return existingJourney;
-  } catch (error) {
-    console.error(
-      "Error in verifyDriverStatus:",
-      JSON.stringify(error) || error
-    );
-    return { message: "error", error: "Unable to verify driver status" };
-  }
-};
-
-// Handle when journeyStatusId is 1
-const handleJourneyStatusOne = async (
-  driverRequest,
-  vehicle,
-  vehicleTarrifRate,
-  vehicleTypeUniqueId
-) => {
-  const { originLatitude, originLongitude } = driverRequest;
-  const nearbyPassengers = await findNearbyPassengers({
-    originLatitude,
-    originLongitude,
-    vehicleTypeUniqueId,
-  });
-  // if there is no passenger  near to driver
-  if (!nearbyPassengers?.length) {
-    return {
-      message: "success",
-      status: 1, // Waiting
-      uniqueIds: {
-        driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      },
-      driver: { driver: driverRequest, vehicle, vehicleTarrifRate },
-      passenger: null,
-      journey: null,
-      decisions: null,
-    };
-  }
-
-  const passenger = nearbyPassengers[0];
-  const journeyDecisionPayload = {
-    journeyDecisionUniqueId: uuidv4(),
-    passengerRequestId: passenger?.passengerRequestId,
-    driverRequestId: driverRequest?.driverRequestId,
-    journeyStatusId: 2, // Requested
-    decisionTime: new Date(),
-  };
-
-  await Promise.all([
-    insertData({
-      tableName: "JourneyDecisions",
-      colAndVal: journeyDecisionPayload,
-    }),
-    updateData({
-      tableName: "DriverRequest",
-      conditions: {
-        driverRequestUniqueId: driverRequest.driverRequestUniqueId,
-      },
-      updateValues: { journeyStatusId: 2 },
-    }),
-    updateData({
-      tableName: "PassengerRequest",
-      conditions: { passengerRequestId: passenger.passengerRequestId },
-      updateValues: { journeyStatusId: 2 },
-    }),
-  ]);
-
-  const message = {
-    status: 2,
-    uniqueIds: {
-      driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
-      journeyDecisionUniqueId: journeyDecisionPayload?.journeyDecisionUniqueId,
-    },
-    driver: {
-      driver: { ...driverRequest, journeyStatusId: 2 },
-      vehicle,
-      vehicleTarrifRate,
-    },
-    passenger: { ...passenger, journeyStatusId: 2 },
-    journey: null,
-    decisions: journeyDecisionPayload,
-  };
-
-  if (passenger?.phoneNumber) {
-    await sendNotificationToPassenger({
-      message,
-      phoneNumber: passenger.phoneNumber,
-    });
-  }
-
-  return {
-    message: "success",
-    status: 2, // Passenger found and requested
-    ...message,
-  };
-};
-
-// Handle existing journey and decisions
-const handleExistingJourney = async (
-  driverRequest,
-  vehicle,
-  vehicleTarrifRate
-) => {
-  const [journeyDecision] = await getData({
-    tableName: "JourneyDecisions",
-    conditions: { driverRequestId: driverRequest.driverRequestId },
-  });
-  console.log("journeyDecision", journeyDecision);
-  const [journey] = await getData({
-    tableName: "Journey",
-    conditions: {
-      journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
-    },
-  });
-  console.log("journey", journey);
-  const passengerData = await performJoinSelect({
-    baseTable: "PassengerRequest",
-    joins: [
-      {
-        table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-      },
-    ],
-    conditions: { passengerRequestId: journeyDecision?.passengerRequestId },
-  });
-
-  const passenger = passengerData?.[0];
-  const userUniqueId = driverRequest?.userUniqueId;
-
-  const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
-    userUniqueId,
-    4
-  );
-  const data = documents?.data;
-  const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
-  console.log("driverProfilePhoto", driverProfilePhoto);
-  const responseMessage = {
-    uniqueIds: {
-      driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
-      journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
-      journeyUniqueId: journey?.journeyUniqueId,
-    },
-    status: driverRequest.journeyStatusId,
-    driver: {
-      driver: { ...driverRequest, driverProfilePhoto },
-      vehicle,
-      vehicleTarrifRate,
-    },
-    passenger: passenger || null,
-    journey: journey || null,
-    decisions: journeyDecision || null,
-  };
-
-  if (passenger?.phoneNumber) {
-    await sendNotificationToPassenger({
-      message: responseMessage,
-      phoneNumber: passenger.phoneNumber,
-    });
-  }
-
-  return {
-    message: "success",
-    status: passenger?.journeyStatusId || driverRequest.journeyStatusId,
-    ...responseMessage,
-  };
 };
 
 const attachRequiredDocuments = async (body) => {
@@ -993,7 +694,6 @@ const getDriverJourneyStatus = async (userUniqueId) => {
 };
 
 module.exports = {
-  updateJourneyStatus,
   getDriverJourneyStatus,
   attachRequiredDocuments,
   journeyCompleted,
@@ -1002,7 +702,7 @@ module.exports = {
   createRequest,
   acceptPassengerRequest,
   deleteDriverRequest,
-  verifyDriverStatus,
   cancelDriverRequest,
   takeFromStreet,
 };
+// @routeCoords

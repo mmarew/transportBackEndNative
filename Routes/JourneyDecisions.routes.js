@@ -21,10 +21,25 @@ router.get(
 
 // Get a specific journey decision by ID
 router.get(
-  "/api/journeyDecisions/:id",
+  "/api/journeyDecisions/:journeyDecisionUniqueId",
   verifyTokenOfAxios,
 
-  journeyDecisionsController.getJourneyDecisionById
+  journeyDecisionsController.getJourneyDecisionByJourneyDecisionUniqueId
+);
+
+// Get a specific journey decision by ID
+router.get(
+  "/api/journeyDecisions/byDriverRequest/:driverRequestUniqueId",
+  verifyTokenOfAxios,
+  journeyDecisionsController.getJourneyDecisionByJDriverRequestUniqueId
+);
+
+// Get a specific journey decision by ID
+router.get(
+  "/api/journeyDecisions/byPassengerRequest/:passengerRequestUniqueId",
+  verifyTokenOfAxios,
+
+  journeyDecisionsController.getJourneyDecisionByPassengerRequestUniqueId
 );
 
 // Update a specific journey decision by ID

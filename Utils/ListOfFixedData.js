@@ -389,6 +389,15 @@ const listOfDocuments = [
       "A formal document that provides proof that the owner of the vehicle has granted the driver permission to use the vehicle for commercial purposes (ride-sharing).",
   },
 ];
+const listOfDocumentsTypeAndId = {
+  driverLicense: 1,
+  vehicleRegistrationlibrea: 2,
+  insuranceDocument: 3,
+  profilePhoto: 4,
+  taxIdentificationNumber: 5,
+  delegationOfVehicleUse: 6,
+};
+
 const driversDocumentRequirement = [
   {
     roleId: "2",
@@ -656,6 +665,7 @@ const CommissionRates = [
   },
 ];
 module.exports = {
+  listOfDocumentsTypeAndId,
   activeStatuses,
   journeyStatusMap,
   vehicleStatusTypes,

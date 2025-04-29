@@ -70,14 +70,41 @@ exports.getAllJourneyDecisions = async () => {
 };
 
 // Get a specific journey decision by ID
-exports.getJourneyDecisionById = async (journeyDecisionId) => {
-  const sql = `SELECT * FROM JourneyDecisions WHERE journeyDecisionId = ?`;
-  const [result] = await pool.query(sql, [journeyDecisionId]);
+exports.getJourneyDecisionByJourneyDecisionUniqueId = async (
+  journeyDecisionUniqueId
+) => {
+  const sql = `SELECT * FROM JourneyDecisions WHERE journeyDecisionUniqueId = ?`;
+  const [result] = await pool.query(sql, [journeyDecisionUniqueId]);
 
   return result.length > 0
-    ? { message: "success", data: result[0] }
+    ? { message: "success", data: result }
     : { message: "error", data: "Journey decision not found" };
 };
+
+// Get a specific journey decision by ID
+exports.getJourneyDecisionByJDriverRequestUniqueId = async (
+  driverRequestUniqueId
+) => {
+  const sql = `SELECT * FROM JourneyDecisions,DriverRequest WHERE driverRequestUniqueId = ? and DriverRequest.driverRequestId=JourneyDecisions.driverRequestId`;
+  const [result] = await pool.query(sql, [driverRequestUniqueId]);
+
+  return result.length > 0
+    ? { message: "success", data: result }
+    : { message: "error", data: "Journey decision not found" };
+};
+
+// Get a specific journey decision by ID
+exports.getJourneyDecisionByPassengerRequestUniqueId = async (
+  passengerRequestUniqueId
+) => {
+  const sql = `SELECT * FROM JourneyDecisions, PassengerRequest WHERE passengerRequestUniqueId = ? and JourneyDecisions.passengerRequestId=PassengerRequest.passengerRequestId `;
+  const [result] = await pool.query(sql, [passengerRequestUniqueId]);
+
+  return result.length > 0
+    ? { message: "success", data: result }
+    : { message: "error", data: "Journey decision not found" };
+};
+// getJourneyDecisionByPassengerRequestUniqueId,getJourneyDecisionByJDriverRequestUniqueId
 
 // Update a specific journey decision by ID
 exports.updateJourneyDecision = async (

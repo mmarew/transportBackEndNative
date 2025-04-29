@@ -2,7 +2,7 @@
 const PassengerService = require("../Services/PassengerRequest.service");
 const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder");
-
+const usersCurrentStatus = require("../Services/UsersCurrentStatus");
 const createPassengerRequest = async (req, res) => {
   try {
     console.log("@createPassengerRequest req.body", req.body);
@@ -27,11 +27,12 @@ const createPassengerRequest = async (req, res) => {
 };
 const acceptDriverRequest = async (req, res) => {
   try {
-    console.log("req.body", req.body);
-
     req.body.journeyStatusId = journeyStatusMap.acceptedByPassenger;
     req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
-
+    const user = req?.user;
+    const userUniqueId = user.userUniqueId;
+    req.body.userUniqueId = userUniqueId;
+    console.log("@acceptDriverRequest user ======> ", user);
     const result = await PassengerService.acceptDriverRequest(req.body);
     ServerResponder(res, result);
   } catch (error) {
@@ -99,7 +100,7 @@ const verifyPassengerStatus = async (req, res) => {
   try {
     // return "verifyPassengerStatus";
     const { userUniqueId } = req?.user;
-    const result = await PassengerService.verifyPassengerStatus({
+    const result = await usersCurrentStatus.verifyPassengerStatus({
       userUniqueId,
     });
     ServerResponder(res, result, 200);

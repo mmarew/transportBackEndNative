@@ -122,7 +122,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
         DriverRequest.originLatitude BETWEEN ? AND ?
         AND DriverRequest.originLongitude BETWEEN ? AND ?
         AND DriverRequest.journeyStatusId = 1 -- Status 'Waiting'
-        AND Vehicle.vehicleTypeUniqueId = ?
+        AND Vehicle.vehicleTypeUniqueId = ? LIMIT 5
     `;
 
     // Values to be passed to the query for parameterized SQL
@@ -302,7 +302,7 @@ const checkActivePassengerRequest = async (userUniqueId) => {
     tableName: "PassengerRequest",
     conditions: {
       userUniqueId,
-      journeyStatusId: [1, 2, 3, 4], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+      journeyStatusId: [activeStatuses], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
     },
   });
 
@@ -393,7 +393,7 @@ const getAttachedDocumentsByUserUniqueIdAndDocumentTypeId = async (
   ownerUserUniqueId,
   documentTypeId
 ) => {
-  const sqlToGetDocument = `select * from AttachedDocuments ,DocumentTypes where attachedDocumentCreatedByUserId=? and DocumentTypes.documentTypeId=?`;
+  const sqlToGetDocument = `select * from AttachedDocuments, DocumentTypes where attachedDocumentCreatedByUserId=? and DocumentTypes.documentTypeId=?`;
   const values = [ownerUserUniqueId, documentTypeId];
   const [documents] = await pool.query(sqlToGetDocument, values);
 

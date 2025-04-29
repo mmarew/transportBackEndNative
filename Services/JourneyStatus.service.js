@@ -84,25 +84,25 @@ const getJourneyStatusById = async (journeyStatusUniqueId) => {
 };
 
 // Update a journey status by ID
-const updateJourneyStatus = async (journeyStatusUniqueId, body) => {
-  const result = await updateData({
-    tableName: "JourneyStatus",
-    conditions: { journeyStatusUniqueId },
-    updateValues: body,
-  });
+// const updateJourneyStatus = async (journeyStatusUniqueId, body) => {
+//   const result = await updateData({
+//     tableName: "JourneyStatus",
+//     conditions: { journeyStatusUniqueId },
+//     updateValues: body,
+//   });
 
-  if (result.affectedRows > 0) {
-    return {
-      message: "success",
-      data: `Journey status with journeyS tatus Unique Id ${journeyStatusUniqueId} updated successfully`,
-    };
-  } else {
-    return {
-      message: "error",
-      error: "Failed to update journey status",
-    };
-  }
-};
+//   if (result.affectedRows > 0) {
+//     return {
+//       message: "success",
+//       data: `Journey status with journeyS tatus Unique Id ${journeyStatusUniqueId} updated successfully`,
+//     };
+//   } else {
+//     return {
+//       message: "error",
+//       error: "Failed to update journey status",
+//     };
+//   }
+// };
 
 // Delete a journey status by ID
 const deleteJourneyStatus = async (journeyStatusUniqueId) => {
@@ -122,6 +122,71 @@ const deleteJourneyStatus = async (journeyStatusUniqueId) => {
       error: "Failed to delete journey status",
     };
   }
+};
+const updateJourneyStatus = async (body) => {
+  const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
+  const passengerRequestUniqueId = body?.passengerRequestUniqueId;
+  const driverRequestUniqueId = body?.driverRequestUniqueId;
+  const journeyUniqueId = body?.journeyUniqueId;
+  const journeyStatusId = body?.journeyStatusId;
+  const previousStatusId = body?.previousStatusId;
+  const shippingCostByDriver = body?.shippingCostByDriver;
+  console.log("@updateJourneyStatus body =========> ", body);
+  // return;
+  if (journeyUniqueId) {
+    await updateData({
+      tableName: "Journey",
+      conditions: { journeyUniqueId, journeyStatusId: previousStatusId },
+      updateValues: {
+        journeyStatusId,
+      },
+    });
+  }
+  if (passengerRequestUniqueId) {
+    await updateData({
+      tableName: "PassengerRequest",
+      conditions: {
+        passengerRequestUniqueId,
+        // journeyStatusId: previousStatusId,
+      },
+      updateValues: {
+        journeyStatusId,
+      },
+    });
+  }
+
+  if (journeyDecisionUniqueId) {
+    let updateValues = {
+      journeyStatusId,
+    };
+    // update shipping Cost By Driver if it has values only
+    if (shippingCostByDriver)
+      updateValues.shippingCostByDriver = shippingCostByDriver;
+    await updateData({
+      tableName: "JourneyDecisions",
+      conditions: {
+        journeyDecisionUniqueId,
+        // journeyStatusId: previousStatusId,
+      },
+      updateValues,
+    });
+  }
+
+  if (driverRequestUniqueId) {
+    await updateData({
+      tableName: "DriverRequest",
+      conditions: {
+        driverRequestUniqueId, //journeyStatusId: previousStatusId
+      },
+      updateValues: {
+        journeyStatusId,
+      },
+    });
+  }
+  return {
+    message: "success",
+    data: "Request accepted successfully",
+  };
 };
 
 module.exports = {

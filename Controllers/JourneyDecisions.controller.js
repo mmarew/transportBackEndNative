@@ -1,5 +1,5 @@
 const journeyDecisionsService = require("../Services/JourneyDecisions.service");
-
+const ServerResponder = require("../Utils/ServerResponder");
 // Create a new journey decision
 exports.createJourneyDecision = async (req, res) => {
   try {
@@ -42,10 +42,49 @@ exports.getAllJourneyDecisions = async (req, res) => {
 };
 
 // Get a specific journey decision by ID
-exports.getJourneyDecisionById = async (req, res) => {
+exports.getJourneyDecisionByJourneyDecisionUniqueId = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await journeyDecisionsService.getJourneyDecisionById(id);
+    const { journeyDecisionUniqueId } = req.params;
+    const result =
+      await journeyDecisionsService.getJourneyDecisionByJourneyDecisionUniqueId(
+        journeyDecisionUniqueId
+      );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error fetching journey decision:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey decision",
+    });
+  }
+};
+
+// Get a specific journey decision by ID
+exports.getJourneyDecisionByJDriverRequestUniqueId = async (req, res) => {
+  try {
+    const { driverRequestUniqueId } = req.params;
+    const result =
+      await journeyDecisionsService.getJourneyDecisionByJDriverRequestUniqueId(
+        driverRequestUniqueId
+      );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error fetching journey decision:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey decision",
+    });
+  }
+};
+
+// Get a specific journey decision by ID
+exports.getJourneyDecisionByPassengerRequestUniqueId = async (req, res) => {
+  try {
+    const { passengerRequestUniqueId } = req.params;
+    const result =
+      await journeyDecisionsService.getJourneyDecisionByPassengerRequestUniqueId(
+        passengerRequestUniqueId
+      );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error fetching journey decision:", error);
