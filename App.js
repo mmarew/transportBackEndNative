@@ -72,6 +72,7 @@
 // server.listen(PORT, "0.0.0.0", () => {
 //   console.log(`Server started on port http://localhost:${PORT}`);
 // });
+
 const cluster = require("cluster");
 const os = require("os");
 
@@ -82,15 +83,11 @@ console.log("@Total CPU Cores:", numCPUs);
 if (cluster.isMaster) {
   console.log(`🧠 Master process started | PID: ${process.pid}`);
 
-  // Fork workers
   for (let i = 0; i < numCPUs; i++) {
     const worker = cluster.fork();
-    console.log(
-      `🔧 Forked worker #${i + 1} | Worker PID: ${worker.process.pid}`
-    );
+    console.log(`🔧 Forked worker #${i + 1} | PID: ${worker.process.pid}`);
   }
 
-  // If any worker dies, fork a new one
   cluster.on("exit", (worker, code, signal) => {
     console.log(`💀 Worker PID: ${worker.process.pid} died. Restarting...`);
     const newWorker = cluster.fork();
@@ -98,6 +95,5 @@ if (cluster.isMaster) {
   });
 } else {
   console.log(`🚀 Worker process running | PID: ${process.pid}`);
-
-  require("./Config/App.config"); // your server logic
+  require("./Config/App.config");
 }
