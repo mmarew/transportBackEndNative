@@ -1,4 +1,5 @@
 const services = require("../Services/DriverRequest.service");
+const UsersCurrentStatus = require("../Services/UsersCurrentStatus");
 const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 
 const ServerResponder = require("../Utils/ServerResponder");
@@ -71,7 +72,9 @@ const deleteRequestController = async (req, res) => {
 const verifyDriverStatusController = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;
-    const result = await services.verifyDriverStatus({ userUniqueId });
+    const result = await UsersCurrentStatus.verifyDriverStatus({
+      userUniqueId,
+    });
     ServerResponder(res, result, 200);
   } catch (error) {
     console.log("Error in verifyDriverStatusController:", error);

@@ -1,77 +1,103 @@
-const express = require("express");
-require("dotenv").config();
-const { createServer } = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
-const Routes = require("./Routes/index.js");
-const WSPusher = require("./Utils/WSPusher.js");
-const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
-const path = require("path");
-const loggingMiddleware = require("./Middleware/LoggingMiddleware.js");
-const getLocalIpAddress = require("./Utils/MyIpAddress.js");
-const { socketIO } = require("./Utils/WsServerResponder.js");
+// const express = require("express");
+// require("dotenv").config();
+// const { createServer } = require("http");
+// const { Server } = require("socket.io");
+// const cors = require("cors");
+// const Routes = require("./Routes/index.js");
+// const WSPusher = require("./Utils/WSPusher.js");
+// const { removeWSFromList } = require("./Utils/RemoveWsFromList.js");
+// const path = require("path");
+// const loggingMiddleware = require("./Middleware/LoggingMiddleware.js");
+// const { socketIO } = require("./Utils/WsServerResponder.js");
 
-// Log local IP address
-console.log("Local IP Address:", getLocalIpAddress());
+// // Initialize Express app
+// const app = express();
 
-// Initialize Express app
-const app = express();
+// // Apply middleware
+// loggingMiddleware();
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(cors());
+// app.use(Routes);
 
-// Apply middleware
-loggingMiddleware();
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(Routes);
+// // Create HTTP server and attach Express app
+// const server = createServer(app);
 
-// Create HTTP server and attach Express app
-const server = createServer(app);
+// // Initialize Socket.IO
+// const io = new Server(server, {
+//   cors: {
+//     origin: "*", // Adjust according to your security preferences
+//   },
+// });
 
-// Initialize Socket.IO
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Adjust according to your security preferences
-  },
-});
+// io.on("connection", (socket) => {
+//   const socketId = socket.id;
+//   console.log("Client connected with socketId :", socketId);
+//   const urlParams = new URLSearchParams(socket.handshake.query);
+//   socketIO.io = io;
+//   WSPusher(urlParams, socketId, io);
 
-io.on("connection", (socket) => {
-  const socketId = socket.id;
-  console.log("Client connected with socketId :", socketId);
-  const urlParams = new URLSearchParams(socket.handshake.query);
-  socketIO.io = io;
-  WSPusher(urlParams, socketId, io);
+//   socket.on("message", (incomingMessage) => {
+//     const textMessage = incomingMessage.toString();
+//     if (textMessage) {
+//       socket.emit("response", "I received text messages from clients");
+//     }
+//   });
 
-  socket.on("message", (incomingMessage) => {
-    const textMessage = incomingMessage.toString();
-    if (textMessage) {
-      socket.emit("response", "I received text messages from clients");
-    }
-  });
+//   socket.on("disconnect", () => {
+//     removeWSFromList(socket);
+//     console.log("Client disconnected:", socket.id);
+//   });
+// });
 
-  socket.on("disconnect", () => {
-    removeWSFromList(socket);
-    console.log("Client disconnected:", socket.id);
-  });
-});
+// // Create tables in the database (startup logic)
+// const onStartUp = async () => {
+//   try {
+//     // Initialization logic here
+//   } catch (error) {
+//     console.error("Startup error:", error);
+//   }
+// };
+// onStartUp();
 
-// Create tables in the database (startup logic)
-const onStartUp = async () => {
-  try {
-    // Initialization logic here
-  } catch (error) {
-    console.error("Startup error:", error);
+// // Health check endpoint
+// app.get("/", (req, res) => {
+//   res.json({ message: "Server is running" });
+// });
+
+// // Start HTTP server
+// const PORT = process.env.PORT || 3000;
+
+// server.listen(PORT, "0.0.0.0", () => {
+//   console.log(`Server started on port http://localhost:${PORT}`);
+// });
+const cluster = require("cluster");
+const os = require("os");
+
+const numCPUs = os.cpus().length;
+
+console.log("@Total CPU Cores:", numCPUs);
+
+if (cluster.isMaster) {
+  console.log(`🧠 Master process started | PID: ${process.pid}`);
+
+  // Fork workers
+  for (let i = 0; i < numCPUs; i++) {
+    const worker = cluster.fork();
+    console.log(
+      `🔧 Forked worker #${i + 1} | Worker PID: ${worker.process.pid}`
+    );
   }
-};
-onStartUp();
 
-// Health check endpoint
-app.get("/", (req, res) => {
-  res.json({ message: "Server is running" });
-});
+  // If any worker dies, fork a new one
+  cluster.on("exit", (worker, code, signal) => {
+    console.log(`💀 Worker PID: ${worker.process.pid} died. Restarting...`);
+    const newWorker = cluster.fork();
+    console.log(`🔁 Restarted new worker | PID: ${newWorker.process.pid}`);
+  });
+} else {
+  console.log(`🚀 Worker process running | PID: ${process.pid}`);
 
-// Start HTTP server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server started on port http://localhost:${PORT}`);
-});
+  require("./Config/App.config"); // your server logic
+}

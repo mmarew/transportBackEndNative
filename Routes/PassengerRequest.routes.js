@@ -17,6 +17,11 @@ router.get(
   verifyTokenOfAxios,
   controller.getPassengerRequestByPassengerRequestUniqueId
 );
+router.get(
+  "/api/recentrequest/getRecentCompletedJourney",
+  verifyTokenOfAxios,
+  controller.getRecentCompletedJourney
+);
 router.put(
   "/api/passenger/acceptDriverRequest",
   verifyTokenOfAxios,

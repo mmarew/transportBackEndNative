@@ -10,8 +10,7 @@ const { deleteData } = require("../CRUD/Delete/DeleteData");
 const { createNewPassengerRequest } = require("../CRUD/Create/CreateData");
 
 const { sendNotificationToDriver } = require("../Utils/Notifications");
-const {} = require("./VehicleOwnership.service");
-const {} = require("./TarrifRateForVehicleTypes.service");
+
 const { pool } = require("../Middleware/Database.config");
 const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
@@ -333,7 +332,20 @@ const getPassengerJourneyStatus = async (userUniqueId) => {
     return null;
   }
 };
+const getRecentCompletedJourney = async (user) => {
+  console.log("@user", user);
+  const userUniqueId = user?.userUniqueId;
+  const results = await getData({
+    tableName: "PassengerRequest",
+    conditions: { userUniqueId },
+    limit: 7,
+    orderBy: "passengerRequestId",
+    orderDirection: "desc",
+  });
+  return { message: "success", data: results };
+};
 module.exports = {
+  getRecentCompletedJourney,
   acceptDriverRequest,
   getAllActiveRequests,
   getPassengerJourneyStatus,

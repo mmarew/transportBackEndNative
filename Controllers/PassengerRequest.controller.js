@@ -54,7 +54,20 @@ const getAllActiveRequests = async (req, res) => {
     });
   }
 };
+const getRecentCompletedJourney = async (req, res) => {
+  try {
+    const user = req.user;
+    const result = await PassengerService.getRecentCompletedJourney(user);
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to retrieve recent request",
+    });
 
+    console.log("@getRecentCompletedJourney error", error);
+  }
+};
 const getPassengerRequestByPassengerRequestUniqueId = async (req, res) => {
   try {
     const result =
@@ -126,6 +139,7 @@ const cancelPassengerRequest = async (req, res) => {
   }
 };
 module.exports = {
+  getRecentCompletedJourney,
   acceptDriverRequest,
   getPassengerRequestByPassengerRequestUniqueId,
   getAllActiveRequests,
