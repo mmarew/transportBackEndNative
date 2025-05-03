@@ -73,6 +73,7 @@
 //   console.log(`Server started on port http://localhost:${PORT}`);
 // });
 
+// app.js
 const cluster = require("cluster");
 const os = require("os");
 
@@ -95,5 +96,5 @@ if (cluster.isMaster) {
   });
 } else {
   console.log(`🚀 Worker process running | PID: ${process.pid}`);
-  require("./Config/App.config");
+  require("./Config/Worker.config.js"); // Start the server
 }

@@ -1,7 +1,8 @@
+// SocketAdapter.config.js
 const { Server } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { createClient } = require("redis");
-const { WSPusher } = require("../Utils/WSPusher");
+const WSPusher = require("../Utils/WSPusher.js");
 const { removeWSFromList } = require("../Utils/RemoveWsFromList");
 const { socketIO } = require("../Utils/WsServerResponder");
 
