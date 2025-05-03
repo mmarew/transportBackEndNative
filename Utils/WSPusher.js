@@ -175,7 +175,7 @@ const { getDriverJourneyStatus } = require("../Services/DriverRequest.service");
 
 const phoneNumberRegex = /^[0-9]{9,15}$/;
 
-const tableNames = require("../Config/Tables.confg").default;
+// const tableNames = require("../Config/Tables.confg").default;
 
 async function WSPusher(urlParams, socketId) {
   try {

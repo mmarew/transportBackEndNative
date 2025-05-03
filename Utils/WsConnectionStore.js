@@ -13,10 +13,13 @@ redisClient.connect();
 const setSocket = async (userType, identifier, socketId) => {
   const key = `${userType}:${identifier}`;
   await redisClient.set(key, socketId);
+  console.log("@redisClient", redisClient);
 };
 
 const getSocket = async (userType, identifier) => {
   const key = `${userType}:${identifier}`;
+  console.log("@redisClient", redisClient);
+
   return await redisClient.get(key);
 };
 
