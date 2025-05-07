@@ -10,6 +10,11 @@ const { removeWhiteSpace } = require("../Validator/Validation");
 // create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user, ownerUserUniqueId) => {
   try {
+    console.log("@createVehicle data", data);
+    console.log("@createVehicle user", user);
+    console.log("@createVehicle ownerUserUniqueId", ownerUserUniqueId);
+    if (ownerUserUniqueId == "self") {
+    }
     let { vehicleTypeUniqueId, licensePlate, color } = data;
     licensePlate = removeWhiteSpace(licensePlate);
     if (!vehicleTypeUniqueId || !licensePlate || !color) {

@@ -198,6 +198,7 @@
 
 const { emitMessage } = require("./WsServerResponder");
 const { getSocket } = require("./WsConnectionStore");
+const { default: redis } = require("../Config/redis.config");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
@@ -280,16 +281,74 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 };
 
 // 🔔 Notify all connected admins (broadcast to all admin sockets)
+// const sendNotificationToAdmin = async ({ message }) => {
+//   try {
+//     const redis = require("redis").createClient({
+//       socket: {
+//         host: process.env.REDIS_HOST || "127.0.0.1",
+//         port: process.env.REDIS_PORT || 6379,
+//       },
+//     });
+//     await redis.connect();
+
+//     const keys = await redis.keys("admin:*");
+
+//     const successList = [];
+//     const errorList = [];
+
+//     for (const key of keys) {
+//       const socketId = await redis.get(key);
+//       if (!socketId) continue;
+
+//       try {
+//         const res = await emitMessage({
+//           messageTitle: "messages",
+//           messageDetailes: JSON.stringify(message),
+//           socketId,
+//         });
+
+//         if (res.message === "success") {
+//           successList.push({
+//             socketId,
+//             message: "success",
+//             detail: "Message sent to admin",
+//           });
+//         } else {
+//           errorList.push({
+//             socketId,
+//             message: "error",
+//             detail: "Failed to send message to admin",
+//           });
+//         }
+//       } catch (err) {
+//         console.error(`Error sending to admin socketId ${socketId}:`, err);
+//         errorList.push({
+//           socketId,
+//           message: "error",
+//           detail: "Exception while sending to admin",
+//         });
+//       }
+//     }
+
+//     await redis.disconnect();
+
+//     return {
+//       message: successList.length > 0 ? "success" : "error",
+//       data:
+//         successList.length > 0
+//           ? "Messages sent successfully to admins"
+//           : "No admin message was sent",
+//       success: successList,
+//       error: errorList,
+//     };
+//   } catch (error) {
+//     console.error("Error in sendNotificationToAdmin:", error);
+//     return { message: "error", error: "Message can't be sent to admin" };
+//   }
+// };
+
 const sendNotificationToAdmin = async ({ message }) => {
   try {
-    const redis = require("redis").createClient({
-      socket: {
-        host: process.env.REDIS_HOST || "127.0.0.1",
-        port: process.env.REDIS_PORT || 6379,
-      },
-    });
-    await redis.connect();
-
     const keys = await redis.keys("admin:*");
 
     const successList = [];
@@ -329,7 +388,7 @@ const sendNotificationToAdmin = async ({ message }) => {
       }
     }
 
-    await redis.disconnect();
+    await redis.quit(); // Clean disconnect for ioredis
 
     return {
       message: successList.length > 0 ? "success" : "error",
