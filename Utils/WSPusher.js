@@ -179,13 +179,6 @@ const phoneNumberRegex = /^[0-9]{9,15}$/;
 
 async function WSPusher(urlParams, socketId) {
   try {
-    console.log(
-      "@WSPusher urlParams =======> ",
-      urlParams,
-      "\nsocketId",
-      socketId
-    );
-
     const phoneNumber = urlParams.get("phoneNumber");
     const user = urlParams.get("user");
     const token = urlParams.get("token");

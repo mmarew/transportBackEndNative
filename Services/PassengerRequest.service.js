@@ -181,7 +181,7 @@ const deleteRequest = async (requestId) => {
 
 const cancelPassengerRequest = async (body) => {
   try {
-    const user = body.user;
+    const user = body?.user;
     const roleId = user?.roleId;
     const ownerUserUniqueId = body?.ownerUserUniqueId,
       driverUserUniqueId = body?.driverUserUniqueId,
@@ -267,6 +267,14 @@ const cancelPassengerRequest = async (body) => {
     const phoneNumber = driver?.phoneNumber;
     await sendNotificationToDriver({
       message: {
+        passenger: null,
+        driver: null,
+        journey: null,
+        decisions: null,
+        status:
+          userUniqueId === ownerUserUniqueId
+            ? journeyStatusMap.cancelledByPassenger // "passenger cancelled your request."
+            : journeyStatusMap?.cancelledBySystem, //"system cancelled your request.",
         message: "success",
         data:
           userUniqueId === ownerUserUniqueId

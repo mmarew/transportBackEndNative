@@ -2,6 +2,7 @@
 
 const { createServer } = require("http");
 const app = require("./httpServer.config");
+
 const { initSocket } = require("./SocketAdapter.config");
 
 // If you have DB startup logic, you can do it here too:
@@ -16,6 +17,7 @@ const onStartUp = async () => {
 onStartUp();
 
 const server = createServer(app);
+
 initSocket(server); // Your Socket.IO logic
 
 const PORT = process.env.PORT || 3000;

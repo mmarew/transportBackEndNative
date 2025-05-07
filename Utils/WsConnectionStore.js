@@ -13,12 +13,13 @@ redisClient.connect();
 const setSocket = async (userType, identifier, socketId) => {
   const key = `${userType}:${identifier}`;
   await redisClient.set(key, socketId);
-  console.log("@redisClient", redisClient);
+  console.log("@setSocket redisClient", redisClient);
 };
 
 const getSocket = async (userType, identifier) => {
   const key = `${userType}:${identifier}`;
-  console.log("@redisClient", redisClient);
+  console.log("@getSocket redisClient", redisClient);
+  console.dir("@dirgetSocket", redisClient, { depth: null });
 
   return await redisClient.get(key);
 };
@@ -26,6 +27,7 @@ const getSocket = async (userType, identifier) => {
 const removeSocket = async (userType, identifier) => {
   const key = `${userType}:${identifier}`;
   await redisClient.del(key);
+  console.log("@removeSocket redisClient", redisClient);
 };
 
 module.exports = {

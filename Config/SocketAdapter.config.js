@@ -27,6 +27,7 @@ async function initSocket(server) {
 
   // Use Redis adapter
   io.adapter(createAdapter(pubClient, subClient));
+
   socketIO.io = io; // globally assign
 
   io.on("connection", (socket) => {

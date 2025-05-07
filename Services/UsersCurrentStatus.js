@@ -60,7 +60,7 @@ const handleJourneyStatusOne = async (
     journeyDecisionUniqueId: uuidv4(),
     passengerRequestId: passenger?.passengerRequestId,
     driverRequestId: driverRequest?.driverRequestId,
-    journeyStatusId: 2, // Requested
+    journeyStatusId: journeyStatusMap.requested, // Requested
     decisionTime: new Date(),
   };
 
@@ -74,7 +74,7 @@ const handleJourneyStatusOne = async (
       conditions: {
         driverRequestUniqueId: driverRequest.driverRequestUniqueId,
       },
-      updateValues: { journeyStatusId: 2 },
+      updateValues: { journeyStatusId: journeyStatusMap.requested },
     }),
     updateData({
       tableName: "PassengerRequest",
@@ -91,11 +91,11 @@ const handleJourneyStatusOne = async (
       journeyDecisionUniqueId: journeyDecisionPayload?.journeyDecisionUniqueId,
     },
     driver: {
-      driver: { ...driverRequest, journeyStatusId: 2 },
+      driver: { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
       vehicle,
       vehicleTarrifRate,
     },
-    passenger: { ...passenger, journeyStatusId: 2 },
+    passenger: { ...passenger, journeyStatusId: journeyStatusMap.requested },
     journey: null,
     decisions: journeyDecisionPayload,
   };

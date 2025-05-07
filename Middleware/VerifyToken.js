@@ -24,31 +24,32 @@ const verifyTokenOfAxios = async (req, res, next) => {
           .status(401)
           .json({ message: "error", error: "User not found in the token" });
       }
-    }
-     catch (error) {
+    } catch (error) {
       let response;
+      console.log("@token error ", error.name);
+      // return conmmon messages and see detail error in console but hide detaile messages from user
       switch (error.name) {
-        case "TokenExpiredError":
-          response = {
-            valid: false,
-            message: "error",
-            error: "Token expired",
-          };
-          break;
-        case "JsonWebTokenError":
-          response = {
-            valid: false,
-            message: "error",
-            error: "Invalid token",
-          };
-          break;
-        case "NotBeforeError":
-          response = {
-            valid: false,
-            message: "error",
-            error: "Token not active",
-          };
-          break;
+        // case "TokenExpiredError":
+        //   response = {
+        //     valid: false,
+        //     message: "error",
+        //     error: "Token expired",
+        //   };
+        //   break;
+        // case "JsonWebTokenError":
+        //   response = {
+        //     valid: false,
+        //     message: "error",
+        //     error: "Invalid token",
+        //   };
+        //   break;
+        // case "NotBeforeError":
+        //   response = {
+        //     valid: false,
+        //     message: "error",
+        //     error: "Token not active",
+        //   };
+        //   break;
         default:
           response = {
             valid: false,

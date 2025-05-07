@@ -73,12 +73,12 @@
 //   console.log(`Server started on port http://localhost:${PORT}`);
 // });
 
-// app.js
+// App.js
 const cluster = require("cluster");
 const os = require("os");
+const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 
 const numCPUs = os.cpus().length;
-
 console.log("@Total CPU Cores:", numCPUs);
 
 if (cluster.isMaster) {
@@ -94,6 +94,7 @@ if (cluster.isMaster) {
     const newWorker = cluster.fork();
     console.log(`🔁 Restarted new worker | PID: ${newWorker.process.pid}`);
   });
+  getLocalIpAddress();
 } else {
   console.log(`🚀 Worker process running | PID: ${process.pid}`);
   require("./Config/Worker.config.js"); // Start the server

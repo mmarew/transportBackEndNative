@@ -217,6 +217,7 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
     }
 
     const socketId = await getSocket("driver", cleanedPhoneNumber);
+    console.log("@sendNotificationToDriver socketId", socketId);
     if (!socketId) {
       return {
         message: "error",
