@@ -198,7 +198,7 @@
 
 const { emitMessage } = require("./WsServerResponder");
 const { getSocket } = require("./WsConnectionStore");
-const { default: redis } = require("../Config/redis.config");
+const { redis } = require("../Config/redis.config");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
