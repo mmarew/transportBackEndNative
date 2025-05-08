@@ -13,7 +13,9 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
     console.log("@createVehicle data", data);
     console.log("@createVehicle user", user);
     console.log("@createVehicle ownerUserUniqueId", ownerUserUniqueId);
+    let userUniqueId = ownerUserUniqueId;
     if (ownerUserUniqueId == "self") {
+      userUniqueId = user?.userUniqueId;
     }
     let { vehicleTypeUniqueId, licensePlate, color } = data;
     licensePlate = removeWhiteSpace(licensePlate);
@@ -64,7 +66,8 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
     // Register vehicle ownership
     const ownershipResult = await createVehicleOwnership({
       vehicleUniqueId: vehicle[0].vehicleUniqueId,
-      userUniqueId: ownerUserUniqueId,
+      userUniqueId:
+        ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId,
       roleId: 2,
       ownershipStartDate: currentDate(),
     });

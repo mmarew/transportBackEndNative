@@ -30,7 +30,7 @@ const config = {
   connectTimeout: 10000, // 10 seconds
   multipleStatements: true, // Enable multiple statements
   // Socket: "/Applications/MAMP/tmp/mysql/mysql.sock",
-  socketPath: "/var/run/mysqld/mysqld.sock", // ✅ correct key
+  // socketPath: "/var/run/mysqld/mysqld.sock", // ✅ correct key
 };
 
 // Create a connection pool
