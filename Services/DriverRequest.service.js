@@ -352,6 +352,7 @@ const noAnswerFromDriver = async (body) => {
 const journeyCompleted = async (body) => {
   // set journey status to be completed
   await updateJourneyStatus(body);
+
   const {
     userUniqueId,
     vehicleTypeUniqueId,
@@ -360,17 +361,18 @@ const journeyCompleted = async (body) => {
     paymentMethodUniqueId,
     paymentStatusUniqueId,
   } = body;
-  const paymentTime = currentDate();
 
-  const paymentData = await PaymentCalculator({
-    vehicleTypeUniqueId,
-    journeyUniqueId,
-  });
+  // const paymentTime = currentDate();
+
+  // const paymentData = await PaymentCalculator({
+  //   vehicleTypeUniqueId,
+  //   journeyUniqueId,
+  // });
   console.log("@paymentData => ", paymentData);
   const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
   const driver = await getUserByUserUniqueId(userUniqueId);
   // console.log("@journeyCompleted driver", driver);
-  if (paymentData.message == "error") return paymentData;
+  // if (paymentData.message == "error") return paymentData;
 
   // find passenger data
   const passenger = await performJoinSelect({
@@ -402,66 +404,72 @@ const journeyCompleted = async (body) => {
       phoneNumber,
     });
 
-  const totalMoney = paymentData.totalMoney;
-  const driverUserUniqueId = userUniqueId,
-    passengerUserUniqueId = passenger?.at(0)?.userUniqueId;
-  console.warn("@passengerUserUniqueId", passengerUserUniqueId);
-  // register payment in to Payment table
-  const newPayment = await createPayment(
-    journeyUniqueId,
-    totalMoney,
-    paymentMethodUniqueId,
-    paymentStatusUniqueId,
-    paymentTime,
-    driverUserUniqueId,
-    passengerUserUniqueId
-  );
-  if (newPayment.message == "error") {
-    // return newPayment;
-  }
-  const paymentUniqueId = newPayment?.data?.paymentUniqueId;
-  // calculate commision and add to commision table
-  const commisionData = await calculateCommision(totalMoney);
-  console.log("@commisionData", commisionData);
-  const data = {
-    paymentUniqueId,
-    commissionRateUniqueId: commisionData?.commissionRateUniqueId,
-    commissionAmount: commisionData?.commissionAmount,
-  };
-  const newCommission = await createCommission(data);
-  const transactionUniqueId = newCommission.data.commissionUniqueId;
-
-  const commissionAmount = newCommission.data.commissionAmount;
-  const driversCurrentBalance = await getDriverLastBalanceByUserUniqueId(
-    userUniqueId
-  );
-  console.log(
-    "@driversCurrentBalance",
-    driversCurrentBalance,
-    " commissionAmount",
-    commissionAmount
-  );
-  let currentBalance = driversCurrentBalance?.data?.netBalance;
-  if (!currentBalance) currentBalance = 0;
-  const netBalance = parseFloat(currentBalance) - parseFloat(commissionAmount);
-  const dataOfBalance = {
-    userUniqueId,
-    transactionType: "Commission",
-    transactionUniqueId,
-    date: new Date(),
-    netBalance,
-  };
-  const dataOfDriverBalance = await createDriverBalance({
-    ...dataOfBalance,
-  });
   return {
-    totalDistance,
-    totalMoney,
-    netBalance,
     message: "success",
     data: "Journey completed successfully",
     status: journeyStatusMap.journeyCompleted,
   };
+
+  // const totalMoney = paymentData.totalMoney;
+  // const driverUserUniqueId = userUniqueId,
+  //   passengerUserUniqueId = passenger?.at(0)?.userUniqueId;
+  // console.warn("@passengerUserUniqueId", passengerUserUniqueId);
+  // register payment in to Payment table
+  // const newPayment = await createPayment(
+  //   journeyUniqueId,
+  //   totalMoney,
+  //   paymentMethodUniqueId,
+  //   paymentStatusUniqueId,
+  //   paymentTime,
+  //   driverUserUniqueId,
+  //   passengerUserUniqueId
+  // );
+  // if (newPayment.message == "error") {
+  //   // return newPayment;
+  // }
+  // const paymentUniqueId = newPayment?.data?.paymentUniqueId;
+  // // calculate commision and add to commision table
+  // const commisionData = await calculateCommision(totalMoney);
+  // console.log("@commisionData", commisionData);
+  // const data = {
+  //   paymentUniqueId,
+  //   commissionRateUniqueId: commisionData?.commissionRateUniqueId,
+  //   commissionAmount: commisionData?.commissionAmount,
+  // };
+  // const newCommission = await createCommission(data);
+  // const transactionUniqueId = newCommission.data.commissionUniqueId;
+
+  // const commissionAmount = newCommission.data.commissionAmount;
+  // const driversCurrentBalance = await getDriverLastBalanceByUserUniqueId(
+  //   userUniqueId
+  // );
+  // console.log(
+  //   "@driversCurrentBalance",
+  //   driversCurrentBalance,
+  //   " commissionAmount",
+  //   commissionAmount
+  // );
+  // let currentBalance = driversCurrentBalance?.data?.netBalance;
+  // if (!currentBalance) currentBalance = 0;
+  // const netBalance = parseFloat(currentBalance) - parseFloat(commissionAmount);
+  // const dataOfBalance = {
+  //   userUniqueId,
+  //   transactionType: "Commission",
+  //   transactionUniqueId,
+  //   date: new Date(),
+  //   netBalance,
+  // };
+  // const dataOfDriverBalance = await createDriverBalance({
+  //   ...dataOfBalance,
+  // });
+  // return {
+  //   totalDistance,
+  //   totalMoney,
+  //   netBalance,
+  //   message: "success",
+  //   data: "Journey completed successfully",
+  //   status: journeyStatusMap.journeyCompleted,
+  // };
 };
 
 const cancelDriverRequest = async (body) => {
