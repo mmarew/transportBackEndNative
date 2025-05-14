@@ -8,6 +8,9 @@ exports.createJourneyDecision = async ({
   journeyStatusId,
   decisionTime,
   decisionBy,
+  shippingDateByDriver,
+  deliveryDateByDriver,
+  shippingCostByDriver,
 }) => {
   if (
     !passengerRequestId ||
@@ -34,7 +37,9 @@ exports.createJourneyDecision = async ({
     };
   }
   const journeyDecisionUniqueId = uuidv4();
-  const sql = `INSERT INTO JourneyDecisions (journeyDecisionUniqueId, passengerRequestId, driverRequestId, journeyStatusId, decisionTime, decisionBy) VALUES (?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO JourneyDecisions (journeyDecisionUniqueId, passengerRequestId, driverRequestId, journeyStatusId, decisionTime, decisionBy,  shippingDateByDriver,
+      deliveryDateByDriver,
+      shippingCostByDriver) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?)`;
   const values = [
     journeyDecisionUniqueId,
     passengerRequestId,
@@ -42,6 +47,9 @@ exports.createJourneyDecision = async ({
     journeyStatusId,
     decisionTime,
     decisionBy,
+    shippingDateByDriver,
+    deliveryDateByDriver,
+    shippingCostByDriver,
   ];
   const [result] = await pool.query(sql, values);
 
@@ -49,6 +57,9 @@ exports.createJourneyDecision = async ({
     message: "success",
     data: [
       {
+        shippingDateByDriver,
+        deliveryDateByDriver,
+        shippingCostByDriver,
         journeyDecisionUniqueId,
         passengerRequestId,
         driverRequestId,

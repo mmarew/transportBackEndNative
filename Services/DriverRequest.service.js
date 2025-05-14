@@ -75,11 +75,15 @@ const createRequest = async (body, user) => {
 };
 const takeFromStreet = async (body, user) => {
   try {
-    const journeyStatusId = 4;
+    console.log("@takeFromStreet body ========> ", body);
+
+    const journeyStatusId = journeyStatusMap.journeyStarted;
     const userUniqueId = user?.userUniqueId;
     const randNumber = Math.floor(Math.random() * 100000000);
     const requestedFrom = "street";
+    const phoneNumber = body?.phoneNumber;
     const data = {
+      phoneNumber,
       requestedFrom,
       fullName: null,
       email: `fakeEmail_${randNumber}@passenger.com`,
@@ -119,8 +123,12 @@ const takeFromStreet = async (body, user) => {
       userUniqueId,
       journeyStatusId
     );
-    console.log("passengerRequest", passengerRequest);
-    console.log("first driverRequest", driverRequest);
+
+    const {
+      shippingDate: shippingDateByDriver,
+      deliveryDate: deliveryDateByDriver,
+      shippingCost: shippingCostByDriver,
+    } = body;
     // return driverRequest;
     const decisionData = {
       passengerRequestId: passengerRequest.passenger.passengerRequestId,
@@ -128,7 +136,13 @@ const takeFromStreet = async (body, user) => {
       journeyStatusId,
       decisionTime: currentDate(),
       decisionBy: "driver",
+      shippingDateByDriver,
+      deliveryDateByDriver,
+      shippingCostByDriver,
     };
+    // console.log("@decisionData", decisionData);
+
+    // return;
 
     // create a decision in JourneyDecisions table
     const journeyDecision = await createJourneyDecision(decisionData);
@@ -152,7 +166,6 @@ const takeFromStreet = async (body, user) => {
       latitude: originLocation.latitude,
       longitude: originLocation.longitude,
     });
-    console.log("@JourneyPoints", JourneyPoints);
     responseData.journey = journey[0];
     // const vehicle = await verifyUsersVehicle(userUniqueId);
     const vehicle = await getVehicleAndOwnershipViaUserUniqueId(userUniqueId);
@@ -241,13 +254,14 @@ const acceptPassengerRequest = async (body) => {
 };
 const startJourney = async (body) => {
   const journeyUniqueId = uuidv4();
-  const { latitude, longitude } = body;
+  const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
+  const latitude = body?.latitude,
+    longitude = body?.longitude;
   // check if driver has active journey request by journeyDecisionUniqueId,
   let exisistingJourney = await getData({
     tableName: "Journey",
-    conditions: { journeyDecisionUniqueId: body.journeyDecisionUniqueId },
+    conditions: { journeyDecisionUniqueId },
   });
-  console.log("@startJourney exisistingJourney", exisistingJourney);
 
   if (exisistingJourney.length == 0) {
     await insertData({
@@ -270,7 +284,7 @@ const startJourney = async (body) => {
   phoneNumber = passenger?.phoneNumber;
   const journeyStatusId = passenger?.journeyStatusId;
   // send notification to passenger if driver has an active journey request and passenger has a phoneNumber
-  if (phoneNumber && journeyStatusId == 4)
+  if (phoneNumber && journeyStatusId == journeyStatusMap.journeyStarted)
     await sendNotificationToPassenger({
       message,
       phoneNumber,
@@ -348,128 +362,67 @@ const noAnswerFromDriver = async (body) => {
     data: messageTypes.driver_not_answered,
   };
 };
-
 const journeyCompleted = async (body) => {
-  // set journey status to be completed
-  await updateJourneyStatus(body);
+  try {
+    const {
+      userUniqueId,
+      vehicleTypeUniqueId,
+      journeyUniqueId,
+      passengerRequestUniqueId,
+      paymentMethodUniqueId,
+      paymentStatusUniqueId,
+    } = body;
 
-  const {
-    userUniqueId,
-    vehicleTypeUniqueId,
-    journeyUniqueId,
-    passengerRequestUniqueId,
-    paymentMethodUniqueId,
-    paymentStatusUniqueId,
-  } = body;
+    // 1. Update journey status
+    await updateJourneyStatus(body);
 
-  // const paymentTime = currentDate();
+    // 2. Fetch data in parallel
+    const [vehicleData, driver, passenger] = await Promise.all([
+      getVehicleOwnershipByUserUniqueId(userUniqueId),
+      getUserByUserUniqueId(userUniqueId),
+      performJoinSelect({
+        baseTable: "PassengerRequest",
+        joins: [
+          {
+            table: "Users",
+            on: "PassengerRequest.userUniqueId=Users.userUniqueId",
+          },
+        ],
+        conditions: {
+          "PassengerRequest.passengerRequestUniqueId": passengerRequestUniqueId,
+        },
+      }),
+    ]);
 
-  // const paymentData = await PaymentCalculator({
-  //   vehicleTypeUniqueId,
-  //   journeyUniqueId,
-  // });
-  console.log("@paymentData => ", paymentData);
-  const vehicleData = await getVehicleOwnershipByUserUniqueId(userUniqueId);
-  const driver = await getUserByUserUniqueId(userUniqueId);
-  // console.log("@journeyCompleted driver", driver);
-  // if (paymentData.message == "error") return paymentData;
+    const phoneNumber = passenger?.at(0)?.phoneNumber;
 
-  // find passenger data
-  const passenger = await performJoinSelect({
-    baseTable: "PassengerRequest",
-    joins: [
-      {
-        table: "Users",
-        on: "PassengerRequest.userUniqueId=Users.userUniqueId",
-      },
-    ],
-    conditions: {
-      "PassengerRequest.passengerRequestUniqueId": passengerRequestUniqueId,
-    },
-  });
-  const phoneNumber = passenger?.at(0)?.phoneNumber;
-  const totalDistance = paymentData?.totalDistance;
-  const fare = paymentData.totalMoney;
-  if (phoneNumber)
-    sendNotificationToPassenger({
-      message: {
-        drivers: [{ vehicle: vehicleData?.at(0), driver: driver.data }],
-        passenger: passenger?.at(0),
-        message: "success",
-        status: journeyStatusMap.journeyCompleted,
-        data: "Journey completed successfully",
-        fare,
-        totalDistance,
-      },
-      phoneNumber,
-    });
+    // 3. Send notification if passenger phone is available
+    if (phoneNumber) {
+      sendNotificationToPassenger({
+        message: {
+          drivers: [{ vehicle: vehicleData?.at(0), driver: driver.data }],
+          passenger: passenger?.at(0),
+          message: "success",
+          status: journeyStatusMap.journeyCompleted,
+          data: "Journey completed successfully",
+        },
+        phoneNumber,
+      });
+    }
 
-  return {
-    message: "success",
-    data: "Journey completed successfully",
-    status: journeyStatusMap.journeyCompleted,
-  };
-
-  // const totalMoney = paymentData.totalMoney;
-  // const driverUserUniqueId = userUniqueId,
-  //   passengerUserUniqueId = passenger?.at(0)?.userUniqueId;
-  // console.warn("@passengerUserUniqueId", passengerUserUniqueId);
-  // register payment in to Payment table
-  // const newPayment = await createPayment(
-  //   journeyUniqueId,
-  //   totalMoney,
-  //   paymentMethodUniqueId,
-  //   paymentStatusUniqueId,
-  //   paymentTime,
-  //   driverUserUniqueId,
-  //   passengerUserUniqueId
-  // );
-  // if (newPayment.message == "error") {
-  //   // return newPayment;
-  // }
-  // const paymentUniqueId = newPayment?.data?.paymentUniqueId;
-  // // calculate commision and add to commision table
-  // const commisionData = await calculateCommision(totalMoney);
-  // console.log("@commisionData", commisionData);
-  // const data = {
-  //   paymentUniqueId,
-  //   commissionRateUniqueId: commisionData?.commissionRateUniqueId,
-  //   commissionAmount: commisionData?.commissionAmount,
-  // };
-  // const newCommission = await createCommission(data);
-  // const transactionUniqueId = newCommission.data.commissionUniqueId;
-
-  // const commissionAmount = newCommission.data.commissionAmount;
-  // const driversCurrentBalance = await getDriverLastBalanceByUserUniqueId(
-  //   userUniqueId
-  // );
-  // console.log(
-  //   "@driversCurrentBalance",
-  //   driversCurrentBalance,
-  //   " commissionAmount",
-  //   commissionAmount
-  // );
-  // let currentBalance = driversCurrentBalance?.data?.netBalance;
-  // if (!currentBalance) currentBalance = 0;
-  // const netBalance = parseFloat(currentBalance) - parseFloat(commissionAmount);
-  // const dataOfBalance = {
-  //   userUniqueId,
-  //   transactionType: "Commission",
-  //   transactionUniqueId,
-  //   date: new Date(),
-  //   netBalance,
-  // };
-  // const dataOfDriverBalance = await createDriverBalance({
-  //   ...dataOfBalance,
-  // });
-  // return {
-  //   totalDistance,
-  //   totalMoney,
-  //   netBalance,
-  //   message: "success",
-  //   data: "Journey completed successfully",
-  //   status: journeyStatusMap.journeyCompleted,
-  // };
+    return {
+      message: "success",
+      data: "Journey completed successfully",
+      status: journeyStatusMap.journeyCompleted,
+    };
+  } catch (error) {
+    console.error("@journeyCompleted services error", error);
+    return {
+      message: "error",
+      error: "Unable to complete journey",
+      status: journeyStatusMap.journeyCompleted,
+    };
+  }
 };
 
 const cancelDriverRequest = async (body) => {
@@ -713,4 +666,3 @@ module.exports = {
   cancelDriverRequest,
   takeFromStreet,
 };
-// @routeCoords

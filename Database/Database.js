@@ -296,7 +296,6 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
 
-
 -- Create the DriverRequest table
 
 CREATE TABLE IF NOT EXISTS DriverRequest (
