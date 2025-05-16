@@ -43,8 +43,14 @@ const acceptDriverRequest = async (body) => {
     const driverRequestUniqueId = body?.driverRequestUniqueId;
     const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
 
-    const statusData = await verifyPassengerStatus({ userUniqueId });
-    console.log("@statusData", statusData);
+    const statusData = await verifyPassengerStatus({
+      userUniqueId,
+      sendNotificationsToDrivers: false,
+    });
+    console.log(
+      "@acceptDriverRequest statusData?.drivers",
+      statusData?.drivers
+    );
     // multiple drivers
     const acceptedDriver = [];
     const decisions = statusData?.decisions;
@@ -52,13 +58,12 @@ const acceptDriverRequest = async (body) => {
     const acceptedDecision = decisions?.find(
       (decision) => decision.journeyDecisionUniqueId == journeyDecisionUniqueId
     );
-    console.log("@acceptedDecision", acceptedDecision);
+    // console.log("@acceptedDecision", acceptedDecision);
     const drivers = statusData?.drivers;
+
     for (let i = 0; i < drivers?.length; i++) {
       const driver = drivers[i];
       const phoneNumber = driver?.driver?.phoneNumber;
-
-      console.log("@acceptDriverRequest driver", driver);
 
       if (driverRequestUniqueId != driver.driver.driverRequestUniqueId) {
         body.journeyStatusId = journeyStatusMap.rejectedByPassenger;
@@ -68,11 +73,20 @@ const acceptDriverRequest = async (body) => {
       }
 
       await updateJourneyStatus(body);
-      const driverStatus = verifyDriverStatus({
-        userUniqueId: driver?.userUniqueId,
+      const driverStatus = await verifyDriverStatus({
+        userUniqueId: driver?.driver?.userUniqueId,
       });
-      sendNotificationToDriver({ message: driverStatus, phoneNumber });
+      console.log("@driverStatus", driverStatus);
+      if (driverStatus?.message == "success") {
+        sendNotificationToDriver({ message: driverStatus, phoneNumber });
+      } else if (driverStatus?.message == "error") {
+        console.log(
+          "Error in sending notification to driver. driverStatus is :",
+          driverStatus
+        );
+      }
     }
+    // return passenger status after journey status data is updated like above
     return await verifyPassengerStatus({ userUniqueId });
   } catch (error) {
     console.log("@acceptDriverRequest error", error);

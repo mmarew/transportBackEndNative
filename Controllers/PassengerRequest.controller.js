@@ -32,7 +32,6 @@ const acceptDriverRequest = async (req, res) => {
     const user = req?.user;
     const userUniqueId = user.userUniqueId;
     req.body.userUniqueId = userUniqueId;
-    console.log("@acceptDriverRequest user ======> ", user);
     const result = await PassengerService.acceptDriverRequest(req.body);
     ServerResponder(res, result);
   } catch (error) {

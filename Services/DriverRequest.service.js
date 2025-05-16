@@ -75,8 +75,6 @@ const createRequest = async (body, user) => {
 };
 const takeFromStreet = async (body, user) => {
   try {
-    console.log("@takeFromStreet body ========> ", body);
-
     const journeyStatusId = journeyStatusMap.journeyStarted;
     const userUniqueId = user?.userUniqueId;
     const randNumber = Math.floor(Math.random() * 100000000);

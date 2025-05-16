@@ -51,7 +51,7 @@ const handleJourneyStatusOne = async (
       driver: { driver: driverRequest, vehicle, vehicleTarrifRate },
       passenger: null,
       journey: null,
-      decisions: null,
+      decision: null,
     };
   }
 
@@ -97,7 +97,7 @@ const handleJourneyStatusOne = async (
     },
     passenger: { ...passenger, journeyStatusId: journeyStatusMap.requested },
     journey: null,
-    decisions: journeyDecisionPayload,
+    decision: journeyDecisionPayload,
   };
 
   if (passenger?.phoneNumber) {
@@ -171,7 +171,7 @@ const handleExistingJourney = async (
     },
     passenger: passenger || null,
     journey: journey || null,
-    decisions: journeyDecision || null,
+    decision: journeyDecision || null,
   };
 
   if (passenger?.phoneNumber) {
@@ -190,7 +190,11 @@ const handleExistingJourney = async (
     ...responseMessage,
   };
 }; // this function is used to get status of passenger and find driver if driver is not found.
-const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
+const verifyPassengerStatus = async ({
+  userUniqueId,
+  activeRequest,
+  sendNotificationsToDrivers = false,
+}) => {
   try {
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
     if (!activeRequest || activeRequest?.length == 0)
@@ -365,7 +369,9 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
             on: "DriverRequest.userUniqueId = Users.userUniqueId",
           },
         ],
-        conditions: { driverRequestId: journeyDecision?.[i]?.driverRequestId },
+        conditions: {
+          driverRequestId: journeyDecision?.[i]?.driverRequestId,
+        },
       });
 
       const driver = driverData[0];
@@ -392,22 +398,22 @@ const verifyPassengerStatus = async ({ userUniqueId, activeRequest }) => {
         vehicleTarrifRate: vehicleTarrifRate?.data[0],
       };
       driversData.push(driverInfo);
-      decisionsData.push();
+      // decisionsData.push();
       const message = {
         message: "success",
         status: driver?.journeyStatusId,
         passenger,
         driver: driverInfo,
         journey: journey,
-        decisions: journeyDecision[i] || null,
+        decision: journeyDecision[i] || null,
       };
-
-      if (phoneNumber) {
-        await sendNotificationToDriver({
-          message,
-          phoneNumber,
-        });
-      }
+      if (sendNotificationsToDrivers)
+        if (phoneNumber) {
+          await sendNotificationToDriver({
+            message,
+            phoneNumber,
+          });
+        }
     }
     console.log("@verifyPassengerStatus  results", results);
     // Final return after loop
@@ -431,7 +437,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleResponse = await getVehicleAndOwnershipViaUserUniqueId(
       userUniqueId
     );
-    // console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
+    console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
     const vehicle = vehicleResponse?.data?.[0];
     if (!vehicle) {
       return {
@@ -493,6 +499,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       vehicle,
       vehicleTarrifRate
     );
+    console.log("@existingJourney", existingJourney);
     return existingJourney;
   } catch (error) {
     console.log("Error in verifyDriverStatus:", error);
