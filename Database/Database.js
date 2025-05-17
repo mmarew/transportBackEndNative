@@ -552,22 +552,103 @@ CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
     CREATE TABLE IF NOT EXISTS Commission (
     commissionId INT AUTO_INCREMENT PRIMARY KEY,
     commissionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for commission
-    paymentUniqueId varchar(36) NOT NULL,  -- Foreign key to Payments
+   paymentUniqueId varchar(36) NOT NULL,  -- Foreign key to Payments if it is journey base charges not time base charges
     commissionRateUniqueId varchar(36) NOT NULL,  -- Foreign key to CommissionRates
     commissionAmount DECIMAL(10, 2) NOT NULL,  -- Commission amount
     FOREIGN KEY (paymentUniqueId) REFERENCES Payments(paymentUniqueId),
     FOREIGN KEY (commissionRateUniqueId) REFERENCES CommissionRates(commissionRateUniqueId)
 );
 
--- a table to store drivers deposit to pay for commision 
 
-  CREATE TABLE IF NOT EXISTS DriverDeposit (
-    driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
-    driverDepositUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver deposit
-    driverUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    depositAmount DECIMAL(10, 2) NOT NULL,  -- Amount of deposit
-     depositTime DATETIME NOT NULL,  -- Time of deposit
-     FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
+
+CREATE TABLE IF NOT EXISTS SubscriptionPlan (
+  subscriptionPlanId INT AUTO_INCREMENT PRIMARY KEY,
+  subscriptionPlanUniqueId VARCHAR(36) NOT NULL UNIQUE,
+  planName VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
+  isTrial BOOLEAN DEFAULT FALSE,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Dynamic pricing by effective date
+CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
+  pricingId INT AUTO_INCREMENT PRIMARY KEY,
+  subscriptionPlanUniqueId varchar(36) NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,
+  durationInDays INT NOT NULL,
+  effectiveFrom DATE NOT NULL,
+  effectiveTo DATE DEFAULT NULL,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
+);
+-- subscription to driver
+CREATE TABLE IF NOT EXISTS DriverSubscription (
+  driverSubscriptionId INT AUTO_INCREMENT PRIMARY KEY,
+  driverUniqueId VARCHAR(36) NOT NULL,
+  subscriptionPlanId INT NOT NULL,
+  startDate DATETIME NOT NULL,
+  endDate DATETIME NOT NULL,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+  FOREIGN KEY (subscriptionPlanId) REFERENCES SubscriptionPlan(subscriptionPlanId)
+);
+
+
+-- driver deposit table lists
+
+
+-- 1. Master table for deposit sources (enum replacement)
+CREATE TABLE IF NOT EXISTS DepositSource (
+  depositSourceId INT AUTO_INCREMENT PRIMARY KEY,
+  sourceKey VARCHAR(50) NOT NULL UNIQUE,         -- e.g., 'driver', 'bonus'
+  sourceLabel VARCHAR(100) NOT NULL              -- e.g., 'Paid by Driver'
+);
+
+-- Seed initial deposit sources
+-- INSERT INTO DepositSource (sourceKey, sourceLabel) VALUES
+  -- ('driver', 'Paid by Driver'),
+  -- ('bonus', 'Referral Bonus'),
+  -- ('admin', 'Manual Admin Deposit'),
+  -- ('transfer', 'Transferred from Another Driver');
+
+
+-- 2. Main table representing driver subscriptions via deposits
+CREATE TABLE IF NOT EXISTS DriverDeposit (
+  driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
+  driverDepositUniqueId VARCHAR(36) NOT NULL UNIQUE,
+  driverUniqueId VARCHAR(36) NOT NULL,
+  depositAmount DECIMAL(10, 2) NOT NULL,
+  depositSourceId INT NOT NULL,
+  depositTime DATETIME NOT NULL,
+   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+  FOREIGN KEY (depositSourceId) REFERENCES DepositSource(depositSourceId)
+);
+ 
+
+-- 3. Logs any deposit transferred from one driver to another
+CREATE TABLE IF NOT EXISTS DriverBalanceTransfer (
+  depositTransferId INT AUTO_INCREMENT PRIMARY KEY,
+  fromDriverUniqueId VARCHAR(36) NOT NULL,
+  toDriverUniqueId VARCHAR(36) NOT NULL,
+  transferredAmount DECIMAL(10, 2) NOT NULL,
+  reason TEXT,
+  transferTime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  transferredBy VARCHAR(36), -- admin or system ID
+  FOREIGN KEY (fromDriverUniqueId) REFERENCES Users(userUniqueId),
+  FOREIGN KEY (toDriverUniqueId) REFERENCES Users(userUniqueId)
+);
+
+
+-- 4. Logs any refunds issued to a driver
+CREATE TABLE IF NOT EXISTS DriverRefund (
+  driverRefundId INT AUTO_INCREMENT PRIMARY KEY,
+  driverUniqueId VARCHAR(36) NOT NULL,
+  refundAmount DECIMAL(10, 2) NOT NULL,
+  refundReason TEXT,
+  refundedBy VARCHAR(36),
+  refundDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
 );
 
 -- a table to store drivers balance after Commission to payment or deposit
@@ -576,7 +657,7 @@ CREATE TABLE IF NOT EXISTS DriverBalance (
     driverBalanceId INT AUTO_INCREMENT PRIMARY KEY,
     driverBalanceUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver balance
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    transactionType enum('Deposit', 'Commission') NOT NULL,  -- Type of transaction
+    transactionType enum('Deposit', 'Commission','Transfer','Refund','Subscription') NOT NULL,  -- Type of transaction
     transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for DriverDeposit or Payment
     transactionTime DATETIME NOT NULL,  -- Time of transaction
     netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - Commission)
