@@ -42,4 +42,10 @@ router.get(
   verifyTokenOfAxios,
   driverBalanceController.getDriverLastBalanceByUserUniqueId
 );
+router.get(
+  "/api/driverBalance/current/:driverUniqueId",
+  verifyTokenOfAxios,
+  driverBalanceController.getDriverCurrentBalance
+);
+
 module.exports = router;

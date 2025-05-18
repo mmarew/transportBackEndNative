@@ -1,13 +1,14 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { getCommissionsByCommissionUniqueId } = require("./Commission.service");
+const currentDate = require("../Utils/CurrentDate");
 
 // Create a new driver balance record
 exports.createDriverBalance = async (data) => {
   try {
     console.log("@createDriverBalance data is ", data);
     // Verify existence of data transactionUniqueId in DriverBalance
-
+    const transactionTime = currentDate();
     const sqlToGetData = `
       SELECT * FROM DriverBalance 
       WHERE transactionUniqueId = ? AND transactionType = ?
@@ -36,7 +37,7 @@ exports.createDriverBalance = async (data) => {
       data.userUniqueId,
       data.transactionType,
       data.transactionUniqueId,
-      new Date(),
+      transactionTime,
       data.netBalance,
     ];
 
@@ -202,4 +203,18 @@ exports.deleteDriverBalance = async (driverBalanceUniqueId) => {
     console.error("Error in deleteDriverBalance:", error);
     return { message: "error", error: "Unable to delete driver balance" };
   }
+};
+exports.getDriverLastBalance = async (driverUniqueId) => {
+  const sql = `
+    SELECT *
+    FROM DriverBalance
+    WHERE userUniqueId = ?
+    ORDER BY transactionTime DESC
+    LIMIT 1
+  `;
+  const [result] = await pool.query(sql, [driverUniqueId]);
+
+  return result.length > 0
+    ? { message: "success", data: result[0] }
+    : { message: "error", error: "No balance record found" };
 };

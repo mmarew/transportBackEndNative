@@ -4,7 +4,11 @@ const ServerResponder = require("../Utils/ServerResponder");
 // Create a new driver balance record
 exports.createDriverBalance = async (req, res) => {
   try {
-    const result = await driverBalanceService.createDriverBalance(req.body);
+    const user = req?.user;
+    const result = await driverBalanceService.createDriverBalance({
+      ...req.body,
+      ...user,
+    });
     ServerResponder(res, result);
   } catch (error) {
     res
@@ -105,6 +109,19 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
     ServerResponder(res, {
       message: "error",
       error: "Failed to retrieve driver balance record",
+    });
+  }
+};
+exports.getDriverCurrentBalance = async (req, res) => {
+  try {
+    const { driverUniqueId } = req.params;
+    const result = await service.getDriverLastBalance(driverUniqueId);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error getting last balance:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to get current balance",
     });
   }
 };

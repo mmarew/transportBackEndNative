@@ -1,27 +1,43 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const { getDriverLastBalance } = require("./DriverBalance.service");
+const { getSubscriptionPlanByUniqueId } = require("./SubscriptionPlan.service");
 
 // Create subscription
 const createDriverSubscription = async (
   driverUniqueId,
-  subscriptionPlanId,
+  subscriptionPlanUniqueId,
   startDate,
   endDate
 ) => {
   const driverSubscriptionUniqueId = uuidv4();
   const sql = `
     INSERT INTO DriverSubscription 
-    (driverSubscriptionUniqueId, driverUniqueId, subscriptionPlanId, startDate, endDate)
+    (driverSubscriptionUniqueId, driverUniqueId, subscriptionPlanUniqueId, startDate, endDate)
     VALUES (?, ?, ?, ?, ?)
   `;
   const values = [
     driverSubscriptionUniqueId,
     driverUniqueId,
-    subscriptionPlanId,
+    subscriptionPlanUniqueId,
     startDate,
     endDate,
   ];
   const [result] = await pool.query(sql, values);
+
+  const subscriptionData = await getSubscriptionPlanPricing(
+    subscriptionPlanUniqueId
+  );
+  const currentBalance = await getDriverLastBalance(driverUniqueId);
+  const netBalance = currentBalance?.data?.netBalance;
+  const newBalance = netBalance - refundAmount;
+  const newNetBalanceData = {
+    userUniqueId: driverUniqueId,
+    transactionType: "deposit",
+    transactionUniqueId: driverRefundUniqueId,
+    netBalance: newBalance,
+  };
+  createDriverBalance(newNetBalanceData);
 
   return {
     message: "success",

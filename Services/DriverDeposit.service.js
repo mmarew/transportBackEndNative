@@ -1,6 +1,10 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const currentDate = require("../Utils/CurrentDate");
+const {
+  getDriverLastBalance,
+  createDriverBalance,
+} = require("./DriverBalance.service");
 
 // Create
 const createDriverDeposit = async (
@@ -23,7 +27,16 @@ const createDriverDeposit = async (
     depositSourceUniqueId,
     depositTime,
   ]);
-
+  const currentBalance = await getDriverLastBalance(driverUniqueId);
+  const netBalance = currentBalance?.data?.netBalance;
+  const newBalance = netBalance + depositAmount;
+  const newNetBalanceData = {
+    userUniqueId: driverUniqueId,
+    transactionType: "deposit",
+    transactionUniqueId: driverDepositUniqueId,
+    netBalance: newBalance,
+  };
+  createDriverBalance(newNetBalanceData);
   return {
     message: "success",
     data: {
