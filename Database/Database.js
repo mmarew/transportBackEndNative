@@ -603,12 +603,15 @@ CREATE TABLE IF NOT EXISTS DriverSubscription (
 -- driver deposit table lists
 
 
--- 1. Master table for deposit sources (enum replacement)
+--   Master table for deposit sources (enum replacement)
 CREATE TABLE IF NOT EXISTS DepositSource (
   depositSourceId INT AUTO_INCREMENT PRIMARY KEY,
-  sourceKey VARCHAR(50) NOT NULL UNIQUE,         -- e.g., 'driver', 'bonus'
-  sourceLabel VARCHAR(100) NOT NULL              -- e.g., 'Paid by Driver'
+  depositSourceUniqueId VARCHAR(36) NOT NULL UNIQUE,  -- UUID
+  sourceKey VARCHAR(50) NOT NULL UNIQUE,              -- e.g., 'driver', 'bonus'
+  sourceLabel VARCHAR(100) NOT NULL,                  -- e.g., 'Paid by Driver'
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- Seed initial deposit sources
 -- INSERT INTO DepositSource (sourceKey, sourceLabel) VALUES
