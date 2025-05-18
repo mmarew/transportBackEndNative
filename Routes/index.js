@@ -89,6 +89,7 @@
 const Routes = require("express").Router();
 
 const routesArray = [
+  require("./DriverBalanceTransfer.route"),
   require("./DepositSource.route"),
   require("./DriverSubscription.route"),
   require("./SubscriptionPlanPricing.route"),
