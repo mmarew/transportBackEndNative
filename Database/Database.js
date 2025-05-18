@@ -574,7 +574,8 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlan (
 -- Dynamic pricing by effective date
 CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
   pricingId INT AUTO_INCREMENT PRIMARY KEY,
-  subscriptionPlanUniqueId varchar(36) NOT NULL,
+  subscriptionPlanPricingUniqueId VARCHAR(36) NOT NULL UNIQUE,
+  subscriptionPlanUniqueId VARCHAR(36) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
   durationInDays INT NOT NULL,
   effectiveFrom DATE NOT NULL,
@@ -582,6 +583,8 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );
+
+
 -- subscription to driver
 CREATE TABLE IF NOT EXISTS DriverSubscription (
   driverSubscriptionId INT AUTO_INCREMENT PRIMARY KEY,

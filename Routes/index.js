@@ -36,43 +36,88 @@ const Commission = require("./Commission.routes");
 const paymentStatus = require("./PaymentStatus.routes");
 
 const DriverDeposit = require("./DriverDeposit.routes");
+const subscriptionPlan = require("./SubscriptionPlan.route");
+const SubscriptionPlanPricing = require("./SubscriptionPlanPricing.route");
+const routesArray = [
+  SubscriptionPlanPricing,
+  subscriptionPlan,
+  DriverDeposit,
+  paymentStatus,
+  paymentStatus,
+  Commission,
+  CommissionRates,
+  TarrifRateForVehcleTypes,
+  driverBalance,
+  TarrifRate,
+  payments,
+  Rating,
+  JourneyDecision,
+  Journey,
+  paymentMethod,
+  JourneyRoutePoints,
+  canceledJourney,
+  journeyStatus,
+  database,
+  RoleDocumentRequirements,
+  attachedDocuments,
+  documentTypes,
+  UserRoleStatus,
+  UserStatuses,
+  userRole,
+  vehicleStatusType,
+  Driver,
+  Passenger,
+  vehicleOwnership,
+  Vehicles,
+  vehicleStatusRoutes,
+  Status,
+  roles,
+  userRoutes,
+  AdminRouter,
+  CancilationRouter,
+  vehicleType,
+  WSSMSSenderRouter,
+];
+routesArray.map((route) => {
+  Routes.use(route);
+});
+// Routes.use(subscriptionPlan);
+// Routes.use(vehicleStatusRoutes);
+// Routes.use(driverBalance);
+// Routes.use(paymentStatus);
+// Routes.use(DriverDeposit);
+// Routes.use(Commission);
+// Routes.use(CommissionRates);
+// Routes.use(TarrifRateForVehcleTypes);
+// Routes.use(TarrifRate);
+// Routes.use(payments);
+// Routes.use(Rating);
+// Routes.use(JourneyDecision);
+// Routes.use(Journey);
+// Routes.use(paymentMethod);
+// Routes.use(JourneyRoutePoints);
+// Routes.use(canceledJourney);
+// Routes.use(journeyStatus);
+// Routes.use(database);
+// Routes.use(RoleDocumentRequirements);
+// Routes.use(attachedDocuments);
+// Routes.use(documentTypes);
+// Routes.use(UserRoleStatus);
+// Routes.use(userRole);
+// Routes.use(UserStatuses);
+// Routes.use(vehicleStatusType);
+// Routes.use(Driver);
+// Routes.use(Passenger);
 
-Routes.use(vehicleStatusRoutes);
-Routes.use(driverBalance);
-Routes.use(paymentStatus);
-Routes.use(DriverDeposit);
-Routes.use(Commission);
-Routes.use(CommissionRates);
-Routes.use(TarrifRateForVehcleTypes);
-Routes.use(TarrifRate);
-Routes.use(payments);
-Routes.use(Rating);
-Routes.use(JourneyDecision);
-Routes.use(Journey);
-Routes.use(paymentMethod);
-Routes.use(JourneyRoutePoints);
-Routes.use(canceledJourney);
-Routes.use(journeyStatus);
-Routes.use(database);
-Routes.use(RoleDocumentRequirements);
-Routes.use(attachedDocuments);
-Routes.use(documentTypes);
-Routes.use(UserRoleStatus);
-Routes.use(userRole);
-Routes.use(UserStatuses);
-Routes.use(vehicleStatusType);
-Routes.use(Driver);
-Routes.use(Passenger);
+// Routes.use(vehicleOwnership);
 
-Routes.use(vehicleOwnership);
-
-Routes.use(Vehicles);
-Routes.use(Status);
-Routes.use(roles);
-Routes.use(userRoutes);
-Routes.use(AdminRouter);
-Routes.use(CancilationRouter);
-Routes.use(vehicleType);
-Routes.use(WSSMSSenderRouter);
+// Routes.use(Vehicles);
+// Routes.use(Status);
+// Routes.use(roles);
+// Routes.use(userRoutes);
+// Routes.use(AdminRouter);
+// Routes.use(CancilationRouter);
+// Routes.use(vehicleType);
+// Routes.use(WSSMSSenderRouter);
 
 module.exports = Routes;
