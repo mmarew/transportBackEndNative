@@ -1,40 +1,48 @@
 const express = require("express");
 const router = express.Router();
-const driverDepositController = require("../Controllers/DriverDeposit.controller");
+const controller = require("../Controllers/DriverDeposit.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
-// Create a new driver deposit record
+
+// Create
 router.post(
-  "/api/admin/driverDeposit",
+  "/api/driverDeposit",
   verifyTokenOfAxios,
-  driverDepositController.createDriverDeposit
+  controller.createDriverDeposit
 );
 
-// Get all driver deposit records
+// Get all deposits
 router.get(
-  "/api/admin/driverDeposit/:driverUniqueId",
+  "/api/driverDeposit",
   verifyTokenOfAxios,
-  driverDepositController.getAllDriverDeposits
+  controller.getAllDriverDeposits
 );
 
-// Get a driver deposit record by ID
+// Get by UUID
 router.get(
-  "/api/admin/driverDeposit/:driverDepositUniqueId",
+  "/api/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
-  driverDepositController.getDriverDepositByDriverDepositUniqueId
+  controller.getDriverDepositByUniqueId
 );
 
-// Update a driver deposit record by ID
+// Get by driverUniqueId
+router.get(
+  "/api/driverDeposit/driver/:driverUniqueId",
+  verifyTokenOfAxios,
+  controller.getDriverDepositsByDriverId
+);
+
+// Update by UUID
 router.put(
-  "/api/admin/driverDeposit/:id",
+  "/api/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
-  driverDepositController.updateDriverDeposit
+  controller.updateDriverDepositByUniqueId
 );
 
-// Delete a driver deposit record by ID
+// Delete by UUID
 router.delete(
-  "/api/admin/driverDeposit/:id",
+  "/api/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
-  driverDepositController.deleteDriverDeposit
+  controller.deleteDriverDepositByUniqueId
 );
 
 module.exports = router;

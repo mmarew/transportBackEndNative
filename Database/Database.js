@@ -621,31 +621,36 @@ CREATE TABLE IF NOT EXISTS DepositSource (
   -- ('transfer', 'Transferred from Another Driver');
 
 
--- 2. Main table representing driver subscriptions via deposits
+--  Main table representing driver subscriptions via deposits
 CREATE TABLE IF NOT EXISTS DriverDeposit (
   driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
   driverDepositUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,
   depositAmount DECIMAL(10, 2) NOT NULL,
-  depositSourceId INT NOT NULL,
+  depositSourceUniqueId VARCHAR(36) NOT NULL,
   depositTime DATETIME NOT NULL,
-   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
-  FOREIGN KEY (depositSourceId) REFERENCES DepositSource(depositSourceId)
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+  FOREIGN KEY (depositSourceUniqueId) REFERENCES DepositSource(depositSourceUniqueId)
 );
+
  
 
--- 3. Logs any deposit transferred from one driver to another
+-- . Logs any deposit transferred from one driver to another
 CREATE TABLE IF NOT EXISTS DriverBalanceTransfer (
   depositTransferId INT AUTO_INCREMENT PRIMARY KEY,
+  depositTransferUniqueId VARCHAR(36) NOT NULL UNIQUE,
   fromDriverUniqueId VARCHAR(36) NOT NULL,
   toDriverUniqueId VARCHAR(36) NOT NULL,
   transferredAmount DECIMAL(10, 2) NOT NULL,
   reason TEXT,
   transferTime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  transferredBy VARCHAR(36), -- admin or system ID
+  transferredBy VARCHAR(36),
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (fromDriverUniqueId) REFERENCES Users(userUniqueId),
   FOREIGN KEY (toDriverUniqueId) REFERENCES Users(userUniqueId)
 );
+
 
 
 -- 4. Logs any refunds issued to a driver

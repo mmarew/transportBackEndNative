@@ -1,128 +1,114 @@
-const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { createDriverBalance } = require("./DriverBalance.service");
-// Create a new driver deposit record
-exports.createDriverDeposit = async (data) => {
-  try {
-    const userUniqueId = data.user.userUniqueId;
-    const clientSideRequestId = data.clientSideRequestId;
-    // verify if clientSideRequestId existed in DriverDeposit table and if it does not exist, create a new record
-    const sql = `INSERT INTO DriverDeposit (
-        driverDepositUniqueId,
-        driverUniqueId,
-        depositAmount,
-        depositTime
-      ) VALUES (?, ?, ?, ?) `;
-    const depositAmount = data.depositAmount;
-    const driverDepositUniqueId = uuidv4();
-    const values = [
-      driverDepositUniqueId,
-      userUniqueId,
-      depositAmount,
-      new Date(),
-    ];
-    const [result] = await pool?.query(sql, values);
+const { v4: uuidv4 } = require("uuid");
 
-    const sqlToBalance = `
-      SELECT * FROM DriverBalance 
-      WHERE userUniqueId = ? 
-      ORDER BY driverBalanceId DESC 
-      LIMIT 1
-    `;
-    const [results] = await pool.query(sqlToBalance, [userUniqueId]);
-    const previousNetBalance = results?.[0].netBalance;
-    console.log("@previousNetBalance", previousNetBalance);
-    const currnetNetBalance =
-      parseFloat(previousNetBalance ? previousNetBalance : 0) +
-      parseFloat(data.depositAmount);
-
-    const balanceData = {
-      userUniqueId,
-      transactionType: "Deposit",
-      transactionUniqueId: driverDepositUniqueId,
-      netBalance: currnetNetBalance,
-    };
-
-    await createDriverBalance(balanceData);
-
-    return {
-      message: "success",
-      data: { currnetNetBalance },
-    };
-  } catch (error) {
-    console.error("Error in createDriverDeposit:", error);
-    return { message: "error", error };
-  }
-};
-
-// Get all driver deposit records
-exports.getAllDriverDeposits = async () => {
-  try {
-    const sql = `SELECT * FROM DriverDeposit ORDER BY driverDepositId DESC`;
-    const [result] = await pool.query(sql);
-    return { message: "success", data: result };
-  } catch (error) {
-    console.error("Error in getAllDriverDeposits:", error);
-    return { message: "error", error };
-  }
-};
-
-exports.getDriverDepositByUserUniquId = async (userUniqueId) => {
-  try {
-    const sql = `select * from  DriverDeposit where driverUniqueId=?`;
-    const [result] = await pool.query(sql, [userUniqueId]);
-    return { message: "success", data: result };
-  } catch (error) {
-    console.error("Error in getDriverDepositByUserUniquId:", error);
-    return { message: "error", error };
-  }
-};
-
-// Get a driver deposit record by ID
-exports.getDriverDepositByDriverDepositUniqueId = async (
-  driverDepositUniqueId
+// Create
+const createDriverDeposit = async (
+  driverUniqueId,
+  depositAmount,
+  depositSourceUniqueId,
+  depositTime
 ) => {
-  try {
-    const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
-    const [result] = await pool.query(sql, [driverDepositUniqueId]);
-    return { message: "success", data: result };
-  } catch (error) {
-    console.error("Error in getDriverDepositById:", error);
-    return { message: "error", error };
-  }
-};
+  const driverDepositUniqueId = uuidv4();
 
-// Update a driver deposit record by ID
-exports.updateDriverDeposit = async (driverDepositUniqueId, data) => {
-  try {
-    const sql = `
-      UPDATE DriverDeposit
-      SET driverUniqueId = ?, amount = ?, commissionId = ?, depositTime = ?
-      WHERE driverDepositId = ?
-    `;
-    const values = [
-      data.driverUniqueId,
-      data.amount,
-      data.commissionId,
-      data.depositTime,
+  const sql = `
+    INSERT INTO DriverDeposit 
+    (driverDepositUniqueId, driverUniqueId, depositAmount, depositSourceUniqueId, depositTime)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+  const [result] = await pool.query(sql, [
+    driverDepositUniqueId,
+    driverUniqueId,
+    depositAmount,
+    depositSourceUniqueId,
+    depositTime,
+  ]);
+
+  return {
+    message: "success",
+    data: {
       driverDepositUniqueId,
-    ];
-    const [result] = await pool.query(sql, values);
-    return { message: "success", data: result };
-  } catch (error) {
-    console.error("Error in updateDriverDeposit:", error);
-    return { message: "error", error };
-  }
+      driverUniqueId,
+      depositAmount,
+      depositSourceUniqueId,
+      depositTime,
+    },
+  };
 };
 
-// Delete a driver deposit record by ID
-exports.deleteDriverDeposit = async (id) => {
-  try {
-    const sql = `DELETE FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
-    const [result] = await pool.query(sql, [id]);
-    return { message: "success", data: result };
-  } catch (error) {
-    console.error("Error in deleteDriverDeposit:", error);
-    return { message: "error", error };
-  }
+// Get all
+const getAllDriverDeposits = async () => {
+  const sql = `SELECT * FROM DriverDeposit ORDER BY createdAt DESC`;
+  const [result] = await pool.query(sql);
+  return { message: "success", data: result };
+};
+
+// Get by UUID
+const getDriverDepositByUniqueId = async (driverDepositUniqueId) => {
+  const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
+  const [result] = await pool.query(sql, [driverDepositUniqueId]);
+
+  return result.length > 0
+    ? { message: "success", data: result[0] }
+    : { message: "error", error: "Deposit not found" };
+};
+
+// Get all deposits for a driver
+const getDriverDepositsByDriverId = async (driverUniqueId) => {
+  const sql = `SELECT * FROM DriverDeposit WHERE driverUniqueId = ? ORDER BY depositTime DESC`;
+  const [result] = await pool.query(sql, [driverUniqueId]);
+  return { message: "success", data: result };
+};
+
+// Update
+const updateDriverDepositByUniqueId = async (
+  driverDepositUniqueId,
+  depositAmount,
+  depositSourceUniqueId,
+  depositTime
+) => {
+  const sql = `
+    UPDATE DriverDeposit
+    SET depositAmount = ?, depositSourceUniqueId = ?, depositTime = ?
+    WHERE driverDepositUniqueId = ?
+  `;
+  const [result] = await pool.query(sql, [
+    depositAmount,
+    depositSourceUniqueId,
+    depositTime,
+    driverDepositUniqueId,
+  ]);
+
+  return result.affectedRows > 0
+    ? {
+        message: "success",
+        data: {
+          driverDepositUniqueId,
+          depositAmount,
+          depositSourceUniqueId,
+          depositTime,
+        },
+      }
+    : { message: "error", error: "Failed to update deposit" };
+};
+
+// Delete
+const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
+  const sql = `DELETE FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
+  const [result] = await pool.query(sql, [driverDepositUniqueId]);
+
+  return result.affectedRows > 0
+    ? {
+        message: "success",
+        data: `Deposit ${driverDepositUniqueId} deleted successfully`,
+      }
+    : { message: "error", error: "Failed to delete deposit" };
+};
+
+module.exports = {
+  createDriverDeposit,
+  getAllDriverDeposits,
+  getDriverDepositByUniqueId,
+  getDriverDepositsByDriverId,
+  updateDriverDepositByUniqueId,
+  deleteDriverDepositByUniqueId,
 };
