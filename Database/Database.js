@@ -584,10 +584,11 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
   FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );
 
+-- subscription to driver 
 
--- subscription to driver
 CREATE TABLE IF NOT EXISTS DriverSubscription (
   driverSubscriptionId INT AUTO_INCREMENT PRIMARY KEY,
+  driverSubscriptionUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,
   subscriptionPlanId INT NOT NULL,
   startDate DATETIME NOT NULL,
@@ -596,6 +597,7 @@ CREATE TABLE IF NOT EXISTS DriverSubscription (
   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
   FOREIGN KEY (subscriptionPlanId) REFERENCES SubscriptionPlan(subscriptionPlanId)
 );
+
 
 
 -- driver deposit table lists
