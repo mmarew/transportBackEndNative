@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const currentDate = require("../Utils/CurrentDate");
 
 // Create
 const createDriverDeposit = async (
@@ -63,9 +64,9 @@ const getDriverDepositsByDriverId = async (driverUniqueId) => {
 const updateDriverDepositByUniqueId = async (
   driverDepositUniqueId,
   depositAmount,
-  depositSourceUniqueId,
-  depositTime
+  depositSourceUniqueId
 ) => {
+  const depositTime = currentDate();
   const sql = `
     UPDATE DriverDeposit
     SET depositAmount = ?, depositSourceUniqueId = ?, depositTime = ?

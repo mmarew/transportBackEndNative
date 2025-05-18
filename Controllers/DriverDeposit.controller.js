@@ -1,14 +1,12 @@
 const service = require("../Services/DriverDeposit.service");
+const currentDate = require("../Utils/CurrentDate");
 const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createDriverDeposit = async (req, res) => {
   try {
-    const {
-      driverUniqueId,
-      depositAmount,
-      depositSourceUniqueId,
-      depositTime,
-    } = req.body;
+    const { depositAmount, depositSourceUniqueId } = req.body;
+    const depositTime = currentDate();
+    const driverUniqueId = req?.user?.userUniqueId;
     const result = await service.createDriverDeposit(
       driverUniqueId,
       depositAmount,
@@ -56,7 +54,8 @@ exports.getDriverDepositByUniqueId = async (req, res) => {
 
 exports.getDriverDepositsByDriverId = async (req, res) => {
   try {
-    const { driverUniqueId } = req.params;
+    const driverUniqueId = req?.user?.userUniqueId;
+    // const { driverUniqueId } = req.params;
     const result = await service.getDriverDepositsByDriverId(driverUniqueId);
     ServerResponder(res, result);
   } catch (error) {
@@ -71,12 +70,11 @@ exports.getDriverDepositsByDriverId = async (req, res) => {
 exports.updateDriverDepositByUniqueId = async (req, res) => {
   try {
     const { driverDepositUniqueId } = req.params;
-    const { depositAmount, depositSourceUniqueId, depositTime } = req.body;
+    const { depositAmount, depositSourceUniqueId } = req.body;
     const result = await service.updateDriverDepositByUniqueId(
       driverDepositUniqueId,
       depositAmount,
-      depositSourceUniqueId,
-      depositTime
+      depositSourceUniqueId
     );
     ServerResponder(res, result);
   } catch (error) {
