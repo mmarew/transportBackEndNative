@@ -656,22 +656,25 @@ CREATE TABLE IF NOT EXISTS DriverBalanceTransfer (
 -- 4. Logs any refunds issued to a driver
 CREATE TABLE IF NOT EXISTS DriverRefund (
   driverRefundId INT AUTO_INCREMENT PRIMARY KEY,
+  driverRefundUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,
   refundAmount DECIMAL(10, 2) NOT NULL,
   refundReason TEXT,
   refundedBy VARCHAR(36),
   refundDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
 );
+
 
 -- a table to store drivers balance after Commission to payment or deposit
 
 CREATE TABLE IF NOT EXISTS DriverBalance (
     driverBalanceId INT AUTO_INCREMENT PRIMARY KEY,
     driverBalanceUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver balance
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users driver
     transactionType enum('Deposit', 'Commission','Transfer','Refund','Subscription') NOT NULL,  -- Type of transaction
-    transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for DriverDeposit or Payment
+    transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for 'Deposit', 'Commission','Transfer','Refund','Subscription'
     transactionTime DATETIME NOT NULL,  -- Time of transaction
     netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - Commission)
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
