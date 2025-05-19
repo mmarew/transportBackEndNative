@@ -32,9 +32,9 @@ router.get(
 
 // Get subscriptions by subscriptionPlanId
 router.get(
-  "/api/driverSubscription/plan/:subscriptionPlanId",
+  "/api/driverSubscription/plan/:subscriptionPlanUniqueId",
   verifyTokenOfAxios,
-  controller.getDriverSubscriptionsByPlanId
+  controller.getDriverSubscriptionsByPlanUniqueId
 );
 
 // Update by UUID

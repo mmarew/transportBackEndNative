@@ -1,9 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const {
-  getDriverLastBalance,
-  prepareAndCreateNewBalance,
-} = require("./DriverBalance.service");
+const { prepareAndCreateNewBalance } = require("./DriverBalance.service");
 const {
   getActiveSubscriptionPlanningPrice,
 } = require("./SubscriptionPlanPricing.service");
@@ -82,9 +79,11 @@ const getDriverSubscriptionsByDriverId = async (driverUniqueId) => {
 };
 
 // Get subscriptions by subscriptionPlanId
-const getDriverSubscriptionsByPlanId = async (subscriptionPlanId) => {
-  const sql = `SELECT * FROM DriverSubscription WHERE subscriptionPlanId = ? ORDER BY createdAt DESC`;
-  const [result] = await pool.query(sql, [subscriptionPlanId]);
+const getDriverSubscriptionsByPlanUniqueId = async (
+  subscriptionPlanUniqueId
+) => {
+  const sql = `SELECT * FROM DriverSubscription WHERE subscriptionPlanUniqueId = ? ORDER BY createdAt DESC`;
+  const [result] = await pool.query(sql, [subscriptionPlanUniqueId]);
 
   return {
     message: "success",
@@ -106,17 +105,17 @@ const updateDriverSubscriptionByUniqueId = async (
   driverSubscriptionUniqueId,
   startDate,
   endDate,
-  subscriptionPlanId
+  subscriptionPlanUniqueId
 ) => {
   const sql = `
     UPDATE DriverSubscription 
-    SET startDate = ?, endDate = ?, subscriptionPlanId = ?
+    SET startDate = ?, endDate = ?, subscriptionPlanUniqueId = ?
     WHERE driverSubscriptionUniqueId = ?
   `;
   const [result] = await pool.query(sql, [
     startDate,
     endDate,
-    subscriptionPlanId,
+    subscriptionPlanUniqueId,
     driverSubscriptionUniqueId,
   ]);
 
@@ -127,10 +126,10 @@ const updateDriverSubscriptionByUniqueId = async (
           driverSubscriptionUniqueId,
           startDate,
           endDate,
-          subscriptionPlanId,
+          subscriptionPlanUniqueId,
         },
       }
-    : { message: "error", error: "Failed to update subscription" };
+    : { message: "error", error: "Failed to update subscription " };
 };
 
 // Delete by UUID
@@ -150,7 +149,7 @@ const deleteDriverSubscriptionByUniqueId = async (
 
 module.exports = {
   getDriverSubscriptionsByDriverId,
-  getDriverSubscriptionsByPlanId,
+  getDriverSubscriptionsByPlanUniqueId,
   createDriverSubscription,
   getAllDriverSubscriptions,
   getDriverSubscriptionByUniqueId,

@@ -51,11 +51,11 @@ exports.getDriverSubscriptionsByDriverId = async (req, res) => {
   }
 };
 
-exports.getDriverSubscriptionsByPlanId = async (req, res) => {
+exports.getDriverSubscriptionsByPlanUniqueId = async (req, res) => {
   try {
-    const { subscriptionPlanId } = req.params;
-    const result = await service.getDriverSubscriptionsByPlanId(
-      subscriptionPlanId
+    const { subscriptionPlanUniqueId } = req.params;
+    const result = await service.getDriverSubscriptionsByPlanUniqueId(
+      subscriptionPlanUniqueId
     );
     ServerResponder(res, result);
   } catch (error) {
@@ -88,19 +88,19 @@ exports.getDriverSubscriptionByUniqueId = async (req, res) => {
 exports.updateDriverSubscriptionByUniqueId = async (req, res) => {
   try {
     const { driverSubscriptionUniqueId } = req.params;
-    const { startDate, endDate, subscriptionPlanId } = req.body;
+    const { startDate, endDate, subscriptionPlanUniqueId } = req.body;
     const result = await service.updateDriverSubscriptionByUniqueId(
       driverSubscriptionUniqueId,
       startDate,
       endDate,
-      subscriptionPlanId
+      subscriptionPlanUniqueId
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Error updating subscription:", error);
+    console.log("Error updating subscription:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Failed to update subscription",
+      error: "Failed to update subscription ",
     });
   }
 };
