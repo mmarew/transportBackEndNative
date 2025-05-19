@@ -218,3 +218,22 @@ exports.getDriverLastBalance = async (driverUniqueId) => {
     ? { message: "success", data: result[0] }
     : { message: "error", error: "No balance record found" };
 };
+exports.prepareAndCreateNewBalance = async ({
+  amount,
+  addOrDeduct,
+  driverUniqueId,
+  transactionUniqueId,
+}) => {
+  console.log("Amount", amount, "addOrDeduct", addOrDeduct);
+  const currentBalance = await getDriverLastBalance(driverUniqueId);
+  const netBalance = currentBalance?.data?.netBalance;
+  const newBalance =
+    addOrDeduct === "add" ? netBalance + +amount : netBalance - +amount;
+  const newNetBalanceData = {
+    userUniqueId: driverUniqueId,
+    transactionType: "deposit",
+    transactionUniqueId,
+    netBalance: newBalance,
+  };
+  return await createDriverBalance(newNetBalanceData);
+};

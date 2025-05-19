@@ -654,7 +654,7 @@ CREATE TABLE IF NOT EXISTS DriverBalanceTransfer (
 
 
 --  Logs any refunds issued to a driver
-CREATE TABLE IF NOT EXISTS ostpos (
+CREATE TABLE IF NOT EXISTS DriverRefund (
   driverRefundId INT AUTO_INCREMENT PRIMARY KEY,
   driverRefundUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,

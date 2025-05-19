@@ -47,6 +47,7 @@ exports.getTransferByUniqueId = async (req, res) => {
     const result = await service.getTransferByUniqueId(depositTransferUniqueId);
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@getTransferByUniqueId error", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch transfer",

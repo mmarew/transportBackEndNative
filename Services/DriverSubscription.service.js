@@ -1,7 +1,14 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const { getDriverLastBalance } = require("./DriverBalance.service");
+const {
+  getDriverLastBalance,
+  prepareAndCreateNewBalance,
+} = require("./DriverBalance.service");
 const { getSubscriptionPlanByUniqueId } = require("./SubscriptionPlan.service");
+const {
+  getActiveSubscriptionPlanningPrice,
+} = require("./SubscriptionPlanPricing.service");
+const currentDate = require("../Utils/CurrentDate");
 
 // Create subscription
 const createDriverSubscription = async (
@@ -24,27 +31,25 @@ const createDriverSubscription = async (
     endDate,
   ];
   const [result] = await pool.query(sql, values);
-
-  const subscriptionData = await getSubscriptionPlanPricing(
-    subscriptionPlanUniqueId
-  );
-  const currentBalance = await getDriverLastBalance(driverUniqueId);
-  const netBalance = currentBalance?.data?.netBalance;
-  const newBalance = netBalance - refundAmount;
-  const newNetBalanceData = {
-    userUniqueId: driverUniqueId,
-    transactionType: "deposit",
-    transactionUniqueId: driverRefundUniqueId,
-    netBalance: newBalance,
-  };
-  createDriverBalance(newNetBalanceData);
-
+  const activePricing = await getActiveSubscriptionPlanningPrice({
+    subscriptionPlanUniqueId,
+    toDay: currentDate(),
+  });
+  const price = activePricing?.data?.price;
+  const newNetBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "deduct",
+    amount: price,
+    driverUniqueId,
+    transactionUniqueId,
+    driverSubscriptionUniqueId,
+  });
+  console.log("@createDriverSubscription newNetBalance", newNetBalance);
   return {
     message: "success",
     data: {
       driverSubscriptionUniqueId,
       driverUniqueId,
-      subscriptionPlanId,
+      subscriptionPlanUniqueId,
       startDate,
       endDate,
     },

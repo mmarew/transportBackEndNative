@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const { prepareAndCreateNewBalance } = require("./DriverBalance.service");
 
 // Create
 const createTransfer = async (
@@ -25,7 +26,13 @@ const createTransfer = async (
     reason,
     transferredBy,
   ]);
-
+  const newBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "deduct",
+    amount: transferredAmount,
+    driverUniqueId: transferredBy,
+    transactionUniqueId: depositTransferUniqueId,
+  });
+  console.log("@createTransfer newBalance", newBalance);
   return {
     message: "success",
     data: {

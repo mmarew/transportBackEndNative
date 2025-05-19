@@ -27,16 +27,13 @@ const createDriverDeposit = async (
     depositSourceUniqueId,
     depositTime,
   ]);
-  const currentBalance = await getDriverLastBalance(driverUniqueId);
-  const netBalance = currentBalance?.data?.netBalance;
-  const newBalance = netBalance + depositAmount;
-  const newNetBalanceData = {
-    userUniqueId: driverUniqueId,
-    transactionType: "deposit",
+
+  await prepareAndCreateNewBalance({
+    addOrDeduct: "add",
+    driverUniqueId,
+    amount: depositAmount,
     transactionUniqueId: driverDepositUniqueId,
-    netBalance: newBalance,
-  };
-  createDriverBalance(newNetBalanceData);
+  });
   return {
     message: "success",
     data: {

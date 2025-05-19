@@ -71,7 +71,23 @@ const getAllPricingsByPlanId = async (subscriptionPlanUniqueId) => {
 
   return { message: "success", data: result };
 };
+const getActiveSubscriptionPlanningPrice = async ({
+  subscriptionPlanUniqueId,
+  toDay,
+}) => {
+  const sql = `
+    SELECT * FROM SubscriptionPlanPricing 
+    WHERE subscriptionPlanUniqueId = ?,effectiveFrom>=?, effectiveTo<=?
+    ORDER BY createdAt DESC
+  `;
+  const [result] = await pool.query(sql, [
+    subscriptionPlanUniqueId,
+    toDay,
+    toDay,
+  ]);
 
+  return { message: "success", data: result };
+};
 // Update by unique pricing ID
 const updatePricingByUniqueId = async (
   subscriptionPlanPricingUniqueId,
@@ -125,6 +141,7 @@ const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
 };
 
 module.exports = {
+  getActiveSubscriptionPlanningPrice,
   getAllPricings,
   createPricing,
   getPricingByUniqueId,
