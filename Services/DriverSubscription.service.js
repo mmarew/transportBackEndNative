@@ -4,11 +4,11 @@ const {
   getDriverLastBalance,
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service");
-const { getSubscriptionPlanByUniqueId } = require("./SubscriptionPlan.service");
 const {
   getActiveSubscriptionPlanningPrice,
 } = require("./SubscriptionPlanPricing.service");
 const currentDate = require("../Utils/CurrentDate");
+const modifyDateTime = require("../Utils/adjustDateTime");
 
 // Create subscription
 const createDriverSubscription = async (
@@ -18,6 +18,26 @@ const createDriverSubscription = async (
   endDate
 ) => {
   const driverSubscriptionUniqueId = uuidv4();
+  const toDay = currentDate();
+
+  const activePricing = await getActiveSubscriptionPlanningPrice({
+    subscriptionPlanUniqueId,
+    toDay,
+  });
+
+  const price = activePricing?.data?.[0]?.price;
+  const durationInDays = activePricing?.data?.[0]?.durationInDays;
+  const nextDate = modifyDateTime(toDay, { days: durationInDays });
+
+  const newBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "deduct",
+    amount: price,
+    driverUniqueId,
+    transactionUniqueId: driverSubscriptionUniqueId,
+    transactionType: "Subscription",
+  });
+  console.log("@createDriverSubscription newNetBalance", newBalance);
+  if (newBalance.message == "error") return newBalance;
   const sql = `
     INSERT INTO DriverSubscription 
     (driverSubscriptionUniqueId, driverUniqueId, subscriptionPlanUniqueId, startDate, endDate)
@@ -27,23 +47,11 @@ const createDriverSubscription = async (
     driverSubscriptionUniqueId,
     driverUniqueId,
     subscriptionPlanUniqueId,
-    startDate,
-    endDate,
+    toDay,
+    nextDate,
   ];
   const [result] = await pool.query(sql, values);
-  const activePricing = await getActiveSubscriptionPlanningPrice({
-    subscriptionPlanUniqueId,
-    toDay: currentDate(),
-  });
-  const price = activePricing?.data?.price;
-  const newNetBalance = await prepareAndCreateNewBalance({
-    addOrDeduct: "deduct",
-    amount: price,
-    driverUniqueId,
-    transactionUniqueId,
-    driverSubscriptionUniqueId,
-  });
-  console.log("@createDriverSubscription newNetBalance", newNetBalance);
+
   return {
     message: "success",
     data: {

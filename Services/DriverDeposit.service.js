@@ -4,6 +4,7 @@ const currentDate = require("../Utils/CurrentDate");
 const {
   getDriverLastBalance,
   createDriverBalance,
+  prepareAndCreateNewBalance,
 } = require("./DriverBalance.service");
 
 // Create
@@ -14,7 +15,14 @@ const createDriverDeposit = async (
   depositTime
 ) => {
   const driverDepositUniqueId = uuidv4();
-
+  const newBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "add",
+    driverUniqueId,
+    amount: depositAmount,
+    transactionUniqueId: driverDepositUniqueId,
+    transactionType: "deposit",
+  });
+  if (newBalance.message == "error") return newBalance;
   const sql = `
     INSERT INTO DriverDeposit 
     (driverDepositUniqueId, driverUniqueId, depositAmount, depositSourceUniqueId, depositTime)
@@ -28,12 +36,6 @@ const createDriverDeposit = async (
     depositTime,
   ]);
 
-  await prepareAndCreateNewBalance({
-    addOrDeduct: "add",
-    driverUniqueId,
-    amount: depositAmount,
-    transactionUniqueId: driverDepositUniqueId,
-  });
   return {
     message: "success",
     data: {

@@ -4,10 +4,11 @@ const ServerResponder = require("../Utils/ServerResponder");
 // Create
 exports.createDriverSubscription = async (req, res) => {
   try {
-    const { driverUniqueId, subscriptionPlanId, startDate, endDate } = req.body;
+    const { driverUniqueId, subscriptionPlanUniqueId, startDate, endDate } =
+      req.body;
     const result = await service.createDriverSubscription(
       driverUniqueId,
-      subscriptionPlanId,
+      subscriptionPlanUniqueId,
       startDate,
       endDate
     );

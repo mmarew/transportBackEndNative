@@ -3,14 +3,14 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createTransfer = async (req, res) => {
   try {
-    const {
-      fromDriverUniqueId,
-      toDriverUniqueId,
-      transferredAmount,
-      reason,
-      transferredBy,
-    } = req.body;
-
+    const { fromDriverUniqueId, toDriverUniqueId, transferredAmount, reason } =
+      req.body;
+    let transferredBy = req?.params?.transferredBy;
+    const user = req.user;
+    const userUniqueId = user?.userUniqueId;
+    if (transferredBy == "self") transferredBy = userUniqueId;
+    // console.log("@transferredBy", transferredBy == fromDriverUniqueId);
+    // return;
     const result = await service.createTransfer(
       fromDriverUniqueId,
       toDriverUniqueId,

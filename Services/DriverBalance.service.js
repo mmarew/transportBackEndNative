@@ -4,7 +4,7 @@ const { getCommissionsByCommissionUniqueId } = require("./Commission.service");
 const currentDate = require("../Utils/CurrentDate");
 
 // Create a new driver balance record
-exports.createDriverBalance = async (data) => {
+const createDriverBalance = async (data) => {
   try {
     console.log("@createDriverBalance data is ", data);
     // Verify existence of data transactionUniqueId in DriverBalance
@@ -54,7 +54,7 @@ exports.createDriverBalance = async (data) => {
 };
 
 // Get all driver balance records
-exports.getAllDriverBalances = async () => {
+const getAllDriverBalances = async () => {
   try {
     const sql = `SELECT * FROM DriverBalance ORDER BY driverBalanceId DESC`;
     const [result] = await pool.query(sql);
@@ -69,7 +69,7 @@ exports.getAllDriverBalances = async () => {
 };
 
 // Get a driver balance record by ID
-exports.getDriverBalanceById = async (driverBalanceUniqueId) => {
+const getDriverBalanceById = async (driverBalanceUniqueId) => {
   try {
     const sql = `SELECT * FROM DriverBalance WHERE driverBalanceUniqueId = ?`;
     const [result] = await pool.query(sql, [driverBalanceUniqueId]);
@@ -89,7 +89,7 @@ exports.getDriverBalanceById = async (driverBalanceUniqueId) => {
 };
 
 // Get the last driver balance record by userUniqueId
-exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
+const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
   try {
     const sql = `
       SELECT * FROM DriverBalance 
@@ -109,7 +109,7 @@ exports.getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
     return { message: "error", error: "Unable to get driver balance" };
   }
 };
-exports.getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
+const getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
   try {
     let results = null;
     if (fromDate == "lastTen" && toDate == "lastTen") {
@@ -152,7 +152,7 @@ exports.getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
   }
 };
 
-exports.updateDriverBalance = async (driverBalanceUniqueId, data) => {
+const updateDriverBalance = async (driverBalanceUniqueId, data) => {
   try {
     const sql = `
       UPDATE DriverBalance
@@ -186,7 +186,7 @@ exports.updateDriverBalance = async (driverBalanceUniqueId, data) => {
 };
 
 // Delete a driver balance record by ID
-exports.deleteDriverBalance = async (driverBalanceUniqueId) => {
+const deleteDriverBalance = async (driverBalanceUniqueId) => {
   try {
     const sql = `DELETE FROM DriverBalance WHERE driverBalanceUniqueId = ?`;
     const [result] = await pool.query(sql, [driverBalanceUniqueId]);
@@ -204,7 +204,7 @@ exports.deleteDriverBalance = async (driverBalanceUniqueId) => {
     return { message: "error", error: "Unable to delete driver balance" };
   }
 };
-exports.getDriverLastBalance = async (driverUniqueId) => {
+const getDriverLastBalance = async (driverUniqueId) => {
   const sql = `
     SELECT *
     FROM DriverBalance
@@ -218,22 +218,56 @@ exports.getDriverLastBalance = async (driverUniqueId) => {
     ? { message: "success", data: result[0] }
     : { message: "error", error: "No balance record found" };
 };
-exports.prepareAndCreateNewBalance = async ({
+const prepareAndCreateNewBalance = async ({
   amount,
   addOrDeduct,
   driverUniqueId,
   transactionUniqueId,
+  transactionType,
 }) => {
-  console.log("Amount", amount, "addOrDeduct", addOrDeduct);
+  //  validation to all incoming args
+  if (
+    !amount ||
+    !addOrDeduct ||
+    !driverUniqueId ||
+    !transactionUniqueId ||
+    !transactionType
+  ) {
+    return { message: "error", error: "all inputs are required" };
+  }
   const currentBalance = await getDriverLastBalance(driverUniqueId);
-  const netBalance = currentBalance?.data?.netBalance;
+  let netBalance = currentBalance?.data?.netBalance;
+
+  console.log("@prepareAndCreateNewBalance before netBalance", netBalance);
+  if (!netBalance) netBalance = 0;
+  netBalance = Number(netBalance);
+  console.log("@prepareAndCreateNewBalance after netBalance", netBalance);
+
+  // check if there is balabce before deduct if addOrDeduct is deduct
+  if (addOrDeduct === "deduct" && netBalance < Number(amount)) {
+    return {
+      message: `error`,
+      error: `You don't have enough balance to deduct`,
+    };
+  }
   const newBalance =
     addOrDeduct === "add" ? netBalance + +amount : netBalance - +amount;
+  console.log("@prepareAndCreateNewBalance newBalance", newBalance);
   const newNetBalanceData = {
     userUniqueId: driverUniqueId,
-    transactionType: "deposit",
+    transactionType,
     transactionUniqueId,
     netBalance: newBalance,
   };
   return await createDriverBalance(newNetBalanceData);
+};
+module.exports = {
+  createDriverBalance,
+  prepareAndCreateNewBalance,
+  deleteDriverBalance,
+  getDriverLastBalanceByUserUniqueId,
+  updateDriverBalance,
+  getAllDriverBalances,
+  getDriverBalanceByDateRange,
+  getDriverBalanceById,
 };

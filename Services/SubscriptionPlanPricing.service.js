@@ -77,14 +77,10 @@ const getActiveSubscriptionPlanningPrice = async ({
 }) => {
   const sql = `
     SELECT * FROM SubscriptionPlanPricing 
-    WHERE subscriptionPlanUniqueId = ?,effectiveFrom>=?, effectiveTo<=?
-    ORDER BY createdAt DESC
+    WHERE subscriptionPlanUniqueId = ? and effectiveFrom>=? and effectiveTo is null
+    ORDER BY createdAt DESC limit 1
   `;
-  const [result] = await pool.query(sql, [
-    subscriptionPlanUniqueId,
-    toDay,
-    toDay,
-  ]);
+  const [result] = await pool.query(sql, [subscriptionPlanUniqueId, toDay]);
 
   return { message: "success", data: result };
 };

@@ -12,6 +12,14 @@ const createTransfer = async (
 ) => {
   const depositTransferUniqueId = uuidv4();
 
+  const newBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "deduct",
+    amount: transferredAmount,
+    driverUniqueId: transferredBy,
+    transactionUniqueId: depositTransferUniqueId,
+  });
+
+  if (newBalance.message == "error") return newBalance;
   const sql = `
     INSERT INTO DriverBalanceTransfer
     (depositTransferUniqueId, fromDriverUniqueId, toDriverUniqueId, transferredAmount, reason, transferredBy)
@@ -26,13 +34,7 @@ const createTransfer = async (
     reason,
     transferredBy,
   ]);
-  const newBalance = await prepareAndCreateNewBalance({
-    addOrDeduct: "deduct",
-    amount: transferredAmount,
-    driverUniqueId: transferredBy,
-    transactionUniqueId: depositTransferUniqueId,
-  });
-  console.log("@createTransfer newBalance", newBalance);
+
   return {
     message: "success",
     data: {

@@ -590,12 +590,12 @@ CREATE TABLE IF NOT EXISTS DriverSubscription (
   driverSubscriptionId INT AUTO_INCREMENT PRIMARY KEY,
   driverSubscriptionUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,
-  subscriptionPlanId INT NOT NULL,
+  subscriptionPlanUniqueId varchar(36) NOT NULL,
   startDate DATETIME NOT NULL,
   endDate DATETIME NOT NULL,
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
-  FOREIGN KEY (subscriptionPlanId) REFERENCES SubscriptionPlan(subscriptionPlanId)
+  FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );
 
 

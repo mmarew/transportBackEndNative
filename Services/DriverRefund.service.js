@@ -13,6 +13,14 @@ const createDriverRefund = async (
   refundedBy
 ) => {
   const driverRefundUniqueId = uuidv4();
+  const newBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "deduct",
+    driverUniqueId,
+    amount: refundAmount,
+    transactionUniqueId: driverRefundUniqueId,
+    transactionType: "refund",
+  });
+  if (newBalance.message == "error") return newBalance;
 
   const sql = `
     INSERT INTO DriverRefund
@@ -28,12 +36,6 @@ const createDriverRefund = async (
     refundedBy,
   ]);
 
-  await prepareAndCreateNewBalance({
-    addOrDeduct: "deduct",
-    driverUniqueId,
-    amount: refundAmount,
-    transactionUniqueId: driverRefundUniqueId,
-  });
   return {
     message: "success",
     data: {

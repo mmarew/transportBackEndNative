@@ -5,7 +5,7 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create
 router.post(
-  "/api/driverBalanceTransfer",
+  "/api/driverBalanceTransfer/:transferredBy",
   verifyTokenOfAxios,
   controller.createTransfer
 );

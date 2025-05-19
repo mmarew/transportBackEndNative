@@ -115,7 +115,10 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
 exports.getDriverCurrentBalance = async (req, res) => {
   try {
     const { driverUniqueId } = req.params;
-    const result = await service.getDriverLastBalance(driverUniqueId);
+    const result =
+      await driverBalanceService.getDriverLastBalanceByUserUniqueId(
+        driverUniqueId
+      );
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error getting last balance:", error);
