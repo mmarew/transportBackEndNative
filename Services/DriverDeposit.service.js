@@ -1,38 +1,35 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const currentDate = require("../Utils/CurrentDate");
-const {
-  getDriverLastBalance,
-  createDriverBalance,
-  prepareAndCreateNewBalance,
-} = require("./DriverBalance.service");
 
 // Create
-const createDriverDeposit = async (
-  driverUniqueId,
-  depositAmount,
-  depositSourceUniqueId,
-  depositTime
-) => {
+const createDriverDeposit = async (data) => {
   const driverDepositUniqueId = uuidv4();
-  const newBalance = await prepareAndCreateNewBalance({
-    addOrDeduct: "add",
+
+  const {
     driverUniqueId,
-    amount: depositAmount,
-    transactionUniqueId: driverDepositUniqueId,
-    transactionType: "deposit",
-  });
-  if (newBalance.message == "error") return newBalance;
+    depositAmount,
+    depositSourceUniqueId,
+    accountUniqueId,
+    depositTime,
+  } = data;
+
   const sql = `
-    INSERT INTO DriverDeposit 
-    (driverDepositUniqueId, driverUniqueId, depositAmount, depositSourceUniqueId, depositTime)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO DriverDeposit (
+      driverDepositUniqueId,
+      driverUniqueId,
+      depositAmount,
+      depositSourceUniqueId,
+      accountUniqueId,
+      depositTime
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `;
-  const [result] = await pool.query(sql, [
+
+  await pool.query(sql, [
     driverDepositUniqueId,
     driverUniqueId,
     depositAmount,
     depositSourceUniqueId,
+    accountUniqueId,
     depositTime,
   ]);
 
@@ -43,19 +40,51 @@ const createDriverDeposit = async (
       driverUniqueId,
       depositAmount,
       depositSourceUniqueId,
+      accountUniqueId,
       depositTime,
     },
   };
 };
 
-// Get all
-const getAllDriverDeposits = async () => {
-  const sql = `SELECT * FROM DriverDeposit ORDER BY createdAt DESC`;
-  const [result] = await pool.query(sql);
+// Get All (with account + source info)
+const getDriverDepositsWithAccountInfo = async (driverUniqueId) => {
+  let sql = `
+    SELECT 
+      d.driverDepositId,
+      d.driverDepositUniqueId,
+      d.driverUniqueId,
+      d.depositAmount,
+      d.depositSourceUniqueId,
+      d.accountUniqueId,
+      d.depositTime,
+      d.createdAt,
+
+      a.institutionName,
+      a.accountHolderName,
+      a.accountNumber,
+      a.accountType,
+
+      s.sourceKey,
+      s.sourceLabel
+
+    FROM DriverDeposit d
+    LEFT JOIN FinancialInstitutionAccounts a ON d.accountUniqueId = a.accountUniqueId
+    LEFT JOIN DepositSource s ON d.depositSourceUniqueId = s.depositSourceUniqueId
+  `;
+
+  const values = [];
+  if (driverUniqueId) {
+    sql += ` WHERE d.driverUniqueId = ?`;
+    values.push(driverUniqueId);
+  }
+
+  sql += ` ORDER BY d.depositTime DESC`;
+
+  const [result] = await pool.query(sql, values);
   return { message: "success", data: result };
 };
 
-// Get by UUID
+// Get by ID
 const getDriverDepositByUniqueId = async (driverDepositUniqueId) => {
   const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
   const [result] = await pool.query(sql, [driverDepositUniqueId]);
@@ -65,28 +94,31 @@ const getDriverDepositByUniqueId = async (driverDepositUniqueId) => {
     : { message: "error", error: "Deposit not found" };
 };
 
-// Get all deposits for a driver
-const getDriverDepositsByDriverId = async (driverUniqueId) => {
-  const sql = `SELECT * FROM DriverDeposit WHERE driverUniqueId = ? ORDER BY depositTime DESC`;
-  const [result] = await pool.query(sql, [driverUniqueId]);
-  return { message: "success", data: result };
-};
-
 // Update
-const updateDriverDepositByUniqueId = async (
-  driverDepositUniqueId,
-  depositAmount,
-  depositSourceUniqueId
-) => {
-  const depositTime = currentDate();
-  const sql = `
-    UPDATE DriverDeposit
-    SET depositAmount = ?, depositSourceUniqueId = ?, depositTime = ?
-    WHERE driverDepositUniqueId = ?
-  `;
-  const [result] = await pool.query(sql, [
+const updateDriverDepositByUniqueId = async (driverDepositUniqueId, data) => {
+  const {
+    driverUniqueId,
     depositAmount,
     depositSourceUniqueId,
+    accountUniqueId,
+    depositTime,
+  } = data;
+
+  const sql = `
+    UPDATE DriverDeposit SET
+      driverUniqueId = ?,
+      depositAmount = ?,
+      depositSourceUniqueId = ?,
+      accountUniqueId = ?,
+      depositTime = ?
+    WHERE driverDepositUniqueId = ?
+  `;
+
+  const [result] = await pool.query(sql, [
+    driverUniqueId,
+    depositAmount,
+    depositSourceUniqueId,
+    accountUniqueId,
     depositTime,
     driverDepositUniqueId,
   ]);
@@ -94,14 +126,9 @@ const updateDriverDepositByUniqueId = async (
   return result.affectedRows > 0
     ? {
         message: "success",
-        data: {
-          driverDepositUniqueId,
-          depositAmount,
-          depositSourceUniqueId,
-          depositTime,
-        },
+        data: { driverDepositUniqueId, ...data },
       }
-    : { message: "error", error: "Failed to update deposit" };
+    : { message: "error", error: "Update failed or deposit not found" };
 };
 
 // Delete
@@ -110,18 +137,14 @@ const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
   const [result] = await pool.query(sql, [driverDepositUniqueId]);
 
   return result.affectedRows > 0
-    ? {
-        message: "success",
-        data: `Deposit ${driverDepositUniqueId} deleted successfully`,
-      }
-    : { message: "error", error: "Failed to delete deposit" };
+    ? { message: "success", data: `Deleted: ${driverDepositUniqueId}` }
+    : { message: "error", error: "Delete failed or deposit not found" };
 };
 
 module.exports = {
   createDriverDeposit,
-  getAllDriverDeposits,
+  getDriverDepositsWithAccountInfo,
   getDriverDepositByUniqueId,
-  getDriverDepositsByDriverId,
   updateDriverDepositByUniqueId,
   deleteDriverDepositByUniqueId,
 };

@@ -4,6 +4,12 @@ const ServerResponder = require("../Utils/ServerResponder");
 exports.createFinancialInstitutionAccount = async (req, res) => {
   try {
     const data = req.body;
+    const user = req?.user;
+    // console.log("@user", user);
+    const userUniqueId = user?.userUniqueId;
+    // return;
+    // const addedBy = addedBy;
+    data.addedBy = userUniqueId;
     const result = await service.createFinancialInstitutionAccount(data);
     ServerResponder(res, result);
   } catch (error) {

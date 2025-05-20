@@ -2,20 +2,17 @@ const service = require("../Services/DriverDeposit.service");
 const currentDate = require("../Utils/CurrentDate");
 const ServerResponder = require("../Utils/ServerResponder");
 
+// Create
 exports.createDriverDeposit = async (req, res) => {
   try {
-    const { depositAmount, depositSourceUniqueId } = req.body;
-    const depositTime = currentDate();
     const driverUniqueId = req?.user?.userUniqueId;
-    const result = await service.createDriverDeposit(
-      driverUniqueId,
-      depositAmount,
-      depositSourceUniqueId,
-      depositTime
-    );
+    req.body.driverUniqueId = driverUniqueId;
+    const depositTime = currentDate();
+    req.body.depositTime = depositTime;
+    const result = await service.createDriverDeposit(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Create Error:", error);
+    console.error("Create Deposit Error:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create deposit",
@@ -23,12 +20,16 @@ exports.createDriverDeposit = async (req, res) => {
   }
 };
 
-exports.getAllDriverDeposits = async (req, res) => {
+// Get All (with optional driverUniqueId filter)
+exports.getDriverDepositsWithAccountInfo = async (req, res) => {
   try {
-    const result = await service.getAllDriverDeposits();
+    const { driverUniqueId } = req.query;
+    const result = await service.getDriverDepositsWithAccountInfo(
+      driverUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Get All Error:", error);
+    console.error("Fetch All Error:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch deposits",
@@ -36,6 +37,7 @@ exports.getAllDriverDeposits = async (req, res) => {
   }
 };
 
+// Get Single
 exports.getDriverDepositByUniqueId = async (req, res) => {
   try {
     const { driverDepositUniqueId } = req.params;
@@ -44,7 +46,7 @@ exports.getDriverDepositByUniqueId = async (req, res) => {
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.error("Get By UUID Error:", error);
+    console.error("Fetch One Error:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch deposit",
@@ -52,29 +54,13 @@ exports.getDriverDepositByUniqueId = async (req, res) => {
   }
 };
 
-exports.getDriverDepositsByDriverId = async (req, res) => {
-  try {
-    const driverUniqueId = req?.user?.userUniqueId;
-    // const { driverUniqueId } = req.params;
-    const result = await service.getDriverDepositsByDriverId(driverUniqueId);
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Get By Driver ID Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch driver deposits",
-    });
-  }
-};
-
+// Update
 exports.updateDriverDepositByUniqueId = async (req, res) => {
   try {
     const { driverDepositUniqueId } = req.params;
-    const { depositAmount, depositSourceUniqueId } = req.body;
     const result = await service.updateDriverDepositByUniqueId(
       driverDepositUniqueId,
-      depositAmount,
-      depositSourceUniqueId
+      req.body
     );
     ServerResponder(res, result);
   } catch (error) {
@@ -86,6 +72,7 @@ exports.updateDriverDepositByUniqueId = async (req, res) => {
   }
 };
 
+// Delete
 exports.deleteDriverDepositByUniqueId = async (req, res) => {
   try {
     const { driverDepositUniqueId } = req.params;

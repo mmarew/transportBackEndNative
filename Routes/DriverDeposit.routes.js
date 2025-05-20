@@ -3,42 +3,35 @@ const router = express.Router();
 const controller = require("../Controllers/DriverDeposit.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
-// Create
+// Create new deposit
 router.post(
   "/api/driverDeposit",
   verifyTokenOfAxios,
   controller.createDriverDeposit
 );
 
-// Get all deposits
+// Get all deposits (with account & source info) — optional filter
 router.get(
-  "/api/driverDeposit",
+  "/api/driverDepositWithAccount",
   verifyTokenOfAxios,
-  controller.getAllDriverDeposits
+  controller.getDriverDepositsWithAccountInfo
 );
 
-// Get by UUID
+// Get single deposit
 router.get(
   "/api/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
   controller.getDriverDepositByUniqueId
 );
 
-// Get by driverUniqueId
-router.get(
-  "/api/driverDeposit/driver/:driverUniqueId",
-  verifyTokenOfAxios,
-  controller.getDriverDepositsByDriverId
-);
-
-// Update by UUID
+// Update deposit
 router.put(
   "/api/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
   controller.updateDriverDepositByUniqueId
 );
 
-// Delete by UUID
+// Delete deposit
 router.delete(
   "/api/driverDeposit/:driverDepositUniqueId",
   verifyTokenOfAxios,
