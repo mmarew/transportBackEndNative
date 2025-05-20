@@ -1,9 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const {
-  getDriverLastBalance,
-  prepareAndCreateNewBalance,
-} = require("./DriverBalance.service");
+const { prepareAndCreateNewBalance } = require("./DriverBalance.service");
 
 // Create
 const createDriverRefund = async (

@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const { prepareAndCreateNewBalance } = require("./DriverBalance.service");
 
 // Create
 const createDriverDeposit = async (data) => {
@@ -11,7 +12,15 @@ const createDriverDeposit = async (data) => {
     accountUniqueId,
     depositTime,
   } = data;
-
+  console.log("@prepareAndCreateNewBalance", prepareAndCreateNewBalance);
+  const newBalance = await prepareAndCreateNewBalance({
+    addOrDeduct: "add",
+    amount: depositAmount,
+    driverUniqueId,
+    transactionType: "Deposit",
+    transactionUniqueId: driverDepositUniqueId,
+  });
+  if (newBalance.message == "error") return newBalance;
   const sql = `
     INSERT INTO DriverDeposit (
       driverDepositUniqueId,

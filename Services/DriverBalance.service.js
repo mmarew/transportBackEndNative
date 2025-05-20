@@ -2,6 +2,12 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { getCommissionsByCommissionUniqueId } = require("./Commission.service");
 const currentDate = require("../Utils/CurrentDate");
+const { getDriverDepositByUniqueId } = require("./DriverDeposit.service");
+const { getTransferByUniqueId } = require("./DriverBalanceTransfer.service");
+const { getRefundByUniqueId } = require("./DriverRefund.service");
+const {
+  getDriverSubscriptionByUniqueId,
+} = require("./DriverSubscription.service");
 
 // Create a new driver balance record
 const createDriverBalance = async (data) => {
@@ -52,19 +58,71 @@ const createDriverBalance = async (data) => {
     return { message: "error", error: "Unable to create driver balance" };
   }
 };
+// Get All Driver balance
 
-// Get all driver balance records
 const getAllDriverBalances = async () => {
   try {
     const sql = `SELECT * FROM DriverBalance ORDER BY driverBalanceId DESC`;
-    const [result] = await pool.query(sql);
+    const [results] = await pool.query(sql);
+
+    const enrichedResults = await Promise.all(
+      results.map(enrichDriverBalanceRecord)
+    );
+
     return {
       message: "success",
-      data: result,
+      data: enrichedResults,
     };
   } catch (error) {
     console.error("Error in getAllDriverBalances:", error);
-    return { message: "error", error: "Unable to retrieve driver balances" };
+    return {
+      message: "error",
+      error: "Unable to retrieve driver balances",
+    };
+  }
+};
+
+// enrichDriverBalanceRecord.js
+const enrichDriverBalanceRecord = async (balance) => {
+  console.log("@balance", balance);
+  const { transactionType, transactionUniqueId } = balance;
+  let transactionDetails = null;
+
+  try {
+    if (transactionType === "Deposit") {
+      transactionDetails = await getDriverDepositByUniqueId(
+        transactionUniqueId
+      );
+    } else if (transactionType === "Commission") {
+      transactionDetails = await getCommissionsByCommissionUniqueId(
+        transactionUniqueId
+      );
+    } else if (transactionType === "Transfer") {
+      transactionDetails = await getTransferByUniqueId(transactionUniqueId);
+    } else if (transactionType === "Refund") {
+      transactionDetails = await getRefundByUniqueId(transactionUniqueId);
+    } else if (transactionType === "Subscription") {
+      transactionDetails = await getDriverSubscriptionByUniqueId(
+        transactionUniqueId
+      );
+    } else {
+      console.warn(`Unknown transaction type: ${transactionType}`);
+    }
+
+    return {
+      ...balance,
+      transactionDetails,
+    };
+  } catch (err) {
+    console.error(
+      `Error enriching balance for ${transactionType} (${transactionUniqueId}):`,
+      err.message
+    );
+    return {
+      ...balance,
+      transactionDetails: null,
+      error: "Failed to load transaction details",
+    };
   }
 };
 
