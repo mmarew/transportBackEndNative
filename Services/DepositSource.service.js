@@ -7,8 +7,9 @@ const createDepositSource = async (sourceKey, sourceLabel) => {
 
   const checkSql = `SELECT * FROM DepositSource WHERE sourceKey = ?`;
   const [existing] = await pool.query(checkSql, [sourceKey]);
+
   if (existing.length > 0) {
-    return { message: "error", error: "sourceKey already exists" };
+    return { message: "success", data: { ...existing[0] } };
   }
 
   const sql = `

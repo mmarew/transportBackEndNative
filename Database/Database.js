@@ -385,7 +385,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatusType (
     VehiclestatusTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle status type
     VehicleStatusTypeDeletedAt DATETIME NULL,  -- Deleted time
     VehicleStatusTypeCreatedAt DATETIME NOT NULL  -- Creation time
- ) ;
+ );
 
 -- Create the VehicleStatus table
 
@@ -628,8 +628,12 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   driverUniqueId VARCHAR(36) NOT NULL,
   depositAmount DECIMAL(10, 2) NOT NULL,
   depositSourceUniqueId VARCHAR(36) NOT NULL,
+  accountUniqueId varchar(36) not null,
   depositTime DATETIME NOT NULL,
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (accountUniqueId) REFERENCES FinancialInstitutionAccounts(accountUniqueId),
+  
   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
   FOREIGN KEY (depositSourceUniqueId) REFERENCES DepositSource(depositSourceUniqueId)
 );
@@ -679,6 +683,19 @@ CREATE TABLE IF NOT EXISTS DriverBalance (
     netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - Commission)
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
 ) ;
+
+CREATE TABLE IF NOT EXISTS FinancialInstitutionAccounts (
+  accountId INT AUTO_INCREMENT PRIMARY KEY,
+  accountUniqueId VARCHAR(36) UNIQUE NOT NULL, -- UUID
+  institutionName VARCHAR(100) NOT NULL,       -- e.g., 'Telebirr', 'CBE'
+  accountHolderName VARCHAR(100) NOT NULL,     -- Person or entity name
+  accountNumber VARCHAR(50) NOT NULL,          -- The actual account number
+  accountType ENUM('bank', 'mobile_money', 'wallet') DEFAULT 'bank', -- optional
+  isActive BOOLEAN DEFAULT TRUE,               -- To mark active/inactive accounts
+  addedBy VARCHAR(36),                         -- admin or system user ID
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
 
 -- create  JourneyNotifications table which is used as 

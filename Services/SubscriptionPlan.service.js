@@ -84,7 +84,7 @@ const updateSubscriptionPlan = async (
           isTrial,
         },
       }
-    : { message: "error", error: "Failed to update subscription plan" };
+    : { message: "error", error: "Failed to update subscription plan 111111" };
 };
 
 // Delete by uniqueId

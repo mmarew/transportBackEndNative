@@ -1,7 +1,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const currentDate = require("../Utils/CurrentDate");
 
-// Create new pricing
 const createPricing = async (
   subscriptionPlanUniqueId,
   price,
@@ -9,6 +9,17 @@ const createPricing = async (
   effectiveFrom,
   effectiveTo
 ) => {
+  const today = currentDate(); // 'YYYY-MM-DD'
+
+  const activeData = await getActiveSubscriptionPlanningPrice({
+    subscriptionPlanUniqueId,
+    today: today,
+  });
+
+  if (activeData?.data?.length > 0) {
+    return activeData;
+  }
+
   const subscriptionPlanPricingUniqueId = uuidv4();
 
   const sql = `
@@ -23,22 +34,29 @@ const createPricing = async (
     price,
     durationInDays,
     effectiveFrom,
-    effectiveTo,
+    effectiveTo || null,
   ];
 
-  const [result] = await pool.query(sql, values);
-
-  return {
-    message: "success",
-    data: {
-      subscriptionPlanPricingUniqueId,
-      subscriptionPlanUniqueId,
-      price,
-      durationInDays,
-      effectiveFrom,
-      effectiveTo,
-    },
-  };
+  try {
+    const [result] = await pool.query(sql, values);
+    return {
+      message: "success",
+      data: {
+        subscriptionPlanPricingUniqueId,
+        subscriptionPlanUniqueId,
+        price,
+        durationInDays,
+        effectiveFrom,
+        effectiveTo,
+      },
+    };
+  } catch (err) {
+    console.error("Error creating pricing:", err);
+    return {
+      message: "error",
+      error: "Database error while creating pricing.",
+    };
+  }
 };
 
 const getAllPricings = async () => {
@@ -73,17 +91,21 @@ const getAllPricingsByPlanId = async (subscriptionPlanUniqueId) => {
 };
 const getActiveSubscriptionPlanningPrice = async ({
   subscriptionPlanUniqueId,
-  toDay,
+  today,
 }) => {
-  const sql = `
-    SELECT * FROM SubscriptionPlanPricing 
-    WHERE subscriptionPlanUniqueId = ? and effectiveFrom>=? and effectiveTo is null
-    ORDER BY createdAt DESC limit 1
-  `;
-  const [result] = await pool.query(sql, [subscriptionPlanUniqueId, toDay]);
+  const sql = `SELECT * FROM SubscriptionPlanPricing WHERE subscriptionPlanUniqueId = ? 
+      AND effectiveFrom <= ?  AND (effectiveTo IS NULL or effectiveTo >= ?)
+    ORDER BY createdAt DESC  LIMIT 1 `;
+
+  const [result] = await pool.query(sql, [
+    subscriptionPlanUniqueId,
+    today,
+    today,
+  ]);
 
   return { message: "success", data: result };
 };
+
 // Update by unique pricing ID
 const updatePricingByUniqueId = async (
   subscriptionPlanPricingUniqueId,

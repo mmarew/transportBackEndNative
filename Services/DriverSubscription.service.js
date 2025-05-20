@@ -15,16 +15,23 @@ const createDriverSubscription = async (
   endDate
 ) => {
   const driverSubscriptionUniqueId = uuidv4();
-  const toDay = currentDate();
+  const today = currentDate();
 
   const activePricing = await getActiveSubscriptionPlanningPrice({
     subscriptionPlanUniqueId,
-    toDay,
+    today,
   });
 
-  const price = activePricing?.data?.[0]?.price;
-  const durationInDays = activePricing?.data?.[0]?.durationInDays;
-  const nextDate = modifyDateTime(toDay, { days: durationInDays });
+  const activePricingData = activePricing?.data;
+  console.log("@activePricingData", activePricingData);
+  if (activePricingData.length == 0)
+    return {
+      message: "error",
+      error: "You can't create subscription using this plan.",
+    };
+  const price = activePricingData?.[0]?.price;
+  const durationInDays = activePricingData?.[0]?.durationInDays;
+  const nextDate = modifyDateTime(today, { days: durationInDays });
 
   const newBalance = await prepareAndCreateNewBalance({
     addOrDeduct: "deduct",
@@ -44,7 +51,7 @@ const createDriverSubscription = async (
     driverSubscriptionUniqueId,
     driverUniqueId,
     subscriptionPlanUniqueId,
-    toDay,
+    today,
     nextDate,
   ];
   const [result] = await pool.query(sql, values);

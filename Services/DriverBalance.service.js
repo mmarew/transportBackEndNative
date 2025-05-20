@@ -243,7 +243,7 @@ const prepareAndCreateNewBalance = async ({
   netBalance = Number(netBalance);
   console.log("@prepareAndCreateNewBalance after netBalance", netBalance);
 
-  // check if there is balabce before deduct if addOrDeduct is deduct
+  // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct
   if (addOrDeduct === "deduct" && netBalance < Number(amount)) {
     return {
       message: `error`,

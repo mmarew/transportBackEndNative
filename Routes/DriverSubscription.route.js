@@ -5,7 +5,7 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create subscription
 router.post(
-  "/api/driverSubscription",
+  "/api/driverSubscription/:driverUniqueId",
   verifyTokenOfAxios,
   controller.createDriverSubscription
 );
