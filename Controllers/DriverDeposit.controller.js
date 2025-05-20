@@ -19,7 +19,14 @@ exports.createDriverDeposit = async (req, res) => {
     });
   }
 };
-
+exports.getAllDriverDepositData = async (req, res) => {
+  try {
+    const result = await service.getAllDriverDepositData();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@getAllDriverDepositData error", error);
+  }
+};
 // Get All (with optional driverUniqueId filter)
 exports.getDriverDepositsWithAccountInfo = async (req, res) => {
   try {

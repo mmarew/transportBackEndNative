@@ -4,7 +4,6 @@ const { v4: uuidv4 } = require("uuid");
 // Create
 const createDriverDeposit = async (data) => {
   const driverDepositUniqueId = uuidv4();
-
   const {
     driverUniqueId,
     depositAmount,
@@ -45,7 +44,12 @@ const createDriverDeposit = async (data) => {
     },
   };
 };
-
+// Get all data
+const getAllDriverDepositData = async () => {
+  const sql = `select * from DriverDeposit`;
+  const [result] = await pool.query(sql);
+  return { message: "success", data: result };
+};
 // Get All (with account + source info)
 const getDriverDepositsWithAccountInfo = async (driverUniqueId) => {
   let sql = `
@@ -142,6 +146,7 @@ const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
 };
 
 module.exports = {
+  getAllDriverDepositData,
   createDriverDeposit,
   getDriverDepositsWithAccountInfo,
   getDriverDepositByUniqueId,

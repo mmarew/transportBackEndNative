@@ -9,7 +9,8 @@ router.post(
   verifyTokenOfAxios,
   controller.createDriverDeposit
 );
-
+// Get all deposits data
+router.get("/api/driverDeposit", controller.getAllDriverDepositData);
 // Get all deposits (with account & source info) — optional filter
 router.get(
   "/api/driverDepositWithAccount",
