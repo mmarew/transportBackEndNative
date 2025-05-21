@@ -84,8 +84,39 @@ const deleteRefundByUniqueId = async (driverRefundUniqueId) => {
       }
     : { message: "error", error: "Failed to delete refund" };
 };
+// ✅ NEW: Update refund status and refundUrl
+const updateRefundStatusAndUrl = async ({
+  driverRefundUniqueId,
+  refundStatus,
+  refundUrl,
+}) => {
+  const sql = `
+    UPDATE DriverRefund
+    SET refundStatus = ?, refundUrl = ?, updatedAt = CURRENT_TIMESTAMP
+    WHERE driverRefundUniqueId = ?
+  `;
+
+  const [result] = await pool.query(sql, [
+    refundStatus,
+    refundUrl,
+    driverRefundUniqueId,
+  ]);
+
+  if (result.affectedRows > 0) {
+    return {
+      message: "success",
+      data: `Refund ${driverRefundUniqueId} updated successfully`,
+    };
+  } else {
+    return {
+      message: "error",
+      error: `Refund ${driverRefundUniqueId} not found or update failed`,
+    };
+  }
+};
 
 module.exports = {
+  updateRefundStatusAndUrl,
   createDriverRefund,
   getAllDriverRefunds,
   getRefundByUniqueId,

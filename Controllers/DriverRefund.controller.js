@@ -3,7 +3,15 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createDriverRefund = async (req, res) => {
   try {
-    const { driverUniqueId, refundAmount, refundReason, refundedBy } = req.body;
+    let refundedBy = req?.params?.refundedBy;
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
+
+    if (refundedBy == "self") {
+      refundedBy = userUniqueId;
+    }
+
+    const { driverUniqueId, refundAmount, refundReason } = req.body;
     const result = await service.createDriverRefund(
       driverUniqueId,
       refundAmount,
@@ -64,6 +72,33 @@ exports.deleteRefundByUniqueId = async (req, res) => {
     ServerResponder(res, {
       message: "error",
       error: "Failed to delete refund",
+    });
+  }
+};
+exports.updateRefundStatusAndUrl = async (req, res) => {
+  try {
+    const { driverRefundUniqueId } = req.params;
+    const { refundStatus, refundUrl } = req.body;
+
+    if (!refundStatus || !refundUrl) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "Both 'refundStatus' and 'refundUrl' are required",
+      });
+    }
+
+    const result = await service.updateRefundStatusAndUrl({
+      driverRefundUniqueId,
+      refundStatus,
+      refundUrl,
+    });
+
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Update refund error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update refund",
     });
   }
 };

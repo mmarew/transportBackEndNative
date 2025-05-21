@@ -676,9 +676,44 @@ CREATE TABLE IF NOT EXISTS DriverRefund (
   refundAmount DECIMAL(10, 2) NOT NULL,
   refundReason TEXT,
   refundedBy VARCHAR(36),
+  refundStatus enum('requested','approved'),
+  refundedToAccount varchar(36),
   refundDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId)
+  
+  FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId), 
+  FOREIGN KEY (refundedToAccount) REFERENCES FinancialInstitutionAccounts(accountUniqueId)
+);
+
+
+CREATE TABLE IF NOT EXISTS DriverRefund (
+  driverRefundId INT AUTO_INCREMENT PRIMARY KEY, -- Auto-incremented unique identifier for each refund record
+
+  driverRefundUniqueId VARCHAR(36) NOT NULL UNIQUE, -- UUID used to uniquely identify each refund transaction across systems
+
+  driverUniqueId VARCHAR(36) NOT NULL,  -- Foreign key referencing the driver receiving the refund (from Users.userUniqueId)
+
+  refundAmount DECIMAL(10, 2) NOT NULL CHECK (refundAmount > 0), -- Amount of money refunded to the driver (must be greater than 0)
+
+  refundReason TEXT, -- Optional explanation or reason for issuing the refund
+
+  refundedBy VARCHAR(36), -- UUID of the admin or system user who approved or issued the refund
+
+  refundStatus ENUM('requested','approved') DEFAULT 'requested', -- Status of the refund: either 'requested' (pending) or 'approved'
+
+  refundedToAccount VARCHAR(36),   -- Financial account (institution) where the refund is deposited (FK to FinancialInstitutionAccounts)
+
+  refundUrl TEXT,   -- ✅ Receipt or proof document URL sent to the institution upon refund approval
+
+  refundDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Date and time when the refund was issued or logged
+
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when the refund record was created
+
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- Timestamp that auto-updates when the row is modified
+
+  FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+  FOREIGN KEY (refundedToAccount) REFERENCES FinancialInstitutionAccounts(accountUniqueId),
+ FOREIGN KEY (refundedBy) REFERENCES Users(userUniqueId)
 );
 
 
@@ -693,14 +728,9 @@ CREATE TABLE IF NOT EXISTS DriverBalance (
     transactionTime DATETIME NOT NULL,  -- Time of transaction
     netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - Commission)
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
-) ;
+) ; 
 
-
-
-
--- create  JourneyNotifications table which is used as 
-
-
+-- create  JourneyNotifications table which is used as  
 CREATE TABLE IF NOT EXISTS JourneyNotifications (
     journeyNotificationId INT AUTO_INCREMENT PRIMARY KEY,  -- Primary key
     journeyNotificationUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for notification

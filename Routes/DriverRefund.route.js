@@ -5,7 +5,7 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create refund
 router.post(
-  "/api/driverRefund",
+  "/api/driverRefund/:refundedBy",
   verifyTokenOfAxios,
   controller.createDriverRefund
 );
@@ -36,6 +36,13 @@ router.delete(
   "/api/driverRefund/:driverRefundUniqueId",
   verifyTokenOfAxios,
   controller.deleteRefundByUniqueId
+);
+
+// ✅ NEW: Update refund status and refundUrl
+router.patch(
+  "/api/driverRefund/:driverRefundUniqueId",
+  verifyTokenOfAxios,
+  controller.updateRefundStatusAndUrl
 );
 
 module.exports = router;
