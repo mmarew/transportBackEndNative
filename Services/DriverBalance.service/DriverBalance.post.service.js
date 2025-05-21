@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
-
-const { pool } = require("../Middleware/Database.config");
-const currentDate = require("./CurrentDate");
+const { pool } = require("../../Middleware/Database.config");
+const currentDate = require("../../Utils/CurrentDate");
 
 const getDriverLastBalance = async (driverUniqueId) => {
   const sql = `
@@ -88,20 +87,32 @@ const createDriverBalance = async (data) => {
         transactionUniqueId, transactionTime, netBalance
       ) VALUES (?, ?, ?, ?, ?, ?)
     `;
+    const driverBalanceUniqueId = uuidv4();
+    const userUniqueId = data?.userUniqueId;
+    const transactionType = data?.transactionType;
+    const transactionUniqueId = data?.transactionUniqueId;
+    const netBalance = data?.netBalance;
     const values = [
-      uuidv4(),
-      data.userUniqueId,
-      data.transactionType,
-      data.transactionUniqueId,
+      driverBalanceUniqueId,
+      userUniqueId,
+      transactionType,
+      transactionUniqueId,
       transactionTime,
-      data.netBalance,
+      netBalance,
     ];
-
+    const responseData = {
+      driverBalanceUniqueId,
+      userUniqueId,
+      transactionType,
+      transactionUniqueId,
+      transactionTime,
+      netBalance,
+    };
     const [insertResult] = await pool.query(sqlInsert, values);
 
     return {
       message: "Driver balance record created successfully",
-      data: insertResult,
+      data: responseData,
     };
   } catch (error) {
     console.error("Error in createDriverBalance:", error);

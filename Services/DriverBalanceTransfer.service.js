@@ -1,6 +1,8 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const { prepareAndCreateNewBalance } = require("../Utils/PrepareNewBalance");
+const {
+  prepareAndCreateNewBalance,
+} = require("./DriverBalance.service/DriverBalance.post.service");
 
 // Create
 const createTransfer = async (

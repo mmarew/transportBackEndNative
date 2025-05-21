@@ -1,0 +1,165 @@
+const { pool } = require("../../Middleware/Database.config");
+const { getDriverDepositByUniqueId } = require("../DriverDeposit.service");
+const { getTransferByUniqueId } = require("../DriverBalanceTransfer.service");
+const { getRefundByUniqueId } = require("../DriverRefund.service");
+const {
+  getDriverSubscriptionByUniqueId,
+} = require("../DriverSubscription.service");
+const {
+  getCommissionsByCommissionUniqueId,
+} = require("../CommissionRates.service");
+// enrichDriverBalanceRecord.js
+const enrichDriverBalanceRecord = async (balance) => {
+  console.log("@balance", balance);
+  const { transactionType, transactionUniqueId } = balance;
+  let transactionDetails = null;
+
+  try {
+    if (transactionType === "Deposit") {
+      transactionDetails = await getDriverDepositByUniqueId(
+        transactionUniqueId
+      );
+    } else if (transactionType === "Commission") {
+      transactionDetails = await getCommissionsByCommissionUniqueId(
+        transactionUniqueId
+      );
+    } else if (transactionType === "Transfer") {
+      transactionDetails = await getTransferByUniqueId(transactionUniqueId);
+    } else if (transactionType === "Refund") {
+      transactionDetails = await getRefundByUniqueId(transactionUniqueId);
+    } else if (transactionType === "Subscription") {
+      transactionDetails = await getDriverSubscriptionByUniqueId(
+        transactionUniqueId
+      );
+    } else {
+      console.warn(`Unknown transaction type: ${transactionType}`);
+    }
+
+    return {
+      ...balance,
+      transactionDetails,
+    };
+  } catch (err) {
+    console.error(
+      `Error enriching balance for ${transactionType} (${transactionUniqueId}):`,
+      err.message
+    );
+    return {
+      ...balance,
+      transactionDetails: null,
+      error: "Failed to load transaction details",
+    };
+  }
+};
+
+const getAllDriverBalances = async () => {
+  try {
+    const sql = `SELECT * FROM DriverBalance ORDER BY driverBalanceId DESC`;
+    const [results] = await pool.query(sql);
+
+    const enrichedResults = await Promise.all(
+      results.map(enrichDriverBalanceRecord)
+    );
+
+    return {
+      message: "success",
+      data: enrichedResults,
+    };
+  } catch (error) {
+    console.error("Error in getAllDriverBalances:", error);
+    return {
+      message: "error",
+      error: "Unable to retrieve driver balances",
+    };
+  }
+};
+
+// Get a driver balance record by ID
+const getDriverBalanceById = async (driverBalanceUniqueId) => {
+  try {
+    const sql = `SELECT * FROM DriverBalance WHERE driverBalanceUniqueId = ?`;
+    const [result] = await pool.query(sql, [driverBalanceUniqueId]);
+
+    if (result.length === 0) {
+      return { message: "error", error: "Driver balance not found" };
+    }
+
+    return {
+      message: "success",
+      data: result[0],
+    };
+  } catch (error) {
+    console.error("Error in getDriverBalanceById:", error);
+    return { message: "error", error: "Unable to retrieve driver balance" };
+  }
+};
+
+// Get the last driver balance record by userUniqueId
+const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
+  try {
+    const sql = `
+      SELECT * FROM DriverBalance 
+      WHERE userUniqueId = ? 
+      ORDER BY driverBalanceId DESC 
+      LIMIT 1
+    `;
+    const [results] = await pool.query(sql, [userUniqueId]);
+    // console.log("@getDriverLastBalanceByUserUniqueId results", results);
+
+    return {
+      message: "success",
+      data: results.length > 0 ? results[0] : null,
+    };
+  } catch (error) {
+    console.error("Error in getDriverLastBalanceByUserUniqueId:", error);
+    return { message: "error", error: "Unable to get driver balance" };
+  }
+};
+const getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
+  try {
+    let results = null;
+    if (fromDate == "lastTen" && toDate == "lastTen") {
+      const sql = `SELECT * FROM DriverBalance order by driverBalanceId desc limit 10`;
+      results = (await pool.query(sql))[0];
+    } else {
+      const sql = `SELECT * FROM DriverBalance WHERE transactionTime BETWEEN ? AND ?  order by driverBalanceId desc `;
+      const values = [fromDate, toDate];
+      results = (await pool.query(sql, values))[0];
+    }
+
+    const fullData = await Promise.all(
+      results.map(async (record) => {
+        let TransactionData = { ...record };
+        if (record.transactionType === "Deposit") {
+          const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
+          const [result] = await pool.query(sql, [record?.transactionUniqueId]);
+
+          // const depositData = await getDriverDepositByDriverDepositUniqueId(
+          //   record?.transactionUniqueId
+          // );
+          TransactionData = { ...record, ...result?.[0] };
+        } else if (record.transactionType === "Commission") {
+          const commissionData = await getCommissionsByCommissionUniqueId(
+            record.transactionUniqueId
+          );
+          TransactionData = { ...record, ...commissionData?.data?.[0] };
+        }
+        return TransactionData;
+      })
+    );
+
+    return {
+      message: "success",
+      data: fullData,
+    };
+  } catch (error) {
+    console.log("@getDriverBalanceByRange error", error);
+    return { message: "error", error: "Unable to get driver balance" };
+  }
+};
+module.exports = {
+  getDriverBalanceByDateRange,
+  getDriverLastBalanceByUserUniqueId,
+  getDriverBalanceById,
+  getAllDriverBalances,
+};

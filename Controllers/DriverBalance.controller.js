@@ -1,6 +1,19 @@
-const driverBalanceService = require("../Services/DriverBalance.service");
 const ServerResponder = require("../Utils/ServerResponder");
-const prepareAndCreateNewBalance = require("../Utils/PrepareNewBalance");
+const {
+  getAllDriverBalances,
+  getDriverBalanceById,
+  getDriverLastBalanceByUserUniqueId,
+  getDriverBalanceByDateRange,
+} = require("../Services/DriverBalance.service/DriverBalance.get.service");
+const {
+  updateDriverBalance,
+} = require("../Services/DriverBalance.service/DriverBalance.update.service");
+const {
+  deleteDriverBalance,
+} = require("../Services/DriverBalance.service/DriverBalance.delete.service");
+const {
+  prepareAndCreateNewBalance,
+} = require("../Services/DriverBalance.service/DriverBalance.post.service");
 // Create a new driver balance record
 exports.createDriverBalance = async (req, res) => {
   try {
@@ -20,7 +33,7 @@ exports.createDriverBalance = async (req, res) => {
 // Get all driver balance records
 exports.getAllDriverBalances = async (req, res) => {
   try {
-    const result = await driverBalanceService.getAllDriverBalances();
+    const result = await getAllDriverBalances();
     ServerResponder(res, result);
   } catch (error) {
     res
@@ -32,9 +45,7 @@ exports.getAllDriverBalances = async (req, res) => {
 // Get a driver balance record by ID
 exports.getDriverBalanceById = async (req, res) => {
   try {
-    const result = await driverBalanceService.getDriverBalanceById(
-      req.params.driverBalanceUniqueId
-    );
+    const result = await getDriverBalanceById(req.params.driverBalanceUniqueId);
     if (result) {
       ServerResponder(res, result);
     } else {
@@ -54,7 +65,7 @@ exports.getDriverBalanceById = async (req, res) => {
 // Update a driver balance record by ID
 exports.updateDriverBalance = async (req, res) => {
   try {
-    const result = await driverBalanceService.updateDriverBalance(
+    const result = await updateDriverBalance(
       req.params.driverBalanceUniqueId,
       req.body
     );
@@ -70,9 +81,7 @@ exports.updateDriverBalance = async (req, res) => {
 // Delete a driver balance record by ID
 exports.deleteDriverBalance = async (req, res) => {
   try {
-    const result = await driverBalanceService.deleteDriverBalance(
-      req.params.driverBalanceUniqueId
-    );
+    const result = await deleteDriverBalance(req.params.driverBalanceUniqueId);
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {
@@ -96,11 +105,9 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
     }
     let result = "";
     if (!fromDate && !toDate)
-      result = await driverBalanceService.getDriverLastBalanceByUserUniqueId(
-        userUniqueId
-      );
+      result = await getDriverLastBalanceByUserUniqueId(userUniqueId);
     else if (fromDate && toDate)
-      result = await driverBalanceService.getDriverBalanceByDateRange({
+      result = await getDriverBalanceByDateRange({
         fromDate,
         toDate,
       });
@@ -115,10 +122,7 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
 exports.getDriverCurrentBalance = async (req, res) => {
   try {
     const { driverUniqueId } = req.params;
-    const result =
-      await driverBalanceService.getDriverLastBalanceByUserUniqueId(
-        driverUniqueId
-      );
+    const result = await getDriverLastBalanceByUserUniqueId(driverUniqueId);
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error getting last balance:", error);

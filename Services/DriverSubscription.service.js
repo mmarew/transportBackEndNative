@@ -5,7 +5,9 @@ const {
 } = require("./SubscriptionPlanPricing.service");
 const currentDate = require("../Utils/CurrentDate");
 const modifyDateTime = require("../Utils/adjustDateTime");
-const { prepareAndCreateNewBalance } = require("../Utils/PrepareNewBalance");
+const {
+  prepareAndCreateNewBalance,
+} = require("./DriverBalance.service/DriverBalance.post.service");
 
 // Create subscription
 const createDriverSubscription = async (

@@ -1,6 +1,9 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const { prepareAndCreateNewBalance } = require("../Utils/PrepareNewBalance");
+const { deleteDriverBalance } = require("./DriverBalance.service");
+const {
+  prepareAndCreateNewBalance,
+} = require("./DriverBalance.service/DriverBalance.post.service");
 
 // Create
 const createDriverDeposit = async (data) => {
@@ -21,6 +24,7 @@ const createDriverDeposit = async (data) => {
     transactionUniqueId: driverDepositUniqueId,
   });
   if (newBalance.message == "error") return newBalance;
+  const driverBalanceUniqueId = newBalance?.data?.driverBalanceUniqueId;
   const sql = `
     INSERT INTO DriverDeposit (
       driverDepositUniqueId,
@@ -31,27 +35,34 @@ const createDriverDeposit = async (data) => {
       depositTime
     ) VALUES (?, ?, ?, ?, ?, ?)
   `;
-
-  await pool.query(sql, [
-    driverDepositUniqueId,
-    driverUniqueId,
-    depositAmount,
-    depositSourceUniqueId,
-    accountUniqueId,
-    depositTime,
-  ]);
-
-  return {
-    message: "success",
-    data: {
+  try {
+    const [insertResult] = await pool.query(sql, [
       driverDepositUniqueId,
       driverUniqueId,
       depositAmount,
       depositSourceUniqueId,
       accountUniqueId,
       depositTime,
-    },
-  };
+    ]);
+    // if data of deposit is not inserted but data of balance is adjusted remove adjusted data of balance
+    if (insertResult.affectedRows < 0) {
+      deleteDriverBalance(driverBalanceUniqueId);
+    }
+    return {
+      message: "success",
+      data: {
+        driverDepositUniqueId,
+        driverUniqueId,
+        depositAmount,
+        depositSourceUniqueId,
+        accountUniqueId,
+        depositTime,
+      },
+    };
+  } catch (error) {
+    console.log("@createDriverDeposit error", error);
+    deleteDriverBalance(driverBalanceUniqueId);
+  }
 };
 // Get all data
 const getAllDriverDepositData = async () => {

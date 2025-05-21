@@ -620,7 +620,18 @@ CREATE TABLE IF NOT EXISTS DepositSource (
   -- ('admin', 'Manual Admin Deposit'),
   -- ('transfer', 'Transferred from Another Driver');
 
-
+CREATE TABLE IF NOT EXISTS FinancialInstitutionAccounts (
+  accountId INT AUTO_INCREMENT PRIMARY KEY,
+  accountUniqueId VARCHAR(36) UNIQUE NOT NULL, -- UUID
+  institutionName VARCHAR(100) NOT NULL,       -- e.g., 'Telebirr', 'CBE'
+  accountHolderName VARCHAR(100) NOT NULL,     -- Person or entity name
+  accountNumber VARCHAR(50) NOT NULL,          -- The actual account number
+  accountType ENUM('bank', 'mobile_money', 'wallet') DEFAULT 'bank', -- optional
+  isActive BOOLEAN DEFAULT TRUE,               -- To mark active/inactive accounts
+  addedBy VARCHAR(36),                         -- admin or system user ID
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 --  Main table representing driver subscriptions via deposits
 CREATE TABLE IF NOT EXISTS DriverDeposit (
   driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
@@ -684,18 +695,7 @@ CREATE TABLE IF NOT EXISTS DriverBalance (
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
 ) ;
 
-CREATE TABLE IF NOT EXISTS FinancialInstitutionAccounts (
-  accountId INT AUTO_INCREMENT PRIMARY KEY,
-  accountUniqueId VARCHAR(36) UNIQUE NOT NULL, -- UUID
-  institutionName VARCHAR(100) NOT NULL,       -- e.g., 'Telebirr', 'CBE'
-  accountHolderName VARCHAR(100) NOT NULL,     -- Person or entity name
-  accountNumber VARCHAR(50) NOT NULL,          -- The actual account number
-  accountType ENUM('bank', 'mobile_money', 'wallet') DEFAULT 'bank', -- optional
-  isActive BOOLEAN DEFAULT TRUE,               -- To mark active/inactive accounts
-  addedBy VARCHAR(36),                         -- admin or system user ID
-  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+
 
 
 -- create  JourneyNotifications table which is used as 
