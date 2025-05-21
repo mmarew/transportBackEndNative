@@ -11,9 +11,7 @@ const {
 const {
   deleteDriverBalance,
 } = require("../Services/DriverBalance.service/DriverBalance.delete.service");
-const {
-  prepareAndCreateNewBalance,
-} = require("../Services/DriverBalance.service/DriverBalance.post.service");
+const prepareAndCreateNewBalance = require("../Services/DriverBalance.service/DriverBalance.post.service");
 // Create a new driver balance record
 exports.createDriverBalance = async (req, res) => {
   try {
@@ -24,6 +22,7 @@ exports.createDriverBalance = async (req, res) => {
     });
     ServerResponder(res, result);
   } catch (error) {
+    console.log("@createDriverBalance error", error);
     res
       .status(500)
       .json({ message: "Failed to create driver balance record", error });

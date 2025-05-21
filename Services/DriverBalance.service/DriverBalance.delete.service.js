@@ -11,8 +11,8 @@ const deleteDriverBalance = async (driverBalanceUniqueId) => {
     }
 
     return {
-      message: "Driver balance record deleted successfully",
-      data: result,
+      message: "success",
+      data: "Balance record deleted successfully",
     };
   } catch (error) {
     console.error("Error in deleteDriverBalance:", error);

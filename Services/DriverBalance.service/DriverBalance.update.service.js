@@ -1,3 +1,5 @@
+const { pool } = require("../../Middleware/Database.config");
+
 const updateDriverBalance = async (driverBalanceUniqueId, data) => {
   try {
     const sql = `
