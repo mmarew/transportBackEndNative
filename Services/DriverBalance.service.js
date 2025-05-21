@@ -1,7 +1,5 @@
-const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { getCommissionsByCommissionUniqueId } = require("./Commission.service");
-const currentDate = require("../Utils/CurrentDate");
 const { getDriverDepositByUniqueId } = require("./DriverDeposit.service");
 const { getTransferByUniqueId } = require("./DriverBalanceTransfer.service");
 const { getRefundByUniqueId } = require("./DriverRefund.service");
@@ -9,55 +7,6 @@ const {
   getDriverSubscriptionByUniqueId,
 } = require("./DriverSubscription.service");
 
-// Create a new driver balance record
-const createDriverBalance = async (data) => {
-  try {
-    console.log("@createDriverBalance data is ", data);
-    // Verify existence of data transactionUniqueId in DriverBalance
-    const transactionTime = currentDate();
-    const sqlToGetData = `
-      SELECT * FROM DriverBalance 
-      WHERE transactionUniqueId = ? AND transactionType = ?
-    `;
-    const [existingRecords] = await pool.query(sqlToGetData, [
-      data.transactionUniqueId,
-      data.transactionType,
-    ]);
-
-    if (existingRecords.length > 0) {
-      return {
-        message: "error",
-        error: "Driver balance record already exists",
-        data: existingRecords,
-      };
-    }
-
-    const sqlInsert = `
-      INSERT INTO DriverBalance (
-        driverBalanceUniqueId, userUniqueId, transactionType, 
-        transactionUniqueId, transactionTime, netBalance
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `;
-    const values = [
-      uuidv4(),
-      data.userUniqueId,
-      data.transactionType,
-      data.transactionUniqueId,
-      transactionTime,
-      data.netBalance,
-    ];
-
-    const [insertResult] = await pool.query(sqlInsert, values);
-
-    return {
-      message: "Driver balance record created successfully",
-      data: insertResult,
-    };
-  } catch (error) {
-    console.error("Error in createDriverBalance:", error);
-    return { message: "error", error: "Unable to create driver balance" };
-  }
-};
 // Get All Driver balance
 
 const getAllDriverBalances = async () => {
@@ -262,66 +211,7 @@ const deleteDriverBalance = async (driverBalanceUniqueId) => {
     return { message: "error", error: "Unable to delete driver balance" };
   }
 };
-const getDriverLastBalance = async (driverUniqueId) => {
-  const sql = `
-    SELECT *
-    FROM DriverBalance
-    WHERE userUniqueId = ?
-    ORDER BY transactionTime DESC
-    LIMIT 1
-  `;
-  const [result] = await pool.query(sql, [driverUniqueId]);
-
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "No balance record found" };
-};
-const prepareAndCreateNewBalance = async ({
-  amount,
-  addOrDeduct,
-  driverUniqueId,
-  transactionUniqueId,
-  transactionType,
-}) => {
-  //  validation to all incoming args
-  if (
-    !amount ||
-    !addOrDeduct ||
-    !driverUniqueId ||
-    !transactionUniqueId ||
-    !transactionType
-  ) {
-    return { message: "error", error: "all inputs are required" };
-  }
-  const currentBalance = await getDriverLastBalance(driverUniqueId);
-  let netBalance = currentBalance?.data?.netBalance;
-
-  console.log("@prepareAndCreateNewBalance before netBalance", netBalance);
-  if (!netBalance) netBalance = 0;
-  netBalance = Number(netBalance);
-  console.log("@prepareAndCreateNewBalance after netBalance", netBalance);
-
-  // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct
-  if (addOrDeduct === "deduct" && netBalance < Number(amount)) {
-    return {
-      message: `error`,
-      error: `You don't have enough balance to deduct`,
-    };
-  }
-  const newBalance =
-    addOrDeduct === "add" ? netBalance + +amount : netBalance - +amount;
-  console.log("@prepareAndCreateNewBalance newBalance", newBalance);
-  const newNetBalanceData = {
-    userUniqueId: driverUniqueId,
-    transactionType,
-    transactionUniqueId,
-    netBalance: newBalance,
-  };
-  return await createDriverBalance(newNetBalanceData);
-};
 module.exports = {
-  createDriverBalance,
-  prepareAndCreateNewBalance,
   deleteDriverBalance,
   getDriverLastBalanceByUserUniqueId,
   updateDriverBalance,

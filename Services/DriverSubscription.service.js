@@ -1,11 +1,11 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const { prepareAndCreateNewBalance } = require("./DriverBalance.service");
 const {
   getActiveSubscriptionPlanningPrice,
 } = require("./SubscriptionPlanPricing.service");
 const currentDate = require("../Utils/CurrentDate");
 const modifyDateTime = require("../Utils/adjustDateTime");
+const { prepareAndCreateNewBalance } = require("../Utils/PrepareNewBalance");
 
 // Create subscription
 const createDriverSubscription = async (

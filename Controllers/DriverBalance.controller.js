@@ -1,11 +1,11 @@
 const driverBalanceService = require("../Services/DriverBalance.service");
 const ServerResponder = require("../Utils/ServerResponder");
-
+const prepareAndCreateNewBalance = require("../Utils/PrepareNewBalance");
 // Create a new driver balance record
 exports.createDriverBalance = async (req, res) => {
   try {
     const user = req?.user;
-    const result = await driverBalanceService.createDriverBalance({
+    const result = await prepareAndCreateNewBalance.createDriverBalance({
       ...req.body,
       ...user,
     });
