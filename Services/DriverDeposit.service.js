@@ -15,7 +15,7 @@ const createDriverDeposit = async (data) => {
     accountUniqueId,
     depositTime,
   } = data;
-   const newBalance = await prepareAndCreateNewBalance({
+  const newBalance = await prepareAndCreateNewBalance({
     addOrDeduct: "add",
     amount: depositAmount,
     driverUniqueId,
@@ -63,7 +63,17 @@ const createDriverDeposit = async (data) => {
     deleteDriverBalance(driverBalanceUniqueId);
   }
 };
-// Get all data
+
+const getOneDriverDepositDataByStatus = async (depositStatus) => {
+  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus = ? ORDER BY depositTime DESC`;
+  const [result] = await pool.query(sql, [depositStatus]);
+  return { message: "success", data: result };
+};
+const getAllDriverDepositDataByStatus = async (depositStatus) => {
+  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus = ? ORDER BY depositTime DESC`;
+  const [result] = await pool.query(sql, [depositStatus]);
+  return { message: "success", data: result };
+};
 const getAllDriverDepositData = async () => {
   const sql = `select * from DriverDeposit`;
   const [result] = await pool.query(sql);
@@ -165,6 +175,8 @@ const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
 };
 
 module.exports = {
+  getOneDriverDepositDataByStatus,
+  getAllDriverDepositDataByStatus,
   getAllDriverDepositData,
   createDriverDeposit,
   getDriverDepositsWithAccountInfo,

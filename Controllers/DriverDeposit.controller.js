@@ -19,6 +19,35 @@ exports.createDriverDeposit = async (req, res) => {
     });
   }
 };
+// Get All Deposits By Status
+exports.getAllDriverDepositDataByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+    const result = await service.getAllDriverDepositDataByStatus(status);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Fetch By Status Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch deposits by status",
+    });
+  }
+};
+// Get All Deposits By Status
+exports.getOneDriverDepositDataByStatus = async (req, res) => {
+  try {
+    const { status, driverUserUniqeId } = req.params;
+    const result = await service.getOneDriverDepositDataByStatus(status);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Fetch By Status Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch deposits by status",
+    });
+  }
+};
+
 exports.getAllDriverDepositData = async (req, res) => {
   try {
     const result = await service.getAllDriverDepositData();
