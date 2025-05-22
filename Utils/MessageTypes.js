@@ -34,6 +34,10 @@ Here's a corrected version of the code with the typos fixed:
  */
 
 const messageTypes = {
+  refund_requested_by_driver: {
+    message: "driver request refund",
+    detailes: "When driver requests an admin to refund there money",
+  },
   request_other_driver: {
     message: "requesting other driver",
     detailes:

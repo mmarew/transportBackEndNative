@@ -19,4 +19,27 @@ const deleteDriverBalance = async (driverBalanceUniqueId) => {
     return { message: "error", error: "Unable to delete driver balance" };
   }
 };
-module.exports = { deleteDriverBalance };
+const deleteDriverBalanceByTransactionUniqueId = async ({
+  transactionUniqueId,
+}) => {
+  try {
+    const sql = `DELETE FROM DriverBalance WHERE transactionUniqueId = ?`;
+    const [result] = await pool.query(sql, [transactionUniqueId]);
+
+    if (result.affectedRows === 0) {
+      return { message: "error", error: "Driver balance not found" };
+    }
+    return {
+      message: "success",
+      data: "Balance record deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error in deleteDriverBalanceByTransactionUniqueId:", error);
+    return { message: "error", error: "Unable to delete driver balance" };
+  }
+};
+
+module.exports = {
+  deleteDriverBalance,
+  deleteDriverBalanceByTransactionUniqueId,
+};

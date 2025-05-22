@@ -3,27 +3,58 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createDriverRefund = async (req, res) => {
   try {
-    let refundedBy = req?.params?.refundedBy;
+    // driverUserUniqueId is an id of driver who will take refund money
+    let driverUserUniqueId = req?.params?.driverUserUniqueId;
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
 
-    if (refundedBy == "self") {
-      refundedBy = userUniqueId;
+    if (driverUserUniqueId == "self") {
+      driverUserUniqueId = userUniqueId;
     }
+    const refundedBy = userUniqueId;
 
-    const { driverUniqueId, refundAmount, refundReason } = req.body;
-    const result = await service.createDriverRefund(
-      driverUniqueId,
+    const { refundAmount, refundReason, accountUniqueId } = req.body;
+    const result = await service.createDriverRefund({
       refundAmount,
       refundReason,
-      refundedBy
-    );
+      refundedBy,
+      driverUniqueId: driverUserUniqueId,
+      accountUniqueId,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Create refund error:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create refund",
+    });
+  }
+};
+exports.getOneDriverRefundListsByStatus = async (req, res) => {
+  try {
+    const { driverUserUniqueId, status } = req.params;
+    const result = await service.getOneDriverRefundListsByStatus({
+      driverUserUniqueId,
+      refundStatus: status,
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch single driver refund by status",
+    });
+  }
+};
+
+exports.getAllDriverRefundByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+    const result = await service.getAllDriverRefundByStatus(status);
+    ServerResponder(res, result);
+  } catch (error) {
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch all driver refunds by status",
     });
   }
 };

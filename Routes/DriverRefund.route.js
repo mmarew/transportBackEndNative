@@ -5,11 +5,22 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create refund
 router.post(
-  "/api/driverRefund/:refundedBy",
+  "/api/driverRefund/:driverUserUniqueId",
   verifyTokenOfAxios,
   controller.createDriverRefund
 );
-
+// get all refunds which are requested
+router.get(
+  "/api/getOneDriverRefundListsByStatus/:driverUserUniqueId/:status",
+  verifyTokenOfAxios,
+  controller.getOneDriverRefundListsByStatus
+);
+// get all refunds which are requested
+router.get(
+  "/api/getAllDriverRefundByStatus/:status",
+  verifyTokenOfAxios,
+  controller.getAllDriverRefundByStatus
+);
 // Get all refunds
 router.get(
   "/api/driverRefund",

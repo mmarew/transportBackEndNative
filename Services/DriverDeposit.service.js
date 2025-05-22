@@ -15,8 +15,7 @@ const createDriverDeposit = async (data) => {
     accountUniqueId,
     depositTime,
   } = data;
-  console.log("@prepareAndCreateNewBalance", prepareAndCreateNewBalance);
-  const newBalance = await prepareAndCreateNewBalance({
+   const newBalance = await prepareAndCreateNewBalance({
     addOrDeduct: "add",
     amount: depositAmount,
     driverUniqueId,

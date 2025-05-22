@@ -3,14 +3,20 @@ const { v4: uuidv4 } = require("uuid");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
-
+const {
+  deleteDriverBalanceByTransactionUniqueId,
+} = require("./DriverBalance.service/DriverBalance.delete.service");
+const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const messageTypes = require("../Utils/MessageTypes");
 // Create
-const createDriverRefund = async (
+const createDriverRefund = async ({
   driverUniqueId,
   refundAmount,
   refundReason,
-  refundedBy
-) => {
+  refundedBy,
+
+  accountUniqueId,
+}) => {
   const driverRefundUniqueId = uuidv4();
   const newBalance = await prepareAndCreateNewBalance({
     addOrDeduct: "deduct",
@@ -19,34 +25,67 @@ const createDriverRefund = async (
     transactionUniqueId: driverRefundUniqueId,
     transactionType: "refund",
   });
-  if (newBalance.message == "error") return newBalance;
-
-  const sql = `
+  if (newBalance.message == "error") {
+    // if there is error delete registered data
+    deleteDriverBalanceByTransactionUniqueId({
+      transactionUniqueId: driverRefundUniqueId,
+    });
+    return newBalance;
+  }
+  try {
+    const sql = `
     INSERT INTO DriverRefund
-    (driverRefundUniqueId, driverUniqueId, refundAmount, refundReason, refundedBy)
-    VALUES (?, ?, ?, ?, ?)
+    (driverRefundUniqueId, driverUniqueId, refundAmount, refundReason, refundedBy,accountUniqueId)
+    VALUES (?, ?, ?, ?, ?,?)
   `;
 
-  const [result] = await pool.query(sql, [
-    driverRefundUniqueId,
-    driverUniqueId,
-    refundAmount,
-    refundReason,
-    refundedBy,
-  ]);
-
-  return {
-    message: "success",
-    data: {
+    const [result] = await pool.query(sql, [
       driverRefundUniqueId,
       driverUniqueId,
       refundAmount,
       refundReason,
       refundedBy,
-    },
-  };
+      accountUniqueId,
+    ]);
+    const message = {
+      messageType: messageTypes.refund_requested_by_driver,
+      message: "success",
+      data: {
+        driverRefundUniqueId,
+        driverUniqueId,
+        refundAmount,
+        refundReason,
+        refundedBy,
+      },
+    };
+    sendNotificationToAdmin({ message });
+    return message;
+  } catch (error) {
+    console.log("@refund error", error);
+    deleteDriverBalanceByTransactionUniqueId({
+      transactionUniqueId: driverRefundUniqueId,
+    });
+    return { message: "error", error: "unable to create refund request" };
+  }
+};
+// getAllDriverRefundByStatus,getSingleDriverRefundByStatus
+const getAllDriverRefundByStatus = async (refundStatus) => {
+  console.log("@getAllDriverRefundByStatus refundStatus", refundStatus);
+  const sql = `SELECT * FROM DriverRefund WHERE refundStatus = ? ORDER BY refundDate DESC`;
+  const [result] = await pool.query(sql, [refundStatus]);
+  return { message: "success", data: result };
 };
 
+const getOneDriverRefundListsByStatus = async ({
+  driverUserUniqueId,
+  refundStatus,
+}) => {
+  const sql = `SELECT * FROM DriverRefund WHERE driverUniqueId = ? AND refundStatus = ? ORDER BY refundDate DESC`;
+  const [result] = await pool.query(sql, [driverUserUniqueId, refundStatus]);
+  return result.length > 0
+    ? { message: "success", data: result }
+    : { message: "error", error: "Refund not found" };
+};
 // Get all
 const getAllDriverRefunds = async () => {
   const sql = `SELECT * FROM DriverRefund ORDER BY refundDate DESC`;
@@ -116,6 +155,8 @@ const updateRefundStatusAndUrl = async ({
 };
 
 module.exports = {
+  getAllDriverRefundByStatus,
+  getOneDriverRefundListsByStatus,
   updateRefundStatusAndUrl,
   createDriverRefund,
   getAllDriverRefunds,

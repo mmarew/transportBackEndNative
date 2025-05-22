@@ -36,10 +36,8 @@ const prepareAndCreateNewBalance = async ({
   const currentBalance = await getDriverLastBalance(driverUniqueId);
   let netBalance = currentBalance?.data?.netBalance;
 
-  console.log("@prepareAndCreateNewBalance before netBalance", netBalance);
   if (!netBalance) netBalance = 0;
   netBalance = Number(netBalance);
-  console.log("@prepareAndCreateNewBalance after netBalance", netBalance);
 
   // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct
   if (addOrDeduct === "deduct" && netBalance < Number(amount)) {
@@ -49,8 +47,9 @@ const prepareAndCreateNewBalance = async ({
     };
   }
   const newBalance =
-    addOrDeduct === "add" ? netBalance + +amount : netBalance - +amount;
-  console.log("@prepareAndCreateNewBalance newBalance", newBalance);
+    addOrDeduct === "add"
+      ? netBalance + Number(amount)
+      : netBalance - Number(amount);
   const newNetBalanceData = {
     userUniqueId: driverUniqueId,
     transactionType,
