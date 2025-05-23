@@ -51,9 +51,9 @@ router.delete(
 
 // ✅ NEW: Update refund status and refundUrl
 router.patch(
-  "/api/driverRefund/:driverRefundUniqueId",
+  "/api/acceptDriverRefundRequest/:driverRefundUniqueId",
   verifyTokenOfAxios,
-  controller.updateRefundStatusAndUrl
+  controller.acceptDriverRefundRequest
 );
 
 router.get(
@@ -66,6 +66,12 @@ router.get(
   "/api/driverRefund/byStatusAndRange",
   verifyTokenOfAxios,
   controller.getRefundsByStatusAndDateRange
+);
+
+router.patch(
+  "/api/driverRefund/:driverRefundUniqueId",
+  verifyTokenOfAxios,
+  controller.updateRefund
 );
 
 module.exports = router;

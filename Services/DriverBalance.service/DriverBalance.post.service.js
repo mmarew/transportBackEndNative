@@ -43,7 +43,8 @@ const prepareAndCreateNewBalance = async ({
   if (addOrDeduct === "deduct" && netBalance < Number(amount)) {
     return {
       message: `error`,
-      error: `You don't have enough balance to deduct`,
+      error: `no enough balance`,
+      detailes: `user don't have enough balance to deduct`,
     };
   }
   const newBalance =

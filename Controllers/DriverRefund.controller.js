@@ -106,7 +106,7 @@ exports.deleteRefundByUniqueId = async (req, res) => {
     });
   }
 };
-exports.updateRefundStatusAndUrl = async (req, res) => {
+exports.acceptDriverRefundRequest = async (req, res) => {
   try {
     const { driverRefundUniqueId } = req.params;
     const { refundStatus, refundUrl } = req.body;
@@ -118,7 +118,7 @@ exports.updateRefundStatusAndUrl = async (req, res) => {
       });
     }
 
-    const result = await service.updateRefundStatusAndUrl({
+    const result = await service.acceptDriverRefundRequest({
       driverRefundUniqueId,
       refundStatus,
       refundUrl,
@@ -167,6 +167,27 @@ exports.getRefundsByStatusAndDateRange = async (req, res) => {
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch refunds",
+    });
+  }
+};
+
+exports.updateRefund = async (req, res) => {
+  try {
+    const { driverRefundUniqueId } = req.params;
+    console.log("@driverRefundUniqueId", driverRefundUniqueId);
+
+    const data = req.body;
+
+    const result = await service?.updateDriverRefundByUniqueId(
+      driverRefundUniqueId,
+      data
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Refund update error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update refund",
     });
   }
 };

@@ -34,6 +34,10 @@ Here's a corrected version of the code with the typos fixed:
  */
 
 const messageTypes = {
+  refund_approved_by_admin: {
+    message: "admin approved driver refund",
+    detailes: "When driver approved refund data",
+  },
   create_deposit_By_driver: {
     message: "driver deposited money",
     detailes:
