@@ -74,9 +74,9 @@ const createDriverBalance = async (data) => {
 
     if (existingRecords.length > 0) {
       return {
-        message: "error",
-        error: "Driver balance record already exists",
-        data: existingRecords,
+        message: "success",
+        // error: "Driver balance record already exists",
+        data: existingRecords?.[0],
       };
     }
 
@@ -110,7 +110,7 @@ const createDriverBalance = async (data) => {
     const [insertResult] = await pool.query(sqlInsert, values);
 
     return {
-      message: "Driver balance record created successfully",
+      message: "success",
       data: responseData,
     };
   } catch (error) {

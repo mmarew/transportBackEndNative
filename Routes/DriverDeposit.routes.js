@@ -50,5 +50,15 @@ router.delete(
   verifyTokenOfAxios,
   controller.deleteDriverDepositByUniqueId
 );
+router.get(
+  "/api/driverDepositByDateRange",
+  verifyTokenOfAxios,
+  controller.getDepositsByDateRangeAndDriver
+);
+router.patch(
+  "/api/driverDeposit/status",
+  verifyTokenOfAxios,
+  controller.updateDriverDepositStatus
+);
 
 module.exports = router;

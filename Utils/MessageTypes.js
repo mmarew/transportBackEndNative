@@ -34,6 +34,11 @@ Here's a corrected version of the code with the typos fixed:
  */
 
 const messageTypes = {
+  create_deposit_By_driver: {
+    message: "driver deposited money",
+    detailes:
+      "When driver deposited money it is in status of requested and needs approval by admin",
+  },
   refund_requested_by_driver: {
     message: "driver request refund",
     detailes: "When driver requests an admin to refund there money",

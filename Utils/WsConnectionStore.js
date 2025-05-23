@@ -50,6 +50,7 @@ redisClient.on("error", (err) => {
 
 const setSocket = async (userType, identifier, socketId) => {
   const key = `${userType}:${identifier}`;
+
   await redisClient.set(key, socketId);
   console.log("@setSocket redisClient", redisClient.status);
 };

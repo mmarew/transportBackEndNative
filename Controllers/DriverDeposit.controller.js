@@ -37,7 +37,10 @@ exports.getAllDriverDepositDataByStatus = async (req, res) => {
 exports.getOneDriverDepositDataByStatus = async (req, res) => {
   try {
     const { status, driverUserUniqeId } = req.params;
-    const result = await service.getOneDriverDepositDataByStatus(status);
+    const result = await service.getOneDriverDepositDataByStatus({
+      status,
+      driverUserUniqeId,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Fetch By Status Error:", error);
@@ -121,6 +124,64 @@ exports.deleteDriverDepositByUniqueId = async (req, res) => {
     ServerResponder(res, {
       message: "error",
       error: "Failed to delete deposit",
+    });
+  }
+};
+exports.getDepositsByDateRangeAndDriver = async (req, res) => {
+  try {
+    const { driverUniqueId, startDate, endDate } = req.query;
+    const user = req?.user;
+    console.log("@user", user);
+    if (!driverUniqueId || !startDate || !endDate) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "Missing driverUniqueId, startDate, or endDate",
+      });
+    }
+
+    const result = await service.getDepositsByDateRangeAndDriver({
+      driverUniqueId:
+        driverUniqueId == "self" ? user?.userUniqueId : driverUniqueId,
+      startDate,
+      endDate,
+    });
+
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Fetch by date range error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch deposits by date range",
+    });
+  }
+};
+/**
+ * @function updateDriverDepositStatus
+ * @route PATCH /api/driverDeposit/status
+ * @description Controller to update driver deposit status.
+ */
+exports.updateDriverDepositStatus = async (req, res) => {
+  try {
+    const { driverDepositUniqueId, depositStatus } = req.body;
+
+    if (!driverDepositUniqueId || !depositStatus) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "Missing driverDepositUniqueId or depositStatus",
+      });
+    }
+
+    const result = await service.updateDriverDepositStatusService(
+      driverDepositUniqueId,
+      depositStatus
+    );
+
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Update deposit status error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to update deposit status",
     });
   }
 };

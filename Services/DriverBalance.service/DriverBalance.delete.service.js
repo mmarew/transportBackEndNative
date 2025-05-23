@@ -5,7 +5,7 @@ const deleteDriverBalance = async (driverBalanceUniqueId) => {
   try {
     const sql = `DELETE FROM DriverBalance WHERE driverBalanceUniqueId = ?`;
     const [result] = await pool.query(sql, [driverBalanceUniqueId]);
-
+    // console.log("@deleteDriverBalance result", result);
     if (result.affectedRows === 0) {
       return { message: "error", error: "Driver balance not found" };
     }
