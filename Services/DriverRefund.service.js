@@ -144,17 +144,53 @@ const updateRefundStatusAndUrl = async ({
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: `Refund ${driverRefundUniqueId} updated successfully`,
+      data: `Refund data updated successfully`,
     };
   } else {
     return {
       message: "error",
-      error: `Refund ${driverRefundUniqueId} not found or update failed`,
+      error: `Refund data not found or update failed`,
     };
   }
 };
 
+const getRefundsByDateRange = async ({
+  driverUniqueId,
+  startDate,
+  endDate,
+}) => {
+  const sql = `
+    SELECT * FROM DriverRefund
+    WHERE driverUniqueId = ? AND refundDate BETWEEN ? AND ?
+    ORDER BY refundDate DESC
+  `;
+  const [result] = await pool.query(sql, [driverUniqueId, startDate, endDate]);
+  return { message: "success", data: result };
+};
+
+const getRefundsByStatusAndDateRange = async ({
+  status,
+  startDate,
+  endDate,
+  driverUniqueId,
+}) => {
+  let sql = `SELECT * FROM DriverRefund WHERE refundStatus = ? AND refundDate BETWEEN ? AND ?`;
+  const params = [status, startDate, endDate];
+
+  if (driverUniqueId) {
+    sql += ` AND driverUniqueId = ?`;
+    params.push(driverUniqueId);
+  }
+
+  sql += ` ORDER BY refundDate DESC`;
+
+  const [result] = await pool.query(sql, params);
+  return { message: "success", data: result };
+};
+
 module.exports = {
+  getRefundsByDateRange,
+  getRefundsByStatusAndDateRange,
   getAllDriverRefundByStatus,
   getOneDriverRefundListsByStatus,
   updateRefundStatusAndUrl,

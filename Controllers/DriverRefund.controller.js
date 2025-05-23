@@ -133,3 +133,40 @@ exports.updateRefundStatusAndUrl = async (req, res) => {
     });
   }
 };
+
+exports.getRefundsByDateRange = async (req, res) => {
+  try {
+    const { driverUniqueId, startDate, endDate } = req.query;
+    const result = await service.getRefundsByDateRange({
+      driverUniqueId,
+      startDate,
+      endDate,
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error in getRefundsByDateRange:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch refunds by date range",
+    });
+  }
+};
+
+exports.getRefundsByStatusAndDateRange = async (req, res) => {
+  try {
+    const { status, startDate, endDate, driverUniqueId } = req.query;
+    const result = await service.getRefundsByStatusAndDateRange({
+      status,
+      startDate,
+      endDate,
+      driverUniqueId,
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error in getRefundsByStatusAndDateRange:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch refunds",
+    });
+  }
+};

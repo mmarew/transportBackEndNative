@@ -56,4 +56,16 @@ router.patch(
   controller.updateRefundStatusAndUrl
 );
 
+router.get(
+  "/api/driverRefund/byDateRange",
+  verifyTokenOfAxios,
+  controller.getRefundsByDateRange
+);
+
+router.get(
+  "/api/driverRefund/byStatusAndRange",
+  verifyTokenOfAxios,
+  controller.getRefundsByStatusAndDateRange
+);
+
 module.exports = router;
