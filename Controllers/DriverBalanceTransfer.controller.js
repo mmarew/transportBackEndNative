@@ -9,8 +9,7 @@ exports.createTransfer = async (req, res) => {
     const user = req.user;
     const userUniqueId = user?.userUniqueId;
     if (transferredBy == "self") transferredBy = userUniqueId;
-    // console.log("@transferredBy", transferredBy == fromDriverUniqueId);
-    // return;
+
     const result = await service.createTransfer(
       fromDriverUniqueId,
       toDriverUniqueId,

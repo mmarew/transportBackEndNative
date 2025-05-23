@@ -31,7 +31,7 @@ const prepareAndCreateNewBalance = async ({
     !transactionUniqueId ||
     !transactionType
   ) {
-    return { message: "error", error: "all inputs are required" };
+    return { message: "error", error: "All balance inputs are required" };
   }
   const currentBalance = await getDriverLastBalance(driverUniqueId);
   let netBalance = currentBalance?.data?.netBalance;
@@ -68,12 +68,27 @@ const createDriverBalance = async (data) => {
       SELECT * FROM DriverBalance 
       WHERE transactionUniqueId = ? AND transactionType = ?
     `;
+    const targetedTransactionType = data?.transactionType;
     const [existingRecords] = await pool.query(sqlToGetData, [
       data.transactionUniqueId,
-      data.transactionType,
+      targetedTransactionType,
     ]);
-
-    if (existingRecords.length > 0) {
+    console.log(
+      "@targetedTransactionType",
+      targetedTransactionType,
+      "@existingRecords",
+      existingRecords
+    );
+    // return;
+    if (targetedTransactionType === "Transfer") {
+      if (existingRecords.length >= 2) {
+        return {
+          message: "success",
+          // error: "Driver balance record already exists",
+          data: existingRecords?.[0],
+        };
+      }
+    } else if (existingRecords.length > 0) {
       return {
         message: "success",
         // error: "Driver balance record already exists",

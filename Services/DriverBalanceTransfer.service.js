@@ -3,6 +3,9 @@ const { v4: uuidv4 } = require("uuid");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
+const {
+  deleteDriverBalanceByTransactionUniqueId,
+} = require("./DriverBalance.service/DriverBalance.delete.service");
 
 // Create
 const createTransfer = async (
@@ -14,40 +17,71 @@ const createTransfer = async (
 ) => {
   const depositTransferUniqueId = uuidv4();
 
-  const newBalance = await prepareAndCreateNewBalance({
+  // return;
+  const newBalanceToSender = await prepareAndCreateNewBalance({
     addOrDeduct: "deduct",
     amount: transferredAmount,
-    driverUniqueId: transferredBy,
+    driverUniqueId: fromDriverUniqueId,
     transactionUniqueId: depositTransferUniqueId,
+    transactionType: "Transfer",
   });
+  console.log("@newBalanceToSender", newBalanceToSender);
 
-  if (newBalance.message == "error") return newBalance;
+  if (newBalanceToSender.message == "error") {
+    deleteDriverBalanceByTransactionUniqueId(depositTransferUniqueId);
+    return newBalanceToSender;
+  }
+
+  const newBalanceToReciver = await prepareAndCreateNewBalance({
+    addOrDeduct: "add",
+    amount: transferredAmount,
+    driverUniqueId: toDriverUniqueId,
+    transactionUniqueId: depositTransferUniqueId,
+    transactionType: "Transfer",
+  });
+  console.log("@newBalanceToReciver", newBalanceToReciver);
+
+  if (newBalanceToReciver.message == "error") {
+    deleteDriverBalanceByTransactionUniqueId(depositTransferUniqueId);
+    return newBalanceToReciver;
+  }
+
   const sql = `
     INSERT INTO DriverBalanceTransfer
     (depositTransferUniqueId, fromDriverUniqueId, toDriverUniqueId, transferredAmount, reason, transferredBy)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
-
-  const [result] = await pool.query(sql, [
-    depositTransferUniqueId,
-    fromDriverUniqueId,
-    toDriverUniqueId,
-    transferredAmount,
-    reason,
-    transferredBy,
-  ]);
-
-  return {
-    message: "success",
-    data: {
+  try {
+    const [result] = await pool.query(sql, [
       depositTransferUniqueId,
       fromDriverUniqueId,
       toDriverUniqueId,
       transferredAmount,
       reason,
       transferredBy,
-    },
-  };
+    ]);
+    if (result.affectedRows <= 0) {
+      return {
+        message: "error",
+        error: "unable to transfer this balance",
+      };
+    }
+    return {
+      message: "success",
+      data: {
+        depositTransferUniqueId,
+        fromDriverUniqueId,
+        toDriverUniqueId,
+        transferredAmount,
+        reason,
+        transferredBy,
+      },
+    };
+  } catch (error) {
+    console.log("@error createTransfer ", error);
+    deleteDriverBalanceByTransactionUniqueId(depositTransferUniqueId);
+    return { message: "error", error: "unable to create balance transfer" };
+  }
 };
 
 // Get all
