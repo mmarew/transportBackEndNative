@@ -42,10 +42,16 @@ exports.getAllDriverSubscriptions = async (req, res) => {
 };
 exports.getDriverSubscriptionsByDriverId = async (req, res) => {
   try {
-    const { driverUniqueId } = req.params;
-    const result = await service.getDriverSubscriptionsByDriverId(
-      driverUniqueId
-    );
+    let driverUniqueId = req.params?.driverUniqueId;
+    const user = req?.user;
+    if (driverUniqueId == "self") {
+      driverUniqueId = user?.userUniqueId;
+    }
+    const { isActive } = req.params;
+    const result = await service.getDriverSubscriptionsByDriverId({
+      driverUniqueId,
+      isActive,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching subscriptions by driver:", error);
@@ -71,8 +77,22 @@ exports.getDriverSubscriptionsByPlanUniqueId = async (req, res) => {
     });
   }
 };
-
-// Get by UUID
+exports.getSubscriptionBydriverUniqueIdAndPlanUniqueId = async (req, res) => {
+  try {
+    const { driverUniqueId, subscriptionPlanUniqueId } = req.params;
+    const result = await service.getSubscriptionBydriverUniqueIdAndPlanUniqueId(
+      driverUniqueId,
+      subscriptionPlanUniqueId
+    );
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error fetching subscription by driver and plan:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch subscription by driver and plan",
+    });
+  }
+};
 exports.getDriverSubscriptionByUniqueId = async (req, res) => {
   try {
     const { driverSubscriptionUniqueId } = req.params;

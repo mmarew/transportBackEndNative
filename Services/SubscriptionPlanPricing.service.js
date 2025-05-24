@@ -93,9 +93,9 @@ const getActiveSubscriptionPlanningPrice = async ({
   subscriptionPlanUniqueId,
   today,
 }) => {
-  const sql = `SELECT * FROM SubscriptionPlanPricing WHERE subscriptionPlanUniqueId = ? 
+  const sql = `SELECT * FROM SubscriptionPlanPricing join SubscriptionPlan on SubscriptionPlanPricing.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId WHERE SubscriptionPlanPricing.subscriptionPlanUniqueId = ? 
       AND effectiveFrom <= ?  AND (effectiveTo IS NULL or effectiveTo >= ?)
-    ORDER BY createdAt DESC  LIMIT 1 `;
+    ORDER BY SubscriptionPlanPricing.createdAt DESC  LIMIT 1 `;
 
   const [result] = await pool.query(sql, [
     subscriptionPlanUniqueId,

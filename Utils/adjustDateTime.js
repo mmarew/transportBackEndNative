@@ -1,8 +1,17 @@
 function modifyDateTime(dateStr, changes = {}) {
-  const date = new Date(dateStr.replace(" ", "T")); // ensure compatibility
+  let date;
+
+  // Convert to Date instance safely
+  if (dateStr instanceof Date) {
+    date = new Date(dateStr); // clone to avoid mutation
+  } else if (typeof dateStr === "string") {
+    date = new Date(dateStr.replace(" ", "T"));
+  } else {
+    throw new Error("Invalid input: dateStr must be a string or Date object");
+  }
 
   if (isNaN(date))
-    throw new Error("Invalid date format. Use 'YYYY-MM-DD HH:mm:ss'");
+    throw new Error("Invalid date format. Use 'YYYY-MM-DD HH:mm:ss' or Date");
 
   // Apply modifications
   if (changes.years) date.setFullYear(date.getFullYear() + changes.years);
@@ -25,4 +34,5 @@ function modifyDateTime(dateStr, changes = {}) {
 
   return formatted;
 }
+
 module.exports = modifyDateTime;
