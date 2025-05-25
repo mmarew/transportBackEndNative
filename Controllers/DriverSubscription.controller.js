@@ -40,7 +40,7 @@ exports.getAllDriverSubscriptions = async (req, res) => {
     });
   }
 };
-exports.getDriverSubscriptionsByDriverId = async (req, res) => {
+exports.getAllOrActiveDriverSubscriptionsByDriverUUId = async (req, res) => {
   try {
     let driverUniqueId = req.params?.driverUniqueId;
     const user = req?.user;
@@ -48,7 +48,7 @@ exports.getDriverSubscriptionsByDriverId = async (req, res) => {
       driverUniqueId = user?.userUniqueId;
     }
     const { isActive } = req.params;
-    const result = await service.getDriverSubscriptionsByDriverId({
+    const result = await service.getAllOrActiveDriverSubscriptionsByDriverUUId({
       driverUniqueId,
       isActive,
     });

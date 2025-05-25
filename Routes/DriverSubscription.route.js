@@ -25,9 +25,9 @@ router.get(
 );
 // Get subscriptions by driverUniqueId and based on is active only or not active
 router.get(
-  "/api/driverSubscription/driver/:driverUniqueId/:isActive",
+  "/api/getAllOrActiveDriverSubscriptionsByDriverUUId/driver/:driverUniqueId/:isActive",
   verifyTokenOfAxios,
-  controller.getDriverSubscriptionsByDriverId
+  controller.getAllOrActiveDriverSubscriptionsByDriverUUId
 );
 
 // Get subscriptions by subscriptionPlanId
@@ -36,6 +36,7 @@ router.get(
   verifyTokenOfAxios,
   controller.getDriverSubscriptionsByPlanUniqueId
 );
+//Get subscriptions by subscriptionPlanUniqueId and driver uuid
 router.get(
   "/api/driverSubscription/driver/plan/:driverUniqueId/:subscriptionPlanUniqueId",
   verifyTokenOfAxios,

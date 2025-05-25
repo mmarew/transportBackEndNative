@@ -19,7 +19,7 @@ const createDriverSubscription = async (
   // const activeSubscription=await ()
   const driverSubscriptionUniqueId = uuidv4();
   const today = currentDate();
-
+  // there are old and outdated pricing data so we need active one only
   const activePricing = await getActiveSubscriptionPlanningPrice({
     subscriptionPlanUniqueId,
     today,
@@ -38,16 +38,17 @@ const createDriverSubscription = async (
   const getActiveSubscription = await getDriverSubscriptionsByPlanUniqueId(
     subscriptionPlanUniqueId
   );
+  console.log("@getActiveSubscription", getActiveSubscription);
   const activeSubscriptionData = getActiveSubscription?.data?.[0];
 
   let savedEndDate = null,
     savedStartDate = null;
   // prevent recreate double free trial
   if (activeSubscriptionData) {
-    if (activePricingData?.isTrial) {
+    if (activeSubscriptionData?.isTrial) {
       return {
         message: "error",
-        error: "you already have registered fretrial once",
+        error: "You have already registered for a free trial once.",
       };
     } else {
       savedEndDate = activeSubscriptionData?.endDate;
@@ -106,7 +107,7 @@ const getAllDriverSubscriptions = async () => {
   return { message: "success", data: result };
 };
 // Get subscriptions by driverUniqueId
-const getDriverSubscriptionsByDriverId = async ({
+const getAllOrActiveDriverSubscriptionsByDriverUUId = async ({
   driverUniqueId,
   isActive,
 }) => {
@@ -227,7 +228,7 @@ const deleteDriverSubscriptionByUniqueId = async (
 
 module.exports = {
   getSubscriptionBydriverUniqueIdAndPlanUniqueId,
-  getDriverSubscriptionsByDriverId,
+  getAllOrActiveDriverSubscriptionsByDriverUUId,
   getDriverSubscriptionsByPlanUniqueId,
   createDriverSubscription,
   getAllDriverSubscriptions,
