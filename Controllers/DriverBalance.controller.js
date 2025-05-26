@@ -109,6 +109,7 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
       result = await getDriverBalanceByDateRange({
         fromDate,
         toDate,
+        userUniqueId,
       });
     return ServerResponder(res, result);
   } catch (error) {

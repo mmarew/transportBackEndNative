@@ -81,8 +81,7 @@ exports.getSubscriptionBydriverUniqueIdAndPlanUniqueId = async (req, res) => {
   try {
     const { driverUniqueId, subscriptionPlanUniqueId } = req.params;
     const result = await service.getSubscriptionBydriverUniqueIdAndPlanUniqueId(
-      driverUniqueId,
-      subscriptionPlanUniqueId
+      { driverUniqueId, subscriptionPlanUniqueId }
     );
     ServerResponder(res, result);
   } catch (error) {

@@ -35,9 +35,11 @@ const createDriverSubscription = async (
 
   const price = activePricingData?.price;
   const durationInDays = activePricingData?.durationInDays;
-  const getActiveSubscription = await getDriverSubscriptionsByPlanUniqueId(
-    subscriptionPlanUniqueId
-  );
+  const getActiveSubscription =
+    await getSubscriptionBydriverUniqueIdAndPlanUniqueId({
+      driverUniqueId,
+      subscriptionPlanUniqueId,
+    });
   console.log("@getActiveSubscription", getActiveSubscription);
   const activeSubscriptionData = getActiveSubscription?.data?.[0];
 
@@ -125,6 +127,7 @@ const getAllOrActiveDriverSubscriptionsByDriverUUId = async ({
     data: result,
   };
 };
+// Get By Plan UUIDV4
 const getDriverSubscriptionsByPlanUniqueId = async (
   subscriptionPlanUniqueId
 ) => {
@@ -152,10 +155,10 @@ const getDriverSubscriptionsByPlanUniqueId = async (
   };
 };
 
-const getSubscriptionBydriverUniqueIdAndPlanUniqueId = async (
+const getSubscriptionBydriverUniqueIdAndPlanUniqueId = async ({
   driverUniqueId,
-  subscriptionPlanUniqueId
-) => {
+  subscriptionPlanUniqueId,
+}) => {
   const sql = `
     SELECT * FROM DriverSubscription
     WHERE driverUniqueId = ? AND subscriptionPlanUniqueId = ?
@@ -169,9 +172,9 @@ const getSubscriptionBydriverUniqueIdAndPlanUniqueId = async (
     ? { message: "success", data: result }
     : { message: "error", error: "Subscription not found" };
 };
-// Get by UUID
+// Get by driver subscription UUIDV4(driverSubscriptionUniqueId)
 const getDriverSubscriptionByUniqueId = async (driverSubscriptionUniqueId) => {
-  const sql = `SELECT * FROM DriverSubscription WHERE driverSubscriptionUniqueId = ?`;
+  const sql = `SELECT * FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE driverSubscriptionUniqueId = ?`;
   const [result] = await pool.query(sql, [driverSubscriptionUniqueId]);
 
   return result.length > 0

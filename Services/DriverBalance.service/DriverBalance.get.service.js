@@ -115,7 +115,11 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
     return { message: "error", error: "Unable to get driver balance" };
   }
 };
-const getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
+const getDriverBalanceByDateRange = async ({
+  fromDate,
+  toDate,
+  userUniqueId,
+}) => {
   try {
     let results = null;
     if (fromDate == "lastTen" && toDate == "lastTen") {
@@ -130,19 +134,30 @@ const getDriverBalanceByDateRange = async ({ fromDate, toDate }) => {
     const fullData = await Promise.all(
       results.map(async (record) => {
         let TransactionData = { ...record };
+        const transactionUniqueId = record?.transactionUniqueId;
         if (record.transactionType === "Deposit") {
-          const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
-          const [result] = await pool.query(sql, [record?.transactionUniqueId]);
-
-          // const depositData = await getDriverDepositByDriverDepositUniqueId(
-          //   record?.transactionUniqueId
-          // );
-          TransactionData = { ...record, ...result?.[0] };
+          const result = await getDriverDepositByUniqueId(transactionUniqueId);
+          if (result?.message == "success" && typeof result?.data == "object")
+            TransactionData = { ...record, ...result?.data };
         } else if (record.transactionType === "Commission") {
           const commissionData = await getCommissionsByCommissionUniqueId(
             record.transactionUniqueId
           );
-          TransactionData = { ...record, ...commissionData?.data?.[0] };
+          const data = commissionData?.data?.[0];
+          if (commissionData?.message == "success" && typeof data == "object")
+            TransactionData = { ...record, ...data };
+        } else if (record.transactionType === "Subscription") {
+          const SubscriptionData = await getDriverSubscriptionByUniqueId(
+            record?.transactionUniqueId
+          );
+
+          if (SubscriptionData?.message == "error") {
+          } else if (
+            SubscriptionData?.message == "success" &&
+            typeof SubscriptionData?.data == "object"
+          ) {
+            TransactionData = { ...record, ...SubscriptionData?.data };
+          }
         }
         return TransactionData;
       })

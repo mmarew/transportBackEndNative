@@ -40,14 +40,14 @@ const createSubscriptionPlan = async (
 
 // Get all
 const getAllSubscriptionPlans = async () => {
-  const sql = `SELECT * FROM SubscriptionPlan ORDER BY createdAt DESC`;
+  const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId ORDER BY SubscriptionPlan.createdAt DESC`;
   const [result] = await pool.query(sql);
   return { message: "success", data: result };
 };
 
 // Get by uniqueId
 const getSubscriptionPlanByUniqueId = async (uniqueId) => {
-  const sql = `SELECT * FROM SubscriptionPlan WHERE subscriptionPlanUniqueId = ?`;
+  const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE subscriptionPlanUniqueId = ? `;
   const [result] = await pool.query(sql, [uniqueId]);
 
   return result.length > 0
