@@ -651,18 +651,19 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   FOREIGN KEY (depositSourceUniqueId) REFERENCES DepositSource(depositSourceUniqueId)
 );
 
-
 -- free gift records for drivers to encorage them to use the app
 CREATE TABLE IF NOT EXISTS FreeGiftToDriver (
   freeGiftId INT AUTO_INCREMENT PRIMARY KEY,
   freeGiftUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,
   subscriptionPlanUniqueId VARCHAR(36) NOT NULL, -- Foreign key to SubscriptionPlan
-  giftAmount DECIMAL(10, 2) NOT NULL,
-   giftTime DATETIME NOT NULL,
-  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,     
-  startDate DATETIME NOT NULL, -- When the gift is valid from
-  endDate DATETIME NOT NULL, -- When the gift is valid until
+  
+  giftCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,     
+  giftStartDate DATETIME NOT NULL, -- When the gift is valid from
+  giftEndDate DATETIME NOT NULL, -- When the gift is valid until,
+  isFreeGiftDeleted BOOLEAN DEFAULT FALSE, -- Soft delete flag,
+  freeGiftDeletedAt DATETIME NULL, -- When the gift was deleted
+  freeGiftDeletedBy VARCHAR(36) NULL, -- Who deleted the gift
     FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );

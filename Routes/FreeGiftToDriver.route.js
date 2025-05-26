@@ -3,39 +3,44 @@ const router = express.Router();
 const controller = require("../Controllers/FreeGiftToDriver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
-// Create Free Gift
+// Create a free gift for a driver
 router.post(
   "/api/freeGiftToDriver/:driverUniqueId",
   verifyTokenOfAxios,
   controller.createFreeGiftToDriver
 );
 
-// Get all Free Gifts
+// Get all free gifts
 router.get(
   "/api/freeGiftToDriver",
   verifyTokenOfAxios,
   controller.getAllFreeGiftToDrivers
 );
 
-// Get by UniqueId
+// Get gift by unique ID
 router.get(
   "/api/freeGiftToDriver/:freeGiftUniqueId",
   verifyTokenOfAxios,
   controller.getFreeGiftToDriverByUniqueId
 );
 
-// Get gifts by driverUniqueId
+// Get gifts by driver
 router.get(
   "/api/freeGiftToDriver/driver/:driverUniqueId",
   verifyTokenOfAxios,
   controller.getFreeGiftToDriverByDriverId
 );
 
-// Delete
+// Delete gift
 router.delete(
   "/api/freeGiftToDriver/:freeGiftUniqueId",
   verifyTokenOfAxios,
   controller.deleteFreeGiftToDriverByUniqueId
+);
+router.put(
+  "/api/freeGiftToDriver/:freeGiftUniqueId",
+  verifyTokenOfAxios,
+  controller.updateFreeGiftToDriverByUniqueId
 );
 
 module.exports = router;
