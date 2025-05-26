@@ -27,6 +27,7 @@ const createDriverSubscription = async (
 
   const activePricingData = activePricing?.data?.[0];
   console.log("@activePricingData", activePricingData);
+  // if there is no active pricing and planning return error
   if (!activePricingData)
     return {
       message: "error",
@@ -35,14 +36,17 @@ const createDriverSubscription = async (
 
   const price = activePricingData?.price;
   const durationInDays = activePricingData?.durationInDays;
+  // check if the user already have this subscription
   const getActiveSubscription =
     await getSubscriptionBydriverUniqueIdAndPlanUniqueId({
       driverUniqueId,
       subscriptionPlanUniqueId,
     });
-  console.log("@getActiveSubscription", getActiveSubscription);
+
   const activeSubscriptionData = getActiveSubscription?.data?.[0];
 
+  console.log("@getActiveSubscription", getActiveSubscription);
+  // return;
   let savedEndDate = null,
     savedStartDate = null;
   // prevent recreate double free trial
@@ -89,6 +93,26 @@ const createDriverSubscription = async (
     nextDate,
   ];
   const [result] = await pool.query(sql, values);
+  console.log("@DriverSubscription result", result);
+  if (result.affectedRows > 0) {
+    // deduct balance if subscription was free trial because it is already added above in balance so deduct it now
+    if (activePricingData?.isTrial) {
+      const newBalanceInDeductionOfFreeTrial = await prepareAndCreateNewBalance(
+        {
+          addOrDeduct: "deduct",
+          amount: price,
+          driverUniqueId,
+          // create new uuidv4 for new data
+          transactionUniqueId: uuidv4(), // driverSubscriptionUniqueId,
+          transactionType: "Subscription",
+        }
+      );
+      console.log(
+        "@newBalanceInDeductionOfFreeTrial",
+        newBalanceInDeductionOfFreeTrial
+      );
+    }
+  }
 
   return {
     message: "success",
@@ -160,17 +184,15 @@ const getSubscriptionBydriverUniqueIdAndPlanUniqueId = async ({
   subscriptionPlanUniqueId,
 }) => {
   const sql = `
-    SELECT * FROM DriverSubscription
-    WHERE driverUniqueId = ? AND subscriptionPlanUniqueId = ?
-    ORDER BY createdAt DESC 
+    SELECT * FROM DriverSubscription join SubscriptionPlan on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId
+    WHERE driverUniqueId = ? AND SubscriptionPlan.subscriptionPlanUniqueId = ?
+    ORDER BY DriverSubscription.createdAt DESC 
   `;
   const [result] = await pool.query(sql, [
     driverUniqueId,
     subscriptionPlanUniqueId,
   ]);
-  return result.length > 0
-    ? { message: "success", data: result }
-    : { message: "error", error: "Subscription not found" };
+  return { message: "success", data: result };
 };
 // Get by driver subscription UUIDV4(driverSubscriptionUniqueId)
 const getDriverSubscriptionByUniqueId = async (driverSubscriptionUniqueId) => {

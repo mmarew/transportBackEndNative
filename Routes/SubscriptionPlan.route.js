@@ -16,6 +16,12 @@ router.get(
   verifyTokenOfAxios,
   subscriptionPlanController.getAllSubscriptionPlans
 );
+router.get(
+  "/api/subscriptionPlan/withPricing",
+  // This route is for getting all subscription plans with their pricing details
+  verifyTokenOfAxios,
+  subscriptionPlanController.getAllSubscriptionPlansWithPricing
+);
 
 // Get by uniqueId
 router.get(

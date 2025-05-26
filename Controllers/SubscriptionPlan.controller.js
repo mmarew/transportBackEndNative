@@ -18,7 +18,19 @@ exports.createSubscriptionPlan = async (req, res) => {
     });
   }
 };
-
+exports.getAllSubscriptionPlansWithPricing = async (req, res) => {
+  try {
+    const result =
+      await subscriptionPlanService.getAllSubscriptionPlansWithPricing();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error fetching subscription plans with pricing:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch subscription plans with pricing",
+    });
+  }
+};
 exports.getAllSubscriptionPlans = async (req, res) => {
   try {
     const result = await subscriptionPlanService.getAllSubscriptionPlans();

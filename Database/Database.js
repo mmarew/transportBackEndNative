@@ -566,7 +566,7 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlan (
   subscriptionPlanUniqueId VARCHAR(36) NOT NULL UNIQUE,
   planName VARCHAR(100) NOT NULL UNIQUE,
   description TEXT,
-  isTrial BOOLEAN DEFAULT FALSE,
+  isFree BOOLEAN DEFAULT FALSE,
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -649,6 +649,22 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   
   FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
   FOREIGN KEY (depositSourceUniqueId) REFERENCES DepositSource(depositSourceUniqueId)
+);
+
+
+-- free gift records for drivers to encorage them to use the app
+CREATE TABLE IF NOT EXISTS FreeGiftToDriver (
+  freeGiftId INT AUTO_INCREMENT PRIMARY KEY,
+  freeGiftUniqueId VARCHAR(36) NOT NULL UNIQUE,
+  driverUniqueId VARCHAR(36) NOT NULL,
+  subscriptionPlanUniqueId VARCHAR(36) NOT NULL, -- Foreign key to SubscriptionPlan
+  giftAmount DECIMAL(10, 2) NOT NULL,
+   giftTime DATETIME NOT NULL,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,     
+  startDate DATETIME NOT NULL, -- When the gift is valid from
+  endDate DATETIME NOT NULL, -- When the gift is valid until
+    FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );
 
  

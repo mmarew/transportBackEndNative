@@ -437,7 +437,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const vehicleResponse = await getVehicleAndOwnershipViaUserUniqueId(
       userUniqueId
     );
-    console.log("@verifyDriverStatus vehicleResponse", vehicleResponse);
     const vehicle = vehicleResponse?.data?.[0];
     if (!vehicle) {
       return {
@@ -458,7 +457,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     if (!activeRequest?.length) {
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
-    console.log("@verifyDriverStatus activeRequest=======> ", activeRequest);
     const driverRequest = activeRequest?.[0];
 
     if (!driverRequest) {

@@ -40,11 +40,21 @@ const createSubscriptionPlan = async (
 
 // Get all
 const getAllSubscriptionPlans = async () => {
-  const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId ORDER BY SubscriptionPlan.createdAt DESC`;
+  const sql = `SELECT * FROM SubscriptionPlan  ORDER BY SubscriptionPlan.createdAt DESC`;
   const [result] = await pool.query(sql);
   return { message: "success", data: result };
 };
-
+// Get all with pricing
+const getAllSubscriptionPlansWithPricing = async () => {
+  const sql = `
+    SELECT sp.*, spp.*
+    FROM SubscriptionPlan sp
+    LEFT JOIN SubscriptionPlanPricing spp ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+    ORDER BY sp.createdAt DESC
+  `;
+  const [result] = await pool.query(sql);
+  return { message: "success", data: result };
+};
 // Get by uniqueId
 const getSubscriptionPlanByUniqueId = async (uniqueId) => {
   const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE subscriptionPlanUniqueId = ? `;
@@ -101,6 +111,7 @@ const deleteSubscriptionPlan = async (uniqueId) => {
 };
 
 module.exports = {
+  getAllSubscriptionPlansWithPricing,
   createSubscriptionPlan,
   getAllSubscriptionPlans,
   getSubscriptionPlanByUniqueId,
