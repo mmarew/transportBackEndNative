@@ -70,16 +70,6 @@ const createDriverSubscription = async (
     days: durationInDays,
   });
 
-  const newBalance = await prepareAndCreateNewBalance({
-    addOrDeduct: activePricingData?.isTrial ? "add" : "deduct",
-    amount: price,
-    driverUniqueId,
-    transactionUniqueId: driverSubscriptionUniqueId,
-    transactionType: "Subscription",
-  });
-  console.log("@createDriverSubscription newNetBalance", newBalance);
-  // return;
-  if (newBalance.message == "error") return newBalance;
   const sql = `
     INSERT INTO DriverSubscription 
     (driverSubscriptionUniqueId, driverUniqueId, subscriptionPlanUniqueId, startDate, endDate)
@@ -96,22 +86,19 @@ const createDriverSubscription = async (
   console.log("@DriverSubscription result", result);
   if (result.affectedRows > 0) {
     // deduct balance if subscription was free trial because it is already added above in balance so deduct it now
-    if (activePricingData?.isTrial) {
-      const newBalanceInDeductionOfFreeTrial = await prepareAndCreateNewBalance(
-        {
-          addOrDeduct: "deduct",
-          amount: price,
-          driverUniqueId,
-          // create new uuidv4 for new data
-          transactionUniqueId: uuidv4(), // driverSubscriptionUniqueId,
-          transactionType: "Subscription",
-        }
-      );
-      console.log(
-        "@newBalanceInDeductionOfFreeTrial",
-        newBalanceInDeductionOfFreeTrial
-      );
-    }
+    // if (activePricingData?.isTrial) {
+    const newBalanceInDeductionOfFreeTrial = await prepareAndCreateNewBalance({
+      addOrDeduct: "deduct",
+      amount: price,
+      driverUniqueId,
+      // create new uuidv4 for new data
+      transactionUniqueId: uuidv4(), // driverSubscriptionUniqueId,
+      transactionType: "Subscription",
+    });
+    console.log(
+      "@newBalanceInDeductionOfFreeTrial",
+      newBalanceInDeductionOfFreeTrial
+    );
   }
 
   return {

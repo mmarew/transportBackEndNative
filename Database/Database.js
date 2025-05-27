@@ -731,7 +731,7 @@ CREATE TABLE IF NOT EXISTS DriverBalance (
     driverBalanceId INT AUTO_INCREMENT PRIMARY KEY,
     driverBalanceUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for driver balance
     userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users driver
-    transactionType enum('Deposit', 'Commission','Transfer','Refund','Subscription') NOT NULL,  -- Type of transaction
+    transactionType enum('Deposit', 'Commission','Transfer','Refund','Subscription',"freeGift") NOT NULL,  -- Type of transaction
     transactionUniqueId VARCHAR(36) NOT NULL,  -- UUID for 'Deposit', 'Commission','Transfer','Refund','Subscription'
     transactionTime DATETIME NOT NULL,  -- Time of transaction
     netBalance DECIMAL(10, 2) NOT NULL,  -- Balance which is previous balance + (deposit or - Commission)

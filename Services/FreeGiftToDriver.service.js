@@ -96,7 +96,7 @@ const createFreeGiftToDriver = async ({
     amount: price,
     driverUniqueId,
     transactionUniqueId: freeGiftUniqueId,
-    transactionType: "Subscription",
+    transactionType: "freeGift",
   });
 
   return result.affectedRows > 0

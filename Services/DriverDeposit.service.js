@@ -3,13 +3,11 @@ const { v4: uuidv4 } = require("uuid");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
-const {
-  sendNotificationToAdmin,
-  sendNotificationToDriver,
-} = require("../Utils/Notifications");
+const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const {
   deleteDriverBalance,
 } = require("./DriverBalance.service/DriverBalance.delete.service");
+const { getData } = require("../CRUD/Read/ReadData");
 
 // Create
 const createDriverDeposit = async (data) => {
@@ -22,15 +20,54 @@ const createDriverDeposit = async (data) => {
     depositTime,
     depositURL,
   } = data;
-  // const newBalance = await prepareAndCreateNewBalance({
-  //   addOrDeduct: "add",
-  //   amount: depositAmount,
-  //   driverUniqueId,
-  //   transactionType: "Deposit",
-  //   transactionUniqueId: driverDepositUniqueId,
-  // });
-  // if (newBalance.message == "error") return newBalance;
-  // const driverBalanceUniqueId = newBalance?.data?.driverBalanceUniqueId;
+
+  // Check if required fields are provided
+  if (
+    !driverUniqueId ||
+    !depositAmount ||
+    !depositSourceUniqueId ||
+    !accountUniqueId ||
+    !depositTime
+  ) {
+    return { message: "error", error: "Missing required fields" };
+  }
+  // Validate depositAmount
+  if (isNaN(depositAmount) || depositAmount <= 0) {
+    return { message: "error", error: "Invalid deposit amount" };
+  }
+  // Validate depositTime
+  if (isNaN(new Date(depositTime).getTime())) {
+    return { message: "error", error: "Invalid deposit time" };
+  }
+  // Validate depositURL
+  if (depositURL && typeof depositURL !== "string") {
+    return { message: "error", error: "Invalid deposit URL" };
+  }
+  // Validate driverUniqueId
+  if (typeof driverUniqueId !== "string" || driverUniqueId.length === 0) {
+    return { message: "error", error: "Invalid driver unique ID" };
+  }
+  // Validate depositSourceUniqueId
+  if (
+    typeof depositSourceUniqueId !== "string" ||
+    depositSourceUniqueId.length === 0
+  ) {
+    return { message: "error", error: "Invalid deposit source unique ID" };
+  }
+  // Validate accountUniqueId
+  if (typeof accountUniqueId !== "string" || accountUniqueId.length === 0) {
+    return { message: "error", error: "Invalid account unique ID" };
+  }
+  // check if depositURL existed before
+  const existedURL = await getData({
+    tableName: "DriverDeposit",
+    conditions: {
+      depositURL: depositURL,
+    },
+  });
+  if (existedURL?.length > 0)
+    return { message: "error", error: "Deposit URL already exists" };
+  // Prepare SQL query
   const sql = `
     INSERT INTO DriverDeposit (
       driverDepositUniqueId,
@@ -51,11 +88,10 @@ const createDriverDeposit = async (data) => {
       depositTime,
       depositURL,
     ]);
-    // if data of deposit is not inserted but data of balance is adjusted remove adjusted data of balance
-    // if (insertResult.affectedRows < 0) {
-    // deleteDriverBalance(driverBalanceUniqueId);
-    //   return { message: "error", error: "unale to create deposit record" };
-    // }
+    if (!insertResult.affectedRows) {
+      return { message: "error", error: "Failed to insert deposit data" };
+    }
+
     const message = {
       message: "success",
       data: {
