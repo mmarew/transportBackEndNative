@@ -115,12 +115,7 @@ exports.updateFreeGiftToDriverByUniqueId = async (req, res) => {
     }
 
     const result = await service.updateFreeGiftToDriverByUniqueId({
-      freeGiftUniqueId,
-      giftStartDate,
-      giftEndDate,
-      subscriptionPlanUniqueId,
-      driverUniqueId,
-      updatedBy,
+      ...req.body,
     });
 
     ServerResponder(res, result);

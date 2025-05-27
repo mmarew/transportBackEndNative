@@ -664,6 +664,10 @@ CREATE TABLE IF NOT EXISTS FreeGiftToDriver (
   isFreeGiftDeleted BOOLEAN DEFAULT FALSE, -- Soft delete flag,
   freeGiftDeletedAt DATETIME NULL, -- When the gift was deleted
   freeGiftDeletedBy VARCHAR(36) NULL, -- Who deleted the gift
+
+  freeGiftUpdatedBy VARCHAR(36) NULL, -- Who updated the gift
+    freeGiftUpdatedAt DATETIME NULL, -- When the gift was updated
+    
     FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );

@@ -52,6 +52,7 @@ const createFreeGiftToDriver = async ({
     return {
       message: "error",
       error: "You already have a free gift for this plan.",
+      data: giftData,
     };
   }
   // prepare giftEndDate based on plan duration
@@ -177,53 +178,27 @@ const deleteFreeGiftToDriverByUniqueId = async ({
       }
     : { message: "error", error: "Failed to delete gift" };
 };
-// update
-const updateFreeGiftToDriverByUniqueId = async ({
-  freeGiftUniqueId,
-  giftStartDate,
-  giftEndDate,
-  subscriptionPlanUniqueId,
-  driverUniqueId,
-  updatedBy,
-}) => {
-  if (!freeGiftUniqueId) {
-    return { message: "error", error: "Free gift unique ID is required" };
+const updateFreeGiftToDriverByUniqueId = async (body) => {
+  const { freeGiftUniqueId, ...updateFields } = body;
+
+  if (!freeGiftUniqueId || Object.keys(updateFields).length === 0) {
+    return { message: "error", error: "Missing required fields" };
   }
 
   const fields = [];
   const values = [];
 
-  if (giftStartDate) {
-    fields.push("giftStartDate = ?");
-    values.push(giftStartDate);
+  for (const [key, value] of Object.entries(updateFields)) {
+    fields.push(`${key} = ?`);
+    values.push(value);
   }
-  if (giftEndDate) {
-    fields.push("giftEndDate = ?");
-    values.push(giftEndDate);
-  }
-  if (subscriptionPlanUniqueId) {
-    fields.push("subscriptionPlanUniqueId = ?");
-    values.push(subscriptionPlanUniqueId);
-  }
-  if (driverUniqueId) {
-    fields.push("driverUniqueId = ?");
-    values.push(driverUniqueId);
-  }
-  if (updatedBy) {
-    fields.push("freeGiftUpdatedBy = ?");
-    values.push(updatedBy);
-  }
-  fields.push("freeGiftUpdatedAt = ?");
-  values.push(currentDate());
 
-  if (fields.length === 0) {
-    return { message: "error", error: "No fields to update" };
-  }
+  // ✅ Push WHERE clause value
+  values.push(freeGiftUniqueId);
 
   const sql = `UPDATE FreeGiftToDriver SET ${fields.join(
     ", "
-  )} WHERE freeGiftUniqueId = ? AND isFreeGiftDeleted = ?`;
-  values.push(freeGiftUniqueId, false);
+  )} WHERE freeGiftUniqueId = ?`;
 
   const [result] = await pool.query(sql, values);
 
