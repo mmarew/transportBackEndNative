@@ -130,7 +130,13 @@ const getFreeGiftToDriverByPlanUniqueIdAndDriverUniqueId = async ({
   subscriptionPlanUniqueId,
   driverUniqueId,
 }) => {
-  const sql = `SELECT * FROM FreeGiftToDriver join SubscriptionPlan on FreeGiftToDriver.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId WHERE SubscriptionPlan.subscriptionPlanUniqueId = ? AND driverUniqueId = ? `;
+  console.log(
+    "@getFreeGiftToDriverByPlanUniqueIdAndDriverUniqueId subscriptionPlanUniqueId",
+    subscriptionPlanUniqueId,
+    "driverUniqueId",
+    driverUniqueId
+  );
+  const sql = `SELECT * FROM FreeGiftToDriver join SubscriptionPlan on FreeGiftToDriver.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId WHERE FreeGiftToDriver.subscriptionPlanUniqueId = ? AND FreeGiftToDriver.driverUniqueId = ? `;
   const [result] = await pool.query(sql, [
     subscriptionPlanUniqueId,
     driverUniqueId,

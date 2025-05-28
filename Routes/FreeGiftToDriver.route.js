@@ -30,7 +30,11 @@ router.get(
   verifyTokenOfAxios,
   controller.getFreeGiftToDriverByDriverId
 );
-
+router.get(
+  "/api/freeGiftToDriver/plan/:subscriptionPlanUniqueId/driver/:driverUniqueId",
+  verifyTokenOfAxios,
+  controller.getFreeGiftToDriverByPlanUniqueIdAndDriverUniqueId
+);
 // Delete gift
 router.delete(
   "/api/freeGiftToDriver/:freeGiftUniqueId",

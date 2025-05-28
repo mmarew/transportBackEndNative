@@ -10,7 +10,7 @@ exports.createDriverSubscription = async (req, res) => {
     let driverUniqueId = req?.params?.driverUniqueId;
     if (driverUniqueId == "self") driverUniqueId = user?.userUniqueId;
     console.log("@driverUniqueId", driverUniqueId);
-    // return;
+
     const result = await service.createDriverSubscription(
       driverUniqueId,
       subscriptionPlanUniqueId,

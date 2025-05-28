@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require("uuid");
 const createSubscriptionPlan = async (
   planName,
   description,
-  isTrial = false
+  isFree = false
 ) => {
   const checkSql = `SELECT * FROM SubscriptionPlan WHERE planName = ?`;
   const [existing] = await pool.query(checkSql, [planName]);
@@ -15,14 +15,14 @@ const createSubscriptionPlan = async (
 
   const subscriptionPlanUniqueId = uuidv4();
   const insertSql = `
-    INSERT INTO SubscriptionPlan (subscriptionPlanUniqueId, planName, description, isTrial)
+    INSERT INTO SubscriptionPlan (subscriptionPlanUniqueId, planName, description, isFree)
     VALUES (?, ?, ?, ?)
   `;
   const [result] = await pool.query(insertSql, [
     subscriptionPlanUniqueId,
     planName,
     description,
-    isTrial,
+    isFree,
   ]);
 
   return {
@@ -32,7 +32,7 @@ const createSubscriptionPlan = async (
         subscriptionPlanUniqueId,
         planName,
         description,
-        isTrial,
+        isFree,
       },
     ],
   };
@@ -70,17 +70,17 @@ const updateSubscriptionPlan = async (
   uniqueId,
   planName,
   description,
-  isTrial
+  isFree
 ) => {
   const sql = `
     UPDATE SubscriptionPlan
-    SET planName = ?, description = ?, isTrial = ?
+    SET planName = ?, description = ?, isFree = ?
     WHERE subscriptionPlanUniqueId = ?
   `;
   const [result] = await pool.query(sql, [
     planName,
     description,
-    isTrial,
+    isFree,
     uniqueId,
   ]);
 
@@ -91,7 +91,7 @@ const updateSubscriptionPlan = async (
           subscriptionPlanUniqueId: uniqueId,
           planName,
           description,
-          isTrial,
+          isFree,
         },
       }
     : { message: "error", error: "Failed to update subscription plan 111111" };

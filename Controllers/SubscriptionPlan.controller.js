@@ -3,11 +3,11 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 exports.createSubscriptionPlan = async (req, res) => {
   try {
-    const { planName, description, isTrial } = req.body;
+    const { planName, description, isFree } = req.body;
     const result = await subscriptionPlanService.createSubscriptionPlan(
       planName,
       description,
-      isTrial
+      isFree
     );
     ServerResponder(res, result);
   } catch (error) {
@@ -63,12 +63,12 @@ exports.getSubscriptionPlanByUniqueId = async (req, res) => {
 exports.updateSubscriptionPlan = async (req, res) => {
   try {
     const { uniqueId } = req.params;
-    const { planName, description, isTrial } = req.body;
+    const { planName, description, isFree } = req.body;
     const result = await subscriptionPlanService.updateSubscriptionPlan(
       uniqueId,
       planName,
       description,
-      isTrial
+      isFree
     );
     ServerResponder(res, result);
   } catch (error) {

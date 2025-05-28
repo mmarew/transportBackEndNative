@@ -8,6 +8,9 @@ const modifyDateTime = require("../Utils/adjustDateTime");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
+const {
+  deleteDriverBalanceByTransactionUniqueId,
+} = require("./DriverBalance.service/DriverBalance.delete.service");
 
 // Create subscription
 const createDriverSubscription = async (
@@ -26,7 +29,12 @@ const createDriverSubscription = async (
   });
 
   const activePricingData = activePricing?.data?.[0];
-  console.log("@activePricingData", activePricingData);
+  console.log(
+    "@activePricingData",
+    activePricingData,
+    "subscriptionPlanUniqueId",
+    subscriptionPlanUniqueId
+  );
   // if there is no active pricing and planning return error
   if (!activePricingData)
     return {
@@ -51,7 +59,7 @@ const createDriverSubscription = async (
     savedStartDate = null;
   // prevent recreate double free trial
   if (activeSubscriptionData) {
-    if (activeSubscriptionData?.isTrial) {
+    if (activeSubscriptionData?.isFree) {
       return {
         message: "error",
         error: "You have already registered for a free trial once.",
@@ -64,6 +72,24 @@ const createDriverSubscription = async (
   } else {
   }
   console.log("@savedEndDate", savedEndDate);
+
+  // deduct balance if subscription was free trial because it is already added above in balance so deduct it now
+  // if (activePricingData?.isFree) {
+  const newBalanceInDeductionOfFreeTrial = await prepareAndCreateNewBalance({
+    addOrDeduct: "deduct",
+    amount: price,
+    driverUniqueId,
+    // create new uuidv4 for new data
+    transactionUniqueId: uuidv4(), // driverSubscriptionUniqueId,
+    transactionType: "Subscription",
+  });
+  console.log(
+    "@newBalanceInDeductionOfFreeTrial",
+    newBalanceInDeductionOfFreeTrial
+  );
+  if (newBalanceInDeductionOfFreeTrial?.message == "error") {
+    return newBalanceInDeductionOfFreeTrial;
+  }
   // return;
   // If there is savedEndDate add next purchase on savedEndDate
   const nextDate = modifyDateTime(savedEndDate ? savedEndDate : today, {
@@ -84,21 +110,12 @@ const createDriverSubscription = async (
   ];
   const [result] = await pool.query(sql, values);
   console.log("@DriverSubscription result", result);
-  if (result.affectedRows > 0) {
-    // deduct balance if subscription was free trial because it is already added above in balance so deduct it now
-    // if (activePricingData?.isTrial) {
-    const newBalanceInDeductionOfFreeTrial = await prepareAndCreateNewBalance({
-      addOrDeduct: "deduct",
-      amount: price,
-      driverUniqueId,
-      // create new uuidv4 for new data
-      transactionUniqueId: uuidv4(), // driverSubscriptionUniqueId,
-      transactionType: "Subscription",
+  if (result.affectedRows == 0) {
+    // delete new recorded balance
+    deleteDriverBalanceByTransactionUniqueId({
+      transactionUniqueId:
+        newBalanceInDeductionOfFreeTrial?.data?.transactionUniqueId,
     });
-    console.log(
-      "@newBalanceInDeductionOfFreeTrial",
-      newBalanceInDeductionOfFreeTrial
-    );
   }
 
   return {
@@ -125,7 +142,7 @@ const getAllOrActiveDriverSubscriptionsByDriverUUId = async ({
   isActive,
 }) => {
   const today = currentDate();
-  let sql = `SELECT * FROM DriverSubscription WHERE driverUniqueId = ?`;
+  let sql = `SELECT * FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId join SubscriptionPlan on SubscriptionPlan.subscriptionPlanUniqueId=DriverSubscription.subscriptionPlanUniqueId WHERE DriverSubscription.driverUniqueId = ?`;
   const params = [driverUniqueId];
   if (isActive) {
     sql += ` AND endDate > ?`;
@@ -148,7 +165,7 @@ const getDriverSubscriptionsByPlanUniqueId = async (
       spp.*, 
       sp.planName, 
       sp.description, 
-      sp.isTrial
+      sp.isFree
     FROM DriverSubscription ds
     JOIN SubscriptionPlan sp 
       ON ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId

@@ -7,7 +7,8 @@ const createPricing = async (
   price,
   durationInDays,
   effectiveFrom,
-  effectiveTo
+  effectiveTo,
+  isFree = false
 ) => {
   const today = currentDate(); // 'YYYY-MM-DD'
 

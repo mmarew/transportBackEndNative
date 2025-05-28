@@ -71,7 +71,45 @@ exports.getFreeGiftToDriverByDriverId = async (req, res) => {
     });
   }
 };
+exports.getFreeGiftToDriverByPlanUniqueIdAndDriverUniqueId = async (
+  req,
+  res
+) => {
+  try {
+    const { subscriptionPlanUniqueId } = req.params;
+    let driverUniqueId = req.params.driverUniqueId;
+    const user = req.user;
+    if (!user || !user.userUniqueId) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "Unauthorized request",
+      });
+    }
+    if (driverUniqueId === "self") {
+      driverUniqueId = user.userUniqueId;
+    }
+    if (!subscriptionPlanUniqueId || !driverUniqueId) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "Subscription plan and driver unique IDs are required",
+      });
+    }
+    console.log("driverUniqueId", driverUniqueId);
 
+    const result =
+      await service.getFreeGiftToDriverByPlanUniqueIdAndDriverUniqueId({
+        subscriptionPlanUniqueId,
+        driverUniqueId,
+      });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error fetching gift by plan and driver ID:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch data",
+    });
+  }
+};
 exports.deleteFreeGiftToDriverByUniqueId = async (req, res) => {
   try {
     const { freeGiftUniqueId } = req.params;
