@@ -11,6 +11,8 @@ const { getData } = require("../CRUD/Read/ReadData");
 
 // Create
 const createDriverDeposit = async (data) => {
+  console.log("@createDriverDeposit data", data);
+  // return;
   const driverDepositUniqueId = uuidv4();
   const {
     driverUniqueId,
@@ -320,8 +322,19 @@ const updateDriverDepositStatusService = async (
     };
   }
 };
+/**
+ * @function getUnauthorizedDeposits
+ * @description Retrieves all driver deposits with status 'pending' (unauthorized).
+ * @returns {Promise<Object>} - A success response with the list of unauthorized deposits.
+ */
+const getUnauthorizedDeposits = async () => {
+  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus is null ORDER BY depositTime DESC`;
+  const [result] = await pool.query(sql);
+  return { message: "success", data: result };
+};
 
 module.exports = {
+  getUnauthorizedDeposits,
   updateDriverDepositStatusService,
   getDepositsByDateRangeAndDriver,
   getOneDriverDepositDataByStatus,

@@ -20,7 +20,7 @@ router.post("/api/admin/createTable", createTableController);
 router.get("/api/admin/tables", getAllTablesController);
 
 // Route to drop a table by name
-router.delete("/api/admin/dropTable/:tableName", dropTableController);
+router.delete("/api/admin/dropTables", dropTableController);
 
 // Route to drop all tables
 router.delete("/api/admin/dropAllTables", dropAllTablesController);

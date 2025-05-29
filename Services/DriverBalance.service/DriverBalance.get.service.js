@@ -104,11 +104,60 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
       LIMIT 1
     `;
     const [results] = await pool.query(sql, [userUniqueId]);
-    // console.log("@getDriverLastBalanceByUserUniqueId results", results);
+
+    if (results.length === 0) {
+      return { message: "error", error: "Driver balance not found" };
+    }
+
+    // Enrich the last balance record using the same logic as getDriverBalanceByDateRange
+    const record = results[0];
+    let TransactionData = { ...record };
+    const transactionUniqueId = record?.transactionUniqueId;
+
+    if (record.transactionType === "Deposit") {
+      const result = await getDriverDepositByUniqueId(transactionUniqueId);
+      if (result?.message == "success" && typeof result?.data == "object")
+        TransactionData = { ...record, ...result?.data };
+    } else if (record.transactionType === "Commission") {
+      const commissionData = await getCommissionsByCommissionUniqueId(
+        record.transactionUniqueId
+      );
+      const data = commissionData?.data?.[0];
+      if (commissionData?.message == "success" && typeof data == "object")
+        TransactionData = { ...record, ...data };
+    } else if (record.transactionType === "Subscription") {
+      const SubscriptionData = await getDriverSubscriptionByUniqueId(
+        record?.transactionUniqueId
+      );
+      if (
+        SubscriptionData?.message == "success" &&
+        typeof SubscriptionData?.data == "object"
+      ) {
+        TransactionData = { ...record, ...SubscriptionData?.data };
+      }
+    } else if (record.transactionType === "Transfer") {
+      const transferData = await getTransferByUniqueId(
+        record.transactionUniqueId
+      );
+      if (
+        transferData?.message == "success" &&
+        typeof transferData?.data == "object"
+      ) {
+        TransactionData = { ...record, ...transferData?.data };
+      }
+    } else if (record.transactionType === "Refund") {
+      const refundData = await getRefundByUniqueId(record.transactionUniqueId);
+      if (
+        refundData?.message == "success" &&
+        typeof refundData?.data == "object"
+      ) {
+        TransactionData = { ...record, ...refundData?.data };
+      }
+    }
 
     return {
       message: "success",
-      data: results.length > 0 ? results[0] : null,
+      data: TransactionData,
     };
   } catch (error) {
     console.error("Error in getDriverLastBalanceByUserUniqueId:", error);
@@ -134,24 +183,30 @@ const getDriverBalanceByDateRange = async ({
     const fullData = await Promise.all(
       results.map(async (record) => {
         let TransactionData = { ...record };
+        const transactionType = record?.transactionType;
+        console.log("@transactionType", transactionType);
         const transactionUniqueId = record?.transactionUniqueId;
-        if (record.transactionType === "Deposit") {
+        if (transactionType === "Deposit") {
           const result = await getDriverDepositByUniqueId(transactionUniqueId);
           if (result?.message == "success" && typeof result?.data == "object")
             TransactionData = { ...record, ...result?.data };
-        } else if (record.transactionType === "Commission") {
+        } else if (transactionType === "Commission") {
           const commissionData = await getCommissionsByCommissionUniqueId(
             record.transactionUniqueId
           );
           const data = commissionData?.data?.[0];
           if (commissionData?.message == "success" && typeof data == "object")
             TransactionData = { ...record, ...data };
-        } else if (record.transactionType === "Subscription") {
+          else {
+            console.log("@commissionData", commissionData);
+          }
+        } else if (transactionType === "Subscription") {
           const SubscriptionData = await getDriverSubscriptionByUniqueId(
             record?.transactionUniqueId
           );
 
           if (SubscriptionData?.message == "error") {
+            console.log("@SubscriptionData", SubscriptionData);
           } else if (
             SubscriptionData?.message == "success" &&
             typeof SubscriptionData?.data == "object"
@@ -166,6 +221,7 @@ const getDriverBalanceByDateRange = async ({
     return {
       message: "success",
       data: fullData,
+      check: "56565656",
     };
   } catch (error) {
     console.log("@getDriverBalanceByRange error", error);

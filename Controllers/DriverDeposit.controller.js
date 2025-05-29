@@ -185,3 +185,15 @@ exports.updateDriverDepositStatus = async (req, res) => {
     });
   }
 };
+exports.getUnauthorizedDeposits = async (req, res) => {
+  try {
+    const result = await service.getUnauthorizedDeposits();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("@getUnauthorizedDeposits", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch unauthorized deposits",
+    });
+  }
+};

@@ -40,17 +40,25 @@ const prepareAndCreateNewBalance = async ({
   netBalance = Number(netBalance);
 
   // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct
-  if (addOrDeduct === "deduct" && netBalance < Number(amount)) {
-    return {
-      message: `error`,
-      error: `no enough balance`,
-      detailes: `user don't have enough balance to deduct`,
-    };
+  if (addOrDeduct === "deduct") {
+    if (netBalance < Number(amount) || netBalance == 0)
+      return {
+        message: `error`,
+        error: `no enough balance`,
+        detailes: `user don't have enough balance to deduct`,
+      };
   }
   const newBalance =
     addOrDeduct === "add"
       ? netBalance + Number(amount)
       : netBalance - Number(amount);
+  if (addOrDeduct === "add" && newBalance <= 0) {
+    return {
+      message: `error`,
+      error: `no enough balance`,
+      detailes: `user balance is not added correctly`,
+    };
+  }
   const newNetBalanceData = {
     userUniqueId: driverUniqueId,
     transactionType,
@@ -86,6 +94,7 @@ const createDriverBalance = async (data) => {
           message: "success",
           // error: "Driver balance record already exists",
           data: existingRecords?.[0],
+          detailes: "already existed data",
         };
       }
     } else if (existingRecords.length > 0) {
@@ -93,6 +102,7 @@ const createDriverBalance = async (data) => {
         message: "success",
         // error: "Driver balance record already exists",
         data: existingRecords?.[0],
+        detailes: "already existed data",
       };
     }
 

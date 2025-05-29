@@ -60,5 +60,10 @@ router.patch(
   verifyTokenOfAxios,
   controller.updateDriverDepositStatus
 );
+router.get(
+  "/api/driverDeposit/status/unauthorized",
+  verifyTokenOfAxios,
+  controller.getUnauthorizedDeposits
+);
 
 module.exports = router;

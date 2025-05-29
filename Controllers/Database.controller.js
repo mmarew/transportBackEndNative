@@ -26,16 +26,35 @@ const getAllTablesController = async (req, res) => {
 };
 
 const dropTableController = async (req, res) => {
-  try {
-    const response = await DatabaseService.dropTable(req.params.tableName);
-    ServerResponder(res, response);
-  } catch (error) {
-    console.log("@dropTableController  error", error);
-    ServerResponder(res, {
+  const { tables } = req.body;
+
+  if (!Array.isArray(tables) || tables.length === 0) {
+    return ServerResponder(res, {
       message: "error",
-      error: `Failed to drop table ${req.params.tableName}`,
+      error: "No tables provided in request body",
     });
   }
+
+  const results = [];
+
+  for (const tableName of tables) {
+    try {
+      const result = await DatabaseService.dropTable(tableName);
+      results.push({ tableName, ...result });
+    } catch (error) {
+      console.log(`@dropTableController error dropping ${tableName}:`, error);
+      results.push({
+        tableName,
+        message: "error",
+        error: `Failed to drop table ${tableName}`,
+      });
+    }
+  }
+
+  ServerResponder(res, {
+    message: "completed",
+    data: results,
+  });
 };
 
 const dropAllTablesController = async (req, res) => {
