@@ -637,7 +637,7 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   driverDepositId INT AUTO_INCREMENT PRIMARY KEY,
   driverDepositUniqueId VARCHAR(36) NOT NULL UNIQUE,
   driverUniqueId VARCHAR(36) NOT NULL,
-  depositAmount DECIMAL(10, 2) NOT NULL,
+  depositAmount DOUBLE NOT NULL,
   depositSourceUniqueId VARCHAR(36) NOT NULL,
   accountUniqueId varchar(36) not null,
   depositStatus enum('requested','approved','rejected'),

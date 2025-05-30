@@ -146,7 +146,7 @@ const getFreeGiftToDriverByPlanUniqueIdAndDriverUniqueId = async ({
 
 // Get by Unique ID
 const getFreeGiftToDriverByUniqueId = async (freeGiftUniqueId) => {
-  const sql = `SELECT * FROM FreeGiftToDriver join SubscriptionPlan on FreeGiftToDriver.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId  WHERE freeGiftUniqueId = ? and isFreeGiftDeleted=?`;
+  const sql = `SELECT * FROM FreeGiftToDriver join SubscriptionPlan on FreeGiftToDriver.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId join SubscriptionPlanPricing on SubscriptionPlanPricing.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId  WHERE freeGiftUniqueId = ? and isFreeGiftDeleted=?`;
   const [result] = await pool.query(sql, [freeGiftUniqueId, false]);
   return result.length > 0
     ? { message: "success", data: result[0] }

@@ -55,7 +55,12 @@ const createDriverSubscription = async (
 
   const activeSubscriptionData = getActiveSubscription?.data?.[0];
 
-  console.log("@getActiveSubscription", getActiveSubscription);
+  console.log(
+    "@getActiveSubscription",
+    getActiveSubscription,
+    "@createDriverSubscription subscriptionPlanUniqueId",
+    subscriptionPlanUniqueId
+  );
   // return;
   let savedEndDate = null,
     savedStartDate = null;
@@ -88,6 +93,7 @@ const createDriverSubscription = async (
     "@newBalanceInDeductionOfSubscription",
     newBalanceInDeductionOfSubscription
   );
+  // return;
   if (newBalanceInDeductionOfSubscription?.message == "error") {
     // delete new recorded balance
     deleteDriverBalanceByTransactionUniqueId({

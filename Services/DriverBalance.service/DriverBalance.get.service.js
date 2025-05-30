@@ -8,6 +8,9 @@ const {
 const {
   getCommissionsByCommissionUniqueId,
 } = require("../CommissionRates.service");
+const {
+  getFreeGiftToDriverByUniqueId,
+} = require("../FreeGiftToDriver.service");
 // enrichDriverBalanceRecord.js
 const enrichDriverBalanceRecord = async (balance) => {
   console.log("@balance", balance);
@@ -212,6 +215,14 @@ const getDriverBalanceByDateRange = async ({
             typeof SubscriptionData?.data == "object"
           ) {
             TransactionData = { ...record, ...SubscriptionData?.data };
+          }
+        } else if (transactionType == "freeGift") {
+          const freeGiftData = await getFreeGiftToDriverByUniqueId(
+            record?.transactionUniqueId
+          );
+          console.log("@freeGiftData", freeGiftData);
+          if (freeGiftData.message == "success") {
+            TransactionData = { ...record, ...freeGiftData?.data };
           }
         }
         return TransactionData;
