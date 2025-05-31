@@ -93,17 +93,13 @@ const createDriverDeposit = async (data) => {
     if (!insertResult.affectedRows) {
       return { message: "error", error: "Failed to insert deposit data" };
     }
-
+    const fulldata = await getDriverDepositByUniqueIdAndDriverUniqueId({
+      driverDepositUniqueId,
+      driverUniqueId,
+    });
     const message = {
       message: "success",
-      data: {
-        driverDepositUniqueId,
-        driverUniqueId,
-        depositAmount,
-        depositSourceUniqueId,
-        accountUniqueId,
-        depositTime,
-      },
+      data: fulldata?.data,
     };
     sendNotificationToAdmin({ message });
     return message;
@@ -174,6 +170,20 @@ const getDriverDepositsWithAccountInfo = async (driverUniqueId) => {
 const getDriverDepositByUniqueId = async (driverDepositUniqueId) => {
   const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
   const [result] = await pool.query(sql, [driverDepositUniqueId]);
+
+  return result.length > 0
+    ? { message: "success", data: result[0] }
+    : { message: "error", error: "Deposit not found" };
+};
+const getDriverDepositByUniqueIdAndDriverUniqueId = async ({
+  driverDepositUniqueId,
+  driverUniqueId,
+}) => {
+  const sql = `SELECT * FROM DriverDeposit join Users on Users.userUniqueId=DriverDeposit.driverUniqueId WHERE driverDepositUniqueId = ? and driverUniqueId=?`;
+  const [result] = await pool.query(sql, [
+    driverDepositUniqueId,
+    driverUniqueId,
+  ]);
 
   return result.length > 0
     ? { message: "success", data: result[0] }
@@ -334,6 +344,7 @@ const getUnauthorizedDeposits = async () => {
 };
 
 module.exports = {
+  getDriverDepositByUniqueIdAndDriverUniqueId,
   getUnauthorizedDeposits,
   updateDriverDepositStatusService,
   getDepositsByDateRangeAndDriver,

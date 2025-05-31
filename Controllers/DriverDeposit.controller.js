@@ -92,6 +92,27 @@ exports.getDriverDepositByUniqueId = async (req, res) => {
     });
   }
 };
+exports.getDriverDepositByUniqueIdAndDriverUniqueId = async (req, res) => {
+  try {
+    const { driverDepositUniqueId } = req.params;
+    let driverUniqueId = req?.params?.driverUniqueId;
+    if (driverUniqueId == "self") {
+      driverUniqueId = req.user?.userUniqueId;
+    }
+
+    const result = await service.getDriverDepositByUniqueIdAndDriverUniqueId({
+      driverDepositUniqueId,
+      driverUniqueId,
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Fetch One Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch deposit",
+    });
+  }
+};
 
 // Update
 exports.updateDriverDepositByUniqueId = async (req, res) => {

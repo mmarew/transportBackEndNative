@@ -36,7 +36,12 @@ router.get(
   verifyTokenOfAxios,
   controller.getDriverDepositByUniqueId
 );
-
+// get single deposit by driverDepositUniqueId and driverUniqueId
+router.get(
+  "/api/driverDeposit/deposite/:driverDepositUniqueId/driver/:driverUniqueId",
+  verifyTokenOfAxios,
+  controller.getDriverDepositByUniqueIdAndDriverUniqueId
+);
 // Update deposit
 router.put(
   "/api/driverDeposit/:driverDepositUniqueId",

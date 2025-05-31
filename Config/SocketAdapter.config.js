@@ -45,6 +45,16 @@ async function initSocket(server) {
       removeWSFromList(socket);
       console.log("❌ Disconnected:", socket.id);
     });
+    socket.on("error", (error) => {
+      console.error("⚠️ Socket error:", error);
+    });
+    socket.on("connect_error", (error) => {
+      console.error("⚠️ Socket connection error:", error);
+    });
+
+    socket.on("close", () => {
+      console.log("Socket closed");
+    });
   });
 }
 
