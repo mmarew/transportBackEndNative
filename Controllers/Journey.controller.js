@@ -91,11 +91,21 @@ exports.deleteJourney = async (req, res) => {
     });
   }
 };
-// Get all completed journeys
+// Get all completed journeys to get all data role must be 3
 exports.getCompletedJourney = async (req, res) => {
   try {
+    const fromDate = req?.params?.fromDate;
+    const toDate = req?.params?.toDate;
     const userRoleId = req?.user?.roleId;
-    console.log("@userRoleId", userRoleId);
+    console.log(
+      "@userRoleId",
+      userRoleId,
+      "fromDate",
+      fromDate,
+      "toDate",
+      toDate
+    );
+    // return;
     let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
     // all data has to be fetched by admin only else return data not found
     if (userRoleId != 3 && ownerUserUniqueId == "all") {
@@ -106,11 +116,13 @@ exports.getCompletedJourney = async (req, res) => {
     if (ownerUserUniqueId == "self")
       ownerUserUniqueId = req?.user?.userUniqueId;
     const roleId = req?.params?.roleId;
-
-    const result = await journeyService.getCompletedJourney(
+    console.log("@ownerUserUniqueId", ownerUserUniqueId);
+    const result = await journeyService.getCompletedJourney({
       roleId,
-      ownerUserUniqueId
-    );
+      ownerUserUniqueId,
+      toDate,
+      fromDate,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error getting completed journey:", error);

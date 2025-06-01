@@ -5,6 +5,7 @@ const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 const {
   getPassengerRequestByPassengerRequestId,
 } = require("./PassengerRequest.service");
+const { journeyStatus, journeyStatusMap } = require("../Utils/ListOfFixedData");
 
 // Create a new journey
 const createJourney = async ({
@@ -121,8 +122,12 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
-const getCompletedJourney = async (roleId, ownerUserUniqueId) => {
-  console.log("@getCompletedJourney roleId", roleId);
+const getCompletedJourney = async ({
+  roleId,
+  ownerUserUniqueId,
+  toDate,
+  fromDate,
+}) => {
   try {
     // Define role-based configurations
     const roleConfig = {
@@ -145,8 +150,30 @@ const getCompletedJourney = async (roleId, ownerUserUniqueId) => {
 
     const { joinTable, joinCondition } = roleConfig[roleId];
     const conditions =
-      ownerUserUniqueId !== "all" ? { userUniqueId: ownerUserUniqueId } : {};
+      ownerUserUniqueId !== "all"
+        ? { "DriverRequest.userUniqueId": ownerUserUniqueId }
+        : {};
     const data = [];
+    let dateRangeCondition = {
+      "Journey.endTime": [fromDate, toDate],
+      "Journey.startTime": [fromDate, toDate],
+    };
+
+    let organizedConditions = {
+      ...conditions,
+      "Journey.journeyStatusId": journeyStatusMap.journeyCompleted,
+      ...dateRangeCondition,
+    };
+    let limit = 70;
+    if (fromDate == "lastTen" && toDate == "lastTen") {
+      dateRangeCondition = {};
+      limit = 10;
+
+      organizedConditions = {
+        ...conditions,
+        "Journey.journeyStatusId": journeyStatusMap.journeyCompleted,
+      };
+    }
     // Perform join select query
     const completedJourney = await performJoinSelect({
       baseTable: "Journey",
@@ -160,8 +187,8 @@ const getCompletedJourney = async (roleId, ownerUserUniqueId) => {
           on: joinCondition,
         },
       ],
-      conditions: { ...conditions, "Journey.journeyStatusId": 5 },
-      limit: 30,
+      conditions: organizedConditions,
+      limit,
     });
 
     for (const item of completedJourney) {

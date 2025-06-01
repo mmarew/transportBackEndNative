@@ -40,7 +40,7 @@ router.delete(
 );
 //
 router.get(
-  "/api/user/getCompletedJourney/:ownerUserUniqueId/:roleId",
+  "/api/user/getCompletedJourney/:ownerUserUniqueId/:roleId/startingFromDate/:fromDate/upToDate/:toDate",
   verifyTokenOfAxios,
   journeyController.getCompletedJourney
 );

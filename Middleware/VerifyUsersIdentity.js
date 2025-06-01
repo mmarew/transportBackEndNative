@@ -102,7 +102,7 @@ const verifyDriversIdentity = async (req, res, next) => {
     if (statusId !== 1) {
       return res.status(403).json({
         message: "error",
-        status: "Driver in inactive status",
+        error: "Driver in inactive status",
         userRoleStatus: userRoleStatus[0],
       });
     }
