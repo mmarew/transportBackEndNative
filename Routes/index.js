@@ -1,6 +1,7 @@
 const Routes = require("express").Router();
 
 const routesArray = [
+  require("./DriverEarning.routes"),
   require("./FreeGiftToDriver.route"),
   require("./FinancialInstitutionAccount.route"),
   require("./DriverRefund.route"),
