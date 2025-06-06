@@ -51,19 +51,24 @@ const {
   verifyPassengerStatus,
 } = require("./UsersCurrentStatus");
 
-const createRequest = async (body, user) => {
+const createRequest = async ({
+  body,
+  findNewRequest = true,
+  journeyStatusId,
+}) => {
   try {
     // 1. find user unique id from user object
-    const userUniqueId = user?.userUniqueId;
+    const userUniqueId = body?.userUniqueId;
 
     // 2. Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
 
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
-      await createDriverRequest(body, userUniqueId);
+      await createDriverRequest(body, userUniqueId, journeyStatusId);
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
+    if (!findNewRequest) return { message: "success", data: activeRequest };
     return await verifyDriverStatus({
       userUniqueId,
       activeRequest,
@@ -187,6 +192,91 @@ const takeFromStreet = async (body, user) => {
   } catch (error) {
     console.log("Error in createDriverRequest:", error);
     return { message: "error", error: "Unable to create request" };
+  }
+};
+const createAndAcceptNewRequest = async (body) => {
+  try {
+    console.log("@createAndAcceptNewRequest body", body);
+    const { passengerRequestUniqueId, userUniqueId } = body;
+    // get passenger request data by passengerRequestUniqueId,
+    const passengerRequest =
+      await getPassengerRequestByPassengerRequestUniqueId(
+        passengerRequestUniqueId
+      );
+    console.log(
+      "@createAndAcceptNewRequest passengerRequest",
+      passengerRequest
+    );
+    const passernerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
+    // check if the passenger request is already accepted by driver
+    if (passernerJourneyStatusId > journeyStatusMap.acceptedByDriver)
+      return {
+        message: "error",
+        error: "Passenger request already accepted by driver",
+      };
+    // validate if the request exists
+    if (passengerRequest?.message === "error") {
+      return passengerRequest;
+    }
+
+    // 1)update passenger request status to accepted by driver,
+    const updatedPassengerRequest = await updateData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestUniqueId },
+      updateValues: { journeyStatusId: journeyStatusMap.acceptedByDriver },
+    });
+    console.log(
+      "@createAndAcceptNewRequest updatedPassengerRequest",
+      updatedPassengerRequest
+    );
+    // validate if the update was successful
+    if (updatedPassengerRequest.affectedRows === 0) {
+      return { message: "error", error: "Passenger request not found" };
+    }
+
+    // 2)create driver request,
+    const newDriverRequest = await createRequest({
+      body,
+      findNewRequest: false,
+      journeyStatusId: journeyStatusMap.acceptedByDriver,
+    });
+    console.log(
+      "@createAndAcceptNewRequest newDriverRequest",
+      newDriverRequest
+    );
+    // validate if the insert was successfull
+    if (newDriverRequest?.message === "error") {
+      return newDriverRequest;
+    }
+    const driverRequestId = newDriverRequest?.data?.[0]?.driverRequestId;
+
+    // 3)create journey decision,
+    const journeyDecisionData = {
+      passengerRequestId: passengerRequest?.data?.passengerRequestId,
+      driverRequestId,
+      journeyStatusId: journeyStatusMap?.acceptedByDriver,
+      decisionTime: currentDate(),
+      decisionBy: "driver",
+      shippingCostByDriver: body?.shippingCostByDriver,
+    };
+    console.log("@journeyDecisionData", journeyDecisionData);
+    // return;
+    const newJourneyDecision = await createJourneyDecision(journeyDecisionData);
+    console.log(
+      "@createAndAcceptNewRequest newJourneyDecision",
+      newJourneyDecision
+    );
+    // validate if the insert was successfull
+    if (newJourneyDecision?.message === "error") {
+      return newJourneyDecision;
+    }
+
+    return await verifyDriverStatus({
+      userUniqueId,
+    });
+  } catch (error) {
+    console.log("Error in createAndAcceptNewRequest:", error);
+    return { message: "error", error: "Unable to create and accept request" };
   }
 };
 const acceptPassengerRequest = async (body) => {
@@ -653,6 +743,7 @@ const getDriverJourneyStatus = async (userUniqueId) => {
 };
 
 module.exports = {
+  createAndAcceptNewRequest,
   getDriverJourneyStatus,
   attachRequiredDocuments,
   journeyCompleted,

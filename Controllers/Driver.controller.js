@@ -6,7 +6,12 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createRequest = async (req, res) => {
   try {
-    const result = await services.createRequest(req.body, req.user);
+    const userUniqueId = req?.user?.userUniqueId;
+    if (!userUniqueId) {
+      return ServerResponder(res, "User not authenticated", 401);
+    }
+    req.body.userUniqueId = userUniqueId;
+    const result = await services.createRequest({ body: req.body });
     ServerResponder(res, result, 201);
   } catch (error) {
     console.log("Error in createRequestController:", error);
@@ -23,6 +28,20 @@ const takeFromStreet = async (req, res) => {
     ServerResponder(res, "Driver request creation failed", 500);
   }
 };
+const createAndAcceptNewRequest = async (req, res) => {
+  try {
+    const { userUniqueId } = req?.user;
+
+    req.body.userUniqueId = userUniqueId;
+
+    const result = await services.createAndAcceptNewRequest(req.body);
+    ServerResponder(res, result, 201);
+  } catch (error) {
+    console.log("Error in createAndAcceptNewRequest:", error);
+    ServerResponder(res, "Driver request creation failed", 500);
+  }
+};
+// Get a specific driver request by ID
 
 const getRequestByIdController = async (req, res) => {
   try {
@@ -162,6 +181,7 @@ const attachRequiredDocuments = async (req, res) => {
 };
 
 module.exports = {
+  createAndAcceptNewRequest,
   attachRequiredDocuments,
   cancelDriverRequest,
   journeyCompleted,

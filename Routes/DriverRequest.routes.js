@@ -11,6 +11,7 @@ const {
   attachRequiredDocuments,
   cancelDriverRequest,
   takeFromStreet,
+  createAndAcceptNewRequest,
 } = require("../Controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
@@ -27,6 +28,12 @@ router.post(
   verifyTokenOfAxios,
   verifyDriversIdentity,
   createRequest
+);
+router.post(
+  "/api/driver/createAndAcceptNewRequest",
+  verifyTokenOfAxios,
+  verifyDriversIdentity,
+  createAndAcceptNewRequest
 );
 
 // Get a specific driver request by ID

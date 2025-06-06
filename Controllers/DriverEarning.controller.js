@@ -16,11 +16,11 @@ exports.getDriverEarningByDriverUniqueId = async (req, res) => {
       driverUniqueId = user.userUniqueId;
     }
     const { fromDate, toDate } = req.params;
-    const result = await Services.getDriverEarningByDriverUniqueId(
+    const result = await Services.getDriverEarningByDriverUniqueId({
       driverUniqueId,
       fromDate,
-      toDate
-    );
+      toDate,
+    });
     const responders = await ServerResponder(res, result);
   } catch (error) {
     console.log("@getDriverEarningByDriverUniqueId error", error);

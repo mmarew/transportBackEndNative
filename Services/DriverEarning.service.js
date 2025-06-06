@@ -10,8 +10,9 @@ exports.getDriverEarningByDriverUniqueId = async ({
      select * from JourneyDecisions join DriverRequest on DriverRequest.driverRequestId=JourneyDecisions.driverRequestId where userUniqueId = ? and decisionTime between ? and ? and JourneyDecisions.journeyStatusId=?`;
 
   if (fromDate == "lastTen" || toDate == "lasTen") {
+    console.log("last ten");
     const sql = `
-     select * from JourneyDecisions join DriverRequest on DriverRequest.driverRequestId=JourneyDecisions.driverRequestId where userUniqueId = ? order by JourneyDecisions?.journeyDecisionId desc limit 10`;
+     select * from JourneyDecisions join DriverRequest on DriverRequest.driverRequestId=JourneyDecisions.driverRequestId join PassengerRequest on PassengerRequest.passengerRequestId=JourneyDecisions.passengerRequestId where DriverRequest.userUniqueId = ? order by JourneyDecisions.journeyDecisionId desc limit 10`;
     const params = [driverUniqueId];
     const [data] = await pool.query(sql, params);
     return { message: "success", data: data };
