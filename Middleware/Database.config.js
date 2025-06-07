@@ -7,10 +7,6 @@ const USER = process.env.DB_USER;
 const PASSWORD = process.env.PASSWORD;
 const DATABASE = process.env.DATABASE;
 const PORT = process.env.DB_PORT;
-console.log("HOST ", HOST);
-console.log("USER ", USER);
-console.log("PASSWORD ", PASSWORD);
-console.log("DATABASE ", DATABASE);
 
 if (!HOST || !USER || !DATABASE) {
   throw new Error(

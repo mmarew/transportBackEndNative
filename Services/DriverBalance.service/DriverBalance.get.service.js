@@ -171,15 +171,16 @@ const getDriverBalanceByDateRange = async ({
   fromDate,
   toDate,
   userUniqueId,
+  offset = 0, // Add offset parameter with default 0
 }) => {
   try {
     let results = null;
     if (fromDate == "lastTen" && toDate == "lastTen") {
-      const sql = `SELECT * FROM DriverBalance order by driverBalanceId desc limit 10`;
-      results = (await pool.query(sql))[0];
+      const sql = `SELECT * FROM DriverBalance WHERE DriverBalance.userUniqueId=? ORDER BY driverBalanceId DESC LIMIT 10`;
+      results = (await pool.query(sql, userUniqueId))[0];
     } else {
-      const sql = `SELECT * FROM DriverBalance WHERE transactionTime BETWEEN ? AND ?  order by driverBalanceId desc `;
-      const values = [fromDate, toDate];
+      const sql = `SELECT * FROM DriverBalance WHERE transactionTime BETWEEN ? AND ? AND DriverBalance.userUniqueId=? ORDER BY driverBalanceId DESC LIMIT 30 OFFSET ?`;
+      const values = [fromDate, toDate, userUniqueId, Number(offset)];
       results = (await pool.query(sql, values))[0];
     }
 

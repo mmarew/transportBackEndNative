@@ -94,8 +94,9 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
     const params = req?.params;
     let userUniqueId = params?.driverUniqueId;
     const fromDate = params?.fromDate,
-      toDate = params?.toDate;
-
+      toDate = params?.toDate,
+      offset = params?.length;
+    console.log("@offsetLength", offset);
     const user = req.user;
     console.log("@userUniqueId", userUniqueId);
     if (userUniqueId == "self") {
@@ -110,6 +111,7 @@ exports.getDriverLastBalanceByUserUniqueId = async (req, res) => {
         fromDate,
         toDate,
         userUniqueId,
+        offset,
       });
     return ServerResponder(res, result);
   } catch (error) {

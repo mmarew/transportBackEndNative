@@ -3,7 +3,8 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 exports.getDriverEarningByDriverUniqueId = async (req, res) => {
   try {
-    let driverUniqueId = req.params.driverUniqueId;
+    let driverUniqueId = req?.params?.driverUniqueId;
+    const offset = req?.params?.offset;
     const user = req.user;
     console.log(
       "@getDriverEarningByDriverUniqueId controller driverUniqueId",
@@ -20,6 +21,7 @@ exports.getDriverEarningByDriverUniqueId = async (req, res) => {
       driverUniqueId,
       fromDate,
       toDate,
+      offset,
     });
     const responders = await ServerResponder(res, result);
   } catch (error) {

@@ -116,7 +116,7 @@ async function WSPusher(urlParams, socketId) {
       }),
     });
   } catch (error) {
-    console.error("[WSPusher ERROR]:", error);
+    console.log("[WSPusher ERROR]:", error);
     return emitMessage({
       socketId,
       error: "Internal server error occurred during socket registration.",
