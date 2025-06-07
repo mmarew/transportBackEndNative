@@ -207,9 +207,9 @@ const createAndAcceptNewRequest = async (body) => {
       "@createAndAcceptNewRequest passengerRequest",
       passengerRequest
     );
-    const passernerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
+    const passegrnerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
     // check if the passenger request is already accepted by driver
-    if (passernerJourneyStatusId > journeyStatusMap.acceptedByDriver)
+    if (passegrnerJourneyStatusId > journeyStatusMap.acceptedByDriver)
       return {
         message: "error",
         error: "Passenger request already accepted by driver",
