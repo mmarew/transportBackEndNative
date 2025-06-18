@@ -31,6 +31,7 @@ const createPassengerRequest = async (body, user, journeyStatusId) => {
     return await verifyPassengerStatus({
       userUniqueId,
       activeRequest: newRequest?.data,
+      sendNotificationsToDrivers: true,
     });
   } catch (error) {
     console.log("Error in createRequest:", error);

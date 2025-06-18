@@ -2,9 +2,12 @@ const { Server } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher.js");
-const { removeWSFromList } = require("../Utils/RemoveWsFromList");
 const { socketIO } = require("../Utils/WsServerResponder");
 const { REDIS_SOCKET_PATH } = require("../Utils/Constants.js");
+const {
+  removeSocket,
+  getAllSockets,
+} = require("../Utils/WsConnectionStore.js");
 
 async function initSocket(server) {
   const io = new Server(server, {
@@ -20,8 +23,15 @@ async function initSocket(server) {
   const { UPSTASH_REDIS_URL } = require("../Utils/Constants.js");
 
   // Use Upstash with ioredis
-  const pubClient = new Redis(UPSTASH_REDIS_URL);
-  const subClient = new Redis(UPSTASH_REDIS_URL);
+  // const pubClient = new Redis(UPSTASH_REDIS_URL);
+  // const subClient = new Redis(UPSTASH_REDIS_URL);
+
+  const pubClient = new Redis(UPSTASH_REDIS_URL, {
+    tls: {},
+    connectTimeout: 10000, // optional: 10s timeout
+  });
+
+  const subClient = pubClient.duplicate();
 
   pubClient.on("error", (err) => console.error("Redis Pub Error:", err));
   subClient.on("error", (err) => console.error("Redis Sub Error:", err));
@@ -31,18 +41,16 @@ async function initSocket(server) {
   socketIO.io = io;
 
   io.on("connection", (socket) => {
-    const socketId = socket?.id;
-    const urlParams = new URLSearchParams(socket.handshake.query);
-    console.log("🔌 Client connected:", socketId);
-
-    WSPusher(urlParams, socketId, io);
-
+    WSPusher({ io, socket });
+    // getAllSockets();
     socket.on("message", (msg) => {
       socket.emit("response", "Message received");
     });
 
     socket.on("disconnect", () => {
-      removeWSFromList(socket);
+      const userType = socket?.userType,
+        identifier = socket?.identifier;
+      if (identifier && userType) removeSocket(userType, identifier);
       console.log("❌ Disconnected:", socket.id);
     });
     socket.on("error", (error) => {

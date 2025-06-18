@@ -1,8 +1,9 @@
 // App.js
 const cluster = require("cluster");
 const getLocalIpAddress = require("./Utils/MyIpAddress.js");
+const os = require("os");
 
-const numCPUs = 1; //os.cpus().length;
+const numCPUs = os.cpus().length;
 console.log("@Total CPU Cores:", numCPUs);
 
 if (cluster.isMaster) {

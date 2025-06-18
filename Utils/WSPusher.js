@@ -8,13 +8,18 @@ const {
   getPassengerJourneyStatus,
 } = require("../Services/PassengerRequest.service");
 const { getDriverJourneyStatus } = require("../Services/DriverRequest.service");
+const { verifyPassengerStatus } = require("../Services/UsersCurrentStatus");
 
 const phoneNumberRegex = /^[0-9]{9,15}$/;
 
 // const tableNames = require("../Config/Tables.confg").default;
 
-async function WSPusher(urlParams, socketId) {
+async function WSPusher({ io, socket }) {
+  const socketId = socket?.id;
   try {
+    const urlParams = new URLSearchParams(socket.handshake.query);
+    console.log("🔌 Client connected:", socketId);
+
     const phoneNumber = urlParams.get("phoneNumber");
     const user = urlParams.get("user");
     const token = urlParams.get("token");
@@ -97,7 +102,8 @@ async function WSPusher(urlParams, socketId) {
 
     // Set the socket mapping in Redis using a unique key for user type
     await setSocket(user, cleanedPhoneNumber, socketId);
-
+    socket.userType = user;
+    socket.identifier = cleanedPhoneNumber;
     // Get status if passenger or driver
     let status = null;
     if (user === "passenger") {
@@ -111,6 +117,7 @@ async function WSPusher(urlParams, socketId) {
       messageTitle: "messages",
       messageDetailes: JSON.stringify({
         status,
+        socketId,
         message: "success",
         data: `Socket connection established for user ${user}`,
       }),

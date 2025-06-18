@@ -22,22 +22,33 @@ const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
   }
 };
 const emitMessage = ({ socketId, messageTitle, messageDetailes }) => {
-  const socketData = socketIO.io
-    .to(socketId)
-    .emit(messageTitle, messageDetailes);
+  const io = socketIO.io;
+  if (!io) {
+    console.log("@emitMessage Empity io");
 
-  if (socketData == true)
+    return { message: "error", data: "message can't be sent successfully" };
+  }
+  if (!socketId) {
+    console.log("@emitMessage Empity socketId");
+
+    return { message: "error", data: "message can't be sent successfully" };
+  }
+  const socketData = io.to(socketId).emit(messageTitle, messageDetailes);
+  console.log("@emitMessage socketData", socketData);
+  if (socketData == true) {
     return { message: "success", data: "message sent successfully" };
-  else return { message: "error", data: "message can't be sent successfully" };
+  } else {
+    return { message: "error", data: "message can't be sent successfully" };
+  }
 };
 
 module.exports = {
   // WSServerTextMessageResponder,
   sendOtpViaWebSocket,
-  listOfDriverWs,
-  listOfPassangerWs,
-  listOfSMSSenderWs,
-  listOfAdminWs,
+  // listOfDriverWs,
+  // listOfPassangerWs,
+  // listOfSMSSenderWs,
+  // listOfAdminWs,
   socketIO,
   emitMessage,
 };
