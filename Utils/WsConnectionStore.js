@@ -1,4 +1,3 @@
-const Redis = require("ioredis");
 const { redis } = require("../Config/redis.config");
 
 // Connect using the same Redis socket path

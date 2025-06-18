@@ -1,8 +1,8 @@
-let listOfDriverWs = [];
-let listOfPassangerWs = [];
-let listOfSMSSenderWs = [];
+const listOfDriverWs = [];
+const listOfPassangerWs = [];
+const listOfSMSSenderWs = [];
 const listOfAdminWs = [];
-let socketIO = {};
+const socketIO = {};
 
 const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
   try {

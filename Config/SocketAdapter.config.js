@@ -31,7 +31,7 @@ async function initSocket(server) {
   socketIO.io = io;
 
   io.on("connection", (socket) => {
-    const socketId = socket.id;
+    const socketId = socket?.id;
     const urlParams = new URLSearchParams(socket.handshake.query);
     console.log("🔌 Client connected:", socketId);
 
