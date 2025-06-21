@@ -13,7 +13,7 @@ const createUser = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "User creation failed",
+      error: "User creation failed",
     });
   }
 };
@@ -27,7 +27,7 @@ const getUsersByRoleUniqueId = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve users",
+      error: "Failed to retrieve users",
     });
   }
 };
@@ -43,7 +43,7 @@ const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve user",
+      error: "Failed to retrieve user",
     });
   }
 };
@@ -58,7 +58,7 @@ const loginUser = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve user",
+      error: "Failed to retrieve user",
     });
   }
 };
@@ -74,7 +74,7 @@ const getUserByUserUniqueIdAndroleUniqueId = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve user",
+      error: "Failed to retrieve user",
     });
   }
 };
@@ -85,7 +85,7 @@ const verifyUserByOTP = async (req, res, next) => {
     console.log("@verifyUserByOTP in verifyUserByOTP error", error);
     ServerResponder(res, {
       message: "error",
-      data: "User creation failed",
+      error: "User creation failed",
     });
   }
 };
@@ -104,7 +104,7 @@ const getUser = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve user",
+      error: "Failed to retrieve user",
     });
   }
 };
@@ -117,7 +117,7 @@ const deleteUser = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to delete user",
+      error: "Failed to delete user",
     });
   }
 };
@@ -130,7 +130,7 @@ const getAllUsers = async (req, res) => {
     console.log("Error:", error);
     ServerResponder(res, {
       message: "error",
-      data: "Failed to retrieve users",
+      error: "Failed to retrieve users",
     });
   }
 };
@@ -203,26 +203,28 @@ const updateUser = async (req, res) => {
     if (textUpdate === "success" && fileUpdate === "error") {
       return ServerResponder(res, {
         message: "error",
-        data: "Failed to update profile image, but other information updated successfully.",
+        error:
+          "Failed to update profile image, but other information updated successfully.",
       });
     }
 
     if (textUpdate === "error" && fileUpdate === "success") {
       return ServerResponder(res, {
         message: "error",
-        data: "Failed to update user information, but profile image updated successfully.",
+        error:
+          "Failed to update user information, but profile image updated successfully.",
       });
     }
 
     return ServerResponder(res, {
       message: "error",
-      data: "Failed to update both user information and profile image.",
+      error: "Failed to update both user information and profile image.",
     });
   } catch (error) {
     console.error("Error updating user profile:", error);
     return ServerResponder(res, {
       message: "error",
-      data: "Failed to update user profile due to an unexpected error.",
+      error: "Failed to update user profile due to an unexpected error.",
     });
   }
 };
@@ -238,5 +240,4 @@ module.exports = {
   deleteUser,
   getAllUsers,
   loginUser,
- 
 };
