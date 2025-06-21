@@ -81,8 +81,14 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
     });
 
     if (res.message === "success") {
+      console.log("@sendNotificationToPassenger", "Message sent to passenger");
       return { message: "success", data: "Message sent to passenger" };
     } else {
+      console.log(
+        "@sendNotificationToPassenger",
+        "Failed to send message to passenger"
+      );
+
       return {
         message: "error",
         data: "Failed to send message to passenger",

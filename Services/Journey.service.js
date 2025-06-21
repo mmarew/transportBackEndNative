@@ -147,12 +147,16 @@ const getCompletedJourney = async ({
     if (!roleConfig[roleId]) {
       throw new Error("Invalid role ID");
     }
-
+    console.log("@roleId", roleId);
     const { joinTable, joinCondition } = roleConfig[roleId];
+
     const conditions =
       ownerUserUniqueId !== "all"
-        ? { "DriverRequest.userUniqueId": ownerUserUniqueId }
+        ? roleId == 1
+          ? { "PassengerRequest.userUniqueId": ownerUserUniqueId }
+          : { "DriverRequest.userUniqueId": ownerUserUniqueId }
         : {};
+
     const data = [];
     let dateRangeCondition = {
       "Journey.endTime": [fromDate, toDate],
@@ -174,6 +178,14 @@ const getCompletedJourney = async ({
         "Journey.journeyStatusId": journeyStatusMap.journeyCompleted,
       };
     }
+    console.log("@joinTable", joinTable);
+    console.log(
+      "@joinCondition === ",
+      joinCondition,
+      "\n @organizedConditions",
+      organizedConditions
+    );
+
     // Perform join select query
     const completedJourney = await performJoinSelect({
       baseTable: "Journey",
@@ -190,7 +202,8 @@ const getCompletedJourney = async ({
       conditions: organizedConditions,
       limit,
     });
-
+    console.log("@completedJourney", completedJourney);
+    // return;
     for (const item of completedJourney) {
       const passengerRequestId = item.passengerRequestId,
         driverRequestId = item.driverRequestId;

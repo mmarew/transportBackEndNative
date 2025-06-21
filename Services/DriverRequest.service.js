@@ -35,7 +35,10 @@ const {
 const {
   getTarrifRateByVehicleTypeUniqueId,
 } = require("./TarrifRateForVehicleTypes.service");
-const { createJourneyDecision } = require("./JourneyDecisions.service");
+const {
+  createJourneyDecision,
+  getJourneyDecisionByJourneyDecisionUniqueId,
+} = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/CurrentDate");
 const { createJourney } = require("./Journey.service");
 const {
@@ -369,12 +372,19 @@ const startJourney = async (body) => {
     userUniqueId: body.userUniqueId,
   });
   const passenger = message?.passenger;
-  phoneNumber = passenger?.phoneNumber;
+  const driver = message?.driver,
+    phoneNumber = passenger?.phoneNumber;
   const journeyStatusId = passenger?.journeyStatusId;
+  const messagesToPassenger = {
+    ...message,
+    drivers: [driver],
+  };
+  // remove driver
+  delete messagesToPassenger?.driver;
   // send notification to passenger if driver has an active journey request and passenger has a phoneNumber
   if (phoneNumber && journeyStatusId == journeyStatusMap.journeyStarted)
     await sendNotificationToPassenger({
-      message,
+      message: messagesToPassenger,
       phoneNumber,
     });
 
@@ -453,6 +463,7 @@ const noAnswerFromDriver = async (body) => {
 const journeyCompleted = async (body) => {
   try {
     const {
+      journeyDecisionUniqueId,
       userUniqueId,
       vehicleTypeUniqueId,
       journeyUniqueId,
@@ -463,7 +474,10 @@ const journeyCompleted = async (body) => {
 
     // 1. Update journey status
     await updateJourneyStatus(body);
-
+    const decisions = await getJourneyDecisionByJourneyDecisionUniqueId(
+      journeyDecisionUniqueId
+    );
+    console.log("@journeyCompleted decisions=======> ", decisions);
     // 2. Fetch data in parallel
     const [vehicleData, driver, passenger] = await Promise.all([
       getVehicleOwnershipByUserUniqueId(userUniqueId),
@@ -488,6 +502,7 @@ const journeyCompleted = async (body) => {
     if (phoneNumber) {
       sendNotificationToPassenger({
         message: {
+          decisions: decisions?.data?.[0],
           drivers: [{ vehicle: vehicleData?.at(0), driver: driver.data }],
           passenger: passenger?.at(0),
           message: "success",

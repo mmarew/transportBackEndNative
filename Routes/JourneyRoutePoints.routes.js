@@ -13,7 +13,7 @@ router.post(
 
 // Get all route points for a specific journey
 router.get(
-  "/api/journeyRoutePoints/:journeyUniqueId",
+  "/api/journeyRoutePoints/journeyUniqueId/:journeyUniqueId",
   verifyTokenOfAxios,
   journeyRoutePointsController.getJourneyRoutePoints
 );

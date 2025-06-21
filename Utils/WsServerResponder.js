@@ -1,7 +1,5 @@
-const listOfDriverWs = [];
-const listOfPassangerWs = [];
 const listOfSMSSenderWs = [];
-const listOfAdminWs = [];
+
 const socketIO = {};
 
 const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
@@ -43,12 +41,7 @@ const emitMessage = ({ socketId, messageTitle, messageDetailes }) => {
 };
 
 module.exports = {
-  // WSServerTextMessageResponder,
   sendOtpViaWebSocket,
-  // listOfDriverWs,
-  // listOfPassangerWs,
-  // listOfSMSSenderWs,
-  // listOfAdminWs,
   socketIO,
   emitMessage,
 };

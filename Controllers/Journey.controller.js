@@ -97,14 +97,7 @@ exports.getCompletedJourney = async (req, res) => {
     const fromDate = req?.params?.fromDate;
     const toDate = req?.params?.toDate;
     const userRoleId = req?.user?.roleId;
-    console.log(
-      "@userRoleId",
-      userRoleId,
-      "fromDate",
-      fromDate,
-      "toDate",
-      toDate
-    );
+
     // return;
     let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
     // all data has to be fetched by admin only else return data not found
