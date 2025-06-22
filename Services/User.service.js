@@ -619,53 +619,6 @@ const updateUser = async (body) => {
         };
       }
     }
-
-    // Check if roleId or statusId needs to be updated
-    // if (roleId || statusId) {
-    //   const existingRoleStatus = await getData({
-    //     tableName: "UserRoleStatusCurrent",
-    //     conditions: {
-    //       userUniqueId,
-    //     },
-    //   });
-
-    //   if (existingRoleStatus.length > 0) {
-    //     // Update the role or status if needed
-    //     const updateRoleStatusResult = await updateData({
-    //       tableName: "UserRoleStatusCurrent",
-    //       updateValues: {
-    //         ...(roleId && { roleId }),
-    //         ...(statusId && { statusId }),
-    //       },
-    //       conditions: { userUniqueId },
-    //     });
-
-    //     if (updateRoleStatusResult.affectedRows <= 0) {
-    //       return {
-    //         message: "error",
-    //         data: "Failed to update user role/status",
-    //       };
-    //     }
-    //   } else {
-    //     // If no existing role/status, insert new one
-    //     const insertRoleStatusResult = await insertData({
-    //       tableName: "UserRoleStatuses",
-    //       colAndVal: {
-    //         userRoleStatusUniqueId: uuidv4(),
-    //         userUniqueId,
-    //         ...(roleId && { roleId }),
-    //         ...(statusId && { statusId }),
-    //       },
-    //     });
-
-    //     if (insertRoleStatusResult.affectedRows <= 0) {
-    //       return {
-    //         message: "error",
-    //         data: "Failed to create user role/status",
-    //       };
-    //     }
-    //   }
-    // }
     const tokenData = createJWT({
       userUniqueId,
       fullName,

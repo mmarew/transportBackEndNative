@@ -118,8 +118,38 @@ const verifyDriversIdentity = async (req, res, next) => {
     });
   }
 };
+// Verify if the user is NOT a Driver
+const verifyIfUserIsNotDriver = async (req, res, next) => {
+  try {
+    const userUniqueId = req?.user?.userUniqueId;
 
-// Verify if the user is a Passenger and is in an active status
+    // Step 1: Check if the user has a Driver role
+    const userRoles = await getData({
+      tableName: "UserRole",
+      conditions: { userUniqueId, roleId: 2 }, // 2 indicates the Driver role
+    });
+
+    // If user has driver role, reject the request
+    if (userRoles?.length > 0) {
+      console.log("@not allowed action to driver");
+      return res.status(403).json({
+        message: "error",
+        error: "This action is not allowed for drivers.",
+        status: null,
+      });
+    }
+
+    // If user doesn't have driver role, proceed to next middleware
+    next();
+  } catch (error) {
+    console.log("@verifyIfUserIsNotDriver error", error);
+    return res.status(500).json({
+      message: "error",
+      error: error.message,
+      status: null,
+    });
+  }
+}; // Verify if the user is a Passenger and is in an active status
 const verifyPassengersIdentity = async (req, res, next) => {
   const userUniqueId = req?.user.userUniqueId;
 
@@ -178,6 +208,7 @@ const verifyPassengersIdentity = async (req, res, next) => {
 };
 
 module.exports = {
+  verifyIfUserIsNotDriver,
   verifyAdminsIdentity,
   verifyDriversIdentity,
   verifyPassengersIdentity,

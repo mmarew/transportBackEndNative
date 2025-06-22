@@ -156,7 +156,7 @@ const updateUser = async (req, res) => {
     if (req.files && req.files.length > 0) {
       const {
         attachedDocumentUniqueId,
-        ProfilePhotoTypeId,
+        profilePhotoTypeId,
         ProfilePhotoDescription,
         ProfilePhotoExpirationDate,
       } = body;
@@ -171,10 +171,11 @@ const updateUser = async (req, res) => {
         const fileResponse = await createAttachedDocument({
           attachedDocumentDescription: ProfilePhotoDescription,
           attachedDocumentName: req.files[0].filename,
-          documentTypeId: ProfilePhotoTypeId,
+          documentTypeId: profilePhotoTypeId,
           documentExpirationDate: ProfilePhotoExpirationDate,
           roleId: user.roleId,
           user,
+          userUniqueId: ownerUserUniqueId,
         });
         console.log("fileResponse", fileResponse);
         updateResponses.fileUpdate = fileResponse.message;

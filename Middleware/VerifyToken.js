@@ -156,29 +156,33 @@ const verifyTokenOfWS = async (tokenData) => {
       case "TokenExpiredError":
         response = {
           valid: false,
-          message: "Token expired",
-          error: error.message,
+          message: "error",
+          error: "Token expired",
+          // error: error.message,
         };
         break;
       case "JsonWebTokenError":
         response = {
           valid: false,
-          message: "Invalid token",
-          error: error.message,
+          message: "error",
+          error: "Invalid token",
+          // error: error.message,
         };
         break;
       case "NotBeforeError":
         response = {
           valid: false,
-          message: "Token not active",
-          error: error.message,
+          message: "error",
+          error: "Token not active",
+          // error: error.message,
         };
         break;
       default:
         response = {
           valid: false,
-          message: "Token verification failed",
-          error: error.message,
+          error: "Token verification failed",
+          message: "error",
+          // error: error.message,
         };
         break;
     }
