@@ -300,7 +300,10 @@ const getOngoingJourney = async (roleId, ownerUserUniqueId) => {
           on: joinCondition,
         },
       ],
-      conditions: { ...conditions, "Journey.journeyStatusId": 4 },
+      conditions: {
+        ...conditions,
+        "Journey.journeyStatusId": journeyStatusMap.journeyStarted,
+      },
       limit: 30,
     });
 

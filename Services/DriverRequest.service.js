@@ -749,8 +749,12 @@ const getDriverJourneyStatus = async (userUniqueId) => {
       orderBy: "driverRequestId",
       orderDirection: "desc",
     });
+
     const journeyStatusId = currentRequest?.journeyStatusId;
-    return journeyStatusId && journeyStatusId <= 4 ? journeyStatusId : null;
+    return journeyStatusId &&
+      journeyStatusId < journeyStatusMap.journeyCompleted
+      ? journeyStatusId
+      : null;
   } catch (error) {
     console.log("Error in getPassengerJourneyStatus:", error);
     return null;
