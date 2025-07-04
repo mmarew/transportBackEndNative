@@ -236,6 +236,7 @@ const handleUserRoleStatus = async (
       conditions: { userUniqueId, roleId },
     });
     let userRoleId = null;
+
     // if user is not found in this role, register new user role
     if (userRole.length === 0) {
       const insertUserRole = await insertData({
@@ -261,6 +262,8 @@ const handleUserRoleStatus = async (
       tableName: "UserRoleStatusCurrent",
       conditions: { userRoleId },
     });
+    console.log("@userRoleStatus", userRoleStatus);
+
     const colAndVal = {
       userRoleStatusUniqueId: uuidv4(),
       userRoleStatusCreatedBy: userUniqueId,

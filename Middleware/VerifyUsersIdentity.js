@@ -119,10 +119,13 @@ const verifyDriversIdentity = async (req, res, next) => {
   }
 };
 // Verify if the user is NOT a Driver
-const verifyIfUserIsNotDriver = async (req, res, next) => {
+const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
   try {
     const userUniqueId = req?.user?.userUniqueId;
-
+    // You can get the full URL using req.originalUrl or req.baseUrl + req.path
+    // For example:
+    const fullUrl = req.originalUrl;
+    console.log("Request URL:", fullUrl);
     // Step 1: Check if the user has a Driver role
     const userRoles = await getData({
       tableName: "UserRole",
@@ -131,6 +134,9 @@ const verifyIfUserIsNotDriver = async (req, res, next) => {
 
     // If user has driver role, reject the request
     if (userRoles?.length > 0) {
+      if (fullUrl == "/api/user/updateUser/self") {
+        return next();
+      }
       console.log("@not allowed action to driver");
       return res.status(403).json({
         message: "error",
@@ -208,7 +214,7 @@ const verifyPassengersIdentity = async (req, res, next) => {
 };
 
 module.exports = {
-  verifyIfUserIsNotDriver,
+  verifyIfOperationIsAllowedByUserDriver,
   verifyAdminsIdentity,
   verifyDriversIdentity,
   verifyPassengersIdentity,

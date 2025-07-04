@@ -193,7 +193,7 @@ const takeFromStreet = async (body, user) => {
     responseData.status = journeyStatusId;
     return responseData;
   } catch (error) {
-    console.log("Error in createDriverRequest:", error);
+    console.log("Error in createDriverRequest takeFromStreet:", error);
     return { message: "error", error: "Unable to create request" };
   }
 };

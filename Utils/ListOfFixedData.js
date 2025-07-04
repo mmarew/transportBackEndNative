@@ -361,7 +361,7 @@ const listOfDocuments = [
   },
   {
     isExpirationDateRequired: true,
-    documentTypeName: " Vehicle Registration(librea)",
+    documentTypeName: " Vehicle Registration (librea)",
     documentTypeDescription:
       "Proof of ownership or right to use the vehicle for ride share services. It confirms the vehicle is legally registered.",
   },
