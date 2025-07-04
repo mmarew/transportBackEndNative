@@ -38,8 +38,17 @@ const handleExistingUser = async ({
   roleId,
   statusId,
   userRoleStatusDescription = "no description",
+  email,
+  fullName,
 }) => {
-  console.log("@handleExistingUser  requestedFrom", requestedFrom);
+  console.log(
+    "@handleExistingUser  requestedFrom",
+    requestedFrom,
+    "email ======> ",
+    email,
+    "fullName ======> ",
+    fullName
+  );
   // Generate OTP
   const OTP = Math.floor(100000 + Math.random() * 900000);
   const userUniqueId = user.userUniqueId;
@@ -47,8 +56,9 @@ const handleExistingUser = async ({
     tableName: "usersCredential",
     conditions: { userUniqueId },
   });
+  //
   // create new credential if it does not exist
-  if (credential.length === 0) {
+  if (credential?.length === 0) {
     //create new credential by hashing OTP
     const hashedOtps = await bcrypt.hash(String(OTP), 10);
     await insertData({
@@ -98,6 +108,7 @@ const createUser = async (body) => {
     statusId = body?.statusId,
     userRoleStatusDescription = body?.userRoleStatusDescription;
   console.log("@createUser body", body);
+
   // Validate input data
   if (!phoneNumber || !roleId || !statusId) {
     return {
@@ -120,7 +131,6 @@ const createUser = async (body) => {
       conditions,
       operator: "OR",
     });
-    console.log("@createUser savedUser", savedUser);
 
     // If the user does not exist, create new user, credentials, role, and status
     const registerNewUser = async () => {
@@ -199,11 +209,51 @@ const createUser = async (body) => {
       };
     }
     if (savedUser.length === 1) {
+      // check if there is a match between phone from user and phone saved in database
       if (phoneNumber != savedUser[0]?.phoneNumber) {
         return {
           message: "error",
           error: "Wrong phone match to current email ",
         };
+      }
+      const savedEmail = savedUser[0]?.email;
+      // if role id is 2 user is driver
+      if (roleId == 2) {
+        // compare email address if email is not fake email
+        if (
+          !savedEmail?.startsWith("fakeEmail_") &&
+          !savedEmail?.endsWith("@passenger.com") &&
+          email &&
+          email != savedUser[0]?.email
+        ) {
+          return {
+            message: "error",
+            error: "Wrong email match to current phone number",
+          };
+        }
+        // if there is no saved email or saved email is fake email update email
+        if (
+          ((savedEmail?.startsWith("fakeEmail_") &&
+            savedEmail?.endsWith("@passenger.com")) ||
+            !savedUser[0]?.email) &&
+          email
+        ) {
+          // update email
+          await updateData({
+            tableName: "Users",
+            updateValues: { email },
+            conditions: { userUniqueId: savedUser[0].userUniqueId },
+          });
+        }
+        // if there is no saved full name update full name
+        if (!savedUser[0]?.fullName && fullName) {
+          // update full name
+          await updateData({
+            tableName: "Users",
+            updateValues: { fullName },
+            conditions: { userUniqueId: savedUser[0].userUniqueId },
+          });
+        }
       }
       return handleExistingUser({
         user: { ...savedUser[0] },
@@ -211,6 +261,8 @@ const createUser = async (body) => {
         statusId,
         userRoleStatusDescription,
         requestedFrom,
+        email,
+        fullName,
       });
     }
 
