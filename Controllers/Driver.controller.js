@@ -179,8 +179,19 @@ const attachRequiredDocuments = async (req, res) => {
     ServerResponder(res, error.message);
   }
 };
-
+const sendUpdatedLocationController = async (req, res) => {
+  try {
+    const { userUniqueId } = req?.user;
+    req.body.userUniqueId = userUniqueId;
+    const result = await services.sendUpdatedLocation(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error in sendUpdatedLocationController:", error);
+    ServerResponder(res, error.message);
+  }
+};
 module.exports = {
+  sendUpdatedLocationController,
   createAndAcceptNewRequest,
   attachRequiredDocuments,
   cancelDriverRequest,

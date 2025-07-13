@@ -69,7 +69,7 @@ const messageTypes = {
   },
   driver_not_answered: {
     message: "driver is not responding",
-    detailes: "driver dont respond to current passengers request ",
+    detailes: "driver don't respond to current passengers request ",
   },
   driver_answred_calls: {
     message: "driver responded to calls",
@@ -79,6 +79,11 @@ const messageTypes = {
     message: "online driver not found",
     detailes:
       "Dear customer, we apologize to inform you. Your request has been canceled by the system because no vehicle is available nearby. Please try again later.",
+  },
+  update_drivers_location: {
+    message: "update drivers location",
+    detailes:
+      "When driver is moving from place to place its current location is being updated",
   },
 };
 module.exports = messageTypes;

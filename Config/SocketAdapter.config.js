@@ -46,7 +46,16 @@ async function initSocket(server) {
     socket.on("message", (msg) => {
       socket.emit("response", "Message received");
     });
+    socket.on("locationUpdate", (data) => {
+      console.log("@locationUpdate", data);
 
+      // const { userId, tripId, coordinates } = data;
+      // // Broadcast to the other party in the trip
+      // io.to(getOtherUserSocketId(tripId, userId)).emit(
+      //   "locationUpdate",
+      //   coordinates
+      // );
+    });
     socket.on("disconnect", () => {
       const userType = socket?.userType,
         identifier = socket?.identifier;

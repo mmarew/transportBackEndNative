@@ -12,6 +12,7 @@ const {
   cancelDriverRequest,
   takeFromStreet,
   createAndAcceptNewRequest,
+  sendUpdatedLocationController,
 } = require("../Controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
@@ -102,6 +103,12 @@ router.put(
   verifyTokenOfAxios,
   verifyDriversIdentity,
   attachRequiredDocuments
+);
+router.put(
+  "/api/driver/sendUpdatedLocation",
+  verifyTokenOfAxios,
+  verifyDriversIdentity,
+  sendUpdatedLocationController
 );
 
 module.exports = router;

@@ -758,10 +758,20 @@ const getDriverJourneyStatus = async (userUniqueId) => {
   } catch (error) {
     console.log("Error in getPassengerJourneyStatus:", error);
     return null;
+  } finally {
+    console.log("getDriverJourneyStatus");
   }
 };
-
+const sendUpdatedLocation = async (body) => {
+  console.log("@sendUpdatedLocation body is ", body);
+  sendNotificationToPassenger({
+    phoneNumber: body?.passengerPhone,
+    message: { ...body, messageType: messageTypes.update_drivers_location },
+  });
+  return { message: "success", data: "Location updated successfully" };
+};
 module.exports = {
+  sendUpdatedLocation,
   createAndAcceptNewRequest,
   getDriverJourneyStatus,
   attachRequiredDocuments,
