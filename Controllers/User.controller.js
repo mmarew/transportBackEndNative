@@ -151,7 +151,7 @@ const updateUser = async (req, res) => {
     // Update user text information
     const textResponse = await services.updateUser(body);
     updateResponses.textUpdate = textResponse.message;
-    // console.log("textResponse", textResponse);
+    console.log("textResponse", textResponse);
     // Handle file upload if files are provided
     if (req.files && req.files.length > 0) {
       const {

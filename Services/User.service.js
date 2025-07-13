@@ -219,8 +219,9 @@ const createUser = async (body) => {
       const savedEmail = savedUser[0]?.email;
       // if role id is 2 user is driver
       if (roleId == 2) {
-        // compare email address if email is not fake email
+        // compare email address if email is not fake email,email existed
         if (
+          savedEmail &&
           !savedEmail?.startsWith("fakeEmail_") &&
           !savedEmail?.endsWith("@passenger.com") &&
           email &&
@@ -643,7 +644,29 @@ const getAllUsers = async () => {
 };
 const updateUser = async (body) => {
   const { userUniqueId, fullName, phoneNumber, email, roleId, statusId } = body;
-
+  // check if email is reserved by another user]
+  const userDataByEmail = await getData({
+    tableName: "Users",
+    conditions: { email },
+  });
+  console.log("@userDataByEmail", userDataByEmail);
+  if (userDataByEmail[0]?.userUniqueId !== userUniqueId) {
+    return {
+      message: "error",
+      error: "Email already exists",
+    };
+  }
+  const userDataByPhoneNumber = await getData({
+    tableName: "Users",
+    conditions: { phoneNumber },
+  });
+  console.log("@userDataByPhoneNumber", userDataByPhoneNumber);
+  if (userDataByPhoneNumber[0]?.userUniqueId !== userUniqueId) {
+    return {
+      message: "error",
+      error: "Phone number already exists",
+    };
+  }
   // Ensure required fields are provided
   if (!userUniqueId) {
     return {
