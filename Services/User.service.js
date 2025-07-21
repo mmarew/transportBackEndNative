@@ -8,7 +8,7 @@ const createJWT = require("../Utils/CreateJWT");
 const currentDate = require("../Utils/CurrentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const verifyPassword = require("../Utils/VerifyPassword");
 const {
   driversDocumentVehicleRequirement,
@@ -650,7 +650,7 @@ const updateUser = async (body) => {
     conditions: { email },
   });
   console.log("@userDataByEmail", userDataByEmail);
-  if (userDataByEmail[0]?.userUniqueId !== userUniqueId) {
+  if (userDataByEmail?.[0]?.userUniqueId !== userUniqueId) {
     return {
       message: "error",
       error: "Email already exists",
@@ -661,7 +661,7 @@ const updateUser = async (body) => {
     conditions: { phoneNumber },
   });
   console.log("@userDataByPhoneNumber", userDataByPhoneNumber);
-  if (userDataByPhoneNumber[0]?.userUniqueId !== userUniqueId) {
+  if (userDataByPhoneNumber?.[0]?.userUniqueId !== userUniqueId) {
     return {
       message: "error",
       error: "Phone number already exists",

@@ -121,7 +121,8 @@ const verifyDriversIdentity = async (req, res, next) => {
 // Verify if the user is NOT a Driver
 const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
   try {
-    const userUniqueId = req?.user?.userUniqueId;
+    const user = req?.user;
+    const userUniqueId = user?.userUniqueId;
     // You can get the full URL using req.originalUrl or req.baseUrl + req.path
     // For example:
     const fullUrl = req.originalUrl;
@@ -135,7 +136,7 @@ const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
     // If user has driver role, reject the request
     if (userRoles?.length > 0) {
       if (fullUrl == "/api/user/updateUser/self") {
-        return next();
+        if (!user?.fullName || !user?.email) return next();
       }
       console.log("@not allowed action to driver");
       return res.status(403).json({

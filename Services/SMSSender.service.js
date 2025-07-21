@@ -1,10 +1,9 @@
 const { pool } = require("../Middleware/Database.config");
 const { getData } = require("../CRUD/Read/ReadData");
 const createJWT = require("../Utils/CreateJWT");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const verifyPassword = require("../Utils/VerifyPassword");
 // Create a new SMS sender
-// service createSMSSenderconst bcrypt = require('bcrypt');
 const createSMSSender = async ({ phoneNumber, password }) => {
   try {
     // Check if phone number already exists

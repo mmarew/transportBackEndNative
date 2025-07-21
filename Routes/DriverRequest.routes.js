@@ -104,6 +104,7 @@ router.put(
   verifyDriversIdentity,
   attachRequiredDocuments
 );
+// send latest location of driver to passenger
 router.put(
   "/api/driver/sendUpdatedLocation",
   verifyTokenOfAxios,

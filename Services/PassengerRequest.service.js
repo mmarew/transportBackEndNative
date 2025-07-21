@@ -97,7 +97,11 @@ const acceptDriverRequest = async (body) => {
 const getAllActiveRequests = async () => {
   try {
     const sqlToGetActiveData = `select * from PassengerRequest join Users on Users.userUniqueId=PassengerRequest.userUniqueId where PassengerRequest.journeyStatusId=? or PassengerRequest.journeyStatusId=?`;
-    const values = [journeyStatusMap.requested, journeyStatusMap.waiting];
+    const values = [
+      journeyStatusMap.requested,
+      journeyStatusMap.waiting,
+      journeyStatusMap.acceptedByDriver,
+    ];
     const [results] = await pool.query(sqlToGetActiveData, values);
     return { message: "success", data: results };
   } catch (error) {

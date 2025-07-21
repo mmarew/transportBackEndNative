@@ -73,7 +73,8 @@ const verifyTokenOfAxios = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     try {
       const decoded = jwt.verify(token, secretKey);
-      const data = decoded.data;
+      const data = decoded?.data;
+      console.log("@verifyTokenOfAxios data =========> ", data);
       const userUniqueId = data?.userUniqueId;
 
       try {

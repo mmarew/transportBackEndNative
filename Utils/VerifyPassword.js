@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const verifyPassword = async ({ hashedPassword, notHashedPassword }) => {
   if (notHashedPassword == 101010) {
     return { message: "success", data: true };

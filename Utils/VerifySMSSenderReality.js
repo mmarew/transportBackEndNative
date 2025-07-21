@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { pool } = require("../Middleware/Database.config");
 const verifyPassword = require("./VerifyPassword");
 const { getData } = require("../CRUD/Read/ReadData");
