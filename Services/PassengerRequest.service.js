@@ -95,18 +95,34 @@ const acceptDriverRequest = async (body) => {
   }
 };
 const getAllActiveRequests = async () => {
+  const activeStatusIds = [
+    journeyStatusMap.requested,
+    journeyStatusMap.waiting,
+    journeyStatusMap.acceptedByDriver,
+  ];
+
+  const sql = `
+    SELECT pr.*, u.* 
+    FROM PassengerRequest pr
+    JOIN Users u ON u.userUniqueId = pr.userUniqueId 
+    WHERE pr.journeyStatusId IN (?)
+  `;
+
   try {
-    const sqlToGetActiveData = `select * from PassengerRequest join Users on Users.userUniqueId=PassengerRequest.userUniqueId where PassengerRequest.journeyStatusId=? or PassengerRequest.journeyStatusId=?`;
-    const values = [
-      journeyStatusMap.requested,
-      journeyStatusMap.waiting,
-      journeyStatusMap.acceptedByDriver,
-    ];
-    const [results] = await pool.query(sqlToGetActiveData, values);
-    return { message: "success", data: results };
+    const [results] = await pool.query(sql, [activeStatusIds]);
+    return {
+      status: "success",
+      data: results,
+      count: results.length,
+    };
   } catch (error) {
-    console.log("@error", error);
-    return { error: "unable to get data", message: "error" };
+    console.error("Failed to fetch active requests:", error);
+    return {
+      status: "error",
+      error: "Unable to retrieve active ride requests",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
   }
 };
 const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {

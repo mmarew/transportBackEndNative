@@ -9,7 +9,7 @@ const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const serverResponder = require("../Utils/ServerResponder");
 // Function to create a canceled journey by the system
-const canceledJourneyBySystem = async (
+const canceleJourneyBySystem = async (
   req = { body: { user: null } },
   res = null
 ) => {
@@ -87,10 +87,10 @@ const canceledJourneyBySystem = async (
   }
 };
 
-// Schedule the canceledJourneyBySystem to run every 5 minutes (300000 ms)
-// setInterval(() => {
-//   canceledJourneyBySystem();
-// }, 30000); // 300,000 ms = 5 minutes
+// Schedule the canceleJourneyBySystem to run every 5 minutes (300000 ms)
+setInterval(() => {
+  canceleJourneyBySystem();
+}, 30000); // 300,000 ms = 5 minutes
 
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {
@@ -265,7 +265,7 @@ const getUnseenCanceledJourney = async (req, res) => {
 module.exports = {
   getUnseenCanceledJourney,
   updateSeenByAdmin,
-  canceledJourneyBySystem,
+  canceleJourneyBySystem,
   deleteCanceledJourney,
   updateCanceledJourney,
   getCanceledJourneyById,

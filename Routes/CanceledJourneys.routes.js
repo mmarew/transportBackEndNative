@@ -10,7 +10,7 @@ router.post(
 router.post(
   "/api/admin/canceledJourneyBySystem",
   verifyTokenOfAxios,
-  canceledJourneyController.canceledJourneyBySystem
+  canceledJourneyController.canceleJourneyBySystem
 );
 router.get(
   "/api/admin/canceledJourney",
