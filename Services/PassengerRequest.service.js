@@ -250,7 +250,7 @@ const cancelPassengerRequest = async (body) => {
       // 6 is canceled by passenger, 7 is canceled by driver, 8 is canceled by admin, 10 is canceled by system
       updateValues: {
         journeyStatusId,
-      }, // Set journeyStatusId to 6 (cancelled by passenger)
+      },
     });
 
     // Check if the request exists in JourneyDecisions
@@ -289,7 +289,7 @@ const cancelPassengerRequest = async (body) => {
     await updateData({
       tableName: "DriverRequest",
       conditions: { driverRequestId },
-      updateValues: { journeyStatusId: journeyStatusMap.cancelledByPassenger }, // Set journeyStatusId to 6 (cancelled by passenger)
+      updateValues: { journeyStatusId }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
     const driverData = await performJoinSelect({
       baseTable: "DriverRequest",
@@ -309,10 +309,10 @@ const cancelPassengerRequest = async (body) => {
         driver: null,
         journey: null,
         decisions: null,
-        status:
-          userUniqueId === ownerUserUniqueId
-            ? journeyStatusMap?.cancelledByPassenger // "passenger cancelled your request."
-            : journeyStatusMap?.cancelledBySystem, //"system cancelled your request.",
+        status: journeyStatusId,
+        // userUniqueId === ownerUserUniqueId
+        //   ? journeyStatusMap?.cancelledByPassenger // "passenger cancelled your request."
+        //   : journeyStatusMap?.cancelledBySystem, //"system cancelled your request.",
         message: "success",
         data:
           userUniqueId === ownerUserUniqueId
@@ -326,7 +326,7 @@ const cancelPassengerRequest = async (body) => {
     await updateData({
       tableName: "JourneyDecisions",
       conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId: journeyStatusMap?.cancelledByPassenger }, // Set journeyStatusId to 6 (cancelled by passenger)
+      updateValues: { journeyStatusId }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
     const existingJourneyData = await getData({
       tableName: "Journey",
@@ -336,7 +336,7 @@ const cancelPassengerRequest = async (body) => {
     const updatedJourneyData = await updateData({
       tableName: "Journey",
       conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId: journeyStatusMap?.cancelledByPassenger }, // Set journeyStatusId to 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+      updateValues: { journeyStatusId },
     });
     const journeyId = existingJourneyData.at(0)?.journeyId;
     const canceledJourney = await createCanceledJourney({
@@ -361,6 +361,8 @@ const cancelPassengerRequest = async (body) => {
     return { message: "error", error: "Unable to cancel passenger request" };
   }
 };
+
+// Function to get the passenger's current journey status
 const getPassengerJourneyStatus = async (userUniqueId) => {
   try {
     const [currentRequest] = await getData({
