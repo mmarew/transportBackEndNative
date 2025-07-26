@@ -234,7 +234,14 @@ const cancelPassengerRequest = async (body) => {
       };
     }
 
-    const passengerRequestId = getActiveRequest[0].passengerRequestId;
+    const passengerRequestId = getActiveRequest?.[0]?.passengerRequestId;
+
+    const journeyStatusId =
+      roleId == 1
+        ? journeyStatusMap.cancelledByPassenger
+        : roleId == 3
+        ? journeyStatusMap.cancelledByAdmin
+        : journeyStatusMap.cancelledBySystem;
 
     // Update the PassengerRequest to reflect the cancellation
     await updateData({
@@ -242,12 +249,7 @@ const cancelPassengerRequest = async (body) => {
       conditions: { passengerRequestId },
       // 6 is canceled by passenger, 7 is canceled by driver, 8 is canceled by admin, 10 is canceled by system
       updateValues: {
-        journeyStatusId:
-          roleId == 1
-            ? journeyStatusMap.cancelledByPassenger
-            : roleId == 3
-            ? journeyStatusMap.cancelledByAdmin
-            : journeyStatusMap.cancelledBySystem,
+        journeyStatusId,
       }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
 
@@ -278,9 +280,10 @@ const cancelPassengerRequest = async (body) => {
         };
     }
 
-    const driverRequestId = journeyDecisions[0].driverRequestId;
-    const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
-    const journeyDecisionId = journeyDecisions[0].journeyDecisionId;
+    const driverRequestId = journeyDecisions?.[0].driverRequestId;
+    const journeyDecisionUniqueId =
+      journeyDecisions?.[0].journeyDecisionUniqueId;
+    const journeyDecisionId = journeyDecisions?.[0].journeyDecisionId;
 
     // Update the DriverRequest to reflect the cancellation
     await updateData({
@@ -298,7 +301,7 @@ const cancelPassengerRequest = async (body) => {
       ],
       conditions: { driverRequestId },
     });
-    const driver = driverData[0];
+    const driver = driverData?.[0];
     const phoneNumber = driver?.phoneNumber;
     await sendNotificationToDriver({
       message: {
@@ -308,7 +311,7 @@ const cancelPassengerRequest = async (body) => {
         decisions: null,
         status:
           userUniqueId === ownerUserUniqueId
-            ? journeyStatusMap.cancelledByPassenger // "passenger cancelled your request."
+            ? journeyStatusMap?.cancelledByPassenger // "passenger cancelled your request."
             : journeyStatusMap?.cancelledBySystem, //"system cancelled your request.",
         message: "success",
         data:
@@ -323,7 +326,7 @@ const cancelPassengerRequest = async (body) => {
     await updateData({
       tableName: "JourneyDecisions",
       conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId: journeyStatusMap.cancelledByPassenger }, // Set journeyStatusId to 6 (cancelled by passenger)
+      updateValues: { journeyStatusId: journeyStatusMap?.cancelledByPassenger }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
     const existingJourneyData = await getData({
       tableName: "Journey",
@@ -333,7 +336,7 @@ const cancelPassengerRequest = async (body) => {
     const updatedJourneyData = await updateData({
       tableName: "Journey",
       conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId: 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
+      updateValues: { journeyStatusId: journeyStatusMap?.cancelledByPassenger }, // Set journeyStatusId to 6 }, // Set journeyStatusId to 6 (cancelled by passenger)
     });
     const journeyId = existingJourneyData.at(0)?.journeyId;
     const canceledJourney = await createCanceledJourney({
