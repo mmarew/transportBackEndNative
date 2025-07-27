@@ -22,7 +22,7 @@ const createUserSystem = async (body) => {
     statusId = 1,
     userRoleStatusDescription =
       "this can manage things by itself based on written programs";
-  return await createUser({
+  await createUser({
     fullName,
     phoneNumber,
     email,
@@ -30,6 +30,17 @@ const createUserSystem = async (body) => {
     statusId,
     userRoleStatusDescription,
   });
+  // create supper admin
+  const supperAdmin = await createUser({
+    fullName: "Supper Admin",
+    phoneNumber: "+251983222221",
+    email: "supperAdmin@supperAdmin.com",
+    roleId: 5,
+    statusId: 1,
+    userRoleStatusDescription:
+      "Supper Admin can manage drivers passengers and admin using api requests",
+  });
+  return;
 };
 
 const handleExistingUser = async ({

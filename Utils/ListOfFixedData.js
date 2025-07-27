@@ -1,14 +1,24 @@
 const currentDate = require("./CurrentDate");
 const { v4: uuidv4 } = require("uuid");
+const roleIdList = {
+  passengerRoleId: 1,
+  driverRoleId: 2,
+  adminRoleId: 3,
 
+  vehicleOwnerRoleId: 4,
+  systemRoleId: 5,
+  supperAdminRoleId: 6,
+};
 const roleList = [
   {
+    roleId: 1,
     roleUniqueId: uuidv4(),
     roleName: "Passenger",
     roleDescription: "a person who can make order to driver to load goods",
     roleCreatedAt: currentDate(),
   },
   {
+    roleId: 2,
     roleUniqueId: uuidv4(),
     roleName: "Driver",
     roleDescription:
@@ -16,21 +26,40 @@ const roleList = [
     roleCreatedAt: currentDate(),
   },
   {
+    roleId: 3,
     roleUniqueId: uuidv4(),
     roleName: "Admin",
     roleDescription: "a person who can manage the system, driver and passenger",
     roleCreatedAt: currentDate(),
   },
   {
+    roleId: 4,
     roleUniqueId: uuidv4(),
     roleName: "vehicle owner",
     roleDescription: "a person who brought the car for delivery",
     roleCreatedAt: currentDate(),
   },
   {
+    roleId: 5,
     roleUniqueId: uuidv4(),
     roleName: "System",
     roleDescription: "some codes writen in app an do jobs by itself",
+    roleCreatedAt: currentDate(),
+  },
+  {
+    roleId: 6,
+    roleUniqueId: uuidv4(),
+    roleName: "Supper Admin",
+    roleDescription:
+      "a person who can manage drivers passengers and admins using api requests",
+    roleCreatedAt: currentDate(),
+  },
+  {
+    roleId: 7,
+    roleUniqueId: uuidv4(),
+    roleName: "unknown role id",
+    roleDescription:
+      "This role is used to register user as default role and can be updated by supper admin ",
     roleCreatedAt: currentDate(),
   },
 ];
@@ -388,6 +417,12 @@ const listOfDocuments = [
     documentTypeDescription:
       "A formal document that provides proof that the owner of the vehicle has granted the driver permission to use the vehicle for commercial purposes (ride-sharing).",
   },
+  {
+    isExpirationDateRequired: true,
+    documentTypeName: "National ID",
+    documentTypeDescription:
+      "A valid and unexpired national ID. The admin needs this to ensure the driver is legally permitted to operate a vehicle.",
+  },
 ];
 const listOfDocumentsTypeAndId = {
   driverLicense: 1,
@@ -396,6 +431,7 @@ const listOfDocumentsTypeAndId = {
   profilePhoto: 4,
   taxIdentificationNumber: 5,
   delegationOfVehicleUse: 6,
+  nationalId: 7,
 };
 
 const driversDocumentRequirement = [
@@ -680,4 +716,5 @@ module.exports = {
   listOfDocuments,
   roleList,
   statusList,
+  roleIdList,
 };
