@@ -25,8 +25,8 @@ const config = {
   queueLimit: 0,
   connectTimeout: 10000, // 10 seconds
   multipleStatements: true, // Enable multiple statements
-  // Socket: "/Applications/MAMP/tmp/mysql/mysql.sock",
-  // socketPath: "/var/run/mysqld/mysqld.sock", // ✅ correct key
+
+  socketPath: "/Applications/MAMP/tmp/mysql/mysql.sock", // ✅ Correct for MAMP
 };
 
 // Create a connection pool

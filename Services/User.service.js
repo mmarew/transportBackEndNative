@@ -38,17 +38,7 @@ const handleExistingUser = async ({
   roleId,
   statusId,
   userRoleStatusDescription = "no description",
-  email,
-  fullName,
 }) => {
-  console.log(
-    "@handleExistingUser  requestedFrom",
-    requestedFrom,
-    "email ======> ",
-    email,
-    "fullName ======> ",
-    fullName
-  );
   // Generate OTP
   const OTP = Math.floor(100000 + Math.random() * 900000);
   const userUniqueId = user.userUniqueId;

@@ -31,21 +31,39 @@ const canceleJourneyBySystem = async (
       throw new Error("System user with role id 5 not found");
     }
 
-    // SQL query to get active passenger requests with journeyStatusId 1 and requestTime older than 5 minutes
-    const sqlQuery = `SELECT PassengerRequest.*, Users.phoneNumber FROM PassengerRequest   JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId WHERE PassengerRequest.journeyStatusId = 1   AND PassengerRequest.requestTime < DATE_SUB(NOW(), INTERVAL 5 MINUTE) `;
+    // // SQL query to get active passenger requests with journeyStatusId 1 and requestTime older than 5 minutes
+    // const sqlQuery = `SELECT PassengerRequest.*, Users.phoneNumber FROM PassengerRequest JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId WHERE PassengerRequest.journeyStatusId = 1   AND PassengerRequest.requestTime < DATE_SUB(NOW(), INTERVAL 1 MINUTE) `;
 
     // Execute the query
-    const [activeRequests] = await pool.query(sqlQuery);
-    if (!activeRequests || activeRequests.length === 0) {
-      if (res) {
-        return serverResponder(res, {
-          message: "error",
-          error: "No active requests found",
-        });
-      }
-      return;
-    }
+    // const [activeRequests] = await pool.query(sqlQuery);
+    // console.log("@activeRequests in canceleJourneyBySystem", activeRequests);
+    // console.log("NOW:", new Date().toISOString());
 
+    // if (!activeRequests || activeRequests.length === 0) {
+    //   if (res) {
+    //     return serverResponder(res, {
+    //       message: "error",
+    //       error: "No active requests found",
+    //     });
+    //   }
+    //   return;
+    // }
+
+    const now = new Date();
+    const cutoffTime = new Date(now.getTime() - 60 * 1000); // 5 minutes ago
+
+    const sqlQuery = `
+      SELECT PassengerRequest.*, Users.phoneNumber
+      FROM PassengerRequest
+      JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
+      WHERE PassengerRequest.journeyStatusId = 1
+        AND PassengerRequest.requestTime <= ?
+    `;
+
+    const [activeRequests] = await pool.query(sqlQuery, [cutoffTime]);
+
+    console.log("@activeRequests====>", activeRequests);
+    console.log("@cutoffTime", cutoffTime);
     req.body.user = user;
 
     for (const request of activeRequests) {
@@ -89,8 +107,9 @@ const canceleJourneyBySystem = async (
 
 // Schedule the canceleJourneyBySystem to run every 5 minutes (300000 ms)
 setInterval(() => {
+  console.log("checking canceled journeys");
   canceleJourneyBySystem();
-}, 30000); // 300,000 ms = 5 minutes
+}, 5000); // 300,000 ms = 5 minutes
 
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {
