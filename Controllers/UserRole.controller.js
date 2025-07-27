@@ -3,7 +3,8 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createUserRole = async (req, res) => {
   try {
-    const result = await userRoleService.createUserRole(req.body);
+    console.log("req.user", req.user);
+    const result = await userRoleService.createUserRole(req.body, req.user);
     ServerResponder(res, result, 201); // Respond with 201 Created
   } catch (error) {
     console.log("Error in createUserRoleController:", error);

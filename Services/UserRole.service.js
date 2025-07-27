@@ -3,11 +3,14 @@ const deleteData = require("../CRUD/Delete/DeleteData");
 const { getData } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { pool } = require("../Middleware/Database.config");
-
+const { v4: uuidv4 } = require("uuid");
+const currentDate = require("../Utils/CurrentDate");
 // Service to create UserRole
-const createUserRole = async (body) => {
+const createUserRole = async (body, user) => {
   const { userUniqueId, roleId } = body;
-
+  if (!userUniqueId || !roleId) {
+    return { message: "error", error: "Missing required fields" };
+  }
   // Check if user role already exists to prevent redundancy
   const existingUserRole = await getData({
     tableName: "UserRole",
@@ -19,9 +22,17 @@ const createUserRole = async (body) => {
   }
 
   const userRoleUniqueId = uuidv4();
+  const userRoleCreatedBy = user.userUniqueId;
+  const userRoleCreatedAt = currentDate();
   const result = await insertData({
     tableName: "UserRole",
-    colAndVal: { userRoleUniqueId, userUniqueId, roleId },
+    colAndVal: {
+      userRoleUniqueId,
+      userUniqueId,
+      roleId,
+      userRoleCreatedBy,
+      userRoleCreatedAt,
+    },
   });
 
   return { message: "success", data: result };
