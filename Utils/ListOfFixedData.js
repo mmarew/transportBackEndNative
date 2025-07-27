@@ -4,7 +4,6 @@ const roleIdList = {
   passengerRoleId: 1,
   driverRoleId: 2,
   adminRoleId: 3,
-
   vehicleOwnerRoleId: 4,
   systemRoleId: 5,
   supperAdminRoleId: 6,

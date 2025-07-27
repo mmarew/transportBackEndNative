@@ -190,5 +190,14 @@ const verifyTokenOfWS = async (tokenData) => {
     return response; // Send the error response with status 401 (Unauthorized)
   }
 };
+const verifyIfUserIsSupperAdmin = async (req, res, next) => {
+  const authHeader = req?.headers?.authorization;
+  console.log("@verifyIfUserIsSupperAdmin authHeader", authHeader);
+  next();
+};
 
-module.exports = { verifyTokenOfAxios, verifyTokenOfWS };
+module.exports = {
+  verifyTokenOfAxios,
+  verifyTokenOfWS,
+  verifyIfUserIsSupperAdmin,
+};

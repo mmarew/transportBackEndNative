@@ -29,13 +29,14 @@ const createUserSystem = async (body) => {
     roleId,
     statusId,
     userRoleStatusDescription,
+    requestedFrom: "system",
   });
   // create supper admin
   const supperAdmin = await createUser({
     fullName: "Supper Admin",
     phoneNumber: "+251983222221",
     email: "supperAdmin@supperAdmin.com",
-    roleId: 5,
+    roleId: 6,
     statusId: 1,
     userRoleStatusDescription:
       "Supper Admin can manage drivers passengers and admin using api requests",
@@ -109,7 +110,9 @@ const createUser = async (body) => {
     statusId = body?.statusId,
     userRoleStatusDescription = body?.userRoleStatusDescription;
   console.log("@createUser body", body);
-
+  if (roleId >= 3) {
+    return { message: "error", error: `you can't create this user` };
+  }
   // Validate input data
   if (!phoneNumber || !roleId || !statusId) {
     return {
