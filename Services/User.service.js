@@ -40,6 +40,7 @@ const createUserSystem = async (body) => {
     statusId: 1,
     userRoleStatusDescription:
       "Supper Admin can manage drivers passengers and admin using api requests",
+    requestedFrom: "Supper Admin",
   });
   return;
 };
@@ -100,20 +101,289 @@ const handleExistingUser = async ({
   });
   return otpUpdated;
 };
+
+// utils/registerNewUser.js
+const registerNewUser = async ({
+  fullName,
+  phoneNumber,
+  email,
+  roleId,
+  statusId,
+  userRoleStatusDescription,
+  requestedFrom,
+}) => {
+  const userUniqueId = uuidv4();
+  const credentialUniqueId = uuidv4();
+  const OTP = Math.floor(100000 + Math.random() * 900000);
+  const hashedOtps = await bcrypt.hash(String(OTP), 10);
+
+  const dataOfPassenger = {
+    userUniqueId,
+    fullName,
+    phoneNumber,
+    email,
+    createdAt: currentDate(),
+    createdBy: "system",
+  };
+
+  const insertedUser = await insertData({
+    tableName: "Users",
+    colAndVal: dataOfPassenger,
+  });
+
+  const insertedCredential = await insertData({
+    tableName: "usersCredential",
+    colAndVal: {
+      credentialUniqueId,
+      userUniqueId,
+      OTP: hashedOtps,
+      hashedPassword: hashedOtps,
+      usersCredentialCreatedAt: new Date(),
+    },
+  });
+
+  const userCreationSuccess = [insertedCredential, insertedUser];
+
+  const allInserted = userCreationSuccess.every((res) => res?.affectedRows > 0);
+
+  if (!allInserted) {
+    return {
+      message: "error",
+      data: "An error occurred during user creation",
+    };
+  }
+
+  await handleUserRoleStatus(
+    userUniqueId,
+    roleId,
+    statusId,
+    userRoleStatusDescription
+  );
+
+  if (requestedFrom === "user") {
+    const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+    if (smsResult.message === "success") {
+      return {
+        message: "success",
+        messageDetail: "User created successfully, OTP sent successfully",
+      };
+    }
+  }
+
+  return {
+    message: "success",
+    messageDetail: "User created successfully",
+    dataOfPassenger,
+  };
+};
+
+// const createUser = async (body) => {
+//   // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin/supper admin
+//   const requestedFrom = body?.requestedFrom || "user",
+//     fullName = body?.fullName,
+//     phoneNumber = body?.phoneNumber,
+//     email = body?.email,
+//     roleId = body?.roleId,
+//     statusId = body?.statusId,
+//     userRoleStatusDescription = body?.userRoleStatusDescription;
+//   console.log("@createUser body", body);
+//   if (
+//     roleId >= 3 &&
+//     (requestedFrom != "Supper Admin" || requestedFrom != "system")
+//   ) {
+//     return { message: "error", error: `you can't create this user` };
+//   }
+//   // Validate input data
+//   if (!phoneNumber || !roleId || !statusId) {
+//     return {
+//       message: "error",
+//       error: "All fields are required to create a user",
+//     };
+//   }
+
+//   // Generate OTP
+//   const OTP = Math.floor(100000 + Math.random() * 900000);
+
+//   try {
+//     let conditions = {};
+//     if (phoneNumber) conditions.phoneNumber = phoneNumber;
+//     if (email) conditions.email = email;
+//     console.log("@conditions", conditions);
+//     // Check if the user already exists
+//     const savedUser = await getData({
+//       tableName: "Users",
+//       conditions,
+//       operator: "OR",
+//     });
+
+//     // If the user does not exist, create new user, credentials, role, and status
+//     const registerNewUser = async () => {
+//       const userUniqueId = uuidv4();
+//       const credentialUniqueId = uuidv4();
+//       const dataOfPassenger = {
+//         userUniqueId,
+//         fullName,
+//         phoneNumber,
+//         email,
+//         createdAt: currentDate(),
+//         createdBy: "system",
+//       };
+//       const hashedOtps = await bcrypt.hash(String(OTP), 10);
+//       // const userCreationSuccess = await Promise.all([
+//       // register users profile
+//       const insertedUser = await insertData({
+//         tableName: "Users",
+//         colAndVal: {
+//           ...dataOfPassenger,
+//         },
+//       });
+//       // register users credential
+//       const insertedCredential = await insertData({
+//         tableName: "usersCredential",
+//         colAndVal: {
+//           credentialUniqueId,
+//           userUniqueId,
+//           OTP: hashedOtps,
+//           hashedPassword: hashedOtps,
+//           usersCredentialCreatedAt: new Date(),
+//         },
+//       });
+//       // ]);
+//       const userCreationSuccess = [insertedCredential, insertedUser];
+//       console.log("@userCreationSuccess", userCreationSuccess);
+//       if (
+//         userCreationSuccess.every((result) => {
+//           console.log("@result?.affectedRows", result?.affectedRows);
+//           return result?.affectedRows > 0;
+//         })
+//       ) {
+//         // Insert UserRole and UserRoleStatus
+//         await handleUserRoleStatus(
+//           userUniqueId,
+//           roleId,
+//           statusId,
+//           userRoleStatusDescription
+//         );
+//         if (requestedFrom == "user") {
+//           // Send OTP to the user
+//           const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+//           if (smsResult.message === "success") {
+//             return {
+//               message: "success",
+//               messageDetail: "User created successfully, OTP sent successfully",
+//             };
+//           }
+//         }
+//         return {
+//           message: "success",
+//           messageDetail: "User created successfully",
+//           dataOfPassenger,
+//         };
+//       }
+
+//       return {
+//         message: "error",
+//         data: "An error occurred during user creation",
+//       };
+//     };
+//     if (savedUser?.length > 1) {
+//       return {
+//         message: "error",
+//         error: "phone or email is reserved in another user ",
+//       };
+//     }
+//     if (savedUser.length === 1) {
+//       // check if there is a match between phone from user and phone saved in database
+//       if (phoneNumber != savedUser[0]?.phoneNumber) {
+//         return {
+//           message: "error",
+//           error: "Wrong phone match to current email ",
+//         };
+//       }
+//       const savedEmail = savedUser[0]?.email;
+//       // if role id is 2 user is driver
+//       if (roleId == 2) {
+//         // compare email address if email is not fake email,email existed
+//         if (
+//           savedEmail &&
+//           !savedEmail?.startsWith("fakeEmail_") &&
+//           !savedEmail?.endsWith("@passenger.com") &&
+//           email &&
+//           email != savedUser[0]?.email
+//         ) {
+//           return {
+//             message: "error",
+//             error: "Wrong email match to current phone number",
+//           };
+//         }
+//         // if there is no saved email or saved email is fake email update email
+//         if (
+//           ((savedEmail?.startsWith("fakeEmail_") &&
+//             savedEmail?.endsWith("@passenger.com")) ||
+//             !savedUser[0]?.email) &&
+//           email
+//         ) {
+//           // update email
+//           await updateData({
+//             tableName: "Users",
+//             updateValues: { email },
+//             conditions: { userUniqueId: savedUser[0].userUniqueId },
+//           });
+//         }
+//         // if there is no saved full name update full name
+//         if (!savedUser[0]?.fullName && fullName) {
+//           // update full name
+//           await updateData({
+//             tableName: "Users",
+//             updateValues: { fullName },
+//             conditions: { userUniqueId: savedUser[0].userUniqueId },
+//           });
+//         }
+//       }
+//       return handleExistingUser({
+//         user: { ...savedUser[0] },
+//         roleId,
+//         statusId,
+//         userRoleStatusDescription,
+//         requestedFrom,
+//         email,
+//         fullName,
+//       });
+//     }
+
+//     return await registerNewUser();
+//   } catch (error) {
+//     console.log("Error in createUser:", error);
+//     return {
+//       message: "error",
+//       data: "An error occurred during user creation",
+//     };
+//   }
+// };
+
+// const registerNewUser = require("./utils/registerNewUser");
+
 const createUser = async (body) => {
-  // requestedFrom means where is this request comming from passenger using the front end app or driver street pickup or others like admin
-  const requestedFrom = body.requestedFrom || "user",
-    fullName = body?.fullName,
-    phoneNumber = body?.phoneNumber,
-    email = body?.email,
-    roleId = body?.roleId,
-    statusId = body?.statusId,
-    userRoleStatusDescription = body?.userRoleStatusDescription;
+  const requestedFrom = body?.requestedFrom || "user";
+  const {
+    fullName,
+    phoneNumber,
+    email,
+    roleId,
+    statusId,
+    userRoleStatusDescription,
+  } = body;
+
   console.log("@createUser body", body);
-  // if (roleId >= 3) {
-  //   return { message: "error", error: `you can't create this user` };
-  // }
-  // Validate input data
+
+  if (
+    roleId >= 3 &&
+    requestedFrom !== "Supper Admin" &&
+    requestedFrom !== "system"
+  ) {
+    return { message: "error", error: `you can't create this user` };
+  }
+
   if (!phoneNumber || !roleId || !statusId) {
     return {
       message: "error",
@@ -121,147 +391,74 @@ const createUser = async (body) => {
     };
   }
 
-  // Generate OTP
-  const OTP = Math.floor(100000 + Math.random() * 900000);
-
   try {
     let conditions = {};
     if (phoneNumber) conditions.phoneNumber = phoneNumber;
     if (email) conditions.email = email;
-    console.log("@conditions", conditions);
-    // Check if the user already exists
+
     const savedUser = await getData({
       tableName: "Users",
       conditions,
       operator: "OR",
     });
 
-    // If the user does not exist, create new user, credentials, role, and status
-    const registerNewUser = async () => {
-      const userUniqueId = uuidv4();
-      const credentialUniqueId = uuidv4();
-      const dataOfPassenger = {
-        userUniqueId,
-        fullName,
-        phoneNumber,
-        email,
-        createdAt: currentDate(),
-        createdBy: "system",
-      };
-      const hashedOtps = await bcrypt.hash(String(OTP), 10);
-      // const userCreationSuccess = await Promise.all([
-      // register users profile
-      const insertedUser = await insertData({
-        tableName: "Users",
-        colAndVal: {
-          ...dataOfPassenger,
-        },
-      });
-      // register users credential
-      const insertedCredential = await insertData({
-        tableName: "usersCredential",
-        colAndVal: {
-          credentialUniqueId,
-          userUniqueId,
-          OTP: hashedOtps,
-          hashedPassword: hashedOtps,
-          usersCredentialCreatedAt: new Date(),
-        },
-      });
-      // ]);
-      const userCreationSuccess = [insertedCredential, insertedUser];
-      console.log("@userCreationSuccess", userCreationSuccess);
-      if (
-        userCreationSuccess.every((result) => {
-          console.log("@result?.affectedRows", result?.affectedRows);
-          return result?.affectedRows > 0;
-        })
-      ) {
-        // Insert UserRole and UserRoleStatus
-        await handleUserRoleStatus(
-          userUniqueId,
-          roleId,
-          statusId,
-          userRoleStatusDescription
-        );
-        if (requestedFrom == "user") {
-          // Send OTP to the user
-          const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
-          if (smsResult.message === "success") {
-            return {
-              message: "success",
-              messageDetail: "User created successfully, OTP sent successfully",
-            };
-          }
-        }
-        return {
-          message: "success",
-          messageDetail: "User created successfully",
-          dataOfPassenger,
-        };
-      }
-
-      return {
-        message: "error",
-        data: "An error occurred during user creation",
-      };
-    };
     if (savedUser?.length > 1) {
       return {
         message: "error",
-        error: "phone or email is reserved in another user ",
+        error: "phone or email is reserved in another user",
       };
     }
+
     if (savedUser.length === 1) {
-      // check if there is a match between phone from user and phone saved in database
-      if (phoneNumber != savedUser[0]?.phoneNumber) {
+      const existingUser = savedUser[0];
+
+      if (phoneNumber !== existingUser.phoneNumber) {
         return {
           message: "error",
-          error: "Wrong phone match to current email ",
+          error: "Wrong phone match to current email",
         };
       }
-      const savedEmail = savedUser[0]?.email;
-      // if role id is 2 user is driver
+
+      const savedEmail = existingUser?.email;
+
       if (roleId == 2) {
-        // compare email address if email is not fake email,email existed
         if (
           savedEmail &&
-          !savedEmail?.startsWith("fakeEmail_") &&
-          !savedEmail?.endsWith("@passenger.com") &&
+          !savedEmail.startsWith("fakeEmail_") &&
+          !savedEmail.endsWith("@passenger.com") &&
           email &&
-          email != savedUser[0]?.email
+          email !== savedEmail
         ) {
           return {
             message: "error",
             error: "Wrong email match to current phone number",
           };
         }
-        // if there is no saved email or saved email is fake email update email
+
         if (
           ((savedEmail?.startsWith("fakeEmail_") &&
             savedEmail?.endsWith("@passenger.com")) ||
-            !savedUser[0]?.email) &&
+            !savedEmail) &&
           email
         ) {
-          // update email
           await updateData({
             tableName: "Users",
             updateValues: { email },
-            conditions: { userUniqueId: savedUser[0].userUniqueId },
+            conditions: { userUniqueId: existingUser.userUniqueId },
           });
         }
-        // if there is no saved full name update full name
-        if (!savedUser[0]?.fullName && fullName) {
-          // update full name
+
+        if (!existingUser?.fullName && fullName) {
           await updateData({
             tableName: "Users",
             updateValues: { fullName },
-            conditions: { userUniqueId: savedUser[0].userUniqueId },
+            conditions: { userUniqueId: existingUser.userUniqueId },
           });
         }
       }
+
       return handleExistingUser({
-        user: { ...savedUser[0] },
+        user: { ...existingUser },
         roleId,
         statusId,
         userRoleStatusDescription,
@@ -271,7 +468,15 @@ const createUser = async (body) => {
       });
     }
 
-    return await registerNewUser();
+    return await registerNewUser({
+      fullName,
+      phoneNumber,
+      email,
+      roleId,
+      statusId,
+      userRoleStatusDescription,
+      requestedFrom,
+    });
   } catch (error) {
     console.log("Error in createUser:", error);
     return {
@@ -280,6 +485,7 @@ const createUser = async (body) => {
     };
   }
 };
+
 const handleUserRoleStatus = async (
   userUniqueId,
   roleId,
@@ -734,8 +940,43 @@ const updateUser = async (body) => {
     };
   }
 };
+// Create User By Admin Or Super Admin
+const createUserByAdminOrSuperAdmin = async (body) => {
+  const { fullName, phoneNumber, email, roleId, statusId } = body;
+  const userDataByEmail = await getData({
+    tableName: "Users",
+    conditions: { email },
+  });
+  if (userDataByEmail?.[0]) {
+    return {
+      message: "error",
+      error: "Email already exists",
+    };
+  }
+  const userDataByPhoneNumber = await getData({
+    tableName: "Users",
+    conditions: { phoneNumber },
+  });
+  if (userDataByPhoneNumber?.[0]) {
+    return {
+      message: "error",
+      error: "Phone number already exists",
+    };
+  }
 
+  const res = await registerNewUser({
+    fullName,
+    phoneNumber,
+    email,
+    roleId,
+    statusId,
+    userRoleStatusDescription: "",
+    requestedFrom: "Supper Admin/Admin",
+  });
+  return res;
+};
 module.exports = {
+  createUserByAdminOrSuperAdmin,
   createUserSystem,
   getUserByUserUniqueId,
   getUsersByRoleUniqueId,

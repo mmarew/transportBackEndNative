@@ -24,6 +24,12 @@ router.get(
 
 router.post("/api/user/createUser", controller.createUser);
 router.post(
+  "/api/admin/createUserByAdminOrSuperAdmin",
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  controller.createUserByAdminOrSuperAdmin
+);
+router.post(
   "/api/admin/createUser",
   verifyTokenOfAxios,
   verifyAdminsIdentity,

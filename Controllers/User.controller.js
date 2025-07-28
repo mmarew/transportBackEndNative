@@ -231,8 +231,20 @@ const updateUser = async (req, res) => {
     });
   }
 };
-
+const createUserByAdminOrSuperAdmin = async (req, res) => {
+  try {
+    const response = await services.createUserByAdminOrSuperAdmin(req.body);
+    ServerResponder(res, response);
+  } catch (error) {
+    console.log("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to create user",
+    });
+  }
+};
 module.exports = {
+  createUserByAdminOrSuperAdmin,
   getUserByEmailOrNameOrPhoneNumber,
   getUsersByRoleUniqueId,
   getUserByUserUniqueIdAndroleUniqueId,
