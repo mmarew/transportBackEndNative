@@ -34,9 +34,11 @@ const getUsersByRoleUniqueId = async (req, res) => {
 
 const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
   try {
+    // phoneNumberOrEmail/:roleUniqueId
+    console.log("@getUserByEmailOrNameOrPhoneNumber req.params", req.params);
     const response = await services.getUserByEmailOrNameOrPhoneNumber(
-      req.params.data,
-      req.params.roleId
+      req.params.phoneNumberOrEmail,
+      req.params.roleUniqueId
     );
     ServerResponder(res, response);
   } catch (error) {

@@ -12,7 +12,7 @@ const {
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 router.post(
-  "/api/user/vehicles/:ownerUserUniqueId",
+  "/api/user/vehicles/ownerUserUniqueId/:ownerUserUniqueId",
   verifyTokenOfAxios,
   createVehicleController
 );

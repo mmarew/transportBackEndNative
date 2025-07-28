@@ -1,15 +1,18 @@
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
+const { pool } = require("./Database.config");
 
 // Verify if the user is an Admin and is in an active status
 const verifyAdminsIdentity = async (req, res, next) => {
   const userUniqueId = req?.user?.userUniqueId;
 
   // Step 2: Verify if the user has an Admin role
-  const userRole = await getData({
-    tableName: "UserRole",
-    conditions: { userUniqueId, roleId: 3 }, // 3 indicates the Admin role
-  });
-
+  // const userRole = await getData({
+  //   tableName: "UserRole",
+  //   conditions: { userUniqueId, roleId: 3 }, // 3 indicates the Admin role
+  // });
+  const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND roleId = ? OR roleId = 6`;
+  const [userRole] = await pool.query(sql, [userUniqueId, 3, 6]);
+  console.log("@userRole", userRole);
   if (!userRole?.length) {
     return res.status(500).json({
       message: "error",

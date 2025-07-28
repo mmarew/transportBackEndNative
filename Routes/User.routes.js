@@ -10,7 +10,7 @@ const upload = require("../Config/MulterConfig");
 
 const router = express.Router();
 router.get(
-  "/api/admin/getUserByEmailOrNameOrPhoneNumber/:data/:roleId",
+  "/api/admin/getUserByEmailOrNameOrPhoneNumber/:phoneNumberOrEmail/:roleUniqueId",
   verifyTokenOfAxios,
   controller.getUserByEmailOrNameOrPhoneNumber
 );
