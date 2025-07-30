@@ -1,6 +1,6 @@
 const currentDate = require("./CurrentDate");
 const { v4: uuidv4 } = require("uuid");
-const roleIdList = {
+const usersRoles = {
   passengerRoleId: 1,
   driverRoleId: 2,
   adminRoleId: 3,
@@ -62,6 +62,7 @@ const roleList = [
     roleCreatedAt: currentDate(),
   },
 ];
+
 const statusList = [
   // 1. All Documents Accepted, Vehicle Registered (Active)
   {
@@ -352,6 +353,7 @@ const statusList = [
     statusCreatedAt: currentDate(),
   },
 ];
+
 const vehicleStatusTypes = [
   {
     VehicleStatusTypeName: "active",
@@ -380,6 +382,7 @@ const vehicleStatusTypes = [
     statusTypeDescription: "when other driver has reserved the vehicle",
   },
 ];
+
 const listOfDocuments = [
   {
     isExpirationDateRequired: true,
@@ -423,6 +426,7 @@ const listOfDocuments = [
       "A valid and unexpired national ID. The admin needs this to ensure the driver is legally permitted to operate a vehicle.",
   },
 ];
+
 const listOfDocumentsTypeAndId = {
   driverLicense: 1,
   vehicleRegistrationlibrea: 2,
@@ -715,5 +719,5 @@ module.exports = {
   listOfDocuments,
   roleList,
   statusList,
-  roleIdList,
+  usersRoles,
 };

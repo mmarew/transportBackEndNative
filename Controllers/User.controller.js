@@ -51,7 +51,7 @@ const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
 };
 const loginUser = async (req, res) => {
   try {
-    const response = await services.loginUser(
+    const response = await services?.loginUser(
       req.params.phoneNumber,
       req.params.roleId
     );
@@ -233,7 +233,10 @@ const updateUser = async (req, res) => {
 };
 const createUserByAdminOrSuperAdmin = async (req, res) => {
   try {
-    const response = await services.createUserByAdminOrSuperAdmin(req.body);
+    const response = await services.createUserByAdminOrSuperAdmin({
+      body: req.body,
+      userUniqueId: req?.user?.userUniqueId,
+    });
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);

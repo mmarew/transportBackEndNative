@@ -13,34 +13,43 @@ const verifyPassword = require("../Utils/VerifyPassword");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
+const { usersRoles } = require("../Utils/ListOfFixedData");
+const { getUserRoleListByUserUniqueId } = require("./UserRole.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
     phoneNumber = "0922112480",
     email = "system@system.com",
-    roleId = 5,
+    roleId = usersRoles.systemRoleId,
     statusId = 1,
     userRoleStatusDescription =
       "this can manage things by itself based on written programs";
-  await createUser({
-    fullName,
-    phoneNumber,
-    email,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-    requestedFrom: "system",
+
+  const responseOfSystem = await createUserByAdminOrSuperAdmin({
+    body: {
+      fullName,
+      phoneNumber,
+      email,
+      roleId,
+      statusId,
+      userRoleStatusDescription,
+      requestedFrom: "system",
+    },
+    userUniqueId: "system",
   });
-  // create supper admin
-  const supperAdmin = await createUser({
-    fullName: "Supper Admin",
-    phoneNumber: "+251983222221",
-    email: "supperAdmin@supperAdmin.com",
-    roleId: 6,
-    statusId: 1,
-    userRoleStatusDescription:
-      "Supper Admin can manage drivers passengers and admin using api requests",
-    requestedFrom: "Supper Admin",
+
+  const responseOfSupperAdmin = await createUserByAdminOrSuperAdmin({
+    body: {
+      fullName: "Supper Admin",
+      phoneNumber: "+251983222221",
+      email: "supperAdmin@supperAdmin.com",
+      roleId: 6,
+      statusId: 1,
+      userRoleStatusDescription:
+        "Supper Admin can manage drivers passengers and admin using api requests",
+      requestedFrom: "Supper Admin",
+    },
+    userUniqueId: "Supper Admin",
   });
   return;
 };
@@ -55,6 +64,11 @@ const handleExistingUser = async ({
   // Generate OTP
   const OTP = Math.floor(100000 + Math.random() * 900000);
   const userUniqueId = user.userUniqueId;
+  if (!userUniqueId)
+    return {
+      message: "error",
+      error: "wrong user data",
+    };
   const credential = await getData({
     tableName: "usersCredential",
     conditions: { userUniqueId },
@@ -111,6 +125,7 @@ const registerNewUser = async ({
   statusId,
   userRoleStatusDescription,
   requestedFrom,
+  createdBy = "system",
 }) => {
   const userUniqueId = uuidv4();
   const credentialUniqueId = uuidv4();
@@ -123,7 +138,7 @@ const registerNewUser = async ({
     phoneNumber,
     email,
     createdAt: currentDate(),
-    createdBy: "system",
+    createdBy,
   };
 
   const insertedUser = await insertData({
@@ -362,7 +377,7 @@ const registerNewUser = async ({
 // };
 
 // const registerNewUser = require("./utils/registerNewUser");
-
+// register New User who is driver and shipper role only(2 and 1)
 const createUser = async (body) => {
   const requestedFrom = body?.requestedFrom || "user";
   const {
@@ -376,11 +391,7 @@ const createUser = async (body) => {
 
   console.log("@createUser body", body);
 
-  if (
-    roleId >= 3 &&
-    requestedFrom !== "Supper Admin" &&
-    requestedFrom !== "system"
-  ) {
+  if (roleId >= 3) {
     return { message: "error", error: `you can't create this user` };
   }
 
@@ -742,47 +753,92 @@ const getUserByUserUniqueId = async (userUniqueId) => {
   }
   return { message: "success", data: user[0] };
 };
+
 const getUserByEmailOrNameOrPhoneNumber = async (
   phoneNumberOrEmail,
   roleUniqueId
 ) => {
-  // let getUserQuery = `SELECT * FROM Users, UserRole, Roles WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ? AND Roles.roleId = ${roleId} AND Users.userUniqueId = UserRole.userUniqueId AND UserRole.roleId = Roles.roleId`;
+  let getUserQuery;
+  let queryParams;
 
-  let getUserQuery = `SELECT *
-FROM Users
-JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-JOIN Roles ON UserRole.roleId = Roles.roleId
-WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
-  AND Roles.roleUniqueId = ?`;
-  if (roleUniqueId || roleUniqueId === "null") {
-    getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
+  const likeTerm = `%${phoneNumberOrEmail}%`;
+
+  const isValidRole = roleUniqueId && roleUniqueId !== "null";
+
+  if (isValidRole) {
+    getUserQuery = `
+      SELECT *
+      FROM Users
+      JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN Roles ON UserRole.roleId = Roles.roleId
+      WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
+        AND Roles.roleUniqueId = ?
+    `;
+    queryParams = [likeTerm, likeTerm, likeTerm, roleUniqueId];
+  } else {
+    getUserQuery = `
+      SELECT * FROM Users
+      WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?
+    `;
+    queryParams = [likeTerm, likeTerm, likeTerm];
   }
 
   try {
-    const queryParams = roleUniqueId
-      ? [
-          `%${phoneNumberOrEmail}%`,
-          `%${phoneNumberOrEmail}%`,
-          `%${phoneNumberOrEmail}%`,
-          roleUniqueId,
-        ]
-      : [
-          `%${phoneNumberOrEmail}%`,
-          `%${phoneNumberOrEmail}%`,
-          `%${phoneNumberOrEmail}%`,
-        ];
     console.log("@queryParams", queryParams, "\n@getUserQuery", getUserQuery);
-    // Execute the query
     const [rows] = await pool.query(getUserQuery, queryParams);
 
     return { message: "success", data: rows };
   } catch (error) {
+    console.log("@getUserByEmailOrNameOrPhoneNumber error", error);
     return {
       message: "error",
-      data: "An error occurred while retrieving the user",
+      error: "An error occurred while retrieving the user",
     };
   }
 };
+
+// const getUserByEmailOrNameOrPhoneNumber = async (
+//   phoneNumberOrEmail,
+//   roleUniqueId
+// ) => {
+//   // let getUserQuery = `SELECT * FROM Users, UserRole, Roles WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ? AND Roles.roleId = ${roleId} AND Users.userUniqueId = UserRole.userUniqueId AND UserRole.roleId = Roles.roleId`;
+
+//   let getUserQuery = `SELECT *
+// FROM Users
+// JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+// JOIN Roles ON UserRole.roleId = Roles.roleId
+// WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
+//   AND Roles.roleUniqueId = ?`;
+//   if (roleUniqueId || roleUniqueId === "null") {
+//     getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
+//   }
+
+//   try {
+//     const queryParams = roleUniqueId
+//       ? [
+//           `%${phoneNumberOrEmail}%`,
+//           `%${phoneNumberOrEmail}%`,
+//           `%${phoneNumberOrEmail}%`,
+//           roleUniqueId,
+//         ]
+//       : [
+//           `%${phoneNumberOrEmail}%`,
+//           `%${phoneNumberOrEmail}%`,
+//           `%${phoneNumberOrEmail}%`,
+//         ];
+//     console.log("@queryParams", queryParams, "\n@getUserQuery", getUserQuery);
+//     // Execute the query
+//     const [rows] = await pool.query(getUserQuery, queryParams);
+
+//     return { message: "success", data: rows };
+//   } catch (error) {
+//     console.log("@getUserByEmailOrNameOrPhoneNumber error", error);
+//     return {
+//       message: "error",
+//       error: "An error occurred while retrieving the user",
+//     };
+//   }
+// };
 const getUsersByRoleUniqueId = async (roleUniqueId) => {
   const rows = await performJoinSelect({
     baseTable: "Users",
@@ -814,15 +870,29 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
 
 const loginUser = async (phoneNumber, roleId, statusId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
-
+  if (data?.message === "error") return data;
   const userData = data?.data;
-  console.log("userData", userData);
+  console.log("@loginUser userData", userData);
   // return;
   if (!userData?.length)
     return {
       message: "error",
       error: "User not found at this address. Please sign up first.",
     };
+  // check if this user has this role
+  const listOfRoles = (
+    await getUserRoleListByUserUniqueId(userData?.[0]?.userUniqueId)
+  )?.data;
+  console.log("@loginUser listOfRoles", listOfRoles);
+  const isRoleFound = listOfRoles?.some((role) => role.roleId == roleId);
+  console.log("@loginUser isRoleFound", isRoleFound);
+  // return;
+  if (!isRoleFound) {
+    return {
+      message: "error",
+      error: "User not found at this address. Please sign up first.",
+    };
+  }
   const res = await handleExistingUser({
     user: userData?.[0],
     roleId,
@@ -940,9 +1010,10 @@ const updateUser = async (body) => {
     };
   }
 };
-// Create User By Admin Or Super Admin
-const createUserByAdminOrSuperAdmin = async (body) => {
+// Create User By Admin Or Super Admin. register any user with any role
+const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
   const { fullName, phoneNumber, email, roleId, statusId } = body;
+
   const userDataByEmail = await getData({
     tableName: "Users",
     conditions: { email },
@@ -972,6 +1043,7 @@ const createUserByAdminOrSuperAdmin = async (body) => {
     statusId,
     userRoleStatusDescription: "",
     requestedFrom: "Supper Admin/Admin",
+    createdBy: userUniqueId,
   });
   return res;
 };
