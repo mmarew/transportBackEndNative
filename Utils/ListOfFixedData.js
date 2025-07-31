@@ -703,7 +703,26 @@ const CommissionRates = [
     commissionRateEffectiveDate: "2029-01-01",
   },
 ];
+const financialInstitutionAccount = [
+  {
+    institutionName: "Commercial Bank of Ethiopia",
+    accountHolderName: "Marew Masresha Abate",
+    accountNumber: "1000142114999",
+    accountType: "bank",
+    isActive: true,
+    addedBy: "",
+  },
+  {
+    institutionName: "Tele birr",
+    accountHolderName: "Marew Masresha Abate",
+    accountNumber: "0922112480",
+    accountType: "mobile_money",
+    isActive: true,
+    addedBy: "",
+  },
+];
 module.exports = {
+  financialInstitutionAccount,
   listOfDocumentsTypeAndId,
   activeStatuses,
   journeyStatusMap,

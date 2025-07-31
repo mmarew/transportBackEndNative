@@ -37,13 +37,13 @@ const createUserSystem = async (body) => {
     },
     userUniqueId: "system",
   });
-
+  console.log("@responseOfSystem", responseOfSystem);
   const responseOfSupperAdmin = await createUserByAdminOrSuperAdmin({
     body: {
       fullName: "Supper Admin",
       phoneNumber: "+251983222221",
       email: "supperAdmin@supperAdmin.com",
-      roleId: 6,
+      roleId: usersRoles.supperAdminRoleId,
       statusId: 1,
       userRoleStatusDescription:
         "Supper Admin can manage drivers passengers and admin using api requests",
@@ -51,6 +51,7 @@ const createUserSystem = async (body) => {
     },
     userUniqueId: "Supper Admin",
   });
+  console.log("@responseOfSupperAdmin", responseOfSupperAdmin);
   return;
 };
 
@@ -890,7 +891,7 @@ const loginUser = async (phoneNumber, roleId, statusId) => {
   if (!isRoleFound) {
     return {
       message: "error",
-      error: "User not found at this address. Please sign up first.",
+      error: "User not found at this address and roles. Please sign up first.",
     };
   }
   const res = await handleExistingUser({
@@ -1013,12 +1014,21 @@ const updateUser = async (body) => {
 // Create User By Admin Or Super Admin. register any user with any role
 const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
   const { fullName, phoneNumber, email, roleId, statusId } = body;
+  const userRoleStatusDescription = "";
 
   const userDataByEmail = await getData({
     tableName: "Users",
     conditions: { email },
   });
+  console.log("@userDataByEmail=", email, userDataByEmail);
   if (userDataByEmail?.[0]) {
+    const userUniqueId = userDataByEmail?.[0]?.userUniqueId;
+    await handleUserRoleStatus(
+      userUniqueId,
+      roleId,
+      statusId,
+      userRoleStatusDescription
+    );
     return {
       message: "error",
       error: "Email already exists",
@@ -1029,6 +1039,13 @@ const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
     conditions: { phoneNumber },
   });
   if (userDataByPhoneNumber?.[0]) {
+    const userUniqueId = userDataByPhoneNumber?.[0]?.userUniqueId;
+    await handleUserRoleStatus(
+      userUniqueId,
+      roleId,
+      statusId,
+      userRoleStatusDescription
+    );
     return {
       message: "error",
       error: "Phone number already exists",

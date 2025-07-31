@@ -60,6 +60,7 @@ router.get(
   verifyTokenOfAxios,
   controller.getDepositsByDateRangeAndDriver
 );
+// Update status
 router.patch(
   "/api/driverDeposit/status",
   verifyTokenOfAxios,

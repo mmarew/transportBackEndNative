@@ -13,6 +13,7 @@ const {
   CommissionRates,
   TarrifRateList,
   vehicleStatusTypes,
+  financialInstitutionAccount,
 } = require("../Utils/ListOfFixedData");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancilation.service");
@@ -30,12 +31,15 @@ const {
 } = require("./TarrifRateForVehicleTypes.service");
 const { createUserSystem } = require("./User.service");
 const { createVehicleType } = require("./VehicleType.service");
+const {
+  createFinancialInstitutionAccount,
+} = require("./FinancialInstitutionAccount.service");
 
 const createTable = async () => {
   try {
     await pool.query(sqlQuery);
     const userResult = await createUserSystem();
-    console.log("userResult", userResult);
+    console.log("@createTable userResult", userResult);
     return {
       message: "success",
       data: `Tables created successfully`,
@@ -304,7 +308,9 @@ const installPreDefinedData = async (req, res) => {
       successTarrifRate = [],
       failedTarrifRate = [],
       successVehicleStatusTypes = [],
-      failedVehicleStatusTypes = [];
+      failedVehicleStatusTypes = [],
+      financialInstitutionAccountSuccess = [],
+      financialInstitutionAccountErrors = [];
     // preocess data of vehicleStatusTypes
 
     await processDataSequentially(
@@ -434,7 +440,14 @@ const installPreDefinedData = async (req, res) => {
       failedTarrifRate,
       "TarrifRateList"
     );
-
+    // 12. financialInstitutionAccount,
+    await processDataSequentially(
+      financialInstitutionAccount,
+      createFinancialInstitutionAccount,
+      financialInstitutionAccountSuccess,
+      financialInstitutionAccountErrors,
+      "financialInstitutionAccount"
+    );
     return {
       message: "success",
       data: {
@@ -470,6 +483,10 @@ const installPreDefinedData = async (req, res) => {
         cancellationReasons: {
           success: cancellationReasonsSuccess,
           errors: cancellationReasonsErrors,
+        },
+        financialInstitutionAccount: {
+          success: financialInstitutionAccountSuccess,
+          errors: financialInstitutionAccountErrors,
         },
       },
     };
