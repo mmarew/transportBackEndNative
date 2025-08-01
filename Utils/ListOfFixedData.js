@@ -721,7 +721,31 @@ const financialInstitutionAccount = [
     addedBy: "",
   },
 ];
+const subscriptionPlanLists = [
+  {
+    planName: "One month Free",
+    isFree: true,
+    description: "This plan is free for one month",
+  },
+  {
+    planName: "One month",
+    isFree: false,
+  },
+  {
+    planName: "Three Months",
+    isFree: false,
+  },
+  {
+    planName: "Monthly",
+    isFree: false,
+  },
+  {
+    planName: "One Year",
+    isFree: false,
+  },
+];
 module.exports = {
+  subscriptionPlanLists,
   financialInstitutionAccount,
   listOfDocumentsTypeAndId,
   activeStatuses,

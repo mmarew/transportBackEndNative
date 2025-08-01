@@ -2,11 +2,11 @@ const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 
 // Create
-const createSubscriptionPlan = async (
+const createSubscriptionPlan = async ({
   planName,
   description,
-  isFree = false
-) => {
+  isFree = false,
+}) => {
   const checkSql = `SELECT * FROM SubscriptionPlan WHERE planName = ?`;
   const [existing] = await pool.query(checkSql, [planName]);
   if (existing.length > 0) {

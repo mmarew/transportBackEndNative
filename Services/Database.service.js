@@ -14,6 +14,7 @@ const {
   TarrifRateList,
   vehicleStatusTypes,
   financialInstitutionAccount,
+  subscriptionPlanLists,
 } = require("../Utils/ListOfFixedData");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancilation.service");
@@ -34,6 +35,7 @@ const { createVehicleType } = require("./VehicleType.service");
 const {
   createFinancialInstitutionAccount,
 } = require("./FinancialInstitutionAccount.service");
+const { createSubscriptionPlan } = require("./SubscriptionPlan.service");
 
 const createTable = async () => {
   try {
@@ -310,7 +312,9 @@ const installPreDefinedData = async (req, res) => {
       successVehicleStatusTypes = [],
       failedVehicleStatusTypes = [],
       financialInstitutionAccountSuccess = [],
-      financialInstitutionAccountErrors = [];
+      financialInstitutionAccountErrors = [],
+      subscriptionPlanListsSuccess = [],
+      subscriptionPlanListsErrors = [];
     // preocess data of vehicleStatusTypes
 
     await processDataSequentially(
@@ -447,6 +451,14 @@ const installPreDefinedData = async (req, res) => {
       financialInstitutionAccountSuccess,
       financialInstitutionAccountErrors,
       "financialInstitutionAccount"
+    );
+    // 13. subscriptionPlanLists
+    await processDataSequentially(
+      subscriptionPlanLists,
+      createSubscriptionPlan,
+      subscriptionPlanListsSuccess,
+      subscriptionPlanListsErrors,
+      "subscriptionPlanLists"
     );
     return {
       message: "success",

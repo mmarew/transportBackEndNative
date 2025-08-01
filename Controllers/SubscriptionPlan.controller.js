@@ -4,11 +4,11 @@ const ServerResponder = require("../Utils/ServerResponder");
 exports.createSubscriptionPlan = async (req, res) => {
   try {
     const { planName, description, isFree } = req.body;
-    const result = await subscriptionPlanService.createSubscriptionPlan(
+    const result = await subscriptionPlanService.createSubscriptionPlan({
       planName,
       description,
-      isFree
-    );
+      isFree,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error creating subscription plan:", error);

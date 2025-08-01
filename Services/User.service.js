@@ -797,49 +797,6 @@ const getUserByEmailOrNameOrPhoneNumber = async (
     };
   }
 };
-
-// const getUserByEmailOrNameOrPhoneNumber = async (
-//   phoneNumberOrEmail,
-//   roleUniqueId
-// ) => {
-//   // let getUserQuery = `SELECT * FROM Users, UserRole, Roles WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ? AND Roles.roleId = ${roleId} AND Users.userUniqueId = UserRole.userUniqueId AND UserRole.roleId = Roles.roleId`;
-
-//   let getUserQuery = `SELECT *
-// FROM Users
-// JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-// JOIN Roles ON UserRole.roleId = Roles.roleId
-// WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
-//   AND Roles.roleUniqueId = ?`;
-//   if (roleUniqueId || roleUniqueId === "null") {
-//     getUserQuery = `SELECT * FROM Users WHERE   email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?`;
-//   }
-
-//   try {
-//     const queryParams = roleUniqueId
-//       ? [
-//           `%${phoneNumberOrEmail}%`,
-//           `%${phoneNumberOrEmail}%`,
-//           `%${phoneNumberOrEmail}%`,
-//           roleUniqueId,
-//         ]
-//       : [
-//           `%${phoneNumberOrEmail}%`,
-//           `%${phoneNumberOrEmail}%`,
-//           `%${phoneNumberOrEmail}%`,
-//         ];
-//     console.log("@queryParams", queryParams, "\n@getUserQuery", getUserQuery);
-//     // Execute the query
-//     const [rows] = await pool.query(getUserQuery, queryParams);
-
-//     return { message: "success", data: rows };
-//   } catch (error) {
-//     console.log("@getUserByEmailOrNameOrPhoneNumber error", error);
-//     return {
-//       message: "error",
-//       error: "An error occurred while retrieving the user",
-//     };
-//   }
-// };
 const getUsersByRoleUniqueId = async (roleUniqueId) => {
   const rows = await performJoinSelect({
     baseTable: "Users",
@@ -878,7 +835,8 @@ const loginUser = async (phoneNumber, roleId, statusId) => {
   if (!userData?.length)
     return {
       message: "error",
-      error: "User not found at this address. Please sign up first.",
+      error:
+        "User not found at this phone/email address. Please sign up first.",
     };
   // check if this user has this role
   const listOfRoles = (
