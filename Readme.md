@@ -7,3 +7,4 @@ url is a variable and it points out to a place where the backend is deployed e.g
 3. run url/api/user/verifyUserByOTP?OTP=101010&phoneNumber=%2B251983222221&roleId=6 this will check phone number and otp . it will gives you token so save and use this token
 4. run url/api/admin/installPreDefinedData it will install all required data like status rore requirements and so on
 5. supper admin can give privilage to admin or create any user
+6. create subscriptionPlanPricing for subscription plans

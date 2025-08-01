@@ -735,10 +735,7 @@ const subscriptionPlanLists = [
     planName: "Three Months",
     isFree: false,
   },
-  {
-    planName: "Monthly",
-    isFree: false,
-  },
+
   {
     planName: "One Year",
     isFree: false,
