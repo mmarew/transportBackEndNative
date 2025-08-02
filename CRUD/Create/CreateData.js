@@ -119,16 +119,13 @@ const createNewPassengerRequest = async (
     throw error;
   }
 };
-const createDriverRequest = async (
-  body,
-  userUniqueId,
-  journeyStatusId = journeyStatusMap.waiting
-) => {
+const createDriverRequest = async (body, userUniqueId, journeyStatusId) => {
   try {
-    if (!body || !userUniqueId || !journeyStatusId) {
+    if (!body || !userUniqueId) {
       throw new Error("Invalid input parameters to create driver request");
     }
-
+    console.log("@createDriverRequest journeyStatusId", journeyStatusId);
+    // return;
     // Convert array to SQL-friendly format
     const activeStatusesSQL = `(${activeStatuses.join(", ")})`;
 
@@ -169,7 +166,7 @@ const createDriverRequest = async (
       originLongitude,
       originPlace,
       requestTime: new Date(),
-      journeyStatusId,
+      journeyStatusId: journeyStatusId || journeyStatusMap.waiting, // Default to 'waiting' if not provided
     };
 
     const result = await insertData({

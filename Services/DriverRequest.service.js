@@ -60,6 +60,7 @@ const createRequest = async ({
   journeyStatusId,
 }) => {
   try {
+    console.log("@createRequest journeyStatusId", journeyStatusId);
     // 1. find user unique id from user object
     const userUniqueId = body?.userUniqueId;
 
@@ -68,6 +69,10 @@ const createRequest = async ({
 
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
+      console.log(
+        "@createRequest creating new driver request journeyStatusId",
+        journeyStatusId
+      );
       await createDriverRequest(body, userUniqueId, journeyStatusId);
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
