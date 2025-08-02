@@ -3,6 +3,7 @@
 const { createServer } = require("http");
 const app = require("./httpServer.config");
 const { initSocket } = require("./SocketAdapter.config");
+const { createTable } = require("../Services/Database.service");
 
 // Graceful shutdown and error handling
 process.on("uncaughtException", (err) => {
@@ -23,6 +24,7 @@ const onStartUp = async () => {
   try {
     console.log("⏳ Running startup tasks...");
     // Add your startup logic here (e.g., DB connection)
+    createTable();
   } catch (error) {
     console.error("❌ Startup error:", error);
     process.exit(1);
