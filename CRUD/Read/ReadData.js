@@ -1,5 +1,8 @@
 const { pool } = require("../../Middleware/Database.config");
-const { activeStatuses } = require("../../Utils/ListOfFixedData");
+const {
+  activeStatuses,
+  journeyStatusMap,
+} = require("../../Utils/ListOfFixedData");
 const searchRange = 0.41;
 
 const getData = async ({
@@ -174,7 +177,11 @@ const findNearbyPassengers = async ({
         longitudeRange.min,
         longitudeRange.max,
       ],
-      "PassengerRequest.journeyStatusId": 1, // Status 1: Waiting for a driver
+      "PassengerRequest.journeyStatusId": [
+        journeyStatusMap.waiting,
+        journeyStatusMap.requested,
+        journeyStatusMap.acceptedByDriver,
+      ], // Status 1: Waiting for a driver
     },
     operator: "AND",
   });

@@ -4,6 +4,7 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const { insertData } = require("../CRUD/Create/CreateData");
 const currentDate = require("../Utils/CurrentDate");
+const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 
 // Create a new journey status
 const createJourneyStatus = async (body) => {
@@ -132,6 +133,8 @@ const updateJourneyStatus = async (body) => {
   const journeyStatusId = body?.journeyStatusId;
   const previousStatusId = body?.previousStatusId;
   const shippingCostByDriver = body?.shippingCostByDriver;
+
+  console.log("@updateJourneyStatus journeyStatusId:", journeyStatusId);
   if (journeyUniqueId) {
     await updateData({
       tableName: "Journey",
@@ -143,16 +146,18 @@ const updateJourneyStatus = async (body) => {
     });
   }
   if (passengerRequestUniqueId) {
-    await updateData({
-      tableName: "PassengerRequest",
-      conditions: {
-        passengerRequestUniqueId,
-        // journeyStatusId: previousStatusId,
-      },
-      updateValues: {
-        journeyStatusId,
-      },
-    });
+    // passenger may reject many driver requests but can acept one driver request
+    if (journeyStatusId != journeyStatusMap.rejectedByPassenger)
+      await updateData({
+        tableName: "PassengerRequest",
+        conditions: {
+          passengerRequestUniqueId,
+          // journeyStatusId: previousStatusId,
+        },
+        updateValues: {
+          journeyStatusId,
+        },
+      });
   }
 
   if (journeyDecisionUniqueId) {

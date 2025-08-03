@@ -581,7 +581,9 @@ const journeyStatusMap = {
   acceptedByPassenger: 4,
   journeyStarted: 5,
   journeyCompleted: 6,
+  // cancel all shipment
   cancelledByPassenger: 7,
+  // accept oly one driver request but reject others from bid
   rejectedByPassenger: 8,
   cancelledByDriver: 9,
   cancelledByAdmin: 10,

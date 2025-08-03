@@ -24,7 +24,7 @@ const onStartUp = async () => {
   try {
     console.log("⏳ Running startup tasks...");
     // Add your startup logic here (e.g., DB connection)
-    createTable();
+    // createTable();
   } catch (error) {
     console.error("❌ Startup error:", error);
     process.exit(1);
