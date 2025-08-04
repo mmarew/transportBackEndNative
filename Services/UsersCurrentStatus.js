@@ -26,6 +26,7 @@ const {
   getVehicleAndOwnershipViaUserUniqueId,
   getVehicleOwnershipByUserUniqueId,
 } = require("./VehicleOwnership.service");
+const VerifyIfPassengerRequestWasNotRejected = require("../Utils/VerifyIfPassengerRequestWasNotRejected");
 
 // Handle when journeyStatusId is 1
 const handleJourneyStatusOne = async (
@@ -54,8 +55,36 @@ const handleJourneyStatusOne = async (
       decision: null,
     };
   }
+  let passenger = nearbyPassengers[0];
+  const notRejectedPassenger = null;
+  // loop over nearbyPassengers and check if any of them was not rejected by driver connect with it
+  for (let i = 1; i < nearbyPassengers?.length; i++) {
+    passenger = nearbyPassengers[i];
 
-  const passenger = nearbyPassengers[0];
+    // verify if it was not rejected by this driver once driver reject it no need of rerequest it.
+    const rejectedResult = await VerifyIfPassengerRequestWasNotRejected({
+      passengerRequestId: passenger?.passengerRequestId,
+      userUniqueId: driverRequest?.userUniqueId,
+    });
+    console.log("@rejectedResult", rejectedResult);
+    if (rejectedResult?.message === "success") {
+      i = nearbyPassengers.length; // break the loop
+      notRejectedPassenger = passenger;
+    }
+  }
+  if (!notRejectedPassenger) {
+    return {
+      message: "success",
+      status: 1, // Waiting
+      uniqueIds: {
+        driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
+      },
+      driver: { driver: driverRequest, vehicle, vehicleTarrifRate },
+      passenger: null,
+      journey: null,
+      decision: null,
+    };
+  }
   const journeyDecisionPayload = {
     journeyDecisionUniqueId: uuidv4(),
     passengerRequestId: passenger?.passengerRequestId,

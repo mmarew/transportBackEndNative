@@ -85,27 +85,6 @@ const getJourneyStatusById = async (journeyStatusUniqueId) => {
   }
 };
 
-// Update a journey status by ID
-// const updateJourneyStatus = async (journeyStatusUniqueId, body) => {
-//   const result = await updateData({
-//     tableName: "JourneyStatus",
-//     conditions: { journeyStatusUniqueId },
-//     updateValues: body,
-//   });
-
-//   if (result.affectedRows > 0) {
-//     return {
-//       message: "success",
-//       data: `Journey status with journeyS tatus Unique Id ${journeyStatusUniqueId} updated successfully`,
-//     };
-//   } else {
-//     return {
-//       message: "error",
-//       error: "Failed to update journey status",
-//     };
-//   }
-// };
-
 // Delete a journey status by ID
 const deleteJourneyStatus = async (journeyStatusUniqueId) => {
   const result = await deleteData({

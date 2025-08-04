@@ -3,6 +3,7 @@ const {
   activeStatuses,
   journeyStatusMap,
 } = require("../../Utils/ListOfFixedData");
+const VerifyIfPassengerRequestWasNotRejected = require("../../Utils/VerifyIfPassengerRequestWasNotRejected");
 const searchRange = 0.41;
 
 const getData = async ({
@@ -99,8 +100,12 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
   try {
     console.log("@findNearbyDrivers searchRange ==========> ", searchRange);
     // Destructure the relevant data from the passengerRequest
-    const { originLatitude, originLongitude, vehicleTypeUniqueId } =
-      passengerRequest;
+    const {
+      originLatitude,
+      originLongitude,
+      vehicleTypeUniqueId,
+      passengerRequestId,
+    } = passengerRequest;
 
     // Define the search range for latitude and longitude (0.01 degree ~ 1 km)
     const latitudeRange = {
@@ -125,7 +130,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
         DriverRequest.originLatitude BETWEEN ? AND ?
         AND DriverRequest.originLongitude BETWEEN ? AND ?
         AND DriverRequest.journeyStatusId = 1 -- Status 'Waiting'
-        AND Vehicle.vehicleTypeUniqueId = ? LIMIT 5
+        AND Vehicle.vehicleTypeUniqueId = ? LIMIT 10
     `;
 
     // Values to be passed to the query for parameterized SQL
@@ -139,9 +144,21 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
 
     // Execute the query
     const [drivers] = await pool.query(sqlQuery, values);
-
+    const listOfDrivers = [];
+    for (const driver of drivers) {
+      const { message } = await VerifyIfPassengerRequestWasNotRejected({
+        passengerRequestId,
+        userUniqueId: driver?.userUniqueId,
+      });
+      if (message == "success") {
+        // push 5 drivers only
+        if (listOfDrivers.length >= 5) break;
+        // push driver to list of drivers
+        listOfDrivers?.push(driver);
+      }
+    }
     // Return the list of nearby drivers
-    return drivers;
+    return listOfDrivers;
   } catch (error) {
     console.log("Error finding nearby drivers:", error);
     return { message: "error", error: "Unable to find nearby drivers." };
