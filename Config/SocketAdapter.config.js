@@ -3,11 +3,7 @@ const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher.js");
 const { socketIO } = require("../Utils/WsServerResponder");
-const { REDIS_SOCKET_PATH } = require("../Utils/Constants.js");
-const {
-  removeSocket,
-  getAllSockets,
-} = require("../Utils/WsConnectionStore.js");
+const { removeSocket } = require("../Utils/WsConnectionStore.js");
 
 async function initSocket(server) {
   const io = new Server(server, {
@@ -15,16 +11,7 @@ async function initSocket(server) {
       origin: "*", // Set to your domain in production
     },
   });
-
-  // Use ioredis and explicitly set the socket path
-  // const pubClient = new Redis({ path: REDIS_SOCKET_PATH });
-  // const subClient = new Redis({ path: REDIS_SOCKET_PATH });
-
   const { UPSTASH_REDIS_URL } = require("../Utils/Constants.js");
-
-  // Use Upstash with ioredis
-  // const pubClient = new Redis(UPSTASH_REDIS_URL);
-  // const subClient = new Redis(UPSTASH_REDIS_URL);
 
   const pubClient = new Redis(UPSTASH_REDIS_URL, {
     tls: {},
@@ -48,13 +35,6 @@ async function initSocket(server) {
     });
     socket.on("locationUpdate", (data) => {
       console.log("@locationUpdate", data);
-
-      // const { userId, tripId, coordinates } = data;
-      // // Broadcast to the other party in the trip
-      // io.to(getOtherUserSocketId(tripId, userId)).emit(
-      //   "locationUpdate",
-      //   coordinates
-      // );
     });
     socket.on("disconnect", () => {
       const userType = socket?.userType,
