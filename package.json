@@ -11,7 +11,20 @@
     "logs:pm2": "pm2 logs",
     "status:pm2": "pm2 status",
     "dev": "nodemon App.js",
-    "start:cluster": "pm2 start ecosystem.config.js --watch"
+    "start:cluster": "pm2 start ecosystem.config.js --watch",
+
+     "nginx:start": "sudo nginx",
+    "nginx:stop": "sudo nginx -s stop",
+    "nginx:stop-force": "sudo pkill -9 nginx",
+    "nginx:restart": "sudo nginx -s stop && sudo nginx",
+    "nginx:reload": "sudo nginx -s reload",
+    "nginx:test": "sudo nginx -t",
+    "nginx:status": "ps aux | grep nginx",
+    "nginx:logs": "tail -f /usr/local/var/log/nginx/error.log",
+    "nginx:logs-access": "tail -f /usr/local/var/log/nginx/access.log",
+    "nginx:config": "code /usr/local/etc/nginx/nginx.conf",  
+    "nginx:fix-port80": "sudo lsof -i :80 | awk 'NR>1 {print $2}' | xargs sudo kill -9"
+  
   },
   "author": "",
   "license": "ISC",

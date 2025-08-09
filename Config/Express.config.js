@@ -22,4 +22,9 @@ app.get("/", (req, res) => {
   res.json({ message: "Server is running" });
 });
 
+app.get("/crash", () => {
+  console.log("Forcing a crash!");
+  process.exit(1); // Non-zero exit = crash (PM2 WILL restart)
+});
+
 module.exports = app;
