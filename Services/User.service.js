@@ -15,6 +15,7 @@ const {
 } = require("./RoleDocumentRequirements.service");
 const { usersRoles } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByUserUniqueId } = require("./UserRole.service");
+const { getUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -826,7 +827,7 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
   };
 };
 
-const loginUser = async (phoneNumber, roleId, statusId) => {
+const loginUser = async (phoneNumber, roleId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
   if (data?.message === "error") return data;
   const userData = data?.data;
@@ -845,13 +846,15 @@ const loginUser = async (phoneNumber, roleId, statusId) => {
   console.log("@loginUser listOfRoles", listOfRoles);
   const isRoleFound = listOfRoles?.some((role) => role.roleId == roleId);
   console.log("@loginUser isRoleFound", isRoleFound);
-  // return;
   if (!isRoleFound) {
     return {
       message: "error",
       error: "User not found at this address and roles. Please sign up first.",
     };
   }
+  // get user status based on current roleId
+  const userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
+  const statusId = userRoleStatus?.[0]?.statusId;
   const res = await handleExistingUser({
     user: userData?.[0],
     roleId,

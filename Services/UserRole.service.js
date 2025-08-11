@@ -35,7 +35,7 @@ const createUserRole = async (body, user) => {
     },
   });
 
-  return { message: "success", data: result };
+  return { message: "success", data: "User role created successfully" };
 };
 const getUserRoleListByUserUniqueId = async (userUniqueId) => {
   const sql = `SELECT * FROM UserRole WHERE userUniqueId = ?`;
