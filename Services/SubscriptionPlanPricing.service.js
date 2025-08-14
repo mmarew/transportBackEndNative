@@ -18,7 +18,11 @@ const createPricing = async (
   });
 
   if (activeData?.data?.length > 0) {
-    return activeData;
+    // return activeData;
+    return {
+      message: "error",
+      error: "There is already an active pricing for this plan.",
+    };
   }
 
   const subscriptionPlanPricingUniqueId = uuidv4();
@@ -42,14 +46,15 @@ const createPricing = async (
     const [result] = await pool.query(sql, values);
     return {
       message: "success",
-      data: {
-        subscriptionPlanPricingUniqueId,
-        subscriptionPlanUniqueId,
-        price,
-        durationInDays,
-        effectiveFrom,
-        effectiveTo,
-      },
+      data: "Data created successfully",
+      // data: {
+      //   subscriptionPlanPricingUniqueId,
+      //   subscriptionPlanUniqueId,
+      //   price,
+      //   durationInDays,
+      //   effectiveFrom,
+      //   effectiveTo,
+      // },
     };
   } catch (err) {
     console.error("Error creating pricing:", err);
@@ -60,7 +65,7 @@ const createPricing = async (
   }
 };
 
-const getAllPricings = async () => {
+const getAllPricing = async () => {
   const sql = `
     SELECT * FROM SubscriptionPlanPricing
     ORDER BY createdAt DESC
@@ -80,7 +85,7 @@ const getPricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
 };
 
 // Get all pricings for a plan
-const getAllPricingsByPlanId = async (subscriptionPlanUniqueId) => {
+const getAllPricingByPlanId = async (subscriptionPlanUniqueId) => {
   const sql = `
     SELECT * FROM SubscriptionPlanPricing 
     WHERE subscriptionPlanUniqueId = ?
@@ -161,10 +166,10 @@ const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
 
 module.exports = {
   getActiveSubscriptionPlanningPrice,
-  getAllPricings,
+  getAllPricing,
   createPricing,
   getPricingByUniqueId,
-  getAllPricingsByPlanId,
+  getAllPricingByPlanId,
   updatePricingByUniqueId,
   deletePricingByUniqueId,
 };

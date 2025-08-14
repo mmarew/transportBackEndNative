@@ -13,7 +13,7 @@ router.post(
 router.get(
   "/api/subscriptionPlanPricing",
   verifyTokenOfAxios,
-  controller.getAllPricings
+  controller.getAllPricing
 );
 
 // Get by PricingUniqueId
@@ -27,7 +27,7 @@ router.get(
 router.get(
   "/api/subscriptionPlanPricing/plan/:subscriptionPlanUniqueId",
   verifyTokenOfAxios,
-  controller.getAllPricingsByPlanId
+  controller.getAllPricingByPlanId
 );
 
 // Update by PricingUniqueId
