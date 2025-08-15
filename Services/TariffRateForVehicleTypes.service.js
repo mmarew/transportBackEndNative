@@ -3,13 +3,13 @@ const { pool } = require("../Middleware/Database.config");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // Create a new tariff rate for a vehicle type
-exports.createTarrifRateForVehicleType = async (data) => {
+exports.createTariffRateForVehicleType = async (data) => {
   // verify existance of data
   const existedData = await getData({
-    tableName: "TarrifRateForVehcleTypes",
+    tableName: "TariffRateForVehcleTypes",
     conditions: {
       vehicleTypeUniqueId: data.vehicleTypeUniqueId,
-      tarrifRateUniqueId: data.tarrifRateUniqueId,
+      tariffRateUniqueId: data.tariffRateUniqueId,
     },
   });
 
@@ -20,13 +20,13 @@ exports.createTarrifRateForVehicleType = async (data) => {
     };
   }
   const sql = `
-    INSERT INTO TarrifRateForVehcleTypes (
-      tarrifRateForVehcleTypeUniqueId,
+    INSERT INTO TariffRateForVehcleTypes (
+      tariffRateForVehcleTypeUniqueId,
       vehicleTypeUniqueId,
-      tarrifRateUniqueId 
+      tariffRateUniqueId 
     ) VALUES (?, ?, ?)
   `;
-  const values = [uuidv4(), data.vehicleTypeUniqueId, data.tarrifRateUniqueId];
+  const values = [uuidv4(), data.vehicleTypeUniqueId, data.tariffRateUniqueId];
   const [result] = await pool.query(sql, values);
   return {
     message: "success",
@@ -35,17 +35,17 @@ exports.createTarrifRateForVehicleType = async (data) => {
 };
 
 // Get all tariff rates for vehicle types
-exports.getAllTarrifRatesForVehicleTypes = async () => {
+exports.getAllTariffRatesForVehicleTypes = async () => {
   const result = await performJoinSelect({
-    baseTable: "TarrifRateForVehcleTypes",
+    baseTable: "TariffRateForVehcleTypes",
     joins: [
       {
         table: "VehicleTypes",
-        on: "TarrifRateForVehcleTypes.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+        on: "TariffRateForVehicleTypes.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
       },
       {
-        table: "TarrifRate",
-        on: "TarrifRateForVehcleTypes.tarrifRateUniqueId = TarrifRate.tarrifRateUniqueId",
+        table: "TariffRate",
+        on: "TariffRateForVehicleTypes.tariffRateUniqueId = TariffRate.tariffRateUniqueId",
       },
     ],
   });
@@ -54,14 +54,14 @@ exports.getAllTarrifRatesForVehicleTypes = async () => {
     data: result,
   };
 };
-// get tarrif rate by vehicle type unique id
-exports.getTarrifRateByVehicleTypeUniqueId = async (vehicleTypeUniqueId) => {
+// get tariff rate by vehicle type unique id
+exports.getTariffRateByVehicleTypeUniqueId = async (vehicleTypeUniqueId) => {
   const result = await performJoinSelect({
-    baseTable: "TarrifRateForVehcleTypes",
+    baseTable: "TariffRateForVehicleTypes",
     joins: [
       {
-        table: "TarrifRate",
-        on: "TarrifRateForVehcleTypes.tarrifRateUniqueId = TarrifRate.tarrifRateUniqueId",
+        table: "TariffRate",
+        on: "TariffRateForVehicleTypes.tariffRateUniqueId = TariffRate.tariffRateUniqueId",
       },
     ],
     conditions: {
@@ -74,21 +74,21 @@ exports.getTarrifRateByVehicleTypeUniqueId = async (vehicleTypeUniqueId) => {
   };
 };
 // Get a tariff rate for vehicle type by ID
-exports.getTarrifRateForVehicleTypeById = async (tarrifRateForVehcleTypeId) => {
+exports.getTariffRateForVehicleTypeById = async (tariffRateForVehcleTypeId) => {
   const result = await performJoinSelect({
-    baseTable: "TarrifRateForVehcleTypes",
+    baseTable: "TariffRateForVehicleTypes",
     joins: [
       {
         table: "VehicleTypes",
-        on: "TarrifRateForVehcleTypes.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+        on: "TariffRateForVehicleTypes.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
       },
       {
-        table: "TarrifRate",
-        on: "TarrifRateForVehcleTypes.tarrifRateUniqueId = TarrifRate.tarrifRateUniqueId",
+        table: "TariffRate",
+        on: "TariffRateForVehicleTypes.tariffRateUniqueId = TariffRate.tariffRateUniqueId",
       },
     ],
     conditions: {
-      tarrifRateForVehcleTypeId: tarrifRateForVehcleTypeId,
+      tariffRateForVehicleTypeId: tariffRateForVehicleTypeId,
     },
   });
 
@@ -96,19 +96,19 @@ exports.getTarrifRateForVehicleTypeById = async (tarrifRateForVehcleTypeId) => {
 };
 
 // Update a tariff rate for vehicle type by ID
-exports.updateTarrifRateForVehicleType = async (
-  tarrifRateForVehicleTypeUniqueId,
+exports.updateTariffRateForVehicleType = async (
+  tariffRateForVehicleTypeUniqueId,
   data
 ) => {
   const sql = `
-    UPDATE TarrifRateForVehcleTypes
-    SET vehicleTypeUniqueId = ?, tarrifRateUniqueId = ?
-    WHERE tarrifRateForVehcleTypeUniqueId = ?
+    UPDATE TariffRateForVehicleTypes
+    SET vehicleTypeUniqueId = ?, tariffRateUniqueId = ?
+    WHERE tariffRateForVehicleTypeUniqueId = ?
   `;
   const values = [
     data.vehicleTypeUniqueId,
-    data.tarrifRateUniqueId,
-    tarrifRateForVehicleTypeUniqueId,
+    data.tariffRateUniqueId,
+    tariffRateForVehicleTypeUniqueId,
   ];
   const [result] = await pool.query(sql, values);
   return {
@@ -118,11 +118,11 @@ exports.updateTarrifRateForVehicleType = async (
 };
 
 // Delete a tariff rate for vehicle type by ID
-exports.deleteTarrifRateForVehicleType = async (
-  tarrifRateForVehicleTypeUniqueId
+exports.deleteTariffRateForVehicleType = async (
+  tariffRateForVehicleTypeUniqueId
 ) => {
-  const sql = `DELETE FROM TarrifRateForVehcleTypes WHERE tarrifRateForVehcleTypeUniqueId = ?`;
-  const [result] = await pool.query(sql, [tarrifRateForVehicleTypeUniqueId]);
+  const sql = `DELETE FROM TariffRateForVehicleTypes WHERE tariffRateForVehicleTypeUniqueId = ?`;
+  const [result] = await pool.query(sql, [tariffRateForVehicleTypeUniqueId]);
   return {
     message: "success",
     data: "Tariff rate for vehicle type deleted successfully",

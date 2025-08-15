@@ -43,31 +43,31 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
       };
     }
 
-    const TarrifRateForVehcleTypes = await performJoinSelect({
-      baseTable: "TarrifRateForVehcleTypes",
+    const TariffRateForVehicleTypes = await performJoinSelect({
+      baseTable: "TariffRateForVehcleTypes",
       joins: [
         {
-          table: "TarrifRate",
-          on: "TarrifRateForVehcleTypes.tarrifRateUniqueId = TarrifRate.tarrifRateUniqueId",
+          table: "TariffRate",
+          on: "TariffRateForVehcleTypes.tariffRateUniqueId = TariffRate.tariffRateUniqueId",
         },
       ],
       conditions: { vehicleTypeUniqueId },
     });
 
-    if (TarrifRateForVehcleTypes.length === 0) {
+    if (TariffRateForVehicleTypes.length === 0) {
       return {
         message: "error",
-        error: "No tarrif rate found for this vehicle type",
+        error: "No tariff rate found for this vehicle type",
       };
     }
 
-    const { standingTarrifRate, journeyTarrifRate, timingTarrifRate } =
-      TarrifRateForVehcleTypes[0];
+    const { standingTariffRate, journeyTariffRate, timingTariffRate } =
+      TariffRateForVehicleTypes[0];
 
-    if (!standingTarrifRate || !journeyTarrifRate || !timingTarrifRate) {
+    if (!standingTariffRate || !journeyTariffRate || !timingTariffRate) {
       return {
         message: "error",
-        error: "Missing required tarrif rate columns",
+        error: "Missing required tariff rate columns",
       };
     }
 
@@ -85,7 +85,7 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
 
     const totalDistance = Math.round(calculateDistances(JourneyRoutePoints));
 
-    const moneyByDistance = totalDistance * parseFloat(journeyTarrifRate);
+    const moneyByDistance = totalDistance * parseFloat(journeyTariffRate);
     const startingTime = JourneyRoutePoints[0].timestamp;
     const endingTime =
       JourneyRoutePoints[JourneyRoutePoints.length - 1].timestamp;
@@ -93,10 +93,10 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
     const totalTime = new Date(endingTime) - new Date(startingTime);
     const totalMunites = totalTime / 1000 / 60;
 
-    const moneyByTime = totalMunites * parseFloat(timingTarrifRate);
+    const moneyByTime = totalMunites * parseFloat(timingTariffRate);
 
     const totalMoney = Math.round(
-      parseFloat(standingTarrifRate) + moneyByDistance + moneyByTime
+      parseFloat(standingTariffRate) + moneyByDistance + moneyByTime
     );
 
     return {
