@@ -228,6 +228,8 @@ const verifyPassengerStatus = async ({
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
     if (!activeRequest || activeRequest?.length == 0)
       activeRequest = await checkActivePassengerRequest(userUniqueId);
+    console.log("@activeRequest", activeRequest);
+    // return;
     // If no active request, return an error
     if (activeRequest?.length == 0) {
       return {
@@ -241,22 +243,21 @@ const verifyPassengerStatus = async ({
     const journeyStatusId = passengerRequest.journeyStatusId;
 
     // 2. Retrieve passenger data
-    const passenger = (
-      await performJoinSelect({
-        baseTable: "PassengerRequest",
-        joins: [
-          {
-            table: "Users",
-            on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-          },
-        ],
-        conditions: {
-          passengerRequestUniqueId: passengerRequest.passengerRequestUniqueId,
+    const passenger = await performJoinSelect({
+      baseTable: "PassengerRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
         },
-      })
-    )[0];
+      ],
+      conditions: {
+        passengerRequestUniqueId: passengerRequest.passengerRequestUniqueId,
+      },
+    });
+    //[0];
 
-    // 3. If journeyStatusId is 1 (Waiting), find  drivers and send to them requests
+    // 3. If journeyStatusId is 1 (Waiting), find  nearby drivers and send to them requests
 
     if (journeyStatusId === journeyStatusMap.waiting) {
       const nearbyDrivers = await findNearbyDrivers({ passengerRequest });

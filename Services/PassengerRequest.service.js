@@ -23,14 +23,37 @@ require("./AttachedDocuments.service");
 const createPassengerRequest = async (body, user, journeyStatusId) => {
   try {
     const { userUniqueId } = user;
-    const newRequest = await createNewPassengerRequest(
-      body,
-      userUniqueId,
-      journeyStatusId
+    const numberOfVehicles = body?.numberOfVehicles || 1;
+    // first check if the user has an active request based on passengerRequestBatchId
+    const passengerRequestBatchId = body?.passengerRequestBatchId;
+    const dataByBatchId = await getData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestBatchId, userUniqueId },
+    });
+    console.log(
+      "@dataByBatchId",
+      dataByBatchId.length,
+      "numberOfVehicles",
+      numberOfVehicles
     );
+    if (dataByBatchId?.length >= numberOfVehicles) {
+      return {
+        message: "error",
+        error: "You already have an active request with this batch ID.",
+      };
+    }
+    const noOfRecords = numberOfVehicles - dataByBatchId?.length;
+    for (let i = 0; i < noOfRecords; i++) {
+      await createNewPassengerRequest(body, userUniqueId, journeyStatusId);
+      // const newRequest = await createNewPassengerRequest(
+      //   body,
+      //   userUniqueId,
+      //   journeyStatusId
+      // );
+    }
     return await verifyPassengerStatus({
       userUniqueId,
-      activeRequest: newRequest?.data,
+      activeRequest: null, // newRequest?.data,
       sendNotificationsToDrivers: true,
     });
   } catch (error) {

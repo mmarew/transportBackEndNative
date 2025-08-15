@@ -272,6 +272,7 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     passengerRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the passenger request
 
     userUniqueId VARCHAR(36) NOT NULL,                     -- Foreign key to Users
+    passengerRequestBatchId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
     journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
 
