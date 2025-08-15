@@ -20,8 +20,8 @@ const {
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
 const {
-  getTarrifRateByVehicleTypeUniqueId,
-} = require("./TarrifRateForVehicleTypes.service");
+  getTariffRateByVehicleTypeUniqueId,
+} = require("./TariffRateForVehicleTypes.service");
 const {
   getVehicleAndOwnershipViaUserUniqueId,
   getVehicleOwnershipByUserUniqueId,
@@ -32,7 +32,7 @@ const VerifyIfPassengerRequestWasNotRejected = require("../Utils/VerifyIfPasseng
 const handleJourneyStatusOne = async (
   driverRequest,
   vehicle,
-  vehicleTarrifRate,
+  vehicleTariffRate,
   vehicleTypeUniqueId
 ) => {
   const { originLatitude, originLongitude } = driverRequest;
@@ -49,7 +49,7 @@ const handleJourneyStatusOne = async (
       uniqueIds: {
         driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
       },
-      driver: { driver: driverRequest, vehicle, vehicleTarrifRate },
+      driver: { driver: driverRequest, vehicle, vehicleTariffRate },
       passenger: null,
       journey: null,
       decision: null,
@@ -79,7 +79,7 @@ const handleJourneyStatusOne = async (
       uniqueIds: {
         driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
       },
-      driver: { driver: driverRequest, vehicle, vehicleTarrifRate },
+      driver: { driver: driverRequest, vehicle, vehicleTariffRate },
       passenger: null,
       journey: null,
       decision: null,
@@ -122,7 +122,7 @@ const handleJourneyStatusOne = async (
     driver: {
       driver: { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
       vehicle,
-      vehicleTarrifRate,
+      vehicleTariffRate,
     },
     passenger: { ...passenger, journeyStatusId: journeyStatusMap.requested },
     journey: null,
@@ -150,7 +150,7 @@ const handleJourneyStatusOne = async (
 const handleExistingJourney = async (
   driverRequest,
   vehicle,
-  vehicleTarrifRate
+  vehicleTariffRate
 ) => {
   const [journeyDecision] = await getData({
     tableName: "JourneyDecisions",
@@ -196,7 +196,7 @@ const handleExistingJourney = async (
     driver: {
       driver: { ...driverRequest, driverProfilePhoto },
       vehicle,
-      vehicleTarrifRate,
+      vehicleTariffRate,
     },
     passenger: passenger || null,
     journey: journey || null,
@@ -238,135 +238,154 @@ const verifyPassengerStatus = async ({
         status: null,
       };
     }
+    const passenger = [],
+      journey = [],
+      decisions = [],
+      drivers = [];
 
-    const passengerRequest = activeRequest[0]; // Get the first active request
-    const journeyStatusId = passengerRequest.journeyStatusId;
+    for (const passengerRequest of activeRequest) {
+      // const passengerRequest = activeRequest[0]; // Get the first active request
+      const journeyStatusId = passengerRequest.journeyStatusId;
 
-    // 2. Retrieve passenger data
-    const passenger = await performJoinSelect({
-      baseTable: "PassengerRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-        },
-      ],
-      conditions: {
-        passengerRequestUniqueId: passengerRequest.passengerRequestUniqueId,
-      },
-    });
-    //[0];
+      // 2. Retrieve passenger data
+      const passengerData = (
+        await performJoinSelect({
+          baseTable: "PassengerRequest",
+          joins: [
+            {
+              table: "Users",
+              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: {
+            passengerRequestUniqueId: passengerRequest.passengerRequestUniqueId,
+          },
+        })
+      )[0];
+      passenger.push(passengerData);
+      // 3. If journeyStatusId is 1 (Waiting), find  nearby drivers and send to them requests
 
-    // 3. If journeyStatusId is 1 (Waiting), find  nearby drivers and send to them requests
+      if (journeyStatusId === journeyStatusMap.waiting) {
+        const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
 
-    if (journeyStatusId === journeyStatusMap.waiting) {
-      const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
+        // if (!nearbyDrivers?.length) {
+        //   return {
+        //     message: "success",
+        //     status: journeyStatusMap.waiting,
+        //     passenger,
+        //     drivers: [], // Return empty array for drivers
+        //     journey: null,
+        //     decisions: [],
+        //   };
+        // }
 
-      if (!nearbyDrivers?.length) {
-        return {
-          message: "success",
-          status: journeyStatusMap.waiting,
-          passenger,
-          drivers: [], // Return empty array for drivers
-          journey: null,
-          decisions: [],
-        };
-      }
+        const driversData = [];
+        const decisionsData = [];
 
-      const driversData = [];
-      const decisionsData = [];
+        // for (let i = 0; i < nearbyDrivers.length; i++)
+        for (const driver of nearbyDrivers) {
+          // const driver = nearbyDrivers[i];
 
-      for (let i = 0; i < nearbyDrivers.length; i++) {
-        const driver = nearbyDrivers[i];
+          const documents =
+            await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
+              driver?.userUniqueId,
+              listOfDocumentsTypeAndId.profilePhoto
+            );
 
-        const documents =
-          await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
-            driver?.userUniqueId,
-            listOfDocumentsTypeAndId.profilePhoto
+          const driverProfilePhoto =
+            documents?.data?.[documents.data.length - 1]?.attachedDocumentName;
+
+          const journeyDecisionUniqueId = uuidv4();
+          const journeyDecisionPayload = {
+            journeyDecisionUniqueId,
+            passengerRequestId: passengerRequest.passengerRequestId,
+            driverRequestId: driver.driverRequestId,
+            journeyStatusId: journeyStatusMap.requested,
+            decisionTime: new Date(),
+          };
+
+          await insertData({
+            tableName: "JourneyDecisions",
+            colAndVal: journeyDecisionPayload,
+          });
+
+          await updateData({
+            tableName: "PassengerRequest",
+            conditions: {
+              passengerRequestId: passengerRequest.passengerRequestId,
+            },
+            updateValues: { journeyStatusId: journeyStatusMap.requested },
+          });
+
+          await updateData({
+            tableName: "DriverRequest",
+            conditions: { driverRequestId: driver.driverRequestId },
+            updateValues: { journeyStatusId: journeyStatusMap.requested },
+          });
+
+          driver.journeyStatusId = journeyStatusMap.requested;
+          passengerRequest.journeyStatusId = journeyStatusMap.requested;
+
+          const vehicle = await getVehicleOwnershipByUserUniqueId(
+            driver?.userUniqueId
+          );
+          const vehicleTypeUniqueId = vehicle[0]?.vehicleTypeUniqueId;
+
+          const vehicleTariffRate = await getTariffRateByVehicleTypeUniqueId(
+            vehicleTypeUniqueId
           );
 
-        const driverProfilePhoto =
-          documents?.data?.[documents.data.length - 1]?.attachedDocumentName;
+          // Push each driver's full data to array
+          driversData.push({
+            driver: { ...driver, driverProfilePhoto },
+            vehicle: vehicle,
+            vehicleTariffRate: vehicleTariffRate?.data[0],
+          });
 
-        const journeyDecisionUniqueId = uuidv4();
-        const journeyDecisionPayload = {
-          journeyDecisionUniqueId,
-          passengerRequestId: passengerRequest.passengerRequestId,
-          driverRequestId: driver.driverRequestId,
-          journeyStatusId: journeyStatusMap.requested,
-          decisionTime: new Date(),
-        };
+          // Collect journey decisions
+          decisionsData.push(journeyDecisionPayload);
 
-        await insertData({
-          tableName: "JourneyDecisions",
-          colAndVal: journeyDecisionPayload,
-        });
-
-        await updateData({
-          tableName: "PassengerRequest",
-          conditions: {
-            passengerRequestId: passengerRequest.passengerRequestId,
-          },
-          updateValues: { journeyStatusId: journeyStatusMap.requested },
-        });
-
-        await updateData({
-          tableName: "DriverRequest",
-          conditions: { driverRequestId: driver.driverRequestId },
-          updateValues: { journeyStatusId: journeyStatusMap.requested },
-        });
-
-        driver.journeyStatusId = journeyStatusMap.requested;
-        passengerRequest.journeyStatusId = journeyStatusMap.requested;
-
-        const vehicle = await getVehicleOwnershipByUserUniqueId(
-          driver?.userUniqueId
-        );
-        const vehicleTypeUniqueId = vehicle[0]?.vehicleTypeUniqueId;
-
-        const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
-          vehicleTypeUniqueId
-        );
-
-        // Push each driver's full data to array
-        driversData.push({
-          driver: { ...driver, driverProfilePhoto },
-          vehicle: vehicle,
-          vehicleTarrifRate: vehicleTarrifRate?.data[0],
-        });
-
-        // Collect journey decisions
-        decisionsData.push(journeyDecisionPayload);
-
-        // Send notification
-        await sendNotificationToDriver({
-          message: {
-            message: "success",
-            status: journeyStatusMap.requested,
-            passenger,
-            driver: {
-              driver: { ...driver, driverProfilePhoto },
-              vehicle: vehicle,
-              vehicleTarrifRate: vehicleTarrifRate?.data[0],
+          // Send notification
+          await sendNotificationToDriver({
+            message: {
+              message: "success",
+              status: journeyStatusMap.requested,
+              passenger,
+              driver: {
+                driver: { ...driver, driverProfilePhoto },
+                vehicle: vehicle,
+                vehicleTariffRate: vehicleTariffRate?.data[0],
+              },
+              journey: null,
+              decisions: journeyDecisionPayload,
             },
-            journey: null,
-            decisions: journeyDecisionPayload,
-          },
-          phoneNumber: driver?.phoneNumber,
-        });
-      }
+            phoneNumber: driver?.phoneNumber,
+          });
+        }
 
-      // Final response after processing all drivers
-      return {
-        message: "success",
-        status: journeyStatusMap.requested,
-        passenger,
-        drivers: driversData,
-        journey: null,
-        decisions: decisionsData,
-      };
+        // Final response after processing all drivers
+        // return {
+        //   message: "success",
+        //   status: journeyStatusMap.requested,
+        //   passenger,
+        //   drivers: driversData,
+        //   journey: null,
+        //   decisions: decisionsData,
+        // };
+
+        drivers.push(...driversData);
+        decisions.push(...decisionsData);
+      }
     }
 
+    return {
+      message: "success",
+      status: journeyStatusMap.requested,
+      passenger,
+      drivers,
+      journey,
+      decisions,
+    };
     // 6. If journeyStatusId is not 1, return data for passenger, driver, journey, and decisions
 
     const journeyDecision = await getData({
@@ -377,7 +396,7 @@ const verifyPassengerStatus = async ({
     const results = []; // Collect all responses here
     const driversData = [],
       decisionsData = [];
-    let journey = null;
+    // let journey = null;
 
     for (let i = 0; i < journeyDecision.length; i++) {
       const journeyStatusId = journeyDecision[i].journeyStatusId;
@@ -418,14 +437,14 @@ const verifyPassengerStatus = async ({
       const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
         driver?.userUniqueId
       );
-      const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
+      const vehicleTariffRate = await getTariffRateByVehicleTypeUniqueId(
         vehicleOfDriver[0]?.vehicleTypeUniqueId
       );
 
       const driverInfo = {
         vehicleOfDriver: vehicleOfDriver[0],
         driver: { ...driver, driverProfilePhoto },
-        vehicleTarrifRate: vehicleTarrifRate?.data[0],
+        vehicleTariffRate: vehicleTariffRate?.data[0],
       };
       driversData.push(driverInfo);
       // decisionsData.push();
@@ -477,11 +496,11 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     const vehicleTypeUniqueId = vehicle?.vehicleTypeUniqueId;
-    const vehicleTarrifRateResponse = await getTarrifRateByVehicleTypeUniqueId(
+    const vehicleTariffRateResponse = await getTariffRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
     );
 
-    const vehicleTarrifRate = vehicleTarrifRateResponse?.data?.[0];
+    const vehicleTariffRate = vehicleTariffRateResponse?.data?.[0];
 
     // Step 2: Check for an active driver request
     if (!activeRequest?.length) {
@@ -516,7 +535,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       const JourneyStatusOne = await handleJourneyStatusOne(
         driverRequest,
         vehicle,
-        vehicleTarrifRate,
+        vehicleTariffRate,
         vehicleTypeUniqueId
       );
       return JourneyStatusOne;
@@ -525,7 +544,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const existingJourney = await handleExistingJourney(
       driverRequest,
       vehicle,
-      vehicleTarrifRate
+      vehicleTariffRate
     );
     console.log("@existingJourney", existingJourney);
     return existingJourney;

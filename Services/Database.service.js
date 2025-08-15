@@ -11,7 +11,7 @@ const {
   paymentStatus,
   paymentMethod,
   CommissionRates,
-  TarrifRateList,
+  TariffRateList,
   vehicleStatusTypes,
   financialInstitutionAccount,
   subscriptionPlanLists,
@@ -26,10 +26,10 @@ const { createPaymentStatus } = require("./PaymentStatus.service");
 const { createRole } = require("./Role.service");
 const { createMapping } = require("./RoleDocumentRequirements.service");
 const { createStatus } = require("./Status.service");
-const { createTarrifRate } = require("./TarrifRate.service");
+const { createTariffRate } = require("./TariffRate.service");
 const {
-  createTarrifRateForVehicleType,
-} = require("./TarrifRateForVehicleTypes.service");
+  createTariffRateForVehicleType,
+} = require("./TariffRateForVehicleTypes.service");
 const { createUserSystem } = require("./User.service");
 const { createVehicleType } = require("./VehicleType.service");
 const {
@@ -305,10 +305,10 @@ const installPreDefinedData = async (req, res) => {
       createPaymentMethodErrors = [],
       successCommissionRates = [],
       failedCommissionRates = [],
-      successTarrifRateForVehicleType = [],
-      failedTarrifRateForVehicleType = [],
-      successTarrifRate = [],
-      failedTarrifRate = [],
+      successTariffRateForVehicleType = [],
+      failedTariffRateForVehicleType = [],
+      successTariffRate = [],
+      failedTariffRate = [],
       successVehicleStatusTypes = [],
       failedVehicleStatusTypes = [],
       financialInstitutionAccountSuccess = [],
@@ -436,13 +436,13 @@ const installPreDefinedData = async (req, res) => {
       "CommissionRates"
     );
 
-    // 11.TarrifRateList,
+    // 11.TariffRateList,
     await processDataSequentially(
-      TarrifRateList,
-      createTarrifRate,
-      successTarrifRate,
-      failedTarrifRate,
-      "TarrifRateList"
+      TariffRateList,
+      createTariffRate,
+      successTariffRate,
+      failedTariffRate,
+      "TariffRateList"
     );
     // 12. financialInstitutionAccount,
     await processDataSequentially(
@@ -465,11 +465,11 @@ const installPreDefinedData = async (req, res) => {
       data: {
         VehicleTypes: { successVehicleStatusTypes, failedVehicleStatusTypes },
         CommissionRates: { successCommissionRates, failedCommissionRates },
-        TarrifRateForVehcleTypes: {
-          successTarrifRateForVehicleType,
-          failedTarrifRateForVehicleType,
+        TariffRateForVehcleTypes: {
+          successTariffRateForVehicleType,
+          failedTariffRateForVehicleType,
         },
-        TarrifRateList: { successTarrifRate, failedTarrifRate },
+        TariffRateList: { successTariffRate, failedTariffRate },
         paymentStatus: {
           success: paymentStatusSuccess,
           errors: paymentStatusErrors,

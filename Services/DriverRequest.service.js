@@ -33,8 +33,8 @@ const {
   getVehicleAndOwnershipViaUserUniqueId,
 } = require("./VehicleOwnership.service");
 const {
-  getTarrifRateByVehicleTypeUniqueId,
-} = require("./TarrifRateForVehicleTypes.service");
+  getTariffRateByVehicleTypeUniqueId,
+} = require("./TariffRateForVehicleTypes.service");
 const {
   createJourneyDecision,
   getJourneyDecisionByJourneyDecisionUniqueId,
@@ -183,14 +183,14 @@ const takeFromStreet = async (body, user) => {
     // const vehicle = await verifyUsersVehicle(userUniqueId);
     const vehicle = await getVehicleAndOwnershipViaUserUniqueId(userUniqueId);
     const vehicleTypeUniqueId = vehicle?.data[0]?.vehicleTypeUniqueId;
-    const vehicleTarrifRate = await getTarrifRateByVehicleTypeUniqueId(
+    const vehicleTariffRate = await getTariffRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
     );
     const driver = await getUserByUserUniqueId(userUniqueId);
     const driverData = {
       driver: { ...driver.data, ...driverRequest.data[0] },
       vehicle: vehicle.data[0],
-      vehicleTarrifRate: vehicleTarrifRate.data[0],
+      vehicleTariffRate: vehicleTariffRate.data[0],
     };
     responseData.passenger = {
       ...userPassenger?.dataOfPassenger,

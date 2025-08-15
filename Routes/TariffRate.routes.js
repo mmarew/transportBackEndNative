@@ -1,42 +1,42 @@
 const express = require("express");
 const router = express.Router();
-const tarrifRateController = require("../Controllers/TarrifRate.controller");
+const tariffRateController = require("../Controllers/TariffRate.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 // Create a new tariff rate
 router.post(
-  "/api/admin/tarrifRate",
+  "/api/admin/tariffRate",
   verifyTokenOfAxios,
-  tarrifRateController.createTarrifRate
+  tariffRateController.createTariffRate
 );
 
 // Get all tariff rates
 router.get(
-  "/api/admin/tarrifRate",
+  "/api/admin/tariffRate",
   verifyTokenOfAxios,
-  tarrifRateController.getAllTarrifRates
+  tariffRateController.getAllTariffRates
 );
 
 // Get a tariff rate by ID
 router.get(
-  "/api/admin/tarrifRate/:tarrifRateUniqueId",
+  "/api/admin/tariffRate/:tariffRateUniqueId",
   verifyTokenOfAxios,
-  tarrifRateController.getTarrifRateById
+  tariffRateController.getTariffRateById
 );
 
 // Update a tariff rate by ID
 router.put(
-  "/api/admin/tarrifRate/:tarrifRateUniqueId",
+  "/api/admin/tariffRate/:tariffRateUniqueId",
   verifyTokenOfAxios,
-  tarrifRateController.updateTarrifRate
+  tariffRateController.updateTariffRate
 );
 
 // Delete a tariff rate by ID
 router.delete(
-  "/api/admin/tarrifRate/:id",
+  "/api/admin/tariffRate/:id",
   verifyTokenOfAxios,
 
-  tarrifRateController.deleteTarrifRate
+  tariffRateController.deleteTariffRate
 );
 
 module.exports = router;

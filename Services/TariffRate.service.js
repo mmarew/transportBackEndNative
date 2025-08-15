@@ -63,7 +63,7 @@ exports.getAllTarrifRates = async () => {
   const sql = `SELECT * FROM TarrifRate`;
   const [result] = await pool.query(sql);
   // return result;
-    return { message: "success", data: result };
+  return { message: "success", data: result };
 };
 
 // Get a tariff rate by ID

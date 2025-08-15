@@ -503,31 +503,31 @@ CREATE TABLE IF NOT EXISTS Payments (
     FOREIGN KEY (cancellationReasonsTypeId) REFERENCES CancellationReasonsType(cancellationReasonsTypeId),
     FOREIGN KEY (canceledBy) REFERENCES Users(userUniqueId)
 ); 
--- tarrif rate table
+-- tariff rate table
 
-    CREATE TABLE IF NOT EXISTS TarrifRate (
-    tarrifRateId INT AUTO_INCREMENT PRIMARY KEY,
-    tarrifRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
-    standingTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate wher driver comes to passangers pick up place
-    journeyTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate between a place where driver pick up a passangers up to destination place and can be calculated by km
-    timingTarrifRate VARCHAR(50) NOT NULL,  -- a tarrif rate between a place where driver pick up a passangers up to destination place and can be calculated by time
-    tarrifRateEffectiveDate DATE NOT NULL,  -- The date from which this rate is effective
-    tarrifRateExpirationDate DATE NOT NULL,  -- The date after which this rate is no longer effective
-    tarifRateDescription TEXT NOT NULL,  -- Description of tarrif rate
-    tarrifRateCreatedBy VARCHAR(36) NOT NULL,  -- Who created the tarrif rate
-    tarrifRateCreatedAt DATETIME NOT NULL  -- Creation time of the tarrif rate
+    CREATE TABLE IF NOT EXISTS TariffRate (
+    tariffRateId INT AUTO_INCREMENT PRIMARY KEY,
+    tariffRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tariff rate
+    standingTariffRate VARCHAR(50) NOT NULL,  -- a tariff rate where driver comes to passengers pick up place
+    journeyTariffRate VARCHAR(50) NOT NULL,  -- a tariff rate between a place where driver pick up a passengers up to destination place and can be calculated by km
+    timingTariffRate VARCHAR(50) NOT NULL,  -- a tariff rate between a place where driver pick up a passengers up to destination place and can be calculated by time
+    tariffRateEffectiveDate DATE NOT NULL,  -- The date from which this rate is effective
+    tariffRateExpirationDate DATE NOT NULL,  -- The date after which this rate is no longer effective
+    tariffRateDescription TEXT NOT NULL,  -- Description of tariff rate
+    tariffRateCreatedBy VARCHAR(36) NOT NULL,  -- Who created the tariff rate
+    tariffRateCreatedAt DATETIME NOT NULL  -- Creation time of the tariff rate
 ) ;
 
- -- Create the TarrifRateForVehcleTypes table
+ -- Create the tariffRateForVehcleTypes table
 
-CREATE TABLE IF NOT EXISTS TarrifRateForVehcleTypes (
-    tarrifRateForVehcleTypeId INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS tariffRateForVehcleTypes (
+    tariffRateForVehcleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     
-    tarrifRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tarrif rate
+    tariffRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tariff rate
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
-    tarrifRateUniqueId varchar(36) NOT NULL  -- Foreign key to TarrifRate
+    tariffRateUniqueId varchar(36) NOT NULL  -- Foreign key to tariffRate
    , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (tarrifRateUniqueId) REFERENCES TarrifRate(tarrifRateUniqueId)
+    FOREIGN KEY (tariffRateUniqueId) REFERENCES tariffRate(tariffRateUniqueId)
 ) ;
  -- Create the CommissionRates table
 
