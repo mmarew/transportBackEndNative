@@ -41,6 +41,7 @@ const handleJourneyStatusOne = async (
     originLongitude,
     vehicleTypeUniqueId,
   });
+  console.log("@nearbyPassengers", nearbyPassengers);
   // if there is no passenger  near to driver
   if (!nearbyPassengers?.length) {
     return {
@@ -57,8 +58,9 @@ const handleJourneyStatusOne = async (
   }
   let passenger = nearbyPassengers[0];
   let notRejectedPassenger = null;
+  console.log("@nearbyPassengers[0]", passenger);
   // loop over nearbyPassengers and check if any of them was not rejected by driver connect with it
-  for (let i = 1; i < nearbyPassengers?.length; i++) {
+  for (let i = 0; i < nearbyPassengers?.length; i++) {
     passenger = nearbyPassengers[i];
 
     // verify if it was not rejected by this driver once driver reject it no need of rerequest it.
@@ -79,7 +81,10 @@ const handleJourneyStatusOne = async (
       uniqueIds: {
         driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
       },
-      driver: { driver: driverRequest, vehicle, vehicleTariffRate },
+      driver: {
+        driver: driverRequest,
+        vehicle, //vehicleTariffRate
+      },
       passenger: null,
       journey: null,
       decision: null,
@@ -108,12 +113,12 @@ const handleJourneyStatusOne = async (
     updateData({
       tableName: "PassengerRequest",
       conditions: { passengerRequestId: passenger.passengerRequestId },
-      updateValues: { journeyStatusId: 2 },
+      updateValues: { journeyStatusId: journeyStatusMap.requested },
     }),
   ]);
 
   const message = {
-    status: 2,
+    status: journeyStatusMap.requested,
     uniqueIds: {
       driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
       passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
@@ -141,7 +146,7 @@ const handleJourneyStatusOne = async (
 
   return {
     message: "success",
-    status: 2, // Passenger found and requested
+    status: journeyStatusMap.requested, // Passenger found and requested
     ...message,
   };
 };
@@ -180,7 +185,7 @@ const handleExistingJourney = async (
 
   const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
     userUniqueId,
-    4
+    journeyStatusMap.acceptedByPassenger
   );
   const data = documents?.data;
   const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
@@ -240,11 +245,11 @@ const verifyPassengerStatus = async ({
       };
     }
     const passenger = [],
-      journey = [],
       decisions = [],
-      drivers = [];
-    const driversData = [];
-    const decisionsData = [];
+      drivers = [],
+      driversData = [],
+      decisionsData = [];
+    let journey = [];
     // passenger may have many requests so we loop through them
     for (const passengerRequest of activeRequest) {
       const journeyStatusId = passengerRequest.journeyStatusId,
@@ -266,9 +271,10 @@ const verifyPassengerStatus = async ({
             getVehicleOwnershipByUserUniqueId(driver?.userUniqueId),
             getTariffRateByVehicleTypeUniqueId(vehicleTypeUniqueId),
           ]);
-
+          const documentsData = documents?.data;
+          const lastDataIndex = documentsData?.length - 1;
           const driverProfilePhoto =
-            documents?.data?.[documents.data?.length - 1]?.attachedDocumentName;
+            documentsData?.[lastDataIndex]?.attachedDocumentName;
 
           const journeyDecisionUniqueId = uuidv4();
           const journeyDecisionPayload = {
@@ -345,11 +351,11 @@ const verifyPassengerStatus = async ({
 
         const results = [];
         // for (let i = 0; i < journeyDecision.length; i++)
-        for (journeyDecision of decisionsData) {
+        for (let journeyDecision of decisionsData) {
           decisions.push(journeyDecision);
           const journeyStatusId = journeyDecision.journeyStatusId;
           // journey can be created after journey is started
-          if (journeyStatusId >= journeyStatusMap.journeyStarted)
+          if (journeyStatusId >= journeyStatusMap?.journeyStarted)
             journey = await getData({
               tableName: "Journey",
               conditions: {
@@ -379,21 +385,18 @@ const verifyPassengerStatus = async ({
             );
 
           const data = documents?.data;
+          const lastDataIndex = data?.length - 1;
           const driverProfilePhoto =
-            data?.[data.length - 1]?.attachedDocumentName;
+            data?.[lastDataIndex]?.attachedDocumentName;
           const phoneNumber = driver?.phoneNumber;
 
           const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
             driver?.userUniqueId
           );
-          const vehicleTariffRate = await getTariffRateByVehicleTypeUniqueId(
-            vehicleOfDriver[0]?.vehicleTypeUniqueId
-          );
 
           const driverInfo = {
             vehicleOfDriver: vehicleOfDriver[0],
             driver: { ...driver, driverProfilePhoto },
-            vehicleTariffRate: vehicleTariffRate?.data[0],
           };
           driversData.push(driverInfo);
           const message = {
@@ -446,11 +449,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     const vehicleTypeUniqueId = vehicle?.vehicleTypeUniqueId;
-    // const vehicleTariffRateResponse = await getTariffRateByVehicleTypeUniqueId(
-    //   vehicleTypeUniqueId
-    // );
-
-    // const vehicleTariffRate = vehicleTariffRateResponse?.data?.[0];
 
     // Step 2: Check for an active driver request
     if (!activeRequest?.length) {
@@ -485,17 +483,12 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
       const JourneyStatusOne = await handleJourneyStatusOne(
         driverRequest,
         vehicle,
-        // vehicleTariffRate,
         vehicleTypeUniqueId
       );
       return JourneyStatusOne;
     }
 
-    const existingJourney = await handleExistingJourney(
-      driverRequest,
-      vehicle
-      // vehicleTariffRate
-    );
+    const existingJourney = await handleExistingJourney(driverRequest, vehicle);
     console.log("@existingJourney", existingJourney);
     return existingJourney;
   } catch (error) {

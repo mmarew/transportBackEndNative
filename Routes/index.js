@@ -42,7 +42,7 @@ const routesArray = [
   require("./Role.routes"),
   require("./User.routes"),
   require("./Admin.routes"),
-  require("./CancilationReasonsType.routes"),
+  require("./CancellationReasonsType.routes"),
   require("./VehicleType.routes"),
   require("./SMSSender.routes"),
 ];

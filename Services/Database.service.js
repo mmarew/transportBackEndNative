@@ -17,7 +17,7 @@ const {
   subscriptionPlanLists,
 } = require("../Utils/ListOfFixedData");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
-const { addCancellationReason } = require("./Cancilation.service");
+const { addCancellationReason } = require("./Cancellation.service");
 const { createCommissionRate } = require("./CommissionRates.service");
 const { createDocumentType } = require("./DocumentTypes.service");
 const { createJourneyStatus } = require("./JourneyStatus.service");

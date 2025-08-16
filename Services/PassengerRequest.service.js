@@ -78,7 +78,7 @@ const acceptDriverRequest = async (body) => {
     // multiple drivers
     const acceptedDriver = [];
     const decisions = statusData?.decisions;
-
+    // find accepted decision from the decisions array
     const acceptedDecision = decisions?.find(
       (decision) => decision.journeyDecisionUniqueId == journeyDecisionUniqueId
     );
@@ -95,10 +95,12 @@ const acceptDriverRequest = async (body) => {
       } else {
         acceptedDriver[0] = driver;
         body.journeyStatusId = journeyStatusMap.acceptedByPassenger;
+        // update only accepted driver request
+        await updateJourneyStatus(body);
       }
       console.log("@ body.journeyStatusId", body.journeyStatusId);
       // return;
-      await updateJourneyStatus(body);
+      // await updateJourneyStatus(body);
       const driverStatus = await verifyDriverStatus({
         userUniqueId: driver?.driver?.userUniqueId,
       });

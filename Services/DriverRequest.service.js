@@ -68,7 +68,7 @@ const createRequest = async ({
 
     // 2. Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
-
+    console.log("@activeRequest", activeRequest);
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
       console.log(
