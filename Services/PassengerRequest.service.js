@@ -30,13 +30,13 @@ const createPassengerRequest = async (body, user, journeyStatusId) => {
       tableName: "PassengerRequest",
       conditions: { passengerRequestBatchId, userUniqueId },
     });
-    console.log(
-      "@dataByBatchId",
-      dataByBatchId.length,
-      "numberOfVehicles",
-      numberOfVehicles
-    );
+
     if (dataByBatchId?.length >= numberOfVehicles) {
+      return await verifyPassengerStatus({
+        userUniqueId,
+        activeRequest: null, // newRequest?.data,
+        sendNotificationsToDrivers: true,
+      });
       return {
         message: "error",
         error: "You already have an active request with this batch ID.",

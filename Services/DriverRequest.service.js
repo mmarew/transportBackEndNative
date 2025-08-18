@@ -360,12 +360,12 @@ const startJourney = async (body) => {
   const latitude = body?.latitude,
     longitude = body?.longitude;
   // check if driver has active journey request by journeyDecisionUniqueId,
-  let exisistingJourney = await getData({
+  let existingJourney = await getData({
     tableName: "Journey",
     conditions: { journeyDecisionUniqueId },
   });
 
-  if (exisistingJourney.length == 0) {
+  if (existingJourney.length == 0) {
     await insertData({
       tableName: "Journey",
       colAndVal: {
@@ -382,9 +382,9 @@ const startJourney = async (body) => {
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
-  const passenger = message?.passenger;
+  const passenger = [message?.passenger];
   const driver = message?.driver,
-    phoneNumber = passenger?.phoneNumber;
+    passengersPhoneNumber = passenger?.phoneNumber;
   const journeyStatusId = passenger?.journeyStatusId;
   const messagesToPassenger = {
     ...message,
@@ -393,10 +393,13 @@ const startJourney = async (body) => {
   // remove driver
   delete messagesToPassenger?.driver;
   // send notification to passenger if driver has an active journey request and passenger has a phoneNumber
-  if (phoneNumber && journeyStatusId == journeyStatusMap.journeyStarted)
+  if (
+    passengersPhoneNumber &&
+    journeyStatusId == journeyStatusMap.journeyStarted
+  )
     await sendNotificationToPassenger({
       message: messagesToPassenger,
-      phoneNumber,
+      phoneNumber: passengersPhoneNumber,
     });
 
   return message;
