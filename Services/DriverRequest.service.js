@@ -1,9 +1,7 @@
 const {
   getData,
-  findNearbyPassengers,
   checkActiveDriverRequest,
   performJoinSelect,
-  getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   getDriverRequestByRequestUniqueId,
 } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -20,14 +18,7 @@ const {
   sendNotificationToDriver,
 } = require("../Utils/Notifications");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
-const PaymentCalculator = require("../Utils/PaymentCalculator");
-const { createPayment } = require("./Payments.service");
-const calculateCommision = require("../Utils/CalculateCommision");
-const { createCommission } = require("./Commission.service");
-const {
-  createDriverBalance,
-  getDriverLastBalanceByUserUniqueId,
-} = require("./DriverBalance.service");
+
 const {
   getVehicleOwnershipByUserUniqueId,
   getVehicleAndOwnershipViaUserUniqueId,
@@ -153,10 +144,6 @@ const takeFromStreet = async (body, user) => {
       deliveryDateByDriver,
       shippingCostByDriver,
     };
-    // console.log("@decisionData", decisionData);
-
-    // return;
-
     // create a decision in JourneyDecisions table
     const journeyDecision = await createJourneyDecision(decisionData);
     //create a journey in Journey table using createJourney function from Journey.service
@@ -217,9 +204,9 @@ const createAndAcceptNewRequest = async (body) => {
       "@createAndAcceptNewRequest passengerRequest",
       passengerRequest
     );
-    const passegrnerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
+    const passengerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
     // check if the passenger request is already accepted by driver
-    if (passegrnerJourneyStatusId > journeyStatusMap.acceptedByDriver)
+    if (passengerJourneyStatusId > journeyStatusMap.acceptedByDriver)
       return {
         message: "error",
         error: "Passenger request already accepted by driver",
@@ -254,7 +241,7 @@ const createAndAcceptNewRequest = async (body) => {
       "@createAndAcceptNewRequest newDriverRequest",
       newDriverRequest
     );
-    // validate if the insert was successfull
+    // validate if the insert was successful
     if (newDriverRequest?.message === "error") {
       return newDriverRequest;
     }
@@ -276,7 +263,7 @@ const createAndAcceptNewRequest = async (body) => {
       "@createAndAcceptNewRequest newJourneyDecision",
       newJourneyDecision
     );
-    // validate if the insert was successfull
+    // validate if the insert was successful
     if (newJourneyDecision?.message === "error") {
       return newJourneyDecision;
     }
@@ -295,8 +282,7 @@ const acceptPassengerRequest = async (body) => {
     journeyDecisionUniqueId,
     driverRequestUniqueId,
   } = body;
-  // console.log("@acceptPassengerRequest body =======> ", body);
-  // return;
+
   const existingRequest = await performJoinSelect({
     baseTable: "DriverRequest",
     joins: [
@@ -455,7 +441,7 @@ const noAnswerFromDriver = async (body) => {
   };
   const messageToDriver = {
     message: "success",
-    pasenger: null,
+    passenger: null,
     driver: null,
     status: null,
     messageType: messageTypes.driver_not_answered,
@@ -476,15 +462,8 @@ const noAnswerFromDriver = async (body) => {
 };
 const journeyCompleted = async (body) => {
   try {
-    const {
-      journeyDecisionUniqueId,
-      userUniqueId,
-      vehicleTypeUniqueId,
-      journeyUniqueId,
-      passengerRequestUniqueId,
-      paymentMethodUniqueId,
-      paymentStatusUniqueId,
-    } = body;
+    const { journeyDecisionUniqueId, userUniqueId, passengerRequestUniqueId } =
+      body;
 
     // 1. Update journey status
     await updateJourneyStatus(body);
@@ -511,14 +490,17 @@ const journeyCompleted = async (body) => {
     ]);
 
     const phoneNumber = passenger?.at(0)?.phoneNumber;
-
+    // const passengerStatusData = await verifyPassengerStatus({
+    //   userUniqueId: passenger?.at(0)?.userUniqueId,
+    // });
+    // console.log("@passengerStatusData", passengerStatusData);
     // 3. Send notification if passenger phone is available
     if (phoneNumber) {
       sendNotificationToPassenger({
         message: {
           decisions: decisions?.data?.[0],
           drivers: [{ vehicle: vehicleData?.at(0), driver: driver.data }],
-          passenger: passenger?.at(0),
+          passenger,
           message: "success",
           status: journeyStatusMap.journeyCompleted,
           data: "Journey completed successfully",

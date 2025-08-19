@@ -139,7 +139,7 @@ const handleJourneyStatusOne = async (
       userUniqueId: passenger.userUniqueId,
     });
     await sendNotificationToPassenger({
-      message,
+      message: { ...passengerStatus },
       phoneNumber: passenger.phoneNumber,
     });
   }
@@ -421,7 +421,7 @@ const verifyPassengerStatus = async ({
     // Final return after loop
     const message = {
       message: "success",
-      passenger,
+      passenger: passenger,
       drivers: driversData,
       journey: journey,
       decisions,

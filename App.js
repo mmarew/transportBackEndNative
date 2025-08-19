@@ -46,7 +46,7 @@ const startServer = async () => {
   initSocket(server); // Initialize Socket.IO
 
   const PORT = process.env.PORT || 3000;
-  server.listen(PORT, "0.0.0.0", () => {
+  server?.listen(PORT, "0.0.0.0", () => {
     console.log(`✅ Server is running at http://localhost:${PORT}`);
     onStartUp();
   });
