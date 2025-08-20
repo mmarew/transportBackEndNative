@@ -4,9 +4,9 @@ const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // Create a new tariff rate for a vehicle type
 exports.createTariffRateForVehicleType = async (data) => {
-  // verify existance of data
+  // verify existence of data
   const existedData = await getData({
-    tableName: "TariffRateForVehcleTypes",
+    tableName: "TariffRateForVehicleTypes",
     conditions: {
       vehicleTypeUniqueId: data.vehicleTypeUniqueId,
       tariffRateUniqueId: data.tariffRateUniqueId,
@@ -20,14 +20,14 @@ exports.createTariffRateForVehicleType = async (data) => {
     };
   }
   const sql = `
-    INSERT INTO TariffRateForVehcleTypes (
-      tariffRateForVehcleTypeUniqueId,
+    INSERT INTO TariffRateForVehicleTypes (
+      tariffRateForVehicleTypeUniqueId,
       vehicleTypeUniqueId,
       tariffRateUniqueId 
     ) VALUES (?, ?, ?)
   `;
   const values = [uuidv4(), data.vehicleTypeUniqueId, data.tariffRateUniqueId];
-  const [result] = await pool.query(sql, values);
+  await pool.query(sql, values);
   return {
     message: "success",
     data: "Tariff rate for vehicle type created successfully",
@@ -37,7 +37,7 @@ exports.createTariffRateForVehicleType = async (data) => {
 // Get all tariff rates for vehicle types
 exports.getAllTariffRatesForVehicleTypes = async () => {
   const result = await performJoinSelect({
-    baseTable: "TariffRateForVehcleTypes",
+    baseTable: "TariffRateForVehicleTypes",
     joins: [
       {
         table: "VehicleTypes",
@@ -74,7 +74,9 @@ exports.getTariffRateByVehicleTypeUniqueId = async (vehicleTypeUniqueId) => {
   };
 };
 // Get a tariff rate for vehicle type by ID
-exports.getTariffRateForVehicleTypeById = async (tariffRateForVehcleTypeId) => {
+exports.getTariffRateForVehicleTypeById = async (
+  tariffRateForVehicleTypeId
+) => {
   const result = await performJoinSelect({
     baseTable: "TariffRateForVehicleTypes",
     joins: [
@@ -110,7 +112,7 @@ exports.updateTariffRateForVehicleType = async (
     data.tariffRateUniqueId,
     tariffRateForVehicleTypeUniqueId,
   ];
-  const [result] = await pool.query(sql, values);
+  await pool.query(sql, values);
   return {
     message: "success",
     data: "Tariff rate for vehicle type updated successfully",
@@ -122,7 +124,7 @@ exports.deleteTariffRateForVehicleType = async (
   tariffRateForVehicleTypeUniqueId
 ) => {
   const sql = `DELETE FROM TariffRateForVehicleTypes WHERE tariffRateForVehicleTypeUniqueId = ?`;
-  const [result] = await pool.query(sql, [tariffRateForVehicleTypeUniqueId]);
+  await pool.query(sql, [tariffRateForVehicleTypeUniqueId]);
   return {
     message: "success",
     data: "Tariff rate for vehicle type deleted successfully",

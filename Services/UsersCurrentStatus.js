@@ -263,13 +263,12 @@ const verifyPassengerStatus = async ({
         const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
 
         for (const driver of nearbyDrivers) {
-          const [documents, vehicle, vehicleTariffRate] = await Promise.all([
+          const [documents, vehicle] = await Promise.all([
             getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
               driver?.userUniqueId,
               listOfDocumentsTypeAndId.profilePhoto
             ),
             getVehicleOwnershipByUserUniqueId(driver?.userUniqueId),
-            getTariffRateByVehicleTypeUniqueId(vehicleTypeUniqueId),
           ]);
           const documentsData = documents?.data;
           const lastDataIndex = documentsData?.length - 1;
@@ -307,13 +306,11 @@ const verifyPassengerStatus = async ({
           driver.journeyStatusId = journeyStatusMap.requested;
           passengerRequest.journeyStatusId = journeyStatusMap.requested;
 
-          const vehicleTypeUniqueId = vehicle[0]?.vehicleTypeUniqueId;
-
           // Push each driver's full data to array
           driversData.push({
             driver: { ...driver, driverProfilePhoto },
             vehicle: vehicle,
-            vehicleTariffRate: vehicleTariffRate?.data[0],
+            // vehicleTariffRate: vehicleTariffRate?.data[0],
           });
 
           // Collect journey decisions
@@ -328,7 +325,6 @@ const verifyPassengerStatus = async ({
               driver: {
                 driver: { ...driver, driverProfilePhoto },
                 vehicle: vehicle,
-                vehicleTariffRate: vehicleTariffRate?.data[0],
               },
               journey: null,
               decisions: journeyDecisionPayload,

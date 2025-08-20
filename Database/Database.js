@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleStatusDescription TEXT NULL,  -- Description of the current role status
     userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
     userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the current status was created  
-    userRoleStatusCurentVersion int not null default 1  
+    userRoleStatusCurrentVersion int not null default 1  
 ) ;
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
@@ -142,22 +142,22 @@ userRoleStatusHistoryId INT AUTO_INCREMENT PRIMARY KEY,
     userRoleStatusUpdatedAt DATETIME NULL,  -- When the status was updated
     userRoleStatusDeletedBy VARCHAR(36) NULL,  -- Who deleted the status
     userRoleStatusDeletedAt DATETIME NULL, -- When the status was deleted
-    userRoleStatusCurentVersion int not null default 1,
+    userRoleStatusCurrentVersion int not null default 1,
     INDEX (userRoleId),  -- Index for faster lookups on user roles
     INDEX (statusId)  -- Index for faster lookups on status
 ) ;
 
 -- Create the DocumentTypes Table
--- if driver attach required documents like driving license ,uploadedDocumentName is used in file input field of front end and in backend to recive file name and same to others also. That is why we used uploadedDocument. It is a standared to transfer files from front end to backend using unique name. 
+-- if driver attach required documents like driving license ,uploadedDocumentName is used in file input field of front end and in backend to receive file name and same to others also. That is why we used uploadedDocument. It is a standard to transfer files from front end to backend using unique name. 
 CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeId INT AUTO_INCREMENT PRIMARY KEY,
     documentTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the document type list
     documentTypeName VARCHAR(50) UNIQUE NOT NULL,  -- Name of the document type (e.g., "ID", "License", "Plate")
-    uploadedDocumentName  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end 
-    uploadedDocumentTypeId  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
-    uploadedDocumentDescription  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
-    uploadedDocumentExpirationDate  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end
-    uploadedDocumentFileNumber  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input fieled of front end to store file number
+    uploadedDocumentName  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input field of front end 
+    uploadedDocumentTypeId  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input field of front end
+    uploadedDocumentDescription  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input field of front end
+    uploadedDocumentExpirationDate  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input field of front end
+    uploadedDocumentFileNumber  VARCHAR(50) UNIQUE NOT NULL, -- it is used in file input field of front end to store file number
     documentTypeDescription  TEXT(2000)    not NULL ,  -- Optional description of the document type
     documentTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the document type
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
@@ -383,7 +383,7 @@ CREATE TABLE IF NOT EXISTS VehicleStatusType (
     VehicleStatusTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle status type
     VehicleStatusTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle status type
     VehicleStatusTypeUpdatedAt DATETIME NULL,  -- Updated time
-    VehiclestatusTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle status type
+    VehicleStatusTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle status type
     VehicleStatusTypeDeletedAt DATETIME NULL,  -- Deleted time
     VehicleStatusTypeCreatedAt DATETIME NOT NULL  -- Creation time
  );
@@ -518,16 +518,16 @@ CREATE TABLE IF NOT EXISTS Payments (
     tariffRateCreatedAt DATETIME NOT NULL  -- Creation time of the tariff rate
 ) ;
 
- -- Create the tariffRateForVehcleTypes table
+ -- Create the TariffRateForVehicleTypes table
 
-CREATE TABLE IF NOT EXISTS tariffRateForVehcleTypes (
-    tariffRateForVehcleTypeId INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS TariffRateForVehicleTypes (
+    tariffRateForVehicleTypeId INT AUTO_INCREMENT PRIMARY KEY,
     
-    tariffRateForVehcleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tariff rate
+    tariffRateForVehicleTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tariff rate
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to VehicleType
     tariffRateUniqueId varchar(36) NOT NULL  -- Foreign key to tariffRate
    , FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
-    FOREIGN KEY (tariffRateUniqueId) REFERENCES tariffRate(tariffRateUniqueId)
+    FOREIGN KEY (tariffRateUniqueId) REFERENCES TariffRate(tariffRateUniqueId)
 ) ;
  -- Create the CommissionRates table
 
@@ -548,7 +548,7 @@ CREATE TABLE IF NOT EXISTS tariffRateForVehcleTypes (
     FOREIGN KEY (commissionRateDeletedBy) REFERENCES Users(userUniqueId)
  );
 
--- commision table for every payment 
+-- commission table for every payment 
 
     CREATE TABLE IF NOT EXISTS Commission (
     commissionId INT AUTO_INCREMENT PRIMARY KEY,
@@ -652,7 +652,7 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   FOREIGN KEY (depositSourceUniqueId) REFERENCES DepositSource(depositSourceUniqueId)
 );
 
--- free gift records for drivers to encorage them to use the app
+-- free gift records for drivers to encourage them to use the app
 CREATE TABLE IF NOT EXISTS FreeGiftToDriver (
   freeGiftId INT AUTO_INCREMENT PRIMARY KEY,
   freeGiftUniqueId VARCHAR(36) NOT NULL UNIQUE,
