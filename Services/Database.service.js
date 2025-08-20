@@ -28,9 +28,7 @@ const { createRole } = require("./Role.service");
 const { createMapping } = require("./RoleDocumentRequirements.service");
 const { createStatus } = require("./Status.service");
 const { createTariffRate } = require("./TariffRate.service");
-const {
-  createTariffRateForVehicleType,
-} = require("./TariffRateForVehicleTypes.service");
+
 const { createUserSystem } = require("./User.service");
 const { createVehicleType } = require("./VehicleType.service");
 const {

@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { performJoinSelect } = require("../CRUD/Read/ReadData");
+const { performJoinSelect, getData } = require("../CRUD/Read/ReadData");
 const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 const {
   getPassengerRequestByPassengerRequestId,
@@ -350,8 +350,49 @@ const searchOngoingJourneyByUserData = async (userData, roleId) => {
 
   return { message: "success", data: driversOngoingJourneys };
 };
+const getAllCompletedJourneys = async ({ roleId }) => {
+  try {
+    const usersData =
+      roleId == 1
+        ? {
+            table: "Users",
+            on: "Users.userUniqueId=PassengerRequest.userUniqueId",
+          }
+        : {
+            table: "Users",
+            on: "Users.userUniqueId=DriverRequest.userUniqueId",
+          };
+    const completedJourneys = await performJoinSelect({
+      baseTable: "Journey",
+      joins: [
+        {
+          table: "JourneyDecisions",
+          on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+        },
+        {
+          table: "PassengerRequest",
+          on: "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+        },
+        {
+          table: "DriverRequest",
+          on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+        },
+        { ...usersData },
+      ],
+      conditions: {
+        "Journey.journeyStatusId": journeyStatusMap.journeyCompleted,
+      },
+    });
+    return { message: "success", data: completedJourneys };
+  } catch (error) {
+    // Handle errors
+    console.error("Error fetching completed journeys:", error.message);
+    return { message: "error", error: error.message };
+  }
+};
 
 module.exports = {
+  getAllCompletedJourneys,
   getJourneyById,
   createJourney,
   updateJourney,
