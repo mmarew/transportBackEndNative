@@ -1,15 +1,15 @@
-const tarrifRateService = require("../Services/TarrifRate.service");
+const tariffRateService = require("../Services/TariffRate.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
 // Create a new tariff rate
-exports.createTarrifRate = async (req, res) => {
+exports.createTariffRate = async (req, res) => {
   try {
     const user = req.user;
     req.body.user = user;
-    const result = await tarrifRateService.createTarrifRate(req.body);
+    const result = await tariffRateService.createTariffRate(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.log("@createTarrifRate error", error);
+    console.log("@createTariffRate error", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create tariff rate",
@@ -18,9 +18,9 @@ exports.createTarrifRate = async (req, res) => {
 };
 
 // Get all tariff rates
-exports.getAllTarrifRates = async (req, res) => {
+exports.getAllTariffRates = async (req, res) => {
   try {
-    const result = await tarrifRateService.getAllTarrifRates();
+    const result = await tariffRateService.getAllTariffRates();
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {
@@ -31,10 +31,10 @@ exports.getAllTarrifRates = async (req, res) => {
 };
 
 // Get a tariff rate by ID
-exports.getTarrifRateById = async (req, res) => {
+exports.getTariffRateById = async (req, res) => {
   try {
-    const result = await tarrifRateService.getTarrifRateById(
-      req.params.tarrifRateUniqueId
+    const result = await tariffRateService.getTariffRateById(
+      req.params.tariffRateUniqueId
     );
     if (result) {
       ServerResponder(res, result);
@@ -53,15 +53,15 @@ exports.getTarrifRateById = async (req, res) => {
 };
 
 // Update a tariff rate by ID
-exports.updateTarrifRate = async (req, res) => {
+exports.updateTariffRate = async (req, res) => {
   try {
-    const result = await tarrifRateService.updateTarrifRate(
-      req.params.tarrifRateUniqueId,
+    const result = await tariffRateService.updateTariffRate(
+      req.params.tariffRateUniqueId,
       req.body
     );
     ServerResponder(res, result);
   } catch (error) {
-    console.log("@updateTarrifRate", error);
+    console.log("@updateTariffRate", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to update tariff rate",
@@ -70,9 +70,9 @@ exports.updateTarrifRate = async (req, res) => {
 };
 
 // Delete a tariff rate by ID
-exports.deleteTarrifRate = async (req, res) => {
+exports.deleteTariffRate = async (req, res) => {
   try {
-    const result = await tarrifRateService.deleteTarrifRate(req.params.id);
+    const result = await tariffRateService.deleteTariffRate(req.params.id);
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {

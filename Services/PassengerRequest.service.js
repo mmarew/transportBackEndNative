@@ -23,14 +23,28 @@ require("./AttachedDocuments.service");
 const createPassengerRequest = async (body, user, journeyStatusId) => {
   try {
     const { userUniqueId } = user;
-    const newRequest = await createNewPassengerRequest(
-      body,
-      userUniqueId,
-      journeyStatusId
-    );
+    const numberOfVehicles = body?.numberOfVehicles || 1;
+    // first check if the user has an active request based on passengerRequestBatchId
+    const passengerRequestBatchId = body?.passengerRequestBatchId;
+    const dataByBatchId = await getData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestBatchId, userUniqueId },
+    });
+
+    if (dataByBatchId?.length >= numberOfVehicles) {
+      return await verifyPassengerStatus({
+        userUniqueId,
+        activeRequest: null, // newRequest?.data,
+        sendNotificationsToDrivers: true,
+      });
+    }
+    const noOfRecords = numberOfVehicles - dataByBatchId?.length;
+    for (let i = 0; i < noOfRecords; i++) {
+      await createNewPassengerRequest(body, userUniqueId, journeyStatusId);
+    }
     return await verifyPassengerStatus({
       userUniqueId,
-      activeRequest: newRequest?.data,
+      activeRequest: null, // newRequest?.data,
       sendNotificationsToDrivers: true,
     });
   } catch (error) {
@@ -55,7 +69,7 @@ const acceptDriverRequest = async (body) => {
     // multiple drivers
     const acceptedDriver = [];
     const decisions = statusData?.decisions;
-
+    // find accepted decision from the decisions array
     const acceptedDecision = decisions?.find(
       (decision) => decision.journeyDecisionUniqueId == journeyDecisionUniqueId
     );
@@ -72,10 +86,12 @@ const acceptDriverRequest = async (body) => {
       } else {
         acceptedDriver[0] = driver;
         body.journeyStatusId = journeyStatusMap.acceptedByPassenger;
+        // update only accepted driver request
+        await updateJourneyStatus(body);
       }
       console.log("@ body.journeyStatusId", body.journeyStatusId);
       // return;
-      await updateJourneyStatus(body);
+      // await updateJourneyStatus(body);
       const driverStatus = await verifyDriverStatus({
         userUniqueId: driver?.driver?.userUniqueId,
       });
@@ -238,12 +254,15 @@ const cancelPassengerRequest = async (body) => {
 
     const passengerRequestId = getActiveRequest?.[0]?.passengerRequestId;
 
-    const journeyStatusId =
-      roleId == 1
-        ? journeyStatusMap.cancelledByPassenger
-        : roleId == 3
-        ? journeyStatusMap.cancelledByAdmin
-        : journeyStatusMap.cancelledBySystem;
+    let journeyStatusId;
+
+    if (roleId == 1) {
+      journeyStatusId = journeyStatusMap.cancelledByPassenger;
+    } else if (roleId == 3) {
+      journeyStatusId = journeyStatusMap.cancelledByAdmin;
+    } else {
+      journeyStatusId = journeyStatusMap.cancelledBySystem;
+    }
 
     // Update the PassengerRequest to reflect the cancellation
     await updateData({
@@ -262,7 +281,7 @@ const cancelPassengerRequest = async (body) => {
     });
 
     if (journeyDecisions.length == 0) {
-      // register cancillation data on CanceledJourney
+      // register cancellation data on CanceledJourney
       const canceledJourney = await createCanceledJourney({
         canceledBy: userUniqueId,
         canceledTime: null,
@@ -312,9 +331,6 @@ const cancelPassengerRequest = async (body) => {
         journey: null,
         decisions: null,
         status: journeyStatusId,
-        // userUniqueId === ownerUserUniqueId
-        //   ? journeyStatusMap?.cancelledByPassenger // "passenger cancelled your request."
-        //   : journeyStatusMap?.cancelledBySystem, //"system cancelled your request.",
         message: "success",
         data:
           userUniqueId === ownerUserUniqueId
@@ -344,7 +360,7 @@ const cancelPassengerRequest = async (body) => {
     const canceledJourney = await createCanceledJourney({
       canceledBy: userUniqueId,
       canceledTime: null,
-      contextId: journeyId ? journeyId : journeyDecisionId,
+      contextId: journeyId ?? journeyDecisionId,
       contextType: journeyId ? "Journey" : "JourneyDecisions",
       cancellationReasonsTypeId,
       roleId,

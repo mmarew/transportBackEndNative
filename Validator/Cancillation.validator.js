@@ -1,14 +1,14 @@
 const { pool } = require("../Middleware/Database.config");
 
-const verifyExistanceOfCancilationReasons = async (reason) => {
-  // Query to check existence in the cancilationReasons table
-  const sqlToCheckCancilationReasons = `SELECT * FROM cancilationReasonsType WHERE cancilationReasonType = ?`;
+const verifyExistanceOfCancellationReasons = async (reason) => {
+  // Query to check existence in the CancellationReasons table
+  const sqlToCheckCancellationReasons = `SELECT * FROM CancellationReasonsType WHERE CancellationReasonType = ?`;
   const values = [reason];
-  const [result] = await pool.query(sqlToCheckCancilationReasons, values);
+  const [result] = await pool.query(sqlToCheckCancellationReasons, values);
   if (result.length > 0) {
     return true;
   } else {
     return false;
   }
 };
-module.exports = { verifyExistanceOfCancilationReasons };
+module.exports = { verifyExistanceOfCancellationReasons };

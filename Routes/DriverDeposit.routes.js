@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../Controllers/DriverDeposit.controller");
-const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const {
+  verifyTokenOfAxios,
+  verifyIfUserIsSupperAdmin,
+} = require("../Middleware/VerifyToken");
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 
 // Create new deposit
 router.post(
@@ -64,6 +68,7 @@ router.get(
 router.patch(
   "/api/driverDeposit/status",
   verifyTokenOfAxios,
+  verifyAdminsIdentity,
   controller.updateDriverDepositStatus
 );
 router.get(

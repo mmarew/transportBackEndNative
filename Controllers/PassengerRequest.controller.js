@@ -6,8 +6,30 @@ const usersCurrentStatus = require("../Services/UsersCurrentStatus");
 const createPassengerRequest = async (req, res) => {
   try {
     console.log("@createPassengerRequest req.body", req.body);
-    const { destination, vehicle, originLocation } = req.body;
-    if (!destination || !vehicle || !originLocation) {
+    const {
+      passengerRequestBatchId,
+      destination,
+      vehicle,
+      originLocation,
+      numberOfVehicles,
+      shippingDate,
+      shippingCost,
+      shippableItemQtyInQuintal,
+      shippableItemName,
+      deliveryDate,
+    } = req.body;
+    if (
+      !passengerRequestBatchId ||
+      !destination ||
+      !vehicle ||
+      !originLocation ||
+      !numberOfVehicles ||
+      !shippingDate ||
+      !shippingCost ||
+      !shippableItemQtyInQuintal ||
+      !shippableItemName ||
+      !deliveryDate
+    ) {
       return ServerResponder(res, {
         message: "error",
         error: "Missing required fields",
@@ -110,8 +132,7 @@ const deleteRequest = async (req, res) => {
 };
 const verifyPassengerStatus = async (req, res) => {
   try {
-    // return "verifyPassengerStatus";
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user ?? {};
     const result = await usersCurrentStatus.verifyPassengerStatus({
       userUniqueId,
     });

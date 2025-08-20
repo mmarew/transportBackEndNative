@@ -10,7 +10,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
   //   tableName: "UserRole",
   //   conditions: { userUniqueId, roleId: 3 }, // 3 indicates the Admin role
   // });
-  const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND roleId = ? OR roleId = 6`;
+  const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND roleId = ? OR roleId = ?`;
   const [userRole] = await pool.query(sql, [userUniqueId, 3, 6]);
   console.log("@userRole", userRole);
   if (!userRole?.length) {

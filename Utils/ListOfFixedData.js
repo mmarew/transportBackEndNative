@@ -679,21 +679,21 @@ const paymentMethod = [
     paymentMethodDescription: "Payment by telebirr",
   },
 ];
-const TarrifRateList = [
+const TariffRateList = [
   {
-    tarrifRateId: 1,
-    standingTarrifRate: 100,
-    journeyTarrifRate: 25,
-    timingTarrifRate: 10,
-    tarifRateDescription: "some descriptions ",
+    tariffRateId: 1,
+    standingTariffRate: 100,
+    journeyTariffRate: 25,
+    timingTariffRate: 10,
+    tariffRateDescription: "some descriptions ",
   },
 
   {
-    tarrifRateId: 2,
-    standingTarrifRate: 150,
-    journeyTarrifRate: 45,
-    timingTarrifRate: 30,
-    tarifRateDescription: "some descriptions ",
+    tariffRateId: 2,
+    standingTariffRate: 150,
+    journeyTariffRate: 45,
+    timingTariffRate: 30,
+    tariffRateDescription: "some descriptions ",
   },
 ];
 
@@ -743,7 +743,26 @@ const subscriptionPlanLists = [
     isFree: false,
   },
 ];
+const depositSources = [
+  {
+    sourceKey: "Driver",
+    sourceLabel: "when drivers make direct deposit to there account",
+  },
+  {
+    sourceKey: "Transfer",
+    sourceLabel: "When one driver make direct transfer to other driver",
+  },
+  {
+    sourceKey: "Admin",
+    sourceLabel: "When admin make direct deposit to there account",
+  },
+  {
+    sourceKey: "Bonus",
+    sourceLabel: "When one driver make direct transfer to other driver",
+  },
+];
 module.exports = {
+  depositSources,
   subscriptionPlanLists,
   financialInstitutionAccount,
   listOfDocumentsTypeAndId,
@@ -751,7 +770,7 @@ module.exports = {
   journeyStatusMap,
   vehicleStatusTypes,
   CommissionRates,
-  TarrifRateList,
+  TariffRateList,
   paymentMethod,
   paymentStatus,
   cancellationReasons,

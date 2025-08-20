@@ -57,7 +57,7 @@ const getAllSubscriptionPlansWithPricing = async () => {
 };
 // Get by uniqueId
 const getSubscriptionPlanByUniqueId = async (uniqueId) => {
-  const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE subscriptionPlanUniqueId = ? `;
+  const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE SubscriptionPlan.subscriptionPlanUniqueId = ? `;
   const [result] = await pool.query(sql, [uniqueId]);
 
   return result.length > 0

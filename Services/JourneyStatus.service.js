@@ -51,17 +51,18 @@ const createJourneyStatus = async (body) => {
 // Get all journey statuses
 const getAllJourneyStatuses = async (requestedBy) => {
   const result = await getData({ tableName: "JourneyStatus" });
-  let mapedData = {};
+  console.log("@getAllJourneyStatuses result", result);
+  let mappedData = {};
   if (requestedBy == 1 || requestedBy == 2) {
     result.map((data) => {
-      mapedData[data.journeyStatusName] = data.journeyStatusId;
+      mappedData[data.journeyStatusName] = data.journeyStatusId;
     });
   } else {
-    mapedData = result;
+    mappedData = result;
   }
   return {
     message: "success",
-    data: mapedData,
+    data: mappedData,
   };
 };
 

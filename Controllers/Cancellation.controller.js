@@ -1,63 +1,63 @@
-const Services = require("../Services/Cancilation.service");
+const Services = require("../Services/Cancellation.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
-const updateCancilationReasons = async (req, res) => {
+const updateCancellationReasons = async (req, res) => {
   try {
     const result = await Services.updateCancellationReason(req, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {
-    console.log("@updateCancilationReasons error", error);
+    console.log("@updateCancellationReasons error", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
-const deleteCancilationReasons = async (req, res) => {
+const deleteCancellationReasons = async (req, res) => {
   const result = await Services.deleteCancellationReason(req, res);
   const responders = await ServerResponder(res, result);
 };
-const getCancilationReasons = async (req, res) => {
+const getCancellationReasons = async (req, res) => {
   try {
     const result = await Services.getCancellationReasons(req, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {
-    console.log("@ getCancilationReasons error", error);
+    console.log("@ getCancellationReasons error", error);
     await ServerResponder(res, {
       message: "error",
       error: "something went wrong",
     });
   }
 };
-const addCancilationReasons = async (req, res) => {
+const addCancellationReasons = async (req, res) => {
   try {
     const result = await Services.addCancellationReason(req.body, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {
-    console.log("@addCancilationReasons error", error);
+    console.log("@addCancellationReasons error", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
-const getSingleCancilationReasons = async (req, res) => {
+const getSingleCancellationReasons = async (req, res) => {
   try {
     const result = await Services.getSingleCancellationReason(req, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {
-    console.log("@getSingleCancilationReasons error", error);
+    console.log("@getSingleCancellationReasons error", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
-const getAllCancilationReasons = async (req, res) => {
+const getAllCancellationReasons = async (req, res) => {
   try {
     const result = await Services.getAllCancellationReasons(req, res);
     const responders = await ServerResponder(res, result);
   } catch (error) {
-    console.log("@getAllCancilationReasons error", error);
+    console.log("@getAllCancellationReasons error", error);
     ServerResponder(res, { message: "error", error: "something went wrong" });
   }
 };
 module.exports = {
-  getSingleCancilationReasons,
-  getAllCancilationReasons,
-  addCancilationReasons,
-  getCancilationReasons,
-  deleteCancilationReasons,
-  updateCancilationReasons,
+  getSingleCancellationReasons,
+  getAllCancellationReasons,
+  addCancellationReasons,
+  getCancellationReasons,
+  deleteCancellationReasons,
+  updateCancellationReasons,
 };
