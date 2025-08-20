@@ -15,6 +15,7 @@ const {
   vehicleStatusTypes,
   financialInstitutionAccount,
   subscriptionPlanLists,
+  depositSources,
 } = require("../Utils/ListOfFixedData");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancellation.service");
@@ -36,6 +37,7 @@ const {
   createFinancialInstitutionAccount,
 } = require("./FinancialInstitutionAccount.service");
 const { createSubscriptionPlan } = require("./SubscriptionPlan.service");
+const { createDepositSource } = require("./DepositSource.service");
 
 const createTable = async () => {
   try {
@@ -314,7 +316,9 @@ const installPreDefinedData = async (req, res) => {
       financialInstitutionAccountSuccess = [],
       financialInstitutionAccountErrors = [],
       subscriptionPlanListsSuccess = [],
-      subscriptionPlanListsErrors = [];
+      subscriptionPlanListsErrors = [],
+      depositSourcesSuccess = [],
+      depositSourcesErrors = [];
     // preocess data of vehicleStatusTypes
 
     await processDataSequentially(
@@ -460,6 +464,14 @@ const installPreDefinedData = async (req, res) => {
       subscriptionPlanListsErrors,
       "subscriptionPlanLists"
     );
+    // 14.depositSources
+    await processDataSequentially(
+      depositSources,
+      createDepositSource,
+      depositSourcesSuccess,
+      depositSourcesErrors,
+      "depositSources"
+    );
     return {
       message: "success",
       data: {
@@ -499,6 +511,14 @@ const installPreDefinedData = async (req, res) => {
         financialInstitutionAccount: {
           success: financialInstitutionAccountSuccess,
           errors: financialInstitutionAccountErrors,
+        },
+        depositSources: {
+          success: depositSourcesSuccess,
+          errors: depositSourcesErrors,
+        },
+        subscriptionPlanLists: {
+          success: subscriptionPlanListsSuccess,
+          errors: subscriptionPlanListsErrors,
         },
       },
     };
