@@ -181,6 +181,7 @@ const handleExistingJourney = async (
   });
 
   const passenger = passengerData?.[0];
+  console.log("@passengerData", passengerData);
   const userUniqueId = driverRequest?.userUniqueId;
 
   const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
