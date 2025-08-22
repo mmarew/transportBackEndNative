@@ -161,14 +161,14 @@ const handleExistingJourney = async (
     tableName: "JourneyDecisions",
     conditions: { driverRequestId: driverRequest.driverRequestId },
   });
-  console.log("journeyDecision", journeyDecision);
+  console.log("@handleExistingJourney journeyDecision", journeyDecision);
   const [journey] = await getData({
     tableName: "Journey",
     conditions: {
       journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
     },
   });
-  console.log("journey", journey);
+  console.log("@handleExistingJourney journey", journey);
   const passengerData = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -181,7 +181,7 @@ const handleExistingJourney = async (
   });
 
   const passenger = passengerData?.[0];
-  console.log("@passengerData", passengerData);
+  console.log("@handleExistingJourney passengerData", passengerData);
   const userUniqueId = driverRequest?.userUniqueId;
 
   const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
@@ -190,7 +190,7 @@ const handleExistingJourney = async (
   );
   const data = documents?.data;
   const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
-  console.log("driverProfilePhoto", driverProfilePhoto);
+  console.log("@handleExistingJourney driverProfilePhoto", driverProfilePhoto);
   const responseMessage = {
     uniqueIds: {
       driverRequestUniqueId: driverRequest?.driverRequestUniqueId,

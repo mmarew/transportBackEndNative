@@ -194,6 +194,7 @@ const takeFromStreet = async (body, user) => {
 const createAndAcceptNewRequest = async (body) => {
   try {
     console.log("@createAndAcceptNewRequest body", body);
+    // return;
     const { passengerRequestUniqueId, userUniqueId } = body;
     // get passenger request data by passengerRequestUniqueId,
     const passengerRequest =
@@ -204,6 +205,7 @@ const createAndAcceptNewRequest = async (body) => {
       "@createAndAcceptNewRequest passengerRequest",
       passengerRequest
     );
+    // return;
     const passengerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
     // check if the passenger request is already accepted by driver
     if (passengerJourneyStatusId > journeyStatusMap.acceptedByDriver)
