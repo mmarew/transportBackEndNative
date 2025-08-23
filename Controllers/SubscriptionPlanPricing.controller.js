@@ -29,9 +29,9 @@ exports.createPricing = async (req, res) => {
   }
 };
 
-exports.getAllPricings = async (req, res) => {
+exports.getAllPricing = async (req, res) => {
   try {
-    const result = await service.getAllPricings();
+    const result = await service.getAllPricing();
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching all pricings:", error);
@@ -60,10 +60,10 @@ exports.getPricingByUniqueId = async (req, res) => {
 };
 
 // Get all pricings by Plan ID
-exports.getAllPricingsByPlanId = async (req, res) => {
+exports.getAllPricingByPlanId = async (req, res) => {
   try {
     const { subscriptionPlanUniqueId } = req.params;
-    const result = await service.getAllPricingsByPlanId(
+    const result = await service.getAllPricingByPlanId(
       subscriptionPlanUniqueId
     );
     ServerResponder(res, result);

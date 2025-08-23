@@ -89,7 +89,7 @@ const getDocumentTypeById = async (documentTypeId) => {
   });
 
   if (documentType.length === 0) {
-    return { message: "error", data: "Document type not found" };
+    return { message: "error", data: "Document type is not found" };
   }
 
   return { message: "success", data: documentType[0] };
@@ -107,7 +107,7 @@ const updateDocumentType = async ({
   const { documentTypeName, documentTypeDescription, user } = updateDataValues;
   const userUniqueId = user?.userUniqueId;
   if (existingDocumentType.length === 0) {
-    return { message: "error", data: "Document type not found" };
+    return { message: "error", data: "Document type not existed" };
   }
   const documentTypeId = existingDocumentType[0].documentTypeId;
   const changeType = "update";

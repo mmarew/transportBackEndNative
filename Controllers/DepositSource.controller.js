@@ -4,7 +4,10 @@ const ServerResponder = require("../Utils/ServerResponder");
 exports.createDepositSource = async (req, res) => {
   try {
     const { sourceKey, sourceLabel } = req.body;
-    const result = await service.createDepositSource(sourceKey, sourceLabel);
+    const result = await service.createDepositSource({
+      sourceKey,
+      sourceLabel,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Create Error:", error);

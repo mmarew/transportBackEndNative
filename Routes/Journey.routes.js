@@ -49,6 +49,12 @@ router.get(
   verifyTokenOfAxios,
   journeyController.searchCompletedJourneyByUserData
 );
+// gett all completed journeys for driver
+router.get(
+  "/api/driver/getAllCompletedJourney/:roleId",
+  verifyTokenOfAxios,
+  journeyController.getAllCompletedJourneys
+);
 router.get(
   "/api/user/getOngoingJourney/:ownerUserUniqueId/:roleId",
   verifyTokenOfAxios,

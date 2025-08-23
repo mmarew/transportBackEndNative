@@ -188,6 +188,19 @@ exports.searchOngoingJourneyByUserData = async (req, res) => {
     });
   }
 };
+exports.getAllCompletedJourneys = async (req, res) => {
+  try {
+    const roleId = req?.params?.roleId;
+    const result = await journeyService.getAllCompletedJourneys({ roleId });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error fetching completed journeys:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch completed journeys",
+    });
+  }
+};
 
 // module.exports = {
 //   searchOngoingJourneyByUserData,

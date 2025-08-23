@@ -12,8 +12,7 @@
     "status:pm2": "pm2 status",
     "dev": "nodemon App.js",
     "start:cluster": "pm2 start ecosystem.config.js --watch",
-
-     "nginx:start": "sudo nginx",
+    "nginx:start": "sudo nginx",
     "nginx:stop": "sudo nginx -s stop",
     "nginx:stop-force": "sudo pkill -9 nginx",
     "nginx:restart": "sudo nginx -s stop && sudo nginx",
@@ -22,15 +21,15 @@
     "nginx:status": "ps aux | grep nginx",
     "nginx:logs": "tail -f /usr/local/var/log/nginx/error.log",
     "nginx:logs-access": "tail -f /usr/local/var/log/nginx/access.log",
-    "nginx:config": "code /usr/local/etc/nginx/nginx.conf",  
+    "nginx:config": "code /usr/local/etc/nginx/nginx.conf",
     "nginx:fix-port80": "sudo lsof -i :80 | awk 'NR>1 {print $2}' | xargs sudo kill -9"
-  
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
+    "basic-ftp": "^5.0.5",
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.2",
     "compression": "^1.8.1",
@@ -45,9 +44,11 @@
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.10.1",
     "os": "^0.1.2",
+    "path": "^0.12.7",
     "pm2": "^6.0.8",
     "redis": "^5.0.0",
     "socket.io": "^4.8.1",
+    "stream": "^0.0.3",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

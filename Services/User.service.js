@@ -15,6 +15,7 @@ const {
 } = require("./RoleDocumentRequirements.service");
 const { usersRoles } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByUserUniqueId } = require("./UserRole.service");
+const { getUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -593,7 +594,7 @@ const handleUserRoleStatus = async (
     throw error;
   }
 };
-const getUserByUserUniqueIdAndroleUniqueId = async (
+const getUserByUserUniqueIdAndRoleUniqueId = async (
   userUniqueId,
   roleUniqueId
 ) => {
@@ -661,12 +662,12 @@ const updateOtpForUser = async ({
 const verifyUserByOTP = async (req) => {
   try {
     console.log("req.query in verifyUserByOTP", req.query);
-    if (!req.query || !req.query.OTP || !req.query.phoneNumber) {
+    if (!req?.body?.OTP || !req?.body?.phoneNumber) {
       return { message: "error", error: "OTP and phoneNumber are required" };
     }
-    const { OTP, phoneNumber } = req.query;
+    const { OTP, phoneNumber } = req.body;
     console.log("@verifyUserByOTP phoneNumber", phoneNumber);
-    const verifyUserExistance = await performJoinSelect({
+    const verifyUserExistence = await performJoinSelect({
       baseTable: "Users",
       joins: [
         {
@@ -678,13 +679,13 @@ const verifyUserByOTP = async (req) => {
         phoneNumber,
       },
     });
-    const roleId = req.query.roleId;
-    if (!verifyUserExistance || verifyUserExistance.length === 0) {
+    const roleId = req.body.roleId;
+    if (!verifyUserExistence || verifyUserExistence.length === 0) {
       return { message: "error", error: "user not found in verify otp" };
     }
 
-    const { userUniqueId, fullName, email } = verifyUserExistance[0];
-    const hashedOTP = verifyUserExistance[0].OTP;
+    const { userUniqueId, fullName, email } = verifyUserExistence[0];
+    const hashedOTP = verifyUserExistence[0].OTP;
     const verifyOTP = await verifyPassword({
       hashedPassword: hashedOTP,
       notHashedPassword: OTP,
@@ -718,7 +719,7 @@ const verifyUserByOTP = async (req) => {
     const token = JWTData.token;
     const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
       ownerUserUniqueId: userUniqueId,
-      user: verifyUserExistance[0],
+      user: verifyUserExistence[0],
     });
     const unAttachedDocumentTypes =
         documentAndVehicleOfDriver?.unAttachedDocumentTypes,
@@ -826,7 +827,7 @@ const getUsersByRoleUniqueId = async (roleUniqueId) => {
   };
 };
 
-const loginUser = async (phoneNumber, roleId, statusId) => {
+const loginUser = async (phoneNumber, roleId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
   if (data?.message === "error") return data;
   const userData = data?.data;
@@ -845,13 +846,15 @@ const loginUser = async (phoneNumber, roleId, statusId) => {
   console.log("@loginUser listOfRoles", listOfRoles);
   const isRoleFound = listOfRoles?.some((role) => role.roleId == roleId);
   console.log("@loginUser isRoleFound", isRoleFound);
-  // return;
   if (!isRoleFound) {
     return {
       message: "error",
       error: "User not found at this address and roles. Please sign up first.",
     };
   }
+  // get user status based on current roleId
+  const userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
+  const statusId = userRoleStatus?.[0]?.statusId;
   const res = await handleExistingUser({
     user: userData?.[0],
     roleId,
@@ -1027,7 +1030,7 @@ module.exports = {
   createUserSystem,
   getUserByUserUniqueId,
   getUsersByRoleUniqueId,
-  getUserByUserUniqueIdAndroleUniqueId,
+  getUserByUserUniqueIdAndRoleUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,

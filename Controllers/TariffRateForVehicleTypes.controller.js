@@ -1,15 +1,15 @@
-const tarrifRateForVehicleTypesService = require("../Services/TarrifRateForVehicleTypes.service");
+const tariffRateForVehicleTypesService = require("../Services/TariffRateForVehicleTypes.service");
 const ServerResponder = require("../Utils/ServerResponder");
 // Create a new tariff rate for a vehicle type
-exports.createTarrifRateForVehicleType = async (req, res) => {
+exports.createTariffRateForVehicleType = async (req, res) => {
   try {
     const result =
-      await tarrifRateForVehicleTypesService.createTarrifRateForVehicleType(
+      await tariffRateForVehicleTypesService.createTariffRateForVehicleType(
         req.body
       );
     ServerResponder(res, result);
   } catch (error) {
-    console.log("@createTarrifRateForVehicleType error", error);
+    console.log("@createTariffRateForVehicleType error", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to create tariff rate for vehicle type",
@@ -18,13 +18,13 @@ exports.createTarrifRateForVehicleType = async (req, res) => {
 };
 
 // Get all tariff rates for vehicle types
-exports.getAllTarrifRatesForVehicleTypes = async (req, res) => {
+exports.getAllTariffRatesForVehicleTypes = async (req, res) => {
   try {
     const result =
-      await tarrifRateForVehicleTypesService.getAllTarrifRatesForVehicleTypes();
+      await tariffRateForVehicleTypesService.getAllTariffRatesForVehicleTypes();
     ServerResponder(res, result);
   } catch (error) {
-    console.log("@getAllTarrifRatesForVehicleTypes", error);
+    console.log("@getAllTariffRatesForVehicleTypes", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to retrieve tariff rates for vehicle types",
@@ -33,15 +33,15 @@ exports.getAllTarrifRatesForVehicleTypes = async (req, res) => {
 };
 
 // Get a tariff rate for vehicle type by ID
-exports.getTarrifRateForVehicleTypeById = async (req, res) => {
+exports.getTariffRateForVehicleTypeById = async (req, res) => {
   try {
     const result =
-      await tarrifRateForVehicleTypesService.getTarrifRateForVehicleTypeById(
+      await tariffRateForVehicleTypesService.getTariffRateForVehicleTypeById(
         req.params.id
       );
     ServerResponder(res, result);
   } catch (error) {
-    console.log("getTarrifRateForVehicleTypeById", error);
+    console.log("getTariffRateForVehicleTypeById", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to retrieve tariff rate for vehicle type",
@@ -50,11 +50,11 @@ exports.getTarrifRateForVehicleTypeById = async (req, res) => {
 };
 
 // Update a tariff rate for vehicle type by ID
-exports.updateTarrifRateForVehicleType = async (req, res) => {
+exports.updateTariffRateForVehicleType = async (req, res) => {
   try {
     const result =
-      await tarrifRateForVehicleTypesService.updateTarrifRateForVehicleType(
-        req.params.tarrifRateForVehicleTypeUniqueId,
+      await tariffRateForVehicleTypesService.updateTariffRateForVehicleType(
+        req.params.tariffRateForVehicleTypeUniqueId,
         req.body
       );
     ServerResponder(res, result);
@@ -67,11 +67,11 @@ exports.updateTarrifRateForVehicleType = async (req, res) => {
 };
 
 // Delete a tariff rate for vehicle type by ID
-exports.deleteTarrifRateForVehicleType = async (req, res) => {
+exports.deleteTariffRateForVehicleType = async (req, res) => {
   try {
     const result =
-      await tarrifRateForVehicleTypesService.deleteTarrifRateForVehicleType(
-        req.params.tarrifRateForVehicleTypeUniqueId
+      await tariffRateForVehicleTypesService.deleteTariffRateForVehicleType(
+        req.params.tariffRateForVehicleTypeUniqueId
       );
     ServerResponder(res, result);
   } catch (error) {

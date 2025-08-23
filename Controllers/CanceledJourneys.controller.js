@@ -133,8 +133,8 @@ const getCanceledJourneysByUserUniqueId = async (req, res) => {
 // Get canceled journeys filtered by type, date range, and limit
 const getCanceledJourneysFiltered = async (req, res) => {
   try {
-    const { canceledByRoleId, startDate, endDate } = req.body;
-
+    const { canceledByRoleId, startDate, endDate } = req.query;
+    console.log("@getCanceledJourneysFiltered req.query===", req.query);
     const result = await canceledJourneyService.getCanceledJourneysFiltered({
       canceledByRoleId,
       startDate,

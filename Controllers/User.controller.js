@@ -64,13 +64,13 @@ const loginUser = async (req, res) => {
     });
   }
 };
-const getUserByUserUniqueIdAndroleUniqueId = async (req, res) => {
+const getUserByUserUniqueIdAndRoleUniqueId = async (req, res) => {
   try {
-    const response = await services.getUserByUserUniqueIdAndroleUniqueId(
+    const response = await services.getUserByUserUniqueIdAndRoleUniqueId(
       req.params.userUniqueId,
       req.params.roleUniqueId
     );
-    console.log("@getUserByUserUniqueIdAndroleUniqueId response", response);
+    console.log("@getUserByUserUniqueIdAndRoleUniqueId response", response);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -250,7 +250,7 @@ module.exports = {
   createUserByAdminOrSuperAdmin,
   getUserByEmailOrNameOrPhoneNumber,
   getUsersByRoleUniqueId,
-  getUserByUserUniqueIdAndroleUniqueId,
+  getUserByUserUniqueIdAndRoleUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,

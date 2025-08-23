@@ -41,10 +41,10 @@ router.get(
   controller.loginUser
 );
 router.get(
-  "/api/user/getUserByUserUniqueIdAndroleUniqueId/:userUniqueId/:roleUniqueId",
-  controller.getUserByUserUniqueIdAndroleUniqueId
+  "/api/user/getUserByUserUniqueIdAndRoleUniqueId/:userUniqueId/:roleUniqueId",
+  controller.getUserByUserUniqueIdAndRoleUniqueId
 );
-router.get("/api/user/verifyUserByOTP", controller.verifyUserByOTP);
+router.post("/api/user/verifyUserByOTP", controller.verifyUserByOTP);
 
 router.put(
   "/api/user/updateUser/:ownerUserUniqueId",

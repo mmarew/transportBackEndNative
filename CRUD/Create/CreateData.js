@@ -41,18 +41,19 @@ const createNewPassengerRequest = async (
     shippableItemQtyInQuintal = body?.shippableItemQtyInQuintal,
     shippingDate = formatDateToReadable(body?.shippingDate),
     deliveryDate = formatDateToReadable(body?.deliveryDate),
-    shippingCost = body?.shippingCost;
+    shippingCost = body?.shippingCost,
+    passengerRequestBatchId = body?.passengerRequestBatchId;
 
   if (!body || !userUniqueId || !journeyStatusId) {
     throw new Error("Invalid input parameters to create passenger request");
   }
 
   // check if active request exists
-  const existingRequest = await checkActivePassengerRequest(userUniqueId);
+  // const existingRequest = await checkActivePassengerRequest(userUniqueId);
 
-  if (existingRequest.length > 0) {
-    return { message: "success", data: existingRequest };
-  }
+  // if (existingRequest.length > 0) {
+  //   return { message: "success", data: existingRequest };
+  // }
 
   const { vehicle, destination, originLocation } = body;
 
@@ -101,6 +102,7 @@ const createNewPassengerRequest = async (
     shippingDate,
     deliveryDate,
     shippingCost,
+    passengerRequestBatchId,
   };
 
   // Insert the new request into the database

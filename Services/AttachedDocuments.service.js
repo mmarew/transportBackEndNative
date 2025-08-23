@@ -15,42 +15,140 @@ const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
 // Create a new attached document
+// const createAttachedDocument = async ({
+//   attachedDocumentDescription,
+//   attachedDocumentName, // File path where it's stored
+//   documentTypeId,
+//   documentExpirationDate, // Expiration date of the document
+//   attachedDocumentFileNumber,
+//   roleId,
+//   userUniqueId,
+// }) => {
+//   try {
+//     // const { userUniqueId } = user;
+//     const conditions = {
+//       documentTypeId,
+//       roleId: roleId,
+//     };
+//     console.log("@conditions", conditions);
+//     const documentType = await getData({
+//       tableName: "RoleDocumentRequirements",
+//       conditions,
+//     });
+//     if (documentType.length === 0) {
+//       deleteFile(attachedDocumentName);
+//       return {
+//         message: "error",
+//         error: `Document type not found`,
+//       };
+//     }
+//     const isExpirationDateRequired = documentType[0].isExpirationDateRequired;
+//     if (isExpirationDateRequired && !documentExpirationDate) {
+//       deleteFile(attachedDocumentName);
+//       return {
+//         message: "error",
+//         error: `Document expiration date is required`,
+//       };
+//     }
+//     // Check if the document already exists for the same user and document type
+//     const existingDocument = await getData({
+//       tableName: "AttachedDocuments",
+//       conditions: {
+//         userUniqueId,
+//         documentTypeId,
+//       },
+//     });
+
+//     if (existingDocument.length > 0) {
+//       // Remove file if already existed
+//       deleteFile(attachedDocumentName);
+
+//       return {
+//         message: "error",
+//         error: `Document already exists for this user and document type`,
+//       };
+//     }
+//     // Determine if the document is expired (based on expiration date)
+//     const isExpired = documentExpirationDate
+//       ? new Date(documentExpirationDate) < new Date()
+//       : false;
+//     if (isExpired) {
+//       deleteFile(attachedDocumentName);
+//       return {
+//         message: "error",
+//         error: `Document is expired`,
+//       };
+//     }
+//     const newDocument = {
+//       attachedDocumentUniqueId: uuidv4(),
+//       userUniqueId, // The user who own the created  document
+//       attachedDocumentDescription,
+//       attachedDocumentName,
+//       documentTypeId,
+//       documentExpirationDate,
+//       attachedDocumentAcceptance: "PENDING", // Default status when document is created
+//       attachedDocumentCreatedByUserId: userUniqueId,
+//       attachedDocumentFileNumber,
+//       attachedDocumentCreatedAt: new Date(),
+//     };
+//     // Insert the new document into the database
+//     const result = await insertData({
+//       tableName: "AttachedDocuments",
+//       colAndVal: newDocument,
+//     });
+
+//     if (result?.affectedRows > 0) {
+//       return { message: "success", data: "Document created successfully" };
+//     } else {
+//       deleteFile(attachedDocumentName);
+//       return { message: "error", error: "Failed to create document" };
+//     }
+//   } catch (error) {
+//     deleteFile(attachedDocumentName);
+//     console.log("Error creating attached document:", error);
+//     return {
+//       message: "error",
+//       error: "An error occurred while creating the document",
+//     };
+//   }
+// };
+
 const createAttachedDocument = async ({
   attachedDocumentDescription,
-  attachedDocumentName, // File path where it's stored
+  attachedDocumentName, // This is now the URL from FTP
   documentTypeId,
-  documentExpirationDate, // Expiration date of the document
+  documentExpirationDate,
   attachedDocumentFileNumber,
   roleId,
   userUniqueId,
 }) => {
   try {
-    // const { userUniqueId } = user;
     const conditions = {
       documentTypeId,
       roleId: roleId,
     };
-    console.log("@conditions", conditions);
+
     const documentType = await getData({
       tableName: "RoleDocumentRequirements",
       conditions,
     });
+
     if (documentType.length === 0) {
-      deleteFile(attachedDocumentName);
       return {
         message: "error",
-        error: `Document type not found`,
+        error: `Role Document requirement not found`,
       };
     }
+
     const isExpirationDateRequired = documentType[0].isExpirationDateRequired;
     if (isExpirationDateRequired && !documentExpirationDate) {
-      deleteFile(attachedDocumentName);
       return {
         message: "error",
         error: `Document expiration date is required`,
       };
     }
-    // Check if the document already exists for the same user and document type
+
+    // Check if the document already exists
     const existingDocument = await getData({
       tableName: "AttachedDocuments",
       conditions: {
@@ -60,38 +158,37 @@ const createAttachedDocument = async ({
     });
 
     if (existingDocument.length > 0) {
-      // Remove file if already existed
-      deleteFile(attachedDocumentName);
-
       return {
         message: "error",
         error: `Document already exists for this user and document type`,
       };
     }
-    // Determine if the document is expired (based on expiration date)
+
+    // Check if document is expired
     const isExpired = documentExpirationDate
       ? new Date(documentExpirationDate) < new Date()
       : false;
+
     if (isExpired) {
-      deleteFile(attachedDocumentName);
       return {
         message: "error",
         error: `Document is expired`,
       };
     }
+
     const newDocument = {
       attachedDocumentUniqueId: uuidv4(),
-      userUniqueId, // The user who own the created  document
+      userUniqueId,
       attachedDocumentDescription,
-      attachedDocumentName,
+      attachedDocumentName, // This is now the URL
       documentTypeId,
       documentExpirationDate,
-      attachedDocumentAcceptance: "PENDING", // Default status when document is created
+      attachedDocumentAcceptance: "PENDING",
       attachedDocumentCreatedByUserId: userUniqueId,
       attachedDocumentFileNumber,
       attachedDocumentCreatedAt: new Date(),
     };
-    // Insert the new document into the database
+
     const result = await insertData({
       tableName: "AttachedDocuments",
       colAndVal: newDocument,
@@ -100,11 +197,9 @@ const createAttachedDocument = async ({
     if (result?.affectedRows > 0) {
       return { message: "success", data: "Document created successfully" };
     } else {
-      deleteFile(attachedDocumentName);
       return { message: "error", error: "Failed to create document" };
     }
   } catch (error) {
-    deleteFile(attachedDocumentName);
     console.log("Error creating attached document:", error);
     return {
       message: "error",

@@ -2,7 +2,7 @@ const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 
 // Create
-const createDepositSource = async (sourceKey, sourceLabel) => {
+const createDepositSource = async ({ sourceKey, sourceLabel }) => {
   const depositSourceUniqueId = uuidv4();
 
   const checkSql = `SELECT * FROM DepositSource WHERE sourceKey = ?`;

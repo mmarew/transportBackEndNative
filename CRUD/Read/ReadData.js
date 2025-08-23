@@ -269,11 +269,17 @@ const checkUserExists = async (userUniqueId) => {
 };
 
 const checkActivePassengerRequest = async (userUniqueId) => {
-  const activeRequest = await getData({
-    tableName: "PassengerRequest",
+  const activeRequest = await performJoinSelect({
+    baseTable: "PassengerRequest",
+    joins: [
+      {
+        table: "Users",
+        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+      },
+    ],
     conditions: {
-      userUniqueId,
-      journeyStatusId: [activeStatuses], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+      "PassengerRequest.userUniqueId": userUniqueId,
+      "PassengerRequest.journeyStatusId": activeStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
     },
   });
 
