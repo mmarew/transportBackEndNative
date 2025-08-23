@@ -10,7 +10,7 @@ const createPricing = async (
   effectiveTo,
   isFree = false
 ) => {
-  const today = currentDate(); // 'YYYY-MM-DD'
+  const today = currentDate();
 
   const activeData = await getActiveSubscriptionPlanningPrice({
     subscriptionPlanUniqueId,
@@ -18,7 +18,6 @@ const createPricing = async (
   });
 
   if (activeData?.data?.length > 0) {
-    // return activeData;
     return {
       message: "error",
       error: "There is already an active pricing for this plan.",
@@ -46,15 +45,7 @@ const createPricing = async (
     const [result] = await pool.query(sql, values);
     return {
       message: "success",
-      data: "Data created successfully",
-      // data: {
-      //   subscriptionPlanPricingUniqueId,
-      //   subscriptionPlanUniqueId,
-      //   price,
-      //   durationInDays,
-      //   effectiveFrom,
-      //   effectiveTo,
-      // },
+      data: "Subscription Plan Price Created Successfully",
     };
   } catch (err) {
     console.error("Error creating pricing:", err);

@@ -33,15 +33,7 @@ const createFinancialInstitutionAccount = async (data) => {
 
   return {
     message: "success",
-    data: {
-      accountUniqueId,
-      institutionName,
-      accountHolderName,
-      accountNumber,
-      accountType,
-      isActive,
-      addedBy,
-    },
+    data: "Financial institution account created successfully",
   };
 };
 
