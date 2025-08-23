@@ -48,32 +48,79 @@
 // });
 
 // module.exports = upload;
+
 const multer = require("multer");
+const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
-// Configure Multer for file uploads using MEMORY STORAGE
-const storage = multer.memoryStorage(); // Changed from diskStorage to memoryStorage
-
-// Set file filter
+// Set file filter with error handling
 const fileFilter = (req, file, cb) => {
-  const allowedFileTypes = /jpeg|jpg|png|pdf|svg/;
-  const extname = allowedFileTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
-  const mimetype = allowedFileTypes.test(file.mimetype);
+  try {
+    const allowedFileTypes = /jpeg|jpg|png|pdf|svg/;
+    const extname = allowedFileTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = allowedFileTypes.test(file.mimetype);
 
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only JPEG, PNG, PDF, and SVG files are allowed!"));
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, PDF, and SVG files are allowed!"), false);
+    }
+  } catch (error) {
+    cb(error, false);
   }
 };
 
-// Multer configuration
-const upload = multer({
-  storage: storage, // Now uses memoryStorage
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: fileFilter,
-});
+// Multer configuration with error handling
+const createMulterUpload = () => {
+  try {
+    const storage = multer.memoryStorage();
 
-module.exports = upload;
+    const upload = multer({
+      storage: storage,
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+      fileFilter: fileFilter,
+    });
+
+    return upload;
+  } catch (error) {
+    console.error("Failed to configure Multer:", error);
+    throw new Error("File upload configuration failed");
+  }
+};
+
+// Create upload middleware with error wrapper
+const upload = createMulterUpload();
+
+// Helper function to handle multer errors in routes
+const handleUploadError = (error, req, res, next) => {
+  try {
+    if (error instanceof multer.MulterError) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          success: false,
+          message: "File too large. Maximum size is 5MB.",
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: `Upload error: ${error.message}`,
+      });
+    } else if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next();
+  } catch (handlerError) {
+    console.error("Error in upload error handler:", handlerError);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error in file processing",
+    });
+  }
+};
+
+module.exports = { upload, handleUploadError };
