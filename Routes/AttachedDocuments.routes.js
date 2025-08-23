@@ -5,25 +5,27 @@ const attachedDocumentsController = require("../Controllers/AttachedDocuments.co
 const multer = require("multer");
 const path = require("path");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const { uploadToFTP } = require("../Utils/ftpUploader");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Specify where the files will be stored
-  },
-  filename: function (req, file, cb) {
-    const userId = req.user.userId;
-    const randomNumber = Math.floor(Math.random() * 10000000000);
-    const uniqueName =
-      userId +
-      "_" +
-      randomNumber +
-      "_" +
-      Date.now() +
-      "-" +
-      path.extname(file.originalname); // Unique filename with extension
-    cb(null, uniqueName); // Use uniqueName as the final filename
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "uploads/"); // Specify where the files will be stored
+//   },
+//   filename: function (req, file, cb) {
+//     const userId = req.user.userId;
+//     const randomNumber = Math.floor(Math.random() * 10000000000);
+//     const uniqueName =
+//       userId +
+//       "_" +
+//       randomNumber +
+//       "_" +
+//       Date.now() +
+//       "-" +
+//       path.extname(file.originalname); // Unique filename with extension
+//     cb(null, uniqueName); // Use uniqueName as the final filename
+//   },
+// });
+const storage = multer.memoryStorage();
 
 const upload = multer({ storage });
 

@@ -1,11 +1,156 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const ReadData = require("../CRUD/Read/ReadData");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 const attachedDocumentsService = require("../Services/AttachedDocuments.service");
 const {
   driversDocumentVehicleRequirement,
 } = require("../Services/RoleDocumentRequirements.service");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
+const { uploadToFTP } = require("../Utils/ftpUploader");
+// controllers
+// const createAttachedDocuments = async (req, res) => {
+//   try {
+//     let userUniqueId = req?.params?.userUniqueId;
+//     let roleId = 2;
+
+//     const user = req?.user;
+//     if (userUniqueId == "self") {
+//       userUniqueId = user?.userUniqueId;
+//       roleId = user?.roleId;
+//     }
+
+//     //  roleId = user?.roleId;
+//     if (!req.files || req.files.length === 0) {
+//       return ServerResponder(res, {
+//         message: "error",
+//         error: "No files uploaded",
+//       });
+//     }
+
+//     const uploadResults = []; // To track success or failure of each file upload
+//     const documentsToRegister = [];
+
+//     // Loop through all uploaded files
+//     req.files.forEach((file) => {
+//       const expirationDateKey = `${file.fieldname}ExpirationDate`; // Dynamic expiration date field name
+//       const descriptionKey = `${file.fieldname}Description`; // Dynamic description field name
+//       const typeIdKey = `${file.fieldname}TypeId`; // Dynamic type ID field name
+//       const fileNumberKey = `${file.fieldname}FileNumber`; // Dynamic file number field name
+
+//       const documentExpirationDate = req.body[expirationDateKey] || null;
+//       const attachedDocumentDescription = req.body[descriptionKey] || null;
+//       const documentTypeId = req.body[typeIdKey];
+//       const attachedDocumentFileNumber = req.body[fileNumberKey];
+
+//       if (!documentTypeId) {
+//         uploadResults.push({
+//           file: file.fieldname,
+//           status: "failed",
+//           reason: "Document type ID is required",
+//         });
+//       } else {
+//         documentsToRegister.push({
+//           fieldname: file.fieldname,
+//           user,
+//           attachedDocumentDescription,
+//           attachedDocumentName: file.filename, // File path where it's stored
+//           documentTypeId,
+//           documentExpirationDate,
+//           attachedDocumentFileNumber,
+//         });
+//       }
+//     });
+
+//     const fileErrors = [];
+//     const fileSuccesses = [];
+
+//     // Save all documents
+//     for (const document of documentsToRegister) {
+//       const resultOfCreateFiles =
+//         await attachedDocumentsService.createAttachedDocument({
+//           ...document,
+//           roleId,
+//           userUniqueId,
+//         });
+
+//       if (resultOfCreateFiles.message === "error") {
+//         fileErrors.push(document.attachedDocumentName); // Track failed files
+//         uploadResults.push({
+//           file: document.fieldname,
+//           status: "failed",
+//           reason: resultOfCreateFiles.error, // Reason for failure
+//         });
+//       } else {
+//         fileSuccesses.push(document.attachedDocumentName); // Track successful files
+//         uploadResults.push({
+//           file: document.fieldname,
+//           status: "success",
+//         });
+//       }
+//     }
+//     if (fileSuccesses.length > 0) {
+//       // get user data
+//       const userData = await performJoinSelect({
+//         baseTable: "Users",
+//         joins: [
+//           {
+//             table: "UserRole",
+//             on: "Users.userUniqueId = UserRole.userUniqueId",
+//           },
+//           {
+//             table: "UserRoleStatusCurrent",
+//             on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+//           },
+//         ],
+//         conditions: {
+//           "Users.userUniqueId": userUniqueId,
+//           "UserRole.roleId": roleId,
+//         },
+//       });
+//       const document =
+//         await attachedDocumentsService.getAttachedDocumentsByUser(userUniqueId);
+//       const documentAndVehicleOfDriver =
+//         await driversDocumentVehicleRequirement({
+//           ownerUserUniqueId: userUniqueId,
+//           user: userData[0],
+//         });
+//       // const message = {
+//       //   // ...userData[0],
+//       //   // document,
+//       //   documentAndVehicleOfDriver,
+//       //   // message: "verify users document",
+//       //   // type: "unauthorizedDriver",
+//       // };
+
+//       const message = documentAndVehicleOfDriver;
+//       sendNotificationToAdmin({ message });
+//     }
+//     // Return the detailed upload results for each file
+//     if (fileErrors.length > 0 && fileSuccesses.length > 0) {
+//       return ServerResponder(res, {
+//         message: "success",
+//         data: "some documents uploaded successfully, but some failed",
+//       });
+//     } else if (fileErrors.length > 0 && fileSuccesses.length === 0) {
+//       return ServerResponder(res, {
+//         message: "error",
+//         error: "all documents failed",
+//       });
+//     }
+//     ServerResponder(res, {
+//       message: "success",
+//       data: "documents uploaded successfully",
+//     });
+//   } catch (error) {
+//     console.log("Error uploading documents:", error);
+//     ServerResponder(res, {
+//       message: "error",
+//       error: "Unable to upload documents",
+//     });
+//   }
+// };
 const createAttachedDocuments = async (req, res) => {
   try {
     let userUniqueId = req?.params?.userUniqueId;
@@ -17,7 +162,6 @@ const createAttachedDocuments = async (req, res) => {
       roleId = user?.roleId;
     }
 
-    //  roleId = user?.roleId;
     if (!req.files || req.files.length === 0) {
       return ServerResponder(res, {
         message: "error",
@@ -25,15 +169,15 @@ const createAttachedDocuments = async (req, res) => {
       });
     }
 
-    const uploadResults = []; // To track success or failure of each file upload
+    const uploadResults = [];
     const documentsToRegister = [];
 
-    // Loop through all uploaded files
-    req.files.forEach((file) => {
-      const expirationDateKey = `${file.fieldname}ExpirationDate`; // Dynamic expiration date field name
-      const descriptionKey = `${file.fieldname}Description`; // Dynamic description field name
-      const typeIdKey = `${file.fieldname}TypeId`; // Dynamic type ID field name
-      const fileNumberKey = `${file.fieldname}FileNumber`; // Dynamic file number field name
+    // Process each uploaded file
+    for (const file of req.files) {
+      const expirationDateKey = `${file.fieldname}ExpirationDate`;
+      const descriptionKey = `${file.fieldname}Description`;
+      const typeIdKey = `${file.fieldname}TypeId`;
+      const fileNumberKey = `${file.fieldname}FileNumber`;
 
       const documentExpirationDate = req.body[expirationDateKey] || null;
       const attachedDocumentDescription = req.body[descriptionKey] || null;
@@ -46,23 +190,40 @@ const createAttachedDocuments = async (req, res) => {
           status: "failed",
           reason: "Document type ID is required",
         });
-      } else {
+        continue;
+      }
+
+      try {
+        // Generate unique filename
+        const fileExtension = path.extname(file.originalname);
+        const uniqueFilename = `${user?.userId}_${uuidv4()}${fileExtension}`;
+
+        // Upload to cPanel via FTP
+        const fileUrl = await uploadToFTP(file.buffer, uniqueFilename);
+
         documentsToRegister.push({
           fieldname: file.fieldname,
           user,
           attachedDocumentDescription,
-          attachedDocumentName: file.filename, // File path where it's stored
+          attachedDocumentName: fileUrl, // Store the URL instead of local path
           documentTypeId,
           documentExpirationDate,
           attachedDocumentFileNumber,
+          originalFileName: file.originalname,
+        });
+      } catch (uploadError) {
+        uploadResults.push({
+          file: file.fieldname,
+          status: "failed",
+          reason: `Upload failed: ${uploadError.message}`,
         });
       }
-    });
+    }
 
     const fileErrors = [];
     const fileSuccesses = [];
 
-    // Save all documents
+    // Save all documents to database
     for (const document of documentsToRegister) {
       const resultOfCreateFiles =
         await attachedDocumentsService.createAttachedDocument({
@@ -70,24 +231,26 @@ const createAttachedDocuments = async (req, res) => {
           roleId,
           userUniqueId,
         });
-
+      console.log("@resultOfCreateFiles", resultOfCreateFiles);
       if (resultOfCreateFiles.message === "error") {
-        fileErrors.push(document.attachedDocumentName); // Track failed files
+        fileErrors.push(document.originalFileName);
         uploadResults.push({
           file: document.fieldname,
           status: "failed",
-          reason: resultOfCreateFiles.error, // Reason for failure
+          reason: resultOfCreateFiles.error,
         });
       } else {
-        fileSuccesses.push(document.attachedDocumentName); // Track successful files
+        fileSuccesses.push(document.originalFileName);
         uploadResults.push({
           file: document.fieldname,
           status: "success",
         });
       }
     }
+
+    // ... rest of your notification code remains the same ...
+
     if (fileSuccesses.length > 0) {
-      // get user data
       const userData = await performJoinSelect({
         baseTable: "Users",
         joins: [
@@ -105,6 +268,7 @@ const createAttachedDocuments = async (req, res) => {
           "UserRole.roleId": roleId,
         },
       });
+
       const document =
         await attachedDocumentsService.getAttachedDocumentsByUser(userUniqueId);
       const documentAndVehicleOfDriver =
@@ -112,32 +276,29 @@ const createAttachedDocuments = async (req, res) => {
           ownerUserUniqueId: userUniqueId,
           user: userData[0],
         });
-      // const message = {
-      //   // ...userData[0],
-      //   // document,
-      //   documentAndVehicleOfDriver,
-      //   // message: "verify users document",
-      //   // type: "unauthorizedDriver",
-      // };
 
       const message = documentAndVehicleOfDriver;
       sendNotificationToAdmin({ message });
     }
-    // Return the detailed upload results for each file
+
     if (fileErrors.length > 0 && fileSuccesses.length > 0) {
       return ServerResponder(res, {
-        message: "success",
-        data: "some documents uploaded successfully, but some failed",
+        message: "partial_success",
+        data: "Some documents uploaded successfully, but some failed",
+        details: uploadResults,
       });
     } else if (fileErrors.length > 0 && fileSuccesses.length === 0) {
       return ServerResponder(res, {
         message: "error",
-        error: "all documents failed",
+        error: "All documents failed to upload",
+        details: uploadResults,
       });
     }
+
     ServerResponder(res, {
       message: "success",
-      data: "documents uploaded successfully",
+      data: "All documents uploaded successfully",
+      details: uploadResults,
     });
   } catch (error) {
     console.log("Error uploading documents:", error);
