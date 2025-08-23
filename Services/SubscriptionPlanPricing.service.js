@@ -42,14 +42,7 @@ const createPricing = async (
     const [result] = await pool.query(sql, values);
     return {
       message: "success",
-      data: {
-        subscriptionPlanPricingUniqueId,
-        subscriptionPlanUniqueId,
-        price,
-        durationInDays,
-        effectiveFrom,
-        effectiveTo,
-      },
+      data: "Subscription Plan Price Created Successfully",
     };
   } catch (err) {
     console.error("Error creating pricing:", err);
