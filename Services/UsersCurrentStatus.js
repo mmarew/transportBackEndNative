@@ -191,6 +191,10 @@ const handleExistingJourney = async (
   const data = documents?.data;
   const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
   console.log("@handleExistingJourney driverProfilePhoto", driverProfilePhoto);
+  const driver = {
+    driver: { ...driverRequest, driverProfilePhoto },
+    vehicle,
+  };
   const responseMessage = {
     uniqueIds: {
       driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
@@ -199,11 +203,7 @@ const handleExistingJourney = async (
       journeyUniqueId: journey?.journeyUniqueId,
     },
     status: driverRequest.journeyStatusId,
-    driver: {
-      driver: { ...driverRequest, driverProfilePhoto },
-      vehicle,
-      // vehicleTariffRate,
-    },
+    driver,
     passenger: passenger || null,
     journey: journey || null,
     decision: journeyDecision || null,
@@ -211,7 +211,12 @@ const handleExistingJourney = async (
 
   if (passenger?.phoneNumber) {
     await sendNotificationToPassenger({
-      message: { ...responseMessage },
+      message: {
+        ...responseMessage,
+        status: driverRequest.journeyStatusId,
+        passenger: [passenger],
+        drivers: [driver],
+      },
       phoneNumber: passenger?.phoneNumber,
     });
   }

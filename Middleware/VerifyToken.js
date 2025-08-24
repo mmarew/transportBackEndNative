@@ -134,7 +134,7 @@ const verifyIfUserIsSupperAdmin = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, secretKey);
       const data = decoded?.data;
-      console.log("@verifyTokenOfAxios data =========> ", data);
+      console.log("@verifyIfUserIsSupperAdmin data =========> ", data);
       const roleId = data?.roleId;
       return roleId;
     } catch (error) {
