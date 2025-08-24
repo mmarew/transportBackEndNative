@@ -33,7 +33,7 @@ const getUserRoleListByUserUniqueId = async (req, res) => {
 const updateUserRole = async (req, res) => {
   try {
     const result = await userRoleService.updateUserRole(
-      req.params.id,
+      req.params.userRoleUniqueId,
       req.body
     );
     ServerResponder(res, result);
@@ -49,7 +49,9 @@ const updateUserRole = async (req, res) => {
 
 const deleteUserRole = async (req, res) => {
   try {
-    const result = await userRoleService.deleteUserRole(req.params.id);
+    const result = await userRoleService.deleteUserRole(
+      req.params.userRoleUniqueId
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error in deleteUserRoleController:", error);

@@ -45,10 +45,10 @@ const getUserRoleListByUserUniqueId = async (userUniqueId) => {
 // Service to get UserRole by ID
 
 // Service to update UserRole
-const updateUserRole = async (id, updateValues) => {
+const updateUserRole = async (userRoleUniqueId, updateValues) => {
   const result = await updateData({
     tableName: "UserRole",
-    conditions: { userRoleId: id },
+    conditions: { userRoleUniqueId },
     updateValues,
   });
 
@@ -60,10 +60,10 @@ const updateUserRole = async (id, updateValues) => {
 };
 
 // Service to delete UserRole
-const deleteUserRole = async (id) => {
+const deleteUserRole = async (userRoleUniqueId) => {
   const result = await deleteData({
     tableName: "UserRole",
-    conditions: { userRoleId: id },
+    conditions: { userRoleUniqueId },
   });
 
   if (result.affectedRows === 0) {
