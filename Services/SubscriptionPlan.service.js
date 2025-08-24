@@ -27,14 +27,7 @@ const createSubscriptionPlan = async ({
 
   return {
     message: "success",
-    data: [
-      {
-        subscriptionPlanUniqueId,
-        planName,
-        description,
-        isFree,
-      },
-    ],
+    data: "Subscription plan created successfully",
   };
 };
 
