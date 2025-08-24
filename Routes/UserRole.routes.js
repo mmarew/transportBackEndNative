@@ -23,12 +23,12 @@ router.get(
 );
 
 router.put(
-  "/userRole/:id",
+  "/userRole/:userRoleUniqueId",
   verifyTokenOfAxios,
   userRoleController.updateUserRole
 );
 router.delete(
-  "/userRole/:id",
+  "/userRole/:userRoleUniqueId",
   verifyTokenOfAxios,
   userRoleController.deleteUserRole
 );
