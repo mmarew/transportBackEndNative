@@ -210,12 +210,9 @@ const handleExistingJourney = async (
   };
 
   if (passenger?.phoneNumber) {
-    const passengerStatus = await verifyPassengerStatus({
-      userUniqueId: passenger.userUniqueId,
-    });
     await sendNotificationToPassenger({
-      message: passengerStatus,
-      phoneNumber: passenger.phoneNumber,
+      message: { ...responseMessage },
+      phoneNumber: passenger?.phoneNumber,
     });
   }
 
@@ -464,7 +461,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
 
     // Step 3: Validate journey status
     const journeyStatusId = driverRequest.journeyStatusId;
-    console.log("journeyStatusId", journeyStatusId);
+    console.log("@verifyDriverStatus journeyStatusId", journeyStatusId);
     if (journeyStatusId > journeyStatusMap.journeyCompleted) {
       return {
         message: "success",
