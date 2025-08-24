@@ -12,14 +12,14 @@ function loggingMiddleware(req, res, next) {
   const originalConsoleError = console.error;
 
   // Override console.log
-  console.log = (...args) => {
-    logToFile("LOG", args, originalConsoleLog);
-  };
+  // console.log = (...args) => {
+  //   logToFile("LOG", args, originalConsoleLog);
+  // };
 
   // Override console.error
-  console.error = (...args) => {
-    logToFile("ERROR", args, originalConsoleError);
-  };
+  // console.error = (...args) => {
+  //   logToFile("ERROR", args, originalConsoleError);
+  // };
 
   // Helper function to write logs to the file
   function logToFile(type, args, originalFunction) {
