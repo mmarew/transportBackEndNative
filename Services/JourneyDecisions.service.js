@@ -12,6 +12,7 @@ exports.createJourneyDecision = async ({
   deliveryDateByDriver,
   shippingCostByDriver,
 }) => {
+  // console.log(first)
   if (
     !passengerRequestId ||
     !driverRequestId ||

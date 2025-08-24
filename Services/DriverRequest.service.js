@@ -86,7 +86,9 @@ const takeFromStreet = async (body, user) => {
     const randNumber = Math.floor(Math.random() * 100000000);
     const requestedFrom = "street";
     const phoneNumber = body?.phoneNumber;
+    const passengerRequestBatchId = body?.passengerRequestBatchId;
     const data = {
+      passengerRequestBatchId: body.passengerRequestBatchId,
       phoneNumber,
       requestedFrom,
       fullName: null,
@@ -108,6 +110,7 @@ const takeFromStreet = async (body, user) => {
     if (userPassenger.message === "error")
       return { message: "error", error: "Unable to create user" };
     const dataOfPassenger = userPassenger?.dataOfPassenger;
+
     // const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
     // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
@@ -122,6 +125,11 @@ const takeFromStreet = async (body, user) => {
         error: "Unable to create passenger request",
       };
     }
+    const targetRequest = passengerRequest?.passenger.find(
+      (eachRequest) =>
+        eachRequest?.passengerRequestBatchId === passengerRequestBatchId
+    );
+    console.log("@targetRequest", targetRequest);
     const driverRequest = await createDriverRequest(
       body,
       userUniqueId,
@@ -135,7 +143,7 @@ const takeFromStreet = async (body, user) => {
     } = body;
     // return driverRequest;
     const decisionData = {
-      passengerRequestId: passengerRequest.passenger.passengerRequestId,
+      passengerRequestId: targetRequest?.passengerRequestId, // passengerRequest.passenger.passengerRequestId,
       driverRequestId: driverRequest?.data[0].driverRequestId,
       journeyStatusId,
       decisionTime: currentDate(),
@@ -144,10 +152,20 @@ const takeFromStreet = async (body, user) => {
       deliveryDateByDriver,
       shippingCostByDriver,
     };
+    console.log("@decisionData =======> ", decisionData);
+
+    //     passengerRequestId,
+    // driverRequestId,
+    // journeyStatusId,
+    // decisionTime,
+    // decisionBy,
+    // shippingDateByDriver,
+    // deliveryDateByDriver,
+    // shippingCostByDriver,
     // create a decision in JourneyDecisions table
     const journeyDecision = await createJourneyDecision(decisionData);
     //create a journey in Journey table using createJourney function from Journey.service
-
+    console.log("@journeyDecision", journeyDecision);
     const journeyDecisionUniqueId =
       journeyDecision.data[0].journeyDecisionUniqueId;
     const journeyData = {
@@ -181,7 +199,7 @@ const takeFromStreet = async (body, user) => {
     };
     responseData.passenger = {
       ...userPassenger?.dataOfPassenger,
-      ...passengerRequest.passenger,
+      ...targetRequest,
     };
     responseData.driver = driverData;
     responseData.status = journeyStatusId;
