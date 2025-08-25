@@ -146,7 +146,10 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
 };
 
 // Get canceled journeys by user unique ID
-const getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
+const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (
+  userUniqueId,
+  roleId
+) => {
   const sql =
     "SELECT * FROM CanceledJourneys WHERE canceledBy = ? AND roleId = ?";
   const result = await query(sql, [userUniqueId, roleId]);
@@ -270,7 +273,7 @@ const getDriverRequest = (driverRequestId) =>
 /**
  * Get paginated canceled journeys with filters
  */
-const getCanceledJourneysFiltered = async (filters) => {
+const getAllCancelledJourneyByRole = async (filters) => {
   const {
     canceledByRoleId,
     startDate,
@@ -311,6 +314,7 @@ const getCanceledJourneysFiltered = async (filters) => {
   values.push(limit, offset);
 
   const [result] = await pool.query(sql, values);
+  console.log("@getCanceledJourneys result", result);
 
   // Get total count
   const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
@@ -343,68 +347,69 @@ const getCanceledJourneysFiltered = async (filters) => {
 /**
  * Get paginated canceled journeys by user
  */
-const getCanceledJourneys = async (
-  ownerUniqueId,
-  roleId,
-  page = 1,
-  limit = 10
-) => {
-  let sql, values;
-  const offset = (page - 1) * limit;
+// const getCanceledJourneys = async (
+//   ownerUniqueId,
+//   roleId,
+//   page = 1,
+//   limit = 10
+// ) => {
+//   let sql, values;
+//   const offset = (page - 1) * limit;
 
-  if (ownerUniqueId === "all") {
-    sql =
-      "SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys WHERE roleId = ? LIMIT ? OFFSET ?";
-    values = [roleId, limit, offset];
-  } else {
-    const userUniqueIdField =
-      roleId == 2 ? "driverUserUniqueId" : "passengerUserUniqueId";
-    sql = `SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys WHERE ${userUniqueIdField} = ? AND roleId = ? LIMIT ? OFFSET ?`;
-    values = [ownerUniqueId, roleId, limit, offset];
-  }
+//   if (ownerUniqueId === "all") {
+//     sql =
+//       "SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys WHERE roleId = ? LIMIT ? OFFSET ?";
+//     values = [roleId, limit, offset];
+//   } else {
+//     const userUniqueIdField =
+//       roleId == 2 ? "driverUserUniqueId" : "passengerUserUniqueId";
+//     sql = `SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys WHERE ${userUniqueIdField} = ? AND roleId = ? LIMIT ? OFFSET ?`;
+//     values = [ownerUniqueId, roleId, limit, offset];
+//   }
 
-  const [result] = await pool.query(sql, values);
+//   const [result] = await pool.query(sql, values);
 
-  // Get total count
-  const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
-  const totalCount = totalCountResult[0].total;
-  const totalPages = Math.ceil(totalCount / limit);
+//   // Get total count
+//   const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
+//   const totalCount = totalCountResult[0].total;
+//   const totalPages = Math.ceil(totalCount / limit);
 
-  const data = await Promise.all(
-    result.map(async (item) => {
-      const journeyData = await getJourneyDataByContextType({
-        contextType: item.contextType,
-        contextId: item.contextId,
-      });
-      const cancellationDetails = await getCancellationDetails(item.contextId);
-      return { ...journeyData, cancellationDetails };
-    })
-  );
+//   const data = await Promise.all(
+//     result.map(async (item) => {
+//       const journeyData = await getJourneyDataByContextType({
+//         contextType: item.contextType,
+//         contextId: item.contextId,
+//       });
+//       const cancellationDetails = await getCancellationDetails(item.contextId);
+//       return { ...journeyData, cancellationDetails };
+//     })
+//   );
 
-  return {
-    message: "success",
-    data,
-    pagination: {
-      currentPage: parseInt(page),
-      totalPages,
-      totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      limit: parseInt(limit),
-    },
-  };
-};
+//   return {
+//     message: "success",
+//     data,
+//     pagination: {
+//       currentPage: parseInt(page),
+//       totalPages,
+//       totalCount,
+//       hasNext: page < totalPages,
+//       hasPrev: page > 1,
+//       limit: parseInt(limit),
+//     },
+//   };
+// };
 
 /**
  * Search canceled journey by user data with pagination
  */
 const searchCanceledJourneyByUserData = async (
-  userData,
+  phoneOrEmail,
   roleId,
   page = 1,
   limit = 10
 ) => {
-  const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
+  const usersData = await getUserByEmailOrNameOrPhoneNumber(phoneOrEmail);
+  console.log("@usersData", usersData);
   const users = usersData?.data || [];
 
   if (users.length === 0) {
@@ -423,7 +428,8 @@ const searchCanceledJourneyByUserData = async (
   }
 
   // Get user IDs for the query
-  const userIds = users.map((user) => user.userUniqueId);
+  const userIds = users.map((user) => user?.userUniqueId);
+  console.log("@userIds", userIds);
   const placeholders = userIds.map(() => "?").join(",");
   const offset = (page - 1) * limit;
 
@@ -534,10 +540,10 @@ module.exports = {
   getUnseenCanceledJourney,
   updateSeenByAdmin,
   createCanceledJourney,
-  getCanceledJourneysFiltered,
-  getCanceledJourneys,
+  getAllCancelledJourneyByRole,
+  // getCanceledJourneys,
   searchCanceledJourneyByUserData,
-  getCanceledJourneysByUserUniqueId,
+  getSingleCanceledJourneysByUserUniqueIdAndRoleId,
   deleteCanceledJourney,
   updateCanceledJourney,
   getCanceledJourneyById,

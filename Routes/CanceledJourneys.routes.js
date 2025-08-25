@@ -19,19 +19,19 @@ const routes = [
     handler: canceledJourneyController.cancelJourneyBySystem,
   },
   {
-    path: "/api/admin/canceledJourney",
-    method: "get",
-    // middleware: [verifyTokenOfAxios],
-    handler: canceledJourneyController.getCanceledJourneysFiltered,
-  },
-  {
-    path: "/api/user/canceledJourney/:ownerUniqueId/:roleId",
+    path: "/api/admin/getAllCancelledJourneyByRole",
     method: "get",
     middleware: [verifyTokenOfAxios],
-    handler: canceledJourneyController.getCanceledJourneys,
+    handler: canceledJourneyController.getAllCancelledJourneyByRole,
   },
+  // {
+  //   path: "/api/user/canceledJourney/:ownerUniqueId/:roleId",
+  //   method: "get",
+  //   middleware: [verifyTokenOfAxios],
+  //   handler: canceledJourneyController.getCanceledJourneys,
+  // },
   {
-    path: "/api/user/searchCanceledJourneyByUserData/:userData/:roleId",
+    path: "/api/user/searchCanceledJourneyByUserData",
     method: "get",
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.searchCanceledJourneyByUserData,
@@ -55,10 +55,11 @@ const routes = [
     handler: canceledJourneyController.deleteCanceledJourney,
   },
   {
-    path: "/api/admin/getCanceledJourneysByUserUniqueIdAndRoleId/:userUniqueId/:roleId",
+    path: "/api/admin/getSingleCanceledJourneysByUserUniqueIdAndRoleId",
     method: "get",
     middleware: [verifyTokenOfAxios],
-    handler: canceledJourneyController.getCanceledJourneysByUserUniqueId,
+    handler:
+      canceledJourneyController.getSingleCanceledJourneysByUserUniqueIdAndRoleId,
   },
   {
     path: "/api/driver/seenByAdmin/:canceledJourneyUniqueId",
