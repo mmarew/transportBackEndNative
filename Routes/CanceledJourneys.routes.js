@@ -24,12 +24,7 @@ const routes = [
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.getAllCancelledJourneyByRole,
   },
-  // {
-  //   path: "/api/user/canceledJourney/:ownerUniqueId/:roleId",
-  //   method: "get",
-  //   middleware: [verifyTokenOfAxios],
-  //   handler: canceledJourneyController.getCanceledJourneys,
-  // },
+
   {
     path: "/api/user/searchCanceledJourneyByUserData",
     method: "get",

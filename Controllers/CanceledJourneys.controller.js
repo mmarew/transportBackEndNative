@@ -103,10 +103,6 @@ const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (req, res) => {
   );
 };
 
-// Get canceled journeys
-
-// Search canceled journey by user data
-
 // Get a specific canceled journey by ID
 const getCanceledJourneyById = async (req, res) => {
   const { canceledJourneyUniqueId } = req.params;
@@ -150,8 +146,6 @@ const deleteCanceledJourney = async (req, res) => {
 
 // Get unseen canceled journeys
 
-// Update these controller functions to handle pagination parameters
-
 // Get filtered canceled journeys with pagination
 const getAllCancelledJourneyByRole = async (req, res) => {
   const {
@@ -177,26 +171,6 @@ const getAllCancelledJourneyByRole = async (req, res) => {
     res
   );
 };
-
-// Get canceled journeys with pagination
-// const getCanceledJourneys = async (req, res) => {
-//   let { ownerUniqueId, roleId } = req.params;
-//   const { page = 1, limit = 10 } = req.query;
-
-//   if (ownerUniqueId === "self") {
-//     ownerUniqueId = req.user.userUniqueId;
-//   }
-
-//   await handleServiceResponse(
-//     canceledJourneyService.getCanceledJourneys(
-//       ownerUniqueId,
-//       roleId,
-//       parseInt(page),
-//       parseInt(limit)
-//     ),
-//     res
-//   );
-// };
 
 // Search canceled journey by user data with pagination
 const searchCanceledJourneyByUserData = async (req, res) => {
@@ -237,6 +211,5 @@ module.exports = {
   getSingleCanceledJourneysByUserUniqueIdAndRoleId,
   getAllCancelledJourneyByRole,
   createCanceledJourney,
-  // getCanceledJourneys,
   searchCanceledJourneyByUserData,
 };
