@@ -1,36 +1,28 @@
-const { performJoinSelect } = require("../CRUD/Read/ReadData");
-const { pool } = require("../Middleware/Database.config");
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const {
   cancelPassengerRequest,
 } = require("../Services/PassengerRequest.service");
-const messageTypes = require("../Utils/MessageTypes");
 const { sendNotificationToPassenger } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
-const serverResponder = require("../Utils/ServerResponder");
-// Function to create a canceled journey by the system
-const canceleJourneyBySystem = async (
-  req = { body: { user: null } },
-  res = null
-) => {
-  try {
-    // Get the system user from Users table where roleId is 5
-    const [user] = await performJoinSelect({
-      baseTable: "Users",
-      joins: [
-        {
-          table: "UserRole",
-          on: "Users.userUniqueId = UserRole.userUniqueId",
-        },
-      ],
-      conditions: {
-        "UserRole.roleId": 5, // role id of system
-      },
-    });
-    if (!user) {
-      throw new Error("System user with role id 5 not found");
-    }
+const messageTypes = require("../Utils/MessageTypes");
 
+// Helper function to handle service responses
+const handleServiceResponse = async (serviceCall, res) => {
+  try {
+    const result = await serviceCall;
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: error.message || "Operation failed",
+    });
+  }
+};
+
+// Create a new canceled journey by the system
+const cancelJourneyBySystem = async (req, res) => {
+  try {
     const now = new Date();
     const cutoffTime = new Date(now.getTime() - 5 * 60 * 1000); // 5 minutes ago
 
@@ -44,19 +36,12 @@ const canceleJourneyBySystem = async (
 
     const [activeRequests] = await pool.query(sqlQuery, [cutoffTime]);
 
-    console.log("@activeRequests====>", activeRequests);
-    console.log("@cutoffTime", cutoffTime);
-    req.body.user = user;
-
     for (const request of activeRequests) {
-      const ownerUserUniqueId = request.userUniqueId;
-      req.body.ownerUserUniqueId = ownerUserUniqueId;
-      req.body.cancellationReasonsTypeId = 1;
+      const result = await cancelPassengerRequest({
+        ownerUserUniqueId: request.userUniqueId,
+        cancellationReasonsTypeId: 1,
+      });
 
-      // Call cancelPassengerRequest to cancel the journey
-      const result = await cancelPassengerRequest(req.body);
-
-      // Notify the passenger
       await sendNotificationToPassenger({
         phoneNumber: request.phoneNumber,
         message: {
@@ -67,206 +52,184 @@ const canceleJourneyBySystem = async (
           messageTypes: messageTypes.request_other_driver,
         },
       });
+    }
 
-      // If there's a response object, send success message after each cancellation
-      if (res) {
-        serverResponder(res, {
-          message: "success",
-          data: result,
-        });
-      }
-    }
+    ServerResponder(res, {
+      message: "success",
+      data: "System cancellation process completed",
+    });
   } catch (error) {
-    console.log("Error creating canceled journey:", error);
-    if (res) {
-      serverResponder(res, {
-        message: "error",
-        error: "Failed to create canceled journey",
-      });
-    }
+    console.error("Error in cancelJourneyBySystem:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to process system cancellations",
+    });
   }
 };
-
-// Schedule the canceleJourneyBySystem to run every 5 minutes (300000 ms)
-// setInterval(() => {
-//   console.log("checking canceled journeys");
-//   canceleJourneyBySystem();
-// }, 5000); // 300,000 ms = 5 minutes
 
 // Create a new canceled journey
 const createCanceledJourney = async (req, res) => {
-  try {
-    const user = req?.user;
-    const userUniqueId = user?.userUniqueId;
-    const roleId = user?.roleId;
-    req.body.userUniqueId = userUniqueId;
-    req.body.roleId = roleId;
-    const data = req.body;
+  const user = req.user;
+  const data = {
+    ...req.body,
+    userUniqueId: user.userUniqueId,
+    roleId: user.roleId,
+  };
 
-    const result = await canceledJourneyService?.createCanceledJourney(data);
-    serverResponder(res, result);
-  } catch (error) {
-    console.log("Error creating canceled journey:", error);
-    serverResponder(res, {
-      message: "error",
-      error: "Failed to create canceled",
-    });
-  }
+  await handleServiceResponse(
+    canceledJourneyService.createCanceledJourney(data),
+    res
+  );
 };
+
+// Get canceled journeys by user unique ID and role ID
 const getCanceledJourneysByUserUniqueId = async (req, res) => {
-  try {
-    const { userUniqueId, roleId } = req.params;
-    if (!userUniqueId || !roleId) {
-      serverResponder(res, { message: "error", error: "Invalid user" });
-    }
-    const result =
-      await canceledJourneyService.getCanceledJourneysByUserUniqueId(
-        userUniqueId,
-        roleId
-      );
-    serverResponder(res, result);
-  } catch (error) {
-    console.log("Error fetching canceled journeys by user unique ID:", error);
-    serverResponder;
-  }
-};
-// Get canceled journeys filtered by type, date range, and limit
-const getCanceledJourneysFiltered = async (req, res) => {
-  try {
-    const { canceledByRoleId, startDate, endDate } = req.query;
-    console.log("@getCanceledJourneysFiltered req.query===", req.query);
-    const result = await canceledJourneyService.getCanceledJourneysFiltered({
-      canceledByRoleId,
-      startDate,
-      endDate,
-    });
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("Error fetching filtered canceled journeys:", error);
-    ServerResponder(res, {
+  const { userUniqueId, roleId } = req.params;
+
+  if (!userUniqueId || !roleId) {
+    return ServerResponder(res, {
       message: "error",
-      error: "Failed to fetch canceled journeys",
+      error: "Invalid user parameters",
     });
   }
-};
-// Get canceled journeys filtered by type, date range, and limit
-const getCanceledJourneys = async (req, res) => {
-  try {
-    let ownerUniqueId = req?.params?.ownerUniqueId;
-    const roleId = req?.params?.roleId;
-    console.log("ownerUniqueId", ownerUniqueId);
-    if (ownerUniqueId == "self") ownerUniqueId = req?.user?.userUniqueId;
-    const result = await canceledJourneyService.getCanceledJourneys(
-      ownerUniqueId,
+
+  await handleServiceResponse(
+    canceledJourneyService.getCanceledJourneysByUserUniqueId(
+      userUniqueId,
       roleId
-    );
-    await ServerResponder(res, result);
-  } catch (error) {
-    console.log("Error fetching  canceled journeys by driver:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch canceled journeys",
-    });
-  }
+    ),
+    res
+  );
 };
-const searchCanceledJourneyByUserData = async (req, res) => {
-  try {
-    const { userData, roleId } = req.params;
-    ServerResponder(
-      res,
-      await canceledJourneyService.searchCanceledJourneyByUserData(
-        userData,
-        roleId
-      )
-    );
-  } catch (error) {
-    console.log("Error searching canceled journey by user data:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to search canceled journey by user data",
-    });
-  }
-};
+
+// Get canceled journeys
+
+// Search canceled journey by user data
 
 // Get a specific canceled journey by ID
 const getCanceledJourneyById = async (req, res) => {
-  try {
-    const { canceledJourneyUniqueId } = req.params;
-    const result = await canceledJourneyService.getCanceledJourneyById(
-      canceledJourneyUniqueId
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("Error fetching canceled journey by ID:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch canceled journey",
-    });
-  }
-};
-const updateSeenByAdmin = async (req, res) => {
-  try {
-    const canceledJourneyUniqueId = req?.params?.canceledJourneyUniqueId;
-    console.log("@canceledJourneyUniqueId", canceledJourneyUniqueId);
-    const result = await canceledJourneyService.updateSeenByAdmin(
-      canceledJourneyUniqueId
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("@error", error);
-  }
-};
-// Update a specific canceled journey by ID
-const updateCanceledJourney = async (req, res) => {
-  try {
-    const { canceledJourneyUniqueId } = req.params;
-    const data = req.body;
-    const result = await canceledJourneyService.updateCanceledJourney(
-      canceledJourneyUniqueId,
-      data
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("Error updating canceled journey:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to update canceled journey",
-    });
-  }
+  const { canceledJourneyUniqueId } = req.params;
+
+  await handleServiceResponse(
+    canceledJourneyService.getCanceledJourneyById(canceledJourneyUniqueId),
+    res
+  );
 };
 
-// Delete a specific canceled journey by ID
+// Update seen by admin status
+const updateSeenByAdmin = async (req, res) => {
+  const { canceledJourneyUniqueId } = req.params;
+
+  await handleServiceResponse(
+    canceledJourneyService.updateSeenByAdmin(canceledJourneyUniqueId),
+    res
+  );
+};
+
+// Update a canceled journey
+const updateCanceledJourney = async (req, res) => {
+  const { canceledJourneyUniqueId } = req.params;
+  const data = req.body;
+
+  await handleServiceResponse(
+    canceledJourneyService.updateCanceledJourney(canceledJourneyUniqueId, data),
+    res
+  );
+};
+
+// Delete a canceled journey
 const deleteCanceledJourney = async (req, res) => {
-  try {
-    const { canceledJourneyUniqueId } = req.params;
-    const result = await canceledJourneyService.deleteCanceledJourney(
-      canceledJourneyUniqueId
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("Error deleting canceled journey:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to delete canceled journey",
-    });
-  }
+  const { canceledJourneyUniqueId } = req.params;
+
+  await handleServiceResponse(
+    canceledJourneyService.deleteCanceledJourney(canceledJourneyUniqueId),
+    res
+  );
 };
+
+// Get unseen canceled journeys
+
+// Update these controller functions to handle pagination parameters
+
+// Get filtered canceled journeys with pagination
+const getCanceledJourneysFiltered = async (req, res) => {
+  const {
+    canceledByRoleId,
+    startDate,
+    endDate,
+    page = 1,
+    limit = 10,
+    sortBy = "canceledJourneyId",
+    sortOrder = "DESC",
+  } = req.query;
+
+  await handleServiceResponse(
+    canceledJourneyService.getCanceledJourneysFiltered({
+      canceledByRoleId,
+      startDate,
+      endDate,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sortBy,
+      sortOrder,
+    }),
+    res
+  );
+};
+
+// Get canceled journeys with pagination
+const getCanceledJourneys = async (req, res) => {
+  let { ownerUniqueId, roleId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  if (ownerUniqueId === "self") {
+    ownerUniqueId = req.user.userUniqueId;
+  }
+
+  await handleServiceResponse(
+    canceledJourneyService.getCanceledJourneys(
+      ownerUniqueId,
+      roleId,
+      parseInt(page),
+      parseInt(limit)
+    ),
+    res
+  );
+};
+
+// Search canceled journey by user data with pagination
+const searchCanceledJourneyByUserData = async (req, res) => {
+  const { userData, roleId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  await handleServiceResponse(
+    canceledJourneyService.searchCanceledJourneyByUserData(
+      userData,
+      roleId,
+      parseInt(page),
+      parseInt(limit)
+    ),
+    res
+  );
+};
+
+// Get unseen canceled journeys with pagination
 const getUnseenCanceledJourney = async (req, res) => {
-  try {
-    const result = await canceledJourneyService.getUnseenCanceledJourney();
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("@getUnseenCanceledJourney error", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to get canceled journey",
-    });
-  }
+  const { page = 1, limit = 10 } = req.query;
+
+  await handleServiceResponse(
+    canceledJourneyService.getUnseenCanceledJourney(
+      parseInt(page),
+      parseInt(limit)
+    ),
+    res
+  );
 };
+
 module.exports = {
   getUnseenCanceledJourney,
   updateSeenByAdmin,
-  canceleJourneyBySystem,
+  cancelJourneyBySystem,
   deleteCanceledJourney,
   updateCanceledJourney,
   getCanceledJourneyById,
