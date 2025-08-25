@@ -196,7 +196,7 @@ const getCanceledJourneyById = async (canceledJourneyUniqueId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?`;
   const [result] = await pool.query(sql, [canceledJourneyUniqueId]);
   // return result[0];
-  return { messag: "success", data: result[0] };
+  return { message: "success", data: result[0] };
 };
 
 // Update a canceled journey by ID
@@ -216,7 +216,7 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
   ];
   const [result] = await pool.query(sql, values);
   return result.affectedRows > 0
-    ? { messag: "success", data: "Canceled journey updated successfully" }
+    ? { message: "success", data: "Canceled journey updated successfully" }
     : { message: "error", error: "Failed to update canceled journey" };
 };
 
@@ -225,13 +225,14 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
   const sql = `DELETE FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?`;
   const [result] = await pool.query(sql, [canceledJourneyUniqueId]);
   return result.affectedRows > 0
-    ? { messag: "success", data: "Canceled journey deleted successfully" }
+    ? { message: "success", data: "Canceled journey deleted successfully" }
     : { message: "error", error: "Failed to delete canceled journey" };
 };
 const getCanceledJourneysByUserUniqueId = async (userUniqueId, roleId) => {
   const sql = `SELECT * FROM CanceledJourneys WHERE canceledBy = ? and roleId = ?`;
   const [result] = await pool.query(sql, [userUniqueId, roleId]);
-  return { messag: "success", data: result };
+
+  return { message: "success", data: result };
 };
 const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
   try {
@@ -239,11 +240,11 @@ const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
     const values = [1, canceledJourneyUniqueId];
     const [result] = await pool.query(sql, values);
     if (result?.affectedRows > 0)
-      return { messag: "success", data: "data seen" };
-    else return { messag: "error", data: "data not found" };
+      return { message: "success", data: "data seen" };
+    else return { message: "error", data: "data not found" };
   } catch (error) {
     console.log("@updateSeenByAdmin error", error);
-    return { messag: "error", error: "unable to update data" };
+    return { message: "error", error: "unable to update data" };
   }
 };
 const getUnseenCanceledJourney = async () => {
