@@ -95,7 +95,7 @@ const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (req, res) => {
   }
 
   await handleServiceResponse(
-    canceledJourneyService.getCanceledJourneysByUserUniqueId(
+    canceledJourneyService.getSingleCanceledJourneysByUserUniqueIdAndRoleId(
       userUniqueId,
       roleId
     ),
