@@ -64,6 +64,25 @@ const acceptDriverRequest = async (req, res) => {
     });
   }
 };
+
+const rejectDriverOffer = async (req, res) => {
+  try {
+    req.body.journeyStatusId = journeyStatusMap.rejectedByPassenger;
+    req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
+    const user = req?.user;
+    const userUniqueId = user.userUniqueId;
+    req.body.userUniqueId = userUniqueId;
+    const result = await PassengerService.rejectDriverOffer(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@  rejectDriverOffer error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to reject driver offer",
+    });
+  }
+};
+
 const getAllActiveRequests = async (req, res) => {
   try {
     const result = await PassengerService.getAllActiveRequests();
@@ -168,4 +187,5 @@ module.exports = {
   createPassengerRequest,
   updateRequestById,
   deleteRequest,
+  rejectDriverOffer,
 };

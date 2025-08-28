@@ -112,6 +112,17 @@ const acceptDriverRequest = async (body) => {
     return { message: "error", error: "unable to accept driver request" };
   }
 };
+
+const rejectDriverOffer = async (body) => {
+  try {
+    const result = await updateJourneyStatus(body);
+    console.log("@rejectDriverOffer result", result);
+    return { message: "success", data: "Request rejected successfully" };
+  } catch (error) {
+    console.log("@rejectDriverOffer error", error);
+    return { message: "error", error: "unable to reject driver offer" };
+  }
+};
 const getAllActiveRequests = async () => {
   const activeStatusIds = [
     journeyStatusMap.requested,
@@ -423,4 +434,5 @@ module.exports = {
   updateRequestById,
   deleteRequest,
   getPassengerRequestByPassengerRequestId,
+  rejectDriverOffer,
 };

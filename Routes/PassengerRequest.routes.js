@@ -27,6 +27,12 @@ router.put(
   verifyTokenOfAxios,
   controller.acceptDriverRequest
 );
+// /api/user/rejectDriverOffer
+router.put(
+  "/api/user/rejectDriverOffer",
+  verifyTokenOfAxios,
+  controller.rejectDriverOffer
+);
 router.get(
   "/api/shippingRequest/getAllActiveRequests",
   verifyTokenOfAxios,
