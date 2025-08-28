@@ -71,7 +71,7 @@ const express = require("express");
 const router = express.Router();
 const journeyController = require("../Controllers/Journey.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
-const { registerRoutes } = require("../Utils/routeUtils");
+const { registerRoutes } = require("../Utils/RouteUtils");
 
 // Route configuration
 const routes = [
