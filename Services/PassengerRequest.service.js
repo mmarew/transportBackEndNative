@@ -115,12 +115,102 @@ const acceptDriverRequest = async (body) => {
 
 const rejectDriverOffer = async (body) => {
   try {
-    const result = await updateJourneyStatus(body);
-    console.log("@rejectDriverOffer result", result);
-    return { message: "success", data: "Request rejected successfully" };
+    console.log("@rejectDriverOffer body", body);
+
+    // Validate required fields
+    const requiredFields = [
+      "passengerRequestId",
+      "passengerRequestUniqueId",
+      "driverRequestUniqueId",
+      "journeyDecisionUniqueId",
+      "journeyStatusId",
+    ];
+    const missingFields = requiredFields.filter((field) => !body?.[field]);
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+    }
+    const allPassengerRequests = await getData({
+      tableName: "JourneyDecisions",
+      conditions: {
+        passengerRequestId: body.passengerRequestId,
+      },
+    });
+    // Execute all updates in parallel for better performance
+    const [
+      passengerRequestUpdateResult,
+      driverRequestUpdateResult,
+      journeyDecisionUpdateResult,
+    ] = await Promise.all([
+      // if there is only one request then update PassengerRequest else don't update PassengerRequest
+      allPassengerRequests.length == 1 &&
+        updateData({
+          tableName: "PassengerRequest",
+          conditions: {
+            passengerRequestUniqueId: body.passengerRequestUniqueId,
+          },
+          updateValues: {
+            journeyStatusId: journeyStatusMap.waiting,
+            // updatedAt: new Date().toISOString(), // Add timestamp for tracking
+          },
+        }),
+      updateData({
+        tableName: "DriverRequest",
+        conditions: {
+          driverRequestUniqueId: body.driverRequestUniqueId,
+        },
+        updateValues: {
+          journeyStatusId: body.journeyStatusId,
+          // updatedAt: new Date().toISOString(),
+        },
+      }),
+      updateData({
+        tableName: "JourneyDecisions",
+        conditions: {
+          journeyDecisionUniqueId: body.journeyDecisionUniqueId,
+        },
+        updateValues: {
+          journeyStatusId: body.journeyStatusId,
+          // updatedAt: new Date().toISOString(),
+        },
+      }),
+    ]);
+
+    // Log results in a structured way
+    const results = {
+      passengerRequest: passengerRequestUpdateResult,
+      driverRequest: driverRequestUpdateResult,
+      journeyDecision: journeyDecisionUpdateResult,
+    };
+
+    console.log(
+      "@rejectDriverOffer results:",
+      JSON.stringify(results, null, 2)
+    );
+
+    // Verify all updates were successful
+    const allSuccessful = [
+      passengerRequestUpdateResult,
+      driverRequestUpdateResult,
+      journeyDecisionUpdateResult,
+    ].every((result) => result && result.affectedRows > 0);
+
+    if (!allSuccessful) {
+      throw new Error("One or more updates failed");
+    }
+    const result = await verifyPassengerStatus({
+      userUniqueId: body.userUniqueId,
+    });
+    console.log("@verifyPassengerStatus result", result);
+    return result;
   } catch (error) {
-    console.log("@rejectDriverOffer error", error);
-    return { message: "error", error: "unable to reject driver offer" };
+    console.error("@rejectDriverOffer error:", error.message, error.stack);
+
+    return {
+      message: "error",
+      error: error.message || "Unable to reject driver offer",
+      code: error.code || "UPDATE_FAILED",
+    };
   }
 };
 const getAllActiveRequests = async () => {

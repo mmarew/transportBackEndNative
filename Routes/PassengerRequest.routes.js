@@ -27,7 +27,6 @@ router.put(
   verifyTokenOfAxios,
   controller.acceptDriverRequest
 );
-// /api/user/rejectDriverOffer
 router.put(
   "/api/user/rejectDriverOffer",
   verifyTokenOfAxios,
