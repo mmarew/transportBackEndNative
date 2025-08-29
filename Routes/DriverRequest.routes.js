@@ -13,6 +13,7 @@ const {
   takeFromStreet,
   createAndAcceptNewRequest,
   sendUpdatedLocationController,
+  getDriverRequestController,
 } = require("../Controllers/Driver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
@@ -97,6 +98,12 @@ router.get(
   verifyTokenOfAxios,
   verifyDriversIdentity,
   verifyDriverStatusController
+);
+// api/user/getDriverRequest?driverUniqueId=uuidv4&target=allOrSingleDriverRequests
+router.get(
+  "/api/user/getDriverRequest",
+  verifyTokenOfAxios,
+  getDriverRequestController
 );
 router.put(
   "/driver/attachRequiredDocuments",

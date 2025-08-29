@@ -46,6 +46,7 @@ const {
   verifyPassengerStatus,
 } = require("./UsersCurrentStatus");
 const { get } = require("http");
+const { pool } = require("../Middleware/Database.config");
 
 const createRequest = async ({
   body,
@@ -755,7 +756,178 @@ const deleteDriverRequest = async (requestId) => {
     return { message: "error", error: "Unable to delete request" };
   }
 };
+const getDriverRequest = async ({ data }) => {
+  try {
+    const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
 
+    const offset = (page - 1) * limit;
+    let whereClause = "";
+    let queryParams = [];
+    let countParams = [];
+
+    // Build WHERE clause based on target
+    if (target !== "all" && userUniqueId) {
+      whereClause = "WHERE DriverRequest.userUniqueId = ?";
+      queryParams = [userUniqueId];
+      countParams = [userUniqueId];
+    }
+
+    // Add filter for journeyStatusId
+    if (filters.journeyStatusId) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "DriverRequest.journeyStatusId = ?";
+      queryParams.push(filters.journeyStatusId);
+      countParams.push(filters.journeyStatusId);
+    }
+
+    // Add filter for multiple journey statuses (array)
+    if (
+      filters.journeyStatusIds &&
+      Array.isArray(filters.journeyStatusIds) &&
+      filters.journeyStatusIds.length > 0
+    ) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      const placeholders = filters.journeyStatusIds.map(() => "?").join(",");
+      whereClause += `DriverRequest.journeyStatusId IN (${placeholders})`;
+      queryParams.push(...filters.journeyStatusIds);
+      countParams.push(...filters.journeyStatusIds);
+    }
+
+    // Add filter by date range (requestTime)
+    if (filters.startDate && filters.endDate) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "DriverRequest.requestTime BETWEEN ? AND ?";
+      queryParams.push(filters.startDate, filters.endDate);
+      countParams.push(filters.startDate, filters.endDate);
+    } else if (filters.startDate) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "DriverRequest.requestTime >= ?";
+      queryParams.push(filters.startDate);
+      countParams.push(filters.startDate);
+    } else if (filters.endDate) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "DriverRequest.requestTime <= ?";
+      queryParams.push(filters.endDate);
+      countParams.push(filters.endDate);
+    }
+
+    // Add filter by origin place (case-insensitive search)
+    if (filters.originPlace) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "LOWER(DriverRequest.originPlace) LIKE LOWER(?)";
+      queryParams.push(`%${filters.originPlace}%`);
+      countParams.push(`%${filters.originPlace}%`);
+    }
+
+    // Add filter by username (case-insensitive search)
+    if (filters.username) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "LOWER(Users.username) LIKE LOWER(?)";
+      queryParams.push(`%${filters.username}%`);
+      countParams.push(`%${filters.username}%`);
+    }
+
+    // Add filter by email (case-insensitive search)
+    if (filters.email) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "LOWER(Users.email) LIKE LOWER(?)";
+      queryParams.push(`%${filters.email}%`);
+      countParams.push(`%${filters.email}%`);
+    }
+
+    // Add filter by phone number
+    if (filters.phoneNumber) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += "Users.phoneNumber LIKE ?";
+      queryParams.push(`%${filters.phoneNumber}%`);
+      countParams.push(`%${filters.phoneNumber}%`);
+    }
+
+    // Add sorting option
+    let orderBy = "ORDER BY DriverRequest.driverRequestId DESC";
+    if (filters.sortBy) {
+      const validSortColumns = [
+        "requestTime",
+        "driverRequestId",
+        "originPlace",
+        "fullName",
+      ];
+      const sortColumn = validSortColumns.includes(filters.sortBy)
+        ? filters.sortBy
+        : "driverRequestId";
+      const sortOrder =
+        filters.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+      if (sortColumn === "fullName") {
+        orderBy = `ORDER BY Users.fullName ${sortOrder}`;
+      } else {
+        orderBy = `ORDER BY DriverRequest.${sortColumn} ${sortOrder}`;
+      }
+    }
+
+    // Get paginated results
+    const sqlToGetRequests = `
+      SELECT 
+        DriverRequest.*,
+        Users.fullName,
+        Users.email,
+        Users.phoneNumber,
+        JourneyStatus.journeyStatusId
+      FROM DriverRequest 
+      JOIN Users ON Users.userUniqueId = DriverRequest.userUniqueId 
+      JOIN JourneyStatus ON JourneyStatus.journeyStatusId = DriverRequest.journeyStatusId
+      ${whereClause}
+      ${orderBy}
+      LIMIT ? OFFSET ?
+    `;
+
+    queryParams.push(parseInt(limit), offset);
+    const [requests] = await pool.query(sqlToGetRequests, queryParams);
+
+    // Get total count
+    const sqlCount = `
+      SELECT COUNT(*) as total 
+      FROM DriverRequest 
+      JOIN Users ON Users.userUniqueId = DriverRequest.userUniqueId 
+      JOIN JourneyStatus ON JourneyStatus.journeyStatusId = DriverRequest.journeyStatusId
+      ${whereClause}
+    `;
+
+    const [countResult] = await pool.query(sqlCount, countParams);
+    const total = countResult[0]?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      message: "success",
+      data: requests,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: totalPages,
+        totalItems: total,
+        itemsPerPage: parseInt(limit),
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        ...(userUniqueId && { userId: userUniqueId }),
+      },
+      filters: Object.keys(filters).length > 0 ? filters : undefined,
+    };
+  } catch (error) {
+    console.log("Error in getDriverRequest:", error);
+    return {
+      message: "error",
+      error: "Unable to get driver request",
+      data: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalItems: 0,
+        itemsPerPage: 10,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+  }
+};
 const attachRequiredDocuments = async (body) => {
   try {
     const result = await insertData({
@@ -812,4 +984,5 @@ module.exports = {
   deleteDriverRequest,
   cancelDriverRequest,
   takeFromStreet,
+  getDriverRequest,
 };

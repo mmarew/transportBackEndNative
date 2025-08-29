@@ -495,4 +495,5 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     return { message: "error", error: "Unable to verify driver status" };
   }
 };
+
 module.exports = { verifyPassengerStatus, verifyDriverStatus };

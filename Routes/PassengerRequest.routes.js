@@ -17,8 +17,14 @@ router.get(
   verifyTokenOfAxios,
   controller.getPassengerRequestByPassengerRequestUniqueId
 );
+
 router.get(
-  "/api/recentrequest/getRecentCompletedJourney",
+  "/api/user/getPassengerRequest4allOrSingleUser",
+  verifyTokenOfAxios,
+  controller.getPassengerRequest4allOrSingleUser
+);
+router.get(
+  "/api/recentRequest/getRecentCompletedJourney",
   verifyTokenOfAxios,
   controller.getRecentCompletedJourney
 );

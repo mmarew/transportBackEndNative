@@ -122,7 +122,30 @@ const getPassengerRequestByPassengerRequestUniqueId = async (req, res) => {
     });
   }
 };
+const getPassengerRequest4allOrSingleUser = async (req, res) => {
+  try {
+    const { target, limit, page, passengerUserUniqueId } = req.query;
+    let { userUniqueId } = req.user;
+    const data = {
+      userUniqueId:
+        passengerUserUniqueId == "self" ? userUniqueId : passengerUserUniqueId,
+      target,
+      limit,
+      page,
+    };
 
+    const result = await PassengerService.getPassengerRequest4allOrSingleUser({
+      data,
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("@getPassengerRequest4allOrSingleUser error", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Unable to retrieve request",
+    });
+  }
+};
 const updateRequestById = async (req, res) => {
   try {
     const result = await PassengerService.updateRequestById(
@@ -181,6 +204,7 @@ module.exports = {
   getRecentCompletedJourney,
   acceptDriverRequest,
   getPassengerRequestByPassengerRequestUniqueId,
+  getPassengerRequest4allOrSingleUser,
   getAllActiveRequests,
   cancelPassengerRequest,
   verifyPassengerStatus,

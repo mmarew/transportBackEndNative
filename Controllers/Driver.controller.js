@@ -104,6 +104,27 @@ const verifyDriverStatusController = async (req, res) => {
     );
   }
 };
+const getDriverRequestController = async (req, res) => {
+  try {
+    // driverUniqueId=uuidv4&target=allOrSingleDriverRequests
+    const { userUniqueId } = req?.user;
+    const { driverUserUniqueId, target } = req?.query;
+    const data = {
+      userUniqueId:
+        driverUserUniqueId == "self" ? userUniqueId : driverUserUniqueId,
+      target,
+    };
+    const result = await services.getDriverRequest({ data });
+    ServerResponder(res, result, 200);
+  } catch (error) {
+    console.log("Error in getDriverRequestController:", error);
+    ServerResponder(
+      res,
+      { message: "error", error: "Unable to get driver request" },
+      500
+    );
+  }
+};
 const startJourney = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;
@@ -204,4 +225,5 @@ module.exports = {
   deleteRequestController,
   takeFromStreet,
   verifyDriverStatusController,
+  getDriverRequestController,
 };
