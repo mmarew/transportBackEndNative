@@ -40,6 +40,29 @@ exports.getAllJourneyDecisions = async (req, res) => {
     });
   }
 };
+exports.getJourneyDecision4AllOrSingleUser = async (req, res) => {
+  try {
+    const { target, decidersUserUniqueId, roleId } = req.query;
+    const { userUniqueId } = req?.user;
+    const data = {
+      target,
+      userUniqueId:
+        decidersUserUniqueId == "self" ? userUniqueId : decidersUserUniqueId,
+      roleId,
+    };
+    const result =
+      await journeyDecisionsService.getJourneyDecision4AllOrSingleUser({
+        data,
+      });
+    ServerResponder(res, result);
+  } catch (error) {
+    console.log("Error fetching journey decisions:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch journey decisions",
+    });
+  }
+};
 
 // Get a specific journey decision by ID
 exports.getJourneyDecisionByJourneyDecisionUniqueId = async (req, res) => {

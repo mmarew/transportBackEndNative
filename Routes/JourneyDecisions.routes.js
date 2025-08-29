@@ -18,7 +18,13 @@ router.get(
 
   journeyDecisionsController.getAllJourneyDecisions
 );
+// Get all journey decisions by user /api/user/getJourneyDecision4AllOrSingleUser?target=all&userUniqueId&roleId=roleId
+router.get(
+  "/api/user/getJourneyDecision4AllOrSingleUser",
+  verifyTokenOfAxios,
 
+  journeyDecisionsController.getJourneyDecision4AllOrSingleUser
+);
 // Get a specific journey decision by ID
 router.get(
   "/api/journeyDecisions/:journeyDecisionUniqueId",
