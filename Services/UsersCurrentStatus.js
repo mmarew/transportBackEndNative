@@ -347,7 +347,7 @@ const verifyPassengerStatus = async ({
             passengerRequestId: passengerRequest?.passengerRequestId,
           },
         });
-
+        console.log("@decisionsData", decisionsData);
         const results = [];
         // for (let i = 0; i < journeyDecision.length; i++)
         for (let journeyDecision of decisionsData) {
