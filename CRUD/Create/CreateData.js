@@ -48,13 +48,6 @@ const createNewPassengerRequest = async (
     throw new Error("Invalid input parameters to create passenger request");
   }
 
-  // check if active request exists
-  // const existingRequest = await checkActivePassengerRequest(userUniqueId);
-
-  // if (existingRequest.length > 0) {
-  //   return { message: "success", data: existingRequest };
-  // }
-
   const { vehicle, destination, originLocation } = body;
 
   if (!vehicle || !destination || !originLocation) {

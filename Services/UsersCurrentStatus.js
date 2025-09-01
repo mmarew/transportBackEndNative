@@ -231,13 +231,24 @@ const handleExistingJourney = async (
 const verifyPassengerStatus = async ({
   userUniqueId,
   activeRequest,
+  totalRecords,
   sendNotificationsToDrivers = false,
+  pageSize,
+  page,
 }) => {
   try {
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
-    if (!activeRequest || activeRequest?.length == 0)
-      activeRequest = await checkActivePassengerRequest(userUniqueId);
-    console.log("@activeRequest", activeRequest);
+    if (!activeRequest || activeRequest?.length == 0) {
+      const dataOfActiveRequest = await checkActivePassengerRequest(
+        userUniqueId,
+        pageSize,
+        page
+      );
+      console.log("@verifyPassengerStatus activeRequest", dataOfActiveRequest);
+      activeRequest = dataOfActiveRequest?.activeRequests;
+      totalRecords = dataOfActiveRequest?.totalRecords;
+    }
+    console.log("@activeRequest", activeRequest, "@totalRecords", totalRecords);
 
     // If no active request, return an error
     if (activeRequest?.length == 0 || !activeRequest) {
@@ -331,6 +342,7 @@ const verifyPassengerStatus = async ({
               },
               journey: null,
               decisions: journeyDecisionPayload,
+              totalRecords: totalRecords,
             },
             phoneNumber: driver?.phoneNumber,
           });
@@ -405,6 +417,7 @@ const verifyPassengerStatus = async ({
             driver: driverInfo,
             journey: journey,
             decision: journeyDecision || null,
+            totalRecords: totalRecords,
           };
           if (sendNotificationsToDrivers)
             if (phoneNumber) {
@@ -424,6 +437,7 @@ const verifyPassengerStatus = async ({
       drivers: driversData,
       journey: journey,
       decisions,
+      totalRecords: totalRecords,
     };
     return message;
   } catch (error) {

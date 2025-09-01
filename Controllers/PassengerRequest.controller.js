@@ -174,13 +174,23 @@ const deleteRequest = async (req, res) => {
 };
 const verifyPassengerStatus = async (req, res) => {
   try {
+    const { pageSize, page } = req?.query;
     const { userUniqueId } = req?.user ?? {};
     const result = await usersCurrentStatus.verifyPassengerStatus({
       userUniqueId,
+      pageSize,
+      page,
     });
     ServerResponder(res, result, 200);
   } catch (error) {
-    ServerResponder(res, result, 200);
+    ServerResponder(
+      res,
+      {
+        message: "error",
+        error: "Unable to verify passenger status",
+      },
+      200
+    );
   }
 };
 const cancelPassengerRequest = async (req, res) => {

@@ -1,3 +1,4 @@
+const { promises } = require("stream");
 const { pool } = require("../../Middleware/Database.config");
 const {
   activeStatuses,
@@ -268,22 +269,84 @@ const checkUserExists = async (userUniqueId) => {
   return existingUser?.length ? existingUser[0] : null;
 };
 
-const checkActivePassengerRequest = async (userUniqueId) => {
-  const activeRequest = await performJoinSelect({
-    baseTable: "PassengerRequest",
-    joins: [
-      {
-        table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-      },
-    ],
-    conditions: {
-      "PassengerRequest.userUniqueId": userUniqueId,
-      "PassengerRequest.journeyStatusId": activeStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
-    },
-  });
+// const checkActivePassengerRequest = async (userUniqueId) => {
+//   const activeRequest = await performJoinSelect({
+//     baseTable: "PassengerRequest",
+//     joins: [
+//       {
+//         table: "Users",
+//         on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+//       },
+//     ],
+//     conditions: {
+//       "PassengerRequest.userUniqueId": userUniqueId,
+//       "PassengerRequest.journeyStatusId": activeStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+//     },
+//   });
 
-  return activeRequest;
+//   return activeRequest;
+// };
+
+const checkActivePassengerRequest = async (
+  userUniqueId,
+  page = 1,
+  pageSize = 10
+) => {
+  console.log("page", page, "pageSize", pageSize);
+  const offset = (page - 1) * pageSize;
+
+  const query = `
+    SELECT 
+        pr.passengerRequestId,
+        pr.passengerRequestUniqueId,
+        pr.userUniqueId,
+        pr.passengerRequestBatchId,
+        pr.vehicleTypeUniqueId,
+        pr.journeyStatusId,
+        pr.originLatitude,
+        pr.originLongitude,
+        pr.originPlace,
+        pr.destinationLatitude,
+        pr.destinationLongitude,
+        pr.destinationPlace,
+        pr.requestTime,
+        pr.shippableItemName,
+        pr.shippableItemQtyInQuintal,
+        pr.shippingDate,
+        pr.deliveryDate,
+        pr.shippingCost,
+        u.fullName,
+        u.phoneNumber,
+        u.email
+    FROM PassengerRequest pr
+    INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
+    WHERE pr.userUniqueId = ?
+    AND pr.journeyStatusId IN (1, 2, 3, 4)
+    ORDER BY pr.passengerRequestId DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  // Execute the query with parameters
+  const [activeRequests, totalRecords] = await Promise.all([
+    pool.query(query, [userUniqueId, Number(pageSize), Number(offset)]),
+    getActiveRequestsCount(userUniqueId),
+  ]);
+  console.log("@checkActivePassengerRequest totalRecords", totalRecords);
+  return { activeRequests: activeRequests[0], totalRecords };
+};
+
+// Optional: Get total count for pagination metadata
+const getActiveRequestsCount = async (userUniqueId) => {
+  const query = `
+    SELECT COUNT(*) as totalCount
+    FROM PassengerRequest pr
+    WHERE pr.userUniqueId = ?
+    AND pr.journeyStatusId IN (1, 2, 3, 4)
+  `;
+
+  const [result] = await pool.query(query, [userUniqueId]);
+  console.log("@getActiveRequestsCount result", result);
+  return result[0].totalCount;
 };
 
 const checkActiveDriverRequest = async (userUniqueId) => {
