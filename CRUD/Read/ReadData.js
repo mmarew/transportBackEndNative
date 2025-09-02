@@ -269,30 +269,21 @@ const checkUserExists = async (userUniqueId) => {
   return existingUser?.length ? existingUser[0] : null;
 };
 
-// const checkActivePassengerRequest = async (userUniqueId) => {
-//   const activeRequest = await performJoinSelect({
-//     baseTable: "PassengerRequest",
-//     joins: [
-//       {
-//         table: "Users",
-//         on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-//       },
-//     ],
-//     conditions: {
-//       "PassengerRequest.userUniqueId": userUniqueId,
-//       "PassengerRequest.journeyStatusId": activeStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
-//     },
-//   });
-
-//   return activeRequest;
-// };
-
-const checkActivePassengerRequest = async (
+const checkActivePassengerRequest = async ({
   userUniqueId,
   page = 1,
-  pageSize = 10
-) => {
+  pageSize = 10,
+}) => {
   console.log("page", page, "pageSize", pageSize);
+  console.log(
+    "@checkActivePassengerRequest userUniqueId",
+    userUniqueId,
+    "@page",
+    page,
+    "@pageSize",
+    pageSize
+  );
+  // return;
   const offset = (page - 1) * pageSize;
 
   const query = `
@@ -331,7 +322,12 @@ const checkActivePassengerRequest = async (
     pool.query(query, [userUniqueId, Number(pageSize), Number(offset)]),
     getActiveRequestsCount(userUniqueId),
   ]);
-  console.log("@checkActivePassengerRequest totalRecords", totalRecords);
+  console.log(
+    "@checkActivePassengerRequest totalRecords",
+    totalRecords,
+    "\ncheckActivePassengerRequest activeRequests ",
+    activeRequests
+  );
   return { activeRequests: activeRequests[0], totalRecords };
 };
 

@@ -477,7 +477,9 @@ const cancelPassengerRequest = async (body) => {
       cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
     const { userUniqueId } = user;
     // Check if the user has any active passenger requests
-    const data = await checkActivePassengerRequest(ownerUserUniqueId);
+    const data = await checkActivePassengerRequest({
+      userUniqueId: ownerUserUniqueId,
+    });
     const getActiveRequest = data?.activeRequests;
     const totalRecords = data?.totalRecords;
 

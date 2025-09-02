@@ -19,9 +19,7 @@ const {
   sendNotificationToDriver,
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
-const {
-  getTariffRateByVehicleTypeUniqueId,
-} = require("./TariffRateForVehicleTypes.service");
+
 const {
   getVehicleAndOwnershipViaUserUniqueId,
   getVehicleOwnershipByUserUniqueId,
@@ -239,11 +237,11 @@ const verifyPassengerStatus = async ({
   try {
     // 1. Check if the user has an active request (status 1, 2, 3, or 4)
     if (!activeRequest || activeRequest?.length == 0) {
-      const dataOfActiveRequest = await checkActivePassengerRequest(
+      const dataOfActiveRequest = await checkActivePassengerRequest({
         userUniqueId,
         pageSize,
-        page
-      );
+        page,
+      });
       console.log("@verifyPassengerStatus activeRequest", dataOfActiveRequest);
       activeRequest = dataOfActiveRequest?.activeRequests;
       totalRecords = dataOfActiveRequest?.totalRecords;
@@ -363,7 +361,6 @@ const verifyPassengerStatus = async ({
         });
         console.log("@decisionsData", decisionsData);
         const results = [];
-        // for (let i = 0; i < journeyDecision.length; i++)
         for (let journeyDecision of decisionsData) {
           decisions.push(journeyDecision);
           const journeyStatusId = journeyDecision.journeyStatusId;
