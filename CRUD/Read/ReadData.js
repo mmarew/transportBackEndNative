@@ -274,15 +274,6 @@ const checkActivePassengerRequest = async ({
   page = 1,
   pageSize = 10,
 }) => {
-  console.log("page", page, "pageSize", pageSize);
-  console.log(
-    "@checkActivePassengerRequest userUniqueId",
-    userUniqueId,
-    "@page",
-    page,
-    "@pageSize",
-    pageSize
-  );
   // return;
   const offset = (page - 1) * pageSize;
 
