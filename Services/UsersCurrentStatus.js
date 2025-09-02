@@ -343,6 +343,8 @@ const verifyPassengerStatus = async ({
               journey: null,
               decisions: journeyDecisionPayload,
               totalRecords: totalRecords,
+              pageSize,
+              page,
             },
             phoneNumber: driver?.phoneNumber,
           });
@@ -418,6 +420,8 @@ const verifyPassengerStatus = async ({
             journey: journey,
             decision: journeyDecision || null,
             totalRecords: totalRecords,
+            pageSize,
+            page,
           };
           if (sendNotificationsToDrivers)
             if (phoneNumber) {
@@ -438,6 +442,8 @@ const verifyPassengerStatus = async ({
       journey: journey,
       decisions,
       totalRecords: totalRecords,
+      pageSize,
+      page,
     };
     return message;
   } catch (error) {
