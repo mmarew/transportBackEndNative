@@ -10,7 +10,7 @@ message
 
  and 
 
-detailes
+details
 
  (which appears to be a typo for "details"). The 
 
@@ -18,7 +18,7 @@ message
 
  provides a brief description of the action, while 
 
-detailes
+details
 
  gives a more detailed explanation of the circumstances under which the message is used. Finally, the 
 
@@ -35,54 +35,64 @@ Here's a corrected version of the code with the typos fixed:
 
 const messageTypes = {
   refund_approved_by_admin: {
-    message: "admin approved driver refund",
-    detailes: "When driver approved refund data",
+    message: "Admin approved driver refund.",
+    details: "When driver approved refund data.",
   },
   create_deposit_By_driver: {
-    message: "driver deposited money",
-    detailes:
+    message: "Driver deposited money.",
+    details:
       "When driver deposited money it is in status of requested and needs approval by admin",
   },
   refund_requested_by_driver: {
-    message: "driver request refund",
-    detailes: "When driver requests an admin to refund there money",
+    message: "Driver request refund.",
+    details: "When driver requests an admin to refund there money.",
   },
   request_other_driver: {
-    message: "requesting other driver",
-    detailes:
+    message: "Requesting other driver.",
+    details:
       "When driver is not giving answers to current passenger request, passengers request is being forwarded to other driver",
   },
   reCreate_new_passenger_request: {
     message: "recreate new passenger request",
-    detailes:
-      "When current passenger request is not fulfieled and recreating is necessery",
+    details:
+      "When current passenger request is not fulfilled and recreating is necessary",
   },
   request_other_passenger: {
     message: "requesting other passenger",
-    detailes:
+    details:
       "When passenger is not giving answers to current driver request, driver request is being forwarded to other passenger",
   },
   reCreate_new_driver_request: {
     message: "recreate new driver request",
-    detailes:
-      "When current driver request is not fulfieled and recreating is necessery",
+    details:
+      "When current driver request is not fulfilled and recreating is necessary",
   },
+  // 0983068308
   driver_not_answered: {
-    message: "driver is not responding",
-    detailes: "driver don't respond to current passengers request ",
+    message: "Driver is not responding",
+    details: "Driver don't respond to current passengers request ",
   },
-  driver_answred_calls: {
-    message: "driver responded to calls",
-    detailes: "driver respond to passenger calls",
+  driver_accepted_shipper_request: {
+    message: "Driver accepted shipper request.",
+    details:
+      "Driver accepted shipper request and waiting for shipper approval.",
+  },
+  driver_started_journey: {
+    message: "Driver started journey.",
+    details: "Driver started journey to destination, follow on map .",
+  },
+  driver_completed_journey: {
+    message: "Driver completed journey.",
+    details: "Driver completed journey to destination, follow on map .",
   },
   online_driver_not_found: {
-    message: "online driver not found",
-    detailes:
+    message: "Online driver not found.",
+    details:
       "Dear customer, we apologize to inform you. Your request has been canceled by the system because no vehicle is available nearby. Please try again later.",
   },
   update_drivers_location: {
-    message: "update drivers location",
-    detailes:
+    message: "Update drivers location.",
+    details:
       "When driver is moving from place to place its current location is being updated",
   },
 };

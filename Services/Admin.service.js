@@ -137,7 +137,7 @@ WHERE
   },
 
   getOnlineDrivers: async (req) => {
-    // driver is online when its journeyStatusId is one in DriverRequest table . also get drivers vehicle detailes from vehicle table and VehicleOwnership table. vehicle is connected to VehicleTypes table
+    // driver is online when its journeyStatusId is one in DriverRequest table . also get drivers vehicle details from vehicle table and VehicleOwnership table. vehicle is connected to VehicleTypes table
     const data = await performJoinSelect({
       baseTable: "DriverRequest",
       joins: [

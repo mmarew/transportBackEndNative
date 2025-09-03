@@ -4,7 +4,7 @@ const { getData } = require("../Read/ReadData");
 const formatDateToReadable = require("../../Utils/FormatDateToReadable");
 const {
   journeyStatusMap,
-  activeStatuses,
+  activeJourneyStatuses,
 } = require("../../Utils/ListOfFixedData");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
@@ -119,16 +119,12 @@ const createDriverRequest = async (body, userUniqueId, journeyStatusId) => {
     if (!body || !userUniqueId) {
       throw new Error("Invalid input parameters to create driver request");
     }
-    console.log("@createDriverRequest journeyStatusId", journeyStatusId);
-    // return;
-    // Convert array to SQL-friendly format
-    const activeStatusesSQL = `(${activeStatuses.join(", ")})`;
 
     const sqlToCheckActiveRequest = `
   SELECT * FROM DriverRequest 
   WHERE userUniqueId = ? 
-  AND journeyStatusId IN ${activeStatusesSQL}
-`;
+  AND journeyStatusId IN (${activeJourneyStatuses.join(", ")}
+  )`;
 
     const [existingRequest] = await pool.query(sqlToCheckActiveRequest, [
       userUniqueId,

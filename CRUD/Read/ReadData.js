@@ -1,8 +1,8 @@
 const { promises } = require("stream");
 const { pool } = require("../../Middleware/Database.config");
 const {
-  activeStatuses,
   journeyStatusMap,
+  activeJourneyStatuses,
 } = require("../../Utils/ListOfFixedData");
 const VerifyIfPassengerRequestWasNotRejected = require("../../Utils/VerifyIfPassengerRequestWasNotRejected");
 const searchRange = 0.41;
@@ -276,7 +276,13 @@ const checkActivePassengerRequest = async ({
 }) => {
   // return;
   const offset = (page - 1) * pageSize;
-
+  const activeJourneyStatuses = [
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    journeyStatusMap.acceptedByDriver,
+    journeyStatusMap.acceptedByPassenger,
+    journeyStatusMap.journeyStarted,
+  ];
   const query = `
     SELECT 
         pr.passengerRequestId,
@@ -303,7 +309,7 @@ const checkActivePassengerRequest = async ({
     FROM PassengerRequest pr
     INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
     WHERE pr.userUniqueId = ?
-    AND pr.journeyStatusId IN (1, 2, 3, 4)
+    AND pr.journeyStatusId IN (${activeJourneyStatuses.join(",")})
     ORDER BY pr.passengerRequestId DESC
     LIMIT ? OFFSET ?
   `;
@@ -317,18 +323,25 @@ const checkActivePassengerRequest = async ({
     "@checkActivePassengerRequest totalRecords",
     totalRecords,
     "\ncheckActivePassengerRequest activeRequests ",
-    activeRequests
+    activeRequests[0]
   );
   return { activeRequests: activeRequests[0], totalRecords };
 };
 
 // Optional: Get total count for pagination metadata
 const getActiveRequestsCount = async (userUniqueId) => {
+  const activeJourneyStatuses = [
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    journeyStatusMap.acceptedByDriver,
+    journeyStatusMap.acceptedByPassenger,
+    journeyStatusMap.journeyStarted,
+  ];
   const query = `
     SELECT COUNT(*) as totalCount
     FROM PassengerRequest pr
     WHERE pr.userUniqueId = ?
-    AND pr.journeyStatusId IN (1, 2, 3, 4)
+    AND pr.journeyStatusId IN (${activeJourneyStatuses.join(",")})
   `;
 
   const [result] = await pool.query(query, [userUniqueId]);
@@ -349,7 +362,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
       ],
       conditions: {
         "DriverRequest.userUniqueId": userUniqueId,
-        "DriverRequest.journeyStatusId": activeStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+        "DriverRequest.journeyStatusId": activeJourneyStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
       },
     });
 

@@ -37,7 +37,7 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
 
     const res = await emitMessage({
       messageTitle: "messages",
-      messageDetailes: JSON.stringify(message),
+      messagedetails: JSON.stringify(message),
       socketId,
     });
 
@@ -76,7 +76,7 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 
     const res = await emitMessage({
       messageTitle: "messages",
-      messageDetailes: JSON.stringify(message),
+      messagedetails: JSON.stringify(message),
       socketId,
     });
 
@@ -114,7 +114,7 @@ const sendNotificationToAdmin = async ({ message }) => {
       try {
         const res = await emitMessage({
           messageTitle: "messages",
-          messageDetailes: JSON.stringify(message),
+          messagedetails: JSON.stringify(message),
           socketId,
         });
 

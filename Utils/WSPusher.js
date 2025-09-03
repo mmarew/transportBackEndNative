@@ -28,7 +28,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messageDetailes: "Token is required for connection.",
+        messagedetails: "Token is required for connection.",
       });
     }
 
@@ -37,7 +37,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messageDetailes: "You are not authorized",
+        messagedetails: "You are not authorized",
       });
     }
 
@@ -48,7 +48,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messageDetailes: "Invalid phone number format (9–15 digits)",
+        messagedetails: "Invalid phone number format (9–15 digits)",
       });
     }
 
@@ -57,7 +57,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messageDetailes: "Invalid user type",
+        messagedetails: "Invalid user type",
       });
     }
 
@@ -68,7 +68,7 @@ async function WSPusher({ io, socket }) {
         return emitMessage({
           socketId,
           messageTitle: "messages",
-          messageDetailes: "Password is required for SMS sender",
+          messagedetails: "Password is required for SMS sender",
         });
       }
 
@@ -81,7 +81,7 @@ async function WSPusher({ io, socket }) {
         return emitMessage({
           socketId,
           messageTitle: "messages",
-          messageDetailes: "This phone number is not found",
+          messagedetails: "This phone number is not found",
         });
       }
 
@@ -95,7 +95,7 @@ async function WSPusher({ io, socket }) {
         return emitMessage({
           socketId,
           messageTitle: "messages",
-          messageDetailes: "You are not authorized",
+          messagedetails: "You are not authorized",
         });
       }
     }
@@ -115,7 +115,7 @@ async function WSPusher({ io, socket }) {
     return emitMessage({
       socketId,
       messageTitle: "messages",
-      messageDetailes: JSON.stringify({
+      messagedetails: JSON.stringify({
         status,
         socketId,
         message: "success",
@@ -129,7 +129,7 @@ async function WSPusher({ io, socket }) {
       error: "Internal server error occurred during socket registration.",
       message: "error",
       messageTitle: "messages",
-      messageDetailes:
+      messagedetails:
         "Internal server error occurred during socket registration.",
     });
   }

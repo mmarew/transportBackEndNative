@@ -298,68 +298,74 @@ const createAndAcceptNewRequest = async (body) => {
   }
 };
 const acceptPassengerRequest = async (body) => {
-  const {
-    passengerRequestUniqueId,
-    journeyDecisionUniqueId,
-    driverRequestUniqueId,
-  } = body;
+  try {
+    const {
+      passengerRequestUniqueId,
+      journeyDecisionUniqueId,
+      driverRequestUniqueId,
+    } = body;
 
-  const existingRequest = await performJoinSelect({
-    baseTable: "DriverRequest",
-    joins: [
-      {
-        table: "JourneyDecisions",
-        on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+    const existingRequest = await performJoinSelect({
+      baseTable: "DriverRequest",
+      joins: [
+        {
+          table: "JourneyDecisions",
+          on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+        },
+        {
+          table: "PassengerRequest",
+          on: "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+        },
+      ],
+      conditions: {
+        "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
       },
-      {
-        table: "PassengerRequest",
-        on: "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
-      },
-    ],
-    conditions: {
-      "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
-    },
-  });
-
-  if (!existingRequest?.length)
-    return { message: "error", error: "Request not found" };
-  if (
-    !existingRequest[0].journeyDecisionUniqueId == journeyDecisionUniqueId ||
-    !existingRequest[0].passengerRequestUniqueId == passengerRequestUniqueId
-  ) {
-    return {
-      message: "error",
-      error: "Request   found is not valid to accept",
-    };
-  }
-  const journeyStatusId = existingRequest[0].journeyStatusId;
-  console.log("@existingRequest", existingRequest);
-
-  if (
-    journeyStatusId === journeyStatusMap.requested ||
-    journeyStatusId === journeyStatusMap.acceptedByDriver
-  )
-    await updateJourneyStatus(body);
-
-  const message = await verifyDriverStatus({
-    userUniqueId: body.userUniqueId,
-  });
-  const passenger = message?.passenger;
-  const phoneNumber = passenger?.phoneNumber;
-  if (phoneNumber && journeyStatusId === journeyStatusMap.requested) {
-    const passengerStatusData = await verifyPassengerStatus({
-      userUniqueId: passenger.userUniqueId,
     });
-    sendNotificationToPassenger({
-      message: {
-        ...passengerStatusData,
-        status: journeyStatusMap.acceptedByDriver,
-      },
-      phoneNumber,
-    });
-  }
 
-  return message;
+    if (!existingRequest?.length)
+      return { message: "error", error: "Request not found" };
+    if (
+      !existingRequest[0].journeyDecisionUniqueId == journeyDecisionUniqueId ||
+      !existingRequest[0].passengerRequestUniqueId == passengerRequestUniqueId
+    ) {
+      return {
+        message: "error",
+        error: "Request   found is not valid to accept",
+      };
+    }
+    const journeyStatusId = existingRequest[0].journeyStatusId;
+    console.log("@existingRequest", existingRequest);
+
+    if (
+      journeyStatusId === journeyStatusMap.requested ||
+      journeyStatusId === journeyStatusMap.acceptedByDriver
+    )
+      await updateJourneyStatus(body);
+
+    const message = await verifyDriverStatus({
+      userUniqueId: body.userUniqueId,
+    });
+    const passenger = message?.passenger;
+    const phoneNumber = passenger?.phoneNumber;
+    if (phoneNumber && journeyStatusId === journeyStatusMap.requested) {
+      const passengerStatusData = await verifyPassengerStatus({
+        userUniqueId: passenger.userUniqueId,
+      });
+      console.log("@passengerStatusData====>", passengerStatusData);
+      sendNotificationToPassenger({
+        message: {
+          ...passengerStatusData,
+          status: journeyStatusMap.acceptedByDriver,
+        },
+        phoneNumber,
+      });
+    }
+
+    return message;
+  } catch (error) {
+    console.log("Error in acceptPassengerRequest:", error);
+    return { message: "error", error: "Unable to accept passenger request" };
+  }
 };
 const startJourney = async (body) => {
   const journeyUniqueId = uuidv4();

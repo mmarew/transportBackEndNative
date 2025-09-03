@@ -25,6 +25,7 @@ const {
   getVehicleOwnershipByUserUniqueId,
 } = require("./VehicleOwnership.service");
 const VerifyIfPassengerRequestWasNotRejected = require("../Utils/VerifyIfPassengerRequestWasNotRejected");
+const messageTypes = require("../Utils/MessageTypes");
 
 // Handle when journeyStatusId is 1
 const handleJourneyStatusOne = async (
@@ -193,14 +194,16 @@ const handleExistingJourney = async (
     driver: { ...driverRequest, driverProfilePhoto },
     vehicle,
   };
+  const uniqueIds = {
+    driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
+    passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
+    journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
+    journeyUniqueId: journey?.journeyUniqueId,
+  };
+  const journeyStatusId = driverRequest.journeyStatusId;
   const responseMessage = {
-    uniqueIds: {
-      driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
-      journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
-      journeyUniqueId: journey?.journeyUniqueId,
-    },
-    status: driverRequest.journeyStatusId,
+    uniqueIds,
+    status: journeyStatusId,
     driver,
     passenger: passenger || null,
     journey: journey || null,
@@ -210,10 +213,17 @@ const handleExistingJourney = async (
   if (passenger?.phoneNumber) {
     await sendNotificationToPassenger({
       message: {
-        ...responseMessage,
-        status: driverRequest.journeyStatusId,
+        messageTypes:
+          journeyStatusId === journeyStatusMap.acceptedByDriver
+            ? messageTypes.driver_accepted_shipper_request
+            : messageTypes.driver_started_journey,
+        message: "success",
+        status: journeyStatusId,
         passenger: [passenger],
         drivers: [driver],
+        decisions: [journeyDecision] || null,
+        journey: journey || null,
+        uniqueIds,
       },
       phoneNumber: passenger?.phoneNumber,
     });
@@ -221,7 +231,7 @@ const handleExistingJourney = async (
 
   return {
     message: "success",
-    status: passenger?.journeyStatusId || driverRequest.journeyStatusId,
+    status: passenger?.journeyStatusId || journeyStatusId,
     ...responseMessage,
   };
 }; // this function is used to get status of passenger and find driver if driver is not found.
@@ -246,7 +256,6 @@ const verifyPassengerStatus = async ({
       activeRequest = dataOfActiveRequest?.activeRequests;
       totalRecords = dataOfActiveRequest?.totalRecords;
     }
-    console.log("@activeRequest", activeRequest, "@totalRecords", totalRecords);
 
     // If no active request, return an error
     if (activeRequest?.length == 0 || !activeRequest) {

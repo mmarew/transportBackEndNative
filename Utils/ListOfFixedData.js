@@ -592,7 +592,7 @@ const journeyStatusMap = {
   noAnswerFromDriver: 13,
 };
 // these are active because they can be used to check if it is active or not
-const activeStatuses = [
+const activeJourneyStatuses = [
   journeyStatusMap.waiting,
   journeyStatusMap.requested,
   journeyStatusMap.acceptedByDriver,
@@ -766,7 +766,7 @@ module.exports = {
   subscriptionPlanLists,
   financialInstitutionAccount,
   listOfDocumentsTypeAndId,
-  activeStatuses,
+  activeJourneyStatuses,
   journeyStatusMap,
   vehicleStatusTypes,
   CommissionRates,

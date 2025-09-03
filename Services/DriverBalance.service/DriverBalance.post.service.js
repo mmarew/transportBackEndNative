@@ -45,7 +45,7 @@ const prepareAndCreateNewBalance = async ({
       return {
         message: `error`,
         error: `no enough balance`,
-        detailes: `user don't have enough balance to deduct`,
+        details: `user don't have enough balance to deduct`,
       };
   }
   const newBalance =
@@ -56,7 +56,7 @@ const prepareAndCreateNewBalance = async ({
     return {
       message: `error`,
       error: `no enough balance`,
-      detailes: `user balance is not added correctly`,
+      details: `user balance is not added correctly`,
     };
   }
   const newNetBalanceData = {
@@ -94,7 +94,7 @@ const createDriverBalance = async (data) => {
           message: "success",
           // error: "Driver balance record already exists",
           data: existingRecords?.[0],
-          detailes: "already existed data",
+          details: "already existed data",
         };
       }
     } else if (existingRecords.length > 0) {
@@ -102,7 +102,7 @@ const createDriverBalance = async (data) => {
         message: "success",
         // error: "Driver balance record already exists",
         data: existingRecords?.[0],
-        detailes: "already existed data",
+        details: "already existed data",
       };
     }
 
