@@ -88,47 +88,51 @@ async function initSocket({ httpServer }) {
   io.adapter(createAdapter(pubClient, subClient));
 
   // ==================== ADD AUTHENTICATION MIDDLEWARE ====================
+  // Enhanced middleware that handles tokens from multiple sources
   io.use((socket, next) => {
-    console.log("=== SOCKET CONNECTION ATTEMPT ===");
-    console.log("Handshake auth:", socket.handshake.auth);
-    console.log("Handshake query:", socket.handshake.query);
+    console.log("=== CONNECTION DEBUG ===");
 
-    // Get token from either auth object or query parameters
-    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    // Check multiple possible locations for token
+    const token =
+      socket.handshake.auth?.token ||
+      socket.handshake.query?.token ||
+      socket.handshake.headers?.authorization;
+
+    console.log("Token found in:", {
+      auth: socket.handshake.auth?.token,
+      query: socket.handshake.query?.token,
+      headers: socket.handshake.headers?.authorization,
+    });
 
     if (!token) {
-      console.error("❌ Connection rejected: No token provided");
+      console.error("❌ No token found in any location");
       return next(new Error("Authentication error: No token provided"));
     }
 
-    // Check if token has Bearer prefix
-    if (!token.startsWith("Bearer ")) {
-      console.error(
-        '❌ Connection rejected: Invalid token format. Expected "Bearer <token>"'
-      );
-      return next(new Error("Authentication error: Invalid token format"));
-    }
-
-    const jwtToken = token.replace("Bearer ", "");
+    // Extract token (handle both "Bearer token" and just "token")
+    const actualToken = token.startsWith("Bearer ")
+      ? token.replace("Bearer ", "")
+      : token;
 
     try {
-      // Verify JWT token - replace 'your-secret-key' with your actual secret
       const decoded = jwt.verify(
-        jwtToken,
-        process.env.SECRET_KEY || "your-secret-key"
+        actualToken,
+        process.env.JWT_SECRET || "your-secret-key"
       );
-      console.log("✅ Token verified for user:", decoded.data);
+      console.log(
+        "✅ Authentication successful for:",
+        decoded.data.phoneNumber
+      );
 
-      // Attach user data to socket for later use
       socket.userData = decoded.data;
-      socket.userType = socket.handshake.query?.user || "unknown";
+      socket.userType = socket.handshake.query?.user || "passenger"; // default to passenger
       socket.identifier =
         socket.handshake.query?.phoneNumber || decoded.data.phoneNumber;
 
       next();
     } catch (error) {
-      console.error("❌ Token verification failed:", error.message);
-      next(new Error("Authentication error: " + error.message));
+      console.error("❌ Authentication failed:", error.message);
+      next(new Error("Authentication failed: " + error.message));
     }
   });
   // ==================== END AUTHENTICATION MIDDLEWARE ====================
