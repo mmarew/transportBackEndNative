@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
-const { getData, checkActivePassengerRequest } = require("../Read/ReadData");
+const { getData } = require("../Read/ReadData");
 const formatDateToReadable = require("../../Utils/FormatDateToReadable");
 const {
   journeyStatusMap,
