@@ -177,8 +177,8 @@ const dropAllTables = async () => {
 };
 
 const updateTable = async (tableName, updateData) => {
-  const { columnName, columnType } = updateData;
-  const sqlQuery = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType}`;
+  const { columnName, columnType, defaultValue } = updateData;
+  const sqlQuery = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType} DEFAULT ${defaultValue}`;
 
   try {
     await pool.query(sqlQuery);

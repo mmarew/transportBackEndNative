@@ -20,19 +20,19 @@ const routes = [
   },
   {
     method: "get",
-    path: "/api/journey/:id",
+    path: "/api/journey/:journeyUniqueId",
     middleware: [verifyTokenOfAxios],
-    handler: journeyController.getJourneyById,
+    handler: journeyController.getJourneyByJourneyUniqueId,
   },
   {
     method: "put",
-    path: "/api/journey/:id",
+    path: "/api/journey/:journeyUniqueId",
     middleware: [verifyTokenOfAxios],
     handler: journeyController.updateJourney,
   },
   {
     method: "delete",
-    path: "/api/journey/:id",
+    path: "/api/journey/:journeyUniqueId",
     middleware: [verifyTokenOfAxios],
     handler: journeyController.deleteJourney,
   },

@@ -34,6 +34,10 @@ Here's a corrected version of the code with the typos fixed:
  */
 
 const messageTypes = {
+  connection_established: {
+    message: "Connection established.",
+    details: "When connection is established.",
+  },
   refund_approved_by_admin: {
     message: "Admin approved driver refund.",
     details: "When driver approved refund data.",

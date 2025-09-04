@@ -9,7 +9,7 @@ const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
       const socketId = ws.socketId;
       const res = emitMessage({
         socketId,
-        messagedetails: JSON.stringify({ OTP, phoneNumber }),
+        messageDetails: JSON.stringify({ OTP, phoneNumber }),
         messageTitle: "messages",
       });
       console.log("@sendOtpViaWebSocket res", res);
@@ -19,19 +19,19 @@ const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
     return { message: "error", error: "Error in sending OTP" };
   }
 };
-const emitMessage = ({ socketId, messageTitle, messagedetails }) => {
+const emitMessage = ({ socketId, messageTitle, messageDetails }) => {
   const io = socketIO.io;
   if (!io) {
-    console.log("@emitMessage Empity io");
+    console.log("@emitMessage Empty io");
 
     return { message: "error", data: "message can't be sent successfully" };
   }
   if (!socketId) {
-    console.log("@emitMessage Empity socketId");
+    console.log("@emitMessage Empty socketId");
 
     return { message: "error", data: "message can't be sent successfully" };
   }
-  const socketData = io.to(socketId).emit(messageTitle, messagedetails);
+  const socketData = io.to(socketId).emit(messageTitle, messageDetails);
   console.log("@emitMessage socketData", socketData);
   if (socketData == true) {
     return { message: "success", data: "message sent successfully" };

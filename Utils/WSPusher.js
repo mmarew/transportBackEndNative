@@ -9,6 +9,7 @@ const {
 } = require("../Services/PassengerRequest.service");
 const { getDriverJourneyStatus } = require("../Services/DriverRequest.service");
 const { verifyPassengerStatus } = require("../Services/UsersCurrentStatus");
+const messageTypes = require("./MessageTypes");
 
 const phoneNumberRegex = /^[0-9]{9,15}$/;
 
@@ -28,7 +29,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messagedetails: "Token is required for connection.",
+        messageDetails: "Token is required for connection.",
       });
     }
 
@@ -37,7 +38,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messagedetails: "You are not authorized",
+        messageDetails: "You are not authorized",
       });
     }
 
@@ -48,7 +49,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messagedetails: "Invalid phone number format (9–15 digits)",
+        messageDetails: "Invalid phone number format (9–15 digits)",
       });
     }
 
@@ -57,7 +58,7 @@ async function WSPusher({ io, socket }) {
       return emitMessage({
         socketId,
         messageTitle: "messages",
-        messagedetails: "Invalid user type",
+        messageDetails: "Invalid user type",
       });
     }
 
@@ -68,7 +69,7 @@ async function WSPusher({ io, socket }) {
         return emitMessage({
           socketId,
           messageTitle: "messages",
-          messagedetails: "Password is required for SMS sender",
+          messageDetails: "Password is required for SMS sender",
         });
       }
 
@@ -81,7 +82,7 @@ async function WSPusher({ io, socket }) {
         return emitMessage({
           socketId,
           messageTitle: "messages",
-          messagedetails: "This phone number is not found",
+          messageDetails: "This phone number is not found",
         });
       }
 
@@ -95,7 +96,7 @@ async function WSPusher({ io, socket }) {
         return emitMessage({
           socketId,
           messageTitle: "messages",
-          messagedetails: "You are not authorized",
+          messageDetails: "You are not authorized",
         });
       }
     }
@@ -115,7 +116,8 @@ async function WSPusher({ io, socket }) {
     return emitMessage({
       socketId,
       messageTitle: "messages",
-      messagedetails: JSON.stringify({
+      messageDetails: JSON.stringify({
+        messageTypes: messageTypes.connection_established,
         status,
         socketId,
         message: "success",
@@ -129,7 +131,7 @@ async function WSPusher({ io, socket }) {
       error: "Internal server error occurred during socket registration.",
       message: "error",
       messageTitle: "messages",
-      messagedetails:
+      messageDetails:
         "Internal server error occurred during socket registration.",
     });
   }

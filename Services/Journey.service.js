@@ -86,10 +86,11 @@ const getAllJourneys = async (page = 1, limit = 10) => {
 };
 
 // Get a specific journey by ID
-const getJourneyById = async (journeyId) => {
-  const result = await query("SELECT * FROM Journey WHERE journeyId = ?", [
-    journeyId,
-  ]);
+const getJourneyByJourneyUniqueId = async (journeyUniqueId) => {
+  const result = await query(
+    "SELECT * FROM Journey WHERE journeyUniqueId = ?",
+    [journeyUniqueId]
+  );
 
   return result.length > 0
     ? { message: "success", data: result[0] }
@@ -598,7 +599,7 @@ const getAllCompletedJourneys = async ({ roleId, page = 1, limit = 10 }) => {
 module.exports = {
   createJourney,
   getAllJourneys,
-  getJourneyById,
+  getJourneyByJourneyUniqueId,
   updateJourney,
   deleteJourney,
   getCompletedJourney,

@@ -291,6 +291,7 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     shippingDate DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDate DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
+    isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by passenger 
     
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),

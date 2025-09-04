@@ -309,14 +309,21 @@ const checkActivePassengerRequest = async ({
     FROM PassengerRequest pr
     INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
     WHERE pr.userUniqueId = ?
-    AND pr.journeyStatusId IN (${activeJourneyStatuses.join(",")})
+    AND pr.journeyStatusId IN (?,?,?,?,?) or (pr.isCompletionSeen = ? and pr.journeyStatusId = ?)
     ORDER BY pr.passengerRequestId DESC
     LIMIT ? OFFSET ?
   `;
-
+  const values = [
+    userUniqueId,
+    ...activeJourneyStatuses,
+    false,
+    journeyStatusMap.journeyCompleted,
+    Number(pageSize),
+    Number(offset),
+  ];
   // Execute the query with parameters
   const [activeRequests, totalRecords] = await Promise.all([
-    pool.query(query, [userUniqueId, Number(pageSize), Number(offset)]),
+    pool.query(query, values),
     getActiveRequestsCount(userUniqueId),
   ]);
   console.log(
@@ -341,10 +348,15 @@ const getActiveRequestsCount = async (userUniqueId) => {
     SELECT COUNT(*) as totalCount
     FROM PassengerRequest pr
     WHERE pr.userUniqueId = ?
-    AND pr.journeyStatusId IN (${activeJourneyStatuses.join(",")})
+    AND pr.journeyStatusId IN (?,?,? ,?,?) or (pr.isCompletionSeen = ? and pr.journeyStatusId = ?)
   `;
-
-  const [result] = await pool.query(query, [userUniqueId]);
+  const values = [
+    userUniqueId,
+    ...activeJourneyStatuses,
+    false,
+    journeyStatusMap.journeyCompleted,
+  ];
+  const [result] = await pool.query(query, values);
   console.log("@getActiveRequestsCount result", result);
   return result[0].totalCount;
 };

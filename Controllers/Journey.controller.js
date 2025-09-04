@@ -36,9 +36,12 @@ exports.getAllJourneys = async (req, res) => {
 };
 
 // Get a specific journey by ID
-exports.getJourneyById = async (req, res) => {
-  const { id } = req.params;
-  await handleServiceResponse(journeyService.getJourneyById(id), res);
+exports.getJourneyByJourneyUniqueId = async (req, res) => {
+  const { journeyUniqueId } = req.params;
+  await handleServiceResponse(
+    journeyService.getJourneyByJourneyUniqueId(journeyUniqueId),
+    res
+  );
 };
 
 // Update a specific journey by ID

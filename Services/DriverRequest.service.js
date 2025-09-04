@@ -32,7 +32,10 @@ const {
   getJourneyDecisionByPassengerRequestUniqueId,
 } = require("./JourneyDecisions.service");
 const currentDate = require("../Utils/CurrentDate");
-const { createJourney } = require("./Journey.service");
+const {
+  createJourney,
+  getJourneyByJourneyUniqueId,
+} = require("./Journey.service");
 const {
   createPassengerRequest,
   getPassengerRequestByPassengerRequestUniqueId,
@@ -489,15 +492,21 @@ const noAnswerFromDriver = async (body) => {
 };
 const journeyCompleted = async (body) => {
   try {
-    const { journeyDecisionUniqueId, userUniqueId, passengerRequestUniqueId } =
-      body;
+    const {
+      journeyDecisionUniqueId,
+      userUniqueId,
+      passengerRequestUniqueId,
+      journeyUniqueId,
+    } = body;
 
     // 1. Update journey status
     await updateJourneyStatus(body);
     const decisions = await getJourneyDecisionByJourneyDecisionUniqueId(
       journeyDecisionUniqueId
     );
-    console.log("@journeyCompleted decisions=======> ", decisions);
+    const journey = await getJourneyByJourneyUniqueId(journeyUniqueId);
+    console.log("@journeyCompleted journey=======> ", journey);
+    // console.log("@journeyCompleted decisions=======> ", decisions);
     // 2. Fetch data in parallel
     const [vehicleData, driver, passenger] = await Promise.all([
       getVehicleOwnershipByUserUniqueId(userUniqueId),
@@ -525,9 +534,11 @@ const journeyCompleted = async (body) => {
     if (phoneNumber) {
       sendNotificationToPassenger({
         message: {
-          decisions: decisions?.data?.[0],
+          messageTypes: messageTypes.driver_completed_journey,
+          decisions: [decisions?.data?.[0]],
           drivers: [{ vehicle: vehicleData?.at(0), driver: driver.data }],
           passenger,
+          journey: [journey?.data],
           message: "success",
           status: journeyStatusMap.journeyCompleted,
           data: "Journey completed successfully",
