@@ -67,4 +67,10 @@ router.put(
   verifyTokenOfAxios,
   controller.cancelPassengerRequest
 );
+// update driver request
+router.put(
+  "/api/passenger/seenByPassenger",
+  verifyTokenOfAxios,
+  controller.seenByPassenger
+);
 module.exports = router;

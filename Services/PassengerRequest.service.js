@@ -650,6 +650,26 @@ const getRecentCompletedJourney = async (user) => {
   });
   return { message: "success", data: results };
 };
+const seenByPassenger = async (body) => {
+  try {
+    const { userUniqueId, passengerRequestUniqueId } = body;
+    console.log(
+      "@seenByPassenger userUniqueId",
+      userUniqueId,
+      "passengerRequestUniqueId",
+      passengerRequestUniqueId
+    );
+    const result = await updateData({
+      tableName: "PassengerRequest",
+      conditions: { userUniqueId, passengerRequestUniqueId },
+      updateValues: { isCompletionSeen: true },
+    });
+    return { message: "success", data: "Data seen by passenger" };
+  } catch (error) {
+    console.log("Error in seenByPassenger:", error);
+    return { message: "error", error: "Unable to seen by passenger" };
+  }
+};
 module.exports = {
   getRecentCompletedJourney,
   acceptDriverRequest,
@@ -663,4 +683,5 @@ module.exports = {
   getPassengerRequestByPassengerRequestId,
   rejectDriverOffer,
   getPassengerRequest4allOrSingleUser,
+  seenByPassenger,
 };

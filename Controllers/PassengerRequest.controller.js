@@ -210,6 +210,17 @@ const cancelPassengerRequest = async (req, res) => {
     ServerResponder(res, result, 200);
   }
 };
+const seenByPassenger = async (req, res) => {
+  try {
+    const user = req.user;
+    const userUniqueId = user?.userUniqueId;
+    req.body.userUniqueId = userUniqueId;
+    const result = await PassengerService.seenByPassenger(req.body);
+    ServerResponder(res, result, 200);
+  } catch (error) {
+    ServerResponder(res, result, 200);
+  }
+};
 module.exports = {
   getRecentCompletedJourney,
   acceptDriverRequest,
@@ -222,4 +233,5 @@ module.exports = {
   updateRequestById,
   deleteRequest,
   rejectDriverOffer,
+  seenByPassenger,
 };
