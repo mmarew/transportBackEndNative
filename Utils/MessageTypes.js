@@ -76,6 +76,11 @@ const messageTypes = {
     message: "Driver is not responding",
     details: "Driver don't respond to current passengers request ",
   },
+  driver_found_shipper_request: {
+    message: "Driver found shipper request.",
+    details:
+      "Driver found shipper request and shipper is waiting for driver approval.",
+  },
   driver_accepted_shipper_request: {
     message: "Driver accepted shipper request.",
     details:
@@ -94,10 +99,10 @@ const messageTypes = {
     details:
       "Dear customer, we apologize to inform you. Your request has been canceled by the system because no vehicle is available nearby. Please try again later.",
   },
-  update_drivers_location: {
-    message: "Update drivers location.",
+  update_drivers_location_to_shipper: {
+    message: "Update drivers location to shipper.",
     details:
-      "When driver is moving from place to place its current location is being updated",
+      "When driver is moving from place to place its current location is being updated to shipper",
   },
 };
 module.exports = messageTypes;

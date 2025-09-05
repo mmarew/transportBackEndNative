@@ -201,6 +201,7 @@ const handleExistingJourney = async (
     journeyUniqueId: journey?.journeyUniqueId,
   };
   const journeyStatusId = driverRequest.journeyStatusId;
+
   const responseMessage = {
     uniqueIds,
     status: journeyStatusId,
@@ -214,7 +215,9 @@ const handleExistingJourney = async (
     await sendNotificationToPassenger({
       message: {
         messageTypes:
-          journeyStatusId === journeyStatusMap.acceptedByDriver
+          journeyStatusId === journeyStatusMap.requested
+            ? messageTypes.driver_found_shipper_request
+            : journeyStatusId === journeyStatusMap.acceptedByDriver
             ? messageTypes.driver_accepted_shipper_request
             : messageTypes.driver_started_journey,
         message: "success",

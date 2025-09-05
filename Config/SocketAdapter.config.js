@@ -4,6 +4,11 @@ const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher.js");
 const { socketIO } = require("../Utils/WsServerResponder");
 const { removeSocket } = require("../Utils/WsConnectionStore.js");
+const {
+  sendNotificationToPassenger,
+  sendNotificationToDriver,
+} = require("../Utils/Notifications.js");
+const messageTypes = require("../Utils/MessageTypes.js");
 
 async function initSocket({ httpServer }) {
   const io = new Server(httpServer, {
@@ -33,8 +38,32 @@ async function initSocket({ httpServer }) {
     socket.on("message", (msg) => {
       socket.emit("response", "Message received");
     });
-    socket.on("locationUpdate", (data) => {
-      console.log("@locationUpdate", data);
+    socket.on("locationUpdateToShipper", async (data) => {
+      console.log("@locationUpdateToShipper", data);
+      const phoneNumberOfShipper = data?.passengerPhoneNumber;
+      const res = await sendNotificationToPassenger({
+        phoneNumber: phoneNumberOfShipper,
+        message: {
+          ...data,
+          message: "success",
+          messageTypes: messageTypes.update_drivers_location_to_shipper,
+        },
+      });
+      console.log("@locationUpdateToShipper", res);
+      socket.emit("locationUpdateToShipper", data);
+    });
+    socket.on("locationUpdateToDriver", async (data) => {
+      console.log("@locationUpdateToDriver", data);
+      const res = await sendNotificationToDriver({
+        phoneNumber: data?.driverPhoneNumber,
+        message: {
+          ...data,
+          message: "success",
+          messageTypes: messageTypes.update_shipper_location_to_driver,
+        },
+      });
+      console.log("@locationUpdateToDriver", res);
+      socket.emit("locationUpdateToDriver", data);
     });
     socket.on("disconnect", () => {
       const userType = socket?.userType,
