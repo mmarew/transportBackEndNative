@@ -45,6 +45,7 @@ const routesArray = [
   require("./CancellationReasonsType.routes"),
   require("./VehicleType.routes"),
   require("./SMSSender.routes"),
+  require("./Firebase.routes"),
 ];
 
 // Register all routes

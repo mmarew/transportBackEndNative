@@ -1,0 +1,41 @@
+// Firebase routes
+const express = require("express");
+const router = express.Router();
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const firebaseController = require("../Controllers/Firebase.controller");
+
+// Define routes for CRUD operations
+router.post(
+  "/api/user/updateFCMToken",
+  verifyTokenOfAxios,
+  firebaseController.createFirebase
+);
+router.get(
+  "/api/user/updateFCMToken/:deviceTokenUniqueId",
+  verifyTokenOfAxios,
+  firebaseController.getFirebaseById
+);
+router.put(
+  "/api/user/updateFCMToken/:deviceTokenUniqueId",
+  verifyTokenOfAxios,
+  firebaseController.updateFirebase
+);
+router.delete(
+  "/api/user/updateFCMToken/:deviceTokenUniqueId",
+  verifyTokenOfAxios,
+  firebaseController.deleteFirebase
+);
+
+// Notification sending endpoints
+router.post(
+  "/api/notifications/send-to-user",
+  verifyTokenOfAxios,
+  firebaseController.sendToUser
+);
+router.post(
+  "/api/notifications/send-to-tokens",
+  verifyTokenOfAxios,
+  firebaseController.sendToTokens
+);
+
+module.exports = router;
