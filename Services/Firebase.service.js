@@ -7,6 +7,7 @@ const { messaging } = require("../Config/FirebaseAdmin");
 // Upsert a device token by raw token value
 const upsertDeviceToken = async ({
   userUniqueId = null,
+  roleId = null,
   token,
   platform = null,
   appVersion = null,
@@ -55,17 +56,19 @@ const upsertDeviceToken = async ({
     const deviceTokenUniqueId = uuidv4();
     const sql = `
       INSERT INTO DeviceTokens (
-        deviceTokenUniqueId, userUniqueId, token, platform, appVersion, locale, lastSeenAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        deviceTokenUniqueId, userUniqueId, token, platform, appVersion, locale, lastSeenAt, roleId
+      ) VALUES (?, ?, ?, ?, ?, ?, ?,?)
     `;
     const [result] = await pool.query(sql, [
       deviceTokenUniqueId,
       userUniqueId,
       token,
+
       platform,
       appVersion,
       locale,
       now,
+      roleId,
     ]);
 
     return {
@@ -148,10 +151,10 @@ const deleteDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
   };
 };
 
-const getActiveTokensByUser = async (userUniqueId) => {
+const getActiveTokensByUser = async (userUniqueId, roleId) => {
   const [rows] = await pool.query(
-    "SELECT token FROM DeviceTokens WHERE userUniqueId = ? AND revokedAt IS NULL",
-    [userUniqueId]
+    "SELECT token FROM DeviceTokens WHERE userUniqueId = ? AND revokedAt IS NULL and roleId = ?",
+    [userUniqueId, roleId]
   );
   return { message: "success", data: rows.map((r) => r.token) };
 };
@@ -178,6 +181,7 @@ const sendNotificationToTokens = async ({
       ...(apns ? { apns } : {}),
       ...(webpush ? { webpush } : {}),
     };
+    console.log("@sendNotificationToTokens message", message);
 
     const response = await messaging.sendEachForMulticast(message);
 
@@ -203,6 +207,7 @@ const sendNotificationToTokens = async ({
 // Send FCM notification to all active tokens of a user
 const sendNotificationToUser = async ({
   userUniqueId,
+  roleId,
   notification = {},
   data = {},
   android = undefined,
@@ -210,10 +215,15 @@ const sendNotificationToUser = async ({
   webpush = undefined,
 }) => {
   try {
+    console.log("@userUniqueId", userUniqueId);
+    console.log("@sendNotificationToUser roleId", roleId);
     if (!userUniqueId) {
       return { message: "error", error: "userUniqueId required" };
     }
-    const tokensResult = await getActiveTokensByUser(userUniqueId);
+    if (!roleId) {
+      return { message: "error", error: "roleId required" };
+    }
+    const tokensResult = await getActiveTokensByUser(userUniqueId, roleId);
     console.log("@tokensResult", tokensResult);
     if (tokensResult.message === "error") return tokensResult;
     const tokens = tokensResult.data.filter(Boolean);

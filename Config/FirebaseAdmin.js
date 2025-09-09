@@ -8,7 +8,6 @@ let initialized = false;
 
 function initFirebaseAdmin() {
   if (initialized) return;
-
   const { FCM_SERVICE_ACCOUNT_JSON, FCM_SERVICE_ACCOUNT_B64 } = process.env;
   let serviceAccountObject = null;
 

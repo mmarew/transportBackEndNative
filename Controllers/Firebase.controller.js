@@ -13,6 +13,7 @@ const firebaseController = {
   createFirebase: async (req, res) => {
     try {
       const userUniqueId = req?.user?.userUniqueId || null; // from verifyTokenOfAxios
+      const roleId = req?.user?.roleId || null;
       const { FCMToken, platform, appVersion, locale } = req.body || {};
       const result = await upsertDeviceToken({
         userUniqueId,
@@ -20,6 +21,7 @@ const firebaseController = {
         platform,
         appVersion,
         locale,
+        roleId,
       });
       return ServerResponder(res, result);
     } catch (error) {
@@ -89,13 +91,35 @@ const firebaseController = {
   },
 
   // POST /api/notifications/send-to-user
-  sendToUser: async (req, res) => {
+  sendNotificationToUser: async (req, res) => {
     try {
+      const { roleId } = req?.user || {};
       const { userUniqueId, notification, data, android, apns, webpush } =
         req.body || {};
       console.log("@userUniqueId", userUniqueId);
+
+      if (!userUniqueId) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "userUniqueId required",
+        });
+      }
+      if (!roleId) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "roleId required",
+        });
+      }
+      // notification must contain title and body
+      if (!notification?.title || !notification?.body) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "notification must contain title and body",
+        });
+      }
       const result = await sendNotificationToUser({
         userUniqueId,
+        roleId,
         notification,
         data,
         android,
@@ -104,7 +128,7 @@ const firebaseController = {
       });
       return ServerResponder(res, result);
     } catch (error) {
-      console.error("Error in sendToUser:", error);
+      console.error("Error in sendNotificationToUser:", error);
       return ServerResponder(res, {
         message: "error",
         error: "Failed to send notification",
@@ -113,7 +137,7 @@ const firebaseController = {
   },
 
   // POST /api/notifications/send-to-tokens
-  sendToTokens: async (req, res) => {
+  sendNotificationToTokens: async (req, res) => {
     try {
       const { tokens, notification, data, android, apns, webpush } =
         req.body || {};
@@ -127,7 +151,7 @@ const firebaseController = {
       });
       return ServerResponder(res, result);
     } catch (error) {
-      console.error("Error in sendToTokens:", error);
+      console.error("Error in sendNotificationToTokens:", error);
       return ServerResponder(res, {
         message: "error",
         error: "Failed to send notification",

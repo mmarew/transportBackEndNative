@@ -1,4 +1,6 @@
 // // App.js
+require("dotenv").config();
+
 // const cluster = require("cluster");
 // const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 
@@ -23,6 +25,7 @@
 //   console.log(`🚀 Worker process running | PID: ${process.pid}`);
 //   require("./Config/Worker.config.js"); // Start the server
 // }
+
 const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 getLocalIpAddress();
 const app = require("./Config/Express.config.js");

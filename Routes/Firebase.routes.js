@@ -30,12 +30,12 @@ router.delete(
 router.post(
   "/api/notifications/send-to-user",
   verifyTokenOfAxios,
-  firebaseController.sendToUser
+  firebaseController.sendNotificationToUser
 );
 router.post(
   "/api/notifications/send-to-tokens",
   verifyTokenOfAxios,
-  firebaseController.sendToTokens
+  firebaseController.sendNotificationToTokens
 );
 
 module.exports = router;

@@ -13,6 +13,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
       const data = decoded?.data;
       console.log("@verifyTokenOfAxios data =========> ", data);
       const userUniqueId = data?.userUniqueId;
+      // const roleId = data?.roleId;
 
       try {
         const user = await getData({

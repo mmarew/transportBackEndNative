@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS DeviceTokens (
     deviceTokenId INT AUTO_INCREMENT PRIMARY KEY,
     deviceTokenUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the device token record
     userUniqueId VARCHAR(36) NULL,                    -- Foreign key to Users (nullable for pre-login)
+    roleId INT NOT NULL,                              -- Foreign key to Roles, users can have multiple roles, so we use roleId to identify the role
     token VARCHAR(255) NOT NULL,                      -- Raw FCM token
     platform ENUM('ios','android','web') NULL,        -- Device platform
     appVersion VARCHAR(32) NULL,                      -- App version on device
@@ -98,7 +99,8 @@ CREATE TABLE IF NOT EXISTS DeviceTokens (
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Updated time
     UNIQUE (token),
     INDEX idx_deviceTokens_userUniqueId (userUniqueId),
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId)
 ) ;
 
 -- Create the UserRole Table
