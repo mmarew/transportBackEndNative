@@ -417,19 +417,21 @@ const startJourney = async (body) => {
   if (
     passengersPhoneNumber &&
     journeyStatusId == journeyStatusMap.journeyStarted
-  )
+  ) {
     sendNotificationToPassenger({
       message: messagesToPassenger,
       phoneNumber: passengersPhoneNumber,
     });
-  sendNotificationToUser({
-    userUniqueId: passenger.userUniqueId,
-    roleId: 1,
-    notification: {
-      title: messageTypes.driver_accepted_shipper_request.message,
-      body: messageTypes.driver_accepted_shipper_request.details,
-    },
-  });
+    if (passenger?.userUniqueId)
+      sendNotificationToUser({
+        userUniqueId: passenger?.userUniqueId,
+        roleId: 1,
+        notification: {
+          title: messageTypes.driver_accepted_shipper_request.message,
+          body: messageTypes.driver_accepted_shipper_request.details,
+        },
+      });
+  }
   return message;
 };
 // as the name indicates when driver not answered calls noAnswerFromDriver will be executed
@@ -538,11 +540,7 @@ const journeyCompleted = async (body) => {
     ]);
 
     const phoneNumber = passenger?.at(0)?.phoneNumber;
-    // const passengerStatusData = await verifyPassengerStatus({
-    //   userUniqueId: passenger?.at(0)?.userUniqueId,
-    // });
-    // console.log("@passengerStatusData", passengerStatusData);
-    // 3. Send notification if passenger phone is available
+
     if (phoneNumber) {
       sendNotificationToPassenger({
         message: {
@@ -556,6 +554,14 @@ const journeyCompleted = async (body) => {
           data: "Journey completed successfully",
         },
         phoneNumber,
+      });
+      sendNotificationToUser({
+        userUniqueId: passenger?.at(0)?.userUniqueId,
+        roleId: 1,
+        notification: {
+          title: messageTypes.driver_completed_journey.message,
+          body: messageTypes.driver_completed_journey.details,
+        },
       });
     }
 
