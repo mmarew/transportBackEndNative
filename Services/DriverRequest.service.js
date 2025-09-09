@@ -402,9 +402,10 @@ const startJourney = async (body) => {
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });
-  const passenger = [message?.passenger];
-  const driver = message?.driver,
-    passengersPhoneNumber = passenger?.phoneNumber;
+  // console.log("@startJourney /message", message);
+  const passenger = message?.passenger;
+  const driver = message?.driver;
+  const passengersPhoneNumber = passenger?.phoneNumber;
   const journeyStatusId = passenger?.journeyStatusId;
   const messagesToPassenger = {
     ...message,
@@ -417,11 +418,18 @@ const startJourney = async (body) => {
     passengersPhoneNumber &&
     journeyStatusId == journeyStatusMap.journeyStarted
   )
-    await sendNotificationToPassenger({
+    sendNotificationToPassenger({
       message: messagesToPassenger,
       phoneNumber: passengersPhoneNumber,
     });
-
+  sendNotificationToUser({
+    userUniqueId: passenger.userUniqueId,
+    roleId: 1,
+    notification: {
+      title: messageTypes.driver_accepted_shipper_request.message,
+      body: messageTypes.driver_accepted_shipper_request.details,
+    },
+  });
   return message;
 };
 // as the name indicates when driver not answered calls noAnswerFromDriver will be executed

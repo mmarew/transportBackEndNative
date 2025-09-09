@@ -215,7 +215,7 @@ const sendNotificationToUser = async ({
   webpush = undefined,
 }) => {
   try {
-    console.log("@userUniqueId", userUniqueId);
+    console.log("@sendNotificationToUser userUniqueId", userUniqueId);
     console.log("@sendNotificationToUser roleId", roleId);
     if (!userUniqueId) {
       return { message: "error", error: "userUniqueId required" };
