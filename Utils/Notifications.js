@@ -63,11 +63,6 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
 
     const socketId = await getSocket("passenger", cleanedPhoneNumber);
     if (!socketId) {
-      console.log(
-        "@sendNotificationToPassenger socketId " + socketId,
-        "cleanedPhoneNumber",
-        cleanedPhoneNumber
-      );
       return {
         message: "error",
         data: "No active passenger socket found for this phone number",
@@ -81,14 +76,8 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
     });
 
     if (res.message === "success") {
-      console.log("@sendNotificationToPassenger", "Message sent to passenger");
       return { message: "success", data: "Message sent to passenger" };
     } else {
-      console.log(
-        "@sendNotificationToPassenger",
-        "Failed to send message to passenger"
-      );
-
       return {
         message: "error",
         data: "Failed to send message to passenger",

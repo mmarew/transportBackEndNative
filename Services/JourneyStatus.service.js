@@ -113,65 +113,72 @@ const updateJourneyStatus = async (body) => {
   const journeyStatusId = body?.journeyStatusId;
   const previousStatusId = body?.previousStatusId;
   const shippingCostByDriver = body?.shippingCostByDriver;
-
-  console.log("@updateJourneyStatus journeyStatusId:", journeyStatusId);
-  if (journeyUniqueId) {
-    await updateData({
-      tableName: "Journey",
-      conditions: { journeyUniqueId, journeyStatusId: previousStatusId },
-      updateValues: {
-        journeyStatusId,
-        endTime: currentDate(),
-      },
-    });
-  }
-  if (passengerRequestUniqueId) {
-    // passenger may reject many driver requests but can acept one driver request
-    if (journeyStatusId != journeyStatusMap.rejectedByPassenger)
+  try {
+    console.log("@updateJourneyStatus journeyStatusId:", journeyStatusId);
+    if (journeyUniqueId) {
       await updateData({
-        tableName: "PassengerRequest",
+        tableName: "Journey",
+        conditions: { journeyUniqueId, journeyStatusId: previousStatusId },
+        updateValues: {
+          journeyStatusId,
+          endTime: currentDate(),
+        },
+      });
+    }
+    if (passengerRequestUniqueId) {
+      // passenger may reject many driver requests but can accept one driver request
+      if (journeyStatusId != journeyStatusMap.rejectedByPassenger)
+        await updateData({
+          tableName: "PassengerRequest",
+          conditions: {
+            passengerRequestUniqueId,
+            // journeyStatusId: previousStatusId,
+          },
+          updateValues: {
+            journeyStatusId,
+          },
+        });
+    }
+
+    if (journeyDecisionUniqueId) {
+      let updateValues = {
+        journeyStatusId,
+      };
+      // update shipping Cost By Driver if it has values only
+      if (shippingCostByDriver)
+        updateValues.shippingCostByDriver = shippingCostByDriver;
+      await updateData({
+        tableName: "JourneyDecisions",
         conditions: {
-          passengerRequestUniqueId,
+          journeyDecisionUniqueId,
           // journeyStatusId: previousStatusId,
+        },
+        updateValues,
+      });
+    }
+
+    if (driverRequestUniqueId) {
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: {
+          driverRequestUniqueId, //journeyStatusId: previousStatusId
         },
         updateValues: {
           journeyStatusId,
         },
       });
-  }
-
-  if (journeyDecisionUniqueId) {
-    let updateValues = {
-      journeyStatusId,
+    }
+    return {
+      message: "success",
+      data: "Request accepted successfully",
     };
-    // update shipping Cost By Driver if it has values only
-    if (shippingCostByDriver)
-      updateValues.shippingCostByDriver = shippingCostByDriver;
-    await updateData({
-      tableName: "JourneyDecisions",
-      conditions: {
-        journeyDecisionUniqueId,
-        // journeyStatusId: previousStatusId,
-      },
-      updateValues,
-    });
+  } catch (error) {
+    console.log("Error in updateJourneyStatus:", error);
+    return {
+      message: "error",
+      error: "Failed to update journey status",
+    };
   }
-
-  if (driverRequestUniqueId) {
-    await updateData({
-      tableName: "DriverRequest",
-      conditions: {
-        driverRequestUniqueId, //journeyStatusId: previousStatusId
-      },
-      updateValues: {
-        journeyStatusId,
-      },
-    });
-  }
-  return {
-    message: "success",
-    data: "Request accepted successfully",
-  };
 };
 
 module.exports = {

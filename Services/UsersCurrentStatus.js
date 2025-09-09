@@ -160,14 +160,12 @@ const handleExistingJourney = async (
     tableName: "JourneyDecisions",
     conditions: { driverRequestId: driverRequest.driverRequestId },
   });
-  console.log("@handleExistingJourney journeyDecision", journeyDecision);
   const [journey] = await getData({
     tableName: "Journey",
     conditions: {
       journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
     },
   });
-  console.log("@handleExistingJourney journey", journey);
   const passengerData = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -180,7 +178,6 @@ const handleExistingJourney = async (
   });
 
   const passenger = passengerData?.[0];
-  console.log("@handleExistingJourney passengerData", passengerData);
   const userUniqueId = driverRequest?.userUniqueId;
 
   const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
@@ -517,7 +514,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     const existingJourney = await handleExistingJourney(driverRequest, vehicle);
-    console.log("@existingJourney", existingJourney);
     return existingJourney;
   } catch (error) {
     console.log("Error in verifyDriverStatus:", error);

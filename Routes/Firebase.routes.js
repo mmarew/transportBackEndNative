@@ -6,12 +6,12 @@ const firebaseController = require("../Controllers/Firebase.controller");
 
 // Define routes for CRUD operations
 router.post(
-  "/api/user/updateFCMToken",
+  "/api/user/upsertFCMToken",
   verifyTokenOfAxios,
   firebaseController.createFirebase
 );
 router.get(
-  "/api/user/updateFCMToken/:deviceTokenUniqueId",
+  "/api/user/getFCMToken/:deviceTokenUniqueId",
   verifyTokenOfAxios,
   firebaseController.getFirebaseById
 );
@@ -21,7 +21,7 @@ router.put(
   firebaseController.updateFirebase
 );
 router.delete(
-  "/api/user/updateFCMToken/:deviceTokenUniqueId",
+  "/api/user/deleteFCMToken/:deviceTokenUniqueId",
   verifyTokenOfAxios,
   firebaseController.deleteFirebase
 );

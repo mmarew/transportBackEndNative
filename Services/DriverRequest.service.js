@@ -50,6 +50,7 @@ const {
 } = require("./UsersCurrentStatus");
 const { get } = require("http");
 const { pool } = require("../Middleware/Database.config");
+const { sendNotificationToUser } = require("./Firebase.service");
 
 const createRequest = async ({
   body,
@@ -261,10 +262,7 @@ const createAndAcceptNewRequest = async (body) => {
       findNewRequest: false,
       journeyStatusId: journeyStatusMap.acceptedByDriver,
     });
-    console.log(
-      "@createAndAcceptNewRequest newDriverRequest",
-      newDriverRequest
-    );
+
     // validate if the insert was successful
     if (newDriverRequest?.message === "error") {
       return newDriverRequest;
@@ -280,13 +278,9 @@ const createAndAcceptNewRequest = async (body) => {
       decisionBy: "driver",
       shippingCostByDriver: body?.shippingCostByDriver,
     };
-    console.log("@journeyDecisionData", journeyDecisionData);
     // return;
     const newJourneyDecision = await createJourneyDecision(journeyDecisionData);
-    console.log(
-      "@createAndAcceptNewRequest newJourneyDecision",
-      newJourneyDecision
-    );
+
     // validate if the insert was successful
     if (newJourneyDecision?.message === "error") {
       return newJourneyDecision;
@@ -337,7 +331,6 @@ const acceptPassengerRequest = async (body) => {
       };
     }
     const journeyStatusId = existingRequest[0].journeyStatusId;
-    console.log("@existingRequest", existingRequest);
 
     if (
       journeyStatusId === journeyStatusMap.requested ||
@@ -350,17 +343,28 @@ const acceptPassengerRequest = async (body) => {
     });
     const passenger = message?.passenger;
     const phoneNumber = passenger?.phoneNumber;
-    if (phoneNumber && journeyStatusId === journeyStatusMap.requested) {
+    if (
+      (phoneNumber && journeyStatusId === journeyStatusMap?.requested) ||
+      journeyStatusId === journeyStatusMap.acceptedByDriver
+    ) {
       const passengerStatusData = await verifyPassengerStatus({
         userUniqueId: passenger.userUniqueId,
       });
-      console.log("@passengerStatusData====>", passengerStatusData);
       sendNotificationToPassenger({
         message: {
+          messageTypes: messageTypes.driver_accepted_shipper_request,
           ...passengerStatusData,
           status: journeyStatusMap.acceptedByDriver,
         },
         phoneNumber,
+      });
+      sendNotificationToUser({
+        userUniqueId: passenger.userUniqueId,
+        roleId: 1,
+        notification: {
+          title: messageTypes.driver_accepted_shipper_request.message,
+          body: messageTypes.driver_accepted_shipper_request.details,
+        },
       });
     }
 
