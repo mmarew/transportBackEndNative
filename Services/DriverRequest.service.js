@@ -403,6 +403,7 @@ const startJourney = async (body) => {
     userUniqueId: body.userUniqueId,
   });
   // console.log("@startJourney /message", message);
+  // return;
   const passenger = message?.passenger;
   const driver = message?.driver;
   const passengersPhoneNumber = passenger?.phoneNumber;

@@ -181,7 +181,6 @@ const sendNotificationToTokens = async ({
       ...(apns ? { apns } : {}),
       ...(webpush ? { webpush } : {}),
     };
-    console.log("@sendNotificationToTokens message", message);
 
     const response = await messaging.sendEachForMulticast(message);
 
@@ -215,8 +214,6 @@ const sendNotificationToUser = async ({
   webpush = undefined,
 }) => {
   try {
-    console.log("@sendNotificationToUser userUniqueId", userUniqueId);
-    console.log("@sendNotificationToUser roleId", roleId);
     if (!userUniqueId) {
       return { message: "error", error: "userUniqueId required" };
     }
@@ -224,7 +221,6 @@ const sendNotificationToUser = async ({
       return { message: "error", error: "roleId required" };
     }
     const tokensResult = await getActiveTokensByUser(userUniqueId, roleId);
-    console.log("@tokensResult", tokensResult);
     if (tokensResult.message === "error") return tokensResult;
     const tokens = tokensResult.data.filter(Boolean);
     if (tokens.length === 0) {

@@ -40,7 +40,6 @@ const handleJourneyStatusOne = async (
     originLongitude,
     vehicleTypeUniqueId,
   });
-  console.log("@nearbyPassengers", nearbyPassengers);
   // if there is no passenger  near to driver
   if (!nearbyPassengers?.length) {
     return {
@@ -57,17 +56,15 @@ const handleJourneyStatusOne = async (
   }
   let passenger = nearbyPassengers[0];
   let notRejectedPassenger = null;
-  console.log("@nearbyPassengers[0]", passenger);
   // loop over nearbyPassengers and check if any of them was not rejected by driver connect with it
   for (let i = 0; i < nearbyPassengers?.length; i++) {
     passenger = nearbyPassengers[i];
 
-    // verify if it was not rejected by this driver once driver reject it no need of rerequest it.
+    // verify if it was not rejected by this driver once driver reject it no need of re-request it.
     const rejectedResult = await VerifyIfPassengerRequestWasNotRejected({
       passengerRequestId: passenger?.passengerRequestId,
       userUniqueId: driverRequest?.userUniqueId,
     });
-    console.log("@rejectedResult", rejectedResult);
     if (rejectedResult?.message === "success") {
       i = nearbyPassengers.length; // break the loop
       notRejectedPassenger = passenger;
@@ -160,6 +157,7 @@ const handleExistingJourney = async (
     tableName: "JourneyDecisions",
     conditions: { driverRequestId: driverRequest.driverRequestId },
   });
+
   const [journey] = await getData({
     tableName: "Journey",
     conditions: {
@@ -186,7 +184,6 @@ const handleExistingJourney = async (
   );
   const data = documents?.data;
   const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
-  console.log("@handleExistingJourney driverProfilePhoto", driverProfilePhoto);
   const driver = {
     driver: { ...driverRequest, driverProfilePhoto },
     vehicle,
@@ -479,6 +476,8 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     if (!activeRequest?.length) {
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
+    console.log("@verifyDriverStatus activeRequest =====> ", activeRequest);
+    // return;
     const driverRequest = activeRequest?.[0];
 
     if (!driverRequest) {
@@ -492,7 +491,6 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
 
     // Step 3: Validate journey status
     const journeyStatusId = driverRequest.journeyStatusId;
-    console.log("@verifyDriverStatus journeyStatusId", journeyStatusId);
     if (journeyStatusId > journeyStatusMap.journeyCompleted) {
       return {
         message: "success",
