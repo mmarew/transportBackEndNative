@@ -64,7 +64,8 @@ const createRequest = async ({
 
     // 2. Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
-    console.log("@activeRequest", activeRequest);
+    console.log("@createRequest activeRequest", activeRequest);
+    // return;
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
       console.log(
@@ -157,16 +158,7 @@ const takeFromStreet = async (body, user) => {
       deliveryDateByDriver,
       shippingCostByDriver,
     };
-    console.log("@decisionData =======> ", decisionData);
 
-    //     passengerRequestId,
-    // driverRequestId,
-    // journeyStatusId,
-    // decisionTime,
-    // decisionBy,
-    // shippingDateByDriver,
-    // deliveryDateByDriver,
-    // shippingCostByDriver,
     // create a decision in JourneyDecisions table
     const journeyDecision = await createJourneyDecision(decisionData);
     //create a journey in Journey table using createJourney function from Journey.service
@@ -384,8 +376,9 @@ const startJourney = async (body) => {
     tableName: "Journey",
     conditions: { journeyDecisionUniqueId },
   });
+  console.log("@startJourney existingJourney", existingJourney);
 
-  if (existingJourney.length == 0) {
+  if (existingJourney?.length == 0) {
     await insertData({
       tableName: "Journey",
       colAndVal: {
@@ -396,9 +389,12 @@ const startJourney = async (body) => {
       },
     });
     await createJourneyRoutePoint({ journeyUniqueId, latitude, longitude });
-    await updateJourneyStatus(body);
+    // await updateJourneyStatus(body);
   } else {
   }
+  // update journey status to journeyStarted
+  const updatedJourneyStatus = await updateJourneyStatus(body);
+  console.log("@updatedJourneyStatus", updatedJourneyStatus);
   const message = await verifyDriverStatus({
     userUniqueId: body.userUniqueId,
   });

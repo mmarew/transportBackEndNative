@@ -11,7 +11,7 @@ const createRequest = async (req, res) => {
       return ServerResponder(res, "User not authenticated", 401);
     }
     req.body.userUniqueId = userUniqueId;
-    const result = await services.createRequest({ body: req.body });
+    const result = await services?.createRequest({ body: req.body });
     ServerResponder(res, result, 201);
   } catch (error) {
     console.log("Error in createRequestController:", error);

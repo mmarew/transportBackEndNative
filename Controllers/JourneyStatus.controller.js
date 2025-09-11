@@ -19,8 +19,6 @@ const createJourneyStatus = async (req, res) => {
 const getAllJourneyStatuses = async (req, res) => {
   try {
     const requestedBy = req.params.requestedBy;
-
-    console.log("@getAllJourneyStatuses requestedBy", requestedBy);
     const result = await journeyStatusService.getAllJourneyStatuses(
       requestedBy
     );

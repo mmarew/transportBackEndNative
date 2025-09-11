@@ -661,7 +661,7 @@ const seenByPassenger = async (body) => {
     );
     const result = await updateData({
       tableName: "PassengerRequest",
-      conditions: { userUniqueId, passengerRequestUniqueId },
+      conditions: { passengerRequestUniqueId },
       updateValues: { isCompletionSeen: true },
     });
     return { message: "success", data: "Data seen by passenger" };

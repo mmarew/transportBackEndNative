@@ -340,7 +340,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey decision
     passengerRequestId INT NOT NULL,  -- Foreign key to PassengerRequest
-    driverRequestId INT NOT NULL,  -- Foreign key to DriverRequest
+    driverRequestId INT UNIQUE NOT NULL,  -- Foreign key to DriverRequest
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
     decisionBy ENUM('passenger', 'driver', 'admin') NOT NULL,  -- Who made the decision
