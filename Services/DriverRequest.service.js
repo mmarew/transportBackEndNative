@@ -65,17 +65,22 @@ const createRequest = async ({
     // 2. Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
     console.log("@createRequest activeRequest", activeRequest);
-    // return;
+
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
       console.log(
         "@createRequest creating new driver request journeyStatusId",
         journeyStatusId
       );
+
       await createDriverRequest(body, userUniqueId, journeyStatusId);
+      // recheck active request
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
     if (!findNewRequest) return { message: "success", data: activeRequest };
+    console.log("@activeRequest", activeRequest);
+
+    // findNewRequest is under verifyDriverStatus function which is used to look for active shipper/passenger request
     return await verifyDriverStatus({
       userUniqueId,
       activeRequest,

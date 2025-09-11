@@ -26,126 +26,158 @@ const {
 } = require("./VehicleOwnership.service");
 const VerifyIfPassengerRequestWasNotRejected = require("../Utils/VerifyIfPassengerRequestWasNotRejected");
 const messageTypes = require("../Utils/MessageTypes");
+const { updateJourneyStatus } = require("./JourneyStatus.service");
 
 // Handle when journeyStatusId is 1
+// handleJourneyStatusOne starts here
 const handleJourneyStatusOne = async (
   driverRequest,
   vehicle,
-  // vehicleTariffRate,
   vehicleTypeUniqueId
 ) => {
-  const { originLatitude, originLongitude } = driverRequest;
-  const nearbyPassengers = await findNearbyPassengers({
-    originLatitude,
-    originLongitude,
-    vehicleTypeUniqueId,
-  });
-  // if there is no passenger  near to driver
-  if (!nearbyPassengers?.length) {
+  try {
+    const {
+      originLatitude,
+      originLongitude,
+      driverRequestUniqueId,
+      userUniqueId,
+    } = driverRequest;
+
+    // 1. Find nearby passengers
+    const nearbyPassengers = await findNearbyPassengers({
+      originLatitude,
+      originLongitude,
+      vehicleTypeUniqueId,
+    });
+
+    // 2. If no passengers found, return early
+    if (!nearbyPassengers?.length) {
+      return createResponse(driverRequest, vehicle, null, null, 1);
+    }
+
+    // 3. Find first non-rejected passenger
+    const passenger = await findNonRejectedPassenger(
+      nearbyPassengers,
+      userUniqueId
+    );
+
+    // 4. If no suitable passenger found, return waiting status
+    if (!passenger) {
+      return createResponse(driverRequest, vehicle, null, null, 1);
+    }
+
+    // 5. Create journey decision and update statuses
+    const journeyDecisionPayload = createJourneyDecisionPayload(
+      passenger.passengerRequestId,
+      driverRequest.driverRequestId
+    );
+
+    // 6. Execute all updates in parallel
+    await executeStatusUpdates(
+      journeyDecisionPayload,
+      driverRequestUniqueId,
+      passenger.passengerRequestId
+    );
+
+    // 7. Prepare response
+    const response = createResponse(
+      { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
+      vehicle,
+      { ...passenger, journeyStatusId: journeyStatusMap.requested },
+      journeyDecisionPayload,
+      journeyStatusMap.requested
+    );
+
+    // 8. Send notification if passenger has phone number (non-blocking)
+    if (passenger?.phoneNumber) {
+      sendPassengerNotification(passenger).catch(console.error);
+    }
+
     return {
       message: "success",
-      status: 1, // Waiting
-      uniqueIds: {
-        driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      },
-      driver: { driver: driverRequest, vehicle },
-      passenger: null,
-      journey: null,
-      decision: null,
+      status: journeyStatusMap.requested,
+      ...response,
     };
+  } catch (error) {
+    console.error("Error in handleJourneyStatusOne:", error);
+    throw error;
   }
-  let passenger = nearbyPassengers[0];
-  let notRejectedPassenger = null;
-  // loop over nearbyPassengers and check if any of them was not rejected by driver connect with it
-  for (let i = 0; i < nearbyPassengers?.length; i++) {
-    passenger = nearbyPassengers[i];
+};
 
-    // verify if it was not rejected by this driver once driver reject it no need of re-request it.
+// Helper functions
+const createResponse = (driver, vehicle, passenger, decision, status) => ({
+  message: "success",
+  status,
+  uniqueIds: {
+    driverRequestUniqueId: driver?.driverRequestUniqueId,
+    passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
+    journeyDecisionUniqueId: decision?.journeyDecisionUniqueId,
+  },
+  driver: { driver, vehicle },
+  passenger,
+  journey: null,
+  decision,
+});
+
+const findNonRejectedPassenger = async (passengers, userUniqueId) => {
+  for (const passenger of passengers) {
     const rejectedResult = await VerifyIfPassengerRequestWasNotRejected({
-      passengerRequestId: passenger?.passengerRequestId,
-      userUniqueId: driverRequest?.userUniqueId,
+      passengerRequestId: passenger.passengerRequestId,
+      userUniqueId,
     });
+
     if (rejectedResult?.message === "success") {
-      i = nearbyPassengers.length; // break the loop
-      notRejectedPassenger = passenger;
+      return passenger;
     }
   }
-  if (!notRejectedPassenger) {
-    return {
-      message: "success",
-      status: 1, // Waiting
-      uniqueIds: {
-        driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      },
-      driver: {
-        driver: driverRequest,
-        vehicle, //vehicleTariffRate
-      },
-      passenger: null,
-      journey: null,
-      decision: null,
-    };
-  }
-  const journeyDecisionPayload = {
-    journeyDecisionUniqueId: uuidv4(),
-    passengerRequestId: passenger?.passengerRequestId,
-    driverRequestId: driverRequest?.driverRequestId,
-    journeyStatusId: journeyStatusMap.requested, // Requested
-    decisionTime: new Date(),
-  };
+  return null;
+};
 
-  await Promise.all([
+const createJourneyDecisionPayload = (passengerRequestId, driverRequestId) => ({
+  journeyDecisionUniqueId: uuidv4(),
+  passengerRequestId,
+  driverRequestId,
+  journeyStatusId: journeyStatusMap.requested,
+  decisionTime: new Date(),
+});
+
+const executeStatusUpdates = async (
+  journeyDecisionPayload,
+  driverRequestUniqueId,
+  passengerRequestId
+) => {
+  const queries = [
     insertData({
       tableName: "JourneyDecisions",
       colAndVal: journeyDecisionPayload,
     }),
     updateData({
       tableName: "DriverRequest",
-      conditions: {
-        driverRequestUniqueId: driverRequest.driverRequestUniqueId,
-      },
+      conditions: { driverRequestUniqueId },
       updateValues: { journeyStatusId: journeyStatusMap.requested },
     }),
     updateData({
       tableName: "PassengerRequest",
-      conditions: { passengerRequestId: passenger.passengerRequestId },
+      conditions: { passengerRequestId },
       updateValues: { journeyStatusId: journeyStatusMap.requested },
     }),
-  ]);
+  ];
 
-  const message = {
-    status: journeyStatusMap.requested,
-    uniqueIds: {
-      driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-      passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
-      journeyDecisionUniqueId: journeyDecisionPayload?.journeyDecisionUniqueId,
-    },
-    driver: {
-      driver: { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
-      vehicle,
-      // vehicleTariffRate,
-    },
-    passenger: { ...passenger, journeyStatusId: journeyStatusMap.requested },
-    journey: null,
-    decision: journeyDecisionPayload,
-  };
-
-  if (passenger?.phoneNumber) {
-    const passengerStatus = await verifyPassengerStatus({
-      userUniqueId: passenger.userUniqueId,
-    });
-    await sendNotificationToPassenger({
-      message: { ...passengerStatus },
-      phoneNumber: passenger.phoneNumber,
-    });
-  }
-
-  return {
-    message: "success",
-    status: journeyStatusMap.requested, // Passenger found and requested
-    ...message,
-  };
+  await Promise.all(queries);
 };
+
+const sendPassengerNotification = async (passenger) => {
+  const passengerStatus = await verifyPassengerStatus({
+    userUniqueId: passenger.userUniqueId,
+  });
+
+  await sendNotificationToPassenger({
+    message: { ...passengerStatus },
+    phoneNumber: passenger.phoneNumber,
+  });
+};
+
+// handleJourneyStatusOne ends here
 
 // Handle existing journey and decisions
 const handleExistingJourney = async (
@@ -153,17 +185,33 @@ const handleExistingJourney = async (
   vehicle
   // vehicleTariffRate
 ) => {
+  if (!driverRequest?.driverRequestId) {
+    return {
+      message: "error",
+      error: "Driver request not found",
+    };
+  }
+  if (!vehicle?.vehicleUniqueId) {
+    return {
+      message: "error",
+      error: "Vehicle not found",
+    };
+  }
   const [journeyDecision] = await getData({
     tableName: "JourneyDecisions",
     conditions: { driverRequestId: driverRequest.driverRequestId },
   });
+  const driverRequestUniqueId = driverRequest?.driverRequestUniqueId;
 
+  const journeyDecisionUniqueId = journeyDecision?.journeyDecisionUniqueId;
   const [journey] = await getData({
     tableName: "Journey",
     conditions: {
-      journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
+      journeyDecisionUniqueId,
     },
   });
+  const journeyUniqueId = journey?.[0]?.journeyUniqueId;
+
   const passengerData = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -174,13 +222,47 @@ const handleExistingJourney = async (
     ],
     conditions: { passengerRequestId: journeyDecision?.passengerRequestId },
   });
+  const passengerRequestUniqueId = passengerData?.[0]?.passengerRequestUniqueId;
+
+  const updateData = {
+    journeyDecisionUniqueId,
+    passengerRequestUniqueId,
+    driverRequestUniqueId,
+    journeyUniqueId,
+    journeyStatusId: journeyStatusMap?.cancelledByDriver,
+  };
+  if (!passengerData?.length) {
+    // cancel all journey data of this driver by updating JourneyDecisions,PassengerRequest, Journey , DriverRequest ,journey status id to canceled by driver
+    updateJourneyStatus(updateData);
+
+    return {
+      message: "success",
+      status: journeyStatusMap?.cancelledByDriver,
+      uniqueIds: {
+        driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
+        passengerRequestUniqueId,
+        journeyDecisionUniqueId,
+        journeyUniqueId,
+      },
+      driver: {
+        driver: {
+          ...driverRequest,
+          journeyStatusId: journeyStatusMap?.cancelledByDriver,
+        },
+        vehicle,
+      },
+      passenger: null,
+      journey: null,
+      decision: null,
+    };
+  }
 
   const passenger = passengerData?.[0];
   const userUniqueId = driverRequest?.userUniqueId;
 
   const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
     userUniqueId,
-    journeyStatusMap.acceptedByPassenger
+    journeyStatusMap?.acceptedByPassenger
   );
   const data = documents?.data;
   const driverProfilePhoto = data?.[data.length - 1]?.attachedDocumentName;
@@ -189,10 +271,10 @@ const handleExistingJourney = async (
     vehicle,
   };
   const uniqueIds = {
-    driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-    passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
-    journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId,
-    journeyUniqueId: journey?.journeyUniqueId,
+    driverRequestUniqueId,
+    passengerRequestUniqueId,
+    journeyDecisionUniqueId,
+    journeyUniqueId,
   };
   const journeyStatusId = driverRequest.journeyStatusId;
 
@@ -231,8 +313,12 @@ const handleExistingJourney = async (
     status: passenger?.journeyStatusId || journeyStatusId,
     ...responseMessage,
   };
-}; // this function is used to get status of passenger and find driver if driver is not found.
+};
 
+// handleExistingJourney ends here
+
+// this function is used to get status of passenger and find driver if driver is not found.
+// verifyPassengerStatus starts here
 const verifyPassengerStatus = async ({
   userUniqueId,
   activeRequest,
@@ -455,6 +541,9 @@ const verifyPassengerStatus = async ({
   }
 };
 
+// verifyPassengerStatus ends here
+
+// verifyDriverStatus starts here
 const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
   try {
     // Step 1: Check if the driver has a vehicle
@@ -476,8 +565,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     if (!activeRequest?.length) {
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
-    console.log("@verifyDriverStatus activeRequest =====> ", activeRequest);
-    // return;
+
     const driverRequest = activeRequest?.[0];
 
     if (!driverRequest) {
@@ -518,5 +606,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     return { message: "error", error: "Unable to verify driver status" };
   }
 };
+
+// verifyDriverStatus ends here
 
 module.exports = { verifyPassengerStatus, verifyDriverStatus };
