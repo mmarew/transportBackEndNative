@@ -328,7 +328,7 @@ const verifyPassengerStatus = async ({
   page,
 }) => {
   try {
-    // 1. Check if the user has an active request (status 1, 2, 3, or 4)
+    // 1. Check if the user has an active request (status 1, 2, 3,4,5,6)
     if (!activeRequest || activeRequest?.length == 0) {
       const dataOfActiveRequest = await checkActivePassengerRequest({
         userUniqueId,
