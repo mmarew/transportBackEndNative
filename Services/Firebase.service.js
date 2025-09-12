@@ -17,32 +17,23 @@ const upsertDeviceToken = async ({
     return { message: "error", error: "token required" };
   }
   const now = new Date();
-  // Check if token exists
+  // Check if user has token  in this role
   const [existing] = await pool.query(
-    "SELECT * FROM DeviceTokens WHERE token = ?",
-    [token]
+    "SELECT * FROM DeviceTokens WHERE userUniqueId = ? and roleId = ?",
+    [userUniqueId, roleId]
   );
 
-  if (existing.length > 0) {
+  // if token existed check if token is the same
+  if (existing.length > 0 && existing[0].token == token) {
+    return { message: "error", error: "token already exists" };
+  }
+
+  //if record   existed but with different token, update it
+
+  if (existing.length > 0 && existing[0].token !== token) {
     // Update existing record
-    const sql = `
-      UPDATE DeviceTokens
-      SET userUniqueId = COALESCE(?, userUniqueId),
-          platform = COALESCE(?, platform),
-          appVersion = COALESCE(?, appVersion),
-          locale = COALESCE(?, locale),
-          lastSeenAt = ?,
-          revokedAt = NULL
-      WHERE token = ?
-    `;
-    const [result] = await pool.query(sql, [
-      userUniqueId,
-      platform,
-      appVersion,
-      locale,
-      now,
-      token,
-    ]);
+    const sql = ` UPDATE DeviceTokens  SET token=? WHERE userUniqueId = ? and roleId = ? `;
+    const [result] = await pool.query(sql, [token, userUniqueId, roleId]);
 
     return {
       message: "success",
@@ -50,6 +41,7 @@ const upsertDeviceToken = async ({
         affectedRows: result.affectedRows,
         token,
         userUniqueId,
+        roleId,
       },
     };
   } else {
