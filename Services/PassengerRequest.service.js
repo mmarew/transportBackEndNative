@@ -309,28 +309,28 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     }
 
     // Add additional filters if provided
-    if (filters.vehicleTypeUniqueId) {
+    if (filters?.vehicleTypeUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
       whereClause += " PassengerRequest.vehicleTypeUniqueId = ?";
       queryParams.push(filters.vehicleTypeUniqueId);
       countParams.push(filters.vehicleTypeUniqueId);
     }
 
-    if (filters.journeyStatusId) {
+    if (filters?.journeyStatusId) {
       whereClause += whereClause ? " AND " : " WHERE ";
       whereClause += " PassengerRequest.journeyStatusId = ?";
       queryParams.push(filters.journeyStatusId);
       countParams.push(filters.journeyStatusId);
     }
 
-    if (filters.passengerRequestBatchId) {
+    if (filters?.passengerRequestBatchId) {
       whereClause += whereClause ? " AND " : " WHERE ";
       whereClause += " PassengerRequest.passengerRequestBatchId = ?";
       queryParams.push(filters.passengerRequestBatchId);
       countParams.push(filters.passengerRequestBatchId);
     }
 
-    if (filters.shippableItemName) {
+    if (filters?.shippableItemName) {
       whereClause += whereClause ? " AND " : "   WHERE ";
       whereClause += " PassengerRequest.shippableItemName LIKE ?";
       queryParams.push(`%${filters.shippableItemName}%`);
@@ -353,6 +353,8 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       ORDER BY PassengerRequest.requestTime DESC 
       LIMIT ? OFFSET ?
     `;
+    console.log("@sqlToGetRequests", sqlToGetRequests);
+    console.log("@queryParams", queryParams);
 
     queryParams.push(parseInt(limit), offset);
     const [requests] = await pool.query(sqlToGetRequests, queryParams);

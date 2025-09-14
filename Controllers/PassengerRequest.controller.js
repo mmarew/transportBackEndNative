@@ -1,6 +1,6 @@
 // controllers/Passenger.controller.js
 const PassengerService = require("../Services/PassengerRequest.service");
-const { journeyStatusMap } = require("../Utils/ListOfFixedData");
+const { journeyStatusMap, journeyStatus } = require("../Utils/ListOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder");
 const usersCurrentStatus = require("../Services/UsersCurrentStatus");
 const createPassengerRequest = async (req, res) => {
@@ -126,7 +126,21 @@ const getPassengerRequest4allOrSingleUser = async (req, res) => {
   try {
     const { target, limit, page, passengerUserUniqueId } = req.query;
     let { userUniqueId } = req.user;
+    const vehicleTypeUniqueId = req.query.vehicleTypeUniqueId;
+    const journeyStatusId = req.query.journeyStatusId;
+    const passengerRequestBatchId = req.query.passengerRequestBatchId;
+    const shippableItemName = req.query.shippableItemName;
+
+    const filters = {};
+    if (journeyStatusId) filters.journeyStatusId = journeyStatusId;
+    if (vehicleTypeUniqueId) filters.vehicleTypeUniqueId = vehicleTypeUniqueId;
+    if (passengerRequestBatchId)
+      filters.passengerRequestBatchId = passengerRequestBatchId;
+    if (shippableItemName) filters.shippableItemName = shippableItemName;
+    console.log("@getPassengerRequest4allOrSingleUser req.query", req.query);
+
     const data = {
+      filters,
       userUniqueId:
         passengerUserUniqueId == "self" ? userUniqueId : passengerUserUniqueId,
       target,
