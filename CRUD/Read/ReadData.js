@@ -99,7 +99,6 @@ const getPassengerRequestByRequestUniqueId = async (
 };
 const findNearbyDrivers = async ({ passengerRequest }) => {
   try {
-    console.log("@findNearbyDrivers searchRange ==========> ", searchRange);
     // Destructure the relevant data from the passengerRequest
     const {
       originLatitude,
@@ -269,75 +268,6 @@ const checkUserExists = async (userUniqueId) => {
   return existingUser?.length ? existingUser[0] : null;
 };
 
-// const checkActivePassengerRequest = async ({
-//   userUniqueId,
-//   page = 1,
-//   pageSize = 10,
-// }) => {
-//   // return;
-//   const offset = (page - 1) * pageSize;
-//   const activeJourneyStatuses = [
-//     journeyStatusMap.waiting, //1
-//     journeyStatusMap.requested, //2
-//     journeyStatusMap.acceptedByDriver, //3
-//     journeyStatusMap.acceptedByPassenger, //4
-//     journeyStatusMap.journeyStarted, //5
-//     // journeyStatusMap.journeyCompleted, //6
-//   ];
-//   const query = `
-//     SELECT
-//         pr.passengerRequestId,
-//         pr.passengerRequestUniqueId,
-//         pr.userUniqueId,
-//         pr.passengerRequestBatchId,
-//         pr.vehicleTypeUniqueId,
-//         pr.journeyStatusId,
-//         pr.originLatitude,
-//         pr.originLongitude,
-//         pr.originPlace,
-//         pr.destinationLatitude,
-//         pr.destinationLongitude,
-//         pr.destinationPlace,
-//         pr.requestTime,
-//         pr.shippableItemName,
-//         pr.shippableItemQtyInQuintal,
-//         pr.shippingDate,
-//         pr.deliveryDate,
-//         pr.shippingCost,
-//         u.fullName,
-//         u.phoneNumber,
-//         u.email
-//     FROM PassengerRequest pr
-//     INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
-//     WHERE pr.userUniqueId = ?
-//     AND pr.journeyStatusId IN (?,?,?,?,?) or (pr.isCompletionSeen = ? and pr.journeyStatusId = ?)
-//     ORDER BY pr.passengerRequestId DESC
-//     LIMIT ? OFFSET ?
-//   `;
-//   const values = [
-//     userUniqueId,
-//     ...activeJourneyStatuses,
-//     false,
-//     journeyStatusMap.journeyCompleted,
-//     Number(pageSize),
-//     Number(offset),
-//   ];
-//   // Execute the query with parameters
-//   const [activeRequests, totalRecords] = await Promise.all([
-//     pool.query(query, values),
-//     getActiveRequestsCount(userUniqueId),
-//   ]);
-//   console.log(
-//     "@checkActivePassengerRequest totalRecords",
-//     totalRecords,
-//     "\ncheckActivePassengerRequest activeRequests ",
-//     activeRequests[0]
-//   );
-//   return { activeRequests: activeRequests[0], totalRecords };
-// };
-
-// Optional: Get total count for pagination metadata
-
 const checkActivePassengerRequest = async ({
   userUniqueId,
   page = 1,
@@ -413,31 +343,6 @@ const checkActivePassengerRequest = async ({
 
   return { activeRequests: activeRequests[0], totalRecords };
 };
-
-// const getActiveRequestsCount = async (userUniqueId) => {
-//   const activeJourneyStatuses = [
-//     journeyStatusMap.waiting,
-//     journeyStatusMap.requested,
-//     journeyStatusMap.acceptedByDriver,
-//     journeyStatusMap.acceptedByPassenger,
-//     journeyStatusMap.journeyStarted,
-//   ];
-//   const query = `
-//     SELECT COUNT(*) as totalCount
-//     FROM PassengerRequest pr
-//     WHERE pr.userUniqueId = ?
-//     AND pr.journeyStatusId IN (?,?,? ,?,?) or (pr.isCompletionSeen = ? and pr.journeyStatusId = ?)
-//   `;
-//   const values = [
-//     userUniqueId,
-//     ...activeJourneyStatuses,
-//     false,
-//     journeyStatusMap.journeyCompleted,
-//   ];
-//   const [result] = await pool.query(query, values);
-//   console.log("@getActiveRequestsCount result", result);
-//   return result[0].totalCount;
-// };
 
 const getActiveRequestsCount = async (userUniqueId) => {
   const query = `

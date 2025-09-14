@@ -5,7 +5,8 @@ const VerifyIfPassengerRequestWasNotRejected = async ({
   passengerRequestId,
   userUniqueId,
 }) => {
-  const sql = `select * from JourneyDecisions join DriverRequest on JourneyDecisions.driverRequestId = DriverRequest.driverRequestId where JourneyDecisions.passengerRequestId = ? and DriverRequest.userUniqueId = ? and (JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ?)`;
+  const sql = `Select * from JourneyDecisions join DriverRequest on JourneyDecisions.driverRequestId = DriverRequest.driverRequestId where JourneyDecisions.passengerRequestId = ? and DriverRequest.userUniqueId = ? and (JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ?)`;
+
   const [result] = await pool.query(sql, [
     passengerRequestId,
     userUniqueId,

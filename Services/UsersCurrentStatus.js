@@ -49,7 +49,7 @@ const handleJourneyStatusOne = async (
       originLongitude,
       vehicleTypeUniqueId,
     });
-
+    console.log("@nearbyPassengers", nearbyPassengers);
     // 2. If no passengers found, return early
     if (!nearbyPassengers?.length) {
       return createResponse(driverRequest, vehicle, null, null, 1);
@@ -125,7 +125,7 @@ const findNonRejectedPassenger = async (passengers, userUniqueId) => {
       passengerRequestId: passenger.passengerRequestId,
       userUniqueId,
     });
-
+    console.log("@rejectedResult", rejectedResult);
     if (rejectedResult?.message === "success") {
       return passenger;
     }
