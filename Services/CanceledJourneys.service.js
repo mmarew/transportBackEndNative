@@ -99,7 +99,7 @@ const createCanceledJourney = async (data) => {
 
 // Search canceled journey by user data
 
-// Get a canceled journey by ID
+// Get a canceled journey by canceledJourneyUniqueId
 const getCanceledJourneyById = async (canceledJourneyUniqueId) => {
   const sql =
     "SELECT * FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?";

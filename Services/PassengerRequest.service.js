@@ -472,142 +472,119 @@ const deleteRequest = async (requestId) => {
 
 const cancelPassengerRequest = async (body) => {
   try {
-    const user = body?.user;
-    const roleId = user?.roleId;
-    const ownerUserUniqueId = body?.ownerUserUniqueId,
-      driverUserUniqueId = body?.driverUserUniqueId,
-      cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
-    const { userUniqueId } = user;
-    // Check if the user has any active passenger requests
-    const data = await checkActivePassengerRequest({
-      userUniqueId: ownerUserUniqueId,
-    });
-    const getActiveRequest = data?.activeRequests;
-    const totalRecords = data?.totalRecords;
+    const {
+      user,
+      ownerUserUniqueId,
+      cancellationReasonsTypeId,
+      passengerRequestId,
+    } = body;
 
-    if (getActiveRequest.length == 0) {
-      return {
-        message: "error",
-        error: "No active requests found for this user",
-      };
-    }
+    const { userUniqueId, roleId } = user;
 
-    const passengerRequestId = getActiveRequest?.[0]?.passengerRequestId;
-
-    let journeyStatusId;
-
-    if (roleId == 1) {
-      journeyStatusId = journeyStatusMap.cancelledByPassenger;
-    } else if (roleId == 3) {
-      journeyStatusId = journeyStatusMap.cancelledByAdmin;
-    } else {
-      journeyStatusId = journeyStatusMap.cancelledBySystem;
-    }
-
-    // Update the PassengerRequest to reflect the cancellation
-    await updateData({
-      tableName: "PassengerRequest",
-      conditions: { passengerRequestId },
-      // 6 is canceled by passenger, 7 is canceled by driver, 8 is canceled by admin, 10 is canceled by system
-      updateValues: {
-        journeyStatusId,
-      },
-    });
-
-    // Check if the request exists in JourneyDecisions
+    // Get all journey decisions for this passenger request
     const journeyDecisions = await getData({
       tableName: "JourneyDecisions",
       conditions: { passengerRequestId },
     });
 
-    if (journeyDecisions.length == 0) {
-      // register cancellation data on CanceledJourney
-      const canceledJourney = await createCanceledJourney({
-        canceledBy: userUniqueId,
-        canceledTime: null,
-        contextId: passengerRequestId,
-        contextType: "PassengerRequest",
-        cancellationReasonsTypeId,
-        roleId,
-        driverUserUniqueId,
-        passengerUserUniqueId: ownerUserUniqueId,
-      });
-      // If there's no journey decision related to this request and cancellation is successfully registered, return success
-      if (canceledJourney.message === "success")
-        return {
-          status: null,
-          message: "success",
-          data: "You have successfully cancelled your request.",
-        };
+    // If no journey decisions found, return early
+    if (!journeyDecisions.length) {
+      return {
+        message: "error",
+        error: "No journey decisions found for this passenger request",
+      };
     }
 
-    const driverRequestId = journeyDecisions?.[0].driverRequestId;
-    const journeyDecisionUniqueId =
-      journeyDecisions?.[0].journeyDecisionUniqueId;
-    const journeyDecisionId = journeyDecisions?.[0].journeyDecisionId;
+    const cancelledByPassenger = journeyStatusMap.cancelledByPassenger;
 
-    // Update the DriverRequest to reflect the cancellation
-    await updateData({
-      tableName: "DriverRequest",
-      conditions: { driverRequestId },
-      updateValues: { journeyStatusId }, // Set journeyStatusId to 6 (cancelled by passenger)
-    });
-    const driverData = await performJoinSelect({
-      baseTable: "DriverRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "DriverRequest.userUniqueId = Users.userUniqueId",
-        },
-      ],
-      conditions: { driverRequestId },
-    });
-    const driver = driverData?.[0];
-    const phoneNumber = driver?.phoneNumber;
-    await sendNotificationToDriver({
-      message: {
-        passenger: null,
-        driver: null,
-        journey: null,
-        decisions: null,
-        status: journeyStatusId,
-        message: "success",
-        data:
+    // Process all journey decisions in parallel
+    const updatePromises = journeyDecisions.map(async (journeyDecision) => {
+      const { journeyDecisionUniqueId, driverRequestId } = journeyDecision;
+
+      // Update driver request status
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestId },
+        updateValues: { journeyStatusId: cancelledByPassenger },
+      });
+
+      // Update journey decision status
+      await updateData({
+        tableName: "JourneyDecisions",
+        conditions: { journeyDecisionUniqueId },
+        updateValues: { journeyStatusId: cancelledByPassenger },
+      });
+
+      // Update journey status
+      await updateData({
+        tableName: "Journey",
+        conditions: { journeyDecisionUniqueId },
+        updateValues: { journeyStatusId: cancelledByPassenger },
+      });
+
+      // Get driver data for notification
+      const [driverData] = await performJoinSelect({
+        baseTable: "DriverRequest",
+        joins: [
+          {
+            table: "Users",
+            on: "DriverRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
+        conditions: { driverRequestId },
+      });
+
+      // Send notification to driver if phone number exists
+      if (driverData?.phoneNumber) {
+        const notificationMessage =
           userUniqueId === ownerUserUniqueId
-            ? "passenger cancelled your request."
-            : "system cancelled your request.",
-      },
-      phoneNumber,
+            ? "Passenger cancelled Journey."
+            : "System cancelled Journey.";
+
+        await sendNotificationToDriver({
+          message: {
+            passenger: null,
+            driver: null,
+            journey: null,
+            decisions: null,
+            status: cancelledByPassenger,
+            message: "success",
+            data: notificationMessage,
+          },
+          phoneNumber: driverData.phoneNumber,
+        });
+      }
     });
 
-    // Update JourneyDecisions to reflect the cancellation
-    await updateData({
-      tableName: "JourneyDecisions",
-      conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId }, // Set journeyStatusId to 6 (cancelled by passenger)
+    // Wait for all updates to complete
+    await Promise.all(updatePromises);
+
+    // Check if cancellation is already registered
+    const canceledJourneyBefore = await getData({
+      tableName: "CanceledJourneys",
+      conditions: {
+        contextId: passengerRequestId,
+        contextType: "PassengerRequest",
+      },
     });
-    const existingJourneyData = await getData({
-      tableName: "Journey",
-      conditions: { journeyDecisionUniqueId },
-    });
-    // Update the Journey table (if the journey had already started)
-    const updatedJourneyData = await updateData({
-      tableName: "Journey",
-      conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId },
-    });
-    const journeyId = existingJourneyData.at(0)?.journeyId;
+
+    if (canceledJourneyBefore.length > 0) {
+      return {
+        message: "error",
+        error: "PassengerRequest cancellation is already registered",
+      };
+    }
+
+    // Create new cancellation record
     const canceledJourney = await createCanceledJourney({
       canceledBy: userUniqueId,
-      canceledTime: null,
-      contextId: journeyId ?? journeyDecisionId,
-      contextType: journeyId ? "Journey" : "JourneyDecisions",
+      canceledTime: new Date(), // Added timestamp
+      contextId: passengerRequestId,
+      contextType: "PassengerRequest",
       cancellationReasonsTypeId,
       roleId,
-      driverUserUniqueId,
       passengerUserUniqueId: ownerUserUniqueId,
     });
-    console.log("canceledJourney", canceledJourney);
 
     return {
       status: null,
@@ -615,8 +592,12 @@ const cancelPassengerRequest = async (body) => {
       data: "You have successfully cancelled your request.",
     };
   } catch (error) {
-    console.log("@cancelPassengerRequest error", error);
-    return { message: "error", error: "Unable to cancel passenger request" };
+    console.error("@cancelPassengerRequest error", error);
+    return {
+      message: "error",
+      error: "Unable to cancel passenger request",
+      details: error.message,
+    };
   }
 };
 
