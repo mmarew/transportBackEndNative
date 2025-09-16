@@ -159,7 +159,7 @@ const rejectDriverOffer = async (body) => {
           driverRequestUniqueId: body.driverRequestUniqueId,
         },
         updateValues: {
-          journeyStatusId: body.journeyStatusId,
+          journeyStatusId: journeyStatusMap.rejectedByPassenger,
           // updatedAt: new Date().toISOString(),
         },
       }),
@@ -169,7 +169,7 @@ const rejectDriverOffer = async (body) => {
           journeyDecisionUniqueId: body.journeyDecisionUniqueId,
         },
         updateValues: {
-          journeyStatusId: body.journeyStatusId,
+          journeyStatusId: journeyStatusMap.rejectedByPassenger,
           // updatedAt: new Date().toISOString(),
         },
       }),
@@ -189,7 +189,7 @@ const rejectDriverOffer = async (body) => {
 
     // Verify all updates were successful
     const allSuccessful = [
-      passengerRequestUpdateResult,
+      // passengerRequestUpdateResult,
       driverRequestUpdateResult,
       journeyDecisionUpdateResult,
     ].every((result) => result && result.affectedRows > 0);
@@ -290,140 +290,6 @@ const getPassengerRequestByPassengerRequestUniqueId = async (
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
-// const getPassengerRequest4allOrSingleUser = async ({ data }) => {
-//   try {
-//     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
-//     const offset = (page - 1) * limit;
-
-//     let whereClause = "";
-//     let queryParams = [];
-//     let countParams = [];
-
-//     // Build WHERE clause based on target and filters
-//     if (target !== "all" && userUniqueId) {
-//       whereClause = " WHERE PassengerRequest.userUniqueId = ?";
-//       queryParams = [userUniqueId];
-//       countParams = [userUniqueId];
-//     }
-
-//     // Add additional filters if provided
-//     if (filters?.vehicleTypeUniqueId) {
-//       whereClause += whereClause ? " AND " : " WHERE ";
-//       whereClause += " PassengerRequest.vehicleTypeUniqueId = ?";
-//       queryParams.push(filters.vehicleTypeUniqueId);
-//       countParams.push(filters.vehicleTypeUniqueId);
-//     }
-
-//     if (filters?.journeyStatusId) {
-//       whereClause += whereClause ? " AND " : " WHERE ";
-//       whereClause += " PassengerRequest.journeyStatusId = ?";
-//       queryParams.push(filters.journeyStatusId);
-//       countParams.push(filters.journeyStatusId);
-//     }
-
-//     if (filters?.passengerRequestBatchId) {
-//       whereClause += whereClause ? " AND " : " WHERE ";
-//       whereClause += " PassengerRequest.passengerRequestBatchId = ?";
-//       queryParams.push(filters.passengerRequestBatchId);
-//       countParams.push(filters.passengerRequestBatchId);
-//     }
-
-//     if (filters?.shippableItemName) {
-//       whereClause += whereClause ? " AND " : "   WHERE ";
-//       whereClause += " PassengerRequest.shippableItemName LIKE ?";
-//       queryParams.push(`%${filters.shippableItemName}%`);
-//       countParams.push(`%${filters.shippableItemName}%`);
-//     }
-
-//     // Get paginated results
-//     const sqlToGetRequests = `
-//       SELECT
-//         PassengerRequest.*,
-//         Users.email,
-//         Users.phoneNumber,
-//         VehicleTypes.vehicleTypeName ,
-//         Users.fullName
-//        FROM PassengerRequest
-//       JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
-//       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = PassengerRequest.vehicleTypeUniqueId
-//       JOIN JourneyStatus ON JourneyStatus.journeyStatusId = PassengerRequest.journeyStatusId
-//       ${whereClause}
-//       ORDER BY PassengerRequest.requestTime DESC
-//       LIMIT ? OFFSET ?
-//     `;
-
-//     queryParams.push(parseInt(limit), offset);
-//     const [requests] = await pool.query(sqlToGetRequests, queryParams);
-//     // Get total count
-//     const sqlCount = `
-//       SELECT COUNT(*) as total
-//       FROM PassengerRequest
-//       ${whereClause}
-//     `;
-
-//     const countResult = await pool.query(sqlCount, countParams);
-//     const total = countResult[0]?.total || 0;
-//     const totalPages = Math.ceil(total / limit);
-
-//     // Format response data
-//     const formattedData = requests.map((request) => ({
-//       passengerRequestId: request.passengerRequestId,
-//       passengerRequestUniqueId: request.passengerRequestUniqueId,
-//       userUniqueId: request.userUniqueId,
-
-//       email: request.email,
-//       phoneNumber: request.phoneNumber,
-//       fullName: request.fullName,
-//       passengerRequestBatchId: request.passengerRequestBatchId,
-//       vehicleTypeUniqueId: request.vehicleTypeUniqueId,
-//       vehicleTypeName: request.vehicleTypeName,
-//       journeyStatusId: request.journeyStatusId,
-//       statusName: request.statusName,
-//       originLatitude: request.originLatitude,
-//       originLongitude: request.originLongitude,
-//       originPlace: request.originPlace,
-//       destinationLatitude: request.destinationLatitude,
-//       destinationLongitude: request.destinationLongitude,
-//       destinationPlace: request.destinationPlace,
-//       requestTime: request.requestTime,
-//       shippableItemName: request.shippableItemName,
-//       shippableItemQtyInQuintal: request.shippableItemQtyInQuintal,
-//       shippingDate: request.shippingDate,
-//       deliveryDate: request.deliveryDate,
-//       shippingCost: request.shippingCost,
-//     }));
-
-//     return {
-//       message: "success",
-//       data: formattedData,
-//       pagination: {
-//         currentPage: parseInt(page),
-//         totalPages: totalPages,
-//         totalItems: total,
-//         itemsPerPage: parseInt(limit),
-//         hasNext: page < totalPages,
-//         hasPrev: page > 1,
-//         ...(userUniqueId && { userId: userUniqueId }),
-//       },
-//       filters: Object.keys(filters).length > 0 ? filters : undefined,
-//     };
-//   } catch (error) {
-//     console.log("Error in getPassengerRequest4allOrSingleUser:", error);
-//     return {
-//       message: "error",
-//       error: "Unable to get passenger requests",
-//       data: [],
-//       pagination: {
-//         currentPage: 1,
-//         totalPages: 0,
-//         totalItems: 0,
-//         itemsPerPage: 10,
-//         hasNext: false,
-//         hasPrev: false,
-//       },
-//     };
-//   }
-// };
 const getDetailedJourneyData = async (passengerRequests) => {
   const processPassengerRequest = async (passengerRequest) => {
     const { journeyStatusId, passengerRequestId } = passengerRequest;
@@ -447,11 +313,10 @@ const getDetailedJourneyData = async (passengerRequests) => {
 
     // Get decisions
     const decisions = await getData({
-      tableName,
-      conditions: useJourneyDecisions
-        ? { passengerRequestId }
-        : { passengerRequestId, journeyStatusId },
+      tableName: "JourneyDecisions",
+      conditions: { passengerRequestId, journeyStatusId },
     });
+    console.log("@decisions", decisions);
 
     if (decisions.length === 0) {
       return {
@@ -475,14 +340,21 @@ const getDetailedJourneyData = async (passengerRequests) => {
           ],
           conditions: {
             "DriverRequest.driverRequestId": decision.driverRequestId,
+            "DriverRequest.journeyStatusId": journeyStatusId,
           },
         });
-        const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
-          driverResults[0]?.userUniqueId
-        );
-        return (
-          { ...driverResults[0], vehicleOfDriver: vehicleOfDriver[0] } || null
-        );
+        console.log("@driverResults", driverResults);
+
+        const driverUserUniqueId = driverResults[0]?.userUniqueId;
+        if (driverUserUniqueId) {
+          const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
+            driverUserUniqueId
+          );
+          return (
+            { ...driverResults[0], vehicleOfDriver: vehicleOfDriver[0] } || null
+          );
+        }
+        return null;
       })
     );
 
@@ -501,8 +373,12 @@ const getDetailedJourneyData = async (passengerRequests) => {
 
     return {
       passengerRequest,
-      driverRequests,
-      decisions,
+      // get all non null driverRequests values only
+
+      driverRequests: driverRequests.filter((driverRequest) =>
+        Boolean(driverRequest)
+      ),
+      decisions: decisions.filter((decision) => Boolean(decision)),
       journey,
     };
   };
@@ -594,188 +470,6 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     const [countResult] = await pool.query(sqlCount, countParams);
     const total = countResult[0]?.total || 0;
     const totalPages = Math.ceil(total / limit);
-    // because we are implementing biding based system, we need to fetch driver requests(bidders), decisions(accept reject of bid result ) and journey for each passenger request
-    //loop over passengerRequests and  based on passengerRequest[journeyStatusId] fetch driver requests(bidders), decisions(accept reject of bid) and journey
-    // const formattedData = passengerRequests.map(async (passengerRequest) => {
-    //   const journeyStatusId = passengerRequest.journeyStatusId;
-    //   // if journeyStatusId is waiting for driver, return empty driverRequests, decisions and journey
-    //   if (journeyStatusId === journeyStatusMap.waiting) {
-    //     return {
-    //       passengerRequest,
-    //       driverRequests: [],
-    //       decisions: [],
-    //       journey: {},
-    //     };
-    //   } else if (journeyStatusId === journeyStatusMap.requested) {
-    //     // driver and passenger/shipper are connected in decision table, so get data of decision based on passengerRequest[passengerRequestId]
-    //     const decisions = await getData({
-    //       tableName: "Decision",
-    //       conditions: {
-    //         passengerRequestId: passengerRequest.passengerRequestId,
-    //         journeyStatusId: journeyStatusMap.requested,
-    //       },
-    //     });
-    //     // to get all drivers requests loop over decisions and get driverRequestId from each decision
-    //     const driverRequests = await Promise.all(
-    //       decisions.map(async (decision) => {
-    //         return await performJoinSelect({
-    //           baseTable: "DriverRequest",
-    //           joins: [
-    //             {
-    //               table: "Users",
-    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
-    //             },
-    //           ],
-    //           conditions: {
-    //             "DriverRequest.driverRequestId": decision.driverRequestId,
-    //           },
-    //         });
-    //       })
-    //     );
-
-    //     return {
-    //       passengerRequest,
-    //       driverRequests,
-    //       decisions,
-    //       journey: {},
-    //     };
-    //   } else if (journeyStatusId === journeyStatusMap.acceptedByDriver) {
-    //     const decisions = await getData({
-    //       tableName: "Decision",
-    //       conditions: {
-    //         passengerRequestId: passengerRequest.passengerRequestId,
-    //         journeyStatusId: journeyStatusMap.acceptedByDriver,
-    //       },
-    //     });
-    //     const driverRequests = await Promise.all(
-    //       decisions.map(async (decision) => {
-    //         return await performJoinSelect({
-    //           baseTable: "DriverRequest",
-    //           joins: [
-    //             {
-    //               table: "Users",
-    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
-    //             },
-    //           ],
-    //           conditions: {
-    //             "DriverRequest.driverRequestId": decision.driverRequestId,
-    //           },
-    //         });
-    //       })
-    //     );
-    //     return {
-    //       passengerRequest,
-    //       driverRequests,
-    //       decisions,
-    //       journey: {},
-    //     };
-    //   } else if (journeyStatusId === journeyStatusMap.acceptedByPassenger) {
-    //     const decisions = await getData({
-    //       tableName: "Decision",
-    //       conditions: {
-    //         passengerRequestId: passengerRequest.passengerRequestId,
-    //         journeyStatusId: journeyStatusMap.acceptedByPassenger,
-    //       },
-    //     });
-    //     const driverRequests = await Promise.all(
-    //       decisions.map(async (decision) => {
-    //         return await performJoinSelect({
-    //           baseTable: "DriverRequest",
-    //           joins: [
-    //             {
-    //               table: "Users",
-    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
-    //             },
-    //           ],
-    //           conditions: {
-    //             "DriverRequest.driverRequestId": decision.driverRequestId,
-    //           },
-    //         });
-    //       })
-    //     );
-    //     return {
-    //       passengerRequest,
-    //       driverRequests,
-    //       decisions,
-    //       journey: {},
-    //     };
-    //   } else if (journeyStatusId === journeyStatusMap.journeyStarted) {
-    //     // journey started means there is a journeyDecisions and journey record,journey record found only after journey started
-    //     const decisions = await getData({
-    //       tableName: "JourneyDecisions",
-    //       conditions: {
-    //         passengerRequestId: passengerRequest.passengerRequestId,
-    //       },
-    //     });
-    //     const driverRequests = await Promise.all(
-    //       decisions.map(async (decision) => {
-    //         return await performJoinSelect({
-    //           baseTable: "DriverRequest",
-    //           joins: [
-    //             {
-    //               table: "Users",
-    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
-    //             },
-    //           ],
-    //           conditions: {
-    //             "DriverRequest.driverRequestId": decision.driverRequestId,
-    //           },
-    //         });
-    //       })
-    //     );
-    //     const journey = await getData({
-    //       tableName: "Journey",
-    //       conditions: {
-    //         "Journey.journeyDecisionUniqueId":
-    //           decisions[0]?.journeyDecisionUniqueId,
-    //       },
-    //     });
-    //     return {
-    //       passengerRequest,
-    //       driverRequests,
-    //       decisions,
-    //       journey: journey[0],
-    //     };
-    //   } else if (journeyStatusId === journeyStatusMap.journeyCompleted) {
-    //     // get journey decisions
-    //     const decisions = await getData({
-    //       tableName: "JourneyDecisions",
-    //       conditions: {
-    //         passengerRequestId: passengerRequest?.passengerRequestId,
-    //       },
-    //     });
-    //     const driverRequests = await Promise.all(
-    //       decisions?.map(async (decision) => {
-    //         return await performJoinSelect({
-    //           baseTable: "DriverRequest",
-    //           joins: [
-    //             {
-    //               table: "Users",
-    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
-    //             },
-    //           ],
-    //           conditions: {
-    //             "DriverRequest.driverRequestId": decision.driverRequestId,
-    //           },
-    //         });
-    //       })
-    //     );
-    //     const journey = await getData({
-    //       tableName: "Journey",
-    //       conditions: {
-    //         "Journey.journeyDecisionUniqueId":
-    //           decisions[0]?.journeyDecisionUniqueId,
-    //       },
-    //     });
-
-    //     return {
-    //       passengerRequest,
-    //       driverRequests,
-    //       decisions,
-    //       journey: journey[0],
-    //     };
-    //   }
-    // });
     const formattedData = await getDetailedJourneyData(passengerRequests);
     return {
       message: "success",

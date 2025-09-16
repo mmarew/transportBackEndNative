@@ -381,7 +381,6 @@ const getActiveRequestsCount = async (userUniqueId) => {
   ];
 
   const [result] = await pool.query(query, values);
-  console.log("@getActiveRequestsCount result", result[0]);
   return result[0];
 };
 
