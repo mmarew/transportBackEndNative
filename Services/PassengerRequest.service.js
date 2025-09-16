@@ -1,9 +1,5 @@
 // services/Passenger.service.js
-const {
-  getData,
-  checkActivePassengerRequest,
-  performJoinSelect,
-} = require("../CRUD/Read/ReadData");
+const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
@@ -18,6 +14,9 @@ const {
   verifyPassengerStatus,
   verifyDriverStatus,
 } = require("./UsersCurrentStatus");
+const {
+  getVehicleOwnershipByUserUniqueId,
+} = require("./VehicleOwnership.service");
 require("./AttachedDocuments.service");
 
 const createPassengerRequest = async (body, user, journeyStatusId) => {
@@ -425,7 +424,91 @@ const getPassengerRequestByPassengerRequestUniqueId = async (
 //     };
 //   }
 // };
+const getDetailedJourneyData = async (passengerRequests) => {
+  const processPassengerRequest = async (passengerRequest) => {
+    const { journeyStatusId, passengerRequestId } = passengerRequest;
 
+    if (journeyStatusId === journeyStatusMap.waiting) {
+      return {
+        passengerRequest,
+        driverRequests: [],
+        decisions: [],
+        journey: {},
+      };
+    }
+
+    // Determine which table to query
+    const useJourneyDecisions = [
+      journeyStatusMap.journeyStarted,
+      journeyStatusMap.journeyCompleted,
+    ].includes(journeyStatusId);
+
+    const tableName = useJourneyDecisions ? "Journey" : "JourneyDecisions";
+
+    // Get decisions
+    const decisions = await getData({
+      tableName,
+      conditions: useJourneyDecisions
+        ? { passengerRequestId }
+        : { passengerRequestId, journeyStatusId },
+    });
+
+    if (decisions.length === 0) {
+      return {
+        passengerRequest,
+        driverRequests: [],
+        decisions: [],
+        journey: {},
+      };
+    }
+
+    // Get driver requests
+    const driverRequests = await Promise.all(
+      decisions.map(async (decision) => {
+        const driverResults = await performJoinSelect({
+          baseTable: "DriverRequest",
+          joins: [
+            {
+              table: "Users",
+              on: "DriverRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: {
+            "DriverRequest.driverRequestId": decision.driverRequestId,
+          },
+        });
+        const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
+          driverResults[0]?.userUniqueId
+        );
+        return (
+          { ...driverResults[0], vehicleOfDriver: vehicleOfDriver[0] } || null
+        );
+      })
+    );
+
+    // Get journey data if applicable
+    let journey = {};
+    if (useJourneyDecisions) {
+      const journeyData = await getData({
+        tableName: "Journey",
+        conditions: {
+          "Journey.journeyDecisionUniqueId":
+            decisions[0].journeyDecisionUniqueId,
+        },
+      });
+      journey = journeyData[0] || {};
+    }
+
+    return {
+      passengerRequest,
+      driverRequests,
+      decisions,
+      journey,
+    };
+  };
+
+  return Promise.all(passengerRequests.map(processPassengerRequest));
+};
 const getPassengerRequest4allOrSingleUser = async ({ data }) => {
   try {
     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
@@ -499,7 +582,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     `;
 
     queryParams.push(parseInt(limit), offset);
-    const [requests] = await pool.query(sqlToGetRequests, queryParams);
+    const [passengerRequests] = await pool.query(sqlToGetRequests, queryParams);
 
     // Get total count
     const sqlCount = `
@@ -511,36 +594,193 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     const [countResult] = await pool.query(sqlCount, countParams);
     const total = countResult[0]?.total || 0;
     const totalPages = Math.ceil(total / limit);
+    // because we are implementing biding based system, we need to fetch driver requests(bidders), decisions(accept reject of bid result ) and journey for each passenger request
+    //loop over passengerRequests and  based on passengerRequest[journeyStatusId] fetch driver requests(bidders), decisions(accept reject of bid) and journey
+    // const formattedData = passengerRequests.map(async (passengerRequest) => {
+    //   const journeyStatusId = passengerRequest.journeyStatusId;
+    //   // if journeyStatusId is waiting for driver, return empty driverRequests, decisions and journey
+    //   if (journeyStatusId === journeyStatusMap.waiting) {
+    //     return {
+    //       passengerRequest,
+    //       driverRequests: [],
+    //       decisions: [],
+    //       journey: {},
+    //     };
+    //   } else if (journeyStatusId === journeyStatusMap.requested) {
+    //     // driver and passenger/shipper are connected in decision table, so get data of decision based on passengerRequest[passengerRequestId]
+    //     const decisions = await getData({
+    //       tableName: "Decision",
+    //       conditions: {
+    //         passengerRequestId: passengerRequest.passengerRequestId,
+    //         journeyStatusId: journeyStatusMap.requested,
+    //       },
+    //     });
+    //     // to get all drivers requests loop over decisions and get driverRequestId from each decision
+    //     const driverRequests = await Promise.all(
+    //       decisions.map(async (decision) => {
+    //         return await performJoinSelect({
+    //           baseTable: "DriverRequest",
+    //           joins: [
+    //             {
+    //               table: "Users",
+    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
+    //             },
+    //           ],
+    //           conditions: {
+    //             "DriverRequest.driverRequestId": decision.driverRequestId,
+    //           },
+    //         });
+    //       })
+    //     );
 
-    // Format response data - Using only fields from original code
-    const formattedData = requests.map((request) => ({
-      passengerRequestId: request.passengerRequestId,
-      passengerRequestUniqueId: request.passengerRequestUniqueId,
-      userUniqueId: request.userUniqueId,
-      email: request.email,
-      phoneNumber: request.phoneNumber,
-      fullName: request.fullName,
-      passengerRequestBatchId: request.passengerRequestBatchId,
-      vehicleTypeUniqueId: request.vehicleTypeUniqueId,
-      vehicleTypeName: request.vehicleTypeName,
-      journeyStatusId: request.journeyStatusId,
-      originLatitude: request.originLatitude,
-      originLongitude: request.originLongitude,
-      originPlace: request.originPlace,
-      destinationLatitude: request.destinationLatitude,
-      destinationLongitude: request.destinationLongitude,
-      destinationPlace: request.destinationPlace,
-      requestTime: request.requestTime,
-      shippableItemName: request.shippableItemName,
-      shippableItemQtyInQuintal: request.shippableItemQtyInQuintal,
-      shippingDate: request.shippingDate,
-      deliveryDate: request.deliveryDate,
-      shippingCost: request.shippingCost,
-    }));
+    //     return {
+    //       passengerRequest,
+    //       driverRequests,
+    //       decisions,
+    //       journey: {},
+    //     };
+    //   } else if (journeyStatusId === journeyStatusMap.acceptedByDriver) {
+    //     const decisions = await getData({
+    //       tableName: "Decision",
+    //       conditions: {
+    //         passengerRequestId: passengerRequest.passengerRequestId,
+    //         journeyStatusId: journeyStatusMap.acceptedByDriver,
+    //       },
+    //     });
+    //     const driverRequests = await Promise.all(
+    //       decisions.map(async (decision) => {
+    //         return await performJoinSelect({
+    //           baseTable: "DriverRequest",
+    //           joins: [
+    //             {
+    //               table: "Users",
+    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
+    //             },
+    //           ],
+    //           conditions: {
+    //             "DriverRequest.driverRequestId": decision.driverRequestId,
+    //           },
+    //         });
+    //       })
+    //     );
+    //     return {
+    //       passengerRequest,
+    //       driverRequests,
+    //       decisions,
+    //       journey: {},
+    //     };
+    //   } else if (journeyStatusId === journeyStatusMap.acceptedByPassenger) {
+    //     const decisions = await getData({
+    //       tableName: "Decision",
+    //       conditions: {
+    //         passengerRequestId: passengerRequest.passengerRequestId,
+    //         journeyStatusId: journeyStatusMap.acceptedByPassenger,
+    //       },
+    //     });
+    //     const driverRequests = await Promise.all(
+    //       decisions.map(async (decision) => {
+    //         return await performJoinSelect({
+    //           baseTable: "DriverRequest",
+    //           joins: [
+    //             {
+    //               table: "Users",
+    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
+    //             },
+    //           ],
+    //           conditions: {
+    //             "DriverRequest.driverRequestId": decision.driverRequestId,
+    //           },
+    //         });
+    //       })
+    //     );
+    //     return {
+    //       passengerRequest,
+    //       driverRequests,
+    //       decisions,
+    //       journey: {},
+    //     };
+    //   } else if (journeyStatusId === journeyStatusMap.journeyStarted) {
+    //     // journey started means there is a journeyDecisions and journey record,journey record found only after journey started
+    //     const decisions = await getData({
+    //       tableName: "JourneyDecisions",
+    //       conditions: {
+    //         passengerRequestId: passengerRequest.passengerRequestId,
+    //       },
+    //     });
+    //     const driverRequests = await Promise.all(
+    //       decisions.map(async (decision) => {
+    //         return await performJoinSelect({
+    //           baseTable: "DriverRequest",
+    //           joins: [
+    //             {
+    //               table: "Users",
+    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
+    //             },
+    //           ],
+    //           conditions: {
+    //             "DriverRequest.driverRequestId": decision.driverRequestId,
+    //           },
+    //         });
+    //       })
+    //     );
+    //     const journey = await getData({
+    //       tableName: "Journey",
+    //       conditions: {
+    //         "Journey.journeyDecisionUniqueId":
+    //           decisions[0]?.journeyDecisionUniqueId,
+    //       },
+    //     });
+    //     return {
+    //       passengerRequest,
+    //       driverRequests,
+    //       decisions,
+    //       journey: journey[0],
+    //     };
+    //   } else if (journeyStatusId === journeyStatusMap.journeyCompleted) {
+    //     // get journey decisions
+    //     const decisions = await getData({
+    //       tableName: "JourneyDecisions",
+    //       conditions: {
+    //         passengerRequestId: passengerRequest?.passengerRequestId,
+    //       },
+    //     });
+    //     const driverRequests = await Promise.all(
+    //       decisions?.map(async (decision) => {
+    //         return await performJoinSelect({
+    //           baseTable: "DriverRequest",
+    //           joins: [
+    //             {
+    //               table: "Users",
+    //               on: "DriverRequest.userUniqueId = Users.userUniqueId",
+    //             },
+    //           ],
+    //           conditions: {
+    //             "DriverRequest.driverRequestId": decision.driverRequestId,
+    //           },
+    //         });
+    //       })
+    //     );
+    //     const journey = await getData({
+    //       tableName: "Journey",
+    //       conditions: {
+    //         "Journey.journeyDecisionUniqueId":
+    //           decisions[0]?.journeyDecisionUniqueId,
+    //       },
+    //     });
 
+    //     return {
+    //       passengerRequest,
+    //       driverRequests,
+    //       decisions,
+    //       journey: journey[0],
+    //     };
+    //   }
+    // });
+    const formattedData = await getDetailedJourneyData(passengerRequests);
     return {
       message: "success",
-      data: formattedData,
+      data: passengerRequests,
+      formattedData,
       pagination: {
         currentPage: parseInt(page),
         totalPages: totalPages,
