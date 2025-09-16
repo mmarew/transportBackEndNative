@@ -201,7 +201,6 @@ const rejectDriverOffer = async (body) => {
     const result = await verifyPassengerStatus({
       userUniqueId: body.userUniqueId,
     });
-    console.log("@verifyPassengerStatus result", result);
     return result;
   } catch (error) {
     console.error("@rejectDriverOffer error:", error.message, error.stack);
@@ -292,6 +291,141 @@ const getPassengerRequestByPassengerRequestUniqueId = async (
     return { message: "error", error: "Unable to retrieve request" };
   }
 };
+// const getPassengerRequest4allOrSingleUser = async ({ data }) => {
+//   try {
+//     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
+//     const offset = (page - 1) * limit;
+
+//     let whereClause = "";
+//     let queryParams = [];
+//     let countParams = [];
+
+//     // Build WHERE clause based on target and filters
+//     if (target !== "all" && userUniqueId) {
+//       whereClause = " WHERE PassengerRequest.userUniqueId = ?";
+//       queryParams = [userUniqueId];
+//       countParams = [userUniqueId];
+//     }
+
+//     // Add additional filters if provided
+//     if (filters?.vehicleTypeUniqueId) {
+//       whereClause += whereClause ? " AND " : " WHERE ";
+//       whereClause += " PassengerRequest.vehicleTypeUniqueId = ?";
+//       queryParams.push(filters.vehicleTypeUniqueId);
+//       countParams.push(filters.vehicleTypeUniqueId);
+//     }
+
+//     if (filters?.journeyStatusId) {
+//       whereClause += whereClause ? " AND " : " WHERE ";
+//       whereClause += " PassengerRequest.journeyStatusId = ?";
+//       queryParams.push(filters.journeyStatusId);
+//       countParams.push(filters.journeyStatusId);
+//     }
+
+//     if (filters?.passengerRequestBatchId) {
+//       whereClause += whereClause ? " AND " : " WHERE ";
+//       whereClause += " PassengerRequest.passengerRequestBatchId = ?";
+//       queryParams.push(filters.passengerRequestBatchId);
+//       countParams.push(filters.passengerRequestBatchId);
+//     }
+
+//     if (filters?.shippableItemName) {
+//       whereClause += whereClause ? " AND " : "   WHERE ";
+//       whereClause += " PassengerRequest.shippableItemName LIKE ?";
+//       queryParams.push(`%${filters.shippableItemName}%`);
+//       countParams.push(`%${filters.shippableItemName}%`);
+//     }
+
+//     // Get paginated results
+//     const sqlToGetRequests = `
+//       SELECT
+//         PassengerRequest.*,
+//         Users.email,
+//         Users.phoneNumber,
+//         VehicleTypes.vehicleTypeName ,
+//         Users.fullName
+//        FROM PassengerRequest
+//       JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
+//       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = PassengerRequest.vehicleTypeUniqueId
+//       JOIN JourneyStatus ON JourneyStatus.journeyStatusId = PassengerRequest.journeyStatusId
+//       ${whereClause}
+//       ORDER BY PassengerRequest.requestTime DESC
+//       LIMIT ? OFFSET ?
+//     `;
+
+//     queryParams.push(parseInt(limit), offset);
+//     const [requests] = await pool.query(sqlToGetRequests, queryParams);
+//     // Get total count
+//     const sqlCount = `
+//       SELECT COUNT(*) as total
+//       FROM PassengerRequest
+//       ${whereClause}
+//     `;
+
+//     const countResult = await pool.query(sqlCount, countParams);
+//     const total = countResult[0]?.total || 0;
+//     const totalPages = Math.ceil(total / limit);
+
+//     // Format response data
+//     const formattedData = requests.map((request) => ({
+//       passengerRequestId: request.passengerRequestId,
+//       passengerRequestUniqueId: request.passengerRequestUniqueId,
+//       userUniqueId: request.userUniqueId,
+
+//       email: request.email,
+//       phoneNumber: request.phoneNumber,
+//       fullName: request.fullName,
+//       passengerRequestBatchId: request.passengerRequestBatchId,
+//       vehicleTypeUniqueId: request.vehicleTypeUniqueId,
+//       vehicleTypeName: request.vehicleTypeName,
+//       journeyStatusId: request.journeyStatusId,
+//       statusName: request.statusName,
+//       originLatitude: request.originLatitude,
+//       originLongitude: request.originLongitude,
+//       originPlace: request.originPlace,
+//       destinationLatitude: request.destinationLatitude,
+//       destinationLongitude: request.destinationLongitude,
+//       destinationPlace: request.destinationPlace,
+//       requestTime: request.requestTime,
+//       shippableItemName: request.shippableItemName,
+//       shippableItemQtyInQuintal: request.shippableItemQtyInQuintal,
+//       shippingDate: request.shippingDate,
+//       deliveryDate: request.deliveryDate,
+//       shippingCost: request.shippingCost,
+//     }));
+
+//     return {
+//       message: "success",
+//       data: formattedData,
+//       pagination: {
+//         currentPage: parseInt(page),
+//         totalPages: totalPages,
+//         totalItems: total,
+//         itemsPerPage: parseInt(limit),
+//         hasNext: page < totalPages,
+//         hasPrev: page > 1,
+//         ...(userUniqueId && { userId: userUniqueId }),
+//       },
+//       filters: Object.keys(filters).length > 0 ? filters : undefined,
+//     };
+//   } catch (error) {
+//     console.log("Error in getPassengerRequest4allOrSingleUser:", error);
+//     return {
+//       message: "error",
+//       error: "Unable to get passenger requests",
+//       data: [],
+//       pagination: {
+//         currentPage: 1,
+//         totalPages: 0,
+//         totalItems: 0,
+//         itemsPerPage: 10,
+//         hasNext: false,
+//         hasPrev: false,
+//       },
+//     };
+//   }
+// };
+
 const getPassengerRequest4allOrSingleUser = async ({ data }) => {
   try {
     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
@@ -316,11 +450,22 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(filters.vehicleTypeUniqueId);
     }
 
-    if (filters?.journeyStatusId) {
+    // Handle multiple journeyStatusIds
+    if (filters?.journeyStatusIds && filters.journeyStatusIds.length > 0) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.journeyStatusId = ?";
-      queryParams.push(filters.journeyStatusId);
-      countParams.push(filters.journeyStatusId);
+
+      if (filters.journeyStatusIds.length === 1) {
+        // Single value for efficiency
+        whereClause += " PassengerRequest.journeyStatusId = ?";
+        queryParams.push(filters.journeyStatusIds[0]);
+        countParams.push(filters.journeyStatusIds[0]);
+      } else {
+        // Multiple values using IN clause
+        const placeholders = filters.journeyStatusIds.map(() => "?").join(",");
+        whereClause += ` PassengerRequest.journeyStatusId IN (${placeholders})`;
+        queryParams.push(...filters.journeyStatusIds);
+        countParams.push(...filters.journeyStatusIds);
+      }
     }
 
     if (filters?.passengerRequestBatchId) {
@@ -331,34 +476,31 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     }
 
     if (filters?.shippableItemName) {
-      whereClause += whereClause ? " AND " : "   WHERE ";
+      whereClause += whereClause ? " AND " : " WHERE ";
       whereClause += " PassengerRequest.shippableItemName LIKE ?";
       queryParams.push(`%${filters.shippableItemName}%`);
       countParams.push(`%${filters.shippableItemName}%`);
     }
 
-    // Get paginated results
+    // Get paginated results - Using only columns from original code
     const sqlToGetRequests = `
       SELECT 
         PassengerRequest.*, 
         Users.email,
         Users.phoneNumber,
-        VehicleTypes.vehicleTypeName ,
+        VehicleTypes.vehicleTypeName,
         Users.fullName
-       FROM PassengerRequest 
+      FROM PassengerRequest 
       JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId 
       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = PassengerRequest.vehicleTypeUniqueId
-      JOIN JourneyStatus ON JourneyStatus.journeyStatusId = PassengerRequest.journeyStatusId
       ${whereClause}
       ORDER BY PassengerRequest.requestTime DESC 
       LIMIT ? OFFSET ?
     `;
-    console.log("@sqlToGetRequests", sqlToGetRequests);
-    console.log("@queryParams", queryParams);
 
     queryParams.push(parseInt(limit), offset);
     const [requests] = await pool.query(sqlToGetRequests, queryParams);
-    console.log("@requests", requests);
+
     // Get total count
     const sqlCount = `
       SELECT COUNT(*) as total 
@@ -366,16 +508,15 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       ${whereClause}
     `;
 
-    const countResult = await pool.query(sqlCount, countParams);
+    const [countResult] = await pool.query(sqlCount, countParams);
     const total = countResult[0]?.total || 0;
     const totalPages = Math.ceil(total / limit);
 
-    // Format response data
+    // Format response data - Using only fields from original code
     const formattedData = requests.map((request) => ({
       passengerRequestId: request.passengerRequestId,
       passengerRequestUniqueId: request.passengerRequestUniqueId,
       userUniqueId: request.userUniqueId,
-
       email: request.email,
       phoneNumber: request.phoneNumber,
       fullName: request.fullName,
@@ -383,7 +524,6 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       vehicleTypeUniqueId: request.vehicleTypeUniqueId,
       vehicleTypeName: request.vehicleTypeName,
       journeyStatusId: request.journeyStatusId,
-      statusName: request.statusName,
       originLatitude: request.originLatitude,
       originLongitude: request.originLongitude,
       originPlace: request.originPlace,
@@ -481,6 +621,45 @@ const cancelPassengerRequest = async (body) => {
 
     const { userUniqueId, roleId } = user;
 
+    if (!userUniqueId || !roleId || !passengerRequestId) {
+      return {
+        message: "error",
+        error: "Missing required fields",
+      };
+    }
+    // get passenger data
+    const [passengerData] = await performJoinSelect({
+      baseTable: "PassengerRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
+      conditions: { passengerRequestId },
+    });
+    const journeyStatusId = passengerData?.journeyStatusId;
+    if (journeyStatusId == journeyStatusMap.cancelledByPassenger) {
+      return {
+        message: "error",
+        error: "Request already cancelled by passenger",
+      };
+    }
+    // if journeyStatusId is waiting update passenger request only and return cancellation
+    if (journeyStatusId == journeyStatusMap.waiting) {
+      await updateData({
+        tableName: "PassengerRequest",
+        conditions: { passengerRequestId },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.cancelledByPassenger,
+        },
+      });
+
+      return {
+        message: "success",
+        data: "Request cancelled successfully",
+      };
+    }
     // Get all journey decisions for this passenger request
     const journeyDecisions = await getData({
       tableName: "JourneyDecisions",
@@ -495,10 +674,10 @@ const cancelPassengerRequest = async (body) => {
       };
     }
 
-    const cancelledByPassenger = journeyStatusMap.cancelledByPassenger;
+    const cancelledByPassenger = journeyStatusMap?.cancelledByPassenger;
 
     // Process all journey decisions in parallel
-    const updatePromises = journeyDecisions.map(async (journeyDecision) => {
+    const updatePromises = journeyDecisions?.map(async (journeyDecision) => {
       const { journeyDecisionUniqueId, driverRequestId } = journeyDecision;
 
       // Update driver request status

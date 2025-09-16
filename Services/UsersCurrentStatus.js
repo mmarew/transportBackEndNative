@@ -335,7 +335,6 @@ const verifyPassengerStatus = async ({
         pageSize,
         page,
       });
-      console.log("@verifyPassengerStatus activeRequest", dataOfActiveRequest);
       activeRequest = dataOfActiveRequest?.activeRequests;
       totalRecords = dataOfActiveRequest?.totalRecords;
     }
@@ -451,7 +450,6 @@ const verifyPassengerStatus = async ({
             passengerRequestId: passengerRequest?.passengerRequestId,
           },
         });
-        console.log("@decisionsData", decisionsData);
         const results = [];
         for (let journeyDecision of decisionsData) {
           decisions.push(journeyDecision);
@@ -520,7 +518,6 @@ const verifyPassengerStatus = async ({
               });
             }
         }
-        console.log("@verifyPassengerStatus  results", results);
       }
     }
     // Final return after loop
