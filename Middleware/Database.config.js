@@ -33,6 +33,27 @@ let pool;
 
 try {
   pool = mysql.createPool(config);
+  pool.query("SELECT 1");
+  console.log("Database connection pool created successfully");
+  pool.on("error", (err) => {
+    console.log("Database connection pool error:", err);
+    throw err; // Re-throw the error to ensure the application fails fast
+  });
+  pool.on("acquire", (connection) => {
+    // console.log("Connection acquired:", connection.threadId);
+  });
+  pool.on("release", (connection) => {
+    // console.log("Connection released:", connection.threadId);
+  });
+  pool.on("enqueue", () => {
+    console.log("Waiting for a connection...");
+  });
+  pool.on("end", () => {
+    console.log("Database connection pool ended");
+  });
+  pool.on("remove", (connection) => {
+    console.log("Connection removed:", connection.threadId);
+  });
 } catch (error) {
   console.log("Error creating database connection pool:", error);
   throw error; // Re-throw the error to ensure the application fails fast

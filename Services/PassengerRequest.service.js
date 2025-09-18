@@ -129,10 +129,12 @@ const rejectDriverOffer = async (body) => {
     if (missingFields.length > 0) {
       throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
     }
+    // get all requests which are accepted by driver passenger requests for this passenger based on passenger request id from JourneyDecisions table.
     const allPassengerRequests = await getData({
       tableName: "JourneyDecisions",
       conditions: {
         passengerRequestId: body.passengerRequestId,
+        journeyStatusId: journeyStatusMap.acceptedByDriver,
       },
     });
     // Execute all updates in parallel for better performance
@@ -141,8 +143,8 @@ const rejectDriverOffer = async (body) => {
       driverRequestUpdateResult,
       journeyDecisionUpdateResult,
     ] = await Promise.all([
-      // if there is only one request then update PassengerRequest else don't update PassengerRequest
-      allPassengerRequests.length == 1 &&
+      // if there is only one request then update PassengerRequest to waiting else don't update PassengerRequest
+      allPassengerRequests.length <= 1 &&
         updateData({
           tableName: "PassengerRequest",
           conditions: {
@@ -309,14 +311,11 @@ const getDetailedJourneyData = async (passengerRequests) => {
       journeyStatusMap.journeyCompleted,
     ].includes(journeyStatusId);
 
-    const tableName = useJourneyDecisions ? "Journey" : "JourneyDecisions";
-
     // Get decisions
     const decisions = await getData({
       tableName: "JourneyDecisions",
       conditions: { passengerRequestId, journeyStatusId },
     });
-    console.log("@decisions", decisions);
 
     if (decisions.length === 0) {
       return {
@@ -343,7 +342,6 @@ const getDetailedJourneyData = async (passengerRequests) => {
             "DriverRequest.journeyStatusId": journeyStatusId,
           },
         });
-        console.log("@driverResults", driverResults);
 
         const driverUserUniqueId = driverResults[0]?.userUniqueId;
         if (driverUserUniqueId) {
@@ -409,6 +407,14 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(filters.vehicleTypeUniqueId);
     }
 
+    // if isCompletionSeen is provided
+    if (filters?.isCompletionSeen) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " PassengerRequest.isCompletionSeen = ?";
+      queryParams.push(filters.isCompletionSeen);
+      countParams.push(filters.isCompletionSeen);
+    }
+
     // Handle multiple journeyStatusIds
     if (filters?.journeyStatusIds && filters.journeyStatusIds.length > 0) {
       whereClause += whereClause ? " AND " : " WHERE ";
@@ -459,7 +465,6 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
 
     queryParams.push(parseInt(limit), offset);
     const [passengerRequests] = await pool.query(sqlToGetRequests, queryParams);
-
     // Get total count
     const sqlCount = `
       SELECT COUNT(*) as total 

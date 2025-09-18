@@ -143,6 +143,7 @@ const getPassengerRequest4allOrSingleUser = async (req, res) => {
 
     const passengerRequestBatchId = req.query.passengerRequestBatchId;
     const shippableItemName = req.query.shippableItemName;
+    const isCompletionSeen = req.query.isCompletionSeen;
 
     const filters = {};
     if (journeyStatusIds && journeyStatusIds.length > 0)
@@ -151,8 +152,7 @@ const getPassengerRequest4allOrSingleUser = async (req, res) => {
     if (passengerRequestBatchId)
       filters.passengerRequestBatchId = passengerRequestBatchId;
     if (shippableItemName) filters.shippableItemName = shippableItemName;
-
-    console.log("@getPassengerRequest4allOrSingleUser req.query", req.query);
+    if (isCompletionSeen) filters.isCompletionSeen = isCompletionSeen;
 
     const data = {
       filters,
