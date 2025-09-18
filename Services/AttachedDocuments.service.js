@@ -405,7 +405,10 @@ const acceptRejectAttachedDocuments = async (body) => {
     !attachedDocumentUniqueId ||
     !action
   ) {
-    return { message: "error", data: "Missing required fields" };
+    return {
+      message: "error",
+      data: "Missing required fields to accept/reject document",
+    };
   }
 
   // Ensure action is either 'ACCEPTED' or 'REJECTED'

@@ -32,7 +32,7 @@ const createPassengerRequest = async (req, res) => {
     ) {
       return ServerResponder(res, {
         message: "error",
-        error: "Missing required fields",
+        error: "Missing required fields to create passenger request",
       });
     }
     const result = await PassengerService.createPassengerRequest(

@@ -557,13 +557,13 @@ const cancelPassengerRequest = async (body) => {
       cancellationReasonsTypeId,
       passengerRequestId,
     } = body;
-
+    console.log("@body", body);
     const { userUniqueId, roleId } = user;
 
     if (!userUniqueId || !roleId || !passengerRequestId) {
       return {
         message: "error",
-        error: "Missing required fields",
+        error: "Missing required fields to cancel passenger request",
       };
     }
     // get passenger data

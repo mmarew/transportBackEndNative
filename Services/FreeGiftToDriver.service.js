@@ -19,7 +19,10 @@ const createFreeGiftToDriver = async ({
   let giftEndDate = null;
 
   if (!driverUniqueId || !subscriptionPlanUniqueId || !giftStartDate) {
-    return { message: "error", error: "Missing required fields" };
+    return {
+      message: "error",
+      error: "Missing required fields to create free gift",
+    };
   }
   if (giftStartDate < new Date().toISOString().slice(0, 10)) {
     return { message: "error", error: "Gift start date cannot be in the past" };
@@ -188,7 +191,10 @@ const updateFreeGiftToDriverByUniqueId = async (body) => {
   const { freeGiftUniqueId, ...updateFields } = body;
 
   if (!freeGiftUniqueId || Object.keys(updateFields).length === 0) {
-    return { message: "error", error: "Missing required fields" };
+    return {
+      message: "error",
+      error: "Missing required fields to update free gift",
+    };
   }
 
   const fields = [];

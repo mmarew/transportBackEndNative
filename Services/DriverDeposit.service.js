@@ -31,7 +31,10 @@ const createDriverDeposit = async (data) => {
     !accountUniqueId ||
     !depositTime
   ) {
-    return { message: "error", error: "Missing required fields" };
+    return {
+      message: "error",
+      error: "Missing required fields to create deposit",
+    };
   }
   // Validate depositAmount
   if (isNaN(depositAmount) || depositAmount <= 0) {
