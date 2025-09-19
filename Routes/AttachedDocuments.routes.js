@@ -5,7 +5,7 @@ const attachedDocumentsController = require("../Controllers/AttachedDocuments.co
 const multer = require("multer");
 const path = require("path");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
-const { uploadToFTP } = require("../Utils/ftpUploader");
+const { uploadToFTP } = require("../Utils/FTPHandler");
 
 // const storage = multer.diskStorage({
 //   destination: function (req, file, cb) {

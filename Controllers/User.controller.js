@@ -6,7 +6,7 @@ const {
   createAttachedDocument,
 } = require("../Services/AttachedDocuments.service");
 const services = require("../Services/User.service");
-const { uploadToFTP } = require("../Utils/ftpUploader");
+const { uploadToFTP } = require("../Utils/FTPHandler");
 const ServerResponder = require("../Utils/ServerResponder");
 
 const createUser = async (req, res) => {

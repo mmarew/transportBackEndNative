@@ -8,7 +8,7 @@ const {
 } = require("../Services/RoleDocumentRequirements.service");
 const { sendNotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
-const { uploadToFTP } = require("../Utils/ftpUploader");
+const { uploadToFTP } = require("../Utils/FTPHandler");
 // controllers
 // const createAttachedDocuments = async (req, res) => {
 //   try {

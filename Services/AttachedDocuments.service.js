@@ -14,7 +14,7 @@ const { pool } = require("../Middleware/Database.config");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
-const { deleteFromFTP } = require("../Utils/ftpUploader");
+const { deleteFromFTP } = require("../Utils/FTPHandler");
 // Create a new attached document
 // const createAttachedDocument = async ({
 //   attachedDocumentDescription,
