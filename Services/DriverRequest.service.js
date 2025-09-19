@@ -340,30 +340,30 @@ const acceptPassengerRequest = async (body) => {
     });
     const passenger = message?.passenger;
     const phoneNumber = passenger?.phoneNumber;
-    if (
-      (phoneNumber && journeyStatusId === journeyStatusMap?.requested) ||
-      journeyStatusId === journeyStatusMap.acceptedByDriver
-    ) {
-      const passengerStatusData = await verifyPassengerStatus({
-        userUniqueId: passenger.userUniqueId,
-      });
-      sendNotificationToPassenger({
-        message: {
-          messageTypes: messageTypes.driver_accepted_shipper_request,
-          ...passengerStatusData,
-          status: journeyStatusMap.acceptedByDriver,
-        },
-        phoneNumber,
-      });
-      sendNotificationToUser({
-        userUniqueId: passenger.userUniqueId,
-        roleId: 1,
-        notification: {
-          title: messageTypes.driver_accepted_shipper_request.message,
-          body: messageTypes.driver_accepted_shipper_request.details,
-        },
-      });
-    }
+    // if (
+    //   (phoneNumber && journeyStatusId === journeyStatusMap?.requested) ||
+    //   journeyStatusId === journeyStatusMap.acceptedByDriver
+    // ) {
+    const passengerStatusData = await verifyPassengerStatus({
+      userUniqueId: passenger.userUniqueId,
+    });
+    sendNotificationToPassenger({
+      message: {
+        messageTypes: messageTypes.driver_accepted_shipper_request,
+        ...passengerStatusData,
+        status: journeyStatusMap.acceptedByDriver,
+      },
+      phoneNumber,
+    });
+    sendNotificationToUser({
+      userUniqueId: passenger.userUniqueId,
+      roleId: 1,
+      notification: {
+        title: messageTypes.driver_accepted_shipper_request.message,
+        body: messageTypes.driver_accepted_shipper_request.details,
+      },
+    });
+    // }
 
     return message;
   } catch (error) {

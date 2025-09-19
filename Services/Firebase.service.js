@@ -3,8 +3,6 @@ const { v4: uuidv4 } = require("uuid");
 const { messaging } = require("../Config/FirebaseAdmin");
 
 // Service for managing DeviceTokens table
-
-// Upsert a device token by raw token value
 const upsertDeviceToken = async ({
   userUniqueId = null,
   roleId = null,
@@ -16,64 +14,181 @@ const upsertDeviceToken = async ({
   if (!token) {
     return { message: "error", error: "token required" };
   }
+
   const now = new Date();
-  // Check if user has token  in this role
-  const [existing] = await pool.query(
-    "SELECT * FROM DeviceTokens WHERE userUniqueId = ? and roleId = ?",
-    [userUniqueId, roleId]
-  );
 
-  // if token existed check if token is the same
-  if (existing.length > 0 && existing[0].token == token) {
-    return { message: "error", error: "token already exists" };
-  }
+  try {
+    // Check if token already exists for any user
+    const [existingTokenCheck] = await pool.query(
+      "SELECT * FROM DeviceTokens WHERE token = ?",
+      [token]
+    );
+    console.log("@existingTokenCheck", existingTokenCheck);
 
-  //if record   existed but with different token, update it
+    // If token exists but belongs to a different user/role
+    if (existingTokenCheck?.length > 0) {
+      const existingRecord = existingTokenCheck[0];
 
-  if (existing.length > 0 && existing[0].token !== token) {
-    // Update existing record
-    const sql = ` UPDATE DeviceTokens  SET token=? WHERE userUniqueId = ? and roleId = ? `;
-    const [result] = await pool.query(sql, [token, userUniqueId, roleId]);
+      // If the existing token belongs to the same user and role, update it
+      if (
+        existingRecord.userUniqueId === userUniqueId &&
+        existingRecord.roleId === roleId
+      ) {
+        const sql = `UPDATE DeviceTokens SET platform = ?, appVersion = ?, locale = ?, lastSeenAt = ? WHERE token = ?`;
+        const [result] = await pool.query(sql, [
+          platform,
+          appVersion,
+          locale,
+          now,
+          token,
+        ]);
 
-    return {
-      message: "success",
-      data: {
-        affectedRows: result.affectedRows,
-        token,
+        return {
+          message: "success",
+          data: {
+            affectedRows: result.affectedRows,
+            token,
+            userUniqueId,
+            roleId,
+            action: "updated",
+          },
+        };
+      }
+
+      // If token exists for different user/role, update it to the new user/role
+      // This handles the case where a device is reassigned to a different user
+      const sql = `UPDATE DeviceTokens SET userUniqueId = ?, roleId = ?, platform = ?, appVersion = ?, locale = ?, lastSeenAt = ? WHERE token = ?`;
+      const [result] = await pool.query(sql, [
         userUniqueId,
         roleId,
-      },
-    };
-  } else {
-    const deviceTokenUniqueId = uuidv4();
-    const sql = `
-      INSERT INTO DeviceTokens (
-        deviceTokenUniqueId, userUniqueId, token, platform, appVersion, locale, lastSeenAt, roleId
-      ) VALUES (?, ?, ?, ?, ?, ?, ?,?)
-    `;
-    const [result] = await pool.query(sql, [
-      deviceTokenUniqueId,
-      userUniqueId,
-      token,
+        platform,
+        appVersion,
+        locale,
+        now,
+        token,
+      ]);
 
-      platform,
-      appVersion,
-      locale,
-      now,
-      roleId,
-    ]);
+      return {
+        message: "success",
+        data: {
+          affectedRows: result.affectedRows,
+          token,
+          userUniqueId,
+          roleId,
+          action: "reassigned",
+        },
+      };
+    }
 
-    return {
-      message: "success",
-      data: {
+    // Check if user already has tokens for this role
+    const [existingUserTokens] = await pool.query(
+      "SELECT * FROM DeviceTokens WHERE userUniqueId = ? AND roleId = ?",
+      [userUniqueId, roleId]
+    );
+    console.log("@existingUserTokens", existingUserTokens);
+
+    // User has existing tokens for this role - check if we need to insert new or update existing
+    if (existingUserTokens.length > 0) {
+      // Check if this specific token already exists for this user (shouldn't happen due to unique constraint, but just in case)
+      const existingToken = existingUserTokens.find((t) => t.token === token);
+
+      if (existingToken) {
+        // Update existing record
+        const sql = `UPDATE DeviceTokens SET platform = ?, appVersion = ?, locale = ?, lastSeenAt = ? WHERE token = ?`;
+        const [result] = await pool.query(sql, [
+          platform,
+          appVersion,
+          locale,
+          now,
+          token,
+        ]);
+
+        return {
+          message: "success",
+          data: {
+            affectedRows: result.affectedRows,
+            token,
+            userUniqueId,
+            roleId,
+            action: "updated",
+          },
+        };
+      } else {
+        // User has other tokens for this role, but this is a new device token
+        // Insert new record (user can have multiple devices)
+        const deviceTokenUniqueId = uuidv4();
+        const sql = `
+          INSERT INTO DeviceTokens (
+            deviceTokenUniqueId, userUniqueId, token, platform, appVersion, locale, lastSeenAt, roleId
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const [result] = await pool.query(sql, [
+          deviceTokenUniqueId,
+          userUniqueId,
+          token,
+          platform,
+          appVersion,
+          locale,
+          now,
+          roleId,
+        ]);
+
+        return {
+          message: "success",
+          data: {
+            deviceTokenUniqueId,
+            userUniqueId,
+            token,
+            platform,
+            appVersion,
+            locale,
+            action: "created",
+          },
+        };
+      }
+    } else {
+      // User has no existing tokens for this role - insert new record
+      const deviceTokenUniqueId = uuidv4();
+      const sql = `
+        INSERT INTO DeviceTokens (
+          deviceTokenUniqueId, userUniqueId, token, platform, appVersion, locale, lastSeenAt, roleId
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      const [result] = await pool.query(sql, [
         deviceTokenUniqueId,
         userUniqueId,
         token,
         platform,
         appVersion,
         locale,
-      },
-    };
+        now,
+        roleId,
+      ]);
+
+      return {
+        message: "success",
+        data: {
+          deviceTokenUniqueId,
+          userUniqueId,
+          token,
+          platform,
+          appVersion,
+          locale,
+          action: "created",
+        },
+      };
+    }
+  } catch (error) {
+    console.error("Error in upsertDeviceToken:", error);
+
+    if (error.code === "ER_DUP_ENTRY") {
+      return {
+        message: "error",
+        error: "Token already exists. Please try again.",
+      };
+    }
+
+    return { message: "error", error: error.message };
   }
 };
 
@@ -175,7 +290,7 @@ const sendNotificationToTokens = async ({
     };
 
     const response = await messaging.sendEachForMulticast(message);
-
+    console.log("@messaging.sendEachForMulticast response", response);
     return {
       message: "success",
       data: {
@@ -212,10 +327,12 @@ const sendNotificationToUser = async ({
     if (!roleId) {
       return { message: "error", error: "roleId required" };
     }
+    console.log("in sendNotificationToUser");
     const tokensResult = await getActiveTokensByUser(userUniqueId, roleId);
+    console.log("@tokensResult", tokensResult);
     if (tokensResult.message === "error") return tokensResult;
-    const tokens = tokensResult.data.filter(Boolean);
-    if (tokens.length === 0) {
+    const tokens = tokensResult?.data?.filter(Boolean) || [];
+    if (tokens?.length === 0) {
       return {
         message: "success",
         data: {
@@ -226,7 +343,7 @@ const sendNotificationToUser = async ({
       };
     }
 
-    return await sendNotificationToTokens({
+    const result = await sendNotificationToTokens({
       tokens,
       notification,
       data,
@@ -234,6 +351,7 @@ const sendNotificationToUser = async ({
       apns,
       webpush,
     });
+    return result;
   } catch (error) {
     console.error("Error sending FCM to user:", error);
     return { message: "error", error: error?.message || "FCM send failed" };
