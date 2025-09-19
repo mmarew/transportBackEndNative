@@ -80,4 +80,35 @@ async function uploadToFTP(buffer, filename) {
   }
 }
 
-module.exports = { uploadToFTP };
+async function deleteFromFTP(filename) {
+  const client = new ftp.Client();
+  client.ftp.verbose = true;
+
+  try {
+    console.log("Connecting to FTP for deletion...");
+    await client.access(ftpConfig);
+    console.log("FTP connection successful for deletion");
+
+    // Check if file exists before trying to delete
+    try {
+      await client.size(filename);
+      console.log("File exists, proceeding with deletion:", filename);
+    } catch (error) {
+      console.log("File does not exist on FTP, skipping deletion:", filename);
+      return { success: true, message: "File already不存在" };
+    }
+
+    // Delete the file
+    await client.remove(filename);
+    console.log("File deleted successfully from FTP:", filename);
+
+    return { success: true, message: "File deleted successfully" };
+  } catch (error) {
+    console.error("FTP Deletion Error:", error);
+    throw new Error(`FTP deletion failed: ${error.message}`);
+  } finally {
+    client.close();
+  }
+}
+
+module.exports = { deleteFromFTP, uploadToFTP };

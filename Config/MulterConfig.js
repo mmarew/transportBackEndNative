@@ -4,14 +4,14 @@
 // const { v4: uuidv4 } = require("uuid");
 
 // // Define the upload directory
-// const uploadDir = path.join(__dirname, "../uploads");
+// const uploadDir = path?.join(__dirname, "../uploads");
 
 // // Ensure the 'uploads' folder exists or create it
 // if (!fs.existsSync(uploadDir)) {
 //   fs.mkdirSync(uploadDir, { recursive: true });
 // }
 
-// // Configure Multer for file uploads
+// // Configure Multer for file uploads using disk storage
 // const storage = multer.diskStorage({
 //   destination: (req, file, cb) => {
 //     if (!fs.existsSync(uploadDir)) {

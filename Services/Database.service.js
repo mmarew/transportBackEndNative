@@ -16,6 +16,7 @@ const {
   financialInstitutionAccount,
   subscriptionPlanLists,
   depositSources,
+  passengerDocumentRequirement,
 } = require("../Utils/ListOfFixedData");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancellation.service");
@@ -316,8 +317,23 @@ const installPreDefinedData = async (req, res) => {
       subscriptionPlanListsSuccess = [],
       subscriptionPlanListsErrors = [],
       depositSourcesSuccess = [],
-      depositSourcesErrors = [];
-    // preocess data of vehicleStatusTypes
+      depositSourcesErrors = [],
+      successPassengerDocumentRequirement = [],
+      failedPassengerDocumentRequirement = [];
+    // passengers document requirement using passengerDocumentRequirement
+    await processDataSequentially(
+      passengerDocumentRequirement,
+      (document) =>
+        createMapping({
+          body: document,
+          userUniqueId: user.userUniqueId,
+        }),
+      successPassengerDocumentRequirement,
+      failedPassengerDocumentRequirement,
+      "ShipperDocumentRequirement"
+    );
+
+    // precess data of vehicleStatusTypes
 
     await processDataSequentially(
       vehicleStatusTypes,
@@ -473,6 +489,10 @@ const installPreDefinedData = async (req, res) => {
     return {
       message: "success",
       data: {
+        passengerDocumentRequirement: {
+          success: successPassengerDocumentRequirement,
+          errors: failedPassengerDocumentRequirement,
+        },
         VehicleTypes: { successVehicleStatusTypes, failedVehicleStatusTypes },
         CommissionRates: { successCommissionRates, failedCommissionRates },
         TariffRateForVehcleTypes: {

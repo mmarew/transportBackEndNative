@@ -195,11 +195,11 @@ const createAttachedDocuments = async (req, res) => {
 
       try {
         // Generate unique filename
-        const fileExtension = path.extname(file.originalname);
+        const fileExtension = path.extname(file?.originalname);
         const uniqueFilename = `${user?.userId}_${uuidv4()}${fileExtension}`;
 
         // Upload to cPanel via FTP
-        const fileUrl = await uploadToFTP(file.buffer, uniqueFilename);
+        const fileUrl = await uploadToFTP(file?.buffer, uniqueFilename);
 
         documentsToRegister.push({
           fieldname: file.fieldname,
@@ -209,7 +209,7 @@ const createAttachedDocuments = async (req, res) => {
           documentTypeId,
           documentExpirationDate,
           attachedDocumentFileNumber,
-          originalFileName: file.originalname,
+          originalFileName: file?.originalname,
         });
       } catch (uploadError) {
         uploadResults.push({

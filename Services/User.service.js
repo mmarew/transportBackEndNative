@@ -904,7 +904,10 @@ const updateUser = async (body) => {
     conditions: { email },
   });
   console.log("@userDataByEmail", userDataByEmail);
-  if (userDataByEmail?.[0]?.userUniqueId !== userUniqueId) {
+  if (
+    userDataByEmail?.length > 0 &&
+    userDataByEmail?.[0]?.userUniqueId !== userUniqueId
+  ) {
     return {
       message: "error",
       error: "Email already exists",

@@ -475,6 +475,23 @@ const driversDocumentRequirement = [
   //   isExpirationDateRequired: true,
   // },
 ];
+// document type and id to passenger/shipper
+const passengerDocumentRequirement = [
+  // profile images
+  {
+    roleId: "1",
+    documentTypeId: "4",
+    isDocumentMandatory: false,
+    isExpirationDateRequired: false,
+  },
+  // national id
+  {
+    roleId: "1",
+    documentTypeId: "7",
+    isDocumentMandatory: false,
+    isExpirationDateRequired: false,
+  },
+];
 const vehicleTypes = [
   {
     vehicleTypeName: "Isuzu FSR",
@@ -781,4 +798,5 @@ module.exports = {
   roleList,
   statusList,
   usersRoles,
+  passengerDocumentRequirement,
 };

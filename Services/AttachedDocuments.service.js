@@ -14,6 +14,7 @@ const { pool } = require("../Middleware/Database.config");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
+const { deleteFromFTP } = require("../Utils/ftpUploader");
 // Create a new attached document
 // const createAttachedDocument = async ({
 //   attachedDocumentDescription,
@@ -248,6 +249,7 @@ const updateAttachedDocument = async (
   requestBody,
   uploadedFiles
 ) => {
+  console.log("@uploadedFiles", uploadedFiles);
   // Validate inputs
   if (!attachedDocumentUniqueId) {
     return {
@@ -303,9 +305,21 @@ const updateAttachedDocument = async (
   // Handle file uploads
   let attachedDocumentName = existingDocument.attachedDocumentName;
   if (uploadedFiles && uploadedFiles.length > 0) {
-    const file = uploadedFiles[0];
-    deleteFile(existingDocument.attachedDocumentName); // Delete old file
-    attachedDocumentName = file.filename; // Use new file name
+    const fileUrl = uploadedFiles[0];
+    const urlParts = fileUrl.split("/");
+    const filename = urlParts[urlParts.length - 1];
+    if (!filename) {
+      console.log("Error: Could not extract filename from URL:", fileUrl);
+      return { success: false, error: "Invalid file URL" };
+    }
+
+    console.log("Attempting to delete file via FTP:", filename);
+    const result = await deleteFromFTP(filename);
+    console.log("File deletion result:", result);
+
+    // deleteFile(existingDocument.attachedDocumentName); // Delete old file
+    // use full url to store in database
+    attachedDocumentName = fileUrl;
   }
 
   // Prepare historical record for AttachedDocumentsHistory
