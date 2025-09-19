@@ -79,7 +79,6 @@ async function uploadToFTP(buffer, filename) {
     client.close();
   }
 }
-
 async function deleteFromFTP(filename) {
   const client = new ftp.Client();
   client.ftp.verbose = true;
@@ -88,6 +87,7 @@ async function deleteFromFTP(filename) {
     console.log("Connecting to FTP for deletion...");
     await client.access(ftpConfig);
     console.log("FTP connection successful for deletion");
+    // await client.ensureDir("uploads"); // This creates/ensures the 'uploads' directory
 
     // Check if file exists before trying to delete
     try {

@@ -313,9 +313,7 @@ const updateAttachedDocument = async (
       return { success: false, error: "Invalid file URL" };
     }
 
-    console.log("Attempting to delete file via FTP:", filename);
-    const result = await deleteFromFTP(filename);
-    console.log("File deletion result:", result);
+    deleteFromFTP(attachedDocumentName);
 
     // deleteFile(existingDocument.attachedDocumentName); // Delete old file
     // use full url to store in database
