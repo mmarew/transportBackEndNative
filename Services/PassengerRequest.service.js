@@ -577,28 +577,15 @@ const cancelPassengerRequest = async (body) => {
       ],
       conditions: { passengerRequestId },
     });
-    const journeyStatusId = passengerData?.journeyStatusId;
-    if (journeyStatusId == journeyStatusMap.cancelledByPassenger) {
-      return {
-        message: "error",
-        error: "Request already cancelled by passenger",
-      };
-    }
-    // if journeyStatusId is waiting update passenger request only and return cancellation
-    if (journeyStatusId == journeyStatusMap.waiting) {
-      await updateData({
-        tableName: "PassengerRequest",
-        conditions: { passengerRequestId },
-        updateValues: {
-          journeyStatusId: journeyStatusMap.cancelledByPassenger,
-        },
-      });
 
-      return {
-        message: "success",
-        data: "Request cancelled successfully",
-      };
-    }
+    await updateData({
+      tableName: "PassengerRequest",
+      conditions: { passengerRequestId },
+      updateValues: {
+        journeyStatusId: journeyStatusMap.cancelledByPassenger,
+      },
+    });
+
     // Get all journey decisions for this passenger request
     const journeyDecisions = await getData({
       tableName: "JourneyDecisions",
@@ -606,12 +593,12 @@ const cancelPassengerRequest = async (body) => {
     });
 
     // If no journey decisions found, return early
-    if (!journeyDecisions.length) {
-      return {
-        message: "error",
-        error: "No journey decisions found for this passenger request",
-      };
-    }
+    // if (!journeyDecisions.length) {
+    //   return {
+    //     message: "error",
+    //     error: "No journey decisions found for this passenger request",
+    //   };
+    // }
 
     const cancelledByPassenger = journeyStatusMap?.cancelledByPassenger;
 
@@ -686,24 +673,18 @@ const cancelPassengerRequest = async (body) => {
       },
     });
 
-    if (canceledJourneyBefore.length > 0) {
-      return {
-        message: "error",
-        error: "PassengerRequest cancellation is already registered",
-      };
+    if (canceledJourneyBefore.length == 0) {
+      // Create new cancellation record
+      const canceledJourney = await createCanceledJourney({
+        canceledBy: userUniqueId,
+        canceledTime: new Date(), // Added timestamp
+        contextId: passengerRequestId,
+        contextType: "PassengerRequest",
+        cancellationReasonsTypeId,
+        roleId,
+        passengerUserUniqueId: ownerUserUniqueId,
+      });
     }
-
-    // Create new cancellation record
-    const canceledJourney = await createCanceledJourney({
-      canceledBy: userUniqueId,
-      canceledTime: new Date(), // Added timestamp
-      contextId: passengerRequestId,
-      contextType: "PassengerRequest",
-      cancellationReasonsTypeId,
-      roleId,
-      passengerUserUniqueId: ownerUserUniqueId,
-    });
-
     return {
       status: null,
       message: "success",
