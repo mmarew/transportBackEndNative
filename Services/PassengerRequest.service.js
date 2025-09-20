@@ -591,78 +591,72 @@ const cancelPassengerRequest = async (body) => {
       tableName: "JourneyDecisions",
       conditions: { passengerRequestId },
     });
-
-    // If no journey decisions found, return early
-    // if (!journeyDecisions.length) {
-    //   return {
-    //     message: "error",
-    //     error: "No journey decisions found for this passenger request",
-    //   };
-    // }
-
     const cancelledByPassenger = journeyStatusMap?.cancelledByPassenger;
 
-    // Process all journey decisions in parallel
-    const updatePromises = journeyDecisions?.map(async (journeyDecision) => {
-      const { journeyDecisionUniqueId, driverRequestId } = journeyDecision;
+    // If no journey decisions found, return early
+    if (journeyDecisions.length) {
+      // Process all journey decisions in parallel
+      const updatePromises = journeyDecisions?.map(async (journeyDecision) => {
+        const { journeyDecisionUniqueId, driverRequestId } = journeyDecision;
 
-      // Update driver request status
-      await updateData({
-        tableName: "DriverRequest",
-        conditions: { driverRequestId },
-        updateValues: { journeyStatusId: cancelledByPassenger },
-      });
-
-      // Update journey decision status
-      await updateData({
-        tableName: "JourneyDecisions",
-        conditions: { journeyDecisionUniqueId },
-        updateValues: { journeyStatusId: cancelledByPassenger },
-      });
-
-      // Update journey status
-      await updateData({
-        tableName: "Journey",
-        conditions: { journeyDecisionUniqueId },
-        updateValues: { journeyStatusId: cancelledByPassenger },
-      });
-
-      // Get driver data for notification
-      const [driverData] = await performJoinSelect({
-        baseTable: "DriverRequest",
-        joins: [
-          {
-            table: "Users",
-            on: "DriverRequest.userUniqueId = Users.userUniqueId",
-          },
-        ],
-        conditions: { driverRequestId },
-      });
-
-      // Send notification to driver if phone number exists
-      if (driverData?.phoneNumber) {
-        const notificationMessage =
-          userUniqueId === ownerUserUniqueId
-            ? "Passenger cancelled Journey."
-            : "System cancelled Journey.";
-
-        await sendNotificationToDriver({
-          message: {
-            passenger: null,
-            driver: null,
-            journey: null,
-            decisions: null,
-            status: cancelledByPassenger,
-            message: "success",
-            data: notificationMessage,
-          },
-          phoneNumber: driverData.phoneNumber,
+        // Update driver request status
+        await updateData({
+          tableName: "DriverRequest",
+          conditions: { driverRequestId },
+          updateValues: { journeyStatusId: cancelledByPassenger },
         });
-      }
-    });
 
-    // Wait for all updates to complete
-    await Promise.all(updatePromises);
+        // Update journey decision status
+        await updateData({
+          tableName: "JourneyDecisions",
+          conditions: { journeyDecisionUniqueId },
+          updateValues: { journeyStatusId: cancelledByPassenger },
+        });
+
+        // Update journey status
+        await updateData({
+          tableName: "Journey",
+          conditions: { journeyDecisionUniqueId },
+          updateValues: { journeyStatusId: cancelledByPassenger },
+        });
+
+        // Get driver data for notification
+        const [driverData] = await performJoinSelect({
+          baseTable: "DriverRequest",
+          joins: [
+            {
+              table: "Users",
+              on: "DriverRequest.userUniqueId = Users.userUniqueId",
+            },
+          ],
+          conditions: { driverRequestId },
+        });
+
+        // Send notification to driver if phone number exists
+        if (driverData?.phoneNumber) {
+          const notificationMessage =
+            userUniqueId === ownerUserUniqueId
+              ? "Passenger cancelled Journey."
+              : "System cancelled Journey.";
+
+          await sendNotificationToDriver({
+            message: {
+              passenger: null,
+              driver: null,
+              journey: null,
+              decisions: null,
+              status: cancelledByPassenger,
+              message: "success",
+              data: notificationMessage,
+            },
+            phoneNumber: driverData.phoneNumber,
+          });
+        }
+      });
+
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+    }
 
     // Check if cancellation is already registered
     const canceledJourneyBefore = await getData({
