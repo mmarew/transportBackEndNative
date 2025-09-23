@@ -36,10 +36,10 @@ exports.getAllDriverDepositDataByStatus = async (req, res) => {
 // Get All Deposits By Status
 exports.getOneDriverDepositDataByStatus = async (req, res) => {
   try {
-    const { status, driverUserUniqeId } = req.params;
+    const { status, driverUserUniqueId } = req.params;
     const result = await service.getOneDriverDepositDataByStatus({
       status,
-      driverUserUniqeId,
+      driverUserUniqueId,
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -51,12 +51,30 @@ exports.getOneDriverDepositDataByStatus = async (req, res) => {
   }
 };
 
-exports.getAllDriverDepositData = async (req, res) => {
+exports.getDriverDeposit = async (req, res) => {
   try {
-    const result = await service.getAllDriverDepositData();
+    const {
+      driverUniqueId,
+      depositStatus,
+      page = 1,
+      limit = 10,
+      sortBy = "depositTime",
+      sortOrder = "DESC",
+    } = req.query;
+
+    const result = await service.getDriverDeposit({
+      driverUniqueId,
+      depositStatus,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sortBy,
+      sortOrder: sortOrder.toUpperCase(),
+    });
+
     ServerResponder(res, result);
   } catch (error) {
     console.log("@getAllDriverDepositData error", error);
+    ServerResponder(res, { error: error.message }, 500);
   }
 };
 // Get All (with optional driverUniqueId filter)
@@ -192,10 +210,10 @@ exports.updateDriverDepositStatus = async (req, res) => {
       });
     }
 
-    const result = await service.updateDriverDepositStatusService(
+    const result = await service?.updateDriverDepositStatusService({
       driverDepositUniqueId,
-      depositStatus
-    );
+      newStatus: depositStatus,
+    });
 
     ServerResponder(res, result);
   } catch (error) {

@@ -115,10 +115,10 @@ const createDriverDeposit = async (data) => {
 
 const getOneDriverDepositDataByStatus = async ({
   status,
-  driverUserUniqeId,
+  driverUserUniqueId,
 }) => {
   const sql = `SELECT * FROM DriverDeposit WHERE depositStatus = ? and driverUniqueId=? ORDER BY depositTime DESC`;
-  const [result] = await pool.query(sql, [status, driverUserUniqeId]);
+  const [result] = await pool.query(sql, [status, driverUserUniqueId]);
   return { message: "success", data: result };
 };
 const getAllDriverDepositDataByStatus = async (depositStatus) => {
@@ -126,10 +126,97 @@ const getAllDriverDepositDataByStatus = async (depositStatus) => {
   const [result] = await pool.query(sql, [depositStatus]);
   return { message: "success", data: result };
 };
-const getAllDriverDepositData = async () => {
-  const sql = `select * from DriverDeposit`;
-  const [result] = await pool.query(sql);
-  return { message: "success", data: result };
+const getDriverDeposit = async (filters = {}) => {
+  const {
+    driverUniqueId,
+    depositStatus,
+    minAmount,
+    maxAmount,
+    startDate,
+    endDate,
+    page = 1,
+    limit = 10,
+    sortBy = "depositTime",
+    sortOrder = "DESC",
+  } = filters;
+
+  // Build WHERE conditions
+  const whereConditions = [];
+  const params = [];
+
+  // Existing filters
+  if (driverUniqueId) {
+    whereConditions.push("dd.driverUniqueId = ?");
+    params.push(driverUniqueId);
+  }
+
+  if (depositStatus) {
+    const statusArray = Array.isArray(depositStatus)
+      ? depositStatus
+      : depositStatus.split(",");
+
+    if (statusArray.length > 0) {
+      const placeholders = statusArray.map(() => "?").join(",");
+      whereConditions.push(`dd.depositStatus IN (${placeholders})`);
+      params.push(...statusArray);
+    }
+  }
+
+  // Additional filters
+  if (minAmount) {
+    whereConditions.push("dd.depositAmount >= ?");
+    params.push(parseFloat(minAmount));
+  }
+
+  if (maxAmount) {
+    whereConditions.push("dd.depositAmount <= ?");
+    params.push(parseFloat(maxAmount));
+  }
+
+  if (startDate) {
+    whereConditions.push("dd.depositTime >= ?");
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    whereConditions.push("dd.depositTime <= ?");
+    params.push(endDate);
+  }
+
+  const whereClause =
+    whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
+
+  const offset = (page - 1) * limit;
+
+  const sql = `
+    SELECT dd.*, u.fullName ,u.phoneNumber,u.email
+    FROM DriverDeposit dd
+    LEFT JOIN Users u ON dd.driverUniqueId = u.userUniqueId
+    ${whereClause}
+    ORDER BY ${sortBy} ${sortOrder}
+    LIMIT ? OFFSET ?
+  `;
+
+  const countSql = `SELECT COUNT(*) as total FROM DriverDeposit dd ${whereClause}`;
+
+  const [data] = await pool.query(sql, [...params, limit, offset]);
+  const [countResult] = await pool.query(countSql, params);
+
+  const total = countResult[0].total;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    message: "success",
+    data,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalItems: total,
+      itemsPerPage: limit,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+  };
 };
 // Get All (with account + source info)
 const getDriverDepositsWithAccountInfo = async (driverUniqueId) => {
@@ -265,10 +352,10 @@ const getDepositsByDateRangeAndDriver = async ({
  * @param {"approved" | "rejected"} newStatus - The new status to set.
  * @returns {Promise<Object>} - A success or failure response.
  */
-const updateDriverDepositStatusService = async (
+const updateDriverDepositStatusService = async ({
   driverDepositUniqueId,
-  newStatus
-) => {
+  newStatus,
+}) => {
   const allowedStatuses = ["approved", "rejected"];
   if (!allowedStatuses.includes(newStatus)) {
     return { message: "error", error: "Invalid deposit status" };
@@ -353,7 +440,7 @@ module.exports = {
   getDepositsByDateRangeAndDriver,
   getOneDriverDepositDataByStatus,
   getAllDriverDepositDataByStatus,
-  getAllDriverDepositData,
+  getDriverDeposit,
   createDriverDeposit,
   getDriverDepositsWithAccountInfo,
   getDriverDepositByUniqueId,

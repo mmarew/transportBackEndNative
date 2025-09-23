@@ -443,12 +443,14 @@ const driversDocumentRequirement = [
     documentTypeId: "1",
     isDocumentMandatory: true,
     isExpirationDateRequired: true,
+    isFileNumberRequired: true,
   },
   {
     roleId: "2",
     documentTypeId: "2",
     isDocumentMandatory: true,
     isExpirationDateRequired: false,
+    isFileNumberRequired: true,
   },
   // {
   //   roleId: "2",
@@ -461,6 +463,7 @@ const driversDocumentRequirement = [
     documentTypeId: "4",
     isDocumentMandatory: true,
     isExpirationDateRequired: false,
+    isFileNumberRequired: false,
   },
   // {
   //   roleId: "2",

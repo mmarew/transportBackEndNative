@@ -224,9 +224,19 @@ const driversDocumentVehicleRequirement = async (body) => {
   //   ],
   //   conditions: { userUniqueId: ownerUserUniqueId },
   // });
-  const sql = `select * from AttachedDocuments,DocumentTypes,RoleDocumentRequirements where AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId and RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId and userUniqueId=?  `;
+  // const sql = `select * from AttachedDocuments,DocumentTypes,RoleDocumentRequirements where AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId and RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId and userUniqueId=?  `;
+  const sql = `SELECT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.roleDocumentRequirementId
+FROM AttachedDocuments
+JOIN DocumentTypes 
+  ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
+JOIN RoleDocumentRequirements 
+  ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
+WHERE AttachedDocuments.userUniqueId = ?
+GROUP BY AttachedDocuments.attachedDocumentId;
+`;
   const values = [ownerUserUniqueId];
-  const [attachedDocuments] = await pool.query(sql, [ownerUserUniqueId]);
+  const [attachedDocuments] = await pool.query(sql, values);
+  console.log("@attachedDocuments", attachedDocuments);
   // Find unattached document types
   const unAttachedDocumentTypes = requiredDocuments.filter(
     (requiredDocument) =>

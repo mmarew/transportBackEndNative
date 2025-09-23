@@ -14,7 +14,7 @@ router.post(
   controller.createDriverDeposit
 );
 // Get all deposit data
-router.get("/api/driverDeposit", controller.getAllDriverDepositData);
+router.get("/api/driverDeposit", controller.getDriverDeposit);
 
 // get all deposit by status
 router.get(
@@ -23,7 +23,7 @@ router.get(
 );
 // get all deposit by status
 router.get(
-  "/api/getOneDriverDepositDataByStatus/:driverUserUniqeId/:status",
+  "/api/getOneDriverDepositDataByStatus/:driverUserUniqueId/:status",
   controller.getOneDriverDepositDataByStatus
 );
 
