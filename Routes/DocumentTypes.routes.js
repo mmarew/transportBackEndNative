@@ -6,30 +6,30 @@ const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 
 // Define routes for CRUD operations with camelCase
 router.post(
-  "/documentTypes",
+  "/api/documentTypes",
   verifyTokenOfAxios,
   documentTypesController.createDocumentType
 );
 router.get(
-  "/documentTypes",
+  "/api/documentTypes",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.getAllDocumentTypes
 );
 router.get(
-  "/documentTypes/:id",
+  "/api/documentTypes/:id",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.getDocumentTypeById
 );
 router.put(
-  "/documentTypes/:id",
+  "/api/documentTypes/:id",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.updateDocumentType
 );
 router.delete(
-  "/documentTypes/:id",
+  "/api/documentTypes/:id",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.deleteDocumentType
