@@ -798,31 +798,118 @@ const getUserByEmailOrNameOrPhoneNumber = async (
     };
   }
 };
-const getUsersByRoleUniqueId = async (roleUniqueId) => {
-  const rows = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        table: "UserRole",
-        on: "UserRole.userUniqueId=Users.userUniqueId",
-      },
-      {
-        table: "Roles",
-        on: "UserRole.roleId=Roles.roleId",
-      },
-      {
-        table: "UserRoleStatusCurrent",
-        on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
-      },
-      {
-        table: "Statuses",
-        on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
-      },
-    ],
-    conditions: { "Roles.roleUniqueId": roleUniqueId },
-  });
+
+// const getUsersByRoleUniqueId = async (roleUniqueId) => {
+//   const rows = await performJoinSelect({
+//     baseTable: "Users",
+//     joins: [
+//       {
+//         table: "UserRole",
+//         on: "UserRole.userUniqueId=Users.userUniqueId",
+//       },
+//       {
+//         table: "Roles",
+//         on: "UserRole.roleId=Roles.roleId",
+//       },
+//       {
+//         table: "UserRoleStatusCurrent",
+//         on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
+//       },
+//       {
+//         table: "Statuses",
+//         on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
+//       },
+//     ],
+//     conditions: { "Roles.roleUniqueId": roleUniqueId },
+//   });
+//   return {
+//     message: "success",
+//     data: rows,
+//   };
+// };
+
+const getUsersByRoleUniqueId = async (
+  roleUniqueId,
+  page = 1,
+  limit = 10,
+  search = ""
+) => {
+  const offset = (page - 1) * limit;
+  const wildcardQuery = `%${search}%`;
+
+  // Count query
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM Users u
+    INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+    INNER JOIN Statuses s ON ursc.statusId = s.statusId
+    WHERE r.roleUniqueId = ?
+    ${
+      search
+        ? "AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)"
+        : ""
+    }
+  `;
+
+  const [countRows] = await pool.query(
+    countSql,
+    search
+      ? [roleUniqueId, wildcardQuery, wildcardQuery, wildcardQuery]
+      : [roleUniqueId]
+  );
+  const total = countRows[0].total;
+
+  // Data query
+  const sql = `
+    SELECT 
+      u.userUniqueId,
+      u.fullName,
+      u.email,
+      u.phoneNumber,
+      r.roleName,
+      ursc.statusId,
+      s.statusName,
+      ur.userRoleId,
+      ur.userRoleCreatedAt
+    FROM Users u
+    INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+    INNER JOIN Statuses s ON ursc.statusId = s.statusId
+    WHERE r.roleUniqueId = ?
+    ${
+      search
+        ? "AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)"
+        : ""
+    }
+    ORDER BY u.createdAt DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const [rows] = await pool.query(
+    sql,
+    search
+      ? [
+          roleUniqueId,
+          wildcardQuery,
+          wildcardQuery,
+          wildcardQuery,
+          limit,
+          offset,
+        ]
+      : [roleUniqueId, limit, offset]
+  );
+
   return {
     message: "success",
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
     data: rows,
   };
 };

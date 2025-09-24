@@ -113,7 +113,7 @@ const { deleteFromFTP } = require("../Utils/FTPHandler");
 //     };
 //   }
 // };
-
+// services
 const createAttachedDocument = async ({
   attachedDocumentDescription,
   attachedDocumentName, // This is now the URL from FTP
@@ -243,146 +243,243 @@ const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
   return result[0];
 };
 
-const updateAttachedDocument = async (
+// const updateAttachedDocument = async (
+//   attachedDocumentUniqueId,
+//   user,
+//   requestBody,
+//   uploadedFiles
+// ) => {
+//   console.log("@uploadedFiles", uploadedFiles);
+//   // Validate inputs
+//   if (!attachedDocumentUniqueId) {
+//     return {
+//       message: "error",
+//       data: "Attached document unique ID is required",
+//     };
+//   }
+//   if (!user || !user.userUniqueId) {
+//     return { message: "error", data: "User information is missing" };
+//   }
+
+//   const userUniqueId = user.userUniqueId;
+
+//   // Fetch existing document details
+//   const [existingDocument] = await performJoinSelect({
+//     baseTable: "AttachedDocuments",
+//     joins: [
+//       {
+//         on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+//         table: "DocumentTypes",
+//       },
+//     ],
+//     // tableName: "AttachedDocuments",
+//     conditions: { attachedDocumentUniqueId },
+//   });
+//   // console.log("existingDocument", existingDocument);
+//   // return;
+//   if (!existingDocument) {
+//     return { message: "error", data: "Attached document not found" };
+//   }
+
+//   // Extract new data from the request body
+//   const documentDescription =
+//     requestBody[existingDocument.uploadedDocumentDescription] || null;
+//   const documentTypeId =
+//     requestBody[existingDocument.uploadedDocumentTypeId] || null;
+//   let documentExpirationDate =
+//     requestBody[existingDocument.uploadedDocumentExpirationDate] || null;
+
+//   // Validate and process expiration date
+//   let isExpired = false;
+//   if (documentExpirationDate == "null") {
+//     documentExpirationDate = null;
+//   }
+//   if (documentExpirationDate) {
+//     const expirationDate = new Date(documentExpirationDate);
+//     if (isNaN(expirationDate.getTime())) {
+//       return { message: "error", data: "Invalid date format for expiration" };
+//     }
+//     isExpired = expirationDate < new Date();
+//   }
+
+//   // Handle file uploads
+//   let attachedDocumentName = existingDocument.attachedDocumentName;
+//   if (uploadedFiles && uploadedFiles.length > 0) {
+//     const fileUrl = uploadedFiles[0];
+//     const urlParts = fileUrl?.split("/");
+//     const filename = urlParts?.[urlParts.length - 1];
+//     if (!filename) {
+//       console.log("Error: Could not extract filename from URL:", fileUrl);
+//       return { success: false, error: "Invalid file URL" };
+//     }
+
+//     deleteFromFTP(attachedDocumentName);
+
+//     // deleteFile(existingDocument.attachedDocumentName); // Delete old file
+//     // use full url to store in database
+//     attachedDocumentName = fileUrl;
+//   }
+
+//   // Prepare historical record for AttachedDocumentsHistory
+//   const historyDocument = {
+//     attachedDocumentId: existingDocument.attachedDocumentId, // ID of the original document
+//     attachedDocumentUniqueId: existingDocument.attachedDocumentUniqueId,
+//     userUniqueId: existingDocument.userUniqueId,
+//     attachedDocumentDescription: existingDocument.attachedDocumentDescription,
+//     documentTypeId: existingDocument.documentTypeId,
+//     documentExpirationDate: existingDocument.documentExpirationDate,
+//     attachedDocumentAcceptance: existingDocument.attachedDocumentAcceptance,
+//     attachedDocumentAcceptedRejectedByUserId:
+//       existingDocument.attachedDocumentAcceptedRejectedByUserId,
+//     attachedDocumentAcceptedRejectedAt:
+//       existingDocument.attachedDocumentAcceptedRejectedAt,
+//     attachedDocumentName: existingDocument.attachedDocumentName,
+//     attachedDocumentCreatedByUserId:
+//       existingDocument.attachedDocumentCreatedByUserId,
+//     attachedDocumentUpdatedByUserId: userUniqueId, // Current user making the update
+//     attachedDocumentDeletedByUserId:
+//       existingDocument.attachedDocumentDeletedByUserId,
+//     attachedDocumentCreatedAt: existingDocument.attachedDocumentCreatedAt,
+//     attachedDocumentUpdatedAt: new Date(),
+//     attachedDocumentDeletedAt: existingDocument.attachedDocumentDeletedAt,
+//     attachedDocumentIsExpired: isExpired,
+//     attachedDocumentAcceptanceReason:
+//       existingDocument.attachedDocumentAcceptanceReason,
+//     documentVersion: (existingDocument.documentVersion || 1) + 1,
+//   };
+
+//   // Insert historical record
+//   const historyResult = await insertData({
+//     tableName: "AttachedDocumentsHistory",
+//     colAndVal: historyDocument,
+//   });
+
+//   if (!historyResult || historyResult.affectedRows === 0) {
+//     return { message: "error", data: "Failed to archive current document" };
+//   }
+
+//   // Prepare updated document data for AttachedDocuments
+//   const updateValues = {
+//     attachedDocumentDescription:
+//       documentDescription || existingDocument.attachedDocumentDescription,
+//     documentTypeId: documentTypeId || existingDocument.documentTypeId,
+//     attachedDocumentName:
+//       attachedDocumentName || existingDocument.attachedDocumentName,
+//     documentExpirationDate:
+//       documentExpirationDate || existingDocument.documentExpirationDate,
+//     attachedDocumentAcceptance: "PENDING",
+//   };
+//   console.log("documentDescription", documentDescription);
+//   console.log("updateValues  ===========>  ", updateValues);
+//   // Update the AttachedDocuments table with the new data
+//   const updateResult = await updateData({
+//     tableName: "AttachedDocuments",
+//     conditions: { attachedDocumentUniqueId },
+//     updateValues,
+//   });
+
+//   if (updateResult.affectedRows > 0) {
+//     return { message: "success", data: "Document updated successfully" };
+//   }
+
+//   return { message: "error", data: "Failed to update document" };
+// };
+
+const updateAttachedDocument = async ({
   attachedDocumentUniqueId,
-  user,
-  requestBody,
-  uploadedFiles
-) => {
-  console.log("@uploadedFiles", uploadedFiles);
-  // Validate inputs
-  if (!attachedDocumentUniqueId) {
+  roleId,
+  documentExpirationDate,
+  attachedDocumentDescription,
+  attachedDocumentFileNumber,
+  attachedDocumentName,
+}) => {
+  try {
+    // Fetch existing document
+    const existingDocs = await getData({
+      tableName: "AttachedDocuments",
+      conditions: { attachedDocumentUniqueId },
+    });
+
+    if (existingDocs.length === 0) {
+      return {
+        message: "error",
+        error: `No existing document found`,
+      };
+    }
+
+    const existingDoc = existingDocs[0];
+
+    // Check role requirement
+    const documentType = await getData({
+      tableName: "RoleDocumentRequirements",
+      conditions: {
+        documentTypeId: existingDoc.documentTypeId,
+        roleId,
+      },
+    });
+
+    if (documentType.length === 0) {
+      return {
+        message: "error",
+        error: `Role Document requirement not found`,
+      };
+    }
+
+    // Expiration date requirement
+    const isExpirationDateRequired = documentType[0].isExpirationDateRequired;
+    if (isExpirationDateRequired && !documentExpirationDate) {
+      return {
+        message: "error",
+        error: `Document expiration date is required`,
+      };
+    }
+
+    // Expired check
+    if (documentExpirationDate) {
+      const isExpired = new Date(documentExpirationDate) < new Date();
+      if (isExpired) {
+        return {
+          message: "error",
+          error: `Document is expired`,
+        };
+      }
+    }
+
+    // Prepare update data
+    const newUpdateData = {
+      // change to PENDING status
+      attachedDocumentAcceptance: "PENDING",
+      attachedDocumentDescription,
+      attachedDocumentFileNumber,
+      documentExpirationDate,
+      // attachedDocumentUpdatedAt: new Date(),
+    };
+
+    if (attachedDocumentName) {
+      newUpdateData.attachedDocumentName = attachedDocumentName;
+    }
+
+    const result = await updateData({
+      // tableName: "AttachedDocuments",
+      // conditions: { attachedDocumentUniqueId },
+      // colAndVal: newUpdateData,
+      tableName: "AttachedDocuments",
+      conditions: { attachedDocumentUniqueId },
+      updateValues: newUpdateData,
+    });
+
+    if (result?.affectedRows > 0) {
+      return { message: "success", data: "Document updated successfully" };
+    } else {
+      return { message: "error", error: "Failed to update document" };
+    }
+  } catch (error) {
+    console.log("Error updating attached document:", error);
     return {
       message: "error",
-      data: "Attached document unique ID is required",
+      error: "An error occurred while updating the document",
     };
   }
-  if (!user || !user.userUniqueId) {
-    return { message: "error", data: "User information is missing" };
-  }
-
-  const userUniqueId = user.userUniqueId;
-
-  // Fetch existing document details
-  const [existingDocument] = await performJoinSelect({
-    baseTable: "AttachedDocuments",
-    joins: [
-      {
-        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
-        table: "DocumentTypes",
-      },
-    ],
-    // tableName: "AttachedDocuments",
-    conditions: { attachedDocumentUniqueId },
-  });
-  // console.log("existingDocument", existingDocument);
-  // return;
-  if (!existingDocument) {
-    return { message: "error", data: "Attached document not found" };
-  }
-
-  // Extract new data from the request body
-  const documentDescription =
-    requestBody[existingDocument.uploadedDocumentDescription] || null;
-  const documentTypeId =
-    requestBody[existingDocument.uploadedDocumentTypeId] || null;
-  let documentExpirationDate =
-    requestBody[existingDocument.uploadedDocumentExpirationDate] || null;
-
-  // Validate and process expiration date
-  let isExpired = false;
-  if (documentExpirationDate == "null") {
-    documentExpirationDate = null;
-  }
-  if (documentExpirationDate) {
-    const expirationDate = new Date(documentExpirationDate);
-    if (isNaN(expirationDate.getTime())) {
-      return { message: "error", data: "Invalid date format for expiration" };
-    }
-    isExpired = expirationDate < new Date();
-  }
-
-  // Handle file uploads
-  let attachedDocumentName = existingDocument.attachedDocumentName;
-  if (uploadedFiles && uploadedFiles.length > 0) {
-    const fileUrl = uploadedFiles[0];
-    const urlParts = fileUrl.split("/");
-    const filename = urlParts[urlParts.length - 1];
-    if (!filename) {
-      console.log("Error: Could not extract filename from URL:", fileUrl);
-      return { success: false, error: "Invalid file URL" };
-    }
-
-    deleteFromFTP(attachedDocumentName);
-
-    // deleteFile(existingDocument.attachedDocumentName); // Delete old file
-    // use full url to store in database
-    attachedDocumentName = fileUrl;
-  }
-
-  // Prepare historical record for AttachedDocumentsHistory
-  const historyDocument = {
-    attachedDocumentId: existingDocument.attachedDocumentId, // ID of the original document
-    attachedDocumentUniqueId: existingDocument.attachedDocumentUniqueId,
-    userUniqueId: existingDocument.userUniqueId,
-    attachedDocumentDescription: existingDocument.attachedDocumentDescription,
-    documentTypeId: existingDocument.documentTypeId,
-    documentExpirationDate: existingDocument.documentExpirationDate,
-    attachedDocumentAcceptance: existingDocument.attachedDocumentAcceptance,
-    attachedDocumentAcceptedRejectedByUserId:
-      existingDocument.attachedDocumentAcceptedRejectedByUserId,
-    attachedDocumentAcceptedRejectedAt:
-      existingDocument.attachedDocumentAcceptedRejectedAt,
-    attachedDocumentName: existingDocument.attachedDocumentName,
-    attachedDocumentCreatedByUserId:
-      existingDocument.attachedDocumentCreatedByUserId,
-    attachedDocumentUpdatedByUserId: userUniqueId, // Current user making the update
-    attachedDocumentDeletedByUserId:
-      existingDocument.attachedDocumentDeletedByUserId,
-    attachedDocumentCreatedAt: existingDocument.attachedDocumentCreatedAt,
-    attachedDocumentUpdatedAt: new Date(),
-    attachedDocumentDeletedAt: existingDocument.attachedDocumentDeletedAt,
-    attachedDocumentIsExpired: isExpired,
-    attachedDocumentAcceptanceReason:
-      existingDocument.attachedDocumentAcceptanceReason,
-    documentVersion: (existingDocument.documentVersion || 1) + 1,
-  };
-
-  // Insert historical record
-  const historyResult = await insertData({
-    tableName: "AttachedDocumentsHistory",
-    colAndVal: historyDocument,
-  });
-
-  if (!historyResult || historyResult.affectedRows === 0) {
-    return { message: "error", data: "Failed to archive current document" };
-  }
-
-  // Prepare updated document data for AttachedDocuments
-  const updateValues = {
-    attachedDocumentDescription:
-      documentDescription || existingDocument.attachedDocumentDescription,
-    documentTypeId: documentTypeId || existingDocument.documentTypeId,
-    attachedDocumentName:
-      attachedDocumentName || existingDocument.attachedDocumentName,
-    documentExpirationDate:
-      documentExpirationDate || existingDocument.documentExpirationDate,
-    attachedDocumentAcceptance: "PENDING",
-  };
-  console.log("documentDescription", documentDescription);
-  console.log("updateValues  ===========>  ", updateValues);
-  // Update the AttachedDocuments table with the new data
-  const updateResult = await updateData({
-    tableName: "AttachedDocuments",
-    conditions: { attachedDocumentUniqueId },
-    updateValues,
-  });
-
-  if (updateResult.affectedRows > 0) {
-    return { message: "success", data: "Document updated successfully" };
-  }
-
-  return { message: "error", data: "Failed to update document" };
 };
 
 // Delete an attached document (soft delete by marking as deleted)

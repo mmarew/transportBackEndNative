@@ -137,10 +137,6 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
 const getMappingByRoleDocumentRequirementUniqueId = async (
   roleDocumentRequirementUniqueId
 ) => {
-  console.log(
-    "@roleDocumentRequirementUniqueId",
-    roleDocumentRequirementUniqueId
-  );
   const sql = `Select * from RoleDocumentRequirements where roleDocumentRequirementUniqueId=?`;
   const values = [roleDocumentRequirementUniqueId];
   const [result] = await pool.query(sql, values);
@@ -206,26 +202,7 @@ const driversDocumentVehicleRequirement = async (body) => {
   if (!requiredDocuments || requiredDocuments.length === 0) {
     return { message: "error", data: "No documents required for this role" };
   }
-
-  // Fetch attached documents with its type for the user
-  // const attachedDocuments = await performJoinSelect({
-  //   // tableName: "AttachedDocuments",
-  //   // conditions: { userUniqueId: ownerUserUniqueId },
-  //   baseTable: "AttachedDocuments",
-  //   joins: [
-  //     {
-  //       table: "DocumentTypes",
-  //       on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
-  //     },
-  //     {
-  //       table: "RoleDocumentRequirements",
-  //       on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-  //     },
-  //   ],
-  //   conditions: { userUniqueId: ownerUserUniqueId },
-  // });
-  // const sql = `select * from AttachedDocuments,DocumentTypes,RoleDocumentRequirements where AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId and RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId and userUniqueId=?  `;
-  const sql = `SELECT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.roleDocumentRequirementId
+  const sql = `SELECT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*
 FROM AttachedDocuments
 JOIN DocumentTypes 
   ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId

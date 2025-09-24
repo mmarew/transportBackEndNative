@@ -11,129 +11,226 @@ const {
 
 const adminServices = {
   getAllActiveDrivers: async (req) => {
-    // get all active drivers means get data from Users UserRole and UserRoleStatusCurrent. here UserRoleStatusCurrent.statusId = 1 and role id must be 2
-    const sqlToGetAllActiveDrivers = `SELECT 
-    u.*,
-    ur.*,
-    ursc.*
-FROM 
-    Users u
-INNER JOIN 
-    UserRole ur ON u.userUniqueId = ur.userUniqueId
-INNER JOIN 
-    UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-WHERE 
-    ursc.statusId = 1
-    AND ur.roleId = 2  `;
-    const [data] = await pool.query(sqlToGetAllActiveDrivers);
-    return { message: "success", data: data };
-  },
+    const page = parseInt(req.query.page) || 1; // default page = 1
+    const limit = parseInt(req.query.limit) || 10; // default limit = 10
+    const offset = (page - 1) * limit;
 
-  searchActiveDrivers: async (query) => {
-    const sql = `
+    // Get total count for pagination
+    const countSql = `
+    SELECT COUNT(*) AS total
+    FROM Users u
+    INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
+    INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+    WHERE ursc.statusId = 1 AND ur.roleId = 2
+  `;
+    const [countRows] = await pool.query(countSql);
+    const total = countRows[0].total;
+
+    // Fetch paginated records
+    const sqlToGetAllActiveDrivers = `
     SELECT 
-      u.*,
-      ur.*,
-      ursc.*
-    FROM 
-      Users u
-    INNER JOIN 
-      UserRole ur ON u.userUniqueId = ur.userUniqueId
-    INNER JOIN 
-      UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-    WHERE 
-      ursc.statusId = 1
-      AND ur.roleId = 2
-      AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+      u.userUniqueId,
+      u.fullName,
+      u.phoneNumber,
+      u.email,
+      ur.userRoleId,
+      ur.roleId,
+      ursc.statusId,
+      ursc.userRoleStatusCreatedAt AS statusCreatedAt
+    FROM Users u
+    INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
+    INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+    WHERE ursc.statusId = 1 AND ur.roleId = 2
+    ORDER BY u.createdAt DESC
+    LIMIT ? OFFSET ?
   `;
 
-    const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
-    const [data] = await pool.query(sql, [
+    const [data] = await pool.query(sqlToGetAllActiveDrivers, [limit, offset]);
+
+    return {
+      message: "success",
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      data,
+    };
+  },
+
+  searchActiveDrivers: async (query, page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
+    const wildcardQuery = `%${query}%`;
+
+    // Count total for pagination
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM Users u
+      INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
+      INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+      WHERE ursc.statusId = 1
+        AND ur.roleId = 2
+        AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+    `;
+    const [countRows] = await pool.query(countSql, [
       wildcardQuery,
       wildcardQuery,
       wildcardQuery,
     ]);
-    if (data.length > 0) {
-      return { message: "success", data: data };
-    } else {
-      return { message: "failed", data: data };
-    }
-  },
+    const total = countRows[0].total;
 
-  getOfflineDrivers: async (req) => {
-    const sqlToGetOfflineDrivers = `SELECT 
-    dr.*,
-    u.*,
-    ur.*,
-    ursc.*
-FROM 
-    DriverRequest dr
-INNER JOIN (
-    SELECT 
-        userUniqueId, 
-        MAX(requestTime) AS latestRequestTime 
-    FROM 
-        DriverRequest 
-    GROUP BY 
-        userUniqueId
-) latestRequest 
-    ON dr.userUniqueId = latestRequest.userUniqueId 
-    AND dr.requestTime = latestRequest.latestRequestTime
-INNER JOIN 
-    Users u ON dr.userUniqueId = u.userUniqueId
-INNER JOIN 
-    UserRole ur ON ur.userUniqueId = u.userUniqueId
-INNER JOIN 
-    UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-WHERE 
-    dr.journeyStatusId NOT IN (1, 2, 3, 4)
-    AND ursc.statusId = 1
-    AND ur.roleId = 2  `;
-
-    const [data] = await pool.query(sqlToGetOfflineDrivers);
-    return { message: "success", data: data };
-  },
-
-  searchOfflineDrivers: async (query) => {
+    // Get paginated data
     const sql = `
-    SELECT 
-      dr.*,
-      u.*,
-      ur.*,
-      ursc.*
-    FROM 
-      DriverRequest dr
-    INNER JOIN (
       SELECT 
-          userUniqueId, 
-          MAX(requestTime) AS latestRequestTime 
-      FROM 
-          DriverRequest 
-      GROUP BY 
-          userUniqueId
-    ) latestRequest 
-      ON dr.userUniqueId = latestRequest.userUniqueId 
-      AND dr.requestTime = latestRequest.latestRequestTime
-    INNER JOIN 
-      Users u ON dr.userUniqueId = u.userUniqueId
-    INNER JOIN 
-      UserRole ur ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN 
-      UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-    WHERE 
-      dr.journeyStatusId NOT IN (1, 2, 3, 4)
-      AND ursc.statusId = 1
-      AND ur.roleId = 2
-      AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
-  `;
-
-    const wildcardQuery = `%${query}%`; // Add wildcard for LIKE search
+        u.userUniqueId,
+        u.fullName,
+        u.phoneNumber,
+        u.email,
+        ur.userRoleId,
+        ursc.statusId
+      FROM Users u
+      INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
+      INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+      WHERE ursc.statusId = 1
+        AND ur.roleId = 2
+        AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+      ORDER BY u.createdAt DESC
+      LIMIT ? OFFSET ?
+    `;
     const [data] = await pool.query(sql, [
       wildcardQuery,
       wildcardQuery,
       wildcardQuery,
+      limit,
+      offset,
     ]);
-    return { message: "success", data: data };
+
+    return {
+      message: "success",
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      data,
+    };
+  },
+  searchOfflineDrivers: async (query, page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
+    const wildcardQuery = `%${query}%`;
+
+    // Count
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM (
+        SELECT dr.userUniqueId
+        FROM DriverRequest dr
+        INNER JOIN (
+          SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
+          FROM DriverRequest
+          GROUP BY userUniqueId
+        ) latestRequest 
+          ON dr.userUniqueId = latestRequest.userUniqueId 
+          AND dr.requestTime = latestRequest.latestRequestTime
+        INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+        INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
+        INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+        WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4)
+          AND ursc.statusId = 1
+          AND ur.roleId = 2
+          AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+      ) as sub
+    `;
+    const [countRows] = await pool.query(countSql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+    ]);
+    const total = countRows[0].total;
+
+    // Data
+    const sql = `
+      SELECT dr.*, u.*, ur.*, ursc.*
+      FROM DriverRequest dr
+      INNER JOIN (
+        SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
+        FROM DriverRequest
+        GROUP BY userUniqueId
+      ) latestRequest 
+        ON dr.userUniqueId = latestRequest.userUniqueId 
+        AND dr.requestTime = latestRequest.latestRequestTime
+      INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+      INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
+      INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+      WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4)
+        AND ursc.statusId = 1
+        AND ur.roleId = 2
+        AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+      ORDER BY dr.requestTime DESC
+      LIMIT ? OFFSET ?
+    `;
+    const [data] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+      limit,
+      offset,
+    ]);
+
+    return {
+      message: "success",
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data,
+    };
+  },
+
+  searchOnlineDrivers: async (query, page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
+    const wildcardQuery = `%${query}%`;
+
+    // Count
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM DriverRequest dr
+      INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+      WHERE dr.journeyStatusId = 1
+        AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+    `;
+    const [countRows] = await pool.query(countSql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+    ]);
+    const total = countRows[0].total;
+
+    // Data
+    const sql = `
+      SELECT dr.*, u.*, vo.*, v.*, vt.*
+      FROM DriverRequest dr
+      INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+      INNER JOIN VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId
+      INNER JOIN Vehicle v ON vo.vehicleUniqueId = v.vehicleUniqueId
+      INNER JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+      WHERE dr.journeyStatusId = 1
+        AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
+      ORDER BY dr.requestTime DESC
+      LIMIT ? OFFSET ?
+    `;
+    const [data] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+      limit,
+      offset,
+    ]);
+
+    return {
+      message: "success",
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data,
+    };
   },
 
   getOnlineDrivers: async (req) => {
@@ -165,45 +262,6 @@ WHERE
     return { message: "success", data };
   },
 
-  searchOnlineDrivers: async (query) => {
-    const wildcardQuery = `%${query}%`; // Prepare the wildcard query for LIKE search
-
-    const sql = `
-    SELECT 
-      dr.*,
-      u.*,
-      vo.*,
-      v.*,
-      vt.*
-    FROM 
-      DriverRequest dr
-    INNER JOIN 
-      Users u ON dr.userUniqueId = u.userUniqueId
-    INNER JOIN 
-      VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId
-    INNER JOIN 
-      Vehicle v ON vo.vehicleUniqueId = v.vehicleUniqueId
-    INNER JOIN 
-      VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    WHERE 
-      dr.journeyStatusId = 1
-      AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
-  `;
-
-    const [data] = await pool.query(sql, [
-      wildcardQuery,
-      wildcardQuery,
-      wildcardQuery,
-    ]);
-
-    if (data.length > 0) {
-      return { message: "success", data: data };
-    } else {
-      return { message: "failed", data: data };
-    }
-  },
-
-  // Fetch unauthorized drivers
   getUnauthorizedDriver: async () => {
     const sql = `
       SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* ,Statuses.*

@@ -161,8 +161,8 @@ const createAttachedDocuments = async (req, res) => {
       userUniqueId = user?.userUniqueId;
       roleId = user?.roleId;
     }
-
-    if (!req.files || req.files.length === 0) {
+    const files = req?.files;
+    if (!files || files.length === 0) {
       return ServerResponder(res, {
         message: "error",
         error: "No files uploaded",
@@ -173,7 +173,7 @@ const createAttachedDocuments = async (req, res) => {
     const documentsToRegister = [];
 
     // Process each uploaded file
-    for (const file of req.files) {
+    for (const file of files) {
       const expirationDateKey = `${file.fieldname}ExpirationDate`;
       const descriptionKey = `${file.fieldname}Description`;
       const typeIdKey = `${file.fieldname}TypeId`;
@@ -247,8 +247,6 @@ const createAttachedDocuments = async (req, res) => {
         });
       }
     }
-
-    // ... rest of your notification code remains the same ...
 
     if (fileSuccesses.length > 0) {
       const userData = await performJoinSelect({
@@ -364,27 +362,86 @@ const getAttachedDocumentByUniqueId = async (req, res) => {
   }
 };
 
+// const updateAttachedDocument = async (req, res) => {
+//   try {
+//     const { attachedDocumentUniqueId } = req.params; // Extract the document ID
+//     const user = req?.user; // Extract the user object from the request
+//     const files = req.files,
+//       body = req.body;
+//     // Call the service to update the document
+//     const result = await attachedDocumentsService?.updateAttachedDocument(
+//       attachedDocumentUniqueId,
+//       user,
+//       body,
+//       files
+//     );
+
+//     // Respond with the result
+//     ServerResponder(res, result);
+//   } catch (error) {
+//     console.error("Error updating attached document:", error);
+//     ServerResponder(res, {
+//       message: "error",
+//       error: "Unable to update attached document",
+//     });
+//   }
+// };
 const updateAttachedDocument = async (req, res) => {
   try {
-    const { attachedDocumentUniqueId } = req.params; // Extract the document ID
-    const user = req?.user; // Extract the user object from the request
-    const files = req.files,
-      body = req.body;
-    // Call the service to update the document
-    const result = await attachedDocumentsService.updateAttachedDocument(
+    const { attachedDocumentUniqueId } = req.params;
+    const user = req?.user;
+    const roleId = user?.roleId;
+    const files = req?.files || [];
+
+    // Support updating with or without file
+    const file = files.length > 0 ? files[0] : null;
+
+    const {
+      documentExpirationDate = null,
+      attachedDocumentDescription = null,
+      attachedDocumentFileNumber = null,
+    } = req.body;
+
+    let fileUrl = null;
+
+    if (file) {
+      // Generate unique filename
+      const fileExtension = path.extname(file.originalname);
+      const uniqueFilename = `${user?.userId}_${uuidv4()}${fileExtension}`;
+
+      // Upload to FTP
+      fileUrl = await uploadToFTP(file.buffer, uniqueFilename);
+    }
+
+    const updatePayload = {
       attachedDocumentUniqueId,
-      user,
-      body,
-      files
+      roleId,
+      documentExpirationDate,
+      attachedDocumentDescription,
+      attachedDocumentFileNumber,
+      attachedDocumentName: fileUrl, // only if new file uploaded
+    };
+
+    const result = await attachedDocumentsService.updateAttachedDocument(
+      updatePayload
     );
 
-    // Respond with the result
-    ServerResponder(res, result);
+    if (result.message === "error") {
+      return ServerResponder(res, {
+        message: "error",
+        error: result.error,
+      });
+    }
+
+    return ServerResponder(res, {
+      message: "success",
+      data: "Document updated successfully",
+    });
   } catch (error) {
-    console.error("Error updating attached document:", error);
+    console.log("Error updating document:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Unable to update attached document",
+      error: "Unable to update document",
     });
   }
 };

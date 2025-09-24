@@ -55,12 +55,26 @@ const AdminController = {
     }
   },
 
+  // getAllActiveDrivers: async (req, res) => {
+  //   console.log("get all active drivers");
+  //   try {
+  //     ServerResponder(res, await adminServices.getAllActiveDrivers(req));
+  //   } catch (error) {
+  //     console.log("Error in getAllActiveDrivers:", error);
+  //     ServerResponder(res, {
+  //       message: "error",
+  //       error: "Failed to fetch active drivers",
+  //     });
+  //   }
+  // },
+
   getAllActiveDrivers: async (req, res) => {
     console.log("get all active drivers");
     try {
-      ServerResponder(res, await adminServices.getAllActiveDrivers(req));
+      const result = await adminServices.getAllActiveDrivers(req);
+      ServerResponder(res, result);
     } catch (error) {
-      console.log("Error in getAllActiveDrivers:", error);
+      console.error("Error in getAllActiveDrivers:", error);
       ServerResponder(res, {
         message: "error",
         error: "Failed to fetch active drivers",
