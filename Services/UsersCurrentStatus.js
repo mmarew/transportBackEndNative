@@ -81,11 +81,11 @@ const handleJourneyStatusOne = async (
 
     // 7. Prepare response
     const response = createResponse(
-      { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
+      { ...driverRequest, journeyStatusId: journeyStatusMap?.requested },
       vehicle,
-      { ...passenger, journeyStatusId: journeyStatusMap.requested },
+      { ...passenger, journeyStatusId: journeyStatusMap?.requested },
       journeyDecisionPayload,
-      journeyStatusMap.requested
+      journeyStatusMap?.requested
     );
 
     // 8. Send notification if passenger has phone number (non-blocking)
@@ -292,10 +292,10 @@ const handleExistingJourney = async (
       message: {
         messageTypes:
           journeyStatusId === journeyStatusMap.requested
-            ? messageTypes.driver_found_shipper_request
+            ? messageTypes?.driver_found_shipper_request
             : journeyStatusId === journeyStatusMap.acceptedByDriver
-            ? messageTypes.driver_accepted_shipper_request
-            : messageTypes.driver_started_journey,
+            ? messageTypes?.driver_accepted_shipper_request
+            : messageTypes?.driver_started_journey,
         message: "success",
         status: journeyStatusId,
         passenger: [passenger],

@@ -213,7 +213,6 @@ const takeFromStreet = async (body, user) => {
 };
 const createAndAcceptNewRequest = async (body) => {
   try {
-    console.log("@createAndAcceptNewRequest body", body);
     // return;
     const { passengerRequestUniqueId, userUniqueId } = body;
     // get passenger request data by passengerRequestUniqueId,
@@ -221,66 +220,103 @@ const createAndAcceptNewRequest = async (body) => {
       await getPassengerRequestByPassengerRequestUniqueId(
         passengerRequestUniqueId
       );
-    console.log(
-      "@createAndAcceptNewRequest passengerRequest",
-      passengerRequest
-    );
+
     // return;
     const passengerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
+    const passengerRequestId = passengerRequest?.data?.passengerRequestId;
     // check if the passenger request is already accepted by driver
-    if (passengerJourneyStatusId > journeyStatusMap.acceptedByDriver)
+    if (passengerJourneyStatusId > journeyStatusMap.acceptedByDriver) {
       return {
         message: "error",
         error: "Passenger request already accepted by driver",
       };
+    }
     // validate if the request exists
     if (passengerRequest?.message === "error") {
       return passengerRequest;
     }
+    // verify if there was any shipper-driver decision before
+    const sql = `select * from JourneyDecisions, PassengerRequest, DriverRequest where PassengerRequest.passengerRequestId=? and JourneyDecisions.passengerRequestId=PassengerRequest.passengerRequestId and JourneyDecisions.driverRequestId=DriverRequest.driverRequestId and DriverRequest.userUniqueId=?`;
+    const [journeyDecisions] = await pool.query(sql, [
+      passengerRequestId,
+      userUniqueId,
+    ]);
 
-    // 1)update passenger request status to accepted by driver,
-    const updatedPassengerRequest = await updateData({
-      tableName: "PassengerRequest",
-      conditions: { passengerRequestUniqueId },
-      updateValues: { journeyStatusId: journeyStatusMap.acceptedByDriver },
-    });
-    console.log(
-      "@createAndAcceptNewRequest updatedPassengerRequest",
-      updatedPassengerRequest
-    );
-    // validate if the update was successful
-    if (updatedPassengerRequest.affectedRows === 0) {
-      return { message: "error", error: "Passenger request not found" };
+    // return
+    // if linkage exists, handle existing data
+    if (journeyDecisions.length > 0) {
+      // 1)update journeyDecision status to accepted by driver
+      const journeyDecision = journeyDecisions?.[0];
+      const journeyDecisionUniqueId = journeyDecision?.journeyDecisionUniqueId;
+      const driverRequestId = journeyDecision?.driverRequestId;
+      // if the journey decision is not accepted by driver, update it to accepted by driver
+      // if (decidedJourneyDecisionId !== journeyStatusMap.acceptedByDriver) {
+      const updatedJourneyDecision = await updateData({
+        tableName: "JourneyDecisions",
+        conditions: { journeyDecisionUniqueId },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.acceptedByDriver,
+          shippingCostByDriver: body.shippingCostByDriver,
+        },
+      });
+
+      const updatedPassengerRequest = await updateData({
+        tableName: "PassengerRequest",
+        conditions: { passengerRequestUniqueId },
+        updateValues: { journeyStatusId: journeyStatusMap.acceptedByDriver },
+      });
+      // update driver request status to accepted by driver
+      const updatedDriverRequest = await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestId },
+        updateValues: { journeyStatusId: journeyStatusMap.acceptedByDriver },
+      });
     }
+    // if linkage doesn't exist, create new linkage
+    else {
+      // create new driver request
+      const newDriverRequest = await createRequest({
+        body,
+        findNewRequest: false,
+        journeyStatusId: journeyStatusMap.acceptedByDriver,
+      });
+      // validate if the insert was successful or not
+      if (newDriverRequest?.message === "error") {
+        return newDriverRequest;
+      }
+      // create new journey decision
 
-    // 2)create driver request,
-    const newDriverRequest = await createRequest({
-      body,
-      findNewRequest: false,
-      journeyStatusId: journeyStatusMap.acceptedByDriver,
-    });
+      const driverRequestId = newDriverRequest?.data?.[0]?.driverRequestId;
 
-    // validate if the insert was successful
-    if (newDriverRequest?.message === "error") {
-      return newDriverRequest;
-    }
-    const driverRequestId = newDriverRequest?.data?.[0]?.driverRequestId;
+      // 3)create journey decision,
+      const journeyDecisionData = {
+        passengerRequestId: passengerRequest?.data?.passengerRequestId,
+        driverRequestId,
+        journeyStatusId: journeyStatusMap?.acceptedByDriver,
+        decisionTime: currentDate(),
+        decisionBy: "driver",
+        shippingCostByDriver: body?.shippingCostByDriver,
+      };
+      // return;
+      const newJourneyDecision = await createJourneyDecision(
+        journeyDecisionData
+      );
+      // validate if the insert was successful or not
+      if (newJourneyDecision?.message === "error") {
+        return newJourneyDecision;
+      }
 
-    // 3)create journey decision,
-    const journeyDecisionData = {
-      passengerRequestId: passengerRequest?.data?.passengerRequestId,
-      driverRequestId,
-      journeyStatusId: journeyStatusMap?.acceptedByDriver,
-      decisionTime: currentDate(),
-      decisionBy: "driver",
-      shippingCostByDriver: body?.shippingCostByDriver,
-    };
-    // return;
-    const newJourneyDecision = await createJourneyDecision(journeyDecisionData);
+      // update passenger request status to accepted by driver
+      const updatedPassengerRequest = await updateData({
+        tableName: "PassengerRequest",
+        conditions: { passengerRequestUniqueId },
+        updateValues: { journeyStatusId: journeyStatusMap.acceptedByDriver },
+      });
 
-    // validate if the insert was successful
-    if (newJourneyDecision?.message === "error") {
-      return newJourneyDecision;
+      // validate if the update was successful
+      if (updatedPassengerRequest.affectedRows === 0) {
+        return { message: "error", error: "Passenger request not found" };
+      }
     }
 
     return await verifyDriverStatus({

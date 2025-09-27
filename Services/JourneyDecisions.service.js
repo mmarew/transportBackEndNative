@@ -35,6 +35,7 @@ exports.createJourneyDecision = async ({
     return {
       message: "success",
       data: existedData,
+      existedData,
     };
   }
   const journeyDecisionUniqueId = uuidv4();
