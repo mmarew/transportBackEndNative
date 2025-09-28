@@ -132,21 +132,28 @@ const updateDocumentType = async ({
   return { message: "success", data: "Document type updated successfully" };
 };
 
-const deleteDocumentType = async (documentTypeId) => {
+const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
   // Check if the document type exists
+  const userUniqueId = user?.userUniqueId;
   const existingDocumentType = await getData({
     tableName: "DocumentTypes",
-    conditions: { documentTypeUniqueId: documentTypeId },
+    conditions: { documentTypeUniqueId },
   });
 
   if (existingDocumentType.length === 0) {
     return { message: "error", data: "Document type not found" };
   }
-
+  const updateValues = {
+    isDocumentTypeDeleted: true,
+    documentTypeDeletedBy: userUniqueId,
+    documentTypeDeletedAt: new Date(),
+  };
+  console.log("@updateValues", updateValues);
   // Delete the document type
-  await deleteData({
+  await updateData({
+    updateValues,
     tableName: "DocumentTypes",
-    conditions: { documentTypeUniqueId: documentTypeId },
+    conditions: { documentTypeUniqueId },
   });
 
   return { message: "success", data: "Document type deleted successfully" };

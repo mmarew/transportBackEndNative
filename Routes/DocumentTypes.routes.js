@@ -29,7 +29,7 @@ router.put(
   documentTypesController.updateDocumentType
 );
 router.delete(
-  "/api/documentTypes/:id",
+  "/api/documentTypes/:documentTypeUniqueId",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.deleteDocumentType
