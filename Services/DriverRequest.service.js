@@ -123,13 +123,13 @@ const takeFromStreet = async (body, user) => {
     const dataOfPassenger = userPassenger?.dataOfPassenger;
 
     // const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
-    // create a passenger request in passengerequest table using createPassengerRequest function from passengerRequest.service
+    // create a passenger request in passengerRequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
       body,
       dataOfPassenger,
       journeyStatusId
     );
-    console.log("@ptakeFromStreet assengerRequest", passengerRequest);
+    console.log("@takeFromStreet passengerRequest", passengerRequest);
     if (!passengerRequest?.passenger) {
       return {
         message: "error",
@@ -211,6 +211,7 @@ const takeFromStreet = async (body, user) => {
     return { message: "error", error: "Unable to create request" };
   }
 };
+
 const createAndAcceptNewRequest = async (body) => {
   try {
     // return;
@@ -327,6 +328,7 @@ const createAndAcceptNewRequest = async (body) => {
     return { message: "error", error: "Unable to create and accept request" };
   }
 };
+
 const acceptPassengerRequest = async (body) => {
   try {
     const {
@@ -715,7 +717,7 @@ const cancelDriverRequest = async (body) => {
       // if there are multiple journey decisions for the passenger requestdo nothing  because there are other driver requests
     }
     // Send notification to the passenger
-    const notificationResult = await sendNotificationToPassenger({
+    const notificationResult = sendNotificationToPassenger({
       message: {
         message: "success",
         data:
@@ -763,7 +765,7 @@ const cancelDriverRequest = async (body) => {
       });
 
       const cancellationDetails = canceledJourneyResult.cancellationDetails;
-      const adminNotification = await sendNotificationToAdmin({
+      const adminNotification = sendNotificationToAdmin({
         message: {
           message: "success",
           messageType: "cancelledJourney",

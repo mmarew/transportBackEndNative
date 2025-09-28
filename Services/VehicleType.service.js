@@ -3,6 +3,32 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { deleteFile } = require("../Utils/FileUtils");
 const { getData } = require("../CRUD/Read/ReadData");
+
+const checkVehicleTypeDuplicate = async ({
+  vehicleTypeName,
+  vehicleTypeIconName,
+}) => {
+  // Check by name
+  const existedByName = await getData({
+    tableName: "VehicleTypes",
+    conditions: { vehicleTypeName },
+  });
+  if (existedByName.length > 0) {
+    return { message: "error", error: "Vehicle type already exists" };
+  }
+
+  // Check by icon
+  const existedByIcon = await getData({
+    tableName: "VehicleTypes",
+    conditions: { vehicleTypeIconName },
+  });
+  if (existedByIcon.length > 0) {
+    return { message: "error", error: "Vehicle type icon already exists" };
+  }
+
+  return { message: "ok" };
+};
+
 // Create a new vehicle type
 const createVehicleType = async (data, file) => {
   const vehicleTypeUniqueId = uuidv4();
@@ -14,7 +40,7 @@ const createVehicleType = async (data, file) => {
     carryingCapacity,
     vehicleTypeIconName,
   } = data;
-  // first verify existances of vehicleTypeName and vehicleTypeIconName
+  // first verify existence of vehicleTypeName and vehicleTypeIconName
   const existedData = await getData({
     tableName: "VehicleTypes",
     conditions: {
@@ -163,6 +189,7 @@ const deleteVehicleType = async (vehicleTypeUniqueId, deletedBy) => {
 };
 
 module.exports = {
+  checkVehicleTypeDuplicate,
   createVehicleType,
   getAllVehicleTypes,
   getVehicleTypeByUniqueId,
