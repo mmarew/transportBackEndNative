@@ -23,13 +23,13 @@ router.get(
   documentTypesController.getDocumentTypeById
 );
 router.put(
-  "/api/documentTypes/:id",
+  "/api/documentTypes/:documentTypeUniqueId",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.updateDocumentType
 );
 router.delete(
-  "/api/documentTypes/:id",
+  "/api/documentTypes/:documentTypeUniqueId",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   documentTypesController.deleteDocumentType

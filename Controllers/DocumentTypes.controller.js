@@ -42,7 +42,7 @@ const updateDocumentType = async (req, res) => {
     const user = req?.user;
     req.user = user;
     const result = await documentTypesService.updateDocumentType({
-      documentTypeUniqueId: req.params.id,
+      documentTypeUniqueId: req.params.documentTypeUniqueId,
       updateDataValues: req.body,
     });
     return ServerResponder(res, result, 200);
@@ -54,7 +54,9 @@ const updateDocumentType = async (req, res) => {
 
 const deleteDocumentType = async (req, res) => {
   try {
-    const result = await documentTypesService.deleteDocumentType(req.params.id);
+    const result = await documentTypesService.deleteDocumentType(
+      req.params.documentTypeUniqueId
+    );
     return ServerResponder(res, result, 200);
   } catch (error) {
     console.log("Error in deleteDocumentType:", error);
