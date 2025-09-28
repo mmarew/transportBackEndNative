@@ -49,29 +49,35 @@
 
 // module.exports = upload;
 
+// const multer = require("multer");
+// const path = require("path");
+
+// // Set file filter
+// const fileFilter = (req, file, cb) => {
+//   const allowedFileTypes = /jpeg|jpg|png|pdf|svg/;
+//   const extname = allowedFileTypes.test(
+//     path.extname(file.originalname).toLowerCase()
+//   );
+//   const mimetype = allowedFileTypes.test(file.mimetype);
+
+//   if (extname && mimetype) {
+//     cb(null, true);
+//   } else {
+//     cb(new Error("Only JPEG, PNG, PDF, and SVG files are allowed!"), false);
+//   }
+// };
+
+// // Create and export the Multer instance directly
+// const upload = multer({
+//   storage: multer.memoryStorage(),
+//   limits: { fileSize: 5 * 1024 * 1024 },
+//   fileFilter: fileFilter,
+// });
+
+// module.exports = upload; // Export the instance directly
+
 const multer = require("multer");
-const path = require("path");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-// Set file filter
-const fileFilter = (req, file, cb) => {
-  const allowedFileTypes = /jpeg|jpg|png|pdf|svg/;
-  const extname = allowedFileTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
-  const mimetype = allowedFileTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only JPEG, PNG, PDF, and SVG files are allowed!"), false);
-  }
-};
-
-// Create and export the Multer instance directly
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: fileFilter,
-});
-
-module.exports = upload; // Export the instance directly
+module.exports = upload;

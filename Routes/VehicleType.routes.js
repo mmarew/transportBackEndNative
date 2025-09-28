@@ -6,22 +6,29 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken"); // Route to
 const multer = require("multer");
 const upload = require("../Config/MulterConfig");
 
+// router.post(
+//   "/api/admin/vehicleTypes",
+//   verifyTokenOfAxios,
+//   (req, res, next) => {
+//     upload.single("vehicleTypeIconName")(req, res, function (err) {
+//       console.log("req.body", req.body);
+//       if (err instanceof multer.MulterError) {
+//         return res.status(400).json({ error: "Multer error: " + err.message });
+//       } else if (err) {
+//         return res
+//           .status(400)
+//           .json({ error: "File upload error: " + err.message });
+//       }
+//       next();
+//     });
+//   },
+//   vehicleTypeController.createVehicleType
+// );
+// using memory storage
 router.post(
   "/api/admin/vehicleTypes",
   verifyTokenOfAxios,
-  (req, res, next) => {
-    upload.single("vehicleTypeIconName")(req, res, function (err) {
-      console.log("req.body", req.body);
-      if (err instanceof multer.MulterError) {
-        return res.status(400).json({ error: "Multer error: " + err.message });
-      } else if (err) {
-        return res
-          .status(400)
-          .json({ error: "File upload error: " + err.message });
-      }
-      next();
-    });
-  },
+  upload.single("vehicleTypeIconName"), // field name from frontend form-data
   vehicleTypeController.createVehicleType
 );
 

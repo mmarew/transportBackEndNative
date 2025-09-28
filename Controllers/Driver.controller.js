@@ -185,8 +185,11 @@ const cancelDriverRequest = async (req, res) => {
     console.log("@cancelDriverRequest result", result);
     ServerResponder(res, result);
   } catch (error) {
-    console.log("Error in canceledByDriver:", error);
-    ServerResponder(res, error.message);
+    console.log("Error in canceledByDriver:", error.message);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to cancel request",
+    });
   }
 };
 const attachRequiredDocuments = async (req, res) => {
@@ -196,8 +199,11 @@ const attachRequiredDocuments = async (req, res) => {
     const result = await services.attachRequiredDocuments(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.log("Error in attachRequiredDocuments:", error);
-    ServerResponder(res, error.message);
+    console.log("Error in attachRequiredDocuments:", error.message);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to attach documents",
+    });
   }
 };
 const sendUpdatedLocationController = async (req, res) => {
@@ -207,8 +213,11 @@ const sendUpdatedLocationController = async (req, res) => {
     const result = await services.sendUpdatedLocation(req.body);
     ServerResponder(res, result);
   } catch (error) {
-    console.log("Error in sendUpdatedLocationController:", error);
-    ServerResponder(res, error.message);
+    console.log("Error in sendUpdatedLocationController:", error.message);
+    ServerResponder(res, {
+      message: "error",
+      error: "unable to send updated location",
+    });
   }
 };
 module.exports = {
