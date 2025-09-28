@@ -39,7 +39,7 @@ Router.get(
 );
 
 Router.get(
-  "/getunAuthorizedDriver",
+  "/api/getunAuthorizedDriver",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   AdminController.getunAuthorizedDriver

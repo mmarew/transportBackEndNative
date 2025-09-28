@@ -288,7 +288,10 @@ const adminServices = {
       })
     );
 
-    return usersWithDocuments;
+    return {
+      message: "success",
+      data: usersWithDocuments,
+    };
   },
   searchUnauthorizedDriver: async (query) => {
     const sql = `

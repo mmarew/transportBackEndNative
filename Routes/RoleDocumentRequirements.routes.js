@@ -5,7 +5,7 @@ const RoleDocumentRequirementsController = require("../Controllers/RoleDocumentR
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 // Create a new role-document mapping
 router.post(
-  "/RoleDocumentRequirements",
+  "/api/RoleDocumentRequirements",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.createMapping
 );
@@ -22,7 +22,7 @@ router.get(
 );
 // Update a mapping by ID
 router.put(
-  "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
+  "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.updateMapping
 );
@@ -35,7 +35,7 @@ router.get(
 
 // Delete a mapping by ID
 router.delete(
-  "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
+  "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.deleteMapping
 );
