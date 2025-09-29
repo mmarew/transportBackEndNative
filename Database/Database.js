@@ -184,6 +184,10 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeCreatedAt DATETIME NOT NULL,  -- When the document type was created
     documentTypeUpdatedBy VARCHAR(36) NULL,
     documentTypeUpdatedAt DATETIME NULL,
+    documentTypeDeletedBy VARCHAR(36) NULL,
+    documentTypeDeletedAt DATETIME NULL,
+    isDocumentTypeDeleted BOOLEAN NOT NULL DEFAULT FALSE,
+    documentTypeCurrentVersion int not null default 1,
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
     FOREIGN KEY (documentTypeCreatedBy) REFERENCES Users(userUniqueId)  -- Link to the Users table
 ) ;

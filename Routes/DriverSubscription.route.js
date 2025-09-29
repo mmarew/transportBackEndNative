@@ -12,14 +12,20 @@ router.post(
 
 // Get all subscriptions
 router.get(
-  "/api/driverSubscription",
+  "/api/admin/driverSubscription",
   verifyTokenOfAxios,
   controller.getAllDriverSubscriptions
 );
-101;
+// get all numbers of subscriptions  counts
+router.get(
+  "/api/admin/driverSubscription/count",
+  verifyTokenOfAxios,
+  controller.getAllDriverSubscriptionsCount
+);
+
 // Get by UUID
 router.get(
-  "/api/driverSubscription/:driverSubscriptionUniqueId",
+  "/api/admin/driverSubscription/:driverSubscriptionUniqueId",
   verifyTokenOfAxios,
   controller.getDriverSubscriptionByUniqueId
 );

@@ -104,27 +104,107 @@ const verifyDriverStatusController = async (req, res) => {
     );
   }
 };
+// const getDriverRequestController = async (req, res) => {
+//   try {
+//     // driverUniqueId=uuidv4&target=allOrSingleDriverRequests
+//     const { userUniqueId } = req?.user;
+//     const { driverUserUniqueId, target } = req?.query;
+//     const journeyStatusIds = req?.query?.journeyStatusIds;
+//     console.log("@journeyStatusIds", journeyStatusIds);
+//     const journeyStatusIdsArray = journeyStatusIds?.split(",");
+
+//     const data = {
+//       userUniqueId:
+//         driverUserUniqueId == "self" ? userUniqueId : driverUserUniqueId,
+//       target,
+//       filters: {},
+//     };
+//     if (journeyStatusIdsArray.length == 1) {
+//       data.filters.journeyStatusId = journeyStatusIdsArray[0];
+//     } else if (journeyStatusIdsArray.length > 1) {
+//       data.filters.journeyStatusIds = journeyStatusIdsArray;
+//     }
+//     console.log("@getDriverRequestController data", data);
+//     // return;
+//     const result = await services.getDriverRequest({ data });
+//     // console.log("@getDriverRequestController result", result);
+//     ServerResponder(res, result, 200);
+//   } catch (error) {
+//     console.log("Error in getDriverRequestController:", error);
+//     ServerResponder(
+//       res,
+//       { message: "error", error: "Unable to get driver request" },
+//       500
+//     );
+//   }
+// };
+
 const getDriverRequestController = async (req, res) => {
   try {
-    // driverUniqueId=uuidv4&target=allOrSingleDriverRequests
-    const { userUniqueId } = req?.user;
-    const { driverUserUniqueId, target } = req?.query;
+    // Extract logged-in user id from middleware (auth)
+    const { userUniqueId } = req?.user || {};
+    // Query params
+    const {
+      driverUserUniqueId,
+      target = "all",
+      page = 1,
+      limit = 10,
+      journeyStatusIds,
+      startDate,
+      endDate,
+      originPlace,
+      username,
+      email,
+      phoneNumber,
+      sortBy,
+      sortOrder,
+    } = req.query;
+
+    // Handle journey status ids (single or multiple)
+    let filters = {};
+    if (journeyStatusIds) {
+      const journeyStatusIdsArray = journeyStatusIds.split(",");
+      if (journeyStatusIdsArray.length === 1) {
+        filters.journeyStatusId = journeyStatusIdsArray[0];
+      } else {
+        filters.journeyStatusIds = journeyStatusIdsArray;
+      }
+    }
+
+    // Add optional filters
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    if (originPlace) filters.originPlace = originPlace;
+    if (username) filters.username = username;
+    if (email) filters.email = email;
+    if (phoneNumber) filters.phoneNumber = phoneNumber;
+    if (sortBy) filters.sortBy = sortBy;
+    if (sortOrder) filters.sortOrder = sortOrder;
+
     const data = {
       userUniqueId:
-        driverUserUniqueId == "self" ? userUniqueId : driverUserUniqueId,
+        driverUserUniqueId === "self" ? userUniqueId : driverUserUniqueId,
       target,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      filters,
     };
+
+    console.log("@getDriverRequestController data", data);
+
     const result = await services.getDriverRequest({ data });
-    ServerResponder(res, result, 200);
+
+    return ServerResponder(res, result, 200);
   } catch (error) {
     console.log("Error in getDriverRequestController:", error);
-    ServerResponder(
+    return ServerResponder(
       res,
       { message: "error", error: "Unable to get driver request" },
       500
     );
   }
 };
+
 const startJourney = async (req, res) => {
   try {
     const { userUniqueId } = req?.user;

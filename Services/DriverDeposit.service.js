@@ -432,10 +432,19 @@ const getUnauthorizedDeposits = async () => {
   const [result] = await pool.query(sql);
   return { message: "success", data: result };
 };
+const getUnauthorizedDepositsCount = async () => {
+  const sql = `SELECT COUNT(*) as count FROM DriverDeposit WHERE depositStatus is null or depositStatus = 'requested'`;
+  const [result] = await pool.query(sql);
+  return {
+    message: "success",
+    data: { numberOfUnAuthorizedDeposits: result[0].count },
+  };
+};
 
 module.exports = {
   getDriverDepositByUniqueIdAndDriverUniqueId,
   getUnauthorizedDeposits,
+  getUnauthorizedDepositsCount,
   updateDriverDepositStatusService,
   getDepositsByDateRangeAndDriver,
   getOneDriverDepositDataByStatus,
