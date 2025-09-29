@@ -68,6 +68,20 @@ const routes = [
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.getUnseenCanceledJourney,
   },
+  // get data by filter of columns
+  //1) Basic pagination: GET /api/canceled-journeys?page=1&limit=20
+  //2) Filter by context type and role: GET /api/canceled-journeys?contextType=PassengerRequest&roleId=2
+  //3) Filter by date range: GET /api/canceled-journeys?startDate=2024-01-01&endDate=2024-01-31
+  //4) Filter by specific user: GET /api/canceled-journeys?canceledBy=user-uuid-here
+  //5) Custom sorting: GET /api/canceled-journeys?isSeenByAdmin=false
+  //6)  cancellationReasonsTypeId: GET /api/admin/getCanceledJourneyByFilter?cancellationReasonsTypeId=1
+
+  {
+    path: "/api/admin/getCanceledJourneyByFilter",
+    method: "get",
+    middleware: [verifyTokenOfAxios],
+    handler: canceledJourneyController.getCanceledJourneyByFilter,
+  },
 ];
 
 registerRoutes(router, routes);

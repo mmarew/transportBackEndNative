@@ -481,7 +481,165 @@ const getUnseenCanceledJourney = async (page = 1, limit = 10) => {
     },
   };
 };
+// CanceledJourneysController.js
+
+const getCanceledJourneyByFilter = async ({ data }) => {
+  try {
+    // Extract query parameters with default values
+    const {
+      page = 1,
+      limit = 10,
+      contextType,
+      roleId,
+      cancellationReasonsTypeId,
+      canceledBy,
+      driverUserUniqueId,
+      passengerUserUniqueId,
+      isSeenByAdmin,
+      startDate,
+      endDate,
+      sortBy = "canceledTime",
+      sortOrder = "DESC",
+    } = data;
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+
+    // Build WHERE clause based on filters
+    let whereConditions = ["1 = 1"]; // Always true to make building easier
+    let queryParams = [];
+
+    if (contextType) {
+      whereConditions.push("cj.contextType = ?");
+      queryParams.push(contextType);
+    }
+
+    if (roleId) {
+      whereConditions.push("cj.roleId = ?");
+      queryParams.push(roleId);
+    }
+
+    if (cancellationReasonsTypeId) {
+      whereConditions.push("cj.cancellationReasonsTypeId = ?");
+      queryParams.push(cancellationReasonsTypeId);
+    }
+
+    if (canceledBy) {
+      whereConditions.push("cj.canceledBy = ?");
+      queryParams.push(canceledBy);
+    }
+
+    if (driverUserUniqueId) {
+      whereConditions.push("cj.driverUserUniqueId = ?");
+      queryParams.push(driverUserUniqueId);
+    }
+
+    if (passengerUserUniqueId) {
+      whereConditions.push("cj.passengerUserUniqueId = ?");
+      queryParams.push(passengerUserUniqueId);
+    }
+
+    if (isSeenByAdmin !== undefined) {
+      whereConditions.push("cj.isSeenByAdmin = ?");
+      queryParams.push(isSeenByAdmin === "true" ? 1 : 0);
+    }
+
+    if (startDate) {
+      whereConditions.push("cj.canceledTime >= ?");
+      queryParams.push(startDate);
+    }
+
+    if (endDate) {
+      whereConditions.push("cj.canceledTime <= ?");
+      queryParams.push(endDate);
+    }
+
+    // Validate sort order
+    const validSortOrders = ["ASC", "DESC"];
+    const finalSortOrder = validSortOrders.includes(sortOrder.toUpperCase())
+      ? sortOrder.toUpperCase()
+      : "DESC";
+
+    // Build the main query
+    const baseQuery = `
+      SELECT 
+        cj.*,
+        crt.cancellationReason,
+        r.roleName,
+        u_canceled.fullName as canceledByName,
+        u_driver.fullName as driverName,
+        u_passenger.fullName as passengerName
+      FROM CanceledJourneys cj
+      LEFT JOIN CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
+      LEFT JOIN Roles r ON cj.roleId = r.roleId
+      LEFT JOIN Users u_canceled ON cj.canceledBy = u_canceled.userUniqueId
+      LEFT JOIN Users u_driver ON cj.driverUserUniqueId = u_driver.userUniqueId
+      LEFT JOIN Users u_passenger ON cj.passengerUserUniqueId = u_passenger.userUniqueId
+      WHERE ${whereConditions.join(" AND ")}
+    `;
+
+    // Count query for pagination
+    const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as count_table`;
+
+    // Data query with pagination and sorting
+    const dataQuery = `
+      ${baseQuery}
+      ORDER BY cj.${sortBy} ${finalSortOrder}
+      LIMIT ? OFFSET ?
+    `;
+
+    // Add pagination parameters
+    queryParams.push(parseInt(limit), offset);
+
+    // Execute queries
+    const [countResult] = await pool.query(
+      countQuery,
+      queryParams.slice(0, -2)
+    ); // Remove limit/offset for count
+    const [results] = await pool.query(dataQuery, queryParams);
+
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    // Prepare response
+    const response = {
+      success: true,
+      data: results,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: totalPages,
+        totalItems: total,
+        itemsPerPage: parseInt(limit),
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+      filters: {
+        contextType,
+        roleId,
+        cancellationReasonsTypeId,
+        canceledBy,
+        driverUserUniqueId,
+        passengerUserUniqueId,
+        isSeenByAdmin,
+        startDate,
+        endDate,
+        sortBy,
+        sortOrder: finalSortOrder,
+      },
+    };
+
+    return { message: "success", data: response };
+  } catch (error) {
+    console.error("Error fetching canceled journeys:", error);
+    return {
+      message: "error",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
+  getCanceledJourneyByFilter,
   getUnseenCanceledJourney,
   updateSeenByAdmin,
   createCanceledJourney,

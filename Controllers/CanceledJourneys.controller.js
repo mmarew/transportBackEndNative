@@ -200,8 +200,17 @@ const getUnseenCanceledJourney = async (req, res) => {
     res
   );
 };
+const getCanceledJourneyByFilter = async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const data = { ...req?.query };
+  const resultOfGetCanceledJourneyByFilter =
+    await canceledJourneyService.getCanceledJourneyByFilter({ data });
+
+  await handleServiceResponse(resultOfGetCanceledJourneyByFilter, res);
+};
 
 module.exports = {
+  getCanceledJourneyByFilter,
   getUnseenCanceledJourney,
   updateSeenByAdmin,
   cancelJourneyBySystem,
