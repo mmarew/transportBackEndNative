@@ -145,7 +145,14 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     userRoleStatusDescription TEXT NULL,  -- Description of the current role status
     userRoleStatusCreatedBy VARCHAR(36) NOT NULL,  -- Who created the current status
     userRoleStatusCreatedAt DATETIME NOT NULL,  -- When the current status was created  
-    userRoleStatusCurrentVersion int not null default 1  
+    userRoleStatusCurrentVersion int not null default 1  ,
+    foreign key (statusId) references Statuses(statusId),
+    foreign key (userRoleId) references UserRole(userRoleId),
+    foreign key (userRoleStatusCreatedBy) references Users(userUniqueId),
+        -- Add indexes for frequently queried columns
+    INDEX idx_userRoleStatusCurrent_userRoleId (userRoleId),
+    INDEX idx_userRoleStatusCurrent_statusId (statusId),
+    INDEX idx_userRoleStatusCurrent_userRoleStatusCreatedBy (userRoleStatusCreatedBy)
 ) ;
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
@@ -785,7 +792,32 @@ CREATE TABLE IF NOT EXISTS JourneyNotifications (
     -- Unique constraint to avoid duplicate journey-status notifications
     UNIQUE (journeyUniqueId, journeyStatusUniqueId)
 );
-
+-- create a table to store user delinquency, this is a list of delinquency  records used to track user delinquency when they make mistakes
+CREATE TABLE IF NOT EXISTS UserDelinquency (
+    userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,  -- Primary key
+    userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for delinquency
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users (UUID)
+    delinquencyType VARCHAR(50) NOT NULL,  -- Type of delinquency
+    delinquencyDescription TEXT NOT NULL,  -- Description of delinquency
+    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Created time
+    delinquencyUpdatedAt DATETIME NULL DEFAULT NULL,  -- Updated time (optional)
+    
+    -- Foreign key to Users table
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
+);
+-- banned users table, this is where users are banned for making mistakes
+CREATE TABLE IF NOT EXISTS BannedUsers (
+    banId INT AUTO_INCREMENT PRIMARY KEY,  -- Primary key
+    banUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for banned user
+    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users (UUID)
+    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Banned time
+    bannedBy VARCHAR(36) NOT NULL,  -- Who banned the user
+    userDelinquencyUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to UserDelinquency (UUID)
+    -- Foreign key to Users table
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId)
+);
+ 
 `;
 
 module.exports = { sqlQuery };

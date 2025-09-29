@@ -352,6 +352,14 @@ const statusList = [
       "Driver has registered a vehicle, and all required documents are attached but with mixed statuses (accepted, pending, rejected).",
     statusCreatedAt: currentDate(),
   },
+  {
+    statusId: 29,
+    statusUniqueId: uuidv4(),
+    statusName: "inactive - Driver is banned by admin",
+    statusDescription:
+      "Driver is banned by admin when it commits some crimes or brake rules",
+    statusCreatedAt: currentDate(),
+  },
 ];
 
 const vehicleStatusTypes = [

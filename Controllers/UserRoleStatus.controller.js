@@ -11,12 +11,14 @@ const createUserRoleStatus = async (req, res) => {
   }
 };
 
-const getUserRoleStatus = async (req, res) => {
+const getUserRoleStatusCurrent = async (req, res) => {
   try {
-    const result = await userRoleStatusService.getUserRoleStatus(req.body);
+    const result = await userRoleStatusService.getUserRoleStatusCurrent({
+      data: req.query,
+    });
     ServerResponder(res, result, 200);
   } catch (error) {
-    console.log("Error in getUserRoleStatusById:", error);
+    console.log("Error in getUserRoleStatusCurrent:", error);
     ServerResponder(res, "Unable to retrieve UserRoleStatus", 500);
   }
 };
@@ -24,7 +26,8 @@ const getUserRoleStatus = async (req, res) => {
 const updateUserRoleStatus = async (req, res) => {
   try {
     const user = req?.user;
-    req.user = user;
+    req.body.user = user;
+    // const
 
     const result = await userRoleStatusService.updateUserRoleStatus(req.body);
     ServerResponder(res, result, 200);
@@ -62,7 +65,7 @@ const userRoleStatusByPhone = async (req, res) => {
 module.exports = {
   userRoleStatusByPhone,
   createUserRoleStatus,
-  getUserRoleStatus,
+  getUserRoleStatusCurrent,
   updateUserRoleStatus,
   deleteUserRoleStatus,
 };

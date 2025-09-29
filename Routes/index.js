@@ -46,6 +46,8 @@ const routesArray = [
   require("./VehicleType.routes"),
   require("./SMSSender.routes"),
   require("./Firebase.routes"),
+  require("./UserDelinquency.routes"),
+  require("./BannedUsers.routes"),
 ];
 
 // Register all routes

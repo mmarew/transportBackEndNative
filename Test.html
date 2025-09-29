@@ -104,9 +104,9 @@ ferese corporate
 => security of user passenger by verifing id of passenger
 -->
 
-=> double check WARN! Due to `builds` existing in your configuration file, the
+<!-- => double check WARN! Due to `builds` existing in your configuration file, the
 Build and Development Settings defined in your Project Settings will not apply.
-Learn More: https://vercel.link/unused-build-settings
+Learn More: https://vercel.link/unused-build-settings -->
 
 <!-- 
 1)count all unauthorized driver users ->done via /api/admin/getAllNoOfUnAuthorizedDriver api
@@ -130,7 +130,7 @@ ongoing journey -> done /api/user/getDriverRequest?target=all&journeyStatusIds=5
 6) commission done via api /api/admin/driverSubscription?createdAtStart=2024-10-10&createdAtEnd=2026-10-10
  
 7)cancellation reasons done via /api/admin/getCanceledJourneyByFilter?cancellationReasonsTypeId=2
-10)get all baned driver
+8 )get all baned driver=>=> 3) Filter by status: GET /api/admin/userRoleStatusCurrent?statusId=29
 
 13)action ban
 14)force logout
