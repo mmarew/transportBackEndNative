@@ -428,8 +428,9 @@ const updateDriverDepositStatusService = async ({
  * @returns {Promise<Object>} - A success response with the list of unauthorized deposits.
  */
 const getUnauthorizedDeposits = async () => {
-  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus is null ORDER BY depositTime DESC`;
-  const [result] = await pool.query(sql);
+  const value = ["requested"];
+  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus is NULL OR depositStatus =? ORDER BY depositTime DESC`;
+  const [result] = await pool.query(sql, value);
   return { message: "success", data: result };
 };
 
