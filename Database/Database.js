@@ -792,30 +792,56 @@ CREATE TABLE IF NOT EXISTS JourneyNotifications (
     -- Unique constraint to avoid duplicate journey-status notifications
     UNIQUE (journeyUniqueId, journeyStatusUniqueId)
 );
--- create a table to store user delinquency, this is a list of delinquency  records used to track user delinquency when they make mistakes
-CREATE TABLE IF NOT EXISTS UserDelinquency (
-    userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,  -- Primary key
-    userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for delinquency
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users (UUID)
-    delinquencyType VARCHAR(50) NOT NULL,  -- Type of delinquency
-    delinquencyDescription TEXT NOT NULL,  -- Description of delinquency
-    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Created time
-    delinquencyUpdatedAt DATETIME NULL DEFAULT NULL,  -- Updated time (optional)
-    
-    -- Foreign key to Users table
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)
+
+-- Delinquency type definitions with point values
+CREATE TABLE IF NOT EXISTS DelinquencyTypes (
+    delinquencyTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    delinquencyTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    delinquencyTypeName VARCHAR(50) NOT NULL UNIQUE,  -- e.g., 'late_arrival', 'rude_behavior'
+    delinquencyTypeDescription TEXT NOT NULL,
+    defaultPoints INT NOT NULL DEFAULT 1,
+    defaultSeverity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+    applicableRoles VARCHAR(36) NOT NULL,  -- Which roles this applies to roleUniqueId
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- foreign key to role
+    FOREIGN KEY (applicableRoles) REFERENCES UserRole(roleUniqueId)
 );
--- banned users table, this is where users are banned for making mistakes
+-- User Delinquency table - Role-based delinquency tracking
+CREATE TABLE IF NOT EXISTS UserDelinquency (
+    userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    userRoleUniqueId VARCHAR(36) NOT NULL,  -- Specific user-role combination
+    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,   -- e.g., 'late_arrival', 'cancellation', 'misbehavior'
+    delinquencyDescription TEXT NOT NULL,
+    delinquencySeverity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+    delinquencyPoints INT NOT NULL DEFAULT 1,  -- Points assigned for this delinquency
+    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delinquencyUpdatedAt DATETIME NULL DEFAULT NULL,
+    delinquencyCreatedBy VARCHAR(36) NOT NULL DEFAULT 'system',  -- 'system' for automatic bans
+    FOREIGN KEY (userRoleUniqueId) REFERENCES UserRole(userRoleUniqueId),
+    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
+    INDEX idx_userrole_severity (userRoleUniqueId, delinquencySeverity),
+    INDEX idx_created_severity (delinquencyCreatedAt, delinquencySeverity)
+);
+
+-- Banned Users table - Automatic role-based banning
 CREATE TABLE IF NOT EXISTS BannedUsers (
-    banId INT AUTO_INCREMENT PRIMARY KEY,  -- Primary key
-    banUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for banned user
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users (UUID)
-    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Banned time
-    bannedBy VARCHAR(36) NOT NULL,  -- Who banned the user
-    userDelinquencyUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to UserDelinquency (UUID)
-    -- Foreign key to Users table
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId)
+    banId INT AUTO_INCREMENT PRIMARY KEY,
+    banUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    userRoleUniqueId VARCHAR(36) NOT NULL,  -- Which specific user-role is banned
+    userDelinquencyUniqueId VARCHAR(36) NOT NULL,  -- The triggering delinquency
+    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',  -- 'system' for automatic bans
+    banReason TEXT NOT NULL,
+    banDurationDays INT NOT NULL,  -- Duration in days (7, 30, 90, etc.)
+    banExpiresAt DATETIME NOT NULL,  -- Calculated: banAt + banDurationDays
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (userRoleUniqueId) REFERENCES UserRole(userRoleUniqueId),
+    FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId),
+    INDEX idx_userrole_active (userRoleUniqueId, isActive),
+    INDEX idx_ban_expires (banExpiresAt, isActive)
 );
  
 `;

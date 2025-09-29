@@ -1,7 +1,6 @@
 const userDelinquencyService = require("../Services/UserDelinquency.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
-// Helper function to handle service responses
 const handleServiceResponse = async (serviceCall, res) => {
   try {
     const result = await serviceCall;
@@ -15,7 +14,6 @@ const handleServiceResponse = async (serviceCall, res) => {
   }
 };
 
-// Create a new user delinquency record
 const createUserDelinquency = async (req, res) => {
   const user = req.user;
   const data = {
@@ -29,7 +27,6 @@ const createUserDelinquency = async (req, res) => {
   );
 };
 
-// Get all user delinquencies with pagination and filtering
 const getUserDelinquencies = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const filters = { ...req.query };
@@ -40,7 +37,6 @@ const getUserDelinquencies = async (req, res) => {
   );
 };
 
-// Get a specific user delinquency by ID
 const getUserDelinquencyById = async (req, res) => {
   const { userDelinquencyUniqueId } = req.params;
 
@@ -50,7 +46,6 @@ const getUserDelinquencyById = async (req, res) => {
   );
 };
 
-// Update a user delinquency record
 const updateUserDelinquency = async (req, res) => {
   const { userDelinquencyUniqueId } = req.params;
   const data = req.body;
@@ -61,7 +56,6 @@ const updateUserDelinquency = async (req, res) => {
   );
 };
 
-// Delete a user delinquency record
 const deleteUserDelinquency = async (req, res) => {
   const { userDelinquencyUniqueId } = req.params;
 
@@ -71,13 +65,12 @@ const deleteUserDelinquency = async (req, res) => {
   );
 };
 
-// Get delinquencies by specific user
-const getUserDelinquenciesByUser = async (req, res) => {
-  const { userUniqueId } = req.params;
+const getUserDelinquenciesByUserRole = async (req, res) => {
+  const { userRoleUniqueId } = req.params;
   const { page = 1, limit = 10 } = req.query;
 
   await handleServiceResponse(
-    userDelinquencyService.getUserDelinquenciesByUser(userUniqueId, {
+    userDelinquencyService.getUserDelinquenciesByUserRole(userRoleUniqueId, {
       page: parseInt(page),
       limit: parseInt(limit),
     }),
@@ -85,10 +78,20 @@ const getUserDelinquenciesByUser = async (req, res) => {
   );
 };
 
-// Get delinquency statistics
-const getUserDelinquencyStats = async (req, res) => {
+const getUserDelinquencySummary = async (req, res) => {
+  const { userRoleUniqueId } = req.params;
+
   await handleServiceResponse(
-    userDelinquencyService.getUserDelinquencyStats(),
+    userDelinquencyService.getUserDelinquencySummary(userRoleUniqueId),
+    res
+  );
+};
+
+const checkAutomaticBan = async (req, res) => {
+  const { userRoleUniqueId } = req.params;
+
+  await handleServiceResponse(
+    userDelinquencyService.checkAutomaticBan(userRoleUniqueId),
     res
   );
 };
@@ -99,6 +102,7 @@ module.exports = {
   getUserDelinquencyById,
   updateUserDelinquency,
   deleteUserDelinquency,
-  getUserDelinquenciesByUser,
-  getUserDelinquencyStats,
+  getUserDelinquenciesByUserRole,
+  getUserDelinquencySummary,
+  checkAutomaticBan,
 };

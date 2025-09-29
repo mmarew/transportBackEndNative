@@ -1,7 +1,6 @@
 const bannedUsersService = require("../Services/BannedUsers.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
-// Helper function to handle service responses
 const handleServiceResponse = async (serviceCall, res) => {
   try {
     const result = await serviceCall;
@@ -15,7 +14,6 @@ const handleServiceResponse = async (serviceCall, res) => {
   }
 };
 
-// Ban a user
 const banUser = async (req, res) => {
   const user = req.user;
   const data = {
@@ -26,7 +24,6 @@ const banUser = async (req, res) => {
   await handleServiceResponse(bannedUsersService.banUser(data), res);
 };
 
-// Get all banned users with pagination and filtering
 const getBannedUsers = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const filters = { ...req.query };
@@ -34,7 +31,6 @@ const getBannedUsers = async (req, res) => {
   await handleServiceResponse(bannedUsersService.getBannedUsers(filters), res);
 };
 
-// Get a specific banned user by ID
 const getBannedUserById = async (req, res) => {
   const { banUniqueId } = req.params;
 
@@ -44,7 +40,6 @@ const getBannedUserById = async (req, res) => {
   );
 };
 
-// Update a banned user record
 const updateBannedUser = async (req, res) => {
   const { banUniqueId } = req.params;
   const data = req.body;
@@ -55,34 +50,39 @@ const updateBannedUser = async (req, res) => {
   );
 };
 
-// Unban a user (delete banned record)
 const unbanUser = async (req, res) => {
   const { banUniqueId } = req.params;
 
   await handleServiceResponse(bannedUsersService.unbanUser(banUniqueId), res);
 };
 
-// Get banned user by user ID
-const getBannedUserByUserId = async (req, res) => {
-  const { userUniqueId } = req.params;
+const getBannedUserByUserRole = async (req, res) => {
+  const { userRoleUniqueId } = req.params;
 
   await handleServiceResponse(
-    bannedUsersService.getBannedUserByUserId(userUniqueId),
+    bannedUsersService.getBannedUserByUserRole(userRoleUniqueId),
     res
   );
 };
 
-// Check if a user is currently banned
-const checkIfUserIsBanned = async (req, res) => {
-  const { userUniqueId } = req.params;
+const checkIfUserRoleIsBanned = async (req, res) => {
+  const { userRoleUniqueId } = req.params;
 
   await handleServiceResponse(
-    bannedUsersService.checkIfUserIsBanned(userUniqueId),
+    bannedUsersService.checkIfUserRoleIsBanned(userRoleUniqueId),
     res
   );
 };
 
-// Get banned users statistics
+const deactivateBan = async (req, res) => {
+  const { banUniqueId } = req.params;
+
+  await handleServiceResponse(
+    bannedUsersService.deactivateBan(banUniqueId),
+    res
+  );
+};
+
 const getBannedUsersStats = async (req, res) => {
   await handleServiceResponse(bannedUsersService.getBannedUsersStats(), res);
 };
@@ -93,7 +93,8 @@ module.exports = {
   getBannedUserById,
   updateBannedUser,
   unbanUser,
-  getBannedUserByUserId,
-  checkIfUserIsBanned,
+  getBannedUserByUserRole,
+  checkIfUserRoleIsBanned,
+  deactivateBan,
   getBannedUsersStats,
 };

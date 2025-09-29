@@ -1,74 +1,187 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 
-// Helper function for database queries
 const query = async (sql, values = []) => {
   const [result] = await pool.query(sql, values);
   return result;
 };
 
-// Create a new user delinquency record
 const createUserDelinquency = async (data) => {
   const {
-    userUniqueId,
-    delinquencyType,
+    userRoleUniqueId,
+    delinquencyTypeUniqueId,
     delinquencyDescription,
+    delinquencySeverity,
+    delinquencyPoints,
     delinquencyCreatedBy,
   } = data;
 
   const userDelinquencyUniqueId = uuidv4();
+
+  // Get default values from delinquency type if not provided
+  const typeQuery = `
+    SELECT defaultPoints, defaultSeverity 
+    FROM DelinquencyTypes 
+    WHERE delinquencyTypeUniqueId = ? AND isActive = TRUE
+  `;
+  const [typeResult] = await pool.query(typeQuery, [delinquencyTypeUniqueId]);
+
+  if (typeResult.length === 0) {
+    return { message: "error", error: "Invalid delinquency type" };
+  }
+
+  const defaultType = typeResult[0];
+
   const sql = `
     INSERT INTO UserDelinquency (
-      userDelinquencyUniqueId, userUniqueId, delinquencyType, 
-      delinquencyDescription, delinquencyCreatedBy
-    ) VALUES (?, ?, ?, ?, ?)
+      userDelinquencyUniqueId, userRoleUniqueId, delinquencyTypeUniqueId, 
+      delinquencyDescription, delinquencySeverity, delinquencyPoints, delinquencyCreatedBy
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
     userDelinquencyUniqueId,
-    userUniqueId,
-    delinquencyType,
+    userRoleUniqueId,
+    delinquencyTypeUniqueId,
     delinquencyDescription,
+    delinquencySeverity || defaultType.defaultSeverity,
+    delinquencyPoints || defaultType.defaultPoints,
     delinquencyCreatedBy,
   ];
 
   await query(sql, values);
 
+  // Check for automatic ban
+  const banResult = await checkAndApplyAutomaticBan(
+    userRoleUniqueId,
+    userDelinquencyUniqueId
+  );
+
   return {
     message: "success",
     data: "User delinquency record created successfully",
     userDelinquencyUniqueId,
+    automaticAction: banResult,
   };
 };
 
-// Get user delinquencies with pagination and filtering
+const checkAndApplyAutomaticBan = async (
+  userRoleUniqueId,
+  triggeringDelinquencyId
+) => {
+  // Calculate total points for this user-role (last 30 days)
+  const pointsQuery = `
+    SELECT SUM(delinquencyPoints) as totalPoints 
+    FROM UserDelinquency 
+    WHERE userRoleUniqueId = ? 
+    AND delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+  `;
+  const [pointsResult] = await pool.query(pointsQuery, [userRoleUniqueId]);
+  const totalPoints = pointsResult[0].totalPoints || 0;
+
+  // Get user role info
+  const userRoleQuery = `
+    SELECT ur.*, r.roleName 
+    FROM UserRole ur 
+    INNER JOIN Roles r ON ur.roleId = r.roleId 
+    WHERE ur.userRoleUniqueId = ?
+  `;
+  const [userRoleInfo] = await pool.query(userRoleQuery, [userRoleUniqueId]);
+
+  if (userRoleInfo.length === 0)
+    return { action: "none", reason: "User role not found" };
+
+  // Define ban rules based on points (you can make this configurable)
+  const banRules = [
+    { threshold: 50, duration: 30, severity: "CRITICAL" },
+    { threshold: 35, duration: 7, severity: "HIGH" },
+    { threshold: 20, duration: 3, severity: "MEDIUM" },
+    { threshold: 10, duration: 1, severity: "LOW" },
+  ];
+
+  const applicableRule = banRules.find((rule) => totalPoints >= rule.threshold);
+
+  if (!applicableRule) {
+    return { action: "none", reason: "No ban threshold met", totalPoints };
+  }
+
+  // Check if already banned
+  const activeBanQuery = `
+    SELECT * FROM BannedUsers 
+    WHERE userRoleUniqueId = ? AND isActive = TRUE
+  `;
+  const [activeBans] = await pool.query(activeBanQuery, [userRoleUniqueId]);
+
+  if (activeBans.length > 0) {
+    return { action: "none", reason: "User role already banned", totalPoints };
+  }
+
+  // Apply automatic ban
+  const banUniqueId = uuidv4();
+  const banAt = new Date();
+  const banExpiresAt = new Date(
+    banAt.getTime() + applicableRule.duration * 24 * 60 * 60 * 1000
+  );
+
+  const banSql = `
+    INSERT INTO BannedUsers (
+      banUniqueId, userRoleUniqueId, userDelinquencyUniqueId,
+      bannedBy, banReason, banDurationDays, banExpiresAt
+    ) VALUES (?, ?, ?, 'system', ?, ?, ?)
+  `;
+
+  const banValues = [
+    banUniqueId,
+    userRoleUniqueId,
+    triggeringDelinquencyId,
+    `Automatic ban: ${totalPoints} points reached ${applicableRule.severity} threshold`,
+    applicableRule.duration,
+    banExpiresAt,
+  ];
+
+  await query(banSql, banValues);
+
+  return {
+    action: "banned",
+    banDuration: applicableRule.duration,
+    totalPoints,
+    severityLevel: applicableRule.severity,
+    banExpiresAt,
+    banUniqueId,
+  };
+};
+
 const getUserDelinquencies = async (filters = {}) => {
   const {
     page = 1,
     limit = 10,
-    userUniqueId,
-    delinquencyType,
+    userRoleUniqueId,
+    delinquencyTypeUniqueId,
+    delinquencySeverity,
     startDate,
     endDate,
     sortBy = "delinquencyCreatedAt",
     sortOrder = "DESC",
   } = filters;
 
-  // Calculate offset for pagination
   const offset = (page - 1) * limit;
 
-  // Build WHERE clause
   let whereConditions = ["1 = 1"];
   let queryParams = [];
 
-  if (userUniqueId) {
-    whereConditions.push("ud.userUniqueId = ?");
-    queryParams.push(userUniqueId);
+  if (userRoleUniqueId) {
+    whereConditions.push("ud.userRoleUniqueId = ?");
+    queryParams.push(userRoleUniqueId);
   }
 
-  if (delinquencyType) {
-    whereConditions.push("ud.delinquencyType LIKE ?");
-    queryParams.push(`%${delinquencyType}%`);
+  if (delinquencyTypeUniqueId) {
+    whereConditions.push("ud.delinquencyTypeUniqueId = ?");
+    queryParams.push(delinquencyTypeUniqueId);
+  }
+
+  if (delinquencySeverity) {
+    whereConditions.push("ud.delinquencySeverity = ?");
+    queryParams.push(delinquencySeverity);
   }
 
   if (startDate) {
@@ -81,36 +194,35 @@ const getUserDelinquencies = async (filters = {}) => {
     queryParams.push(endDate);
   }
 
-  // Build main query
   const baseQuery = `
-    SELECT SQL_CALC_FOUND_ROWS 
+    SELECT 
       ud.*,
+      ur.userUniqueId,
       u.fullName as userName,
-      u.phoneNumber as userPhone,
-      u.email as userEmail,
+      r.roleName,
+      dt.delinquencyTypeName,
+      dt.delinquencyTypeDescription,
       uc.fullName as createdByName
     FROM UserDelinquency ud
-    INNER JOIN Users u ON ud.userUniqueId = u.userUniqueId
+    INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
+    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
     WHERE ${whereConditions.join(" AND ")}
   `;
 
-  // Count query
   const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as count_table`;
-
-  // Data query with sorting and pagination
   const dataQuery = `
     ${baseQuery}
     ORDER BY ud.${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}
     LIMIT ? OFFSET ?
   `;
 
-  // Add pagination parameters
-  queryParams.push(parseInt(limit), offset);
+  const dataQueryParams = [...queryParams, parseInt(limit), offset];
 
-  // Execute queries
-  const [countResult] = await pool.query(countQuery, queryParams.slice(0, -2));
-  const [results] = await pool.query(dataQuery, queryParams);
+  const [countResult] = await pool.query(countQuery, queryParams);
+  const [results] = await pool.query(dataQuery, dataQueryParams);
 
   const total = countResult[0].total;
   const totalPages = Math.ceil(total / limit);
@@ -126,28 +238,25 @@ const getUserDelinquencies = async (filters = {}) => {
       hasNextPage: page < totalPages,
       hasPrevPage: page > 1,
     },
-    filters: {
-      userUniqueId,
-      delinquencyType,
-      startDate,
-      endDate,
-      sortBy,
-      sortOrder,
-    },
+    filters,
   };
 };
 
-// Get user delinquency by ID
 const getUserDelinquencyById = async (userDelinquencyUniqueId) => {
   const sql = `
     SELECT 
       ud.*,
+      ur.userUniqueId,
       u.fullName as userName,
-      u.phoneNumber as userPhone,
-      u.email as userEmail,
+      r.roleName,
+      dt.delinquencyTypeName,
+      dt.delinquencyTypeDescription,
       uc.fullName as createdByName
     FROM UserDelinquency ud
-    INNER JOIN Users u ON ud.userUniqueId = u.userUniqueId
+    INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
+    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
     WHERE ud.userDelinquencyUniqueId = ?
   `;
@@ -159,21 +268,24 @@ const getUserDelinquencyById = async (userDelinquencyUniqueId) => {
     : { message: "error", error: "User delinquency record not found" };
 };
 
-// Update user delinquency record
 const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
-  const { delinquencyType, delinquencyDescription } = data;
+  const { delinquencyDescription, delinquencySeverity, delinquencyPoints } =
+    data;
 
   const sql = `
     UPDATE UserDelinquency 
-    SET delinquencyType = ?, delinquencyDescription = ?, delinquencyUpdatedAt = NOW()
+    SET delinquencyDescription = ?, delinquencySeverity = ?, 
+        delinquencyPoints = ?, delinquencyUpdatedAt = NOW()
     WHERE userDelinquencyUniqueId = ?
   `;
 
   const values = [
-    delinquencyType,
     delinquencyDescription,
+    delinquencySeverity,
+    delinquencyPoints,
     userDelinquencyUniqueId,
   ];
+
   const result = await query(sql, values);
 
   return result.affectedRows > 0
@@ -184,7 +296,6 @@ const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
     : { message: "error", error: "Failed to update user delinquency record" };
 };
 
-// Delete user delinquency record
 const deleteUserDelinquency = async (userDelinquencyUniqueId) => {
   // Check if this delinquency is linked to any banned users
   const checkSql =
@@ -209,29 +320,28 @@ const deleteUserDelinquency = async (userDelinquencyUniqueId) => {
     : { message: "error", error: "Failed to delete user delinquency record" };
 };
 
-// Get delinquencies by specific user
-const getUserDelinquenciesByUser = async (userUniqueId, pagination = {}) => {
+const getUserDelinquenciesByUserRole = async (
+  userRoleUniqueId,
+  pagination = {}
+) => {
   const { page = 1, limit = 10 } = pagination;
   const offset = (page - 1) * limit;
 
   const sql = `
     SELECT SQL_CALC_FOUND_ROWS 
       ud.*,
-      u.fullName as userName,
-      u.phoneNumber as userPhone,
-      u.email as userEmail,
+      dt.delinquencyTypeName,
+      dt.delinquencyTypeDescription,
       uc.fullName as createdByName
     FROM UserDelinquency ud
-    INNER JOIN Users u ON ud.userUniqueId = u.userUniqueId
+    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
-    WHERE ud.userUniqueId = ?
+    WHERE ud.userRoleUniqueId = ?
     ORDER BY ud.delinquencyCreatedAt DESC
     LIMIT ? OFFSET ?
   `;
 
-  const [results] = await pool.query(sql, [userUniqueId, limit, offset]);
-
-  // Get total count
+  const [results] = await pool.query(sql, [userRoleUniqueId, limit, offset]);
   const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
   const totalCount = totalCountResult[0].total;
   const totalPages = Math.ceil(totalCount / limit);
@@ -250,39 +360,58 @@ const getUserDelinquenciesByUser = async (userUniqueId, pagination = {}) => {
   };
 };
 
-// Get delinquency statistics
-const getUserDelinquencyStats = async () => {
-  const statsQueries = [
-    // Total delinquencies
-    "SELECT COUNT(*) as totalDelinquencies FROM UserDelinquency",
+const getUserDelinquencySummary = async (userRoleUniqueId) => {
+  const summaryQuery = `
+    SELECT 
+      ur.userRoleUniqueId,
+      u.fullName as userName,
+      r.roleName,
+      COUNT(ud.userDelinquencyId) as totalDelinquencies,
+      SUM(ud.delinquencyPoints) as totalPoints,
+      MAX(ud.delinquencyCreatedAt) as latestDelinquency
+    FROM UserRole ur
+    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    LEFT JOIN UserDelinquency ud ON ur.userRoleUniqueId = ud.userRoleUniqueId
+    WHERE ur.userRoleUniqueId = ?
+    GROUP BY ur.userRoleUniqueId, u.fullName, r.roleName
+  `;
 
-    // Delinquencies by type
-    "SELECT delinquencyType, COUNT(*) as count FROM UserDelinquency GROUP BY delinquencyType",
+  const [summary] = await pool.query(summaryQuery, [userRoleUniqueId]);
 
-    // Recent delinquencies (last 30 days)
-    "SELECT COUNT(*) as recentDelinquencies FROM UserDelinquency WHERE delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+  // Get recent delinquencies
+  const recentQuery = `
+    SELECT ud.*, dt.delinquencyTypeName
+    FROM UserDelinquency ud
+    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+    WHERE ud.userRoleUniqueId = ? 
+    ORDER BY ud.delinquencyCreatedAt DESC 
+    LIMIT 5
+  `;
+  const [recentDelinquencies] = await pool.query(recentQuery, [
+    userRoleUniqueId,
+  ]);
 
-    // Top users with most delinquencies
-    `SELECT u.userUniqueId, u.fullName, u.phoneNumber, COUNT(*) as delinquencyCount 
-     FROM UserDelinquency ud 
-     INNER JOIN Users u ON ud.userUniqueId = u.userUniqueId 
-     GROUP BY u.userUniqueId, u.fullName, u.phoneNumber 
-     ORDER BY delinquencyCount DESC 
-     LIMIT 10`,
-  ];
-
-  const [totalResult, typeResult, recentResult, topUsersResult] =
-    await Promise.all(statsQueries.map((sql) => query(sql)));
+  // Check if banned
+  const banQuery = `
+    SELECT * FROM BannedUsers 
+    WHERE userRoleUniqueId = ? AND isActive = TRUE
+  `;
+  const [banStatus] = await pool.query(banQuery, [userRoleUniqueId]);
 
   return {
     message: "success",
     data: {
-      totalDelinquencies: totalResult[0].totalDelinquencies,
-      delinquenciesByType: typeResult,
-      recentDelinquencies: recentResult[0].recentDelinquencies,
-      topUsersWithDelinquencies: topUsersResult,
+      summary: summary[0] || {},
+      recentDelinquencies,
+      isBanned: banStatus.length > 0,
+      banInfo: banStatus[0] || null,
     },
   };
+};
+
+const checkAutomaticBan = async (userRoleUniqueId) => {
+  return await checkAndApplyAutomaticBan(userRoleUniqueId, null);
 };
 
 module.exports = {
@@ -291,6 +420,7 @@ module.exports = {
   getUserDelinquencyById,
   updateUserDelinquency,
   deleteUserDelinquency,
-  getUserDelinquenciesByUser,
-  getUserDelinquencyStats,
+  getUserDelinquenciesByUserRole,
+  getUserDelinquencySummary,
+  checkAutomaticBan,
 };

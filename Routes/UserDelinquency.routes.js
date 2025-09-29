@@ -36,16 +36,22 @@ const routes = [
     handler: userDelinquencyController.deleteUserDelinquency,
   },
   {
-    path: "/api/admin/user-delinquency/user/:userUniqueId",
+    path: "/api/admin/user-delinquency/user-role/:userRoleUniqueId",
     method: "get",
     middleware: [verifyTokenOfAxios],
-    handler: userDelinquencyController.getUserDelinquenciesByUser,
+    handler: userDelinquencyController.getUserDelinquenciesByUserRole,
   },
   {
-    path: "/api/admin/user-delinquency-stats",
+    path: "/api/admin/user-delinquency-summary/:userRoleUniqueId",
     method: "get",
     middleware: [verifyTokenOfAxios],
-    handler: userDelinquencyController.getUserDelinquencyStats,
+    handler: userDelinquencyController.getUserDelinquencySummary,
+  },
+  {
+    path: "/api/admin/check-automatic-ban/:userRoleUniqueId",
+    method: "get",
+    middleware: [verifyTokenOfAxios],
+    handler: userDelinquencyController.checkAutomaticBan,
   },
 ];
 
