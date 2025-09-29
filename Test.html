@@ -109,15 +109,26 @@ Build and Development Settings defined in your Project Settings will not apply.
 Learn More: https://vercel.link/unused-build-settings
 
 <!-- 
-1)count all unauthorized driver users 
-2)count all unauthorized payments of driver users 
-3)get online and offline driver counts with pagination
-4)get all active passenger counts with pagination 
-5) all active request ,cancelled journey,
-6) commission today
-7) commission this month
-8) commission this year
-9)cancellation reasons
+1)count all unauthorized driver users ->done via /api/admin/getAllNoOfUnAuthorizedDriver api
+2)count all unauthorized deposit of driver users ->done via /api/driverDeposit/status/unauthorized/count api
+3)get online drivers -> done /api/user/getDriverRequest?target=all&journeyStatusIds=1,2,3,4,5,6,7  
+4)get all active passenger counts with pagination -> jump it
+5) all active request -> done /api/user/getDriverRequest?target=all&journeyStatusIds=1,2,3,4,5,
+   cancelled journey cancelledByPassenger  -> done /api/user/getDriverRequest?target=all&journeyStatusIds=7
+     cancelledByPassenger: 7,
+  // accept oly one driver request but reject others from bid
+  rejectedByPassenger: 8,
+     cancelled journey rejectedByPassenger  -> done /api/user/getDriverRequest?target=all&journeyStatusIds=8
+
+  cancelledByDriver: 9,
+       cancelled journey cancelledByDriver  -> done /api/user/getDriverRequest?target=all&journeyStatusIds=9
+  cancelledByAdmin: 10,
+       cancelled journey cancelledByAdmin  -> done /api/user/getDriverRequest?target=all&journeyStatusIds=10
+
+  
+6) commission done via api /api/admin/driverSubscription?createdAtStart=2024-10-10&createdAtEnd=2026-10-10
+ 
+7)cancellation reasons
 10)get all baned driver
 11)ongoing journey
 13)action ban

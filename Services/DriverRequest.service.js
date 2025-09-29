@@ -833,6 +833,8 @@ const deleteDriverRequest = async (requestId) => {
 };
 const getDriverRequest = async ({ data }) => {
   try {
+    console.log("@getDriverRequest data", data);
+
     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
 
     const offset = (page - 1) * limit;
@@ -957,9 +959,9 @@ const getDriverRequest = async ({ data }) => {
     `;
 
     queryParams.push(parseInt(limit), offset);
+
     const [requests] = await pool.query(sqlToGetRequests, queryParams);
 
-    // Get total count
     const sqlCount = `
       SELECT COUNT(*) as total 
       FROM DriverRequest 

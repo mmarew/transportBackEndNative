@@ -76,5 +76,11 @@ router.get(
   verifyTokenOfAxios,
   controller.getUnauthorizedDeposits
 );
+// get all count of unauthorized deposits
+router.get(
+  "/api/driverDeposit/status/unauthorized/count",
+  verifyTokenOfAxios,
+  controller.getUnauthorizedDepositsCount
+);
 
 module.exports = router;

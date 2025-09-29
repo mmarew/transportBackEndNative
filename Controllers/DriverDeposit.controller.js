@@ -236,3 +236,15 @@ exports.getUnauthorizedDeposits = async (req, res) => {
     });
   }
 };
+exports.getUnauthorizedDepositsCount = async (req, res) => {
+  try {
+    const result = await service.getUnauthorizedDepositsCount();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("@getUnauthorizedDepositsCount", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to fetch unauthorized deposits count",
+    });
+  }
+};

@@ -28,15 +28,80 @@ exports.createDriverSubscription = async (req, res) => {
 };
 
 // Get all
+// exports.getAllDriverSubscriptions = async (req, res) => {
+//   try {
+//     const result = await service.getAllDriverSubscriptions();
+//     ServerResponder(res, result);
+//   } catch (error) {
+//     console.error("Error fetching driver subscriptions:", error);
+//     ServerResponder(res, {
+//       message: "error",
+//       error: "Failed to fetch subscriptions",
+//     });
+//   }
+// };
+
 exports.getAllDriverSubscriptions = async (req, res) => {
   try {
-    const result = await service.getAllDriverSubscriptions();
-    ServerResponder(res, result);
+    const {
+      page = 1,
+      limit = 10,
+      driverUniqueId,
+      planName,
+      isActive,
+      daily,
+      monthly,
+      startDate,
+      endDate,
+      createdAtStart,
+      createdAtEnd,
+      sortBy,
+      sortOrder,
+    } = req.query;
+
+    const filters = {};
+    if (driverUniqueId) filters.driverUniqueId = driverUniqueId;
+    if (planName) filters.planName = planName;
+    if (isActive) filters.isActive = isActive === "true";
+    if (daily) filters.daily = daily === "true";
+    if (monthly) filters.monthly = monthly === "true";
+    if (startDate && endDate) {
+      filters.startDate = startDate;
+      filters.endDate = endDate;
+    }
+    if (createdAtStart && createdAtEnd) {
+      filters.createdAtStart = createdAtStart;
+      filters.createdAtEnd = createdAtEnd;
+    }
+    if (sortBy) filters.sortBy = sortBy;
+    if (sortOrder) filters.sortOrder = sortOrder;
+
+    const result = await service.getAllDriverSubscriptions({
+      page,
+      limit,
+      filters,
+    });
+
+    ServerResponder(res, result, 200);
   } catch (error) {
     console.error("Error fetching driver subscriptions:", error);
+    ServerResponder(
+      res,
+      { message: "error", error: "Failed to fetch subscriptions" },
+      500
+    );
+  }
+};
+
+exports.getAllDriverSubscriptionsCount = async (req, res) => {
+  try {
+    const result = await service.getAllDriverSubscriptionsCount();
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error fetching driver subscriptions count:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Failed to fetch subscriptions",
+      error: "Failed to fetch subscriptions count",
     });
   }
 };
