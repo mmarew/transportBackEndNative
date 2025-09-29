@@ -96,14 +96,28 @@ const AdminController = {
     }
   },
 
-  getunAuthorizedDriver: async (req, res) => {
+  getUnAuthorizedDriver: async (req, res) => {
     try {
       ServerResponder(res, await adminServices.getUnauthorizedDriver(req));
     } catch (error) {
-      console.log("Error in getunAuthorizedDriver:", error);
+      console.log("Error in getUnAuthorizedDriver:", error);
       ServerResponder(res, {
         message: "error",
         error: "Failed to fetch unauthorized drivers",
+      });
+    }
+  },
+  getAllNoOfUnAuthorizedDriver: async (req, res) => {
+    try {
+      ServerResponder(
+        res,
+        await adminServices.getAllNoOfUnAuthorizedDriver(req)
+      );
+    } catch (error) {
+      console.log("Error in getAllNoOfUnAuthorizedDriver:", error);
+      ServerResponder(res, {
+        message: "error",
+        error: "Failed to fetch number of unauthorized drivers",
       });
     }
   },

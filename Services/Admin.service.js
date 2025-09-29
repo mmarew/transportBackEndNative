@@ -290,6 +290,18 @@ const adminServices = {
 
     return usersWithDocuments;
   },
+  getAllNoOfUnAuthorizedDriver: async () => {
+    const sql = `
+      SELECT COUNT(*) AS total
+      FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
+    `;
+    const [countRows] = await pool.query(sql, [1, 2]);
+    return {
+      message: "success",
+      data: { totalUnAuthorizedDrivers: countRows[0].total },
+    };
+  },
   searchUnauthorizedDriver: async (query) => {
     const sql = `
     SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.*, Statuses.*
