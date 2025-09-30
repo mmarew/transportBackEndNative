@@ -173,128 +173,140 @@ const getAllMappings = async () => {
   };
 };
 const driversDocumentVehicleRequirement = async (body) => {
-  const ownerUserUniqueId = body.ownerUserUniqueId;
-  const user = body?.user;
-  const roleId = 2;
-  const phoneNumber = user?.phoneNumber;
-  const userRoleStatusDescription = body?.userRoleStatusDescription;
-  console.log(" roleId, phoneNumber", roleId, phoneNumber);
-  // Fetch initial user data based on role ID and phone number
-  let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
-  if (!userRoleStatus || userRoleStatus.length === 0) {
-    return { message: "error", data: "User data not found" };
-  }
+  try {
+    const ownerUserUniqueId = body.ownerUserUniqueId;
+    const user = body?.user;
+    const roleId = 2;
+    const phoneNumber = user?.phoneNumber;
+    const userRoleStatusDescription = body?.userRoleStatusDescription;
+    console.log(" roleId, phoneNumber", roleId, phoneNumber);
+    // Fetch initial user data based on role ID and phone number
+    let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
+    if (!userRoleStatus || userRoleStatus.length === 0) {
+      return { message: "error", data: "User data not found" };
+    }
 
-  const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
-  // return;
-  // Fetch required documents for the user's role
-  const requiredDocuments = await performJoinSelect({
-    baseTable: "RoleDocumentRequirements",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-    ],
-    conditions: { roleId },
-  });
+    const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
+    // return;
+    // Fetch required documents for the user's role
+    const requiredDocuments = await performJoinSelect({
+      baseTable: "RoleDocumentRequirements",
+      joins: [
+        {
+          table: "DocumentTypes",
+          on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
+        },
+      ],
+      conditions: { roleId },
+    });
 
-  if (!requiredDocuments || requiredDocuments.length === 0) {
-    return { message: "error", data: "No documents required for this role" };
-  }
-  const sql = `SELECT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*
+    if (!requiredDocuments || requiredDocuments.length === 0) {
+      return { message: "error", data: "No documents required for this role" };
+    }
+
+    const sql = `
+SELECT DISTINCT 
+  AttachedDocuments.*, 
+  DocumentTypes.*, 
+  RoleDocumentRequirements.*
 FROM AttachedDocuments
 JOIN DocumentTypes 
   ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
 JOIN RoleDocumentRequirements 
   ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
 WHERE AttachedDocuments.userUniqueId = ?
-GROUP BY AttachedDocuments.attachedDocumentId;
 `;
-  const values = [ownerUserUniqueId];
-  const [attachedDocuments] = await pool.query(sql, values);
-  console.log("@attachedDocuments", attachedDocuments);
-  // Find unattached document types
-  const unAttachedDocumentTypes = requiredDocuments.filter(
-    (requiredDocument) =>
-      !attachedDocuments.some(
-        (attachedDocument) =>
-          attachedDocument.documentTypeId === requiredDocument.documentTypeId
-      )
-  );
+    const values = [ownerUserUniqueId];
+    const [attachedDocuments] = await pool.query(sql, values);
+    console.log("@attachedDocuments", attachedDocuments);
+    // Find unattached document types
+    const unAttachedDocumentTypes = requiredDocuments.filter(
+      (requiredDocument) =>
+        !attachedDocuments.some(
+          (attachedDocument) =>
+            attachedDocument.documentTypeId === requiredDocument.documentTypeId
+        )
+    );
 
-  // Group attached documents by their status (PENDING, ACCEPTED, REJECTED)
-  const attachedDocumentsByStatus = {
-    PENDING: [],
-    ACCEPTED: [],
-    REJECTED: [],
-  };
-  attachedDocuments.forEach((attachedDocument) => {
-    //
-    const acceptanceStatus = attachedDocument.attachedDocumentAcceptance;
-
-    if (attachedDocumentsByStatus[acceptanceStatus]) {
-      //
-      attachedDocumentsByStatus[acceptanceStatus].push(attachedDocument);
-    }
-    //
-  });
-
-  // Check if the user has a registered vehicle
-  const userVehicle = await performJoinSelect({
-    baseTable: "VehicleOwnership",
-    joins: [
-      {
-        table: "Vehicle",
-        on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
-      },
-      {
-        table: "VehicleTypes",
-        on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-      },
-    ],
-    conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
-  });
-  const vehicleRegistered = userVehicle.length > 0;
-
-  // Determine the final status based on documents and vehicle status
-  const resultOfStatus = findStatusByVehicleAndDocuments({
-    attachedDocuments,
-    attachedDocumentsByStatus,
-    requiredDocuments,
-    vehicleRegistered,
-    unAttachedDocumentTypes,
-  });
-
-  if (resultOfStatus?.message == "error") {
-    return resultOfStatus;
-  }
-  const finalStatusId = resultOfStatus?.finalStatusId;
-  if (statusId !== finalStatusId) {
-    // Update role status if its current status is different from saved one
-    const userRoleStatusData = {
-      user,
-      roleId,
-      userRoleStatusUniqueId,
-      userRoleId,
-      newStatusId: finalStatusId,
-      userRoleStatusDescription,
-      phoneNumber,
+    // Group attached documents by their status (PENDING, ACCEPTED, REJECTED)
+    const attachedDocumentsByStatus = {
+      PENDING: [],
+      ACCEPTED: [],
+      REJECTED: [],
     };
+    attachedDocuments.forEach((attachedDocument) => {
+      //
+      const acceptanceStatus = attachedDocument.attachedDocumentAcceptance;
 
-    await updateUserRoleStatus(userRoleStatusData);
+      if (attachedDocumentsByStatus[acceptanceStatus]) {
+        //
+        attachedDocumentsByStatus[acceptanceStatus].push(attachedDocument);
+      }
+      //
+    });
+
+    // Check if the user has a registered vehicle
+    const userVehicle = await performJoinSelect({
+      baseTable: "VehicleOwnership",
+      joins: [
+        {
+          table: "Vehicle",
+          on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+        },
+        {
+          table: "VehicleTypes",
+          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+        },
+      ],
+      conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
+    });
+    const vehicleRegistered = userVehicle.length > 0;
+
+    // Determine the final status based on documents and vehicle status
+    const resultOfStatus = findStatusByVehicleAndDocuments({
+      attachedDocuments,
+      attachedDocumentsByStatus,
+      requiredDocuments,
+      vehicleRegistered,
+      unAttachedDocumentTypes,
+    });
+
+    if (resultOfStatus?.message == "error") {
+      return resultOfStatus;
+    }
+    const finalStatusId = resultOfStatus?.finalStatusId;
+    if (statusId !== finalStatusId) {
+      // Update role status if its current status is different from saved one
+      const userRoleStatusData = {
+        user,
+        roleId,
+        userRoleStatusUniqueId,
+        userRoleId,
+        newStatusId: finalStatusId,
+        userRoleStatusDescription,
+        phoneNumber,
+      };
+
+      await updateUserRoleStatus(userRoleStatusData);
+    }
+    //get latest user role status
+
+    const userData = await getUserRoleStatus({ roleId, phoneNumber });
+    return {
+      message: "success",
+      messageType: "driversDocumentVehicleRequirement",
+      vehicle: userVehicle[0] || null,
+      userData: userData[0] || null,
+      attachedDocumentsByStatus,
+      unAttachedDocumentTypes, // Documents that are required but not attached
+    };
+  } catch (error) {
+    console.log("@roleDocumentRequirements error", error);
+    return {
+      message: "error",
+      data: "An error occurred during driver document vehicle requirement",
+    };
   }
-  //get latest user role status
-
-  const userData = await getUserRoleStatus({ roleId, phoneNumber });
-  return {
-    message: "success",
-    messageType: "driversDocumentVehicleRequirement",
-    vehicle: userVehicle[0] || null,
-    userData: userData[0] || null,
-    attachedDocumentsByStatus,
-    unAttachedDocumentTypes, // Documents that are required but not attached
-  };
 };
 
 module.exports = {

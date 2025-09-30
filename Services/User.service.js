@@ -690,12 +690,12 @@ const verifyUserByOTP = async (req) => {
       hashedPassword: hashedOTP,
       notHashedPassword: OTP,
     });
-    console.log("verifyOTP", verifyOTP);
+    console.log("@verifyUserByOTP verifyOTP", verifyOTP);
     if (verifyOTP.error) {
       return { message: "error", error: "OTP verification failed" };
     }
-    console.log("userUniqueId", userUniqueId);
-    console.log("roleId", roleId);
+    console.log("@verifyUserByOTP userUniqueId", userUniqueId);
+    console.log("@verifyUserByOTP roleId", roleId);
     const userInRoleId = await getData({
       tableName: "UserRole",
       conditions: { roleId, userUniqueId },
@@ -717,10 +717,22 @@ const verifyUserByOTP = async (req) => {
     }
 
     const token = JWTData.token;
+    const resData = {
+      token,
+      message: "success",
+      data: "OTP verified successfully",
+    };
+    if (roleId != 2) {
+      return resData;
+    }
+    // if user is driver, check if driver has attached documents
     const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
       ownerUserUniqueId: userUniqueId,
       user: verifyUserExistence[0],
     });
+    if (documentAndVehicleOfDriver?.message === "error") {
+      return documentAndVehicleOfDriver;
+    }
     const unAttachedDocumentTypes =
         documentAndVehicleOfDriver?.unAttachedDocumentTypes,
       attachedDocumentsByStatus =
@@ -734,6 +746,8 @@ const verifyUserByOTP = async (req) => {
       unAttachedDocumentTypes?.length > 0
     )
       sendNotificationToAdmin({ message: { ...documentAndVehicleOfDriver } });
+    resData.documentAndVehicleOfDriver = documentAndVehicleOfDriver;
+    return resData;
     return {
       documentAndVehicleOfDriver,
       token,
