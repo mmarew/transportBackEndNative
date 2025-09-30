@@ -181,6 +181,15 @@ const getCompletedJourney = async ({
   limit = 10,
 }) => {
   try {
+    console.log("@getCompletedJourney", {
+      roleId,
+      ownerUserUniqueId,
+      toDate,
+      fromDate,
+      page,
+      limit,
+    });
+
     const roleConfig = {
       1: {
         joinTable: "PassengerRequest",
@@ -236,7 +245,7 @@ const getCompletedJourney = async ({
       limit: Math.min(limit, maxLimit),
       offset,
     });
-
+    console.log("@completedJourney", completedJourney);
     const totalCount = await getTotalCount();
     const totalPages = Math.ceil(totalCount / limit);
 

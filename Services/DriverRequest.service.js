@@ -222,7 +222,6 @@ const createAndAcceptNewRequest = async (body) => {
         passengerRequestUniqueId
       );
 
-    // return;
     const passengerJourneyStatusId = passengerRequest?.data?.journeyStatusId;
     const passengerRequestId = passengerRequest?.data?.passengerRequestId;
     // check if the passenger request is already accepted by driver
@@ -232,18 +231,28 @@ const createAndAcceptNewRequest = async (body) => {
         error: "Passenger request already accepted by driver",
       };
     }
+    if (!passengerJourneyStatusId) {
+      return { message: "error", error: "Passenger request not found" };
+    }
     // validate if the request exists
     if (passengerRequest?.message === "error") {
       return passengerRequest;
     }
-    // verify if there was any shipper-driver decision before
-    const sql = `select * from JourneyDecisions, PassengerRequest, DriverRequest where PassengerRequest.passengerRequestId=? and JourneyDecisions.passengerRequestId=PassengerRequest.passengerRequestId and JourneyDecisions.driverRequestId=DriverRequest.driverRequestId and DriverRequest.userUniqueId=?`;
-    const [journeyDecisions] = await pool.query(sql, [
-      passengerRequestId,
-      userUniqueId,
-    ]);
+    // verify if there was any shipper-driver relation/decision before
+    const sql = `Select * from JourneyDecisions, PassengerRequest, DriverRequest 
+    where PassengerRequest.passengerRequestId=? 
+    and JourneyDecisions.passengerRequestId=PassengerRequest.passengerRequestId and 
+    JourneyDecisions.driverRequestId=DriverRequest.driverRequestId and DriverRequest.userUniqueId=?`;
 
-    // return
+    const sqlValues = [passengerRequestId, userUniqueId];
+    const [journeyDecisions] = await pool.query(sql, sqlValues);
+    console.log(
+      "@journeyDecisions",
+      journeyDecisions,
+      "\nsqlValues",
+      sqlValues
+    );
+
     // if linkage exists, handle existing data
     if (journeyDecisions.length > 0) {
       // 1)update journeyDecision status to accepted by driver
@@ -281,6 +290,7 @@ const createAndAcceptNewRequest = async (body) => {
         findNewRequest: false,
         journeyStatusId: journeyStatusMap.acceptedByDriver,
       });
+      console.log("@newDriverRequest", newDriverRequest);
       // validate if the insert was successful or not
       if (newDriverRequest?.message === "error") {
         return newDriverRequest;
@@ -302,6 +312,7 @@ const createAndAcceptNewRequest = async (body) => {
       const newJourneyDecision = await createJourneyDecision(
         journeyDecisionData
       );
+      console.log("@newJourneyDecision", newJourneyDecision);
       // validate if the insert was successful or not
       if (newJourneyDecision?.message === "error") {
         return newJourneyDecision;

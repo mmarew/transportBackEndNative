@@ -65,6 +65,7 @@ exports.getCompletedJourney = async (req, res) => {
   try {
     const fromDate = req?.query?.fromDate;
     const toDate = req?.query?.toDate;
+    console.log("@getCompletedJourney", req?.user);
     const userRoleId = req?.user?.roleId;
     const { page = 1, limit = 10 } = req.query;
 

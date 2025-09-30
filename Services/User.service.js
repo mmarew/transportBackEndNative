@@ -748,12 +748,6 @@ const verifyUserByOTP = async (req) => {
       sendNotificationToAdmin({ message: { ...documentAndVehicleOfDriver } });
     resData.documentAndVehicleOfDriver = documentAndVehicleOfDriver;
     return resData;
-    return {
-      documentAndVehicleOfDriver,
-      token,
-      message: "success",
-      data: "OTP verified successfully",
-    };
   } catch (error) {
     console.log("Error in verifyDriverByOTP:", error.message);
     return { message: "error", error: "Unable to verify user" };

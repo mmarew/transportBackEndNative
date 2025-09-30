@@ -26,7 +26,7 @@ exports.createJourneyDecision = async ({
     };
   }
   // first check if journey decision is already exists
-  const sqlToCheck = `SELECT * FROM JourneyDecisions WHERE passengerRequestId = ? or driverRequestId = ?`;
+  const sqlToCheck = `SELECT * FROM JourneyDecisions WHERE passengerRequestId = ? and driverRequestId = ?`;
   const [existedData] = await pool.query(sqlToCheck, [
     passengerRequestId,
     driverRequestId,

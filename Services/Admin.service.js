@@ -278,11 +278,6 @@ const adminServices = {
           ownerUserUniqueId: userUniqueId,
           user: user,
         });
-        // const vehicle = (
-        //   await getVehicleAndOwnershipViaUserUniqueId(userUniqueId)
-        // )?.data;
-
-        // console.log("getUnauthorizedDriver documents", documents);
 
         return documents;
       })
