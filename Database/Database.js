@@ -805,7 +805,7 @@ CREATE TABLE IF NOT EXISTS DelinquencyTypes (
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
     createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- foreign key to role
-    FOREIGN KEY (applicableRoles) REFERENCES UserRole(roleUniqueId)
+    FOREIGN KEY (applicableRoles) REFERENCES Roles(roleUniqueId)
 );
 -- User Delinquency table - Role-based delinquency tracking
 CREATE TABLE IF NOT EXISTS UserDelinquency (

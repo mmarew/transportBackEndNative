@@ -14,6 +14,20 @@ const createDelinquencyType = async (data) => {
     defaultSeverity,
     applicableRoles,
   } = data;
+  // validations
+  if (!delinquencyTypeName) {
+    return {
+      message: "error",
+      error: "Delinquency type name is required",
+    };
+  }
+
+  if (!applicableRoles) {
+    return {
+      message: "error",
+      error: "Applicable roles is required",
+    };
+  }
 
   const delinquencyTypeUniqueId = uuidv4();
 

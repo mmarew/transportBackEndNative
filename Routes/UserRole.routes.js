@@ -9,7 +9,7 @@ const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 
 // Routes for CRUD operations
 router.post(
-  "/api/userRole/create",
+  "/api/admin/userRole/create",
   verifyTokenOfAxios,
   verifyIfUserIsSupperAdmin,
   userRoleController.createUserRole
@@ -23,12 +23,12 @@ router.get(
 );
 
 router.put(
-  "/api/userRole/:userRoleUniqueId",
+  "/api/admin/userRole/:userRoleUniqueId",
   verifyTokenOfAxios,
   userRoleController.updateUserRole
 );
 router.delete(
-  "/userRole/:userRoleUniqueId",
+  "/api/admin/userRole/:userRoleUniqueId",
   verifyTokenOfAxios,
   userRoleController.deleteUserRole
 );

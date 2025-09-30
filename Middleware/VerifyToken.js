@@ -136,9 +136,20 @@ const verifyIfUserIsSupperAdmin = async (req, res, next) => {
       const data = decoded?.data;
       console.log("@verifyIfUserIsSupperAdmin data =========> ", data);
       const roleId = data?.roleId;
+      if (roleId !== 6) {
+        return res.status(401).json({
+          message: "error",
+          error: "User is not a supper admin",
+        });
+      }
+      next();
       return roleId;
     } catch (error) {
       console.log("Error in verifyIfUserIsSupperAdmin", error);
+      return res.status(401).json({
+        message: "error",
+        error: "User is not a supper admin",
+      });
     }
   }
   console.log("@verifyIfUserIsSupperAdmin authHeader", authHeader);

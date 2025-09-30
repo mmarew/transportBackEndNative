@@ -48,6 +48,7 @@ const routesArray = [
   require("./Firebase.routes"),
   require("./UserDelinquency.routes"),
   require("./BannedUsers.routes"),
+  require("./DelinquencyTypes.routes"),
 ];
 
 // Register all routes
