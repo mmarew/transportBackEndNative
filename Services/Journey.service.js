@@ -230,13 +230,16 @@ const getCompletedJourney = async ({
     let dateRangeCondition = {};
     let maxLimit = 70;
 
-    if (fromDate !== "lastTen" || toDate !== "lastTen") {
+    // Apply "lastTen" sentinel only when both are 'lastTen'.
+    // Apply date filtering only when both dates are provided (not null/undefined) and not using 'lastTen'.
+    const isLastTen = fromDate === "lastTen" && toDate === "lastTen";
+    if (isLastTen) {
+      maxLimit = 10;
+    } else if (fromDate && toDate) {
       dateRangeCondition = {
         "Journey.endTime": [fromDate, toDate],
         "Journey.startTime": [fromDate, toDate],
       };
-    } else {
-      maxLimit = 10;
     }
 
     const organizedConditions = {
@@ -267,7 +270,8 @@ const getCompletedJourney = async ({
       whereParts.push(`${userField} = ?`);
       countParams.push(ownerUserUniqueId);
     }
-    if (!(fromDate === "lastTen" && toDate === "lastTen")) {
+    // Add date conditions to count only when both dates are provided and not 'lastTen'
+    if (!isLastTen && fromDate && toDate) {
       whereParts.push(
         "(Journey.endTime BETWEEN ? AND ? OR Journey.startTime BETWEEN ? AND ?)"
       );

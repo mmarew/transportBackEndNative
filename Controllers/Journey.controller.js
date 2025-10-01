@@ -143,8 +143,8 @@ exports.getOngoingJourney = async (req, res) => {
 
     let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
 
-    // Authorization check
-    if (userRoleId != 3 && ownerUserUniqueId == "all") {
+    // Authorization check allow for admin and supper admin
+    if ((userRoleId != 3 || userRoleId != 6) && ownerUserUniqueId == "all") {
       return ServerResponder(res, {
         message: "error",
         error: "Unauthorized access",

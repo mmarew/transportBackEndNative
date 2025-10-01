@@ -170,12 +170,14 @@ const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (
   const totalPages = Math.ceil(totalCount / safeLimit);
 
   const canceledData = await Promise.all(
-    result.map((item) =>
-      getJourneyDataByContextType({
+    result.map(async (item) => {
+      const journeyData = await getJourneyDataByContextType({
         contextType: item.contextType,
         contextId: item.contextId,
-      })
-    )
+      });
+      const cancellationDetails = await getCancellationDetails(item.contextId);
+      return { ...journeyData, cancellationDetails };
+    })
   );
 
   return {
@@ -359,15 +361,17 @@ const getAllCancelledJourneyByRole = async (filters) => {
   `;
   const [countRows] = await pool.query(countSql, whereValues);
   const totalCount = countRows[0]?.total || 0;
-  const totalPages = Math.ceil(totalCount / limit);
+  const totalPages = Math.ceil(totalCount / safeLimit);
 
   const cancelledData = await Promise.all(
-    result.map((item) =>
-      getJourneyDataByContextType({
+    result.map(async (item) => {
+      const journeyData = await getJourneyDataByContextType({
         contextType: item.contextType,
         contextId: item.contextId,
-      })
-    )
+      });
+      const cancellationDetails = await getCancellationDetails(item.contextId);
+      return { ...journeyData, cancellationDetails };
+    })
   );
 
   return {
@@ -418,7 +422,7 @@ const searchCanceledJourneyByUserData = async (
   const userIds = users.map((user) => user?.userUniqueId);
   console.log("@userIds", userIds);
   const placeholders = userIds.map(() => "?").join(",");
-  const offset = (page - 1) * limit;
+  const offset = (safePage - 1) * safeLimit;
 
   const userUniqueIdField =
     roleId == 2 ? "driverUserUniqueId" : "passengerUserUniqueId";
