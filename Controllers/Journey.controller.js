@@ -76,7 +76,7 @@ exports.getCompletedJourney = async (req, res) => {
 
     let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
 
-    // Authorization check
+    // Authorization check for all data if user need to access all data, user role should be admin which is 3
     if (userRoleId != 3 && ownerUserUniqueId == "all") {
       return ServerResponder(res, {
         message: "error",

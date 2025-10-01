@@ -202,7 +202,15 @@ const getUnseenCanceledJourney = async (req, res) => {
 };
 const getCanceledJourneyByFilter = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
+  const user = req.user;
   const data = { ...req?.query };
+  let driverUserUniqueId = req?.query?.userUniqueId;
+  // if driverUserUniqueId is self, then set it to userUniqueId of the logged in user
+  if (driverUserUniqueId == "self") driverUserUniqueId = user?.userUniqueId;
+  // add driverUserUniqueId, page and limit to data object
+  data.page = parseInt(page);
+  data.limit = parseInt(limit);
+  data.driverUserUniqueId = driverUserUniqueId;
   const resultOfGetCanceledJourneyByFilter =
     await canceledJourneyService.getCanceledJourneyByFilter({ data });
 

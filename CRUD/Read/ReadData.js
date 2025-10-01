@@ -4,7 +4,7 @@ const {
   activeJourneyStatuses,
 } = require("../../Utils/ListOfFixedData");
 const VerifyIfPassengerRequestWasNotRejected = require("../../Utils/VerifyIfPassengerRequestWasNotRejected");
-const searchRange = 0.41;
+const searchRange = 0.941;
 
 const getData = async ({
   tableName,

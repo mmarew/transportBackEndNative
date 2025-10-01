@@ -181,7 +181,7 @@ const getCompletedJourney = async ({
   limit = 10,
 }) => {
   try {
-    console.log("@getCompletedJourney", {
+    console.log("@11111 getCompletedJourney", {
       roleId,
       ownerUserUniqueId,
       toDate,
@@ -189,7 +189,7 @@ const getCompletedJourney = async ({
       page,
       limit,
     });
-
+    // return;
     const roleConfig = {
       1: {
         joinTable: "PassengerRequest",
