@@ -86,6 +86,7 @@ const createCanceledJourney = async (req, res) => {
 // Get canceled journeys by user unique ID and role ID
 const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (req, res) => {
   const { userUniqueId, roleId } = req.query;
+  const { page = 1, limit = 10 } = req.query;
 
   if (!userUniqueId || !roleId) {
     return ServerResponder(res, {
@@ -97,7 +98,9 @@ const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (req, res) => {
   await handleServiceResponse(
     canceledJourneyService.getSingleCanceledJourneysByUserUniqueIdAndRoleId(
       userUniqueId,
-      roleId
+      roleId,
+      parseInt(page),
+      parseInt(limit)
     ),
     res
   );

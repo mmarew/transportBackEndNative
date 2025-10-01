@@ -145,14 +145,29 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
     : { message: "error", error: "Failed to delete canceled journey" };
 };
 
-// Get canceled journeys by user unique ID
+// Get canceled journeys by user unique ID with pagination
 const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (
   userUniqueId,
-  roleId
+  roleId,
+  page = 1,
+  limit = 10
 ) => {
-  const sql =
-    "SELECT * FROM CanceledJourneys WHERE canceledBy = ? AND roleId = ?";
-  const result = await query(sql, [userUniqueId, roleId]);
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+  const offset = (safePage - 1) * safeLimit;
+  const dataSql = `
+    SELECT * FROM CanceledJourneys 
+    WHERE canceledBy = ? AND roleId = ?
+    ORDER BY canceledTime DESC
+    LIMIT ? OFFSET ?
+  `;
+  const [result] = await pool.query(dataSql, [userUniqueId, roleId, safeLimit, offset]);
+
+  // Get total count for pagination using COUNT(*)
+  const countSql = `SELECT COUNT(*) as total FROM CanceledJourneys WHERE canceledBy = ? AND roleId = ?`;
+  const [countRows] = await pool.query(countSql, [userUniqueId, roleId]);
+  const totalCount = countRows[0]?.total || 0;
+  const totalPages = Math.ceil(totalCount / safeLimit);
 
   const canceledData = await Promise.all(
     result.map((item) =>
@@ -163,7 +178,18 @@ const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (
     )
   );
 
-  return { message: "success", data: canceledData };
+  return {
+    message: "success",
+    data: canceledData,
+    pagination: {
+      currentPage: parseInt(safePage),
+      totalPages,
+      totalCount,
+      hasNext: safePage < totalPages,
+      hasPrev: safePage > 1,
+      limit: parseInt(safeLimit),
+    },
+  };
 };
 
 // Update seen by admin status
@@ -284,41 +310,55 @@ const getAllCancelledJourneyByRole = async (filters) => {
     sortOrder = "DESC",
   } = filters;
 
-  // Calculate offset for pagination
-  const offset = (page - 1) * limit;
+  // Safety: sanitize pagination and sorting
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+  const allowedSortBy = ["canceledJourneyId", "canceledTime", "roleId"]; // columns on CanceledJourneys
+  const safeSortBy = allowedSortBy.includes(sortBy) ? sortBy : "canceledJourneyId";
+  const safeSortOrder = String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
 
-  let sql = `
-    SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys 
+  // Calculate offset for pagination
+  const offset = (safePage - 1) * safeLimit;
+
+  // Base where and join clauses
+  let whereClauses = ["1=1"];
+  const whereValues = [];
+  const joins = `
+    FROM CanceledJourneys 
     JOIN CancellationReasonsType ON CancellationReasonsType.cancellationReasonsTypeId = CanceledJourneys.cancellationReasonsTypeId 
     JOIN Roles ON Roles.roleId = CancellationReasonsType.roleId 
-    WHERE 1=1
   `;
 
-  const values = [];
-
   if (canceledByRoleId) {
-    sql += ` AND Roles.roleId = ?`;
-    values.push(canceledByRoleId);
+    whereClauses.push(`Roles.roleId = ?`);
+    whereValues.push(canceledByRoleId);
   }
 
   if (startDate && endDate) {
-    sql += ` AND CanceledJourneys.canceledTime BETWEEN ? AND ?`;
-    values.push(startDate, endDate);
+    whereClauses.push(`CanceledJourneys.canceledTime BETWEEN ? AND ?`);
+    whereValues.push(startDate, endDate);
   }
 
-  // Add sorting
-  sql += ` ORDER BY ${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
-
-  // Add pagination
-  sql += ` LIMIT ? OFFSET ?`;
-  values.push(limit, offset);
-
-  const [result] = await pool.query(sql, values);
+  // Build data query
+  const dataSql = `
+    SELECT CanceledJourneys.*, CancellationReasonsType.*, Roles.*
+    ${joins}
+    WHERE ${whereClauses.join(" AND ")}
+    ORDER BY ${safeSortBy} ${safeSortOrder}
+    LIMIT ? OFFSET ?
+  `;
+  const dataValues = [...whereValues, safeLimit, offset];
+  const [result] = await pool.query(dataSql, dataValues);
   console.log("@getCanceledJourneys result", result);
 
-  // Get total count
-  const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
-  const totalCount = totalCountResult[0].total;
+  // Build count query
+  const countSql = `
+    SELECT COUNT(*) as total
+    ${joins}
+    WHERE ${whereClauses.join(" AND ")}
+  `;
+  const [countRows] = await pool.query(countSql, whereValues);
+  const totalCount = countRows[0]?.total || 0;
   const totalPages = Math.ceil(totalCount / limit);
 
   const cancelledData = await Promise.all(
@@ -334,12 +374,12 @@ const getAllCancelledJourneyByRole = async (filters) => {
     message: "success",
     data: cancelledData,
     pagination: {
-      currentPage: parseInt(page),
+      currentPage: parseInt(safePage),
       totalPages,
       totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      limit: parseInt(limit),
+      hasNext: safePage < totalPages,
+      hasPrev: safePage > 1,
+      limit: parseInt(safeLimit),
     },
   };
 };
@@ -353,6 +393,8 @@ const searchCanceledJourneyByUserData = async (
   page = 1,
   limit = 10
 ) => {
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
   const usersData = await getUserByEmailOrNameOrPhoneNumber(phoneOrEmail);
   console.log("@usersData", usersData);
   const users = usersData?.data || [];
@@ -380,19 +422,25 @@ const searchCanceledJourneyByUserData = async (
 
   const userUniqueIdField =
     roleId == 2 ? "driverUserUniqueId" : "passengerUserUniqueId";
-  const sql = `
-    SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys 
+  const dataSql = `
+    SELECT * FROM CanceledJourneys 
     WHERE ${userUniqueIdField} IN (${placeholders}) AND roleId = ?
+    ORDER BY canceledTime DESC
     LIMIT ? OFFSET ?
   `;
 
-  const values = [...userIds, roleId, limit, offset];
-  const [result] = await pool.query(sql, values);
+  const dataValues = [...userIds, roleId, safeLimit, offset];
+  const [result] = await pool.query(dataSql, dataValues);
 
-  // Get total count
-  const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
-  const totalCount = totalCountResult[0].total;
-  const totalPages = Math.ceil(totalCount / limit);
+  // Get total count with same filters
+  const countSql = `
+    SELECT COUNT(*) as total FROM CanceledJourneys 
+    WHERE ${userUniqueIdField} IN (${placeholders}) AND roleId = ?
+  `;
+  const countValues = [...userIds, roleId];
+  const [countRows] = await pool.query(countSql, countValues);
+  const totalCount = countRows[0]?.total || 0;
+  const totalPages = Math.ceil(totalCount / safeLimit);
 
   const data = await Promise.all(
     result.map(async (item) => {
@@ -409,12 +457,12 @@ const searchCanceledJourneyByUserData = async (
     message: "success",
     data,
     pagination: {
-      currentPage: parseInt(page),
+      currentPage: parseInt(safePage),
       totalPages,
       totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      limit: parseInt(limit),
+      hasNext: safePage < totalPages,
+      hasPrev: safePage > 1,
+      limit: parseInt(safeLimit),
     },
   };
 };
@@ -423,19 +471,26 @@ const searchCanceledJourneyByUserData = async (
  * Get paginated unseen canceled journeys
  */
 const getUnseenCanceledJourney = async (page = 1, limit = 10) => {
-  const offset = (page - 1) * limit;
-  const sql = `
-    SELECT SQL_CALC_FOUND_ROWS * FROM CanceledJourneys 
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+  const offset = (safePage - 1) * safeLimit;
+  const dataSql = `
+    SELECT * FROM CanceledJourneys 
     WHERE isSeenByAdmin = ? AND roleId = ?
+    ORDER BY canceledTime DESC
     LIMIT ? OFFSET ?
   `;
 
-  const [result] = await pool.query(sql, [0, 2, limit, offset]);
+  const [result] = await pool.query(dataSql, [0, 2, safeLimit, offset]);
 
   // Get total count
-  const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
-  const totalCount = totalCountResult[0].total;
-  const totalPages = Math.ceil(totalCount / limit);
+  const countSql = `
+    SELECT COUNT(*) as total FROM CanceledJourneys 
+    WHERE isSeenByAdmin = ? AND roleId = ?
+  `;
+  const [countRows] = await pool.query(countSql, [0, 2]);
+  const totalCount = countRows[0]?.total || 0;
+  const totalPages = Math.ceil(totalCount / safeLimit);
 
   const data = await Promise.all(
     result.map(async (item) => {
@@ -472,12 +527,12 @@ const getUnseenCanceledJourney = async (page = 1, limit = 10) => {
     message: "success",
     data,
     pagination: {
-      currentPage: parseInt(page),
+      currentPage: parseInt(safePage),
       totalPages,
       totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      limit: parseInt(limit),
+      hasNext: safePage < totalPages,
+      hasPrev: safePage > 1,
+      limit: parseInt(safeLimit),
     },
   };
 };
@@ -502,8 +557,18 @@ const getCanceledJourneyByFilter = async ({ data }) => {
       sortOrder = "DESC",
     } = data;
 
+    // Safety: sanitize pagination and sorting
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const allowedSortBy = [
+      "canceledTime",
+      "canceledJourneyId",
+      "roleId",
+      "cancellationReasonsTypeId",
+    ];
+    const safeSortBy = allowedSortBy.includes(sortBy) ? sortBy : "canceledTime";
     // Calculate pagination
-    const offset = (page - 1) * limit;
+    const offset = (safePage - 1) * safeLimit;
 
     // Build WHERE clause based on filters
     let whereConditions = ["1 = 1"]; // Always true to make building easier
@@ -584,12 +649,12 @@ const getCanceledJourneyByFilter = async ({ data }) => {
     // Data query with pagination and sorting
     const dataQuery = `
       ${baseQuery}
-      ORDER BY cj.${sortBy} ${finalSortOrder}
+      ORDER BY cj.${safeSortBy} ${finalSortOrder}
       LIMIT ? OFFSET ?
     `;
 
     // Add pagination parameters
-    queryParams.push(parseInt(limit), offset);
+    queryParams.push(parseInt(safeLimit), offset);
 
     // Execute queries
     const [countResult] = await pool.query(
@@ -599,19 +664,19 @@ const getCanceledJourneyByFilter = async ({ data }) => {
     const [results] = await pool.query(dataQuery, queryParams);
 
     const total = countResult[0].total;
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / safeLimit);
 
     // Prepare response
     const response = {
       success: true,
       data: results,
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: parseInt(safePage),
         totalPages: totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
+        itemsPerPage: parseInt(safeLimit),
+        hasNextPage: safePage < totalPages,
+        hasPrevPage: safePage > 1,
       },
       filters: {
         contextType,
