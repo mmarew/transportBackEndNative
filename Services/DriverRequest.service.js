@@ -666,8 +666,10 @@ const cancelDriverRequest = async (body) => {
       conditions: { driverRequestId },
     });
 
-    if (journeyDecisions.length === 0) {
-      // register cancillation in to createCanceledJourney table
+    // register cancellation in to createCanceledJourney table if there was journeyDecisions and journeyDecisions.length > 0
+
+    if (journeyDecisions.length > 0) {
+      // register cancellation in to createCanceledJourney table
 
       await createCanceledJourney({
         contextId: driverRequestId,
