@@ -23,18 +23,17 @@ const {
 
 const router = express.Router();
 
-// Apply auth once for all routes in this router
-router.use(verifyTokenOfAxios);
-
-router.post("/api/driver/takeFromStreet", takeFromStreet);
+router.post("/api/driver/takeFromStreet", verifyTokenOfAxios, takeFromStreet);
 // Create a new driver request
 router.post(
   "/driver/request",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   createRequest
 );
 router.post(
   "/api/driver/createAndAcceptNewRequest",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   createAndAcceptNewRequest
 );
@@ -42,6 +41,7 @@ router.post(
 // Get a specific driver request by ID
 router.get(
   "/driver/request/:driverRequestUniqueId",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   getRequestByIdController
 );
@@ -49,38 +49,45 @@ router.get(
 // Update a specific driver request by ID
 router.put(
   "/driver/acceptPassengerRequest",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   acceptPassengerRequest
 );
 router.put(
   "/driver/startJourney",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   startJourney
 );
 router.put(
   "/passenger/noAnswerFromDriver",
+  verifyTokenOfAxios,
   verifyPassengersIdentity,
   noAnswerFromDriver
 );
 
 router.put(
   "/driver/noAnswerFromDriver",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   noAnswerFromDriver
 );
 router.put(
   "/driver/cancelDriverRequest/:userUniqueId/:roleId",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   cancelDriverRequest
 );
 router.put(
   "/driver/journeyCompleted",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   journeyCompleted
 );
 // Delete a specific driver request by ID
 router.delete(
   "/driver/request/:requestId",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   deleteRequestController
 );
@@ -88,22 +95,26 @@ router.delete(
 // Verify driver status and handle nearby passengers
 router.get(
   "/driver/verifyDriverStatus",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   verifyDriverStatusController
 );
 // api/user/getDriverRequest?driverUniqueId=uuidv4&target=allOrSingleDriverRequests
 router.get(
   "/api/user/getDriverRequest",
+  verifyTokenOfAxios,
   getDriverRequestController
 );
 router.put(
   "/driver/attachRequiredDocuments",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   attachRequiredDocuments
 );
 // send latest location of driver to passenger
 router.put(
   "/api/driver/sendUpdatedLocation",
+  verifyTokenOfAxios,
   verifyDriversIdentity,
   sendUpdatedLocationController
 );

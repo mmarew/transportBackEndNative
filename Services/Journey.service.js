@@ -268,7 +268,9 @@ const getCompletedJourney = async ({
       countParams.push(ownerUserUniqueId);
     }
     if (!(fromDate === "lastTen" && toDate === "lastTen")) {
-      whereParts.push("(Journey.endTime BETWEEN ? AND ? OR Journey.startTime BETWEEN ? AND ?)");
+      whereParts.push(
+        "(Journey.endTime BETWEEN ? AND ? OR Journey.startTime BETWEEN ? AND ?)"
+      );
       countParams.push(fromDate, toDate, fromDate, toDate);
     }
 
@@ -412,12 +414,12 @@ const searchCompletedJourneyByUserData = async (
       message: "success",
       data,
       pagination: {
-        currentPage: page,
+        currentPage: safePage,
         totalPages,
         totalCount,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-        limit,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1,
+        limit: safeLimit,
       },
     };
   } catch (error) {
@@ -427,12 +429,12 @@ const searchCompletedJourneyByUserData = async (
 };
 
 // Get ongoing journey with pagination
-const getOngoingJourney = async (
+const getOngoingJourney = async ({
   roleId,
   ownerUserUniqueId,
   page = 1,
-  limit = 10
-) => {
+  limit = 10,
+}) => {
   try {
     const roleConfig = {
       1: {
@@ -454,7 +456,9 @@ const getOngoingJourney = async (
     }
 
     const { joinTable, joinCondition, userField } = roleConfig[roleId];
-    const offset = (page - 1) * limit;
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const offset = (safePage - 1) * safeLimit;
     const conditions =
       ownerUserUniqueId !== "all" ? { [userField]: ownerUserUniqueId } : {};
 
@@ -474,7 +478,10 @@ const getOngoingJourney = async (
       limit: safeLimit,
       offset,
     });
-    console.log("@journeyStatusMap.journeyStarted", journeyStatusMap.journeyStarted);
+    console.log(
+      "@journeyStatusMap.journeyStarted",
+      journeyStatusMap.journeyStarted
+    );
 
     // Count query
     const whereParts = ["Journey.journeyStatusId = ?"];
@@ -582,7 +589,12 @@ const searchOngoingJourneyByUserData = async (
       LIMIT ? OFFSET ?
     `;
 
-    const dataValues = [...userIds, journeyStatusMap.journeyStarted, safeLimit, offset];
+    const dataValues = [
+      ...userIds,
+      journeyStatusMap.journeyStarted,
+      safeLimit,
+      offset,
+    ];
     const result = await query(dataSql, dataValues);
 
     const countSql = `

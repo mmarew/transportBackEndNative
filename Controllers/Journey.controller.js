@@ -163,12 +163,13 @@ exports.getOngoingJourney = async (req, res) => {
       validatedLimit,
     });
     await handleServiceResponse(
-      journeyService.getOngoingJourney(
+      journeyService.getOngoingJourney({
         roleId,
         ownerUserUniqueId,
-        validatedPage,
-        validatedLimit
-      ),
+
+        page: validatedPage,
+        limit: validatedLimit,
+      }),
       res
     );
   } catch (error) {
