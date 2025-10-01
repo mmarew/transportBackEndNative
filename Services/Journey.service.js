@@ -10,11 +10,7 @@ const query = async (sql, values = []) => {
   return result;
 };
 
-// Helper function to get total count
-const getTotalCount = async () => {
-  const [result] = await pool.query("SELECT FOUND_ROWS() as total");
-  return result[0]?.total || 0;
-};
+// Note: Avoid using FOUND_ROWS(); use explicit COUNT(*) queries instead in each method.
 
 // Create a new journey
 const createJourney = async (data) => {
@@ -64,23 +60,38 @@ const createJourney = async (data) => {
 
 // Get all journeys with pagination
 const getAllJourneys = async (page = 1, limit = 10) => {
-  const offset = (page - 1) * limit;
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+  const offset = (safePage - 1) * safeLimit;
 
-  const sql = `SELECT SQL_CALC_FOUND_ROWS * FROM Journey join JourneyDecisions on Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId LIMIT ? OFFSET ?`;
-  const result = await query(sql, [limit, offset]);
-  const totalCount = await getTotalCount();
-  const totalPages = Math.ceil(totalCount / limit);
+  const dataSql = `
+    SELECT Journey.*, JourneyDecisions.*
+    FROM Journey
+    JOIN JourneyDecisions ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
+    ORDER BY Journey.journeyId DESC
+    LIMIT ? OFFSET ?
+  `;
+  const result = await query(dataSql, [safeLimit, offset]);
+
+  const countSql = `
+    SELECT COUNT(*) as total
+    FROM Journey
+    JOIN JourneyDecisions ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
+  `;
+  const [countRows] = await pool.query(countSql);
+  const totalCount = countRows[0]?.total || 0;
+  const totalPages = Math.ceil(totalCount / safeLimit);
 
   return {
     message: "success",
     data: result,
     pagination: {
-      currentPage: page,
+      currentPage: safePage,
       totalPages,
       totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      limit,
+      hasNext: safePage < totalPages,
+      hasPrev: safePage > 1,
+      limit: safeLimit,
     },
   };
 };
@@ -210,7 +221,9 @@ const getCompletedJourney = async ({
     }
 
     const { joinTable, joinCondition, userField } = roleConfig[roleId];
-    const offset = (page - 1) * limit;
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const offset = (safePage - 1) * safeLimit;
     const conditions =
       ownerUserUniqueId !== "all" ? { [userField]: ownerUserUniqueId } : {};
 
@@ -242,12 +255,33 @@ const getCompletedJourney = async ({
         { table: joinTable, on: joinCondition },
       ],
       conditions: organizedConditions,
-      limit: Math.min(limit, maxLimit),
+      limit: Math.min(safeLimit, maxLimit),
       offset,
     });
     console.log("@completedJourney", completedJourney);
-    const totalCount = await getTotalCount();
-    const totalPages = Math.ceil(totalCount / limit);
+
+    // Build count query mirroring conditions
+    const whereParts = ["Journey.journeyStatusId = ?"];
+    const countParams = [journeyStatusMap.journeyCompleted];
+    if (ownerUserUniqueId !== "all") {
+      whereParts.push(`${userField} = ?`);
+      countParams.push(ownerUserUniqueId);
+    }
+    if (!(fromDate === "lastTen" && toDate === "lastTen")) {
+      whereParts.push("(Journey.endTime BETWEEN ? AND ? OR Journey.startTime BETWEEN ? AND ?)");
+      countParams.push(fromDate, toDate, fromDate, toDate);
+    }
+
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM Journey
+      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      JOIN ${joinTable} ON ${joinCondition}
+      WHERE ${whereParts.join(" AND ")}
+    `;
+    const [countRows] = await pool.query(countSql, countParams);
+    const totalCount = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / Math.min(safeLimit, maxLimit));
 
     const data = await Promise.all(
       completedJourney.map(async (item) => {
@@ -268,12 +302,12 @@ const getCompletedJourney = async ({
       message: "success",
       data,
       pagination: {
-        currentPage: page,
+        currentPage: safePage,
         totalPages,
         totalCount,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-        limit,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1,
+        limit: Math.min(safeLimit, maxLimit),
       },
     };
   } catch (error) {
@@ -290,6 +324,8 @@ const searchCompletedJourneyByUserData = async (
   limit = 10
 ) => {
   try {
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
     const usersData = await getUserByEmailOrNameOrPhoneNumber(phoneOrEmail);
     const users = usersData?.data || [];
 
@@ -323,26 +359,39 @@ const searchCompletedJourneyByUserData = async (
     const { userField } = roleConfig[roleId];
     const placeholders = userIds.map(() => "?").join(",");
 
-    const sql = `
-      SELECT SQL_CALC_FOUND_ROWS Journey.*, JourneyDecisions.* 
+    const dataSql = `
+      SELECT Journey.*, JourneyDecisions.* 
       FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
       JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
+      ORDER BY Journey.endTime DESC
       LIMIT ? OFFSET ?
     `;
 
-    const values = [
+    const dataValues = [
       ...userIds,
       journeyStatusMap.journeyCompleted,
-      limit,
+      safeLimit,
       offset,
     ];
-    const result = await query(sql, values);
-    const totalCount = await getTotalCount();
-    const totalPages = Math.ceil(totalCount / limit);
+    const result = await query(dataSql, dataValues);
+
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM Journey
+      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
+      WHERE ${userField} IN (${placeholders}) 
+        AND Journey.journeyStatusId = ?
+    `;
+    const countValues = [...userIds, journeyStatusMap.journeyCompleted];
+    const [countRows] = await pool.query(countSql, countValues);
+    const totalCount = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
 
     const data = await Promise.all(
       result.map(async (item) => {
@@ -422,12 +471,28 @@ const getOngoingJourney = async (
         ...conditions,
         "Journey.journeyStatusId": journeyStatusMap.journeyStarted,
       },
-      limit,
+      limit: safeLimit,
       offset,
     });
+    console.log("@journeyStatusMap.journeyStarted", journeyStatusMap.journeyStarted);
 
-    const totalCount = await getTotalCount();
-    const totalPages = Math.ceil(totalCount / limit);
+    // Count query
+    const whereParts = ["Journey.journeyStatusId = ?"];
+    const countParams = [journeyStatusMap.journeyStarted];
+    if (ownerUserUniqueId !== "all") {
+      whereParts.push(`${userField} = ?`);
+      countParams.push(ownerUserUniqueId);
+    }
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM Journey
+      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      JOIN ${joinTable} ON ${joinCondition}
+      WHERE ${whereParts.join(" AND ")}
+    `;
+    const [countRows] = await pool.query(countSql, countParams);
+    const totalCount = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
 
     const data = await Promise.all(
       ongoingJourneys.map(async (item) => {
@@ -470,6 +535,8 @@ const searchOngoingJourneyByUserData = async (
   limit = 10
 ) => {
   try {
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
     const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
     const users = usersData?.data || [];
 
@@ -503,21 +570,34 @@ const searchOngoingJourneyByUserData = async (
     const { userField } = roleConfig[roleId];
     const placeholders = userIds.map(() => "?").join(",");
 
-    const sql = `
-      SELECT SQL_CALC_FOUND_ROWS Journey.*, JourneyDecisions.* 
+    const dataSql = `
+      SELECT Journey.*, JourneyDecisions.* 
       FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
       JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
+      ORDER BY Journey.startTime DESC
       LIMIT ? OFFSET ?
     `;
 
-    const values = [...userIds, journeyStatusMap.journeyStarted, limit, offset];
-    const result = await query(sql, values);
-    const totalCount = await getTotalCount();
-    const totalPages = Math.ceil(totalCount / limit);
+    const dataValues = [...userIds, journeyStatusMap.journeyStarted, safeLimit, offset];
+    const result = await query(dataSql, dataValues);
+
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM Journey
+      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
+      WHERE ${userField} IN (${placeholders}) 
+        AND Journey.journeyStatusId = ?
+    `;
+    const countValues = [...userIds, journeyStatusMap.journeyStarted];
+    const [countRows] = await pool.query(countSql, countValues);
+    const totalCount = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
 
     const data = await Promise.all(
       result.map(async (item) => {
@@ -555,11 +635,19 @@ const searchOngoingJourneyByUserData = async (
 // Get all completed journeys with pagination
 const getAllCompletedJourneys = async ({ roleId, page = 1, limit = 10 }) => {
   try {
-    const offset = (page - 1) * limit;
-    const sql = `SELECT SQL_CALC_FOUND_ROWS * FROM Journey join JourneyDecisions on Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId WHERE Journey.journeyStatusId = ? LIMIT ? OFFSET ?`;
-    const completedJourneys = await query(sql, [
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const offset = (safePage - 1) * safeLimit;
+    const dataSql = `
+      SELECT Journey.*, JourneyDecisions.*
+      FROM Journey 
+      JOIN JourneyDecisions ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId 
+      WHERE Journey.journeyStatusId = ?
+      ORDER BY Journey.endTime DESC
+      LIMIT ? OFFSET ?`;
+    const completedJourneys = await query(dataSql, [
       journeyStatusMap.journeyCompleted,
-      limit,
+      safeLimit,
       offset,
     ]);
     const fullData = await Promise.all(

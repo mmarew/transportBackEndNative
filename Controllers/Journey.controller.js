@@ -134,13 +134,14 @@ exports.searchCompletedJourneyByUserData = async (req, res) => {
 exports.getOngoingJourney = async (req, res) => {
   try {
     const userRoleId = req?.user?.roleId;
+    // /:ownerUserUniqueId/:roleId
     const { page = 1, limit = 10 } = req.query;
     const { page: validatedPage, limit: validatedLimit } = validatePagination(
       page,
       limit
     );
 
-    let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
+    let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
 
     // Authorization check
     if (userRoleId != 3 && ownerUserUniqueId == "all") {
@@ -154,8 +155,13 @@ exports.getOngoingJourney = async (req, res) => {
       ownerUserUniqueId = req?.user?.userUniqueId;
     }
 
-    const roleId = req?.params?.roleId;
-
+    const roleId = req?.query?.roleId;
+    console.log("@getOngoingJourney", {
+      roleId,
+      ownerUserUniqueId,
+      validatedPage,
+      validatedLimit,
+    });
     await handleServiceResponse(
       journeyService.getOngoingJourney(
         roleId,

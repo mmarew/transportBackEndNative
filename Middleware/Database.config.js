@@ -6,6 +6,7 @@ const USER = process.env.DB_USER;
 const PASSWORD = process.env.DB_PASSWORD;
 const DATABASE = process.env.DB_DATABASE;
 const PORT = process.env.DB_PORT;
+console.log("@Database.config.js", { HOST, USER, DATABASE, PORT });
 
 if (!HOST || !USER || !DATABASE) {
   throw new Error(
@@ -24,7 +25,7 @@ const config = {
   queueLimit: 0,
   connectTimeout: 10000, // 10 seconds
   multipleStatements: true, // Enable multiple statements
-  socketPath: "/Applications/MAMP/tmp/mysql/mysql.sock", // ✅ Correct for MAMP
+  // socketPath: "/Applications/MAMP/tmp/mysql/mysql.sock", // ✅ Correct for MAMP
 };
 
 // Create a connection pool
