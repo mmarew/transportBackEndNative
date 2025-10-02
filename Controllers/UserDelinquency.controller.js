@@ -37,7 +37,6 @@ const getUserDelinquencies = async (req, res) => {
   );
 };
 
-
 const updateUserDelinquency = async (req, res) => {
   const { userDelinquencyUniqueId } = req.params;
   const data = req.body;
@@ -56,8 +55,6 @@ const deleteUserDelinquency = async (req, res) => {
     res
   );
 };
-
-
 
 const checkAutomaticBan = async (req, res) => {
   const { userRoleUniqueId } = req.params;

@@ -55,7 +55,6 @@ const createDelinquencyType = async (data) => {
     delinquencyTypeUniqueId,
   };
 };
-
 const getDelinquencyTypes = async (filters = {}) => {
   const {
     page = 1,
@@ -63,11 +62,25 @@ const getDelinquencyTypes = async (filters = {}) => {
     delinquencyTypeName,
     defaultSeverity,
     isActive,
-    sortBy = "delinquencyTypeId",
-    sortOrder = "DESC",
+    sortBy: userSortBy = "delinquencyTypeUniqueId",
+    sortOrder: userSortOrder = "DESC",
+    stat,
   } = filters;
 
-  const offset = (page - 1) * limit;
+  // Whitelist sortable columns and order to prevent SQL injection
+  const allowedSortBy = [
+    "delinquencyTypeUniqueId",
+    "delinquencyTypeName",
+    "defaultPoints",
+    "defaultSeverity",
+    "isActive",
+  ];
+  const sortBy = allowedSortBy.includes(userSortBy)
+    ? userSortBy
+    : "delinquencyTypeUniqueId";
+  const sortOrder = ["ASC", "DESC"].includes(userSortOrder.toUpperCase())
+    ? userSortOrder.toUpperCase()
+    : "DESC";
 
   let whereConditions = ["1 = 1"];
   let queryParams = [];
@@ -82,34 +95,57 @@ const getDelinquencyTypes = async (filters = {}) => {
     queryParams.push(defaultSeverity);
   }
 
-  if (isActive !== undefined) {
+  if (isActive !== undefined && isActive !== null) {
     whereConditions.push("dt.isActive = ?");
-    queryParams.push(isActive === "true" ? 1 : 0);
+    // Handle both boolean and string inputs for isActive
+    queryParams.push(isActive === true || isActive === "true" ? 1 : 0);
   }
 
-  const baseQuery = `
+  const whereClause = whereConditions.join(" AND ");
+
+  // If only total count is requested
+  if (stat) {
+    const countQuery = `SELECT COUNT(*) as total FROM DelinquencyTypes dt WHERE ${whereClause}`;
+    const [countResult] = await pool.query(countQuery, queryParams);
+    const total = countResult[0].total;
+    return {
+      message: "success",
+      data: { totalDelinquencyTypes: total },
+    };
+  }
+
+  const offset = (page - 1) * limit;
+
+  // Query for the data with explicit columns to avoid collisions
+  const dataQuery = `
     SELECT 
-      dt.*,
-      r.*
+      dt.delinquencyTypeUniqueId,
+      dt.delinquencyTypeName,
+      dt.delinquencyTypeDescription,
+      dt.defaultPoints,
+      dt.defaultSeverity,
+      dt.applicableRoles,
+      dt.isActive,
+      dt.createdAt, 
+      r.roleName
     FROM DelinquencyTypes dt
     LEFT JOIN Roles r ON dt.applicableRoles = r.roleUniqueId
-    WHERE ${whereConditions.join(" AND ")}
-  `;
-
-  const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as count_table`;
-  const dataQuery = `
-    ${baseQuery}
-    ORDER BY dt.${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}
+    WHERE ${whereClause}
+    ORDER BY dt.${sortBy} ${sortOrder}
     LIMIT ? OFFSET ?
   `;
-  console.log("@createDelinquencyType dataQuery", dataQuery);
-  // return;
 
   const dataQueryParams = [...queryParams, parseInt(limit), offset];
-
-  const [countResult] = await pool.query(countQuery, queryParams);
   const [results] = await pool.query(dataQuery, dataQueryParams);
 
+  // Query for the total count for pagination
+  const countQuery = `
+    SELECT COUNT(*) as total 
+    FROM DelinquencyTypes dt 
+    LEFT JOIN Roles r ON dt.applicableRoles = r.roleUniqueId 
+    WHERE ${whereClause}
+  `;
+  const [countResult] = await pool.query(countQuery, queryParams);
   const total = countResult[0].total;
   const totalPages = Math.ceil(total / limit);
 

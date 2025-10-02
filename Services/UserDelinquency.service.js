@@ -151,7 +151,6 @@ const checkAndApplyAutomaticBan = async (
     banUniqueId,
   };
 };
-
 const getUserDelinquencies = async (filters = {}) => {
   const {
     page = 1,
@@ -162,10 +161,74 @@ const getUserDelinquencies = async (filters = {}) => {
     delinquencySeverity,
     startDate,
     endDate,
-    sortBy = "delinquencyCreatedAt",
-    sortOrder = "DESC",
+    sortBy: userSortBy = "delinquencyCreatedAt",
+    sortOrder: userSortOrder = "DESC",
     summary = false,
+    stat = false,
   } = filters;
+
+  // Whitelist sortable columns and order to prevent SQL injection
+  const allowedSortBy = [
+    "delinquencyCreatedAt",
+    "delinquencyPoints",
+    "delinquencySeverity",
+    "fullName",
+    "roleName",
+    "delinquencyTypeName",
+  ];
+  const sortBy = allowedSortBy.includes(userSortBy)
+    ? userSortBy
+    : "delinquencyCreatedAt";
+  const sortOrder = ["ASC", "DESC"].includes(userSortOrder.toUpperCase())
+    ? userSortOrder.toUpperCase()
+    : "DESC";
+
+  let whereConditions = ["1 = 1"];
+  let queryParams = [];
+
+  if (userRoleUniqueId) {
+    whereConditions.push("ud.userRoleUniqueId = ?");
+    queryParams.push(userRoleUniqueId);
+  }
+  if (userDelinquencyUniqueId) {
+    whereConditions.push("ud.userDelinquencyUniqueId = ?");
+    queryParams.push(userDelinquencyUniqueId);
+  }
+  if (delinquencyTypeUniqueId) {
+    whereConditions.push("ud.delinquencyTypeUniqueId = ?");
+    queryParams.push(delinquencyTypeUniqueId);
+  }
+  if (delinquencySeverity) {
+    whereConditions.push("ud.delinquencySeverity = ?");
+    queryParams.push(delinquencySeverity);
+  }
+  if (startDate) {
+    whereConditions.push("ud.delinquencyCreatedAt >= ?");
+    queryParams.push(startDate);
+  }
+  if (endDate) {
+    whereConditions.push("ud.delinquencyCreatedAt <= ?");
+    queryParams.push(endDate);
+  }
+
+  const joins = `
+    FROM UserDelinquency ud
+    INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
+    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+    LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
+  `;
+  const whereClause = whereConditions.join(" AND ");
+
+  if (stat) {
+    const countQuery = `SELECT COUNT(*) as total ${joins} WHERE ${whereClause}`;
+    const [countResult] = await pool.query(countQuery, queryParams);
+    return {
+      message: "success",
+      data: { totalUserDelinquencies: countResult[0].total },
+    };
+  }
 
   if (summary) {
     if (!userRoleUniqueId) {
@@ -179,69 +242,33 @@ const getUserDelinquencies = async (filters = {}) => {
 
   const offset = (page - 1) * limit;
 
-  let whereConditions = ["1 = 1"];
-  let queryParams = [];
-
-  if (userRoleUniqueId) {
-    whereConditions.push("ud.userRoleUniqueId = ?");
-    queryParams.push(userRoleUniqueId);
-  }
-
-  if (userDelinquencyUniqueId) {
-    whereConditions.push("ud.userDelinquencyUniqueId = ?");
-    queryParams.push(userDelinquencyUniqueId);
-  }
-
-  if (delinquencyTypeUniqueId) {
-    whereConditions.push("ud.delinquencyTypeUniqueId = ?");
-    queryParams.push(delinquencyTypeUniqueId);
-  }
-
-  if (delinquencySeverity) {
-    whereConditions.push("ud.delinquencySeverity = ?");
-    queryParams.push(delinquencySeverity);
-  }
-
-  if (startDate) {
-    whereConditions.push("ud.delinquencyCreatedAt >= ?");
-    queryParams.push(startDate);
-  }
-
-  if (endDate) {
-    whereConditions.push("ud.delinquencyCreatedAt <= ?");
-    queryParams.push(endDate);
-  }
-
-  const baseQuery = `
+  const dataQuery = `
     SELECT 
-      ud.*,
-      u.fullName AS fullName,
-      u.email AS email,
+      ud.userDelinquencyUniqueId,
+      ud.userRoleUniqueId,
+      ud.delinquencyTypeUniqueId,
+      ud.delinquencyDescription,
+      ud.delinquencySeverity,
+      ud.delinquencyPoints,
+      ud.delinquencyCreatedAt,
+      ud.delinquencyCreatedBy,
+      u.fullName,
+      u.email,
       r.roleName,
       dt.delinquencyTypeName,
-      dt.delinquencyTypeDescription,
+      dt.delinquencyTypeDescription AS typeDescription,
       uc.fullName AS createdByName
-    FROM UserDelinquency ud
-    INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
-    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN Roles r ON ur.roleId = r.roleId
-    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
-    WHERE ${whereConditions.join(" AND ")}
-  `;
-
-  const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as count_table`;
-  const dataQuery = `
-    ${baseQuery}
-    ORDER BY ud.${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}
+    ${joins}
+    WHERE ${whereClause}
+    ORDER BY ${sortBy} ${sortOrder}
     LIMIT ? OFFSET ?
   `;
 
   const dataQueryParams = [...queryParams, parseInt(limit), offset];
-
-  const [countResult] = await pool.query(countQuery, queryParams);
   const [results] = await pool.query(dataQuery, dataQueryParams);
 
+  const countQuery = `SELECT COUNT(*) as total ${joins} WHERE ${whereClause}`;
+  const [countResult] = await pool.query(countQuery, queryParams);
   const total = countResult[0].total;
   const totalPages = Math.ceil(total / limit);
 
@@ -333,11 +360,45 @@ const _getUserDelinquencySummary = async (userRoleUniqueId) => {
     },
   };
 };
+const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
+  const sql = "UPDATE UserDelinquency SET ? WHERE userDelinquencyUniqueId = ?";
+  const result = await query(sql, [data, userDelinquencyUniqueId]);
 
+  return result.affectedRows > 0
+    ? {
+        message: "success",
+        data: "User delinquency record updated successfully",
+      }
+    : { message: "error", error: "Failed to update user delinquency record" };
+};
+const checkAutomaticBan = async (userRoleUniqueId) => {
+  const sql = "SELECT * FROM UserDelinquency WHERE userRoleUniqueId = ?";
+  const [results] = await pool.query(sql, [userRoleUniqueId]);
+
+  if (results.length === 0) {
+    return {
+      message: "success",
+      data: "No delinquencies found for this user role",
+    };
+  }
+
+  const totalPoints = results.reduce(
+    (acc, delinquency) => acc + delinquency.delinquencyPoints,
+    0
+  );
+
+  return {
+    message: "success",
+    data: {
+      totalPoints,
+      delinquencies: results,
+    },
+  };
+};
 module.exports = {
   createUserDelinquency,
   getUserDelinquencies,
-  // updateUserDelinquency,
+  updateUserDelinquency,
   deleteUserDelinquency,
-  // checkAutomaticBan,
+  checkAutomaticBan,
 };
