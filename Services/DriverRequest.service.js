@@ -58,31 +58,18 @@ const createRequest = async ({
   journeyStatusId,
 }) => {
   try {
-    console.log("@createRequest journeyStatusId", journeyStatusId);
     // 1. find user unique id from user object
     const userUniqueId = body?.userUniqueId;
 
     // 2. Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
-    console.log("@createRequest activeRequest", activeRequest);
 
     // 3. Create a new driver request
     if (activeRequest?.length === 0) {
-      console.log(
-        "@createRequest creating new driver request journeyStatusId",
-        journeyStatusId
-      );
-
       await createDriverRequest(body, userUniqueId, journeyStatusId);
       // recheck active request
       activeRequest = await checkActiveDriverRequest(userUniqueId);
     }
-    console.log(
-      "@createRequest activeRequest",
-      activeRequest,
-      "@findNewRequest",
-      findNewRequest
-    );
     if (!findNewRequest) return { message: "success", data: activeRequest };
 
     // findNewRequest is under verifyDriverStatus function which is used to look for active shipper/passenger request
