@@ -42,7 +42,7 @@ const handleJourneyStatusOne = async (
       driverRequestUniqueId,
       userUniqueId,
     } = driverRequest;
-
+    console.log("@handleJourneyStatusOne driverRequest", driverRequest);
     // 1. Find nearby passengers
     const nearbyPassengers = await findNearbyPassengers({
       originLatitude,

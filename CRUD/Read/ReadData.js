@@ -177,8 +177,16 @@ const findNearbyPassengers = async ({
     min: parseFloat(originLongitude) - searchRange,
     max: parseFloat(originLongitude) + searchRange,
   };
-
-  return await performJoinSelect({
+  console.log(
+    "@findNearbyPassengers",
+    "latitudeRange",
+    latitudeRange,
+    "longitudeRange",
+    longitudeRange,
+    "vehicleTypeUniqueId",
+    vehicleTypeUniqueId
+  );
+  const result = await performJoinSelect({
     baseTable: "Users",
     joins: [
       {
@@ -201,6 +209,8 @@ const findNearbyPassengers = async ({
     },
     operator: "AND",
   });
+  console.log("@findNearbyPassengers result", result);
+  return result;
 };
 const performJoinSelect = async ({
   baseTable,
