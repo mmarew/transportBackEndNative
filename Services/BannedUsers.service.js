@@ -57,7 +57,17 @@ const getBannedUsers = async (filters = {}) => {
     sortBy = "banAt",
     sortOrder = "DESC",
     roleId,
+    stats = false,
+    check = false,
   } = filters;
+
+  if (stats) {
+    return await _getBannedUsersStats();
+  }
+
+  if (check) {
+    return await _checkIfUserIsBanned(filters);
+  }
 
   const offset = (page - 1) * limit;
 
@@ -94,8 +104,19 @@ const getBannedUsers = async (filters = {}) => {
     queryParams.push(endDate);
   }
   if (roleId) {
-    whereConditions.push("ur.roleId = ?");
-    queryParams.push(roleId);
+    let roleIds = roleId;
+    if (typeof roleIds === 'string' && roleIds.includes(',')) {
+      roleIds = roleIds.split(',').map(id => id.trim());
+    }
+
+    if (Array.isArray(roleIds)) {
+      const placeholders = roleIds.map(() => '?').join(',');
+      whereConditions.push(`ur.roleId IN (${placeholders})`);
+      queryParams.push(...roleIds);
+    } else {
+      whereConditions.push("ur.roleId = ?");
+      queryParams.push(roleIds);
+    }
   }
 
   const baseQuery = `
@@ -173,7 +194,7 @@ const unbanUser = async (banUniqueId) => {
     : { message: "error", error: "Failed to unban user" };
 };
 
-const checkIfUserIsBanned = async (identifiers) => {
+const _checkIfUserIsBanned = async (identifiers) => {
   const { userRoleUniqueId, email, phoneNumber } = identifiers;
   console.log("@identifiers", identifiers);
   const whereClauses = [];
@@ -231,7 +252,7 @@ const deactivateBan = async (banUniqueId) => {
     : { message: "error", error: "Failed to deactivate ban" };
 };
 
-const getBannedUsersStats = async () => {
+const _getBannedUsersStats = async () => {
   const statsQueries = [
     // Total active bans
     "SELECT COUNT(*) as totalActiveBans FROM BannedUsers WHERE isActive = TRUE",
@@ -242,7 +263,9 @@ const getBannedUsersStats = async () => {
     // Bans by role
     `SELECT r.roleName, COUNT(*) as count 
      FROM BannedUsers bu 
-      INNER JOIN Roles r ON ur.roleId = r.roleId
+     INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+     INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
+     INNER JOIN Roles r ON ur.roleId = r.roleId
      WHERE bu.isActive = TRUE 
      GROUP BY r.roleName`,
 
@@ -272,7 +295,5 @@ module.exports = {
   getBannedUsers,
   updateBannedUser,
   unbanUser,
-  checkIfUserIsBanned,
   deactivateBan,
-  getBannedUsersStats,
 };
