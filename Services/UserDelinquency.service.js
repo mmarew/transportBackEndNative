@@ -15,6 +15,7 @@ const createUserDelinquency = async (data) => {
     delinquencyPoints,
     delinquencyCreatedBy,
   } = data;
+  // const   userRoleUniqueId  "userRoleUniqueId": "31a23043-a3cf-413e-9df3-3955c7c48a0b",
 
   const userDelinquencyUniqueId = uuidv4();
 
@@ -156,13 +157,25 @@ const getUserDelinquencies = async (filters = {}) => {
     page = 1,
     limit = 10,
     userRoleUniqueId,
+    userDelinquencyUniqueId,
     delinquencyTypeUniqueId,
     delinquencySeverity,
     startDate,
     endDate,
     sortBy = "delinquencyCreatedAt",
     sortOrder = "DESC",
+    summary = false,
   } = filters;
+
+  if (summary) {
+    if (!userRoleUniqueId) {
+      return {
+        message: "error",
+        error: "userRoleUniqueId is required for summary",
+      };
+    }
+    return await _getUserDelinquencySummary(userRoleUniqueId);
+  }
 
   const offset = (page - 1) * limit;
 
@@ -172,6 +185,11 @@ const getUserDelinquencies = async (filters = {}) => {
   if (userRoleUniqueId) {
     whereConditions.push("ud.userRoleUniqueId = ?");
     queryParams.push(userRoleUniqueId);
+  }
+
+  if (userDelinquencyUniqueId) {
+    whereConditions.push("ud.userDelinquencyUniqueId = ?");
+    queryParams.push(userDelinquencyUniqueId);
   }
 
   if (delinquencyTypeUniqueId) {
@@ -197,12 +215,12 @@ const getUserDelinquencies = async (filters = {}) => {
   const baseQuery = `
     SELECT 
       ud.*,
-      ur.userUniqueId,
-      u.fullName as userName,
+      u.fullName AS fullName,
+      u.email AS email,
       r.roleName,
       dt.delinquencyTypeName,
       dt.delinquencyTypeDescription,
-      uc.fullName as createdByName
+      uc.fullName AS createdByName
     FROM UserDelinquency ud
     INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
     INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
@@ -242,60 +260,6 @@ const getUserDelinquencies = async (filters = {}) => {
   };
 };
 
-const getUserDelinquencyById = async (userDelinquencyUniqueId) => {
-  const sql = `
-    SELECT 
-      ud.*,
-      ur.userUniqueId,
-      u.fullName as userName,
-      r.roleName,
-      dt.delinquencyTypeName,
-      dt.delinquencyTypeDescription,
-      uc.fullName as createdByName
-    FROM UserDelinquency ud
-    INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
-    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN Roles r ON ur.roleId = r.roleId
-    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
-    WHERE ud.userDelinquencyUniqueId = ?
-  `;
-
-  const result = await query(sql, [userDelinquencyUniqueId]);
-
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "User delinquency record not found" };
-};
-
-const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
-  const { delinquencyDescription, delinquencySeverity, delinquencyPoints } =
-    data;
-
-  const sql = `
-    UPDATE UserDelinquency 
-    SET delinquencyDescription = ?, delinquencySeverity = ?, 
-        delinquencyPoints = ?, delinquencyUpdatedAt = NOW()
-    WHERE userDelinquencyUniqueId = ?
-  `;
-
-  const values = [
-    delinquencyDescription,
-    delinquencySeverity,
-    delinquencyPoints,
-    userDelinquencyUniqueId,
-  ];
-
-  const result = await query(sql, values);
-
-  return result.affectedRows > 0
-    ? {
-        message: "success",
-        data: "User delinquency record updated successfully",
-      }
-    : { message: "error", error: "Failed to update user delinquency record" };
-};
-
 const deleteUserDelinquency = async (userDelinquencyUniqueId) => {
   // Check if this delinquency is linked to any banned users
   const checkSql =
@@ -320,47 +284,7 @@ const deleteUserDelinquency = async (userDelinquencyUniqueId) => {
     : { message: "error", error: "Failed to delete user delinquency record" };
 };
 
-const getUserDelinquenciesByUserRole = async (
-  userRoleUniqueId,
-  pagination = {}
-) => {
-  const { page = 1, limit = 10 } = pagination;
-  const offset = (page - 1) * limit;
-
-  const sql = `
-    SELECT SQL_CALC_FOUND_ROWS 
-      ud.*,
-      dt.delinquencyTypeName,
-      dt.delinquencyTypeDescription,
-      uc.fullName as createdByName
-    FROM UserDelinquency ud
-    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    LEFT JOIN Users uc ON ud.delinquencyCreatedBy = uc.userUniqueId
-    WHERE ud.userRoleUniqueId = ?
-    ORDER BY ud.delinquencyCreatedAt DESC
-    LIMIT ? OFFSET ?
-  `;
-
-  const [results] = await pool.query(sql, [userRoleUniqueId, limit, offset]);
-  const [totalCountResult] = await pool.query("SELECT FOUND_ROWS() as total");
-  const totalCount = totalCountResult[0].total;
-  const totalPages = Math.ceil(totalCount / limit);
-
-  return {
-    message: "success",
-    data: results,
-    pagination: {
-      currentPage: parseInt(page),
-      totalPages,
-      totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
-      limit: parseInt(limit),
-    },
-  };
-};
-
-const getUserDelinquencySummary = async (userRoleUniqueId) => {
+const _getUserDelinquencySummary = async (userRoleUniqueId) => {
   const summaryQuery = `
     SELECT 
       ur.userRoleUniqueId,
@@ -410,17 +334,10 @@ const getUserDelinquencySummary = async (userRoleUniqueId) => {
   };
 };
 
-const checkAutomaticBan = async (userRoleUniqueId) => {
-  return await checkAndApplyAutomaticBan(userRoleUniqueId, null);
-};
-
 module.exports = {
   createUserDelinquency,
   getUserDelinquencies,
-  getUserDelinquencyById,
-  updateUserDelinquency,
+  // updateUserDelinquency,
   deleteUserDelinquency,
-  getUserDelinquenciesByUserRole,
-  getUserDelinquencySummary,
-  checkAutomaticBan,
+  // checkAutomaticBan,
 };

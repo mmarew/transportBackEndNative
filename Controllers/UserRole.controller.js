@@ -16,11 +16,18 @@ const createUserRole = async (req, res) => {
   }
 };
 
-const getUserRoleListByUserUniqueId = async (req, res) => {
+const getUserRoleListByFilter = async (req, res) => {
   try {
-    const response = await userRoleService.getUserRoleListByUserUniqueId(
-      req.params.userUniqueId
-    );
+    const { page, limit, sortBy, sortOrder, search, ...rest } = req.query || {};
+
+    // Treat any query params other than reserved ones as column filters
+    const reserved = new Set(["page", "limit", "sortBy", "sortOrder", "search"]);
+    const filters = {};
+    for (const [k, v] of Object.entries(rest || {})) {
+      if (!reserved.has(k)) filters[k] = v;
+    }
+
+    const response = await userRoleService.getUserRoleListByFilter({ page, limit, sortBy, sortOrder, search, filters });
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -64,7 +71,7 @@ const deleteUserRole = async (req, res) => {
 };
 
 module.exports = {
-  getUserRoleListByUserUniqueId,
+  getUserRoleListByFilter,
   createUserRole,
   updateUserRole,
   deleteUserRole,

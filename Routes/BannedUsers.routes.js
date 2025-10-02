@@ -19,12 +19,6 @@ const routes = [
   },
   {
     path: "/api/admin/banned-users/:banUniqueId",
-    method: "get",
-    middleware: [verifyTokenOfAxios],
-    handler: bannedUsersController.getBannedUserById,
-  },
-  {
-    path: "/api/admin/banned-users/:banUniqueId",
     method: "put",
     middleware: [verifyTokenOfAxios],
     handler: bannedUsersController.updateBannedUser,
@@ -36,16 +30,10 @@ const routes = [
     handler: bannedUsersController.unbanUser,
   },
   {
-    path: "/api/admin/banned-users/user-role/:userRoleUniqueId",
+    path: "/api/admin/banned-users/check",
     method: "get",
     middleware: [verifyTokenOfAxios],
-    handler: bannedUsersController.getBannedUserByUserRole,
-  },
-  {
-    path: "/api/admin/banned-users/user-role/:userRoleUniqueId/check",
-    method: "get",
-    middleware: [verifyTokenOfAxios],
-    handler: bannedUsersController.checkIfUserRoleIsBanned,
+    handler: bannedUsersController.checkIfUserIsBanned,
   },
   {
     path: "/api/admin/banned-users/:banUniqueId/deactivate",

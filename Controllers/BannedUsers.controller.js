@@ -31,14 +31,6 @@ const getBannedUsers = async (req, res) => {
   await handleServiceResponse(bannedUsersService.getBannedUsers(filters), res);
 };
 
-const getBannedUserById = async (req, res) => {
-  const { banUniqueId } = req.params;
-
-  await handleServiceResponse(
-    bannedUsersService.getBannedUserById(banUniqueId),
-    res
-  );
-};
 
 const updateBannedUser = async (req, res) => {
   const { banUniqueId } = req.params;
@@ -56,20 +48,13 @@ const unbanUser = async (req, res) => {
   await handleServiceResponse(bannedUsersService.unbanUser(banUniqueId), res);
 };
 
-const getBannedUserByUserRole = async (req, res) => {
-  const { userRoleUniqueId } = req.params;
+
+const checkIfUserIsBanned = async (req, res) => {
+  // Identifiers can be passed via query params, e.g., ?email=... or ?phoneNumber=...
+  const identifiers = req.query;
 
   await handleServiceResponse(
-    bannedUsersService.getBannedUserByUserRole(userRoleUniqueId),
-    res
-  );
-};
-
-const checkIfUserRoleIsBanned = async (req, res) => {
-  const { userRoleUniqueId } = req.params;
-
-  await handleServiceResponse(
-    bannedUsersService.checkIfUserRoleIsBanned(userRoleUniqueId),
+    bannedUsersService.checkIfUserIsBanned(identifiers),
     res
   );
 };
@@ -90,11 +75,9 @@ const getBannedUsersStats = async (req, res) => {
 module.exports = {
   banUser,
   getBannedUsers,
-  getBannedUserById,
   updateBannedUser,
   unbanUser,
-  getBannedUserByUserRole,
-  checkIfUserRoleIsBanned,
+  checkIfUserIsBanned,
   deactivateBan,
   getBannedUsersStats,
 };

@@ -63,7 +63,7 @@ const getDelinquencyTypes = async (filters = {}) => {
     delinquencyTypeName,
     defaultSeverity,
     isActive,
-    sortBy = "createdAt",
+    sortBy = "delinquencyTypeId",
     sortOrder = "DESC",
   } = filters;
 
@@ -90,7 +90,7 @@ const getDelinquencyTypes = async (filters = {}) => {
   const baseQuery = `
     SELECT 
       dt.*,
-      r.roleName
+      r.*
     FROM DelinquencyTypes dt
     LEFT JOIN Roles r ON dt.applicableRoles = r.roleUniqueId
     WHERE ${whereConditions.join(" AND ")}
@@ -102,6 +102,8 @@ const getDelinquencyTypes = async (filters = {}) => {
     ORDER BY dt.${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}
     LIMIT ? OFFSET ?
   `;
+  console.log("@createDelinquencyType dataQuery", dataQuery);
+  // return;
 
   const dataQueryParams = [...queryParams, parseInt(limit), offset];
 

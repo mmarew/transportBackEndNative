@@ -12,16 +12,10 @@ const routes = [
     handler: userDelinquencyController.createUserDelinquency,
   },
   {
-    path: "/api/admin/user-delinquency",
+    path: "/api/admin/getDelinquencyByFilter",
     method: "get",
     middleware: [verifyTokenOfAxios],
     handler: userDelinquencyController.getUserDelinquencies,
-  },
-  {
-    path: "/api/admin/user-delinquency/:userDelinquencyUniqueId",
-    method: "get",
-    middleware: [verifyTokenOfAxios],
-    handler: userDelinquencyController.getUserDelinquencyById,
   },
   {
     path: "/api/admin/user-delinquency/:userDelinquencyUniqueId",
@@ -34,18 +28,6 @@ const routes = [
     method: "delete",
     middleware: [verifyTokenOfAxios],
     handler: userDelinquencyController.deleteUserDelinquency,
-  },
-  {
-    path: "/api/admin/user-delinquency/user-role/:userRoleUniqueId",
-    method: "get",
-    middleware: [verifyTokenOfAxios],
-    handler: userDelinquencyController.getUserDelinquenciesByUserRole,
-  },
-  {
-    path: "/api/admin/user-delinquency-summary/:userRoleUniqueId",
-    method: "get",
-    middleware: [verifyTokenOfAxios],
-    handler: userDelinquencyController.getUserDelinquencySummary,
   },
   {
     path: "/api/admin/check-automatic-ban/:userRoleUniqueId",

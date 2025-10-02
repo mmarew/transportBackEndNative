@@ -7,27 +7,9 @@ const query = async (sql, values = []) => {
 };
 
 const banUser = async (data) => {
-  const {
-    userRoleUniqueId,
-    userDelinquencyUniqueId,
-    bannedBy,
-    banReason,
-    banDurationDays,
-  } = data;
-
-  // Check if user role is already banned
-  const checkSql = `
-    SELECT * FROM BannedUsers 
-    WHERE userRoleUniqueId = ? AND isActive = TRUE
-  `;
-  const [existingBan] = await pool.query(checkSql, [userRoleUniqueId]);
-
-  if (existingBan.length > 0) {
-    return {
-      message: "error",
-      error: "User role is already banned",
-    };
-  }
+  const { userDelinquencyUniqueId, bannedBy, banReason, banDurationDays } =
+    data;
+  console.log("@banUser data", data);
 
   const banUniqueId = uuidv4();
   const banAt = new Date();
@@ -37,14 +19,14 @@ const banUser = async (data) => {
 
   const sql = `
     INSERT INTO BannedUsers (
-      banUniqueId, userRoleUniqueId, userDelinquencyUniqueId,
+      banUniqueId,   userDelinquencyUniqueId,
       bannedBy, banReason, banDurationDays, banExpiresAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?,  ?)
   `;
 
   const values = [
     banUniqueId,
-    userRoleUniqueId,
+
     userDelinquencyUniqueId,
     bannedBy,
     banReason,
@@ -67,12 +49,14 @@ const getBannedUsers = async (filters = {}) => {
     page = 1,
     limit = 10,
     userRoleUniqueId,
+    banUniqueId,
     bannedBy,
     isActive,
     startDate,
     endDate,
     sortBy = "banAt",
     sortOrder = "DESC",
+    roleId,
   } = filters;
 
   const offset = (page - 1) * limit;
@@ -81,8 +65,13 @@ const getBannedUsers = async (filters = {}) => {
   let queryParams = [];
 
   if (userRoleUniqueId) {
-    whereConditions.push("bu.userRoleUniqueId = ?");
+    whereConditions.push("ur.userRoleUniqueId = ?");
     queryParams.push(userRoleUniqueId);
+  }
+
+  if (banUniqueId) {
+    whereConditions.push("bu.banUniqueId = ?");
+    queryParams.push(banUniqueId);
   }
 
   if (bannedBy) {
@@ -104,23 +93,26 @@ const getBannedUsers = async (filters = {}) => {
     whereConditions.push("bu.banAt <= ?");
     queryParams.push(endDate);
   }
+  if (roleId) {
+    whereConditions.push("ur.roleId = ?");
+    queryParams.push(roleId);
+  }
 
   const baseQuery = `
     SELECT 
       bu.*,
-      ur.userUniqueId,
-      u.fullName as userName,
-      r.roleName,
+       u.*,
+      r.*,
       ub.fullName as bannedByName,
       ud.delinquencyTypeUniqueId,
       dt.delinquencyTypeName,
       ud.delinquencyDescription
     FROM BannedUsers bu
-    INNER JOIN UserRole ur ON bu.userRoleUniqueId = ur.userRoleUniqueId
+    INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+    INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
     INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
     INNER JOIN Roles r ON ur.roleId = r.roleId
     INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
-    INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
     INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     WHERE ${whereConditions.join(" AND ")}
   `;
@@ -155,34 +147,6 @@ const getBannedUsers = async (filters = {}) => {
   };
 };
 
-const getBannedUserById = async (banUniqueId) => {
-  const sql = `
-    SELECT 
-      bu.*,
-      ur.userUniqueId,
-      u.fullName as userName,
-      r.roleName,
-      ub.fullName as bannedByName,
-      ud.delinquencyTypeUniqueId,
-      dt.delinquencyTypeName,
-      ud.delinquencyDescription
-    FROM BannedUsers bu
-    INNER JOIN UserRole ur ON bu.userRoleUniqueId = ur.userRoleUniqueId
-    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN Roles r ON ur.roleId = r.roleId
-    INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
-    INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
-    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    WHERE bu.banUniqueId = ?
-  `;
-
-  const result = await query(sql, [banUniqueId]);
-
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "Banned user record not found" };
-};
-
 const updateBannedUser = async (banUniqueId, data) => {
   const { banReason, banDurationDays, banExpiresAt } = data;
 
@@ -209,58 +173,59 @@ const unbanUser = async (banUniqueId) => {
     : { message: "error", error: "Failed to unban user" };
 };
 
-const getBannedUserByUserRole = async (userRoleUniqueId) => {
+const checkIfUserIsBanned = async (identifiers) => {
+  const { userRoleUniqueId, email, phoneNumber } = identifiers;
+  console.log("@identifiers", identifiers);
+  const whereClauses = [];
+  const params = [];
+
+  if (userRoleUniqueId) {
+    whereClauses.push("ur.userRoleUniqueId = ?");
+    params.push(userRoleUniqueId);
+  }
+  if (email) {
+    whereClauses.push("u.email = ?");
+    params.push(email);
+  }
+  if (phoneNumber) {
+    whereClauses.push("u.phoneNumber = ?");
+    params.push(phoneNumber);
+  }
+
+  if (whereClauses.length === 0) {
+    return {
+      message: "error",
+      error: "At least one identifier must be provided",
+    };
+  }
+
   const sql = `
-    SELECT 
-      bu.*,
-      ur.userUniqueId,
-      u.fullName as userName,
-      r.roleName,
-      ub.fullName as bannedByName,
-      ud.delinquencyTypeUniqueId,
-      dt.delinquencyTypeName,
-      ud.delinquencyDescription
-    FROM BannedUsers bu
-    INNER JOIN UserRole ur ON bu.userRoleUniqueId = ur.userRoleUniqueId
-    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN Roles r ON ur.roleId = r.roleId
-    INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
-    INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
-    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    WHERE bu.userRoleUniqueId = ? AND bu.isActive = TRUE
+    SELECT b.*, ur.userRoleUniqueId, u.fullName, u.email, u.phoneNumber
+    FROM BannedUsers b
+    JOIN UserDelinquency ud ON b.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+    JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
+    JOIN Users u ON ur.userUniqueId = u.userUniqueId
+    WHERE b.isActive = TRUE
+      AND (b.banExpiresAt IS NULL OR b.banExpiresAt > NOW())
+      AND (${whereClauses.join(" OR ")})
+    LIMIT 1;
   `;
 
-  const result = await query(sql, [userRoleUniqueId]);
+  const [rows] = await pool.query(sql, params);
 
-  return {
-    message: "success",
-    data: result.length > 0 ? result[0] : null,
-    isBanned: result.length > 0,
-  };
-};
-
-const checkIfUserRoleIsBanned = async (userRoleUniqueId) => {
-  const sql = `
-    SELECT * FROM BannedUsers 
-    WHERE userRoleUniqueId = ? AND isActive = TRUE
-    AND (banExpiresAt IS NULL OR banExpiresAt > NOW())
-  `;
-
-  const result = await query(sql, [userRoleUniqueId]);
-
-  return {
-    message: "success",
-    data: {
-      isBanned: result.length > 0,
-      banRecord: result.length > 0 ? result[0] : null,
-    },
-  };
+  if (rows.length > 0) {
+    return {
+      message: "success",
+      data: { isBanned: true, banDetails: rows[0] },
+    };
+  } else {
+    return { message: "success", data: { isBanned: false } };
+  }
 };
 
 const deactivateBan = async (banUniqueId) => {
   const sql = "UPDATE BannedUsers SET isActive = FALSE WHERE banUniqueId = ?";
   const result = await query(sql, [banUniqueId]);
-
   return result.affectedRows > 0
     ? { message: "success", data: "Ban deactivated successfully" }
     : { message: "error", error: "Failed to deactivate ban" };
@@ -277,8 +242,7 @@ const getBannedUsersStats = async () => {
     // Bans by role
     `SELECT r.roleName, COUNT(*) as count 
      FROM BannedUsers bu 
-     INNER JOIN UserRole ur ON bu.userRoleUniqueId = ur.userRoleUniqueId
-     INNER JOIN Roles r ON ur.roleId = r.roleId
+      INNER JOIN Roles r ON ur.roleId = r.roleId
      WHERE bu.isActive = TRUE 
      GROUP BY r.roleName`,
 
@@ -306,11 +270,9 @@ const getBannedUsersStats = async () => {
 module.exports = {
   banUser,
   getBannedUsers,
-  getBannedUserById,
   updateBannedUser,
   unbanUser,
-  getBannedUserByUserRole,
-  checkIfUserRoleIsBanned,
+  checkIfUserIsBanned,
   deactivateBan,
   getBannedUsersStats,
 };

@@ -37,14 +37,6 @@ const getUserDelinquencies = async (req, res) => {
   );
 };
 
-const getUserDelinquencyById = async (req, res) => {
-  const { userDelinquencyUniqueId } = req.params;
-
-  await handleServiceResponse(
-    userDelinquencyService.getUserDelinquencyById(userDelinquencyUniqueId),
-    res
-  );
-};
 
 const updateUserDelinquency = async (req, res) => {
   const { userDelinquencyUniqueId } = req.params;
@@ -65,27 +57,7 @@ const deleteUserDelinquency = async (req, res) => {
   );
 };
 
-const getUserDelinquenciesByUserRole = async (req, res) => {
-  const { userRoleUniqueId } = req.params;
-  const { page = 1, limit = 10 } = req.query;
 
-  await handleServiceResponse(
-    userDelinquencyService.getUserDelinquenciesByUserRole(userRoleUniqueId, {
-      page: parseInt(page),
-      limit: parseInt(limit),
-    }),
-    res
-  );
-};
-
-const getUserDelinquencySummary = async (req, res) => {
-  const { userRoleUniqueId } = req.params;
-
-  await handleServiceResponse(
-    userDelinquencyService.getUserDelinquencySummary(userRoleUniqueId),
-    res
-  );
-};
 
 const checkAutomaticBan = async (req, res) => {
   const { userRoleUniqueId } = req.params;
@@ -99,10 +71,7 @@ const checkAutomaticBan = async (req, res) => {
 module.exports = {
   createUserDelinquency,
   getUserDelinquencies,
-  getUserDelinquencyById,
   updateUserDelinquency,
   deleteUserDelinquency,
-  getUserDelinquenciesByUserRole,
-  getUserDelinquencySummary,
   checkAutomaticBan,
 };

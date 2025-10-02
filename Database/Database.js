@@ -792,8 +792,8 @@ CREATE TABLE IF NOT EXISTS JourneyNotifications (
     -- Unique constraint to avoid duplicate journey-status notifications
     UNIQUE (journeyUniqueId, journeyStatusUniqueId)
 );
-
--- Delinquency type definitions with point values
+ 
+-- DelinquencyTypes table  is used to define delinquency type definitions with point values
 CREATE TABLE IF NOT EXISTS DelinquencyTypes (
     delinquencyTypeId INT AUTO_INCREMENT PRIMARY KEY,
     delinquencyTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,
@@ -807,7 +807,7 @@ CREATE TABLE IF NOT EXISTS DelinquencyTypes (
     -- foreign key to role
     FOREIGN KEY (applicableRoles) REFERENCES Roles(roleUniqueId)
 );
--- User Delinquency table - Role-based delinquency tracking
+-- User Delinquency table  is used to track delinquency for specific user-role combinations
 CREATE TABLE IF NOT EXISTS UserDelinquency (
     userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
@@ -830,7 +830,6 @@ CREATE TABLE IF NOT EXISTS UserDelinquency (
 CREATE TABLE IF NOT EXISTS BannedUsers (
     banId INT AUTO_INCREMENT PRIMARY KEY,
     banUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    userRoleUniqueId VARCHAR(36) NOT NULL,  -- Which specific user-role is banned
     userDelinquencyUniqueId VARCHAR(36) NOT NULL,  -- The triggering delinquency
     banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',  -- 'system' for automatic bans
@@ -838,10 +837,8 @@ CREATE TABLE IF NOT EXISTS BannedUsers (
     banDurationDays INT NOT NULL,  -- Duration in days (7, 30, 90, etc.)
     banExpiresAt DATETIME NOT NULL,  -- Calculated: banAt + banDurationDays
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
-    FOREIGN KEY (userRoleUniqueId) REFERENCES UserRole(userRoleUniqueId),
     FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId),
-    INDEX idx_userrole_active (userRoleUniqueId, isActive),
-    INDEX idx_ban_expires (banExpiresAt, isActive)
+     INDEX idx_ban_expires (banExpiresAt, isActive)
 );
  
 `;
