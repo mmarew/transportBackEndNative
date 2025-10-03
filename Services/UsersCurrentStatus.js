@@ -345,7 +345,7 @@ const verifyPassengerStatus = async ({
       activeRequest = dataOfActiveRequest?.activeRequests;
       totalRecords = dataOfActiveRequest?.totalRecords;
     }
-
+    console.log("@activeRequest", activeRequest);
     // If no active request, return an error
     if (activeRequest?.length == 0 || !activeRequest) {
       return {
@@ -368,7 +368,7 @@ const verifyPassengerStatus = async ({
       passenger.push(passengerRequest);
       //  If journeyStatusId is 1 (Waiting), find  nearby drivers and send to them requests
 
-      if (journeyStatusId === journeyStatusMap.waiting) {
+      if (journeyStatusId === journeyStatusMap?.waiting) {
         // because we use bid base pricing filtration we request five driver for one load request
         const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
 
@@ -461,10 +461,10 @@ const verifyPassengerStatus = async ({
         // });
         const filters = {
           passengerRequestId: passengerRequest?.passengerRequestId,
-          journeyStatusId:
-            journeyStatusMap.requested +
-            "," +
+          journeyStatusIds: [
+            journeyStatusMap.requested,
             journeyStatusMap.acceptedByDriver,
+          ],
         };
         const decisionsData = await getJourneyDecision4AllOrSingleUser({
           data: { filters },

@@ -61,10 +61,7 @@ const acceptDriverRequest = async (body) => {
       userUniqueId,
       sendNotificationsToDrivers: false,
     });
-    console.log(
-      "@acceptDriverRequest statusData?.drivers",
-      statusData?.drivers
-    );
+    console.log("@acceptDriverRequest statusData", statusData);
     // multiple drivers
     const acceptedDriver = [];
     const decisions = statusData?.decisions;
