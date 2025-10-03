@@ -643,7 +643,7 @@ const cancelDriverRequest = async (body) => {
       };
     }
 
-    const driverRequestId = getActiveRequest[0].driverRequestId;
+    const driverRequestId = getActiveRequest?.[0].driverRequestId;
 
     // Update the DriverRequest to reflect the cancellation
     await updateData({
@@ -661,150 +661,162 @@ const cancelDriverRequest = async (body) => {
 
     // register cancellation in to createCanceledJourney table if there was journeyDecisions and journeyDecisions.length > 0
 
-    if (journeyDecisions.length > 0) {
-      // register cancellation in to createCanceledJourney table
-
-      await createCanceledJourney({
-        contextId: driverRequestId,
-        contextType: "JourneyDecisions",
-        canceledBy: userUniqueId,
-        cancellationReasonsTypeId,
-        roleId,
-        driverUserUniqueId: ownerUserUniqueId,
-        passengerUserUniqueId,
-      });
-    }
-
-    const passengerRequestId = journeyDecisions[0].passengerRequestId;
-    const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
-    const journeyDecisionId = journeyDecisions[0].journeyDecisionId;
-
-    // Update JourneyDecisions to reflect the cancellation
-    const updatedJourneyDecision = await updateData({
-      tableName: "JourneyDecisions",
-      conditions: { journeyDecisionUniqueId },
-      updateValues: {
-        journeyStatusId:
-          userUniqueId === ownerUserUniqueId
-            ? journeyStatusMap.cancelledByDriver
-            : journeyStatusMap.cancelledByAdmin, // 9 for driver, 10 for admin
-      },
-    });
-    console.log("@updatedJourneyDecision", updatedJourneyDecision);
-    // Fetch passenger details
-    const passenger = await performJoinSelect({
-      baseTable: "PassengerRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+    const passengerRequestId = journeyDecisions?.[0]?.passengerRequestId;
+    const journeyDecisionUniqueId =
+      journeyDecisions?.[0]?.journeyDecisionUniqueId;
+    const journeyDecisionId = journeyDecisions?.[0]?.journeyDecisionId;
+    const journeyStatusIdOfJourneyDecision =
+      journeyDecisions?.[0]?.journeyStatusId;
+    // Update JourneyDecisions to reflect the cancellation if there is journeyDecisions
+    if (journeyDecisions?.length > 0 && journeyDecisionUniqueId) {
+      const updatedJourneyDecision = await updateData({
+        tableName: "JourneyDecisions",
+        conditions: { journeyDecisionUniqueId },
+        updateValues: {
+          journeyStatusId:
+            userUniqueId === ownerUserUniqueId
+              ? journeyStatusMap.cancelledByDriver
+              : journeyStatusMap.cancelledByAdmin, // 9 for driver, 10 for admin
         },
-      ],
-      conditions: { passengerRequestId },
-    });
-
-    if (!passenger || passenger.length === 0 || !passenger[0]?.phoneNumber) {
-      return {
-        message: "error",
-        data: "Unable to fetch passenger details or phone number",
-      };
+      });
+      console.log("@updatedJourneyDecision", updatedJourneyDecision);
     }
-    const passengerRequestUniqueId = passenger[0].passengerRequestUniqueId;
-    const journeyDecisionByPassengerRequestId =
-      await getJourneyDecisionByPassengerRequestUniqueId(
-        passengerRequestUniqueId
-      );
-    console.log(
-      "@cancelDriverRequest journeyDecisionByPassengerRequestId",
-      journeyDecisionByPassengerRequestId
-    );
-    // if there is only one journey decision(one driver request) for the passenger request return passenger status to waiting status
-    if (journeyDecisionByPassengerRequestId?.data?.length === 1) {
-      // Update the PassengerRequest to reflect the cancellation and set journeyStatusId to 1 which is returned to waiting status
-      await updateData({
-        tableName: "PassengerRequest",
+    let passenger = null;
+    // Fetch passenger details if passengerRequestId is not null
+    if (passengerRequestId) {
+      passenger = await performJoinSelect({
+        baseTable: "PassengerRequest",
+        joins: [
+          {
+            table: "Users",
+            on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          },
+        ],
         conditions: { passengerRequestId },
-        updateValues: { journeyStatusId: journeyStatusMap?.waiting }, // Set journeyStatusId to 1 (return to waiting state )
-      });
-    } else {
-      // if there are multiple journey decisions for the passenger requestdo nothing  because there are other driver requests
-    }
-    // Send notification to the passenger
-    const notificationResult = sendNotificationToPassenger({
-      message: {
-        message: "success",
-        data:
-          userUniqueId === ownerUserUniqueId
-            ? "Driver cancelled your request."
-            : "Admin cancelled your request.",
-        status:
-          userUniqueId === ownerUserUniqueId
-            ? journeyStatusMap.cancelledByDriver
-            : journeyStatusMap.cancelledByAdmin,
-      },
-      phoneNumber: passenger[0]?.phoneNumber,
-    });
-
-    // check if the driver has any active requests in Journey table
-    const getActiveJourney = await getData({
-      tableName: "Journey",
-      conditions: {
-        "Journey.journeyDecisionUniqueId": journeyDecisionUniqueId,
-      },
-    });
-
-    if (getActiveJourney.length === 0) {
-      // register cancillation in to createCanceledJourney table
-
-      const canceledJourneyResult = await createCanceledJourney({
-        contextId: journeyDecisionId,
-        contextType: "Journey",
-        canceledBy: userUniqueId,
-        cancellationReasonsTypeId,
-        roleId,
-        driverUserUniqueId: ownerUserUniqueId,
-        passengerUserUniqueId,
       });
 
-      const cancellationDetails = canceledJourneyResult.cancellationDetails;
-      const adminNotification = sendNotificationToAdmin({
+      if (!passenger || passenger.length === 0 || !passenger[0]?.phoneNumber) {
+        return {
+          message: "error",
+          data: "Unable to fetch passenger details or phone number",
+        };
+      }
+
+      const passengerRequestUniqueId = passenger?.[0].passengerRequestUniqueId;
+      const journeyDecisionByPassengerRequestId =
+        await getJourneyDecisionByPassengerRequestUniqueId(
+          passengerRequestUniqueId
+        );
+      console.log(
+        "@cancelDriverRequest journeyDecisionByPassengerRequestId",
+        journeyDecisionByPassengerRequestId
+      );
+      // if there is only one journey decision(one driver request) for the passenger request return passenger status to waiting status
+      if (journeyDecisionByPassengerRequestId?.data?.length === 1) {
+        // Update the PassengerRequest to reflect the cancellation and set journeyStatusId to 1 which is returned to waiting status
+        await updateData({
+          tableName: "PassengerRequest",
+          conditions: { passengerRequestId },
+          updateValues: { journeyStatusId: journeyStatusMap?.waiting }, // Set journeyStatusId to 1 (return to waiting state )
+        });
+      } else {
+        // if there are multiple journey decisions for the passenger requestdo nothing  because there are other driver requests
+      }
+
+      // Send notification to the passenger
+      const notificationResult = sendNotificationToPassenger({
         message: {
           message: "success",
-          messageType: "cancelledJourney",
-
-          data: [
-            {
-              driver: getActiveRequest[0], // Driver details
-              passenger: passenger[0], // Passenger details
-              cancellationDetails,
-            },
-          ],
+          data:
+            userUniqueId === ownerUserUniqueId
+              ? "Driver cancelled your request."
+              : "Admin cancelled your request.",
+          status:
+            userUniqueId === ownerUserUniqueId
+              ? journeyStatusMap.cancelledByDriver
+              : journeyStatusMap.cancelledByAdmin,
+        },
+        phoneNumber: passenger[0]?.phoneNumber,
+      });
+    }
+    // check if the driver has any active requests in Journey table if journeyDecisionUniqueId is not null
+    let registeredCancelledJourney = null;
+    if (journeyDecisionUniqueId) {
+      const getActiveJourney = await getData({
+        tableName: "Journey",
+        conditions: {
+          "Journey.journeyDecisionUniqueId": journeyDecisionUniqueId,
         },
       });
 
-      return {
-        status: null,
-        message: "success",
-        data: "You have successfully cancelled your request.",
-      };
-    }
-    const journeyId = getActiveJourney[0].journeyId;
-    // Update the Journey table (if the journey had already started)
-    await updateData({
-      tableName: "Journey",
-      conditions: { journeyDecisionUniqueId },
-      updateValues: { journeyStatusId: journeyStatusMap.cancelledByDriver }, // Set journeyStatusId to 9 (cancelled by driver)
-    });
+      if (getActiveJourney?.length === 0) {
+        // register cancellation in to createCanceledJourney table
 
-    await createCanceledJourney({
-      contextId: journeyId,
-      contextType: "Journey",
-      roleId: roleId,
-      canceledBy: userUniqueId,
-      cancellationReasonsTypeId,
-      driverUserUniqueId: ownerUserUniqueId,
-      passengerUserUniqueId,
-    });
+        const canceledJourneyResult = await createCanceledJourney({
+          contextId: journeyDecisionId,
+          contextType: "Journey",
+          canceledBy: userUniqueId,
+          cancellationReasonsTypeId,
+          roleId,
+          driverUserUniqueId: ownerUserUniqueId,
+          passengerUserUniqueId,
+        });
+
+        const cancellationDetails = canceledJourneyResult.cancellationDetails;
+        const adminNotification = sendNotificationToAdmin({
+          message: {
+            message: "success",
+            messageType: "cancelledJourney",
+
+            data: [
+              {
+                driver: getActiveRequest?.at(0), // Driver details
+                passenger: passenger?.at(0), // Passenger details
+                cancellationDetails,
+              },
+            ],
+          },
+        });
+      }
+      const journeyId = getActiveJourney?.at(0)?.journeyId;
+      // Update the Journey table (if the journey had already started)
+      await updateData({
+        tableName: "Journey",
+        conditions: { journeyDecisionUniqueId },
+        updateValues: { journeyStatusId: journeyStatusMap.cancelledByDriver }, // Set journeyStatusId to 9 (cancelled by driver)
+      });
+      // register cancellation in to createCanceledJourney table if the journey had already started
+      if (
+        journeyStatusIdOfJourneyDecision == journeyStatusMap.journeyStarted &&
+        journeyId
+      )
+        registeredCancelledJourney = await createCanceledJourney({
+          contextId: journeyId,
+          contextType: "Journey",
+          roleId: roleId,
+          canceledBy: userUniqueId,
+          cancellationReasonsTypeId,
+          driverUserUniqueId: ownerUserUniqueId,
+          passengerUserUniqueId,
+        });
+    }
+    if (!registeredCancelledJourney) {
+      if (
+        journeyStatusIdOfJourneyDecision > journeyStatusMap.waiting &&
+        journeyStatusIdOfJourneyDecision < journeyStatusMap.journeyStarted
+      )
+        registeredCancelledJourney = await createCanceledJourney({
+          contextId: journeyDecisionId,
+          contextType: "JourneyDecision",
+          roleId: roleId,
+          canceledBy: userUniqueId,
+          cancellationReasonsTypeId,
+          driverUserUniqueId: ownerUserUniqueId,
+          passengerUserUniqueId,
+        });
+    } else {
+      // if it is waiting don't register cancellation
+    }
     return {
       status: null,
       message: "success",

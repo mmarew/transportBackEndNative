@@ -29,6 +29,9 @@ const { updateJourneyStatus } = require("./JourneyStatus.service");
 const {
   VerifyIfPassengerRequestWasNotRejected,
 } = require("../Utils/RejectedRequests");
+const {
+  getJourneyDecision4AllOrSingleUser,
+} = require("./JourneyDecisions.service");
 
 // Handle when journeyStatusId is 1
 // handleJourneyStatusOne starts here
@@ -428,7 +431,8 @@ const verifyPassengerStatus = async ({
             message: {
               message: "success",
               status: journeyStatusMap.requested,
-              passenger,
+              // passengerRequest is the passenger request object which is connected to driverRequest in JourneyDecisions
+              passenger: passengerRequest,
               driver: {
                 driver: { ...driver, driverProfilePhoto },
                 vehicle: vehicle,
@@ -448,14 +452,27 @@ const verifyPassengerStatus = async ({
       }
       //  If journeyStatusId is not 1, return current data of passenger, driver, journey, and decisions
       else {
-        const decisionsData = await getData({
-          tableName: "JourneyDecisions",
-          conditions: {
-            passengerRequestId: passengerRequest?.passengerRequestId,
-          },
+        // const decisionsData = await getData({
+        //   tableName: "JourneyDecisions",
+        //   conditions: {
+        //     passengerRequestId: passengerRequest?.passengerRequestId,
+        //     journeyStatusId: journeyStatusMap.requested,
+        //   },
+        // });
+        const filters = {
+          passengerRequestId: passengerRequest?.passengerRequestId,
+          journeyStatusId:
+            journeyStatusMap.requested +
+            "," +
+            journeyStatusMap.acceptedByDriver,
+        };
+        const decisionsData = await getJourneyDecision4AllOrSingleUser({
+          data: { filters },
         });
-        const results = [];
-        for (let journeyDecision of decisionsData) {
+        console.log("@decisionsData", decisionsData);
+        // return;
+
+        for (let journeyDecision of decisionsData?.data) {
           decisions.push(journeyDecision);
           const journeyStatusId = journeyDecision.journeyStatusId;
           // journey can be created after journey is started
@@ -503,16 +520,30 @@ const verifyPassengerStatus = async ({
             driver: { ...driver, driverProfilePhoto },
           };
           driversData.push(driverInfo);
+
+          // find matching passenger request of journeyDecision
+          const matchingPassengerRequest = passenger.find(
+            (passengerRequest) =>
+              passengerRequest.passengerRequestId ==
+              journeyDecision.passengerRequestId
+          );
+          console.log(
+            "@journeyDecision",
+            journeyDecision,
+            "\n@matchingPassengerRequest",
+            matchingPassengerRequest,
+            "\nphoneNumber",
+            phoneNumber,
+            "@sendNotificationsToDrivers",
+            sendNotificationsToDrivers
+          );
           const message = {
             message: "success",
             status: driver?.journeyStatusId,
-            passenger,
+            passenger: matchingPassengerRequest,
             driver: driverInfo,
-            journey: journey,
+            journey: journey?.length > 0 ? journey[0] : null,
             decision: journeyDecision || null,
-            totalRecords: totalRecords,
-            pageSize,
-            page,
           };
           if (sendNotificationsToDrivers)
             if (phoneNumber) {
