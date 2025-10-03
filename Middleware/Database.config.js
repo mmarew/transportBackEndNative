@@ -36,15 +36,15 @@ let pool;
 try {
   pool = mysql.createPool(config);
   // Verify connectivity on startup (fail fast)
-  (async () => {
-    try {
-      await pool.query("SELECT 1");
-      console.log("Database connection pool created successfully");
-    } catch (err) {
-      console.error("Database startup health check failed:", err);
-      process.exit(1);
-    }
-  })();
+  // (async () => {
+  //   try {
+  //     await pool.query("SELECT 1");
+  //     console.log("Database connection pool created successfully");
+  //   } catch (err) {
+  //     console.error("Database startup health check failed:", err);
+  //     process.exit(1);
+  //   }
+  // })();
   // Attach connection-level error listener
   pool.on("connection", (connection) => {
     connection.on("error", (err) => {
