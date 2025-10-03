@@ -14,6 +14,11 @@ const apiKeyAuth = require("../Middleware/apiKeyAuth");
 
 const app = express();
 
+// Trust the reverse proxy (e.g., Vercel/NGINX/Heroku) so req.ip uses X-Forwarded-For
+// This must be set BEFORE using rate limiting or anything that relies on client IP
+// On Vercel, trusting the first proxy is sufficient
+app.set("trust proxy", 1);
+
 // --- GLOBAL MIDDLEWARE ---
 
 // 1. Set security HTTP headers
