@@ -3,7 +3,9 @@ const {
   journeyStatusMap,
   activeJourneyStatuses,
 } = require("../../Utils/ListOfFixedData");
-const VerifyIfPassengerRequestWasNotRejected = require("../../Utils/VerifyIfPassengerRequestWasNotRejected");
+const {
+  VerifyIfPassengerRequestWasNotRejected,
+} = require("../../Utils/RejectedRequests");
 const searchRange = 0.941;
 
 const getData = async ({
@@ -147,7 +149,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
     for (const driver of drivers) {
       const { message } = await VerifyIfPassengerRequestWasNotRejected({
         passengerRequestId,
-        userUniqueId: driver?.userUniqueId,
+        driverUserUniqueId: driver?.userUniqueId,
       });
       if (message == "success") {
         // push 5 drivers only
@@ -169,6 +171,7 @@ const findNearbyPassengers = async ({
   originLongitude,
   vehicleTypeUniqueId,
 }) => {
+  // find near by passengers based on location they stand, so we can find passengers who are close to the driver, but not canceled by driver before
   const latitudeRange = {
     min: parseFloat(originLatitude) - searchRange,
     max: parseFloat(originLatitude) + searchRange,
@@ -178,7 +181,7 @@ const findNearbyPassengers = async ({
     max: parseFloat(originLongitude) + searchRange,
   };
 
-  const result = await performJoinSelect({
+  const nearByPassengers = await performJoinSelect({
     baseTable: "Users",
     joins: [
       {
@@ -201,7 +204,8 @@ const findNearbyPassengers = async ({
     },
     operator: "AND",
   });
-  return result;
+
+  return nearByPassengers;
 };
 const performJoinSelect = async ({
   baseTable,
@@ -397,7 +401,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
       ],
       conditions: {
         "DriverRequest.userUniqueId": userUniqueId,
-        "DriverRequest.journeyStatusId": activeJourneyStatuses, // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
+        "DriverRequest.journeyStatusId": [...activeJourneyStatuses], // 1: Waiting, 2: Requested, 3: Accepted, 4: Journey started
       },
     });
 

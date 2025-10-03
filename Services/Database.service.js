@@ -1,5 +1,6 @@
 const { sqlQuery } = require("../Database/Database");
-const { pool } = require("../Middleware/Database.config");
+const { pool, config: dbConfig } = require("../Middleware/Database.config");
+const mysql = require("mysql2/promise");
 const {
   vehicleTypes,
   driversDocumentRequirement,
@@ -40,7 +41,13 @@ const { createDepositSource } = require("./DepositSource.service");
 
 const createTable = async () => {
   try {
-    await pool.query(sqlQuery);
+    // Use a dedicated connection with multiple statements enabled for schema setup
+    const adminConnection = await mysql.createConnection({
+      ...dbConfig,
+      multipleStatements: true,
+    });
+    await adminConnection.query(sqlQuery);
+    await adminConnection.end();
     const userResult = await createUserSystem();
     console.log("@createTable userResult", userResult);
     return {

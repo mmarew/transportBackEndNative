@@ -5,8 +5,10 @@ const HOST = process.env.DB_HOST;
 const USER = process.env.DB_USER;
 const PASSWORD = process.env.DB_PASSWORD;
 const DATABASE = process.env.DB_DATABASE;
-const PORT = process.env.DB_PORT;
-console.log("@Database.config.js", { HOST, USER, DATABASE, PORT });
+const PORT = Number(process.env.DB_PORT) || 3306;
+if (process.env.NODE_ENV !== "production") {
+  console.log("@Database.config.js", { HOST, USER, DATABASE, PORT });
+}
 
 if (!HOST || !USER || !DATABASE) {
   throw new Error(
@@ -24,7 +26,7 @@ const config = {
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 10000, // 10 seconds
-  multipleStatements: true, // Enable multiple statements
+  multipleStatements: false, // Safer by default
   // socketPath: "/Applications/MAMP/tmp/mysql/mysql.sock", // ✅ Correct for MAMP
 };
 
@@ -33,11 +35,21 @@ let pool;
 
 try {
   pool = mysql.createPool(config);
-  pool.query("SELECT 1");
-  console.log("Database connection pool created successfully");
-  pool.on("error", (err) => {
-    console.log("Database connection pool error:", err);
-    throw err; // Re-throw the error to ensure the application fails fast
+  // Verify connectivity on startup (fail fast)
+  (async () => {
+    try {
+      await pool.query("SELECT 1");
+      console.log("Database connection pool created successfully");
+    } catch (err) {
+      console.error("Database startup health check failed:", err);
+      process.exit(1);
+    }
+  })();
+  // Attach connection-level error listener
+  pool.on("connection", (connection) => {
+    connection.on("error", (err) => {
+      console.error("MySQL connection error:", err);
+    });
   });
   pool.on("acquire", (connection) => {
     // console.log("Connection acquired:", connection.threadId);
@@ -70,7 +82,30 @@ async function getConnection() {
   }
 }
 
+// Readiness check helper
+async function ping() {
+  return pool.query("SELECT 1");
+}
+
+// Graceful shutdown
+const shutdown = async () => {
+  try {
+    if (pool) {
+      await pool.end();
+      console.log("Database pool closed.");
+    }
+  } catch (e) {
+    console.error("Error closing pool:", e);
+  } finally {
+    process.exit(0);
+  }
+};
+
+process.on("SIGINT", shutdown);
+
 module.exports = {
   pool,
   getConnection,
+  ping,
+  config,
 };

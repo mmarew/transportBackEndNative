@@ -657,6 +657,7 @@ const cancelDriverRequest = async (body) => {
       tableName: "JourneyDecisions",
       conditions: { driverRequestId },
     });
+    console.log("@journeyDecisions", journeyDecisions);
 
     // register cancellation in to createCanceledJourney table if there was journeyDecisions and journeyDecisions.length > 0
 
@@ -665,24 +666,31 @@ const cancelDriverRequest = async (body) => {
 
       await createCanceledJourney({
         contextId: driverRequestId,
-        contextType: "DriverRequest",
+        contextType: "JourneyDecisions",
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,
         driverUserUniqueId: ownerUserUniqueId,
         passengerUserUniqueId,
       });
-      return {
-        status: null,
-        message: "success",
-        data: "You have successfully cancelled your request.",
-      };
     }
 
     const passengerRequestId = journeyDecisions[0].passengerRequestId;
     const journeyDecisionUniqueId = journeyDecisions[0].journeyDecisionUniqueId;
     const journeyDecisionId = journeyDecisions[0].journeyDecisionId;
 
+    // Update JourneyDecisions to reflect the cancellation
+    const updatedJourneyDecision = await updateData({
+      tableName: "JourneyDecisions",
+      conditions: { journeyDecisionUniqueId },
+      updateValues: {
+        journeyStatusId:
+          userUniqueId === ownerUserUniqueId
+            ? journeyStatusMap.cancelledByDriver
+            : journeyStatusMap.cancelledByAdmin, // 9 for driver, 10 for admin
+      },
+    });
+    console.log("@updatedJourneyDecision", updatedJourneyDecision);
     // Fetch passenger details
     const passenger = await performJoinSelect({
       baseTable: "PassengerRequest",
@@ -737,17 +745,6 @@ const cancelDriverRequest = async (body) => {
       phoneNumber: passenger[0]?.phoneNumber,
     });
 
-    // Update JourneyDecisions to reflect the cancellation
-    await updateData({
-      tableName: "JourneyDecisions",
-      conditions: { journeyDecisionUniqueId },
-      updateValues: {
-        journeyStatusId:
-          userUniqueId === ownerUserUniqueId
-            ? journeyStatusMap.cancelledByDriver
-            : journeyStatusMap.cancelledByAdmin, // 9 for driver, 10 for admin
-      },
-    });
     // check if the driver has any active requests in Journey table
     const getActiveJourney = await getData({
       tableName: "Journey",
@@ -761,7 +758,7 @@ const cancelDriverRequest = async (body) => {
 
       const canceledJourneyResult = await createCanceledJourney({
         contextId: journeyDecisionId,
-        contextType: "JourneyDecisions",
+        contextType: "Journey",
         canceledBy: userUniqueId,
         cancellationReasonsTypeId,
         roleId,

@@ -24,9 +24,11 @@ const {
   getVehicleAndOwnershipViaUserUniqueId,
   getVehicleOwnershipByUserUniqueId,
 } = require("./VehicleOwnership.service");
-const VerifyIfPassengerRequestWasNotRejected = require("../Utils/VerifyIfPassengerRequestWasNotRejected");
 const messageTypes = require("../Utils/MessageTypes");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
+const {
+  VerifyIfPassengerRequestWasNotRejected,
+} = require("../Utils/RejectedRequests");
 
 // Handle when journeyStatusId is 1
 // handleJourneyStatusOne starts here
@@ -56,19 +58,21 @@ const handleJourneyStatusOne = async (
     }
 
     // 3. Find first non-rejected passenger
-    const passenger = await findNonRejectedPassenger(
+    const nonRejectedPassenger = await findNonRejectedPassenger(
       nearbyPassengers,
       userUniqueId
     );
+    console.log("@nonRejectedPassenger", nonRejectedPassenger);
 
+    // return;
     // 4. If no suitable passenger found, return waiting status
-    if (!passenger) {
+    if (!nonRejectedPassenger) {
       return createResponse(driverRequest, vehicle, null, null, 1);
     }
 
     // 5. Create journey decision and update statuses
     const journeyDecisionPayload = createJourneyDecisionPayload(
-      passenger.passengerRequestId,
+      nonRejectedPassenger.passengerRequestId,
       driverRequest.driverRequestId
     );
 
@@ -76,21 +80,21 @@ const handleJourneyStatusOne = async (
     await executeStatusUpdates(
       journeyDecisionPayload,
       driverRequestUniqueId,
-      passenger.passengerRequestId
+      nonRejectedPassenger.passengerRequestId
     );
 
     // 7. Prepare response
     const response = createResponse(
       { ...driverRequest, journeyStatusId: journeyStatusMap?.requested },
       vehicle,
-      { ...passenger, journeyStatusId: journeyStatusMap?.requested },
+      { ...nonRejectedPassenger, journeyStatusId: journeyStatusMap?.requested },
       journeyDecisionPayload,
       journeyStatusMap?.requested
     );
 
     // 8. Send notification if passenger has phone number (non-blocking)
-    if (passenger?.phoneNumber) {
-      sendPassengerNotification(passenger).catch(console.error);
+    if (nonRejectedPassenger?.phoneNumber) {
+      sendPassengerNotification(nonRejectedPassenger).catch(console.error);
     }
 
     return {
@@ -123,7 +127,7 @@ const findNonRejectedPassenger = async (passengers, userUniqueId) => {
   for (const passenger of passengers) {
     const rejectedResult = await VerifyIfPassengerRequestWasNotRejected({
       passengerRequestId: passenger.passengerRequestId,
-      userUniqueId,
+      driverUserUniqueId: userUniqueId,
     });
     console.log("@rejectedResult", rejectedResult);
     if (rejectedResult?.message === "success") {
