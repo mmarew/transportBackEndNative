@@ -54,8 +54,8 @@ loggingMiddleware();
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // API Routes - Protected by API Key
-app.use("/", apiKeyAuth, Routes);
-
+// app.use("/", apiKeyAuth, Routes);
+app.use("/", Routes);
 // --- HEALTH & CRASH CHECKS ---
 
 // Health Check endpoint
