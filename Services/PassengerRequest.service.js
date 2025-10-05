@@ -6,9 +6,10 @@ const { deleteData } = require("../CRUD/Delete/DeleteData");
 const { createNewPassengerRequest } = require("../CRUD/Create/CreateData");
 
 const { sendNotificationToDriver } = require("../Utils/Notifications");
+const { sendNotificationToUser } = require("./Firebase.service");
 
 const { pool } = require("../Middleware/Database.config");
-const { journeyStatusMap } = require("../Utils/ListOfFixedData");
+const { journeyStatusMap, usersRoles } = require("../Utils/ListOfFixedData");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
 const {
   verifyPassengerStatus,
@@ -76,6 +77,7 @@ const acceptDriverRequest = async (body) => {
     for (let i = 0; i < drivers?.length; i++) {
       const driver = drivers[i];
       const phoneNumber = driver?.driver?.phoneNumber;
+      const targetDriverUserUniqueId = driver?.driver?.userUniqueId;
 
       if (driverRequestUniqueId != driver.driver.driverRequestUniqueId) {
         body.journeyStatusId = journeyStatusMap.rejectedByPassenger;
@@ -94,6 +96,36 @@ const acceptDriverRequest = async (body) => {
       console.log("@driverStatus", driverStatus);
       if (driverStatus?.message == "success") {
         sendNotificationToDriver({ message: driverStatus, phoneNumber });
+        // Also send Firebase push notification to the driver
+        const isAccepted =
+          driverRequestUniqueId == driver.driver.driverRequestUniqueId;
+        const notification = {
+          title: isAccepted ? "Offer accepted" : "Offer not selected",
+          body: isAccepted
+            ? "Passenger accepted your price."
+            : "Passenger selected another offer.",
+        };
+        const data = {
+          type: "driver_offer_status",
+          status: isAccepted ? "success" : "not_selected",
+          driverRequestUniqueId: String(
+            driver?.driver?.driverRequestUniqueId || ""
+          ),
+          journeyDecisionUniqueId: String(journeyDecisionUniqueId || ""),
+          passengerUserUniqueId: String(userUniqueId || ""),
+        };
+        if (targetDriverUserUniqueId) {
+          try {
+            await sendNotificationToUser({
+              userUniqueId: targetDriverUserUniqueId,
+              roleId: usersRoles.driverRoleId,
+              notification,
+              data,
+            });
+          } catch (e) {
+            console.log("@FCM notify driver (accept) error", e?.message || e);
+          }
+        }
       } else if (driverStatus?.message == "error") {
         console.log(
           "Error in sending notification to driver. driverStatus is :",
@@ -564,16 +596,16 @@ const cancelPassengerRequest = async (body) => {
       };
     }
     // get passenger data
-    const [passengerData] = await performJoinSelect({
-      baseTable: "PassengerRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-        },
-      ],
-      conditions: { passengerRequestId },
-    });
+    // const [passengerData] = await performJoinSelect({
+    //   baseTable: "PassengerRequest",
+    //   joins: [
+    //     {
+    //       table: "Users",
+    //       on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+    //     },
+    //   ],
+    //   conditions: { passengerRequestId },
+    // });
 
     await updateData({
       tableName: "PassengerRequest",
@@ -589,7 +621,7 @@ const cancelPassengerRequest = async (body) => {
       conditions: { passengerRequestId },
     });
     const cancelledByPassenger = journeyStatusMap?.cancelledByPassenger;
-
+    console.log("@cancelledByPassenger journeyDecisions", journeyDecisions);
     // If no journey decisions found, return early
     if (journeyDecisions.length) {
       // Process all journey decisions in parallel
@@ -648,6 +680,26 @@ const cancelPassengerRequest = async (body) => {
             },
             phoneNumber: driverData.phoneNumber,
           });
+
+          // Also send Firebase push notification to the driver
+          try {
+            await sendNotificationToUser({
+              userUniqueId: driverData?.userUniqueId,
+              roleId: usersRoles.driverRoleId,
+              notification: {
+                title: "Request canceled",
+                body: notificationMessage,
+              },
+              data: {
+                type: "driver_request_canceled",
+                status: "canceled",
+                passengerRequestId: String(passengerRequestId || ""),
+                passengerUserUniqueId: String(ownerUserUniqueId || ""),
+              },
+            });
+          } catch (e) {
+            console.log("@FCM notify driver (cancel) error", e?.message || e);
+          }
         }
       });
 
