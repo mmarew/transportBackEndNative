@@ -1,11 +1,9 @@
 const { response } = require("express");
 const {
   createVehicleOwnership,
-  getVehicleOwnership,
   updateVehicleOwnership,
   deleteVehicleOwnership,
-  getAllVehicleOwnerships,
-  getVehicleOwnershipByUserUniqueId,
+  getVehicleOwnershipsByFilter,
 } = require("../Services/VehicleOwnership.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
@@ -20,18 +18,7 @@ const createVehicleOwnershipController = async (req, res) => {
   }
 };
 
-const getVehicleOwnershipController = async (req, res) => {
-  try {
-    const response = await getVehicleOwnership(req.params.ownershipId);
-
-    ServerResponder(res, response);
-  } catch (error) {
-    ServerResponder(res, {
-      message: "error",
-      error: "Vehicle ownership not found",
-    });
-  }
-};
+// removed: get by ownershipId; use filter endpoint instead
 
 const updateVehicleOwnershipController = async (req, res) => {
   try {
@@ -62,22 +49,21 @@ const deleteVehicleOwnershipController = async (req, res) => {
   }
 };
 
-const getAllVehicleOwnershipsController = async (req, res) => {
+const listVehicleOwnershipsController = async (req, res) => {
   try {
-    const response = await getAllVehicleOwnerships();
-    ServerResponder(res, response);
-  } catch (error) {
-    console.log("Error fetching vehicle ownerships:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Error fetching vehicle ownerships",
+    const { page, limit, includePagination } = req.query || {};
+    // Extract filters by removing pagination params
+    const { page: _p, limit: _l, includePagination: _ip, ...filters } =
+      req.query || {};
+
+    const hasFilters = Object.keys(filters).length > 0;
+    const response = await getVehicleOwnershipsByFilter({
+      filters: hasFilters ? filters : {},
+      page,
+      limit,
+      includePagination:
+        includePagination === "true" || includePagination === true,
     });
-  }
-};
-const getVehicleOwnershipByUserUniqueIdController = async (req, res) => {
-  try {
-    const userUniqueId = req.params.userUniqueId;
-    const response = await getVehicleOwnershipByUserUniqueId(userUniqueId);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error fetching vehicle ownerships:", error);
@@ -89,10 +75,8 @@ const getVehicleOwnershipByUserUniqueIdController = async (req, res) => {
 };
 
 module.exports = {
-  getVehicleOwnershipByUserUniqueIdController,
   createVehicleOwnershipController,
-  getVehicleOwnershipController,
   updateVehicleOwnershipController,
   deleteVehicleOwnershipController,
-  getAllVehicleOwnershipsController,
+  listVehicleOwnershipsController,
 };

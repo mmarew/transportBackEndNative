@@ -1,11 +1,11 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
-const { performJoinSelect, getData } = require("../CRUD/Read/ReadData");
 const {
   getStatusOfVehicleByVehicleUniqueId,
   createVehicleStatus,
 } = require("./VehicleStatus.service");
 const { insertData } = require("../CRUD/Create/CreateData");
+const { usersRoles } = require("../Utils/ListOfFixedData");
 
 const createVehicleOwnership = async (body) => {
   const {
@@ -42,13 +42,20 @@ const createVehicleOwnership = async (body) => {
     return { message: "error", error: "Vehicle is not active" };
   }
 
-  // Check if ownership already exists
-  const existingOwnership = await getData({
-    tableName: "VehicleOwnership",
-    conditions: { vehicleUniqueId, userUniqueId },
+  // Check if ownership already exists (using filter function)
+  const existingOwnership = await getVehicleOwnershipsByFilter({
+    filters: {
+      vehicleUniqueId,
+      userUniqueId,
+      roleId: usersRoles.vehicleOwnerRoleId,
+    },
   });
   if (existingOwnership.length) {
-    return { message: "error", error: "Vehicle ownership already exists" };
+    return {
+      message: "error",
+      error: "Vehicle ownership already exists",
+      existingOwnership,
+    };
   }
   // validate not by existingOwnership only but also by VehicleOwnership.ownershipEndDate
   // Prevent overlapping/active ownerships for the same vehicle
@@ -68,6 +75,7 @@ const createVehicleOwnership = async (body) => {
   ]);
   if (overlaps.length) {
     return {
+      overlaps,
       message: "error",
       error: "Vehicle is already reserved by other user",
     };
@@ -90,35 +98,7 @@ const createVehicleOwnership = async (body) => {
   return { message: "success", data: result };
 };
 
-const getVehicleOwnership = async (ownershipId) => {
-  const sql = `SELECT * FROM VehicleOwnership WHERE ownershipId = ?`;
-  try {
-    const [result] = await pool.query(sql, [ownershipId]);
-    return result.length > 0 ? result[0] : null;
-  } catch (error) {
-    console.log("Error fetching vehicle ownership:", error);
-    throw error;
-  }
-};
-const getVehicleAndOwnershipViaUserUniqueId = async (userUniqueId) => {
-  const vehicle = await performJoinSelect({
-    baseTable: "Vehicle",
-    joins: [
-      {
-        table: "VehicleOwnership",
-        on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
-      },
-      {
-        table: "VehicleTypes",
-        on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-      },
-    ],
-    conditions: {
-      "VehicleOwnership.userUniqueId": userUniqueId,
-    },
-  });
-  return { message: "success", data: vehicle };
-};
+// removed granular getters in favor of filter-based retrieval
 
 const updateVehicleOwnership = async (ownershipId, body) => {
   const { vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate } =
@@ -173,43 +153,84 @@ const deleteVehicleOwnership = async (ownershipId) => {
   }
 };
 
-const getAllVehicleOwnerships = async () => {
-  const sql = `SELECT * FROM VehicleOwnership`;
+// removed getAllVehicleOwnerships in favor of filter-based retrieval
+// get vehicle ownerships by filters across all columns
+const getVehicleOwnershipsByFilter = async ({
+  filters = {},
+  page,
+  limit,
+  includePagination = false,
+} = {}) => {
   try {
-    const [result] = await pool.query(sql);
-    return result;
+    const allowedKeys = [
+      "ownershipId",
+      "ownershipUniqueId",
+      "vehicleUniqueId",
+      "userUniqueId",
+      "roleId",
+      "ownershipStartDate",
+      "ownershipEndDate",
+    ];
+
+    const where = [];
+    const values = [];
+
+    for (const key of allowedKeys) {
+      if (filters[key] !== undefined && filters[key] !== "") {
+        where.push(`${key} = ?`);
+        values.push(filters[key]);
+      }
+    }
+
+    // Pagination
+    let paginationClause = "";
+    let pagination = undefined;
+    if (limit) {
+      const pageNum = Math.max(parseInt(page || 1), 1);
+      const pageSize = Math.max(parseInt(limit), 1);
+      const offset = (pageNum - 1) * pageSize;
+      paginationClause = " LIMIT ? OFFSET ?";
+      values.push(pageSize, offset);
+
+      // Count total only when pagination requested and response wants pagination meta
+      if (includePagination) {
+        const countSql = `SELECT COUNT(*) AS total FROM VehicleOwnership${
+          where.length ? " WHERE " + where.join(" AND ") : ""
+        }`;
+        const [countRows] = await pool.query(
+          countSql,
+          values.slice(0, values.length - 2)
+        );
+        const total = countRows?.[0]?.total || 0;
+        const totalPages = Math.ceil(total / pageSize);
+        pagination = {
+          currentPage: pageNum,
+          totalPages,
+          totalItems: total,
+          itemsPerPage: pageSize,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1,
+        };
+      }
+    }
+
+    const sql = `SELECT * FROM VehicleOwnership${
+      where.length ? " WHERE " + where.join(" AND ") : ""
+    }${paginationClause}`;
+
+    const [rows] = await pool.query(sql, values);
+    if (includePagination && limit)
+      return { message: "success", data: rows, pagination };
+    return rows;
   } catch (error) {
-    console.log("Error fetching vehicle ownerships:", error);
+    console.log("Error fetching vehicle ownerships by filter:", error);
     throw error;
   }
 };
-const getVehicleOwnershipByUserUniqueId = async (userUniqueId) => {
-  const vehicle = await performJoinSelect({
-    baseTable: "Vehicle",
-    joins: [
-      {
-        table: "VehicleOwnership",
-        on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
-      },
-      {
-        table: "Users",
-        on: "VehicleOwnership.userUniqueId = Users.userUniqueId",
-      },
-      {
-        table: "VehicleTypes",
-        on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-      },
-    ],
-    conditions: { ["VehicleOwnership.userUniqueId"]: userUniqueId },
-  });
-  return vehicle;
-};
+// removed getVehicleOwnershipByUserUniqueId in favor of filter-based retrieval
 module.exports = {
-  getVehicleAndOwnershipViaUserUniqueId,
-  getVehicleOwnershipByUserUniqueId,
   createVehicleOwnership,
-  getVehicleOwnership,
   updateVehicleOwnership,
   deleteVehicleOwnership,
-  getAllVehicleOwnerships,
+  getVehicleOwnershipsByFilter,
 };

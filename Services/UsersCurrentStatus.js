@@ -20,10 +20,7 @@ const {
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
 
-const {
-  getVehicleAndOwnershipViaUserUniqueId,
-  getVehicleOwnershipByUserUniqueId,
-} = require("./VehicleOwnership.service");
+// Removed granular VehicleOwnership getters; using performJoinSelect directly
 const { getVehicleDrivers } = require("./VehicleDriver.service");
 const messageTypes = require("../Utils/MessageTypes");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
@@ -379,7 +376,21 @@ const verifyPassengerStatus = async ({
               driver?.userUniqueId,
               listOfDocumentsTypeAndId.profilePhoto
             ),
-            getVehicleOwnershipByUserUniqueId(driver?.userUniqueId),
+            performJoinSelect({
+              baseTable: "Vehicle",
+              joins: [
+                {
+                  table: "VehicleOwnership",
+                  on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+                },
+                {
+                  table: "VehicleTypes",
+                  on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+                },
+              ],
+              conditions: { "VehicleOwnership.userUniqueId": driver?.userUniqueId },
+              limit: 1,
+            }),
           ]);
           const documentsData = documents?.data;
           const lastDataIndex = documentsData?.length - 1;
@@ -512,12 +523,24 @@ const verifyPassengerStatus = async ({
             data?.[lastDataIndex]?.attachedDocumentName;
           const phoneNumber = driver?.phoneNumber;
 
-          const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
-            driver?.userUniqueId
-          );
+          const vehicleOfDriver = await performJoinSelect({
+            baseTable: "Vehicle",
+            joins: [
+              {
+                table: "VehicleOwnership",
+                on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+              },
+              {
+                table: "VehicleTypes",
+                on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+              },
+            ],
+            conditions: { "VehicleOwnership.userUniqueId": driver?.userUniqueId },
+            limit: 1,
+          });
 
           const driverInfo = {
-            vehicleOfDriver: vehicleOfDriver[0],
+            vehicleOfDriver: vehicleOfDriver?.[0],
             driver: { ...driver, driverProfilePhoto },
           };
           driversData.push(driverInfo);

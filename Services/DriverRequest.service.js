@@ -19,10 +19,7 @@ const {
 } = require("../Utils/Notifications");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 
-const {
-  getVehicleOwnershipByUserUniqueId,
-  getVehicleAndOwnershipViaUserUniqueId,
-} = require("./VehicleOwnership.service");
+// Removed granular VehicleOwnership getters; use performJoinSelect instead
 const {
   getTariffRateByVehicleTypeUniqueId,
 } = require("./TariffRateForVehicleTypes.service");
@@ -179,16 +176,32 @@ const takeFromStreet = async (body, user) => {
       longitude: originLocation.longitude,
     });
     responseData.journey = journey[0];
-    // const vehicle = await verifyUsersVehicle(userUniqueId);
-    const vehicle = await getVehicleAndOwnershipViaUserUniqueId(userUniqueId);
-    const vehicleTypeUniqueId = vehicle?.data[0]?.vehicleTypeUniqueId;
+    // fetch vehicle joined with ownership and types for the driver
+    const vehicleRows = await performJoinSelect({
+      baseTable: "Vehicle",
+      joins: [
+        {
+          table: "VehicleOwnership",
+          on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
+        },
+        {
+          table: "VehicleTypes",
+          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+        },
+      ],
+      conditions: {
+        "VehicleOwnership.userUniqueId": userUniqueId,
+      },
+      limit: 1,
+    });
+    const vehicleTypeUniqueId = vehicleRows?.[0]?.vehicleTypeUniqueId;
     const vehicleTariffRate = await getTariffRateByVehicleTypeUniqueId(
       vehicleTypeUniqueId
     );
     const driver = await getUserByUserUniqueId(userUniqueId);
     const driverData = {
       driver: { ...driver.data, ...driverRequest.data[0] },
-      vehicle: vehicle.data[0],
+      vehicle: vehicleRows?.[0],
       vehicleTariffRate: vehicleTariffRate.data[0],
     };
     responseData.passenger = {
@@ -566,7 +579,21 @@ const journeyCompleted = async (body) => {
     // console.log("@journeyCompleted decisions=======> ", decisions);
     // 2. Fetch data in parallel
     const [vehicleData, driver, passenger] = await Promise.all([
-      getVehicleOwnershipByUserUniqueId(userUniqueId),
+      performJoinSelect({
+        baseTable: "Vehicle",
+        joins: [
+          {
+            table: "VehicleOwnership",
+            on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+          },
+          {
+            table: "VehicleTypes",
+            on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+          },
+        ],
+        conditions: { "VehicleOwnership.userUniqueId": userUniqueId },
+        limit: 1,
+      }),
       getUserByUserUniqueId(userUniqueId),
       performJoinSelect({
         baseTable: "PassengerRequest",

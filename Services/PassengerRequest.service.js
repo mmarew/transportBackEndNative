@@ -15,9 +15,7 @@ const {
   verifyPassengerStatus,
   verifyDriverStatus,
 } = require("./UsersCurrentStatus");
-const {
-  getVehicleOwnershipByUserUniqueId,
-} = require("./VehicleOwnership.service");
+// Removed granular VehicleOwnership getter; use performJoinSelect instead
 require("./AttachedDocuments.service");
 
 const createPassengerRequest = async (body, user, journeyStatusId) => {
@@ -374,11 +372,23 @@ const getDetailedJourneyData = async (passengerRequests) => {
 
         const driverUserUniqueId = driverResults[0]?.userUniqueId;
         if (driverUserUniqueId) {
-          const vehicleOfDriver = await getVehicleOwnershipByUserUniqueId(
-            driverUserUniqueId
-          );
+          const vehicleOfDriver = await performJoinSelect({
+            baseTable: "Vehicle",
+            joins: [
+              {
+                table: "VehicleOwnership",
+                on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
+              },
+              {
+                table: "VehicleTypes",
+                on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+              },
+            ],
+            conditions: { "VehicleOwnership.userUniqueId": driverUserUniqueId },
+            limit: 1,
+          });
           return (
-            { ...driverResults[0], vehicleOfDriver: vehicleOfDriver[0] } || null
+            { ...driverResults[0], vehicleOfDriver: vehicleOfDriver?.[0] } || null
           );
         }
         return null;

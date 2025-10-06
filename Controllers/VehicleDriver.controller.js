@@ -32,7 +32,7 @@ const getVehicleDriversController = async (req, res) => {
 // PUT /api/vehicleDriver/:vehicleDriverUniqueId
 const updateVehicleDriverController = async (req, res) => {
   try {
-    const { vehicleDriverUniqueId } = req.params;
+    const vehicleDriverUniqueId = req.query.vehicleDriverUniqueId || req.params.vehicleDriverUniqueId;
     const result = await updateVehicleDriverByUniqueId(vehicleDriverUniqueId, req.body || {});
     return ServerResponder(res, result);
   } catch (error) {
@@ -44,7 +44,7 @@ const updateVehicleDriverController = async (req, res) => {
 // DELETE /api/vehicleDriver/:vehicleDriverUniqueId
 const deleteVehicleDriverController = async (req, res) => {
   try {
-    const { vehicleDriverUniqueId } = req.params;
+    const vehicleDriverUniqueId = req.query.vehicleDriverUniqueId || req.params.vehicleDriverUniqueId;
     const result = await deleteVehicleDriverByUniqueId(vehicleDriverUniqueId);
     return ServerResponder(res, result);
   } catch (error) {

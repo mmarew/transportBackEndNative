@@ -7,6 +7,7 @@ const { createVehicleOwnership } = require("./VehicleOwnership.service");
 const { createVehicleStatus } = require("./VehicleStatus.service");
 const { removeWhiteSpace } = require("../Validator/Validation");
 const { createVehicleDriver } = require("./VehicleDriver.service");
+const { usersRoles } = require("../Utils/ListOfFixedData");
 
 // create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user, ownerUserUniqueId) => {
@@ -69,12 +70,13 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
       vehicleUniqueId: vehicle[0].vehicleUniqueId,
       userUniqueId:
         ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId,
-      roleId: 2,
+      roleId: usersRoles.vehicleOwnerRoleId,
       ownershipStartDate: currentDate(),
     });
     // create vehicle-driver relationship (owner as initial driver)
-    const ownerId = ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId;
-    await createVehicleDriver({
+    const ownerId =
+      ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId;
+    const driverResult = await createVehicleDriver({
       vehicleUniqueId: vehicle[0].vehicleUniqueId,
       ownerUserUniqueId: ownerId,
       driverUserUniqueId: ownerId,
@@ -82,7 +84,7 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
       assignmentStartDate: currentDate(),
     });
 
-    return ownershipResult;
+    return { ownershipResult, driverResult };
   } catch (error) {
     console.error("Error @createVehicle:", error);
     return { message: "error", error: "Failed to create vehicle" };

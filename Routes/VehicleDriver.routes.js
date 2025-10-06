@@ -19,14 +19,14 @@ router.get(
 
 // Update
 router.put(
-  "/api/vehicleDriver/:vehicleDriverUniqueId",
+  "/api/vehicleDriver",
   verifyTokenOfAxios,
   ctrl.updateVehicleDriverController
 );
 
 // Delete
 router.delete(
-  "/api/vehicleDriver/:vehicleDriverUniqueId",
+  "/api/vehicleDriver",
   verifyTokenOfAxios,
   ctrl.deleteVehicleDriverController
 );

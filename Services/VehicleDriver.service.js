@@ -1,3 +1,4 @@
+const { getData } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 
@@ -32,9 +33,22 @@ const createVehicleDriver = async (data) => {
     tableName: "VehicleDriver",
     conditions: { vehicleUniqueId, assignmentStatus: "active" },
   });
-
+  console.log("@vehicleDriver", vehicleDriver);
+  // if vehicle is reserved by current user driver
+  for (let data of vehicleDriver) {
+    if (
+      data.driverUserUniqueId == driverUserUniqueId &&
+      data.assignmentStatus == "active"
+    ) {
+      return { message: "error", error: "Vehicle is already reserved by you" };
+    }
+  }
+  // if vehicle is reserved by another user driver
   if (vehicleDriver.length) {
-    return { message: "error", error: "Vehicle is already reserved" };
+    return {
+      message: "error",
+      error: "Vehicle is already reserved by another user",
+    };
   }
   const vehicleDriverUniqueId = uuidv4();
   const sql = `
