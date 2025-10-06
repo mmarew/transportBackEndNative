@@ -64,24 +64,133 @@ const createMapping = async ({ body }) => {
     return { message: "error", data: "Failed to create mapping" };
   }
 };
-const getMappingByRoleUniqueId = async (roleUniqueId) => {
-  const rows = await performJoinSelect({
-    baseTable: "RoleDocumentRequirements",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-      {
-        table: "Roles",
-        on: "RoleDocumentRequirements.roleId=Roles.roleId",
-      },
-    ],
-    conditions: { "Roles.roleUniqueId": roleUniqueId },
-  });
+// Consolidated, secure, paginated GET with filters across columns
+const getRoleDocumentRequirements = async (filters = {}) => {
+  const {
+    roleDocumentRequirementUniqueId,
+    roleId,
+    documentTypeId,
+    isDocumentMandatory,
+    isExpirationDateRequired,
+    isFileNumberRequired,
+    roleDocumentRequirementCreatedBy,
+    roleUniqueId, // via join
+    createdStart,
+    createdEnd,
+    updatedStart,
+    updatedEnd,
+    page = 1,
+    limit = 10,
+    sortBy = "roleDocumentRequirementCreatedAt",
+    sortOrder = "DESC",
+  } = filters;
+
+  const where = [];
+  const params = [];
+
+  if (roleDocumentRequirementUniqueId) {
+    where.push("r.roleDocumentRequirementUniqueId = ?");
+    params.push(roleDocumentRequirementUniqueId);
+  }
+  if (roleId) {
+    where.push("r.roleId = ?");
+    params.push(Number(roleId));
+  }
+  if (documentTypeId) {
+    where.push("r.documentTypeId = ?");
+    params.push(Number(documentTypeId));
+  }
+  if (typeof isDocumentMandatory !== "undefined") {
+    where.push("r.isDocumentMandatory = ?");
+    params.push(String(isDocumentMandatory).toLowerCase() === "true" ? 1 : 0);
+  }
+  if (typeof isExpirationDateRequired !== "undefined") {
+    where.push("r.isExpirationDateRequired = ?");
+    params.push(
+      String(isExpirationDateRequired).toLowerCase() === "true" ? 1 : 0
+    );
+  }
+  if (typeof isFileNumberRequired !== "undefined") {
+    where.push("r.isFileNumberRequired = ?");
+    params.push(String(isFileNumberRequired).toLowerCase() === "true" ? 1 : 0);
+  }
+  if (roleDocumentRequirementCreatedBy) {
+    where.push("r.roleDocumentRequirementCreatedBy = ?");
+    params.push(roleDocumentRequirementCreatedBy);
+  }
+  if (roleUniqueId) {
+    where.push("ro.roleUniqueId = ?");
+    params.push(roleUniqueId);
+  }
+  if (createdStart) {
+    where.push("r.roleDocumentRequirementCreatedAt >= ?");
+    params.push(createdStart);
+  }
+  if (createdEnd) {
+    where.push("r.roleDocumentRequirementCreatedAt <= ?");
+    params.push(createdEnd);
+  }
+  if (updatedStart) {
+    where.push("r.roleDocumentRequirementUpdatedAt >= ?");
+    params.push(updatedStart);
+  }
+  if (updatedEnd) {
+    where.push("r.roleDocumentRequirementUpdatedAt <= ?");
+    params.push(updatedEnd);
+  }
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const numPage = Math.max(1, Number(page) || 1);
+  const numLimit = Math.max(1, Math.min(Number(limit) || 10, 100));
+  const offset = (numPage - 1) * numLimit;
+
+  const sortableMap = {
+    roleDocumentRequirementCreatedAt: "r.roleDocumentRequirementCreatedAt",
+    roleDocumentRequirementUpdatedAt: "r.roleDocumentRequirementUpdatedAt",
+    roleId: "r.roleId",
+    documentTypeId: "r.documentTypeId",
+  };
+  const safeSortBy =
+    sortableMap[sortBy] || sortableMap.roleDocumentRequirementCreatedAt;
+  const safeSortOrder =
+    String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+  const sql = `
+    SELECT 
+      r.*, 
+      dt.documentTypeId as dt_documentTypeId, dt.documentTypeName,
+      ro.roleId as ro_roleId, ro.roleUniqueId, ro.roleName
+    FROM RoleDocumentRequirements r
+    LEFT JOIN DocumentTypes dt ON r.documentTypeId = dt.documentTypeId
+    LEFT JOIN Roles ro ON r.roleId = ro.roleId
+    ${whereClause}
+    ORDER BY ${safeSortBy} ${safeSortOrder}
+    LIMIT ? OFFSET ?
+  `;
+  const countSql = `
+    SELECT COUNT(*) as total
+    FROM RoleDocumentRequirements r
+    LEFT JOIN Roles ro ON r.roleId = ro.roleId
+    ${whereClause}
+  `;
+
+  const [rows] = await pool.query(sql, [...params, numLimit, offset]);
+  const [countRows] = await pool.query(countSql, params);
+  const total = countRows[0]?.total || 0;
+  const totalPages = Math.ceil(total / numLimit);
+
   return {
     message: "success",
     data: rows,
+    pagination: {
+      currentPage: numPage,
+      itemsPerPage: numLimit,
+      totalItems: total,
+      totalPages,
+      hasNext: numPage < totalPages,
+      hasPrev: numPage > 1,
+    },
   };
 };
 
@@ -134,14 +243,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
 
   return { message: "success", data: "Mapping updated successfully" };
 };
-const getMappingByRoleDocumentRequirementUniqueId = async (
-  roleDocumentRequirementUniqueId
-) => {
-  const sql = `Select * from RoleDocumentRequirements where roleDocumentRequirementUniqueId=?`;
-  const values = [roleDocumentRequirementUniqueId];
-  const [result] = await pool.query(sql, values);
-  return { message: "success", data: result };
-};
+// Removed individual GET by ID helper in favor of consolidated getter
 // Delete a mapping by ID
 const deleteMapping = async (roleDocumentRequirementUniqueId) => {
   const result = await pool.query(
@@ -153,25 +255,7 @@ const deleteMapping = async (roleDocumentRequirementUniqueId) => {
   }
   return { message: "success", data: "Mapping deleted successfully" };
 };
-const getAllMappings = async () => {
-  const rows = await performJoinSelect({
-    baseTable: "RoleDocumentRequirements",
-    joins: [
-      {
-        table: "DocumentTypes",
-        on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-      },
-      {
-        table: "Roles",
-        on: "RoleDocumentRequirements.roleId=Roles.roleId",
-      },
-    ],
-  });
-  return {
-    message: "success",
-    data: rows,
-  };
-};
+// Removed getAllMappings in favor of consolidated getter with pagination
 const driversDocumentVehicleRequirement = async (body) => {
   try {
     const ownerUserUniqueId = body.ownerUserUniqueId;
@@ -188,17 +272,15 @@ const driversDocumentVehicleRequirement = async (body) => {
 
     const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
     // return;
-    // Fetch required documents for the user's role
-    const requiredDocuments = await performJoinSelect({
-      baseTable: "RoleDocumentRequirements",
-      joins: [
-        {
-          table: "DocumentTypes",
-          on: "RoleDocumentRequirements.documentTypeId=DocumentTypes.documentTypeId",
-        },
-      ],
-      conditions: { roleId },
+    // Fetch required documents for the user's role via consolidated getter
+    const requiredDocsResult = await getRoleDocumentRequirements({
+      roleId,
+      page: 1,
+      limit: 1000,
+      sortBy: "documentTypeId",
+      sortOrder: "ASC",
     });
+    const requiredDocuments = requiredDocsResult?.data || [];
 
     if (!requiredDocuments || requiredDocuments.length === 0) {
       return { message: "error", data: "No documents required for this role" };
@@ -310,10 +392,8 @@ WHERE AttachedDocuments.userUniqueId = ?
 };
 
 module.exports = {
-  getMappingByRoleDocumentRequirementUniqueId,
+  getRoleDocumentRequirements,
   driversDocumentVehicleRequirement,
-  getAllMappings,
-  getMappingByRoleUniqueId,
   createMapping,
   updateMapping,
   deleteMapping,

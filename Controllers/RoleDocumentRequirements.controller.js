@@ -56,30 +56,31 @@ const driversDocumentVehicleRequirement = async (req, res) => {
     });
   }
 };
-const getMappingByRoleUniqueId = async (req, res) => {
-  try {
-    const user = req?.user;
-    let roleUniqueId = req.params.roleUniqueId;
-    if (roleUniqueId == "self") {
-      const roleData = await getData({
-        tableName: "Roles",
-        conditions: { roleId: user.roleId },
-      });
-      roleUniqueId = roleData[0]?.roleUniqueId;
-      console.log("roleUniqueId is ======= ", roleUniqueId);
-    }
 
-    const result =
-      await RoleDocumentRequirementsService.getMappingByRoleUniqueId(
-        roleUniqueId
+// Consolidated GET with filters & pagination
+const getRoleDocumentRequirements = async (req, res) => {
+  try {
+    const query = req.query || {};
+    // Normalize booleans that may come as strings
+    const normalized = { ...query };
+    const toBool = (v) =>
+      v === true || String(v).toLowerCase() === "true" ? true : undefined;
+    if ("isDocumentMandatory" in normalized)
+      normalized.isDocumentMandatory = toBool(normalized.isDocumentMandatory);
+    if ("isExpirationDateRequired" in normalized)
+      normalized.isExpirationDateRequired = toBool(
+        normalized.isExpirationDateRequired
       );
+    if ("isFileNumberRequired" in normalized)
+      normalized.isFileNumberRequired = toBool(normalized.isFileNumberRequired);
+
+    const result = await RoleDocumentRequirementsService.getRoleDocumentRequirements(
+      normalized
+    );
     ServerResponder(res, result);
   } catch (error) {
-    console.log("error @ getMappingByRoleUniqueId", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to get data",
-    });
+    console.log("@getRoleDocumentRequirements error", error);
+    ServerResponder(res, { message: "error", error: "unable to get data" });
   }
 };
 
@@ -99,21 +100,7 @@ const updateMapping = async (req, res) => {
     });
   }
 };
-const getMappingByRoleDocumentRequirementUniqueId = async (req, res) => {
-  try {
-    const result =
-      await RoleDocumentRequirementsService.getMappingByRoleDocumentRequirementUniqueId(
-        req.params.roleDocumentRequirementUniqueId
-      );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.log("@getMappingByRoleDocumentRequirementUniqueId error", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to get data",
-    });
-  }
-};
+// Removed individual GET by ID in favor of consolidated getter
 
 // Delete a mapping by ID
 const deleteMapping = async (req, res) => {
@@ -129,22 +116,10 @@ const deleteMapping = async (req, res) => {
     });
   }
 };
-const getAllMappings = async (req, res) => {
-  try {
-    const result = await RoleDocumentRequirementsService.getAllMappings();
-    ServerResponder(res, result);
-  } catch (error) {
-    ServerResponder(res, {
-      message: "error",
-      error: "unable to get data",
-    });
-  }
-};
+// Removed getAllMappings in favor of consolidated getter
 module.exports = {
-  getMappingByRoleDocumentRequirementUniqueId,
   driversDocumentVehicleRequirement,
-  getAllMappings,
-  getMappingByRoleUniqueId,
+  getRoleDocumentRequirements,
   createMapping,
   updateMapping,
   deleteMapping,

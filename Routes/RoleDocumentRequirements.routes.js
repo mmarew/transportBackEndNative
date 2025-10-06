@@ -9,16 +9,17 @@ router.post(
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.createMapping
 );
+// Consolidated filterable GET (paginated)
+router.get(
+  "/api/RoleDocumentRequirements",
+  verifyTokenOfAxios,
+  RoleDocumentRequirementsController.getRoleDocumentRequirements
+);
+// Keep driversDocumentVehicleRequirement as requested
 router.get(
   "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
   verifyTokenOfAxios,
-
   RoleDocumentRequirementsController.driversDocumentVehicleRequirement
-);
-router.get(
-  "/api/user/getMappingByRoleUniqueId/:roleUniqueId",
-  verifyTokenOfAxios,
-  RoleDocumentRequirementsController.getMappingByRoleUniqueId
 );
 // Update a mapping by ID
 router.put(
@@ -26,24 +27,10 @@ router.put(
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.updateMapping
 );
-// Update a mapping by ID
-router.get(
-  "/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
-  verifyTokenOfAxios,
-  RoleDocumentRequirementsController.getMappingByRoleDocumentRequirementUniqueId
-);
-
 // Delete a mapping by ID
 router.delete(
   "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.deleteMapping
-);
-// get all mappings
-router.get(
-  "/api/admin/getAllMappings",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  RoleDocumentRequirementsController.getAllMappings
 );
 module.exports = router;

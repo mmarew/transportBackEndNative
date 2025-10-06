@@ -96,13 +96,15 @@ const createDriverDeposit = async (data) => {
     if (!insertResult.affectedRows) {
       return { message: "error", error: "Failed to insert deposit data" };
     }
-    const fulldata = await getDriverDepositByUniqueIdAndDriverUniqueId({
+    // Fetch inserted row via consolidated getter
+    const fullData = await getDriverDeposit({
       driverDepositUniqueId,
       driverUniqueId,
+      limit: 1,
     });
     const message = {
       message: "success",
-      data: fulldata?.data,
+      data: Array.isArray(fullData?.data) ? fullData.data[0] : fullData?.data,
     };
     sendNotificationToAdmin({ message });
     return message;
@@ -113,27 +115,26 @@ const createDriverDeposit = async (data) => {
   }
 };
 
-const getOneDriverDepositDataByStatus = async ({
-  status,
-  driverUserUniqueId,
-}) => {
-  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus = ? and driverUniqueId=? ORDER BY depositTime DESC`;
-  const [result] = await pool.query(sql, [status, driverUserUniqueId]);
-  return { message: "success", data: result };
-};
-const getAllDriverDepositDataByStatus = async (depositStatus) => {
-  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus = ? ORDER BY depositTime DESC`;
-  const [result] = await pool.query(sql, [depositStatus]);
-  return { message: "success", data: result };
-};
+// Removed specialized GET helpers in favor of consolidated getDriverDeposit
 const getDriverDeposit = async (filters = {}) => {
   const {
     driverUniqueId,
     depositStatus,
+    includeNullStatus,
     minAmount,
     maxAmount,
+    depositAmount,
     startDate,
     endDate,
+    depositSourceUniqueId,
+    accountUniqueId,
+    depositURL,
+    depositURLMatch, // contains|exact|startsWith|endsWith
+    depositURLCaseSensitive, // boolean-like
+    driverDepositUniqueId,
+    driverDepositId,
+    createdStart,
+    createdEnd,
     page = 1,
     limit = 10,
     sortBy = "depositTime",
@@ -150,12 +151,33 @@ const getDriverDeposit = async (filters = {}) => {
     params.push(driverUniqueId);
   }
 
-  if (depositStatus) {
+  if (driverDepositUniqueId) {
+    whereConditions.push("dd.driverDepositUniqueId = ?");
+    params.push(driverDepositUniqueId);
+  }
+
+  if (driverDepositId) {
+    whereConditions.push("dd.driverDepositId = ?");
+    params.push(Number(driverDepositId));
+  }
+
+  if (depositStatus || includeNullStatus) {
     const statusArray = Array.isArray(depositStatus)
       ? depositStatus
-      : depositStatus.split(",");
+      : String(depositStatus || "")
+          .split(",")
+          .filter(Boolean);
 
-    if (statusArray.length > 0) {
+    const hasStatuses = statusArray.length > 0;
+    if (includeNullStatus && hasStatuses) {
+      const placeholders = statusArray.map(() => "?").join(",");
+      whereConditions.push(
+        `(dd.depositStatus IN (${placeholders}) OR dd.depositStatus IS NULL)`
+      );
+      params.push(...statusArray);
+    } else if (includeNullStatus && !hasStatuses) {
+      whereConditions.push(`dd.depositStatus IS NULL`);
+    } else if (hasStatuses) {
       const placeholders = statusArray.map(() => "?").join(",");
       whereConditions.push(`dd.depositStatus IN (${placeholders})`);
       params.push(...statusArray);
@@ -173,6 +195,11 @@ const getDriverDeposit = async (filters = {}) => {
     params.push(parseFloat(maxAmount));
   }
 
+  if (depositAmount) {
+    whereConditions.push("dd.depositAmount = ?");
+    params.push(parseFloat(depositAmount));
+  }
+
   if (startDate) {
     whereConditions.push("dd.depositTime >= ?");
     params.push(startDate);
@@ -183,102 +210,110 @@ const getDriverDeposit = async (filters = {}) => {
     params.push(endDate);
   }
 
+  if (createdStart) {
+    whereConditions.push("dd.createdAt >= ?");
+    params.push(createdStart);
+  }
+
+  if (createdEnd) {
+    whereConditions.push("dd.createdAt <= ?");
+    params.push(createdEnd);
+  }
+
+  if (depositSourceUniqueId) {
+    whereConditions.push("dd.depositSourceUniqueId = ?");
+    params.push(depositSourceUniqueId);
+  }
+
+  if (accountUniqueId) {
+    whereConditions.push("dd.accountUniqueId = ?");
+    params.push(accountUniqueId);
+  }
+
+  if (depositURL) {
+    const mode = String(depositURLMatch || "contains").toLowerCase();
+    const caseSensitive =
+      depositURLCaseSensitive === true ||
+      String(depositURLCaseSensitive).toLowerCase() === "true";
+
+    let pattern = `%${depositURL}%`;
+    if (mode === "exact") pattern = `${depositURL}`;
+    if (mode === "startswith") pattern = `${depositURL}%`;
+    if (mode === "endswith") pattern = `%${depositURL}`;
+
+    if (mode === "exact") {
+      if (caseSensitive) {
+        whereConditions.push("dd.depositURL COLLATE utf8mb4_bin = ?");
+      } else {
+        whereConditions.push("dd.depositURL = ?");
+      }
+      params.push(pattern);
+    } else {
+      if (caseSensitive) {
+        whereConditions.push("dd.depositURL COLLATE utf8mb4_bin LIKE ?");
+      } else {
+        whereConditions.push("dd.depositURL LIKE ?");
+      }
+      params.push(pattern);
+    }
+  }
+
   const whereClause =
     whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
 
-  const offset = (page - 1) * limit;
+  // Normalize pagination and cap limit
+  const numPage = Math.max(1, Number(page) || 1);
+  const numLimit = Math.max(1, Math.min(Number(limit) || 10, 100));
+  const offset = (numPage - 1) * numLimit;
+
+  // Whitelist sort fields to prevent SQL injection
+  const sortableMap = {
+    depositTime: "dd.depositTime",
+    depositAmount: "dd.depositAmount",
+    depositStatus: "dd.depositStatus",
+    createdAt: "dd.createdAt",
+    driverDepositId: "dd.driverDepositId",
+    driverDepositUniqueId: "dd.driverDepositUniqueId",
+  };
+  const safeSortBy = sortableMap[sortBy] || sortableMap["depositTime"];
+  const safeSortOrder =
+    String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
 
   const sql = `
     SELECT dd.*, u.fullName ,u.phoneNumber,u.email
     FROM DriverDeposit dd
     LEFT JOIN Users u ON dd.driverUniqueId = u.userUniqueId
     ${whereClause}
-    ORDER BY ${sortBy} ${sortOrder}
+    ORDER BY ${safeSortBy} ${safeSortOrder}
     LIMIT ? OFFSET ?
   `;
 
   const countSql = `SELECT COUNT(*) as total FROM DriverDeposit dd ${whereClause}`;
 
-  const [data] = await pool.query(sql, [...params, limit, offset]);
+  const [data] = await pool.query(sql, [
+    ...params,
+    Number(numLimit),
+    Number(offset),
+  ]);
   const [countResult] = await pool.query(countSql, params);
 
   const total = countResult[0].total;
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.ceil(total / numLimit);
 
   return {
     message: "success",
     data,
     pagination: {
-      currentPage: page,
+      currentPage: Number(numPage),
       totalPages,
       totalItems: total,
-      itemsPerPage: limit,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
+      itemsPerPage: Number(numLimit),
+      hasNext: Number(numPage) < totalPages,
+      hasPrev: Number(numPage) > 1,
     },
   };
 };
-// Get All (with account + source info)
-const getDriverDepositsWithAccountInfo = async (driverUniqueId) => {
-  let sql = `
-    SELECT 
-      d.driverDepositId,
-      d.driverDepositUniqueId,
-      d.driverUniqueId,
-      d.depositAmount,
-      d.depositSourceUniqueId,
-      d.accountUniqueId,
-      d.depositTime,
-      d.createdAt,
-
-      a.institutionName,
-      a.accountHolderName,
-      a.accountNumber,
-      a.accountType,
-
-      s.sourceKey,
-      s.sourceLabel
-
-    FROM DriverDeposit d
-    LEFT JOIN FinancialInstitutionAccounts a ON d.accountUniqueId = a.accountUniqueId
-    LEFT JOIN DepositSource s ON d.depositSourceUniqueId = s.depositSourceUniqueId
-  `;
-
-  const values = [];
-  if (driverUniqueId) {
-    sql += ` WHERE d.driverUniqueId = ?`;
-    values.push(driverUniqueId);
-  }
-
-  sql += ` ORDER BY d.depositTime DESC`;
-
-  const [result] = await pool.query(sql, values);
-  return { message: "success", data: result };
-};
-
-// Get by ID
-const getDriverDepositByUniqueId = async (driverDepositUniqueId) => {
-  const sql = `SELECT * FROM DriverDeposit WHERE driverDepositUniqueId = ?`;
-  const [result] = await pool.query(sql, [driverDepositUniqueId]);
-
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "Deposit not found" };
-};
-const getDriverDepositByUniqueIdAndDriverUniqueId = async ({
-  driverDepositUniqueId,
-  driverUniqueId,
-}) => {
-  const sql = `SELECT * FROM DriverDeposit join Users on Users.userUniqueId=DriverDeposit.driverUniqueId WHERE driverDepositUniqueId = ? and driverUniqueId=?`;
-  const [result] = await pool.query(sql, [
-    driverDepositUniqueId,
-    driverUniqueId,
-  ]);
-
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "Deposit not found" };
-};
+// Removed extra getters (with account info, by ID, etc.) to keep a single GET service
 
 // Update
 const updateDriverDepositByUniqueId = async (driverDepositUniqueId, data) => {
@@ -327,22 +362,7 @@ const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
     : { message: "error", error: "Delete failed or deposit not found" };
 };
 
-const getDepositsByDateRangeAndDriver = async ({
-  driverUniqueId,
-  startDate,
-  endDate,
-}) => {
-  const sql = `
-    SELECT * FROM DriverDeposit
-    WHERE driverUniqueId = ?
-      AND depositTime BETWEEN ? AND ?
-    ORDER BY depositTime DESC
-  `;
-
-  const [result] = await pool.query(sql, [driverUniqueId, startDate, endDate]);
-
-  return { message: "success", data: result };
-};
+// Removed specialized date-range getter: use getDriverDeposit with startDate & endDate
 
 /**
  * @function updateDriverDepositStatusService
@@ -361,8 +381,14 @@ const updateDriverDepositStatusService = async ({
     return { message: "error", error: "Invalid deposit status" };
   }
 
-  const depositData = (await getDriverDepositByUniqueId(driverDepositUniqueId))
-    ?.data;
+  // Load deposit using consolidated getter
+  const depositFetch = await getDriverDeposit({
+    driverDepositUniqueId,
+    limit: 1,
+  });
+  const depositData = Array.isArray(depositFetch?.data)
+    ? depositFetch.data[0]
+    : depositFetch?.data;
   console.log("@depositData", depositData);
 
   if (!depositData) {
@@ -422,38 +448,12 @@ const updateDriverDepositStatusService = async ({
     };
   }
 };
-/**
- * @function getUnauthorizedDeposits
- * @description Retrieves all driver deposits with status 'pending' (unauthorized).
- * @returns {Promise<Object>} - A success response with the list of unauthorized deposits.
- */
-const getUnauthorizedDeposits = async () => {
-  const value = ["requested"];
-  const sql = `SELECT * FROM DriverDeposit WHERE depositStatus is NULL OR depositStatus =? ORDER BY depositTime DESC`;
-  const [result] = await pool.query(sql, value);
-  return { message: "success", data: result };
-};
-const getUnauthorizedDepositsCount = async () => {
-  const sql = `SELECT COUNT(*) as count FROM DriverDeposit WHERE depositStatus is null or depositStatus = 'requested'`;
-  const [result] = await pool.query(sql);
-  return {
-    message: "success",
-    data: { numberOfUnAuthorizedDeposits: result[0].count },
-  };
-};
+// Removed unauthorized helpers; use consolidated getter with depositStatus filter as needed
 
 module.exports = {
-  getDriverDepositByUniqueIdAndDriverUniqueId,
-  getUnauthorizedDeposits,
-  getUnauthorizedDepositsCount,
   updateDriverDepositStatusService,
-  getDepositsByDateRangeAndDriver,
-  getOneDriverDepositDataByStatus,
-  getAllDriverDepositDataByStatus,
   getDriverDeposit,
   createDriverDeposit,
-  getDriverDepositsWithAccountInfo,
-  getDriverDepositByUniqueId,
   updateDriverDepositByUniqueId,
   deleteDriverDepositByUniqueId,
 };

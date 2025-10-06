@@ -1,5 +1,8 @@
 const { pool } = require("../../Middleware/Database.config");
-const { getDriverDepositByUniqueId } = require("../DriverDeposit.service");
+const {
+  getDriverDepositByUniqueId,
+  getDriverDeposit,
+} = require("../DriverDeposit.service");
 const { getTransferByUniqueId } = require("../DriverBalanceTransfer.service");
 const { getRefundByUniqueId } = require("../DriverRefund.service");
 const {
@@ -164,7 +167,7 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
     };
   } catch (error) {
     console.error("Error in getDriverLastBalanceByUserUniqueId:", error);
-    return { message: "error", error: "Unable to get driver balance" };
+    return { message: "error", error: "Unable to get driver last balance" };
   }
 };
 const getDriverBalanceByDateRange = async ({
@@ -191,7 +194,9 @@ const getDriverBalanceByDateRange = async ({
         console.log("@transactionType", transactionType);
         const transactionUniqueId = record?.transactionUniqueId;
         if (transactionType === "Deposit") {
-          const result = await getDriverDepositByUniqueId(transactionUniqueId);
+          const result = await getDriverDeposit({
+            driverDepositUniqueId: transactionUniqueId,
+          });
           if (result?.message == "success" && typeof result?.data == "object")
             TransactionData = { ...record, ...result?.data };
         } else if (transactionType === "Commission") {

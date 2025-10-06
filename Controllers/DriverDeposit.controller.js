@@ -19,116 +19,33 @@ exports.createDriverDeposit = async (req, res) => {
     });
   }
 };
-// Get All Deposits By Status
-exports.getAllDriverDepositDataByStatus = async (req, res) => {
-  try {
-    const { status } = req.params;
-    const result = await service.getAllDriverDepositDataByStatus(status);
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Fetch By Status Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch deposits by status",
-    });
-  }
-};
-// Get All Deposits By Status
-exports.getOneDriverDepositDataByStatus = async (req, res) => {
-  try {
-    const { status, driverUserUniqueId } = req.params;
-    const result = await service.getOneDriverDepositDataByStatus({
-      status,
-      driverUserUniqueId,
-    });
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Fetch By Status Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch deposits by status",
-    });
-  }
-};
 
 exports.getDriverDeposit = async (req, res) => {
   try {
-    const {
+    const query = req.query;
+    const user = req?.user;
+    console.log("@getDriverDeposit user", user);
+    let driverUniqueId = req?.query?.driverUniqueId;
+    if (driverUniqueId == "self" || !driverUniqueId) {
+      driverUniqueId = req?.user?.userUniqueId;
+    }
+    const filter = {
+      ...query,
       driverUniqueId,
-      depositStatus,
-      page = 1,
-      limit = 10,
-      sortBy = "depositTime",
-      sortOrder = "DESC",
-    } = req.query;
+      page: parseInt(query?.page) || 1,
+      limit: parseInt(query?.limit) || 10,
+      sortBy: query?.sortBy || "depositTime",
+      sortOrder: query?.sortOrder || "DESC",
+    };
 
     const result = await service.getDriverDeposit({
-      driverUniqueId,
-      depositStatus,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sortBy,
-      sortOrder: sortOrder.toUpperCase(),
+      ...filter,
     });
 
     ServerResponder(res, result);
   } catch (error) {
     console.log("@getAllDriverDepositData error", error);
     ServerResponder(res, { error: error.message }, 500);
-  }
-};
-// Get All (with optional driverUniqueId filter)
-exports.getDriverDepositsWithAccountInfo = async (req, res) => {
-  try {
-    const { driverUniqueId } = req.query;
-    const result = await service.getDriverDepositsWithAccountInfo(
-      driverUniqueId
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Fetch All Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch deposits",
-    });
-  }
-};
-
-// Get Single
-exports.getDriverDepositByUniqueId = async (req, res) => {
-  try {
-    const { driverDepositUniqueId } = req.params;
-    const result = await service.getDriverDepositByUniqueId(
-      driverDepositUniqueId
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Fetch One Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch deposit",
-    });
-  }
-};
-exports.getDriverDepositByUniqueIdAndDriverUniqueId = async (req, res) => {
-  try {
-    const { driverDepositUniqueId } = req.params;
-    let driverUniqueId = req?.params?.driverUniqueId;
-    if (driverUniqueId == "self") {
-      driverUniqueId = req.user?.userUniqueId;
-    }
-
-    const result = await service.getDriverDepositByUniqueIdAndDriverUniqueId({
-      driverDepositUniqueId,
-      driverUniqueId,
-    });
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Fetch One Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch deposit",
-    });
   }
 };
 
@@ -166,34 +83,6 @@ exports.deleteDriverDepositByUniqueId = async (req, res) => {
     });
   }
 };
-exports.getDepositsByDateRangeAndDriver = async (req, res) => {
-  try {
-    const { driverUniqueId, startDate, endDate } = req.query;
-    const user = req?.user;
-    console.log("@user", user);
-    if (!driverUniqueId || !startDate || !endDate) {
-      return ServerResponder(res, {
-        message: "error",
-        error: "Missing driverUniqueId, startDate, or endDate",
-      });
-    }
-
-    const result = await service.getDepositsByDateRangeAndDriver({
-      driverUniqueId:
-        driverUniqueId == "self" ? user?.userUniqueId : driverUniqueId,
-      startDate,
-      endDate,
-    });
-
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Fetch by date range error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch deposits by date range",
-    });
-  }
-};
 /**
  * @function updateDriverDepositStatus
  * @route PATCH /api/driverDeposit/status
@@ -221,30 +110,6 @@ exports.updateDriverDepositStatus = async (req, res) => {
     ServerResponder(res, {
       message: "error",
       error: "Failed to update deposit status",
-    });
-  }
-};
-exports.getUnauthorizedDeposits = async (req, res) => {
-  try {
-    const result = await service.getUnauthorizedDeposits();
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("@getUnauthorizedDeposits", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch unauthorized deposits",
-    });
-  }
-};
-exports.getUnauthorizedDepositsCount = async (req, res) => {
-  try {
-    const result = await service.getUnauthorizedDepositsCount();
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("@getUnauthorizedDepositsCount", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch unauthorized deposits count",
     });
   }
 };
