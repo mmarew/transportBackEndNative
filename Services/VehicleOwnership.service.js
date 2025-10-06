@@ -47,9 +47,30 @@ const createVehicleOwnership = async (body) => {
     tableName: "VehicleOwnership",
     conditions: { vehicleUniqueId, userUniqueId },
   });
-
   if (existingOwnership.length) {
     return { message: "error", error: "Vehicle ownership already exists" };
+  }
+  // validate not by existingOwnership only but also by VehicleOwnership.ownershipEndDate
+  // Prevent overlapping/active ownerships for the same vehicle
+  // If another ownership has no end date, or its end date is after the new start date, it's overlapping
+  const overlapSql = `
+    SELECT * FROM VehicleOwnership
+    WHERE vehicleUniqueId = ?
+      AND (
+        ownershipEndDate IS NULL
+        OR ownershipEndDate >= ?
+      )
+    LIMIT 1
+  `;
+  const [overlaps] = await pool.query(overlapSql, [
+    vehicleUniqueId,
+    ownershipStartDate,
+  ]);
+  if (overlaps.length) {
+    return {
+      message: "error",
+      error: "Vehicle is already reserved by other user",
+    };
   }
 
   // Create new ownership

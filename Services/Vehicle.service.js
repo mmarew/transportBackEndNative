@@ -6,6 +6,7 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const { createVehicleOwnership } = require("./VehicleOwnership.service");
 const { createVehicleStatus } = require("./VehicleStatus.service");
 const { removeWhiteSpace } = require("../Validator/Validation");
+const { createVehicleDriver } = require("./VehicleDriver.service");
 
 // create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user, ownerUserUniqueId) => {
@@ -70,6 +71,15 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
         ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId,
       roleId: 2,
       ownershipStartDate: currentDate(),
+    });
+    // create vehicle-driver relationship (owner as initial driver)
+    const ownerId = ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId;
+    await createVehicleDriver({
+      vehicleUniqueId: vehicle[0].vehicleUniqueId,
+      ownerUserUniqueId: ownerId,
+      driverUserUniqueId: ownerId,
+      assignmentStatus: "active",
+      assignmentStartDate: currentDate(),
     });
 
     return ownershipResult;

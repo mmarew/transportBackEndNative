@@ -14,6 +14,29 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleDeletedAt DATETIME  -- When the role was deleted
  ) ;
 
+-- Create the VehicleDriver table (relation among vehicle, owner and driver)
+
+CREATE TABLE IF NOT EXISTS VehicleDriver (
+    vehicleDriverId INT AUTO_INCREMENT PRIMARY KEY,
+    vehicleDriverUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the assignment
+    vehicleUniqueId VARCHAR(36) NOT NULL,               -- FK to Vehicle
+    ownerUserUniqueId VARCHAR(36) NOT NULL,             -- FK to Users (owner)
+    driverUserUniqueId VARCHAR(36) NOT NULL,            -- FK to Users (driver)
+    assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    assignmentStartDate DATETIME NOT NULL,
+    assignmentEndDate DATETIME NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vehicleDriver_vehicle (vehicleUniqueId),
+    INDEX idx_vehicleDriver_owner (ownerUserUniqueId),
+    INDEX idx_vehicleDriver_driver (driverUserUniqueId),
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (ownerUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId)
+) ;
+
+ 
+
 -- Create the vehicleTypes table
 
    CREATE TABLE IF NOT EXISTS VehicleTypes (

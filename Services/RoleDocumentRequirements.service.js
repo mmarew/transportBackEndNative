@@ -1,4 +1,5 @@
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
+const { getVehicleDrivers } = require("./VehicleDriver.service");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const {
@@ -327,21 +328,14 @@ WHERE AttachedDocuments.userUniqueId = ?
       //
     });
 
-    // Check if the user has a registered vehicle
-    const userVehicle = await performJoinSelect({
-      baseTable: "VehicleOwnership",
-      joins: [
-        {
-          table: "Vehicle",
-          on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
-        },
-        {
-          table: "VehicleTypes",
-          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-        },
-      ],
-      conditions: { "VehicleOwnership.userUniqueId": ownerUserUniqueId },
+    // Check if the user has a registered vehicle via VehicleDriver service
+    const vehicleDriverResult = await getVehicleDrivers({
+      ownerUserUniqueId,
+      assignmentStatus: "active",
+      limit: 1,
+      page: 1,
     });
+    const userVehicle = vehicleDriverResult?.data || [];
     const vehicleRegistered = userVehicle.length > 0;
 
     // Determine the final status based on documents and vehicle status

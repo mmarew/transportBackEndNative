@@ -24,6 +24,7 @@ const {
   getVehicleAndOwnershipViaUserUniqueId,
   getVehicleOwnershipByUserUniqueId,
 } = require("./VehicleOwnership.service");
+const { getVehicleDrivers } = require("./VehicleDriver.service");
 const messageTypes = require("../Utils/MessageTypes");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
 const {
@@ -578,11 +579,14 @@ const verifyPassengerStatus = async ({
 // verifyDriverStatus starts here
 const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
   try {
-    // Step 1: Check if the driver has a vehicle
-    const vehicleResponse = await getVehicleAndOwnershipViaUserUniqueId(
-      userUniqueId
-    );
-    const vehicle = vehicleResponse?.data?.[0];
+    // Step 1: Check if the driver has a vehicle via VehicleDriver relation
+    const vdResult = await getVehicleDrivers({
+      driverUserUniqueId: userUniqueId,
+      assignmentStatus: "active",
+      limit: 1,
+      page: 1,
+    });
+    const vehicle = vdResult?.data?.[0];
     if (!vehicle) {
       return {
         message: "error",
