@@ -166,8 +166,8 @@ const getVehicleOwnershipsByFilter = async ({
       "ownershipId",
       "ownershipUniqueId",
       "vehicleUniqueId",
-      "userUniqueId",
-      "roleId",
+      "Users.userUniqueId",
+      "Roles.roleId",
       "ownershipStartDate",
       "ownershipEndDate",
     ];
@@ -214,9 +214,11 @@ const getVehicleOwnershipsByFilter = async ({
       }
     }
 
-    const sql = `SELECT * FROM VehicleOwnership${
-      where.length ? " WHERE " + where.join(" AND ") : ""
-    }${paginationClause}`;
+    const sql = `SELECT VehicleOwnership.*, Users.*
+      FROM VehicleOwnership 
+      JOIN Users ON Users.userUniqueId = VehicleOwnership.userUniqueId
+      ${where.length ? " WHERE " + where.join(" AND ") : ""}
+      ${paginationClause}`;
 
     const [rows] = await pool.query(sql, values);
     if (includePagination && limit)

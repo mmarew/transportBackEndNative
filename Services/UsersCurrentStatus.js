@@ -388,7 +388,9 @@ const verifyPassengerStatus = async ({
                   on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
                 },
               ],
-              conditions: { "VehicleOwnership.userUniqueId": driver?.userUniqueId },
+              conditions: {
+                "VehicleOwnership.userUniqueId": driver?.userUniqueId,
+              },
               limit: 1,
             }),
           ]);
@@ -535,7 +537,9 @@ const verifyPassengerStatus = async ({
                 on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
               },
             ],
-            conditions: { "VehicleOwnership.userUniqueId": driver?.userUniqueId },
+            conditions: {
+              "VehicleOwnership.userUniqueId": driver?.userUniqueId,
+            },
             limit: 1,
           });
 
@@ -582,10 +586,10 @@ const verifyPassengerStatus = async ({
     // Final return after loop
     const message = {
       message: "success",
-      passenger: passenger,
-      drivers: driversData,
-      journey: journey,
-      decisions,
+      // passenger: passenger,
+      // drivers: driversData,
+      // journey: journey,
+      // decisions,
       totalRecords: totalRecords,
       pageSize,
       page,
