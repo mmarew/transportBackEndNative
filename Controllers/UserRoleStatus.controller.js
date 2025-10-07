@@ -1,4 +1,5 @@
 const userRoleStatusService = require("../Services/UserRoleStatus.service");
+const { roleList, usersRoles } = require("../Utils/ListOfFixedData");
 const ServerResponder = require("../Utils/ServerResponder"); // Helper to handle responses
 
 const createUserRoleStatus = async (req, res) => {
@@ -19,8 +20,13 @@ const getUserRoleStatusCurrent = async (req, res) => {
     const user = req?.user;
     console.log("@user getUserRoleStatusCurrent", user);
     const roleId = user?.roleId;
-    if (roleId != 3 && userUniqueId != "self") {
-      ServerResponder(
+    // without admin/self user can't access data of others
+    if (
+      roleId != usersRoles.adminRoleId &&
+      roleId != usersRoles.supperAdminRoleId &&
+      userUniqueId != "self"
+    ) {
+      return ServerResponder(
         res,
         {
           message: "error",
