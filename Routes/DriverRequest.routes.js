@@ -26,7 +26,7 @@ const router = express.Router();
 router.post("/api/driver/takeFromStreet", verifyTokenOfAxios, takeFromStreet);
 // Create a new driver request
 router.post(
-  "/driver/request",
+  "api/driver/request",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   createRequest
@@ -40,7 +40,7 @@ router.post(
 
 // Get a specific driver request by ID
 router.get(
-  "/driver/request/:driverRequestUniqueId",
+  "/api/driver/request/:driverRequestUniqueId",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   getRequestByIdController
@@ -48,45 +48,45 @@ router.get(
 
 // Update a specific driver request by ID
 router.put(
-  "/driver/acceptPassengerRequest",
+  "/api/driver/acceptPassengerRequest",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   acceptPassengerRequest
 );
 router.put(
-  "/driver/startJourney",
+  "/api/driver/startJourney",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   startJourney
 );
 router.put(
-  "/passenger/noAnswerFromDriver",
+  "/api/passenger/noAnswerFromDriver",
   verifyTokenOfAxios,
   verifyPassengersIdentity,
   noAnswerFromDriver
 );
 
 router.put(
-  "/driver/noAnswerFromDriver",
+  "/api/driver/noAnswerFromDriver",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   noAnswerFromDriver
 );
 router.put(
-  "/driver/cancelDriverRequest/:userUniqueId/:roleId",
+  "/api/driver/cancelDriverRequest/:userUniqueId/:roleId",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   cancelDriverRequest
 );
 router.put(
-  "/driver/journeyCompleted",
+  "/api/driver/journeyCompleted",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   journeyCompleted
 );
 // Delete a specific driver request by ID
 router.delete(
-  "/driver/request/:requestId",
+  "/api/driver/request/:requestId",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   deleteRequestController
@@ -94,7 +94,7 @@ router.delete(
 
 // Verify driver status and handle nearby passengers
 router.get(
-  "/driver/verifyDriverStatus",
+  "/api/driver/verifyDriverStatus",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   verifyDriverStatusController
@@ -106,7 +106,7 @@ router.get(
   getDriverRequestController
 );
 router.put(
-  "/driver/attachRequiredDocuments",
+  "/api/driver/attachRequiredDocuments",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   attachRequiredDocuments

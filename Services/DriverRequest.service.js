@@ -352,7 +352,7 @@ const acceptPassengerRequest = async (body) => {
       journeyDecisionUniqueId,
       driverRequestUniqueId,
     } = body;
-
+    console.log("@acceptPassengerRequest body", body);
     const existingRequest = await performJoinSelect({
       baseTable: "DriverRequest",
       joins: [
@@ -369,6 +369,8 @@ const acceptPassengerRequest = async (body) => {
         "DriverRequest.driverRequestUniqueId": driverRequestUniqueId,
       },
     });
+    console.log("@existingRequest", existingRequest);
+    // return;
 
     if (!existingRequest?.length)
       return { message: "error", error: "Request not found" };
@@ -378,16 +380,16 @@ const acceptPassengerRequest = async (body) => {
     ) {
       return {
         message: "error",
-        error: "Request   found is not valid to accept",
+        error: "Request found is not valid to accept",
       };
     }
-    const journeyStatusId = existingRequest[0].journeyStatusId;
-
-    if (
-      journeyStatusId === journeyStatusMap.requested ||
-      journeyStatusId === journeyStatusMap.acceptedByDriver
-    )
-      await updateJourneyStatus(body);
+    const journeyStatusId = existingRequest?.[0]?.journeyStatusId;
+    console.log("@journeyStatusId");
+    // if (
+    //   journeyStatusId === journeyStatusMap.requested ||
+    //   journeyStatusId === journeyStatusMap.acceptedByDriver
+    // )
+    await updateJourneyStatus(body);
 
     const message = await verifyDriverStatus({
       userUniqueId: body.userUniqueId,

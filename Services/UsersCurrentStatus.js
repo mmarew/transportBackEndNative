@@ -20,7 +20,6 @@ const {
   sendNotificationToPassenger,
 } = require("../Utils/Notifications");
 
-// Removed granular VehicleOwnership getters; using performJoinSelect directly
 const { getVehicleDrivers } = require("./VehicleDriver.service");
 const messageTypes = require("../Utils/MessageTypes");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
@@ -376,23 +375,15 @@ const verifyPassengerStatus = async ({
               driver?.userUniqueId,
               listOfDocumentsTypeAndId.profilePhoto
             ),
-            performJoinSelect({
-              baseTable: "Vehicle",
-              joins: [
-                {
-                  table: "VehicleOwnership",
-                  on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
-                },
-                {
-                  table: "VehicleTypes",
-                  on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-                },
-              ],
-              conditions: {
-                "VehicleOwnership.userUniqueId": driver?.userUniqueId,
-              },
-              limit: 1,
-            }),
+            (async () => {
+              const vd = await getVehicleDrivers({
+                driverUserUniqueId: driver?.userUniqueId,
+                assignmentStatus: "active",
+                limit: 1,
+                page: 1,
+              });
+              return vd?.data?.[0];
+            })(),
           ]);
           const documentsData = documents?.data;
           const lastDataIndex = documentsData?.length - 1;
@@ -525,23 +516,13 @@ const verifyPassengerStatus = async ({
             data?.[lastDataIndex]?.attachedDocumentName;
           const phoneNumber = driver?.phoneNumber;
 
-          const vehicleOfDriver = await performJoinSelect({
-            baseTable: "Vehicle",
-            joins: [
-              {
-                table: "VehicleOwnership",
-                on: "Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId",
-              },
-              {
-                table: "VehicleTypes",
-                on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-              },
-            ],
-            conditions: {
-              "VehicleOwnership.userUniqueId": driver?.userUniqueId,
-            },
+          const vdResult = await getVehicleDrivers({
+            driverUserUniqueId: driver?.userUniqueId,
+            assignmentStatus: "active",
             limit: 1,
+            page: 1,
           });
+          const vehicleOfDriver = vdResult?.data;
 
           const driverInfo = {
             vehicleOfDriver: vehicleOfDriver?.[0],
@@ -583,18 +564,13 @@ const verifyPassengerStatus = async ({
         }
       }
     }
-    // Final return after loop
-    const message = {
+    // Final return after loop: only summary
+    return {
       message: "success",
-      // passenger: passenger,
-      // drivers: driversData,
-      // journey: journey,
-      // decisions,
-      totalRecords: totalRecords,
+      totalRecords,
       pageSize,
       page,
     };
-    return message;
   } catch (error) {
     console.log("Error in verifyPassengerStatus:", error);
     return { message: "error", error: "Unable to verify passenger status" };

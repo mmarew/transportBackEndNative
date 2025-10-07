@@ -124,13 +124,14 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
          * 
       FROM DriverRequest
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
-      JOIN VehicleOwnership ON VehicleOwnership.userUniqueId = Users.userUniqueId
-      JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
+      JOIN VehicleDriver vd ON vd.driverUserUniqueId = Users.userUniqueId
+      JOIN Vehicle ON vd.vehicleUniqueId = Vehicle.vehicleUniqueId
       JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
       WHERE 
         DriverRequest.originLatitude BETWEEN ? AND ?
         AND DriverRequest.originLongitude BETWEEN ? AND ?
         AND DriverRequest.journeyStatusId = 1 -- Status 'Waiting'
+        AND vd.assignmentStatus = 'active'
         AND Vehicle.vehicleTypeUniqueId = ? LIMIT 10
     `;
 

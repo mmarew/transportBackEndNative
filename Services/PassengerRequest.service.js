@@ -388,7 +388,8 @@ const getDetailedJourneyData = async (passengerRequests) => {
             limit: 1,
           });
           return (
-            { ...driverResults[0], vehicleOfDriver: vehicleOfDriver?.[0] } || null
+            { ...driverResults[0], vehicleOfDriver: vehicleOfDriver?.[0] } ||
+            null
           );
         }
         return null;
@@ -517,7 +518,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     const formattedData = await getDetailedJourneyData(passengerRequests);
     return {
       message: "success",
-      data: passengerRequests,
+      // data: passengerRequests,
       formattedData,
       pagination: {
         currentPage: parseInt(page),
