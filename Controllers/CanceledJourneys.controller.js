@@ -2,7 +2,7 @@ const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const {
   cancelPassengerRequest,
 } = require("../Services/PassengerRequest.service");
-const { sendNotificationToPassenger } = require("../Utils/Notifications");
+const { sendSocketIONotificationToPassenger } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const messageTypes = require("../Utils/MessageTypes");
 const { pool } = require("../Middleware/Database.config");
@@ -43,7 +43,7 @@ const cancelJourneyBySystem = async (req, res) => {
         cancellationReasonsTypeId: 1,
       });
 
-      await sendNotificationToPassenger({
+      await sendSocketIONotificationToPassenger({
         phoneNumber: request.phoneNumber,
         message: {
           message: "success",

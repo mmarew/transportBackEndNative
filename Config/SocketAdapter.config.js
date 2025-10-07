@@ -5,8 +5,8 @@ const WSPusher = require("../Utils/WSPusher.js");
 const { socketIO } = require("../Utils/WsServerResponder");
 const { removeSocket } = require("../Utils/WsConnectionStore.js");
 const {
-  sendNotificationToPassenger,
-  sendNotificationToDriver,
+  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications.js");
 const messageTypes = require("../Utils/MessageTypes.js");
 
@@ -41,7 +41,7 @@ async function initSocket({ httpServer }) {
     socket.on("locationUpdateToShipper", async (data) => {
       console.log("@locationUpdateToShipper", data);
       const phoneNumberOfShipper = data?.passengerPhoneNumber;
-      const res = await sendNotificationToPassenger({
+      const res = await sendSocketIONotificationToPassenger({
         phoneNumber: phoneNumberOfShipper,
         message: {
           ...data,
@@ -54,7 +54,7 @@ async function initSocket({ httpServer }) {
     });
     socket.on("locationUpdateToDriver", async (data) => {
       console.log("@locationUpdateToDriver", data);
-      const res = await sendNotificationToDriver({
+      const res = await sendSocketIONotificationToDriver({
         phoneNumber: data?.driverPhoneNumber,
         message: {
           ...data,

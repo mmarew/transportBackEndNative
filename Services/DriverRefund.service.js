@@ -8,7 +8,7 @@ const {
 } = require("./DriverBalance.service/DriverBalance.delete.service");
 const {
   sendNotificationToAdmin,
-  sendNotificationToDriver,
+  sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const { getUserByUserUniqueId } = require("./User.service");
@@ -166,7 +166,7 @@ const acceptDriverRefundRequest = async ({
         message: "success",
         messageType: messageTypes.refund_approved_by_admin,
       };
-      sendNotificationToDriver({ phoneNumber, message });
+      sendSocketIONotificationToDriver({ phoneNumber, message });
       return {
         message: "success",
         data: `Refund money returned successfully`,

@@ -5,9 +5,9 @@ const { deleteFile } = require("../Utils/FileUtils");
 const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const {
-  sendNotificationToAdmin,
-  sendNotificationToDriver,
-  sendNotificationToPassenger,
+  sendSocketIONotificationToAdmin,
+  sendSocketIONotificationToDriver,
+  sendSocketIONotificationToPassenger,
 } = require("../Utils/Notifications");
 
 const { pool } = require("../Middleware/Database.config");
@@ -576,7 +576,7 @@ const acceptRejectAttachedDocuments = async (body) => {
   };
 
   if (updatedDocument.affectedRows > 0) {
-    if (roleId == 3) sendNotificationToAdmin({ message, phoneNumber });
+    if (roleId == 3) sendSocketIONotificationToAdmin({ message, phoneNumber });
     // adjust drivers role status based on document acceptance
     const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
       ownerUserUniqueId,
@@ -585,12 +585,12 @@ const acceptRejectAttachedDocuments = async (body) => {
     if (roleId == 2) {
       // messageType == "acceptOrRejectDriverDocument";
       documentAndVehicleOfDriver.messageType = "acceptOrRejectDriverDocument";
-      sendNotificationToDriver({
+      sendSocketIONotificationToDriver({
         message: documentAndVehicleOfDriver,
         phoneNumber,
       });
     }
-    if (roleId == 1) sendNotificationToPassenger({ message, phoneNumber });
+    if (roleId == 1) sendSocketIONotificationToPassenger({ message, phoneNumber });
 
     return message;
   } else {

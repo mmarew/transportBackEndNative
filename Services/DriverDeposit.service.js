@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
-const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const {
   deleteDriverBalance,
 } = require("./DriverBalance.service/DriverBalance.delete.service");
@@ -106,7 +106,7 @@ const createDriverDeposit = async (data) => {
       message: "success",
       data: Array.isArray(fullData?.data) ? fullData.data[0] : fullData?.data,
     };
-    sendNotificationToAdmin({ message });
+    sendSocketIONotificationToAdmin({ message });
     return message;
   } catch (error) {
     console.log("@createDriverDeposit error", error);

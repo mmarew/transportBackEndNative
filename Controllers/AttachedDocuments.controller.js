@@ -6,7 +6,7 @@ const attachedDocumentsService = require("../Services/AttachedDocuments.service"
 const {
   driversDocumentVehicleRequirement,
 } = require("../Services/RoleDocumentRequirements.service");
-const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const { uploadToFTP } = require("../Utils/FTPHandler");
 // controllers
@@ -276,7 +276,7 @@ const createAttachedDocuments = async (req, res) => {
         });
 
       const message = documentAndVehicleOfDriver;
-      sendNotificationToAdmin({ message });
+      sendSocketIONotificationToAdmin({ message });
     }
 
     if (fileErrors.length > 0 && fileSuccesses.length > 0) {

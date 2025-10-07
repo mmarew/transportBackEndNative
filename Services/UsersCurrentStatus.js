@@ -16,8 +16,8 @@ const {
   listOfDocumentsTypeAndId,
 } = require("../Utils/ListOfFixedData");
 const {
-  sendNotificationToDriver,
-  sendNotificationToPassenger,
+  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications");
 
 const { getVehicleDrivers } = require("./VehicleDriver.service");
@@ -175,7 +175,7 @@ const sendPassengerNotification = async (passenger) => {
     userUniqueId: passenger.userUniqueId,
   });
 
-  await sendNotificationToPassenger({
+  await sendSocketIONotificationToPassenger({
     message: { ...passengerStatus },
     phoneNumber: passenger.phoneNumber,
   });
@@ -292,7 +292,7 @@ const handleExistingJourney = async (
   };
 
   if (passenger?.phoneNumber) {
-    await sendNotificationToPassenger({
+    await sendSocketIONotificationToPassenger({
       message: {
         messageTypes:
           journeyStatusId === journeyStatusMap.requested
@@ -432,7 +432,7 @@ const verifyPassengerStatus = async ({
           decisionsData.push(journeyDecisionPayload);
 
           // Send notification
-          await sendNotificationToDriver({
+          await sendSocketIONotificationToDriver({
             message: {
               message: "success",
               status: journeyStatusMap.requested,
@@ -536,16 +536,7 @@ const verifyPassengerStatus = async ({
               passengerRequest.passengerRequestId ==
               journeyDecision.passengerRequestId
           );
-          console.log(
-            "@journeyDecision",
-            journeyDecision,
-            "\n@matchingPassengerRequest",
-            matchingPassengerRequest,
-            "\nphoneNumber",
-            phoneNumber,
-            "@sendNotificationsToDrivers",
-            sendNotificationsToDrivers
-          );
+
           const message = {
             message: "success",
             status: driver?.journeyStatusId,
@@ -556,7 +547,7 @@ const verifyPassengerStatus = async ({
           };
           if (sendNotificationsToDrivers)
             if (phoneNumber) {
-              await sendNotificationToDriver({
+              await sendSocketIONotificationToDriver({
                 message,
                 phoneNumber,
               });

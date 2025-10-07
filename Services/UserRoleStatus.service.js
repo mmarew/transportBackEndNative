@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const {
-  sendNotificationToDriver,
+  sendSocketIONotificationToDriver,
   sendNotificationToAdmin,
 } = require("../Utils/Notifications");
 const { insertData } = require("../CRUD/Create/CreateData");
@@ -163,13 +163,13 @@ const handleUpdateResponces = async ({ roleId, statusId, phoneNumber }) => {
       });
     } else if (roleId == 3) {
       if (statusId == 1) {
-        await sendNotificationToDriver({
+        await sendSocketIONotificationToDriver({
           message: "success",
           request: "User document approved by admin",
           phoneNumber,
         });
       } else if (statusId == 4) {
-        await sendNotificationToDriver({
+        await sendSocketIONotificationToDriver({
           message: "success",
           request: "User document rejected by admin",
           phoneNumber,

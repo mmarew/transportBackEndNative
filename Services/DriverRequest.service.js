@@ -13,8 +13,8 @@ const {
 const { getUserByUserUniqueId, createUser } = require("./User.service");
 const { v4: uuidv4 } = require("uuid");
 const {
-  sendNotificationToPassenger,
-  sendNotificationToAdmin,
+  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToAdmin,
   sendNotificationToDriver,
 } = require("../Utils/Notifications");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
@@ -104,7 +104,7 @@ const takeFromStreet = async (body, user) => {
       decision: null,
     };
 
-    // create user passenger in users table. to finishe this job i need to use users table using createUser function from user.service
+    // create user passenger in users table. to finish this job i need to use users table using createUser function from user.service
     const userPassenger = await createUser({ ...body, ...data });
     console.log("@takeFromStreet userPassenger", userPassenger);
     if (userPassenger.message === "error")
@@ -119,15 +119,7 @@ const takeFromStreet = async (body, user) => {
       journeyStatusId,
       "driver"
     );
-    console.log(
-      "@takeFromStreet passengerRequest",
-      passengerRequest?.[0]?.data?.[0]
-    );
 
-    // const targetRequest = passengerRequest?.passenger.find(
-    //   (eachRequest) =>
-    //     eachRequest?.passengerRequestBatchId === passengerRequestBatchId
-    // );
     const targetRequest = passengerRequest?.[0]?.data?.[0];
     console.log("@targetRequest", targetRequest);
     const driverRequest = await createDriverRequest(
@@ -403,7 +395,7 @@ const acceptPassengerRequest = async (body) => {
     const passengerStatusData = await verifyPassengerStatus({
       userUniqueId: passenger.userUniqueId,
     });
-    sendNotificationToPassenger({
+    sendSocketIONotificationToPassenger({
       message: {
         messageTypes: messageTypes.driver_accepted_shipper_request,
         ...passengerStatusData,
@@ -476,7 +468,7 @@ const startJourney = async (body) => {
     passengersPhoneNumber &&
     journeyStatusId == journeyStatusMap.journeyStarted
   ) {
-    sendNotificationToPassenger({
+    sendSocketIONotificationToPassenger({
       message: messagesToPassenger,
       phoneNumber: passengersPhoneNumber,
     });
@@ -552,7 +544,7 @@ const noAnswerFromDriver = async (body) => {
     message: messageToDriver,
     phoneNumber: driverPhoneNumber,
   });
-  sendNotificationToPassenger({
+  sendSocketIONotificationToPassenger({
     message: messageToPassenger,
     phoneNumber: passengerPhoneNumber,
   });
@@ -614,7 +606,7 @@ const journeyCompleted = async (body) => {
     const phoneNumber = passenger?.at(0)?.phoneNumber;
 
     if (phoneNumber) {
-      sendNotificationToPassenger({
+      sendSocketIONotificationToPassenger({
         message: {
           messageTypes: messageTypes.driver_completed_journey,
           decisions: [decisions?.data?.[0]],
@@ -753,7 +745,7 @@ const cancelDriverRequest = async (body) => {
       }
 
       // Send notification to the passenger
-      const notificationResult = sendNotificationToPassenger({
+      const notificationResult = sendSocketIONotificationToPassenger({
         message: {
           message: "success",
           data:
@@ -792,7 +784,7 @@ const cancelDriverRequest = async (body) => {
         });
 
         const cancellationDetails = canceledJourneyResult.cancellationDetails;
-        const adminNotification = sendNotificationToAdmin({
+        const adminNotification = sendSocketIONotificationToAdmin({
           message: {
             message: "success",
             messageType: "cancelledJourney",
@@ -1085,7 +1077,7 @@ const getDriverJourneyStatus = async (userUniqueId) => {
 };
 const sendUpdatedLocation = async (body) => {
   console.log("@sendUpdatedLocation body is ", body);
-  sendNotificationToPassenger({
+  sendSocketIONotificationToPassenger({
     phoneNumber: body?.passengerPhone,
     message: { ...body, messageType: messageTypes.update_drivers_location },
   });

@@ -11,7 +11,7 @@ const cleanPhoneNumber = (phoneNumber) => {
 };
 
 // 🔔 Notify a specific driver by phone number
-const sendNotificationToDriver = async ({ message, phoneNumber }) => {
+const sendSocketIONotificationToDriver = async ({ message, phoneNumber }) => {
   try {
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
@@ -52,11 +52,11 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
   }
 };
 
-// Backward-compatible alias using Socket.IO naming (must be declared after function)
-const sendSocketIONotificationToDriver = sendNotificationToDriver;
-
 // 🔔 Notify a specific passenger by phone number
-const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
+const sendSocketIONotificationToPassenger = async ({
+  message,
+  phoneNumber,
+}) => {
   try {
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
@@ -87,12 +87,12 @@ const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
       };
     }
   } catch (error) {
-    console.error("Error in sendNotificationToPassenger:", error);
+    console.error("Error in sendSocketIONotificationToPassenger:", error);
     return { message: "error", data: "Message can't be sent to passenger" };
   }
 };
 
-const sendNotificationToAdmin = async ({ message }) => {
+const sendSocketIONotificationToAdmin = async ({ message }) => {
   try {
     const keys = await redis.keys("admin:*");
 
@@ -145,13 +145,12 @@ const sendNotificationToAdmin = async ({ message }) => {
       error: errorList,
     };
   } catch (error) {
-    console.error("Error in sendNotificationToAdmin:", error);
-    return { message: "error", error: "Message can't be sent to admin" };
+    console.error("Error in sendSocketIONotificationToAdmin:", error);
   }
 };
 
 module.exports = {
-  sendNotificationToAdmin,
+  sendSocketIONotificationToAdmin,
   sendSocketIONotificationToDriver,
-  sendNotificationToPassenger,
+  sendSocketIONotificationToPassenger,
 };
