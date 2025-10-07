@@ -64,296 +64,50 @@ const roleList = [
 ];
 
 const statusList = [
-  // 1. All Documents Accepted, Vehicle Registered (Active)
+  // 1. Active (vehicle registered + all required documents accepted)
   {
     statusId: 1,
     statusUniqueId: uuidv4(),
     statusName: "active",
     statusDescription:
-      "Driver has registered a vehicle, and all required documents have been accepted. Driver is active.",
+      "Driver has registered a vehicle and all required documents are accepted. Driver is active.",
     statusCreatedAt: currentDate(),
   },
-  // 2. No Document, No Vehicle Registered
+  // 2. No vehicle registered (overrides other states)
   {
     statusId: 2,
     statusUniqueId: uuidv4(),
-    statusName: "inactive - no documents attached, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle and has not attached any required documents.",
+    statusName: "inactive - vehicle not registered",
+    statusDescription: "Driver has not registered a vehicle.",
     statusCreatedAt: currentDate(),
   },
-
-  // 3. Some Documents Attached (All Pending), No Vehicle Registered
+  // 3. Not attached documents (some required docs missing)
   {
     statusId: 3,
     statusUniqueId: uuidv4(),
-    statusName: "inactive - documents pending, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, and all attached documents are pending verification.",
+    statusName: "inactive - required documents missing",
+    statusDescription: "Driver has not attached all required documents.",
     statusCreatedAt: currentDate(),
   },
-
-  // 4. Some Documents Attached (All Rejected), No Vehicle Registered
+  // 4. Rejected (any rejected document exists)
   {
     statusId: 4,
     statusUniqueId: uuidv4(),
-    statusName: "inactive - documents rejected, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, and all attached documents have been rejected.",
+    statusName: "inactive - documents rejected",
+    statusDescription: "One or more required documents have been rejected.",
     statusCreatedAt: currentDate(),
   },
-
-  // 5. Some Documents Attached (Some Accepted, Some Pending), No Vehicle Registered
+  // 5. Pending (any pending, none rejected)
   {
     statusId: 5,
     statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some pending, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle. Some attached documents are accepted, others are pending.",
+    statusName: "inactive - documents pending",
+    statusDescription: "One or more required documents are pending review.",
     statusCreatedAt: currentDate(),
   },
-
-  // 6. Some Documents Attached (Some Accepted, Some Rejected), No Vehicle Registered
+  // 6. Banned (kept for administrative actions)
   {
     statusId: 6,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some rejected, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle. Some attached documents are accepted, others have been rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 7. All Documents Accepted, No Vehicle Registered
-  {
-    statusId: 7,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents accepted, vehicle not registered",
-    statusDescription:
-      "All required documents have been accepted by the admin, but the driver has not registered a vehicle.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 8. No Document Attached, Vehicle Registered
-  {
-    statusId: 8,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - no documents attached, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle but has not attached any required documents.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 9. Some Documents Attached (All Pending), Vehicle Registered
-  {
-    statusId: 9,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - documents pending, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, and all attached documents are pending verification.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 10. Some Documents Attached (All Rejected), Vehicle Registered
-  {
-    statusId: 10,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - documents rejected, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, and all attached documents have been rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 11. Some Documents Attached (Some Accepted, Some Pending), Vehicle Registered
-  {
-    statusId: 11,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some pending, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle. Some attached documents are accepted, others are pending.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 12. Some Documents Attached (Some Accepted, Some Rejected), Vehicle Registered
-  {
-    statusId: 12,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some rejected, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle. Some attached documents are accepted, others have been rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 13. All Documents Pending, Vehicle Registered
-  {
-    statusId: 13,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents pending, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, and all attached documents are pending verification.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 14. All Documents Rejected, Vehicle Registered
-  {
-    statusId: 14,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents rejected, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, and all attached documents have been rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 15. All Documents Pending, No Vehicle Registered
-  {
-    statusId: 15,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents pending, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, and all attached documents are pending verification.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 16. All Documents Rejected, No Vehicle Registered
-  {
-    statusId: 16,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents rejected, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, and all attached documents have been rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 17. Vehicle Registered, Some Documents Not Attached
-  {
-    statusId: 17,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - some documents not attached, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle but has not attached all required documents.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 18. No Vehicle Registered, Some Documents Not Attached
-  {
-    statusId: 18,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents not attached, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle and has not attached all required documents.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 19. Vehicle Registered, All Documents Attached, Mixed Statuses
-  {
-    statusId: 19,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - documents have mixed statuses, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle. All required documents are attached but have mixed statuses (accepted, pending, rejected).",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 20. Vehicle Not Registered, All Documents Attached, Mixed Statuses
-  {
-    statusId: 20,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - documents have mixed statuses, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle. All required documents are attached but have mixed statuses (accepted, pending, rejected).",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 21. Some Documents Accepted, Some Pending, No Vehicle Registered
-  {
-    statusId: 21,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some pending, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, some attached documents are accepted, others are pending.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 22. Some Documents Accepted, Some Rejected, No Vehicle Registered
-  {
-    statusId: 22,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some rejected, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, some attached documents are accepted, others are rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 23. Some Documents Accepted, Some Pending, Vehicle Registered
-  {
-    statusId: 23,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some pending, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, some attached documents are accepted, others are pending.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 24. Some Documents Accepted, Some Rejected, Vehicle Registered
-  {
-    statusId: 24,
-    statusUniqueId: uuidv4(),
-    statusName:
-      "inactive - some documents accepted, some rejected, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, some attached documents are accepted, others are rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 25. All Documents Pending, No Vehicle Registered
-  {
-    statusId: 25,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents pending, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, and all attached documents are pending verification.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 26. All Documents Rejected, No Vehicle Registered
-  {
-    statusId: 26,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - all documents rejected, vehicle not registered",
-    statusDescription:
-      "Driver has not registered a vehicle, and all attached documents have been rejected.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 27. No Document Attached, Vehicle Registered
-  {
-    statusId: 27,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - no documents attached, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle but has not attached any required documents.",
-    statusCreatedAt: currentDate(),
-  },
-
-  // 28. Vehicle Registered, All Documents Attached, Mixed Statuses
-  {
-    statusId: 28,
-    statusUniqueId: uuidv4(),
-    statusName: "inactive - documents have mixed statuses, vehicle registered",
-    statusDescription:
-      "Driver has registered a vehicle, and all required documents are attached but with mixed statuses (accepted, pending, rejected).",
-    statusCreatedAt: currentDate(),
-  },
-  {
-    statusId: 29,
     statusUniqueId: uuidv4(),
     statusName: "inactive - Driver is banned by admin",
     statusDescription:

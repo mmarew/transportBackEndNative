@@ -7,6 +7,7 @@ const {
   updateUserRoleStatus,
 } = require("./UserRoleStatus.service");
 const { findStatusByVehicleAndDocuments } = require("../Utils/StatusOfUsers");
+const { getBannedUsers } = require("./BannedUsers.service");
 // Create a new mapping
 const createMapping = async ({ body }) => {
   const {
@@ -286,17 +287,12 @@ const driversDocumentVehicleRequirement = async (body) => {
     if (!requiredDocuments || requiredDocuments.length === 0) {
       return { message: "error", data: "No documents required for this role" };
     }
-
+    //Get attached documents
     const sql = `
-SELECT DISTINCT 
-  AttachedDocuments.*, 
-  DocumentTypes.*, 
-  RoleDocumentRequirements.*
-FROM AttachedDocuments
-JOIN DocumentTypes 
-  ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
-JOIN RoleDocumentRequirements 
-  ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
+SELECT DISTINCT   AttachedDocuments.*,  DocumentTypes.*, 
+  RoleDocumentRequirements.* FROM AttachedDocuments
+JOIN DocumentTypes    ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
+JOIN RoleDocumentRequirements    ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
 WHERE AttachedDocuments.userUniqueId = ?
 `;
     const values = [ownerUserUniqueId];
@@ -337,20 +333,37 @@ WHERE AttachedDocuments.userUniqueId = ?
     });
     const userVehicle = vehicleDriverResult?.data || [];
     const vehicleRegistered = userVehicle.length > 0;
-
-    // Determine the final status based on documents and vehicle status
-    const resultOfStatus = findStatusByVehicleAndDocuments({
-      attachedDocuments,
-      attachedDocumentsByStatus,
-      requiredDocuments,
-      vehicleRegistered,
-      unAttachedDocumentTypes,
-    });
-
-    if (resultOfStatus?.message == "error") {
-      return resultOfStatus;
+    // check if user is banned based on its userUniqueId,
+    // Prefer checking by phoneNumber (available in this scope)
+    let isBanned = false;
+    try {
+      const banCheck = await getBannedUsers({ check: true, phoneNumber, roleId });
+      isBanned = banCheck?.data?.isBanned === true;
+    } catch (e) {
+      // If ban check fails, treat as not banned but do not crash the flow
+      isBanned = false;
     }
-    const finalStatusId = resultOfStatus?.finalStatusId;
+
+    // Determine the final status
+    let finalStatusId;
+    if (isBanned) {
+      // 6 => banned (as per updated status list)
+      finalStatusId = 6;
+    } else {
+      // Based on documents and vehicle status
+      const resultOfStatus = findStatusByVehicleAndDocuments({
+        attachedDocuments,
+        attachedDocumentsByStatus,
+        requiredDocuments,
+        vehicleRegistered,
+        unAttachedDocumentTypes,
+      });
+
+      if (resultOfStatus?.message == "error") {
+        return resultOfStatus;
+      }
+      finalStatusId = resultOfStatus?.finalStatusId;
+    }
     if (statusId !== finalStatusId) {
       // Update role status if its current status is different from saved one
       const userRoleStatusData = {

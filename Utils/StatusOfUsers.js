@@ -5,215 +5,56 @@ const findStatusByVehicleAndDocuments = ({
   attachedDocuments,
   unAttachedDocumentTypes,
 }) => {
-  let finalStatusId = null;
-
-  // Check for invalid or missing inputs
-
-  // Check if the user has a registered vehicle
-
-  // 1. All Documents Accepted, Vehicle Registered (Active)
-  if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length >= requiredDocuments.length
-  ) {
-    finalStatusId = 1;
-  }
-  // 2. No Document, No Vehicle Registered
-  else if (!vehicleRegistered && attachedDocuments.length === 0) {
-    finalStatusId = 2;
-  }
-  // 3. All Documents Pending, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
-  ) {
-    finalStatusId = 3;
-  }
-  // 4. All Documents Rejected, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-  ) {
-    finalStatusId = 4;
-  }
-  // 5. Some Documents Accepted, Some Pending, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.PENDING.length > 0
-  ) {
-    finalStatusId = 5;
-  }
-  // 6. Some Documents Accepted, Some Rejected, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.REJECTED.length > 0
-  ) {
-    finalStatusId = 6;
-  }
-  // 7. All Documents Accepted, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length === requiredDocuments.length
-  ) {
-    finalStatusId = 7;
-  }
-  // 8. No Document Attached, Vehicle Registered
-  else if (vehicleRegistered && attachedDocuments.length === 0) {
-    finalStatusId = 8;
-  }
-  // 9. All Documents Pending, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
-  ) {
-    finalStatusId = 9;
-  }
-  // 10. All Documents Rejected, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-  ) {
-    finalStatusId = 10;
-  }
-  // 11. Some Documents Accepted, Some Pending, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.PENDING.length > 0
-  ) {
-    finalStatusId = 11;
-  }
-  // 12. Some Documents Accepted, Some Rejected, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.REJECTED.length > 0
-  ) {
-    finalStatusId = 12;
+  // Validate essential input
+  if (typeof vehicleRegistered !== "boolean") {
+    return { message: "error", data: "Invalid input: vehicleRegistered." };
   }
 
-  // 13. All Documents Pending, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length >= requiredDocuments.length
-  ) {
-    finalStatusId = 13;
-  }
-  // 14. All Documents Rejected, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-  ) {
-    finalStatusId = 14;
-  }
-  // 15. All Documents Pending, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length === requiredDocuments.length
-  ) {
-    finalStatusId = 15;
-  }
-  // 16. All Documents Rejected, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-  ) {
-    finalStatusId = 16;
-  }
-  // 17. Vehicle Registered, Some Documents Not Attached
-  else if (vehicleRegistered && unAttachedDocumentTypes.length > 0) {
-    finalStatusId = 17;
-  }
-  // 18. No Vehicle Registered, Some Documents Not Attached
-  else if (!vehicleRegistered && unAttachedDocumentTypes.length > 0) {
-    finalStatusId = 18;
-  }
-  // 19. Vehicle Registered, All Documents Attached, Mixed Statuses
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    (attachedDocumentsByStatus.PENDING.length > 0 ||
-      attachedDocumentsByStatus.REJECTED.length > 0)
-  ) {
-    finalStatusId = 19;
-  }
-  // 20. Vehicle Not Registered, All Documents Attached, Mixed Statuses
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    (attachedDocumentsByStatus.PENDING.length > 0 ||
-      attachedDocumentsByStatus.REJECTED.length > 0)
-  ) {
-    finalStatusId = 20;
-  }
-  // 21. Some Documents Accepted, Some Pending, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.PENDING.length > 0
-  ) {
-    finalStatusId = 21;
-  }
-  // 22. Some Documents Accepted, Some Rejected, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.REJECTED.length > 0
-  ) {
-    finalStatusId = 22;
-  }
-  // 23. Some Documents Accepted, Some Pending, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.PENDING.length > 0
-  ) {
-    finalStatusId = 23;
-  }
-  // 24. Some Documents Accepted, Some Rejected, Vehicle Registered
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    attachedDocumentsByStatus.REJECTED.length > 0
-  ) {
-    finalStatusId = 24;
-  }
-  // 25. All Documents Pending, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.PENDING.length >= requiredDocuments.length
-  ) {
-    finalStatusId = 25;
-  }
-  // 26. All Documents Rejected, No Vehicle Registered
-  else if (
-    !vehicleRegistered &&
-    attachedDocumentsByStatus.REJECTED.length === requiredDocuments.length
-  ) {
-    finalStatusId = 26;
-  }
-  // 27. No Document Attached, Vehicle Registered
-  else if (vehicleRegistered && attachedDocuments.length === 0) {
-    finalStatusId = 27;
-  }
-  // 28. Vehicle Registered, All Documents Attached, Mixed Statuses
-  else if (
-    vehicleRegistered &&
-    attachedDocumentsByStatus.ACCEPTED.length > 0 &&
-    (attachedDocumentsByStatus.PENDING.length > 0 ||
-      attachedDocumentsByStatus.REJECTED.length > 0)
-  ) {
-    finalStatusId = 28;
-  }
-  // Default error case
-  else {
+  const requiredCount = requiredDocuments?.length || 0;
+  const acc = attachedDocumentsByStatus?.ACCEPTED?.length || 0;
+  const pend = attachedDocumentsByStatus?.PENDING?.length || 0;
+  const rej = attachedDocumentsByStatus?.REJECTED?.length || 0;
+  const missingRequired = (unAttachedDocumentTypes?.length || 0) > 0;
+
+  // If no required documents are defined, status relies on vehicle only
+  if (requiredCount === 0) {
     return {
-      message: "error",
-      data: "Unable to determine driver's status.",
+      message: "success",
+      finalStatusId: vehicleRegistered ? 1 : 2, // 1 active, 2 no vehicle
     };
   }
-  return { message: "success", finalStatusId: finalStatusId };
+
+  // Priority order per requirements:
+  // 1) active: vehicle registered AND all required docs accepted
+  if (vehicleRegistered && acc === requiredCount) {
+    return { message: "success", finalStatusId: 1 };
+  }
+
+  // 2) no vehicle: regardless of documents
+  if (!vehicleRegistered) {
+    return { message: "success", finalStatusId: 2 };
+  }
+
+  // 3) not attached doc: some required docs are missing
+  if (missingRequired) {
+    return { message: "success", finalStatusId: 3 };
+  }
+
+  // 4) rejected: any rejected document exists
+  if (rej > 0) {
+    return { message: "success", finalStatusId: 4 };
+  }
+
+  // 5) pending: any pending and none rejected
+  if (pend > 0) {
+    return { message: "success", finalStatusId: 5 };
+  }
+
+  // Fallback: if all accepted but vehicle not registered would have matched #2 above.
+  // If inputs don't fit any case, return error for visibility.
+  return {
+    message: "error",
+    data: "Unable to determine driver's status with provided data.",
+  };
 };
 module.exports = { findStatusByVehicleAndDocuments };

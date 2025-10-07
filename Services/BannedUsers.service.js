@@ -195,7 +195,7 @@ const unbanUser = async (banUniqueId) => {
 };
 
 const _checkIfUserIsBanned = async (identifiers) => {
-  const { userRoleUniqueId, email, phoneNumber } = identifiers;
+  const { userRoleUniqueId, email, phoneNumber, roleId } = identifiers;
   console.log("@identifiers", identifiers);
   const whereClauses = [];
   const params = [];
@@ -211,6 +211,10 @@ const _checkIfUserIsBanned = async (identifiers) => {
   if (phoneNumber) {
     whereClauses.push("u.phoneNumber = ?");
     params.push(phoneNumber);
+  }
+  if (roleId) {
+    whereClauses.push("ur.roleId = ?");
+    params.push(roleId);
   }
 
   if (whereClauses.length === 0) {
