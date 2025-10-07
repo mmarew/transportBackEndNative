@@ -45,7 +45,6 @@ const {
   verifyDriverStatus,
   verifyPassengerStatus,
 } = require("./UsersCurrentStatus");
-const { get } = require("http");
 const { pool } = require("../Middleware/Database.config");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 
@@ -86,7 +85,6 @@ const takeFromStreet = async (body, user) => {
     const randNumber = Math.floor(Math.random() * 100000000);
     const requestedFrom = "street";
     const phoneNumber = body?.phoneNumber;
-    const passengerRequestBatchId = body?.passengerRequestBatchId;
     const data = {
       passengerRequestBatchId: body.passengerRequestBatchId,
       phoneNumber,
@@ -120,7 +118,7 @@ const takeFromStreet = async (body, user) => {
       "driver"
     );
 
-    const targetRequest = passengerRequest?.[0]?.data?.[0];
+    const targetRequest = passengerRequest?.[0];
     console.log("@targetRequest", targetRequest);
     const driverRequest = await createDriverRequest(
       body,
@@ -149,6 +147,11 @@ const takeFromStreet = async (body, user) => {
     const journeyDecision = await createJourneyDecision(decisionData);
     //create a journey in Journey table using createJourney function from Journey.service
     console.log("@journeyDecision", journeyDecision);
+    if (journeyDecision?.message == "error") {
+      return {
+        ...journeyDecision,
+      };
+    }
     const journeyDecisionUniqueId =
       journeyDecision.data[0].journeyDecisionUniqueId;
     const journeyData = {

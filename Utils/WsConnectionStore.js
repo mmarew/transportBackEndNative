@@ -52,8 +52,11 @@ const setSocket = async (userType, identifier, socketId) => {
 const getSocket = async (userType, identifier) => {
   try {
     const key = `${userType}:${identifier}`;
-    console.log("@getSocket redisClient", redisClient.status);
-    return await redisClient.get(key);
+    console.log("@getSocket redisClient", redisClient.status, "\nkey", key);
+
+    const redisSocket = await redisClient.get(key);
+    console.log("@redisSocket", redisSocket);
+    return redisSocket;
   } catch (error) {
     console.log("Error in getSocket:", error);
     return null;

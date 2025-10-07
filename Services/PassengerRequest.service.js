@@ -30,6 +30,12 @@ const createPassengerRequest = async (
     const numberOfVehicles = body?.numberOfVehicles || 1;
     // first check if the user has an active request based on passengerRequestBatchId
     const passengerRequestBatchId = body?.passengerRequestBatchId;
+    if (!passengerRequestBatchId) {
+      return {
+        message: "error",
+        error: "Batch Id Cant be null",
+      };
+    }
     const dataByBatchId = await getData({
       tableName: "PassengerRequest",
       conditions: { passengerRequestBatchId, userUniqueId },
@@ -50,16 +56,17 @@ const createPassengerRequest = async (
         userUniqueId,
         journeyStatusId
       );
-      newRequests.push(newRequest);
+      newRequests.push(newRequest?.data[0]);
     }
     if (createBy == "driver") {
       return newRequests;
     }
-    return await verifyPassengerStatus({
+    const statusData = await verifyPassengerStatus({
       userUniqueId,
       activeRequest: null, // newRequest?.data,
       sendNotificationsToDrivers: true,
     });
+    return { ...statusData, newRequests };
   } catch (error) {
     console.log("Error in createRequest:", error);
     return { message: "error", error: "Unable to create request" };

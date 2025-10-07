@@ -13,6 +13,25 @@ const createUserRoleStatus = async (req, res) => {
 
 const getUserRoleStatusCurrent = async (req, res) => {
   try {
+    const userUniqueId = req?.query?.userUniqueId;
+
+    console.log("@getUserRoleStatusCurrent req.query", req.query);
+    const user = req?.user;
+    console.log("@user getUserRoleStatusCurrent", user);
+    const roleId = user?.roleId;
+    if (roleId != 3 && userUniqueId != "self") {
+      ServerResponder(
+        res,
+        {
+          message: "error",
+          error: "You are not authorized to access this resource",
+        },
+        401
+      );
+    }
+    if (userUniqueId == "self") {
+      req.query.userUniqueId = req.user.userUniqueId;
+    }
     const result = await userRoleStatusService.getUserRoleStatusCurrent({
       data: req.query,
     });

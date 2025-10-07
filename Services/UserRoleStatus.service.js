@@ -351,9 +351,9 @@ const getUserRoleStatusCurrent = async ({ data }) => {
         ursc.*,
         ur.userUniqueId,
         ur.roleId,
-        u.fullName as userName,
-        u.phoneNumber as userPhone,
-        u.email as userEmail,
+        u.fullName  ,
+        u.phoneNumber  ,
+        u.email,
         r.roleName,
         r.roleDescription,
         s.statusName,
@@ -393,7 +393,7 @@ const getUserRoleStatusCurrent = async ({ data }) => {
 
     // Prepare response
     const response = {
-      success: true,
+      message: "success",
       data: results,
       pagination: {
         currentPage: parseInt(page),
@@ -419,10 +419,7 @@ const getUserRoleStatusCurrent = async ({ data }) => {
       },
     };
 
-    return {
-      message: "success",
-      data: response,
-    };
+    return response;
   } catch (error) {
     console.error("Error fetching user role status current:", error);
     return {

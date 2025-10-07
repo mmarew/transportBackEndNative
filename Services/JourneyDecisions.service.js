@@ -2,17 +2,19 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 
 // Create a new journey decision
-exports.createJourneyDecision = async ({
-  passengerRequestId,
-  driverRequestId,
-  journeyStatusId,
-  decisionTime,
-  decisionBy,
-  shippingDateByDriver,
-  deliveryDateByDriver,
-  shippingCostByDriver,
-}) => {
+exports.createJourneyDecision = async (data) => {
   // console.log(first)
+  const {
+    passengerRequestId,
+    driverRequestId,
+    journeyStatusId,
+    decisionTime,
+    decisionBy,
+    shippingDateByDriver,
+    deliveryDateByDriver,
+    shippingCostByDriver,
+  } = data;
+  console.log("@createJourneyDecision data", data);
   if (
     !passengerRequestId ||
     !driverRequestId ||
