@@ -5,8 +5,8 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
 const { createNewPassengerRequest } = require("../CRUD/Create/CreateData");
 
-const { sendNotificationToDriver } = require("../Utils/Notifications");
-const { sendNotificationToUser } = require("./Firebase.service");
+const { sendSocketIONotificationToDriver } = require("../Utils/Notifications");
+const { sendFCMNotificationToUser } = require("./Firebase.service");
 
 const { pool } = require("../Middleware/Database.config");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfFixedData");
@@ -15,10 +15,16 @@ const {
   verifyPassengerStatus,
   verifyDriverStatus,
 } = require("./UsersCurrentStatus");
+const { on } = require("stream");
 // Removed granular VehicleOwnership getter; use performJoinSelect instead
 require("./AttachedDocuments.service");
 
-const createPassengerRequest = async (body, user, journeyStatusId) => {
+const createPassengerRequest = async (
+  body,
+  user,
+  journeyStatusId,
+  createBy
+) => {
   try {
     const { userUniqueId } = user;
     const numberOfVehicles = body?.numberOfVehicles || 1;
@@ -36,9 +42,18 @@ const createPassengerRequest = async (body, user, journeyStatusId) => {
         sendNotificationsToDrivers: true,
       });
     }
+    const newRequests = [];
     const noOfRecords = numberOfVehicles - dataByBatchId?.length;
     for (let i = 0; i < noOfRecords; i++) {
-      await createNewPassengerRequest(body, userUniqueId, journeyStatusId);
+      const newRequest = await createNewPassengerRequest(
+        body,
+        userUniqueId,
+        journeyStatusId
+      );
+      newRequests.push(newRequest);
+    }
+    if (createBy == "driver") {
+      return newRequests;
     }
     return await verifyPassengerStatus({
       userUniqueId,
@@ -56,74 +71,95 @@ const acceptDriverRequest = async (body) => {
     const driverRequestUniqueId = body?.driverRequestUniqueId;
     const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
 
-    const statusData = await verifyPassengerStatus({
-      userUniqueId,
-      sendNotificationsToDrivers: false,
-    });
-    console.log("@acceptDriverRequest statusData", statusData);
-    // multiple drivers
     const acceptedDriver = [];
-    const decisions = statusData?.decisions;
-    // find accepted decision from the decisions array
-    const acceptedDecision = decisions?.find(
-      (decision) => decision.journeyDecisionUniqueId == journeyDecisionUniqueId
-    );
-    console.log("@acceptedDecision", acceptedDecision);
-    // return;
-    const drivers = statusData?.drivers;
 
-    for (let i = 0; i < drivers?.length; i++) {
-      const driver = drivers[i];
-      const phoneNumber = driver?.driver?.phoneNumber;
-      const targetDriverUserUniqueId = driver?.driver?.userUniqueId;
+    const connectedDrivers = await performJoinSelect({
+      baseTable: "DriverRequest",
+      //  DriverRequest to decision
+      joins: [
+        {
+          table: "JourneyDecisions",
+          on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+        },
+        {
+          table: "PassengerRequest",
+          on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+        },
+      ],
+      conditions: {
+        "PassengerRequest.userUniqueId": userUniqueId,
+        "JourneyDecisions.journeyStatusId": journeyStatusMap.acceptedByDriver,
+      },
+    });
+    console.log("@connectedDrivers", connectedDrivers);
 
-      if (driverRequestUniqueId != driver.driver.driverRequestUniqueId) {
-        body.journeyStatusId = journeyStatusMap.rejectedByPassenger;
-      } else {
+    for (let i = 0; i < connectedDrivers?.length; i++) {
+      const driver = connectedDrivers[i];
+      const phoneNumber = driver?.phoneNumber;
+      const targetDriverUserUniqueId = driver?.userUniqueId;
+
+      const isAccepted = driverRequestUniqueId == driver.driverRequestUniqueId;
+
+      // Build a fresh payload per driver to avoid mutating the shared body
+      const updatePayload = {
+        journeyStatusId: isAccepted
+          ? journeyStatusMap.acceptedByPassenger
+          : journeyStatusMap.rejectedByPassenger,
+        // use identifiers from the joined row to guarantee correct updates
+        driverRequestUniqueId: driver?.driverRequestUniqueId,
+        journeyDecisionUniqueId: driver?.journeyDecisionUniqueId,
+        passengerRequestUniqueId: driver?.passengerRequestUniqueId,
+      };
+
+      if (isAccepted) {
         acceptedDriver[0] = driver;
-        body.journeyStatusId = journeyStatusMap.acceptedByPassenger;
-        // update only accepted driver request
-        await updateJourneyStatus(body);
       }
-      console.log("@ body.journeyStatusId", body.journeyStatusId);
-      // return;
-      // await updateJourneyStatus(body);
+
+      // Update journey status for both accepted and non-selected drivers
+      await updateJourneyStatus(updatePayload);
+
       const driverStatus = await verifyDriverStatus({
-        userUniqueId: driver?.driver?.userUniqueId,
+        userUniqueId: driver?.userUniqueId,
       });
-      console.log("@driverStatus", driverStatus);
-      if (driverStatus?.message == "success") {
-        sendNotificationToDriver({ message: driverStatus, phoneNumber });
-        // Also send Firebase push notification to the driver
-        const isAccepted =
-          driverRequestUniqueId == driver.driver.driverRequestUniqueId;
-        const notification = {
-          title: isAccepted ? "Offer accepted" : "Offer not selected",
-          body: isAccepted
-            ? "Passenger accepted your price."
-            : "Passenger selected another offer.",
-        };
-        const data = {
-          type: "driver_offer_status",
-          status: isAccepted ? "success" : "not_selected",
-          driverRequestUniqueId: String(
-            driver?.driver?.driverRequestUniqueId || ""
-          ),
-          journeyDecisionUniqueId: String(journeyDecisionUniqueId || ""),
-          passengerUserUniqueId: String(userUniqueId || ""),
-        };
-        if (targetDriverUserUniqueId) {
-          try {
-            await sendNotificationToUser({
-              userUniqueId: targetDriverUserUniqueId,
-              roleId: usersRoles.driverRoleId,
-              notification,
-              data,
-            });
-          } catch (e) {
-            console.log("@FCM notify driver (accept) error", e?.message || e);
-          }
+
+      // Build FCM notification payload once
+      const notification = {
+        title: isAccepted ? "Offer accepted" : "Offer not selected",
+        body: isAccepted
+          ? "Passenger accepted your price."
+          : "Passenger selected another offer.",
+      };
+      const data = {
+        type: "driver_offer_status",
+        status: isAccepted ? "success" : "not_selected",
+        driverRequestUniqueId: String(driver?.driverRequestUniqueId || ""),
+        journeyDecisionUniqueId: String(journeyDecisionUniqueId || ""),
+        passengerUserUniqueId: String(userUniqueId || ""),
+      };
+
+      // Always send FCM so non-selected drivers are also notified
+      if (targetDriverUserUniqueId) {
+        try {
+          await sendFCMNotificationToUser({
+            userUniqueId: targetDriverUserUniqueId,
+            roleId: usersRoles.driverRoleId,
+            notification,
+            data,
+          });
+        } catch (e) {
+          console.log(
+            "@FCM notify driver (accept/reject) error",
+            e?.message || e
+          );
         }
+      }
+
+      // Only send SMS when driver status fetch succeeded
+      if (driverStatus?.message == "success") {
+        sendSocketIONotificationToDriver({
+          message: driverStatus,
+          phoneNumber,
+        });
       } else if (driverStatus?.message == "error") {
         console.log(
           "Error in sending notification to driver. driverStatus is :",
@@ -679,7 +715,7 @@ const cancelPassengerRequest = async (body) => {
               ? "Passenger cancelled Journey."
               : "System cancelled Journey.";
 
-          await sendNotificationToDriver({
+          await sendSocketIONotificationToDriver({
             message: {
               passenger: null,
               driver: null,
@@ -694,7 +730,7 @@ const cancelPassengerRequest = async (body) => {
 
           // Also send Firebase push notification to the driver
           try {
-            await sendNotificationToUser({
+            await sendFCMNotificationToUser({
               userUniqueId: driverData?.userUniqueId,
               roleId: usersRoles.driverRoleId,
               notification: {

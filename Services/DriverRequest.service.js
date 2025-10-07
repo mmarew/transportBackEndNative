@@ -47,7 +47,7 @@ const {
 } = require("./UsersCurrentStatus");
 const { get } = require("http");
 const { pool } = require("../Middleware/Database.config");
-const { sendNotificationToUser } = require("./Firebase.service");
+const { sendFCMNotificationToUser } = require("./Firebase.service");
 
 const createRequest = async ({
   body,
@@ -116,19 +116,19 @@ const takeFromStreet = async (body, user) => {
     const passengerRequest = await createPassengerRequest(
       body,
       dataOfPassenger,
-      journeyStatusId
+      journeyStatusId,
+      "driver"
     );
-    console.log("@takeFromStreet passengerRequest", passengerRequest);
-    if (!passengerRequest?.passenger) {
-      return {
-        message: "error",
-        error: "Unable to create passenger request",
-      };
-    }
-    const targetRequest = passengerRequest?.passenger.find(
-      (eachRequest) =>
-        eachRequest?.passengerRequestBatchId === passengerRequestBatchId
+    console.log(
+      "@takeFromStreet passengerRequest",
+      passengerRequest?.[0]?.data?.[0]
     );
+
+    // const targetRequest = passengerRequest?.passenger.find(
+    //   (eachRequest) =>
+    //     eachRequest?.passengerRequestBatchId === passengerRequestBatchId
+    // );
+    const targetRequest = passengerRequest?.[0]?.data?.[0];
     console.log("@targetRequest", targetRequest);
     const driverRequest = await createDriverRequest(
       body,
@@ -411,7 +411,7 @@ const acceptPassengerRequest = async (body) => {
       },
       phoneNumber,
     });
-    sendNotificationToUser({
+    sendFCMNotificationToUser({
       userUniqueId: passenger.userUniqueId,
       roleId: 1,
       notification: {
@@ -481,7 +481,7 @@ const startJourney = async (body) => {
       phoneNumber: passengersPhoneNumber,
     });
     if (passenger?.userUniqueId)
-      sendNotificationToUser({
+      sendFCMNotificationToUser({
         userUniqueId: passenger?.userUniqueId,
         roleId: 1,
         notification: {
@@ -627,7 +627,7 @@ const journeyCompleted = async (body) => {
         },
         phoneNumber,
       });
-      sendNotificationToUser({
+      sendFCMNotificationToUser({
         userUniqueId: passenger?.at(0)?.userUniqueId,
         roleId: 1,
         notification: {

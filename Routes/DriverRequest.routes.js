@@ -26,7 +26,7 @@ const router = express.Router();
 router.post("/api/driver/takeFromStreet", verifyTokenOfAxios, takeFromStreet);
 // Create a new driver request
 router.post(
-  "api/driver/request",
+  "/api/driver/request",
   verifyTokenOfAxios,
   verifyDriversIdentity,
   createRequest

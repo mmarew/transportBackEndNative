@@ -5,7 +5,7 @@ const {
   updateDeviceTokenByUniqueId,
   deleteDeviceTokenByUniqueId,
   sendNotificationToTokens,
-  sendNotificationToUser,
+  sendFCMNotificationToUser,
 } = require("../Services/Firebase.service");
 
 const firebaseController = {
@@ -91,7 +91,7 @@ const firebaseController = {
   },
 
   // POST /api/notifications/send-to-user
-  sendNotificationToUser: async (req, res) => {
+  sendFCMNotificationToUser: async (req, res) => {
     try {
       const { roleId } = req?.user || {};
       const { userUniqueId, notification, data, android, apns, webpush } =
@@ -117,7 +117,7 @@ const firebaseController = {
           error: "notification must contain title and body",
         });
       }
-      const result = await sendNotificationToUser({
+      const result = await sendFCMNotificationToUser({
         userUniqueId,
         roleId,
         notification,
@@ -128,7 +128,7 @@ const firebaseController = {
       });
       return ServerResponder(res, result);
     } catch (error) {
-      console.error("Error in sendNotificationToUser:", error);
+      console.error("Error in sendFCMNotificationToUser:", error);
       return ServerResponder(res, {
         message: "error",
         error: "Failed to send notification",

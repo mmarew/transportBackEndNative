@@ -311,7 +311,7 @@ const sendNotificationToTokens = async ({
 };
 
 // Send FCM notification to all active tokens of a user
-const sendNotificationToUser = async ({
+const sendFCMNotificationToUser = async ({
   userUniqueId,
   roleId,
   notification = {},
@@ -327,7 +327,7 @@ const sendNotificationToUser = async ({
     if (!roleId) {
       return { message: "error", error: "roleId required" };
     }
-    console.log("in sendNotificationToUser");
+    console.log("in sendFCMNotificationToUser");
     const tokensResult = await getActiveTokensByUser(userUniqueId, roleId);
     console.log("@tokensResult", tokensResult);
     if (tokensResult.message === "error") return tokensResult;
@@ -365,5 +365,5 @@ module.exports = {
   deleteDeviceTokenByUniqueId,
   getActiveTokensByUser,
   sendNotificationToTokens,
-  sendNotificationToUser,
+  sendFCMNotificationToUser,
 };

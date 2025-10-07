@@ -52,6 +52,9 @@ const sendNotificationToDriver = async ({ message, phoneNumber }) => {
   }
 };
 
+// Backward-compatible alias using Socket.IO naming (must be declared after function)
+const sendSocketIONotificationToDriver = sendNotificationToDriver;
+
 // 🔔 Notify a specific passenger by phone number
 const sendNotificationToPassenger = async ({ message, phoneNumber }) => {
   try {
@@ -149,6 +152,6 @@ const sendNotificationToAdmin = async ({ message }) => {
 
 module.exports = {
   sendNotificationToAdmin,
-  sendNotificationToDriver,
+  sendSocketIONotificationToDriver,
   sendNotificationToPassenger,
 };

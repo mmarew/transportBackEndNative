@@ -149,9 +149,9 @@ const updateJourneyStatus = async (body) => {
       journeyStatusId !== journeyStatusMap.rejectedByPassenger
     ) {
       const passengerConditions = { passengerRequestUniqueId };
-      // if (previousStatusId) {
-      //   passengerConditions.journeyStatusId = previousStatusId;
-      // }
+      if (previousStatusId) {
+        passengerConditions.journeyStatusId = previousStatusId;
+      }
 
       updatePromises.push(
         updateData({
