@@ -6,7 +6,8 @@ const { v4: uuidv4 } = require("uuid");
 const createVehicleDriver = async (data) => {
   const {
     vehicleUniqueId,
-    ownerUserUniqueId,
+    ownershipUniqueId: ownershipUniqueIdInput,
+    ownerUserUniqueId, // backward-compat: map to ownershipUniqueId
     driverUserUniqueId,
     assignmentStatus = "active",
     assignmentStartDate,
@@ -14,12 +15,7 @@ const createVehicleDriver = async (data) => {
   } = data || {};
 
   // Basic validation
-  if (
-    !vehicleUniqueId ||
-    !ownerUserUniqueId ||
-    !driverUserUniqueId ||
-    !assignmentStartDate
-  ) {
+  if (!vehicleUniqueId || !driverUserUniqueId || !assignmentStartDate) {
     return { message: "error", error: "Missing required fields" };
   }
   // validate assignmentStatus
@@ -50,12 +46,32 @@ const createVehicleDriver = async (data) => {
       error: "Vehicle is already reserved by another user",
     };
   }
+  // Resolve ownershipUniqueId (support legacy ownerUserUniqueId)
+  let ownershipUniqueId = ownershipUniqueIdInput;
+  if (!ownershipUniqueId) {
+    if (!ownerUserUniqueId) {
+      return { message: "error", error: "ownershipUniqueId or ownerUserUniqueId is required" };
+    }
+    // find active ownership for this vehicle and owner
+    const [owRows] = await pool.query(
+      `SELECT ownershipUniqueId FROM VehicleOwnership 
+       WHERE vehicleUniqueId = ? AND userUniqueId = ? 
+       AND (ownershipEndDate IS NULL OR ownershipEndDate > NOW())
+       ORDER BY ownershipStartDate DESC LIMIT 1`,
+      [vehicleUniqueId, ownerUserUniqueId]
+    );
+    ownershipUniqueId = owRows[0]?.ownershipUniqueId;
+    if (!ownershipUniqueId) {
+      return { message: "error", error: "Active ownership not found for given vehicle and owner" };
+    }
+  }
+
   const vehicleDriverUniqueId = uuidv4();
   const sql = `
     INSERT INTO VehicleDriver (
       vehicleDriverUniqueId,
       vehicleUniqueId,
-      ownerUserUniqueId,
+      ownershipUniqueId,
       driverUserUniqueId,
       assignmentStatus,
       assignmentStartDate,
@@ -67,7 +83,7 @@ const createVehicleDriver = async (data) => {
     const [result] = await pool.query(sql, [
       vehicleDriverUniqueId,
       vehicleUniqueId,
-      ownerUserUniqueId,
+      ownershipUniqueId,
       driverUserUniqueId,
       assignmentStatus,
       assignmentStartDate,
@@ -89,6 +105,7 @@ const getVehicleDrivers = async (filters = {}) => {
   const {
     vehicleDriverUniqueId,
     vehicleUniqueId,
+    ownershipUniqueId,
     ownerUserUniqueId,
     driverUserUniqueId,
     assignmentStatus,
@@ -117,8 +134,12 @@ const getVehicleDrivers = async (filters = {}) => {
     where.push("vd.vehicleUniqueId = ?");
     params.push(vehicleUniqueId);
   }
+  if (ownershipUniqueId) {
+    where.push("vd.ownershipUniqueId = ?");
+    params.push(ownershipUniqueId);
+  }
   if (ownerUserUniqueId) {
-    where.push("vd.ownerUserUniqueId = ?");
+    where.push("vo.userUniqueId = ?");
     params.push(ownerUserUniqueId);
   }
   if (driverUserUniqueId) {
@@ -191,7 +212,8 @@ const getVehicleDrivers = async (filters = {}) => {
     FROM VehicleDriver vd
     LEFT JOIN Vehicle v ON vd.vehicleUniqueId = v.vehicleUniqueId
     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN Users ow ON vd.ownerUserUniqueId = ow.userUniqueId
+    LEFT JOIN VehicleOwnership vo ON vd.ownershipUniqueId = vo.ownershipUniqueId
+    LEFT JOIN Users ow ON vo.userUniqueId = ow.userUniqueId
     LEFT JOIN Users dr ON vd.driverUserUniqueId = dr.userUniqueId
     ${whereClause}
     ORDER BY ${safeSortBy} ${safeSortOrder}
@@ -200,6 +222,7 @@ const getVehicleDrivers = async (filters = {}) => {
   const countSql = `
     SELECT COUNT(*) as total
     FROM VehicleDriver vd
+    LEFT JOIN VehicleOwnership vo ON vd.ownershipUniqueId = vo.ownershipUniqueId
     ${whereClause}
   `;
 
