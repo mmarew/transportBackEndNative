@@ -1,5 +1,12 @@
 const sqlQuery = `
 
+-- Ensure session defaults use InnoDB and utf8mb4 for all created tables
+SET default_storage_engine=INNODB;
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET character_set_client = utf8mb4;
+SET character_set_connection = utf8mb4;
+SET collation_connection = utf8mb4_unicode_ci;
+
 -- Create the Roles Table
 
 CREATE TABLE IF NOT EXISTS Roles (
@@ -70,7 +77,7 @@ CREATE TABLE IF NOT EXISTS UsersHistory (
     actionBy VARCHAR(36) NULL,  -- User who triggered the update/delete action
     actionAt DATETIME NOT NULL,  -- When the action was taken
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Reference to Users table
-) ;
+)  ;
 
 -- Create the UsersCredential Table
 
@@ -83,7 +90,7 @@ CREATE TABLE IF NOT EXISTS usersCredential (
     usersCredentialCreatedAt DATETIME NOT NULL,  -- When the credentials were created
     usersCredentialDeletedAt DATETIME NULL,  -- When the credentials were deleted
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId)  -- Link to Users
-) ;
+)  ;
 
 -- Create the DeviceTokens table (stores FCM/device tokens per device)
 
@@ -106,26 +113,7 @@ CREATE TABLE IF NOT EXISTS DeviceTokens (
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)
 ) ;
 
--- Create the VehicleDriver table (relation among vehicle, ownership and driver)
-
-CREATE TABLE IF NOT EXISTS VehicleDriver (
-    vehicleDriverId INT AUTO_INCREMENT PRIMARY KEY,
-    vehicleDriverUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the assignment
-    vehicleUniqueId VARCHAR(36) NOT NULL,               -- FK to Vehicle
-    ownershipUniqueId VARCHAR(36) NOT NULL,             -- FK to VehicleOwnership (owner at assignment time)
-    driverUserUniqueId VARCHAR(36) NOT NULL,            -- FK to Users (driver)
-    assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
-    assignmentStartDate DATETIME NOT NULL,
-    assignmentEndDate DATETIME NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_vehicleDriver_vehicle (vehicleUniqueId),
-    INDEX idx_vehicleDriver_ownership (ownershipUniqueId),
-    INDEX idx_vehicleDriver_driver (driverUserUniqueId),
-    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
-    FOREIGN KEY (ownershipUniqueId) REFERENCES VehicleOwnership(ownershipUniqueId),
-    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId)
-) ;
+-- VehicleDriver will be created after VehicleOwnership to satisfy FK order
 
 -- Create the UserRole Table
 
@@ -139,9 +127,11 @@ CREATE TABLE IF NOT EXISTS UserRole (
     userRoleDeletedBy VARCHAR(36) NULL,  -- Who deleted the user role
     userRoleCreatedAt DATETIME NOT NULL,  -- When the user role was created
     userRoleDeletedAt DATETIME NULL , -- When the user role was deleted
+    INDEX idx_userRole_userUniqueId (userUniqueId),
+    INDEX idx_userRole_roleId (roleId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
-) ; 
+)  ; 
 
 -- Create the Statuses Table
 
@@ -157,7 +147,7 @@ CREATE TABLE IF NOT EXISTS Statuses (
     statusDeletedAt DATETIME NULL,  -- When the status was deleted
     statusCreatedAt DATETIME NOT NULL,  -- When the status was created
      FOREIGN KEY (statusCreatedBy) REFERENCES Users(userUniqueId)  -- Foreign key to Users
-) ;
+)  ;
 
 -- Table to hold the current status of each user-role combination
 
@@ -177,7 +167,7 @@ CREATE TABLE IF NOT EXISTS UserRoleStatusCurrent (
     INDEX idx_userRoleStatusCurrent_userRoleId (userRoleId),
     INDEX idx_userRoleStatusCurrent_statusId (statusId),
     INDEX idx_userRoleStatusCurrent_userRoleStatusCreatedBy (userRoleStatusCreatedBy)
-) ;
+)  ;
 
 -- Table to hold the history of all user-role statuses, including updates and deletions
 
@@ -197,7 +187,7 @@ userRoleStatusHistoryId INT AUTO_INCREMENT PRIMARY KEY,
     userRoleStatusCurrentVersion int not null default 1,
     INDEX (userRoleId),  -- Index for faster lookups on user roles
     INDEX (statusId)  -- Index for faster lookups on status
-) ;
+)  ;
 
 -- Create the DocumentTypes Table
 -- if driver attach required documents like driving license ,uploadedDocumentName is used in file input field of front end and in backend to receive file name and same to others also. That is why we used uploadedDocument. It is a standard to transfer files from front end to backend using unique name. 
@@ -221,7 +211,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypes (
     documentTypeCurrentVersion int not null default 1,
     INDEX idx_createdByUserId (documentTypeCreatedBy),  -- Index for fast lookups
     FOREIGN KEY (documentTypeCreatedBy) REFERENCES Users(userUniqueId)  -- Link to the Users table
-) ;
+)  ;
 
 -- Create the DocumentTypesHistory Table 
 
@@ -241,7 +231,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     documentTypeDeletedAt DATETIME NULL,
     documentTypeVersion INT NOT NULL DEFAULT 1,
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
-) ;
+)  ;
 
 -- Create the RoleDocumentRequirements Table
 
@@ -266,7 +256,7 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
     FOREIGN KEY (roleId) REFERENCES Roles(roleId),  -- Link to the Roles table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId),  -- Link to the DocumentTypes table
     UNIQUE (roleId, documentTypeId)  -- Ensure each role can have each document type only once
-) ; 
+)  ; 
 
 -- Create the AttachedDocuments Table (Active Documents Only)
 
@@ -290,7 +280,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-) ; 
+)  ; 
 -- Create the AttachedDocumentsHistory Table (for Historical Records)
 
 CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
@@ -318,7 +308,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-) ;
+)  ;
 
  
 -- Create the PassengerRequest table
@@ -431,8 +421,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId)
 ) ; 
 
--- VehicleDriver moved after VehicleOwnership to satisfy FK order
-
+ 
 -- Create the VehicleStatusType table
 
 CREATE TABLE IF NOT EXISTS VehicleStatusType (
@@ -473,6 +462,27 @@ CREATE TABLE IF NOT EXISTS VehicleOwnership (
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)
+)  ;
+
+-- Create the VehicleDriver table (relation among vehicle, ownership and driver)
+
+CREATE TABLE IF NOT EXISTS VehicleDriver (
+    vehicleDriverId INT AUTO_INCREMENT PRIMARY KEY,
+    vehicleDriverUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the assignment
+    vehicleUniqueId VARCHAR(36) NOT NULL,               -- FK to Vehicle
+    ownershipUniqueId VARCHAR(36) NOT NULL,             -- FK to VehicleOwnership (owner at assignment time)
+    driverUserUniqueId VARCHAR(36) NOT NULL,            -- FK to Users (driver)
+    assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    assignmentStartDate DATETIME NOT NULL,
+    assignmentEndDate DATETIME NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vehicleDriver_vehicle (vehicleUniqueId),
+    INDEX idx_vehicleDriver_ownership (ownershipUniqueId),
+    INDEX idx_vehicleDriver_driver (driverUserUniqueId),
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (ownershipUniqueId) REFERENCES VehicleOwnership(ownershipUniqueId),
+    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId)
 ) ;
 
 -- Create the Ratings table

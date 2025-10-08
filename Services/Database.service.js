@@ -1,6 +1,7 @@
 const { sqlQuery } = require("../Database/Database");
 const { pool, config: dbConfig } = require("../Middleware/Database.config");
 const mysql = require("mysql2/promise");
+const { v4: uuidv4 } = require("uuid");
 const {
   vehicleTypes,
   driversDocumentRequirement,
@@ -48,6 +49,67 @@ const createTable = async () => {
     });
     await adminConnection.query(sqlQuery);
     await adminConnection.end();
+
+    // Insert Super Admin user first (minimal Users row) to use as createdBy for seeding
+    // This avoids FK violations when seeding tables that reference Users(userUniqueId)
+    const superAdminId = uuidv4();
+    const superAdminFullName = process.env.SUPER_ADMIN_FULL_NAME || "Supper Admin";
+    const superAdminPhone = process.env.SUPER_ADMIN_PHONE || "+251983222221";
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || "supperAdmin@supperAdmin.com";
+
+    await pool.query(
+      `INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, createdAt, createdBy)
+       VALUES (?, ?, ?, ?, NOW(), ?)
+       ON DUPLICATE KEY UPDATE fullName=VALUES(fullName), phoneNumber=VALUES(phoneNumber), email=VALUES(email)`,
+      [superAdminId, superAdminFullName, superAdminPhone, superAdminEmail, superAdminId]
+    );
+
+    // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent
+    for (const status of statusList) {
+      const {
+        statusId,
+        statusUniqueId,
+        statusName,
+        statusDescription,
+      } = status;
+      const seedStatusSql = `
+        INSERT INTO Statuses (statusId, statusUniqueId, statusName, statusDescription, statusCreatedBy, statusCreatedAt)
+        VALUES (?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE statusName = VALUES(statusName), statusDescription = VALUES(statusDescription);
+      `;
+      await pool.query(seedStatusSql, [
+        statusId,
+        statusUniqueId,
+        statusName,
+        statusDescription,
+        superAdminId,
+      ]);
+    }
+
+    // Seed Roles to satisfy FK constraints for UserRole
+    for (const role of roleList) {
+      const {
+        roleId,
+        roleUniqueId,
+        roleName,
+        roleDescription,
+      } = role;
+      const seedSql = `
+        INSERT INTO Roles (roleId, roleUniqueId, roleName, roleDescription, roleCreatedBy, roleCreatedAt)
+        VALUES (?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE roleName = VALUES(roleName), roleDescription = VALUES(roleDescription);
+      `;
+      // roleCreatedBy has no FK; use a stable placeholder
+      await pool.query(seedSql, [
+        roleId,
+        roleUniqueId,
+        roleName,
+        roleDescription,
+        superAdminId,
+      ]);
+    }
+
+    // Now create system and super admin users (relies on Roles existing)
     const userResult = await createUserSystem();
     console.log("@createTable userResult", userResult);
     return {

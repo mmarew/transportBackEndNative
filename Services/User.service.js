@@ -7,14 +7,14 @@ const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
 const createJWT = require("../Utils/CreateJWT");
 const currentDate = require("../Utils/CurrentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
-const { sendNotificationToAdmin } = require("../Utils/Notifications");
+const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const bcrypt = require("bcryptjs");
 const verifyPassword = require("../Utils/VerifyPassword");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
 const { usersRoles } = require("../Utils/ListOfFixedData");
-const { getUserRoleListByUserUniqueId } = require("./UserRole.service");
+const { getUserRoleListByFilter } = require("./UserRole.service");
 const { getUserRoleStatus } = require("./UserRoleStatus.service");
 
 const createUserSystem = async (body) => {
@@ -363,7 +363,6 @@ const handleUserRoleStatus = async (
       statusId: roleId == 2 ? 2 : statusId,
       userRoleStatusCreatedAt: currentDate(),
     };
-    console.log("colAndVal ============> ", colAndVal);
     if (userRoleStatus.length === 0) {
       // Insert new UserRoleStatus if not found
       await insertData({
@@ -390,9 +389,9 @@ const handleUserRoleStatus = async (
           type: "unauthorizedDriver",
           ...newUser[0],
         };
-        // await sendNotificationToAdmin({
-        //   message,
-        // });
+        await sendSocketIONotificationToAdmin({
+          message,
+        });
       }
       return {
         message: "success",
@@ -514,7 +513,7 @@ const verifyUserByOTP = async (req) => {
       tableName: "UserRole",
       conditions: { roleId, userUniqueId },
     });
-    console.log("userInRoleId", userInRoleId);
+    console.log("@userInRoleId", userInRoleId);
     if (userInRoleId.length === 0) {
       return { message: "error", error: "user not found in this role" };
     }
@@ -559,7 +558,9 @@ const verifyUserByOTP = async (req) => {
       REJECTED?.length > 0 ||
       unAttachedDocumentTypes?.length > 0
     )
-      sendNotificationToAdmin({ message: { ...documentAndVehicleOfDriver } });
+      sendSocketIONotificationToAdmin({
+        message: { ...documentAndVehicleOfDriver },
+      });
     resData.documentAndVehicleOfDriver = documentAndVehicleOfDriver;
     return resData;
   } catch (error) {
@@ -750,7 +751,11 @@ const loginUser = async (phoneNumber, roleId) => {
     };
   // check if this user has this role
   const listOfRoles = (
-    await getUserRoleListByUserUniqueId(userData?.[0]?.userUniqueId)
+    await getUserRoleListByFilter({
+      filters: { userUniqueId: userData?.[0]?.userUniqueId },
+      limit: 100,
+      page: 1,
+    })
   )?.data;
   console.log("@loginUser listOfRoles", listOfRoles);
   const isRoleFound = listOfRoles?.some((role) => role.roleId == roleId);

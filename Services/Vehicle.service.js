@@ -83,8 +83,35 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
       assignmentStatus: "active",
       assignmentStartDate: currentDate(),
     });
+    // Normalize messages for idempotent-friendly behavior
+    const isOwnershipSuccess = ownershipResult?.message === "success";
+    const isDriverSuccess = driverResult?.message === "success";
+    const isOwnershipAlreadyExists =
+      ownershipResult?.message === "error" &&
+      /ownership already exists/i.test(String(ownershipResult?.error || ""));
+    const isDriverAlreadyReserved =
+      driverResult?.message === "error" &&
+      /already reserved by you/i.test(String(driverResult?.error || ""));
 
-    return { ownershipResult, driverResult };
+    // Success conditions
+    if (
+      (isOwnershipSuccess && isDriverSuccess) ||
+      (isOwnershipSuccess && isDriverAlreadyReserved) ||
+      (isDriverSuccess && isOwnershipAlreadyExists) ||
+      (isOwnershipAlreadyExists && isDriverAlreadyReserved)
+    ) {
+      return {
+        message: "success",
+        data: { ownershipResult, driverResult },
+      };
+    }
+
+    // Otherwise return a detailed error for debugging/UX
+    return {
+      message: "error",
+      error: "Failed to create or attach ownership/driver",
+      details: { ownershipResult, driverResult },
+    };
   } catch (error) {
     console.error("Error @createVehicle:", error);
     return { message: "error", error: "Failed to create vehicle" };

@@ -7,7 +7,7 @@ const {
   deleteDriverBalanceByTransactionUniqueId,
 } = require("./DriverBalance.service/DriverBalance.delete.service");
 const {
-  sendNotificationToAdmin,
+  sendSocketIONotificationToAdmin,
   sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
@@ -50,7 +50,7 @@ const createDriverRefund = async ({
         refundedBy,
       },
     };
-    sendNotificationToAdmin({ message });
+    sendSocketIONotificationToAdmin({ message });
     return message;
   } catch (error) {
     console.log("@refund error", error);

@@ -3,7 +3,7 @@ const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const {
   sendSocketIONotificationToDriver,
-  sendNotificationToAdmin,
+  sendSocketIONotificationToAdmin,
 } = require("../Utils/Notifications");
 const { insertData } = require("../CRUD/Create/CreateData");
 const { pool } = require("../Middleware/Database.config");
@@ -153,7 +153,7 @@ const handleUpdateResponces = async ({ roleId, statusId, phoneNumber }) => {
     // if user is driver(roleId == 2 ) and not attached docs and vehicle (statusId ==3)
     if (roleId == 2 && statusId == 3) {
       const driver = await getUserRoleStatus({ roleId, phoneNumber });
-      await sendNotificationToAdmin({
+      await sendSocketIONotificationToAdmin({
         message: {
           message: "success",
           request: "approve or reject driver's document",
