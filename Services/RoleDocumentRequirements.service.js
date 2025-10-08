@@ -6,7 +6,9 @@ const {
   getUserRoleStatus,
   updateUserRoleStatus,
 } = require("./UserRoleStatus.service");
-const { findStatusByVehicleAndDocuments } = require("../Utils/StatusOfUsers");
+const {
+  findStatusByVehicleAndDocuments,
+} = require("../Utils/StatusOfUsersByVehiclesAndDocs");
 const { getBannedUsers } = require("./BannedUsers.service");
 // Create a new mapping
 const createMapping = async ({ body }) => {
@@ -337,7 +339,11 @@ WHERE AttachedDocuments.userUniqueId = ?
     // Prefer checking by phoneNumber (available in this scope)
     let isBanned = false;
     try {
-      const banCheck = await getBannedUsers({ check: true, phoneNumber, roleId });
+      const banCheck = await getBannedUsers({
+        check: true,
+        phoneNumber,
+        roleId,
+      });
       isBanned = banCheck?.data?.isBanned === true;
     } catch (e) {
       // If ban check fails, treat as not banned but do not crash the flow

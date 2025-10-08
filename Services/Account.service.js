@@ -8,7 +8,9 @@ const { getBannedUsers } = require("./BannedUsers.service");
 const {
   getRoleDocumentRequirements,
 } = require("./RoleDocumentRequirements.service");
-const { findStatusByVehicleAndDocuments } = require("../Utils/StatusOfUsers");
+const {
+  findStatusByVehicleAndDocuments,
+} = require("../Utils/StatusOfUsersByVehiclesAndDocs");
 const { pool } = require("../Middleware/Database.config");
 const { usersRoles } = require("../Utils/ListOfFixedData");
 
@@ -30,13 +32,17 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
     const userRoleStatusDescription = body?.userRoleStatusDescription;
 
     if (!roleId) {
-      return { message: "error", data: "Role ID is required to evaluate account status" };
+      return {
+        message: "error",
+        data: "Role ID is required to evaluate account status",
+      };
     }
 
     // Role-based rules
-    const requiresVehicle = [usersRoles.driverRoleId, usersRoles.vehicleOwnerRoleId].includes(
-      Number(roleId)
-    );
+    const requiresVehicle = [
+      usersRoles.driverRoleId,
+      usersRoles.vehicleOwnerRoleId,
+    ].includes(Number(roleId));
     const enableDocumentChecks = true;
 
     // 1) Fetch current user role status
@@ -83,7 +89,11 @@ WHERE AttachedDocuments.userUniqueId = ?
         )
       : [];
     // 5) Group attached docs by acceptance status
-    const attachedDocumentsByStatus = { PENDING: [], ACCEPTED: [], REJECTED: [] };
+    const attachedDocumentsByStatus = {
+      PENDING: [],
+      ACCEPTED: [],
+      REJECTED: [],
+    };
     if (enableDocumentChecks) {
       attachedDocuments.forEach((doc) => {
         const acceptanceStatus = doc.attachedDocumentAcceptance;
@@ -109,12 +119,15 @@ WHERE AttachedDocuments.userUniqueId = ?
     // 7) Ban check
     let isBanned = false;
     try {
-      const banCheck = await getBannedUsers({
+      const banCheckData = {
         check: true,
         phoneNumber,
         roleId,
-      });
+      };
+      console.log("@Account.service.accountStatus banCheckData", banCheckData);
+      const banCheck = await getBannedUsers(banCheckData);
       isBanned = banCheck?.data?.isBanned === true;
+      console.log("@Account.service.accountStatus isBanned", isBanned);
     } catch (e) {
       isBanned = false; // don't fail the flow on ban check error
     }
@@ -163,6 +176,8 @@ WHERE AttachedDocuments.userUniqueId = ?
       userData: latestUserData[0] || null,
       attachedDocumentsByStatus,
       unAttachedDocumentTypes,
+      requiredDocuments,
+      status: finalStatusId,
     };
   } catch (error) {
     console.log("@Account.service.accountStatus error", error);

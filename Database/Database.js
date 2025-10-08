@@ -137,9 +137,9 @@ CREATE TABLE IF NOT EXISTS UserRole (
     userRoleUpdatedBy VARCHAR(36) NULL,  -- Who updated the user role
     userRoleDeletedBy VARCHAR(36) NULL,  -- Who deleted the user role
     userRoleCreatedAt DATETIME NOT NULL,  -- When the user role was created
-    userRoleDeletedAt DATETIME NULL  -- When the user role was deleted
-    -- ,FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
-    -- FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
+    userRoleDeletedAt DATETIME NULL , -- When the user role was deleted
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to Users
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId)  -- Link to Roles
 ) ; 
 
 -- Create the Statuses Table
