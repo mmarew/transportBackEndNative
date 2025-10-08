@@ -26,6 +26,7 @@ router.get(
   verifyTokenOfAxios,
   userRoleStatusController.getUserRoleStatusCurrent
 );
+// Account status: driver documents & vehicle requirement check
 router.get(
   "/api/admin/userRoleStatusByPhone",
   verifyTokenOfAxios,

@@ -15,12 +15,6 @@ router.get(
   verifyTokenOfAxios,
   RoleDocumentRequirementsController.getRoleDocumentRequirements
 );
-// Keep driversDocumentVehicleRequirement as requested
-router.get(
-  "/api/user/driversDocumentVehicleRequirement/:userUniqueId",
-  verifyTokenOfAxios,
-  RoleDocumentRequirementsController.driversDocumentVehicleRequirement
-);
 // Update a mapping by ID
 router.put(
   "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",

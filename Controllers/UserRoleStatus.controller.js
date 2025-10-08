@@ -12,6 +12,7 @@ const createUserRoleStatus = async (req, res) => {
   }
 };
 
+
 const getUserRoleStatusCurrent = async (req, res) => {
   try {
     const userUniqueId = req?.query?.userUniqueId;

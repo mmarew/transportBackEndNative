@@ -50,6 +50,7 @@ const routesArray = [
   require("./BannedUsers.routes"),
   require("./DelinquencyTypes.routes"),
   require("./VehicleDriver.routes"),
+  require("./Account.routes"),
 ];
 
 // Register all routes
