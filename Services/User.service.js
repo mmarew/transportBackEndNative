@@ -16,6 +16,8 @@ const {
 const { usersRoles } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByFilter } = require("./UserRole.service");
 const { getUserRoleStatus } = require("./UserRoleStatus.service");
+const { createFreeGiftToDriver } = require("./FreeGiftToDriver.service");
+const { getAllSubscriptionPlansWithPricing } = require("./SubscriptionPlan.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -185,6 +187,26 @@ const registerNewUser = async ({
         messageDetail: "User created successfully, OTP sent successfully",
       };
     }
+  }
+  // if user is driver give available free gift subscription if it was not given before.
+  try {
+    if (Number(roleId) === usersRoles.driverRoleId) {
+      const plansRes = await getAllSubscriptionPlansWithPricing();
+      const plans = plansRes?.data || [];
+      // find a free plan
+      const freePlan = plans.find((p) => p?.isFree === true || p?.isFree === 1);
+      if (freePlan?.subscriptionPlanUniqueId) {
+        const giftStartDate = new Date().toISOString().slice(0, 10);
+        await createFreeGiftToDriver({
+          driverUniqueId: userUniqueId,
+          subscriptionPlanUniqueId: freePlan.subscriptionPlanUniqueId,
+          giftStartDate,
+        });
+      }
+    }
+  } catch (e) {
+    // ignore gift errors during sign-up to not block user creation
+    console.log("@registerNewUser free gift error", e?.message || e);
   }
 
   return {

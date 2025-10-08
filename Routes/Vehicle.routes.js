@@ -2,11 +2,9 @@ const express = require("express");
 const router = express.Router();
 const {
   createVehicleController,
-  getVehicleController,
   updateVehicleController,
   deleteVehicleController,
-  getAllVehiclesController,
-  verifyUsersVehicleController,
+  getVehiclesController,
 } = require("../Controllers/Vehicle.controller");
 
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
@@ -17,36 +15,22 @@ router.post(
   createVehicleController
 );
 
-// Create a new vehicle
-router.get(
-  "/vehicles/:vehicleUniqueId",
-  verifyTokenOfAxios,
-  getVehicleController
-);
+// Consolidated GET with filters & pagination
+router.get("/api/vehicles", verifyTokenOfAxios, getVehiclesController);
 
-// Get vehicle by ID
+// Update vehicle
 router.put(
   "/api/user/vehicles/:vehicleUniqueId",
   verifyTokenOfAxios,
   updateVehicleController
 );
 
-// Update vehicle
 router.delete(
   "/vehicles/:vehicleUniqueId",
   verifyTokenOfAxios,
   deleteVehicleController
 );
 
-// Delete vehicle
-router.get("/api/admin/vehicles", verifyTokenOfAxios, getAllVehiclesController); // Get all vehicles
-
-router.get(
-  "/api/user/vehicles/verifyUsersVehicle/:ownerUserUniqueId",
-  verifyTokenOfAxios,
-  verifyUsersVehicleController
-);
-
-// Verify user's vehicle
+// Note: Removed other GET routes to keep a single way of fetching vehicles
 
 module.exports = router;

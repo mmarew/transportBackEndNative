@@ -114,6 +114,15 @@ const statusList = [
       "Driver is banned by admin when it commits some crimes or brake rules",
     statusCreatedAt: currentDate(),
   },
+  // subscription
+  {
+    statusId: 7,
+    statusUniqueId: uuidv4(),
+    statusName: "inactive - Driver doesn't have a subscription",
+    statusDescription:
+      "Driver is banned by the system when they don't have a subscription",
+    statusCreatedAt: currentDate(),
+  },
 ];
 
 const vehicleStatusTypes = [

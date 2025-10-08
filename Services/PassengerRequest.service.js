@@ -468,6 +468,7 @@ const getDetailedJourneyData = async (passengerRequests) => {
 };
 const getPassengerRequest4allOrSingleUser = async ({ data }) => {
   try {
+    console.log("@getPassengerRequest4allOrSingleUser data", data);
     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
     const offset = (page - 1) * limit;
 
@@ -559,7 +560,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     const total = countResult[0]?.total || 0;
     const totalPages = Math.ceil(total / limit);
     const formattedData = await getDetailedJourneyData(passengerRequests);
-    return {
+    const message = {
       message: "success",
       // data: passengerRequests,
       formattedData,
@@ -574,6 +575,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       },
       filters: Object.keys(filters).length > 0 ? filters : undefined,
     };
+    return message;
   } catch (error) {
     console.log("Error in getPassengerRequest4allOrSingleUser:", error);
     return {

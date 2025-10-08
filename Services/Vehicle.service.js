@@ -8,6 +8,7 @@ const { createVehicleStatus } = require("./VehicleStatus.service");
 const { removeWhiteSpace } = require("../Validator/Validation");
 const { createVehicleDriver } = require("./VehicleDriver.service");
 const { usersRoles } = require("../Utils/ListOfFixedData");
+const { pool } = require("../Middleware/Database.config");
 
 // create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user, ownerUserUniqueId) => {
@@ -118,21 +119,6 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
   }
 };
 
-const getVehicle = async (vehicleUniqueId) => {
-  try {
-    const result = await getData({
-      tableName: "Vehicle",
-      conditions: { vehicleUniqueId },
-    });
-    return result.length
-      ? { message: "success", data: result[0] }
-      : { message: "error", error: "Vehicle not found" };
-  } catch (error) {
-    console.error("Error @getVehicle:", error);
-    return { message: "error", error: "Failed to get vehicle" };
-  }
-};
-
 const updateVehicle = async (vehicleUniqueId, data, user) => {
   try {
     const vehicleTypeUniqueId = data?.vehicleTypeUniqueId,
@@ -193,38 +179,80 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
   }
 };
 
-const getAllVehicles = async () => {
+// unified vehicle fetching with filters and pagination
+const getVehicles = async ({
+  vehicleUniqueId,
+  ownerUserUniqueId,
+  licensePlate,
+  color,
+  vehicleTypeUniqueId,
+  page = 1,
+  pageSize = 10,
+  orderBy = "vehicleCreatedAt",
+  orderDirection = "DESC",
+  user,
+}) => {
   try {
-    const result = await getData({ tableName: "Vehicle" });
-    return result.length
-      ? { message: "success", data: result }
-      : { message: "error", error: "No vehicles found" };
-  } catch (error) {
-    console.error("Error @getAllVehicles:", error);
-    return { message: "error", error: "Failed to fetch vehicles" };
-  }
-};
+    const conditions = {};
+    if (vehicleUniqueId) conditions.vehicleUniqueId = vehicleUniqueId;
+    if (licensePlate) conditions.licensePlate = removeWhiteSpace(licensePlate);
+    if (color) conditions.color = color;
+    if (vehicleTypeUniqueId) conditions.vehicleTypeUniqueId = vehicleTypeUniqueId;
+    // filter by creator/owner (as used by verifyUsersVehicle)
+    if (ownerUserUniqueId) {
+      const creatorId = ownerUserUniqueId === "self" ? user?.userUniqueId : ownerUserUniqueId;
+      conditions.vehicleCreatedBy = creatorId;
+    }
 
-const verifyUsersVehicle = async (ownerUserUniqueId, user) => {
-  try {
-    const result = await getData({
+    const limit = Number(pageSize) || 10;
+    const pageNum = Number(page) || 1;
+    const offset = (pageNum - 1) * limit;
+
+    // fetch paged data
+    const items = await getData({
       tableName: "Vehicle",
-      conditions: { vehicleCreatedBy: ownerUserUniqueId || user.userUniqueId },
+      conditions,
+      orderBy,
+      orderDirection,
+      limit,
+      offset,
     });
-    return result.length
-      ? { message: "success", data: result }
-      : { message: "error", error: "No vehicles found" };
+
+    // total count (efficient COUNT query)
+    const whereKeys = Object.keys(conditions);
+    const whereClause = whereKeys.length
+      ? "WHERE " +
+        whereKeys
+          .map((col) => `${col} = ?`)
+          .join(" AND ")
+      : "";
+    const values = Object.values(conditions);
+    const [countRows] = await pool.query(
+      `SELECT COUNT(*) as total FROM Vehicle ${whereClause}`,
+      values
+    );
+    const total = countRows?.[0]?.total || 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      message: "success",
+      data: items,
+      pagination: {
+        page: pageNum,
+        pageSize: limit,
+        total,
+        totalPages,
+      },
+    };
   } catch (error) {
-    console.error("Error @verifyUsersVehicle:", error);
-    return { message: "error", error: "Failed to verify vehicle" };
+    console.error("Error @getVehicles:", error);
+    return { message: "error", error: "Failed to fetch vehicles" };
   }
 };
 
 module.exports = {
   createVehicle,
-  getVehicle,
   updateVehicle,
   deleteVehicle,
-  getAllVehicles,
-  verifyUsersVehicle,
+  getVehicles,
 };
