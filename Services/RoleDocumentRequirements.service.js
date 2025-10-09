@@ -299,7 +299,6 @@ WHERE AttachedDocuments.userUniqueId = ?
 `;
     const values = [ownerUserUniqueId];
     const [attachedDocuments] = await pool.query(sql, values);
-    console.log("@attachedDocuments", attachedDocuments);
     // Find unattached document types
     const unAttachedDocumentTypes = requiredDocuments.filter(
       (requiredDocument) =>

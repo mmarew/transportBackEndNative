@@ -17,7 +17,9 @@ const { usersRoles } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByFilter } = require("./UserRole.service");
 const { getUserRoleStatus } = require("./UserRoleStatus.service");
 const { createFreeGiftToDriver } = require("./FreeGiftToDriver.service");
-const { getAllSubscriptionPlansWithPricing } = require("./SubscriptionPlan.service");
+const {
+  getAllSubscriptionPlansWithPricing,
+} = require("./SubscriptionPlan.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -584,6 +586,7 @@ const verifyUserByOTP = async (req) => {
         message: { ...documentAndVehicleOfDriver },
       });
     resData.documentAndVehicleOfDriver = documentAndVehicleOfDriver;
+    console.log("@resData", resData);
     return resData;
   } catch (error) {
     console.log("Error in verifyDriverByOTP:", error.message);
