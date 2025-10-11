@@ -39,9 +39,10 @@ async function initSocket({ httpServer }) {
       socket.emit("response", "Message received");
     });
     socket.on("locationUpdateToShipper", async (data) => {
-      console.log("@locationUpdateToShipper", data);
+      console.log("@locationUpdateToShipper data", data);
       const phoneNumberOfShipper = data?.passengerPhoneNumber;
       const res = await sendSocketIONotificationToPassenger({
+        eventName: "locationUpdateToShipper",
         phoneNumber: phoneNumberOfShipper,
         message: {
           ...data,
@@ -55,6 +56,7 @@ async function initSocket({ httpServer }) {
     socket.on("locationUpdateToDriver", async (data) => {
       console.log("@locationUpdateToDriver", data);
       const res = await sendSocketIONotificationToDriver({
+        eventName: "locationUpdateToDriver",
         phoneNumber: data?.driverPhoneNumber,
         message: {
           ...data,

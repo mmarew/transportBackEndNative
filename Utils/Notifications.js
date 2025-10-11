@@ -11,7 +11,7 @@ const cleanPhoneNumber = (phoneNumber) => {
 };
 
 // 🔔 Notify a specific driver by phone number
-const sendSocketIONotificationToDriver = async ({ message, phoneNumber }) => {
+const sendSocketIONotificationToDriver = async ({ message, phoneNumber, eventName }) => {
   try {
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
@@ -36,7 +36,7 @@ const sendSocketIONotificationToDriver = async ({ message, phoneNumber }) => {
     }
 
     const res = await emitMessage({
-      messageTitle: "messages",
+      eventName: eventName || "messages",
       messageDetails: JSON.stringify(message),
       socketId,
     });
@@ -56,6 +56,7 @@ const sendSocketIONotificationToDriver = async ({ message, phoneNumber }) => {
 const sendSocketIONotificationToPassenger = async ({
   message,
   phoneNumber,
+  eventName,
 }) => {
   try {
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
@@ -73,7 +74,7 @@ const sendSocketIONotificationToPassenger = async ({
     }
 
     const res = await emitMessage({
-      messageTitle: "messages",
+      eventName: eventName || "messages",
       messageDetails: JSON.stringify(message),
       socketId,
     });
@@ -92,7 +93,7 @@ const sendSocketIONotificationToPassenger = async ({
   }
 };
 
-const sendSocketIONotificationToAdmin = async ({ message }) => {
+const sendSocketIONotificationToAdmin = async ({ message, eventName }) => {
   try {
     const keys = await redis.keys("admin:*");
 
@@ -105,7 +106,7 @@ const sendSocketIONotificationToAdmin = async ({ message }) => {
 
       try {
         const res = await emitMessage({
-          messageTitle: "messages",
+          eventName: eventName || "messages",
           messageDetails: JSON.stringify(message),
           socketId,
         });

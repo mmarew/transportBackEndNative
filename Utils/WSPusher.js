@@ -28,7 +28,7 @@ async function WSPusher({ io, socket }) {
     if (!token) {
       return emitMessage({
         socketId,
-        messageTitle: "messages",
+        eventName: "messages",
         messageDetails: "Token is required for connection.",
       });
     }
@@ -37,8 +37,8 @@ async function WSPusher({ io, socket }) {
     if (!tokenValidation?.valid) {
       return emitMessage({
         socketId,
-        messageTitle: "messages",
-        messageDetails: "You are not authorized",
+        eventName: "messages",
+        messageDetails: "You are not authorized user",
       });
     }
 
@@ -48,7 +48,7 @@ async function WSPusher({ io, socket }) {
     if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
       return emitMessage({
         socketId,
-        messageTitle: "messages",
+        eventName: "messages",
         messageDetails: "Invalid phone number format (9–15 digits)",
       });
     }
@@ -57,7 +57,7 @@ async function WSPusher({ io, socket }) {
     if (!validUserTypes.includes(user)) {
       return emitMessage({
         socketId,
-        messageTitle: "messages",
+        eventName: "messages",
         messageDetails: "Invalid user type",
       });
     }
@@ -68,7 +68,7 @@ async function WSPusher({ io, socket }) {
       if (!password) {
         return emitMessage({
           socketId,
-          messageTitle: "messages",
+          eventName: "messages",
           messageDetails: "Password is required for SMS sender",
         });
       }
@@ -81,7 +81,7 @@ async function WSPusher({ io, socket }) {
       if (!smsSenderData.length) {
         return emitMessage({
           socketId,
-          messageTitle: "messages",
+          eventName: "messages",
           messageDetails: "This phone number is not found",
         });
       }
@@ -95,8 +95,8 @@ async function WSPusher({ io, socket }) {
       if (verification.message !== "success") {
         return emitMessage({
           socketId,
-          messageTitle: "messages",
-          messageDetails: "You are not authorized",
+          eventName: "messages",
+          messageDetails: "You are not authorized sender",
         });
       }
     }
@@ -115,7 +115,7 @@ async function WSPusher({ io, socket }) {
 
     return emitMessage({
       socketId,
-      messageTitle: "messages",
+      eventName: "messages",
       messageDetails: JSON.stringify({
         messageTypes: messageTypes.connection_established,
         status,
@@ -130,7 +130,7 @@ async function WSPusher({ io, socket }) {
       socketId,
       error: "Internal server error occurred during socket registration.",
       message: "error",
-      messageTitle: "messages",
+      eventName: "messages",
       messageDetails:
         "Internal server error occurred during socket registration.",
     });

@@ -342,7 +342,6 @@ const verifyPassengerStatus = async ({
       activeRequest = dataOfActiveRequest?.activeRequests;
       totalRecords = dataOfActiveRequest?.totalRecords;
     }
-    console.log("@activeRequest", activeRequest);
     // If no active request, return an error
     if (activeRequest?.length == 0 || !activeRequest) {
       return {
