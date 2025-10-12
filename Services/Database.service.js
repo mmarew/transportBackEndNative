@@ -2,6 +2,7 @@ const { sqlQuery } = require("../Database/Database");
 const { pool, config: dbConfig } = require("../Middleware/Database.config");
 const mysql = require("mysql2/promise");
 const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcryptjs");
 const {
   vehicleTypes,
   driversDocumentRequirement,
@@ -53,25 +54,61 @@ const createTable = async () => {
     // Insert Super Admin user first (minimal Users row) to use as createdBy for seeding
     // This avoids FK violations when seeding tables that reference Users(userUniqueId)
     const superAdminId = uuidv4();
-    const superAdminFullName = process.env.SUPER_ADMIN_FULL_NAME || "Supper Admin";
+    const superAdminFullName =
+      process.env.SUPER_ADMIN_FULL_NAME || "Supper Admin";
     const superAdminPhone = process.env.SUPER_ADMIN_PHONE || "+251983222221";
-    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || "supperAdmin@supperAdmin.com";
+    const superAdminEmail =
+      process.env.SUPER_ADMIN_EMAIL || "supperAdmin@supperAdmin.com";
 
     await pool.query(
       `INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, createdAt, createdBy)
        VALUES (?, ?, ?, ?, NOW(), ?)
        ON DUPLICATE KEY UPDATE fullName=VALUES(fullName), phoneNumber=VALUES(phoneNumber), email=VALUES(email)`,
-      [superAdminId, superAdminFullName, superAdminPhone, superAdminEmail, superAdminId]
+      [
+        superAdminId,
+        superAdminFullName,
+        superAdminPhone,
+        superAdminEmail,
+        superAdminId,
+      ]
     );
+    // Resolve the actual super admin userUniqueId in DB (handles duplicates on phone/email)
+    const [superRows] = await pool.query(
+      `SELECT userUniqueId FROM Users WHERE email = ? OR phoneNumber = ? LIMIT 1`,
+      [superAdminEmail, superAdminPhone]
+    );
+    const effectiveSuperAdminId = superRows?.[0]?.userUniqueId || superAdminId;
+
+    const createOrUpdateSuperAdminCredential = async (userUniqueId) => {
+      const raw = process.env.SUPER_ADMIN_TEMP_PASSWORD || "123456";
+      const hashed = await bcrypt.hash(String(raw), 10);
+      // Check if a credential already exists for this user
+      const [credRows] = await pool.query(
+        `SELECT credentialId FROM usersCredential WHERE userUniqueId = ? LIMIT 1`,
+        [userUniqueId]
+      );
+      if (credRows && credRows.length > 0) {
+        // Update existing credential
+        await pool.query(
+          `UPDATE usersCredential SET OTP = ?, hashedPassword = ? WHERE userUniqueId = ?`,
+          [hashed, hashed, userUniqueId]
+        );
+      } else {
+        // Insert new credential
+        const credentialUniqueId = uuidv4();
+        await pool.query(
+          `INSERT INTO usersCredential (credentialUniqueId, userUniqueId, OTP, hashedPassword, usersCredentialCreatedAt)
+           VALUES (?, ?, ?, ?, NOW())`,
+          [credentialUniqueId, userUniqueId, hashed, hashed]
+        );
+      }
+    };
+    await createOrUpdateSuperAdminCredential(effectiveSuperAdminId);
 
     // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent
     for (const status of statusList) {
-      const {
-        statusId,
-        statusUniqueId,
-        statusName,
-        statusDescription,
-      } = status;
+      const { statusId, statusUniqueId, statusName, statusDescription } =
+        status;
       const seedStatusSql = `
         INSERT INTO Statuses (statusId, statusUniqueId, statusName, statusDescription, statusCreatedBy, statusCreatedAt)
         VALUES (?, ?, ?, ?, ?, NOW())
@@ -82,18 +119,13 @@ const createTable = async () => {
         statusUniqueId,
         statusName,
         statusDescription,
-        superAdminId,
+        effectiveSuperAdminId,
       ]);
     }
 
     // Seed Roles to satisfy FK constraints for UserRole
     for (const role of roleList) {
-      const {
-        roleId,
-        roleUniqueId,
-        roleName,
-        roleDescription,
-      } = role;
+      const { roleId, roleUniqueId, roleName, roleDescription } = role;
       const seedSql = `
         INSERT INTO Roles (roleId, roleUniqueId, roleName, roleDescription, roleCreatedBy, roleCreatedAt)
         VALUES (?, ?, ?, ?, ?, NOW())
@@ -105,7 +137,7 @@ const createTable = async () => {
         roleUniqueId,
         roleName,
         roleDescription,
-        superAdminId,
+        effectiveSuperAdminId,
       ]);
     }
 
