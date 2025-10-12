@@ -23,7 +23,7 @@ const {
 
 const createUserSystem = async (body) => {
   const fullName = "system",
-    phoneNumber = "0922112480",
+    phoneNumber = "+251922112480",
     email = "system@system.com",
     roleId = usersRoles.systemRoleId,
     statusId = 1,
@@ -58,6 +58,44 @@ const createUserSystem = async (body) => {
   });
   console.log("@responseOfSupperAdmin", responseOfSupperAdmin);
   return;
+};
+
+// Ensure a credential exists for a user; update if exists, insert if not
+const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
+  try {
+    if (!userUniqueId)
+      return { message: "error", error: "userUniqueId required" };
+    const OTP = rawPassword || Math.floor(100000 + Math.random() * 900000);
+    const hashed = await bcrypt.hash(String(OTP), 10);
+    const existing = await getData({
+      tableName: "usersCredential",
+      conditions: { userUniqueId },
+    });
+    if (existing && existing.length > 0) {
+      const upd = await updateData({
+        tableName: "usersCredential",
+        updateValues: { OTP: hashed, hashedPassword: hashed },
+        conditions: { userUniqueId },
+      });
+      if (upd?.affectedRows > 0) return { message: "success" };
+      return { message: "error", error: "Unable to update credential" };
+    }
+    const ins = await insertData({
+      tableName: "usersCredential",
+      colAndVal: {
+        credentialUniqueId: uuidv4(),
+        userUniqueId,
+        OTP: hashed,
+        hashedPassword: hashed,
+        usersCredentialCreatedAt: new Date(),
+      },
+    });
+    if (ins?.affectedRows > 0) return { message: "success" };
+    return { message: "error", error: "Unable to insert credential" };
+  } catch (e) {
+    console.log("@ensureCredentialForUser error", e?.message || e);
+    return { message: "error", error: "Server error ensuring credential" };
+  }
 };
 
 const handleExistingUser = async ({
@@ -205,7 +243,18 @@ const registerNewUser = async ({
           giftStartDate,
         });
       }
+      // prepare return message
+      return {
+        message: "success",
+        messageDetail:
+          "User created successfully, free gift subscription added",
+      };
     }
+    // prepare return message
+    return {
+      message: "success",
+      messageDetail: "User created successfully",
+    };
   } catch (e) {
     // ignore gift errors during sign-up to not block user creation
     console.log("@registerNewUser free gift error", e?.message || e);
@@ -914,7 +963,7 @@ const updateUser = async (body) => {
     };
   }
 };
-// Create User By Admin Or Super Admin. register any user with any role
+// Create User By Admin Or Super Admin. Register any user with any role
 const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
   const { fullName, phoneNumber, email, roleId, statusId } = body;
   const userRoleStatusDescription = "";
@@ -923,18 +972,26 @@ const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
     tableName: "Users",
     conditions: { email },
   });
-  console.log("@userDataByEmail=", email, userDataByEmail);
+  // check if user has credential or not and if not create  credential
   if (userDataByEmail?.[0]) {
     const userUniqueId = userDataByEmail?.[0]?.userUniqueId;
+    await ensureCredentialForUser({ userUniqueId });
     await handleUserRoleStatus(
       userUniqueId,
       roleId,
       statusId,
       userRoleStatusDescription
     );
+    // if phone number is different from existing user's phone number return error
+    if (phoneNumber && userDataByEmail?.[0]?.phoneNumber !== phoneNumber) {
+      return {
+        message: "error",
+        error: "There is a difference in phone number",
+      };
+    }
     return {
-      message: "error",
-      error: "Email already exists",
+      message: "success",
+      data: "User already exists with this email address",
     };
   }
   const userDataByPhoneNumber = await getData({
@@ -943,15 +1000,24 @@ const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
   });
   if (userDataByPhoneNumber?.[0]) {
     const userUniqueId = userDataByPhoneNumber?.[0]?.userUniqueId;
+    await ensureCredentialForUser({ userUniqueId });
+
     await handleUserRoleStatus(
       userUniqueId,
       roleId,
       statusId,
       userRoleStatusDescription
     );
+    // if email is different from existing user's email return error
+    if (email && userDataByEmail?.[0]?.email !== email) {
+      return {
+        message: "error",
+        error: "There is a difference in email address",
+      };
+    }
     return {
-      message: "error",
-      error: "Phone number already exists",
+      message: "success",
+      data: "User already exists with this phone number",
     };
   }
 
@@ -980,4 +1046,5 @@ module.exports = {
   deleteUser,
   getAllUsers,
   loginUser,
+  ensureCredentialForUser,
 };

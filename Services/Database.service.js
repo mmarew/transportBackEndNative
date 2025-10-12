@@ -2,7 +2,6 @@ const { sqlQuery } = require("../Database/Database");
 const { pool, config: dbConfig } = require("../Middleware/Database.config");
 const mysql = require("mysql2/promise");
 const { v4: uuidv4 } = require("uuid");
-const bcrypt = require("bcryptjs");
 const {
   vehicleTypes,
   driversDocumentRequirement,
@@ -33,7 +32,7 @@ const { createMapping } = require("./RoleDocumentRequirements.service");
 const { createStatus } = require("./Status.service");
 const { createTariffRate } = require("./TariffRate.service");
 
-const { createUserSystem } = require("./User.service");
+const { createUserSystem, ensureCredentialForUser } = require("./User.service");
 const { createVehicleType } = require("./VehicleType.service");
 const {
   createFinancialInstitutionAccount,
@@ -79,31 +78,10 @@ const createTable = async () => {
     );
     const effectiveSuperAdminId = superRows?.[0]?.userUniqueId || superAdminId;
 
-    const createOrUpdateSuperAdminCredential = async (userUniqueId) => {
-      const raw = process.env.SUPER_ADMIN_TEMP_PASSWORD || "123456";
-      const hashed = await bcrypt.hash(String(raw), 10);
-      // Check if a credential already exists for this user
-      const [credRows] = await pool.query(
-        `SELECT credentialId FROM usersCredential WHERE userUniqueId = ? LIMIT 1`,
-        [userUniqueId]
-      );
-      if (credRows && credRows.length > 0) {
-        // Update existing credential
-        await pool.query(
-          `UPDATE usersCredential SET OTP = ?, hashedPassword = ? WHERE userUniqueId = ?`,
-          [hashed, hashed, userUniqueId]
-        );
-      } else {
-        // Insert new credential
-        const credentialUniqueId = uuidv4();
-        await pool.query(
-          `INSERT INTO usersCredential (credentialUniqueId, userUniqueId, OTP, hashedPassword, usersCredentialCreatedAt)
-           VALUES (?, ?, ?, ?, NOW())`,
-          [credentialUniqueId, userUniqueId, hashed, hashed]
-        );
-      }
-    };
-    await createOrUpdateSuperAdminCredential(effectiveSuperAdminId);
+    await ensureCredentialForUser({
+      userUniqueId: effectiveSuperAdminId,
+      rawPassword: process.env.SUPER_ADMIN_TEMP_PASSWORD || "123456",
+    });
 
     // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent
     for (const status of statusList) {
