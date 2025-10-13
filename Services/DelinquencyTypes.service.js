@@ -29,6 +29,41 @@ const createDelinquencyType = async (data) => {
     };
   }
 
+  // resolve applicableRoles to roleUniqueId if a role name is provided
+  let applicableRoleUniqueId = applicableRoles;
+  const uuidLike = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+  if (!uuidLike.test(applicableRoles)) {
+    const [roleRows] = await pool.query(
+      "SELECT roleUniqueId FROM Roles WHERE LOWER(roleName) = LOWER(?) LIMIT 1",
+      [applicableRoles]
+    );
+    if (roleRows.length === 0) {
+      return {
+        message: "error",
+        error:
+          "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
+      };
+    }
+    applicableRoleUniqueId = roleRows[0].roleUniqueId;
+  }
+
+  // idempotent existence check to avoid duplicate inserts
+  // If schema enforces uniqueness on name only, name check is sufficient.
+  // If later extended to (name, applicableRoles), the WHERE includes both.
+  const [existing] = await pool.query(
+    `SELECT delinquencyTypeUniqueId FROM DelinquencyTypes 
+     WHERE delinquencyTypeName = ?`,
+    [delinquencyTypeName]
+  );
+  if (existing.length > 0) {
+    return {
+      message: "success",
+      data: "Delinquency type already exists",
+      delinquencyTypeUniqueId: existing[0].delinquencyTypeUniqueId,
+      existed: true,
+    };
+  }
+
   const delinquencyTypeUniqueId = uuidv4();
 
   const sql = `
@@ -44,7 +79,7 @@ const createDelinquencyType = async (data) => {
     delinquencyTypeDescription,
     defaultPoints || 1,
     defaultSeverity || "MEDIUM",
-    applicableRoles,
+    applicableRoleUniqueId,
   ];
 
   await query(sql, values);

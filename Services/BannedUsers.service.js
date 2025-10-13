@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const { updateUserRoleStatus } = require("./UserRoleStatus.service");
 
 const query = async (sql, values = []) => {
   const [result] = await pool.query(sql, values);
@@ -10,6 +11,21 @@ const banUser = async (data) => {
   const { userDelinquencyUniqueId, bannedBy, banReason, banDurationDays } =
     data;
   console.log("@banUser data", data);
+
+  // fetch user phone and role by userDelinquencyUniqueId and validate existence
+  const [userInfoRows] = await pool.query(
+    `SELECT u.phoneNumber, ur.roleId
+     FROM UserDelinquency ud
+     INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
+     INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
+     WHERE ud.userDelinquencyUniqueId = ?`,
+    [userDelinquencyUniqueId]
+  );
+
+  if (userInfoRows.length === 0) {
+    return { message: "error", error: "Invalid userDelinquencyUniqueId" };
+  }
+  const { phoneNumber, roleId } = userInfoRows[0];
 
   const banUniqueId = uuidv4();
   const banAt = new Date();
@@ -35,6 +51,13 @@ const banUser = async (data) => {
   ];
 
   await query(sql, values);
+  // change user role status to banned which is 6
+  await updateUserRoleStatus({
+    user: { userUniqueId: bannedBy },
+    roleId,
+    newStatusId: 6,
+    phoneNumber,
+  });
 
   return {
     message: "success",
@@ -105,12 +128,12 @@ const getBannedUsers = async (filters = {}) => {
   }
   if (roleId) {
     let roleIds = roleId;
-    if (typeof roleIds === 'string' && roleIds.includes(',')) {
-      roleIds = roleIds.split(',').map(id => id.trim());
+    if (typeof roleIds === "string" && roleIds.includes(",")) {
+      roleIds = roleIds.split(",").map((id) => id.trim());
     }
 
     if (Array.isArray(roleIds)) {
-      const placeholders = roleIds.map(() => '?').join(',');
+      const placeholders = roleIds.map(() => "?").join(",");
       whereConditions.push(`ur.roleId IN (${placeholders})`);
       queryParams.push(...roleIds);
     } else {

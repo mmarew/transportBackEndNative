@@ -19,7 +19,9 @@ const {
   subscriptionPlanLists,
   depositSources,
   passengerDocumentRequirement,
+  listOfDelinquenciesTypes,
 } = require("../Utils/ListOfFixedData");
+const { createDelinquencyType } = require("./DelinquencyTypes.service");
 const { createVehicleStatusType } = require("./VehicleStatusType.service");
 const { addCancellationReason } = require("./Cancellation.service");
 const { createCommissionRate } = require("./CommissionRates.service");
@@ -398,7 +400,10 @@ const installPreDefinedData = async (req, res) => {
       depositSourcesSuccess = [],
       depositSourcesErrors = [],
       successPassengerDocumentRequirement = [],
-      failedPassengerDocumentRequirement = [];
+      failedPassengerDocumentRequirement = [],
+      listOfDelinquenciesTypesSuccess = [],
+      listOfDelinquenciesTypesErrors = [];
+
     // passengers document requirement using passengerDocumentRequirement
     await processDataSequentially(
       passengerDocumentRequirement,
@@ -565,9 +570,21 @@ const installPreDefinedData = async (req, res) => {
       depositSourcesErrors,
       "depositSources"
     );
+    // 15. listOfDelinquenciesTypes
+    await processDataSequentially(
+      listOfDelinquenciesTypes,
+      createDelinquencyType,
+      listOfDelinquenciesTypesSuccess,
+      listOfDelinquenciesTypesErrors,
+      "listOfDelinquenciesTypes"
+    );
     return {
       message: "success",
       data: {
+        DelinquencyTypes: {
+          success: listOfDelinquenciesTypesSuccess,
+          errors: listOfDelinquenciesTypesErrors,
+        },
         passengerDocumentRequirement: {
           success: successPassengerDocumentRequirement,
           errors: failedPassengerDocumentRequirement,
