@@ -27,6 +27,24 @@ const banUser = async (data) => {
   }
   const { phoneNumber, roleId } = userInfoRows[0];
 
+  const [existingActiveBanRows] = await pool.query(
+    `SELECT b.* FROM BannedUsers b 
+     WHERE b.userDelinquencyUniqueId = ? 
+       AND b.isActive = TRUE 
+       AND (b.banExpiresAt IS NULL OR b.banExpiresAt > NOW()) 
+     LIMIT 1`,
+    [userDelinquencyUniqueId]
+  );
+  if (existingActiveBanRows.length > 0) {
+    const existing = existingActiveBanRows[0];
+    return {
+      message: "error",
+      error: "User already has an active ban",
+      banUniqueId: existing.banUniqueId,
+      banExpiresAt: existing.banExpiresAt,
+    };
+  }
+
   const banUniqueId = uuidv4();
   const banAt = new Date();
   const banExpiresAt = new Date(
