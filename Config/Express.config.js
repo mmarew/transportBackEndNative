@@ -2,7 +2,6 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-require("dotenv").config();
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const mongoSanitize = require("express-mongo-sanitize");
@@ -64,9 +63,9 @@ app.get("/", (req, res) => {
 });
 
 // Crash test endpoint
-app.get("/crash", () => {
-  console.log("Forcing a crash!");
-  process.exit(1); // Non-zero exit = crash (PM2 WILL restart)
-});
+// app.get("/crash", () => {
+//   console.log("Forcing a crash!");
+//   process.exit(1); // Non-zero exit = crash (PM2 WILL restart)
+// });
 
 module.exports = app;

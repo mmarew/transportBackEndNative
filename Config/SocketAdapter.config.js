@@ -1,4 +1,4 @@
-const { Server } = require("socket.io");
+const { Server: socketServer } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher.js");
@@ -11,13 +11,12 @@ const {
 const messageTypes = require("../Utils/MessageTypes.js");
 
 async function initSocket({ httpServer }) {
-  const io = new Server(httpServer, {
+  const io = new socketServer(httpServer, {
     cors: {
       origin: "*", // Set to your domain in production
     },
   });
-  const { UPSTASH_REDIS_URL } = require("../Utils/Constants.js");
-
+  const UPSTASH_REDIS_URL = process.env.UPSTASH_REDIS_URL;
   const pubClient = new Redis(UPSTASH_REDIS_URL, {
     tls: {},
     connectTimeout: 10000, // optional: 10s timeout
@@ -29,7 +28,7 @@ async function initSocket({ httpServer }) {
   subClient.on("error", (err) => console.error("Redis Sub Error:", err));
 
   io.adapter(createAdapter(pubClient, subClient)); // Still compatible with ioredis if socket path works
-
+  // set io instance to a global variable to re use it in other modules
   socketIO.io = io;
 
   io.on("connection", (socket) => {

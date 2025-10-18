@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 
 // Function to create JWT
 const createJWT = (userData) => {

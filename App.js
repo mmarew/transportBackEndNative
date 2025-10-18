@@ -1,6 +1,49 @@
 // // App.js
-require("dotenv").config();
+const dotenv = require("dotenv");
+dotenv.config();
+{
+  /*
+  This is non clustering part of the server
+  */
+}
+const getLocalIpAddress = require("./Utils/MyIpAddress.js");
+getLocalIpAddress();
+//import express server setup
+const app = require("./Config/Express.config.js");
+const { createServer: createHTTPServer } = require("http");
+// import socket adapter
+const { initSocket } = require("./Config/SocketAdapter.config.js");
 
+const onStartUp = async () => {
+  try {
+    console.log("⏳ Running startup tasks...");
+    // Add your startup logic here (e.g., DB connection)
+    // createTable();
+  } catch (error) {
+    console.error("❌ Startup error:", error);
+    process.exit(1);
+  }
+};
+
+const startServer = async () => {
+  // Create HTTP server
+  const httpServer = createHTTPServer(app);
+
+  initSocket({ httpServer }); // Initialize Socket.IO
+
+  const PORT = process.env.PORT || 3000;
+  httpServer?.listen(PORT, "0.0.0.0", () => {
+    console.log(`✅ Server is running at http://localhost:${PORT}`);
+    onStartUp();
+  });
+};
+
+startServer();
+{
+  /*
+  This is   clustering part of the server
+  */
+}
 // const cluster = require("cluster");
 // const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 
@@ -25,34 +68,3 @@ require("dotenv").config();
 //   console.log(`🚀 Worker process running | PID: ${process.pid}`);
 //   require("./Config/Worker.config.js"); // Start the server
 // }
-
-const getLocalIpAddress = require("./Utils/MyIpAddress.js");
-getLocalIpAddress();
-const app = require("./Config/Express.config.js");
-const { createServer } = require("http");
-const { initSocket } = require("./Config/SocketAdapter.config.js");
-
-const onStartUp = async () => {
-  try {
-    console.log("⏳ Running startup tasks...");
-    // Add your startup logic here (e.g., DB connection)
-    // createTable();
-  } catch (error) {
-    console.error("❌ Startup error:", error);
-    process.exit(1);
-  }
-};
-
-const startServer = async () => {
-  const httpServer = createServer(app);
-
-  initSocket({ httpServer }); // Initialize Socket.IO
-
-  const PORT = process.env.PORT || 3000;
-  httpServer?.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Server is running at http://localhost:${PORT}`);
-    onStartUp();
-  });
-};
-
-startServer();

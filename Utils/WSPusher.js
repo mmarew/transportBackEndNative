@@ -43,6 +43,13 @@ async function WSPusher({ io, socket }) {
     }
 
     const userUniqueId = tokenValidation.data.userUniqueId;
+    if (!userUniqueId) {
+      return emitMessage({
+        socketId,
+        eventName: "messages",
+        messageDetails: "Invalid token data.",
+      });
+    }
     const cleanedPhoneNumber = phoneNumber?.replace(/\D/g, "");
 
     if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {

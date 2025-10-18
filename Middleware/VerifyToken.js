@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const { getData } = require("../CRUD/Read/ReadData");
-require("dotenv").config();
 const secretKey = process.env.SECRET_KEY;
 
 const verifyTokenOfAxios = async (req, res, next) => {

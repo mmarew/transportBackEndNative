@@ -5,6 +5,7 @@ const HOST = process.env.DB_HOST;
 const USER = process.env.DB_USER;
 const PASSWORD = process.env.DB_PASSWORD;
 const DATABASE = process.env.DB_DATABASE;
+const DB_SOCKET_PATH = process.env.DB_SOCKET_PATH;
 const PORT = Number(process.env.DB_PORT) || 3306;
 if (process.env.NODE_ENV !== "production") {
   console.log("@Database.config.js", { HOST, USER, DATABASE, PORT });
@@ -27,9 +28,15 @@ const config = {
   queueLimit: 0,
   connectTimeout: 10000, // 10 seconds
   multipleStatements: false, // Safer by default
-  // socketPath: "/Applications/MAMP/tmp/mysql/mysql.sock", // ✅ Correct for MAMP
 };
-
+// if in development and socket path is provided, use it
+if (
+  process.env.NODE_ENV !== "production" &&
+  DB_SOCKET_PATH &&
+  DB_SOCKET_PATH?.length > 0
+) {
+  config.socketPath = DB_SOCKET_PATH;
+}
 // Create a connection pool
 let pool;
 
