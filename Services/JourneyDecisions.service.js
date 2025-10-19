@@ -271,9 +271,7 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       ${orderBy}
       LIMIT ? OFFSET ?
     `;
-    console.log("@whereClause", whereClause);
     queryParams.push(parseInt(limit), offset);
-    console.log("@queryParams", queryParams);
     const [decisions] = await pool.query(sqlToGetDecisions, queryParams);
 
     // Get total count

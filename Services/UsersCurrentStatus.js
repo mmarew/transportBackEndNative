@@ -342,6 +342,7 @@ const verifyPassengerStatus = async ({
       activeRequest = dataOfActiveRequest?.activeRequests;
       totalRecords = dataOfActiveRequest?.totalRecords;
     }
+    console.log("@activeRequest", activeRequest);
     // If no active request, return an error
     if (activeRequest?.length == 0 || !activeRequest) {
       return {
@@ -356,6 +357,7 @@ const verifyPassengerStatus = async ({
       driversData = [],
       decisionsData = [];
     let journey = [];
+    let driverFound = false;
     // passenger may have many requests so we loop through them
     for (const passengerRequest of activeRequest) {
       const journeyStatusId = passengerRequest.journeyStatusId,
@@ -367,7 +369,6 @@ const verifyPassengerStatus = async ({
       if (journeyStatusId === journeyStatusMap?.waiting) {
         // because we use bid base pricing filtration we request five driver for one load request
         const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
-
         for (const driver of nearbyDrivers) {
           const [documents, vehicle] = await Promise.all([
             getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
@@ -449,6 +450,7 @@ const verifyPassengerStatus = async ({
             },
             phoneNumber: driver?.phoneNumber,
           });
+          driverFound = true;
         }
 
         drivers.push(...driversData);
@@ -473,8 +475,6 @@ const verifyPassengerStatus = async ({
         const decisionsData = await getJourneyDecision4AllOrSingleUser({
           data: { filters },
         });
-        console.log("@decisionsData", decisionsData);
-        // return;
 
         for (let journeyDecision of decisionsData?.data) {
           decisions.push(journeyDecision);
@@ -554,6 +554,16 @@ const verifyPassengerStatus = async ({
         }
       }
     }
+    // if driverFound re get active passenger request  because no of waiting can be changed to requested
+    if (driverFound) {
+      const dataOfActiveRequest = await checkActivePassengerRequest({
+        userUniqueId,
+        pageSize,
+        page,
+      });
+      activeRequest = dataOfActiveRequest?.activeRequests;
+      totalRecords = dataOfActiveRequest?.totalRecords;
+    }
     // Final return after loop: only summary
     return {
       message: "success",
@@ -631,7 +641,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     const existingJourney = await handleExistingJourney(driverRequest, vehicle);
     return existingJourney;
   } catch (error) {
-    console.log("Error in verifyDriverStatus:", error);
+    console.error("Error in verifyDriverStatus:", error);
     return { message: "error", error: "Unable to verify driver status" };
   }
 };

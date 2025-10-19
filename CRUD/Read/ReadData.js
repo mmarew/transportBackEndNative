@@ -146,6 +146,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
 
     // Execute the query
     const [drivers] = await pool.query(sqlQuery, values);
+    // return;
     const listOfDrivers = [];
     for (const driver of drivers) {
       const { message } = await VerifyIfPassengerRequestWasNotRejected({
