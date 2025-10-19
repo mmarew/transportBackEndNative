@@ -624,7 +624,14 @@ const listOfDelinquenciesTypes = [
     createdAt: new Date(),
   },
 ];
+const CANCELED_JOURNEY_CONTEXTS = {
+  PASSENGER_REQUEST: "PassengerRequest",
+  DRIVER_REQUEST: "DriverRequest",
+  JOURNEY_DECISIONS: "JourneyDecisions",
+  JOURNEY: "Journey",
+};
 module.exports = {
+  CANCELED_JOURNEY_CONTEXTS,
   listOfDelinquenciesTypes,
   depositSources,
   subscriptionPlanLists,

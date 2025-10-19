@@ -39,7 +39,10 @@ const {
 } = require("./PassengerRequest.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
 const messageTypes = require("../Utils/MessageTypes");
-const { journeyStatusMap } = require("../Utils/ListOfFixedData");
+const {
+  journeyStatusMap,
+  CANCELED_JOURNEY_CONTEXTS,
+} = require("../Utils/ListOfFixedData");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
 const {
   verifyDriverStatus,
@@ -816,7 +819,7 @@ const cancelDriverRequest = async (body) => {
       )
         registeredCancelledJourney = await createCanceledJourney({
           contextId: journeyId,
-          contextType: "Journey",
+          contextType: CANCELED_JOURNEY_CONTEXTS.JOURNEY, // "Journey",
           roleId: roleId,
           canceledBy: userUniqueId,
           cancellationReasonsTypeId,
@@ -831,7 +834,7 @@ const cancelDriverRequest = async (body) => {
       )
         registeredCancelledJourney = await createCanceledJourney({
           contextId: journeyDecisionId,
-          contextType: "JourneyDecision",
+          contextType: CANCELED_JOURNEY_CONTEXTS.JOURNEY_DECISIONS,
           roleId: roleId,
           canceledBy: userUniqueId,
           cancellationReasonsTypeId,
