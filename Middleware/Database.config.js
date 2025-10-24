@@ -12,9 +12,11 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 if (!HOST || !USER || !DATABASE) {
-  throw new Error(
-    "Missing required environment variables for database connection"
-  );
+  console.log("Missing required environment variables for database connection");
+  return;
+  // throw new Error(
+  //   "Missing required environment variables for database connection"
+  // );
 }
 
 const config = {
@@ -35,7 +37,7 @@ if (
   DB_SOCKET_PATH &&
   DB_SOCKET_PATH?.length > 0
 ) {
-  config.socketPath = DB_SOCKET_PATH;
+  // config.socketPath = DB_SOCKET_PATH;
 }
 // Create a connection pool
 let pool;
