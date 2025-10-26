@@ -254,9 +254,12 @@ const adminServices = {
           table: "VehicleTypes",
           on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
         },
+        { table: "UserRole", on: "Users.userUniqueId = UserRole.userUniqueId" },
+        { table: "Roles", on: "UserRole.roleId = Roles.roleId" },
       ],
       conditions: {
-        "DriverRequest.journeyStatusId":[1,2,3,4,5]
+        "DriverRequest.journeyStatusId": [1, 2, 3, 4, 5],
+        "Roles.roleId": 2,
       },
     });
     return { message: "success", data };
