@@ -1,31 +1,23 @@
 const Services = require("../Services/DriverEarning.service");
 const ServerResponder = require("../Utils/ServerResponder");
 
-exports.getDriverEarningByDriverUniqueId = async (req, res) => {
+exports.getDriverEarningsByFilter = async (req, res) => {
   try {
-    let driverUniqueId = req?.params?.driverUniqueId;
-    const offset = req?.params?.offset;
     const user = req.user;
-    console.log(
-      "@getDriverEarningByDriverUniqueId controller driverUniqueId",
+    let driverUniqueId = req.query.driverUniqueId;
+    driverUniqueId(driverUniqueId == "self")
+      ? user.userUniqueId
+      : driverUniqueId;
+    const result = await Services.getDriverEarningsByFilter({
+      ...req?.query,
       driverUniqueId,
-      "\nuser",
-      user
-    );
-    // return;
-    if (driverUniqueId == "self") {
-      driverUniqueId = user.userUniqueId;
-    }
-    const { fromDate, toDate } = req.params;
-    const result = await Services.getDriverEarningByDriverUniqueId({
-      driverUniqueId,
-      fromDate,
-      toDate,
-      offset,
     });
-    const responders = await ServerResponder(res, result);
+    console.log("@result", result);
+    ServerResponder(res, result);
   } catch (error) {
-    console.log("@getDriverEarningByDriverUniqueId error", error);
-    ServerResponder(res, { message: "error", error: "something went wrong" });
+    ServerResponder(res, {
+      message: "error",
+      error: "",
+    });
   }
 };

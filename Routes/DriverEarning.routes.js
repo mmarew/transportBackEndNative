@@ -4,9 +4,9 @@ const controller = require("../Controllers/DriverEarning.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 router.get(
-  `/api/earning/driver/:driverUniqueId/:fromDate/:toDate/offsetLength/:offset`,
+  `/api/earning/getDriverEarningsByFilter`,
   verifyTokenOfAxios,
-  controller.getDriverEarningByDriverUniqueId
+  controller.getDriverEarningsByFilter
 );
 
 module.exports = router;

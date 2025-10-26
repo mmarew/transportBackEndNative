@@ -47,5 +47,9 @@ router.get(
   verifyTokenOfAxios,
   driverBalanceController.getDriverCurrentBalance
 );
-
+router.get(
+  "/api/driver/getDriverBalanceByFilter",
+  verifyTokenOfAxios,
+  driverBalanceController.getDriverBalanceByFilter
+);
 module.exports = router;
