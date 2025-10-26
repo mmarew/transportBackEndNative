@@ -256,7 +256,7 @@ const adminServices = {
         },
       ],
       conditions: {
-        "DriverRequest.journeyStatusId": 1,
+        "DriverRequest.journeyStatusId":[1,2,3,4,5]
       },
     });
     return { message: "success", data };

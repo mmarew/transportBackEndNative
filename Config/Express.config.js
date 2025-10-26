@@ -27,14 +27,16 @@ app.use(helmet());
 app.use(cors());
 
 // 3. Rate Limiting - Protect against brute-force/DoS attacks
-const limiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 200, // Limit each IP to 200 requests per windowMs
-  message: "Too many requests from this IP, please try again in an hour!",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter); // Apply to all requests
+if (process.env.NODE_ENV !== "development") {
+  const limiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 200, // Limit each IP to 200 requests per windowMs
+    message: "Too many requests from this IP, please try again in an hour!",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(limiter); // Apply to all requests
+}
 
 // 4. Body Parsers - Reading data from body into req.body
 app.use(express.json({ limit: "10kb" })); // Limit request body size

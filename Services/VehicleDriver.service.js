@@ -207,7 +207,7 @@ const getVehicleDrivers = async (filters = {}) => {
     SELECT 
       vd.*, 
       v.vehicleTypeUniqueId, v.licensePlate, v.color,
-      vt.vehicleTypeName,
+      vt.*,
       ow.fullName as ownerFullName, dr.fullName as driverFullName
     FROM VehicleDriver vd
     LEFT JOIN Vehicle v ON vd.vehicleUniqueId = v.vehicleUniqueId
