@@ -713,6 +713,7 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   depositStatus enum('requested','approved','rejected') default "requested",
   depositURL text NOT NULL,
   depositTime DATETIME NOT NULL,
+  acceptRejectReason VARCHAR(2000),
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (accountUniqueId) REFERENCES FinancialInstitutionAccounts(accountUniqueId),

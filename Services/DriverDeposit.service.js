@@ -271,6 +271,7 @@ const getDriverDeposit = async (filters = {}) => {
     depositTime: "dd.depositTime",
     depositAmount: "dd.depositAmount",
     depositStatus: "dd.depositStatus",
+    acceptRejectReason: "dd.acceptRejectReason",
     createdAt: "dd.createdAt",
     driverDepositId: "dd.driverDepositId",
     driverDepositUniqueId: "dd.driverDepositUniqueId",
@@ -375,6 +376,7 @@ const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
 const updateDriverDepositStatusService = async ({
   driverDepositUniqueId,
   newStatus,
+  acceptRejectReason,
 }) => {
   const allowedStatuses = ["approved", "rejected"];
   if (!allowedStatuses.includes(newStatus)) {
@@ -389,13 +391,13 @@ const updateDriverDepositStatusService = async ({
   const depositData = Array.isArray(depositFetch?.data)
     ? depositFetch.data[0]
     : depositFetch?.data;
-  console.log("@depositData", depositData);
+  console.log("@depositData", depositData, "@newStatus", newStatus);
 
   if (!depositData) {
     return { message: "error", error: "Deposit not found" };
   }
   const depositStatus = depositData?.depositStatus;
-  if (depositStatus == "approved") {
+  if (newStatus == depositStatus && depositStatus == "approved") {
     return {
       message: "success",
       data: depositData,
@@ -415,16 +417,22 @@ const updateDriverDepositStatusService = async ({
       transactionType: "Deposit",
       transactionUniqueId: driverDepositUniqueId,
     });
-
+    console.log("@newBalance", newBalance);
     if (newBalance.message === "error") return newBalance;
 
     driverBalanceUniqueId = newBalance.data?.driverBalanceUniqueId;
   }
 
   try {
-    const sql = ` UPDATE DriverDeposit  SET depositStatus = ?  WHERE driverDepositUniqueId = ?  `;
+    const sql = ` UPDATE DriverDeposit  SET depositStatus = ?, acceptRejectReason=?  WHERE driverDepositUniqueId = ?  `;
 
-    const [result] = await pool.query(sql, [newStatus, driverDepositUniqueId]);
+    const [result] = await pool.query(sql, [
+      newStatus,
+      acceptRejectReason || "null",
+
+      driverDepositUniqueId,
+    ]);
+    console.log("@result", result);
 
     if (result.affectedRows === 0) {
       if (driverBalanceUniqueId) {

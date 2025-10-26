@@ -90,7 +90,8 @@ exports.deleteDriverDepositByUniqueId = async (req, res) => {
  */
 exports.updateDriverDepositStatus = async (req, res) => {
   try {
-    const { driverDepositUniqueId, depositStatus } = req.body;
+    const { driverDepositUniqueId, depositStatus, acceptRejectReason } =
+      req.body;
 
     if (!driverDepositUniqueId || !depositStatus) {
       return ServerResponder(res, {
@@ -102,6 +103,7 @@ exports.updateDriverDepositStatus = async (req, res) => {
     const result = await service?.updateDriverDepositStatusService({
       driverDepositUniqueId,
       newStatus: depositStatus,
+      acceptRejectReason,
     });
 
     ServerResponder(res, result);
