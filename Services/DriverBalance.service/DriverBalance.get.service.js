@@ -1,4 +1,3 @@
-const { pool } = require("../../Middleware/Database.config");
 const {
   getDriverDepositByUniqueId,
   getDriverDeposit,
@@ -14,6 +13,7 @@ const {
 const {
   getFreeGiftToDriverByUniqueId,
 } = require("../FreeGiftToDriver.service");
+const { pool } = require("../../Middleware/Database.config");
 // enrichDriverBalanceRecord.js
 const enrichDriverBalanceRecord = async (balance) => {
   console.log("@balance", balance);
@@ -245,7 +245,115 @@ const getDriverBalanceByDateRange = async ({
     return { message: "error", error: "Unable to get driver balance" };
   }
 };
+// const getDriverBalanceByFilterServices = async (query) => {
+//   console.log("@query", query);
+//   return { message: "success", data: {} };
+// };
+
+const getDriverBalanceByFilterServices = async (query) => {
+  try {
+    const {
+      driverBalanceUniqueId,
+      userUniqueId,
+      transactionType,
+      transactionUniqueId,
+      startDate,
+      endDate,
+      minBalance,
+      maxBalance,
+      page = 1,
+      limit = 10,
+    } = query;
+
+    const offset = (page - 1) * limit;
+    const whereClauses = [];
+    const params = [];
+
+    if (driverBalanceUniqueId) {
+      whereClauses.push(`driverBalanceUniqueId = ?`);
+      params.push(driverBalanceUniqueId);
+    }
+
+    if (userUniqueId) {
+      whereClauses.push(`userUniqueId = ?`);
+      params.push(userUniqueId);
+    }
+
+    if (transactionType) {
+      whereClauses.push(`transactionType = ?`);
+      params.push(transactionType);
+    }
+
+    if (transactionUniqueId) {
+      whereClauses.push(`transactionUniqueId = ?`);
+      params.push(transactionUniqueId);
+    }
+
+    if (startDate && endDate) {
+      whereClauses.push(`transactionTime BETWEEN ? AND ?`);
+      params.push(startDate, endDate);
+    } else if (startDate) {
+      whereClauses.push(`transactionTime >= ?`);
+      params.push(startDate);
+    } else if (endDate) {
+      whereClauses.push(`transactionTime <= ?`);
+      params.push(endDate);
+    }
+
+    if (minBalance) {
+      whereClauses.push(`netBalance >= ?`);
+      params.push(minBalance);
+    }
+
+    if (maxBalance) {
+      whereClauses.push(`netBalance <= ?`);
+      params.push(maxBalance);
+    }
+
+    // Combine filters into WHERE SQL
+    const whereSql =
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+    // Paginated data query
+    const dataSql = `
+      SELECT *
+      FROM DriverBalance
+      ${whereSql}
+      ORDER BY transactionTime DESC
+      LIMIT ? OFFSET ?
+    `;
+    params.push(Number(limit), Number(offset));
+
+    // Count query
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM DriverBalance
+      ${whereSql}
+    `;
+
+    const [dataRows] = await pool.query(dataSql, params);
+    const [countRows] = await pool.query(countSql, params.slice(0, -2)); // exclude limit+offset
+
+    const total = countRows[0]?.total || 0;
+
+    return {
+      message: "success",
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+      data: dataRows,
+    };
+  } catch (error) {
+    console.error("Error in getDriverBalanceByFilterServices:", error);
+    return { message: "error", error: error.message };
+  }
+};
+
 module.exports = {
+  getDriverBalanceByFilterServices,
   getDriverBalanceByDateRange,
   getDriverLastBalanceByUserUniqueId,
   getDriverBalanceById,

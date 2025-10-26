@@ -4,6 +4,7 @@ const {
   getDriverBalanceById,
   getDriverLastBalanceByUserUniqueId,
   getDriverBalanceByDateRange,
+  getDriverBalanceByFilterServices,
 } = require("../Services/DriverBalance.service/DriverBalance.get.service");
 const {
   updateDriverBalance,
@@ -133,4 +134,8 @@ exports.getDriverCurrentBalance = async (req, res) => {
       error: "Failed to get current balance",
     });
   }
+};
+exports.getDriverBalanceByFilter = async (req, res) => {
+  const result = await getDriverBalanceByFilterServices(req?.query);
+  ServerResponder(res, result);
 };
