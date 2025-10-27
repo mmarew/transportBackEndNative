@@ -24,9 +24,9 @@ exports.createJourneyRoutePoint = async (req, res) => {
 // Get all route points for a specific journey
 exports.getJourneyRoutePoints = async (req, res) => {
   try {
-    const { journeyUniqueId } = req.params;
+    const { journeyDecisionUniqueId } = req.query;
     const result = await journeyRoutePointsService.getJourneyRoutePoints(
-      journeyUniqueId
+      journeyDecisionUniqueId
     );
     ServerResponder(res, result);
   } catch (error) {

@@ -351,6 +351,7 @@ const getUserRoleStatusCurrent = async ({ data }) => {
         ursc.*,
         ur.userUniqueId,
         ur.roleId,
+        ur.userRoleUniqueId,
         u.fullName  ,
         u.phoneNumber  ,
         u.email,

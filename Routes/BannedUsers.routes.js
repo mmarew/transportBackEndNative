@@ -122,7 +122,7 @@ const routes = [
     handler: bannedUsersController.updateBannedUser,
   },
   {
-    path: "/api/admin/banned-users/:banUniqueId",
+    path: "/api/admin/banned-users",
     method: "delete",
     middleware: [verifyTokenOfAxios],
     handler: bannedUsersController.unbanUser,

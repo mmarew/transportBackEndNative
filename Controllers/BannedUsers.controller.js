@@ -42,8 +42,8 @@ const updateBannedUser = async (req, res) => {
 };
 
 const unbanUser = async (req, res) => {
-  const { banUniqueId } = req.params;
-
+  const { banUniqueId } = req.query;
+  console.log("@banUniqueId", banUniqueId);
   await handleServiceResponse(bannedUsersService.unbanUser(banUniqueId), res);
 };
 

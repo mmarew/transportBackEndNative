@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     latitude DECIMAL(10, 8) NOT NULL,  -- Latitude of the GPS point
     longitude DECIMAL(11, 8) NOT NULL,  -- Longitude of the GPS point
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp of when the GPS point was recorded
-    FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId) ON DELETE CASCADE  -- Link to the Journey table
+    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES Journey(JourneyDecisions) ON DELETE CASCADE  -- Link to the JourneyDecisions table
 );
 
 
