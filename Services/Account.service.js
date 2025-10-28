@@ -68,15 +68,24 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
     }
 
     // 3) Attached documents for the owner user
-    const sql = `
-SELECT DISTINCT   AttachedDocuments.*,  DocumentTypes.*, 
-  RoleDocumentRequirements.* FROM AttachedDocuments
-JOIN DocumentTypes    ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
-JOIN RoleDocumentRequirements    ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
+    //     const sql = `
+    // SELECT DISTINCT   AttachedDocuments.*,  DocumentTypes.*,
+    //   RoleDocumentRequirements.* FROM AttachedDocuments
+    // JOIN DocumentTypes    ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
+    // JOIN RoleDocumentRequirements    ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
+    // WHERE AttachedDocuments.userUniqueId = ?
+    // `;
+    const sql = `SELECT DISTINCT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*
+FROM AttachedDocuments
+JOIN DocumentTypes
+  ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
+JOIN RoleDocumentRequirements
+  ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
 WHERE AttachedDocuments.userUniqueId = ?
+  AND RoleDocumentRequirements.roleId = ?
 `;
     const [attachedDocuments] = enableDocumentChecks
-      ? await pool.query(sql, [ownerUserUniqueId])
+      ? await pool.query(sql, [ownerUserUniqueId, roleId])
       : [[]];
 
     // 4) Unattached required document types
@@ -96,6 +105,7 @@ WHERE AttachedDocuments.userUniqueId = ?
       ACCEPTED: [],
       REJECTED: [],
     };
+    console.log("@attachedDocuments", attachedDocuments);
     if (enableDocumentChecks) {
       attachedDocuments.forEach((doc) => {
         const acceptanceStatus = doc.attachedDocumentAcceptance;

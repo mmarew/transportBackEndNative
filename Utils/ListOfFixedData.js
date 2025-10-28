@@ -162,7 +162,7 @@ const listOfDocuments = [
       " A valid and unexpired driver’s license. The admin needs this to ensure the driver is legally permitted to operate a vehicle.",
   },
   {
-    isExpirationDateRequired: true,
+    isExpirationDateRequired: false,
     documentTypeName: " Vehicle Registration (librea)",
     documentTypeDescription:
       "Proof of ownership or right to use the vehicle for ride share services. It confirms the vehicle is legally registered.",
@@ -174,9 +174,10 @@ const listOfDocuments = [
       "Proof of insurance coverage, ensuring that the driver and passengers are protected in the event of an accident.",
   },
   {
-    isExpirationDateRequired: true,
+    isExpirationDateRequired: false,
     documentTypeName: "Profile Photo",
-    documentTypeDescription: "Profile Photo",
+    documentTypeDescription:
+      "Profile Photo is used to identify current face of user",
   },
   {
     isExpirationDateRequired: true,
