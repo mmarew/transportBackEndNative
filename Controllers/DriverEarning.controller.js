@@ -5,9 +5,7 @@ exports.getDriverEarningsByFilter = async (req, res) => {
   try {
     const user = req.user;
     let driverUniqueId = req.query.driverUniqueId;
-    driverUniqueId(driverUniqueId == "self")
-      ? user.userUniqueId
-      : driverUniqueId;
+    driverUniqueId == "self" ? user.userUniqueId : driverUniqueId;
     const result = await Services.getDriverEarningsByFilter({
       ...req?.query,
       driverUniqueId,
@@ -17,7 +15,7 @@ exports.getDriverEarningsByFilter = async (req, res) => {
   } catch (error) {
     ServerResponder(res, {
       message: "error",
-      error: "",
+      error: "unable to get drivers earnings",
     });
   }
 };
