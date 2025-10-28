@@ -1,5 +1,6 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
+const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 const { getAttachedDocumentsByUser } = require("./AttachedDocuments.service");
 const {
   driversDocumentVehicleRequirement,
@@ -269,9 +270,10 @@ const adminServices = {
     const sql = `
       SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* ,Statuses.*
       FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and  UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
     `;
-    const [unauthorizedUsers] = await pool.query(sql, [1, 2]);
+    // 6 is a status code to banned driver, 1  is a status code to active driver, 2 is a role code to driver user
+    const [unauthorizedUsers] = await pool.query(sql, [1, 6, 2]);
 
     const usersWithDocuments = await Promise.all(
       unauthorizedUsers.map(async (user) => {
