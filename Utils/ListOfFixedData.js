@@ -109,9 +109,9 @@ const statusList = [
   {
     statusId: 6,
     statusUniqueId: uuidv4(),
-    statusName: "inactive - Driver is banned by admin",
+    statusName: "inactive - User is banned by admin",
     statusDescription:
-      "Driver is banned by admin when it commits some crimes or brake rules",
+      "User is banned by admin when it commits some crimes or brake rules",
     statusCreatedAt: currentDate(),
   },
   // subscription

@@ -661,32 +661,142 @@ const getUserByEmailOrNameOrPhoneNumber = async (
   let queryParams;
 
   const likeTerm = `%${phoneNumberOrEmail}%`;
-
   const isValidRole = roleUniqueId && roleUniqueId !== "null";
+
+  // Input validation
+  if (!phoneNumberOrEmail || phoneNumberOrEmail.trim() === "") {
+    return { message: "error", error: "Search term is required" };
+  }
 
   if (isValidRole) {
     getUserQuery = `
-      SELECT *
-      FROM Users
+      SELECT 
+        -- User fields
+        Users.userId, Users.userUniqueId, Users.fullName, Users.phoneNumber, 
+        Users.email, Users.createdAt, Users.createdBy,
+        
+        -- UserRole fields
+        UserRole.userRoleId, UserRole.userRoleUniqueId, UserRole.roleId,
+        UserRole.userRoleCreatedBy, UserRole.userRoleCreatedAt,
+        
+        -- Roles fields
+        Roles.roleUniqueId, Roles.roleName, Roles.roleDescription,
+        
+        -- UserRoleStatus fields (CRUCIAL - including statusId)
+        UserRoleStatusCurrent.userRoleStatusId, UserRoleStatusCurrent.userRoleStatusUniqueId,
+        UserRoleStatusCurrent.statusId, UserRoleStatusCurrent.userRoleStatusDescription, 
+        UserRoleStatusCurrent.userRoleStatusCreatedAt, UserRoleStatusCurrent.userRoleStatusCurrentVersion,
+        UserRoleStatusCurrent.userRoleStatusCreatedBy,
+        
+        -- Status fields
+        Statuses.statusName, Statuses.statusDescription
+        
+      FROM Users 
       JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
       JOIN Roles ON UserRole.roleId = Roles.roleId
-      WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
+      LEFT JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+      LEFT JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+      WHERE (Users.email LIKE ? OR Users.phoneNumber LIKE ? OR Users.fullName LIKE ?)
         AND Roles.roleUniqueId = ?
+        AND UserRole.userRoleDeletedAt IS NULL
     `;
     queryParams = [likeTerm, likeTerm, likeTerm, roleUniqueId];
   } else {
     getUserQuery = `
-      SELECT * FROM Users
-      WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?
+      SELECT 
+        -- User fields
+        Users.userId, Users.userUniqueId, Users.fullName, Users.phoneNumber, 
+        Users.email, Users.createdAt, Users.createdBy,
+        
+        -- UserRole fields
+        UserRole.userRoleId, UserRole.userRoleUniqueId, UserRole.roleId,
+        UserRole.userRoleCreatedBy, UserRole.userRoleCreatedAt,
+        
+        -- Roles fields
+        Roles.roleUniqueId, Roles.roleName, Roles.roleDescription,
+        
+        -- UserRoleStatus fields (CRUCIAL - including statusId)
+        UserRoleStatusCurrent.userRoleStatusId, UserRoleStatusCurrent.userRoleStatusUniqueId,
+        UserRoleStatusCurrent.statusId, UserRoleStatusCurrent.userRoleStatusDescription, 
+        UserRoleStatusCurrent.userRoleStatusCreatedAt, UserRoleStatusCurrent.userRoleStatusCurrentVersion,
+        UserRoleStatusCurrent.userRoleStatusCreatedBy,
+        
+        -- Status fields
+        Statuses.statusName, Statuses.statusDescription
+        
+      FROM Users
+      LEFT JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId AND UserRole.userRoleDeletedAt IS NULL
+      LEFT JOIN Roles ON UserRole.roleId = Roles.roleId
+      LEFT JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+      LEFT JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+      WHERE Users.email LIKE ? OR Users.phoneNumber LIKE ? OR Users.fullName LIKE ?
     `;
     queryParams = [likeTerm, likeTerm, likeTerm];
   }
 
   try {
-    console.log("@queryParams", queryParams, "\n@getUserQuery", getUserQuery);
     const [rows] = await pool.query(getUserQuery, queryParams);
 
-    return { message: "success", data: rows };
+    if (!rows || rows.length === 0) {
+      return { message: "success", data: [] };
+    }
+
+    // Group by user and aggregate roles
+    const usersMap = new Map();
+
+    rows.forEach((row) => {
+      const userUniqueId = row.userUniqueId;
+
+      if (!usersMap.has(userUniqueId)) {
+        // Create user entry
+        usersMap.set(userUniqueId, {
+          user: {
+            userId: row.userId,
+            userUniqueId: row.userUniqueId,
+            fullName: row.fullName,
+            phoneNumber: row.phoneNumber,
+            email: row.email,
+            createdAt: row.createdAt,
+            createdBy: row.createdBy,
+          },
+          rolesAndStatuses: [],
+        });
+      }
+
+      // Only add role information if it exists
+      if (row.userRoleId) {
+        const userEntry = usersMap.get(userUniqueId);
+
+        userEntry.rolesAndStatuses.push({
+          userRoles: {
+            userRoleId: row.userRoleId,
+            userRoleUniqueId: row.userRoleUniqueId,
+            roleId: row.roleId,
+            roleName: row.roleName,
+            roleDescription: row.roleDescription,
+            userRoleCreatedBy: row.userRoleCreatedBy,
+            userRoleCreatedAt: row.userRoleCreatedAt,
+          },
+          userRoleStatuses: row.userRoleStatusId
+            ? {
+                userRoleStatusId: row.userRoleStatusId,
+                userRoleStatusUniqueId: row.userRoleStatusUniqueId,
+                statusId: row.statusId, // CRUCIAL: Current status ID
+                statusName: row.statusName,
+                statusDescription: row.statusDescription,
+                userRoleStatusDescription: row.userRoleStatusDescription,
+                userRoleStatusCreatedAt: row.userRoleStatusCreatedAt,
+                userRoleStatusCurrentVersion: row.userRoleStatusCurrentVersion,
+                userRoleStatusCreatedBy: row.userRoleStatusCreatedBy,
+              }
+            : null,
+        });
+      }
+    });
+
+    const transformedData = Array.from(usersMap.values());
+
+    return { message: "success", data: transformedData };
   } catch (error) {
     console.log("@getUserByEmailOrNameOrPhoneNumber error", error);
     return {
@@ -695,6 +805,48 @@ const getUserByEmailOrNameOrPhoneNumber = async (
     };
   }
 };
+const data = [
+  { user: {}, rolesAndStatuses: [{ userRoles: {}, userRoleStatuses: {} }] },
+];
+// const getUserByEmailOrNameOrPhoneNumber = async (
+//   phoneNumberOrEmail,
+//   roleUniqueId
+// ) => {
+//   let getUserQuery;
+//   let queryParams;
+
+//   const likeTerm = `%${phoneNumberOrEmail}%`;
+
+//   const isValidRole = roleUniqueId && roleUniqueId !== "null";
+
+//   if (isValidRole) {
+//     getUserQuery = `
+//       SELECT *  FROM Users  JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+//       JOIN Roles ON UserRole.roleId = Roles.roleId WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
+//         AND Roles.roleUniqueId = ?
+//     `;
+//     queryParams = [likeTerm, likeTerm, likeTerm, roleUniqueId];
+//   } else {
+//     getUserQuery = `
+//       SELECT * FROM Users
+//       WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?
+//     `;
+//     queryParams = [likeTerm, likeTerm, likeTerm];
+//   }
+
+//   try {
+//     console.log("@queryParams", queryParams, "\n@getUserQuery", getUserQuery);
+//     const [rows] = await pool.query(getUserQuery, queryParams);
+
+//     return { message: "success", data: rows };
+//   } catch (error) {
+//     console.log("@getUserByEmailOrNameOrPhoneNumber error", error);
+//     return {
+//       message: "error",
+//       error: "An error occurred while retrieving the user",
+//     };
+//   }
+// };
 
 const getUsersByRoleUniqueId = async (
   roleUniqueId,
