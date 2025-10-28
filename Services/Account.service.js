@@ -4,7 +4,6 @@ const {
   getUserRoleStatus,
   updateUserRoleStatus,
 } = require("./UserRoleStatus.service");
-const { getBannedUsers } = require("./BannedUsers.service");
 const {
   getRoleDocumentRequirements,
 } = require("./RoleDocumentRequirements.service");
@@ -13,7 +12,9 @@ const {
 } = require("../Utils/StatusOfUsersByVehiclesAndDocs");
 const { pool } = require("../Middleware/Database.config");
 const { usersRoles } = require("../Utils/ListOfFixedData");
-const { getAllOrActiveDriverSubscriptionsByDriverUUId } = require("./DriverSubscription.service");
+const {
+  getAllOrActiveDriverSubscriptionsByDriverUUId,
+} = require("./DriverSubscription.service");
 
 // Consolidated account status check for a user (documents, vehicle, ban)
 const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
@@ -126,6 +127,8 @@ WHERE AttachedDocuments.userUniqueId = ?
         roleId,
       };
       console.log("@Account.service.accountStatus banCheckData", banCheckData);
+      const { getBannedUsers } = require("./BannedUsers.service");
+
       const banCheck = await getBannedUsers(banCheckData);
       isBanned = banCheck?.data?.isBanned === true;
       console.log("@Account.service.accountStatus isBanned", isBanned);
@@ -154,7 +157,10 @@ WHERE AttachedDocuments.userUniqueId = ?
         }
       }
 
-      if (Number(roleId) === usersRoles.driverRoleId && !hasActiveSubscription) {
+      if (
+        Number(roleId) === usersRoles.driverRoleId &&
+        !hasActiveSubscription
+      ) {
         finalStatusId = 7; // inactive - Driver doesn't have a subscription
       } else if (enableDocumentChecks || requiresVehicle) {
         const resultOfStatus = findStatusByVehicleAndDocuments({

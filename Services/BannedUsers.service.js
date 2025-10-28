@@ -1,6 +1,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { updateUserRoleStatus } = require("./UserRoleStatus.service");
+const { accountStatus } = require("./Account.service");
 
 const query = async (sql, values = []) => {
   const [result] = await pool.query(sql, values);
@@ -227,24 +228,33 @@ const updateBannedUser = async (banUniqueId, data) => {
 };
 
 const unbanUser = async (query, user) => {
-  const { banUniqueId, phoneNumber, roleId, newStatusId } = query;
-  // validate all query
-  if (!banUniqueId || !phoneNumber || !roleId || !newStatusId)
-    return { message: "error", error: "all fields are required" };
-  const sql = "DELETE FROM BannedUsers WHERE banUniqueId = ?";
-  const result = await pool?.query(sql, [banUniqueId]);
+  try {
+    const { banUniqueId, phoneNumber, roleId, newStatusId } = query;
+    // validate all query
+    if (!banUniqueId || !phoneNumber || !roleId || !newStatusId)
+      return { message: "error", error: "all fields are required" };
+    const sql = "DELETE FROM BannedUsers WHERE banUniqueId = ?";
+    const result = await pool?.query(sql, [banUniqueId]);
+    const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 
-  const updateDataValues = {
-    user,
-    roleId,
-    newStatusId,
-    phoneNumber,
-  };
-  updateUserRoleStatus(updateDataValues);
+    const userData = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
+    console.log("@unbanUser userData", userData?.data?.[0]?.userUniqueId);
+    const ownerUserUniqueId = userData?.data?.[0]?.userUniqueId;
+    const updateDataValues = {
+      user,
+      roleId,
+      newStatusId,
+      phoneNumber,
+    };
+    // const data = accountStatus({ ownerUserUniqueId, body: { roleId } });
+    updateUserRoleStatus(updateDataValues);
 
-  return result.affectedRows > 0
-    ? { message: "success", data: "User unbanned successfully" }
-    : { message: "error", error: "Failed to unBan user" };
+    return result.affectedRows > 0
+      ? { message: "success", data: "User unbanned successfully" }
+      : { message: "error", error: "Failed to unBan user" };
+  } catch (error) {
+    console.log("@unbanUser error", error);
+  }
 };
 
 const _checkIfUserIsBanned = async (identifiers) => {

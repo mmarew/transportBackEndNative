@@ -696,35 +696,6 @@ const getUserByEmailOrNameOrPhoneNumber = async (
   }
 };
 
-// const getUsersByRoleUniqueId = async (roleUniqueId) => {
-//   const rows = await performJoinSelect({
-//     baseTable: "Users",
-//     joins: [
-//       {
-//         table: "UserRole",
-//         on: "UserRole.userUniqueId=Users.userUniqueId",
-//       },
-//       {
-//         table: "Roles",
-//         on: "UserRole.roleId=Roles.roleId",
-//       },
-//       {
-//         table: "UserRoleStatusCurrent",
-//         on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
-//       },
-//       {
-//         table: "Statuses",
-//         on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
-//       },
-//     ],
-//     conditions: { "Roles.roleUniqueId": roleUniqueId },
-//   });
-//   return {
-//     message: "success",
-//     data: rows,
-//   };
-// };
-
 const getUsersByRoleUniqueId = async (
   roleUniqueId,
   page = 1,

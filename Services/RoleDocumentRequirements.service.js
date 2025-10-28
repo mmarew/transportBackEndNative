@@ -9,7 +9,6 @@ const {
 const {
   findStatusByVehicleAndDocuments,
 } = require("../Utils/StatusOfUsersByVehiclesAndDocs");
-const { getBannedUsers } = require("./BannedUsers.service");
 // Create a new mapping
 const createMapping = async ({ body }) => {
   const {
@@ -338,6 +337,8 @@ WHERE AttachedDocuments.userUniqueId = ?
     // Prefer checking by phoneNumber (available in this scope)
     let isBanned = false;
     try {
+      const { getBannedUsers } = require("./BannedUsers.service");
+
       const banCheck = await getBannedUsers({
         check: true,
         phoneNumber,
