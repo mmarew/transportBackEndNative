@@ -226,13 +226,25 @@ const updateBannedUser = async (banUniqueId, data) => {
     : { message: "error", error: "Failed to update banned user record" };
 };
 
-const unbanUser = async (banUniqueId) => {
+const unbanUser = async (query, user) => {
+  const { banUniqueId, phoneNumber, roleId, newStatusId } = query;
+  // validate all query
+  if (!banUniqueId || !phoneNumber || !roleId || !newStatusId)
+    return { message: "error", error: "all fields are required" };
   const sql = "DELETE FROM BannedUsers WHERE banUniqueId = ?";
-  const result = await query(sql, [banUniqueId]);
+  const result = await pool?.query(sql, [banUniqueId]);
+
+  const updateDataValues = {
+    user,
+    roleId,
+    newStatusId,
+    phoneNumber,
+  };
+  updateUserRoleStatus(updateDataValues);
 
   return result.affectedRows > 0
     ? { message: "success", data: "User unbanned successfully" }
-    : { message: "error", error: "Failed to unban user" };
+    : { message: "error", error: "Failed to unBan user" };
 };
 
 const _checkIfUserIsBanned = async (identifiers) => {

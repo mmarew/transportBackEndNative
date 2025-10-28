@@ -396,11 +396,12 @@ CREATE TABLE IF NOT EXISTS Journey (
 
 CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
     pointId INT AUTO_INCREMENT PRIMARY KEY,
-    journeyUniqueId varchar(36) NOT NULL,  -- Foreign key to the Journey table
+    journeyRoutePointsUniqueId varchar(36) NOT NULL, 
+    journeyDecisionUniqueId varchar(36) NOT NULL,  -- Foreign key to the Journey table
     latitude DECIMAL(10, 8) NOT NULL,  -- Latitude of the GPS point
     longitude DECIMAL(11, 8) NOT NULL,  -- Longitude of the GPS point
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp of when the GPS point was recorded
-    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES Journey(JourneyDecisions) ON DELETE CASCADE  -- Link to the JourneyDecisions table
+    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId) ON DELETE CASCADE  -- Link to the JourneyDecisions table
 );
 
 

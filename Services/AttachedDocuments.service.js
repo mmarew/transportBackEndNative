@@ -541,7 +541,7 @@ const acceptRejectAttachedDocuments = async (body) => {
       ["AttachedDocuments.userUniqueId"]: ownerUserUniqueId, // Ensure the document belongs to the driver (owner)
     },
   });
-  const phoneNumber = attachedDocument[0].phoneNumber;
+  const phoneNumber = attachedDocument?.[0]?.phoneNumber;
   if (attachedDocument?.length === 0) {
     return {
       message: "error",
@@ -590,7 +590,8 @@ const acceptRejectAttachedDocuments = async (body) => {
         phoneNumber,
       });
     }
-    if (roleId == 1) sendSocketIONotificationToPassenger({ message, phoneNumber });
+    if (roleId == 1)
+      sendSocketIONotificationToPassenger({ message, phoneNumber });
 
     return message;
   } else {
