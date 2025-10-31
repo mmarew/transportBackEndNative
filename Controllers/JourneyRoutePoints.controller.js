@@ -4,13 +4,11 @@ const ServerResponder = require("../Utils/ServerResponder");
 // Create a new journey route point
 exports.createJourneyRoutePoint = async (req, res) => {
   try {
-    const { journeyUniqueId, latitude, longitude } = req.body;
+    const { journeyDecisionUniqueId, latitude, longitude } = req.body;
 
-    const result = await journeyRoutePointsService.createJourneyRoutePoint({
-      journeyUniqueId,
-      latitude,
-      longitude,
-    });
+    const result = await journeyRoutePointsService.createJourneyRoutePoint(
+      req.body
+    );
     ServerResponder(res, result);
   } catch (error) {
     console.log("Error creating journey route point:", error);

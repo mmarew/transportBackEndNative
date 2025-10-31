@@ -808,45 +808,6 @@ const getUserByEmailOrNameOrPhoneNumber = async (
 const data = [
   { user: {}, rolesAndStatuses: [{ userRoles: {}, userRoleStatuses: {} }] },
 ];
-// const getUserByEmailOrNameOrPhoneNumber = async (
-//   phoneNumberOrEmail,
-//   roleUniqueId
-// ) => {
-//   let getUserQuery;
-//   let queryParams;
-
-//   const likeTerm = `%${phoneNumberOrEmail}%`;
-
-//   const isValidRole = roleUniqueId && roleUniqueId !== "null";
-
-//   if (isValidRole) {
-//     getUserQuery = `
-//       SELECT *  FROM Users  JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-//       JOIN Roles ON UserRole.roleId = Roles.roleId WHERE (email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?)
-//         AND Roles.roleUniqueId = ?
-//     `;
-//     queryParams = [likeTerm, likeTerm, likeTerm, roleUniqueId];
-//   } else {
-//     getUserQuery = `
-//       SELECT * FROM Users
-//       WHERE email LIKE ? OR phoneNumber LIKE ? OR fullName LIKE ?
-//     `;
-//     queryParams = [likeTerm, likeTerm, likeTerm];
-//   }
-
-//   try {
-//     console.log("@queryParams", queryParams, "\n@getUserQuery", getUserQuery);
-//     const [rows] = await pool.query(getUserQuery, queryParams);
-
-//     return { message: "success", data: rows };
-//   } catch (error) {
-//     console.log("@getUserByEmailOrNameOrPhoneNumber error", error);
-//     return {
-//       message: "error",
-//       error: "An error occurred while retrieving the user",
-//     };
-//   }
-// };
 
 const getUsersByRoleUniqueId = async (
   roleUniqueId,
@@ -936,11 +897,12 @@ const getUsersByRoleUniqueId = async (
 
 const loginUser = async (phoneNumber, roleId) => {
   const data = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
+  console.log("@loginUser data", data);
   if (data?.message === "error") return data;
-  const userData = data?.data;
+  const userData = data?.data?.[0].user;
   console.log("@loginUser userData", userData);
   // return;
-  if (!userData?.length)
+  if (!userData)
     return {
       message: "error",
       error:
@@ -949,7 +911,7 @@ const loginUser = async (phoneNumber, roleId) => {
   // check if this user has this role
   const listOfRoles = (
     await getUserRoleListByFilter({
-      filters: { userUniqueId: userData?.[0]?.userUniqueId },
+      filters: { userUniqueId: userData?.userUniqueId },
       limit: 100,
       page: 1,
     })
@@ -967,7 +929,7 @@ const loginUser = async (phoneNumber, roleId) => {
   const userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
   const statusId = userRoleStatus?.[0]?.statusId;
   const res = await handleExistingUser({
-    user: userData?.[0],
+    user: userData,
     roleId,
     statusId,
   });

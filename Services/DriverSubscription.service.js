@@ -236,17 +236,11 @@ const getAllDriverSubscriptions = async ({
 
   // 🔹 Main query
   const sql = `
-    SELECT 
-      DriverSubscription.*,
-      SubscriptionPlan.planName,
-      SubscriptionPlan.description,
-      SubscriptionPlanPricing.price,
-      SubscriptionPlanPricing.durationInDays
-    FROM DriverSubscription
-    JOIN SubscriptionPlan 
+    SELECT  DriverSubscription.*,  SubscriptionPlan.planName,
+      SubscriptionPlan.description,  SubscriptionPlanPricing.price,
+      SubscriptionPlanPricing.durationInDays  FROM DriverSubscription  JOIN SubscriptionPlan 
       ON SubscriptionPlan.subscriptionPlanUniqueId = DriverSubscription.subscriptionPlanUniqueId
-    JOIN SubscriptionPlanPricing 
-      ON SubscriptionPlanPricing.subscriptionPlanUniqueId = SubscriptionPlan.subscriptionPlanUniqueId
+    JOIN SubscriptionPlanPricing    ON SubscriptionPlanPricing.subscriptionPlanUniqueId = SubscriptionPlan.subscriptionPlanUniqueId
     ${whereClause}
     ${orderBy}
     LIMIT ? OFFSET ?
@@ -299,7 +293,9 @@ const getAllOrActiveDriverSubscriptionsByDriverUUId = async ({
   isActive,
 }) => {
   const today = currentDate();
+
   let sql = `SELECT * FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId join SubscriptionPlan on SubscriptionPlan.subscriptionPlanUniqueId=DriverSubscription.subscriptionPlanUniqueId WHERE DriverSubscription.driverUniqueId = ?`;
+
   const params = [driverUniqueId];
   if (isActive) {
     sql += ` AND endDate > ?`;

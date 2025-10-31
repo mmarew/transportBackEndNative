@@ -45,6 +45,7 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
       usersRoles.driverRoleId,
       usersRoles.vehicleOwnerRoleId,
     ].includes(Number(roleId));
+
     const enableDocumentChecks = true;
 
     // 1) Fetch current user role status
@@ -207,8 +208,8 @@ WHERE AttachedDocuments.userUniqueId = ?
     return {
       message: "success",
       messageType: "accountStatus",
-      vehicle: userVehicle[0] || null,
-      userData: latestUserData[0] || null,
+      vehicle: userVehicle?.[0] || null,
+      userData: latestUserData?.[0] || null,
       attachedDocumentsByStatus,
       unAttachedDocumentTypes,
       requiredDocuments,
