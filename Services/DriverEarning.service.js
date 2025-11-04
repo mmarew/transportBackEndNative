@@ -14,7 +14,35 @@ exports.getDriverEarningsByFilter = async ({
       return { message: "error", error: "Missing required parameters" };
     }
 
-    // ✅ Main query (filter by driver, date range, and completed journeys)
+    // Build WHERE conditions dynamically
+    let whereConditions = [
+      "DriverRequest.userUniqueId = ?",
+      "JourneyDecisions.journeyStatusId = ?",
+    ];
+
+    let params = [
+      driverUniqueId,
+      journeyStatusMap?.journeyCompleted, // only completed journeys
+    ];
+
+    // Add date filter only if both dates are provided
+    if (fromDate && toDate) {
+      whereConditions.push("JourneyDecisions.decisionTime BETWEEN ? AND ?");
+      params.push(fromDate, toDate);
+    } else if (fromDate) {
+      // If only fromDate is provided, filter from that date onwards
+      whereConditions.push("JourneyDecisions.decisionTime >= ?");
+      params.push(fromDate);
+    } else if (toDate) {
+      // If only toDate is provided, filter up to that date
+      whereConditions.push("JourneyDecisions.decisionTime <= ?");
+      params.push(toDate);
+    }
+
+    // Add pagination parameters
+    params.push(Number(limit), Number(offset));
+
+    // ✅ Main query (filter by driver, date range if provided, and completed journeys)
     const sql = `
       SELECT 
         JourneyDecisions.*, 
@@ -25,43 +53,25 @@ exports.getDriverEarningsByFilter = async ({
         ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       JOIN PassengerRequest 
         ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
-      WHERE 
-        DriverRequest.userUniqueId = ?
-        AND JourneyDecisions.decisionTime BETWEEN ? AND ?
-        AND JourneyDecisions.journeyStatusId = ?
+      WHERE ${whereConditions.join(" AND ")}
       ORDER BY JourneyDecisions.journeyDecisionId DESC
       LIMIT ? OFFSET ?
     `;
 
-    const params = [
-      driverUniqueId,
-      fromDate,
-      toDate,
-      journeyStatusMap?.journeyCompleted, // only completed journeys
-      Number(limit),
-      Number(offset),
-    ];
-
     const [data] = await pool.query(sql, params);
 
-    // ✅ Get total count for pagination
+    // ✅ Get total count for pagination (remove limit/offset from params)
+    const countParams = params.slice(0, -2); // Remove limit and offset
+
     const countSql = `
       SELECT COUNT(*) AS total
       FROM JourneyDecisions
       JOIN DriverRequest 
         ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      WHERE 
-        DriverRequest.userUniqueId = ?
-        AND JourneyDecisions.decisionTime BETWEEN ? AND ?
-        AND JourneyDecisions.journeyStatusId = ?
+      WHERE ${whereConditions.join(" AND ")}
     `;
 
-    const [countRows] = await pool.query(countSql, [
-      driverUniqueId,
-      fromDate,
-      toDate,
-      journeyStatusMap?.journeyCompleted,
-    ]);
+    const [countRows] = await pool.query(countSql, countParams);
 
     const total = countRows[0]?.total || 0;
 
