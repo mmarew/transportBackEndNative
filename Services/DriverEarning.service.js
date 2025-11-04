@@ -10,7 +10,7 @@ exports.getDriverEarningsByFilter = async ({
 }) => {
   try {
     // ✅ Basic validation
-    if (!driverUniqueId || !fromDate || !toDate) {
+    if (!driverUniqueId) {
       return { message: "error", error: "Missing required parameters" };
     }
 
