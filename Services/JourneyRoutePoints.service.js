@@ -138,12 +138,15 @@ exports.createJourneyRoutePoint = async (body) => {
 // Get all route points for a specific journey
 exports.getJourneyRoutePoints = async (journeyDecisionUniqueId) => {
   try {
-    console.log(
-      "@getJourneyRoutePoints journeyDecisionUniqueId",
-      journeyDecisionUniqueId
-    );
     const sql = `SELECT * FROM JourneyRoutePoints WHERE journeyDecisionUniqueId = ? ORDER BY timestamp`;
     const [result] = await pool.query(sql, [journeyDecisionUniqueId]);
+
+    console.log(
+      "@getJourneyRoutePoints journeyDecisionUniqueId",
+      journeyDecisionUniqueId,
+      "@result======>",
+      result
+    );
 
     return { message: "success", data: result };
   } catch (error) {
