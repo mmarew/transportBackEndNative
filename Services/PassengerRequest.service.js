@@ -16,21 +16,34 @@ const {
   verifyDriverStatus,
 } = require("./UsersCurrentStatus");
 const { on } = require("stream");
+const { createUser } = require("./User.service");
 // Removed granular VehicleOwnership getter; use performJoinSelect instead
 require("./AttachedDocuments.service");
 
-const createPassengerRequest = async (body, journeyStatusId, createBy) => {
+const createPassengerRequest = async (body, journeyStatusId) => {
   try {
     console.log("@createPassengerRequest body", body);
     // return;
-    const { userUniqueId, shipperRequestCreatedByRoleId } = body;
+    const { shipperRequestCreatedByRoleId, shipperPhoneNumber } = body;
+    let userUniqueId = body?.userUniqueId;
+    if (shipperRequestCreatedByRoleId == 3) {
+      const createdUser = await createUser({
+        phoneNumber: shipperPhoneNumber,
+
+        roleId: 1,
+        statusId: 1,
+      });
+      console.log("@createdUser", createdUser);
+      const dataOfPassenger = createdUser?.dataOfPassenger;
+      userUniqueId = dataOfPassenger?.userUniqueId;
+    }
     const numberOfVehicles = body?.numberOfVehicles || 1;
     // first check if the user has an active request based on passengerRequestBatchId
     const passengerRequestBatchId = body?.passengerRequestBatchId;
     if (!passengerRequestBatchId) {
       return {
         message: "error",
-        error: "Batch Id Cant be null",
+        error: "Batch uniqueId Can't be null",
       };
     }
     const dataByBatchId = await getData({

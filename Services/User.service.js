@@ -145,6 +145,7 @@ const handleExistingUser = async ({
   console.log("hashedOTP", hashedOTP);
   if (requestedFrom == "street") {
     return {
+      dataOfPassenger: user,
       message: "success",
       dataOfPassenger: user,
     };
@@ -157,7 +158,7 @@ const handleExistingUser = async ({
     phoneNumber: user.phoneNumber,
     OTP,
   });
-  return otpUpdated;
+  return { ...otpUpdated, dataOfPassenger: user };
 };
 
 // utils/registerNewUser.js
@@ -245,6 +246,7 @@ const registerNewUser = async ({
       }
       // prepare return message
       return {
+        dataOfPassenger,
         message: "success",
         messageDetail:
           "User created successfully, free gift subscription added",
