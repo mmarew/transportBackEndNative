@@ -20,8 +20,15 @@ const createRequest = async (req, res) => {
 };
 const takeFromStreet = async (req, res) => {
   try {
-    console.log("@ req.user", req.user);
-    const result = await services.takeFromStreet(req.body, req.user);
+    console.log("@takeFromStreet req.user", req.user);
+    const user = req.user;
+
+    const shipperRequestCreatedBy = user?.userUniqueId;
+    const shipperRequestCreatedByRoleId = user?.roleId;
+    req.body.shipperRequestCreatedBy = shipperRequestCreatedBy;
+    req.body.shipperRequestCreatedByRoleId = shipperRequestCreatedByRoleId;
+    req.body.userUniqueId = shipperRequestCreatedBy;
+    const result = await services.takeFromStreet({ ...req.body }, req.user);
     ServerResponder(res, result, 201);
   } catch (error) {
     console.log("Error in createRequestController:", error);

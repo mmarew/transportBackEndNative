@@ -83,6 +83,16 @@ const createRequest = async ({
 };
 const takeFromStreet = async (body, user) => {
   try {
+    // first verify if driver has active request
+    const driverStatus = await verifyDriverStatus({
+      userUniqueId: user?.userUniqueId,
+    });
+    // if driver has active request return the current status
+    if (driverStatus) {
+      return driverStatus;
+    }
+    // if there is no active request create new passenger and passenger request and link with driver request and create journey decision and journey
+
     const journeyStatusId = journeyStatusMap.journeyStarted;
     const userUniqueId = user?.userUniqueId;
     const randNumber = Math.floor(Math.random() * 100000000);
@@ -115,9 +125,10 @@ const takeFromStreet = async (body, user) => {
     // const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
     // create a passenger request in passengerRequest table using createPassengerRequest function from passengerRequest.service
     const passengerRequest = await createPassengerRequest(
-      body,
-      dataOfPassenger,
+      { ...body },
+
       journeyStatusId,
+      dataOfPassenger,
       "driver"
     );
 

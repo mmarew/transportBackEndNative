@@ -214,7 +214,7 @@ const handleExistingJourney = async (
       journeyDecisionUniqueId,
     },
   });
-  const journeyUniqueId = journey?.[0]?.journeyUniqueId;
+  const journeyUniqueId = journey?.journeyUniqueId;
 
   const passengerData = await performJoinSelect({
     baseTable: "PassengerRequest",

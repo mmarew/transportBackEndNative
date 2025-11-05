@@ -21,6 +21,8 @@ require("./AttachedDocuments.service");
 
 const createPassengerRequest = async (body, journeyStatusId, createBy) => {
   try {
+    console.log("@createPassengerRequest body", body);
+    // return;
     const { userUniqueId, shipperRequestCreatedByRoleId } = body;
     const numberOfVehicles = body?.numberOfVehicles || 1;
     // first check if the user has an active request based on passengerRequestBatchId
