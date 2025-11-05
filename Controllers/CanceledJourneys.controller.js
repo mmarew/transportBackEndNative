@@ -2,7 +2,9 @@ const canceledJourneyService = require("../Services/CanceledJourneys.service");
 const {
   cancelPassengerRequest,
 } = require("../Services/PassengerRequest.service");
-const { sendSocketIONotificationToPassenger } = require("../Utils/Notifications");
+const {
+  sendSocketIONotificationToPassenger,
+} = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const messageTypes = require("../Utils/MessageTypes");
 const { pool } = require("../Middleware/Database.config");
@@ -207,13 +209,13 @@ const getCanceledJourneyByFilter = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const user = req.user;
   const data = { ...req?.query };
-  let driverUserUniqueId = req?.query?.userUniqueId;
+  let userUniqueId = req?.query?.userUniqueId;
   // if driverUserUniqueId is self, then set it to userUniqueId of the logged in user
-  if (driverUserUniqueId == "self") driverUserUniqueId = user?.userUniqueId;
+  if (userUniqueId == "self") userUniqueId = user?.userUniqueId;
   // add driverUserUniqueId, page and limit to data object
   data.page = parseInt(page);
   data.limit = parseInt(limit);
-  data.driverUserUniqueId = driverUserUniqueId;
+  data.userUniqueId = userUniqueId;
   const resultOfGetCanceledJourneyByFilter =
     await canceledJourneyService.getCanceledJourneyByFilter({ data });
 

@@ -19,14 +19,9 @@ const { on } = require("stream");
 // Removed granular VehicleOwnership getter; use performJoinSelect instead
 require("./AttachedDocuments.service");
 
-const createPassengerRequest = async (
-  body,
-  user,
-  journeyStatusId,
-  createBy
-) => {
+const createPassengerRequest = async (body, journeyStatusId, createBy) => {
   try {
-    const { userUniqueId } = user;
+    const { userUniqueId, shipperRequestCreatedByRoleId } = body;
     const numberOfVehicles = body?.numberOfVehicles || 1;
     // first check if the user has an active request based on passengerRequestBatchId
     const passengerRequestBatchId = body?.passengerRequestBatchId;
@@ -58,7 +53,7 @@ const createPassengerRequest = async (
       );
       newRequests.push(newRequest?.data[0]);
     }
-    if (createBy == "driver") {
+    if (shipperRequestCreatedByRoleId == 2) {
       return newRequests;
     }
     const statusData = await verifyPassengerStatus({

@@ -338,7 +338,12 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     deliveryDate DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
     isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by passenger 
-    
+    shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, passenger himself or driver take from street
+    shipperRequestCreatedByRoleId INT NOT NULL,          -- roleId of the creator when it create this request
+
+
+    foreign key (shipperRequestCreatedByRoleId) references Roles(roleId),
+    foreign key (shipperRequestCreatedBy) references Users(userUniqueId),
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)

@@ -42,7 +42,9 @@ const createNewPassengerRequest = async (
     shippingDate = formatDateToReadable(body?.shippingDate),
     deliveryDate = formatDateToReadable(body?.deliveryDate),
     shippingCost = body?.shippingCost,
-    passengerRequestBatchId = body?.passengerRequestBatchId;
+    passengerRequestBatchId = body?.passengerRequestBatchId,
+    shipperRequestCreatedBy = body?.shipperRequestCreatedBy,
+    shipperRequestCreatedByRoleId = body?.shipperRequestCreatedByRoleId;
 
   if (!body || !userUniqueId || !journeyStatusId) {
     throw new Error("Invalid input parameters to create passenger request");
@@ -79,8 +81,12 @@ const createNewPassengerRequest = async (
 
   const passengerRequestUniqueId = uuidv4();
   const requestPayload = {
-    passengerRequestUniqueId,
     userUniqueId,
+
+    passengerRequestUniqueId,
+    shipperRequestCreatedBy,
+    shipperRequestCreatedByRoleId,
+
     vehicleTypeUniqueId,
     originLatitude,
     originLongitude,

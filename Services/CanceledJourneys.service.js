@@ -161,7 +161,12 @@ const getSingleCanceledJourneysByUserUniqueIdAndRoleId = async (
     ORDER BY canceledTime DESC
     LIMIT ? OFFSET ?
   `;
-  const [result] = await pool.query(dataSql, [userUniqueId, roleId, safeLimit, offset]);
+  const [result] = await pool.query(dataSql, [
+    userUniqueId,
+    roleId,
+    safeLimit,
+    offset,
+  ]);
 
   // Get total count for pagination using COUNT(*)
   const countSql = `SELECT COUNT(*) as total FROM CanceledJourneys WHERE canceledBy = ? AND roleId = ?`;
@@ -316,8 +321,11 @@ const getAllCancelledJourneyByRole = async (filters) => {
   const safePage = Math.max(1, parseInt(page) || 1);
   const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
   const allowedSortBy = ["canceledJourneyId", "canceledTime", "roleId"]; // columns on CanceledJourneys
-  const safeSortBy = allowedSortBy.includes(sortBy) ? sortBy : "canceledJourneyId";
-  const safeSortOrder = String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
+  const safeSortBy = allowedSortBy.includes(sortBy)
+    ? sortBy
+    : "canceledJourneyId";
+  const safeSortOrder =
+    String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
 
   // Calculate offset for pagination
   const offset = (safePage - 1) * safeLimit;
@@ -552,8 +560,7 @@ const getCanceledJourneyByFilter = async ({ data }) => {
       roleId,
       cancellationReasonsTypeId,
       canceledBy,
-      driverUserUniqueId,
-      passengerUserUniqueId,
+      userUniqueId,
       isSeenByAdmin,
       startDate,
       endDate,
@@ -598,14 +605,14 @@ const getCanceledJourneyByFilter = async ({ data }) => {
       queryParams.push(canceledBy);
     }
 
-    if (driverUserUniqueId) {
+    if (roleId == 2 && userUniqueId) {
       whereConditions.push("cj.driverUserUniqueId = ?");
-      queryParams.push(driverUserUniqueId);
+      queryParams.push(userUniqueId);
     }
 
-    if (passengerUserUniqueId) {
+    if (roleId == 1 && userUniqueId) {
       whereConditions.push("cj.passengerUserUniqueId = ?");
-      queryParams.push(passengerUserUniqueId);
+      queryParams.push(userUniqueId);
     }
 
     if (isSeenByAdmin !== undefined) {
@@ -687,8 +694,7 @@ const getCanceledJourneyByFilter = async ({ data }) => {
         roleId,
         cancellationReasonsTypeId,
         canceledBy,
-        driverUserUniqueId,
-        passengerUserUniqueId,
+        userUniqueId,
         isSeenByAdmin,
         startDate,
         endDate,

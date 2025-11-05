@@ -7,6 +7,7 @@ const createPassengerRequest = async (req, res) => {
   try {
     console.log("@createPassengerRequest req.body", req.body);
     const {
+      userUniqueId,
       passengerRequestBatchId,
       destination,
       vehicle,
@@ -28,15 +29,25 @@ const createPassengerRequest = async (req, res) => {
       !shippingCost ||
       !shippableItemQtyInQuintal ||
       !shippableItemName ||
-      !deliveryDate
+      !deliveryDate ||
+      !userUniqueId
     ) {
       return ServerResponder(res, {
         message: "error",
         error: "Missing required fields to create passenger request",
       });
     }
+    if (userUniqueId == "self") {
+      req.body.userUniqueId = req.user.userUniqueId;
+    }
+    // user data from token
+    const shipperRequestCreatedBy = req.user.userUniqueId;
+    const shipperRequestCreatedByRoleId = req.user.roleId;
+    req.body.shipperRequestCreatedBy = shipperRequestCreatedBy;
+    req.body.shipperRequestCreatedByRoleId = shipperRequestCreatedByRoleId;
     const result = await PassengerService.createPassengerRequest(
       req.body,
+      journeyStatusMap.waiting,
       req.user
     );
     ServerResponder(res, result);
