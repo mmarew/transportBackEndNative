@@ -48,7 +48,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
     } catch (tokenError) {
       // Your existing token error handling
       let response;
-      console.log("@token error ", tokenError.name);
+      console.log("@token error ", tokenError?.name);
 
       switch (tokenError.name) {
         case "TokenExpiredError":

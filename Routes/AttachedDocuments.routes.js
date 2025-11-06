@@ -1,11 +1,4 @@
 const express = require("express");
-const router = express.Router();
-const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
-const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
-const multer = require("multer");
-const path = require("path");
-const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
-const { uploadToFTP } = require("../Utils/FTPHandler");
 
 // const storage = multer.diskStorage({
 //   destination: function (req, file, cb) {
@@ -25,8 +18,16 @@ const { uploadToFTP } = require("../Utils/FTPHandler");
 //     cb(null, uniqueName); // Use uniqueName as the final filename
 //   },
 // });
-const storage = multer.memoryStorage();
 
+const router = express.Router();
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
+const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
+const multer = require("multer");
+const path = require("path");
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const { uploadToFTP } = require("../Utils/FTPHandler");
+
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Define routes for handling multiple file uploads
@@ -36,29 +37,21 @@ router.post(
   upload.any(),
   attachedDocumentsController.createAttachedDocuments
 );
-// get Attached Documents By User unique id
+
+// Single consolidated filter endpoint for ALL document retrieval
 router.get(
-  "/api/admin/attachedDocumentsByUser/:userUniqueId",
+  "/api/user/attachedDocuments",
   verifyTokenOfAxios,
-  attachedDocumentsController.getAttachedDocumentsByUser
+  attachedDocumentsController.getAttachedDocumentsByFilter
 );
-// get Attached Documents By User unique id and document type id
-router.get(
-  "/api/admin/attachedDocumentsByUser/:userUniqueId/:documentTypeId",
-  verifyTokenOfAxios,
-  attachedDocumentsController.getAttachedDocumentsByUserUniqueIdAndDocumentTypeId
-);
-//get attached Document by document UniqueId
-router.get(
-  "/api/user/attachedDocuments/:attachedDocumentUniqueId",
-  attachedDocumentsController.getAttachedDocumentByUniqueId
-);
+
 router.put(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   verifyTokenOfAxios,
-  upload.any(), // Handle file upload for updates
+  upload.any(),
   attachedDocumentsController.updateAttachedDocument
 );
+
 router.delete(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   verifyTokenOfAxios,

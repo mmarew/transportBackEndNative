@@ -599,7 +599,149 @@ const acceptRejectAttachedDocuments = async (body) => {
   }
 };
 
+const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
+  try {
+    const {
+      attachedDocumentUniqueId,
+      userUniqueId,
+      documentTypeId,
+      email,
+      phoneNumber,
+      fullName,
+    } = filter;
+
+    const { page, limit, offset } = pagination;
+    const { by, order } = sort;
+
+    // If specific document ID is provided, return only that document
+    if (attachedDocumentUniqueId) {
+      const document = await performJoinSelect({
+        baseTable: "AttachedDocuments",
+        joins: [
+          {
+            table: "DocumentTypes",
+            on: "AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId",
+          },
+          {
+            table: "Users",
+            on: "AttachedDocuments.attachedDocumentCreatedByUserId = Users.userUniqueId",
+          },
+        ],
+        conditions: {
+          "AttachedDocuments.attachedDocumentUniqueId":
+            attachedDocumentUniqueId,
+        },
+      });
+
+      if (!document || document.length === 0) {
+        return {
+          message: "error",
+          error: "Document not found",
+        };
+      }
+
+      return {
+        message: "success",
+        data: document[0],
+      };
+    }
+
+    // Build conditions for filtering multiple documents
+    let whereConditions = {};
+
+    // Only filter by userUniqueId if provided, otherwise search by email/phone/name
+    if (userUniqueId && userUniqueId !== "all") {
+      whereConditions["AttachedDocuments.attachedDocumentCreatedByUserId"] =
+        userUniqueId;
+    }
+
+    if (documentTypeId && documentTypeId !== "all") {
+      whereConditions["AttachedDocuments.documentTypeId"] = documentTypeId;
+    }
+
+    // Add user profile filters (email, phone, name)
+    let userFilters = {};
+    if (email && email !== "all") {
+      userFilters["Users.email"] = email;
+    }
+
+    if (phoneNumber && phoneNumber !== "all") {
+      userFilters["Users.phoneNumber"] = phoneNumber;
+    }
+
+    if (fullName && fullName !== "all") {
+      userFilters["Users.fullName"] = fullName;
+    }
+
+    // Get total count for pagination
+    const countResult = await performJoinSelect({
+      baseTable: "AttachedDocuments",
+      joins: [
+        {
+          table: "DocumentTypes",
+          on: "AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId",
+        },
+        {
+          table: "Users",
+          on: "AttachedDocuments.attachedDocumentCreatedByUserId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        ...whereConditions,
+        ...userFilters,
+      },
+    });
+
+    const totalCount = countResult.length;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Get paginated results
+    const documents = await performJoinSelect({
+      baseTable: "AttachedDocuments",
+      joins: [
+        {
+          table: "DocumentTypes",
+          on: "AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId",
+        },
+        {
+          table: "Users",
+          on: "AttachedDocuments.attachedDocumentCreatedByUserId = Users.userUniqueId",
+        },
+      ],
+      conditions: {
+        ...whereConditions,
+        ...userFilters,
+      },
+      orderBy: `AttachedDocuments.${by}`,
+      orderDirection: order,
+      limit: limit,
+      offset: offset,
+    });
+
+    return {
+      message: "success",
+      data: {
+        documents,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          hasNext: page < totalPages,
+          hasPrevious: page > 1,
+        },
+      },
+    };
+  } catch (error) {
+    console.log("Error in getAttachedDocumentsByFilter:", error);
+    return {
+      message: "error",
+      error: "Unable to retrieve documents",
+    };
+  }
+};
+
 module.exports = {
+  getAttachedDocumentsByFilter,
   acceptRejectAttachedDocuments,
   createAttachedDocument,
   getAttachedDocumentsByUser,
