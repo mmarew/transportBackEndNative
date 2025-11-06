@@ -238,13 +238,18 @@ const cancelPassengerRequest = async (req, res) => {
   try {
     let ownerUserUniqueId = req.params.userUniqueId;
     const { userUniqueId } = req?.user;
-
-    if (ownerUserUniqueId == "self") ownerUserUniqueId = userUniqueId;
+    let cancelledBy = journeyStatusMap.cancelledByPassenger;
+    if (ownerUserUniqueId == "self") {
+      ownerUserUniqueId = userUniqueId;
+    } else {
+      cancelledBy = journeyStatusMap.cancelledByAdmin;
+    }
     req.body.ownerUserUniqueId = ownerUserUniqueId;
     req.body.user = req.user;
 
     const user = req.user;
     req.body.user = user;
+    req.body.cancelledBy = cancelledBy;
     const result = await PassengerService.cancelPassengerRequest(req.body);
     ServerResponder(res, result, 200);
   } catch (error) {

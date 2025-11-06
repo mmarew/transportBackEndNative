@@ -26,6 +26,7 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     // return;
     const { shipperRequestCreatedByRoleId, shipperPhoneNumber } = body;
     let userUniqueId = body?.userUniqueId;
+    // when admin is creating request for shipper create user first
     if (shipperRequestCreatedByRoleId == 3) {
       const createdUser = await createUser({
         phoneNumber: shipperPhoneNumber,
@@ -33,8 +34,8 @@ const createPassengerRequest = async (body, journeyStatusId) => {
         roleId: 1,
         statusId: 1,
       });
-      console.log("@createdUser", createdUser);
       const dataOfPassenger = createdUser?.dataOfPassenger;
+      // set userUniqueId to newly created user
       userUniqueId = dataOfPassenger?.userUniqueId;
     }
     const numberOfVehicles = body?.numberOfVehicles || 1;
@@ -541,6 +542,22 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(`%${filters.shippableItemName}%`);
     }
 
+    //  Filter by phone number from Users table
+    if (filters?.phoneNumber) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " Users.phoneNumber LIKE ?";
+      queryParams.push(`%${filters.phoneNumber}%`);
+      countParams.push(`%${filters.phoneNumber}%`);
+    }
+
+    // Filter by email from Users table
+    if (filters?.email) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " Users.email LIKE ?";
+      queryParams.push(`%${filters.email}%`);
+      countParams.push(`%${filters.email}%`);
+    }
+
     // Get paginated results - Using only columns from original code
     const sqlToGetRequests = `
       SELECT 
@@ -647,6 +664,7 @@ const deleteRequest = async (requestId) => {
 const cancelPassengerRequest = async (body) => {
   try {
     const {
+      cancelledBy,
       user,
       ownerUserUniqueId,
       cancellationReasonsTypeId,
@@ -661,23 +679,12 @@ const cancelPassengerRequest = async (body) => {
         error: "Missing required fields to cancel passenger request",
       };
     }
-    // get passenger data
-    // const [passengerData] = await performJoinSelect({
-    //   baseTable: "PassengerRequest",
-    //   joins: [
-    //     {
-    //       table: "Users",
-    //       on: "PassengerRequest.userUniqueId = Users.userUniqueId",
-    //     },
-    //   ],
-    //   conditions: { passengerRequestId },
-    // });
 
     await updateData({
       tableName: "PassengerRequest",
       conditions: { passengerRequestId },
       updateValues: {
-        journeyStatusId: journeyStatusMap.cancelledByPassenger,
+        journeyStatusId: cancelledBy, // journeyStatusMap.cancelledByPassenger,
       },
     });
 
@@ -686,34 +693,32 @@ const cancelPassengerRequest = async (body) => {
       tableName: "JourneyDecisions",
       conditions: { passengerRequestId },
     });
-    const cancelledByPassenger = journeyStatusMap?.cancelledByPassenger;
-    console.log("@cancelledByPassenger journeyDecisions", journeyDecisions);
     // If no journey decisions found, return early
     if (journeyDecisions.length) {
       // Process all journey decisions in parallel
       const updatePromises = journeyDecisions?.map(async (journeyDecision) => {
         const { journeyDecisionUniqueId, driverRequestId } = journeyDecision;
-
-        // Update driver request status
-        await updateData({
-          tableName: "DriverRequest",
-          conditions: { driverRequestId },
-          updateValues: { journeyStatusId: cancelledByPassenger },
-        });
-
-        // Update journey decision status
-        await updateData({
-          tableName: "JourneyDecisions",
-          conditions: { journeyDecisionUniqueId },
-          updateValues: { journeyStatusId: cancelledByPassenger },
-        });
-
-        // Update journey status
-        await updateData({
-          tableName: "Journey",
-          conditions: { journeyDecisionUniqueId },
-          updateValues: { journeyStatusId: cancelledByPassenger },
-        });
+        if (driverRequestId)
+          // Update driver request status
+          await updateData({
+            tableName: "DriverRequest",
+            conditions: { driverRequestId },
+            updateValues: { journeyStatusId: cancelledBy },
+          });
+        if (journeyDecisionUniqueId)
+          // Update journey decision status
+          await updateData({
+            tableName: "JourneyDecisions",
+            conditions: { journeyDecisionUniqueId },
+            updateValues: { journeyStatusId: cancelledBy },
+          });
+        if (journeyDecisionUniqueId)
+          // Update journey status
+          await updateData({
+            tableName: "Journey",
+            conditions: { journeyDecisionUniqueId },
+            updateValues: { journeyStatusId: cancelledBy },
+          });
 
         // Get driver data for notification
         const [driverData] = await performJoinSelect({
@@ -740,7 +745,7 @@ const cancelPassengerRequest = async (body) => {
               driver: null,
               journey: null,
               decisions: null,
-              status: cancelledByPassenger,
+              status: cancelledBy,
               message: "success",
               data: notificationMessage,
             },
