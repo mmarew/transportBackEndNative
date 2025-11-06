@@ -294,26 +294,203 @@ const rejectDriverOffer = async (body) => {
     };
   }
 };
-const getAllActiveRequests = async () => {
+// const getAllActiveRequests = async () => {
+//   const activeStatusIds = [
+//     journeyStatusMap.requested,
+//     journeyStatusMap.waiting,
+//     journeyStatusMap.acceptedByDriver,
+//   ];
+
+//   const sql = `
+//     SELECT pr.*, u.*
+//     FROM PassengerRequest pr
+//     JOIN Users u ON u.userUniqueId = pr.userUniqueId
+//     WHERE pr.journeyStatusId IN (?)
+//   `;
+
+//   try {
+//     const [results] = await pool.query(sql, [activeStatusIds]);
+//     return {
+//       status: "success",
+//       data: results,
+//       count: results.length,
+//     };
+//   } catch (error) {
+//     console.error("Failed to fetch active requests:", error);
+//     return {
+//       status: "error",
+//       error: "Unable to retrieve active ride requests",
+//       details:
+//         process.env.NODE_ENV === "development" ? error.message : undefined,
+//     };
+//   }
+// };
+
+const getAllActiveRequests = async (filters = {}) => {
+  const {
+    // User filters
+    userUniqueId,
+    email,
+    phoneNumber,
+    fullName,
+
+    // Request filters
+    vehicleTypeUniqueId,
+    journeyStatusId,
+    shippableItemName,
+
+    // Location filters
+    originPlace,
+    destinationPlace,
+
+    // Date filters
+    startDate,
+    endDate,
+    shippingDate,
+    deliveryDate,
+
+    // Pagination
+    page = 1,
+    limit = 2,
+
+    // Sorting
+    sortBy = "requestTime",
+    sortOrder = "DESC",
+  } = filters;
+
   const activeStatusIds = [
     journeyStatusMap.requested,
     journeyStatusMap.waiting,
     journeyStatusMap.acceptedByDriver,
   ];
 
-  const sql = `
-    SELECT pr.*, u.* 
+  // Base query
+  let baseQuery = `
+    SELECT 
+      pr.*, 
+      -- u.userUniqueId,
+      u.fullName,
+      u.phoneNumber,
+      u.email,
+      u.createdAt as userCreatedAt,
+      vt.vehicleTypeName,
+      js.journeyStatusName  
     FROM PassengerRequest pr
     JOIN Users u ON u.userUniqueId = pr.userUniqueId 
+    LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
     WHERE pr.journeyStatusId IN (?)
   `;
 
+  let whereConditions = [];
+  let values = [activeStatusIds];
+
+  // User filters
+  if (userUniqueId) {
+    whereConditions.push("pr.userUniqueId = ?");
+    values.push(userUniqueId);
+  }
+
+  if (email) {
+    whereConditions.push("u.email LIKE ?");
+    values.push(`%${email}%`);
+  }
+
+  if (phoneNumber) {
+    whereConditions.push("u.phoneNumber LIKE ?");
+    values.push(`%${phoneNumber}%`);
+  }
+
+  if (fullName) {
+    whereConditions.push("u.fullName LIKE ?");
+    values.push(`%${fullName}%`);
+  }
+
+  // Request filters
+  if (vehicleTypeUniqueId) {
+    whereConditions.push("pr.vehicleTypeUniqueId = ?");
+    values.push(vehicleTypeUniqueId);
+  }
+
+  if (journeyStatusId) {
+    whereConditions.push("pr.journeyStatusId = ?");
+    values.push(journeyStatusId);
+  }
+
+  if (shippableItemName) {
+    whereConditions.push("pr.shippableItemName LIKE ?");
+    values.push(`%${shippableItemName}%`);
+  }
+
+  // Location filters
+  if (originPlace) {
+    whereConditions.push("pr.originPlace LIKE ?");
+    values.push(`%${originPlace}%`);
+  }
+
+  if (destinationPlace) {
+    whereConditions.push("pr.destinationPlace LIKE ?");
+    values.push(`%${destinationPlace}%`);
+  }
+
+  // Date filters
+  if (startDate && endDate) {
+    whereConditions.push("pr.requestTime BETWEEN ? AND ?");
+    values.push(startDate, endDate);
+  } else if (startDate) {
+    whereConditions.push("pr.requestTime >= ?");
+    values.push(startDate);
+  } else if (endDate) {
+    whereConditions.push("pr.requestTime <= ?");
+    values.push(endDate);
+  }
+
+  if (shippingDate) {
+    whereConditions.push("DATE(pr.shippingDate) = ?");
+    values.push(shippingDate);
+  }
+
+  if (deliveryDate) {
+    whereConditions.push("DATE(pr.deliveryDate) = ?");
+    values.push(deliveryDate);
+  }
+
+  // Add WHERE conditions to base query
+  if (whereConditions.length > 0) {
+    baseQuery += " AND " + whereConditions.join(" AND ");
+  }
+
+  // Count query for total records
+  const countQuery = `SELECT COUNT(*) as totalCount FROM (${baseQuery}) as countTable`;
+
+  // Add sorting and pagination to main query
+  const offset = (page - 1) * limit;
+  baseQuery += ` ORDER BY pr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+  values.push(parseInt(limit), parseInt(offset));
+
   try {
-    const [results] = await pool.query(sql, [activeStatusIds]);
+    // Execute both queries
+    const [countResults] = await pool.query(countQuery, values.slice(0, -2)); // Remove LIMIT and OFFSET values for count
+    const [results] = await pool.query(baseQuery, values);
+
+    const totalCount = countResults[0]?.totalCount || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
     return {
       status: "success",
       data: results,
-      count: results.length,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalCount,
+        hasNext: page < totalPages,
+        hasPrevious: page > 1,
+        pageSize: parseInt(limit),
+      },
+      filters: {
+        applied: whereConditions.length > 0 ? filters : {},
+        activeStatusIds,
+      },
     };
   } catch (error) {
     console.error("Failed to fetch active requests:", error);
@@ -325,6 +502,7 @@ const getAllActiveRequests = async () => {
     };
   }
 };
+
 const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
   try {
     const result = await performJoinSelect({

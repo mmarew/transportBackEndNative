@@ -96,7 +96,8 @@ const rejectDriverOffer = async (req, res) => {
 
 const getAllActiveRequests = async (req, res) => {
   try {
-    const result = await PassengerService.getAllActiveRequests();
+    const filters = req?.query;
+    const result = await PassengerService.getAllActiveRequests(filters);
     ServerResponder(res, result);
   } catch (error) {
     ServerResponder(res, {

@@ -1,14 +1,10 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
-const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 const { getAttachedDocumentsByUser } = require("./AttachedDocuments.service");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
-const { getVehicle } = require("./Vehicle.service");
-const {
-  getVehicleAndOwnershipViaUserUniqueId,
-} = require("./VehicleOwnership.service");
+const {} = require("./VehicleOwnership.service");
 
 const adminServices = {
   getAllActiveDrivers: async (req) => {
