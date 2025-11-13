@@ -1,3 +1,4 @@
+const { getOfflineDrivers } = require("../Controllers/Admin.controller");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("../Middleware/Database.config");
 const { getAttachedDocumentsByUser } = require("./AttachedDocuments.service");
@@ -114,6 +115,69 @@ const adminServices = {
       data,
     };
   },
+  getOfflineDrivers: async (req) => {
+    const page = parseInt(req.query.page) || 1; // default page = 1
+    const limit = parseInt(req.query.limit) || 10; // default limit = 10
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const countSql = `
+    SELECT COUNT(*) AS total
+    FROM (
+      SELECT dr.userUniqueId
+      FROM DriverRequest dr
+      INNER JOIN (
+        SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
+        FROM DriverRequest
+        GROUP BY userUniqueId
+      ) latestRequest 
+        ON dr.userUniqueId = latestRequest.userUniqueId 
+        AND dr.requestTime = latestRequest.latestRequestTime
+      INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+      INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
+      INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
+      WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4,5)
+        AND ursc.statusId = 1
+        AND ur.roleId = 2
+    ) as sub
+  `;
+    const [countRows] = await pool.query(countSql);
+    const total = countRows[0].total;
+
+    // Fetch paginated records
+    const sqlToGetOfflineDrivers = `
+    SELECT dr.*, u.*, ur.*, ursc.*
+    FROM DriverRequest dr
+    INNER JOIN (
+      SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
+      FROM DriverRequest
+      GROUP BY userUniqueId
+    ) latestRequest 
+      ON dr.userUniqueId = latestRequest.userUniqueId 
+      AND dr.requestTime = latestRequest.latestRequestTime
+    INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+    INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
+    INNER JOIN UserRoleStatusCurrent ursc ON ursc .userRoleId = ur.userRoleId
+    WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4,5)
+      AND ursc.statusId = 1
+      AND ur.roleId = 2
+    ORDER BY dr.requestTime DESC
+    LIMIT ? OFFSET ?
+  `;
+
+    const [data] = await pool.query(sqlToGetOfflineDrivers, [limit, offset]);
+
+    return {
+      message: "success",
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      data,
+    };
+  },
   searchOfflineDrivers: async (query, page = 1, limit = 10) => {
     const offset = (page - 1) * limit;
     const wildcardQuery = `%${query}%`;
@@ -134,7 +198,7 @@ const adminServices = {
         INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
         INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
         INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-        WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4)
+        WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4,5)
           AND ursc.statusId = 1
           AND ur.roleId = 2
           AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)
