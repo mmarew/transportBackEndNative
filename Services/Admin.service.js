@@ -295,50 +295,114 @@ const adminServices = {
   },
 
   getOnlineDrivers: async (req) => {
-    // driver is online when its journeyStatusId is one in DriverRequest table . also get drivers vehicle details from vehicle table and VehicleOwnership table. vehicle is connected to VehicleTypes table
-    const data = await performJoinSelect({
-      baseTable: "DriverRequest",
-      joins: [
-        {
-          table: "Users",
-          on: "DriverRequest.userUniqueId = Users.userUniqueId",
-        },
-        {
-          table: "VehicleOwnership",
-          on: "Users.userUniqueId = VehicleOwnership.userUniqueId",
-        },
-        {
-          table: "Vehicle",
-          on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
-        },
-        {
-          table: "VehicleTypes",
-          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
-        },
-        { table: "UserRole", on: "Users.userUniqueId = UserRole.userUniqueId" },
-        { table: "Roles", on: "UserRole.roleId = Roles.roleId" },
-      ],
-      conditions: {
-        "DriverRequest.journeyStatusId": [1, 2, 3, 4, 5],
-        "Roles.roleId": 2,
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const countSql = `
+      SELECT COUNT(DISTINCT dr.driverRequestId) AS total
+      FROM DriverRequest dr
+      INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+      INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
+      INNER JOIN Roles r ON ur.roleId = r.roleId
+      WHERE dr.journeyStatusId IN (1, 2, 3, 4, 5)
+        AND r.roleId = 2
+    `;
+    const [countRows] = await pool.query(countSql);
+    const total = countRows[0].total;
+
+    // Fetch paginated records with vehicle details
+    const sql = `
+      SELECT 
+        dr.*,
+        u.userUniqueId,
+        u.fullName,
+        u.phoneNumber,
+        u.email,
+        u.createdAt as userCreatedAt,
+        vo.vehicleOwnershipId,
+        vo.vehicleOwnershipUniqueId,
+        v.vehicleId,
+        v.vehicleUniqueId,
+        v.plateNumber,
+        v.vehicleModel,
+        v.vehicleYear,
+        vt.vehicleTypeId,
+        vt.vehicleTypeUniqueId,
+        vt.vehicleTypeName,
+        ur.userRoleId,
+        ur.roleId,
+        r.roleName
+      FROM DriverRequest dr
+      INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
+      LEFT JOIN VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId
+      LEFT JOIN Vehicle v ON vo.vehicleUniqueId = v.vehicleUniqueId
+      LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+      INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
+      INNER JOIN Roles r ON ur.roleId = r.roleId
+      WHERE dr.journeyStatusId IN (1, 2, 3, 4, 5)
+        AND r.roleId = 2
+      ORDER BY dr.requestTime DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [data] = await pool.query(sql, [limit, offset]);
+
+    return {
+      message: "success",
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
       },
-    });
-    return { message: "success", data };
+    };
   },
 
-  getUnauthorizedDriver: async () => {
-    const sql = `
-      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* ,Statuses.*
-      FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and  UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
+  getUnauthorizedDriver: async (req) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM Users 
+      JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId 
+      JOIN Roles ON UserRole.roleId = Roles.roleId 
+      JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId 
+      WHERE UserRoleStatusCurrent.statusId != ? 
+        AND UserRoleStatusCurrent.statusId != ? 
+        AND Roles.roleId = ?
     `;
-    // 6 is a status code to banned driver, 1  is a status code to active driver, 2 is a role code to driver user
-    const [unauthorizedUsers] = await pool.query(sql, [1, 6, 2]);
+    const [countRows] = await pool.query(countSql, [1, 6, 2]);
+    const total = countRows[0].total;
+
+    // Fetch paginated records
+    const sql = `
+      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.*, Statuses.*
+      FROM Users 
+      JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId 
+      JOIN Roles ON UserRole.roleId = Roles.roleId 
+      JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId 
+      WHERE UserRoleStatusCurrent.statusId != ? 
+        AND UserRoleStatusCurrent.statusId != ? 
+        AND Roles.roleId = ?
+      ORDER BY Users.createdAt DESC
+      LIMIT ? OFFSET ?
+    `;
+    // 6 is a status code to banned driver, 1 is a status code to active driver, 2 is a role code to driver user
+    const [unauthorizedUsers] = await pool.query(sql, [1, 6, 2, limit, offset]);
 
     const usersWithDocuments = await Promise.all(
       unauthorizedUsers.map(async (user) => {
         const userUniqueId = user.userUniqueId;
-        // const documents = await getAttachedDocumentsByUser(userUniqueId);
         const documents = await driversDocumentVehicleRequirement({
           ownerUserUniqueId: userUniqueId,
           user: user,
@@ -351,6 +415,14 @@ const adminServices = {
     return {
       message: "success",
       data: usersWithDocuments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
     };
   },
   getAllNoOfUnAuthorizedDriver: async () => {
@@ -365,7 +437,32 @@ const adminServices = {
       data: { totalUnAuthorizedDrivers: countRows[0].total },
     };
   },
-  searchUnauthorizedDriver: async (query) => {
+  searchUnauthorizedDriver: async (query, page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
+    const wildcardQuery = `%${query}%`;
+
+    // Get total count for pagination
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM Users
+      JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+      JOIN Roles ON UserRole.roleId = Roles.roleId
+      JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+      WHERE (Users.fullName LIKE ? OR Users.email LIKE ? OR Users.phoneNumber LIKE ?)
+        AND UserRoleStatusCurrent.statusId != ? 
+        AND Roles.roleId = ?
+    `;
+    const [countRows] = await pool.query(countSql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+      1,
+      2,
+    ]);
+    const total = countRows[0].total;
+
+    // Fetch paginated records
     const sql = `
     SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.*, Statuses.*
     FROM Users
@@ -376,15 +473,18 @@ const adminServices = {
     WHERE (Users.fullName LIKE ? OR Users.email LIKE ? OR Users.phoneNumber LIKE ?)
       AND UserRoleStatusCurrent.statusId != ? 
       AND Roles.roleId = ?
+      ORDER BY Users.createdAt DESC
+      LIMIT ? OFFSET ?
   `;
 
-    const wildcardQuery = `%${query}%`;
     const [results] = await pool.query(sql, [
       wildcardQuery,
       wildcardQuery,
       wildcardQuery,
       1,
       2,
+      limit,
+      offset,
     ]);
 
     const usersWithDocuments = await Promise.all(
@@ -393,7 +493,19 @@ const adminServices = {
         return { user, documents };
       })
     );
-    return { message: "success", data: usersWithDocuments };
+
+    return {
+      message: "success",
+      data: usersWithDocuments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
+    };
   },
 };
 
