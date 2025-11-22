@@ -156,6 +156,8 @@ const getPassengerRequest4allOrSingleUser = async (req, res) => {
     const passengerRequestBatchId = req.query.passengerRequestBatchId;
     const shippableItemName = req.query.shippableItemName;
     const isCompletionSeen = req.query.isCompletionSeen;
+    const shipperRequestCreatedByRoleId =
+      req.query.shipperRequestCreatedByRoleId;
 
     const filters = {};
     if (journeyStatusIds && journeyStatusIds.length > 0)
@@ -165,6 +167,8 @@ const getPassengerRequest4allOrSingleUser = async (req, res) => {
       filters.passengerRequestBatchId = passengerRequestBatchId;
     if (shippableItemName) filters.shippableItemName = shippableItemName;
     if (isCompletionSeen) filters.isCompletionSeen = isCompletionSeen;
+    if (shipperRequestCreatedByRoleId)
+      filters.shipperRequestCreatedByRoleId = shipperRequestCreatedByRoleId;
 
     const data = {
       filters,

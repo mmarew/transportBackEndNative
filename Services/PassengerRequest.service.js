@@ -736,6 +736,14 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(`%${filters.email}%`);
     }
 
+    // Filter by shipperRequestCreatedByRoleId
+    if (filters?.shipperRequestCreatedByRoleId) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " PassengerRequest.shipperRequestCreatedByRoleId = ?";
+      queryParams.push(filters.shipperRequestCreatedByRoleId);
+      countParams.push(filters.shipperRequestCreatedByRoleId);
+    }
+
     // Get paginated results - Using only columns from original code
     const sqlToGetRequests = `
       SELECT 
