@@ -76,12 +76,15 @@ exports.getCompletedJourney = async (req, res) => {
 
     let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
 
-    // Authorization check for all data if user need to access all data, user role should be admin which is 3
-    if (userRoleId != 3 && ownerUserUniqueId == "all") {
-      return ServerResponder(res, {
-        message: "error",
-        error: "Unauthorized access",
-      });
+    // Authorization check: only allow admin (3) or super admin (6) to access all data
+    if (ownerUserUniqueId === "all") {
+      const isAdmin = userRoleId === 3 || userRoleId === 6;
+      if (!isAdmin) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "Unauthorized access",
+        });
+      }
     }
 
     if (ownerUserUniqueId == "self") {
@@ -143,12 +146,15 @@ exports.getOngoingJourney = async (req, res) => {
 
     let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
 
-    // Authorization check allow for admin and supper admin
-    if ((userRoleId != 3 || userRoleId != 6) && ownerUserUniqueId == "all") {
-      return ServerResponder(res, {
-        message: "error",
-        error: "Unauthorized access",
-      });
+    // Authorization check: only allow admin (3) or super admin (6) to access all data
+    if (ownerUserUniqueId === "all") {
+      const isAdmin = userRoleId === 3 || userRoleId === 6;
+      if (!isAdmin) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "Unauthorized access",
+        });
+      }
     }
 
     if (ownerUserUniqueId == "self") {
