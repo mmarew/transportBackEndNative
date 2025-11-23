@@ -954,20 +954,118 @@ const deleteUser = async (userUniqueId) => {
   return { message: "success", data: "user deleted successfully" };
 };
 
-const getAllUsers = async () => {
-  const sql = `SELECT * FROM Users`;
+const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
+  // Validate pagination parameters
+  page = Math.max(1, parseInt(page) || 1);
+  limit = Math.max(1, Math.min(100, parseInt(limit) || 10));
+
+  let whereClause = "";
+  const params = [];
+  const conditions = [];
+
+  const allowedFilters = [
+    "userId",
+    "userUniqueId",
+    "fullName",
+    "phoneNumber",
+    "email",
+    "createdAt",
+    "createdBy",
+  ];
+
+  // Build conditions
+  Object.keys(filters).forEach((key) => {
+    if (
+      allowedFilters.includes(key) &&
+      filters[key] !== undefined &&
+      filters[key] !== ""
+    ) {
+      switch (key) {
+        case "fullName":
+        case "email":
+          conditions.push(`${key} LIKE ?`);
+          params.push(`%${filters[key]}%`);
+          break;
+        case "createdAt":
+          if (filters[key].start && filters[key].end) {
+            conditions.push(`createdAt BETWEEN ? AND ?`);
+            params.push(filters[key].start, filters[key].end);
+          } else {
+            conditions.push(`DATE(createdAt) = ?`);
+            params.push(filters[key]);
+          }
+          break;
+        default:
+          conditions.push(`${key} = ?`);
+          params.push(filters[key]);
+      }
+    }
+  });
+
+  if (conditions.length > 0) {
+    whereClause = `WHERE ${conditions.join(" AND ")}`;
+  }
+
+  const offset = (page - 1) * limit;
+
+  const sql = `SELECT * FROM Users ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`;
+  const countSql = `SELECT COUNT(*) as totalCount FROM Users ${whereClause}`;
 
   try {
-    const [rows] = await pool.query(sql);
-    if (rows.length > 0) {
-      return { message: "success", data: rows };
-    }
-    return { message: "error", data: "No users found" };
-  } catch (error) {
-    console.log("Error:", error);
+    const [usersResult, countResult] = await Promise.all([
+      pool.query(sql, [...params, limit, offset]),
+      pool.query(countSql, params),
+    ]);
+
+    const [users] = usersResult;
+    const [countRows] = countResult;
+
+    const totalCount = countRows[0].totalCount;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Enhanced pagination info
+    const paginationInfo = {
+      currentPage: page,
+      itemsPerPage: limit,
+      totalItems: totalCount,
+      totalPages: totalPages,
+      offset: offset,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      nextPage: page < totalPages ? page + 1 : null,
+      previousPage: page > 1 ? page - 1 : null,
+      startItem: totalCount > 0 ? offset + 1 : 0,
+      endItem: Math.min(offset + limit, totalCount),
+    };
+
     return {
-      message: "error",
-      data: "An error occurred while retrieving users",
+      success: true,
+      message:
+        users.length > 0 ? "Users retrieved successfully" : "No users found",
+      data: users,
+      pagination: paginationInfo,
+      filters: Object.keys(filters).length > 0 ? filters : null,
+    };
+  } catch (error) {
+    console.error("Database Error:", error);
+    return {
+      success: false,
+      message: "Failed to retrieve users",
+      data: [],
+      pagination: {
+        currentPage: page,
+        itemsPerPage: limit,
+        totalItems: 0,
+        totalPages: 0,
+        offset: offset,
+        hasNext: false,
+        hasPrevious: false,
+        nextPage: null,
+        previousPage: null,
+        startItem: 0,
+        endItem: 0,
+      },
+      error: error.message,
     };
   }
 };
@@ -1131,7 +1229,7 @@ module.exports = {
   createUser,
   getUserByEmailOrNameOrPhoneNumber,
   deleteUser,
-  getAllUsers,
+  getUserByFilterDetailed,
   loginUser,
   ensureCredentialForUser,
 };

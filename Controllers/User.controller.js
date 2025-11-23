@@ -128,9 +128,9 @@ const deleteUser = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req, res) => {
+const getUserByFilterDetailed = async (req, res) => {
   try {
-    const response = await services.getAllUsers();
+    const response = await services.getUserByFilterDetailed();
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
@@ -383,6 +383,6 @@ module.exports = {
   createUser,
   getUser,
   deleteUser,
-  getAllUsers,
+  getUserByFilterDetailed,
   loginUser,
 };

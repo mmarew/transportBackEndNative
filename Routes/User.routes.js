@@ -64,9 +64,9 @@ router.delete(
   controller.deleteUser
 );
 router.get(
-  "/api/admin/getAllUsers",
+  "/api/admin/getUserByFilterDetailed",
   verifyTokenOfAxios,
-  controller.getAllUsers
+  controller.getUserByFilterDetailed
 );
 
 module.exports = router;

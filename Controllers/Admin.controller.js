@@ -57,21 +57,6 @@ const AdminController = {
       });
     }
   },
-
-  searchUnauthorizedDriver: async (req, res) => {
-    try {
-      const { query } = req.params; // Extract the search query from the route parameter
-      // const results = await adminServices.searchUnauthorizedDriver(query);
-      // return ServerResponder(res, results);
-      ServerResponder(res, await adminServices.searchUnauthorizedDriver(query));
-    } catch (error) {
-      console.error("Error in searchUnauthorizedDriver:", error);
-      ServerResponder(res, {
-        message: "error",
-        error: "Failed to search unauthorized drivers",
-      });
-    }
-  },
 };
 
 module.exports = AdminController;
