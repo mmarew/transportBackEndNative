@@ -26,14 +26,18 @@ Router.get(
   verifyAdminsIdentity,
   AdminController.getOfflineDrivers
 );
-Router.get(
-  "/api/admin/searchOfflineDrivers/:query",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  AdminController.searchOfflineDrivers
-);
 
-// route to get all active drivers meanse user has fulfieled all documents userRolestatus id 1 and role 2
+// route to get all active drivers meanse user has fulfieled all documents userRolestatus id 1 and role 2,
+
+// Get all active drivers with pagination, GET /api/active-drivers?page=1&limit=10
+
+// Search by name and vehicle type, GET /api/active-drivers?name=john&vehicleType=SUV
+
+// Filter by license plate and sort by name, GET /api/active-drivers?licensePlate=ABC123&sortBy=fullName&sortOrder=ASC
+
+// Combined search with multiple filters, GET /api/active-drivers?search=john&vehicleType=Car&email=gmail.com
+
+// Get drivers with specific sorting, GET /api/active-drivers?sortBy=createdAt&sortOrder=ASC
 Router.get(
   "/api/admin/getAllActiveDrivers",
   verifyTokenOfAxios,
@@ -46,25 +50,6 @@ Router.get(
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   AdminController.getUnAuthorizedDriver
-);
-Router.get(
-  "/api/admin/getAllNoOfUnAuthorizedDriver",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  AdminController.getAllNoOfUnAuthorizedDriver
-);
-
-Router.get(
-  "/api/admin/searchUnauthorizedDriver/:query",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  AdminController.searchUnauthorizedDriver
-);
-Router.get(
-  "/api/admin/searchActiveDrivers/:query",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  AdminController.searchActiveDrivers
 );
 
 module.exports = Router;

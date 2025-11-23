@@ -16,19 +16,6 @@ const AdminController = {
       });
     }
   },
-  searchOfflineDrivers: async (req, res) => {
-    console.log("search offline drivers");
-    try {
-      const { query } = req.params;
-      ServerResponder(res, await adminServices.searchOfflineDrivers(query));
-    } catch (error) {
-      console.error("Error in searchOfflineDrivers:", error);
-      ServerResponder(res, {
-        message: "error",
-        error: "Failed to search offline drivers",
-      });
-    }
-  },
 
   getOnlineDrivers: async (req, res) => {
     try {
@@ -42,19 +29,6 @@ const AdminController = {
     }
   },
 
-  // getAllActiveDrivers: async (req, res) => {
-  //   console.log("get all active drivers");
-  //   try {
-  //     ServerResponder(res, await adminServices.getAllActiveDrivers(req));
-  //   } catch (error) {
-  //     console.log("Error in getAllActiveDrivers:", error);
-  //     ServerResponder(res, {
-  //       message: "error",
-  //       error: "Failed to fetch active drivers",
-  //     });
-  //   }
-  // },
-
   getAllActiveDrivers: async (req, res) => {
     console.log("get all active drivers");
     try {
@@ -65,20 +39,6 @@ const AdminController = {
       ServerResponder(res, {
         message: "error",
         error: "Failed to fetch active drivers",
-      });
-    }
-  },
-  searchActiveDrivers: async (req, res) => {
-    console.log("search active drivers");
-    try {
-      const { query } = req.params;
-
-      ServerResponder(res, await adminServices.searchActiveDrivers(query));
-    } catch (error) {
-      console.log("Error in searchActiveDrivers:", error);
-      ServerResponder(res, {
-        message: "error",
-        error: "Failed to search active drivers",
       });
     }
   },
@@ -97,20 +57,7 @@ const AdminController = {
       });
     }
   },
-  getAllNoOfUnAuthorizedDriver: async (req, res) => {
-    try {
-      ServerResponder(
-        res,
-        await adminServices.getAllNoOfUnAuthorizedDriver(req)
-      );
-    } catch (error) {
-      console.log("Error in getAllNoOfUnAuthorizedDriver:", error);
-      ServerResponder(res, {
-        message: "error",
-        error: "Failed to fetch number of unauthorized drivers",
-      });
-    }
-  },
+
   searchUnauthorizedDriver: async (req, res) => {
     try {
       const { query } = req.params; // Extract the search query from the route parameter
