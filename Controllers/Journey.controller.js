@@ -161,7 +161,7 @@ exports.getOngoingJourney = async (req, res) => {
       ownerUserUniqueId = req?.user?.userUniqueId;
     }
 
-    const roleId = req?.query?.roleId;
+    const roleId = req?.query?.roleId || 2;
     console.log("@getOngoingJourney", {
       roleId,
       ownerUserUniqueId,
