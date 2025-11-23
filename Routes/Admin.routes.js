@@ -3,17 +3,20 @@ const AdminController = require("../Controllers/Admin.controller");
 const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 // route to get online drivers
+
+// General search across all fields, GET /api/drivers?search=john
+
+// Filter by specific fields, GET /api/drivers?name=John&vehicleType=SUV
+
+// Filter by multiple journey statuses, GET /api/drivers?journeyStatus=1&journeyStatus=2
+
+// Combined search and filters,GET /api/drivers?search=john&vehicleType=Car&phone=1234567890
+
 Router.get(
   "/api/admin/getOnlineDrivers",
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   AdminController.getOnlineDrivers
-);
-Router.get(
-  "/api/admin/searchOnlineDrivers/:query",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  AdminController.searchOnlineDrivers
 );
 
 // route to get offline drivers.

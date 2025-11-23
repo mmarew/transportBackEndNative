@@ -41,19 +41,6 @@ const AdminController = {
       });
     }
   },
-  searchOnlineDrivers: async (req, res) => {
-    try {
-      const { query } = req.params;
-
-      ServerResponder(res, await adminServices.searchOnlineDrivers(query));
-    } catch (error) {
-      console.error("Error in searchOnlineDrivers:", error);
-      ServerResponder(res, {
-        message: "error",
-        error: "Failed to search online drivers",
-      });
-    }
-  },
 
   // getAllActiveDrivers: async (req, res) => {
   //   console.log("get all active drivers");
@@ -98,7 +85,10 @@ const AdminController = {
 
   getUnAuthorizedDriver: async (req, res) => {
     try {
-      ServerResponder(res, await adminServices.getUnauthorizedDriver(req));
+      ServerResponder(
+        res,
+        await adminServices.getUnauthorizedDriver(req?.query)
+      );
     } catch (error) {
       console.log("Error in getUnAuthorizedDriver:", error);
       ServerResponder(res, {
