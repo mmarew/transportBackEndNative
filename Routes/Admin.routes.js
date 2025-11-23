@@ -37,7 +37,7 @@ Router.get(
   AdminController.getOfflineDrivers
 );
 
-// route to get all active drivers meanse user has fulfieled all documents userRolestatus id 1 and role 2,
+// route to get all active drivers means user has fulfilled all documents userRoleStatus id 1 and role 2,
 
 // Get all active drivers with pagination, GET /api/getAllActiveDrivers?page=1&limit=10
 
