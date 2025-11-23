@@ -620,93 +620,103 @@ const adminServices = {
         totalPages: Math.ceil(total / limit),
       },
       data,
-      filters: {
-        search,
-        name,
-        email,
-        phone,
-        vehicleType,
-        journeyStatus,
-        status,
-      },
     };
   },
 
-  getUnauthorizedDriver: async (filters = {}) => {
-    let baseSql = `
-    SELECT 
-      Users.*, 
-      UserRole.*, 
-      UserRoleStatusCurrent.*, 
-      Roles.*, 
-      Statuses.*
-    FROM Users
-    JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-    JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
-    JOIN Roles ON UserRole.roleId = Roles.roleId
-    JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
-    WHERE UserRoleStatusCurrent.statusId NOT IN (?, ?)
-      AND Roles.roleId = ?
-  `;
+  getOnlineDrivers: async (req) => {
+    // driver is online when its journeyStatusId is one in DriverRequest table . also get drivers vehicle details from vehicle table and VehicleOwnership table. vehicle is connected to VehicleTypes table
+    const data = await performJoinSelect({
+      baseTable: "DriverRequest",
+      joins: [
+        {
+          table: "Users",
+          on: "DriverRequest.userUniqueId = Users.userUniqueId",
+        },
+        {
+          table: "VehicleOwnership",
+          on: "Users.userUniqueId = VehicleOwnership.userUniqueId",
+        },
+        {
+          table: "Vehicle",
+          on: "VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId",
+        },
+        {
+          table: "VehicleTypes",
+          on: "Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId",
+        },
+        { table: "UserRole", on: "Users.userUniqueId = UserRole.userUniqueId" },
+        { table: "Roles", on: "UserRole.roleId = Roles.roleId" },
+      ],
+      conditions: {
+        "DriverRequest.journeyStatusId": [1, 2, 3, 4, 5],
+        "Roles.roleId": 2,
+      },
+    });
+    return { message: "success", data };
+  },
 
-    let countSql = `
-    SELECT COUNT(*) AS total
-    FROM Users
-    JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-    JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
-    JOIN Roles ON UserRole.roleId = Roles.roleId
-    JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
-    WHERE UserRoleStatusCurrent.statusId NOT IN (?, ?)
-      AND Roles.roleId = ?
-  `;
+  getUnauthorizedDriver: async () => {
+    const sql = `
+      SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.* ,Statuses.*
+      FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and  UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
+    `;
+    // 6 is a status code to banned driver, 1  is a status code to active driver, 2 is a role code to driver user
+    const [unauthorizedUsers] = await pool.query(sql, [1, 6, 2]);
 
-    const params = [1, 6, 2]; // active=1, banned=6, driver=2
-    const countParams = [...params];
+    const usersWithDocuments = await Promise.all(
+      unauthorizedUsers.map(async (user) => {
+        const userUniqueId = user.userUniqueId;
+        // const documents = await getAttachedDocumentsByUser(userUniqueId);
+        const documents = await driversDocumentVehicleRequirement({
+          ownerUserUniqueId: userUniqueId,
+          user: user,
+        });
 
-    // Reusable filter builder
-    const addFilter = (sql, param) => {
-      baseSql += sql;
-      countSql += sql;
-      params.push(param);
-      countParams.push(param);
+        return documents;
+      })
+    );
+
+    return {
+      message: "success",
+      data: usersWithDocuments,
     };
+  },
+  getAllNoOfUnAuthorizedDriver: async () => {
+    const sql = `
+      SELECT COUNT(*) AS total
+      FROM Users JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+      JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId JOIN Roles ON UserRole.roleId = Roles.roleId JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId WHERE UserRoleStatusCurrent.statusId != ? and Roles.roleId =?
+    `;
+    const [countRows] = await pool.query(sql, [1, 2]);
+    return {
+      message: "success",
+      data: { totalUnAuthorizedDrivers: countRows[0].total },
+    };
+  },
+  searchUnauthorizedDriver: async (query) => {
+    const sql = `
+    SELECT Users.*, UserRole.*, UserRoleStatusCurrent.*, Roles.*, Statuses.*
+    FROM Users
+    JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+    JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+    JOIN Roles ON UserRole.roleId = Roles.roleId
+    JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+    WHERE UserRoleStatusCurrent.statusId NOT IN (?, ?)
+      AND Roles.roleId = ?
+      ORDER BY Users.createdAt DESC
+      LIMIT ? OFFSET ?
+  `;
 
-    // Dynamic filters
-    if (filters.fullName)
-      addFilter(` AND Users.fullName LIKE ?`, `%${filters.fullName}%`);
-    if (filters.phoneNumber)
-      addFilter(` AND Users.phoneNumber LIKE ?`, `%${filters.phoneNumber}%`);
-    if (filters.email)
-      addFilter(` AND Users.email LIKE ?`, `%${filters.email}%`);
-    if (filters.statusId)
-      addFilter(` AND UserRoleStatusCurrent.statusId = ?`, filters.statusId);
-    if (filters.statusName)
-      addFilter(` AND Statuses.statusName LIKE ?`, `%${filters.statusName}%`);
-    if (filters.roleName)
-      addFilter(` AND Roles.roleName LIKE ?`, `%${filters.roleName}%`);
+    const wildcardQuery = `%${query}%`;
+    const [results] = await pool.query(sql, [
+      wildcardQuery,
+      wildcardQuery,
+      wildcardQuery,
+      1,
+      2,
+    ]);
 
-    if (filters.createdFrom && filters.createdTo) {
-      baseSql += ` AND Users.createdAt BETWEEN ? AND ?`;
-      countSql += ` AND Users.createdAt BETWEEN ? AND ?`;
-      params.push(filters.createdFrom, filters.createdTo);
-      countParams.push(filters.createdFrom, filters.createdTo);
-    }
-
-    // Pagination input
-    const page = parseInt(filters.page) || 1;
-    const limit = parseInt(filters.limit) || 10;
-    const offset = (page - 1) * limit;
-
-    baseSql += ` LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
-
-    // Run count query
-    const [[{ total }]] = await pool.query(countSql, countParams);
-
-    // Run data query
-    const [unauthorizedUsers] = await pool.query(baseSql, params);
-
-    // Attach documents
     const usersWithDocuments = await Promise.all(
       unauthorizedUsers.map(async (user) =>
         driversDocumentVehicleRequirement({
@@ -715,19 +725,7 @@ const adminServices = {
         })
       )
     );
-
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      message: "success",
-      page,
-      limit,
-      total,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrevious: page > 1,
-      data: usersWithDocuments,
-    };
+    return { message: "success", data: usersWithDocuments };
   },
 };
 
