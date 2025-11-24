@@ -9,11 +9,7 @@ const {
 const upload = require("../Config/MulterConfig");
 
 const router = express.Router();
-router.get(
-  "/api/admin/getUserByEmailOrNameOrPhoneNumber/:phoneNumberOrEmail/:roleUniqueId",
-  verifyTokenOfAxios,
-  controller.getUserByEmailOrNameOrPhoneNumber
-);
+
 // get users by role route removed — use getUserByFilterDetailed instead
 
 router.post("/api/user/createUser", controller.createUser);

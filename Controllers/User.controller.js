@@ -36,23 +36,6 @@ const getUsersByRoleUniqueId = async (req, res) => {
   }
 };
 
-const getUserByEmailOrNameOrPhoneNumber = async (req, res) => {
-  try {
-    // phoneNumberOrEmail/:roleUniqueId
-    console.log("@getUserByEmailOrNameOrPhoneNumber req.params", req.params);
-    const response = await services.getUserByEmailOrNameOrPhoneNumber(
-      req.params.phoneNumberOrEmail,
-      req.params.roleUniqueId
-    );
-    ServerResponder(res, response);
-  } catch (error) {
-    console.log("Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to retrieve user",
-    });
-  }
-};
 const loginUser = async (req, res) => {
   try {
     const response = await services?.loginUser(
@@ -384,7 +367,6 @@ const createUserByAdminOrSuperAdmin = async (req, res) => {
 };
 module.exports = {
   createUserByAdminOrSuperAdmin,
-  getUserByEmailOrNameOrPhoneNumber,
   getUsersByRoleUniqueId,
   getUserByUserUniqueIdAndRoleUniqueId,
   updateUser,

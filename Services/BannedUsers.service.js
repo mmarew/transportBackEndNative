@@ -373,9 +373,9 @@ const unbanUser = async (query, user) => {
     const [updatedBanResult] = await pool.query(sql, [false, banUniqueId]);
     console.log("@updatedBanResult result", updatedBanResult);
 
-    const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
-
-    const userData = await getUserByEmailOrNameOrPhoneNumber(phoneNumber);
+    const { getUserByFilterDetailed } = require("./User.service");
+    const filters = { phoneNumber };
+    const userData = await getUserByFilterDetailed(filters);
     console.log("@unbanUser userData", userData);
     console.log("@unbanUser userData", userData?.data?.[0]?.user?.userUniqueId);
     const ownerUserUniqueId = userData?.data?.[0]?.user?.userUniqueId;

@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
-const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
+const { getUserByFilterDetailed } = require("./User.service");
 const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 const { getVehicles } = require("./Vehicle.service");
 
@@ -331,7 +331,9 @@ const searchCompletedJourneyByUserData = async (
   try {
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
-    const usersData = await getUserByEmailOrNameOrPhoneNumber(phoneOrEmail);
+
+    const filters = { search: phoneOrEmail };
+    const usersData = await getUserByFilterDetailed(filters);
     const users = usersData?.data || [];
 
     if (users.length === 0) {
