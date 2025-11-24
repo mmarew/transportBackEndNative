@@ -432,14 +432,11 @@ const searchCompletedJourneyByUserData = async (
 };
 
 // Get ongoing journey with pagination
-const getOngoingJourney = async ({
-  roleId,
-  ownerUserUniqueId,
-  page = 1,
-  limit = 10,
-  filters = {},
-}) => {
+const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
   try {
+    const { fullName, phone, email, search, roleId, ownerUserUniqueId } =
+      filters || {};
+    console.log("@getOngoingJourney filters", filters);
     const roleConfig = {
       1: {
         joinTable: "PassengerRequest",
@@ -468,8 +465,8 @@ const getOngoingJourney = async ({
     const queryWhereParts = [];
     const queryParams = [];
 
-    // owner condition
-    if (ownerUserUniqueId !== "all") {
+    // owner condition if ownerUserUniqueId is given
+    if (ownerUserUniqueId && ownerUserUniqueId !== "all") {
       queryWhereParts.push(`${userField} = ?`);
       queryParams.push(ownerUserUniqueId);
     }
@@ -479,7 +476,7 @@ const getOngoingJourney = async ({
     queryParams.push(journeyStatusMap.journeyStarted);
 
     // user-based filters (fullName, phone, email, search)
-    const { fullName, phone, email, search } = filters || {};
+
     if (fullName) {
       queryWhereParts.push(`Users.fullName LIKE ?`);
       queryParams.push(`%${fullName}%`);
@@ -602,115 +599,7 @@ const getOngoingJourney = async ({
   }
 };
 
-// Search ongoing journey by user data with pagination
-const searchOngoingJourneyByUserData = async (
-  userData,
-  roleId,
-  page = 1,
-  limit = 10
-) => {
-  try {
-    const safePage = Math.max(1, parseInt(page) || 1);
-    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
-    const usersData = await getUserByEmailOrNameOrPhoneNumber(userData);
-    const users = usersData?.data || [];
-
-    if (users.length === 0) {
-      return {
-        message: "success",
-        data: [],
-        pagination: {
-          currentPage: page,
-          totalPages: 0,
-          totalCount: 0,
-          hasNext: false,
-          hasPrev: false,
-          limit,
-        },
-      };
-    }
-
-    const userIds = users.map((user) => user.userUniqueId);
-    const offset = (page - 1) * limit;
-
-    const roleConfig = {
-      1: { userField: "PassengerRequest.userUniqueId" },
-      2: { userField: "DriverRequest.userUniqueId" },
-    };
-
-    if (!roleConfig[roleId]) {
-      throw new Error("Invalid role ID");
-    }
-
-    const { userField } = roleConfig[roleId];
-    const placeholders = userIds.map(() => "?").join(",");
-
-    const dataSql = `
-      SELECT Journey.*, JourneyDecisions.* 
-      FROM Journey
-      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
-      JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      WHERE ${userField} IN (${placeholders}) 
-        AND Journey.journeyStatusId = ?
-      ORDER BY Journey.startTime DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const dataValues = [
-      ...userIds,
-      journeyStatusMap.journeyStarted,
-      safeLimit,
-      offset,
-    ];
-    const result = await query(dataSql, dataValues);
-
-    const countSql = `
-      SELECT COUNT(*) as total
-      FROM Journey
-      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
-      JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      WHERE ${userField} IN (${placeholders}) 
-        AND Journey.journeyStatusId = ?
-    `;
-    const countValues = [...userIds, journeyStatusMap.journeyStarted];
-    const [countRows] = await pool.query(countSql, countValues);
-    const totalCount = countRows[0]?.total || 0;
-    const totalPages = Math.ceil(totalCount / safeLimit);
-
-    const data = await Promise.all(
-      result.map(async (item) => {
-        const [passengerData, driverData] = await Promise.all([
-          getPassengerRequestByPassengerRequestId(item.passengerRequestId),
-          getDriverRequestByRequestId(item.driverRequestId),
-        ]);
-
-        return {
-          passenger: passengerData.data,
-          driver: driverData.data,
-          journey: item,
-        };
-      })
-    );
-
-    return {
-      message: "success",
-      data,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-        limit,
-      },
-    };
-  } catch (error) {
-    console.error("Error searching ongoing journey:", error);
-    return { message: "error", error: error.message };
-  }
-};
+// (removed) searchOngoingJourneyByUserData - functionality merged into getOngoingJourney
 
 // Get all completed journeys with pagination
 const getAllCompletedJourneys = async ({ roleId, page = 1, limit = 10 }) => {
@@ -782,7 +671,6 @@ module.exports = {
   getCompletedJourney,
   searchCompletedJourneyByUserData,
   getOngoingJourney,
-  searchOngoingJourneyByUserData,
   getAllCompletedJourneys,
   getDriverRequestByRequestId,
   getPassengerRequestByPassengerRequestId,

@@ -57,20 +57,33 @@ const routes = [
     handler: journeyController.getAllCompletedJourneys,
   },
   // get ongoing journey
-  // 1) get ongoing journey of specific user if ownerUserUniqueId is specific user like (dbd5738f-1dd2-4e70-879d-54fec1fadeb3), and roleId is 1
-  // 2) get ongoing journey of self if ownerUserUniqueId is self, and roleId is 2
-  // 3) get ongoing journey for all if ownerUserUniqueId is all, and roleId is 2
+
+  // Examples and supported query parameters for GET /api/user/getOngoingJourney
+  // - Basic pagination:
+  //   GET /api/user/getOngoingJourney?roleId=2&ownerUserUniqueId=all&page=1&limit=10
+  // - Filter by a specific owner (userUniqueId):
+  //   GET /api/user/getOngoingJourney?roleId=2&ownerUserUniqueId=<userUniqueId>&page=1&limit=10
+  // - Search by user full name (partial match):
+  //   GET /api/user/getOngoingJourney?roleId=1&ownerUserUniqueId=all&fullName=John
+  // - Filter by phone (partial match):
+  //   GET /api/user/getOngoingJourney?roleId=1&ownerUserUniqueId=all&phone=09123
+  // - Filter by email (partial match):
+  //   GET /api/user/getOngoingJourney?roleId=1&ownerUserUniqueId=all&email=gmail.com
+  // - Broad search across name/phone/email:
+  //   GET /api/user/getOngoingJourney?roleId=2&ownerUserUniqueId=all&search=john
+  // - Combine filters:
+  //   GET /api/user/getOngoingJourney?roleId=2&ownerUserUniqueId=<userUniqueId>&fullName=John&phone=09&page=2
+  // Notes:
+  // - `roleId` is required and determines the join (1=passenger, 2=driver).
+  // - `ownerUserUniqueId` can be a specific userUniqueId or the string `all` to include all users.
+  // - `page` and `limit` control pagination. Defaults: page=1, limit=10.
+  // - `fullName`, `phone`, `email`, `search` are optional and perform partial (LIKE) matches.
+
   {
     method: "get",
     path: "/api/user/getOngoingJourney",
     middleware: [verifyTokenOfAxios],
     handler: journeyController.getOngoingJourney,
-  },
-  {
-    method: "get",
-    path: "/api/user/searchOngoingJourneyByUserData/:userData/:roleId",
-    middleware: [verifyTokenOfAxios],
-    handler: journeyController.searchOngoingJourneyByUserData,
   },
 ];
 

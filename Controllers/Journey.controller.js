@@ -170,9 +170,8 @@ exports.getOngoingJourney = async (req, res) => {
     });
     await handleServiceResponse(
       journeyService.getOngoingJourney({
-        roleId,
         ownerUserUniqueId,
-
+        filters: { ...req?.query, roleId, ownerUserUniqueId },
         page: validatedPage,
         limit: validatedLimit,
       }),
@@ -188,24 +187,7 @@ exports.getOngoingJourney = async (req, res) => {
 };
 
 // Search ongoing journey by user data with pagination
-exports.searchOngoingJourneyByUserData = async (req, res) => {
-  const { userData, roleId } = req.params;
-  const { page = 1, limit = 10 } = req.query;
-  const { page: validatedPage, limit: validatedLimit } = validatePagination(
-    page,
-    limit
-  );
-
-  await handleServiceResponse(
-    journeyService.searchOngoingJourneyByUserData(
-      userData,
-      roleId,
-      validatedPage,
-      validatedLimit
-    ),
-    res
-  );
-};
+// (removed) searchOngoingJourneyByUserData - functionality merged into getOngoingJourney
 
 // Get all completed journeys with pagination
 exports.getAllCompletedJourneys = async (req, res) => {
