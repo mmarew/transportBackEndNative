@@ -3,14 +3,13 @@ const { pool } = require("../Middleware/Database.config");
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const { getUserByEmailOrNameOrPhoneNumber } = require("./User.service");
 const { journeyStatusMap } = require("../Utils/ListOfFixedData");
+const { getVehicles } = require("./Vehicle.service");
 
 // Helper function for database queries
 const query = async (sql, values = []) => {
   const [result] = await pool.query(sql, values);
   return result;
 };
-
-// Note: Avoid using FOUND_ROWS(); use explicit COUNT(*) queries instead in each method.
 
 // Create a new journey
 const createJourney = async (data) => {
@@ -438,6 +437,7 @@ const getOngoingJourney = async ({
   ownerUserUniqueId,
   page = 1,
   limit = 10,
+  filters = {},
 }) => {
   try {
     const roleConfig = {
@@ -463,43 +463,101 @@ const getOngoingJourney = async ({
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
     const offset = (safePage - 1) * safeLimit;
-    const conditions =
-      ownerUserUniqueId !== "all" ? { [userField]: ownerUserUniqueId } : {};
 
-    const ongoingJourneys = await performJoinSelect({
-      baseTable: "Journey",
-      joins: [
-        {
-          table: "JourneyDecisions",
-          on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
-        },
-        { table: joinTable, on: joinCondition },
-      ],
-      conditions: {
-        ...conditions,
-        "Journey.journeyStatusId": journeyStatusMap.journeyStarted,
-      },
-      limit: safeLimit,
-      offset,
-    });
+    // Build explicit SQL instead of using performJoinSelect to avoid extra abstraction
+    const queryWhereParts = [];
+    const queryParams = [];
+
+    // owner condition
+    if (ownerUserUniqueId !== "all") {
+      queryWhereParts.push(`${userField} = ?`);
+      queryParams.push(ownerUserUniqueId);
+    }
+
+    // journey status condition
+    queryWhereParts.push(`Journey.journeyStatusId = ?`);
+    queryParams.push(journeyStatusMap.journeyStarted);
+
+    // user-based filters (fullName, phone, email, search)
+    const { fullName, phone, email, search } = filters || {};
+    if (fullName) {
+      queryWhereParts.push(`Users.fullName LIKE ?`);
+      queryParams.push(`%${fullName}%`);
+    }
+    if (phone) {
+      queryWhereParts.push(`Users.phoneNumber LIKE ?`);
+      queryParams.push(`%${phone}%`);
+    }
+    if (email) {
+      queryWhereParts.push(`Users.email LIKE ?`);
+      queryParams.push(`%${email}%`);
+    }
+    if (search) {
+      queryWhereParts.push(
+        `(Users.fullName LIKE ? OR Users.phoneNumber LIKE ? OR Users.email LIKE ?)`
+      );
+      queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    const whereClause = queryWhereParts.length
+      ? `WHERE ${queryWhereParts.join(" AND ")}`
+      : "";
+
+    const sql = `
+      SELECT Journey.*, JourneyDecisions.*
+      FROM Journey
+      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      JOIN ${joinTable} ON ${joinCondition}
+      JOIN Users ON ${joinTable}.userUniqueId = Users.userUniqueId
+      ${whereClause}
+      ORDER BY Journey.journeyId DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    // push limit and offset
+    queryParams.push(safeLimit, offset);
+
+    const [rows] = await pool.query(sql, queryParams);
+    const ongoingJourneys = rows;
     console.log(
       "@journeyStatusMap.journeyStarted",
       journeyStatusMap.journeyStarted
     );
 
-    // Count query
-    const whereParts = ["Journey.journeyStatusId = ?"];
+    // Count query (mirror filters and joins used above)
+    const countWhereParts = ["Journey.journeyStatusId = ?"];
     const countParams = [journeyStatusMap.journeyStarted];
     if (ownerUserUniqueId !== "all") {
-      whereParts.push(`${userField} = ?`);
+      countWhereParts.push(`${userField} = ?`);
       countParams.push(ownerUserUniqueId);
     }
+    // include user-based filters in count params
+    if (fullName) {
+      countWhereParts.push(`Users.fullName LIKE ?`);
+      countParams.push(`%${fullName}%`);
+    }
+    if (phone) {
+      countWhereParts.push(`Users.phoneNumber LIKE ?`);
+      countParams.push(`%${phone}%`);
+    }
+    if (email) {
+      countWhereParts.push(`Users.email LIKE ?`);
+      countParams.push(`%${email}%`);
+    }
+    if (search) {
+      countWhereParts.push(
+        `(Users.fullName LIKE ? OR Users.phoneNumber LIKE ? OR Users.email LIKE ?)`
+      );
+      countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
     const countSql = `
       SELECT COUNT(*) as total
       FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
       JOIN ${joinTable} ON ${joinCondition}
-      WHERE ${whereParts.join(" AND ")}
+      JOIN Users ON ${joinTable}.userUniqueId = Users.userUniqueId
+      WHERE ${countWhereParts.join(" AND ")}
     `;
     const [countRows] = await pool.query(countSql, countParams);
     const totalCount = countRows[0]?.total || 0;
@@ -511,10 +569,16 @@ const getOngoingJourney = async ({
           getPassengerRequestByPassengerRequestId(item.passengerRequestId),
           getDriverRequestByRequestId(item.driverRequestId),
         ]);
+        // get vehicle of driver based on driver data
 
+        const driver = driverData.data;
+        const vehicle = await getVehicles({
+          ownerUserUniqueId: driver?.userUniqueId,
+        });
+        console.log("@ongoingJourneys vehicle", vehicle);
         return {
           passenger: passengerData.data,
-          driver: driverData.data,
+          driver: { driver: driverData.data, vehicle: vehicle?.data[0] },
           journey: item,
         };
       })
