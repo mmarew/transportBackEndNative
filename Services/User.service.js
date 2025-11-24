@@ -955,81 +955,167 @@ const deleteUser = async (userUniqueId) => {
 };
 
 const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
-  // Validate pagination parameters
+  // Normalize pagination
   page = Math.max(1, parseInt(page) || 1);
   limit = Math.max(1, Math.min(100, parseInt(limit) || 10));
-
-  let whereClause = "";
-  const params = [];
-  const conditions = [];
-
-  const allowedFilters = [
-    "userId",
-    "userUniqueId",
-    "fullName",
-    "phoneNumber",
-    "email",
-    "createdAt",
-    "createdBy",
-  ];
-
-  // Build conditions
-  Object.keys(filters).forEach((key) => {
-    if (
-      allowedFilters.includes(key) &&
-      filters[key] !== undefined &&
-      filters[key] !== ""
-    ) {
-      switch (key) {
-        case "fullName":
-        case "email":
-          conditions.push(`${key} LIKE ?`);
-          params.push(`%${filters[key]}%`);
-          break;
-        case "createdAt":
-          if (filters[key].start && filters[key].end) {
-            conditions.push(`createdAt BETWEEN ? AND ?`);
-            params.push(filters[key].start, filters[key].end);
-          } else {
-            conditions.push(`DATE(createdAt) = ?`);
-            params.push(filters[key]);
-          }
-          break;
-        default:
-          conditions.push(`${key} = ?`);
-          params.push(filters[key]);
-      }
-    }
-  });
-
-  if (conditions.length > 0) {
-    whereClause = `WHERE ${conditions.join(" AND ")}`;
-  }
-
   const offset = (page - 1) * limit;
 
-  const sql = `SELECT * FROM Users ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`;
-  const countSql = `SELECT COUNT(*) as totalCount FROM Users ${whereClause}`;
+  // Role/status inclusive path: join UserRole, Roles, UserRoleStatusCurrent, Statuses
+  // Build WHERE using both Users fields and role/status filters
+  const whereParts = [];
+  const params = [];
+
+  // User-level filters
+  if (filters.userUniqueId) {
+    whereParts.push(`Users.userUniqueId = ?`);
+    params.push(filters.userUniqueId);
+  }
+  if (filters.phoneNumber) {
+    whereParts.push(`Users.phoneNumber LIKE ?`);
+    params.push(`%${filters.phoneNumber}%`);
+  }
+  if (filters.email) {
+    whereParts.push(`Users.email LIKE ?`);
+    params.push(`%${filters.email}%`);
+  }
+  if (filters.fullName) {
+    whereParts.push(`Users.fullName LIKE ?`);
+    params.push(`%${filters.fullName}%`);
+  }
+  if (filters.search) {
+    whereParts.push(
+      `(Users.fullName LIKE ? OR Users.email LIKE ? OR Users.phoneNumber LIKE ?)`
+    );
+    params.push(
+      `%${filters.search}%`,
+      `%${filters.search}%`,
+      `%${filters.search}%`
+    );
+  }
+  if (filters.createdAt) {
+    if (filters.createdAt.start && filters.createdAt.end) {
+      whereParts.push(`Users.createdAt BETWEEN ? AND ?`);
+      params.push(filters.createdAt.start, filters.createdAt.end);
+    } else {
+      whereParts.push(`DATE(Users.createdAt) = ?`);
+      params.push(filters.createdAt);
+    }
+  }
+
+  // Role/status filters
+  if (filters.roleId) {
+    whereParts.push(`UserRole.roleId = ?`);
+    params.push(filters.roleId);
+  }
+  if (filters.roleUniqueId) {
+    whereParts.push(`Roles.roleUniqueId = ?`);
+    params.push(filters.roleUniqueId);
+  }
+  if (filters.statusId) {
+    whereParts.push(`UserRoleStatusCurrent.statusId = ?`);
+    params.push(filters.statusId);
+  }
+
+  const whereClause =
+    whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+
+  const sql = `
+    SELECT
+      Users.userId, Users.userUniqueId, Users.fullName, Users.phoneNumber, Users.email, Users.createdAt, Users.createdBy,
+      UserRole.userRoleId, UserRole.userRoleUniqueId, UserRole.roleId, UserRole.userRoleCreatedBy, UserRole.userRoleCreatedAt,
+      Roles.roleUniqueId, Roles.roleName, Roles.roleDescription,
+      UserRoleStatusCurrent.userRoleStatusId, UserRoleStatusCurrent.userRoleStatusUniqueId,
+      UserRoleStatusCurrent.statusId, UserRoleStatusCurrent.userRoleStatusDescription,
+      UserRoleStatusCurrent.userRoleStatusCreatedAt, UserRoleStatusCurrent.userRoleStatusCurrentVersion,
+      UserRoleStatusCurrent.userRoleStatusCreatedBy,
+      Statuses.statusName, Statuses.statusDescription
+    FROM Users
+    LEFT JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId AND UserRole.userRoleDeletedAt IS NULL
+    LEFT JOIN Roles ON UserRole.roleId = Roles.roleId
+    LEFT JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+    LEFT JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+    ${whereClause}
+    ORDER BY Users.createdAt DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  // Count distinct users matching the same conditions
+  const countSql = `
+    SELECT COUNT(DISTINCT Users.userUniqueId) AS totalCount
+    FROM Users
+    LEFT JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId AND UserRole.userRoleDeletedAt IS NULL
+    LEFT JOIN Roles ON UserRole.roleId = Roles.roleId
+    LEFT JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+    LEFT JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+    ${whereClause}
+  `;
 
   try {
-    const [usersResult, countResult] = await Promise.all([
+    const [rowsResult, countResult] = await Promise.all([
       pool.query(sql, [...params, limit, offset]),
       pool.query(countSql, params),
     ]);
 
-    const [users] = usersResult;
+    const [rows] = rowsResult;
     const [countRows] = countResult;
 
-    const totalCount = countRows[0].totalCount;
+    const usersMap = new Map();
+
+    rows.forEach((row) => {
+      const userUniqueId = row.userUniqueId;
+      if (!usersMap.has(userUniqueId)) {
+        usersMap.set(userUniqueId, {
+          user: {
+            userId: row.userId,
+            userUniqueId: row.userUniqueId,
+            fullName: row.fullName,
+            phoneNumber: row.phoneNumber,
+            email: row.email,
+            createdAt: row.createdAt,
+            createdBy: row.createdBy,
+          },
+          rolesAndStatuses: [],
+        });
+      }
+      if (row.userRoleId) {
+        const userEntry = usersMap.get(userUniqueId);
+        userEntry.rolesAndStatuses.push({
+          userRoles: {
+            userRoleId: row.userRoleId,
+            userRoleUniqueId: row.userRoleUniqueId,
+            roleId: row.roleId,
+            roleName: row.roleName,
+            roleDescription: row.roleDescription,
+            userRoleCreatedBy: row.userRoleCreatedBy,
+            userRoleCreatedAt: row.userRoleCreatedAt,
+          },
+          userRoleStatuses: row.userRoleStatusId
+            ? {
+                userRoleStatusId: row.userRoleStatusId,
+                userRoleStatusUniqueId: row.userRoleStatusUniqueId,
+                statusId: row.statusId,
+                statusName: row.statusName,
+                statusDescription: row.statusDescription,
+                userRoleStatusDescription: row.userRoleStatusDescription,
+                userRoleStatusCreatedAt: row.userRoleStatusCreatedAt,
+                userRoleStatusCurrentVersion: row.userRoleStatusCurrentVersion,
+                userRoleStatusCreatedBy: row.userRoleStatusCreatedBy,
+              }
+            : null,
+        });
+      }
+    });
+
+    const transformedData = Array.from(usersMap.values());
+    const totalCount = countRows[0].totalCount || 0;
     const totalPages = Math.ceil(totalCount / limit);
 
-    // Enhanced pagination info
     const paginationInfo = {
       currentPage: page,
       itemsPerPage: limit,
       totalItems: totalCount,
-      totalPages: totalPages,
-      offset: offset,
+      totalPages,
+      offset,
       hasNext: page < totalPages,
       hasPrevious: page > 1,
       nextPage: page < totalPages ? page + 1 : null,
@@ -1041,8 +1127,10 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
     return {
       success: true,
       message:
-        users.length > 0 ? "Users retrieved successfully" : "No users found",
-      data: users,
+        transformedData.length > 0
+          ? "Users retrieved successfully"
+          : "No users found",
+      data: transformedData,
       pagination: paginationInfo,
       filters: Object.keys(filters).length > 0 ? filters : null,
     };

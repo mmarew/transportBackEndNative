@@ -130,7 +130,16 @@ const deleteUser = async (req, res) => {
 
 const getUserByFilterDetailed = async (req, res) => {
   try {
-    const response = await services.getUserByFilterDetailed();
+    // Accept filters via query string, and optional pagination
+    const filters = req.query || {};
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
+    // include role/status information by default (do not expect includeRoles from client)
+    const response = await services.getUserByFilterDetailed(
+      filters,
+      page,
+      limit
+    );
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
