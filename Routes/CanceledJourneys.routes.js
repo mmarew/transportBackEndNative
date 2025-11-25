@@ -128,7 +128,7 @@ const routes = [
   // /api/admin/canceledJourney?roleId=2&isSeenByAdmin=false&startDate=2024-01-01&search=demo&page=1&limit=50
   // SINGLE UNIFIED GET ENDPOINT - Replaces all other GET endpoints
   {
-    path: "/api/admin/canceledJourney",
+    path: "/api/admin/getCanceledJourneyByFilter",
     method: "get",
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.getCanceledJourneyByFilter,

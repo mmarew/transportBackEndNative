@@ -207,3 +207,104 @@ exports.getAllCompletedJourneys = async (req, res) => {
     res
   );
 };
+
+// In your journey controller - replace all existing GET methods with this single one
+
+// Unified GET method for all journey filtering
+// # Get all journeys (no filters) GET /api/journey
+
+// # Filter by journey status GET /api/journey?journeyStatusId=6
+
+// # Filter by specific user GET /api/journey?ownerUserUniqueId=123&roleId=2
+
+// # Filter by user details
+// GET /api/journey?fullName=John
+// GET /api/journey?phone=0912
+// GET /api/journey?email=john@gmail.com
+// GET /api/journey?search=john
+
+// # Filter by dates
+// GET /api/journey?fromDate=2024-01-01&toDate=2024-01-31
+
+// # Filter by specific journey
+// GET /api/journey?journeyUniqueId=journey-123
+// GET /api/journey?journeyDecisionUniqueId=decision-456
+
+// # Combined filters
+// GET /api/journey?journeyStatusId=6&roleId=2&fromDate=2024-01-01&search=john
+
+// # With pagination
+// GET /api/journey?page=2&limit=20&journeyStatusId=5
+
+// # Admin view all
+// GET /api/journey?ownerUserUniqueId=all&roleId=1
+// In your journey controller
+exports.getJourneys = async (req, res) => {
+  try {
+    const userRoleId = req?.user?.roleId;
+    const userUniqueId = req?.user?.userUniqueId;
+
+    const {
+      journeyStatusId,
+      journeyUniqueId,
+      journeyDecisionUniqueId,
+      ownerUserUniqueId,
+      roleId = 2,
+      fullName,
+      phone,
+      email,
+      search,
+      fromDate,
+      toDate,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const { page: validatedPage, limit: validatedLimit } = validatePagination(
+      page,
+      limit
+    );
+
+    let finalOwnerUserUniqueId = ownerUserUniqueId;
+    console.log("@ownerUserUniqueId", ownerUserUniqueId);
+    if (ownerUserUniqueId === "all") {
+      const isAdmin = userRoleId === 3 || userRoleId === 6;
+      if (!isAdmin) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "Unauthorized access. Only admin can view all journeys",
+        });
+      }
+    } else if (ownerUserUniqueId == "self" || !ownerUserUniqueId) {
+      finalOwnerUserUniqueId = userUniqueId;
+    }
+
+    const filters = {
+      journeyStatusId: journeyStatusId ? parseInt(journeyStatusId) : undefined,
+      journeyUniqueId,
+      journeyDecisionUniqueId,
+      roleId: parseInt(roleId),
+      ownerUserUniqueId: finalOwnerUserUniqueId,
+      userFilters: {
+        fullName,
+        phone,
+        email,
+        search,
+      },
+      dateFilters: {
+        fromDate,
+        toDate,
+      },
+      page: validatedPage,
+      limit: validatedLimit,
+    };
+
+    await handleServiceResponse(journeyService.getJourneys(filters), res);
+  } catch (error) {
+    console.error("Error getting journeys:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: "Failed to get journeys",
+    });
+  }
+};

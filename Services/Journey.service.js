@@ -663,8 +663,358 @@ const getAllCompletedJourneys = async ({ roleId, page = 1, limit = 10 }) => {
     return { message: "error", error: error.message };
   }
 };
+// In your journey service - replace all existing GET methods with this single one
 
+// Unified method to get journeys with comprehensive filtering
+// Unified method to get journeys with exact response structure
+// Unified method to get journeys with exact response structure
+const getJourneys = async (filters = {}) => {
+  try {
+    const {
+      journeyStatusId,
+      journeyUniqueId,
+      journeyDecisionUniqueId,
+      roleId = 2,
+      ownerUserUniqueId,
+      userFilters = {},
+      dateFilters = {},
+      page = 1,
+      limit = 10,
+    } = filters;
+
+    const { fullName, phone, email, search } = userFilters;
+    const { fromDate, toDate } = dateFilters;
+
+    const roleConfig = {
+      1: {
+        joinTable: "PassengerRequest",
+        joinCondition:
+          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+        userField: "PassengerRequest.userUniqueId",
+      },
+      2: {
+        joinTable: "DriverRequest",
+        joinCondition:
+          "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+        userField: "DriverRequest.userUniqueId",
+      },
+    };
+
+    if (!roleConfig[roleId]) {
+      throw new Error("Invalid role ID. Use 1 for passenger or 2 for driver");
+    }
+
+    const { userField } = roleConfig[roleId];
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const offset = (safePage - 1) * safeLimit;
+
+    // Build query conditions
+    const queryWhereParts = [];
+    const queryParams = [];
+
+    // Journey status filter
+    if (journeyStatusId) {
+      queryWhereParts.push(`Journey.journeyStatusId = ?`);
+      queryParams.push(journeyStatusId);
+    }
+
+    // Specific journey ID filter
+    if (journeyUniqueId) {
+      queryWhereParts.push(`Journey.journeyUniqueId = ?`);
+      queryParams.push(journeyUniqueId);
+    }
+
+    // Journey decision filter
+    if (journeyDecisionUniqueId) {
+      queryWhereParts.push(`Journey.journeyDecisionUniqueId = ?`);
+      queryParams.push(journeyDecisionUniqueId);
+    }
+
+    // Owner filter
+    if (ownerUserUniqueId && ownerUserUniqueId !== "all") {
+      queryWhereParts.push(`${userField} = ?`);
+      queryParams.push(ownerUserUniqueId);
+    }
+
+    // Date range filters
+    if (fromDate && toDate) {
+      queryWhereParts.push(`(
+        Journey.startTime BETWEEN ? AND ? OR 
+        Journey.endTime BETWEEN ? AND ?
+      )`);
+      queryParams.push(fromDate, toDate, fromDate, toDate);
+    } else if (fromDate) {
+      queryWhereParts.push(`Journey.startTime >= ?`);
+      queryParams.push(fromDate);
+    } else if (toDate) {
+      queryWhereParts.push(`Journey.endTime <= ?`);
+      queryParams.push(toDate);
+    }
+
+    // User-based filters
+    if (fullName) {
+      queryWhereParts.push(
+        `(passengerUser.fullName LIKE ? OR driverUser.fullName LIKE ?)`
+      );
+      queryParams.push(`%${fullName}%`, `%${fullName}%`);
+    }
+    if (phone) {
+      queryWhereParts.push(
+        `(passengerUser.phoneNumber LIKE ? OR driverUser.phoneNumber LIKE ?)`
+      );
+      queryParams.push(`%${phone}%`, `%${phone}%`);
+    }
+    if (email) {
+      queryWhereParts.push(
+        `(passengerUser.email LIKE ? OR driverUser.email LIKE ?)`
+      );
+      queryParams.push(`%${email}%`, `%${email}%`);
+    }
+    if (search) {
+      queryWhereParts.push(`(
+        passengerUser.fullName LIKE ? OR 
+        passengerUser.phoneNumber LIKE ? OR 
+        passengerUser.email LIKE ? OR
+        driverUser.fullName LIKE ? OR
+        driverUser.phoneNumber LIKE ? OR 
+        driverUser.email LIKE ? OR
+        PassengerRequest.originPlace LIKE ? OR
+        PassengerRequest.destinationPlace LIKE ? OR
+        DriverRequest.originPlace LIKE ?
+      )`);
+      queryParams.push(
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`
+      );
+    }
+
+    const whereClause =
+      queryWhereParts.length > 0
+        ? ` WHERE ${queryWhereParts.join(" AND ")}`
+        : "";
+
+    // Fixed SQL query without duplicate joins
+    const sql = `
+      SELECT 
+        -- Journey data
+        Journey.journeyId,
+        Journey.journeyUniqueId,
+        Journey.journeyDecisionUniqueId,
+        Journey.startTime,
+        Journey.endTime,
+        Journey.fare,
+        Journey.journeyStatusId,
+        
+        -- JourneyDecisions data
+        JourneyDecisions.journeyDecisionId,
+        JourneyDecisions.journeyDecisionUniqueId as decisionUniqueId,
+        JourneyDecisions.passengerRequestId,
+        JourneyDecisions.driverRequestId,
+        JourneyDecisions.decisionTime,
+        JourneyDecisions.decisionBy,
+        JourneyDecisions.shippingDateByDriver,
+        JourneyDecisions.deliveryDateByDriver,
+        JourneyDecisions.shippingCostByDriver,
+        
+        -- PassengerRequest data
+        PassengerRequest.passengerRequestId,
+        PassengerRequest.passengerRequestUniqueId,
+        PassengerRequest.userUniqueId as passengerUserUniqueId,
+        PassengerRequest.vehicleTypeUniqueId,
+        PassengerRequest.journeyStatusId as passengerJourneyStatusId,
+        PassengerRequest.originLatitude as passengerOriginLat,
+        PassengerRequest.originLongitude as passengerOriginLng,
+        PassengerRequest.originPlace as passengerOriginPlace,
+        PassengerRequest.destinationLatitude as passengerDestLat,
+        PassengerRequest.destinationLongitude as passengerDestLng,
+        PassengerRequest.destinationPlace as passengerDestPlace,
+        PassengerRequest.requestTime as passengerRequestTime,
+        PassengerRequest.shippableItemName,
+        PassengerRequest.shippableItemQtyInQuintal,
+        PassengerRequest.shippingDate,
+        PassengerRequest.deliveryDate,
+        PassengerRequest.shippingCost,
+        PassengerRequest.isCompletionSeen,
+        
+        -- DriverRequest data
+        DriverRequest.driverRequestId,
+        DriverRequest.driverRequestUniqueId,
+        DriverRequest.userUniqueId as driverUserUniqueId,
+        DriverRequest.originLatitude as driverOriginLat,
+        DriverRequest.originLongitude as driverOriginLng,
+        DriverRequest.originPlace as driverOriginPlace,
+        DriverRequest.requestTime as driverRequestTime,
+        DriverRequest.journeyStatusId as driverJourneyStatusId,
+        
+        -- Passenger User data
+        passengerUser.fullName as passengerFullName,
+        passengerUser.phoneNumber as passengerPhone,
+        passengerUser.email as passengerEmail,
+        passengerUser.createdAt as passengerCreatedAt,
+        
+        -- Driver User data
+        driverUser.fullName as driverFullName,
+        driverUser.phoneNumber as driverPhone,
+        driverUser.email as driverEmail,
+        driverUser.createdAt as driverCreatedAt,
+        
+        -- Journey Status
+        JourneyStatus.journeyStatusName
+        
+      FROM Journey
+      INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      INNER JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
+      -- Join passenger user data
+      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      -- Join driver user data  
+      INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
+      -- Join journey status
+      INNER JOIN JourneyStatus ON JourneyStatus.journeyStatusId = Journey.journeyStatusId
+      ${whereClause}
+      ORDER BY Journey.journeyId DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    queryParams.push(safeLimit, offset);
+    const [rows] = await pool.query(sql, queryParams);
+    const journeys = rows;
+
+    // Count query (fixed - removed the duplicate joinTable)
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM Journey
+      INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      INNER JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
+      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
+      INNER JOIN JourneyStatus ON JourneyStatus.journeyStatusId = Journey.journeyStatusId
+      ${whereClause}
+    `;
+    const [countRows] = await pool.query(countSql, queryParams.slice(0, -2));
+    const totalCount = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(totalCount / safeLimit);
+
+    // Build the exact response structure
+    const data = await Promise.all(
+      journeys.map(async (item) => {
+        // Get vehicle data for driver
+        let vehicle = null;
+        if (item.driverUserUniqueId) {
+          const vehicleResult = await getVehicles({
+            ownerUserUniqueId: item.driverUserUniqueId,
+          });
+          vehicle = vehicleResult?.data?.[0] || null;
+        }
+
+        // Build passenger object
+        const passenger = {
+          passengerRequestId: item.passengerRequestId,
+          passengerRequestUniqueId: item.passengerRequestUniqueId,
+          userUniqueId: item.passengerUserUniqueId,
+          fullName: item.passengerFullName,
+          phoneNumber: item.passengerPhone,
+          email: item.passengerEmail,
+          createdAt: item.passengerCreatedAt,
+          vehicleTypeUniqueId: item.vehicleTypeUniqueId,
+          journeyStatusId: item.passengerJourneyStatusId,
+          originLatitude: item.passengerOriginLat,
+          originLongitude: item.passengerOriginLng,
+          originPlace: item.passengerOriginPlace,
+          destinationLatitude: item.passengerDestLat,
+          destinationLongitude: item.passengerDestLng,
+          destinationPlace: item.passengerDestPlace,
+          requestTime: item.passengerRequestTime,
+          shippableItemName: item.shippableItemName,
+          shippableItemQtyInQuintal: item.shippableItemQtyInQuintal,
+          shippingDate: item.shippingDate,
+          deliveryDate: item.deliveryDate,
+          shippingCost: item.shippingCost,
+          isCompletionSeen: item.isCompletionSeen,
+        };
+
+        // Build driver object
+        const driver = {
+          driver: {
+            driverRequestId: item.driverRequestId,
+            driverRequestUniqueId: item.driverRequestUniqueId,
+            userUniqueId: item.driverUserUniqueId,
+            fullName: item.driverFullName,
+            phoneNumber: item.driverPhone,
+            email: item.driverEmail,
+            createdAt: item.driverCreatedAt,
+            originLatitude: item.driverOriginLat,
+            originLongitude: item.driverOriginLng,
+            originPlace: item.driverOriginPlace,
+            requestTime: item.driverRequestTime,
+            journeyStatusId: item.driverJourneyStatusId,
+          },
+          vehicle: vehicle,
+        };
+
+        // Build journey object
+        const journey = {
+          journeyId: item.journeyId,
+          journeyUniqueId: item.journeyUniqueId,
+          journeyDecisionUniqueId: item.journeyDecisionUniqueId,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          fare: item.fare,
+          journeyStatusId: item.journeyStatusId,
+          journeyStatusName: item.journeyStatusName,
+        };
+
+        // Build decision object
+        const decision = {
+          journeyDecisionId: item.journeyDecisionId,
+          journeyDecisionUniqueId: item.decisionUniqueId,
+          passengerRequestId: item.passengerRequestId,
+          driverRequestId: item.driverRequestId,
+          decisionTime: item.decisionTime,
+          decisionBy: item.decisionBy,
+          shippingDateByDriver: item.shippingDateByDriver,
+          deliveryDateByDriver: item.deliveryDateByDriver,
+          shippingCostByDriver: item.shippingCostByDriver,
+        };
+
+        // Return exact structure you requested
+        return {
+          passenger: passenger,
+          driver: driver,
+          journey: journey,
+          decision: decision,
+        };
+      })
+    );
+
+    return {
+      message: "success",
+      data: data,
+      pagination: {
+        currentPage: safePage,
+        totalPages: totalPages,
+        totalCount: totalCount,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1,
+        limit: safeLimit,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching journeys:", error);
+    return { message: "error", error: error.message };
+  }
+};
 module.exports = {
+  getJourneys,
   createJourney,
   getAllJourneys,
   getJourneyByJourneyUniqueId,
