@@ -39,8 +39,8 @@ const getUsersByRoleUniqueId = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const response = await services?.loginUser(
-      req.params.phoneNumber,
-      req.params.roleId
+      req.query.phoneNumber,
+      req.query.roleId
     );
     ServerResponder(res, response);
   } catch (error) {

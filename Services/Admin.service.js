@@ -192,27 +192,26 @@ const adminServices = {
       },
     };
   },
+
   getOfflineDrivers: async (req) => {
     const {
       page = 1,
       limit = 10,
-      search, // General search across multiple fields
-      name, // Filter by driver name
-      email, // Filter by email
-      phone, // Filter by phone number
-      vehicleType, // Filter by vehicle type
-      journeyStatus, // Filter by journey status (excluded statuses)
-      status, // Additional status filter
+      search,
+      name,
+      email,
+      phone,
+      vehicleType,
     } = req.query;
 
     const offset = (page - 1) * limit;
 
-    // Base WHERE conditions for offline drivers
+    // FIXED: Include drivers with NULL journeyStatus OR status NOT IN online statuses
     let whereClause = `
-    WHERE dr.journeyStatusId NOT IN (1, 2, 3, 4, 5)
-    AND ursc.statusId = 1
-    AND ur.roleId = 2
-    `;
+  WHERE ur.roleId = 2
+  AND ursc.statusId = 1
+  AND (dr.journeyStatusId IS NULL OR dr.journeyStatusId NOT IN (1, 2, 3, 4, 5))
+  `;
 
     const params = [];
 
@@ -220,8 +219,8 @@ const adminServices = {
     if (search && search.trim() !== "") {
       const wildcardSearch = `%${search.trim()}%`;
       whereClause += `
-        AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ? OR v.licensePlate LIKE ? OR vt.vehicleTypeName LIKE ?)
-        `;
+      AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ? OR v.licensePlate LIKE ? OR vt.vehicleTypeName LIKE ?)
+      `;
       params.push(
         wildcardSearch,
         wildcardSearch,
@@ -259,104 +258,120 @@ const adminServices = {
       params.push(wildcardVehicleType);
     }
 
-    // Filter by journey status (if you want to customize excluded statuses)
-    if (journeyStatus) {
-      if (Array.isArray(journeyStatus)) {
-        // Multiple journey statuses to exclude
-        const placeholders = journeyStatus.map(() => "?").join(",");
-        whereClause += ` AND dr.journeyStatusId NOT IN (${placeholders})`;
-        params.push(...journeyStatus);
-      } else {
-        // Single journey status to exclude
-        whereClause += ` AND dr.journeyStatusId != ?`;
-        params.push(journeyStatus);
-      }
-    } else {
-      // Default excluded statuses (1,2,3,4,5) - online statuses
-      whereClause += ` AND dr.journeyStatusId NOT IN (1, 2, 3, 4, 5)`;
-    }
-
-    // Additional status filter
-    if (status && status.trim() !== "") {
-      whereClause += ` AND ursc.statusId = ?`;
-      params.push(status.trim());
-    }
-
-    // Count query
-    const countSql = `
-    SELECT COUNT(*) AS total
-    FROM (
-        SELECT DISTINCT dr.userUniqueId
-        FROM DriverRequest dr
+    try {
+      // Count query
+      const countSql = `
+    SELECT COUNT(DISTINCT u.userUniqueId) AS total
+    FROM Users u
+    INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId AND ur.roleId = 2
+    INNER JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId AND ursc.statusId = 1
+    LEFT JOIN (
+        SELECT dr1.userUniqueId, dr1.journeyStatusId
+        FROM DriverRequest dr1
         INNER JOIN (
             SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
             FROM DriverRequest
             GROUP BY userUniqueId
-        ) latestRequest ON dr.userUniqueId = latestRequest.userUniqueId AND dr.requestTime = latestRequest.latestRequestTime
-        INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
-        INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
-        INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-        LEFT JOIN VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId
-        LEFT JOIN Vehicle v ON vo.vehicleUniqueId = v.vehicleUniqueId
-        LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-        ${whereClause}
-    ) as sub
-    `;
-
-    const [countRows] = await pool.query(countSql, params);
-    const total = countRows[0].total;
-
-    // Data query with comprehensive driver information
-    const dataSql = `
-    SELECT 
-        dr.*, 
-        u.*, 
-        ur.*, 
-        ursc.*,
-        vo.*,
-        v.*,
-        vt.*,
-        r.roleName
-    FROM DriverRequest dr
-    INNER JOIN (
-        SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
-        FROM DriverRequest
-        GROUP BY userUniqueId
-    ) latestRequest ON dr.userUniqueId = latestRequest.userUniqueId AND dr.requestTime = latestRequest.latestRequestTime
-    INNER JOIN Users u ON dr.userUniqueId = u.userUniqueId
-    INNER JOIN UserRole ur ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN UserRoleStatusCurrent ursc ON ursc.userRoleId = ur.userRoleId
-    INNER JOIN Roles r ON ur.roleId = r.roleId
-    LEFT JOIN VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId
+        ) latest ON dr1.userUniqueId = latest.userUniqueId AND dr1.requestTime = latest.latestRequestTime
+    ) dr ON u.userUniqueId = dr.userUniqueId
+    LEFT JOIN VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId AND vo.ownershipEndDate IS NULL
     LEFT JOIN Vehicle v ON vo.vehicleUniqueId = v.vehicleUniqueId
     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     ${whereClause}
-    ORDER BY dr.requestTime DESC
+    `;
+
+      const [countRows] = await pool.query(countSql, params);
+      const total = countRows[0]?.total || 0;
+      console.log("Total offline drivers found:", total);
+
+      // Data query
+      const dataSql = `
+    SELECT 
+        u.userId,
+        u.userUniqueId,
+        u.fullName,
+        u.phoneNumber,
+        u.email,
+        u.createdAt,
+        dr.driverRequestId,
+        dr.driverRequestUniqueId,
+        dr.journeyStatusId as currentJourneyStatus,
+        dr.requestTime as lastRequestTime,
+        ur.userRoleId,
+        ur.userRoleUniqueId,
+        ursc.statusId as userStatusId,
+        ursc.userRoleStatusUniqueId,
+        v.vehicleId,
+        v.vehicleUniqueId,
+        v.licensePlate,
+        v.color,
+        vt.vehicleTypeId,
+        vt.vehicleTypeName,
+        r.roleName,
+        CASE 
+          WHEN dr.journeyStatusId IS NULL THEN 'No recent requests'
+          WHEN dr.journeyStatusId = 6 THEN 'Completed'
+          WHEN dr.journeyStatusId = 7 THEN 'Cancelled by passenger'
+          WHEN dr.journeyStatusId = 8 THEN 'Rejected by passenger'
+          WHEN dr.journeyStatusId = 9 THEN 'Cancelled by driver'
+          WHEN dr.journeyStatusId = 10 THEN 'Cancelled by admin'
+          WHEN dr.journeyStatusId = 11 THEN 'Completed by admin'
+          WHEN dr.journeyStatusId = 12 THEN 'Cancelled by system'
+          WHEN dr.journeyStatusId = 13 THEN 'No answer from driver'
+          ELSE 'Unknown status'
+        END as journeyStatusName
+    FROM Users u
+    INNER JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId AND ur.roleId = 2
+    INNER JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId AND ursc.statusId = 1
+    LEFT JOIN (
+        SELECT dr1.*
+        FROM DriverRequest dr1
+        INNER JOIN (
+            SELECT userUniqueId, MAX(requestTime) AS latestRequestTime
+            FROM DriverRequest
+            GROUP BY userUniqueId
+        ) latest ON dr1.userUniqueId = latest.userUniqueId AND dr1.requestTime = latest.latestRequestTime
+    ) dr ON u.userUniqueId = dr.userUniqueId
+    INNER JOIN Roles r ON ur.roleId = r.roleId
+    LEFT JOIN VehicleOwnership vo ON u.userUniqueId = vo.userUniqueId AND vo.ownershipEndDate IS NULL
+    LEFT JOIN Vehicle v ON vo.vehicleUniqueId = v.vehicleUniqueId
+    LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    ${whereClause}
+    ORDER BY dr.requestTime DESC, u.fullName ASC
     LIMIT ? OFFSET ?
     `;
 
-    const dataParams = [...params, parseInt(limit), parseInt(offset)];
-    const [data] = await pool.query(dataSql, dataParams);
+      const dataParams = [...params, parseInt(limit), parseInt(offset)];
+      const [data] = await pool.query(dataSql, dataParams);
 
-    return {
-      message: "success",
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit),
-      },
-      data,
-      filters: {
-        search,
-        name,
-        email,
-        phone,
-        vehicleType,
-        journeyStatus: journeyStatus || [1, 2, 3, 4, 5], // Show which statuses are excluded
-        status,
-      },
-    };
+      console.log("Found offline drivers:", data.length);
+      console.log(
+        "Sample driver statuses:",
+        data.map((d) => ({
+          name: d.fullName,
+          journeyStatus: d.currentJourneyStatus,
+          statusName: d.journeyStatusName,
+        }))
+      );
+
+      return {
+        message: data.length > 0 ? "success" : "No offline drivers found",
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit),
+        },
+        data,
+      };
+    } catch (error) {
+      console.error("Error in getOfflineDrivers:", error);
+      return {
+        message: "error",
+        error: error.message,
+        data: [],
+      };
+    }
   },
 
   getOnlineDrivers: async (req) => {
