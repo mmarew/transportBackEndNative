@@ -53,10 +53,15 @@ const listVehicleOwnershipsController = async (req, res) => {
   try {
     const { page, limit, includePagination } = req.query || {};
     // Extract filters by removing pagination params
-    const { page: _p, limit: _l, includePagination: _ip, ...filters } =
-      req.query || {};
+    const {
+      page: _p,
+      limit: _l,
+      includePagination: _ip,
+      ...filters
+    } = req.query || {};
 
     const hasFilters = Object.keys(filters).length > 0;
+    console.log("@hasFilters", hasFilters, " @filters", filters);
     const response = await getVehicleOwnershipsByFilter({
       filters: hasFilters ? filters : {},
       page,

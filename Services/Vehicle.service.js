@@ -180,6 +180,77 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
 };
 
 // unified vehicle fetching with filters and pagination
+// const getVehicles = async ({
+//   vehicleUniqueId,
+//   ownerUserUniqueId,
+//   licensePlate,
+//   color,
+//   vehicleTypeUniqueId,
+//   page = 1,
+//   pageSize = 10,
+//   orderBy = "vehicleCreatedAt",
+//   orderDirection = "DESC",
+//   user,
+// }) => {
+//   try {
+//     const conditions = {};
+//     if (vehicleUniqueId) conditions.vehicleUniqueId = vehicleUniqueId;
+//     if (licensePlate) conditions.licensePlate = removeWhiteSpace(licensePlate);
+//     if (color) conditions.color = color;
+//     if (vehicleTypeUniqueId) conditions.vehicleTypeUniqueId = vehicleTypeUniqueId;
+//     // filter by creator/owner (as used by verifyUsersVehicle)
+//     if (ownerUserUniqueId) {
+//       const creatorId = ownerUserUniqueId === "self" ? user?.userUniqueId : ownerUserUniqueId;
+//       conditions.vehicleCreatedBy = creatorId;
+//     }
+
+//     const limit = Number(pageSize) || 10;
+//     const pageNum = Number(page) || 1;
+//     const offset = (pageNum - 1) * limit;
+
+//     // fetch paged data
+//     const items = await getData({
+//       tableName: "Vehicle",
+//       conditions,
+//       orderBy,
+//       orderDirection,
+//       limit,
+//       offset,
+//     });
+
+//     // total count (efficient COUNT query)
+//     const whereKeys = Object.keys(conditions);
+//     const whereClause = whereKeys.length
+//       ? "WHERE " +
+//         whereKeys
+//           .map((col) => `${col} = ?`)
+//           .join(" AND ")
+//       : "";
+//     const values = Object.values(conditions);
+//     const [countRows] = await pool.query(
+//       `SELECT COUNT(*) as total FROM Vehicle ${whereClause}`,
+//       values
+//     );
+//     const total = countRows?.[0]?.total || 0;
+//     const totalPages = Math.max(1, Math.ceil(total / limit));
+
+//     return {
+//       message: "success",
+//       data: items,
+//       pagination: {
+//         page: pageNum,
+//         pageSize: limit,
+//         total,
+//         totalPages,
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Error @getVehicles:", error);
+//     return { message: "error", error: "Failed to fetch vehicles" };
+//   }
+// };
+
+// unified vehicle fetching with filters, pagination, and vehicle type data
 const getVehicles = async ({
   vehicleUniqueId,
   ownerUserUniqueId,
@@ -188,49 +259,72 @@ const getVehicles = async ({
   vehicleTypeUniqueId,
   page = 1,
   pageSize = 10,
-  orderBy = "vehicleCreatedAt",
+  orderBy = "v.vehicleCreatedAt",
   orderDirection = "DESC",
   user,
 }) => {
   try {
     const conditions = {};
-    if (vehicleUniqueId) conditions.vehicleUniqueId = vehicleUniqueId;
-    if (licensePlate) conditions.licensePlate = removeWhiteSpace(licensePlate);
-    if (color) conditions.color = color;
-    if (vehicleTypeUniqueId) conditions.vehicleTypeUniqueId = vehicleTypeUniqueId;
+
+    if (vehicleUniqueId) conditions["v.vehicleUniqueId"] = vehicleUniqueId;
+    if (licensePlate)
+      conditions["v.licensePlate"] = removeWhiteSpace(licensePlate);
+    if (color) conditions["v.color"] = color;
+    if (vehicleTypeUniqueId) {
+      conditions["v.vehicleTypeUniqueId"] = vehicleTypeUniqueId;
+    }
+
     // filter by creator/owner (as used by verifyUsersVehicle)
     if (ownerUserUniqueId) {
-      const creatorId = ownerUserUniqueId === "self" ? user?.userUniqueId : ownerUserUniqueId;
-      conditions.vehicleCreatedBy = creatorId;
+      const creatorId =
+        ownerUserUniqueId === "self" ? user?.userUniqueId : ownerUserUniqueId;
+      conditions["v.vehicleCreatedBy"] = creatorId;
     }
 
     const limit = Number(pageSize) || 10;
     const pageNum = Number(page) || 1;
     const offset = (pageNum - 1) * limit;
 
-    // fetch paged data
-    const items = await getData({
-      tableName: "Vehicle",
-      conditions,
-      orderBy,
-      orderDirection,
-      limit,
-      offset,
-    });
+    // Build the base query with JOIN
+    let baseQuery = `
+      FROM Vehicle v
+      INNER JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    `;
 
-    // total count (efficient COUNT query)
     const whereKeys = Object.keys(conditions);
-    const whereClause = whereKeys.length
-      ? "WHERE " +
-        whereKeys
-          .map((col) => `${col} = ?`)
-          .join(" AND ")
+    const whereClause = whereKeys?.length
+      ? "WHERE " + whereKeys.map((col) => `${col} = ?`).join(" AND ")
       : "";
+
     const values = Object.values(conditions);
+
+    // Select all vehicle fields plus vehicle type information
+    const selectFields = `
+      v.*,
+      vt.vehicleTypeName,
+      vt.vehicleTypeIconName,
+      vt.vehicleTypeDescription,
+      vt.carryingCapacity,
+      vt.vehicleTypeCreatedAt as typeCreatedAt,
+      vt.vehicleTypeUpdatedAt as typeUpdatedAt
+    `;
+
+    // Fetch paged data with vehicle type information
+    const [items] = await pool.query(
+      `SELECT ${selectFields} 
+       ${baseQuery} 
+       ${whereClause} 
+       ORDER BY ${orderBy} ${orderDirection} 
+       LIMIT ? OFFSET ?`,
+      [...values, limit, offset]
+    );
+
+    // Total count (efficient COUNT query)
     const [countRows] = await pool.query(
-      `SELECT COUNT(*) as total FROM Vehicle ${whereClause}`,
+      `SELECT COUNT(*) as total ${baseQuery} ${whereClause}`,
       values
     );
+
     const total = countRows?.[0]?.total || 0;
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -249,7 +343,6 @@ const getVehicles = async ({
     return { message: "error", error: "Failed to fetch vehicles" };
   }
 };
-
 module.exports = {
   createVehicle,
   updateVehicle,

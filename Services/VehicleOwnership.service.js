@@ -160,7 +160,8 @@ const getVehicleOwnershipsByFilter = async ({
   page,
   limit,
   includePagination = false,
-} = {}) => {
+}) => {
+  console.log("@getVehicleOwnershipsByFilter filters", filters);
   try {
     const allowedKeys = [
       "ownershipId",
@@ -181,6 +182,7 @@ const getVehicleOwnershipsByFilter = async ({
         values.push(filters[key]);
       }
     }
+    console.log("@where", where, "@values", values);
 
     // Pagination
     let paginationClause = "";
