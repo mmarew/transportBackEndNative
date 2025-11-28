@@ -665,6 +665,38 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     let queryParams = [];
     let countParams = [];
 
+    if (filters?.search) {
+      // find by phone or email or full name or shippableItemName or origin/destination places
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += ` (
+    Users.phoneNumber LIKE ? OR 
+    Users.email LIKE ? OR 
+    Users.fullName LIKE ? OR
+    PassengerRequest.shippableItemName LIKE ? OR
+    PassengerRequest.originPlace LIKE ? OR
+    PassengerRequest.destinationPlace LIKE ?
+  )`;
+
+      const searchPattern = `%${filters.search}%`;
+      // Add the same pattern for all 6 conditions
+      queryParams.push(
+        searchPattern, // phoneNumber
+        searchPattern, // email
+        searchPattern, // fullName
+        searchPattern, // shippableItemName
+        searchPattern, // originPlace
+        searchPattern // destinationPlace
+      );
+      countParams.push(
+        searchPattern, // phoneNumber
+        searchPattern, // email
+        searchPattern, // fullName
+        searchPattern, // shippableItemName
+        searchPattern, // originPlace
+        searchPattern // destinationPlace
+      );
+    }
+
     // Build WHERE clause based on target and filters
     if (target !== "all" && userUniqueId) {
       whereClause = " WHERE PassengerRequest.userUniqueId = ?";
@@ -763,11 +795,19 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     queryParams.push(parseInt(limit), offset);
     const [passengerRequests] = await pool.query(sqlToGetRequests, queryParams);
     // Get total count
+    // const sqlCount = `
+    //   SELECT COUNT(*) as total
+    //   FROM PassengerRequest
+    //   ${whereClause}
+    // `;
+
     const sqlCount = `
-      SELECT COUNT(*) as total 
-      FROM PassengerRequest 
-      ${whereClause}
-    `;
+  SELECT COUNT(*) as total 
+  FROM PassengerRequest 
+  JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId 
+  JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = PassengerRequest.vehicleTypeUniqueId
+  ${whereClause}
+`;
 
     const [countResult] = await pool.query(sqlCount, countParams);
     const total = countResult[0]?.total || 0;

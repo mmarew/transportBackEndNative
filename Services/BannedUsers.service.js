@@ -145,6 +145,7 @@ const banUser = async (data) => {
 //     whereConditions.push("bu.banAt <= ?");
 //     queryParams.push(endDate);
 //   }
+
 //   if (roleId) {
 //     let roleIds = roleId;
 //     if (typeof roleIds === "string" && roleIds.includes(",")) {
@@ -163,13 +164,22 @@ const banUser = async (data) => {
 
 //   const baseQuery = `
 //     SELECT
-//       bu.*,
-//        u.*,
-//       r.*,
+//       bu.*,  u.*,  r.*,
 //       ub.fullName as bannedByName,
 //       ud.delinquencyTypeUniqueId,
 //       dt.delinquencyTypeName,
-//       ud.delinquencyDescription
+//       ud.delinquencyDescription,
+//       -- UserRoleStatusCurrent fields
+//       ursc.userRoleStatusId,
+//       ursc.userRoleStatusUniqueId,
+//       ursc.statusId as currentStatusId,
+//       ursc.userRoleStatusDescription,
+//       ursc.userRoleStatusCreatedBy,
+//       ursc.userRoleStatusCreatedAt,
+//       ursc.userRoleStatusCurrentVersion,
+//       -- Status fields for current status
+//       s.statusName as currentStatusName,
+//       s.statusDescription as currentStatusDescription
 //     FROM BannedUsers bu
 //     INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
 //     INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
@@ -177,6 +187,9 @@ const banUser = async (data) => {
 //     INNER JOIN Roles r ON ur.roleId = r.roleId
 //     INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
 //     INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+//     -- LEFT JOIN with UserRoleStatusCurrent to get current status (may not exist for banned users)
+//     LEFT JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId
+//     LEFT JOIN Statuses s ON ursc.statusId = s.statusId
 //     WHERE ${whereConditions.join(" AND ")}
 //   `;
 
@@ -225,6 +238,7 @@ const getBannedUsers = async (filters = {}) => {
     roleId,
     stats = false,
     check = false,
+    search, // Added search parameter
   } = filters;
 
   if (stats) {
@@ -284,6 +298,33 @@ const getBannedUsers = async (filters = {}) => {
       whereConditions.push("ur.roleId = ?");
       queryParams.push(roleIds);
     }
+  }
+
+  // SEARCH BLOCK - Search across multiple fields
+  if (search) {
+    whereConditions.push(`(
+      u.fullName LIKE ? OR 
+      u.phoneNumber LIKE ? OR 
+      u.email LIKE ? OR
+      ub.fullName LIKE ? OR
+      r.roleName LIKE ? OR
+      dt.delinquencyTypeName LIKE ? OR
+      ud.delinquencyDescription LIKE ? OR
+      bu.banReason LIKE ?
+    )`);
+
+    const searchPattern = `%${search}%`;
+    // Add the same pattern for all 8 search conditions
+    queryParams.push(
+      searchPattern, // u.fullName
+      searchPattern, // u.phoneNumber
+      searchPattern, // u.email
+      searchPattern, // ub.fullName (banned by user name)
+      searchPattern, // r.roleName
+      searchPattern, // dt.delinquencyTypeName
+      searchPattern, // ud.delinquencyDescription
+      searchPattern // bu.banReason
+    );
   }
 
   const baseQuery = `
@@ -346,6 +387,7 @@ const getBannedUsers = async (filters = {}) => {
     filters,
   };
 };
+
 const updateBannedUser = async (banUniqueId, data) => {
   const { banReason, banDurationDays, banExpiresAt } = data;
 

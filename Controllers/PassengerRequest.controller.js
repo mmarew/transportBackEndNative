@@ -159,7 +159,7 @@ const getPassengerRequest4allOrSingleUser = async (req, res) => {
     const shipperRequestCreatedByRoleId =
       req.query.shipperRequestCreatedByRoleId;
 
-    const filters = {};
+    const filters = { ...req.query };
     if (journeyStatusIds && journeyStatusIds.length > 0)
       filters.journeyStatusIds = journeyStatusIds;
     if (vehicleTypeUniqueId) filters.vehicleTypeUniqueId = vehicleTypeUniqueId;

@@ -289,6 +289,31 @@ const getUserRoleStatusCurrent = async ({ data }) => {
     let whereConditions = ["1 = 1"];
     let queryParams = [];
 
+    // SEARCH BLOCK - Search across multiple user and role fields
+    if (data.search) {
+      whereConditions.push(`(
+    u.fullName LIKE ? OR 
+    u.phoneNumber LIKE ? OR 
+    u.email LIKE ? OR
+    r.roleName LIKE ? OR
+    s.statusName LIKE ? OR
+    uc.fullName LIKE ? OR
+    ursc.userRoleStatusDescription LIKE ?
+  )`);
+
+      const searchPattern = `%${data.search}%`;
+      // Add the same pattern for all 7 search conditions
+      queryParams.push(
+        searchPattern, // u.fullName
+        searchPattern, // u.phoneNumber
+        searchPattern, // u.email
+        searchPattern, // r.roleName
+        searchPattern, // s.statusName
+        searchPattern, // uc.fullName (created by user name)
+        searchPattern // ursc.userRoleStatusDescription
+      );
+    }
+
     if (userRoleId) {
       whereConditions.push("ursc.userRoleId = ?");
       queryParams.push(userRoleId);

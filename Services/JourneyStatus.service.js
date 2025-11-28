@@ -117,13 +117,6 @@ const updateJourneyStatus = async (body) => {
   } = body;
 
   try {
-    console.log(
-      "@updateJourneyStatus journeyStatusId:",
-      journeyStatusId,
-      "journeyStatusId == journeyStatusMap.completed",
-      journeyStatusId == journeyStatusMap.journeyCompleted
-    );
-
     // Start a transaction to ensure all updates succeed or fail together
     const updatePromises = [];
 
@@ -139,7 +132,6 @@ const updateJourneyStatus = async (body) => {
           endTime: currentDate(),
         }),
       };
-      console.log("@updateValues", updateValues);
       updatePromises.push(
         updateData({
           tableName: "Journey",
