@@ -117,7 +117,12 @@ const updateJourneyStatus = async (body) => {
   } = body;
 
   try {
-    console.log("@updateJourneyStatus journeyStatusId:", journeyStatusId);
+    console.log(
+      "@updateJourneyStatus journeyStatusId:",
+      journeyStatusId,
+      "journeyStatusId == journeyStatusMap.completed",
+      journeyStatusId == journeyStatusMap.journeyCompleted
+    );
 
     // Start a transaction to ensure all updates succeed or fail together
     const updatePromises = [];
@@ -125,20 +130,21 @@ const updateJourneyStatus = async (body) => {
     // Update Journey if journeyUniqueId is provided
     if (journeyUniqueId) {
       const journeyConditions = { journeyUniqueId };
-      if (previousStatusId) {
-        journeyConditions.journeyStatusId = previousStatusId;
-      }
-
+      // if (previousStatusId) {
+      //   journeyConditions.journeyStatusId = previousStatusId;
+      // }
+      const updateValues = {
+        journeyStatusId,
+        ...(journeyStatusId == journeyStatusMap.journeyCompleted && {
+          endTime: currentDate(),
+        }),
+      };
+      console.log("@updateValues", updateValues);
       updatePromises.push(
         updateData({
           tableName: "Journey",
           conditions: journeyConditions,
-          updateValues: {
-            journeyStatusId,
-            ...(journeyStatusId === journeyStatusMap.completed && {
-              endTime: currentDate(),
-            }),
-          },
+          updateValues,
         })
       );
     }
@@ -186,9 +192,9 @@ const updateJourneyStatus = async (body) => {
     // Update DriverRequest if driverRequestUniqueId is provided
     if (driverRequestUniqueId) {
       const driverConditions = { driverRequestUniqueId };
-      if (previousStatusId) {
-        driverConditions.journeyStatusId = previousStatusId;
-      }
+      // if (previousStatusId) {
+      //   driverConditions.journeyStatusId = previousStatusId;
+      // }
 
       updatePromises.push(
         updateData({
@@ -200,7 +206,11 @@ const updateJourneyStatus = async (body) => {
     }
 
     // Execute all updates in parallel and wait for all to complete
-    await Promise.all(updatePromises);
+    const [Journey] = await Promise.all(updatePromises);
+    console.log(
+      "@ const [Journey] = await Promise.all(updatePromises);",
+      Journey
+    );
 
     return {
       message: "success",

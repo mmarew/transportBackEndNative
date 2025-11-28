@@ -40,9 +40,9 @@ const routes = [
   },
   {
     method: "get",
-    path: "/api/user/getCompletedJourney",
+    path: "/api/user/getCompletedJourneyCountsByDate",
     middleware: [verifyTokenOfAxios],
-    handler: journeyController.getCompletedJourney,
+    handler: journeyController.getCompletedJourneyCountsByDate,
   },
   {
     method: "get",

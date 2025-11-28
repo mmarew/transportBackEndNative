@@ -60,55 +60,59 @@ exports.deleteJourney = async (req, res) => {
   await handleServiceResponse(journeyService.deleteJourney(id), res);
 };
 
-// Get completed journey with pagination
-exports.getCompletedJourney = async (req, res) => {
+exports.getCompletedJourneyCountsByDate = async (req, res) => {
   try {
     const fromDate = req?.query?.fromDate;
     const toDate = req?.query?.toDate;
-    console.log("@getCompletedJourney", req?.user);
+    console.log("@getCompletedJourneyCountsByDate", req?.user);
+
     const userRoleId = req?.user?.roleId;
-    const { page = 1, limit = 10 } = req.query;
 
-    const { page: validatedPage, limit: validatedLimit } = validatePagination(
-      page,
-      limit
-    );
+    // Validate required parameters
+    if (!fromDate || !toDate) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "fromDate and toDate are required",
+      });
+    }
 
-    let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
+    let ownerUserUniqueId = req?.query?.ownerUserUniqueId || "all";
 
     // Authorization check: only allow admin (3) or super admin (6) to access all data
     if (ownerUserUniqueId === "all") {
       const isAdmin = userRoleId === 3 || userRoleId === 6;
       if (!isAdmin) {
-        return ServerResponder(res, {
-          message: "error",
-          error: "Unauthorized access",
-        });
+        // Non-admin users can only see their own data
+        ownerUserUniqueId = req?.user?.userUniqueId;
       }
     }
 
-    if (ownerUserUniqueId == "self") {
+    if (ownerUserUniqueId === "self") {
       ownerUserUniqueId = req?.user?.userUniqueId;
     }
 
-    const roleId = req?.query?.roleId;
+    // Build filters object matching your reference structure
+    const filters = {
+      ownerUserUniqueId,
+      toDate,
+      fromDate,
+      userFilters: {
+        fullName: req?.query?.fullName,
+        phone: req?.query?.phone,
+        email: req?.query?.email,
+        search: req?.query?.search,
+      },
+    };
 
     await handleServiceResponse(
-      journeyService.getCompletedJourney({
-        roleId,
-        ownerUserUniqueId,
-        toDate,
-        fromDate,
-        page: validatedPage,
-        limit: validatedLimit,
-      }),
+      journeyService.getCompletedJourneyCountsByDate(filters),
       res
     );
   } catch (error) {
-    console.error("Error getting completed journey:", error);
+    console.error("Error getting completed journey counts:", error);
     ServerResponder(res, {
       message: "error",
-      error: "Failed to get completed journey",
+      error: "Failed to get completed journey counts",
     });
   }
 };

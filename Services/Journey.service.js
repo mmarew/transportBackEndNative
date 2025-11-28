@@ -182,145 +182,264 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
 };
 
 // Get completed journey with pagination
-const getCompletedJourney = async ({
-  roleId,
-  ownerUserUniqueId,
-  toDate,
-  fromDate,
-  page = 1,
-  limit = 10,
-}) => {
+// const getCompletedJourney = async ({
+//   roleId,
+//   ownerUserUniqueId,
+//   toDate,
+//   fromDate,
+//   page = 1,
+//   limit = 10,
+// }) => {
+//   try {
+//     console.log("@11111 getCompletedJourney", {
+//       roleId,
+//       ownerUserUniqueId,
+//       toDate,
+//       fromDate,
+//       page,
+//       limit,
+//     });
+//     // return;
+//     const roleConfig = {
+//       1: {
+//         joinTable: "PassengerRequest",
+//         joinCondition:
+//           "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+//         userField: "PassengerRequest.userUniqueId",
+//       },
+//       2: {
+//         joinTable: "DriverRequest",
+//         joinCondition:
+//           "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
+//         userField: "DriverRequest.userUniqueId",
+//       },
+//     };
+
+//     if (!roleConfig[roleId]) {
+//       throw new Error("Invalid role ID");
+//     }
+
+//     const { joinTable, joinCondition, userField } = roleConfig[roleId];
+//     const safePage = Math.max(1, parseInt(page) || 1);
+//     const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+//     const offset = (safePage - 1) * safeLimit;
+//     const conditions =
+//       ownerUserUniqueId !== "all" ? { [userField]: ownerUserUniqueId } : {};
+
+//     let dateRangeCondition = {};
+//     let maxLimit = 70;
+
+//     // Apply "lastTen" sentinel only when both are 'lastTen'.
+//     // Apply date filtering only when both dates are provided (not null/undefined) and not using 'lastTen'.
+//     const isLastTen = fromDate === "lastTen" && toDate === "lastTen";
+//     if (isLastTen) {
+//       maxLimit = 10;
+//     } else if (fromDate && toDate) {
+//       dateRangeCondition = {
+//         "Journey.endTime": [fromDate, toDate],
+//         "Journey.startTime": [fromDate, toDate],
+//       };
+//     }
+
+//     const organizedConditions = {
+//       ...conditions,
+//       "Journey.journeyStatusId": journeyStatusMap.journeyCompleted,
+//       ...dateRangeCondition,
+//     };
+
+//     const completedJourney = await performJoinSelect({
+//       baseTable: "Journey",
+//       joins: [
+//         {
+//           table: "JourneyDecisions",
+//           on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
+//         },
+//         { table: joinTable, on: joinCondition },
+//       ],
+//       conditions: organizedConditions,
+//       limit: Math.min(safeLimit, maxLimit),
+//       offset,
+//     });
+//     console.log("@completedJourney", completedJourney);
+
+//     // Build count query mirroring conditions
+//     const whereParts = ["Journey.journeyStatusId = ?"];
+//     const countParams = [journeyStatusMap.journeyCompleted];
+//     if (ownerUserUniqueId !== "all") {
+//       whereParts.push(`${userField} = ?`);
+//       countParams.push(ownerUserUniqueId);
+//     }
+//     // Add date conditions to count only when both dates are provided and not 'lastTen'
+//     if (!isLastTen && fromDate && toDate) {
+//       whereParts.push(
+//         "(Journey.endTime BETWEEN ? AND ? OR Journey.startTime BETWEEN ? AND ?)"
+//       );
+//       countParams.push(fromDate, toDate, fromDate, toDate);
+//     }
+
+//     const countSql = `
+//       SELECT COUNT(*) as total
+//       FROM Journey
+//       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+//       JOIN ${joinTable} ON ${joinCondition}
+//       WHERE ${whereParts.join(" AND ")}
+//     `;
+//     const [countRows] = await pool.query(countSql, countParams);
+//     const totalCount = countRows[0]?.total || 0;
+//     const totalPages = Math.ceil(totalCount / Math.min(safeLimit, maxLimit));
+
+//     const data = await Promise.all(
+//       completedJourney.map(async (item) => {
+//         const [passengerData, driverData] = await Promise.all([
+//           getPassengerRequestByPassengerRequestId(item.passengerRequestId),
+//           getDriverRequestByRequestId(item.driverRequestId),
+//         ]);
+
+//         return {
+//           passenger: passengerData.data,
+//           driver: driverData.data,
+//           journey: item,
+//         };
+//       })
+//     );
+
+//     return {
+//       message: "success",
+//       data,
+//       pagination: {
+//         currentPage: safePage,
+//         totalPages,
+//         totalCount,
+//         hasNext: safePage < totalPages,
+//         hasPrev: safePage > 1,
+//         limit: Math.min(safeLimit, maxLimit),
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Error fetching completed journey:", error);
+//     return { message: "error", error: error.message };
+//   }
+// };
+
+// Get completed journey counts by date
+// Get completed journey counts by date (optimized version)
+// Get completed journey counts by date (using only endTime)
+const getCompletedJourneyCountsByDate = async (filters = {}) => {
   try {
-    console.log("@11111 getCompletedJourney", {
-      roleId,
-      ownerUserUniqueId,
-      toDate,
-      fromDate,
-      page,
-      limit,
-    });
-    // return;
-    const roleConfig = {
-      1: {
-        joinTable: "PassengerRequest",
-        joinCondition:
-          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
-        userField: "PassengerRequest.userUniqueId",
-      },
-      2: {
-        joinTable: "DriverRequest",
-        joinCondition:
-          "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
-        userField: "DriverRequest.userUniqueId",
-      },
-    };
+    const { ownerUserUniqueId, toDate, fromDate, userFilters = {} } = filters;
 
-    if (!roleConfig[roleId]) {
-      throw new Error("Invalid role ID");
+    const { fullName, phone, email, search } = userFilters;
+
+    // Build query conditions - only use endTime for completed journeys
+    const queryWhereParts = [
+      "Journey.journeyStatusId = ?",
+      "Journey.endTime IS NOT NULL", // Only count journeys that have endTime set
+    ];
+    const queryParams = [journeyStatusMap.journeyCompleted];
+
+    // Owner filter - check both passenger and driver
+    if (ownerUserUniqueId && ownerUserUniqueId !== "all") {
+      queryWhereParts.push(`
+        (PassengerRequest.userUniqueId = ? OR DriverRequest.userUniqueId = ?)
+      `);
+      queryParams.push(ownerUserUniqueId, ownerUserUniqueId);
     }
 
-    const { joinTable, joinCondition, userField } = roleConfig[roleId];
-    const safePage = Math.max(1, parseInt(page) || 1);
-    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
-    const offset = (safePage - 1) * safeLimit;
-    const conditions =
-      ownerUserUniqueId !== "all" ? { [userField]: ownerUserUniqueId } : {};
-
-    let dateRangeCondition = {};
-    let maxLimit = 70;
-
-    // Apply "lastTen" sentinel only when both are 'lastTen'.
-    // Apply date filtering only when both dates are provided (not null/undefined) and not using 'lastTen'.
-    const isLastTen = fromDate === "lastTen" && toDate === "lastTen";
-    if (isLastTen) {
-      maxLimit = 10;
-    } else if (fromDate && toDate) {
-      dateRangeCondition = {
-        "Journey.endTime": [fromDate, toDate],
-        "Journey.startTime": [fromDate, toDate],
-      };
+    // Date range filter - use endTime only
+    if (fromDate && toDate) {
+      queryWhereParts.push(`Journey.endTime BETWEEN ? AND ?`);
+      queryParams.push(`${fromDate} 00:00:00`, `${toDate} 23:59:59`);
     }
 
-    const organizedConditions = {
-      ...conditions,
-      "Journey.journeyStatusId": journeyStatusMap.journeyCompleted,
-      ...dateRangeCondition,
-    };
-
-    const completedJourney = await performJoinSelect({
-      baseTable: "Journey",
-      joins: [
-        {
-          table: "JourneyDecisions",
-          on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
-        },
-        { table: joinTable, on: joinCondition },
-      ],
-      conditions: organizedConditions,
-      limit: Math.min(safeLimit, maxLimit),
-      offset,
-    });
-    console.log("@completedJourney", completedJourney);
-
-    // Build count query mirroring conditions
-    const whereParts = ["Journey.journeyStatusId = ?"];
-    const countParams = [journeyStatusMap.journeyCompleted];
-    if (ownerUserUniqueId !== "all") {
-      whereParts.push(`${userField} = ?`);
-      countParams.push(ownerUserUniqueId);
-    }
-    // Add date conditions to count only when both dates are provided and not 'lastTen'
-    if (!isLastTen && fromDate && toDate) {
-      whereParts.push(
-        "(Journey.endTime BETWEEN ? AND ? OR Journey.startTime BETWEEN ? AND ?)"
+    // User-based filters
+    if (fullName) {
+      queryWhereParts.push(
+        `(passengerUser.fullName LIKE ? OR driverUser.fullName LIKE ?)`
       );
-      countParams.push(fromDate, toDate, fromDate, toDate);
+      queryParams.push(`%${fullName}%`, `%${fullName}%`);
+    }
+    if (phone) {
+      queryWhereParts.push(
+        `(passengerUser.phoneNumber LIKE ? OR driverUser.phoneNumber LIKE ?)`
+      );
+      queryParams.push(`%${phone}%`, `%${phone}%`);
+    }
+    if (email) {
+      queryWhereParts.push(
+        `(passengerUser.email LIKE ? OR driverUser.email LIKE ?)`
+      );
+      queryParams.push(`%${email}%`, `%${email}%`);
+    }
+    if (search) {
+      queryWhereParts.push(`(
+        passengerUser.fullName LIKE ? OR 
+        passengerUser.phoneNumber LIKE ? OR 
+        passengerUser.email LIKE ? OR
+        driverUser.fullName LIKE ? OR
+        driverUser.phoneNumber LIKE ? OR 
+        driverUser.email LIKE ? OR
+        PassengerRequest.originPlace LIKE ? OR
+        PassengerRequest.destinationPlace LIKE ? OR
+        DriverRequest.originPlace LIKE ?
+      )`);
+      queryParams.push(
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`,
+        `%${search}%`
+      );
     }
 
+    const whereClause =
+      queryWhereParts.length > 0
+        ? ` WHERE ${queryWhereParts.join(" AND ")}`
+        : "";
+
+    // Use DATE_FORMAT with endTime only
     const countSql = `
-      SELECT COUNT(*) as total
+      SELECT 
+        DATE_FORMAT(Journey.endTime, '%Y-%m-%d') as journeyDate,
+        COUNT(*) as totalCount
       FROM Journey
-      JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN ${joinTable} ON ${joinCondition}
-      WHERE ${whereParts.join(" AND ")}
+      INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
+      INNER JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
+      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
+      ${whereClause}
+      GROUP BY DATE_FORMAT(Journey.endTime, '%Y-%m-%d')
+      ORDER BY journeyDate
     `;
-    const [countRows] = await pool.query(countSql, countParams);
-    const totalCount = countRows[0]?.total || 0;
-    const totalPages = Math.ceil(totalCount / Math.min(safeLimit, maxLimit));
 
-    const data = await Promise.all(
-      completedJourney.map(async (item) => {
-        const [passengerData, driverData] = await Promise.all([
-          getPassengerRequestByPassengerRequestId(item.passengerRequestId),
-          getDriverRequestByRequestId(item.driverRequestId),
-        ]);
+    console.log("DEBUG - Generated SQL:", countSql);
+    console.log("DEBUG - Query params:", queryParams);
 
-        return {
-          passenger: passengerData.data,
-          driver: driverData.data,
-          journey: item,
-        };
-      })
-    );
+    const [countRows] = await pool.query(countSql, queryParams);
+
+    console.log("DEBUG - Raw results:", countRows);
+
+    // Transform results into the desired format { date: count, ... }
+    const dateCounts = {};
+    countRows.forEach((row) => {
+      dateCounts[row.journeyDate] = row.totalCount;
+    });
 
     return {
       message: "success",
-      data,
-      pagination: {
-        currentPage: safePage,
-        totalPages,
-        totalCount,
-        hasNext: safePage < totalPages,
-        hasPrev: safePage > 1,
-        limit: Math.min(safeLimit, maxLimit),
-      },
+      data: dateCounts,
+      totalDates: countRows.length,
+      dateRange: { fromDate, toDate },
     };
   } catch (error) {
-    console.error("Error fetching completed journey:", error);
+    console.error("Error fetching completed journey counts by date:", error);
     return { message: "error", error: error.message };
   }
 };
-
 // Search completed journey by user data with pagination
 const searchCompletedJourneyByUserData = async (
   phoneOrEmail,
@@ -1020,7 +1139,7 @@ module.exports = {
   getJourneyByJourneyUniqueId,
   updateJourney,
   deleteJourney,
-  getCompletedJourney,
+  getCompletedJourneyCountsByDate,
   searchCompletedJourneyByUserData,
   getOngoingJourney,
   getAllCompletedJourneys,
