@@ -87,9 +87,30 @@ const takeFromStreet = async (body, user) => {
     const driverStatus = await verifyDriverStatus({
       userUniqueId: user?.userUniqueId,
     });
+    console.log("@takeFromStreet driverStatus", driverStatus);
     // if driver has active request return the current status
     if (driverStatus) {
-      return driverStatus;
+      const journeyStatusId = driverStatus?.driver?.driver?.journeyStatusId;
+      // if driver accepted request return driverStatus
+      if (journeyStatusId >= 3) {
+        return driverStatus;
+      } else if (journeyStatusId >= 1) {
+        // if journeyStatusId is one or two, cancel current request
+        const cancelResult = await cancelDriverRequest({
+          ownerUserUniqueId: user.userUniqueId,
+          user: user,
+          roleId: user.roleId,
+          cancellationReasonsTypeId: body.cancellationReasonsTypeId || 1, // Provide a default reason ID
+        });
+        console.log("@takeFromStreet cancelResult", cancelResult);
+        // If cancellation failed, return the error
+        if (cancelResult.message === "error") {
+          return cancelResult;
+        }
+
+        // Wait a moment for the cancellation to process
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
     }
     // if there is no active request create new passenger and passenger request and link with driver request and create journey decision and journey
 
