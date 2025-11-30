@@ -26,7 +26,7 @@ exports.getDriverDeposit = async (req, res) => {
     const user = req?.user;
     console.log("@getDriverDeposit user", user);
     let driverUniqueId = req?.query?.driverUniqueId;
-    if (driverUniqueId == "self" || !driverUniqueId) {
+    if (driverUniqueId == "self") {
       driverUniqueId = req?.user?.userUniqueId;
     }
     const filter = {

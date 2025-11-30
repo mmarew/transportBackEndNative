@@ -135,6 +135,7 @@ const getDriverDeposit = async (filters = {}) => {
     driverDepositId,
     createdStart,
     createdEnd,
+    search, // New search parameter
     page = 1,
     limit = 10,
     sortBy = "depositTime",
@@ -258,6 +259,15 @@ const getDriverDeposit = async (filters = {}) => {
     }
   }
 
+  // SEARCH FUNCTIONALITY - Search by phone, email, or full name
+  if (search) {
+    const searchTerm = `%${search}%`;
+    whereConditions.push(`
+      (u.phoneNumber LIKE ? OR u.email LIKE ? OR u.fullName LIKE ?)
+    `);
+    params.push(searchTerm, searchTerm, searchTerm);
+  }
+
   const whereClause =
     whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
 
@@ -275,21 +285,38 @@ const getDriverDeposit = async (filters = {}) => {
     createdAt: "dd.createdAt",
     driverDepositId: "dd.driverDepositId",
     driverDepositUniqueId: "dd.driverDepositUniqueId",
+    fullName: "u.fullName", // Allow sorting by user full name
+    phoneNumber: "u.phoneNumber", // Allow sorting by phone number
+    email: "u.email", // Allow sorting by email
   };
   const safeSortBy = sortableMap[sortBy] || sortableMap["depositTime"];
   const safeSortOrder =
     String(sortOrder).toUpperCase() === "ASC" ? "ASC" : "DESC";
 
   const sql = `
-    SELECT dd.*, u.fullName ,u.phoneNumber,u.email
+    SELECT 
+      dd.*, 
+      u.fullName,
+      u.phoneNumber,
+      u.email,
+      ds.sourceLabel as depositSourceLabel,
+      fia.institutionName,
+      fia.accountNumber
     FROM DriverDeposit dd
     LEFT JOIN Users u ON dd.driverUniqueId = u.userUniqueId
+    LEFT JOIN DepositSource ds ON dd.depositSourceUniqueId = ds.depositSourceUniqueId
+    LEFT JOIN FinancialInstitutionAccounts fia ON dd.accountUniqueId = fia.accountUniqueId
     ${whereClause}
     ORDER BY ${safeSortBy} ${safeSortOrder}
     LIMIT ? OFFSET ?
   `;
 
-  const countSql = `SELECT COUNT(*) as total FROM DriverDeposit dd ${whereClause}`;
+  const countSql = `
+    SELECT COUNT(*) as total 
+    FROM DriverDeposit dd
+    LEFT JOIN Users u ON dd.driverUniqueId = u.userUniqueId
+    ${whereClause}
+  `;
 
   const [data] = await pool.query(sql, [
     ...params,
@@ -311,6 +338,12 @@ const getDriverDeposit = async (filters = {}) => {
       itemsPerPage: Number(numLimit),
       hasNext: Number(numPage) < totalPages,
       hasPrev: Number(numPage) > 1,
+    },
+    filters: {
+      search: search || null,
+      driverUniqueId: driverUniqueId || null,
+      depositStatus: depositStatus || null,
+      // Include other active filters for reference
     },
   };
 };

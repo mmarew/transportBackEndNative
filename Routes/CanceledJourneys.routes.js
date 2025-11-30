@@ -158,6 +158,13 @@ const routes = [
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.updateSeenByAdmin,
   },
+
+  {
+    method: "get",
+    path: "/api/user/getCanceledJourneyCountsByReason",
+    middleware: [verifyTokenOfAxios],
+    handler: canceledJourneyController.getCanceledJourneyCountsByReason,
+  },
 ];
 
 registerRoutes(router, routes);

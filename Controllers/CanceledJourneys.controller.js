@@ -437,7 +437,50 @@ const getCanceledJourneyCountsByDate = async (req, res) => {
   }
 };
 
+const getCanceledJourneyCountsByReason = async (req, res) => {
+  try {
+    const {
+      startDate,
+      endDate,
+      roleId,
+      contextType,
+      groupBy,
+      includeEmptyReasons,
+    } = req.query;
+
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return ServerResponder(res, {
+        success: false,
+        message: "error",
+        error: "startDate and endDate are required",
+      });
+    }
+
+    const filters = {
+      startDate,
+      endDate,
+      roleId: roleId ? parseInt(roleId) : null,
+      contextType,
+      groupBy: groupBy || "reason",
+      includeEmptyReasons: includeEmptyReasons === "true",
+    };
+
+    const result =
+      await canceledJourneyService.getCanceledJourneyCountsByReason(filters);
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Error in getCanceledJourneyCountsByReason:", error);
+    ServerResponder(res, {
+      success: false,
+      message: "error",
+      error: "Failed to get canceled journey counts by reason",
+    });
+  }
+};
+
 module.exports = {
+  getCanceledJourneyCountsByReason,
   getCanceledJourneyCountsByDate,
   getCanceledJourneyByFilter,
   updateSeenByAdmin,

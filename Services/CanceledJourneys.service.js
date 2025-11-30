@@ -1583,12 +1583,7 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
       ORDER BY canceledDate
     `;
 
-    console.log("DEBUG - Canceled Journeys SQL:", countSql);
-    console.log("DEBUG - Canceled Journeys Query params:", queryParams);
-
     const [countRows] = await pool.query(countSql, queryParams);
-
-    console.log("DEBUG - Canceled Journeys Raw results:", countRows);
 
     // Transform results into the desired format { date: count, ... }
     const dateCounts = {};
@@ -1612,7 +1607,198 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
     };
   }
 };
+const getCanceledJourneyCountsByReason = async (filters = {}) => {
+  try {
+    const {
+      startDate,
+      endDate,
+      roleId,
+      contextType,
+      groupBy = "reason", // reason, role, or contextType
+      includeEmptyReasons = false,
+    } = filters;
+
+    // Build WHERE conditions
+    const whereConditions = ["1 = 1"];
+    const queryParams = [];
+
+    // Date range filter
+    if (startDate && endDate) {
+      whereConditions.push("cj.canceledTime BETWEEN ? AND ?");
+      queryParams.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
+    }
+
+    // Role filter
+    if (roleId) {
+      whereConditions.push("cj.roleId = ?");
+      queryParams.push(roleId);
+    }
+
+    // Context type filter
+    if (contextType) {
+      whereConditions.push("cj.contextType = ?");
+      queryParams.push(contextType);
+    }
+
+    const whereClause = whereConditions.join(" AND ");
+
+    // Determine grouping based on groupBy parameter
+    let groupByClause, selectFields;
+
+    switch (groupBy) {
+      case "role":
+        selectFields = `
+          crt.cancellationReason,
+          r.roleName as groupName,
+          COUNT(*) as count
+        `;
+        groupByClause = "crt.cancellationReason, r.roleName";
+        break;
+
+      case "contextType":
+        selectFields = `
+          crt.cancellationReason,
+          cj.contextType as groupName,
+          COUNT(*) as count
+        `;
+        groupByClause = "crt.cancellationReason, cj.contextType";
+        break;
+
+      case "reason":
+      default:
+        selectFields = `
+          crt.cancellationReason as reason,
+          COUNT(*) as qty
+        `;
+        groupByClause = "crt.cancellationReason";
+        break;
+    }
+
+    const sql = `
+      SELECT 
+        ${selectFields}
+      FROM CanceledJourneys cj
+      INNER JOIN CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
+      LEFT JOIN Roles r ON cj.roleId = r.roleId
+      WHERE ${whereClause}
+      GROUP BY ${groupByClause}
+      ORDER BY ${groupBy === "reason" ? "qty" : "count"} DESC
+    `;
+
+    console.log("DEBUG - Canceled Journeys by Reason SQL:", sql);
+    console.log("DEBUG - Query params:", queryParams);
+
+    const [results] = await pool.query(sql, queryParams);
+
+    // Transform results into array format
+    let formattedData;
+    let totalCanceled = 0;
+
+    switch (groupBy) {
+      case "role":
+        // Group by role: array of { role: "Driver", reasons: [{reason: "...", qty: 10}, ...] }
+        const rolesMap = {};
+        results.forEach((row) => {
+          totalCanceled += row.count;
+          if (!rolesMap[row.groupName]) {
+            rolesMap[row.groupName] = {
+              role: row.groupName,
+              reasons: [],
+            };
+          }
+          rolesMap[row.groupName].reasons.push({
+            reason: row.cancellationReason,
+            qty: row.count,
+          });
+        });
+        formattedData = Object.values(rolesMap);
+        break;
+
+      case "contextType":
+        // Group by context type: array of { contextType: "JourneyDecisions", reasons: [{reason: "...", qty: 10}, ...] }
+        const contextMap = {};
+        results.forEach((row) => {
+          totalCanceled += row.count;
+          if (!contextMap[row.groupName]) {
+            contextMap[row.groupName] = {
+              contextType: row.groupName,
+              reasons: [],
+            };
+          }
+          contextMap[row.groupName].reasons.push({
+            reason: row.cancellationReason,
+            qty: row.count,
+          });
+        });
+        formattedData = Object.values(contextMap);
+        break;
+
+      case "reason":
+      default:
+        // Simple array of { reason: "...", qty: 10 }
+        formattedData = results.map((row) => {
+          totalCanceled += row.qty;
+          return {
+            reason: row.reason,
+            qty: row.qty,
+          };
+        });
+        break;
+    }
+
+    // If includeEmptyReasons is true, get all reasons and include zeros
+    if (includeEmptyReasons && groupBy === "reason") {
+      const allReasonsSql = `
+        SELECT cancellationReason 
+        FROM CancellationReasonsType 
+        WHERE roleId = ? OR ? IS NULL
+      `;
+      const [allReasons] = await pool.query(allReasonsSql, [roleId, roleId]);
+
+      const existingReasons = new Set(formattedData.map((item) => item.reason));
+
+      allReasons.forEach((reasonRow) => {
+        const reason = reasonRow.cancellationReason;
+        if (!existingReasons.has(reason)) {
+          formattedData.push({
+            reason: reason,
+            qty: 0,
+          });
+        }
+      });
+
+      // Re-sort after adding zero-count reasons
+      formattedData.sort((a, b) => b.qty - a.qty);
+    }
+
+    return {
+      success: true,
+      message: "Canceled journey counts by reason retrieved successfully",
+      data: formattedData,
+      summary: {
+        totalCanceled,
+        totalReasons: formattedData.length,
+        dateRange: { startDate, endDate },
+      },
+      grouping: groupBy,
+      filters: {
+        startDate,
+        endDate,
+        roleId,
+        contextType,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching canceled journey counts by reason:", error);
+    return {
+      success: false,
+      message: "Failed to retrieve canceled journey counts by reason",
+      error: error.message,
+    };
+  }
+};
 module.exports = {
+  getCanceledJourneyCountsByReason,
   getCanceledJourneyCountsByDate,
   getCanceledJourneyByFilter,
   updateSeenByAdmin,
