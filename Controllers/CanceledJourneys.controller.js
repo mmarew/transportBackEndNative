@@ -348,16 +348,6 @@ const getCanceledJourneyByFilter = async (req, res) => {
   );
 };
 
-// Get specific canceled journey by ID
-const getCanceledJourneyById = async (req, res) => {
-  const { canceledJourneyUniqueId } = req.params;
-
-  await handleServiceResponse(
-    canceledJourneyService.getCanceledJourneyById(canceledJourneyUniqueId),
-    res
-  );
-};
-
 // Update seen by admin status
 const updateSeenByAdmin = async (req, res) => {
   const { canceledJourneyUniqueId } = req.params;
@@ -388,13 +378,71 @@ const deleteCanceledJourney = async (req, res) => {
     res
   );
 };
+const getCanceledJourneyCountsByDate = async (req, res) => {
+  try {
+    const fromDate = req?.query?.fromDate;
+    const toDate = req?.query?.toDate;
+    console.log("@getCanceledJourneyCountsByDate", req?.user);
+
+    const userRoleId = req?.user?.roleId;
+
+    // Validate required parameters
+    if (!fromDate || !toDate) {
+      return ServerResponder(res, {
+        success: false,
+        message: "error",
+        error: "fromDate and toDate are required",
+      });
+    }
+
+    let ownerUserUniqueId = req?.query?.ownerUserUniqueId || "all";
+
+    // Authorization check: only allow admin (3) or super admin (6) to access all data
+    if (ownerUserUniqueId === "all") {
+      const isAdmin = userRoleId === 3 || userRoleId === 6;
+      if (!isAdmin) {
+        // Non-admin users can only see their own data
+        ownerUserUniqueId = req?.user?.userUniqueId;
+      }
+    }
+
+    if (ownerUserUniqueId === "self") {
+      ownerUserUniqueId = req?.user?.userUniqueId;
+    }
+
+    // Build filters object matching your reference structure
+    const filters = {
+      ownerUserUniqueId,
+      toDate,
+      fromDate,
+      userFilters: {
+        fullName: req?.query?.fullName,
+        phone: req?.query?.phone,
+        email: req?.query?.email,
+        search: req?.query?.search,
+      },
+    };
+
+    await handleServiceResponse(
+      canceledJourneyService.getCanceledJourneyCountsByDate(filters),
+      res
+    );
+  } catch (error) {
+    console.error("Error getting canceled journey counts:", error);
+    ServerResponder(res, {
+      success: false,
+      message: "error",
+      error: "Failed to get canceled journey counts",
+    });
+  }
+};
 
 module.exports = {
+  getCanceledJourneyCountsByDate,
   getCanceledJourneyByFilter,
   updateSeenByAdmin,
   cancelJourneyBySystem,
   deleteCanceledJourney,
   updateCanceledJourney,
-  getCanceledJourneyById,
   createCanceledJourney,
 };

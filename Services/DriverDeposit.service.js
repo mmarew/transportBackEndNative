@@ -363,8 +363,6 @@ const deleteDriverDepositByUniqueId = async (driverDepositUniqueId) => {
     : { message: "error", error: "Delete failed or deposit not found" };
 };
 
-// Removed specialized date-range getter: use getDriverDeposit with startDate & endDate
-
 /**
  * @function updateDriverDepositStatusService
  * @description Updates the deposit status of a specific driver deposit record.
@@ -456,7 +454,6 @@ const updateDriverDepositStatusService = async ({
     };
   }
 };
-// Removed unauthorized helpers; use consolidated getter with depositStatus filter as needed
 
 module.exports = {
   updateDriverDepositStatusService,

@@ -134,12 +134,11 @@ const routes = [
     handler: canceledJourneyController.getCanceledJourneyByFilter,
   },
 
-  // Individual resource operations
   {
-    path: "/api/admin/canceledJourney/:canceledJourneyUniqueId",
     method: "get",
+    path: "/api/user/getCanceledJourneyCountsByDate",
     middleware: [verifyTokenOfAxios],
-    handler: canceledJourneyController.getCanceledJourneyById,
+    handler: canceledJourneyController.getCanceledJourneyCountsByDate,
   },
   {
     path: "/api/admin/canceledJourney/:canceledJourneyUniqueId",
