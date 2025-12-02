@@ -29,6 +29,7 @@
   "description": "",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
+    "axios": "^1.13.2",
     "basic-ftp": "^5.0.5",
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.2",

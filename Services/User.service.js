@@ -4,6 +4,7 @@ const { pool } = require("../Middleware/Database.config");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
+const { sendOtpViaAfroSMS } = require("../Utils/smsSender");
 const createJWT = require("../Utils/CreateJWT");
 const currentDate = require("../Utils/CurrentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
@@ -221,7 +222,8 @@ const registerNewUser = async ({
   );
 
   if (requestedFrom === "user") {
-    const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+    // send otp to users via AfroMessage SMS
+    const smsResult = await sendOtpViaAfroSMS(phoneNumber, OTP);
     if (smsResult.message === "success") {
       return {
         message: "success",
@@ -311,7 +313,7 @@ const createUser = async (body) => {
       };
     }
 
-    if (savedUser.length === 1) {
+    if (savedUser.length >= 1) {
       const existingUser = savedUser[0];
 
       if (phoneNumber !== existingUser.phoneNumber) {
@@ -530,7 +532,7 @@ const updateOtpForUser = async ({
   });
 
   if (updateOtpResult.affectedRows > 0) {
-    const smsResult = await sendOtpViaWebSocket(phoneNumber, OTP);
+    const smsResult = await sendOtpViaAfroSMS(phoneNumber, OTP);
     if (smsResult.message === "success") {
       return {
         message: "success",
@@ -776,6 +778,7 @@ const loginUser = async (phoneNumber, roleId) => {
   const userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
   const statusId = userRoleStatus?.[0]?.statusId;
   const res = await handleExistingUser({
+    requestedFrom: "user",
     user: userData,
     roleId,
     statusId,
