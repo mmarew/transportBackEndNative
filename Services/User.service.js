@@ -4,7 +4,7 @@ const { pool } = require("../Middleware/Database.config");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
-const { sendOtpViaAfroSMS } = require("../Utils/smsSender");
+const { sendSms } = require("../Utils/smsSender");
 const createJWT = require("../Utils/CreateJWT");
 const currentDate = require("../Utils/CurrentDate");
 const { insertData } = require("../CRUD/Create/CreateData");
@@ -223,7 +223,7 @@ const registerNewUser = async ({
 
   if (requestedFrom === "user") {
     // send otp to users via AfroMessage SMS
-    const smsResult = await sendOtpViaAfroSMS(phoneNumber, OTP);
+    const smsResult = await sendSms(phoneNumber, OTP);
     if (smsResult.message === "success") {
       return {
         message: "success",
@@ -532,7 +532,7 @@ const updateOtpForUser = async ({
   });
 
   if (updateOtpResult.affectedRows > 0) {
-    const smsResult = await sendOtpViaAfroSMS(phoneNumber, OTP);
+    const smsResult = await sendSms(phoneNumber, OTP);
     if (smsResult.message === "success") {
       return {
         message: "success",

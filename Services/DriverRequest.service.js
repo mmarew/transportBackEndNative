@@ -17,6 +17,7 @@ const {
   sendSocketIONotificationToAdmin,
   sendNotificationToDriver,
 } = require("../Utils/Notifications");
+const { sendSms } = require("../Utils/smsSender");
 const { createJourneyRoutePoint } = require("./JourneyRoutePoints.service");
 
 // Removed granular VehicleOwnership getters; use performJoinSelect instead
@@ -142,6 +143,19 @@ const takeFromStreet = async (body, user) => {
     if (userPassenger.message === "error")
       return { message: "error", error: "Unable to create user" };
     const dataOfPassenger = userPassenger?.dataOfPassenger;
+
+    // Send welcome SMS to passenger when picked up from street
+    if (phoneNumber) {
+      const driverName = user?.fullName || "Driver";
+      const itemName = body?.shippableItemName || "your items";
+      const welcomeMessage = `Hello! Your transport of ${itemName} with ${driverName} has been registered and started. Thank you for using our transport service. Have a safe journey!`;
+      try {
+        await sendSms(phoneNumber, null, welcomeMessage);
+      } catch (smsError) {
+        // Don't fail the request if SMS fails, just log the error
+        console.error("@takeFromStreet SMS Error:", smsError);
+      }
+    }
 
     // const passengerUserUniqueId = dataOfPassenger?.userUniqueId;
     // create a passenger request in passengerRequest table using createPassengerRequest function from passengerRequest.service

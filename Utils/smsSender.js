@@ -1,9 +1,11 @@
 const axios = require("axios");
 
-const sendOtpViaAfroSMS = async (receiverPhoneNumber, otp) => {
+const sendSms = async (
+  receiverPhoneNumber,
+  otp = null,
+  customMessage = null
+) => {
   try {
-    console.log(`AfroMessage SMS: ${receiverPhoneNumber} - ${otp}`);
-
     // Get configuration from environment variables
     const token = process.env.SMS_TOKEN;
     const baseUrl = process.env.AFRO_BASE_URL;
@@ -29,29 +31,49 @@ const sendOtpViaAfroSMS = async (receiverPhoneNumber, otp) => {
     }
 
     if (!receiverPhoneNumber) {
-      console.error("AfroMessage SMS: ReceiverPhone Number is missing");
+      console.error("AfroMessage SMS: Receiver Phone Number is missing");
       return { message: "error", error: "Receiver Phone Number is required" };
     }
 
-    if (!otp) {
-      console.error("AfroMessage SMS: OTP is missing");
-      return { message: "error", error: "OTP is required" };
-    }
-
-    if (!otpTemplate) {
-      console.error("AfroMessage SMS: OTP_TEMPLATE is missing");
-      return { message: "error", error: "OTP_TEMPLATE is not configured" };
-    }
-
-    // Convert OTP to string and prepare message by replacing #OTP# placeholder
-    const otpString = String(otp);
+    // Determine the message to send and track if it's OTP
     let message = "";
+    let isOtpMessage = false;
 
-    // Check if template contains #OTP# placeholder
-    if (otpTemplate.includes("#OTP#")) {
-      message = otpTemplate.replace(/#OTP#/g, otpString);
-    } else {
-      message = otpTemplate.trim() + " " + otpString;
+    // If custom message is provided, use it directly
+    if (customMessage) {
+      message = customMessage;
+      isOtpMessage = false;
+      console.log(`AfroMessage SMS: ${receiverPhoneNumber} - Custom Message`);
+    }
+    // If OTP is provided, use OTP template
+    else if (otp !== null && otp !== undefined) {
+      isOtpMessage = true;
+      if (!otpTemplate) {
+        console.error("AfroMessage SMS: OTP_TEMPLATE is missing");
+        return { message: "error", error: "OTP_TEMPLATE is not configured" };
+      }
+
+      const otpString = String(otp);
+      console.log(
+        `AfroMessage SMS: ${receiverPhoneNumber} - OTP: ${otpString}`
+      );
+
+      // Check if template contains #OTP# placeholder
+      if (otpTemplate.includes("#OTP#")) {
+        message = otpTemplate.replace(/#OTP#/g, otpString);
+      } else {
+        message = otpTemplate.trim() + " " + otpString;
+      }
+    }
+    // Neither OTP nor custom message provided
+    else {
+      console.error(
+        "AfroMessage SMS: Either OTP or custom message is required"
+      );
+      return {
+        message: "error",
+        error: "Either OTP or custom message is required",
+      };
     }
 
     const postfields = {
@@ -88,7 +110,10 @@ const sendOtpViaAfroSMS = async (receiverPhoneNumber, otp) => {
     if (status === 200) {
       if (data && data.acknowledge === "success") {
         console.log("AfroMessage SMS: Success - ", JSON.stringify(data));
-        return { message: "success", data: "OTP sent successfully" };
+        const successMessage = isOtpMessage
+          ? "OTP sent successfully"
+          : "SMS sent successfully";
+        return { message: "success", data: successMessage };
       } else {
         console.error("AfroMessage SMS: API Error - ", JSON.stringify(data));
         return {
@@ -137,5 +162,5 @@ const sendOtpViaAfroSMS = async (receiverPhoneNumber, otp) => {
 };
 
 module.exports = {
-  sendOtpViaAfroSMS,
+  sendSms,
 };
