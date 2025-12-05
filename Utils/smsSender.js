@@ -118,7 +118,7 @@ const sendSms = async (
         console.error("AfroMessage SMS: API Error - ", JSON.stringify(data));
         return {
           message: "error",
-          error: "SMS API returned error: " + JSON.stringify(data),
+          error: "SMS API returned error: " + data?.response?.errors?.[0], // + JSON.stringify(data),
         };
       }
     } else {
