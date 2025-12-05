@@ -158,10 +158,17 @@ WHERE AttachedDocuments.userUniqueId = ?
       let hasActiveSubscription = true;
       if (Number(roleId) === usersRoles.driverRoleId) {
         try {
+          console.log(
+            "@usersRoles.driverRoleId",
+            usersRoles.driverRoleId,
+            "@roleId",
+            roleId
+          );
           const subs = await getAllOrActiveDriverSubscriptionsByDriverUUId({
             driverUniqueId: ownerUserUniqueId,
             isActive: true,
           });
+          console.log("@subs", subs);
           hasActiveSubscription = (subs?.data?.length || 0) > 0;
         } catch (e) {
           hasActiveSubscription = false; // default to no active subscription on error

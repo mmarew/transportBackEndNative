@@ -394,6 +394,7 @@ const activeJourneyStatuses = [
 
 const cancellationReasons = [
   { cancellationReason: "Driver too late", roleId: 1 },
+  { cancellationReason: "Driver did not answered requests", roleId: 2 },
   { cancellationReason: "Change of plans", roleId: 1 },
   { cancellationReason: "Driver took too long", roleId: 1 },
   { cancellationReason: "Found another ride", roleId: 1 },

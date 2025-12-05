@@ -696,14 +696,14 @@ const journeyCompleted = async (body) => {
   }
 };
 
-const cancelDriverRequest = async (body) => {
+const cancelDriverRequest = async (data) => {
   try {
-    const user = body?.user;
-    const roleId = body?.roleId;
+    const user = data?.user;
+    const roleId = data?.roleId;
     const userUniqueId = user?.userUniqueId;
-    const ownerUserUniqueId = body?.ownerUserUniqueId,
-      passengerUserUniqueId = body?.passengerUserUniqueId;
-    const cancellationReasonsTypeId = body?.cancellationReasonsTypeId;
+    const ownerUserUniqueId = data?.ownerUserUniqueId,
+      passengerUserUniqueId = data?.passengerUserUniqueId;
+    const cancellationReasonsTypeId = data?.cancellationReasonsTypeId;
 
     // Check if the driver has any active requests
 

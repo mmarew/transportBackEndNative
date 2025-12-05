@@ -647,7 +647,7 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlan (
 );
 
 
--- Dynamic pricing by effective date
+--  pricing for Subscription Plan Dynamic by effective date
 CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
   pricingId INT AUTO_INCREMENT PRIMARY KEY,
   subscriptionPlanPricingUniqueId VARCHAR(36) NOT NULL UNIQUE,
