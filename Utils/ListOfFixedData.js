@@ -8,6 +8,16 @@ const usersRoles = {
   systemRoleId: 5,
   supperAdminRoleId: 6,
 };
+const usersRolesList = {
+  passenger: { roleId: 1, roleName: "passenger" },
+  driver: { roleId: 2, roleName: "driver" },
+  admin: { roleId: 3, roleName: "admin" },
+  vehicleOwner: { roleId: 4, roleName: "vehicle owner" },
+  system: { roleId: 5, roleName: "system" },
+  supperAdmin: { roleId: 6, roleName: "supper admin" },
+  unknownRoleId: { roleId: 7, roleName: "unknown role id" },
+  unknownRoleName: { roleId: 7, roleName: "unknown role name" },
+};
 const roleList = [
   {
     roleId: 1,
@@ -651,6 +661,7 @@ module.exports = {
   vehicleTypes,
   driversDocumentRequirement,
   listOfDocuments,
+  usersRolesList,
   roleList,
   statusList,
   usersRoles,

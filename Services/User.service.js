@@ -14,13 +14,17 @@ const verifyPassword = require("../Utils/VerifyPassword");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
-const { usersRoles } = require("../Utils/ListOfFixedData");
+const { usersRoles, usersRolesList } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByFilter } = require("./UserRole.service");
-const { getUserRoleStatus } = require("./UserRoleStatus.service");
+const {
+  getUserRoleStatus,
+  getUserRoleStatusCurrent,
+} = require("./UserRoleStatus.service");
 const { createFreeGiftToDriver } = require("./FreeGiftToDriver.service");
 const {
   getAllSubscriptionPlansWithPricing,
 } = require("./SubscriptionPlan.service");
+const { promises } = require("stream");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -106,19 +110,30 @@ const handleExistingUser = async ({
   statusId,
   userRoleStatusDescription = "no description",
 }) => {
-  // Generate OTP
-  const OTP = Math.floor(100000 + Math.random() * 900000);
   const userUniqueId = user.userUniqueId;
   if (!userUniqueId)
     return {
       message: "error",
       error: "wrong user data",
     };
-  const credential = await getData({
-    tableName: "usersCredential",
-    conditions: { userUniqueId },
-  });
-  //
+
+  // Generate OTP
+  const OTP = Math.floor(100000 + Math.random() * 900000);
+
+  const [credential] = await Promise.all([
+    getData({
+      tableName: "usersCredential",
+      conditions: { userUniqueId },
+    }),
+    // Handle existing user: Insert/Update roles and statuses
+    handleUserRoleStatus(
+      user.userUniqueId,
+      roleId,
+      statusId,
+      userRoleStatusDescription
+    ),
+  ]);
+  console.log("@credential", credential);
   // create new credential if it does not exist
   if (credential?.length === 0) {
     //create new credential by hashing OTP
@@ -134,13 +149,7 @@ const handleExistingUser = async ({
       },
     });
   }
-  // Handle existing user: Insert/Update roles and statuses
-  await handleUserRoleStatus(
-    user.userUniqueId,
-    roleId,
-    statusId,
-    userRoleStatusDescription
-  );
+
   console.log("to be hashed otp ", OTP); //to be hashed otp  615949
   const hashedOTP = await bcrypt.hash(String(OTP), 10);
   console.log("hashedOTP", hashedOTP);
@@ -325,7 +334,34 @@ const createUser = async (body) => {
 
       const savedEmail = existingUser?.email;
 
+      /******************************************************************************
+       * MODULE: Passenger Data Update Handler
+       *
+       * DESCRIPTION:
+       * Manages email and name updates for passenger users (roleId = 2).
+       * Implements business rules for email verification and data integrity.
+       *
+       * BUSINESS RULES:
+       * 1. Email Protection: Verified emails cannot be changed
+       * 2. Email Replacement: Fake emails can be replaced with real ones
+       * 3. Name Initialization: Full name can be set once
+       *
+       * EMAIL TYPES:
+       * - Fake Email: fakeEmail_<random>@passenger.com (can be replaced)
+       * - Real Email: Any other format (cannot be changed)
+       *
+       * ERROR CASES:
+       * - Attempt to change verified email → "Wrong email match to current phone number"
+       *
+       * @param {number} roleId - User role identifier (1 = passenger,2=driver etc)
+       * @param {string} savedEmail - Current email in database
+       * @param {string} email - New email to set
+       * @param {string} fullName - New full name to set
+       * @param {Object} existingUser - Complete user record
+       ******************************************************************************/
+
       if (roleId == 2) {
+        // [Rule 1] Prevent verified email changes
         if (
           savedEmail &&
           !savedEmail.startsWith("fakeEmail_") &&
@@ -339,6 +375,7 @@ const createUser = async (body) => {
           };
         }
 
+        // [Rule 2] Allow fake email replacement
         if (
           ((savedEmail?.startsWith("fakeEmail_") &&
             savedEmail?.endsWith("@passenger.com")) ||
@@ -352,6 +389,7 @@ const createUser = async (body) => {
           });
         }
 
+        // [Rule 3] Allow initial name setting
         if (!existingUser?.fullName && fullName) {
           await updateData({
             tableName: "Users",
@@ -430,17 +468,17 @@ const handleUserRoleStatus = async (
       conditions: { userRoleId },
     });
     console.log("@userRoleStatus", userRoleStatus);
-
-    const colAndVal = {
-      userRoleStatusUniqueId: uuidv4(),
-      userRoleStatusCreatedBy: userUniqueId,
-      userRoleId,
-      userRoleStatusDescription,
-      // if role is 2, user is a driver, then statusId will be 2 for driver because drivers data must be active after aproval by admin
-      statusId: roleId == 2 ? 2 : statusId,
-      userRoleStatusCreatedAt: currentDate(),
-    };
     if (userRoleStatus.length === 0) {
+      const colAndVal = {
+        userRoleStatusUniqueId: uuidv4(),
+        userRoleStatusCreatedBy: userUniqueId,
+        userRoleId,
+        userRoleStatusDescription,
+        // if role is 2, user is a driver, then statusId will be 2 for driver because drivers data must be active after approval by admin
+        statusId: roleId == 2 ? 2 : statusId,
+        userRoleStatusCreatedAt: currentDate(),
+      };
+
       // Insert new UserRoleStatus if not found
       await insertData({
         tableName: "UserRoleStatusCurrent",
@@ -484,40 +522,7 @@ const handleUserRoleStatus = async (
     throw error;
   }
 };
-const getUserByUserUniqueIdAndRoleUniqueId = async (
-  userUniqueId,
-  roleUniqueId
-) => {
-  const rows = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        table: "UserRole",
-        on: "UserRole.userUniqueId=Users.userUniqueId",
-      },
-      {
-        table: "Roles",
-        on: "UserRole.roleId=Roles.roleId",
-      },
-      {
-        table: "UserRoleStatusCurrent",
-        on: "UserRole.userRoleId=UserRoleStatusCurrent.userRoleId",
-      },
-      {
-        table: "Statuses",
-        on: "UserRoleStatusCurrent.statusId=Statuses.statusId",
-      },
-    ],
-    conditions: {
-      "Roles.roleUniqueId": roleUniqueId,
-      "Users.userUniqueId": userUniqueId,
-    },
-  });
-  return {
-    message: "success",
-    data: rows,
-  };
-};
+
 // Helper function to update OTP and send notification
 const updateOtpForUser = async ({
   userUniqueId,
@@ -551,12 +556,10 @@ const updateOtpForUser = async ({
 
 const verifyUserByOTP = async (req) => {
   try {
-    console.log("req.query in verifyUserByOTP", req.query);
     if (!req?.body?.OTP || !req?.body?.phoneNumber) {
       return { message: "error", error: "OTP and phoneNumber are required" };
     }
     const { OTP, phoneNumber } = req.body;
-    console.log("@verifyUserByOTP phoneNumber", phoneNumber);
     const verifyUserExistence = await performJoinSelect({
       baseTable: "Users",
       joins: [
@@ -574,22 +577,21 @@ const verifyUserByOTP = async (req) => {
       return { message: "error", error: "user not found in verify otp" };
     }
 
-    const { userUniqueId, fullName, email } = verifyUserExistence[0];
+    const { userUniqueId, fullName, email } = verifyUserExistence?.[0];
     const hashedOTP = verifyUserExistence[0].OTP;
     const verifyOTP = await verifyPassword({
       hashedPassword: hashedOTP,
       notHashedPassword: OTP,
     });
-    console.log("@verifyUserByOTP verifyOTP", verifyOTP);
     if (verifyOTP.error) {
       return { message: "error", error: "OTP verification failed" };
     }
-    console.log("@verifyUserByOTP userUniqueId", userUniqueId);
-    console.log("@verifyUserByOTP roleId", roleId);
+
     const userInRoleId = await getData({
       tableName: "UserRole",
       conditions: { roleId, userUniqueId },
     });
+
     console.log("@userInRoleId", userInRoleId);
     if (userInRoleId.length === 0) {
       return { message: "error", error: "user not found in this role" };
@@ -742,48 +744,87 @@ const getUsersByRoleUniqueId = async (
     data: rows,
   };
 };
-
 const loginUser = async (phoneNumber, roleId) => {
-  const filters = { search: phoneNumber };
-  const data = await getUserByFilterDetailed(filters);
-  console.log("@loginUser data", data);
-  if (data?.message === "error") return data;
-  const userData = data?.data?.[0].user;
-  console.log("@loginUser userData", userData);
-  // return;
-  if (!userData)
+  try {
+    // Early validation
+    if (!phoneNumber?.trim() || !roleId) {
+      return {
+        message: "error",
+        error: "Phone number and role ID are required.",
+      };
+    }
+
+    const cleanPhoneNumber = phoneNumber.trim();
+
+    // PARALLEL FETCH: All three queries can run simultaneously
+    const [userDataResult, rolesResult, userRoleStatusResult] =
+      await Promise.all([
+        // 1. Get user by phone number
+        getUserByFilterDetailed({ search: cleanPhoneNumber }),
+
+        // 2. Get user roles using phone number as search
+        getUserRoleListByFilter({
+          search: cleanPhoneNumber, // Use phone number for search
+          limit: 10,
+          page: 1,
+          sortBy: "userRoleCreatedAt",
+          sortOrder: "DESC",
+        }),
+
+        // 3. Get user role status
+        // getUserRoleStatus({ roleId, phoneNumber: cleanPhoneNumber }),
+        getUserRoleStatusCurrent({
+          data: { roleId, search: cleanPhoneNumber },
+        }),
+      ]);
+    console.log("@userRoleStatusResult", userRoleStatusResult);
+    // Check user exists
+    if (
+      userDataResult?.message === "error" ||
+      !userDataResult?.data?.[0]?.user
+    ) {
+      return {
+        message: "error",
+        error:
+          "User not found at this phone/email address. Please sign up first.",
+      };
+    }
+
+    const userData = userDataResult.data[0].user;
+
+    // Check if user has this role
+    // Since we searched by phone number, we need to filter by userUniqueId and roleId
+    const userRoles = rolesResult?.data || [];
+    const hasRole = userRoles.some(
+      (role) =>
+        role.userUniqueId === userData.userUniqueId && role.roleId == roleId
+    );
+
+    if (!hasRole) {
+      return {
+        message: "error",
+        error:
+          "User not found at this role using this address. Please sign up for this role first.",
+      };
+    }
+
+    const statusId = userRoleStatusResult?.data?.[0]?.statusId;
+
+    const res = await handleExistingUser({
+      requestedFrom: "user",
+      user: userData,
+      roleId,
+      statusId,
+    });
+
+    return res;
+  } catch (error) {
+    console.error("Login error:", error);
     return {
       message: "error",
-      error:
-        "User not found at this phone/email address. Please sign up first.",
-    };
-  // check if this user has this role
-  const listOfRoles = (
-    await getUserRoleListByFilter({
-      filters: { userUniqueId: userData?.userUniqueId },
-      limit: 100,
-      page: 1,
-    })
-  )?.data;
-  console.log("@loginUser listOfRoles", listOfRoles);
-  const isRoleFound = listOfRoles?.some((role) => role.roleId == roleId);
-  console.log("@loginUser isRoleFound", isRoleFound);
-  if (!isRoleFound) {
-    return {
-      message: "error",
-      error: "User not found at this address and roles. Please sign up first.",
+      error: "Login failed. Please try again.",
     };
   }
-  // get user status based on current roleId
-  const userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
-  const statusId = userRoleStatus?.[0]?.statusId;
-  const res = await handleExistingUser({
-    requestedFrom: "user",
-    user: userData,
-    roleId,
-    statusId,
-  });
-  return res;
 };
 
 const deleteUser = async (userUniqueId) => {
@@ -1171,7 +1212,6 @@ module.exports = {
   createUserSystem,
   getUserByUserUniqueId,
   getUsersByRoleUniqueId,
-  getUserByUserUniqueIdAndRoleUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,

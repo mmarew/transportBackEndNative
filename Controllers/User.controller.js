@@ -51,22 +51,7 @@ const loginUser = async (req, res) => {
     });
   }
 };
-const getUserByUserUniqueIdAndRoleUniqueId = async (req, res) => {
-  try {
-    const response = await services.getUserByUserUniqueIdAndRoleUniqueId(
-      req.params.userUniqueId,
-      req.params.roleUniqueId
-    );
-    console.log("@getUserByUserUniqueIdAndRoleUniqueId response", response);
-    ServerResponder(res, response);
-  } catch (error) {
-    console.log("Error:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to retrieve user",
-    });
-  }
-};
+
 const verifyUserByOTP = async (req, res, next) => {
   try {
     ServerResponder(res, await services.verifyUserByOTP(req));
@@ -368,7 +353,6 @@ const createUserByAdminOrSuperAdmin = async (req, res) => {
 module.exports = {
   createUserByAdminOrSuperAdmin,
   getUsersByRoleUniqueId,
-  getUserByUserUniqueIdAndRoleUniqueId,
   updateUser,
   verifyUserByOTP,
   createUser,

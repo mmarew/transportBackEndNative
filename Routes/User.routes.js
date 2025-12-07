@@ -37,11 +37,7 @@ router.put(
   upload.any(),
   controller.updateUser
 );
-router.get(
-  "/api/user/getUser/:ownerUserUniqueId",
-  verifyTokenOfAxios,
-  controller.getUser
-);
+
 router.delete(
   "/api/user/deleteUser/:userUniqueId",
   verifyTokenOfAxios,

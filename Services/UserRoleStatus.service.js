@@ -46,35 +46,6 @@ const createUserRoleStatus = async (body) => {
   };
 };
 
-// Get UserRoleStatus by unique ID
-const getUserRoleStatus = async (body) => {
-  const { phoneNumber, roleId } = body;
-  const userData = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        // userUniqueId=c36b8be2-64c8-49bf-82f8-27ec7e2313a6
-        table: "UserRole",
-        on: "Users.userUniqueId = UserRole.userUniqueId",
-      },
-      {
-        // userRoleId=2
-        table: "UserRoleStatusCurrent",
-        on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
-      },
-      {
-        table: "Statuses",
-        on: "UserRoleStatusCurrent.statusId = Statuses.statusId",
-      },
-    ],
-    conditions: {
-      "UserRole.roleId": roleId,
-      phoneNumber,
-    },
-  });
-  return userData;
-};
-
 // Update UserRoleStatus and move old status to history
 const updateUserRoleStatus = async (updateDataValues) => {
   try {
@@ -152,12 +123,14 @@ const handleUpdateResponces = async ({ roleId, statusId, phoneNumber }) => {
   try {
     // if user is driver(roleId == 2 ) and not attached docs and vehicle (statusId ==3)
     if (roleId == 2 && statusId == 3) {
-      const driver = await getUserRoleStatus({ roleId, phoneNumber });
+      const driver = await getUserRoleStatusCurrent({
+        data: { roleId, search: phoneNumber },
+      });
       await sendSocketIONotificationToAdmin({
         message: {
           message: "success",
           request: "approve or reject driver's document",
-          driver,
+          driver: driver?.data,
         },
         phoneNumber,
       });
@@ -290,7 +263,7 @@ const getUserRoleStatusCurrent = async ({ data }) => {
     let queryParams = [];
 
     // SEARCH BLOCK - Search across multiple user and role fields
-    if (data.search) {
+    if (data?.search) {
       whereConditions.push(`(
     u.fullName LIKE ? OR 
     u.phoneNumber LIKE ? OR 
@@ -301,7 +274,7 @@ const getUserRoleStatusCurrent = async ({ data }) => {
     ursc.userRoleStatusDescription LIKE ?
   )`);
 
-      const searchPattern = `%${data.search}%`;
+      const searchPattern = `%${data?.search}%`;
       // Add the same pattern for all 7 search conditions
       queryParams.push(
         searchPattern, // u.fullName
@@ -458,159 +431,6 @@ module.exports = {
   getUserRoleStatusCurrent,
   userRoleStatusByPhone,
   createUserRoleStatus,
-  getUserRoleStatus,
   updateUserRoleStatus,
   deleteUserRoleStatus,
 };
-
-// // Additional method to get user role status by user UUID
-// const getUserRoleStatusByUser = async (req, res) => {
-//   try {
-//     const { userUniqueId } = req.params;
-//     const { roleId, statusId, includeHistory = false } = req.query;
-
-//     let whereConditions = ['ur.userUniqueId = ?'];
-//     let queryParams = [userUniqueId];
-
-//     if (roleId) {
-//       whereConditions.push('ur.roleId = ?');
-//       queryParams.push(roleId);
-//     }
-
-//     if (statusId) {
-//       whereConditions.push('ursc.statusId = ?');
-//       queryParams.push(statusId);
-//     }
-
-//     const query = `
-//       SELECT
-//         ursc.*,
-//         ur.userUniqueId,
-//         ur.roleId,
-//         u.fullName as userName,
-//         u.phoneNumber as userPhone,
-//         u.email as userEmail,
-//         r.roleName,
-//         r.roleDescription,
-//         s.statusName,
-//         s.statusDescription,
-//         uc.fullName as createdByName
-//       FROM UserRoleStatusCurrent ursc
-//       INNER JOIN UserRole ur ON ursc.userRoleId = ur.userRoleId
-//       INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-//       INNER JOIN Roles r ON ur.roleId = r.roleId
-//       INNER JOIN Statuses s ON ursc.statusId = s.statusId
-//       LEFT JOIN Users uc ON ursc.userRoleStatusCreatedBy = uc.userUniqueId
-//       WHERE ${whereConditions.join(' AND ')}
-//       ORDER BY ursc.userRoleStatusCreatedAt DESC
-//     `;
-
-//     const [results] = await db.execute(query, queryParams);
-
-//     let responseData = { currentStatus: results };
-
-//     // Include history if requested
-//     if (includeHistory === 'true' && results.length > 0) {
-//       const userRoleIds = results.map(item => item.userRoleId);
-//       const placeholders = userRoleIds.map(() => '?').join(',');
-
-//       const historyQuery = `
-//         SELECT
-//           ursh.*,
-//           s.statusName,
-//           s.statusDescription,
-//           uc.fullName as createdByName,
-//           uu.fullName as updatedByName,
-//           ud.fullName as deletedByName
-//         FROM UserRoleStatusHistory ursh
-//         INNER JOIN Statuses s ON ursh.statusId = s.statusId
-//         LEFT JOIN Users uc ON ursh.userRoleStatusCreatedBy = uc.userUniqueId
-//         LEFT JOIN Users uu ON ursh.userRoleStatusUpdatedBy = uu.userUniqueId
-//         LEFT JOIN Users ud ON ursh.userRoleStatusDeletedBy = ud.userUniqueId
-//         WHERE ursh.userRoleId IN (${placeholders})
-//         ORDER BY ursh.userRoleStatusCreatedAt DESC
-//       `;
-
-//       const [historyResults] = await db.execute(historyQuery, userRoleIds);
-//       responseData.history = historyResults;
-//     }
-
-//     res.json({
-//       success: true,
-//       data: responseData
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching user role status by user:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // Method to get user role status statistics
-// const getUserRoleStatusStats = async (req, res) => {
-//   try {
-//     const { roleId, statusId } = req.query;
-
-//     let whereConditions = ['1 = 1'];
-//     let queryParams = [];
-
-//     if (roleId) {
-//       whereConditions.push('ur.roleId = ?');
-//       queryParams.push(roleId);
-//     }
-
-//     if (statusId) {
-//       whereConditions.push('ursc.statusId = ?');
-//       queryParams.push(statusId);
-//     }
-
-//     const statsQuery = `
-//       SELECT
-//         r.roleName,
-//         s.statusName,
-//         COUNT(*) as count
-//       FROM UserRoleStatusCurrent ursc
-//       INNER JOIN UserRole ur ON ursc.userRoleId = ur.userRoleId
-//       INNER JOIN Roles r ON ur.roleId = r.roleId
-//       INNER JOIN Statuses s ON ursc.statusId = s.statusId
-//       WHERE ${whereConditions.join(' AND ')}
-//       GROUP BY r.roleName, s.statusName
-//       ORDER BY r.roleName, s.statusName
-//     `;
-
-//     const [results] = await db.execute(statsQuery, queryParams);
-
-//     // Transform to more usable format
-//     const stats = results.reduce((acc, row) => {
-//       if (!acc[row.roleName]) {
-//         acc[row.roleName] = {};
-//       }
-//       acc[row.roleName][row.statusName] = row.count;
-//       return acc;
-//     }, {});
-
-//     res.json({
-//       success: true,
-//       data: stats,
-//       total: results.reduce((sum, row) => sum + parseInt(row.count), 0)
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching user role status stats:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//       error: error.message
-//     });
-//   }
-// };
-
-// module.exports = {
-//   getUserRoleStatusCurrent,
-//   getUserRoleStatusByUser,
-//   getUserRoleStatusStats
-// };
