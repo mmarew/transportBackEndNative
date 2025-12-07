@@ -3,8 +3,8 @@ const { getVehicleDrivers } = require("./VehicleDriver.service");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const {
-  getUserRoleStatus,
   updateUserRoleStatus,
+  getUserRoleStatusCurrent,
 } = require("./UserRoleStatus.service");
 const {
   findStatusByVehicleAndDocuments,
@@ -19,7 +19,7 @@ const createMapping = async ({ body }) => {
     userUniqueId,
   } = body;
 
-  // verify existance of roleid
+  // verify existence of roleid
   const roleExists = await getData({
     tableName: "Roles",
     conditions: { roleId },
@@ -28,7 +28,7 @@ const createMapping = async ({ body }) => {
   if (roleExists.length === 0) {
     return { message: "error", data: "Role not found" };
   }
-  //  verify existance of documentTypeId
+  //  verify existence of documentTypeId
   const documentTypeExists = await getData({
     tableName: "DocumentTypes",
     conditions: { documentTypeId },
@@ -268,12 +268,17 @@ const driversDocumentVehicleRequirement = async (body) => {
     const userRoleStatusDescription = body?.userRoleStatusDescription;
     console.log(" roleId, phoneNumber", roleId, phoneNumber);
     // Fetch initial user data based on role ID and phone number
-    let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
-    if (!userRoleStatus || userRoleStatus.length === 0) {
+    let userRoleStatus = await getUserRoleStatusCurrent({
+      data: { roleId, search: phoneNumber },
+    });
+    console.log("@userRoleStatus", userRoleStatus);
+    // return;
+    if (!userRoleStatus || userRoleStatus.data.length === 0) {
       return { message: "error", data: "User data not found" };
     }
 
-    const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
+    const { userRoleStatusUniqueId, userRoleId, statusId } =
+      userRoleStatus?.data?.[0];
     // return;
     // Fetch required documents for the user's role via consolidated getter
     const requiredDocsResult = await getRoleDocumentRequirements({
@@ -386,12 +391,14 @@ WHERE AttachedDocuments.userUniqueId = ?
     }
     //get latest user role status
 
-    const userData = await getUserRoleStatus({ roleId, phoneNumber });
+    const userData = await getUserRoleStatusCurrent({
+      data: { roleId, search: phoneNumber },
+    });
     return {
       message: "success",
       messageType: "driversDocumentVehicleRequirement",
       vehicle: userVehicle[0] || null,
-      userData: userData[0] || null,
+      userData: userData?.data?.[0] || null,
       attachedDocumentsByStatus,
       unAttachedDocumentTypes, // Documents that are required but not attached
     };

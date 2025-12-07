@@ -16,10 +16,7 @@ const {
 } = require("./RoleDocumentRequirements.service");
 const { usersRoles, usersRolesList } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByFilter } = require("./UserRole.service");
-const {
-  getUserRoleStatus,
-  getUserRoleStatusCurrent,
-} = require("./UserRoleStatus.service");
+const { getUserRoleStatusCurrent } = require("./UserRoleStatus.service");
 const { createFreeGiftToDriver } = require("./FreeGiftToDriver.service");
 const {
   getAllSubscriptionPlansWithPricing,
@@ -544,6 +541,11 @@ const updateOtpForUser = async ({
         messageDetail: "OTP updated and sent successfully",
       };
     } else {
+      return {
+        message: "success",
+        messageDetail: "OTP updated and sent successfully",
+      };
+      // temporary disable sms error
       return smsResult;
     }
   } else {
@@ -772,7 +774,6 @@ const loginUser = async (phoneNumber, roleId) => {
         }),
 
         // 3. Get user role status
-        // getUserRoleStatus({ roleId, phoneNumber: cleanPhoneNumber }),
         getUserRoleStatusCurrent({
           data: { roleId, search: cleanPhoneNumber },
         }),

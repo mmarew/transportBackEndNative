@@ -1,8 +1,8 @@
 const { getUserByUserUniqueId } = require("./User.service");
 const { getVehicleDrivers } = require("./VehicleDriver.service");
 const {
-  getUserRoleStatus,
   updateUserRoleStatus,
+  getUserRoleStatusCurrent,
 } = require("./UserRoleStatus.service");
 const {
   getRoleDocumentRequirements,
@@ -49,11 +49,14 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
     const enableDocumentChecks = true;
 
     // 1) Fetch current user role status
-    let userRoleStatus = await getUserRoleStatus({ roleId, phoneNumber });
-    if (!userRoleStatus || userRoleStatus.length === 0) {
+    let userRoleStatus = await getUserRoleStatusCurrent({
+      data: { roleId, search: phoneNumber },
+    });
+    if (!userRoleStatus || userRoleStatus?.data?.length === 0) {
       return { message: "error", data: "User data not found" };
     }
-    const { userRoleStatusUniqueId, userRoleId, statusId } = userRoleStatus[0];
+    const { userRoleStatusUniqueId, userRoleId, statusId } =
+      userRoleStatus?.data?.[0];
 
     // 2) Required documents for role (if enabled)
     let requiredDocuments = [];
@@ -68,14 +71,6 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
       requiredDocuments = requiredDocsResult?.data || [];
     }
 
-    // 3) Attached documents for the owner user
-    //     const sql = `
-    // SELECT DISTINCT   AttachedDocuments.*,  DocumentTypes.*,
-    //   RoleDocumentRequirements.* FROM AttachedDocuments
-    // JOIN DocumentTypes    ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
-    // JOIN RoleDocumentRequirements    ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
-    // WHERE AttachedDocuments.userUniqueId = ?
-    // `;
     const sql = `SELECT DISTINCT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*
 FROM AttachedDocuments
 JOIN DocumentTypes
@@ -211,12 +206,14 @@ WHERE AttachedDocuments.userUniqueId = ?
     }
 
     // 10) Return latest
-    const latestUserData = await getUserRoleStatus({ roleId, phoneNumber });
+    const latestUserData = await getUserRoleStatusCurrent({
+      data: { roleId, search: phoneNumber },
+    });
     return {
       message: "success",
       messageType: "accountStatus",
       vehicle: userVehicle?.[0] || null,
-      userData: latestUserData?.[0] || null,
+      userData: latestUserData?.data?.[0] || null,
       attachedDocumentsByStatus,
       unAttachedDocumentTypes,
       requiredDocuments,
