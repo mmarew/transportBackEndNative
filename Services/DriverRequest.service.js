@@ -706,7 +706,7 @@ const cancelDriverRequest = async (data) => {
     const cancellationReasonsTypeId = data?.cancellationReasonsTypeId;
 
     // Check if the driver has any active requests
-
+    console.log("@ownerUserUniqueId", ownerUserUniqueId);
     const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
 
     if (getActiveRequest.length === 0) {

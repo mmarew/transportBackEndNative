@@ -25,7 +25,7 @@ router.post(
   verifyAdminsIdentity,
   controller.createUser
 );
-// log in user by phone number
+// log in / register user by phone number
 router.get("/api/user/loginUser", controller.loginUser);
 // login and single-user-by-role routes removed — use getUserByFilterDetailed instead
 router.post("/api/user/verifyUserByOTP", controller.verifyUserByOTP);
