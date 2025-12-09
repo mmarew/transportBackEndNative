@@ -277,7 +277,8 @@ const registerNewUser = async ({
   };
 };
 
-const createUser = async (body) => {
+const createUser = async (req) => {
+  const body = req.body;
   const requestedFrom = body?.requestedFrom || "user";
   const {
     fullName,
@@ -574,6 +575,7 @@ const verifyUserByOTP = async (req) => {
         phoneNumber,
       },
     });
+    console.log("@verifyUserExistence", verifyUserExistence);
     const roleId = req.body.roleId;
     if (!verifyUserExistence || verifyUserExistence.length === 0) {
       return { message: "error", error: "user not found in verify otp" };
@@ -588,10 +590,11 @@ const verifyUserByOTP = async (req) => {
     if (verifyOTP.error) {
       return { message: "error", error: "OTP verification failed" };
     }
-
+    const conditions = { roleId, userUniqueId };
+    console.log("@conditions", conditions);
     const userInRoleId = await getData({
       tableName: "UserRole",
-      conditions: { roleId, userUniqueId },
+      conditions,
     });
 
     console.log("@userInRoleId", userInRoleId);

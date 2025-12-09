@@ -28,11 +28,18 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     let userUniqueId = body?.userUniqueId;
     // when admin is creating request for shipper create user first
     if (shipperRequestCreatedByRoleId == 3) {
+      const randNumber = Math.floor(1000 + Math.random() * 900000);
       const createdUser = await createUser({
-        phoneNumber: shipperPhoneNumber,
+        body: {
+          phoneNumber: shipperPhoneNumber,
+          fullName: "Auto Created Shipper",
+          roleId: 1,
+          statusId: 1,
 
-        roleId: 1,
-        statusId: 1,
+          email: `fakeEmail_${randNumber}@passenger.com`,
+
+          userRoleStatusDescription: "",
+        },
       });
       const dataOfPassenger = createdUser?.dataOfPassenger;
       // set userUniqueId to newly created user
@@ -74,7 +81,7 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     }
     const statusData = await verifyPassengerStatus({
       userUniqueId,
-      activeRequest: null, // newRequest?.data,
+      activeRequest: null,
       sendNotificationsToDrivers: true,
     });
     return { ...statusData, newRequests };
