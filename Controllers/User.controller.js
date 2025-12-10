@@ -65,6 +65,13 @@ const deleteUser = async (req, res) => {
 
 const getUserByFilterDetailed = async (req, res) => {
   try {
+    const userUniqueId = req?.query?.userUniqueId;
+    // console.log("@req?.user?.userUniqueId", req?.user?.userUniqueId);
+    console.log("@userUniqueId", userUniqueId);
+    if (userUniqueId === "self") {
+      req.query.userUniqueId = req?.user?.userUniqueId;
+    }
+    console.log("@ req.query.userUniqueId ", req.query.userUniqueId);
     // Accept filters via query string, and optional pagination
     const filters = req.query || {};
     const page = req.query.page || 1;

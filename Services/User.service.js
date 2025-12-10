@@ -862,6 +862,7 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
     whereParts.push(`Users.userUniqueId = ?`);
     params.push(filters.userUniqueId);
   }
+  console.log("@getUserByFilterDetailed filters", filters);
   if (filters.phoneNumber) {
     whereParts.push(`Users.phoneNumber LIKE ?`);
     params.push(`%${filters.phoneNumber}%`);
