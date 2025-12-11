@@ -126,6 +126,8 @@ const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
   try {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
+    const roleId = user?.roleId;
+    console.log("@verifyIfOperationIsAllowedByUserDriver user", user);
     // You can get the full URL using req.originalUrl or req.baseUrl + req.path
     // For example:
     const fullUrl = req.originalUrl;
@@ -133,20 +135,23 @@ const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
     // Step 1: Check if the user has a Driver role
     const userRoles = await getData({
       tableName: "UserRole",
-      conditions: { userUniqueId, roleId: 2 }, // 2 indicates the Driver role
+      conditions: { userUniqueId, roleId }, // 2 indicates the Driver role
     });
+
+    console.log("@userRoles", userRoles);
 
     // If user has driver role, reject the request
     if (userRoles?.length > 0) {
       if (fullUrl == "/api/user/updateUser/self") {
+        //driver can update its email or fullname if it was empty
         if (!user?.fullName || !user?.email) return next();
+        // driver can't update other things by itself
+        return res.status(403).json({
+          message: "error",
+          error: "This action is not allowed for drivers.",
+          status: null,
+        });
       }
-      console.log("@not allowed action to driver");
-      return res.status(403).json({
-        message: "error",
-        error: "This action is not allowed for drivers.",
-        status: null,
-      });
     }
 
     // If user doesn't have driver role, proceed to next middleware

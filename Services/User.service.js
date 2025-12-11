@@ -1065,33 +1065,8 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
 
 const updateUser = async (body) => {
   const { userUniqueId, fullName, phoneNumber, email, roleId, statusId } = body;
-  // check if email is reserved by another user]
-  const userDataByEmail = await getData({
-    tableName: "Users",
-    conditions: { email },
-  });
-  console.log("@userDataByEmail", userDataByEmail);
-  if (
-    userDataByEmail?.length > 0 &&
-    userDataByEmail?.[0]?.userUniqueId !== userUniqueId
-  ) {
-    return {
-      message: "error",
-      error: "Email already exists",
-    };
-  }
-  const userDataByPhoneNumber = await getData({
-    tableName: "Users",
-    conditions: { phoneNumber },
-  });
-  console.log("@userDataByPhoneNumber", userDataByPhoneNumber);
-  if (userDataByPhoneNumber?.[0]?.userUniqueId !== userUniqueId) {
-    return {
-      message: "error",
-      error: "Phone number already exists",
-    };
-  }
-  // Ensure required fields are provided
+
+  // Validate required field
   if (!userUniqueId) {
     return {
       message: "error",
@@ -1099,11 +1074,61 @@ const updateUser = async (body) => {
     };
   }
 
-  // Optional fields for update
   const updateValues = {};
+  const errors = [];
+
+  // Check if email is reserved by another user
+  if (email) {
+    const userDataByEmail = await getData({
+      tableName: "Users",
+      conditions: { email },
+    });
+
+    if (userDataByEmail?.length > 0) {
+      // Check if the found user is different from the current user
+      if (userDataByEmail[0].userUniqueId !== userUniqueId) {
+        errors.push("Email already exists");
+      } else {
+        // Same user, can update email
+        updateValues.email = email;
+      }
+    } else {
+      // Email doesn't exist in the system, can update
+      updateValues.email = email;
+    }
+  }
+
+  // Check if phone number is reserved by another user
+  if (phoneNumber) {
+    const userDataByPhoneNumber = await getData({
+      tableName: "Users",
+      conditions: { phoneNumber },
+    });
+
+    if (userDataByPhoneNumber?.length > 0) {
+      // Check if the found user is different from the current user
+      if (userDataByPhoneNumber[0].userUniqueId !== userUniqueId) {
+        errors.push("Phone number already exists");
+      } else {
+        // Same user, can update phone number
+        updateValues.phoneNumber = phoneNumber;
+      }
+    } else {
+      // Phone number doesn't exist in the system, can update
+      updateValues.phoneNumber = phoneNumber;
+    }
+  }
+
+  // Return errors if any
+  if (errors.length > 0) {
+    return {
+      message: "error",
+      error: errors.join(", "),
+    };
+  }
+
+  // Optional fields for update
   if (fullName) updateValues.fullName = fullName;
-  if (phoneNumber) updateValues.phoneNumber = phoneNumber;
-  if (email) updateValues.email = email;
 
   try {
     // Update the user's information if there are any fields to update
@@ -1121,12 +1146,15 @@ const updateUser = async (body) => {
         };
       }
     }
+
+    // Create new token with updated information
     const tokenData = createJWT({
       userUniqueId,
-      fullName,
-      phoneNumber,
-      email,
-      roleId,
+      fullName: fullName || updateValues.fullName,
+      phoneNumber: phoneNumber || updateValues.phoneNumber,
+      email: email || updateValues.email,
+      roleId: roleId,
+      statusId: statusId,
     });
 
     return {
@@ -1142,7 +1170,7 @@ const updateUser = async (body) => {
     };
   }
 };
-// Create User By Admin Or Super Admin. Register any user with any role
+
 const createUserByAdminOrSuperAdmin = async ({ body, userUniqueId }) => {
   const { fullName, phoneNumber, email, roleId, statusId } = body;
   const userRoleStatusDescription = "";
