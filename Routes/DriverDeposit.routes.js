@@ -40,4 +40,17 @@ router.patch(
   controller.updateDriverDepositStatus
 );
 
+// Initiate SantimPay payment
+router.post(
+  "/api/driverDeposit/initiateSantimPay",
+  verifyTokenOfAxios,
+  controller.initiateSantimPayPayment
+);
+
+// SantimPay webhook (no auth required - SantimPay calls this)
+router.post(
+  "/api/driverDeposit/santimPay/webhook",
+  controller.handleSantimPayWebhook
+);
+
 module.exports = router;
