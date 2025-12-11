@@ -115,3 +115,81 @@ exports.updateDriverDepositStatus = async (req, res) => {
     });
   }
 };
+
+
+exports.initiateSantimPayPayment = async (req, res) => {
+  try {
+    const driverUniqueId = req?.user?.userUniqueId;
+    const phoneNumber = req?.user?.phoneNumber; // Get from authenticated user
+    const { depositAmount } = req.body;
+
+    if (!depositAmount || depositAmount <= 0) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "Valid deposit amount is required",
+      });
+    }
+
+    if (!phoneNumber) {
+      return ServerResponder(res, {
+        message: "error",
+        error:
+          "Phone number not found in user profile. Please update your profile.",
+      });
+    }
+
+    const result = await service.initiateSantimPayPaymentService({
+      driverUniqueId,
+      depositAmount,
+      phoneNumber: phoneNumber || "",
+    });
+
+    // Log payment URL in response for easy access
+    if (result.message === "success" && result.data.paymentUrl) {
+      console.log("\n========================================");
+      console.log("🎯 SANTIMPAY PAYMENT URL (Click to open):");
+      console.log("========================================");
+      console.log(result.data.paymentUrl);
+      console.log("========================================\n");
+    }
+
+    ServerResponder(res, result);
+  } catch (error) {
+    console.error("Initiate SantimPay payment error:", error);
+    ServerResponder(res, {
+      message: "error",
+      error: error.message || "Failed to initiate payment",
+    });
+  }
+};
+
+
+exports.handleSantimPayWebhook = async (req, res) => {
+  try {
+    const webhookData = req.body;
+    const signedToken =
+      req.headers["signed-token"] || req.headers["Signed-Token"];
+
+    console.log("SantimPay Webhook received:", webhookData);
+    console.log("Signed Token:", signedToken);
+
+    const result = await service.handleSantimPayWebhookService({
+      webhookData,
+      signedToken,
+    });
+
+    // Always return 200 to SantimPay to acknowledge receipt
+    ServerResponder(res, result, 200);
+  } catch (error) {
+    console.error("SantimPay webhook error:", error);
+    // Still return 200 to prevent SantimPay from retrying
+    ServerResponder(
+      res,
+      {
+        message: "error",
+        error: error.message || "Webhook processing failed",
+      },
+      200
+    );
+  }
+};
