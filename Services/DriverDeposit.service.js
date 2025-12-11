@@ -488,10 +488,277 @@ const updateDriverDepositStatusService = async ({
   }
 };
 
+
+const initiateSantimPayPaymentService = async ({
+  driverUniqueId,
+  depositAmount,
+  phoneNumber = "",
+}) => {
+  try {
+    const { generatePaymentUrl } = require("../Utils/SantimPayService");
+    const { createDepositSource } = require("./DepositSource.service");
+    const { pool } = require("../Middleware/Database.config");
+    const currentDate = require("../Utils/CurrentDate");
+
+    // 1. Get or create SantimPay deposit source
+    const depositSourceResult = await createDepositSource({
+      sourceKey: "santimpay",
+      sourceLabel: "SantimPay Automatic Payment",
+    });
+
+    if (depositSourceResult.message === "error") {
+      return depositSourceResult;
+    }
+
+    const depositSourceUniqueId =
+      depositSourceResult.data.depositSourceUniqueId;
+
+    // 2. Get system account (you may need to adjust this based on your system)
+    // For now, we'll get the first active account or create a system account
+    const accountSql = `
+      SELECT accountUniqueId FROM FinancialInstitutionAccounts 
+      WHERE isActive = TRUE 
+      LIMIT 1
+    `;
+    const [accounts] = await pool.query(accountSql);
+
+    if (accounts.length === 0) {
+      return {
+        message: "error",
+        error:
+          "No active financial institution account found. Please create one first.",
+      };
+    }
+
+    const accountUniqueId = accounts[0].accountUniqueId;
+
+    // 3. Create driver deposit record with PENDING status
+    const driverDepositUniqueId = uuidv4();
+    const depositTime = currentDate();
+    const paymentReason = `Driver Deposit - ${depositAmount} ETB`;
+
+    // Use driverDepositUniqueId as the transaction ID (id) for SantimPay
+    const depositURL = driverDepositUniqueId; // Will be updated with txnId from webhook
+
+    const depositData = {
+      driverDepositUniqueId,
+      driverUniqueId,
+      depositAmount: parseFloat(depositAmount),
+      depositSourceUniqueId,
+      accountUniqueId,
+      depositTime,
+      depositURL,
+      depositStatus: "PENDING", // Start with PENDING status
+    };
+
+    const createResult = await createDriverDeposit(depositData);
+
+    if (createResult.message === "error") {
+      return createResult;
+    }
+
+    // 4. Generate SantimPay payment URL
+    const paymentUrl = await generatePaymentUrl(
+      driverDepositUniqueId, // Use driverDepositUniqueId as transaction ID
+      parseFloat(depositAmount),
+      paymentReason,
+      phoneNumber
+    );
+
+    // Log payment URL for easy testing (you can click this in browser)
+    console.log("\n========================================");
+    console.log("🎯 SANTIMPAY PAYMENT URL:");
+    console.log("========================================");
+    console.log(paymentUrl);
+    console.log("========================================\n");
+
+    return {
+      message: "success",
+      data: {
+        driverDepositUniqueId,
+        paymentUrl,
+        depositAmount: parseFloat(depositAmount),
+        status: "PENDING",
+      },
+    };
+  } catch (error) {
+    console.error("Initiate SantimPay payment service error:", error);
+    return {
+      message: "error",
+      error: error.message || "Failed to initiate payment",
+    };
+  }
+};
+
+
+const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
+  try {
+    const {
+      txnId,
+      thirdPartyId, // This is our driverDepositUniqueId
+      status,
+      amount,
+      paymentVia,
+      message,
+      refId,
+    } = webhookData;
+
+    console.log("Processing webhook:", {
+      txnId,
+      thirdPartyId,
+      status,
+      amount,
+      paymentVia,
+    });
+
+    // Validate required fields
+    if (!txnId || !thirdPartyId || !status) {
+      return {
+        message: "error",
+        error:
+          "Missing required webhook fields: txnId, thirdPartyId, or status",
+      };
+    }
+
+    // Find deposit by driverDepositUniqueId (thirdPartyId)
+    const depositResult = await getDriverDeposit({
+      driverDepositUniqueId: thirdPartyId,
+      limit: 1,
+    });
+
+    if (
+      !depositResult.data ||
+      !Array.isArray(depositResult.data) ||
+      depositResult.data.length === 0
+    ) {
+      return {
+        message: "error",
+        error: `Deposit not found for driverDepositUniqueId: ${thirdPartyId}`,
+      };
+    }
+
+    const deposit = depositResult.data[0];
+
+    // Check if already processed (avoid duplicate processing)
+    if (deposit.depositStatus === "COMPLETED" && deposit.depositURL === txnId) {
+      return {
+        message: "success",
+        data: "Webhook already processed",
+      };
+    }
+
+    // Map SantimPay status to DriverDeposit status
+    let newStatus;
+    switch (status.toUpperCase()) {
+      case "COMPLETED":
+        newStatus = "COMPLETED";
+        break;
+      case "FAILED":
+      case "DECLINED":
+        newStatus = "FAILED";
+        break;
+      case "PENDING":
+        newStatus = "PENDING";
+        break;
+      default:
+        newStatus = "PENDING";
+    }
+
+    // Search for payment method account by paymentVia (e.g., "Telebirr", "M-Pesa")
+    let accountUniqueId = deposit.accountUniqueId; // Keep existing account if payment method not found
+    if (paymentVia && paymentVia.trim().length > 0) {
+      const paymentMethodSql = `
+        SELECT accountUniqueId FROM FinancialInstitutionAccounts 
+        WHERE LOWER(institutionName) = LOWER(?) AND isActive = TRUE
+        LIMIT 1
+      `;
+      const [paymentMethodAccounts] = await pool.query(paymentMethodSql, [
+        paymentVia.trim(),
+      ]);
+
+      if (paymentMethodAccounts.length > 0) {
+        accountUniqueId = paymentMethodAccounts[0].accountUniqueId;
+        console.log(
+          `Found payment method account for ${paymentVia}: ${accountUniqueId}`
+        );
+      } else {
+        console.log(
+          `Payment method "${paymentVia}" not found in FinancialInstitutionAccounts, using existing account`
+        );
+      }
+    }
+
+    // Update deposit with transaction ID, status, and account (if payment method found)
+    const updateSql = `
+      UPDATE DriverDeposit 
+      SET 
+        depositStatus = ?,
+        depositURL = ?,
+        acceptRejectReason = ?,
+        accountUniqueId = ?
+      WHERE driverDepositUniqueId = ?
+    `;
+
+    const reasonMessage = message || `Payment via ${paymentVia || "SantimPay"}`;
+    const [updateResult] = await pool.query(updateSql, [
+      newStatus,
+      txnId, // Store SantimPay transaction ID in depositURL
+      reasonMessage,
+      accountUniqueId, // Update account if payment method found
+      thirdPartyId,
+    ]);
+
+    if (updateResult.affectedRows === 0) {
+      return {
+        message: "error",
+        error: "Failed to update deposit",
+      };
+    }
+
+    // If status is COMPLETED, update driver balance
+    if (newStatus === "COMPLETED") {
+      const {
+        prepareAndCreateNewBalance,
+      } = require("./DriverBalance.service/DriverBalance.post.service");
+
+      const balanceResult = await prepareAndCreateNewBalance({
+        addOrDeduct: "add",
+        amount: parseFloat(amount || deposit.depositAmount),
+        driverUniqueId: deposit.driverUniqueId,
+        transactionType: "Deposit",
+        transactionUniqueId: thirdPartyId,
+      });
+
+      if (balanceResult.message === "error") {
+        console.error("Failed to update driver balance:", balanceResult.error);
+        // Don't fail the webhook, but log the error
+      }
+    }
+
+    return {
+      message: "success",
+      data: {
+        driverDepositUniqueId: thirdPartyId,
+        txnId,
+        status: newStatus,
+        updated: true,
+      },
+    };
+  } catch (error) {
+    console.error("Handle SantimPay webhook service error:", error);
+    return {
+      message: "error",
+      error: error.message || "Failed to process webhook",
+    };
+  }
+};
+
 module.exports = {
   updateDriverDepositStatusService,
   getDriverDeposit,
   createDriverDeposit,
   updateDriverDepositByUniqueId,
   deleteDriverDepositByUniqueId,
+  initiateSantimPayPaymentService,
+  handleSantimPayWebhookService,
 };
