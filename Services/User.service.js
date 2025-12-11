@@ -22,6 +22,7 @@ const {
   getAllSubscriptionPlansWithPricing,
 } = require("./SubscriptionPlan.service");
 const { promises } = require("stream");
+const deleteData = require("../CRUD/Delete/DeleteData");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -831,20 +832,35 @@ const loginUser = async (phoneNumber, roleId) => {
   }
 };
 
-const deleteUser = async (userUniqueId) => {
-  const result = await deleteData({
-    tableName: "Users",
-    conditions: { userUniqueId },
-  });
-  const deleteCredential = await deleteData({
-    tableName: "usersCredential",
-    conditions: { userUniqueId },
-  });
+const deleteUser = async ({ userUniqueId, deletedBy }) => {
+  if (!userUniqueId)
+    return {
+      message: "error",
+      error: "unable to delete user",
+    };
+  const deletedAt = new Date();
+  const isDeleted = true;
+  const sql =
+    "update Users set deletedAt=?,deletedBy=?,isDeleted=? where userUniqueId=? ";
+  const values = [deletedAt, deletedBy, isDeleted, userUniqueId];
+  // const result = await deleteData({
+  //   tableName: "Users",
+  //   conditions: { userUniqueId },
+  // });
+  // const deleteCredential = await deleteData({
+  //   tableName: "usersCredential",
+  //   conditions: { userUniqueId },
+  // });
 
   //  delete requests of user
 
   //  delete requests of user
-  return { message: "success", data: "user deleted successfully" };
+  const deleteResults = await pool.query(sql, values);
+  return {
+    message: "success",
+    data: "user deleted successfully",
+    deleteResults,
+  };
 };
 
 const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
@@ -914,9 +930,9 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
 
   const sql = `
   SELECT DISTINCT
-    Users.userId, Users.userUniqueId, Users.fullName, Users.phoneNumber, 
-    Users.email, Users.createdAt, Users.createdBy,
-    
+    -- Users.userId, Users.userUniqueId, Users.fullName, Users.phoneNumber, 
+   --  Users.email, Users.createdAt, Users.createdBy, Users.deletedAt, Users.deletedBy, Users.isDeleted,
+    Users.*, 
     UserRole.userRoleId, UserRole.userRoleUniqueId, UserRole.roleId,
     UserRole.userRoleCreatedBy, UserRole.userRoleCreatedAt,
     
@@ -980,6 +996,9 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10) => {
             email: row.email,
             createdAt: row.createdAt,
             createdBy: row.createdBy,
+            deletedAt: row.deletedAt,
+            isDeleted: row.isDeleted,
+            deletedBy: row.deletedBy,
           },
           rolesAndStatuses: [],
           banUniqueId: null, // Will be set if any role has a ban

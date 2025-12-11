@@ -57,12 +57,18 @@ CREATE TABLE IF NOT EXISTS JourneyStatus (
 CREATE TABLE IF NOT EXISTS Users (
     userId INT AUTO_INCREMENT PRIMARY KEY,
     userUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the user
-    fullName VARCHAR(255) ,  -- Full name of the user
+    fullName VARCHAR(255),  -- Full name of the user
     phoneNumber VARCHAR(15) NOT NULL UNIQUE,  -- Phone number of the user
-    email VARCHAR(55) ,  -- Email of the user
+    email VARCHAR(55),  -- Email of the user
     createdAt DATETIME NOT NULL,  -- When the user was created
-    createdBy VARCHAR(36) not null -- NULL Who created the user
-) ;
+    createdBy VARCHAR(36) NOT NULL,  -- Who created the user
+    deletedAt DATETIME NULL,  -- When the user was deleted
+    deletedBy VARCHAR(36) NULL,  -- Who deleted the user
+    isDeleted BOOLEAN NOT NULL DEFAULT FALSE,  -- Soft deletion flag
+    INDEX idx_users_isDeleted (isDeleted),
+    INDEX idx_users_deletedAt (deletedAt),
+    INDEX idx_users_phoneNumber (phoneNumber)
+);
 
 
  -- Create the UsersHistory Table

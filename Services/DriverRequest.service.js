@@ -10,7 +10,11 @@ const {
   insertData,
   createDriverRequest,
 } = require("../CRUD/Create/CreateData");
-const { getUserByUserUniqueId, createUser } = require("./User.service");
+const {
+  getUserByUserUniqueId,
+  createUser,
+  getUserByFilterDetailed,
+} = require("./User.service");
 const { v4: uuidv4 } = require("uuid");
 const {
   sendSocketIONotificationToPassenger,
@@ -51,7 +55,25 @@ const {
 } = require("./UsersCurrentStatus");
 const { pool } = require("../Middleware/Database.config");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
-
+// driver is healthy if it is not deleted and status id is if and only if 1
+const checkIfDriverIsHealthy = async (userUniqueId) => {
+  const filters = { userUniqueId };
+  const userDetails = await getUserByFilterDetailed(filters);
+  const data = userDetails?.data?.[0];
+  let isHealthy = true;
+  // is not deleted
+  if (data?.user?.isDeleted) isHealthy = false;
+  const rolesAndStatuses = data?.rolesAndStatuses;
+  // check status
+  rolesAndStatuses?.map((RS) => {
+    if (RS?.userRoles?.roleId == 2) {
+      if (RS?.userRoleStatuses?.statusId != 1) {
+        isHealthy = false;
+      }
+    }
+  });
+  return isHealthy;
+};
 const createRequest = async ({
   body,
   findNewRequest = true,
@@ -60,7 +82,10 @@ const createRequest = async ({
   try {
     // 1. find user unique id from user object
     const userUniqueId = body?.userUniqueId;
-
+    const isDriverHealthy = await checkIfDriverIsHealthy(userUniqueId);
+    if (!isDriverHealthy) {
+      return { message: "error", error: "you can't create requests" };
+    }
     // 2. Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
 

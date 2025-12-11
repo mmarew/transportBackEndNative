@@ -52,7 +52,23 @@ const verifyUserByOTP = async (req, res, next) => {
 
 const deleteUser = async (req, res) => {
   try {
-    const response = await services.deleteUser(req.params.userUniqueId);
+    const user = req.user;
+    const deletedBy = user?.userUniqueId;
+    const roleId = user.roleId;
+    console.log("@deleteUser roleId", roleId);
+    //user must be either 3=admin or 6=supperAdmin or itself
+    if (roleId != 3 && roleId != 6 && deletedBy != userUniqueId) {
+      return ServerResponder(res, {
+        message: "error",
+        error: "you can't delete this user",
+      });
+    }
+    console.log("@deletedBy", deletedBy);
+    // return deletedBy;
+    const response = await services.deleteUser({
+      userUniqueId: req.params.userUniqueId,
+      deletedBy,
+    });
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);
