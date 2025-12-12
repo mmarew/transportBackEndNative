@@ -606,7 +606,7 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     const driverRequest = activeRequest?.[0];
-
+    console.log("@driverRequest", driverRequest);
     if (!driverRequest) {
       return {
         message: "success",
@@ -617,8 +617,8 @@ const verifyDriverStatus = async ({ userUniqueId, activeRequest }) => {
     }
 
     // Step 3: Validate journey status
-    const journeyStatusId = driverRequest.journeyStatusId;
-    if (journeyStatusId > journeyStatusMap.journeyCompleted) {
+    const journeyStatusId = driverRequest?.journeyStatusId;
+    if (journeyStatusId > journeyStatusMap?.journeyCompleted) {
       return {
         message: "success",
         data: "This request is not active at the moment",

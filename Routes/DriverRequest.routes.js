@@ -96,7 +96,7 @@ router.delete(
 router.get(
   "/api/driver/verifyDriverStatus",
   verifyTokenOfAxios,
-  verifyDriversIdentity,
+  // verifyDriversIdentity,
   verifyDriverStatusController
 );
 // api/user/getDriverRequest?driverUniqueId=uuidv4&target=allOrSingleDriverRequests
