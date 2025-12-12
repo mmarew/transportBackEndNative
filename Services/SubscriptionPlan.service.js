@@ -10,7 +10,7 @@ const createSubscriptionPlan = async ({
   const checkSql = `SELECT * FROM SubscriptionPlan WHERE planName = ?`;
   const [existing] = await pool.query(checkSql, [planName]);
   if (existing.length > 0) {
-    return { message: "success", data: existing };
+    return { message: "error", error: "Plan name already exists" };
   }
 
   const subscriptionPlanUniqueId = uuidv4();
@@ -31,31 +31,100 @@ const createSubscriptionPlan = async ({
   };
 };
 
-// Get all
-const getAllSubscriptionPlans = async () => {
-  const sql = `SELECT * FROM SubscriptionPlan  ORDER BY SubscriptionPlan.createdAt DESC`;
-  const [result] = await pool.query(sql);
-  return { message: "success", data: result };
-};
-// Get all with pricing
-const getAllSubscriptionPlansWithPricing = async () => {
-  const sql = `
-    SELECT sp.*, spp.*
-    FROM SubscriptionPlan sp
-    LEFT JOIN SubscriptionPlanPricing spp ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
-    ORDER BY sp.createdAt DESC
-  `;
-  const [result] = await pool.query(sql);
-  return { message: "success", data: result };
-};
-// Get by uniqueId
-const getSubscriptionPlanByUniqueId = async (uniqueId) => {
-  const sql = `SELECT * FROM SubscriptionPlan join SubscriptionPlanPricing on SubscriptionPlan.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE SubscriptionPlan.subscriptionPlanUniqueId = ? `;
-  const [result] = await pool.query(sql, [uniqueId]);
+// Single method to handle both all plans and single plan with filters
+const getSubscriptionPlans = async (filters = {}) => {
+  const {
+    subscriptionPlanUniqueId,
+    planName,
+    isFree,
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "DESC",
+  } = filters;
 
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "Subscription plan not found" };
+  let whereConditions = [];
+  let queryParams = [];
+
+  // Build WHERE conditions
+  if (subscriptionPlanUniqueId) {
+    whereConditions.push("subscriptionPlanUniqueId = ?");
+    queryParams.push(subscriptionPlanUniqueId);
+  }
+
+  if (planName) {
+    whereConditions.push("planName LIKE ?");
+    queryParams.push(`%${planName}%`);
+  }
+
+  if (isFree !== undefined) {
+    whereConditions.push("isFree = ?");
+    queryParams.push(isFree);
+  }
+
+  const whereClause =
+    whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
+
+  // Handle pagination
+  const offset = (page - 1) * limit;
+
+  try {
+    // If getting single plan by ID, don't paginate
+    if (subscriptionPlanUniqueId) {
+      const sql = `
+        SELECT * FROM SubscriptionPlan
+        ${whereClause}
+        LIMIT 1
+      `;
+
+      const [result] = await pool.query(sql, queryParams);
+
+      if (result.length === 0) {
+        return { message: "error", error: "Subscription plan not found" };
+      }
+
+      return {
+        message: "success",
+        data: result[0],
+      };
+    }
+
+    // Get total count for pagination
+    const countSql = `SELECT COUNT(*) as total FROM SubscriptionPlan ${whereClause}`;
+    const [countResult] = await pool.query(countSql, queryParams);
+    const total = countResult[0]?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    // Get paginated results
+    const sql = `
+      SELECT * FROM SubscriptionPlan
+      ${whereClause}
+      ORDER BY ${sortBy} ${sortOrder}
+      LIMIT ? OFFSET ?
+    `;
+
+    const allParams = [...queryParams, limit, offset];
+    const [result] = await pool.query(sql, allParams);
+
+    return {
+      message: "success",
+      data: result,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
+  } catch (err) {
+    console.error("Error fetching subscription plans:", err);
+    return {
+      message: "error",
+      error: "Database error while fetching subscription plans",
+    };
+  }
 };
 
 // Update by uniqueId
@@ -87,7 +156,7 @@ const updateSubscriptionPlan = async (
           isFree,
         },
       }
-    : { message: "error", error: "Failed to update subscription plan 111111" };
+    : { message: "error", error: "Failed to update subscription plan" };
 };
 
 // Delete by uniqueId
@@ -104,10 +173,8 @@ const deleteSubscriptionPlan = async (uniqueId) => {
 };
 
 module.exports = {
-  getAllSubscriptionPlansWithPricing,
   createSubscriptionPlan,
-  getAllSubscriptionPlans,
-  getSubscriptionPlanByUniqueId,
+  getSubscriptionPlans,
   updateSubscriptionPlan,
   deleteSubscriptionPlan,
 };

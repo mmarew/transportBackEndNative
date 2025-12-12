@@ -18,44 +18,45 @@ exports.createSubscriptionPlan = async (req, res) => {
     });
   }
 };
-exports.getAllSubscriptionPlansWithPricing = async (req, res) => {
+
+// Single GET endpoint for subscription plans only
+exports.getSubscriptionPlans = async (req, res) => {
   try {
-    const result =
-      await subscriptionPlanService.getAllSubscriptionPlansWithPricing();
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Error fetching subscription plans with pricing:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch subscription plans with pricing",
+    const {
+      subscriptionPlanUniqueId, // For getting specific plan
+      planName,
+      isFree,
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "DESC",
+    } = req.query;
+
+    // Build filter object
+    const filters = {
+      subscriptionPlanUniqueId,
+      planName,
+      isFree: isFree ? isFree === "true" : undefined,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sortBy,
+      sortOrder: sortOrder.toUpperCase(),
+    };
+
+    // Remove undefined filters
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] === undefined || filters[key] === "") {
+        delete filters[key];
+      }
     });
-  }
-};
-exports.getAllSubscriptionPlans = async (req, res) => {
-  try {
-    const result = await subscriptionPlanService.getAllSubscriptionPlans();
+
+    const result = await subscriptionPlanService.getSubscriptionPlans(filters);
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error fetching subscription plans:", error);
     ServerResponder(res, {
       message: "error",
       error: "Failed to fetch subscription plans",
-    });
-  }
-};
-
-exports.getSubscriptionPlanByUniqueId = async (req, res) => {
-  try {
-    const { uniqueId } = req.params;
-    const result = await subscriptionPlanService.getSubscriptionPlanByUniqueId(
-      uniqueId
-    );
-    ServerResponder(res, result);
-  } catch (error) {
-    console.error("Error fetching subscription plan:", error);
-    ServerResponder(res, {
-      message: "error",
-      error: "Failed to fetch subscription plan",
     });
   }
 };
