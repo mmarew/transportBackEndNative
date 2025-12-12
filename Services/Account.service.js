@@ -1,4 +1,7 @@
-const { getUserByUserUniqueId } = require("./User.service");
+const {
+  getUserByUserUniqueId,
+  getUserByFilterDetailed,
+} = require("./User.service");
 const { getVehicleDrivers } = require("./VehicleDriver.service");
 const {
   updateUserRoleStatus,
@@ -13,7 +16,7 @@ const {
 const { pool } = require("../Middleware/Database.config");
 const { usersRoles } = require("../Utils/ListOfFixedData");
 const {
-  getAllOrActiveDriverSubscriptionsByDriverUUId,
+  getDriverSubscriptionsWithFilters,
 } = require("./DriverSubscription.service");
 
 // Consolidated account status check for a user (documents, vehicle, ban)
@@ -25,7 +28,8 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
       !effectiveUser ||
       (ownerUserUniqueId && ownerUserUniqueId !== user?.userUniqueId)
     ) {
-      const userData = await getUserByUserUniqueId(ownerUserUniqueId);
+      const filters = { userUniqueId: ownerUserUniqueId };
+      const userData = getUserByFilterDetailed(filters); // await getUserByUserUniqueId(ownerUserUniqueId);
       effectiveUser = userData?.data;
     }
 
@@ -52,6 +56,7 @@ const accountStatus = async ({ ownerUserUniqueId, user, body }) => {
     let userRoleStatus = await getUserRoleStatusCurrent({
       data: { roleId, search: phoneNumber },
     });
+    console.log("@userRoleStatus accountStatus =======> ", userRoleStatus);
     if (!userRoleStatus || userRoleStatus?.data?.length === 0) {
       return { message: "error", data: "User data not found" };
     }
@@ -138,6 +143,7 @@ WHERE AttachedDocuments.userUniqueId = ?
       isBanned = banCheck?.data?.isBanned === true;
       console.log("@Account.service.accountStatus isBanned", isBanned);
     } catch (e) {
+      console.error("@error on checkBan e", e);
       isBanned = false; // don't fail the flow on ban check error
     }
 
@@ -158,13 +164,14 @@ WHERE AttachedDocuments.userUniqueId = ?
             "@roleId",
             roleId
           );
-          const subs = await getAllOrActiveDriverSubscriptionsByDriverUUId({
+          const subs = await getDriverSubscriptionsWithFilters({
             driverUniqueId: ownerUserUniqueId,
             isActive: true,
           });
-          console.log("@subs", subs);
+          console.log("@account status subs", subs);
           hasActiveSubscription = (subs?.data?.length || 0) > 0;
         } catch (e) {
+          console.error("@checkActiveSubscriptions error e is", e);
           hasActiveSubscription = false; // default to no active subscription on error
         }
       }
