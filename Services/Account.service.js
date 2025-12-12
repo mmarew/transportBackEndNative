@@ -1,7 +1,4 @@
-const {
-  getUserByUserUniqueId,
-  getUserByFilterDetailed,
-} = require("./User.service");
+const { getUserByFilterDetailed } = require("./User.service");
 const { getVehicleDrivers } = require("./VehicleDriver.service");
 const {
   updateUserRoleStatus,
@@ -136,7 +133,6 @@ WHERE AttachedDocuments.userUniqueId = ?
         phoneNumber,
         roleId,
       };
-      console.log("@Account.service.accountStatus banCheckData", banCheckData);
       const { getBannedUsers } = require("./BannedUsers.service");
 
       const banCheck = await getBannedUsers(banCheckData);
