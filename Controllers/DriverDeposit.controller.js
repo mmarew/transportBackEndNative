@@ -116,11 +116,10 @@ exports.updateDriverDepositStatus = async (req, res) => {
   }
 };
 
-
 exports.initiateSantimPayPayment = async (req, res) => {
   try {
     const driverUniqueId = req?.user?.userUniqueId;
-    const phoneNumber = req?.user?.phoneNumber; // Get from authenticated user
+    const phoneNumber = req?.user?.phoneNumber;
     const { depositAmount } = req.body;
 
     if (!depositAmount || depositAmount <= 0) {
@@ -162,7 +161,6 @@ exports.initiateSantimPayPayment = async (req, res) => {
     });
   }
 };
-
 
 exports.handleSantimPayWebhook = async (req, res) => {
   try {
