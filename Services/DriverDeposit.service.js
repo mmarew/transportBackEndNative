@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
+const currentDate = require("../Utils/CurrentDate");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
@@ -11,37 +12,55 @@ const { getData } = require("../CRUD/Read/ReadData");
 
 // Create
 const createDriverDeposit = async (data) => {
-  console.log("@createDriverDeposit data", data);
-  // return;
-  const driverDepositUniqueId = uuidv4();
   const {
+    driverDepositUniqueId: providedDriverDepositUniqueId,
     driverUniqueId,
     depositAmount,
     depositSourceUniqueId,
     accountUniqueId,
     depositTime,
     depositURL,
+    depositStatus,
   } = data;
 
+  // Use provided driverDepositUniqueId if available, otherwise generate a new one
+  const driverDepositUniqueId = providedDriverDepositUniqueId || uuidv4();
+
+  const isAutomatic = depositStatus === "PENDING";
+
   // Check if required fields are provided
-  if (
-    !driverUniqueId ||
-    !depositAmount ||
-    !depositSourceUniqueId ||
-    !accountUniqueId ||
-    !depositTime
-  ) {
+  if (!driverUniqueId || !depositAmount || !depositSourceUniqueId) {
     return {
       message: "error",
       error: "Missing required fields to create deposit",
     };
   }
+
+  // For manual deposits: accountUniqueId and depositTime are REQUIRED
+  // For automatic deposits: they are optional (will be set in webhook)
+  if (!isAutomatic) {
+    // Manual deposit validation
+    if (!accountUniqueId) {
+      return {
+        message: "error",
+        error: "accountUniqueId is required for manual deposits",
+      };
+    }
+    if (!depositTime) {
+      return {
+        message: "error",
+        error: "depositTime is required for manual deposits",
+      };
+    }
+  }
+
   // Validate depositAmount
   if (isNaN(depositAmount) || depositAmount <= 0) {
     return { message: "error", error: "Invalid deposit amount" };
   }
-  // Validate depositTime
-  if (isNaN(new Date(depositTime).getTime())) {
+
+  // Validate depositTime (required for manual, optional for automatic)
+  if (depositTime && isNaN(new Date(depositTime).getTime())) {
     return { message: "error", error: "Invalid deposit time" };
   }
   // Validate depositURL
@@ -60,7 +79,12 @@ const createDriverDeposit = async (data) => {
     return { message: "error", error: "Invalid deposit source unique ID" };
   }
   // Validate accountUniqueId
-  if (typeof accountUniqueId !== "string" || accountUniqueId.length === 0) {
+  // For manual: already checked above (required)
+  // For automatic: optional, but if provided, must be valid
+  if (
+    accountUniqueId &&
+    (typeof accountUniqueId !== "string" || accountUniqueId.length === 0)
+  ) {
     return { message: "error", error: "Invalid account unique ID" };
   }
   // check if depositURL existed before
@@ -72,6 +96,22 @@ const createDriverDeposit = async (data) => {
   });
   if (existedURL?.length > 0)
     return { message: "error", error: "Deposit URL already exists" };
+
+  // Default depositStatus to "requested" for manual cases, or use provided value (e.g., "PENDING" for SantimPay)
+  const finalDepositStatus = depositStatus || "requested";
+
+  // For automatic payments: accountUniqueId and depositTime are optional (will be set in webhook)
+  // For manual deposits: both are required (already validated above)
+  const finalAccountUniqueId = isAutomatic
+    ? accountUniqueId || null 
+    : accountUniqueId;
+
+  const finalDepositTime = isAutomatic
+    ? depositTime || currentDate() 
+    : depositTime; 
+
+  console.log("@finalDepositStatus", finalDepositStatus);
+
   // Prepare SQL query
   const sql = `
     INSERT INTO DriverDeposit (
@@ -80,8 +120,8 @@ const createDriverDeposit = async (data) => {
       depositAmount,
       depositSourceUniqueId,
       accountUniqueId,
-      depositTime,depositURL
-    ) VALUES (?, ?, ?, ?, ?, ?,?)
+      depositTime,depositURL,depositStatus
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   try {
     const [insertResult] = await pool.query(sql, [
@@ -89,9 +129,10 @@ const createDriverDeposit = async (data) => {
       driverUniqueId,
       depositAmount,
       depositSourceUniqueId,
-      accountUniqueId,
-      depositTime,
+      finalAccountUniqueId, // NULL for automatic payments, set in webhook
+      finalDepositTime, // Placeholder for automatic payments, set in webhook
       depositURL,
+      finalDepositStatus,
     ]);
     if (!insertResult.affectedRows) {
       return { message: "error", error: "Failed to insert deposit data" };
@@ -488,7 +529,6 @@ const updateDriverDepositStatusService = async ({
   }
 };
 
-
 const initiateSantimPayPaymentService = async ({
   driverUniqueId,
   depositAmount,
@@ -497,8 +537,6 @@ const initiateSantimPayPaymentService = async ({
   try {
     const { generatePaymentUrl } = require("../Utils/SantimPayService");
     const { createDepositSource } = require("./DepositSource.service");
-    const { pool } = require("../Middleware/Database.config");
-    const currentDate = require("../Utils/CurrentDate");
 
     // 1. Get or create SantimPay deposit source
     const depositSourceResult = await createDepositSource({
@@ -513,43 +551,21 @@ const initiateSantimPayPaymentService = async ({
     const depositSourceUniqueId =
       depositSourceResult.data.depositSourceUniqueId;
 
-    // 2. Get system account (you may need to adjust this based on your system)
-    // For now, we'll get the first active account or create a system account
-    const accountSql = `
-      SELECT accountUniqueId FROM FinancialInstitutionAccounts 
-      WHERE isActive = TRUE 
-      LIMIT 1
-    `;
-    const [accounts] = await pool.query(accountSql);
-
-    if (accounts.length === 0) {
-      return {
-        message: "error",
-        error:
-          "No active financial institution account found. Please create one first.",
-      };
-    }
-
-    const accountUniqueId = accounts[0].accountUniqueId;
-
-    // 3. Create driver deposit record with PENDING status
     const driverDepositUniqueId = uuidv4();
-    const depositTime = currentDate();
     const paymentReason = `Driver Deposit - ${depositAmount} ETB`;
 
-    // Use driverDepositUniqueId as the transaction ID (id) for SantimPay
-    const depositURL = driverDepositUniqueId; // Will be updated with txnId from webhook
+    const depositURL = driverDepositUniqueId;
 
     const depositData = {
       driverDepositUniqueId,
       driverUniqueId,
       depositAmount: parseFloat(depositAmount),
       depositSourceUniqueId,
-      accountUniqueId,
-      depositTime,
       depositURL,
-      depositStatus: "PENDING", // Start with PENDING status
+      depositStatus: "PENDING",
     };
+
+    console.log("@depositData", depositData);
 
     const createResult = await createDriverDeposit(depositData);
 
@@ -559,18 +575,11 @@ const initiateSantimPayPaymentService = async ({
 
     // 4. Generate SantimPay payment URL
     const paymentUrl = await generatePaymentUrl(
-      driverDepositUniqueId, // Use driverDepositUniqueId as transaction ID
+      driverDepositUniqueId,
       parseFloat(depositAmount),
       paymentReason,
       phoneNumber
     );
-
-    // Log payment URL for easy testing (you can click this in browser)
-    console.log("\n========================================");
-    console.log("🎯 SANTIMPAY PAYMENT URL:");
-    console.log("========================================");
-    console.log(paymentUrl);
-    console.log("========================================\n");
 
     return {
       message: "success",
@@ -590,29 +599,12 @@ const initiateSantimPayPaymentService = async ({
   }
 };
 
-
 const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
   try {
-    const {
-      txnId,
-      thirdPartyId, // This is our driverDepositUniqueId
-      status,
-      amount,
-      paymentVia,
-      message,
-      refId,
-    } = webhookData;
+    const { txnId, thirdPartyId, Status, amount, paymentVia, message } =
+      webhookData;
 
-    console.log("Processing webhook:", {
-      txnId,
-      thirdPartyId,
-      status,
-      amount,
-      paymentVia,
-    });
-
-    // Validate required fields
-    if (!txnId || !thirdPartyId || !status) {
+    if (!txnId || !thirdPartyId || !Status) {
       return {
         message: "error",
         error:
@@ -620,7 +612,6 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
       };
     }
 
-    // Find deposit by driverDepositUniqueId (thirdPartyId)
     const depositResult = await getDriverDeposit({
       driverDepositUniqueId: thirdPartyId,
       limit: 1,
@@ -639,7 +630,6 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
 
     const deposit = depositResult.data[0];
 
-    // Check if already processed (avoid duplicate processing)
     if (deposit.depositStatus === "COMPLETED" && deposit.depositURL === txnId) {
       return {
         message: "success",
@@ -647,9 +637,8 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
       };
     }
 
-    // Map SantimPay status to DriverDeposit status
     let newStatus;
-    switch (status.toUpperCase()) {
+    switch (Status.toUpperCase()) {
       case "COMPLETED":
         newStatus = "COMPLETED";
         break;
@@ -664,47 +653,29 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
         newStatus = "PENDING";
     }
 
-    // Search for payment method account by paymentVia (e.g., "Telebirr", "M-Pesa")
-    let accountUniqueId = deposit.accountUniqueId; // Keep existing account if payment method not found
-    if (paymentVia && paymentVia.trim().length > 0) {
-      const paymentMethodSql = `
-        SELECT accountUniqueId FROM FinancialInstitutionAccounts 
-        WHERE LOWER(institutionName) = LOWER(?) AND isActive = TRUE
-        LIMIT 1
-      `;
-      const [paymentMethodAccounts] = await pool.query(paymentMethodSql, [
-        paymentVia.trim(),
-      ]);
+    const depositTime = currentDate();
 
-      if (paymentMethodAccounts.length > 0) {
-        accountUniqueId = paymentMethodAccounts[0].accountUniqueId;
-        console.log(
-          `Found payment method account for ${paymentVia}: ${accountUniqueId}`
-        );
-      } else {
-        console.log(
-          `Payment method "${paymentVia}" not found in FinancialInstitutionAccounts, using existing account`
-        );
-      }
-    }
-
-    // Update deposit with transaction ID, status, and account (if payment method found)
     const updateSql = `
-      UPDATE DriverDeposit 
-      SET 
+      UPDATE DriverDeposit
+      SET
         depositStatus = ?,
         depositURL = ?,
-        acceptRejectReason = ?,
-        accountUniqueId = ?
+        depositTime = ?,
+        acceptRejectReason = ?
       WHERE driverDepositUniqueId = ?
     `;
 
-    const reasonMessage = message || `Payment via ${paymentVia || "SantimPay"}`;
+    const reasonData = {
+      reason: message || `Payment via ${paymentVia || "SantimPay"}`,
+      paymentVia: paymentVia || null,
+    };
+    const reasonMessage = JSON.stringify(reasonData);
+
     const [updateResult] = await pool.query(updateSql, [
       newStatus,
-      txnId, // Store SantimPay transaction ID in depositURL
+      txnId,
+      depositTime,
       reasonMessage,
-      accountUniqueId, // Update account if payment method found
       thirdPartyId,
     ]);
 
@@ -715,15 +686,12 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
       };
     }
 
-    // If status is COMPLETED, update driver balance
+    console.log("the  final new status is", newStatus);
     if (newStatus === "COMPLETED") {
-      const {
-        prepareAndCreateNewBalance,
-      } = require("./DriverBalance.service/DriverBalance.post.service");
-
+    
       const balanceResult = await prepareAndCreateNewBalance({
         addOrDeduct: "add",
-        amount: parseFloat(amount || deposit.depositAmount),
+        amount: parseFloat(amount),
         driverUniqueId: deposit.driverUniqueId,
         transactionType: "Deposit",
         transactionUniqueId: thirdPartyId,
@@ -731,7 +699,6 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
 
       if (balanceResult.message === "error") {
         console.error("Failed to update driver balance:", balanceResult.error);
-        // Don't fail the webhook, but log the error
       }
     }
 
