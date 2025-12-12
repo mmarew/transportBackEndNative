@@ -3,50 +3,11 @@ const router = express.Router();
 const controller = require("../Controllers/DriverSubscription.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
-// Create subscription
+// Keep other routes as needed
 router.post(
   "/api/driverSubscription/:driverUniqueId",
   verifyTokenOfAxios,
   controller.createDriverSubscription
-);
-
-// Get all subscriptions
-router.get(
-  "/api/admin/driverSubscription",
-  verifyTokenOfAxios,
-  controller.getAllDriverSubscriptions
-);
-// get all numbers of subscriptions  counts
-router.get(
-  "/api/admin/driverSubscription/count",
-  verifyTokenOfAxios,
-  controller.getAllDriverSubscriptionsCount
-);
-
-// Get by UUID
-router.get(
-  "/api/admin/driverSubscription/:driverSubscriptionUniqueId",
-  verifyTokenOfAxios,
-  controller.getDriverSubscriptionByUniqueId
-);
-// Get subscriptions by driverUniqueId and based on is active only or not active
-router.get(
-  "/api/getAllOrActiveDriverSubscriptionsByDriverUUId/driver/:driverUniqueId/:isActive",
-  verifyTokenOfAxios,
-  controller.getAllOrActiveDriverSubscriptionsByDriverUUId
-);
-
-// Get subscriptions by subscriptionPlanId
-router.get(
-  "/api/driverSubscription/plan/:subscriptionPlanUniqueId",
-  verifyTokenOfAxios,
-  controller.getDriverSubscriptionsByPlanUniqueId
-);
-//Get subscriptions by subscriptionPlanUniqueId and driver uuid
-router.get(
-  "/api/driverSubscription/driver/plan/:driverUniqueId/:subscriptionPlanUniqueId",
-  verifyTokenOfAxios,
-  controller.getSubscriptionBydriverUniqueIdAndPlanUniqueId
 );
 
 // Update by UUID
@@ -61,6 +22,11 @@ router.delete(
   "/api/driverSubscription/:driverSubscriptionUniqueId",
   verifyTokenOfAxios,
   controller.deleteDriverSubscriptionByUniqueId
+);
+router.get(
+  "/api/getDriverSubscriptionsWithFilters",
+  verifyTokenOfAxios,
+  controller.getDriverSubscriptionsWithFilters
 );
 
 module.exports = router;

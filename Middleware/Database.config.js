@@ -37,7 +37,7 @@ if (
   DB_SOCKET_PATH &&
   DB_SOCKET_PATH?.length > 0
 ) {
-  // config.socketPath = DB_SOCKET_PATH;
+  config.socketPath = DB_SOCKET_PATH;
 }
 // Create a connection pool
 let pool;

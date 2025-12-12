@@ -147,221 +147,6 @@ const createDriverSubscription = async (
 //   return { message: "success", data: result };
 // };
 
-const getAllDriverSubscriptions = async ({
-  page = 1,
-  limit = 10,
-  filters = {},
-}) => {
-  const offset = (page - 1) * limit;
-
-  let whereClause = "";
-  let queryParams = [];
-  let countParams = [];
-
-  // 🔹 Filter by driver
-  if (filters.driverUniqueId) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause += "DriverSubscription.driverUniqueId = ?";
-    queryParams.push(filters.driverUniqueId);
-    countParams.push(filters.driverUniqueId);
-  }
-
-  // 🔹 Filter by plan name
-  if (filters.planName) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause += "LOWER(SubscriptionPlan.planName) LIKE LOWER(?)";
-    queryParams.push(`%${filters.planName}%`);
-    countParams.push(`%${filters.planName}%`);
-  }
-
-  // 🔹 Filter by active subscriptions
-  if (filters.isActive) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause +=
-      "NOW() BETWEEN DriverSubscription.startDate AND DriverSubscription.endDate";
-  }
-
-  // 🔹 Daily filter
-  if (filters.daily) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause += "DATE(DriverSubscription.startDate) = CURDATE()";
-  }
-
-  // 🔹 Monthly filter
-  if (filters.monthly) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause +=
-      "YEAR(DriverSubscription.startDate) = YEAR(CURDATE()) AND MONTH(DriverSubscription.startDate) = MONTH(CURDATE())";
-  }
-
-  // 🔹 Custom filter by startDate
-  if (filters.startDate && filters.endDate) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause += "DriverSubscription.startDate BETWEEN ? AND ?";
-    queryParams.push(filters.startDate, filters.endDate);
-    countParams.push(filters.startDate, filters.endDate);
-  }
-
-  // 🔹 Custom filter by createdAt
-  if (filters.createdAtStart && filters.createdAtEnd) {
-    whereClause += whereClause ? " AND " : "WHERE ";
-    whereClause += "DriverSubscription.createdAt BETWEEN ? AND ?";
-    queryParams.push(filters.createdAtStart, filters.createdAtEnd);
-    countParams.push(filters.createdAtStart, filters.createdAtEnd);
-  }
-
-  // 🔹 Sorting
-  let orderBy = "ORDER BY DriverSubscription.driverSubscriptionId DESC";
-  if (filters.sortBy) {
-    const validSort = [
-      "startDate",
-      "endDate",
-      "createdAt",
-      "planName",
-      "price",
-    ];
-    const column = validSort.includes(filters.sortBy)
-      ? filters.sortBy
-      : "driverSubscriptionId";
-    const order = filters.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
-
-    if (column === "planName") {
-      orderBy = `ORDER BY SubscriptionPlan.planName ${order}`;
-    } else if (column === "price") {
-      orderBy = `ORDER BY SubscriptionPlanPricing.price ${order}`;
-    } else {
-      orderBy = `ORDER BY DriverSubscription.${column} ${order}`;
-    }
-  }
-
-  // 🔹 Main query
-  const sql = `
-    SELECT  DriverSubscription.*,  SubscriptionPlan.planName,
-      SubscriptionPlan.description,  SubscriptionPlanPricing.price,
-      SubscriptionPlanPricing.durationInDays  FROM DriverSubscription  JOIN SubscriptionPlan 
-      ON SubscriptionPlan.subscriptionPlanUniqueId = DriverSubscription.subscriptionPlanUniqueId
-    JOIN SubscriptionPlanPricing    ON SubscriptionPlanPricing.subscriptionPlanUniqueId = SubscriptionPlan.subscriptionPlanUniqueId
-    ${whereClause}
-    ${orderBy}
-    LIMIT ? OFFSET ?
-  `;
-
-  queryParams.push(parseInt(limit), offset);
-  console.log("@queryParams", queryParams);
-  const [rows] = await pool.query(sql, queryParams);
-
-  // 🔹 Count query
-  const countSql = `
-    SELECT COUNT(*) as total
-    FROM DriverSubscription
-    JOIN SubscriptionPlan 
-      ON SubscriptionPlan.subscriptionPlanUniqueId = DriverSubscription.subscriptionPlanUniqueId
-    JOIN SubscriptionPlanPricing 
-      ON SubscriptionPlanPricing.subscriptionPlanUniqueId = SubscriptionPlan.subscriptionPlanUniqueId
-    ${whereClause}
-  `;
-  const [countRes] = await pool.query(countSql, countParams);
-  const total = countRes[0]?.total || 0;
-
-  return {
-    message: "success",
-    data: rows,
-    pagination: {
-      currentPage: parseInt(page),
-      itemsPerPage: parseInt(limit),
-      totalItems: total,
-      totalPages: Math.ceil(total / limit),
-      hasNext: page < Math.ceil(total / limit),
-      hasPrev: page > 1,
-    },
-    filters: Object.keys(filters).length > 0 ? filters : undefined,
-  };
-};
-
-const getAllDriverSubscriptionsCount = async () => {
-  const sql = `SELECT COUNT(*) as count FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId join SubscriptionPlan on SubscriptionPlan.subscriptionPlanUniqueId=DriverSubscription.subscriptionPlanUniqueId`;
-  const [result] = await pool.query(sql);
-  return {
-    message: "success",
-    data: { totalSubscriptionCount: result[0].count },
-  };
-};
-
-// Get subscriptions by driverUniqueId
-const getAllOrActiveDriverSubscriptionsByDriverUUId = async ({
-  driverUniqueId,
-  isActive,
-}) => {
-  const today = currentDate();
-
-  let sql = `SELECT * FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId join SubscriptionPlan on SubscriptionPlan.subscriptionPlanUniqueId=DriverSubscription.subscriptionPlanUniqueId WHERE DriverSubscription.driverUniqueId = ?`;
-
-  const params = [driverUniqueId];
-  if (isActive) {
-    sql += ` AND endDate > ?`;
-    params.push(today);
-  }
-  const [result] = await pool.query(sql, params);
-
-  return {
-    message: "success",
-    data: result,
-  };
-};
-// Get By Plan UUIDV4
-const getDriverSubscriptionsByPlanUniqueId = async (
-  subscriptionPlanUniqueId
-) => {
-  const sql = `
-    SELECT 
-      ds.*, 
-      spp.*, 
-      sp.planName, 
-      sp.description, 
-      sp.isFree
-    FROM DriverSubscription ds
-    JOIN SubscriptionPlan sp 
-      ON ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
-    LEFT JOIN SubscriptionPlanPricing spp 
-      ON spp.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
-    WHERE sp.subscriptionPlanUniqueId = ?
-    ORDER BY ds.driverSubscriptionId DESC
-  `;
-
-  const [result] = await pool.query(sql, [subscriptionPlanUniqueId]);
-
-  return {
-    message: "success",
-    data: result,
-  };
-};
-
-const getSubscriptionBydriverUniqueIdAndPlanUniqueId = async ({
-  driverUniqueId,
-  subscriptionPlanUniqueId,
-}) => {
-  const sql = `
-    SELECT * FROM DriverSubscription join SubscriptionPlan on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId
-    WHERE driverUniqueId = ? AND SubscriptionPlan.subscriptionPlanUniqueId = ?
-    ORDER BY DriverSubscription.driverSubscriptionId DESC 
-  `;
-  const [result] = await pool.query(sql, [
-    driverUniqueId,
-    subscriptionPlanUniqueId,
-  ]);
-  return { message: "success", data: result };
-};
-// Get by driver subscription UUIDV4(driverSubscriptionUniqueId)
-const getDriverSubscriptionByUniqueId = async (driverSubscriptionUniqueId) => {
-  console.log("@driverSubscriptionUniqueId", driverSubscriptionUniqueId);
-  const sql = `SELECT * FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId WHERE driverSubscriptionUniqueId = ?`;
-  const [result] = await pool.query(sql, [driverSubscriptionUniqueId]);
-
-  return result.length > 0
-    ? { message: "success", data: result[0] }
-    : { message: "error", error: "Driver subscription not found" };
-};
-
 // Update by UUID
 const updateDriverSubscriptionByUniqueId = async (
   driverSubscriptionUniqueId,
@@ -409,14 +194,311 @@ const deleteDriverSubscriptionByUniqueId = async (
     : { message: "error", error: "Failed to delete subscription" };
 };
 
+// Consolidated service method for filtering
+const getDriverSubscriptionsWithFilters = async (filters = {}) => {
+  const {
+    page = 1,
+    limit = 10,
+
+    // ID filters
+    driverSubscriptionUniqueId,
+    driverUniqueId,
+    subscriptionPlanUniqueId,
+
+    // Status filters
+    isActive,
+    isFree,
+
+    // Date filters
+    startDateBefore,
+    startDateAfter,
+    endDateBefore,
+    endDateAfter,
+    createdAtStart,
+    createdAtEnd,
+
+    // Plan filters
+    planName,
+    planDescription,
+
+    // Pricing filters
+    minPrice,
+    maxPrice,
+    durationInDays,
+
+    // User filters
+    createdBy,
+
+    // Special filters
+    daily,
+    monthly,
+    upcomingExpiry,
+    expired,
+
+    // Sorting
+    sortBy = "driverSubscriptionId",
+    sortOrder = "DESC",
+
+    // Role-based
+    roleFilter,
+  } = filters;
+
+  const offset = (page - 1) * limit;
+
+  // Start building WHERE clause
+  let whereClauses = [];
+  let queryParams = [];
+  let countParams = [];
+
+  // ID-based filters
+  if (driverSubscriptionUniqueId) {
+    whereClauses.push("ds.driverSubscriptionUniqueId = ?");
+    queryParams.push(driverSubscriptionUniqueId);
+    countParams.push(driverSubscriptionUniqueId);
+  }
+
+  if (driverUniqueId) {
+    whereClauses.push("ds.driverUniqueId = ?");
+    queryParams.push(driverUniqueId);
+    countParams.push(driverUniqueId);
+  }
+
+  if (subscriptionPlanUniqueId) {
+    whereClauses.push("ds.subscriptionPlanUniqueId = ?");
+    queryParams.push(subscriptionPlanUniqueId);
+    countParams.push(subscriptionPlanUniqueId);
+  }
+
+  // Status filters
+  if (isActive !== undefined) {
+    if (isActive) {
+      whereClauses.push("NOW() BETWEEN ds.startDate AND ds.endDate");
+    } else {
+      whereClauses.push("(NOW() < ds.startDate OR NOW() > ds.endDate)");
+    }
+  }
+
+  if (isFree !== undefined) {
+    whereClauses.push("sp.isFree = ?");
+    queryParams.push(isFree);
+    countParams.push(isFree);
+  }
+
+  // Date filters
+  if (startDateBefore) {
+    whereClauses.push("ds.startDate <= ?");
+    queryParams.push(startDateBefore);
+    countParams.push(startDateBefore);
+  }
+
+  if (startDateAfter) {
+    whereClauses.push("ds.startDate >= ?");
+    queryParams.push(startDateAfter);
+    countParams.push(startDateAfter);
+  }
+
+  if (endDateBefore) {
+    whereClauses.push("ds.endDate <= ?");
+    queryParams.push(endDateBefore);
+    countParams.push(endDateBefore);
+  }
+
+  if (endDateAfter) {
+    whereClauses.push("ds.endDate >= ?");
+    queryParams.push(endDateAfter);
+    countParams.push(endDateAfter);
+  }
+
+  if (createdAtStart) {
+    whereClauses.push("ds.createdAt >= ?");
+    queryParams.push(createdAtStart);
+    countParams.push(createdAtStart);
+  }
+
+  if (createdAtEnd) {
+    whereClauses.push("ds.createdAt <= ?");
+    queryParams.push(createdAtEnd);
+    countParams.push(createdAtEnd);
+  }
+
+  // Plan filters
+  if (planName) {
+    whereClauses.push("LOWER(sp.planName) LIKE LOWER(?)");
+    queryParams.push(`%${planName}%`);
+    countParams.push(`%${planName}%`);
+  }
+
+  if (planDescription) {
+    whereClauses.push("LOWER(sp.description) LIKE LOWER(?)");
+    queryParams.push(`%${planDescription}%`);
+    countParams.push(`%${planDescription}%`);
+  }
+
+  // Pricing filters
+  if (minPrice !== undefined) {
+    whereClauses.push("spp.price >= ?");
+    queryParams.push(minPrice);
+    countParams.push(minPrice);
+  }
+
+  if (maxPrice !== undefined) {
+    whereClauses.push("spp.price <= ?");
+    queryParams.push(maxPrice);
+    countParams.push(maxPrice);
+  }
+
+  if (durationInDays) {
+    whereClauses.push("spp.durationInDays = ?");
+    queryParams.push(durationInDays);
+    countParams.push(durationInDays);
+  }
+
+  // Special filters
+  if (daily) {
+    whereClauses.push("DATE(ds.startDate) = CURDATE()");
+  }
+
+  if (monthly) {
+    whereClauses.push(
+      "YEAR(ds.startDate) = YEAR(CURDATE()) AND MONTH(ds.startDate) = MONTH(CURDATE())"
+    );
+  }
+
+  if (upcomingExpiry) {
+    whereClauses.push(
+      "ds.endDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)"
+    );
+  }
+
+  if (expired) {
+    whereClauses.push("ds.endDate < NOW()");
+  }
+
+  // Role-based filtering (if needed)
+  if (roleFilter === "driver" && driverUniqueId === undefined) {
+    // Drivers can only see their own subscriptions
+    // This should be handled at controller level with req.user
+  }
+
+  // Build WHERE clause
+  const whereClause =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  // Validate and map sort column
+  const sortColumnMap = {
+    driverSubscriptionId: "ds.driverSubscriptionId",
+    startDate: "ds.startDate",
+    endDate: "ds.endDate",
+    createdAt: "ds.createdAt",
+    planName: "sp.planName",
+    price: "spp.price",
+    durationInDays: "spp.durationInDays",
+  };
+
+  const validSortOrder = ["ASC", "DESC"];
+  const orderDirection = validSortOrder.includes(sortOrder.toUpperCase())
+    ? sortOrder.toUpperCase()
+    : "DESC";
+
+  const orderColumn = sortColumnMap[sortBy] || "ds.driverSubscriptionId";
+
+  // Main query
+  const sql = `
+    SELECT 
+      ds.*,
+      sp.planName,
+      sp.description as planDescription,
+      sp.isFree,
+      spp.price,
+      spp.durationInDays,
+      spp.effectiveFrom,
+      spp.effectiveTo,
+      CASE 
+        WHEN NOW() BETWEEN ds.startDate AND ds.endDate THEN 'active'
+        WHEN NOW() < ds.startDate THEN 'upcoming'
+        WHEN NOW() > ds.endDate THEN 'expired'
+      END as subscriptionStatus,
+      DATEDIFF(ds.endDate, NOW()) as daysUntilExpiry
+    FROM DriverSubscription ds
+    LEFT JOIN SubscriptionPlan sp 
+      ON ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
+    LEFT JOIN SubscriptionPlanPricing spp 
+      ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+      AND NOW() BETWEEN spp.effectiveFrom AND COALESCE(spp.effectiveTo, '9999-12-31')
+    ${whereClause}
+    ORDER BY ${orderColumn} ${orderDirection}
+    LIMIT ? OFFSET ?
+  `;
+
+  // Count query
+  const countSql = `
+    SELECT COUNT(*) as total
+    FROM DriverSubscription ds
+    LEFT JOIN SubscriptionPlan sp 
+      ON ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
+    LEFT JOIN SubscriptionPlanPricing spp 
+      ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+      AND NOW() BETWEEN spp.effectiveFrom AND COALESCE(spp.effectiveTo, '9999-12-31')
+    ${whereClause}
+  `;
+
+  // Add pagination to query params
+  const mainQueryParams = [...queryParams, parseInt(limit), offset];
+
+  try {
+    const [rows] = await pool.query(sql, mainQueryParams);
+    const [countRes] = await pool.query(countSql, countParams);
+    const total = countRes[0]?.total || 0;
+
+    return {
+      message: "success",
+      data: rows,
+      pagination: {
+        currentPage: parseInt(page),
+        itemsPerPage: parseInt(limit),
+        totalItems: total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
+      },
+      filters: Object.keys(filters).length > 0 ? filters : undefined,
+    };
+  } catch (error) {
+    console.error("Error in getDriverSubscriptionsWithFilters:", error);
+    return {
+      message: "error",
+      error: "Failed to fetch subscriptions",
+      details: error.message,
+    };
+  }
+};
+
+// Get count only (separate method for count requests)
+const getDriverSubscriptionsCount = async (filters = {}) => {
+  // Reuse the same WHERE logic from getDriverSubscriptionsWithFilters
+  // but only return count
+  const result = await getDriverSubscriptionsWithFilters({
+    ...filters,
+    page: 1,
+    limit: 1,
+  });
+
+  return {
+    message: "success",
+    data: {
+      totalCount: result.pagination?.totalItems || 0,
+    },
+    filters,
+  };
+};
+
 module.exports = {
-  getSubscriptionBydriverUniqueIdAndPlanUniqueId,
-  getAllOrActiveDriverSubscriptionsByDriverUUId,
-  getDriverSubscriptionsByPlanUniqueId,
+  getDriverSubscriptionsCount,
+
   createDriverSubscription,
-  getAllDriverSubscriptions,
-  getDriverSubscriptionByUniqueId,
+
   updateDriverSubscriptionByUniqueId,
   deleteDriverSubscriptionByUniqueId,
-  getAllDriverSubscriptionsCount,
+
+  getDriverSubscriptionsWithFilters,
 };

@@ -101,7 +101,6 @@ WHERE AttachedDocuments.userUniqueId = ?
       ACCEPTED: [],
       REJECTED: [],
     };
-    console.log("@attachedDocuments", attachedDocuments);
     if (enableDocumentChecks) {
       attachedDocuments.forEach((doc) => {
         const acceptanceStatus = doc.attachedDocumentAcceptance;

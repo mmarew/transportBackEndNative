@@ -3,7 +3,6 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
-const { sendOtpViaWebSocket } = require("../Utils/WsServerResponder");
 const { sendSms } = require("../Utils/smsSender");
 const createJWT = require("../Utils/CreateJWT");
 const currentDate = require("../Utils/CurrentDate");
@@ -14,15 +13,13 @@ const verifyPassword = require("../Utils/VerifyPassword");
 const {
   driversDocumentVehicleRequirement,
 } = require("./RoleDocumentRequirements.service");
-const { usersRoles, usersRolesList } = require("../Utils/ListOfFixedData");
+const { usersRoles } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByFilter } = require("./UserRole.service");
 const { getUserRoleStatusCurrent } = require("./UserRoleStatus.service");
 const { createFreeGiftToDriver } = require("./FreeGiftToDriver.service");
 const {
   getAllSubscriptionPlansWithPricing,
 } = require("./SubscriptionPlan.service");
-const { promises } = require("stream");
-const deleteData = require("../CRUD/Delete/DeleteData");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
