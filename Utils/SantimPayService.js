@@ -1,9 +1,6 @@
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 
-// Production Base URL
-const PRODUCTION_BASE_URL = "https://services.santimpay.com/api/v1/gateway";
-
 /**
  * Sign payload with ES256 algorithm
  */
@@ -17,17 +14,18 @@ function signES256(payload, privateKey) {
 function getSantimPayClient() {
   const merchantId = process.env.SANTIMPAY_MERCHANT_ID;
   const privateKey = process.env.SANTIMPAY_PRIVATE_KEY;
+  const baseUrl = process.env.SANTIMPAY_BASE_URL;
 
-  if (!merchantId || !privateKey) {
+  if (!merchantId || !privateKey || !baseUrl) {
     throw new Error(
-      "SANTIMPAY_MERCHANT_ID and SANTIMPAY_PRIVATE_KEY are required"
+      "SANTIMPAY_MERCHANT_ID and SANTIMPAY_PRIVATE_KEY and SANTIMPAY_BASE_URL are required"
     );
   }
 
   return {
     merchantId,
     privateKey,
-    baseUrl: PRODUCTION_BASE_URL,
+    baseUrl,
   };
 }
 
@@ -58,14 +56,7 @@ function generateSignedTokenForGetTransaction(id, client) {
   return signES256(payload, client.privateKey);
 }
 
-/**
- * Initiate SantimPay payment and get payment URL
- * @param {string} id - Client transaction ID (use driverDepositUniqueId)
- * @param {number} amount - Payment amount
- * @param {string} paymentReason - Reason for payment
- * @param {string} phoneNumber - Optional phone number
- * @returns {Promise<string>} Payment URL
- */
+// this is generate the payment url
 async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
   try {
     const client = getSantimPayClient();
@@ -75,9 +66,14 @@ async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
     const cancelRedirectUrl = process.env.SANTIMPAY_CANCEL_REDIRECT_URL;
     const notifyUrl = process.env.SANTIMPAY_WEBHOOK_URL;
 
-    if (!successRedirectUrl || !failureRedirectUrl || !notifyUrl) {
+    if (
+      !successRedirectUrl ||
+      !failureRedirectUrl ||
+      !notifyUrl ||
+      !cancelRedirectUrl
+    ) {
       throw new Error(
-        "SANTIMPAY_SUCCESS_REDIRECT_URL, SANTIMPAY_FAILURE_REDIRECT_URL, and SANTIMPAY_WEBHOOK_URL are required"
+        "SANTIMPAY_SUCCESS_REDIRECT_URL,SANTIMPAY_FAILURE_REDIRECT_URL,SANTIMPAY_CANCEL_REDIRECT_URL, and SANTIMPAY_WEBHOOK_URL are required"
       );
     }
 
@@ -96,7 +92,7 @@ async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
       successRedirectUrl,
       failureRedirectUrl,
       notifyUrl,
-      cancelRedirectUrl: cancelRedirectUrl || failureRedirectUrl,
+      cancelRedirectUrl: cancelRedirectUrl,
     };
 
     if (phoneNumber && phoneNumber.length > 0) {
@@ -122,11 +118,6 @@ async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
   }
 }
 
-/**
- * Check transaction status
- * @param {string} id - Client transaction ID (driverDepositUniqueId)
- * @returns {Promise<Object>} Transaction status data
- */
 async function checkTransactionStatus(id) {
   try {
     const client = getSantimPayClient();
@@ -141,12 +132,15 @@ async function checkTransactionStatus(id) {
       }
     );
 
+    console.log("response in checkTransactionStatus is ", response);
+
     if (response.status === 200) {
       return response.data;
     } else {
       throw new Error("Failed to check transaction status");
     }
   } catch (error) {
+    console.log("@error in checkTransactionStatus is ", error);
     console.error("SantimPay checkTransactionStatus error:", error);
     if (error.response && error.response.data) {
       throw error.response.data;
@@ -158,5 +152,4 @@ async function checkTransactionStatus(id) {
 module.exports = {
   generatePaymentUrl,
   checkTransactionStatus,
-  getSantimPayClient,
 };

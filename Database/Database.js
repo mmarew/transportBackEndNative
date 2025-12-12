@@ -721,7 +721,7 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
   driverUniqueId VARCHAR(36) NOT NULL,
   depositAmount DOUBLE NOT NULL,
   depositSourceUniqueId VARCHAR(36) NOT NULL,
-  accountUniqueId varchar(36) not null,
+  accountUniqueId varchar(36) null, 
   depositStatus enum('requested','approved','rejected','FAILED','PENDING','COMPLETED') default "requested",
   depositURL text NOT NULL,
   depositTime DATETIME NOT NULL,
