@@ -230,7 +230,7 @@
 // };
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 const {
   getActiveSubscriptionPlanningPrice,
 } = require("./SubscriptionPlanPricing.service");

@@ -79,10 +79,6 @@ exports.deleteDriverSubscriptionByUniqueId = async (req, res) => {
   }
 };
 
-// const service = require("../Services/DriverSubscription.service");
-// const ServerResponder = require("../Utils/ServerResponder");
-
-// Consolidated GET method with filtering
 exports.getDriverSubscriptionsWithFilters = async (req, res) => {
   try {
     // Extract all possible query parameters
@@ -92,7 +88,7 @@ exports.getDriverSubscriptionsWithFilters = async (req, res) => {
 
       // ID filters
       driverSubscriptionUniqueId,
-      driverUniqueId,
+
       subscriptionPlanUniqueId,
 
       // Status filters
@@ -135,7 +131,10 @@ exports.getDriverSubscriptionsWithFilters = async (req, res) => {
       // Role-based filters
       roleFilter, // For admin vs driver access
     } = req.query;
-
+    const user = req?.user;
+    let driverUniqueId = req?.query?.driverUniqueId;
+    if (driverUniqueId == "self") driverUniqueId = user?.userUniqueId;
+    console.log("@driverUniqueId=====", driverUniqueId);
     // Build filter object
     const filters = {
       page: parseInt(page),

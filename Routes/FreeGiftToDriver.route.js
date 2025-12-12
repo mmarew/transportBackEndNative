@@ -53,18 +53,17 @@ const router = express.Router();
 const controller = require("../Controllers/FreeGiftToDriver.controller");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
-// Single consolidated GET endpoint with filtering
-router.get(
-  "/api/getFreeGiftToDriversWithFilters",
-  verifyTokenOfAxios,
-  controller.getFreeGiftToDriversWithFilters
-);
-
 // Create a free gift for a driver
 router.post(
   "/api/freeGiftToDriver/:driverUniqueId",
   verifyTokenOfAxios,
   controller.createFreeGiftToDriver
+);
+// Single consolidated GET endpoint with filtering
+router.get(
+  "/api/getFreeGiftToDriversWithFilters",
+  verifyTokenOfAxios,
+  controller.getFreeGiftToDriversWithFilters
 );
 
 // Delete gift

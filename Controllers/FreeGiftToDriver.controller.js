@@ -179,7 +179,7 @@ exports.getFreeGiftToDriversWithFilters = async (req, res) => {
 
       // ID filters
       freeGiftUniqueId,
-      driverUniqueId,
+
       subscriptionPlanUniqueId,
 
       // Status filters
@@ -222,7 +222,7 @@ exports.getFreeGiftToDriversWithFilters = async (req, res) => {
     } = req.query;
 
     const user = req.user;
-
+    let driverUniqueId = req?.query.driverUniqueId;
     // Handle self lookup
     if (selfOnly === "true" || driverUniqueId === "self") {
       if (!user || !user.userUniqueId) {

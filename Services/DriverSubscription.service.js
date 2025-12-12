@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const {
   getActiveSubscriptionPlanningPrice,
 } = require("./SubscriptionPlanPricing.service");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate, currentDateEAT } = require("../Utils/CurrentDate");
 const modifyDateTime = require("../Utils/adjustDateTime");
 const {
   prepareAndCreateNewBalance,
@@ -47,11 +47,13 @@ const createDriverSubscription = async (
   const price = activePricingData?.price;
   const durationInDays = activePricingData?.durationInDays;
   // check if the user already have this subscription
-  const getActiveSubscription =
-    await getSubscriptionBydriverUniqueIdAndPlanUniqueId({
-      driverUniqueId,
-      subscriptionPlanUniqueId,
-    });
+  const filters = {
+    driverUniqueId,
+    subscriptionPlanUniqueId,
+  };
+  const getActiveSubscription = await getDriverSubscriptionsWithFilters(
+    filters
+  );
 
   const activeSubscriptionData = getActiveSubscription?.data?.[0];
 
@@ -196,6 +198,7 @@ const deleteDriverSubscriptionByUniqueId = async (
 
 // Consolidated service method for filtering
 const getDriverSubscriptionsWithFilters = async (filters = {}) => {
+  console.log("@getDriverSubscriptionsWithFilters filters", filters);
   const {
     page = 1,
     limit = 10,
@@ -404,7 +407,7 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
 
   // Main query
   const sql = `
-    SELECT 
+    SELECT
       ds.*,
       sp.planName,
       sp.description as planDescription,
@@ -413,30 +416,30 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
       spp.durationInDays,
       spp.effectiveFrom,
       spp.effectiveTo,
-      CASE 
+      CASE
         WHEN NOW() BETWEEN ds.startDate AND ds.endDate THEN 'active'
         WHEN NOW() < ds.startDate THEN 'upcoming'
         WHEN NOW() > ds.endDate THEN 'expired'
       END as subscriptionStatus,
       DATEDIFF(ds.endDate, NOW()) as daysUntilExpiry
     FROM DriverSubscription ds
-    LEFT JOIN SubscriptionPlan sp 
+    LEFT JOIN SubscriptionPlan sp
       ON ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
-    LEFT JOIN SubscriptionPlanPricing spp 
+    LEFT JOIN SubscriptionPlanPricing spp
       ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
       AND NOW() BETWEEN spp.effectiveFrom AND COALESCE(spp.effectiveTo, '9999-12-31')
     ${whereClause}
     ORDER BY ${orderColumn} ${orderDirection}
     LIMIT ? OFFSET ?
   `;
-
+  console.log("@sqlll", sql);
   // Count query
   const countSql = `
     SELECT COUNT(*) as total
     FROM DriverSubscription ds
-    LEFT JOIN SubscriptionPlan sp 
+    LEFT JOIN SubscriptionPlan sp
       ON ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId
-    LEFT JOIN SubscriptionPlanPricing spp 
+    LEFT JOIN SubscriptionPlanPricing spp
       ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
       AND NOW() BETWEEN spp.effectiveFrom AND COALESCE(spp.effectiveTo, '9999-12-31')
     ${whereClause}

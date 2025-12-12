@@ -162,7 +162,6 @@ WHERE AttachedDocuments.userUniqueId = ?
           );
           const subs = await getDriverSubscriptionsWithFilters({
             driverUniqueId: ownerUserUniqueId,
-            isActive: true,
           });
           console.log("@account status subs", subs);
           hasActiveSubscription = (subs?.data?.length || 0) > 0;
@@ -192,7 +191,7 @@ WHERE AttachedDocuments.userUniqueId = ?
         finalStatusId = statusId;
       }
     }
-
+    console.log("@statusId", statusId, "@finalStatusId", finalStatusId);
     // 9) Update role status if changed
     if (statusId !== finalStatusId) {
       const userRoleStatusData = {

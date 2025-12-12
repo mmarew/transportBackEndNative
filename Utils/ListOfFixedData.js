@@ -1,5 +1,5 @@
-const currentDate = require("./CurrentDate");
 const { v4: uuidv4 } = require("uuid");
+const { currentDate } = require("./CurrentDate");
 const usersRoles = {
   passengerRoleId: 1,
   driverRoleId: 2,
