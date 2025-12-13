@@ -4,7 +4,7 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 // Service to create UserRole
 const createUserRole = async (body, user) => {
   const { userUniqueId, roleId } = body;

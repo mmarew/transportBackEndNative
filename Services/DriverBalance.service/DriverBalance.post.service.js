@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
-const currentDate = require("../../Utils/CurrentDate");
+const { currentDate } = require("../../Utils/CurrentDate");
 
 const getDriverLastBalance = async (driverUniqueId) => {
   const sql = `

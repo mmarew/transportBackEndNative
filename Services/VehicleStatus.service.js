@@ -2,7 +2,7 @@ const { insertData } = require("../CRUD/Create/CreateData");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const { getData } = require("../CRUD/Read/ReadData");
 const { v4: uuidv4 } = require("uuid");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 const createVehicleStatus = async (data) => {
   const { vehicleUniqueId, VehicleStatusTypeId, statusEndDate = null } = data;
   if (!vehicleUniqueId || !VehicleStatusTypeId) {

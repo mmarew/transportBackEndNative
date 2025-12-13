@@ -13,9 +13,8 @@ const createPricing = async (
 ) => {
   const today = currentDate();
 
-  const activeData = await getActiveSubscriptionPlanningPrice({
+  const activeData = await getPricingWithFilters({
     subscriptionPlanUniqueId,
-    today: today,
   });
 
   if (activeData?.data?.length > 0) {
@@ -148,28 +147,6 @@ const getPricingWithFilters = async (filters = {}) => {
   }
 };
 
-// Get active subscription planning price (kept for internal use)
-const getActiveSubscriptionPlanningPrice = async ({
-  subscriptionPlanUniqueId,
-  today,
-}) => {
-  const sql = `SELECT * FROM SubscriptionPlanPricing 
-    JOIN SubscriptionPlan ON SubscriptionPlanPricing.subscriptionPlanUniqueId=SubscriptionPlan.subscriptionPlanUniqueId 
-    WHERE SubscriptionPlanPricing.subscriptionPlanUniqueId = ? 
-    AND effectiveFrom <= ?  
-    AND (effectiveTo IS NULL OR effectiveTo >= ?)
-    ORDER BY SubscriptionPlanPricing.createdAt DESC  
-    LIMIT 1`;
-
-  const [result] = await pool.query(sql, [
-    subscriptionPlanUniqueId,
-    today,
-    today,
-  ]);
-
-  return { message: "success", data: result };
-};
-
 // Update by unique pricing ID
 const updatePricingByUniqueId = async (
   subscriptionPlanPricingUniqueId,
@@ -223,7 +200,6 @@ const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
 };
 
 module.exports = {
-  getActiveSubscriptionPlanningPrice,
   createPricing,
   getPricingWithFilters,
   updatePricingByUniqueId,

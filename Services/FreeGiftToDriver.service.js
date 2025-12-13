@@ -1,6 +1,6 @@
 // const { pool } = require("../Middleware/Database.config");
 // const { v4: uuidv4 } = require("uuid");
-// const currentDate = require("../Utils/CurrentDate");
+// const { currentDate} = require("../Utils/CurrentDate");
 // const {
 //   getActiveSubscriptionPlanningPrice,
 // } = require("./SubscriptionPlanPricing.service");
@@ -231,13 +231,12 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
-const {
-  getActiveSubscriptionPlanningPrice,
-} = require("./SubscriptionPlanPricing.service");
+
 const modifyDateTime = require("../Utils/adjustDateTime");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
+const { getPricingWithFilters } = require("./SubscriptionPlanPricing.service");
 
 // Consolidated service method for filtering
 const getFreeGiftToDriversWithFilters = async (filters = {}) => {
@@ -574,7 +573,11 @@ const createFreeGiftToDriver = async ({
 
   // get plan and its price
   const today = currentDate();
-  const activePricing = await getActiveSubscriptionPlanningPrice({
+  // const activePricing = await getActiveSubscriptionPlanningPrice({
+  //   subscriptionPlanUniqueId,
+  //   today,
+  // });
+  const activePricing = await getPricingWithFilters({
     subscriptionPlanUniqueId,
     today,
   });

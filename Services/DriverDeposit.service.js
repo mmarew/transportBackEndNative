@@ -1,6 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 const {
   prepareAndCreateNewBalance,
 } = require("./DriverBalance.service/DriverBalance.post.service");
@@ -103,12 +103,12 @@ const createDriverDeposit = async (data) => {
   // For automatic payments: accountUniqueId and depositTime are optional (will be set in webhook)
   // For manual deposits: both are required (already validated above)
   const finalAccountUniqueId = isAutomatic
-    ? accountUniqueId || null 
+    ? accountUniqueId || null
     : accountUniqueId;
 
   const finalDepositTime = isAutomatic
-    ? depositTime || currentDate() 
-    : depositTime; 
+    ? depositTime || currentDate()
+    : depositTime;
 
   console.log("@finalDepositStatus", finalDepositStatus);
 
@@ -688,7 +688,6 @@ const handleSantimPayWebhookService = async ({ webhookData, signedToken }) => {
 
     console.log("the  final new status is", newStatus);
     if (newStatus === "COMPLETED") {
-    
       const balanceResult = await prepareAndCreateNewBalance({
         addOrDeduct: "add",
         amount: parseFloat(amount),

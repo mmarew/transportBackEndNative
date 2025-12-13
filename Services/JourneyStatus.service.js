@@ -3,7 +3,7 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const { insertData } = require("../CRUD/Create/CreateData");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 const { journeyStatusMap } = require("../Utils/ListOfFixedData");
 
 // Create a new journey status

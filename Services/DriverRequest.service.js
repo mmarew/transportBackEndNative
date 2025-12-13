@@ -33,7 +33,7 @@ const {
   getJourneyDecisionByJourneyDecisionUniqueId,
   getJourneyDecisionByPassengerRequestUniqueId,
 } = require("./JourneyDecisions.service");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 const {
   createJourney,
   getJourneyByJourneyUniqueId,

@@ -1,5 +1,5 @@
 const service = require("../Services/DriverDeposit.service");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 const ServerResponder = require("../Utils/ServerResponder");
 
 // Create

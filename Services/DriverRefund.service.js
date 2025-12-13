@@ -12,7 +12,7 @@ const {
 } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const { getUserByUserUniqueId } = require("./User.service");
-const currentDate = require("../Utils/CurrentDate");
+const { currentDate } = require("../Utils/CurrentDate");
 // Create
 const createDriverRefund = async ({
   driverUniqueId,
