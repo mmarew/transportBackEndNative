@@ -6,9 +6,9 @@ const accountStatus = async (req, res) => {
   try {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
-    let ownerUserUniqueId = req.params.userUniqueId;
-
-    if (ownerUserUniqueId == "self") {
+    let ownerUserUniqueId = req?.query?.ownerUserUniqueId;
+    let enableDocumentChecks = req?.query?.enableDocumentChecks;
+    if (!ownerUserUniqueId || ownerUserUniqueId == "self") {
       ownerUserUniqueId = userUniqueId;
     }
 
@@ -16,6 +16,7 @@ const accountStatus = async (req, res) => {
       ownerUserUniqueId,
       user,
       body: req.body,
+      enableDocumentChecks,
     });
 
     ServerResponder(res, result);

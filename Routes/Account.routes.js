@@ -5,7 +5,7 @@ const AccountController = require("../Controllers/Account.controller");
 
 // Account status: documents, vehicle and banned checks
 router.get(
-  "/api/account/status/:userUniqueId",
+  "/api/account/status",
   verifyTokenOfAxios,
   AccountController.accountStatus
 );
