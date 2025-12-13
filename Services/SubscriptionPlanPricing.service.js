@@ -57,13 +57,15 @@ const createPricing = async (
 };
 
 // Single comprehensive method with filters
+
+// Single comprehensive method with filters
 const getPricingWithFilters = async (filters = {}) => {
   const {
     subscriptionPlanPricingUniqueId,
     subscriptionPlanUniqueId,
     date,
     isActive,
-    sortBy = "createdAt",
+    sortBy = " SubscriptionPlanPricing.createdAt ",
     sortOrder = "DESC",
     page = 1,
     limit = 10,
@@ -75,13 +77,17 @@ const getPricingWithFilters = async (filters = {}) => {
 
   // Filter by specific pricing ID
   if (subscriptionPlanPricingUniqueId) {
-    whereConditions.push("subscriptionPlanPricingUniqueId = ?");
+    whereConditions.push(
+      "SubscriptionPlanPricing.subscriptionPlanPricingUniqueId = ?"
+    );
     queryParams.push(subscriptionPlanPricingUniqueId);
   }
 
-  // Filter by plan ID
+  // Filter by plan ID - SPECIFY THE TABLE NAME
   if (subscriptionPlanUniqueId) {
-    whereConditions.push("subscriptionPlanUniqueId = ?");
+    whereConditions.push(
+      "SubscriptionPlanPricing.subscriptionPlanUniqueId = ?"
+    );
     queryParams.push(subscriptionPlanUniqueId);
   }
 
@@ -108,13 +114,28 @@ const getPricingWithFilters = async (filters = {}) => {
 
   // Count total records for pagination metadata
   const countSql = `SELECT COUNT(*) as total FROM SubscriptionPlanPricing ${whereClause}`;
-  const [countResult] = await pool.query(countSql, queryParams);
+
+  // For count query, use the same WHERE conditions but without table prefix for count query
+  const countWhereConditions = whereConditions.map((cond) =>
+    cond.replace("SubscriptionPlanPricing.", "")
+  );
+  const countWhereClause =
+    countWhereConditions.length > 0
+      ? `WHERE ${countWhereConditions.join(" AND ")}`
+      : "";
+  const countSqlFixed = `SELECT COUNT(*) as total FROM SubscriptionPlanPricing ${countWhereClause}`;
+
+  const [countResult] = await pool.query(countSqlFixed, queryParams);
   const total = countResult[0]?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
   // Main query with pagination
   const sql = `
-    SELECT * FROM SubscriptionPlanPricing 
+    SELECT 
+      SubscriptionPlanPricing.*,
+      SubscriptionPlan.*
+    FROM SubscriptionPlanPricing 
+    JOIN SubscriptionPlan ON SubscriptionPlanPricing.subscriptionPlanUniqueId = SubscriptionPlan.subscriptionPlanUniqueId
     ${whereClause}
     ORDER BY ${sortBy} ${sortOrder}
     LIMIT ? OFFSET ?

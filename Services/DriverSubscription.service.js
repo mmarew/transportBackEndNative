@@ -1,8 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
-const {
-  getActiveSubscriptionPlanningPrice,
-} = require("./SubscriptionPlanPricing.service");
+
 const { currentDate, currentDateEAT } = require("../Utils/CurrentDate");
 const modifyDateTime = require("../Utils/adjustDateTime");
 const {
@@ -11,6 +9,7 @@ const {
 const {
   deleteDriverBalanceByTransactionUniqueId,
 } = require("./DriverBalance.service/DriverBalance.delete.service");
+const { getPricingWithFilters } = require("./SubscriptionPlanPricing.service");
 
 // Create subscription
 const createDriverSubscription = async (
@@ -23,9 +22,9 @@ const createDriverSubscription = async (
   const driverSubscriptionUniqueId = uuidv4();
   const today = currentDate();
   // there are old and outdated pricing data so we need active one only
-  const activePricing = await getActiveSubscriptionPlanningPrice({
+  const activePricing = await getPricingWithFilters({
     subscriptionPlanUniqueId,
-    today,
+    // today,
   });
 
   const activePricingData = activePricing?.data?.[0];

@@ -155,7 +155,7 @@ exports.getPricingWithFilters = async (req, res) => {
       subscriptionPlanUniqueId,
       date, // For active pricing checks
       isActive, // true/false to get active/inactive pricing
-      sortBy = "createdAt",
+      sortBy = " SubscriptionPlanPricing.createdAt ",
       sortOrder = "DESC",
       page = 1,
       limit = 10,
