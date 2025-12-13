@@ -112,7 +112,8 @@ const statusList = [
     statusId: 5,
     statusUniqueId: uuidv4(),
     statusName: "inactive - documents pending",
-    statusDescription: "One or more required documents are pending review.",
+    statusDescription:
+      "One or more required documents are pending review to be seen and approved by admin.",
     statusCreatedAt: currentDate(),
   },
   // 6. Banned (kept for administrative actions)

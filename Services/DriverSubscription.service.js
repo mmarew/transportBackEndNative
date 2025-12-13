@@ -431,7 +431,6 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
     ORDER BY ${orderColumn} ${orderDirection}
     LIMIT ? OFFSET ?
   `;
-  console.log("@sqlll", sql);
   // Count query
   const countSql = `
     SELECT COUNT(*) as total
