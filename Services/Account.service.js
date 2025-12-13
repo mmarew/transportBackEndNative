@@ -338,45 +338,32 @@ const accountStatus = async ({
     const { userRoleStatusUniqueId, userRoleId, statusId } =
       userRoleStatus?.data?.[0];
 
-    // Initialize subscription info
-    let subscriptionInfo = {
-      hasActiveSubscription: false,
-      subscriptionType: null,
-      subscriptionDetails: null,
-      freeGiftUsed: false,
-      freeGiftDetails: null,
-    };
-
-    // ========== PRIORITY 1: CHECK BAN ==========
-    let isBanned = false;
-    try {
-      const { getBannedUsers } = require("./BannedUsers.service");
-      const banCheckData = {
-        check: true,
-        phoneNumber,
-        roleId,
-      };
-      const banCheck = await getBannedUsers(banCheckData);
-      isBanned = banCheck?.data?.isBanned === true;
-      console.log("@accountStatus  isBanned", isBanned);
-    } catch (e) {
-      console.error("@error on checkBan e", e);
-      isBanned = false;
+    // ========== STEP 1: CHECK VEHICLE ==========
+    let userVehicle = [];
+    let vehicleRegistered = true; // default true if not required
+    if (requiresVehicle) {
+      const vehicleDriverResult = await getVehicleDrivers({
+        ownerUserUniqueId,
+        assignmentStatus: "active",
+        limit: 1,
+        page: 1,
+      });
+      userVehicle = vehicleDriverResult?.data || [];
+      vehicleRegistered = userVehicle.length > 0;
     }
 
-    if (isBanned) {
-      // Update status to 6 (Banned)
+    if (requiresVehicle && !vehicleRegistered) {
+      // Update status to 2 (No vehicle registered)
       await updateUserRoleStatus({
         user: effectiveUser,
         roleId,
         userRoleStatusUniqueId,
         userRoleId,
-        newStatusId: 6,
+        newStatusId: 2,
         userRoleStatusDescription,
         phoneNumber,
       });
 
-      // Get updated status after change
       const latestUserData = await getUserRoleStatusCurrent({
         data: { roleId, search: phoneNumber },
       });
@@ -389,13 +376,163 @@ const accountStatus = async ({
         attachedDocumentsByStatus: {},
         unAttachedDocumentTypes: [],
         requiredDocuments: [],
-        subscription: subscriptionInfo,
-        status: 6,
-        reason: "User is banned",
+        subscription: {},
+        status: 2,
+        reason: "No vehicle registered for this role",
       };
     }
 
-    // ========== PRIORITY 2: CHECK SUBSCRIPTION (DRIVERS ONLY) ==========
+    // ========== STEP 2: CHECK DOCUMENTS ==========
+    let requiredDocuments = [];
+    let attachedDocuments = [];
+    let unAttachedDocumentTypes = [];
+    let attachedDocumentsByStatus = {
+      PENDING: [],
+      ACCEPTED: [],
+      REJECTED: [],
+    };
+
+    if (enableDocumentChecks) {
+      // Fetch required documents for role
+      const requiredDocsResult = await getRoleDocumentRequirements({
+        roleId,
+        page: 1,
+        limit: 1000,
+        sortBy: "documentTypeId",
+        sortOrder: "ASC",
+      });
+      requiredDocuments = requiredDocsResult?.data || [];
+
+      // Fetch attached documents
+      const sql = `SELECT DISTINCT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*
+        FROM AttachedDocuments
+        JOIN DocumentTypes
+          ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
+        JOIN RoleDocumentRequirements
+          ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
+        WHERE AttachedDocuments.userUniqueId = ?
+          AND RoleDocumentRequirements.roleId = ?`;
+      const [attachedDocs] = await pool.query(sql, [ownerUserUniqueId, roleId]);
+      attachedDocuments = attachedDocs;
+
+      // Find unattached required document types
+      unAttachedDocumentTypes = requiredDocuments.filter(
+        (requiredDocument) =>
+          !attachedDocs.some(
+            (attachedDocument) =>
+              attachedDocument.documentTypeId ===
+              requiredDocument.documentTypeId
+          )
+      );
+
+      // Group attached docs by acceptance status
+      attachedDocs.forEach((doc) => {
+        const acceptanceStatus = doc.attachedDocumentAcceptance;
+        if (attachedDocumentsByStatus[acceptanceStatus]) {
+          attachedDocumentsByStatus[acceptanceStatus].push(doc);
+        }
+      });
+
+      // Check for rejected documents
+      if (attachedDocumentsByStatus.REJECTED.length > 0) {
+        await updateUserRoleStatus({
+          user: effectiveUser,
+          roleId,
+          userRoleStatusUniqueId,
+          userRoleId,
+          newStatusId: 4,
+          userRoleStatusDescription,
+          phoneNumber,
+        });
+
+        const latestUserData = await getUserRoleStatusCurrent({
+          data: { roleId, search: phoneNumber },
+        });
+
+        return {
+          message: "success",
+          messageType: "accountStatus",
+          vehicle: userVehicle?.[0] || null,
+          userData: latestUserData?.data?.[0] || null,
+          attachedDocumentsByStatus,
+          unAttachedDocumentTypes,
+          requiredDocuments,
+          subscription: {},
+          status: 4,
+          reason: "One or more documents have been rejected",
+        };
+      }
+
+      // Check for missing documents
+      if (unAttachedDocumentTypes.length > 0) {
+        await updateUserRoleStatus({
+          user: effectiveUser,
+          roleId,
+          userRoleStatusUniqueId,
+          userRoleId,
+          newStatusId: 3,
+          userRoleStatusDescription,
+          phoneNumber,
+        });
+
+        const latestUserData = await getUserRoleStatusCurrent({
+          data: { roleId, search: phoneNumber },
+        });
+
+        return {
+          message: "success",
+          messageType: "accountStatus",
+          vehicle: userVehicle?.[0] || null,
+          userData: latestUserData?.data?.[0] || null,
+          attachedDocumentsByStatus,
+          unAttachedDocumentTypes,
+          requiredDocuments,
+          subscription: {},
+          status: 3,
+          reason: "Some required documents are not attached",
+        };
+      }
+
+      // Check for pending documents
+      if (attachedDocumentsByStatus.PENDING.length > 0) {
+        await updateUserRoleStatus({
+          user: effectiveUser,
+          roleId,
+          userRoleStatusUniqueId,
+          userRoleId,
+          newStatusId: 5,
+          userRoleStatusDescription,
+          phoneNumber,
+        });
+
+        const latestUserData = await getUserRoleStatusCurrent({
+          data: { roleId, search: phoneNumber },
+        });
+
+        return {
+          message: "success",
+          messageType: "accountStatus",
+          vehicle: userVehicle?.[0] || null,
+          userData: latestUserData?.data?.[0] || null,
+          attachedDocumentsByStatus,
+          unAttachedDocumentTypes: [],
+          requiredDocuments,
+          subscription: {},
+          status: 5,
+          reason: "One or more documents are pending review",
+        };
+      }
+    }
+
+    // ========== STEP 3: CHECK SUBSCRIPTION (DRIVERS ONLY) ==========
+    let subscriptionInfo = {
+      hasActiveSubscription: false,
+      subscriptionType: null,
+      subscriptionDetails: null,
+      freeGiftUsed: false,
+      freeGiftDetails: null,
+    };
+
     if (Number(roleId) === usersRoles.driverRoleId) {
       let hasActiveSubscription = false;
       let subscriptionType = null;
@@ -523,7 +660,6 @@ const accountStatus = async ({
               phoneNumber,
             });
 
-            // Get updated status after change
             const latestUserData = await getUserRoleStatusCurrent({
               data: { roleId, search: phoneNumber },
             });
@@ -531,11 +667,11 @@ const accountStatus = async ({
             return {
               message: "success",
               messageType: "accountStatus",
-              vehicle: null,
+              vehicle: userVehicle?.[0] || null,
               userData: latestUserData?.data?.[0] || null,
-              attachedDocumentsByStatus: {},
+              attachedDocumentsByStatus,
               unAttachedDocumentTypes: [],
-              requiredDocuments: [],
+              requiredDocuments,
               subscription: subscriptionInfo,
               status: 7,
               reason: "Driver doesn't have an active subscription",
@@ -544,7 +680,6 @@ const accountStatus = async ({
         }
       } catch (e) {
         console.error("@checkActiveSubscriptions error e is", e);
-        // Set subscription info as error
         subscriptionInfo = {
           hasActiveSubscription: false,
           subscriptionType: "error",
@@ -553,89 +688,38 @@ const accountStatus = async ({
           freeGiftDetails: null,
           error: "Failed to check subscription status",
         };
-        // Continue with other checks even if subscription check fails
       }
     }
 
-    // 2) Required documents for role (if enabled)
-    let requiredDocuments = [];
-    if (enableDocumentChecks) {
-      const requiredDocsResult = await getRoleDocumentRequirements({
+    // ========== STEP 4: CHECK IF BANNED ==========
+    let isBanned = false;
+    try {
+      const { getBannedUsers } = require("./BannedUsers.service");
+      const banCheckData = {
+        check: true,
+        phoneNumber,
         roleId,
-        page: 1,
-        limit: 1000,
-        sortBy: "documentTypeId",
-        sortOrder: "ASC",
-      });
-      requiredDocuments = requiredDocsResult?.data || [];
+      };
+      const banCheck = await getBannedUsers(banCheckData);
+      isBanned = banCheck?.data?.isBanned === true;
+      console.log("@accountStatus  isBanned", isBanned);
+    } catch (e) {
+      console.error("@error on checkBan e", e);
+      isBanned = false;
     }
 
-    const sql = `SELECT DISTINCT AttachedDocuments.*, DocumentTypes.*, RoleDocumentRequirements.*
-FROM AttachedDocuments
-JOIN DocumentTypes
-  ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
-JOIN RoleDocumentRequirements
-  ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
-WHERE AttachedDocuments.userUniqueId = ?
-  AND RoleDocumentRequirements.roleId = ?
-`;
-    const [attachedDocuments] = enableDocumentChecks
-      ? await pool.query(sql, [ownerUserUniqueId, roleId])
-      : [[]];
-
-    // 4) Unattached required document types
-    const unAttachedDocumentTypes = enableDocumentChecks
-      ? requiredDocuments.filter(
-          (requiredDocument) =>
-            !attachedDocuments.some(
-              (attachedDocument) =>
-                attachedDocument.documentTypeId ===
-                requiredDocument.documentTypeId
-            )
-        )
-      : [];
-    // 5) Group attached docs by acceptance status
-    const attachedDocumentsByStatus = {
-      PENDING: [],
-      ACCEPTED: [],
-      REJECTED: [],
-    };
-    if (enableDocumentChecks) {
-      attachedDocuments.forEach((doc) => {
-        const acceptanceStatus = doc.attachedDocumentAcceptance;
-        if (attachedDocumentsByStatus[acceptanceStatus]) {
-          attachedDocumentsByStatus[acceptanceStatus].push(doc);
-        }
-      });
-    }
-    // 6) Vehicle assignment check
-    let userVehicle = [];
-    let vehicleRegistered = true; // default true if not required
-    if (requiresVehicle) {
-      const vehicleDriverResult = await getVehicleDrivers({
-        ownerUserUniqueId,
-        assignmentStatus: "active",
-        limit: 1,
-        page: 1,
-      });
-      userVehicle = vehicleDriverResult?.data || [];
-      vehicleRegistered = userVehicle.length > 0;
-    }
-
-    // ========== PRIORITY 3: CHECK VEHICLE ==========
-    if (requiresVehicle && !vehicleRegistered) {
-      // Update status to 2 (No vehicle registered)
+    if (isBanned) {
+      // Update status to 6 (Banned)
       await updateUserRoleStatus({
         user: effectiveUser,
         roleId,
         userRoleStatusUniqueId,
         userRoleId,
-        newStatusId: 2,
+        newStatusId: 6,
         userRoleStatusDescription,
         phoneNumber,
       });
 
-      // Get updated status after change
       const latestUserData = await getUserRoleStatusCurrent({
         data: { roleId, search: phoneNumber },
       });
@@ -643,114 +727,15 @@ WHERE AttachedDocuments.userUniqueId = ?
       return {
         message: "success",
         messageType: "accountStatus",
-        vehicle: null,
+        vehicle: userVehicle?.[0] || null,
         userData: latestUserData?.data?.[0] || null,
         attachedDocumentsByStatus,
-        unAttachedDocumentTypes,
+        unAttachedDocumentTypes: [],
         requiredDocuments,
         subscription: subscriptionInfo,
-        status: 2,
-        reason: "No vehicle registered for this role",
+        status: 6,
+        reason: "User is banned",
       };
-    }
-
-    // ========== PRIORITY 4: CHECK DOCUMENTS ==========
-    if (enableDocumentChecks) {
-      // Check for rejected documents first (highest priority in document checks)
-      if (attachedDocumentsByStatus.REJECTED.length > 0) {
-        // Update status to 4 (Documents rejected)
-        await updateUserRoleStatus({
-          user: effectiveUser,
-          roleId,
-          userRoleStatusUniqueId,
-          userRoleId,
-          newStatusId: 4,
-          userRoleStatusDescription,
-          phoneNumber,
-        });
-
-        // Get updated status after change
-        const latestUserData = await getUserRoleStatusCurrent({
-          data: { roleId, search: phoneNumber },
-        });
-
-        return {
-          message: "success",
-          messageType: "accountStatus",
-          vehicle: userVehicle?.[0] || null,
-          userData: latestUserData?.data?.[0] || null,
-          attachedDocumentsByStatus,
-          unAttachedDocumentTypes,
-          requiredDocuments,
-          subscription: subscriptionInfo,
-          status: 4,
-          reason: "One or more documents have been rejected",
-        };
-      }
-
-      // Check for missing documents
-      if (unAttachedDocumentTypes.length > 0) {
-        // Update status to 3 (Required documents missing)
-        await updateUserRoleStatus({
-          user: effectiveUser,
-          roleId,
-          userRoleStatusUniqueId,
-          userRoleId,
-          newStatusId: 3,
-          userRoleStatusDescription,
-          phoneNumber,
-        });
-
-        // Get updated status after change
-        const latestUserData = await getUserRoleStatusCurrent({
-          data: { roleId, search: phoneNumber },
-        });
-
-        return {
-          message: "success",
-          messageType: "accountStatus",
-          vehicle: userVehicle?.[0] || null,
-          userData: latestUserData?.data?.[0] || null,
-          attachedDocumentsByStatus,
-          unAttachedDocumentTypes,
-          requiredDocuments,
-          subscription: subscriptionInfo,
-          status: 3,
-          reason: "Some required documents are not attached",
-        };
-      }
-
-      // Check for pending documents
-      if (attachedDocumentsByStatus.PENDING.length > 0) {
-        // Update status to 5 (Documents pending)
-        await updateUserRoleStatus({
-          user: effectiveUser,
-          roleId,
-          userRoleStatusUniqueId,
-          userRoleId,
-          newStatusId: 5,
-          userRoleStatusDescription,
-          phoneNumber,
-        });
-
-        // Get updated status after change
-        const latestUserData = await getUserRoleStatusCurrent({
-          data: { roleId, search: phoneNumber },
-        });
-
-        return {
-          message: "success",
-          messageType: "accountStatus",
-          vehicle: userVehicle?.[0] || null,
-          userData: latestUserData?.data?.[0] || null,
-          attachedDocumentsByStatus,
-          unAttachedDocumentTypes: [],
-          requiredDocuments,
-          subscription: subscriptionInfo,
-          status: 5,
-          reason: "One or more documents are pending review",
-        };
-      }
     }
 
     // ========== ALL CHECKS PASSED: STATUS 1 (ACTIVE) ==========
@@ -792,6 +777,7 @@ WHERE AttachedDocuments.userUniqueId = ?
     };
   }
 };
+
 module.exports = {
   accountStatus,
 };
