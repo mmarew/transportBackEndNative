@@ -206,7 +206,6 @@ const deleteDriverSubscriptionByUniqueId = async (
 
 // Consolidated service method for filtering
 const getDriverSubscriptionsWithFilters = async (filters = {}) => {
-  console.log("@getDriverSubscriptionsWithFilters filters", filters);
   const {
     page = 1,
     limit = 10,
@@ -283,7 +282,7 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
   // Status filters
   if (isActive !== undefined) {
     if (isActive) {
-      whereClauses.push("NOW() BETWEEN ds.startDate AND ds.endDate");
+      whereClauses.push("NOW()  < ds.endDate");
     } else {
       whereClauses.push("(NOW() < ds.startDate OR NOW() > ds.endDate)");
     }

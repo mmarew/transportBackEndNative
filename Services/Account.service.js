@@ -789,25 +789,17 @@ async function checkAndGrantDriverSubscription(driverUniqueId) {
     const activeSubscriptions = await getDriverSubscriptionsWithFilters({
       driverUniqueId,
       isActive: true,
-      page: 1,
-      limit: 1,
     });
 
     if (activeSubscriptions?.data?.length > 0) {
-      const subscription = activeSubscriptions.data[0];
+      const subscription = activeSubscriptions.data;
       return {
-        hasActiveSubscription: true,
-        subscriptionType: subscription.isFree ? "free" : "paid",
         subscriptionDetails: subscription,
-        wasRecentlyGranted: wasGranted,
       };
     }
 
     return {
-      hasActiveSubscription: false,
-      subscriptionType: "none",
       subscriptionDetails: null,
-      wasRecentlyGranted: wasGranted,
     };
   } catch (error) {
     console.error("@checkAndGrantDriverSubscription error:", error);
