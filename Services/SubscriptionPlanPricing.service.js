@@ -59,6 +59,7 @@ const createPricing = async (
 // Single comprehensive method with filters
 
 // Single comprehensive method with filters
+// Single comprehensive method with filters
 const getPricingWithFilters = async (filters = {}) => {
   const {
     subscriptionPlanPricingUniqueId,
@@ -69,11 +70,20 @@ const getPricingWithFilters = async (filters = {}) => {
     sortOrder = "DESC",
     page = 1,
     limit = 10,
+    isFree = "all",
   } = filters;
 
   // Build WHERE clause dynamically
   let whereConditions = [];
   let queryParams = [];
+
+  // Filter by isFree - THIS REQUIRES JOINING SubscriptionPlan TABLE
+  if (isFree === "all") {
+    // No filter for isFree
+  } else if (isFree !== undefined) {
+    whereConditions.push("SubscriptionPlan.isFree = ?");
+    queryParams.push(isFree);
+  }
 
   // Filter by specific pricing ID
   if (subscriptionPlanPricingUniqueId) {
@@ -83,7 +93,7 @@ const getPricingWithFilters = async (filters = {}) => {
     queryParams.push(subscriptionPlanPricingUniqueId);
   }
 
-  // Filter by plan ID - SPECIFY THE TABLE NAME
+  // Filter by plan ID
   if (subscriptionPlanUniqueId) {
     whereConditions.push(
       "SubscriptionPlanPricing.subscriptionPlanUniqueId = ?"
@@ -96,40 +106,50 @@ const getPricingWithFilters = async (filters = {}) => {
     const effectiveDate = date || currentDate();
     if (isActive) {
       whereConditions.push(
-        "effectiveFrom <= ? AND (effectiveTo IS NULL OR effectiveTo >= ?)"
+        "SubscriptionPlanPricing.effectiveFrom <= ? AND (SubscriptionPlanPricing.effectiveTo IS NULL OR SubscriptionPlanPricing.effectiveTo >= ?)"
       );
       queryParams.push(effectiveDate, effectiveDate);
     } else {
-      whereConditions.push("(effectiveFrom > ? OR effectiveTo < ?)");
+      whereConditions.push(
+        "(SubscriptionPlanPricing.effectiveFrom > ? OR SubscriptionPlanPricing.effectiveTo < ?)"
+      );
       queryParams.push(effectiveDate, effectiveDate);
     }
   }
 
-  // Build the WHERE clause
+  // Build the WHERE clause for main query (with JOIN)
   const whereClause =
+    whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
+
+  // Build WHERE clause for count query (also needs JOIN)
+  const countWhereClause =
     whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
 
   // Calculate pagination
   const offset = (page - 1) * limit;
 
   // Count total records for pagination metadata
-  const countSql = `SELECT COUNT(*) as total FROM SubscriptionPlanPricing ${whereClause}`;
+  // IMPORTANT: Count query also needs to JOIN SubscriptionPlan table when filtering by isFree
+  let countSql;
+  if (isFree !== "all" && isFree !== undefined) {
+    // When filtering by isFree, we need the JOIN
+    countSql = `
+      SELECT COUNT(*) as total 
+      FROM SubscriptionPlanPricing 
+      JOIN SubscriptionPlan ON SubscriptionPlanPricing.subscriptionPlanUniqueId = SubscriptionPlan.subscriptionPlanUniqueId
+      ${countWhereClause}
+    `;
+  } else {
+    // When not filtering by isFree, we can skip the JOIN for count
+    countSql = `SELECT COUNT(*) as total FROM SubscriptionPlanPricing ${countWhereClause}`;
+  }
 
-  // For count query, use the same WHERE conditions but without table prefix for count query
-  const countWhereConditions = whereConditions.map((cond) =>
-    cond.replace("SubscriptionPlanPricing.", "")
-  );
-  const countWhereClause =
-    countWhereConditions.length > 0
-      ? `WHERE ${countWhereConditions.join(" AND ")}`
-      : "";
-  const countSqlFixed = `SELECT COUNT(*) as total FROM SubscriptionPlanPricing ${countWhereClause}`;
-
-  const [countResult] = await pool.query(countSqlFixed, queryParams);
+  // Use the same query parameters for count query
+  const [countResult] = await pool.query(countSql, queryParams);
   const total = countResult[0]?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
-  // Main query with pagination
+  // Main query with pagination - ALWAYS JOIN for main query to get SubscriptionPlan data
   const sql = `
     SELECT 
       SubscriptionPlanPricing.*,

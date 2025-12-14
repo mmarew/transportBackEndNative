@@ -12,12 +12,12 @@ const {
 const { getPricingWithFilters } = require("./SubscriptionPlanPricing.service");
 
 // Create subscription
-const createDriverSubscription = async (
+const createDriverSubscription = async ({
   driverUniqueId,
   subscriptionPlanUniqueId,
   startDate,
-  endDate
-) => {
+  endDate,
+}) => {
   // const activeSubscription=await ()
   const driverSubscriptionUniqueId = uuidv4();
   const today = currentDate();
@@ -69,9 +69,10 @@ const createDriverSubscription = async (
   // return;
   let savedEndDate = null,
     savedStartDate = null;
+  const isFree = activeSubscriptionData?.isFree;
   // prevent recreate double free trial
   if (activeSubscriptionData) {
-    if (activeSubscriptionData?.isFree) {
+    if (isFree) {
       return {
         message: "error",
         error: "You have already registered for a free trial once.",
@@ -88,11 +89,12 @@ const createDriverSubscription = async (
   // deduct balance if subscription was free trial because it is already added above in balance so deduct it now
   // if (activePricingData?.isFree) {
   const newBalanceInDeductionOfSubscription = await prepareAndCreateNewBalance({
-    addOrDeduct: "deduct",
+    addOrDeduct: "add", // "deduct",
     amount: price,
     driverUniqueId,
     transactionUniqueId: driverSubscriptionUniqueId, // driverSubscriptionUniqueId,
     transactionType: "Subscription",
+    isFree,
   });
   console.log(
     "@newBalanceInDeductionOfSubscription",
@@ -139,8 +141,8 @@ const createDriverSubscription = async (
       driverSubscriptionUniqueId,
       driverUniqueId,
       subscriptionPlanUniqueId,
-      startDate,
-      endDate,
+      // startDate,
+      // endDate,
     },
   };
 };
@@ -489,8 +491,116 @@ const getDriverSubscriptionsCount = async (filters = {}) => {
     filters,
   };
 };
+const getUnassignedFreePlans = async (filters = {}) => {
+  const {
+    page = 1,
+    limit = 10,
+    driverUniqueId, // Optional: check against specific driver
+    planName,
+    planDescription,
+    sortBy = "planName",
+    sortOrder = "ASC",
+  } = filters;
+
+  const offset = (page - 1) * limit;
+  const whereClauses = ["sp.isFree = TRUE"];
+  const params = [];
+
+  // Check if plan is not assigned to any driver or specific driver
+  if (driverUniqueId) {
+    whereClauses.push(`
+      sp.subscriptionPlanUniqueId NOT IN (
+        SELECT subscriptionPlanUniqueId 
+        FROM DriverSubscription 
+        WHERE driverUniqueId = ?
+      )
+    `);
+    params.push(driverUniqueId);
+  } else {
+    whereClauses.push(`
+      sp.subscriptionPlanUniqueId NOT IN (
+        SELECT subscriptionPlanUniqueId 
+        FROM DriverSubscription
+      )
+    `);
+  }
+
+  if (planName) {
+    whereClauses.push("LOWER(sp.planName) LIKE LOWER(?)");
+    params.push(`%${planName}%`);
+  }
+
+  if (planDescription) {
+    whereClauses.push("LOWER(sp.description) LIKE LOWER(?)");
+    params.push(`%${planDescription}%`);
+  }
+
+  const whereClause =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  const sql = `
+    SELECT 
+      sp.*,
+      spp.price,
+      spp.durationInDays,
+      spp.effectiveFrom,
+      spp.effectiveTo,
+      (SELECT COUNT(*) FROM DriverSubscription ds WHERE ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId) as totalAssignments,
+      (SELECT COUNT(DISTINCT driverUniqueId) FROM DriverSubscription ds WHERE ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId) as uniqueDriversAssigned
+    FROM SubscriptionPlan sp
+    LEFT JOIN SubscriptionPlanPricing spp
+      ON sp.subscriptionPlanUniqueId = spp.subscriptionPlanUniqueId
+      AND NOW() BETWEEN spp.effectiveFrom AND COALESCE(spp.effectiveTo, '9999-12-31')
+    ${whereClause}
+    ORDER BY sp.${sortBy} ${sortOrder}
+    LIMIT ? OFFSET ?
+  `;
+
+  const countSql = `
+    SELECT COUNT(*) as total
+    FROM SubscriptionPlan sp
+    ${whereClause}
+  `;
+
+  try {
+    const [rows] = await pool.query(sql, [...params, parseInt(limit), offset]);
+    const [countRes] = await pool.query(countSql, params);
+    const total = countRes[0]?.total || 0;
+
+    return {
+      message: "success",
+      data: rows,
+      pagination: {
+        currentPage: parseInt(page),
+        itemsPerPage: parseInt(limit),
+        totalItems: total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
+      },
+      filters,
+    };
+  } catch (error) {
+    console.error("Error in getUnassignedFreePlans:", error);
+    return {
+      message: "error",
+      error: "Failed to fetch unassigned free plans",
+      details: error.message,
+    };
+  }
+};
+const getSubscriptionData = async (filters = {}) => {
+  const { dataType = "driverSubscriptions" } = filters; // 'driverSubscriptions' or 'freePlans'
+
+  if (dataType === "freePlans") {
+    return await getUnassignedFreePlans(filters);
+  } else {
+    return await getDriverSubscriptionsWithFilters(filters);
+  }
+};
 
 module.exports = {
+  getSubscriptionData,
   getDriverSubscriptionsCount,
 
   createDriverSubscription,

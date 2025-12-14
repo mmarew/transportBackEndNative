@@ -22,6 +22,7 @@ const prepareAndCreateNewBalance = async ({
   driverUniqueId,
   transactionUniqueId,
   transactionType,
+  isFree,
 }) => {
   //  validation to all incoming args
   if (
@@ -39,8 +40,8 @@ const prepareAndCreateNewBalance = async ({
   if (!netBalance) netBalance = 0;
   netBalance = Number(netBalance);
 
-  // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct
-  if (addOrDeduct === "deduct") {
+  // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct and not free
+  if (addOrDeduct === "deduct" && !isFree) {
     if (netBalance < Number(amount) || netBalance == 0)
       return {
         message: `error`,

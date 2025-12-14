@@ -562,6 +562,223 @@ const adminServices = {
       };
     }
   },
+  // getUnauthorizedDriver: async (query) => {
+  //   const {
+  //     page = 1,
+  //     limit = 10,
+  //     search, // General search
+  //     name, // Filter by driver name
+  //     email, // Filter by email
+  //     phone, // Filter by phone number
+  //     status, // Filter by specific status (excluding 1 and 6 by default)
+  //     vehicleType, // Filter by vehicle type
+  //     licensePlate, // Filter by license plate
+  //     sortBy = "userRoleStatusCreatedAt", // Sorting field
+  //     sortOrder = "DESC", // Sorting order
+  //   } = query;
+
+  //   const offset = (page - 1) * limit;
+
+  //   // Base WHERE conditions for unauthorized drivers (excluding status 1 and 6, role 2)
+  //   let whereClause = `
+  //   WHERE UserRoleStatusCurrent.statusId NOT IN (1, 6)
+  //   AND Roles.roleId = 2
+  //   `;
+
+  //   const params = [];
+
+  //   // General search across multiple fields
+  //   if (search && search.trim() !== "") {
+  //     const wildcardSearch = `%${search.trim()}%`;
+  //     whereClause += `
+  //       AND (Users.fullName LIKE ? OR Users.email LIKE ? OR Users.phoneNumber LIKE ?
+  //            OR Vehicle.licensePlate LIKE ? OR VehicleTypes.vehicleTypeName LIKE ?)
+  //       `;
+  //     params.push(
+  //       wildcardSearch,
+  //       wildcardSearch,
+  //       wildcardSearch,
+  //       wildcardSearch,
+  //       wildcardSearch
+  //     );
+  //   }
+
+  //   // Filter by driver name
+  //   if (name && name.trim() !== "") {
+  //     const wildcardName = `%${name.trim()}%`;
+  //     whereClause += ` AND Users.fullName LIKE ?`;
+  //     params.push(wildcardName);
+  //   }
+
+  //   // Filter by email
+  //   if (email && email.trim() !== "") {
+  //     const wildcardEmail = `%${email.trim()}%`;
+  //     whereClause += ` AND Users.email LIKE ?`;
+  //     params.push(wildcardEmail);
+  //   }
+
+  //   // Filter by phone number
+  //   if (phone && phone.trim() !== "") {
+  //     const wildcardPhone = `%${phone.trim()}%`;
+  //     whereClause += ` AND Users.phoneNumber LIKE ?`;
+  //     params.push(wildcardPhone);
+  //   }
+
+  //   // Filter by specific status (if provided, override default exclusion)
+  //   if (status) {
+  //     if (Array.isArray(status)) {
+  //       const placeholders = status.map(() => "?").join(",");
+  //       whereClause += ` AND UserRoleStatusCurrent.statusId IN (${placeholders})`;
+  //       params.push(...status);
+  //     } else {
+  //       whereClause += ` AND UserRoleStatusCurrent.statusId = ?`;
+  //       params.push(status);
+  //     }
+  //   }
+
+  //   // Filter by vehicle type
+  //   if (vehicleType && vehicleType.trim() !== "") {
+  //     const wildcardVehicleType = `%${vehicleType.trim()}%`;
+  //     whereClause += ` AND VehicleTypes.vehicleTypeName LIKE ?`;
+  //     params.push(wildcardVehicleType);
+  //   }
+
+  //   // Filter by license plate
+  //   if (licensePlate && licensePlate.trim() !== "") {
+  //     const wildcardLicensePlate = `%${licensePlate.trim()}%`;
+  //     whereClause += ` AND Vehicle.licensePlate LIKE ?`;
+  //     params.push(wildcardLicensePlate);
+  //   }
+
+  //   // Validate sorting parameters
+  //   const validSortFields = [
+  //     "userRoleStatusCreatedAt",
+  //     "fullName",
+  //     "email",
+  //     "phoneNumber",
+  //     "createdAt",
+  //     "statusName",
+  //   ];
+  //   const validSortOrders = ["ASC", "DESC"];
+
+  //   const sortField = validSortFields.includes(sortBy)
+  //     ? sortBy
+  //     : "userRoleStatusCreatedAt";
+  //   const sortDirection = validSortOrders.includes(sortOrder.toUpperCase())
+  //     ? sortOrder.toUpperCase()
+  //     : "DESC";
+
+  //   // Count query for pagination
+  //   const countSql = `
+  //   SELECT COUNT(DISTINCT Users.userUniqueId) AS total
+  //   FROM Users
+  //   JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+  //   JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+  //   JOIN Roles ON UserRole.roleId = Roles.roleId
+  //   JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+  //   LEFT JOIN VehicleOwnership ON Users.userUniqueId = VehicleOwnership.userUniqueId
+  //   LEFT JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
+  //   LEFT JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
+  //   ${whereClause}
+  //   `;
+
+  //   const [countRows] = await pool.query(countSql, params);
+  //   const total = countRows[0].total;
+  //   const totalPages = Math.ceil(total / limit);
+  //   const currentPage = parseInt(page);
+
+  //   // Calculate pagination metadata
+  //   const hasNext = currentPage < totalPages;
+  //   const hasPrevious = currentPage > 1;
+
+  //   // Main data query with comprehensive joins
+  //   const dataSql = `
+  //   SELECT
+  //       Users.*,
+  //       UserRole.*,
+  //       UserRoleStatusCurrent.*,
+  //       Roles.*,
+  //       Statuses.*,
+  //       Vehicle.vehicleUniqueId,
+  //       Vehicle.licensePlate,
+  //       Vehicle.color,
+  //       VehicleTypes.vehicleTypeName,
+  //       VehicleTypes.vehicleTypeDescription,
+  //       VehicleOwnership.ownershipUniqueId,
+  //       VehicleOwnership.ownershipStartDate,
+  //       VehicleOwnership.ownershipEndDate
+  //   FROM Users
+  //   JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
+  //   JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
+  //   JOIN Roles ON UserRole.roleId = Roles.roleId
+  //   JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
+  //   LEFT JOIN VehicleOwnership ON Users.userUniqueId = VehicleOwnership.userUniqueId
+  //   LEFT JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
+  //   LEFT JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
+  //   ${whereClause}
+  //   GROUP BY Users.userUniqueId
+  //   ORDER BY
+  //       ${
+  //         sortField === "fullName"
+  //           ? "Users.fullName"
+  //           : sortField === "email"
+  //           ? "Users.email"
+  //           : sortField === "phoneNumber"
+  //           ? "Users.phoneNumber"
+  //           : sortField === "createdAt"
+  //           ? "Users.createdAt"
+  //           : sortField === "statusName"
+  //           ? "Statuses.statusName"
+  //           : "UserRoleStatusCurrent.userRoleStatusCreatedAt"
+  //       } ${sortDirection}
+  //   LIMIT ? OFFSET ?
+  //   `;
+
+  //   const dataParams = [...params, parseInt(limit), parseInt(offset)];
+  //   const [unauthorizedUsers] = await pool.query(dataSql, dataParams);
+
+  //   // Get documents for each user
+  //   const usersWithDocuments = await Promise.all(
+  //     unauthorizedUsers.map(async (user) => {
+  //       const userUniqueId = user.userUniqueId;
+  //       const documents = await driversDocumentVehicleRequirement({
+  //         ownerUserUniqueId: userUniqueId,
+  //         user: user,
+  //       });
+
+  //       return {
+  //         ...user,
+  //         documents: documents.data || documents, // Handle different response formats
+  //       };
+  //     })
+  //   );
+
+  //   return {
+  //     message: "success",
+  //     pagination: {
+  //       total,
+  //       page: currentPage,
+  //       limit: parseInt(limit),
+  //       totalPages,
+  //       hasNext,
+  //       hasPrevious,
+  //       nextPage: hasNext ? currentPage + 1 : null,
+  //       previousPage: hasPrevious ? currentPage - 1 : null,
+  //     },
+  //     filters: {
+  //       search,
+  //       name,
+  //       email,
+  //       phone,
+  //       status: status || "All except 1 and 6", // Show which statuses are included
+  //       vehicleType,
+  //       licensePlate,
+  //       sortBy: sortField,
+  //       sortOrder: sortDirection,
+  //     },
+  //     data: usersWithDocuments,
+  //   };
+  // },
   getUnauthorizedDriver: async (query) => {
     const {
       page = 1,
@@ -583,6 +800,7 @@ const adminServices = {
     let whereClause = `
     WHERE UserRoleStatusCurrent.statusId NOT IN (1, 6) 
     AND Roles.roleId = 2
+    AND Users.isDeleted = FALSE
     `;
 
     const params = [];
@@ -676,7 +894,8 @@ const adminServices = {
     JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId 
     JOIN Roles ON UserRole.roleId = Roles.roleId 
     JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
-    LEFT JOIN VehicleOwnership ON Users.userUniqueId = VehicleOwnership.userUniqueId
+    LEFT JOIN VehicleOwnership ON Users.userUniqueId = VehicleOwnership.userUniqueId 
+      AND VehicleOwnership.ownershipEndDate IS NULL
     LEFT JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
     LEFT JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
     ${whereClause}
@@ -691,32 +910,97 @@ const adminServices = {
     const hasNext = currentPage < totalPages;
     const hasPrevious = currentPage > 1;
 
-    // Main data query with comprehensive joins
+    // Main data query with comprehensive joins - FIXED VERSION
     const dataSql = `
     SELECT 
-        Users.*, 
-        UserRole.*, 
-        UserRoleStatusCurrent.*, 
-        Roles.*,
-        Statuses.*,
+        -- User fields
+        Users.userId,
+        Users.userUniqueId,
+        Users.fullName,
+        Users.phoneNumber,
+        Users.email,
+        Users.createdAt,
+        Users.createdBy,
+        Users.deletedAt,
+        Users.deletedBy,
+        Users.isDeleted,
+        
+        -- UserRole fields
+        UserRole.userRoleId,
+        UserRole.userRoleUniqueId,
+        UserRole.userRoleCreatedBy,
+        UserRole.userRoleUpdatedBy,
+        UserRole.userRoleDeletedBy,
+        UserRole.userRoleCreatedAt,
+        UserRole.userRoleDeletedAt,
+        
+        -- UserRoleStatusCurrent fields
+        UserRoleStatusCurrent.userRoleStatusId,
+        UserRoleStatusCurrent.userRoleStatusUniqueId,
+        UserRoleStatusCurrent.statusId,
+        UserRoleStatusCurrent.userRoleStatusDescription,
+        UserRoleStatusCurrent.userRoleStatusCreatedBy,
+        UserRoleStatusCurrent.userRoleStatusCreatedAt,
+        UserRoleStatusCurrent.userRoleStatusCurrentVersion,
+        
+        -- Roles fields
+        Roles.roleId,
+        Roles.roleUniqueId,
+        Roles.roleName,
+        Roles.roleDescription,
+        Roles.roleCreatedBy,
+        Roles.roleUpdatedBy,
+        Roles.roleDeletedBy,
+        Roles.roleCreatedAt,
+        Roles.roleDeletedAt,
+        
+        -- Statuses fields
+        Statuses.statusId,
+        Statuses.statusUniqueId,
+        Statuses.statusName,
+        Statuses.statusDescription,
+        Statuses.statusCreatedBy,
+        Statuses.statusUpdatedBy,
+        Statuses.statusUpdatedAt,
+        Statuses.statusDeletedBy,
+        Statuses.statusDeletedAt,
+        Statuses.statusCreatedAt,
+        
+        -- Vehicle fields
         Vehicle.vehicleUniqueId,
         Vehicle.licensePlate,
         Vehicle.color,
+        
+        -- VehicleTypes fields
         VehicleTypes.vehicleTypeName,
         VehicleTypes.vehicleTypeDescription,
+        
+        -- VehicleOwnership fields
         VehicleOwnership.ownershipUniqueId,
         VehicleOwnership.ownershipStartDate,
         VehicleOwnership.ownershipEndDate
+        
     FROM Users 
-    JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId
-    JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId 
+    JOIN UserRole ON Users.userUniqueId = UserRole.userUniqueId 
+      AND UserRole.userRoleDeletedAt IS NULL
+    JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
     JOIN Roles ON UserRole.roleId = Roles.roleId 
+      AND Roles.roleDeletedAt IS NULL
     JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
-    LEFT JOIN VehicleOwnership ON Users.userUniqueId = VehicleOwnership.userUniqueId
+    LEFT JOIN VehicleOwnership ON Users.userUniqueId = VehicleOwnership.userUniqueId 
+      AND VehicleOwnership.ownershipEndDate IS NULL
+      AND VehicleOwnership.roleId = 2
     LEFT JOIN Vehicle ON VehicleOwnership.vehicleUniqueId = Vehicle.vehicleUniqueId
+      AND Vehicle.vehicleDeletedAt IS NULL
     LEFT JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
+      AND VehicleTypes.vehicleTypeDeletedAt IS NULL
     ${whereClause}
-    GROUP BY Users.userUniqueId
+    GROUP BY 
+        Users.userUniqueId,
+        UserRole.userRoleId,
+        UserRoleStatusCurrent.userRoleStatusId,
+        Vehicle.vehicleUniqueId,
+        VehicleOwnership.ownershipUniqueId
     ORDER BY 
         ${
           sortField === "fullName"

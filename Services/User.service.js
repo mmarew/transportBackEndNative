@@ -17,9 +17,9 @@ const { usersRoles } = require("../Utils/ListOfFixedData");
 const { getUserRoleListByFilter } = require("./UserRole.service");
 const { getUserRoleStatusCurrent } = require("./UserRoleStatus.service");
 const { createFreeGiftToDriver } = require("./FreeGiftToDriver.service");
-const {
-  getAllSubscriptionPlansWithPricing,
-} = require("./SubscriptionPlan.service");
+
+const { createDriverSubscription } = require("./DriverSubscription.service");
+const { getPricingWithFilters } = require("./SubscriptionPlanPricing.service");
 
 const createUserSystem = async (body) => {
   const fullName = "system",
@@ -163,6 +163,45 @@ const handleExistingUser = async ({
     phoneNumber: user.phoneNumber,
     OTP,
   });
+  console.log(
+    "@fgfgfgfg",
+    ",Number(roleId) === usersRoles.driverRoleId",
+    Number(roleId) === usersRoles.driverRoleId
+  );
+
+  try {
+    if (Number(roleId) === usersRoles.driverRoleId) {
+      const plansRes = await getPricingWithFilters();
+      console.log("@plansRes", plansRes);
+      const plans = plansRes?.data || [];
+      // find a free plan
+      const freePlan = plans.find((p) => p?.isFree === true || p?.isFree === 1);
+      console.log("@freePlan", freePlan);
+      if (freePlan?.subscriptionPlanUniqueId) {
+        const newSubscriptionResult = await createDriverSubscription({
+          driverUniqueId: userUniqueId,
+          subscriptionPlanUniqueId: freePlan.subscriptionPlanUniqueId,
+        });
+        console.log("@newSubscriptionResult", newSubscriptionResult);
+      }
+      // prepare return message
+      return {
+        dataOfPassenger: "",
+        message: "success",
+        messageDetail:
+          "User created successfully, free gift subscription added",
+      };
+    }
+    // prepare return message
+    return {
+      message: "success",
+      messageDetail: "User created successfully",
+    };
+  } catch (e) {
+    // ignore gift errors during sign-up to not block user creation
+    console.log("@registerNewUser free gift error", e?.message || e);
+  }
+
   return { ...otpUpdated, dataOfPassenger: user };
 };
 
@@ -238,21 +277,25 @@ const registerNewUser = async ({
   // if user is driver give available free gift subscription if it was not given before.
   try {
     if (Number(roleId) === usersRoles.driverRoleId) {
-      const plansRes = await getAllSubscriptionPlansWithPricing();
+      const plansRes = await getPricingWithFilters();
       const plans = plansRes?.data || [];
       // find a free plan
       const freePlan = plans.find((p) => p?.isFree === true || p?.isFree === 1);
       if (freePlan?.subscriptionPlanUniqueId) {
         const giftStartDate = new Date().toISOString().slice(0, 10);
-        await createFreeGiftToDriver({
+        // await createFreeGiftToDriver({
+        //   driverUniqueId: userUniqueId,
+        //   subscriptionPlanUniqueId: freePlan.subscriptionPlanUniqueId,
+        //   giftStartDate,
+        // });
+        await createDriverSubscription({
           driverUniqueId: userUniqueId,
           subscriptionPlanUniqueId: freePlan.subscriptionPlanUniqueId,
-          giftStartDate,
         });
       }
       // prepare return message
       return {
-        dataOfPassenger,
+        dataOfPassenger: "",
         message: "success",
         messageDetail:
           "User created successfully, free gift subscription added",
@@ -271,7 +314,7 @@ const registerNewUser = async ({
   return {
     message: "success",
     messageDetail: "User created successfully",
-    dataOfPassenger,
+    dataOfPassenger: "",
   };
 };
 

@@ -159,6 +159,7 @@ exports.getPricingWithFilters = async (req, res) => {
       sortOrder = "DESC",
       page = 1,
       limit = 10,
+      isFree,
     } = req.query;
 
     // Build filter object
@@ -171,6 +172,7 @@ exports.getPricingWithFilters = async (req, res) => {
       sortOrder: sortOrder.toUpperCase(),
       page: parseInt(page),
       limit: parseInt(limit),
+      isFree,
     };
 
     // Remove undefined filters

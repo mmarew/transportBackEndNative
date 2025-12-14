@@ -11,12 +11,12 @@ exports.createDriverSubscription = async (req, res) => {
     if (driverUniqueId == "self") driverUniqueId = user?.userUniqueId;
     console.log("@driverUniqueId", driverUniqueId);
 
-    const result = await service.createDriverSubscription(
+    const result = await service.createDriverSubscription({
       driverUniqueId,
       subscriptionPlanUniqueId,
       startDate,
-      endDate
-    );
+      endDate,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error creating driver subscription:", error);
@@ -207,12 +207,12 @@ exports.createDriverSubscription = async (req, res) => {
     let driverUniqueId = req?.params?.driverUniqueId;
     if (driverUniqueId == "self") driverUniqueId = user?.userUniqueId;
 
-    const result = await service.createDriverSubscription(
+    const result = await service.createDriverSubscription({
       driverUniqueId,
       subscriptionPlanUniqueId,
       startDate,
-      endDate
-    );
+      endDate,
+    });
     ServerResponder(res, result);
   } catch (error) {
     console.error("Error creating driver subscription:", error);
