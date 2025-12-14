@@ -188,41 +188,201 @@ const getPricingWithFilters = async (filters = {}) => {
   }
 };
 
-// Update by unique pricing ID
 const updatePricingByUniqueId = async (
   subscriptionPlanPricingUniqueId,
-  price,
-  durationInDays,
-  effectiveFrom,
-  effectiveTo
+  updateData = {}
 ) => {
-  const sql = `
-    UPDATE SubscriptionPlanPricing 
-    SET price = ?, durationInDays = ?, effectiveFrom = ?, effectiveTo = ?
-    WHERE subscriptionPlanPricingUniqueId = ?
-  `;
+  console.log("@updatePricingByUniqueId updateData", updateData);
+  // Validate inputs
+  if (!subscriptionPlanPricingUniqueId) {
+    return {
+      message: "error",
+      error: "subscriptionPlanPricingUniqueId is required",
+    };
+  }
 
-  const [result] = await pool.query(sql, [
-    price,
-    durationInDays,
-    effectiveFrom,
-    effectiveTo,
-    subscriptionPlanPricingUniqueId,
-  ]);
+  const allowedFields = [
+    "price",
+    "durationInDays",
+    "effectiveFrom",
+    "effectiveTo",
+  ];
+  const setClauses = [];
+  const values = [];
+  const errors = [];
 
-  return result.affectedRows > 0
-    ? {
-        message: "success",
-        data: {
-          subscriptionPlanPricingUniqueId,
-          price,
-          durationInDays,
-          effectiveFrom,
-          effectiveTo,
-        },
+  // Process each allowed field
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined && updateData[field] !== null) {
+      // Field-specific validation
+      switch (field) {
+        case "price":
+          const price = parseFloat(updateData[field]);
+          if (isNaN(price)) {
+            errors.push("price must be a valid number");
+          } else if (price < 0) {
+            errors.push("price cannot be negative");
+          } else {
+            setClauses.push("price = ?");
+            values.push(price.toFixed(2));
+          }
+          break;
+
+        case "durationInDays":
+          const duration = parseInt(updateData[field]);
+          if (isNaN(duration)) {
+            errors.push("durationInDays must be a valid integer");
+          } else if (duration <= 0) {
+            errors.push("durationInDays must be greater than 0");
+          } else {
+            setClauses.push("durationInDays = ?");
+            values.push(duration);
+          }
+          break;
+
+        case "effectiveFrom":
+        case "effectiveTo":
+          const dateValue = validateAndFormatDate(updateData[field]);
+          if (dateValue === false) {
+            errors.push(
+              `${field} must be a valid date in YYYY-MM-DD format or ISO string`
+            );
+          } else if (dateValue !== null) {
+            // null means not provided
+            setClauses.push(`${field} = ?`);
+            values.push(dateValue);
+          }
+          break;
+
+        default:
+          setClauses.push(`${field} = ?`);
+          values.push(updateData[field]);
       }
-    : { message: "error", error: "Failed to update pricing" };
+    }
+  });
+
+  // Check for errors
+  if (errors.length > 0) {
+    return {
+      message: "error",
+      error: "Validation failed",
+      details: errors.join(", "),
+    };
+  }
+
+  // Ensure at least one field to update
+  if (setClauses.length === 0) {
+    return {
+      message: "error",
+      error:
+        "No valid fields to update. Provide at least one of: price, durationInDays, effectiveFrom, effectiveTo",
+    };
+  }
+
+  // Add the uniqueId for WHERE clause
+  values.push(subscriptionPlanPricingUniqueId);
+
+  try {
+    const sql = `
+      UPDATE SubscriptionPlanPricing
+      SET ${setClauses.join(", ")}
+      WHERE subscriptionPlanPricingUniqueId = ?
+    `;
+
+    console.log("Executing SQL:", sql);
+    console.log("With values:", values);
+
+    const [result] = await pool.query(sql, values);
+
+    if (result.affectedRows > 0) {
+      // Get the updated record
+      const [updated] = await pool.query(
+        "SELECT * FROM SubscriptionPlanPricing WHERE subscriptionPlanPricingUniqueId = ?",
+        [subscriptionPlanPricingUniqueId]
+      );
+
+      return {
+        message: "success",
+        data: updated[0],
+        updatedFields: setClauses.map((clause) => clause.split(" = ")[0]),
+        affectedRows: result.affectedRows,
+      };
+    } else {
+      return {
+        message: "error",
+        error: "Pricing record not found or no changes made",
+      };
+    }
+  } catch (error) {
+    console.error("Database update error:", error);
+
+    // User-friendly error messages
+    const errorMap = {
+      ER_TRUNCATED_WRONG_VALUE: "Invalid date format. Use YYYY-MM-DD format.",
+      ER_BAD_NULL_ERROR: "Required field cannot be null.",
+      ER_DATA_TOO_LONG: "Data too long for column.",
+      ER_DUP_ENTRY: "Duplicate entry found.",
+    };
+
+    return {
+      message: "error",
+      error: errorMap[error.code] || "Failed to update pricing",
+      sqlError: error.code,
+      details: error.message,
+    };
+  }
 };
+
+// Enhanced date validation function
+function validateAndFormatDate(dateValue) {
+  if (dateValue === null || dateValue === undefined) return null;
+  if (dateValue === "") return null; // Empty string means no date
+
+  try {
+    let dateObj;
+
+    // Handle Date objects
+    if (dateValue instanceof Date) {
+      dateObj = dateValue;
+    }
+    // Handle ISO strings (with or without timezone)
+    else if (typeof dateValue === "string") {
+      // Remove timezone and time for DATE type
+      const datePart = dateValue.split("T")[0];
+
+      // Validate YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        const parts = datePart.split("-");
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+
+        // Basic date validation
+        if (month < 1 || month > 12 || day < 1 || day > 31) {
+          return false;
+        }
+
+        return datePart; // Already in correct format
+      }
+
+      // Try to parse other formats
+      dateObj = new Date(dateValue);
+    } else {
+      return false;
+    }
+
+    // Check if valid date
+    if (isNaN(dateObj.getTime())) {
+      return false;
+    }
+
+    // Format to YYYY-MM-DD
+    return dateObj.toISOString().split("T")[0];
+  } catch (error) {
+    console.error("Date formatting error:", error);
+    return false;
+  }
+}
 
 // Delete by unique pricing ID
 const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {

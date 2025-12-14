@@ -201,10 +201,7 @@ exports.updatePricingByUniqueId = async (req, res) => {
 
     const result = await service.updatePricingByUniqueId(
       subscriptionPlanPricingUniqueId,
-      price,
-      durationInDays,
-      effectiveFrom,
-      effectiveTo
+      { price, durationInDays, effectiveFrom, effectiveTo }
     );
     ServerResponder(res, result);
   } catch (error) {

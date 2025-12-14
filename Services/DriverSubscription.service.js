@@ -54,38 +54,40 @@ const createDriverSubscription = async ({
     driverUniqueId,
     subscriptionPlanUniqueId,
   };
-  const getActiveSubscription = await getDriverSubscriptionsWithFilters(
-    filters
-  );
+  const checkGrantedBefore = await getDriverSubscriptionsWithFilters(filters);
+  console.log("@checkGrantedBefore====", checkGrantedBefore);
+  const dataGrantedBefore = checkGrantedBefore?.data?.[0];
 
-  const activeSubscriptionData = getActiveSubscription?.data?.[0];
-
-  console.log(
-    "@getActiveSubscription",
-    getActiveSubscription,
-    "@createDriverSubscription subscriptionPlanUniqueId",
-    subscriptionPlanUniqueId
-  );
   // return;
   let savedEndDate = null,
     savedStartDate = null;
-  const isFree = activeSubscriptionData?.isFree;
-  // prevent recreate double free trial
-  if (activeSubscriptionData) {
+  const isFree = dataGrantedBefore?.isFree;
+  // prevent recreate double free gift plan
+  if (dataGrantedBefore) {
     if (isFree) {
       return {
         message: "error",
         error: "You have already registered for a free trial once.",
       };
-    } else {
-      savedEndDate = activeSubscriptionData?.endDate;
-      // the end of previous is begining of today, so we assigned the end date to starting date
-      savedStartDate = savedEndDate;
     }
+  }
+  const activeSubscription = await getDriverSubscriptionsWithFilters({
+    driverUniqueId,
+  });
+  const activeSubscriptionData = activeSubscription?.data?.[0];
+  console.log(
+    "@activeSubscriptionDataactiveSubscriptionData",
+    activeSubscriptionData
+  );
+  // return;
+  if (activeSubscription) {
+    savedEndDate = activeSubscriptionData?.endDate;
+    // the end of previous is begining of today, so we assigned the end date to starting date
+    savedStartDate = savedEndDate;
   } else {
   }
-  console.log("@savedEndDate", savedEndDate);
-
+  console.log("@savedEndDate", savedEndDate, "@savedStartDate", savedStartDate);
+  // return;
   // deduct balance if subscription was free trial because it is already added above in balance so deduct it now
   // if (activePricingData?.isFree) {
   const newBalanceInDeductionOfSubscription = await prepareAndCreateNewBalance({
@@ -126,6 +128,14 @@ const createDriverSubscription = async ({
     savedStartDate ? savedStartDate : today,
     nextDate,
   ];
+  console.log(
+    "@createDriverSubscription sql",
+    sql,
+    "@createDriverSubscription values",
+    values
+  );
+  // return { sql, values };
+  // return;
   const [result] = await pool.query(sql, values);
   console.log("@DriverSubscription result", result);
   if (result.affectedRows == 0) {

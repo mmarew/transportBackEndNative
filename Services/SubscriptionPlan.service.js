@@ -128,35 +128,149 @@ const getSubscriptionPlans = async (filters = {}) => {
 };
 
 // Update by uniqueId
+// const updateSubscriptionPlan = async (
+//   uniqueId,
+//   planName,
+//   description,
+//   isFree
+// ) => {
+//   const sql = `
+//     UPDATE SubscriptionPlan
+//     SET planName = ?, description = ?, isFree = ?
+//     WHERE subscriptionPlanUniqueId = ?
+//   `;
+//   const [result] = await pool.query(sql, [
+//     planName,
+//     description,
+//     isFree,
+//     uniqueId,
+//   ]);
+
+//   return result.affectedRows > 0
+//     ? {
+//         message: "success",
+//         data: {
+//           subscriptionPlanUniqueId: uniqueId,
+//           planName,
+//           description,
+//           isFree,
+//         },
+//       }
+//     : { message: "error", error: "Failed to update subscription plan" };
+// };
+// Update by uniqueId with dynamic parameter building
 const updateSubscriptionPlan = async (
   uniqueId,
   planName,
   description,
   isFree
 ) => {
-  const sql = `
-    UPDATE SubscriptionPlan
-    SET planName = ?, description = ?, isFree = ?
-    WHERE subscriptionPlanUniqueId = ?
-  `;
-  const [result] = await pool.query(sql, [
-    planName,
-    description,
-    isFree,
-    uniqueId,
-  ]);
+  // Validate that uniqueId is provided
+  if (!uniqueId) {
+    return {
+      message: "error",
+      error: "SubscriptionPlanUniqueId is required",
+    };
+  }
+  const updateData = { planName, description, isFree };
+  // Validate that updateData is provided and not empty
+  if (!updateData || Object.keys(updateData).length === 0) {
+    return {
+      message: "error",
+      error: "At least one field to update must be provided",
+    };
+  }
 
-  return result.affectedRows > 0
-    ? {
+  // List of allowed fields that can be updated
+  const allowedFields = ["planName", "description", "isFree"];
+
+  // Filter out any fields that are not allowed or undefined/null
+  const fieldsToUpdate = {};
+
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined && updateData[field] !== null) {
+      fieldsToUpdate[field] = updateData[field];
+    }
+  });
+
+  // Check if we have any valid fields to update
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    return {
+      message: "error",
+      error:
+        "No valid fields provided for update. Allowed fields: planName, description, isFree",
+    };
+  }
+
+  try {
+    // Build dynamic SQL query
+    const setClauses = [];
+    const values = [];
+
+    // Process each field to update
+    Object.keys(fieldsToUpdate).forEach((field) => {
+      setClauses.push(`${field} = ?`);
+      values.push(fieldsToUpdate[field]);
+    });
+
+    // Add uniqueId to values array for WHERE clause
+    values.push(uniqueId);
+
+    const sql = `
+      UPDATE SubscriptionPlan
+      SET ${setClauses.join(", ")}
+      WHERE subscriptionPlanUniqueId = ?
+    `;
+
+    console.log("Update SQL:", sql);
+    console.log("Update values:", values);
+
+    const [result] = await pool.query(sql, values);
+
+    if (result.affectedRows > 0) {
+      // Option 1: Return minimal success response
+      return {
         message: "success",
         data: {
           subscriptionPlanUniqueId: uniqueId,
-          planName,
-          description,
-          isFree,
+          ...fieldsToUpdate,
+          affectedRows: result.affectedRows,
         },
-      }
-    : { message: "error", error: "Failed to update subscription plan" };
+      };
+
+      // Option 2: Return the complete updated record (if preferred)
+      // const [updatedRecord] = await pool.query(
+      //   'SELECT * FROM SubscriptionPlan WHERE subscriptionPlanUniqueId = ?',
+      //   [uniqueId]
+      // );
+      // return {
+      //   message: "success",
+      //   data: updatedRecord[0]
+      // };
+    } else {
+      return {
+        message: "error",
+        error: "No record found with the provided uniqueId or no changes made",
+      };
+    }
+  } catch (error) {
+    console.error("Error updating subscription plan:", error);
+
+    // Handle specific MySQL errors
+    if (error.code === "ER_DUP_ENTRY") {
+      return {
+        message: "error",
+        error:
+          "Plan name must be unique. Another plan with this name already exists.",
+      };
+    }
+
+    return {
+      message: "error",
+      error: "Failed to update subscription plan",
+      details: error.message,
+    };
+  }
 };
 
 // Delete by uniqueId

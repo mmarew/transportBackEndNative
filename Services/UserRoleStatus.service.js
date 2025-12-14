@@ -63,8 +63,6 @@ const updateUserRoleStatus = async (updateDataValues) => {
       phoneNumber,
       roleId,
     ]);
-    console.log("@existingUserRoleStatus", existingUserRoleStatus);
-    // return;
 
     if (existingUserRoleStatus.length === 0) {
       return { message: "error", data: "Active user role status not found" };
@@ -97,7 +95,6 @@ const updateUserRoleStatus = async (updateDataValues) => {
         statusId: newStatusId,
       },
     });
-    console.log("resultOfUpdatedUserRoleStatus", resultOfUpdatedUserRoleStatus);
     // const newUserRoleStatusResult = await insertData({
     //   tableName: "UserRoleStatusCurrent",
     //   colAndVal: newUserRoleStatus,
