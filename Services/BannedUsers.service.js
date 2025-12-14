@@ -86,143 +86,6 @@ const banUser = async (data) => {
   };
 };
 
-// const getBannedUsers = async (filters = {}) => {
-//   const {
-//     page = 1,
-//     limit = 10,
-//     userRoleUniqueId,
-//     banUniqueId,
-//     bannedBy,
-//     isActive,
-//     startDate,
-//     endDate,
-//     sortBy = "banAt",
-//     sortOrder = "DESC",
-//     roleId,
-//     stats = false,
-//     check = false,
-//   } = filters;
-
-//   if (stats) {
-//     return await _getBannedUsersStats();
-//   }
-
-//   if (check) {
-//     return await _checkIfUserIsBanned(filters);
-//   }
-
-//   const offset = (page - 1) * limit;
-
-//   let whereConditions = ["1 = 1"];
-//   let queryParams = [];
-
-//   if (userRoleUniqueId) {
-//     whereConditions.push("ur.userRoleUniqueId = ?");
-//     queryParams.push(userRoleUniqueId);
-//   }
-
-//   if (banUniqueId) {
-//     whereConditions.push("bu.banUniqueId = ?");
-//     queryParams.push(banUniqueId);
-//   }
-
-//   if (bannedBy) {
-//     whereConditions.push("bu.bannedBy = ?");
-//     queryParams.push(bannedBy);
-//   }
-
-//   if (isActive !== undefined) {
-//     whereConditions.push("bu.isActive = ?");
-//     queryParams.push(isActive === "true" ? 1 : 0);
-//   }
-
-//   if (startDate) {
-//     whereConditions.push("bu.banAt >= ?");
-//     queryParams.push(startDate);
-//   }
-
-//   if (endDate) {
-//     whereConditions.push("bu.banAt <= ?");
-//     queryParams.push(endDate);
-//   }
-
-//   if (roleId) {
-//     let roleIds = roleId;
-//     if (typeof roleIds === "string" && roleIds.includes(",")) {
-//       roleIds = roleIds.split(",").map((id) => id.trim());
-//     }
-
-//     if (Array.isArray(roleIds)) {
-//       const placeholders = roleIds.map(() => "?").join(",");
-//       whereConditions.push(`ur.roleId IN (${placeholders})`);
-//       queryParams.push(...roleIds);
-//     } else {
-//       whereConditions.push("ur.roleId = ?");
-//       queryParams.push(roleIds);
-//     }
-//   }
-
-//   const baseQuery = `
-//     SELECT
-//       bu.*,  u.*,  r.*,
-//       ub.fullName as bannedByName,
-//       ud.delinquencyTypeUniqueId,
-//       dt.delinquencyTypeName,
-//       ud.delinquencyDescription,
-//       -- UserRoleStatusCurrent fields
-//       ursc.userRoleStatusId,
-//       ursc.userRoleStatusUniqueId,
-//       ursc.statusId as currentStatusId,
-//       ursc.userRoleStatusDescription,
-//       ursc.userRoleStatusCreatedBy,
-//       ursc.userRoleStatusCreatedAt,
-//       ursc.userRoleStatusCurrentVersion,
-//       -- Status fields for current status
-//       s.statusName as currentStatusName,
-//       s.statusDescription as currentStatusDescription
-//     FROM BannedUsers bu
-//     INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
-//     INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
-//     INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-//     INNER JOIN Roles r ON ur.roleId = r.roleId
-//     INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
-//     INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-//     -- LEFT JOIN with UserRoleStatusCurrent to get current status (may not exist for banned users)
-//     LEFT JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId
-//     LEFT JOIN Statuses s ON ursc.statusId = s.statusId
-//     WHERE ${whereConditions.join(" AND ")}
-//   `;
-
-//   const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as count_table`;
-//   const dataQuery = `
-//     ${baseQuery}
-//     ORDER BY bu.${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}
-//     LIMIT ? OFFSET ?
-//   `;
-
-//   const dataQueryParams = [...queryParams, parseInt(limit), offset];
-
-//   const [countResult] = await pool.query(countQuery, queryParams);
-//   const [results] = await pool.query(dataQuery, dataQueryParams);
-
-//   const total = countResult[0].total;
-//   const totalPages = Math.ceil(total / limit);
-
-//   return {
-//     message: "success",
-//     data: results,
-//     pagination: {
-//       currentPage: parseInt(page),
-//       totalPages,
-//       totalItems: total,
-//       itemsPerPage: parseInt(limit),
-//       hasNextPage: page < totalPages,
-//       hasPrevPage: page > 1,
-//     },
-//     filters,
-//   };
-// };
-
 const getBannedUsers = async (filters = {}) => {
   const {
     page = 1,
@@ -413,22 +276,13 @@ const unbanUser = async (query, user) => {
       return { message: "error", error: "all fields are required" };
     const sql = "update   BannedUsers set isActive=? WHERE banUniqueId = ?";
     const [updatedBanResult] = await pool.query(sql, [false, banUniqueId]);
-    console.log("@updatedBanResult result", updatedBanResult);
 
     const { getUserByFilterDetailed } = require("./User.service");
     const filters = { phoneNumber };
     const userData = await getUserByFilterDetailed(filters);
-    console.log("@unbanUser userData", userData);
-    console.log("@unbanUser userData", userData?.data?.[0]?.user?.userUniqueId);
     const ownerUserUniqueId = userData?.data?.[0]?.user?.userUniqueId;
-    // const updateDataValues = {
-    //   user,
-    //   roleId,
-    //   newStatusId,
-    //   phoneNumber,
-    // };
+
     const data = accountStatus({ ownerUserUniqueId, body: { roleId } });
-    // updateUserRoleStatus(updateDataValues);
 
     return updatedBanResult.affectedRows > 0
       ? { message: "success", data: "User unbanned successfully" }
