@@ -27,20 +27,6 @@ exports.createDriverSubscription = async (req, res) => {
   }
 };
 
-// Get all
-// exports.getAllDriverSubscriptions = async (req, res) => {
-//   try {
-//     const result = await service.getAllDriverSubscriptions();
-//     ServerResponder(res, result);
-//   } catch (error) {
-//     console.error("Error fetching driver subscriptions:", error);
-//     ServerResponder(res, {
-//       message: "error",
-//       error: "Failed to fetch subscriptions",
-//     });
-//   }
-// };
-
 // Update by UUID
 exports.updateDriverSubscriptionByUniqueId = async (req, res) => {
   try {

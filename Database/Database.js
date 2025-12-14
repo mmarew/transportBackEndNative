@@ -735,25 +735,25 @@ CREATE TABLE IF NOT EXISTS DriverDeposit (
 );
 
 -- free gift records for drivers to encourage them to use the app
-CREATE TABLE IF NOT EXISTS FreeGiftToDriver (
-  freeGiftId INT AUTO_INCREMENT PRIMARY KEY,
-  freeGiftUniqueId VARCHAR(36) NOT NULL UNIQUE,
-  driverUniqueId VARCHAR(36) NOT NULL,
-  subscriptionPlanUniqueId VARCHAR(36) NOT NULL, -- Foreign key to SubscriptionPlan
+--  CREATE TABLE IF NOT EXISTS FreeGiftToDriver (
+  --  freeGiftId INT AUTO_INCREMENT PRIMARY KEY,
+  --  freeGiftUniqueId VARCHAR(36) NOT NULL UNIQUE,
+  --  driverUniqueId VARCHAR(36) NOT NULL,
+  --  subscriptionPlanUniqueId VARCHAR(36) NOT NULL, -- Foreign key to SubscriptionPlan
   
-  giftCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,     
-  giftStartDate DATETIME NOT NULL, -- When the gift is valid from
-  giftEndDate DATETIME NOT NULL, -- When the gift is valid until,
-  isFreeGiftDeleted BOOLEAN DEFAULT FALSE, -- Soft delete flag,
-  freeGiftDeletedAt DATETIME NULL, -- When the gift was deleted
-  freeGiftDeletedBy VARCHAR(36) NULL, -- Who deleted the gift
+  --  giftCreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,     
+  --  giftStartDate DATETIME NOT NULL, -- When the gift is valid from
+  --  giftEndDate DATETIME NOT NULL, -- When the gift is valid until,
+  --  isFreeGiftDeleted BOOLEAN DEFAULT FALSE, -- Soft delete flag,
+  --  freeGiftDeletedAt DATETIME NULL, -- When the gift was deleted
+  --  freeGiftDeletedBy VARCHAR(36) NULL, -- Who deleted the gift
 
- freeGiftUpdatedBy VARCHAR(36) NULL, -- Who updated the gift
- freeGiftUpdatedAt DATETIME NULL, -- When the gift was updated
+ --  freeGiftUpdatedBy VARCHAR(36) NULL, -- Who updated the gift
+--   freeGiftUpdatedAt DATETIME NULL, -- When the gift was updated
     
-    FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
-);
+  --    FOREIGN KEY (driverUniqueId) REFERENCES Users(userUniqueId),
+  --    FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
+--  );
 
  
 

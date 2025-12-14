@@ -575,6 +575,8 @@ const verifyUserByOTP = async (req) => {
     });
     console.log("@verifyUserExistence", verifyUserExistence);
     const roleId = req.body.roleId;
+    console.log("@verifyUserByOTP roleId", roleId);
+    // return { roleId };
     if (!verifyUserExistence || verifyUserExistence.length === 0) {
       return { message: "error", error: "user not found in verify otp" };
     }
@@ -594,8 +596,7 @@ const verifyUserByOTP = async (req) => {
       tableName: "UserRole",
       conditions,
     });
-
-    console.log("@userInRoleId", userInRoleId);
+    // return { userInRoleId };
     if (userInRoleId.length === 0) {
       return { message: "error", error: "user not found in this role" };
     }
@@ -620,6 +621,7 @@ const verifyUserByOTP = async (req) => {
     if (roleId != 2) {
       return resData;
     }
+    console.log("@not expected");
     // if user is driver, check if driver has attached documents
     const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
       ownerUserUniqueId: userUniqueId,

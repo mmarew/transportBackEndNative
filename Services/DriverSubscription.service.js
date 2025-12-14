@@ -24,8 +24,9 @@ const createDriverSubscription = async (
   // there are old and outdated pricing data so we need active one only
   const activePricing = await getPricingWithFilters({
     subscriptionPlanUniqueId,
-    // today,
+    isActive: true,
   });
+  console.log("@createDriverSubscription activePricing", activePricing);
 
   const activePricingData = activePricing?.data?.[0];
 
@@ -45,6 +46,9 @@ const createDriverSubscription = async (
 
   const price = activePricingData?.price;
   const durationInDays = activePricingData?.durationInDays;
+
+  // get free gift data
+  // const getf
   // check if the user already have this subscription
   const filters = {
     driverUniqueId,
@@ -140,13 +144,6 @@ const createDriverSubscription = async (
     },
   };
 };
-
-// Get all
-// const getAllDriverSubscriptions = async () => {
-//   const sql = `SELECT * FROM DriverSubscription join SubscriptionPlanPricing on DriverSubscription.subscriptionPlanUniqueId=SubscriptionPlanPricing.subscriptionPlanUniqueId join SubscriptionPlan on SubscriptionPlan.subscriptionPlanUniqueId=DriverSubscription.subscriptionPlanUniqueId ORDER BY driverSubscriptionId DESC`;
-//   const [result] = await pool.query(sql);
-//   return { message: "success", data: result };
-// };
 
 // Update by UUID
 const updateDriverSubscriptionByUniqueId = async (
