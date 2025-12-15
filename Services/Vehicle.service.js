@@ -6,7 +6,10 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const { createVehicleOwnership } = require("./VehicleOwnership.service");
 const { createVehicleStatus } = require("./VehicleStatus.service");
 const { removeWhiteSpace } = require("../Validator/Validation");
-const { createVehicleDriver } = require("./VehicleDriver.service");
+const {
+  createVehicleDriver,
+  getVehicleDrivers,
+} = require("./VehicleDriver.service");
 const { usersRoles } = require("../Utils/ListOfFixedData");
 const { pool } = require("../Middleware/Database.config");
 
@@ -42,6 +45,18 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
       conditions: { licensePlate },
     });
 
+    // check if this user has active vehicle
+    const activeVehicle = await getVehicleDrivers({
+      driverUserUniqueId: user.userUniqueId,
+      assignmentStatus: "active",
+    });
+    console.log("@activeVehicle", activeVehicle);
+    if (activeVehicle?.data?.length > 0) {
+      return {
+        message: "error",
+        error: "driver already have vehicle",
+      };
+    }
     if (!vehicle.length) {
       // Vehicle doesn't exist, create it
       const vehicleUniqueId = uuidv4();

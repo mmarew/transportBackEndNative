@@ -3,58 +3,6 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 
 // Create Pricing
-// const createPricing = async (
-//   subscriptionPlanUniqueId,
-//   price,
-//   durationInDays,
-//   effectiveFrom,
-//   effectiveTo,
-//   isFree = false
-// ) => {
-//   const today = currentDate();
-//   effectiveTo = effectiveFrom + durationInDays;
-//   const activeData = await getPricingWithFilters({
-//     subscriptionPlanUniqueId,
-//   });
-
-//   if (activeData?.data?.length > 0) {
-//     return {
-//       message: "error",
-//       error: "There is already an active pricing for this plan.",
-//     };
-//   }
-
-//   const subscriptionPlanPricingUniqueId = uuidv4();
-
-//   const sql = `
-//     INSERT INTO SubscriptionPlanPricing
-//     (subscriptionPlanPricingUniqueId, subscriptionPlanUniqueId, price,  effectiveFrom, effectiveTo)
-//     VALUES (?, ?, ?, ?, ?, ?)
-//   `;
-
-//   const values = [
-//     subscriptionPlanPricingUniqueId,
-//     subscriptionPlanUniqueId,
-//     price,
-
-//     effectiveFrom,
-//     effectiveTo || null,
-//   ];
-
-//   try {
-//     const [result] = await pool.query(sql, values);
-//     return {
-//       message: "success",
-//       data: "Subscription Plan Price Created Successfully",
-//     };
-//   } catch (err) {
-//     console.error("Error creating pricing:", err);
-//     return {
-//       message: "error",
-//       error: "Database error while creating pricing.",
-//     };
-//   }
-// };
 
 // Helper function to add days to a date
 const addDays = (date, days) => {
@@ -155,10 +103,7 @@ const createPricing = async (
     };
   }
 };
-// Single comprehensive method with filters
 
-// Single comprehensive method with filters
-// Single comprehensive method with filters
 const getPricingWithFilters = async (filters = {}) => {
   const {
     subscriptionPlanPricingUniqueId,

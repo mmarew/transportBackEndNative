@@ -119,8 +119,7 @@ CREATE TABLE IF NOT EXISTS DeviceTokens (
     FOREIGN KEY (roleId) REFERENCES Roles(roleId)
 ) ;
 
--- VehicleDriver will be created after VehicleOwnership to satisfy FK order
-
+ 
 -- Create the UserRole Table
 
 CREATE TABLE IF NOT EXISTS UserRole (
