@@ -3,59 +3,158 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 
 // Create Pricing
+// const createPricing = async (
+//   subscriptionPlanUniqueId,
+//   price,
+//   durationInDays,
+//   effectiveFrom,
+//   effectiveTo,
+//   isFree = false
+// ) => {
+//   const today = currentDate();
+//   effectiveTo = effectiveFrom + durationInDays;
+//   const activeData = await getPricingWithFilters({
+//     subscriptionPlanUniqueId,
+//   });
+
+//   if (activeData?.data?.length > 0) {
+//     return {
+//       message: "error",
+//       error: "There is already an active pricing for this plan.",
+//     };
+//   }
+
+//   const subscriptionPlanPricingUniqueId = uuidv4();
+
+//   const sql = `
+//     INSERT INTO SubscriptionPlanPricing
+//     (subscriptionPlanPricingUniqueId, subscriptionPlanUniqueId, price,  effectiveFrom, effectiveTo)
+//     VALUES (?, ?, ?, ?, ?, ?)
+//   `;
+
+//   const values = [
+//     subscriptionPlanPricingUniqueId,
+//     subscriptionPlanUniqueId,
+//     price,
+
+//     effectiveFrom,
+//     effectiveTo || null,
+//   ];
+
+//   try {
+//     const [result] = await pool.query(sql, values);
+//     return {
+//       message: "success",
+//       data: "Subscription Plan Price Created Successfully",
+//     };
+//   } catch (err) {
+//     console.error("Error creating pricing:", err);
+//     return {
+//       message: "error",
+//       error: "Database error while creating pricing.",
+//     };
+//   }
+// };
+
+// Helper function to add days to a date
+const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+// Create Pricing
 const createPricing = async (
   subscriptionPlanUniqueId,
   price,
   durationInDays,
   effectiveFrom,
-  effectiveTo,
+  effectiveTo = null, // Make optional with default null
   isFree = false
 ) => {
-  const today = currentDate();
-
-  const activeData = await getPricingWithFilters({
-    subscriptionPlanUniqueId,
-  });
-
-  if (activeData?.data?.length > 0) {
-    return {
-      message: "error",
-      error: "There is already an active pricing for this plan.",
-    };
-  }
-
-  const subscriptionPlanPricingUniqueId = uuidv4();
-
-  const sql = `
-    INSERT INTO SubscriptionPlanPricing 
-    (subscriptionPlanPricingUniqueId, subscriptionPlanUniqueId, price, durationInDays, effectiveFrom, effectiveTo)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-
-  const values = [
-    subscriptionPlanPricingUniqueId,
-    subscriptionPlanUniqueId,
-    price,
-    durationInDays,
-    effectiveFrom,
-    effectiveTo || null,
-  ];
-
   try {
+    const today = new Date();
+
+    // 1. Calculate effectiveTo if not provided
+    if (!effectiveTo && durationInDays) {
+      // Convert effectiveFrom to Date object if it's a string
+      const fromDate = new Date(effectiveFrom);
+      effectiveTo = addDays(fromDate, durationInDays);
+    }
+
+    // 2. Check if effectiveFrom is in the future
+    const effectiveFromDate = new Date(effectiveFrom);
+    console.log("@effectiveFromDate", effectiveFromDate, " today", today);
+    if (effectiveFromDate < today) {
+      // return {
+      //   message: "error",
+      //   error: "Effective from date must be in the future.",
+      // };
+    }
+
+    // 3. Improved active pricing check
+    // Should check for overlapping date ranges, not just existence
+    const existingPricings = await getPricingWithFilters({
+      subscriptionPlanUniqueId,
+      isActive: true,
+    });
+
+    if (existingPricings?.data?.length > 0) {
+      // Check for date overlaps
+      const hasOverlap = existingPricings.data.some((pricing) => {
+        const existingFrom = new Date(pricing.effectiveFrom);
+        const existingTo = new Date(pricing.effectiveTo);
+        const newFrom = new Date(effectiveFrom);
+        const newTo = new Date(effectiveTo);
+
+        // Check if date ranges overlap
+        return newFrom <= existingTo && newTo >= existingFrom;
+      });
+
+      if (hasOverlap) {
+        return {
+          message: "error",
+          error: "There is already an active pricing for this date range.",
+        };
+      }
+    }
+
+    const subscriptionPlanPricingUniqueId = uuidv4();
+
+    // 4. Fixed SQL - removed extra placeholder for isFree
+    const sql = `
+      INSERT INTO SubscriptionPlanPricing 
+      (subscriptionPlanPricingUniqueId, subscriptionPlanUniqueId, price, effectiveFrom, effectiveTo)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      subscriptionPlanPricingUniqueId,
+      subscriptionPlanUniqueId,
+      price,
+      effectiveFrom,
+      effectiveTo,
+    ];
+
     const [result] = await pool.query(sql, values);
+
     return {
       message: "success",
-      data: "Subscription Plan Price Created Successfully",
+      data: {
+        message: "Subscription Plan Price Created Successfully",
+        subscriptionPlanPricingUniqueId,
+        effectiveFrom,
+        effectiveTo,
+      },
     };
   } catch (err) {
     console.error("Error creating pricing:", err);
     return {
       message: "error",
-      error: "Database error while creating pricing.",
+      error: err.message || "Database error while creating pricing.",
     };
   }
 };
-
 // Single comprehensive method with filters
 
 // Single comprehensive method with filters

@@ -654,14 +654,15 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlan (
 
 
 --  pricing for Subscription Plan Dynamic by effective date
+
 CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
   pricingId INT AUTO_INCREMENT PRIMARY KEY,
   subscriptionPlanPricingUniqueId VARCHAR(36) NOT NULL UNIQUE,
   subscriptionPlanUniqueId VARCHAR(36) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
-  durationInDays INT NOT NULL,
+ -- durationInDays INT NOT NULL,
   effectiveFrom DATE NOT NULL,
-  effectiveTo DATE DEFAULT NULL,
+  effectiveTo DATE NOT NULL,
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
 );
