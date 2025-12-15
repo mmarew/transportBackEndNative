@@ -660,8 +660,7 @@ CREATE TABLE IF NOT EXISTS SubscriptionPlanPricing (
   subscriptionPlanPricingUniqueId VARCHAR(36) NOT NULL UNIQUE,
   subscriptionPlanUniqueId VARCHAR(36) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
- -- durationInDays INT NOT NULL,
-  effectiveFrom DATE NOT NULL,
+   effectiveFrom DATE NOT NULL,
   effectiveTo DATE NOT NULL,
   createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (subscriptionPlanUniqueId) REFERENCES SubscriptionPlan(subscriptionPlanUniqueId)
