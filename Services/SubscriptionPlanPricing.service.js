@@ -33,11 +33,11 @@ const createPricing = async (
     // 2. Check if effectiveFrom is in the future
     const effectiveFromDate = new Date(effectiveFrom);
     console.log("@effectiveFromDate", effectiveFromDate, " today", today);
-    if (effectiveFromDate < today) {
-      // return {
-      //   message: "error",
-      //   error: "Effective from date must be in the future.",
-      // };
+    if (effectiveTo <= today) {
+      return {
+        message: "error",
+        error: "Effective to date must be in the future.",
+      };
     }
 
     // 3. Improved active pricing check

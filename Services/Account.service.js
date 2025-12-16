@@ -14,7 +14,11 @@ const {
   createDriverSubscription,
   getSubscriptionData,
 } = require("./DriverSubscription.service");
-
+let subscriptionInfo = {
+  hasActiveSubscription: false,
+  subscriptionType: null,
+  subscriptionDetails: null,
+};
 // Consolidated account status check for a user (documents, vehicle, ban)
 const accountStatus = async ({
   ownerUserUniqueId,
@@ -123,7 +127,7 @@ const accountStatus = async ({
     const [vehicleCheck, requiredDocsResult] = await Promise.allSettled([
       requiresVehicle
         ? getVehicleDrivers({
-            ownerUserUniqueId,
+            driverUserUniqueId: ownerUserUniqueId,
             assignmentStatus: "active",
             limit: 1,
             page: 1,
@@ -191,18 +195,18 @@ const accountStatus = async ({
       if (requiredDocuments.length > 0) {
         // Optimized single query for document status
         const sql = `
-          SELECT 
-            ad.*, 
+          SELECT
+            ad.*,
             dt.*,
             rdr.*,
-            CASE 
+            CASE
               WHEN ad.attachedDocumentId IS NULL THEN 'NOT_ATTACHED'
-              ELSE ad.attachedDocumentAcceptance 
+              ELSE ad.attachedDocumentAcceptance
             END as doc_status
           FROM RoleDocumentRequirements rdr
           JOIN DocumentTypes dt ON rdr.documentTypeId = dt.documentTypeId
-          LEFT JOIN AttachedDocuments ad ON ad.documentTypeId = dt.documentTypeId 
-            AND ad.userUniqueId = ? 
+          LEFT JOIN AttachedDocuments ad ON ad.documentTypeId = dt.documentTypeId
+            AND ad.userUniqueId = ?
             AND ad.attachedDocumentAcceptance != 'DELETED'
           WHERE rdr.roleId = ?
           ORDER BY dt.documentTypeId
@@ -240,19 +244,14 @@ const accountStatus = async ({
     }
 
     // ========== STEP 6: CHECK SUBSCRIPTION (Drivers Only) ==========
-    let subscriptionInfo = {
-      hasActiveSubscription: false,
-      subscriptionType: null,
-      subscriptionDetails: null,
-    };
 
     if (Number(roleId) === usersRoles.driverRoleId) {
       // Optimized subscription check
       subscriptionInfo = await checkAndGrantDriverSubscription(
         ownerUserUniqueId
       );
-
-      if (!subscriptionInfo.hasActiveSubscription) {
+      console.log("@subscriptionInfo", subscriptionInfo);
+      if (!subscriptionInfo?.hasActiveSubscription) {
         return await updateStatusAndReturn(
           7,
           "Driver doesn't have an active subscription"
@@ -345,10 +344,11 @@ async function checkAndGrantDriverSubscription(driverUniqueId) {
     // 2. Grant if found (but only one at a time)
     if (unassignedFreePlans?.data?.length > 0) {
       const plan = unassignedFreePlans.data[0];
-      await createDriverSubscription({
+      const newSubscriptions = await createDriverSubscription({
         driverUniqueId,
         subscriptionPlanUniqueId: plan.subscriptionPlanUniqueId,
       });
+      console.log("@newSubscriptions", newSubscriptions);
       wasGranted = true;
     }
 
@@ -357,6 +357,7 @@ async function checkAndGrantDriverSubscription(driverUniqueId) {
       driverUniqueId,
       isActive: true,
     });
+    console.log("@activeSubscriptions", activeSubscriptions);
 
     if (activeSubscriptions?.data?.length > 0) {
       const subscription = activeSubscriptions.data;

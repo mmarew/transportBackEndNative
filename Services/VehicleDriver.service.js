@@ -127,7 +127,7 @@ const getVehicleDrivers = async (filters = {}) => {
     sortBy = "createdAt",
     sortOrder = "DESC",
   } = filters;
-
+  console.log("@filters", filters);
   const where = [];
   const params = [];
 

@@ -49,7 +49,6 @@ const createUserRoleStatus = async (body) => {
 // Update UserRoleStatus and move old status to history
 const updateUserRoleStatus = async (updateDataValues) => {
   try {
-    console.log("@updateUserRoleStatus updateDataValues", updateDataValues);
     const { user, roleId, newStatusId, phoneNumber, userUniqueId } =
       updateDataValues;
     const updaterUserUniqueId = user?.userUniqueId;
