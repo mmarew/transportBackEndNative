@@ -8,8 +8,27 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createVehicleController = async (req, res) => {
   try {
-    const ownerUserUniqueId = req.params?.ownerUserUniqueId;
-    const response = await createVehicle(req.body, req.user, ownerUserUniqueId);
+    let driverUserUniqueId = req?.params?.driverUserUniqueId;
+    const roleId = req?.user?.roleId;
+    // vehicle should be created via admin super or admin or driver itself
+
+    if (driverUserUniqueId == "self")
+      driverUserUniqueId = req?.user?.userUniqueId;
+    if (roleId == 3 || roleId == 6) {
+    } else if (roleId == 2) {
+      if (driverUserUniqueId != req?.user?.userUniqueId) {
+        return ServerResponder(res, {
+          message: "error",
+          error: "You can't register vehicle ",
+        });
+      }
+    }
+
+    const response = await createVehicle(
+      req.body,
+      req.user,
+      driverUserUniqueId
+    );
     ServerResponder(res, response);
   } catch (error) {
     console.error("@createVehicleController error:", error);

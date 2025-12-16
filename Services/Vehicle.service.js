@@ -14,16 +14,19 @@ const { usersRoles } = require("../Utils/ListOfFixedData");
 const { pool } = require("../Middleware/Database.config");
 
 // create vehicle and create ownership based on status of vehicle.
-const createVehicle = async (data, user, ownerUserUniqueId) => {
+const createVehicle = async (data, user, driverUserUniqueId) => {
   try {
-    console.log("@createVehicle data", data);
-    console.log("@createVehicle user", user);
-    console.log("@createVehicle ownerUserUniqueId", ownerUserUniqueId);
-    let userUniqueId = ownerUserUniqueId;
-    if (ownerUserUniqueId == "self") {
+    let userUniqueId = driverUserUniqueId;
+
+    if (driverUserUniqueId == "self") {
       userUniqueId = user?.userUniqueId;
     }
-    let { vehicleTypeUniqueId, licensePlate, color } = data;
+
+    let vehicleTypeUniqueId = data?.vehicleTypeUniqueId,
+      licensePlate = data?.licensePlate,
+      color = data?.color,
+      isDriverOwnerOfVehicle = data?.isDriverOwnerOfVehicle;
+
     licensePlate = removeWhiteSpace(licensePlate);
     if (!vehicleTypeUniqueId || !licensePlate || !color) {
       return { message: "error", error: "All fields are required" };
@@ -34,6 +37,7 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
       tableName: "VehicleTypes",
       conditions: { vehicleTypeUniqueId },
     });
+    console.log("@vehicleTypeExists", vehicleTypeExists);
 
     if (!vehicleTypeExists.length) {
       return { message: "error", error: "Vehicle type does not exist" };
@@ -45,19 +49,7 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
       conditions: { licensePlate },
     });
 
-    // check if this user has active vehicle
-    const activeVehicle = await getVehicleDrivers({
-      driverUserUniqueId: user.userUniqueId,
-      assignmentStatus: "active",
-    });
-    console.log("@activeVehicle", activeVehicle);
-    if (activeVehicle?.data?.length > 0) {
-      return {
-        message: "error",
-        error: "driver already have vehicle",
-      };
-    }
-    if (!vehicle.length) {
+    if (!vehicle?.length) {
       // Vehicle doesn't exist, create it
       const vehicleUniqueId = uuidv4();
       await insertData({
@@ -67,7 +59,7 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
           vehicleTypeUniqueId,
           licensePlate,
           color,
-          vehicleCreatedBy: user.userUniqueId,
+          vehicleCreatedBy: user?.userUniqueId,
           vehicleCreatedAt: currentDate(),
         },
       });
@@ -78,24 +70,39 @@ const createVehicle = async (data, user, ownerUserUniqueId) => {
         VehicleStatusTypeId: 1,
       });
 
-      vehicle = [{ vehicleUniqueId }]; // Mock structure for return
+      vehicle = [{ vehicleUniqueId }];
+      // Mock structure for return
     }
 
-    // Register vehicle ownership
-    const ownershipResult = await createVehicleOwnership({
-      vehicleUniqueId: vehicle[0].vehicleUniqueId,
-      userUniqueId:
-        ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId,
-      roleId: usersRoles.vehicleOwnerRoleId,
-      ownershipStartDate: currentDate(),
+    // check if this user has active vehicle
+    const activeVehicle = await getVehicleDrivers({
+      driverUserUniqueId: user?.userUniqueId,
+      assignmentStatus: "active",
     });
+    console.log("@activeVehicle", activeVehicle);
+    if (activeVehicle?.data?.length > 0) {
+      return {
+        message: "error",
+        error: "driver already have vehicle",
+      };
+    }
+    let ownershipResult = undefined;
+    // Register vehicle ownership
+    if (isDriverOwnerOfVehicle) {
+      ownershipResult = await createVehicleOwnership({
+        vehicleUniqueId: vehicle?.[0]?.vehicleUniqueId,
+        userUniqueId,
+        roleId: usersRoles?.vehicleOwnerRoleId,
+        ownershipStartDate: currentDate(),
+      });
+    }
     // create vehicle-driver relationship (owner as initial driver)
-    const ownerId =
-      ownerUserUniqueId == "self" ? userUniqueId : ownerUserUniqueId;
+    const ownerUserUniqueId =
+      driverUserUniqueId == "self" ? userUniqueId : driverUserUniqueId;
     const driverResult = await createVehicleDriver({
-      vehicleUniqueId: vehicle[0].vehicleUniqueId,
-      ownerUserUniqueId: ownerId,
-      driverUserUniqueId: ownerId,
+      vehicleUniqueId: vehicle?.[0]?.vehicleUniqueId,
+      ownerUserUniqueId: ownerUserUniqueId,
+      driverUserUniqueId: ownerUserUniqueId,
       assignmentStatus: "active",
       assignmentStartDate: currentDate(),
     });
@@ -193,77 +200,6 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
     return { message: "error", error: "Failed to delete vehicle" };
   }
 };
-
-// unified vehicle fetching with filters and pagination
-// const getVehicles = async ({
-//   vehicleUniqueId,
-//   ownerUserUniqueId,
-//   licensePlate,
-//   color,
-//   vehicleTypeUniqueId,
-//   page = 1,
-//   pageSize = 10,
-//   orderBy = "vehicleCreatedAt",
-//   orderDirection = "DESC",
-//   user,
-// }) => {
-//   try {
-//     const conditions = {};
-//     if (vehicleUniqueId) conditions.vehicleUniqueId = vehicleUniqueId;
-//     if (licensePlate) conditions.licensePlate = removeWhiteSpace(licensePlate);
-//     if (color) conditions.color = color;
-//     if (vehicleTypeUniqueId) conditions.vehicleTypeUniqueId = vehicleTypeUniqueId;
-//     // filter by creator/owner (as used by verifyUsersVehicle)
-//     if (ownerUserUniqueId) {
-//       const creatorId = ownerUserUniqueId === "self" ? user?.userUniqueId : ownerUserUniqueId;
-//       conditions.vehicleCreatedBy = creatorId;
-//     }
-
-//     const limit = Number(pageSize) || 10;
-//     const pageNum = Number(page) || 1;
-//     const offset = (pageNum - 1) * limit;
-
-//     // fetch paged data
-//     const items = await getData({
-//       tableName: "Vehicle",
-//       conditions,
-//       orderBy,
-//       orderDirection,
-//       limit,
-//       offset,
-//     });
-
-//     // total count (efficient COUNT query)
-//     const whereKeys = Object.keys(conditions);
-//     const whereClause = whereKeys.length
-//       ? "WHERE " +
-//         whereKeys
-//           .map((col) => `${col} = ?`)
-//           .join(" AND ")
-//       : "";
-//     const values = Object.values(conditions);
-//     const [countRows] = await pool.query(
-//       `SELECT COUNT(*) as total FROM Vehicle ${whereClause}`,
-//       values
-//     );
-//     const total = countRows?.[0]?.total || 0;
-//     const totalPages = Math.max(1, Math.ceil(total / limit));
-
-//     return {
-//       message: "success",
-//       data: items,
-//       pagination: {
-//         page: pageNum,
-//         pageSize: limit,
-//         total,
-//         totalPages,
-//       },
-//     };
-//   } catch (error) {
-//     console.error("Error @getVehicles:", error);
-//     return { message: "error", error: "Failed to fetch vehicles" };
-//   }
-// };
 
 // unified vehicle fetching with filters, pagination, and vehicle type data
 const getVehicles = async ({
