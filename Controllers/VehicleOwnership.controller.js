@@ -22,10 +22,7 @@ const createVehicleOwnershipController = async (req, res) => {
 
 const updateVehicleOwnershipController = async (req, res) => {
   try {
-    const response = await updateVehicleOwnership(
-      req.params.ownershipId,
-      req.body
-    );
+    const response = await updateVehicleOwnership(req.query);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error updating vehicle ownership:", error);

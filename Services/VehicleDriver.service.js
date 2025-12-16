@@ -89,7 +89,6 @@ const createVehicleDriver = async (data) => {
     const [result] = await pool.query(sql, [
       vehicleDriverUniqueId,
       vehicleUniqueId,
-      // ownershipUniqueId,
       driverUserUniqueId,
       assignmentStatus,
       assignmentStartDate,

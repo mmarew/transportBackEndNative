@@ -17,7 +17,7 @@ router.get(
 );
 
 router.put(
-  "/api/admin/vehicleOwnerships/:ownershipId",
+  "/api/admin/vehicleOwnerships",
   verifyTokenOfAxios,
   controller.updateVehicleOwnershipController
 ); // Update vehicle ownership

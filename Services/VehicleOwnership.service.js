@@ -98,32 +98,84 @@ const createVehicleOwnership = async (body) => {
 };
 
 // removed granular getters in favor of filter-based retrieval
-
-const updateVehicleOwnership = async (ownershipId, body) => {
-  const { vehicleId, userId, roleId, ownershipStartDate, ownershipEndDate } =
-    body;
-  const sql = `UPDATE VehicleOwnership SET vehicleId = ?, userId = ?, roleId = ?, ownershipStartDate = ?, ownershipEndDate = ? 
-               WHERE ownershipId = ?`;
-  const values = [
-    vehicleId,
-    userId,
-    roleId,
-    ownershipStartDate,
-    ownershipEndDate || null,
-    ownershipId,
-  ];
-
+const updateVehicleOwnership = async (body) => {
   try {
+    // Define allowed fields for update
+    const allowedFields = [
+      "vehicleUniqueId",
+      "userUniqueId",
+      "roleId",
+      "ownershipStartDate",
+      "ownershipEndDate",
+    ];
+    const ownershipUniqueId = body?.ownershipUniqueId;
+    // Filter only allowed fields that have values
+    const updates = [];
+    const values = [];
+
+    for (const field of allowedFields) {
+      if (body?.[field] !== undefined) {
+        // Handle null/empty string for ownershipEndDate
+        if (
+          field === "ownershipEndDate" &&
+          (body[field] === "" || body[field] === null)
+        ) {
+          updates.push(`${field} = NULL`);
+        } else {
+          updates.push(`${field} = ?`);
+          values.push(body[field]);
+        }
+      }
+    }
+
+    // If no valid fields to update, return error
+    if (updates.length === 0) {
+      return {
+        message: "error",
+        data: "No valid fields provided for update",
+      };
+    }
+
+    // Add ownershipId to values for WHERE clause
+    values.push(ownershipUniqueId);
+
+    // Build the SQL query
+    const sql = `UPDATE VehicleOwnership 
+                 SET ${updates.join(", ")} 
+                 WHERE ownershipUniqueId = ?`;
+
+    // Execute the update
     const [result] = await pool.query(sql, values);
+
     if (result.affectedRows > 0) {
       return {
         message: "success",
         data: "Vehicle ownership updated successfully",
       };
     }
-    return { message: "error", data: "Vehicle ownership update failed" };
+
+    return {
+      message: "error",
+      data: "Vehicle ownership not found or update failed",
+    };
   } catch (error) {
     console.log("Error updating vehicle ownership:", error);
+
+    // Handle specific database errors
+    if (error.code === "ER_NO_REFERENCED_ROW_2") {
+      return {
+        message: "error",
+        data: "Referenced user or vehicle does not exist",
+      };
+    }
+
+    if (error.code === "ER_DUP_ENTRY") {
+      return {
+        message: "error",
+        data: "Duplicate entry violation",
+      };
+    }
+
     return {
       message: "error",
       data: "An error occurred during vehicle ownership update",
@@ -152,8 +204,6 @@ const deleteVehicleOwnership = async (ownershipId) => {
   }
 };
 
-// removed getAllVehicleOwnerships in favor of filter-based retrieval
-// get vehicle ownerships by filters across all columns
 const getVehicleOwnershipsByFilter = async ({
   filters = {},
   page,
@@ -162,26 +212,122 @@ const getVehicleOwnershipsByFilter = async ({
 }) => {
   console.log("@getVehicleOwnershipsByFilter filters", filters);
   try {
-    const allowedKeys = [
-      "ownershipId",
-      "ownershipUniqueId",
-      "vehicleUniqueId",
-      "Users.userUniqueId",
-      "Roles.roleId",
-      "ownershipStartDate",
-      "ownershipEndDate",
-    ];
+    // Define which parameters are allowed and map them to database columns
+    const parameterMapping = {
+      // Ownership parameters
+      ownershipId: "ownershipId",
+      ownershipUniqueId: "ownershipUniqueId",
+      ownershipStartDate: "ownershipStartDate",
+      ownershipEndDate: "ownershipEndDate",
+
+      // Vehicle parameters
+      vehicleId: "vehicleId",
+      vehicleUniqueId: "vehicleUniqueId",
+      licensePlate: "licensePlate",
+      color: "color",
+      vehicleTypeId: "vehicleTypeId",
+      vehicleTypeName: "vehicleTypeName",
+      vehicleTypeUniqueId: "vehicleTypeUniqueId",
+
+      // User parameters
+      userId: "userId",
+      userUniqueId: "userUniqueId",
+      phoneNumber: "phoneNumber",
+      email: "email",
+      fullName: "fullName",
+
+      // Role parameters
+      roleId: "roleId",
+      roleUniqueId: "roleUniqueId",
+      roleName: "roleName",
+
+      // Custom parameters (will be handled specially)
+      hasOwner: "hasOwner", // true/false for whether owner exists
+      search: "search", // general search across multiple fields
+    };
 
     const where = [];
     const values = [];
 
-    for (const key of allowedKeys) {
-      if (filters[key] !== undefined && filters[key] !== "") {
-        where.push(`${key} = ?`);
-        values.push(filters[key]);
+    // Build WHERE clause
+    for (const [paramKey, paramValue] of Object.entries(filters)) {
+      if (
+        paramValue !== undefined &&
+        paramValue !== "" &&
+        paramValue !== null
+      ) {
+        if (paramKey === "hasOwner") {
+          // Handle owner existence filter
+          if (
+            paramValue === true ||
+            paramValue === "true" ||
+            paramValue === "1"
+          ) {
+            where.push("VehicleOwnership.userUniqueId IS NOT NULL");
+          } else if (
+            paramValue === false ||
+            paramValue === "false" ||
+            paramValue === "0"
+          ) {
+            where.push("VehicleOwnership.userUniqueId IS NULL");
+          }
+        } else if (paramKey === "search") {
+          // Handle general search across multiple fields
+          const searchValue = `%${paramValue}%`;
+          where.push(`(
+            Vehicle.licensePlate LIKE ? OR 
+            Vehicle.color LIKE ? OR 
+            Users.fullName LIKE ? OR 
+            Users.phoneNumber LIKE ? OR
+            Users.email LIKE ?
+          )`);
+          values.push(
+            searchValue,
+            searchValue,
+            searchValue,
+            searchValue,
+            searchValue
+          );
+        } else if (parameterMapping[paramKey]) {
+          // Handle regular filters
+          const dbColumn = parameterMapping[paramKey];
+
+          // Determine which table this column belongs to
+          let tablePrefix = "VehicleOwnership.";
+
+          if (["licensePlate", "color", "vehicleId"].includes(paramKey)) {
+            tablePrefix = "Vehicle.";
+          } else if (
+            ["phoneNumber", "email", "fullName", "userId"].includes(paramKey)
+          ) {
+            tablePrefix = "Users.";
+          } else if (["roleName", "roleUniqueId"].includes(paramKey)) {
+            tablePrefix = "Roles.";
+          } else if (
+            [
+              "vehicleTypeName",
+              "vehicleTypeId",
+              "vehicleTypeUniqueId",
+            ].includes(paramKey)
+          ) {
+            tablePrefix = "VehicleTypes.";
+          }
+
+          where.push(`${tablePrefix}${dbColumn} = ?`);
+          values.push(paramValue);
+        }
       }
     }
+
     console.log("@where", where, "@values", values);
+
+    // Use LEFT JOIN to include all ownerships
+    let joinClause = `
+      LEFT JOIN Users ON Users.userUniqueId = VehicleOwnership.userUniqueId
+      LEFT JOIN Vehicle ON Vehicle.vehicleUniqueId = VehicleOwnership.vehicleUniqueId
+      LEFT JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = Vehicle.vehicleTypeUniqueId
+      LEFT JOIN Roles ON Roles.roleId = VehicleOwnership.roleId
+    `;
 
     // Pagination
     let paginationClause = "";
@@ -191,17 +337,19 @@ const getVehicleOwnershipsByFilter = async ({
       const pageSize = Math.max(parseInt(limit), 1);
       const offset = (pageNum - 1) * pageSize;
       paginationClause = " LIMIT ? OFFSET ?";
-      values.push(pageSize, offset);
 
-      // Count total only when pagination requested and response wants pagination meta
+      // Count total only when pagination requested
       if (includePagination) {
-        const countSql = `SELECT COUNT(*) AS total FROM VehicleOwnership${
-          where.length ? " WHERE " + where.join(" AND ") : ""
-        }`;
-        const [countRows] = await pool.query(
-          countSql,
-          values.slice(0, values.length - 2)
-        );
+        const countSql = `
+          SELECT COUNT(*) AS total 
+          FROM VehicleOwnership
+          ${joinClause}
+          ${where.length ? " WHERE " + where.join(" AND ") : ""}
+        `;
+        const countValues = values.slice(0, values.length);
+        console.log("@countSql", countSql, "@countValues", countValues);
+
+        const [countRows] = await pool.query(countSql, countValues);
         const total = countRows?.[0]?.total || 0;
         const totalPages = Math.ceil(total / pageSize);
         pagination = {
@@ -213,18 +361,95 @@ const getVehicleOwnershipsByFilter = async ({
           hasPrev: pageNum > 1,
         };
       }
+
+      values.push(pageSize, offset);
     }
 
-    const sql = `SELECT VehicleOwnership.*, Users.*
+    // Build main query without AS aliases
+    const sql = `
+      SELECT 
+        VehicleOwnership.*,
+        Users.userId,
+        Users.userUniqueId,
+        Users.fullName,
+        Users.phoneNumber,
+        Users.email,
+        Users.createdAt,
+        Vehicle.vehicleId,
+        Vehicle.vehicleUniqueId,
+        Vehicle.licensePlate,
+        Vehicle.color,
+        Vehicle.vehicleCreatedAt,
+        Vehicle.vehicleUpdatedAt,
+        VehicleTypes.vehicleTypeId,
+        VehicleTypes.vehicleTypeUniqueId,
+        VehicleTypes.vehicleTypeName,
+        VehicleTypes.vehicleTypeDescription,
+        VehicleTypes.carryingCapacity,
+        Roles.roleId,
+        Roles.roleUniqueId,
+        Roles.roleName
       FROM VehicleOwnership 
-      JOIN Users ON Users.userUniqueId = VehicleOwnership.userUniqueId
+      ${joinClause}
       ${where.length ? " WHERE " + where.join(" AND ") : ""}
-      ${paginationClause}`;
+      ORDER BY VehicleOwnership.ownershipStartDate DESC
+      ${paginationClause}
+    `;
+
+    console.log("@sql", sql, "@values", values);
 
     const [rows] = await pool.query(sql, values);
-    if (includePagination && limit)
-      return { message: "success", data: rows, pagination };
-    return rows;
+
+    // Format the response with cleaner property names
+    const formattedData = rows.map((row) => ({
+      ownership: {
+        ownershipId: row.ownershipId,
+        ownershipUniqueId: row.ownershipUniqueId,
+        vehicleUniqueId: row.vehicleUniqueId,
+        userUniqueId: row.userUniqueId,
+        roleId: row.roleId,
+        startDate: row.ownershipStartDate,
+        endDate: row.ownershipEndDate,
+      },
+      owner: row.userUniqueId
+        ? {
+            userId: row.userId,
+            userUniqueId: row.userUniqueId,
+            fullName: row.fullName,
+            phoneNumber: row.phoneNumber,
+            email: row.email,
+            roleName: row.roleName,
+            createdAt: row.createdAt,
+          }
+        : null,
+      vehicle: {
+        id: row.vehicleId,
+        uniqueId: row.vehicleUniqueId,
+        licensePlate: row.licensePlate,
+        color: row.color,
+        vehicleTypeId: row.vehicleTypeId,
+        vehicleTypeUniqueId: row.vehicleTypeUniqueId,
+        vehicleTypeName: row.vehicleTypeName,
+        vehicleTypeDescription: row.vehicleTypeDescription,
+        carryingCapacity: row.carryingCapacity,
+        createdAt: row.vehicleCreatedAt,
+        updatedAt: row.vehicleUpdatedAt,
+      },
+      role: {
+        id: row.roleId,
+        uniqueId: row.roleUniqueId,
+        name: row.roleName,
+      },
+    }));
+
+    if (includePagination && limit) {
+      return {
+        message: "success",
+        data: formattedData,
+        pagination,
+      };
+    }
+    return formattedData;
   } catch (error) {
     console.log("Error fetching vehicle ownerships by filter:", error);
     throw error;
