@@ -357,12 +357,6 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
     countParams.push(maxPrice);
   }
 
-  if (durationInDays) {
-    whereClauses.push("spp.durationInDays = ?");
-    queryParams.push(durationInDays);
-    countParams.push(durationInDays);
-  }
-
   // Special filters
   if (daily) {
     whereClauses.push("DATE(ds.startDate) = CURDATE()");
@@ -402,7 +396,6 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
     createdAt: "ds.createdAt",
     planName: "sp.planName",
     price: "spp.price",
-    durationInDays: "spp.durationInDays",
   };
 
   const validSortOrder = ["ASC", "DESC"];
@@ -420,8 +413,7 @@ const getDriverSubscriptionsWithFilters = async (filters = {}) => {
       sp.description as planDescription,
       sp.isFree,
       spp.price,
-      spp.durationInDays,
-      spp.effectiveFrom,
+       spp.effectiveFrom,
       spp.effectiveTo,
       CASE
         WHEN NOW() BETWEEN ds.startDate AND ds.endDate THEN 'active'
@@ -551,8 +543,7 @@ const getUnassignedFreePlans = async (filters = {}) => {
     SELECT 
       sp.*,
       spp.price,
-      spp.durationInDays,
-      spp.effectiveFrom,
+       spp.effectiveFrom,
       spp.effectiveTo,
       (SELECT COUNT(*) FROM DriverSubscription ds WHERE ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId) as totalAssignments,
       (SELECT COUNT(DISTINCT driverUniqueId) FROM DriverSubscription ds WHERE ds.subscriptionPlanUniqueId = sp.subscriptionPlanUniqueId) as uniqueDriversAssigned
