@@ -47,43 +47,49 @@ const createVehicleDriver = async (data) => {
     };
   }
   // Resolve ownershipUniqueId (support legacy ownerUserUniqueId)
-  let ownershipUniqueId = ownershipUniqueIdInput;
-  if (!ownershipUniqueId) {
-    if (!ownerUserUniqueId) {
-      return { message: "error", error: "ownershipUniqueId or ownerUserUniqueId is required" };
-    }
-    // find active ownership for this vehicle and owner
-    const [owRows] = await pool.query(
-      `SELECT ownershipUniqueId FROM VehicleOwnership 
-       WHERE vehicleUniqueId = ? AND userUniqueId = ? 
-       AND (ownershipEndDate IS NULL OR ownershipEndDate > NOW())
-       ORDER BY ownershipStartDate DESC LIMIT 1`,
-      [vehicleUniqueId, ownerUserUniqueId]
-    );
-    ownershipUniqueId = owRows[0]?.ownershipUniqueId;
-    if (!ownershipUniqueId) {
-      return { message: "error", error: "Active ownership not found for given vehicle and owner" };
-    }
-  }
+  // let ownershipUniqueId = ownershipUniqueIdInput;
+  // if (!ownershipUniqueId) {
+  //   if (!ownerUserUniqueId) {
+  //     return {
+  //       message: "error",
+  //       error: "ownershipUniqueId or ownerUserUniqueId is required",
+  //     };
+  //   }
+  // find active ownership for this vehicle and owner
+  // const [owRows] = await pool.query(
+  //   `SELECT ownershipUniqueId FROM VehicleOwnership
+  //    WHERE vehicleUniqueId = ? AND userUniqueId = ?
+  //    AND (ownershipEndDate IS NULL OR ownershipEndDate > NOW())
+  //    ORDER BY ownershipStartDate DESC LIMIT 1`,
+  //   [vehicleUniqueId, ownerUserUniqueId]
+  // );
+  // ownershipUniqueId = owRows?.[0]?.ownershipUniqueId;
+  // if (!ownershipUniqueId) {
+  //   return {
+  //     message: "error",
+  //     error: "Active ownership not found for given vehicle and owner",
+  //   };
+  // }
+  // }
 
   const vehicleDriverUniqueId = uuidv4();
   const sql = `
     INSERT INTO VehicleDriver (
       vehicleDriverUniqueId,
       vehicleUniqueId,
-      ownershipUniqueId,
+      
       driverUserUniqueId,
       assignmentStatus,
       assignmentStartDate,
       assignmentEndDate
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `;
 
   try {
     const [result] = await pool.query(sql, [
       vehicleDriverUniqueId,
       vehicleUniqueId,
-      ownershipUniqueId,
+      // ownershipUniqueId,
       driverUserUniqueId,
       assignmentStatus,
       assignmentStartDate,
@@ -138,10 +144,7 @@ const getVehicleDrivers = async (filters = {}) => {
     where.push("vd.ownershipUniqueId = ?");
     params.push(ownershipUniqueId);
   }
-  if (ownerUserUniqueId) {
-    where.push("vo.userUniqueId = ?");
-    params.push(ownerUserUniqueId);
-  }
+
   if (driverUserUniqueId) {
     where.push("vd.driverUserUniqueId = ?");
     params.push(driverUserUniqueId);
@@ -207,13 +210,12 @@ const getVehicleDrivers = async (filters = {}) => {
     SELECT 
       vd.*, 
       v.vehicleTypeUniqueId, v.licensePlate, v.color,
-      vt.*,
-      ow.fullName as ownerFullName, dr.fullName as driverFullName
+      vt.*
+     -- ow.fullName as ownerFullName, dr.fullName as driverFullName
     FROM VehicleDriver vd
     LEFT JOIN Vehicle v ON vd.vehicleUniqueId = v.vehicleUniqueId
     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN VehicleOwnership vo ON vd.ownershipUniqueId = vo.ownershipUniqueId
-    LEFT JOIN Users ow ON vo.userUniqueId = ow.userUniqueId
+   --  LEFT JOIN Users ow ON vo.userUniqueId = ow.userUniqueId
     LEFT JOIN Users dr ON vd.driverUserUniqueId = dr.userUniqueId
     ${whereClause}
     ORDER BY ${safeSortBy} ${safeSortOrder}
@@ -222,8 +224,7 @@ const getVehicleDrivers = async (filters = {}) => {
   const countSql = `
     SELECT COUNT(*) as total
     FROM VehicleDriver vd
-    LEFT JOIN VehicleOwnership vo ON vd.ownershipUniqueId = vo.ownershipUniqueId
-    ${whereClause}
+     ${whereClause}
   `;
 
   const [rows] = await pool.query(sql, [...params, numLimit, offset]);
