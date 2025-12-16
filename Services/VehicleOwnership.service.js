@@ -16,7 +16,7 @@ const createVehicleOwnership = async (body) => {
     ownershipEndDate = null,
   } = body;
 
-  if (!vehicleUniqueId || !userUniqueId || !roleId || !ownershipStartDate) {
+  if (!vehicleUniqueId || !roleId || !ownershipStartDate) {
     return {
       message: "error",
       error: "All fields are required for vehicle ownership",
@@ -88,7 +88,6 @@ const createVehicleOwnership = async (body) => {
     colAndVal: {
       ownershipUniqueId,
       vehicleUniqueId,
-      userUniqueId,
       roleId,
       ownershipStartDate,
       ownershipEndDate,

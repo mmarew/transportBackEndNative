@@ -37,7 +37,6 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
       tableName: "VehicleTypes",
       conditions: { vehicleTypeUniqueId },
     });
-    console.log("@vehicleTypeExists", vehicleTypeExists);
 
     if (!vehicleTypeExists.length) {
       return { message: "error", error: "Vehicle type does not exist" };
@@ -82,16 +81,15 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
 
     let ownershipResult = undefined;
     // Register vehicle ownership
-    if (isDriverOwnerOfVehicle) {
-      ownershipResult = await createVehicleOwnership({
-        vehicleUniqueId: vehicle?.[0]?.vehicleUniqueId,
-        userUniqueId,
-        roleId: usersRoles?.vehicleOwnerRoleId,
-        ownershipStartDate: currentDate(),
-      });
-    }
+    // if (isDriverOwnerOfVehicle) {
+    ownershipResult = await createVehicleOwnership({
+      vehicleUniqueId: vehicle?.[0]?.vehicleUniqueId,
+      userUniqueId: isDriverOwnerOfVehicle ? userUniqueId : null,
+      roleId: usersRoles?.vehicleOwnerRoleId,
+      ownershipStartDate: currentDate(),
+    });
+    // }
 
-    console.log("@activeVehicle", activeVehicle);
     if (activeVehicle?.data?.length > 0) {
       return {
         message: "error",

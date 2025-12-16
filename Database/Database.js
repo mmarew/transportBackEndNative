@@ -466,7 +466,7 @@ CREATE TABLE IF NOT EXISTS VehicleOwnership (
     ownershipId INT AUTO_INCREMENT PRIMARY KEY,
     ownershipUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for ownership
     vehicleUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Vehicle
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
+    userUniqueId VARCHAR(36) Default NULL,  -- Foreign key to Users
     roleId INT NOT NULL,  -- Foreign key to Roles
     ownershipStartDate DATETIME NOT NULL,  -- Ownership start date
     ownershipEndDate DATETIME NULL,  -- Ownership end date
@@ -481,19 +481,16 @@ CREATE TABLE IF NOT EXISTS VehicleDriver (
     vehicleDriverId INT AUTO_INCREMENT PRIMARY KEY,
     vehicleDriverUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the assignment
     vehicleUniqueId VARCHAR(36) NOT NULL,               -- FK to Vehicle
-    -- ownershipUniqueId VARCHAR(36) NOT NULL,             -- FK to VehicleOwnership (owner at assignment time)
-    driverUserUniqueId VARCHAR(36) NOT NULL,            -- FK to Users (driver)
+     driverUserUniqueId VARCHAR(36) NOT NULL,            -- FK to Users (driver)
     assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
     assignmentStartDate DATETIME NOT NULL,
     assignmentEndDate DATETIME NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_vehicleDriver_vehicle (vehicleUniqueId),
-    -- INDEX idx_vehicleDriver_ownership (ownershipUniqueId),
-    INDEX idx_vehicleDriver_driver (driverUserUniqueId),
+     INDEX idx_vehicleDriver_driver (driverUserUniqueId),
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
-   -- FOREIGN KEY (ownershipUniqueId) REFERENCES VehicleOwnership(ownershipUniqueId),
-    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId)
+     FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId)
 ) ;
 
 -- Create the Ratings table
