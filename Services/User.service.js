@@ -318,17 +318,15 @@ const registerNewUser = async ({
   };
 };
 
-const createUser = async (req) => {
-  const body = req.body;
+const createUser = async (body) => {
+  // const body = req.body;
   const requestedFrom = body?.requestedFrom || "user";
-  const {
-    fullName,
-    phoneNumber,
-    email,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-  } = body;
+  const fullName = body?.fullName,
+    phoneNumber = body?.phoneNumber,
+    email = body?.email,
+    roleId = body?.roleId,
+    statusId = body?.statusId,
+    userRoleStatusDescription = body?.userRoleStatusDescription;
 
   console.log("@createUser body", body);
 

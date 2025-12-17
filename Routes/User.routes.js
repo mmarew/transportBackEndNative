@@ -19,12 +19,12 @@ router.post(
   verifyAdminsIdentity,
   controller.createUserByAdminOrSuperAdmin
 );
-router.post(
-  "/api/admin/createUser",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  controller.createUser
-);
+// router.post(
+//   "/api/admin/createUser",
+//   verifyTokenOfAxios,
+//   verifyAdminsIdentity,
+//   controller.createUser
+// );
 // log in / register user by phone number
 router.get("/api/user/loginUser", controller.loginUser);
 // login and single-user-by-role routes removed — use getUserByFilterDetailed instead

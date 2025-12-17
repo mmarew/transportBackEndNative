@@ -11,7 +11,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 
 const createUser = async (req, res) => {
   try {
-    const response = await services.createUser(req);
+    const response = await services.createUser(req?.body);
     ServerResponder(res, response);
   } catch (error) {
     console.log("Error:", error);

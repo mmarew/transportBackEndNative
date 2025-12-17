@@ -189,10 +189,10 @@ const accountStatus = async ({
     let unAttachedDocumentTypes = [];
     let requiredDocuments = [];
 
-    if (enableDocumentChecks && requiredDocsResult.status === "fulfilled") {
-      requiredDocuments = requiredDocsResult.value?.data || [];
+    if (enableDocumentChecks && requiredDocsResult?.status === "fulfilled") {
+      requiredDocuments = requiredDocsResult?.value?.data || [];
 
-      if (requiredDocuments.length > 0) {
+      if (requiredDocuments?.length > 0) {
         // Optimized single query for document status
         const sql = `
           SELECT

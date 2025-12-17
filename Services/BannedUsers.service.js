@@ -339,7 +339,7 @@ const _checkIfUserIsBanned = async (identifiers) => {
   if (rows.length > 0) {
     return {
       message: "success",
-      data: { isBanned: true, banDetails: rows[0] },
+      data: { isBanned: true, banDetails: rows?.[0] },
     };
   } else {
     return { message: "success", data: { isBanned: false } };
