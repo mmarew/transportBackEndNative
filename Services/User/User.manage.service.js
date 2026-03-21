@@ -10,6 +10,7 @@ const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { USER_STATUS, statusList } = require("../../Utils/ListOfSeedData");
 const createJWT = require("../../Utils/CreateJWT");
+const { isPlaceholderEmail } = require("../../Utils/GetPlaceholderEmail");
 
 const getUserByUserUniqueId = async (userUniqueId) => {
   const user = await getData({
@@ -43,10 +44,10 @@ const getUsersByRoleUniqueId = async (
     WHERE r.roleUniqueId = ? 
     AND (u.isDeleted = 0 OR u.isDeleted IS NULL)
     ${
-  search
-    ? "AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)"
-    : ""
-}
+      search
+        ? "AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)"
+        : ""
+    }
   `;
 
   const executor = transactionStorage.getStore() || connection || pool;
@@ -78,10 +79,10 @@ const getUsersByRoleUniqueId = async (
     WHERE r.roleUniqueId = ?
     AND (u.isDeleted = 0 OR u.isDeleted IS NULL)
     ${
-  search
-    ? "AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)"
-    : ""
-}
+      search
+        ? "AND (u.fullName LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)"
+        : ""
+    }
     ORDER BY u.userCreatedAt DESC
     LIMIT ? OFFSET ?
   `;
@@ -90,13 +91,13 @@ const getUsersByRoleUniqueId = async (
     sql,
     search
       ? [
-        roleUniqueId,
-        wildcardQuery,
-        wildcardQuery,
-        wildcardQuery,
-        limit,
-        offset,
-      ]
+          roleUniqueId,
+          wildcardQuery,
+          wildcardQuery,
+          wildcardQuery,
+          limit,
+          offset,
+        ]
       : [roleUniqueId, limit, offset],
   );
 
@@ -279,10 +280,10 @@ const getUserByFilterDetailed = async (
         },
         userRoleStatuses: row.userRoleStatusId
           ? {
-            statusId: row.statusId,
-            statusName: row.statusName,
-            userRoleStatusUniqueId: row.userRoleStatusUniqueId,
-          }
+              statusId: row.statusId,
+              statusName: row.statusName,
+              userRoleStatusUniqueId: row.userRoleStatusUniqueId,
+            }
           : null,
       });
 
@@ -333,22 +334,32 @@ const updateUser = async (body) => {
 
   // Check if email is reserved by another user
   if (email) {
-    const userDataByEmail = await getData({
-      tableName: "Users",
-      conditions: { email },
-    });
+    // if email is placeholder email, skip the check
+    const isEmailPlaceholder = isPlaceholderEmail(email);
+    if (!isEmailPlaceholder) {
+      const userDataByEmail = await getData({
+        tableName: "Users",
+        conditions: { email },
+      });
 
-    if (userDataByEmail?.length > 0) {
-      // Check if the found user is different from the current user
-      if (userDataByEmail[0].userUniqueId !== userUniqueId) {
-        errors.push("Email already exists");
+      if (userDataByEmail?.length > 0) {
+        const savedEmail = userDataByEmail?.[0].email;
+        const isSavedEmailPlaceholder = isPlaceholderEmail(savedEmail);
+        //if email is provided and previously savedEmail is placeholder but current email is not placeholder, then update the email
+        if (isSavedEmailPlaceholder) {
+          updateValues.email = email;
+        }
+        // Check if the found user is different from the current user
+        if (userDataByEmail?.[0].userUniqueId !== userUniqueId) {
+          errors.push("Email already exists");
+        } else {
+          // Same user, can update email
+          updateValues.email = email;
+        }
       } else {
-        // Same user, can update email
+        // Email doesn't exist in the system, can update
         updateValues.email = email;
       }
-    } else {
-      // Email doesn't exist in the system, can update
-      updateValues.email = email;
     }
   }
 
@@ -360,8 +371,16 @@ const updateUser = async (body) => {
     });
 
     if (userDataByPhoneNumber?.length > 0) {
+      //check if email is placeHolder
+      const savedEmail = userDataByPhoneNumber?.[0].email;
+      const isEmailPlaceholder = isPlaceholderEmail(savedEmail);
+      //if email is provided and previously savedEmail is placeholder but current email is not placeholder, then update the email
+      if (email && isEmailPlaceholder && !isPlaceholderEmail(email)) {
+        updateValues.email = email;
+      }
+
       // Check if the found user is different from the current user
-      if (userDataByPhoneNumber[0].userUniqueId !== userUniqueId) {
+      if (userDataByPhoneNumber?.[0].userUniqueId !== userUniqueId) {
         errors.push("Phone number already exists");
       } else {
         // Same user, can update phone number
@@ -492,7 +511,9 @@ const deleteUser = async (
           });
         }
       }
-      const { deleteData: deleteDataFunc } = require("../../CRUD/Delete/DeleteData"); // Safer import
+      const {
+        deleteData: deleteDataFunc,
+      } = require("../../CRUD/Delete/DeleteData"); // Safer import
       await deleteDataFunc({
         tableName: "AttachedDocuments",
         conditions: { attachedDocumentUniqueId: doc.attachedDocumentUniqueId },
