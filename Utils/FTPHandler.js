@@ -72,7 +72,9 @@ async function deleteFromFTP(filename) {
     return { success: true, message: "File deleted successfully" };
   } catch (error) {
     if (error.code === "ENOENT") {
-      logger.debug("File does not exist on disk, skipping delete", { filePath });
+      logger.debug("File does not exist on disk, skipping delete", {
+        filePath,
+      });
       return { success: true, message: "File already does not exist" };
     }
     throw new Error(`Local file deletion failed: ${error.message}`);
