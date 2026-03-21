@@ -17,7 +17,6 @@ exports.createVehicleType = async (req, res, next) => {
 
     const fileExtension = path.extname(req.file.originalname);
     const uniqueFilename = `vehicle_${uuidv4()}${fileExtension}`;
-    const fileUrl = `${process.env.FTP_BASE_URL}/uploads/vehicles/${uniqueFilename}`;
 
     const result = await executeInTransaction(async () => {
       // 🔎 Check DB for duplicate name or icon
