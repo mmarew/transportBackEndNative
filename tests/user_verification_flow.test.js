@@ -42,7 +42,7 @@ const state = {
     });
     
     if (res.body?.message !== "success") {
-        console.log("DEBUG [01]:", res.status, JSON.stringify(res.body, null, 2));
+      console.log("DEBUG [01]:", res.status, JSON.stringify(res.body, null, 2));
     }
     assert(res.body?.message === "success", "Failed to create user with phone only");
     state.userUniqueId = res.body?.data?.userUniqueId;

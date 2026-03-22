@@ -105,7 +105,7 @@ const handleExistingUser = async ({
   const isPhoneVerified = !!user.isPhoneVerified;
   const isEmailVerified = !!user.isEmailVerified;
 
-  const [savedCredentialRows, userRoleStatus] = await Promise.all([
+  const [savedCredentialRows] = await Promise.all([
     getData({ tableName: "usersCredential", conditions: { userUniqueId } }),
     registryService.handleUserRoleStatus(
       userUniqueId,
@@ -287,7 +287,9 @@ const handleExistingUser = async ({
             otpDetail += ", Verification Link sent to email";
           }
         } catch (emailError) {
-          logger.warn("Email sending failed inline", { error: emailError.message });
+          logger.warn("Email sending failed inline", {
+            error: emailError.message,
+          });
           otpDetail += `, Email failed (${emailError.message})`;
         }
       } else {
@@ -411,8 +413,12 @@ const verifyUserByOTP = async (req) => {
   }
 
   const conditions = {};
-  if (phoneNumber) conditions.phoneNumber = phoneNumber;
-  if (email) conditions.email = email;
+  if (phoneNumber) {
+    conditions.phoneNumber = phoneNumber;
+  }
+  if (email) {
+    conditions.email = email;
+  }
 
   const verifyUserExistence = await performJoinSelect({
     baseTable: "Users",
@@ -425,7 +431,6 @@ const verifyUserByOTP = async (req) => {
     conditions,
     limit: 1,
   });
-  console.log("@verifyUserExistence", verifyUserExistence);
   if (!verifyUserExistence || verifyUserExistence.length === 0) {
     throw new AppError("user not found", 404);
   }
@@ -472,7 +477,7 @@ const verifyUserByOTP = async (req) => {
           notHashedPassword: String(OTP),
         });
         phoneMatched = true;
-      } catch (e) {
+      } catch {
         // Log mismatch but don't stop the flow if email might still match
         logger.debug("Phone OTP mismatch");
       }
@@ -489,7 +494,7 @@ const verifyUserByOTP = async (req) => {
           notHashedPassword: String(OTP),
         });
         emailMatched = true;
-      } catch (e) {
+      } catch {
         logger.debug("Email OTP mismatch");
       }
     }
@@ -505,8 +510,12 @@ const verifyUserByOTP = async (req) => {
 
   // 2. Update verification status in the database
   const updateValues = {};
-  if (phoneMatched) updateValues.isPhoneVerified = true;
-  if (emailMatched) updateValues.isEmailVerified = true;
+  if (phoneMatched) {
+    updateValues.isPhoneVerified = true;
+  }
+  if (emailMatched) {
+    updateValues.isEmailVerified = true;
+  }
 
   if (Object.keys(updateValues).length > 0) {
     await updateData({
@@ -570,23 +579,27 @@ const verifyUserByOTP = async (req) => {
 };
 
 const verifyEmailByToken = async (token) => {
-  if (!token) throw new AppError("Invalid or missing token", 400);
+  if (!token) {
+    throw new AppError("Invalid or missing token", 400);
+  }
 
   const [credential] = await getData({
     tableName: "usersCredential",
     conditions: { emailVerificationToken: token },
   });
 
-  if (!credential)
+  if (!credential) {
     throw new AppError("Verification link is invalid or has expired.", 400);
+  }
 
   const now = new Date();
   const expiry = new Date(credential.emailVerificationExpiresAt);
-  if (now > expiry)
+  if (now > expiry) {
     throw new AppError(
       "Verification link has expired. Please log in again to receive a new one.",
       400,
     );
+  }
 
   const userUniqueId = credential.userUniqueId;
 

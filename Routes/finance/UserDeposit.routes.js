@@ -11,7 +11,6 @@ const {
   updateUserDeposit,
   depositParams,
   initiateSantimPay,
-  getSignedToken,
   getDepositQuery,
 } = require("../../Validations/UserDeposit.schema");
 

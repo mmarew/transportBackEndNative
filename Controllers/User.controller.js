@@ -280,7 +280,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
   }
 };
 
-const verifyEmail = async (req, res, next) => {
+const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
     const response = await services.verifyEmailByToken(token);

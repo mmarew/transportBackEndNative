@@ -10,7 +10,7 @@ const PLACEHOLDER_DOMAINS = ["@dynamics.com", "@passenger.com", "@system.com"];
  * @returns {string} The generated placeholder email.
  */
 const getPlaceholderEmail = (phoneNumber) => {
-  if (!phoneNumber) return null;
+  if (!phoneNumber) {return null;}
   const cleanPhone = String(phoneNumber).trim().replace(/\+/g, "");
   return `${cleanPhone}@dynamics.com`;
 };
@@ -22,7 +22,7 @@ const getPlaceholderEmail = (phoneNumber) => {
  * @returns {boolean} True if the email is a placeholder.
  */
 const isPlaceholderEmail = (email) => {
-  if (!email) return true;
+  if (!email) {return true;}
   const lowerEmail = email.toLowerCase();
   return PLACEHOLDER_DOMAINS.some((domain) => lowerEmail.endsWith(domain));
 };

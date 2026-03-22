@@ -31,6 +31,7 @@ const DATABASE = process.env.DB_DATABASE;
 const DB_SOCKET_PATH = process.env.DB_SOCKET_PATH;
 const PORT = Number(process.env.DB_PORT) || 3306;
 
+
 if (!HOST || !USER || !DATABASE) {
   logger.error("Database config missing required env vars", {
     host: HOST,

@@ -11,7 +11,7 @@ const BROWSER_WHATSAPP_ICON = "/Assets/whatsapp_icon.png";
 const BROWSER_TELEGRAM_ICON = "/Assets/telegram_icon.png";
 const BROWSER_PHONE_ICON = "/Assets/phone_icon.png";
 
-const COPY_ICON = "https://cdn-icons-png.flaticon.com/512/1621/1621635.png";
+
 
 const getOtpMessage = (otp, type = "login") => {
   const brand = process.env.BRAND_NAME || "Dynamics Transport";

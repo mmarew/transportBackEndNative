@@ -503,7 +503,7 @@ const getDetailedJourneyData = async (passengerRequests) => {
         pr.journeyStatusId === journeyStatusMap.waiting ||
         pr.journeyStatusId === journeyStatusMap.cancelledByPassenger ||
         pr.journeyStatusId === journeyStatusMap.cancelledByDriver 
-       ) {
+      ) {
         waitingResults.push({
           passengerRequest: pr,
           driverRequests: [],
