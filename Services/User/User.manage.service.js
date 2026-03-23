@@ -329,6 +329,16 @@ const updateUser = async (body) => {
     throw new AppError("userUniqueId is required", 400);
   }
 
+  // Fetch current user details to compare contact info
+  const [currentUser] = await getData({
+    tableName: "Users",
+    conditions: { userUniqueId },
+  });
+
+  if (!currentUser) {
+    throw new AppError("User not found", 404);
+  }
+
   const updateValues = {};
   const errors = [];
 
@@ -400,6 +410,17 @@ const updateUser = async (body) => {
   // Optional fields for update
   if (fullName) {
     updateValues.fullName = fullName;
+  }
+
+  // Reset verification flags if contact info has changed
+  if (updateValues.email && updateValues.email !== currentUser.email) {
+    updateValues.isEmailVerified = 0;
+  }
+  if (
+    updateValues.phoneNumber &&
+    updateValues.phoneNumber !== currentUser.phoneNumber
+  ) {
+    updateValues.isPhoneVerified = 0;
   }
 
   // Update the user's information if there are any fields to update
