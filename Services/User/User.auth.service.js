@@ -270,8 +270,7 @@ const handleExistingUser = async ({
           } else {
             // Send Verification Link
             const baseUrl =
-              process.env.APP_API_URL ||
-              "https://transport-back-end-native.vercel.app";
+              process.env.APP_API_URL || "https://dynamicsroute.tech";
             const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
             const linkMsg = getEmailVerificationLinkMessage(link);
             logger.debug("Sending Email Verification Link", {

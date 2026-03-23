@@ -66,8 +66,7 @@ const createUser = async (req, res, next) => {
           });
         } else if (emailVerificationToken) {
           const baseUrl =
-            process.env.APP_API_URL ||
-            "https://transport-back-end-native.vercel.app";
+            process.env.APP_API_URL || "https://dynamicsroute.tech";
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
           const linkMsg = getEmailVerificationLinkMessage(link);
           logger.debug("Sending Deferred Email Verification Link", {
@@ -272,6 +271,71 @@ const updateUser = async (req, res, next) => {
       }
       return textResponse;
     });
+
+    // Handle deferred SMS and Email after transaction commit
+    if (response?.deferredOTP) {
+      const { sendSms } = require("../Utils/smsSender");
+      const { sendEmail } = require("../Utils/emailSender");
+
+      const {
+        phoneVerificationOTP,
+        emailVerificationOTP,
+        emailVerificationToken,
+      } = response.deferredOTP;
+
+      // 1. Send SMS (Always OTP)
+      if (phoneVerificationOTP) {
+        // Use the new phone number if provided in body, otherwise fallback to existing
+        const targetPhone = body.phoneNumber || user.phoneNumber;
+        if (targetPhone) {
+          const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
+          sendSms(targetPhone, phoneMsg.sms).catch((err) => {
+            logger.warn("Deferred SMS sending failed on update", {
+              phoneNumber: targetPhone,
+              error: err.message,
+            });
+          });
+        }
+      }
+
+      // 2. Send Email (OTP or Link)
+      const targetEmail = body.email || user.email;
+      if (targetEmail) {
+        if (emailVerificationOTP) {
+          const emailMsg = getOtpMessage(emailVerificationOTP, "registration");
+          sendEmail(
+            targetEmail,
+            emailMsg.emailSubject,
+            emailMsg.sms,
+            emailMsg.emailHtml,
+          ).catch((err) => {
+            logger.warn("Deferred Email OTP sending failed on update", {
+              email: targetEmail,
+              error: err.message,
+            });
+          });
+        } else if (emailVerificationToken) {
+          const baseUrl =
+            process.env.APP_API_URL || "https://dynamicsroute.tech";
+          const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
+          const linkMsg = getEmailVerificationLinkMessage(link);
+          sendEmail(
+            targetEmail,
+            linkMsg.emailSubject,
+            "Verify your email",
+            linkMsg.emailHtml,
+          ).catch((err) => {
+            logger.warn("Deferred Email Link sending failed on update", {
+              email: targetEmail,
+              error: err.message,
+            });
+          });
+        }
+      }
+
+      // Don't send the raw OTP or tokens back to the client
+      delete response.deferredOTP;
+    }
 
     return ServerResponder(res, response);
   } catch (error) {

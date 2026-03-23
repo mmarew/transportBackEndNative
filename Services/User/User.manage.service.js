@@ -3,7 +3,7 @@
 const { pool } = require("../../Middleware/Database.config");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
-const { currentDate } = require("../../Utils/CurrentDate");
+const { currentDate, addHours } = require("../../Utils/CurrentDate");
 const { deleteFile } = require("../../Utils/FileUtils");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
@@ -11,6 +11,9 @@ const { transactionStorage } = require("../../Utils/TransactionContext");
 const { USER_STATUS, statusList } = require("../../Utils/ListOfSeedData");
 const createJWT = require("../../Utils/CreateJWT");
 const { isPlaceholderEmail } = require("../../Utils/GetPlaceholderEmail");
+const generateOTP = require("../../Utils/GenerateOTP");
+const bcrypt = require("bcryptjs");
+const { v4: uuidv4 } = require("uuid");
 
 const getUserByUserUniqueId = async (userUniqueId) => {
   const user = await getData({
@@ -412,15 +415,45 @@ const updateUser = async (body) => {
     updateValues.fullName = fullName;
   }
 
-  // Reset verification flags if contact info has changed
+  const deferredOTP = {};
+
+  // Reset verification flags and generate new credentials if contact info has changed
   if (updateValues.email && updateValues.email !== currentUser.email) {
     updateValues.isEmailVerified = 0;
+    const emailVerificationToken = uuidv4();
+    const emailVerificationExpiresAt = addHours(currentDate(), 2); // 2 hours expiry
+    deferredOTP.emailVerificationToken = emailVerificationToken;
+
+    await updateData({
+      tableName: "usersCredential",
+      updateValues: {
+        emailVerificationToken,
+        emailVerificationExpiresAt,
+        // We don't reset emailVerificationOTP here because it's for verified status normally
+      },
+      conditions: { userUniqueId },
+    });
   }
+
   if (
     updateValues.phoneNumber &&
     updateValues.phoneNumber !== currentUser.phoneNumber
   ) {
     updateValues.isPhoneVerified = 0;
+    const phoneVerificationOTP = generateOTP();
+    const hashedPhoneVerificationOTP = await bcrypt.hash(
+      String(phoneVerificationOTP),
+      10,
+    );
+    deferredOTP.phoneVerificationOTP = phoneVerificationOTP;
+
+    await updateData({
+      tableName: "usersCredential",
+      updateValues: {
+        phoneVerificationOTP: hashedPhoneVerificationOTP,
+      },
+      conditions: { userUniqueId },
+    });
   }
 
   // Update the user's information if there are any fields to update
@@ -472,6 +505,7 @@ const updateUser = async (body) => {
     token: tokenData.token,
     message: "success",
     data: "User updated successfully",
+    deferredOTP, // Return OTP/Token for controller to send
   };
 };
 
