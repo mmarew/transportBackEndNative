@@ -376,6 +376,35 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+const reportWrongEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    await services.reportMisdirectedEmail(token);
+
+    // Send a nice "Thank You" page to the reporter
+    res.send(`
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="font-size: 48px; margin-bottom: 20px;">🙏</div>
+        <h2 style="color: #2c3e50; margin: 0 0 10px 0; font-size: 24px;">Thank You!</h2>
+        <p style="color: #4a5568; margin: 0; font-size: 16px; line-height: 1.6;">
+          We have received your report. The verification link has been revoked and the sender has been notified of the mistake. 
+          You will not receive any further automated messages regarding this account.
+        </p>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf2f7; font-size: 13px; color: #718096;">
+          &copy; 2026 Dynamics Transport. All rights reserved.
+        </div>
+      </div>
+    `);
+  } catch (error) {
+    res.status(error.statusCode || 500).send(`
+      <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+        <h1 style="color: #e53e3e;">Report Error</h1>
+        <p style="color: #4a5568; font-size: 18px;">${error.message}</p>
+      </div>
+    `);
+  }
+};
+
 module.exports = {
   createUserByAdminOrSuperAdmin,
   updateUser,
@@ -385,4 +414,5 @@ module.exports = {
   getUserByFilterDetailed,
   loginUser,
   verifyEmail,
+  reportWrongEmail,
 };

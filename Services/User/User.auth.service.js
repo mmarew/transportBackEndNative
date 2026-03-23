@@ -23,6 +23,9 @@ const { getData, performJoinSelect } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { insertData } = require("../../CRUD/Create/CreateData");
 const { v4: uuidv4 } = require("uuid");
+const { getSocket } = require("../../Utils/WsConnectionStore");
+const { emitMessage } = require("../../Utils/WsServerResponder");
+const messageTypes = require("../../Utils/MessageTypes");
 
 const {
   driversDocumentVehicleRequirement,
@@ -622,16 +625,10 @@ const verifyEmailByToken = async (token) => {
   const email = userRow?.email;
   const isPhoneVerified = !!userRow?.isPhoneVerified;
 
-  // Generate an automatic OTP for them to log in smoothly
-  const OTP = generateOTP();
-  const hashedOTP = await bcrypt.hash(String(OTP), 10);
-
   const credentialUpdateValues = {
     emailVerificationToken: null,
     emailVerificationExpiresAt: null,
-    emailVerificationOTP: hashedOTP,
   };
-  credentialUpdateValues.sharedOTP = hashedOTP;
 
   await updateData({
     tableName: "usersCredential",
@@ -639,30 +636,83 @@ const verifyEmailByToken = async (token) => {
     conditions: { userUniqueId },
   });
 
-  // Automatically dispatch the OTP to their email
-  if (email) {
-    try {
-      const emailMsg = getOtpMessage(OTP, "login");
-      await sendEmail(
-        email,
-        emailMsg.emailSubject,
-        emailMsg.sms,
-        emailMsg.emailHtml,
-      );
-    } catch (e) {
-      logger.warn("Failed to auto-send OTP after email verification", {
-        error: e.message,
-      });
-    }
-  }
-  //let users get the otp in res immediately as they are verified
+  //let users get the status immediately as they are verified
   return {
     message: "success",
     data: {
-      OTP,
       phoneVerified: isPhoneVerified,
       emailVerified: true,
     },
+  };
+};
+
+/**
+ * Handles reporting of misdirected verification emails.
+ * Revokes the token and notifies the original sender via WebSocket.
+ */
+const reportMisdirectedEmail = async (token) => {
+  if (!token) {
+    throw new AppError("Token is required.", 400);
+  }
+
+  // Find the credential by token
+  const [credential] = await getData({
+    tableName: "usersCredential",
+    conditions: { emailVerificationToken: token },
+  });
+
+  if (!credential) {
+    throw new AppError("This report link has already been processed or is invalid.", 400);
+  }
+
+  const { userUniqueId } = credential;
+
+  // 1. Immediately revoke the token to stop further attempts
+  await updateData({
+    tableName: "usersCredential",
+    updateValues: {
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+    },
+    conditions: { userUniqueId },
+  });
+
+  // 2. Notify the originator via WebSocket if they are online
+  const [user] = await getData({
+    tableName: "users",
+    conditions: { userUniqueId },
+  });
+
+  if (user && user.phoneNumber) {
+    const cleanedPhone = user.phoneNumber.replace(/\+/g, "");
+    const roles = ["passenger", "driver", "admin"];
+    
+    for (const role of roles) {
+      const socketId = await getSocket(role, cleanedPhone);
+      if (socketId) {
+        try {
+          emitMessage({
+            socketId,
+            eventName: "messages",
+            messageDetails: JSON.stringify({
+              messageTypes: messageTypes.wrong_email_reported,
+              phoneNumber: user.phoneNumber,
+              message: "The email address you provided was reported as incorrect by the recipient. Please check for typos and try again.",
+            }),
+          });
+        } catch (wsError) {
+          logger.warn("Failed to send WebSocket notification for misdirected email", {
+            userUniqueId,
+            error: wsError.message
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    status: "success",
+    message: "Report processed successfully. The link has been revoked.",
   };
 };
 
@@ -671,4 +721,5 @@ module.exports = {
   verifyUserByOTP,
   handleExistingUser,
   verifyEmailByToken,
+  reportMisdirectedEmail,
 };

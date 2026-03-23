@@ -94,6 +94,7 @@ router.post(
 );
 
 router.get("/api/user/verify-email", controller.verifyEmail);
+router.get("/api/user/report-wrong-email", controller.reportWrongEmail);
 
 router.put(
   "/api/user/updateUser/:ownerUserUniqueId",

@@ -132,5 +132,9 @@ const messageTypes = {
     message: "Driver rejected request",
     details: "Driver rejected the passenger's request",
   },
+  wrong_email_reported: {
+    message: "Email reported as incorrect",
+    details: "The recipient reported that this email was sent to them by mistake. Please check for typos.",
+  },
 };
 module.exports = messageTypes;

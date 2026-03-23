@@ -25,4 +25,5 @@ module.exports = {
   updateUser: manageService.updateUser,
   deleteUser: manageService.deleteUser,
   verifyEmailByToken: authService.verifyEmailByToken,
+  reportMisdirectedEmail: authService.reportMisdirectedEmail,
 };
