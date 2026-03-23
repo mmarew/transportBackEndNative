@@ -1,10 +1,11 @@
 const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
+const Config = require("../Utils/Config");
 
 // Configuration
-const SLOW_QUERY_THRESHOLD = Number(process.env.SLOW_QUERY_THRESHOLD) || 100; // milliseconds
-const ENABLE_QUERY_LOGGING = process.env.ENABLE_QUERY_LOGGING !== "false";
+const SLOW_QUERY_THRESHOLD = Config.DB.SLOW_QUERY_THRESHOLD; // milliseconds
+const ENABLE_QUERY_LOGGING = Config.DB.ENABLE_QUERY_LOGGING;
 
 // Query performance statistics
 const queryStats = {

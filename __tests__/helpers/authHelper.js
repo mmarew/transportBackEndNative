@@ -1,4 +1,6 @@
 const request = require("supertest");
+const axios = require("axios");
+const Config = require("../../Utils/Config");
 const app = require("../../Config/Express.config");
 
 /**
@@ -14,24 +16,24 @@ const app = require("../../Config/Express.config");
  * @param {string} [options.subscriptionPlanPricingUniqueId]
  */
 async function getAuthToken(options = {}) {
-  if (process.env.TEST_TOKEN) {
-    return process.env.TEST_TOKEN;
+  if (Config.TEST.TOKEN) {
+    return Config.TEST.TOKEN;
   }
 
   const phoneNumber =
-    options.phoneNumber || process.env.TEST_PHONE || "+251910185606";
-  const otp = options.otp || process.env.TEST_OTP || 101010;
-  const roleId = Number(options.roleId || process.env.TEST_ROLE_ID || 1);
+    options.phoneNumber || Config.TEST.PHONE || "+251910185606";
+  const otp = options.otp || Config.TEST.OTP || 101010;
+  const roleId = Number(options.roleId || Config.TEST.ROLE_ID || 1);
   const statusId =
     options.statusId !== undefined
       ? options.statusId
-      : Number(process.env.TEST_STATUS_ID || 1);
+      : Number(Config.TEST.STATUS_ID || 1);
 
-  const fullName = options.fullName || process.env.TEST_FULL_NAME || "E2E User";
+  const fullName =
+    options.fullName || Config.TEST.FULL_NAME || "E2E User";
   const userRoleStatusDescription =
     options.userRoleStatusDescription ||
-    process.env.TEST_USER_ROLE_STATUS_DESC ||
-    "E2E setup user";
+    Config.TEST.USER_ROLE_STATUS_DESC || "E2E Test Description";
 
   const userPayload = {
     fullName,

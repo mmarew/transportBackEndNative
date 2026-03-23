@@ -13,11 +13,12 @@
 
 const http = require("http");
 const https = require("https");
+const Config = require("../Utils/Config");
  
 // ─── Configuration ───────────────────────────────────────────────────────────
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const SUPER_ADMIN_PHONE = process.env.SUPER_ADMIN_PHONE || "+251983222221";
-const DEFAULT_OTP = process.env.DEFAULT_OTP || "101010";
+const BASE_URL = Config.APP_API_URL || "http://localhost:3000";
+const SUPER_ADMIN_PHONE = Config.SUPER_ADMIN.PHONE || "+251983222221";
+const DEFAULT_OTP = Config.TEST.OTP || "101010";
 
 // ─── HTTP helper ─────────────────────────────────────────────────────────────
 const parsedBase = new URL(BASE_URL);

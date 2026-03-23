@@ -2,6 +2,7 @@ const AppError = require("../Utils/AppError");
 const ServerResponder = require("../Utils/ServerResponder");
 const logger = require("../Utils/logger");
 const { currentDate } = require("../Utils/CurrentDate");
+const Config = require("../Utils/Config");
 
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}.`;
@@ -84,7 +85,7 @@ const sendErrorProd = (err, req, res) => {
     });
 
     // In development, show full error details
-    if (process.env.NODE_ENV === "development") {
+    if (Config.NODE_ENV === "development") {
       ServerResponder(
         res,
         {
@@ -135,7 +136,7 @@ module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
-  if (process.env.NODE_ENV === "development") {
+  if (Config.NODE_ENV === "development") {
     sendErrorDev(err, req, res);
   } else {
     // Create a copy of the error to avoid mutating the original error

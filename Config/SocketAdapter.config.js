@@ -1,4 +1,5 @@
 const { Server: socketServer } = require("socket.io");
+const Config = require("../Utils/Config");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher");
@@ -24,7 +25,7 @@ async function initSocket({ httpServer }) {
     transports: ["websocket", "polling"], // Support both transports
   });
 
-  const UPSTASH_REDIS_URL = process.env.UPSTASH_REDIS_URL;
+  const UPSTASH_REDIS_URL = Config.REDIS.URL; // Changed this line
 
   // Only use Redis adapter if UPSTASH_REDIS_URL is configured
   if (UPSTASH_REDIS_URL) {

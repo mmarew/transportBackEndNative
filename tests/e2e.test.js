@@ -19,13 +19,14 @@
 
 const http  = require("http");
 const https = require("https");
+const Config = require("../Utils/Config");
 const { randomUUID } = require("crypto");
 const { seedDriverDocuments, approveAllDocuments } = require("./document.testHelper");
 
 // ─── Configuration ───────────────────────────────────────────────────────────
-const BASE_URL          = process.env.BASE_URL          || "http://localhost:3000";
-const SUPER_ADMIN_PHONE = process.env.SUPER_ADMIN_PHONE || "+251983222221";
-const DEFAULT_OTP       = process.env.DEFAULT_OTP       || "101010";
+const BASE_URL          = Config.APP_API_URL          || "http://localhost:3000";
+const SUPER_ADMIN_PHONE = Config.SUPER_ADMIN.PHONE || "+251983222221";
+const DEFAULT_OTP       = Config.TEST.OTP       || "101010";
 
 // Unique phone numbers per run using numeric suffix (no hex letters — phone validation rejects them)
 const runId          = String(Date.now()).slice(-6); // 6-digit numeric suffix, unique per run

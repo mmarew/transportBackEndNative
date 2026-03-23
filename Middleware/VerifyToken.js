@@ -2,7 +2,8 @@ const jwt = require("jsonwebtoken");
 const { getData } = require("../CRUD/Read/ReadData");
 const AppError = require("../Utils/AppError");
 const { usersRoles } = require("../Utils/ListOfSeedData");
-const secretKey = process.env.SECRET_KEY;
+const Config = require("../Utils/Config");
+const secretKey = Config.SECRET_KEY;
 
 const verifyTokenOfAxios = async (req, res, next) => {
   const authHeader = req?.headers?.authorization;

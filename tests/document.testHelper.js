@@ -6,7 +6,9 @@
 
 "use strict";
 
-const API_KEY = process.env.API_KEY || "your-super-secret-key-that-is-hard-to-guess";
+const Config = require("../Utils/Config");
+
+const API_KEY = Config.API_KEY || "your-super-secret-key-that-is-hard-to-guess";
 
 /**
  * Seed a set of standard documents for a driver

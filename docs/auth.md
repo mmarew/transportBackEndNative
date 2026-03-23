@@ -210,6 +210,8 @@ graph TD
 ### Token Verification
 ```javascript
 // verifyTokenOfAxios middleware
+const Config = require("../Utils/Config");
+
 const verifyTokenOfAxios = (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
 
@@ -221,7 +223,7 @@ const verifyTokenOfAxios = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, Config.SECRET_KEY);
     req.user = decoded;
     next();
   } catch (error) {

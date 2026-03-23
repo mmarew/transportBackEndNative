@@ -1,4 +1,5 @@
-const API_KEY = process.env.API_KEY || "your-secret-api-key"; // Fallback for safety
+const Config = require("../Utils/Config");
+const API_KEY = Config.API_KEY || "your-secret-api-key"; // Fallback for safety
 // Public paths that should not require an API key (e.g., health checks)
 const PUBLIC_PATHS = new Set(["/", "/crash"]);
 

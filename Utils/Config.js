@@ -25,6 +25,8 @@ const Config = {
     PORT: Number(process.env.DB_PORT) || 3306,
     SOCKET_PATH: process.env.DB_SOCKET_PATH,
     CONNECTION_LIMIT: Number(process.env.DB_CONNECTION_LIMIT),
+    SLOW_QUERY_THRESHOLD: Number(process.env.SLOW_QUERY_THRESHOLD) || 100,
+    ENABLE_QUERY_LOGGING: process.env.ENABLE_QUERY_LOGGING !== "false",
   },
 
   // Serverless Environment Detection
