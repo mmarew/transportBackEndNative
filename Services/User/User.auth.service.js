@@ -25,8 +25,6 @@ const messageTypes = require("../../Utils/MessageTypes");
 const {
   driversDocumentVehicleRequirement,
 } = require("../RoleDocumentRequirements.service");
-const { createUserSubscription } = require("../UserSubscription.service");
-const { getPricingWithFilters } = require("../SubscriptionPlanPricing.service");
 
 let manageService;
 let registryService;
@@ -47,52 +45,6 @@ const handleExistingUser = async ({
   if (!userUniqueId) {
     throw new AppError("wrong user data", 400);
   }
-
-  // 1. Update fullName if it's a new or missing name
-  // if ((!user.fullName || user.fullName !== fullName) && fullName) {
-  //   await updateData({
-  //     tableName: "Users",
-  //     updateValues: { fullName },
-  //     conditions: { userUniqueId },
-  //   });
-  //   user.fullName = fullName;
-  // }
-
-  /**
-   * IDENTITY UPDATE STRATEGY:
-   * We only update the user's email if the current record is missing
-   * OR if it's a system-level placeholder (@dynamics.com).
-   * This allows "upgrading" a phone-only account to a full account
-   * when the user finally joins the app and provides a real email.
-   */
-  // 2. Update email if it's currently missing OR it's a placeholder
-  // const isEmailPlaceHolder = isPlaceholderEmail(user.email);
-  // const isEmailMissing = !user.email || isEmailPlaceHolder;
-  // const placeholderEmail = getPlaceholderEmail(user.phoneNumber);
-  // if (
-  //   isEmailMissing &&
-  //   email &&
-  //   email !== placeholderEmail &&
-  //   !isEmailPlaceHolder
-  // ) {
-  //   await updateData({
-  //     tableName: "Users",
-  //     updateValues: { email },
-  //     conditions: { userUniqueId },
-  //   });
-  //   user.email = email;
-  // }
-
-  // 3. Update phoneNumber if it's currently missing
-  // const isPhoneMissing = !user.phoneNumber;
-  // if (isPhoneMissing && phoneNumber) {
-  //   await updateData({
-  //     tableName: "Users",
-  //     updateValues: { phoneNumber },
-  //     conditions: { userUniqueId },
-  //   });
-  //   user.phoneNumber = phoneNumber;
-  // }
 
   // 3. Separate Identity Verification (OTP or Link Generation)
   const isPhoneVerified = !!user.isPhoneVerified;
@@ -154,10 +106,11 @@ const handleExistingUser = async ({
     // If link is missing or expired, generate a new one
     const isExpired =
       emailVerificationExpiresAt &&
-      new Date(emailVerificationExpiresAt) < new Date();
+      new Date(emailVerificationExpiresAt.replace(" ", "T") + "Z") <
+        new Date(currentDate().replace(" ", "T") + "Z");
     if (!emailVerificationToken || isExpired) {
       emailVerificationToken = uuidv4();
-      emailVerificationExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+      emailVerificationExpiresAt = addHours(currentDate(), 2);
     }
   }
 
@@ -209,28 +162,6 @@ const handleExistingUser = async ({
     emailVerificationOTP,
     emailVerificationToken,
   };
-
-  // Driver gift logic
-  try {
-    if (Number(roleId) === usersRoles.driverRoleId) {
-      const plansRes = await getPricingWithFilters();
-      const freePlan = (plansRes?.data || []).find(
-        (p) => p?.isFree === true || p?.isFree === 1,
-      );
-      if (freePlan?.subscriptionPlanPricingUniqueId) {
-        await createUserSubscription({
-          driverUniqueId: userUniqueId,
-          subscriptionPlanPricingUniqueId:
-            freePlan.subscriptionPlanPricingUniqueId,
-          userSubscriptionCreatedBy: userUniqueId,
-        });
-      }
-    }
-  } catch (e) {
-    logger.warn("Error creating free gift during sign-up for existing user", {
-      error: e.message,
-    });
-  }
 
   return {
     message: "success",
