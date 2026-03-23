@@ -356,6 +356,23 @@ When contact information is updated, the system triggers a security lifecycle:
 - **409 Conflict**: User cannot be deleted (active journeys, pending payments, etc.)
 - **500 Internal Server Error**: Server error during deletion
 
+### Email Verification Flows (Junior Developer Guide)
+
+#### **1. Successful Email Verification (Happy Path)**
+1.  **Trigger**: User clicks the button in the verification email.
+2.  **Logic**: The backend (`verifyEmailByToken`) checks if the UUID token is valid and hasn't expired (2-hour limit).
+3.  **Real-time Update**: 
+    *   The backend marks the email as verified.
+    *   **WebSocket Broadcast**: It identifies all active roles for the user (Passenger, Driver, or Admin).
+    *   **Fresh JWT**: It generates a brand-new security token (JWT) where `isEmailVerified` is true.
+    *   **Pusher**: It sends this token to the app via WebSocket. The app then automatically unlocks "verified-only" features without the user having to re-login.
+
+#### **2. Reporting "Wrong Email" (Disavowal Flow)**
+1.  **Trigger**: Recipient B receives an email meant for User A and clicks "Not my account."
+2.  **Logic**: The backend (`reportMisdirectedEmail`) immediately revokes the token, ensuring no one can verify that account using that email.
+3.  **WebSocket Notification**: The backend notifies User A (the original sender) via WebSocket. The app should display: *"The email address you provided was reported as incorrect. Please check for typos and try again."*
+4.  **Security Benefit**: This prevents User A from waiting for an email that will never come and alerts them to the typo instantly.
+
 **Important Notes**:
 
 - Users with active journeys or pending transactions cannot be deleted

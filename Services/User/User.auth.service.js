@@ -580,6 +580,17 @@ const verifyUserByOTP = async (req) => {
   return resData;
 };
 
+/**
+ * Verifies a user's email using a unique UUID token.
+ * 
+ * JUNIOR NOTE: This function does 3 main things:
+ * 1. Security Check: Validates the token exists and hasn't expired.
+ * 2. Database Update: Marks `isEmailVerified = true` in the `Users` table.
+ * 3. Real-time UX: Generates a new JWT with the "Verified" status and pushes it 
+ *    to the user's phone/web app via Socket.io so they don't have to log in again.
+ * 
+ * @param {string} token - The unique verification token from the email link.
+ */
 const verifyEmailByToken = async (token) => {
   if (!token) {
     throw new AppError("Invalid or missing token", 400);
@@ -609,7 +620,7 @@ const verifyEmailByToken = async (token) => {
 
   const userUniqueId = credential.userUniqueId;
 
-  // Mark as verified
+  // Mark as verified in the main Users table
   await updateData({
     tableName: "Users",
     updateValues: { isEmailVerified: true },
@@ -636,6 +647,58 @@ const verifyEmailByToken = async (token) => {
     conditions: { userUniqueId },
   });
 
+  // BROADCAST: Send updated token via WebSocket to any active connections
+  // JUNIOR NOTE: This is the "Magic" part. We find out if the user is currently 
+  // online (using their phone number). If they are, we calculate a new security 
+  // token (JWT) and send it over the websocket. The app receives this and
+  // automatically unlocks verified features.
+  try {
+    const userRoles = await getData({
+      tableName: "UserRole",
+      conditions: { userUniqueId },
+    });
+
+    if (userRow.phoneNumber && userRoles.length > 0) {
+      const cleanedPhone = userRow.phoneNumber.replace(/\//g, "").replace(/\+/g, "");
+      
+      for (const ur of userRoles) {
+        const roleId = Number(ur.roleId);
+        let userType = "passenger";
+        if (roleId === usersRoles.driverRoleId) userType = "driver";
+        else if (roleId === usersRoles.adminRoleId) userType = "admin";
+        else if (roleId === usersRoles.supperAdminRoleId) userType = "admin";
+
+        const socketId = await getSocket(userType, cleanedPhone);
+        if (socketId) {
+          const tokenData = createJWT({
+            userUniqueId,
+            fullName: userRow.fullName,
+            phoneNumber: userRow.phoneNumber,
+            email: userRow.email,
+            roleId,
+            isPhoneVerified: !!userRow.isPhoneVerified,
+            isEmailVerified: true,
+          });
+
+          emitMessage({
+            socketId,
+            eventName: "messages",
+            messageDetails: JSON.stringify({
+              messageTypes: messageTypes.email_verified_token_update,
+              token: tokenData.token,
+              userType,
+            }),
+          });
+        }
+      }
+    }
+  } catch (wsError) {
+    logger.warn("Failed to broadcast updated token after email verification", {
+      userUniqueId,
+      error: wsError.message,
+    });
+  }
+
   //let users get the status immediately as they are verified
   return {
     message: "success",
@@ -648,7 +711,12 @@ const verifyEmailByToken = async (token) => {
 
 /**
  * Handles reporting of misdirected verification emails.
- * Revokes the token and notifies the original sender via WebSocket.
+ * 
+ * JUNIOR NOTE: This is a "Disavowal" flow. If someone receives an email they didn't
+ * request, we let them revoke the link. This prevents malicious sign-ups and 
+ * notifies the original requester (via WebSocket) that their email was rejected.
+ * 
+ * @param {string} token - The token to revoke.
  */
 const reportMisdirectedEmail = async (token) => {
   if (!token) {

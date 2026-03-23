@@ -136,5 +136,9 @@ const messageTypes = {
     message: "Email reported as incorrect",
     details: "The recipient reported that this email was sent to them by mistake. Please check for typos.",
   },
+  email_verified_token_update: {
+    message: "Email verified - Token updated",
+    details: "Your email has been verified. Here is your updated security token.",
+  },
 };
 module.exports = messageTypes;

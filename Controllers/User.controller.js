@@ -357,15 +357,22 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * Handles the GET request for email verification via a unique token link.
+ * 
+ * JUNIOR NOTE: This is the endpoint called when a user clicks the button in their email.
+ * It doesn't use JSON for responses because it's meant to be viewed in a web browser.
+ */
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
+    // Call the service to mark the email as verified and generate fresh tokens
     const response = await services.verifyEmailByToken(token);
 
-    // Send a professional HTML success page (OTP is now only sent to email, not shown here)
+    // Render a clean HTML success page (OTP is no longer shown here for security)
     res.send(getSuccessEmailVerificationHtml());
   } catch (error) {
-    // If it's an API error, send a nice error page
+    // Show a user-friendly error page instead of raw JSON
     res.status(error.statusCode || 500).send(`
       <div style="font-family: sans-serif; text-align: center; padding: 50px;">
         <h1 style="color: #e53e3e;">❌ Verification Failed</h1>
@@ -376,12 +383,19 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+/**
+ * Handles reporting of misdirected verification emails.
+ * 
+ * JUNIOR NOTE: If Recipient B receives an email meant for User A, clicking this link
+ * lets the system know. We immediately kill the token and notify User A via WebSocket
+ * so they know they made a typo.
+ */
 const reportWrongEmail = async (req, res) => {
   try {
     const { token } = req.query;
     await services.reportMisdirectedEmail(token);
 
-    // Send a nice "Thank You" page to the reporter
+    // Show a polite "Thank You" page to the person who reported the mistake
     res.send(`
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="font-size: 48px; margin-bottom: 20px;">🙏</div>
