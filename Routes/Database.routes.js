@@ -74,12 +74,14 @@ router.post(
 
 // Database migration endpoints
 
+const Config = require("../Utils/Config");
+
 // DEV ONLY: Fetch OTP for a phone number (for automated testing without SMS)
-if (process.env.NODE_ENV !== "production") {
+if (Config.NODE_ENV !== "production") {
   const { getUserOtp, seedTestDocument } = require("../Controllers/DevTools.controller");
   const devApiKeyMiddleware = (req, res, next) => {
     const key = req.headers["x-api-key"] || req.query.apiKey;
-    if (!key || key !== process.env.API_KEY) {
+    if (!key || key !== Config.API_KEY) {
       return res.status(401).json({ message: "error", error: "Unauthorized" });
     }
     next();

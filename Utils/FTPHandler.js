@@ -18,6 +18,7 @@
 const fs = require("fs");
 const path = require("path");
 const logger = require("./logger");
+const Config = require("./Config");
 
 /**
  * Absolute path to the uploads folder on the VPS.
@@ -49,7 +50,7 @@ async function uploadToFTP(buffer, filename) {
 
   await fs.promises.writeFile(filePath, buffer);
 
-  const baseUrl = (process.env.APP_API_URL || "").replace(/\/+$/, "");
+  const baseUrl = Config.APP_API_URL;
   const publicUrl = `${baseUrl}/uploads/${filename}`;
 
   logger.info("File saved locally", { filePath, publicUrl });

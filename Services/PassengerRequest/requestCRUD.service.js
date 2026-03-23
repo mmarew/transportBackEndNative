@@ -1,3 +1,4 @@
+const Config = require("../../Utils/Config");
 const {   performJoinSelect } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { deleteData } = require("../../CRUD/Delete/DeleteData");
@@ -996,7 +997,7 @@ const getAllActiveRequests = async (filters = {}) => {
       status: "error",
       error: "Unable to retrieve active ride requests",
       details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
+        Config.NODE_ENV === "development" ? error.message : undefined,
     };
   }
 };

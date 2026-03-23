@@ -1,6 +1,7 @@
 /**
  * Utility for generating standardized and professional messages for SMS and Email.
  */
+const Config = require("./Config");
 
 // Shared Icon Constants (CIDs for email, relative paths for browser view)
 const WHATSAPP_ICON = "cid:whatsapp_icon";
@@ -14,10 +15,10 @@ const BROWSER_PHONE_ICON = "/Assets/phone_icon.png";
 
 
 const getOtpMessage = (otp, type = "login") => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
+  const brand = Config.BRAND_NAME;
   const action = type === "registration" ? "account registration" : 
                  type === "update" ? "phone number update" : "secure login";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
   
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
@@ -77,8 +78,8 @@ const getOtpMessage = (otp, type = "login") => {
 };
 
 const getEmailVerificationLinkMessage = (verificationLink, type = "registration") => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+  const brand = Config.BRAND_NAME;
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
   
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
@@ -154,7 +155,7 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
  * @returns {Object} Message object.
  */
 const getPhoneVerificationLinkMessage = (link, otp, type = "update") => {
-  const brandName = process.env.BRAND_NAME || "Dynamics Transport";
+  const brandName = Config.BRAND_NAME;
   
   return {
     sms: `Welcome to ${brandName}! Please verify your phone number by clicking here: ${link} or use code: ${otp}`,
@@ -168,7 +169,7 @@ const getPhoneVerificationLinkMessage = (link, otp, type = "update") => {
  * must clearly instruct the user to log in again.
  */
 const getSuccessPhoneVerificationHtml = () => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
+  const brand = Config.BRAND_NAME;
   
   return `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
@@ -196,8 +197,8 @@ const getSuccessPhoneVerificationHtml = () => {
 };
 
 const getSuccessEmailVerificationHtml = () => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+  const brand = Config.BRAND_NAME;
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
   
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
@@ -244,8 +245,8 @@ const getSuccessEmailVerificationHtml = () => {
 };
 
 const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+  const brand = Config.BRAND_NAME;
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
   
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;

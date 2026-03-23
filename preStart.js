@@ -1,7 +1,8 @@
 const killPort = require("kill-port");
 const logger = require("./Utils/logger");
+const Config = require("./Config");
 // Use your app's port. 3000 is just an example.
-const port = process.env.PORT || 3000;
+const port = Config.PORT;
 
 killPort(port, "tcp")
   .then(() => {

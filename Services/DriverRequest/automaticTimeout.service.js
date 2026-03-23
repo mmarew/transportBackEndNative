@@ -17,6 +17,7 @@
  */
 
 const { pool } = require("../../Middleware/Database.config");
+const Config = require("../../Utils/Config");
 const { currentDate } = require("../../Utils/CurrentDate");
 const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
@@ -24,11 +25,11 @@ const { noAnswerFromDriver } = require("../DriverRequest");
 
 // Configuration
 const DRIVER_RESPONSE_TIMEOUT_MINUTES = parseInt(
-  process.env.DRIVER_RESPONSE_TIMEOUT_MINUTES || "5",
+  Config.DRIVER_RESPONSE_TIMEOUT_MINUTES,
   10,
 );
 const CHECK_INTERVAL_SECONDS = parseInt(
-  process.env.DRIVER_TIMEOUT_CHECK_INTERVAL || "120",
+  Config.DRIVER_TIMEOUT_CHECK_INTERVAL,
   10,
 );
 

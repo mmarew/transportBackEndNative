@@ -1,5 +1,6 @@
 const axios = require("axios");
 const AppError = require("./AppError");
+const Config = require("./Config");
 
 const sendSms = async (
   receiverPhoneNumber,
@@ -7,13 +8,8 @@ const sendSms = async (
   customMessage = null,
 ) => {
   try {
-    // Get configuration from environment variables
-    const token = process.env.SMS_TOKEN;
-    const baseUrl = process.env.AFRO_BASE_URL;
-    const sender = process.env.SMS_SENDER || "";
-    const from = process.env.SMS_FROM || "";
-    const callback = process.env.SMS_CALLBACK || "";
-    const otpTemplate = process.env.OTP_TEMPLATE || "";
+    // Get configuration from centralized Config
+    const { token, baseUrl, sender, from, callback, otpTemplate } = Config.SMS;
 
     // Validate required fields
     if (!token) {

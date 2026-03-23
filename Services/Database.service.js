@@ -1,3 +1,4 @@
+const Config = require("../Utils/Config");
 const { sqlQuery } = require("../Database/Database");
 const { pool, config: dbConfig } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
@@ -61,11 +62,9 @@ const createTable = async () => {
 
   // Insert Super Admin user first (minimal Users row) to use as createdBy for seeding
   const superAdminId = uuidv4();
-  const superAdminFullName =
-    process.env.SUPER_ADMIN_FULL_NAME || "Supper Admin";
-  const superAdminPhone = process.env.SUPER_ADMIN_PHONE || "+251983222221";
-  const superAdminEmail =
-    process.env.SUPER_ADMIN_EMAIL || "supperAdmin@supperAdmin.com";
+  const superAdminFullName = Config.SUPER_ADMIN.FULL_NAME;
+  const superAdminPhone = Config.SUPER_ADMIN.PHONE;
+  const superAdminEmail = Config.SUPER_ADMIN.EMAIL;
 
   await pool.query(
     `INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy)
@@ -89,7 +88,7 @@ const createTable = async () => {
 
   await ensureCredentialForUser({
     userUniqueId: effectiveSuperAdminId,
-    rawPassword: process.env.SUPER_ADMIN_TEMP_PASSWORD || "123456",
+    rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
   });
 
   // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent

@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const path = require("path");
 const logger = require("./logger");
+const Config = require("./Config");
 
 /**
  * Sends real emails using Nodemailer.
@@ -17,12 +18,9 @@ const sendEmail = async (to, subject, body, html = null) => {
       return { status: "error", message: "Recipient email is required" };
     }
 
-    // SMTP Configuration from environment variables
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT || 587;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || `"Dynamics Transport" <${user}>`;
+    // SMTP Configuration from centralized Config
+    const { host, port, user, pass } = Config.SMTP;
+    const from = Config.SMTP.FROM || `"${Config.BRAND_NAME}" <${user}>`;
 
     // Fallback if not configured
     if (!host || !user || !pass) {

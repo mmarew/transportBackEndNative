@@ -1,4 +1,5 @@
 const path = require("path");
+const Config = require("../Utils/Config");
 // import uuidv4
 const { v4: uuidv4 } = require("uuid");
 const {
@@ -70,8 +71,7 @@ const createUser = async (req, res, next) => {
             });
           });
         } else if (emailVerificationToken) {
-          const baseUrl =
-            process.env.APP_API_URL || "https://dynamicsroute.tech";
+          const baseUrl = Config.APP_API_URL;
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
           const linkMsg = getEmailVerificationLinkMessage(link);
           logger.debug("Sending Deferred Email Verification Link", {
@@ -373,8 +373,7 @@ const updateUser = async (req, res, next) => {
             });
           });
         } else if (emailVerificationToken) {
-          const baseUrl =
-            process.env.APP_API_URL || "https://dynamicsroute.tech";
+          const baseUrl = Config.APP_API_URL;
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
           const linkMsg = getEmailVerificationLinkMessage(link, "update");
           sendEmail(

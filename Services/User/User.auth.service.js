@@ -1,5 +1,7 @@
 "use strict";
 
+const Config = require("../../Utils/Config");
+
 const jwt = require("jsonwebtoken");
 
 const { sendSms } = require("../../Utils/smsSender");
@@ -274,8 +276,7 @@ const handleExistingUser = async ({
               : " and Unified OTP sent to email";
           } else {
             // Send Verification Link
-            const baseUrl =
-              process.env.APP_API_URL || "https://dynamicsroute.tech";
+            const baseUrl = Config.APP_API_URL;
             const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
             const linkMsg = getEmailVerificationLinkMessage(link);
             logger.debug("Sending Email Verification Link", {
@@ -803,7 +804,7 @@ const generatePhoneVerificationToken = (userUniqueId, phoneNumber) => {
       phoneNumber, 
       purpose: "phone_verification" 
     }, 
-    process.env.SECRET_KEY, 
+    Config.SECRET_KEY, 
     { expiresIn: "15m" }
   );
 };
@@ -823,7 +824,7 @@ const verifyPhoneByToken = async (token) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, Config.SECRET_KEY);
     if (decoded.purpose !== "phone_verification") {
       throw new AppError("Invalid token purpose", 400);
     }

@@ -1,3 +1,4 @@
+const Config = require("../Utils/Config");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
@@ -349,7 +350,7 @@ async function getAllCommissions(filters = {}) {
         message: "Failed to retrieve commissions",
         code: "DATABASE_ERROR",
         details:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+          Config.NODE_ENV === "development" ? error.message : undefined,
       },
       500,
     );
