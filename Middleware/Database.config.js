@@ -1,5 +1,6 @@
 const mysql = require("mysql2/promise");
 const logger = require("../Utils/logger");
+const Config = require("../Utils/Config");
 
 /**
  * Database Connection Pool Configuration
@@ -24,12 +25,12 @@ const logger = require("../Utils/logger");
  */
 
 // MySQL connection configuration
-const HOST = process.env.DB_HOST;
-const USER = process.env.DB_USER;
-const PASSWORD = process.env.DB_PASSWORD;
-const DATABASE = process.env.DB_DATABASE;
-const DB_SOCKET_PATH = process.env.DB_SOCKET_PATH;
-const PORT = Number(process.env.DB_PORT) || 3306;
+const HOST = Config.DB.HOST;
+const USER = Config.DB.USER;
+const PASSWORD = Config.DB.PASSWORD;
+const DATABASE = Config.DB.DATABASE;
+const DB_SOCKET_PATH = Config.DB.SOCKET_PATH;
+const PORT = Config.DB.PORT;
 
 
 if (!HOST || !USER || !DATABASE) {
@@ -42,10 +43,10 @@ if (!HOST || !USER || !DATABASE) {
 }
 
 // Optimize connection pool based on environment
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = Config.NODE_ENV === "production";
 const connectionLimit = isProduction
-  ? Number(process.env.DB_CONNECTION_LIMIT) || 20 // Higher limit for production
-  : Number(process.env.DB_CONNECTION_LIMIT) || 5; // Lower limit for development (shared hosting)
+  ? Config.DB.CONNECTION_LIMIT || 20 // Higher limit for production
+  : Config.DB.CONNECTION_LIMIT || 5; // Lower limit for development (shared hosting)
 
 const config = {
   host: HOST,

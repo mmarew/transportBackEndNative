@@ -1,8 +1,9 @@
 const jwt = require("jsonwebtoken");
+const Config = require("./Config");
 
 // Function to create JWT
 const createJWT = (userData) => {
-  const secretKey = process.env.SECRET_KEY;
+  const secretKey = Config.SECRET_KEY;
   const { userUniqueId, phoneNumber, roleId } = userData;
   if (!userUniqueId || !phoneNumber || !roleId) {
     const AppError = require("./AppError");

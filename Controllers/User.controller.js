@@ -300,7 +300,7 @@ const updateUser = async (req, res, next) => {
               user.userUniqueId,
               targetPhone,
             );
-            // JUNIOR NOTE: We use a custom protocol (dynamics://) so the mobile OS 
+            // JUNIOR NOTE: We use a custom protocol (dynamics://) so the mobile OS
             // opens the app directly instead of the system browser.
             const link = `dynamics://verify?token=${verificationToken}`;
             const linkMsg = getPhoneVerificationLinkMessage(
@@ -341,7 +341,8 @@ const updateUser = async (req, res, next) => {
 
             // Security: Kill the current session response token
             delete response.token;
-            response.message =
+
+            response.data =
               "Phone number updated. For security, your session has been revoked. Please check your NEW number for a verification link and log in again.";
           } else {
             // Standard OTP Flow (for registration or non-critical changes)
@@ -488,10 +489,13 @@ const verifyPhone = async (req, res, next) => {
     const token = req.query.token || req.body.token;
     const response = await services.verifyPhoneByToken(token);
 
-    // JUNIOR NOTE: If the request comes from the mobile app (Deep Link), 
+    // JUNIOR NOTE: If the request comes from the mobile app (Deep Link),
     // it usually expects JSON so it can use the returned login token immediately.
     // Otherwise, we show a success page for the browser.
-    if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+    if (
+      req.headers.accept?.includes("application/json") ||
+      req.method === "POST"
+    ) {
       return ServerResponder(res, response);
     }
 
@@ -499,7 +503,10 @@ const verifyPhone = async (req, res, next) => {
     res.send(getSuccessPhoneVerificationHtml());
   } catch (error) {
     // If it's an app request, return the error as JSON
-    if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+    if (
+      req.headers.accept?.includes("application/json") ||
+      req.method === "POST"
+    ) {
       return next(error);
     }
     // Browser error view

@@ -238,37 +238,6 @@ const rejectDriverOffer = async (body) => {
 
   return "Driver offer rejected successfully";
 };
-// const getAllActiveRequests = async () => {
-//   const activeStatusIds = [
-//     journeyStatusMap.requested,
-//     journeyStatusMap.waiting,
-//     journeyStatusMap.acceptedByDriver,
-//   ];
-
-//   const sql = `
-//     SELECT pr.*, u.*
-//     FROM PassengerRequest pr
-//     JOIN Users u ON u.userUniqueId = pr.userUniqueId
-//     WHERE pr.journeyStatusId IN (?)
-//   `;
-
-//   try {
-//     const [results] = await pool.query(sql, [activeStatusIds]);
-//     return {
-//       status: "success",
-//       data: results,
-//       count: results.length,
-//     };
-//   } catch (error) {
-
-//     return {
-//       status: "error",
-//       error: "Unable to retrieve active ride requests",
-//       details:
-//         process.env.NODE_ENV === "development" ? error.message : undefined,
-//     };
-//   }
-// };
 
 const getAllActiveRequests = async (filters = {}) => {
   const {

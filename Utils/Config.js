@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 /**
  * Centralized Configuration for Environment Variables.
  * 
@@ -13,6 +15,23 @@ const Config = {
   APP_API_URL: (process.env.APP_API_URL || "https://dynamicsroute.tech").replace(/\/+$/, ""),
   SECRET_KEY: process.env.SECRET_KEY,
   API_KEY: process.env.API_KEY,
+
+  // Database Configuration
+  DB: {
+    HOST: process.env.DB_HOST,
+    USER: process.env.DB_USER,
+    PASSWORD: process.env.DB_PASSWORD,
+    DATABASE: process.env.DB_DATABASE,
+    PORT: Number(process.env.DB_PORT) || 3306,
+    SOCKET_PATH: process.env.DB_SOCKET_PATH,
+    CONNECTION_LIMIT: Number(process.env.DB_CONNECTION_LIMIT),
+  },
+
+  // Serverless Environment Detection
+  IS_SERVERLESS: !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTION_NAME),
+  VERCEL: process.env.VERCEL,
+  AWS_LAMBDA_FUNCTION_NAME: process.env.AWS_LAMBDA_FUNCTION_NAME,
+  FUNCTION_NAME: process.env.FUNCTION_NAME,
 
   // Brand & Support
   BRAND_NAME: process.env.BRAND_NAME || "Dynamics Transport",
@@ -57,6 +76,28 @@ const Config = {
     STATUS_ID: Number(process.env.TEST_STATUS_ID || 1),
     FULL_NAME: process.env.TEST_FULL_NAME || "E2E User",
     USER_ROLE_STATUS_DESC: process.env.TEST_USER_ROLE_STATUS_DESC || "E2E Test Description",
+  },
+
+  // Payment Gateway (SantimPay)
+  SANTIMPAY: {
+    MERCHANT_ID: process.env.SANTIMPAY_MERCHANT_ID,
+    PRIVATE_KEY: process.env.SANTIMPAY_PRIVATE_KEY,
+    BASE_URL: process.env.SANTIMPAY_BASE_URL,
+    SUCCESS_REDIRECT_URL: process.env.SANTIMPAY_SUCCESS_REDIRECT_URL,
+    FAILURE_REDIRECT_URL: process.env.SANTIMPAY_FAILURE_REDIRECT_URL,
+    CANCEL_REDIRECT_URL: process.env.SANTIMPAY_CANCEL_REDIRECT_URL,
+    WEBHOOK_URL: process.env.SANTIMPAY_WEBHOOK_URL,
+  },
+
+  // Firebase Cloud Messaging
+  FIREBASE: {
+    SERVICE_ACCOUNT_JSON: process.env.FCM_SERVICE_ACCOUNT_JSON,
+    SERVICE_ACCOUNT_B64: process.env.FCM_SERVICE_ACCOUNT_B64,
+  },
+
+  // Redis / Upstash
+  REDIS: {
+    URL: process.env.UPSTASH_REDIS_URL,
   }
 };
 

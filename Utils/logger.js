@@ -4,12 +4,10 @@ const { currentDate } = require("./CurrentDate");
 const path = require("path");
 const fs = require("fs");
 const { combine, timestamp, json, printf, colorize, errors } = winston.format;
+const Config = require("./Config");
 
 // Detect serverless environment (Vercel, AWS Lambda, etc.)
-const isServerless =
-  process.env.VERCEL === "1" ||
-  process.env.AWS_LAMBDA_FUNCTION_NAME ||
-  process.env.FUNCTION_NAME;
+const isServerless = Config.IS_SERVERLESS;
 
 // Create logs directory (skip in serverless environments)
 const logDir = path.join(__dirname, "../logs");
@@ -66,7 +64,7 @@ const consoleFormat = printf(
 
 // Create the logger
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === "development" ? "debug" : "info",
+  level: Config.NODE_ENV === "development" ? "debug" : "info",
   format: combine(
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     errors({ stack: true }), // Capture stack traces
@@ -74,7 +72,7 @@ const logger = winston.createLogger({
   ),
   defaultMeta: {
     service: "ride-hailing-api",
-    environment: process.env.NODE_ENV || "development",
+    environment: Config.NODE_ENV,
   },
   transports: isServerless
     ? [
@@ -183,7 +181,7 @@ const logger = winston.createLogger({
 });
 
 // Add console transport for development (skip if already added for serverless)
-if (!isServerless && process.env.NODE_ENV !== "production") {
+if (!isServerless && Config.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
       format: combine(
@@ -234,7 +232,7 @@ class ApplicationLogger {
 
   // Database operations
   static databaseQuery(query, params, duration, userId = null) {
-    if (process.env.NODE_ENV === "development") {
+    if (Config.NODE_ENV === "development") {
       logger.debug("Database Query", {
         type: "DB_QUERY",
         query: this.sanitizeQuery(query),
@@ -331,7 +329,7 @@ class ApplicationLogger {
   }
 
   static sanitizeQuery(query) {
-    if (process.env.NODE_ENV === "production") {
+    if (Config.NODE_ENV === "production") {
       // In production, only log query structure, not values
       return query
         .replace(/'.*?'/g, "'[REDACTED]'")

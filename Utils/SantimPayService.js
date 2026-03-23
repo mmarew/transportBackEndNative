@@ -2,6 +2,7 @@ const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const logger = require("./logger");
+const Config = require("./Config");
 
 /**
  * Formats a phone number for SantimPay requirements (+2519...).
@@ -55,9 +56,9 @@ function signES256(payload, privateKey) {
  * Initialize SantimPay SDK instance
  */
 function getSantimPayClient() {
-  const merchantId = process.env.SANTIMPAY_MERCHANT_ID;
-  const privateKey = process.env.SANTIMPAY_PRIVATE_KEY;
-  const baseUrl = process.env.SANTIMPAY_BASE_URL;
+  const merchantId = Config.SANTIMPAY.MERCHANT_ID;
+  const privateKey = Config.SANTIMPAY.PRIVATE_KEY;
+  const baseUrl = Config.SANTIMPAY.BASE_URL;
 
   if (!merchantId || !privateKey || !baseUrl) {
     throw new Error(
@@ -117,10 +118,10 @@ function generateSignedTokenForGetTransaction(id, client) {
 async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
   try {
     const client = getSantimPayClient();
-    const successRedirectUrl = process.env.SANTIMPAY_SUCCESS_REDIRECT_URL;
-    const failureRedirectUrl = process.env.SANTIMPAY_FAILURE_REDIRECT_URL;
-    const cancelRedirectUrl = process.env.SANTIMPAY_CANCEL_REDIRECT_URL;
-    const notifyUrl = process.env.SANTIMPAY_WEBHOOK_URL;
+    const successRedirectUrl = Config.SANTIMPAY.SUCCESS_REDIRECT_URL;
+    const failureRedirectUrl = Config.SANTIMPAY.FAILURE_REDIRECT_URL;
+    const cancelRedirectUrl = Config.SANTIMPAY.CANCEL_REDIRECT_URL;
+    const notifyUrl = Config.SANTIMPAY.WEBHOOK_URL;
 
     if (
       !successRedirectUrl ||

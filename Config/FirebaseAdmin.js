@@ -4,12 +4,13 @@
 
 const admin = require("firebase-admin");
 const logger = require("../Utils/logger");
+const Config = require("../Utils/Config");
 
 let initialized = false;
 
 function initFirebaseAdmin() {
   if (initialized) {return;}
-  const { FCM_SERVICE_ACCOUNT_JSON, FCM_SERVICE_ACCOUNT_B64 } = process.env;
+  const { SERVICE_ACCOUNT_JSON: FCM_SERVICE_ACCOUNT_JSON, SERVICE_ACCOUNT_B64: FCM_SERVICE_ACCOUNT_B64 } = Config.FIREBASE;
   let serviceAccountObject = null;
 
   try {
