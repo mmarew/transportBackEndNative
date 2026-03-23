@@ -358,41 +358,64 @@ const updateUser = async (req, res, next) => {
       }
 
       // 2. Send Email (OTP or Link)
-      const targetEmail = body.email || user.email;
-      if (targetEmail) {
-        if (emailVerificationOTP) {
-          const emailMsg = getOtpMessage(emailVerificationOTP, "registration");
-          sendEmail(
-            targetEmail,
-            emailMsg.emailSubject,
-            emailMsg.sms,
-            emailMsg.emailHtml,
-          ).catch((err) => {
-            logger.warn("Deferred Email OTP sending failed on update", {
-              email: targetEmail,
-              error: err.message,
+      if (emailVerificationOTP || emailVerificationToken) {
+        const targetEmail = body.email || user.email;
+        if (targetEmail) {
+          if (emailVerificationOTP) {
+            const emailMsg = getEmailVerificationMessage(
+              emailVerificationOTP,
+              "update",
+              false,
+            );
+            sendEmail({
+              to: targetEmail,
+              subject: emailMsg.subject,
+              text: emailMsg.text,
+              html: emailMsg.html,
+            }).catch((err) => {
+              logger.warn("Deferred Email OTP sending failed on update", {
+                email: targetEmail,
+                error: err.message,
+              });
             });
-          });
-        } else if (emailVerificationToken) {
-          const baseUrl = Config.APP_API_URL;
-          const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
-          const linkMsg = getEmailVerificationLinkMessage(link, "update");
-          sendEmail(
-            targetEmail,
-            linkMsg.emailSubject,
-            "Verify your email",
-            linkMsg.emailHtml,
-          ).catch((err) => {
-            logger.warn("Deferred Email Link sending failed on update", {
-              email: targetEmail,
-              error: err.message,
+          } else if (emailVerificationToken) {
+            const link = `${Config.APP_API_URL}/api/user/verify-email?token=${emailVerificationToken}`;
+            const linkMsg = getEmailVerificationLinkMessage(link, "update");
+            sendEmail({
+              to: targetEmail,
+              subject: linkMsg.emailSubject,
+              text: "Verify your email",
+              html: linkMsg.emailHtml,
+            }).catch((err) => {
+              logger.warn("Deferred Email Link sending failed on update", {
+                email: targetEmail,
+                error: err.message,
+              });
             });
-          });
+          }
         }
       }
 
       // Don't send the raw OTP or tokens back to the client
       delete response.deferredOTP;
+    }
+
+    // FINAL SECURITY CHECK: If the phone is NOT verified, we must NOT return a fresh session token.
+    // This ensures that "forceLogout" on phone change persists until verification is complete.
+    const isUnverified = 
+      response.data?.isPhoneVerified === false || 
+      response.data?.isPhoneVerified === 0 ||
+      response.data?.isPhoneVerified === "0";
+
+    if (response.token && isUnverified) {
+      delete response.token;
+      response.data =
+        "Update successful. However, your phone is NOT verified. For security, your session remains revoked. Please verify your phone to receive a new session token.";
+    } else {
+      // If verified or no token was generated, we can return the standard success message if data is still the user object
+      if (typeof response.data === "object") {
+        response.data = "User updated successfully";
+      }
     }
 
     return ServerResponder(res, response);
