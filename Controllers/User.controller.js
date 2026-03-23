@@ -276,7 +276,7 @@ const updateUser = async (req, res, next) => {
       }
       return textResponse;
     });
-
+    console.log("@response", response);
     // Handle deferred SMS and Email after transaction commit
     if (response?.deferredOTP) {
       const { sendSms } = require("../Utils/smsSender");
@@ -362,17 +362,13 @@ const updateUser = async (req, res, next) => {
         const targetEmail = body.email || user.email;
         if (targetEmail) {
           if (emailVerificationOTP) {
-            const emailMsg = getEmailVerificationMessage(
-              emailVerificationOTP,
-              "update",
-              false,
-            );
-            sendEmail({
-              to: targetEmail,
-              subject: emailMsg.subject,
-              text: emailMsg.text,
-              html: emailMsg.html,
-            }).catch((err) => {
+            const emailMsg = getOtpMessage(emailVerificationOTP, "update");
+            sendEmail(
+              targetEmail,
+              emailMsg.emailSubject,
+              emailMsg.sms,
+              emailMsg.emailHtml,
+            ).catch((err) => {
               logger.warn("Deferred Email OTP sending failed on update", {
                 email: targetEmail,
                 error: err.message,
@@ -381,12 +377,12 @@ const updateUser = async (req, res, next) => {
           } else if (emailVerificationToken) {
             const link = `${Config.APP_API_URL}/api/user/verify-email?token=${emailVerificationToken}`;
             const linkMsg = getEmailVerificationLinkMessage(link, "update");
-            sendEmail({
-              to: targetEmail,
-              subject: linkMsg.emailSubject,
-              text: "Verify your email",
-              html: linkMsg.emailHtml,
-            }).catch((err) => {
+            sendEmail(
+              targetEmail,
+              linkMsg.emailSubject,
+              "Verify your email",
+              linkMsg.emailHtml,
+            ).catch((err) => {
               logger.warn("Deferred Email Link sending failed on update", {
                 email: targetEmail,
                 error: err.message,
@@ -402,8 +398,8 @@ const updateUser = async (req, res, next) => {
 
     // FINAL SECURITY CHECK: If the phone is NOT verified, we must NOT return a fresh session token.
     // This ensures that "forceLogout" on phone change persists until verification is complete.
-    const isUnverified = 
-      response.data?.isPhoneVerified === false || 
+    const isUnverified =
+      response.data?.isPhoneVerified === false ||
       response.data?.isPhoneVerified === 0 ||
       response.data?.isPhoneVerified === "0";
 

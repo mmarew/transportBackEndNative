@@ -12,19 +12,21 @@ const BROWSER_WHATSAPP_ICON = "/Assets/whatsapp_icon.png";
 const BROWSER_TELEGRAM_ICON = "/Assets/telegram_icon.png";
 const BROWSER_PHONE_ICON = "/Assets/phone_icon.png";
 
-
-
 const getOtpMessage = (otp, type = "login") => {
   const brand = Config.BRAND_NAME;
-  const action = type === "registration" ? "account registration" : 
-                 type === "update" ? "phone number update" : "secure login";
+  const action =
+    type === "registration"
+      ? "account registration"
+      : type === "update"
+        ? "phone number update"
+        : "secure login";
   const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
   return {
     sms: `Dear user, your ${brand} code is: ${otp}. For your security, please do not share this with anyone. Sharing this code could give others access to your account and data.`,
     emailSubject: `${otp} is your ${brand} verification code`,
@@ -73,23 +75,30 @@ const getOtpMessage = (otp, type = "login") => {
           <p>&copy; 2026 ${brand}. All rights reserved.</p>
         </div>
       </div>
-    `
+    `,
   };
 };
 
-const getEmailVerificationLinkMessage = (verificationLink, type = "registration") => {
+const getEmailVerificationLinkMessage = (
+  verificationLink,
+  type = "registration",
+) => {
   const brand = Config.BRAND_NAME;
   const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
   const isUpdate = type === "update";
-  const subject = isUpdate ? `Confirm your ${brand} Email Update` : `Verify your ${brand} Email Address`;
-  const title = isUpdate ? "Confirm your email update" : "Verify your email address";
-  const bodyText = isUpdate 
+  const subject = isUpdate
+    ? `Confirm your ${brand} Email Update`
+    : `Verify your ${brand} Email Address`;
+  const title = isUpdate
+    ? "Confirm your email update"
+    : "Verify your email address";
+  const bodyText = isUpdate
     ? `You have updated your email address on ${brand}! To secure your account and complete this change, please verify your new email address by clicking the button below.`
     : `Welcome to ${brand}! To complete your registration and secure your account, please verify your email address by clicking the button below.`;
 
@@ -114,7 +123,7 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
 
         <div style="margin-top: 25px; padding: 15px; background-color: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; text-align: center;">
           <p style="font-size: 14px; color: #c53030; margin: 0;">
-            <strong>Not your account?</strong> If you didn't request this email, please <a href="${verificationLink.replace('verify-email', 'report-wrong-email')}" style="color: #c53030; font-weight: bold; text-decoration: underline;">click here to let us know</a>. We will stop further messages to this address.
+            <strong>Not your account?</strong> If you didn't request this email, please <a href="${verificationLink.replace("verify-email", "report-wrong-email")}" style="color: #c53030; font-weight: bold; text-decoration: underline;">click here to let us know</a>. We will stop further messages to this address.
           </p>
         </div>
 
@@ -138,17 +147,17 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
           <p>&copy; 2026 ${brand}. All rights reserved.</p>
         </div>
       </div>
-    `
+    `,
   };
 };
 
 /**
  * Generates an SMS message with a clickable verification link AND a 6-digit OTP.
- * 
- * JUNIOR NOTE: Providing BOTH a link and a manual OTP is best practice. 
- * If the user is already on the login/verification screen, they can just 
+ *
+ * JUNIOR NOTE: Providing BOTH a link and a manual OTP is best practice.
+ * If the user is already on the login/verification screen, they can just
  * type the code instead of switching apps to click the link.
- * 
+ *
  * @param {string} link - The verification URL.
  * @param {string} otp - The 6-digit manual entry code.
  * @param {string} [type='update'] - The context (registration or update).
@@ -156,7 +165,7 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
  */
 const getPhoneVerificationLinkMessage = (link, otp, type = "update") => {
   const brandName = Config.BRAND_NAME;
-  
+
   return {
     sms: `Welcome to ${brandName}! Please verify your phone number by clicking here: ${link} or use code: ${otp}`,
   };
@@ -164,13 +173,13 @@ const getPhoneVerificationLinkMessage = (link, otp, type = "update") => {
 
 /**
  * Generates recovery-friendly HTML for phone verification success.
- * 
+ *
  * JUNIOR NOTE: Since we force a logout on phone change, this page
  * must clearly instruct the user to log in again.
  */
 const getSuccessPhoneVerificationHtml = () => {
   const brand = Config.BRAND_NAME;
-  
+
   return `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
       <div style="margin-bottom: 25px;">
@@ -200,11 +209,11 @@ const getSuccessEmailVerificationHtml = () => {
   const brand = Config.BRAND_NAME;
   const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
   return `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
       <div style="margin-bottom: 25px;">
@@ -248,11 +257,11 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
   const brand = Config.BRAND_NAME;
   const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
   return {
     sms: `Welcome! You have been officially assigned as a ${roleName} for ${brand}. Use this secure code to access your administrative dashboard: ${otp}. For your security, never share this code with anyone.`,
     emailSubject: `Welcome to the Team! You've been assigned as a ${roleName} at ${brand}`,
@@ -300,7 +309,7 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
           <p>&copy; 2026 ${brand} Admin Services. This message contains confidential information.</p>
         </div>
       </div>
-    `
+    `,
   };
 };
 
@@ -310,5 +319,5 @@ module.exports = {
   getSuccessEmailVerificationHtml,
   getEmailVerificationLinkMessage,
   getOtpMessage,
-  getAdminAssignmentMessage
+  getAdminAssignmentMessage,
 };

@@ -2,9 +2,9 @@ require("dotenv").config();
 
 /**
  * Centralized Configuration for Environment Variables.
- * 
- * JUNIOR NOTE: Instead of calling process.env throughout the app, we use this 
- * single object. This makes it easier to track which variables are required, 
+ *
+ * JUNIOR NOTE: Instead of calling process.env throughout the app, we use this
+ * single object. This makes it easier to track which variables are required,
  * set consistent defaults, and update them in one place.
  */
 
@@ -12,7 +12,9 @@ const Config = {
   // Server & Environment
   PORT: process.env.PORT || 3000,
   NODE_ENV: process.env.NODE_ENV || "development",
-  APP_API_URL: (process.env.APP_API_URL || "https://dynamicsroute.tech").replace(/\/+$/, ""),
+  APP_API_URL: (
+    process.env.APP_API_URL || "https://dynamicsroute.tech"
+  ).replace(/\/+$/, ""),
   SECRET_KEY: process.env.SECRET_KEY,
   API_KEY: process.env.API_KEY,
 
@@ -30,7 +32,11 @@ const Config = {
   },
 
   // Serverless Environment Detection
-  IS_SERVERLESS: !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTION_NAME),
+  IS_SERVERLESS: !!(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.FUNCTION_NAME
+  ),
   VERCEL: process.env.VERCEL,
   AWS_LAMBDA_FUNCTION_NAME: process.env.AWS_LAMBDA_FUNCTION_NAME,
   FUNCTION_NAME: process.env.FUNCTION_NAME,
@@ -40,8 +46,10 @@ const Config = {
   SUPPORT_PHONE_NUMBER: process.env.SUPPORT_PHONE_NUMBER || "+251983222221",
 
   // Driver Timeouts
-  DRIVER_TIMEOUT_CHECK_INTERVAL: process.env.DRIVER_TIMEOUT_CHECK_INTERVAL || "120",
-  DRIVER_RESPONSE_TIMEOUT_MINUTES: process.env.DRIVER_RESPONSE_TIMEOUT_MINUTES || "5",
+  DRIVER_TIMEOUT_CHECK_INTERVAL:
+    process.env.DRIVER_TIMEOUT_CHECK_INTERVAL || "120",
+  DRIVER_RESPONSE_TIMEOUT_MINUTES:
+    process.env.DRIVER_RESPONSE_TIMEOUT_MINUTES || "5",
 
   // System Admin (Initialization)
   SUPER_ADMIN: {
@@ -67,6 +75,7 @@ const Config = {
     PORT: process.env.SMTP_PORT || 587,
     USER: process.env.SMTP_USER,
     PASS: process.env.SMTP_PASS,
+    FROM: process.env.SMTP_FROM,
   },
 
   // Testing (CI/CD)
@@ -77,7 +86,8 @@ const Config = {
     ROLE_ID: Number(process.env.TEST_ROLE_ID || 1),
     STATUS_ID: Number(process.env.TEST_STATUS_ID || 1),
     FULL_NAME: process.env.TEST_FULL_NAME || "E2E User",
-    USER_ROLE_STATUS_DESC: process.env.TEST_USER_ROLE_STATUS_DESC || "E2E Test Description",
+    USER_ROLE_STATUS_DESC:
+      process.env.TEST_USER_ROLE_STATUS_DESC || "E2E Test Description",
   },
 
   // Payment Gateway (SantimPay)
@@ -100,7 +110,7 @@ const Config = {
   // Redis / Upstash
   REDIS: {
     URL: process.env.UPSTASH_REDIS_URL,
-  }
+  },
 };
 
 module.exports = Config;

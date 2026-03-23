@@ -12,6 +12,15 @@ const Config = require("./Config");
  * @returns {Promise<Object>} Status of the operation
  */
 const sendEmail = async (to, subject, body, html = null) => {
+  // Support both positional arguments and a single options object
+  if (typeof to === "object" && to !== null) {
+    const options = to;
+    to = options.to;
+    subject = options.subject;
+    body = options.text || options.body;
+    html = options.html;
+  }
+
   try {
     if (!to) {
       logger.warn("Attempted to send email without recipient address");
@@ -24,10 +33,14 @@ const sendEmail = async (to, subject, body, html = null) => {
 
     // Fallback if not configured
     if (!host || !user || !pass) {
+      const bodyPreview = (body && typeof body === "string") 
+        ? body.substring(0, 50) + "..." 
+        : "No body content provided";
+
       logger.warn("📧 [EMAIL LOGGED (NOT CONFIGURED)]", {
         to,
         subject,
-        bodyPreview: body.substring(0, 50) + "...",
+        bodyPreview,
       });
       return {
         status: "success",
