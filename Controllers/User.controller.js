@@ -198,25 +198,22 @@ const getUserByFilterDetailed = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const user = req?.user;
-    const userUniqueId = user?.userUniqueId;
+    const userUniqueIdFromToken = user?.userUniqueId;
     // self means the user is updating himself,so userUniqueId is the same as ownerUserUniqueId
-    const ownerUserUniqueId =
-      req?.params?.ownerUserUniqueId === "self"
-        ? userUniqueId
-        : req?.params?.ownerUserUniqueId;
-
-    // Determine the target roleId (used for both JWT and AttachedDocuments)
+    let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
     let targetRoleId = req.body.roleId;
-    if (!targetRoleId) {
-      const roles = await getData({
-        tableName: "UserRole",
-        conditions: { userUniqueId: ownerUserUniqueId },
-        limit: 1,
-      });
-      targetRoleId = roles?.[0]?.roleId;
+    if (ownerUserUniqueId === "self") {
+      ownerUserUniqueId = userUniqueIdFromToken;
+      targetRoleId = user.roleId;
     }
 
-    const body = { ...req.body, userUniqueId: ownerUserUniqueId, roleId: targetRoleId };
+    // Determine the target roleId (used for both JWT and AttachedDocuments)
+
+    const body = {
+      ...req.body,
+      userUniqueId: ownerUserUniqueId,
+      roleId: targetRoleId,
+    };
 
     const response = await executeInTransaction(async () => {
       // Update user text information
@@ -225,7 +222,6 @@ const updateUser = async (req, res, next) => {
       // Handle file upload if files are provided
       if (req.files && req.files.length > 0) {
         const {
-          attachedDocumentUniqueId,
           profilePhotoTypeId = 4, // Default to Profile Photo type
           ProfilePhotoDescription = "Profile Photo",
           ProfilePhotoExpirationDate,
@@ -244,13 +240,18 @@ const updateUser = async (req, res, next) => {
             );
           },
         );
-
+        //get attached document to get attachedDocumentUniqueId if it was uploaded before
+        const existingDocs = await getData({
+          tableName: "AttachedDocuments",
+          conditions: {
+            userUniqueId: ownerUserUniqueId,
+            documentTypeId: profilePhotoTypeId,
+          },
+        });
+        const attachedDocumentUniqueId =
+          existingDocs?.[0]?.attachedDocumentUniqueId;
         // Validate attachedDocumentUniqueId
-        if (
-          !attachedDocumentUniqueId ||
-          attachedDocumentUniqueId === "undefined" ||
-          attachedDocumentUniqueId === "null"
-        ) {
+        if (!attachedDocumentUniqueId) {
           await createAttachedDocument({
             attachedDocumentDescription: ProfilePhotoDescription,
             attachedDocumentName: fileUrl,

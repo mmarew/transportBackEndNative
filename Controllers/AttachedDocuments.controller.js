@@ -133,10 +133,11 @@ const createAttachedDocuments = async (req, res, next) => {
         // Generate unique filename
         const fileExtension = path.extname(file?.originalname);
         const uniqueFilename = `${user?.userId}_${uuidv4()}${fileExtension}`;
-
-        // Upload to cPanel via FTP
-        const fileUrl = await uploadToFTP(file?.buffer, uniqueFilename);
-
+        const fileBuffer = file?.buffer;
+        // Upload to cPanel or other storage via FTP
+        const fileUrl = await uploadToFTP(fileBuffer, uniqueFilename);
+        // --- ADD THIS LINE TO CLEAR MEMORY FOR THIS FILE IMMEDIATELY ---
+        file.buffer = null;
         documentsToRegister.push({
           fieldname: file.fieldname,
           user,
@@ -292,7 +293,9 @@ const updateAttachedDocument = async (req, res, next) => {
     };
 
     const result = await executeInTransaction(async () => {
-      return await attachedDocumentsService.updateAttachedDocument(updatePayload);
+      return await attachedDocumentsService.updateAttachedDocument(
+        updatePayload,
+      );
     });
 
     if (result.message === "error") {
