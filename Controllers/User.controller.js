@@ -219,32 +219,50 @@ const updateUser = async (req, res, next) => {
       roleId: targetRoleId,
     };
 
+    // Handle file upload outside the transaction to prevent holding DB connections during network I/O
+    let fileMetadata = null;
+    if (req.files && req.files.length > 0) {
+      const {
+        profilePhotoTypeId = 4,
+        ProfilePhotoDescription = "Profile Photo",
+        ProfilePhotoExpirationDate,
+      } = body;
+
+      const file = req.files[0];
+      const fileExtension = path.extname(file.originalname);
+      // Use userId from token for naming
+      const uniqueFilename = `${user.userId}_${uuidv4()}${fileExtension}`;
+
+      try {
+        const fileUrl = await uploadToFTP(file.buffer, uniqueFilename);
+        fileMetadata = {
+          fileUrl,
+          profilePhotoTypeId,
+          ProfilePhotoDescription,
+          ProfilePhotoExpirationDate,
+        };
+      } catch (err) {
+        throw new AppError(
+          `Failed to upload profile image to server: ${err.message}`,
+          500,
+        );
+      }
+    }
+
     const response = await executeInTransaction(async () => {
-      // Update user text information
+      // 1. Update user text information
       const textResponse = await services.updateUser(body);
 
-      // Handle file upload if files are provided
-      if (req.files && req.files.length > 0) {
+      // 2. Handle file record updates (Inside Transaction)
+      if (fileMetadata) {
         const {
-          profilePhotoTypeId = 4, // Default to Profile Photo type
-          ProfilePhotoDescription = "Profile Photo",
+          fileUrl,
+          profilePhotoTypeId,
+          ProfilePhotoDescription,
           ProfilePhotoExpirationDate,
-        } = body;
+        } = fileMetadata;
 
-        // --- FTP UPLOAD LOGIC ---
-        const file = req.files[0];
-        const fileExtension = path.extname(file.originalname);
-        const uniqueFilename = `${user.userId}_${uuidv4()}${fileExtension}`;
-
-        const fileUrl = await uploadToFTP(file.buffer, uniqueFilename).catch(
-          (err) => {
-            throw new AppError(
-              `User information updated, but failed to upload profile image to server: ${err.message}`,
-              500,
-            );
-          },
-        );
-        //get attached document to get attachedDocumentUniqueId if it was uploaded before
+        // Get attached document to see if it exists
         const existingDocs = await getData({
           tableName: "AttachedDocuments",
           conditions: {
@@ -252,9 +270,10 @@ const updateUser = async (req, res, next) => {
             documentTypeId: profilePhotoTypeId,
           },
         });
+
         const attachedDocumentUniqueId =
           existingDocs?.[0]?.attachedDocumentUniqueId;
-        // Validate attachedDocumentUniqueId
+
         if (!attachedDocumentUniqueId) {
           await createAttachedDocument({
             attachedDocumentDescription: ProfilePhotoDescription,

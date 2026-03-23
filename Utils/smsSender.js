@@ -9,7 +9,14 @@ const sendSms = async (
 ) => {
   try {
     // Get configuration from centralized Config
-    const { token, baseUrl, sender, from, callback, otpTemplate } = Config.SMS;
+    const {
+      TOKEN: token,
+      BASE_URL: baseUrl,
+      SENDER: sender,
+      FROM: from,
+      CALLBACK: callback,
+      OTP_TEMPLATE: otpTemplate,
+    } = Config.SMS;
 
     // Validate required fields
     if (!token) {

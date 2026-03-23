@@ -42,11 +42,8 @@ if (!HOST || !USER || !DATABASE) {
   throw new Error("Missing required DB environment variables");
 }
 
-// Optimize connection pool based on environment
-const isProduction = Config.NODE_ENV === "production";
-const connectionLimit = isProduction
-  ? Config.DB.CONNECTION_LIMIT || 20 // Higher limit for production
-  : Config.DB.CONNECTION_LIMIT || 5; // Lower limit for development (shared hosting)
+// Pool limit is now managed centrally in Utils/Config.js
+const connectionLimit = Config.DB.CONNECTION_LIMIT;
 
 const config = {
   host: HOST,

@@ -26,7 +26,9 @@ const Config = {
     DATABASE: process.env.DB_DATABASE,
     PORT: Number(process.env.DB_PORT) || 3306,
     SOCKET_PATH: process.env.DB_SOCKET_PATH,
-    CONNECTION_LIMIT: Number(process.env.DB_CONNECTION_LIMIT),
+    CONNECTION_LIMIT:
+      Number(process.env.DB_CONNECTION_LIMIT) ||
+      (process.env.NODE_ENV === "production" ? 20 : 10),
     SLOW_QUERY_THRESHOLD: Number(process.env.SLOW_QUERY_THRESHOLD) || 100,
     ENABLE_QUERY_LOGGING: process.env.ENABLE_QUERY_LOGGING !== "false",
   },

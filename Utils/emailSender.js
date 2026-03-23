@@ -28,14 +28,21 @@ const sendEmail = async (to, subject, body, html = null) => {
     }
 
     // SMTP Configuration from centralized Config
-    const { host, port, user, pass } = Config.SMTP;
-    const from = Config.SMTP.FROM || `"${Config.BRAND_NAME}" <${user}>`;
+    const { HOST, PORT, USER, PASS, FROM } = Config.SMTP;
+    console.log(
+      "Config.SMTP",
+      Config.SMTP,
+      " Config.BRAND_NAME",
+      Config.BRAND_NAME,
+    );
+    const from = FROM || `"${Config.BRAND_NAME}" <${USER}>`;
 
     // Fallback if not configured
-    if (!host || !user || !pass) {
-      const bodyPreview = (body && typeof body === "string") 
-        ? body.substring(0, 50) + "..." 
-        : "No body content provided";
+    if (!HOST || !USER || !PASS) {
+      const bodyPreview =
+        body && typeof body === "string"
+          ? body.substring(0, 50) + "..."
+          : "No body content provided";
 
       logger.warn("📧 [EMAIL LOGGED (NOT CONFIGURED)]", {
         to,
@@ -50,12 +57,12 @@ const sendEmail = async (to, subject, body, html = null) => {
 
     // Create transporter
     const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: parseInt(port) === 465, // true for 465, false for other ports
+      host: HOST,
+      port: PORT,
+      secure: parseInt(PORT) === 465, // true for 465, false for other ports
       auth: {
-        user,
-        pass,
+        user: USER,
+        pass: PASS,
       },
     });
 
