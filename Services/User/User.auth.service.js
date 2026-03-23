@@ -3,14 +3,6 @@
 const Config = require("../../Utils/Config");
 
 const jwt = require("jsonwebtoken");
-
-const { sendSms } = require("../../Utils/smsSender");
-const { sendEmail } = require("../../Utils/emailSender");
-const {
-  getOtpMessage,
-  getEmailVerificationLinkMessage,
-  getAdminAssignmentMessage,
-} = require("../../Utils/MessageTemplates");
 const generateOTP = require("../../Utils/GenerateOTP");
 const createJWT = require("../../Utils/CreateJWT");
 const { currentDate } = require("../../Utils/CurrentDate");
@@ -19,7 +11,6 @@ const verifyPassword = require("../../Utils/VerifyPassword");
 const logger = require("../../Utils/logger");
 const { usersRoles } = require("../../Utils/ListOfSeedData");
 const AppError = require("../../Utils/AppError");
-const { transactionStorage } = require("../../Utils/TransactionContext");
 const {
   sendSocketIONotificationToAdmin,
 } = require("../../Utils/Notifications");
@@ -36,10 +27,6 @@ const {
 } = require("../RoleDocumentRequirements.service");
 const { createUserSubscription } = require("../UserSubscription.service");
 const { getPricingWithFilters } = require("../SubscriptionPlanPricing.service");
-const {
-  getPlaceholderEmail,
-  isPlaceholderEmail,
-} = require("../../Utils/GetPlaceholderEmail");
 
 let manageService;
 let registryService;
@@ -47,9 +34,7 @@ let registryService;
 const handleExistingUser = async ({
   requestedFrom,
   user,
-  phoneNumber,
-  fullName,
-  email,
+
   roleId,
   statusId,
   userRoleStatusDescription = "no description",
@@ -64,14 +49,14 @@ const handleExistingUser = async ({
   }
 
   // 1. Update fullName if it's a new or missing name
-  if ((!user.fullName || user.fullName !== fullName) && fullName) {
-    await updateData({
-      tableName: "Users",
-      updateValues: { fullName },
-      conditions: { userUniqueId },
-    });
-    user.fullName = fullName;
-  }
+  // if ((!user.fullName || user.fullName !== fullName) && fullName) {
+  //   await updateData({
+  //     tableName: "Users",
+  //     updateValues: { fullName },
+  //     conditions: { userUniqueId },
+  //   });
+  //   user.fullName = fullName;
+  // }
 
   /**
    * IDENTITY UPDATE STRATEGY:
@@ -81,46 +66,55 @@ const handleExistingUser = async ({
    * when the user finally joins the app and provides a real email.
    */
   // 2. Update email if it's currently missing OR it's a placeholder
-  const isEmailMissing = !user.email || isPlaceholderEmail(user.email);
-  const placeholderEmail = getPlaceholderEmail(user.phoneNumber);
-  if (
-    isEmailMissing &&
-    email &&
-    email !== placeholderEmail &&
-    !isPlaceholderEmail(email)
-  ) {
-    await updateData({
-      tableName: "Users",
-      updateValues: { email },
-      conditions: { userUniqueId },
-    });
-    user.email = email;
-  }
+  // const isEmailPlaceHolder = isPlaceholderEmail(user.email);
+  // const isEmailMissing = !user.email || isEmailPlaceHolder;
+  // const placeholderEmail = getPlaceholderEmail(user.phoneNumber);
+  // if (
+  //   isEmailMissing &&
+  //   email &&
+  //   email !== placeholderEmail &&
+  //   !isEmailPlaceHolder
+  // ) {
+  //   await updateData({
+  //     tableName: "Users",
+  //     updateValues: { email },
+  //     conditions: { userUniqueId },
+  //   });
+  //   user.email = email;
+  // }
 
   // 3. Update phoneNumber if it's currently missing
-  const isPhoneMissing = !user.phoneNumber;
-  if (isPhoneMissing && phoneNumber) {
-    await updateData({
-      tableName: "Users",
-      updateValues: { phoneNumber },
-      conditions: { userUniqueId },
-    });
-    user.phoneNumber = phoneNumber;
-  }
+  // const isPhoneMissing = !user.phoneNumber;
+  // if (isPhoneMissing && phoneNumber) {
+  //   await updateData({
+  //     tableName: "Users",
+  //     updateValues: { phoneNumber },
+  //     conditions: { userUniqueId },
+  //   });
+  //   user.phoneNumber = phoneNumber;
+  // }
 
   // 3. Separate Identity Verification (OTP or Link Generation)
   const isPhoneVerified = !!user.isPhoneVerified;
   const isEmailVerified = !!user.isEmailVerified;
 
-  const [savedCredentialRows] = await Promise.all([
+  // OPTIMIZATION: Skip redundant status updates if this is a standard login
+  const pendingOperations = [
     getData({ tableName: "usersCredential", conditions: { userUniqueId } }),
-    registryService.handleUserRoleStatus(
-      userUniqueId,
-      roleId,
-      statusId,
-      userRoleStatusDescription,
-    ),
-  ]);
+  ];
+
+  if (requestedFrom !== "user") {
+    pendingOperations.push(
+      registryService.handleUserRoleStatus(
+        userUniqueId,
+        roleId,
+        statusId,
+        userRoleStatusDescription,
+      ),
+    );
+  }
+
+  const [savedCredentialRows] = await Promise.all(pendingOperations);
   const savedCredential = savedCredentialRows?.[0] || {};
 
   /**
@@ -207,104 +201,14 @@ const handleExistingUser = async ({
   let otpDetail = "";
   let deferredOTP = null;
 
-  if (transactionStorage.getStore()) {
-    otpDetail = "Verification data generated (Sent deferred)";
-    deferredOTP = {
-      phoneVerificationOTP,
-      emailVerificationOTP,
-      emailVerificationToken,
-    };
-  } else {
-    try {
-      // 1. Determine message type (Standard OTP vs Admin Assignment)
-      const isAdminAssignment = requestedFrom === "Supper Admin/Admin";
-
-      let phoneMsg, emailMsg;
-
-      if (isAdminAssignment) {
-        const roleNameMap = {
-          [usersRoles.passengerRoleId]: "Passenger",
-          [usersRoles.driverRoleId]: "Driver",
-          [usersRoles.adminRoleId]: "Admin",
-          [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
-          [usersRoles.systemRoleId]: "System",
-          [usersRoles.supperAdminRoleId]: "Supper Admin",
-        };
-        const roleName = roleNameMap[roleId] || "Admin";
-
-        const assignmentMsg = getAdminAssignmentMessage(
-          phoneVerificationOTP,
-          roleName,
-        );
-        phoneMsg = assignmentMsg;
-        emailMsg = assignmentMsg;
-      } else {
-        phoneMsg = getOtpMessage(
-          phoneVerificationOTP,
-          requestedFrom === "user" ? "login" : "registration",
-        );
-      }
-
-      // 2. Send SMS
-      try {
-        await sendSms(user.phoneNumber, phoneMsg.sms);
-        otpDetail = "OTP sent to phone";
-      } catch (smsError) {
-        logger.warn("SMS sending failed inline", { error: smsError.message });
-        otpDetail = `SMS failed (${smsError.message})`;
-      }
-
-      // 3. Send Email (OTP, Assignment, or Link)
-      if (user.email) {
-        try {
-          if (isEmailVerified || isAdminAssignment) {
-            // Send either Assignment or Unified OTP
-            if (!isAdminAssignment) {
-              emailMsg = getOtpMessage(
-                emailVerificationOTP,
-                requestedFrom === "user" ? "login" : "registration",
-              );
-            }
-            await sendEmail(
-              user.email,
-              emailMsg.emailSubject,
-              emailMsg.sms,
-              emailMsg.emailHtml,
-            );
-            otpDetail += isAdminAssignment
-              ? " and Admin assignment notification sent to email"
-              : " and Unified OTP sent to email";
-          } else {
-            // Send Verification Link
-            const baseUrl = Config.APP_API_URL;
-            const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
-            const linkMsg = getEmailVerificationLinkMessage(link);
-            logger.debug("Sending Email Verification Link", {
-              to: user.email,
-              subject: linkMsg.emailSubject,
-            });
-            await sendEmail(
-              user.email,
-              linkMsg.emailSubject,
-              "Verify your email",
-              linkMsg.emailHtml,
-            );
-            otpDetail += ", Verification Link sent to email";
-          }
-        } catch (emailError) {
-          logger.warn("Email sending failed inline", {
-            error: emailError.message,
-          });
-          otpDetail += `, Email failed (${emailError.message})`;
-        }
-      } else {
-        otpDetail += " (No email provided)";
-      }
-    } catch (error) {
-      logger.warn("Verification setup failed", { error: error.message });
-      otpDetail = `Failed to process verification: ${error.message}`;
-    }
-  }
+  // JUNIOR NOTE: We now default to deferredOTP (non-blocking) for all calls
+  // to dramatically improve API latency.
+  otpDetail = "Verification data generated (Deferred)";
+  deferredOTP = {
+    phoneVerificationOTP,
+    emailVerificationOTP,
+    emailVerificationToken,
+  };
 
   // Driver gift logic
   try {
@@ -350,28 +254,39 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
     throw new AppError("Phone number or email address is required.", 400);
   }
 
-  const identity = (phoneNumber || email).trim();
-  const userDataResult = await manageService.getUserByFilterDetailed({
-    search: identity,
-    includeDeleted: true,
+  // PERFORMANCE FIX: Use exact match on indexed columns instead of wildcard search
+  const userDataResult = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "Users.userUniqueId = UserRole.userUniqueId AND UserRole.userRoleDeletedAt IS NULL",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+      },
+    ],
+    conditions: phoneNumber
+      ? { "Users.phoneNumber": phoneNumber, "UserRole.roleId": roleId }
+      : { "Users.email": email, "UserRole.roleId": roleId },
   });
 
-  if (!userDataResult?.data?.[0]?.user) {
+  if (!userDataResult || userDataResult.length === 0) {
     throw new AppError(
       "User not found at this phone/email address. Please sign up first.",
       404,
     );
   }
 
-  const userEntry = userDataResult.data[0];
-  const userData = userEntry.user;
+  // Group roles for the found user
+  const userData = userDataResult[0]; // Core user info is same for all rows
   if (userData?.isDeleted || userData?.userDeletedAt) {
     throw new AppError("Account has been deleted", 403);
   }
 
-  const roleEntry = userEntry.rolesAndStatuses?.find(
-    (rs) => rs?.userRoles?.roleId === roleId,
-  );
+  // Find the specific role the user is trying to log into
+  const roleEntry = userDataResult.find((row) => row.roleId === roleId);
   if (!roleEntry) {
     throw new AppError(
       "User not found at this role. Please sign up for this role first.",
@@ -384,7 +299,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
     user: userData,
     email: email || userData.email, // Use provided email to potentially upgrade placeholder
     roleId,
-    statusId: roleEntry.userRoleStatuses?.statusId,
+    statusId: roleEntry.statusId,
   });
 };
 
@@ -585,13 +500,13 @@ const verifyUserByOTP = async (req) => {
 
 /**
  * Verifies a user's email using a unique UUID token.
- * 
+ *
  * JUNIOR NOTE: This function does 3 main things:
  * 1. Security Check: Validates the token exists and hasn't expired.
  * 2. Database Update: Marks `isEmailVerified = true` in the `Users` table.
- * 3. Real-time UX: Generates a new JWT with the "Verified" status and pushes it 
+ * 3. Real-time UX: Generates a new JWT with the "Verified" status and pushes it
  *    to the user's phone/web app via Socket.io so they don't have to log in again.
- * 
+ *
  * @param {string} token - The unique verification token from the email link.
  */
 const verifyEmailByToken = async (token) => {
@@ -610,9 +525,10 @@ const verifyEmailByToken = async (token) => {
   // Use the EAT string from currentDate() and parse it as a local date (without "Z")
   // to ensure it is on the same scale as the database values.
   const now = new Date(currentDate().replace(" ", "T"));
-  const expiry = typeof credential.emailVerificationExpiresAt === 'string'
-    ? new Date(credential.emailVerificationExpiresAt.replace(" ", "T"))
-    : new Date(credential.emailVerificationExpiresAt);
+  const expiry =
+    typeof credential.emailVerificationExpiresAt === "string"
+      ? new Date(credential.emailVerificationExpiresAt.replace(" ", "T"))
+      : new Date(credential.emailVerificationExpiresAt);
 
   if (now > expiry) {
     throw new AppError(
@@ -651,8 +567,8 @@ const verifyEmailByToken = async (token) => {
   });
 
   // BROADCAST: Send updated token via WebSocket to any active connections
-  // JUNIOR NOTE: This is the "Magic" part. We find out if the user is currently 
-  // online (using their phone number). If they are, we calculate a new security 
+  // JUNIOR NOTE: This is the "Magic" part. We find out if the user is currently
+  // online (using their phone number). If they are, we calculate a new security
   // token (JWT) and send it over the websocket. The app receives this and
   // automatically unlocks verified features.
   try {
@@ -662,8 +578,10 @@ const verifyEmailByToken = async (token) => {
     });
 
     if (userRow.phoneNumber && userRoles.length > 0) {
-      const cleanedPhone = userRow.phoneNumber.replace(/\//g, "").replace(/\+/g, "");
-      
+      const cleanedPhone = userRow.phoneNumber
+        .replace(/\//g, "")
+        .replace(/\+/g, "");
+
       for (const ur of userRoles) {
         const roleId = Number(ur.roleId);
         let userType = "passenger";
@@ -714,11 +632,11 @@ const verifyEmailByToken = async (token) => {
 
 /**
  * Handles reporting of misdirected verification emails.
- * 
+ *
  * JUNIOR NOTE: This is a "Disavowal" flow. If someone receives an email they didn't
- * request, we let them revoke the link. This prevents malicious sign-ups and 
+ * request, we let them revoke the link. This prevents malicious sign-ups and
  * notifies the original requester (via WebSocket) that their email was rejected.
- * 
+ *
  * @param {string} token - The token to revoke.
  */
 const reportMisdirectedEmail = async (token) => {
@@ -733,7 +651,10 @@ const reportMisdirectedEmail = async (token) => {
   });
 
   if (!credential) {
-    throw new AppError("This report link has already been processed or is invalid.", 400);
+    throw new AppError(
+      "This report link has already been processed or is invalid.",
+      400,
+    );
   }
 
   const { userUniqueId } = credential;
@@ -757,7 +678,7 @@ const reportMisdirectedEmail = async (token) => {
   if (user && user.phoneNumber) {
     const cleanedPhone = user.phoneNumber.replace(/\+/g, "");
     const roles = ["passenger", "driver", "admin"];
-    
+
     for (const role of roles) {
       const socketId = await getSocket(role, cleanedPhone);
       if (socketId) {
@@ -768,14 +689,18 @@ const reportMisdirectedEmail = async (token) => {
             messageDetails: JSON.stringify({
               messageTypes: messageTypes.wrong_email_reported,
               phoneNumber: user.phoneNumber,
-              message: "The email address you provided was reported as incorrect by the recipient. Please check for typos and try again.",
+              message:
+                "The email address you provided was reported as incorrect by the recipient. Please check for typos and try again.",
             }),
           });
         } catch (wsError) {
-          logger.warn("Failed to send WebSocket notification for misdirected email", {
-            userUniqueId,
-            error: wsError.message
-          });
+          logger.warn(
+            "Failed to send WebSocket notification for misdirected email",
+            {
+              userUniqueId,
+              error: wsError.message,
+            },
+          );
         }
       }
     }
@@ -789,33 +714,33 @@ const reportMisdirectedEmail = async (token) => {
 
 /**
  * Generates a short-lived JWT for phone verification.
- * 
- * JUNIOR NOTE: Using a JWT for verification links is safe because it's 
+ *
+ * JUNIOR NOTE: Using a JWT for verification links is safe because it's
  * cryptographically signed and self-contained (no extra DB columns needed).
- * 
- * @param {string} userUniqueId 
- * @param {string} phoneNumber 
+ *
+ * @param {string} userUniqueId
+ * @param {string} phoneNumber
  * @returns {string} Signed JWT.
  */
 const generatePhoneVerificationToken = (userUniqueId, phoneNumber) => {
   return jwt.sign(
-    { 
-      userUniqueId, 
-      phoneNumber, 
-      purpose: "phone_verification" 
-    }, 
-    Config.SECRET_KEY, 
-    { expiresIn: "15m" }
+    {
+      userUniqueId,
+      phoneNumber,
+      purpose: "phone_verification",
+    },
+    Config.SECRET_KEY,
+    { expiresIn: "15m" },
   );
 };
 
 /**
  * Verifies a user's phone number using a JWT token.
- * 
+ *
  * JUNIOR NOTE: This function decodes the token, checks the user identity,
  * and marks them as verified. Unlike email verification, we don't send
  * a new login token here because the user was forced to logout for security.
- * 
+ *
  * @param {string} token - The signed JWT from the SMS link.
  */
 const verifyPhoneByToken = async (token) => {
@@ -879,7 +804,10 @@ const verifyPhoneByToken = async (token) => {
     };
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      throw new AppError("Verification link has expired. Please try again.", 400);
+      throw new AppError(
+        "Verification link has expired. Please try again.",
+        400,
+      );
     }
     throw new AppError("Invalid verification link.", 400);
   }
