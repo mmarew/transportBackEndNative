@@ -90,7 +90,11 @@ exports.updateUser = Joi.object({
   fullName: Joi.string().optional(),
   email: emailSchema,
   phoneNumber: phoneNumberSchema.optional(),
-  // ...
+  // Profile Photo related fields (used in UserController.updateUser)
+  profilePhotoTypeId: Joi.alternatives().try(Joi.number().integer(), Joi.string()).optional(),
+  ProfilePhotoDescription: Joi.string().optional().allow("", null),
+  ProfilePhotoExpirationDate: Joi.alternatives().try(Joi.date(), Joi.string()).optional().allow("", null),
+  attachedDocumentUniqueId: Joi.string().optional().allow("", null),
 }).unknown(true);
 
 exports.userIdParams = Joi.object({

@@ -415,20 +415,30 @@ const updateUser = async (body) => {
     }
   }
 
-  // Fetch the latest user info to get verification flags
+  // Fetch the latest user info to get verification flags and mandatory fields for JWT
   const [updatedUser] = await getData({
     tableName: "Users",
     conditions: { userUniqueId },
   });
 
+  // Also catch the role from UserRole if not provided in body
+  let effectiveRoleId = roleId;
+  if (!effectiveRoleId) {
+    const roles = await getData({
+      tableName: "UserRole",
+      conditions: { userUniqueId },
+    });
+    effectiveRoleId = roles?.[0]?.roleId;
+  }
+
   // Create new token with updated information
   const tokenData = createJWT({
     userUniqueId,
-    fullName: fullName || updateValues.fullName,
-    phoneNumber: phoneNumber || updateValues.phoneNumber,
-    email: email || updateValues.email,
-    roleId: roleId,
-    statusId: statusId,
+    fullName: fullName || updatedUser?.fullName,
+    phoneNumber: phoneNumber || updatedUser?.phoneNumber,
+    email: email || updatedUser?.email,
+    roleId: effectiveRoleId,
+    statusId: statusId || updatedUser?.statusId,
     isPhoneVerified: !!updatedUser?.isPhoneVerified,
     isEmailVerified: !!updatedUser?.isEmailVerified,
   });

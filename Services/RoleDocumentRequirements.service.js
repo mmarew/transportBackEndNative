@@ -236,9 +236,9 @@ const getRoleDocumentRequirements = async (filters = {}) => {
 
   const sql = `
     SELECT 
-      r.*, 
-      dt.documentTypeId as dt_documentTypeId, dt.documentTypeName,
-      ro.roleId as ro_roleId, ro.roleUniqueId, ro.roleName
+    r.*, 
+    dt.*,
+    ro.*
     FROM RoleDocumentRequirements r
     LEFT JOIN DocumentTypes dt ON r.documentTypeId = dt.documentTypeId
     LEFT JOIN Roles ro ON r.roleId = ro.roleId

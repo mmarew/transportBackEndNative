@@ -17,6 +17,7 @@ const {
 const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
+const { getData } = require("../CRUD/Read/ReadData");
 //in create user fullname must be existe for driver roles.
 const createUser = async (req, res, next) => {
   try {
@@ -203,8 +204,19 @@ const updateUser = async (req, res, next) => {
       req?.params?.ownerUserUniqueId === "self"
         ? userUniqueId
         : req?.params?.ownerUserUniqueId;
-    const roleId = user?.roleId;
-    const body = { ...req.body, userUniqueId: ownerUserUniqueId, roleId };
+
+    // Determine the target roleId (used for both JWT and AttachedDocuments)
+    let targetRoleId = req.body.roleId;
+    if (!targetRoleId) {
+      const roles = await getData({
+        tableName: "UserRole",
+        conditions: { userUniqueId: ownerUserUniqueId },
+        limit: 1,
+      });
+      targetRoleId = roles?.[0]?.roleId;
+    }
+
+    const body = { ...req.body, userUniqueId: ownerUserUniqueId, roleId: targetRoleId };
 
     const response = await executeInTransaction(async () => {
       // Update user text information
@@ -214,8 +226,8 @@ const updateUser = async (req, res, next) => {
       if (req.files && req.files.length > 0) {
         const {
           attachedDocumentUniqueId,
-          profilePhotoTypeId,
-          ProfilePhotoDescription,
+          profilePhotoTypeId = 4, // Default to Profile Photo type
+          ProfilePhotoDescription = "Profile Photo",
           ProfilePhotoExpirationDate,
         } = body;
 
@@ -244,13 +256,13 @@ const updateUser = async (req, res, next) => {
             attachedDocumentName: fileUrl,
             documentTypeId: profilePhotoTypeId,
             documentExpirationDate: ProfilePhotoExpirationDate,
-            roleId: user.roleId,
+            roleId: targetRoleId,
             userUniqueId: ownerUserUniqueId,
           });
         } else {
           await updateAttachedDocument({
             attachedDocumentUniqueId,
-            roleId: user.roleId,
+            roleId: targetRoleId,
             attachedDocumentName: fileUrl,
             attachedDocumentDescription: ProfilePhotoDescription,
             documentExpirationDate: ProfilePhotoExpirationDate,
