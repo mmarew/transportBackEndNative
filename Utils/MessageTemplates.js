@@ -111,6 +111,12 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
           <p style="font-size: 12px; color: #2b6cb0; word-break: break-all; margin-top: 5px;">${verificationLink}</p>
         </div>
 
+        <div style="margin-top: 25px; padding: 15px; background-color: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; text-align: center;">
+          <p style="font-size: 14px; color: #c53030; margin: 0;">
+            <strong>Not your account?</strong> If you didn't request this email, please <a href="${verificationLink.replace('verify-email', 'report-wrong-email')}" style="color: #c53030; font-weight: bold; text-decoration: underline;">click here to let us know</a>. We will stop further messages to this address.
+          </p>
+        </div>
+
         <div style="margin-top: 35px; background-color: #f7fafc; padding: 25px; border-radius: 10px; text-align: center;">
           <p style="font-size: 15px; color: #2d3748; margin-bottom: 15px; font-weight: 600;">Need help? Contact us directly:</p>
           <div style="margin-bottom: 10px;">
@@ -135,7 +141,7 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
   };
 };
 
-const getSuccessEmailVerificationHtml = (otp) => {
+const getSuccessEmailVerificationHtml = () => {
   const brand = process.env.BRAND_NAME || "Dynamics Transport";
   const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
@@ -150,22 +156,15 @@ const getSuccessEmailVerificationHtml = (otp) => {
         <h1 style="color: #2b6cb0; margin: 0; font-size: 28px;">${brand}</h1>
       </div>
       
-      <div style="background-color: #f0fff4; border: 1px solid #c6f6d5; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
-        <h2 style="color: #2f855a; margin: 0 0 10px 0; font-size: 20px;">✅ Email Verified!</h2>
-        <p style="color: #276749; margin: 0; font-size: 16px;">Your email has been successfully verified.</p>
+      <div style="background-color: #f0fff4; border: 1px solid #c6f6d5; padding: 30px; border-radius: 10px; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+        <h2 style="color: #2f855a; margin: 0 0 10px 0; font-size: 24px;">Email Verified!</h2>
+        <p style="color: #276749; margin: 0; font-size: 16px;">Your email address has been successfully verified.</p>
       </div>
 
-      <p style="font-size: 16px; color: #4a5568; margin-bottom: 20px;">Use the verification code below for your secure login in the app:</p>
-      
-      <div style="background: #f8fbff; border-radius: 8px; border: 2px dashed #cbd5e0; padding: 20px 10px; margin: 20px auto; max-width: 260px;">
-        <span style="font-size: 42px; font-weight: 800; letter-spacing: 8px; color: #2b6cb0;">${otp}</span>
-      </div>
-      
-      <div style="margin-top: 30px; padding: 20px; background-color: #fffaf0; border-left: 5px solid #ed8936; text-align: left;">
-        <p style="font-size: 14px; color: #7b341e; margin: 0; line-height: 1.6;">
-          <strong>Important Security Note:</strong> Please do not share this code with anyone, including ${brand} staff. Sharing your verification code puts your account at risk of unauthorized access and potential data theft.
-        </p>
-      </div>
+      <p style="font-size: 16px; color: #4a5568; margin-bottom: 30px; line-height: 1.6;">
+        Thank you for verifying your email. You can now return to the app and enjoy all the features of ${brand}.
+      </p>
 
       <div style="margin-top: 35px; background-color: #f7fafc; padding: 20px; border-radius: 10px; text-align: center;">
         <p style="font-size: 15px; color: #2d3748; margin-bottom: 15px; font-weight: 600;">Need help? Contact us directly:</p>
@@ -183,8 +182,7 @@ const getSuccessEmailVerificationHtml = (otp) => {
       </div>
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #edf2f7; font-size: 13px; color: #718096;">
-        <p>You can now return to the app and enter this code to complete your login.</p>
-        <div style="margin-top: 20px; font-size: 50px;">🌟</div>
+        <p>You can now close this window and proceed in the app.</p>
         <p style="margin-top: 20px;">&copy; 2026 ${brand}. All rights reserved.</p>
       </div>
     </div>

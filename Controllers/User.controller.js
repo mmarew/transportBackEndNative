@@ -362,8 +362,8 @@ const verifyEmail = async (req, res) => {
     const { token } = req.query;
     const response = await services.verifyEmailByToken(token);
 
-    // Send a professional HTML success page with the login OTP
-    res.send(getSuccessEmailVerificationHtml(response.data.OTP));
+    // Send a professional HTML success page (OTP is now only sent to email, not shown here)
+    res.send(getSuccessEmailVerificationHtml());
   } catch (error) {
     // If it's an API error, send a nice error page
     res.status(error.statusCode || 500).send(`
