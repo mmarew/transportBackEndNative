@@ -300,10 +300,14 @@ const updateUser = async (req, res, next) => {
               user.userUniqueId,
               targetPhone,
             );
-            const baseUrl =
-              process.env.APP_API_URL || "https://dynamicsroute.tech";
-            const link = `${baseUrl}/api/user/verify-phone?token=${verificationToken}`;
-            const linkMsg = getPhoneVerificationLinkMessage(link, "update");
+            // JUNIOR NOTE: We use a custom protocol (dynamics://) so the mobile OS 
+            // opens the app directly instead of the system browser.
+            const link = `dynamics://verify?token=${verificationToken}`;
+            const linkMsg = getPhoneVerificationLinkMessage(
+              link,
+              phoneVerificationOTP,
+              "update",
+            );
             console.log("@linkMsg", linkMsg);
             sendSms(targetPhone, linkMsg.sms).catch((err) => {
               logger.warn("Phone Verification Link SMS failed on update", {
@@ -480,14 +484,26 @@ const reportWrongEmail = async (req, res) => {
  * On success, it shows a page explaining that the user MUST log in again
  * with their new number.
  */
-const verifyPhone = async (req, res) => {
+const verifyPhone = async (req, res, next) => {
   try {
-    const { token } = req.query;
-    await services.verifyPhoneByToken(token);
+    const token = req.query.token || req.body.token;
+    const response = await services.verifyPhoneByToken(token);
 
-    // Show the "Phone Verified + Please Login" success page
+    // JUNIOR NOTE: If the request comes from the mobile app (Deep Link), 
+    // it usually expects JSON so it can use the returned login token immediately.
+    // Otherwise, we show a success page for the browser.
+    if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+      return ServerResponder(res, response);
+    }
+
+    // Show the "Phone Verified + Please Login" success page for browser clicks
     res.send(getSuccessPhoneVerificationHtml());
   } catch (error) {
+    // If it's an app request, return the error as JSON
+    if (req.headers.accept?.includes("application/json") || req.method === "POST") {
+      return next(error);
+    }
+    // Browser error view
     res.status(error.statusCode || 500).send(`
       <div style="font-family: sans-serif; text-align: center; padding: 50px;">
         <h1 style="color: #e53e3e;">📱 Verification Failed</h1>

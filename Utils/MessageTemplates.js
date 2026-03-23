@@ -142,22 +142,22 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
 };
 
 /**
- * Generates an SMS message with a clickable verification link.
+ * Generates an SMS message with a clickable verification link AND a 6-digit OTP.
  * 
- * JUNIOR NOTE: Phone numbers are critical identities. Instead of just a code,
- * sending a link allows the system to verify the phone and manage session 
- * lifecycle (like forcing a logout) in one go.
+ * JUNIOR NOTE: Providing BOTH a link and a manual OTP is best practice. 
+ * If the user is already on the login/verification screen, they can just 
+ * type the code instead of switching apps to click the link.
  * 
  * @param {string} link - The verification URL.
+ * @param {string} otp - The 6-digit manual entry code.
  * @param {string} [type='update'] - The context (registration or update).
  * @returns {Object} Message object.
  */
-const getPhoneVerificationLinkMessage = (link, type = "update") => {
+const getPhoneVerificationLinkMessage = (link, otp, type = "update") => {
   const brandName = process.env.BRAND_NAME || "Dynamics Transport";
-  const context = type === "registration" ? "registering" : "updating your account";
   
   return {
-    sms: `Welcome to ${brandName}! Please verify your phone number by clicking here: ${link}`,
+    sms: `Welcome to ${brandName}! Please verify your phone number by clicking here: ${link} or use code: ${otp}`,
   };
 };
 

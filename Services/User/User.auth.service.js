@@ -846,12 +846,35 @@ const verifyPhoneByToken = async (token) => {
       conditions: { userUniqueId },
     });
 
+    // 3. Get Full User Data for JWT (Industry UX - Auto Login)
+    // JUNIOR NOTE: To log the user in automatically after verification, we need
+    // to fetch their role and identity to generate a fresh security token (JWT).
+    const userDataRows = await performJoinSelect({
+      tableName: "Users",
+      joinConditions: [
+        {
+          tableName: "UserRole",
+          on: "Users.userUniqueId = UserRole.userUniqueId",
+        },
+      ],
+      conditions: { "Users.userUniqueId": userUniqueId },
+    });
+
+    if (!userDataRows || userDataRows.length === 0) {
+      throw new AppError("User not found after verification", 404);
+    }
+
+    const userData = userDataRows[0];
+    const { token: loginToken } = createJWT(userData);
+
     return {
       message: "success",
       data: {
         phoneNumber,
         isPhoneVerified: true,
+        user: userData,
       },
+      token: loginToken,
     };
   } catch (err) {
     if (err.name === "TokenExpiredError") {
