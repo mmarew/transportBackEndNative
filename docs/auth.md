@@ -171,14 +171,28 @@ graph TD
 ### 2. Login Flow (OTP-based)
 ```mermaid
 graph TD
-    A[User requests login] --> B[POST /api/user/createUser with existing phone]
+    A[User requests login] --> B[POST /api/user/loginUser]
     B --> C[OTP sent to phone]
     C --> D[POST /api/user/verifyUserByOTP]
     D --> E[JWT Token returned]
     E --> F[Store token for future requests]
 ```
 
-### 3. API Request Flow
+### 3. Profile Update Verification Flow
+When a user updates their contact details (Phone or Email), a security lifecycle is triggered to maintain account integrity.
+
+```mermaid
+graph TD
+    A[POST /api/user/updateUser] --> B{Phone or Email changed?}
+    B -->|Yes| C[Reset isVerified flag for that channel]
+    C --> D[Generate new OTP/Verification Link]
+    D --> E[Send SMS or Email immediately]
+    E --> F[Return new JWT with unverified status]
+    B -->|No| G[Update profile directly]
+    G --> H[Return new JWT with current status]
+```
+
+### 4. API Request Flow
 ```mermaid
 graph TD
     A[Client makes API request] --> B{Token present?}

@@ -15,7 +15,8 @@ const BROWSER_PHONE_ICON = "/Assets/phone_icon.png";
 
 const getOtpMessage = (otp, type = "login") => {
   const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const action = type === "registration" ? "account registration" : "secure login";
+  const action = type === "registration" ? "account registration" : 
+                 type === "update" ? "phone number update" : "secure login";
   const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
   
@@ -75,7 +76,7 @@ const getOtpMessage = (otp, type = "login") => {
   };
 };
 
-const getEmailVerificationLinkMessage = (verificationLink) => {
+const getEmailVerificationLinkMessage = (verificationLink, type = "registration") => {
   const brand = process.env.BRAND_NAME || "Dynamics Transport";
   const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
@@ -84,8 +85,15 @@ const getEmailVerificationLinkMessage = (verificationLink) => {
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
   
+  const isUpdate = type === "update";
+  const subject = isUpdate ? `Confirm your ${brand} Email Update` : `Verify your ${brand} Email Address`;
+  const title = isUpdate ? "Confirm your email update" : "Verify your email address";
+  const bodyText = isUpdate 
+    ? `You have updated your email address on ${brand}! To secure your account and complete this change, please verify your new email address by clicking the button below.`
+    : `Welcome to ${brand}! To complete your registration and secure your account, please verify your email address by clicking the button below.`;
+
   return {
-    emailSubject: `Verify your ${brand} Email Address`,
+    emailSubject: subject,
     emailHtml: `
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 25px;">
@@ -94,8 +102,8 @@ const getEmailVerificationLinkMessage = (verificationLink) => {
         </div>
         
         <div style="background-color: #f8fbff; padding: 30px 5%; border-radius: 12px; text-align: center; border: 1px solid #edf2f7;">
-          <p style="font-size: 18px; color: #2c3e50; margin-bottom: 10px; font-weight: 700;">Verify your email address </p>
-          <p style="font-size: 15px; color: #4a5568; margin-bottom: 25px; line-height: 1.6;">Welcome to ${brand}! To complete your registration and secure your account, please verify your email address by clicking the button below.</p>
+          <p style="font-size: 18px; color: #2c3e50; margin-bottom: 10px; font-weight: 700;">${title}</p>
+          <p style="font-size: 15px; color: #4a5568; margin-bottom: 25px; line-height: 1.6;">${bodyText}</p>
           
           <a href="${verificationLink}" style="display: inline-block; padding: 14px 30px; background-color: #2b6cb0; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 8px; font-size: 16px; box-shadow: 0 4px 6px rgba(43, 108, 176, 0.2);">Verify Email Address</a>
           

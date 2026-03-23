@@ -288,7 +288,7 @@ const updateUser = async (req, res, next) => {
         // Use the new phone number if provided in body, otherwise fallback to existing
         const targetPhone = body.phoneNumber || user.phoneNumber;
         if (targetPhone) {
-          const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
+          const phoneMsg = getOtpMessage(phoneVerificationOTP, "update");
           sendSms(targetPhone, phoneMsg.sms).catch((err) => {
             logger.warn("Deferred SMS sending failed on update", {
               phoneNumber: targetPhone,
@@ -318,7 +318,7 @@ const updateUser = async (req, res, next) => {
           const baseUrl =
             process.env.APP_API_URL || "https://dynamicsroute.tech";
           const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
-          const linkMsg = getEmailVerificationLinkMessage(link);
+          const linkMsg = getEmailVerificationLinkMessage(link, "update");
           sendEmail(
             targetEmail,
             linkMsg.emailSubject,

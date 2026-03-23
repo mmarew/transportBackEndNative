@@ -590,9 +590,15 @@ const verifyEmailByToken = async (token) => {
   if (!credential) {
     throw new AppError("Verification link is invalid or has expired.", 400);
   }
+  // Use currentDate string and transform to Date object for accurate comparison
+  const now = new Date(currentDate().replace(" ", "T") + "Z");
 
-  const now = new Date();
-  const expiry = new Date(credential.emailVerificationExpiresAt);
+  // Ensure expiry is also parsed correctly from the custom format
+  const expiry =
+    typeof credential.emailVerificationExpiresAt === "string"
+      ? new Date(credential.emailVerificationExpiresAt.replace(" ", "T") + "Z")
+      : new Date(credential.emailVerificationExpiresAt);
+
   if (now > expiry) {
     throw new AppError(
       "Verification link has expired. Please log in again to receive a new one.",

@@ -276,14 +276,14 @@ GET /api/admin/getUserByFilterDetailed?startDate=2026-01-01&endDate=2026-01-31
 
 ### Update Profile
 
-**Endpoint**: `PUT /api/user/profile`
+**Endpoint**: `POST /api/user/profile`
 **Description**: Update user profile information
 **Authentication**: User token required
 
 ### Update User Data
 
-**Endpoint**: `PUT /api/user/updateUser/{userUniqueId}`
-**Description**: Update specific user data by user unique ID
+**Endpoint**: `POST /api/user/updateUser/{userUniqueId}`
+**Description**: Updates user profile information. This endpoint includes automated security flows for contact information changes.
 **Authentication**: User token required
 
 **Request Body**:
@@ -298,20 +298,25 @@ GET /api/admin/getUserByFilterDetailed?startDate=2026-01-01&endDate=2026-01-31
 }
 ```
 
+#### Security & Verification Logic
+When contact information is updated, the system triggers a security lifecycle:
+
+1.  **Verification Reset**: Changing the `phoneNumber` or `email` automatically resets the corresponding verification flag (`isPhoneVerified` or `isEmailVerified`) to `false`.
+2.  **Credential Refresh**:
+    *   **Phone Change**: A new `phoneVerificationOTP` is generated and hashed in the database.
+    *   **Email Change**: A new `emailVerificationToken` is generated (valid for 2 hours).
+3.  **Automatic Dispatch**:
+    *   **SMS**: The system immediately attempts to send an SMS OTP to the new phone number.
+    *   **Email**: The system immediately attempts to send a Verification Link to the new email address (Base URL: `https://dynamicsroute.tech`).
+4.  **Token Synchronization**: The response includes a **new JWT token**. This token contains the updated (unverified) flags and the new contact values. The client MUST update its local storage with this new token.
+
 **Response**:
 
 ```json
 {
+  "token": "new-jwt-token-here",
   "message": "success",
-  "data": {
-    "userUniqueId": "e4174857-7242-46a4-a8d3-c640b7a10e70",
-    "fullName": "Updated User Name",
-    "phoneNumber": "+251983222222",
-    "email": "updated@example.com",
-    "roleId": 1,
-    "statusId": 1,
-    "userUpdatedAt": "2026-02-03T09:18:00.000Z"
-  }
+  "data": "User updated successfully"
 }
 ```
 
