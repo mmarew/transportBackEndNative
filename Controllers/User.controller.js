@@ -11,6 +11,8 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const {
   getOtpMessage,
+  getPhoneVerificationLinkMessage,
+  getSuccessPhoneVerificationHtml,
   getEmailVerificationLinkMessage,
   getSuccessEmailVerificationHtml,
 } = require("../Utils/MessageTemplates");
@@ -18,6 +20,9 @@ const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
 const { getData } = require("../CRUD/Read/ReadData");
+const { getSocket } = require("../Utils/WsConnectionStore");
+const { emitMessage } = require("../Utils/WsServerResponder");
+const messageTypes = require("../Utils/MessageTypes");
 //in create user fullname must be existe for driver roles.
 const createUser = async (req, res, next) => {
   try {
@@ -281,20 +286,69 @@ const updateUser = async (req, res, next) => {
         phoneVerificationOTP,
         emailVerificationOTP,
         emailVerificationToken,
+        forceLogout,
       } = response.deferredOTP;
 
-      // 1. Send SMS (Always OTP)
+      // 1. Send SMS (OTP or Link)
       if (phoneVerificationOTP) {
-        // Use the new phone number if provided in body, otherwise fallback to existing
         const targetPhone = body.phoneNumber || user.phoneNumber;
         if (targetPhone) {
-          const phoneMsg = getOtpMessage(phoneVerificationOTP, "update");
-          sendSms(targetPhone, phoneMsg.sms).catch((err) => {
-            logger.warn("Deferred SMS sending failed on update", {
-              phoneNumber: targetPhone,
-              error: err.message,
+          if (forceLogout) {
+            // JUNIOR NOTE: If forceLogout is true, we send a link instead of a raw code.
+            // We also send a WebSocket "Logout" message to the OLD number to kill any active apps.
+            const verificationToken = services.generatePhoneVerificationToken(
+              user.userUniqueId,
+              targetPhone,
+            );
+            const baseUrl =
+              process.env.APP_API_URL || "https://dynamicsroute.tech";
+            const link = `${baseUrl}/api/user/verify-phone?token=${verificationToken}`;
+            const linkMsg = getPhoneVerificationLinkMessage(link, "update");
+            console.log("@linkMsg", linkMsg);
+            sendSms(targetPhone, linkMsg.sms).catch((err) => {
+              logger.warn("Phone Verification Link SMS failed on update", {
+                phoneNumber: targetPhone,
+                error: err.message,
+              });
             });
-          });
+
+            // WebSocket Session Revocation
+            const oldPhone = user.phoneNumber;
+            const roleId = Number(req.user.roleId);
+            let userType = "passenger";
+            if (roleId === usersRoles.driverRoleId) userType = "driver";
+            else if (roleId === usersRoles.adminRoleId) userType = "admin";
+            else if (roleId === usersRoles.supperAdminRoleId)
+              userType = "admin";
+
+            const socketId = await getSocket(
+              userType,
+              oldPhone.replace(/\+/g, ""),
+            );
+            if (socketId) {
+              emitMessage({
+                socketId,
+                eventName: "messages",
+                messageDetails: JSON.stringify({
+                  messageTypes: messageTypes.force_logout_phone_change,
+                }),
+              });
+            }
+
+            // Security: Kill the current session response token
+            delete response.token;
+            response.message =
+              "Phone number updated. For security, your session has been revoked. Please check your NEW number for a verification link and log in again.";
+          } else {
+            // Standard OTP Flow (for registration or non-critical changes)
+            const phoneMsg = getOtpMessage(phoneVerificationOTP, "update");
+            sendSms(targetPhone, phoneMsg.sms).catch((err) => {
+              logger.warn("Deferred SMS sending failed on update", {
+                phoneNumber: targetPhone,
+                error: err.message,
+              });
+            });
+          }
         }
       }
 
@@ -359,7 +413,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
 
 /**
  * Handles the GET request for email verification via a unique token link.
- * 
+ *
  * JUNIOR NOTE: This is the endpoint called when a user clicks the button in their email.
  * It doesn't use JSON for responses because it's meant to be viewed in a web browser.
  */
@@ -385,7 +439,7 @@ const verifyEmail = async (req, res) => {
 
 /**
  * Handles reporting of misdirected verification emails.
- * 
+ *
  * JUNIOR NOTE: If Recipient B receives an email meant for User A, clicking this link
  * lets the system know. We immediately kill the token and notify User A via WebSocket
  * so they know they made a typo.
@@ -419,6 +473,31 @@ const reportWrongEmail = async (req, res) => {
   }
 };
 
+/**
+ * Handles the GET request for phone verification via a unique JWT link.
+ *
+ * JUNIOR NOTE: Just like email verification, this is browser-based.
+ * On success, it shows a page explaining that the user MUST log in again
+ * with their new number.
+ */
+const verifyPhone = async (req, res) => {
+  try {
+    const { token } = req.query;
+    await services.verifyPhoneByToken(token);
+
+    // Show the "Phone Verified + Please Login" success page
+    res.send(getSuccessPhoneVerificationHtml());
+  } catch (error) {
+    res.status(error.statusCode || 500).send(`
+      <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+        <h1 style="color: #e53e3e;">📱 Verification Failed</h1>
+        <p style="color: #4a5568; font-size: 18px;">${error.message}</p>
+        <p style="color: #a0aec0; margin-top: 20px;">Please request a new verification link from your profile settings.</p>
+      </div>
+    `);
+  }
+};
+
 module.exports = {
   createUserByAdminOrSuperAdmin,
   updateUser,
@@ -428,5 +507,6 @@ module.exports = {
   getUserByFilterDetailed,
   loginUser,
   verifyEmail,
+  verifyPhone,
   reportWrongEmail,
 };

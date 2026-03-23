@@ -140,5 +140,9 @@ const messageTypes = {
     message: "Email verified - Token updated",
     details: "Your email has been verified. Here is your updated security token.",
   },
+  force_logout_phone_change: {
+    message: "Phone number updated - Session Revoked",
+    details: "Your phone number has been changed. For security reasons, you have been logged out. Please verify your new number and log in again.",
+  },
 };
 module.exports = messageTypes;

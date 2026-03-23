@@ -1,5 +1,7 @@
 "use strict";
 
+const jwt = require("jsonwebtoken");
+
 const { sendSms } = require("../../Utils/smsSender");
 const { sendEmail } = require("../../Utils/emailSender");
 const {
@@ -784,10 +786,87 @@ const reportMisdirectedEmail = async (token) => {
   };
 };
 
+/**
+ * Generates a short-lived JWT for phone verification.
+ * 
+ * JUNIOR NOTE: Using a JWT for verification links is safe because it's 
+ * cryptographically signed and self-contained (no extra DB columns needed).
+ * 
+ * @param {string} userUniqueId 
+ * @param {string} phoneNumber 
+ * @returns {string} Signed JWT.
+ */
+const generatePhoneVerificationToken = (userUniqueId, phoneNumber) => {
+  return jwt.sign(
+    { 
+      userUniqueId, 
+      phoneNumber, 
+      purpose: "phone_verification" 
+    }, 
+    process.env.SECRET_KEY, 
+    { expiresIn: "15m" }
+  );
+};
+
+/**
+ * Verifies a user's phone number using a JWT token.
+ * 
+ * JUNIOR NOTE: This function decodes the token, checks the user identity,
+ * and marks them as verified. Unlike email verification, we don't send
+ * a new login token here because the user was forced to logout for security.
+ * 
+ * @param {string} token - The signed JWT from the SMS link.
+ */
+const verifyPhoneByToken = async (token) => {
+  if (!token) {
+    throw new AppError("Verification token is required", 400);
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    if (decoded.purpose !== "phone_verification") {
+      throw new AppError("Invalid token purpose", 400);
+    }
+
+    const { userUniqueId, phoneNumber } = decoded;
+
+    // 1. Mark as verified in the main Users table
+    await updateData({
+      tableName: "Users",
+      updateValues: { isPhoneVerified: true },
+      conditions: { userUniqueId },
+    });
+
+    // 2. Clear out any old OTPs for this user
+    await updateData({
+      tableName: "usersCredential",
+      updateValues: {
+        phoneVerificationOTP: null,
+      },
+      conditions: { userUniqueId },
+    });
+
+    return {
+      message: "success",
+      data: {
+        phoneNumber,
+        isPhoneVerified: true,
+      },
+    };
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      throw new AppError("Verification link has expired. Please try again.", 400);
+    }
+    throw new AppError("Invalid verification link.", 400);
+  }
+};
+
 module.exports = {
   loginUser,
   verifyUserByOTP,
   handleExistingUser,
   verifyEmailByToken,
   reportMisdirectedEmail,
+  generatePhoneVerificationToken,
+  verifyPhoneByToken,
 };

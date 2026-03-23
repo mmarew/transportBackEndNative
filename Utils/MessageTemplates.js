@@ -141,6 +141,60 @@ const getEmailVerificationLinkMessage = (verificationLink, type = "registration"
   };
 };
 
+/**
+ * Generates an SMS message with a clickable verification link.
+ * 
+ * JUNIOR NOTE: Phone numbers are critical identities. Instead of just a code,
+ * sending a link allows the system to verify the phone and manage session 
+ * lifecycle (like forcing a logout) in one go.
+ * 
+ * @param {string} link - The verification URL.
+ * @param {string} [type='update'] - The context (registration or update).
+ * @returns {Object} Message object.
+ */
+const getPhoneVerificationLinkMessage = (link, type = "update") => {
+  const brandName = process.env.BRAND_NAME || "Dynamics Transport";
+  const context = type === "registration" ? "registering" : "updating your account";
+  
+  return {
+    sms: `Welcome to ${brandName}! Please verify your phone number by clicking here: ${link}`,
+  };
+};
+
+/**
+ * Generates recovery-friendly HTML for phone verification success.
+ * 
+ * JUNIOR NOTE: Since we force a logout on phone change, this page
+ * must clearly instruct the user to log in again.
+ */
+const getSuccessPhoneVerificationHtml = () => {
+  const brand = process.env.BRAND_NAME || "Dynamics Transport";
+  
+  return `
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      <div style="margin-bottom: 25px;">
+        <h1 style="color: #2b6cb0; margin: 0; font-size: 28px;">${brand}</h1>
+      </div>
+      
+      <div style="background-color: #f0fff4; border: 1px solid #c6f6d5; padding: 30px; border-radius: 10px; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 10px;">📱✅</div>
+        <h2 style="color: #276749; margin: 0 0 10px 0; font-size: 24px;">Phone Verified!</h2>
+        <p style="color: #2f855a; margin: 0; font-size: 16px;">
+          Your new phone number has been successfully verified.
+        </p>
+      </div>
+
+      <p style="color: #4a5568; margin-bottom: 25px; line-height: 1.6; font-size: 16px;">
+        For security reasons, you have been logged out. Please <strong>log in again</strong> with your new phone number to continue using ${brand}.
+      </p>
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf2f7; font-size: 13px; color: #718096;">
+        &copy; 2026 ${brand}. All rights reserved.
+      </div>
+    </div>
+  `;
+};
+
 const getSuccessEmailVerificationHtml = () => {
   const brand = process.env.BRAND_NAME || "Dynamics Transport";
   const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
@@ -250,8 +304,10 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
 };
 
 module.exports = {
-  getOtpMessage,
-  getEmailVerificationLinkMessage,
+  getPhoneVerificationLinkMessage,
+  getSuccessPhoneVerificationHtml,
   getSuccessEmailVerificationHtml,
+  getEmailVerificationLinkMessage,
+  getOtpMessage,
   getAdminAssignmentMessage
 };

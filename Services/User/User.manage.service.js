@@ -454,6 +454,8 @@ const updateUser = async (body) => {
       },
       conditions: { userUniqueId },
     });
+    // For security, changing a phone number MUST force a logout of the current session
+    deferredOTP.forceLogout = true;
   }
 
   // Update the user's information if there are any fields to update
