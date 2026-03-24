@@ -46,6 +46,12 @@ if (!fs.existsSync(UPLOADS_DIR)) {
  * // → "http://dynamicsroute.tech/uploads/user_3_photo.jpg"
  */
 async function uploadToFTP(buffer, filename) {
+  // Defensive Check: Ensure the uploads directory exists before writing
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+    logger.info("Re-created missing uploads directory", { path: UPLOADS_DIR });
+  }
+
   const filePath = path.join(UPLOADS_DIR, filename);
 
   await fs.promises.writeFile(filePath, buffer);
