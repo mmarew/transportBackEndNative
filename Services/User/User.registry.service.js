@@ -30,15 +30,12 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   const emailOTP = generateOTP();
 
   // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
-  const [
-    hashedOTP,
-    hashedPhoneVerificationOTP,
-    hashedEmailVerificationOTP,
-  ] = await Promise.all([
-    bcrypt.hash(String(OTP), 10),
-    bcrypt.hash(String(phoneOTP), 10),
-    bcrypt.hash(String(emailOTP), 10),
-  ]);
+  const [hashedOTP, hashedPhoneVerificationOTP, hashedEmailVerificationOTP] =
+    await Promise.all([
+      bcrypt.hash(String(OTP), 10),
+      bcrypt.hash(String(phoneOTP), 10),
+      bcrypt.hash(String(emailOTP), 10),
+    ]);
 
   const conditions = { userUniqueId };
   const existing = await getData({
@@ -169,7 +166,6 @@ const registerNewUser = async ({
   email,
   roleId,
   statusId,
-  userRoleStatusDescription,
   requestedFrom,
   createdBy,
 }) => {
@@ -216,18 +212,6 @@ const registerNewUser = async ({
   };
 
   await ensureCredentialForUser({ userUniqueId });
-
-  if (roleId === usersRoles.driverRoleId) {
-    const pricing = await getPricingWithFilters({ isFree: true });
-    if (pricing?.data?.[0]) {
-      await createUserSubscription({
-        driverUniqueId: userUniqueId,
-        subscriptionPlanPricingUniqueId:
-          pricing.data[0].subscriptionPlanPricingUniqueId,
-        userSubscriptionCreatedBy: userUniqueId,
-      });
-    }
-  }
 
   if (!authService) {
     authService = require("./User.auth.service");

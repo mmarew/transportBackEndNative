@@ -160,8 +160,20 @@ const handleExistingUser = async ({
     });
   }
 
+  const publicUserProfile = {
+    userId: user.userId,
+    userUniqueId: user.userUniqueId,
+    fullName: user.fullName,
+    phoneNumber: user.phoneNumber,
+    email: user.email,
+    isPhoneVerified,
+    isEmailVerified,
+    userCreatedAt: user.userCreatedAt,
+  };
+
   if (requestedFrom === "street") {
-    return { message: "success", data: { ...user } };
+    // SECURITY: Still use explicit extraction even for street entry
+    return { message: "success", data: publicUserProfile };
   }
 
   let otpDetail = "";
@@ -178,7 +190,7 @@ const handleExistingUser = async ({
 
   return {
     message: "success",
-    data: user,
+    data: publicUserProfile,
     messageDetail: otpDetail,
     deferredOTP,
   };
@@ -412,32 +424,44 @@ const verifyUserByOTP = async (req) => {
     message: "success",
     token: tokenData.token,
     data: "OTP verified successfully",
-    verificationStatus: {
-      phoneVerified: phoneMatched || !!userRow.isPhoneVerified,
-      emailVerified: emailMatched || !!userRow.isEmailVerified,
+    // verificationStatus: {
+    //   phoneVerified: phoneMatched || !!userRow.isPhoneVerified,
+    //   emailVerified: emailMatched || !!userRow.isEmailVerified,
+    // },
+    userData: {
+      userId: userRow.userId,
+      userUniqueId: userRow.userUniqueId,
+      fullName: userRow.fullName,
+      phoneNumber: userRow.phoneNumber,
+      email: userRow.email,
+      isPhoneVerified: phoneMatched || !!userRow.isPhoneVerified,
+      isEmailVerified: emailMatched || !!userRow.isEmailVerified,
+      userCreatedAt: userRow.userCreatedAt,
+      roleId: Number(roleId),
+      // SECURITY: Ensure credentials are NEVER leaked
     },
   };
+  //
+  // if (Number(roleId) === usersRoles.driverRoleId) {
+  //   const docReq = await driversDocumentVehicleRequirement({
+  //     ownerUserUniqueId: userRow.userUniqueId,
+  //     user: userRow,
+  //   });
 
-  if (Number(roleId) === usersRoles.driverRoleId) {
-    const docReq = await driversDocumentVehicleRequirement({
-      ownerUserUniqueId: userRow.userUniqueId,
-      user: userRow,
-    });
+  //   if (docReq?.message === "error") {
+  //     throw new AppError(docReq.error || "Failed to check requirements", 500);
+  //   }
 
-    if (docReq?.message === "error") {
-      throw new AppError(docReq.error || "Failed to check requirements", 500);
-    }
-
-    const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
-    if (
-      attachedDocumentsByStatus?.PENDING?.length > 0 ||
-      attachedDocumentsByStatus?.REJECTED?.length > 0 ||
-      unAttachedDocumentTypes?.length > 0
-    ) {
-      sendSocketIONotificationToAdmin({ message: { ...docReq } });
-    }
-    resData.documentAndVehicleOfDriver = docReq;
-  }
+  //   const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
+  //   if (
+  //     attachedDocumentsByStatus?.PENDING?.length > 0 ||
+  //     attachedDocumentsByStatus?.REJECTED?.length > 0 ||
+  //     unAttachedDocumentTypes?.length > 0
+  //   ) {
+  //     sendSocketIONotificationToAdmin({ message: { ...docReq } });
+  //   }
+  //   resData.documentAndVehicleOfDriver = docReq;
+  // }
 
   return resData;
 };
@@ -496,7 +520,6 @@ const verifyEmailByToken = async (token) => {
     conditions: { userUniqueId },
   });
 
-  const email = userRow?.email;
   const isPhoneVerified = !!userRow?.isPhoneVerified;
 
   const credentialUpdateValues = {
