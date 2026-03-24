@@ -441,27 +441,27 @@ const verifyUserByOTP = async (req) => {
       // SECURITY: Ensure credentials are NEVER leaked
     },
   };
-  //
-  // if (Number(roleId) === usersRoles.driverRoleId) {
-  //   const docReq = await driversDocumentVehicleRequirement({
-  //     ownerUserUniqueId: userRow.userUniqueId,
-  //     user: userRow,
-  //   });
+  //if user is driver send PENDING, REJECTED or NOT_SUBMITTED document and vehicle requirement to admin in web socket to communicate driver.
+  if (Number(roleId) === usersRoles.driverRoleId) {
+    const docReq = await driversDocumentVehicleRequirement({
+      ownerUserUniqueId: userRow.userUniqueId,
+      user: userRow,
+    });
 
-  //   if (docReq?.message === "error") {
-  //     throw new AppError(docReq.error || "Failed to check requirements", 500);
-  //   }
+    if (docReq?.message === "error") {
+      throw new AppError(docReq.error || "Failed to check requirements", 500);
+    }
 
-  //   const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
-  //   if (
-  //     attachedDocumentsByStatus?.PENDING?.length > 0 ||
-  //     attachedDocumentsByStatus?.REJECTED?.length > 0 ||
-  //     unAttachedDocumentTypes?.length > 0
-  //   ) {
-  //     sendSocketIONotificationToAdmin({ message: { ...docReq } });
-  //   }
-  //   resData.documentAndVehicleOfDriver = docReq;
-  // }
+    const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
+    if (
+      attachedDocumentsByStatus?.PENDING?.length > 0 ||
+      attachedDocumentsByStatus?.REJECTED?.length > 0 ||
+      unAttachedDocumentTypes?.length > 0
+    ) {
+      sendSocketIONotificationToAdmin({ message: { ...docReq } });
+    }
+    resData.documentAndVehicleOfDriver = docReq;
+  }
 
   return resData;
 };
