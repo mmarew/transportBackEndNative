@@ -4,8 +4,6 @@ const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const mongoSanitize = require("express-mongo-sanitize");
-const xss = require("xss-clean");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("../api-docs.json");
 
@@ -51,9 +49,7 @@ app.use(requestLogger);
 app.use(express.json({ limit: "10kb" })); // Limit request body size
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// 5. Data Sanitization
-app.use(mongoSanitize()); // Against NoSQL query injection
-app.use(xss()); // Against Cross-Site Scripting (XSS) attacks
+// 5. Data Sanitization - Handled by Joi and Helmet
 
 
 // --- ROUTES ---
