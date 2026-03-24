@@ -110,13 +110,14 @@ const handleUserRoleStatus = async (
   description = "",
 ) => {
   const executor = transactionStorage.getStore() || pool;
-
+  //get users role if it was already assigned
   const [existingRoles] = await executor.query(
     "SELECT userRoleId FROM UserRole WHERE userUniqueId = ? AND roleId = ?",
     [userUniqueId, roleId],
   );
 
   let userRoleId;
+  //if user role is not assigned, assign it
   if (existingRoles.length === 0) {
     const userRoleUniqueId = uuidv4();
     const [roleIns] = await executor.query(
@@ -127,12 +128,12 @@ const handleUserRoleStatus = async (
   } else {
     userRoleId = existingRoles[0].userRoleId;
   }
-
+  //get users role status if it was already assigned
   const [existingStatus] = await executor.query(
     "SELECT userRoleStatusId FROM UserRoleStatusCurrent WHERE userRoleId = ?",
     [userRoleId],
   );
-
+  //if user role status is not assigned, assign it
   if (existingStatus.length === 0) {
     await executor.query(
       "INSERT INTO UserRoleStatusCurrent (userRoleStatusUniqueId, userRoleId, statusId, userRoleStatusDescription, userRoleStatusCreatedAt, userRoleStatusCreatedBy) VALUES (?, ?, ?, ?, ?, ?)",
@@ -145,12 +146,14 @@ const handleUserRoleStatus = async (
         userUniqueId,
       ],
     );
-  } else {
-    await executor.query(
-      "UPDATE UserRoleStatusCurrent SET statusId = ?, userRoleStatusDescription = ?, userRoleStatusCreatedAt = ? WHERE userRoleId = ?",
-      [statusId, description, currentDate(), userRoleId],
-    );
   }
+  // //if user role status is already assigned, update it
+  // else {
+  //   await executor.query(
+  //     "UPDATE UserRoleStatusCurrent SET statusId = ?, userRoleStatusDescription = ?, userRoleStatusCreatedAt = ? WHERE userRoleId = ?",
+  //     [statusId, description, currentDate(), userRoleId],
+  //   );
+  // }
 };
 
 const registerNewUser = async ({
@@ -199,12 +202,12 @@ const registerNewUser = async ({
   const userData = insertedUserRows[0];
 
   await ensureCredentialForUser({ userUniqueId });
-  await handleUserRoleStatus(
-    userUniqueId,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-  );
+  // await handleUserRoleStatus(
+  //   userUniqueId,
+  //   roleId,
+  //   statusId,
+  //   userRoleStatusDescription,
+  // );
 
   if (roleId === usersRoles.driverRoleId) {
     const pricing = await getPricingWithFilters({ isFree: true });
@@ -230,8 +233,14 @@ const registerNewUser = async ({
 };
 
 const createUser = async (body) => {
-  const { fullName, phoneNumber, roleId, statusId, userRoleStatusDescription } =
-    body;
+  const {
+    fullName,
+    phoneNumber,
+    roleId,
+    statusId,
+    userRoleStatusDescription,
+    requestedFrom,
+  } = body;
   let email = body?.email?.trim();
   //if there is no email, generate placeholder email
   if (!email) {
@@ -287,7 +296,7 @@ const createUser = async (body) => {
      */
     const isSavedEmailPlaceholder = isPlaceholderEmail(user?.email);
     const isInputEmailPlaceholder = isPlaceholderEmail(cleanEmail);
-    const isStreetEntry = body?.requestedFrom === "street";
+    const isStreetEntry = requestedFrom === "street";
 
     if (
       !isStreetEntry &&
@@ -317,7 +326,7 @@ const createUser = async (body) => {
       authService = require("./User.auth.service");
     }
     const userData = {
-      requestedFrom: "user",
+      requestedFrom,
       user,
       phoneNumber: cleanPhone,
       fullName: fullName,

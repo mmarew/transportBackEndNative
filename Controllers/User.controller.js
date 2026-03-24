@@ -30,7 +30,7 @@ const createUser = async (req, res, next) => {
   try {
     const response = await executeInTransaction(async () => {
       // return req?.body
-      return await services.createUser(req?.body);
+      return await services.createUser({ ...req?.body, requestedFrom: "user" });
     });
     // Handle deferred SMS and Email after transaction commit
     if (response?.deferredOTP) {
