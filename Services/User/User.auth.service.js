@@ -5,7 +5,7 @@ const Config = require("../../Utils/Config");
 const jwt = require("jsonwebtoken");
 const generateOTP = require("../../Utils/GenerateOTP");
 const createJWT = require("../../Utils/CreateJWT");
-const { currentDate } = require("../../Utils/CurrentDate");
+const { currentDate, addHours } = require("../../Utils/CurrentDate");
 const bcrypt = require("bcryptjs");
 const verifyPassword = require("../../Utils/VerifyPassword");
 const logger = require("../../Utils/logger");
@@ -55,16 +55,17 @@ const handleExistingUser = async ({
     getData({ tableName: "usersCredential", conditions: { userUniqueId } }),
   ];
 
-  if (requestedFrom !== "user") {
-    pendingOperations.push(
-      registryService.handleUserRoleStatus(
-        userUniqueId,
-        roleId,
-        statusId,
-        userRoleStatusDescription,
-      ),
-    );
-  }
+  // Manage User Role and Status initialization/updates
+  // JUNIOR NOTE: We delegate this to a single point to ensure consistency.
+  // handleUserRoleStatus performs its own existence checks to avoid redundant DB writes.
+  pendingOperations.push(
+    registryService.handleUserRoleStatus(
+      userUniqueId,
+      roleId,
+      statusId,
+      userRoleStatusDescription,
+    ),
+  );
 
   const [savedCredentialRows] = await Promise.all(pendingOperations);
   const savedCredential = savedCredentialRows?.[0] || {};
@@ -104,20 +105,32 @@ const handleExistingUser = async ({
 
   if (!isEmailVerified) {
     // If link is missing or expired, generate a new one
+    const parseDate = (d) => {
+      if (d instanceof Date) return d;
+      return new Date(String(d).replace(" ", "T") + "Z");
+    };
+
     const isExpired =
       emailVerificationExpiresAt &&
-      new Date(emailVerificationExpiresAt.replace(" ", "T") + "Z") <
-        new Date(currentDate().replace(" ", "T") + "Z");
+      parseDate(emailVerificationExpiresAt) < parseDate(currentDate());
+
     if (!emailVerificationToken || isExpired) {
       emailVerificationToken = uuidv4();
       emailVerificationExpiresAt = addHours(currentDate(), 2);
     }
   }
 
-  const hashedOTP = await bcrypt.hash(String(OTP), 10);
+  // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
+  const hashingPromises = [bcrypt.hash(String(OTP), 10)];
+  if (!isPhoneVerified) {
+    hashingPromises.push(bcrypt.hash(String(phoneVerificationOTP), 10));
+  }
+  const hashedResults = await Promise.all(hashingPromises);
+
+  const hashedOTP = hashedResults[0];
   const hashedPhoneVerificationOTP = isPhoneVerified
     ? hashedOTP
-    : await bcrypt.hash(String(phoneVerificationOTP), 10);
+    : hashedResults[1];
   const hashedEmailVerificationOTP = isEmailVerified ? hashedOTP : null;
 
   const credentialValues = {

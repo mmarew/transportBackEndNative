@@ -26,22 +26,29 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
     throw new AppError("userUniqueId required", 400);
   }
   const OTP = rawPassword || generateOTP();
-  const hashedOTP = await bcrypt.hash(String(OTP), 10);
+  const phoneOTP = generateOTP();
+  const emailOTP = generateOTP();
+
+  // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
+  const [
+    hashedOTP,
+    hashedPhoneVerificationOTP,
+    hashedEmailVerificationOTP,
+  ] = await Promise.all([
+    bcrypt.hash(String(OTP), 10),
+    bcrypt.hash(String(phoneOTP), 10),
+    bcrypt.hash(String(emailOTP), 10),
+  ]);
+
   const conditions = { userUniqueId };
   const existing = await getData({
     tableName: "usersCredential",
     conditions,
   });
-  const hashedPhoneVerificationOTP = await bcrypt.hash(
-    String(generateOTP()),
-    10,
-  );
-  const hashedEmailVerificationOTP = await bcrypt.hash(
-    String(generateOTP()),
-    10,
-  );
+
   const emailVerificationToken = uuidv4();
-  const emailVerificationExpiresAt = addHours(currentDate(), 24);
+  // SECURITY: Standardize expiry to 2 hours as per docs and auth service
+  const emailVerificationExpiresAt = addHours(currentDate(), 2);
 
   if (existing && existing.length > 0) {
     const credentialColAndValues = {
@@ -195,19 +202,20 @@ const registerNewUser = async ({
     throw new AppError("User registration failed", 500);
   }
 
-  const [insertedUserRows] = await executor.query(
-    "SELECT * FROM Users WHERE userUniqueId = ?",
-    [userUniqueId],
-  );
-  const userData = insertedUserRows[0];
+  // OPTIMIZATION: Construct userData locally using insertId to avoid a redundant SELECT query
+  const userData = {
+    userId: userIns.insertId,
+    userUniqueId,
+    fullName,
+    phoneNumber,
+    email: cleanEmail,
+    userCreatedAt,
+    userCreatedBy: userCreatedByParam,
+    isEmailVerified: false,
+    isPhoneVerified: false,
+  };
 
   await ensureCredentialForUser({ userUniqueId });
-  // await handleUserRoleStatus(
-  //   userUniqueId,
-  //   roleId,
-  //   statusId,
-  //   userRoleStatusDescription,
-  // );
 
   if (roleId === usersRoles.driverRoleId) {
     const pricing = await getPricingWithFilters({ isFree: true });
@@ -328,14 +336,10 @@ const createUser = async (body) => {
     const userData = {
       requestedFrom,
       user,
-      phoneNumber: cleanPhone,
-      fullName: fullName,
-      email: cleanEmail,
       roleId,
       statusId,
       userRoleStatusDescription,
     };
-    // return userData;
 
     return await authService.handleExistingUser(userData);
   }
