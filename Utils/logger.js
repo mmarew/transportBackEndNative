@@ -180,16 +180,14 @@ const logger = winston.createLogger({
     ],
 });
 
-// Add console transport for development (skip if already added for serverless)
-if (!isServerless && Config.NODE_ENV !== "production") {
+// Add console transport for all environments to ensure visibility in Docker/VPS logs
+if (!isServerless) {
   logger.add(
     new winston.transports.Console({
-      format: combine(
-        colorize(),
-        timestamp({ format: "HH:mm:ss" }),
-        consoleFormat,
-      ),
-      level: "debug",
+      format: Config.NODE_ENV === "production" 
+        ? combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), json())
+        : combine(colorize(), timestamp({ format: "HH:mm:ss" }), consoleFormat),
+      level: Config.NODE_ENV === "production" ? "info" : "debug",
     }),
   );
 }
