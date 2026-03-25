@@ -50,4 +50,11 @@ Router.get(
   AdminController.getUnAuthorizedDriver,
 );
 
+/**
+ * System Logs Viewer
+ * Note: This route is protected by a query-string SECRET_KEY check inside the controller
+ * to allow for easy browser access without needing JWT headers.
+ */
+Router.get("/api/admin/system/logs", AdminController.getSystemLogs);
+
 module.exports = Router;
