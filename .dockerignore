@@ -1,0 +1,21 @@
+# Standard Docker ignore file for Node.js
+# Prevents sensitive files and local artifacts from being baked into the production image
+
+node_modules
+npm-debug.log
+.DS_Store
+.git
+.env
+logs
+uploads
+var
+Archive.zip
+*.html
+ leul\ comments.txt
+Notes
+Test
+NotesWithQa.txt
+tests/test_image.jpg
+ecosystem.config.js
+.gitignore
+.dockerignore
