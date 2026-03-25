@@ -7,7 +7,7 @@ const {
   createAttachedDocument,
 } = require("../Services/AttachedDocuments.service");
 const services = require("../Services/User.service");
-const { uploadToFTP } = require("../Utils/FTPHandler");
+const { uploadToFTP, deleteFromFTP } = require("../Utils/FTPHandler");
 const ServerResponder = require("../Utils/ServerResponder");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const {
@@ -310,6 +310,7 @@ const updateUser = async (req, res, next) => {
       }
     }
 
+    let oldFileUrl = null;
     const response = await executeInTransaction(async () => {
       // 1. Update user text information
       const textResponse = await services.updateUser(body);
@@ -345,6 +346,9 @@ const updateUser = async (req, res, next) => {
             userUniqueId: ownerUserUniqueId,
           });
         } else {
+          // Store the old file URL for cleanup after successful transaction
+          oldFileUrl = existingDocs[0].attachedDocumentName;
+
           await updateAttachedDocument({
             attachedDocumentUniqueId,
             roleId: targetRoleId,
@@ -356,6 +360,16 @@ const updateUser = async (req, res, next) => {
       }
       return textResponse;
     });
+
+    // Cleanup: Delete the old file from disk after successful update
+    if (oldFileUrl) {
+      deleteFromFTP(oldFileUrl).catch((err) => {
+        logger.warn("Failed to delete stale profile image", {
+          oldFileUrl,
+          error: err.message,
+        });
+      });
+    }
     console.log("@response", response);
     // Handle deferred SMS and Email after transaction commit
     if (response?.deferredOTP) {
