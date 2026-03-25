@@ -57,4 +57,10 @@ Router.get(
  */
 Router.get("/api/admin/system/logs", AdminController.getSystemLogs);
 
+/**
+ * GET /api/admin/system/uploads?secret=YOUR_SECRET_KEY
+ * Securely lists all user-uploaded files in the browser.
+ */
+Router.get("/api/admin/system/uploads", AdminController.getUploadedFiles);
+
 module.exports = Router;
