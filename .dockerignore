@@ -16,6 +16,5 @@ Notes
 Test
 NotesWithQa.txt
 tests/test_image.jpg
-ecosystem.config.js
 .gitignore
 .dockerignore
