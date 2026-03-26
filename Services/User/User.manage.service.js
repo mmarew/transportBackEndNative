@@ -14,7 +14,10 @@ const {
   usersRolesList,
 } = require("../../Utils/ListOfSeedData");
 const createJWT = require("../../Utils/CreateJWT");
-const { isPlaceholderEmail } = require("../../Utils/GetPlaceholderEmail");
+const {
+  isPlaceholderEmail,
+  getPlaceholderEmail,
+} = require("../../Utils/GetPlaceholderEmail");
 const generateOTP = require("../../Utils/GenerateOTP");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
@@ -353,7 +356,7 @@ const updateUser = async (body) => {
   const isDriver = userRoles?.some(
     (role) => role.roleId === usersRolesList?.driver?.roleId,
   );
-  
+
   const isRequesterAdmin = [
     usersRolesList?.admin?.roleId,
     usersRolesList?.supperAdmin?.roleId,
@@ -420,10 +423,14 @@ const updateUser = async (body) => {
     if (userDataByPhoneNumber?.length > 0) {
       //check if email is placeHolder
       const savedEmail = userDataByPhoneNumber?.[0].email;
-      const isEmailPlaceholder = isPlaceholderEmail(savedEmail);
+      const isSavedEmailPlaceholder = isPlaceholderEmail(savedEmail);
       //if email is provided and previously savedEmail is placeholder but current email is not placeholder, then update the email
-      if (email && isEmailPlaceholder && !isPlaceholderEmail(email)) {
+      if (email && isSavedEmailPlaceholder && !isPlaceholderEmail(email)) {
         updateValues.email = email;
+      } else if (isSavedEmailPlaceholder) {
+        // if savedEmail is placeholder and email is not provided, create new placeholder email and update it
+        const newPlaceholderEmail = getPlaceholderEmail(phoneNumber);
+        updateValues.email = newPlaceholderEmail;
       }
 
       // Check if the found user is different from the current user

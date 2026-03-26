@@ -347,11 +347,10 @@ const createUserByAdminOrSuperAdmin = async ({
   const { fullName, phoneNumber, roleId, statusId } = body;
   let email = body?.email?.trim();
 
-  // Placeholder email if none provided
+  //if email is not provided create placeholder email
   if (!email) {
     email = getPlaceholderEmail(phoneNumber);
   }
-
   const userDataByEmail = await getData({
     tableName: "Users",
     conditions: { email },
@@ -367,13 +366,39 @@ const createUserByAdminOrSuperAdmin = async ({
       statusId,
       "",
     );
-    if (phoneNumber && userDataByEmail[0].phoneNumber !== phoneNumber) {
+    //
+    if (
+      !isPlaceholderEmail(email) &&
+      phoneNumber &&
+      userDataByEmail[0].phoneNumber !== phoneNumber
+    ) {
       throw new AppError("There is a difference in phone number", 409);
     }
-    return {
-      message: "success",
-      data: "User already exists with this email address",
-    };
+    if (!isPlaceholderEmail(email)) {
+      return {
+        message: "success",
+        data: "User already exists with this email address",
+      };
+    }
+    console.log(
+      "@email",
+      email,
+      " userDataByEmail",
+      userDataByEmail,
+      "!isPlaceholderEmail(email))",
+      !isPlaceholderEmail(email),
+    );
+
+    //if placeholder email is already exists dont block the user from creating but use new placeholder email
+    if (isPlaceholderEmail(email)) {
+      //create new placeholder email
+      console.log("ererererer");
+      const newEmail = getPlaceholderEmail(
+        phoneNumber + Math.floor(Math.random() * 1000000),
+      );
+      console.log("@newEmail", newEmail);
+      email = newEmail;
+    }
   }
 
   const userDataByPhoneNumber = await getData({
