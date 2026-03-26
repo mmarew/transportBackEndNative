@@ -11,8 +11,6 @@ const { usersRoles, USER_STATUS } = require("../../Utils/ListOfSeedData");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const generateOTP = require("../../Utils/GenerateOTP");
-const { createUserSubscription } = require("../UserSubscription.service");
-const { getPricingWithFilters } = require("../SubscriptionPlanPricing.service");
 const {
   getPlaceholderEmail,
   isPlaceholderEmail,
