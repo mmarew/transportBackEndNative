@@ -173,11 +173,8 @@ const registerNewUser = async ({
   const userCreatedAt = currentDate();
   const userCreatedByParam = createdBy || userUniqueId;
 
-  // Use provided email or generate a placeholder if none exists
-  const cleanEmail =
-    email && !isPlaceholderEmail(email)
-      ? email
-      : getPlaceholderEmail(phoneNumber);
+  // Use provided email if it exists (even if it's a placeholder we just carefully generated)
+  const cleanEmail = email ? email : getPlaceholderEmail(phoneNumber);
 
   const executor = transactionStorage.getStore() || pool;
   const [userIns] = await executor.query(
@@ -389,15 +386,20 @@ const createUserByAdminOrSuperAdmin = async ({
       !isPlaceholderEmail(email),
     );
 
-    //if placeholder email is already exists dont block the user from creating but use new placeholder email
     if (isPlaceholderEmail(email)) {
-      //create new placeholder email
-      console.log("ererererer");
-      const newEmail = getPlaceholderEmail(
-        phoneNumber + Math.floor(Math.random() * 1000000),
-      );
-      console.log("@newEmail", newEmail);
-      email = newEmail;
+      // If we found a user by this placeholder email but their phone number doesn't match,
+      // we generate a unique one for the NEW user we are about to create.
+      if (userDataByEmail[0].phoneNumber !== phoneNumber) {
+        email = getPlaceholderEmail(
+          phoneNumber + Math.floor(Math.random() * 1000000),
+        );
+      } else {
+        // Same phone + Same placeholder = Same user. We're done.
+        return {
+          message: "success",
+          data: "User already exists with this placeholder email",
+        };
+      }
     }
   }
 
@@ -434,7 +436,13 @@ const createUserByAdminOrSuperAdmin = async ({
     // Generate/Update OTP for verification
     await ensureCredentialForUser({ userUniqueId: existingUserUniqueId });
 
-    if (email && existingUser.email && existingUser.email !== email) {
+    // Only check for email difference if the PROVIDED email is a real email (not a placeholder)
+    if (
+      email &&
+      !isPlaceholderEmail(email) &&
+      existingUser.email &&
+      existingUser.email !== email
+    ) {
       throw new AppError("There is a difference in email address", 409);
     }
 

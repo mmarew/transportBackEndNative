@@ -439,10 +439,20 @@ const updateUser = async (body) => {
       } else {
         // Same user, can update phone number
         updateValues.phoneNumber = phoneNumber;
+        
+        // SYNC PLACEHOLDER EMAIL: If current email is a placeholder, update it to match new phone
+        if (isPlaceholderEmail(currentUser.email)) {
+          updateValues.email = getPlaceholderEmail(phoneNumber);
+        }
       }
     } else {
       // Phone number doesn't exist in the system, can update
       updateValues.phoneNumber = phoneNumber;
+
+      // SYNC PLACEHOLDER EMAIL: If current email is a placeholder, update it to match new phone
+      if (isPlaceholderEmail(currentUser.email)) {
+        updateValues.email = getPlaceholderEmail(phoneNumber);
+      }
     }
   }
 
