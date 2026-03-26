@@ -8,7 +8,11 @@ const { deleteFile } = require("../../Utils/FileUtils");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
-const { USER_STATUS, statusList } = require("../../Utils/ListOfSeedData");
+const {
+  USER_STATUS,
+  statusList,
+  usersRolesList,
+} = require("../../Utils/ListOfSeedData");
 const createJWT = require("../../Utils/CreateJWT");
 const { isPlaceholderEmail } = require("../../Utils/GetPlaceholderEmail");
 const generateOTP = require("../../Utils/GenerateOTP");
@@ -325,11 +329,41 @@ const getUserByFilterDetailed = async (
 };
 
 const updateUser = async (body) => {
-  const { userUniqueId, fullName, phoneNumber, email, roleId, statusId } = body;
+  const {
+    userUniqueId,
+    fullName,
+    phoneNumber,
+    email,
+    roleId,
+    statusId,
+    roleIdFromToken,
+    userUniqueIdFromToken,
+  } = body;
 
   // Validate required field
   if (!userUniqueId) {
     throw new AppError("userUniqueId is required", 400);
+  }
+  // 1. Security Check: Block drivers from self-updating (INSA Compliance)
+  const userRoles = await getData({
+    tableName: "UserRole",
+    conditions: { userUniqueId },
+  });
+
+  const isDriver = userRoles?.some(
+    (role) => role.roleId === usersRolesList?.driver?.roleId,
+  );
+  
+  const isRequesterAdmin = [
+    usersRolesList?.admin?.roleId,
+    usersRolesList?.supperAdmin?.roleId,
+  ].includes(roleIdFromToken);
+
+  if (isDriver && !isRequesterAdmin) {
+    throw new AppError(
+      "Dear user, you are a driver and cannot update your own profile for security reasons. Please contact an admin for assistance.",
+      403,
+    );
   }
 
   // Fetch current user details to compare contact info

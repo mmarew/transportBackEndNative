@@ -313,6 +313,58 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
   };
 };
 
+/**
+ * --- Passenger Operational Templates ---
+ */
+
+const getBookingConfirmationMessage = (bookingId, passengerName, pickupLocation) => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `Dear ${passengerName}, your booking #${bookingId} with ${brand} is confirmed. Your driver will pick you up at ${pickupLocation}. Thank you for choosing us!`,
+    emailSubject: `Booking Confirmed #${bookingId} - ${brand}`,
+  };
+};
+
+const getTripReminderMessage = (passengerName, time = "15 minutes") => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `Hi ${passengerName}, just a reminder that your trip with ${brand} starts in ${time}. Your driver is on the way!`,
+    emailSubject: `Upcoming Trip Reminder - ${brand}`,
+  };
+};
+
+const getTripUpdateMessage = (type, tripId, reason = "operational issues") => {
+  const brand = Config.BRAND_NAME;
+  const isDelay = type === "delay";
+  const action = isDelay ? "delayed" : "cancelled";
+  const emoji = isDelay ? "⏳" : "❌";
+  
+  return {
+    sms: `${emoji} Dear user, your trip #${tripId} has been ${action} due to ${reason}. We apologize for the inconvenience. Thank you for your patience with ${brand}.`,
+    emailSubject: `Important: Your trip #${tripId} has been ${action}`,
+  };
+};
+
+/**
+ * --- Marketing & Engagement Templates ---
+ */
+
+const getPromoMessage = (promoCode, discount = "20%") => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `🎁 Special Offer! Get ${discount} OFF your next ride! Use code ${promoCode} at checkout. Valid until this Friday. Ride more, pay less with ${brand}!`,
+    emailSubject: `Your Exclusive ${discount} Discount Code!`,
+  };
+};
+
+const getHolidayMessage = (holidayName) => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `✨ Happy ${holidayName} from the ${brand} family! May your day be filled with joy and safe travels. We are here if you need a ride today!`,
+    emailSubject: `Best Wishes for ${holidayName} from ${brand}`,
+  };
+};
+
 module.exports = {
   getPhoneVerificationLinkMessage,
   getSuccessPhoneVerificationHtml,
@@ -320,4 +372,9 @@ module.exports = {
   getEmailVerificationLinkMessage,
   getOtpMessage,
   getAdminAssignmentMessage,
+  getBookingConfirmationMessage,
+  getTripReminderMessage,
+  getTripUpdateMessage,
+  getPromoMessage,
+  getHolidayMessage,
 };

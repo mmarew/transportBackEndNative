@@ -1,7 +1,7 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const uuidv4 = require("uuid").v4;
-const { deleteFile } = require("../Utils/FileUtils");
+const { deleteFromFTP } = require("../Utils/FTPHandler");
 const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const {
@@ -218,20 +218,28 @@ const updateAttachedDocument = async ({
       // attachedDocumentUpdatedAt: currentDate(),
     };
 
+    let oldFileUrl = null;
     if (attachedDocumentName) {
+      oldFileUrl = existingDoc.attachedDocumentName;
       newUpdateData.attachedDocumentName = attachedDocumentName;
     }
 
     const result = await updateData({
-      // tableName: "AttachedDocuments",
-      // conditions: { attachedDocumentUniqueId },
-      // colAndVal: newUpdateData,
       tableName: "AttachedDocuments",
       conditions: { attachedDocumentUniqueId },
       updateValues: newUpdateData,
     });
 
     if (result?.affectedRows > 0) {
+      // Async cleanup of the old file
+      if (oldFileUrl) {
+        deleteFromFTP(oldFileUrl).catch((err) => {
+          logger.warn("Failed to delete stale attached document", {
+            oldFileUrl,
+            error: err.message,
+          });
+        });
+      }
       return { message: "success", data: "Document updated successfully" };
     } else {
       throw new AppError("Failed to update document", 500);
@@ -253,7 +261,12 @@ const deleteAttachedDocument = async (attachedDocumentUniqueId) => {
   );
   const attachedDocumentName = attachedDocument?.attachedDocumentName;
   if (attachedDocumentName) {
-    deleteFile(attachedDocumentName);
+    deleteFromFTP(attachedDocumentName).catch((err) => {
+      logger.warn("deleteAttachedDocument: failed to delete file", {
+        attachedDocumentUniqueId,
+        error: err?.message,
+      });
+    });
   }
 
   await deleteData({

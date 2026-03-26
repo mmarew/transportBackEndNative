@@ -264,6 +264,7 @@ const updateUser = async (req, res, next) => {
   try {
     const user = req?.user;
     const userUniqueIdFromToken = user?.userUniqueId;
+    const roleIdFromToken = user?.roleId;
     // self means the user is updating himself,so userUniqueId is the same as ownerUserUniqueId
     let ownerUserUniqueId = req?.params?.ownerUserUniqueId;
     let targetRoleId = req.body.roleId;
@@ -275,6 +276,8 @@ const updateUser = async (req, res, next) => {
     // Determine the target roleId (used for both JWT and AttachedDocuments)
 
     const body = {
+      roleIdFromToken,
+      userUniqueIdFromToken,
       ...req.body,
       userUniqueId: ownerUserUniqueId,
       roleId: targetRoleId,
