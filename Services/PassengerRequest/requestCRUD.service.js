@@ -1,5 +1,5 @@
 const Config = require("../../Utils/Config");
-const {   performJoinSelect } = require("../../CRUD/Read/ReadData");
+const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { deleteData } = require("../../CRUD/Delete/DeleteData");
 const { createNewPassengerRequest } = require("../../CRUD/Create/CreateData");
@@ -59,10 +59,7 @@ const {
  *   - If passenger/admin scenario: Returns verifyPassengerStatus result with status counts
  *   - On error: Returns { message: "error", error: "error message" }
  */
-const createPassengerRequest = async (
-  body,
-  journeyStatusId
-) => {
+const createPassengerRequest = async (body, journeyStatusId) => {
   try {
     const { shipperRequestCreatedByRoleId } = body;
 
@@ -110,11 +107,7 @@ const createPassengerRequest = async (
       const promises = Array(noOfRecords)
         .fill()
         .map(() =>
-          createNewPassengerRequest(
-            body,
-            userUniqueId,
-            journeyStatusId
-          ),
+          createNewPassengerRequest(body, userUniqueId, journeyStatusId),
         );
 
       // Wait for all requests to be created in parallel
@@ -174,7 +167,7 @@ const createPassengerRequest = async (
       return newRequests;
     }
     return await verifyPassengerStatus({
-      userUniqueId
+      userUniqueId,
     });
   } catch (error) {
     logger.error("Error in createPassengerRequest service", {
@@ -503,7 +496,7 @@ const getDetailedJourneyData = async (passengerRequests) => {
       if (
         pr.journeyStatusId === journeyStatusMap.waiting ||
         pr.journeyStatusId === journeyStatusMap.cancelledByPassenger ||
-        pr.journeyStatusId === journeyStatusMap.cancelledByDriver 
+        pr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
         waitingResults.push({
           passengerRequest: pr,
@@ -534,13 +527,14 @@ const getDetailedJourneyData = async (passengerRequests) => {
       `SELECT * FROM JourneyDecisions WHERE passengerRequestId IN (?) AND journeyStatusId IN (?)`,
       [prIds, positiveStatuses],
     );
-
     // Group decisions by passengerRequestId
     const decisionsByPR = new Map();
     for (const d of allDecisionsRaw) {
+      // if decisionsByPR dont have the passengerRequestId as key, add it with an empty array
       if (!decisionsByPR.has(d.passengerRequestId)) {
         decisionsByPR.set(d.passengerRequestId, []);
       }
+      // push the decision to the array of the passengerRequestId
       decisionsByPR.get(d.passengerRequestId).push(d);
     }
 
@@ -675,6 +669,7 @@ const getDetailedJourneyData = async (passengerRequests) => {
     }
 
     // --- Step 7: Batch fetch journey data if needed (1 query) ---
+    //if the journeyStatusId is journeyStarted or journeyCompleted, then fetch the journey data
     const journeyStatuses = [
       journeyStatusMap.journeyStarted,
       journeyStatusMap.journeyCompleted,
@@ -682,22 +677,24 @@ const getDetailedJourneyData = async (passengerRequests) => {
     const prsNeedingJourney = validPRs.filter((pr) =>
       journeyStatuses.includes(pr.journeyStatusId),
     );
-
+    // console.log("@prsNeedingJourney", prsNeedingJourney);
     let journeyByDecisionUniqueId = new Map();
     if (prsNeedingJourney.length > 0) {
+      // Collect ALL decision unique IDs for PRs needing journey data — not just decisions[0],
+      // because a PR may have multiple decisions (e.g. one rejected, one accepted/completed).
+      // We search across all of them so the correct journey record is always found.
       const journeyDecisionUniqueIds = prsNeedingJourney
-        .map((pr) => {
+        .flatMap((pr) => {
           const decisions = decisionsByPR.get(pr.passengerRequestId) || [];
-          return decisions[0]?.journeyDecisionUniqueId;
-        })
-        .filter(Boolean);
+          return decisions.map((d) => d.journeyDecisionUniqueId).filter(Boolean);
+        });
+      const uniqueJourneyDecisionIds = [...new Set(journeyDecisionUniqueIds)];
 
-      if (journeyDecisionUniqueIds.length > 0) {
+      if (uniqueJourneyDecisionIds.length > 0) {
         const [allJourneys] = await executor.query(
           `SELECT * FROM Journey WHERE journeyDecisionUniqueId IN (?)`,
-          [journeyDecisionUniqueIds],
+          [uniqueJourneyDecisionIds],
         );
-
         for (const j of allJourneys) {
           journeyByDecisionUniqueId.set(j.journeyDecisionUniqueId, j);
         }
@@ -711,7 +708,9 @@ const getDetailedJourneyData = async (passengerRequests) => {
       const driverRequests = decisions
         .map((decision) => {
           const driver = driversByRequestId.get(decision.driverRequestId);
-          if (!driver) {return null;}
+          if (!driver) {
+            return null;
+          }
 
           return {
             ...driver,
@@ -723,10 +722,19 @@ const getDetailedJourneyData = async (passengerRequests) => {
 
       const useJourney = journeyStatuses.includes(pr.journeyStatusId);
       let journey = {};
-      if (useJourney && decisions[0]?.journeyDecisionUniqueId) {
-        journey =
-          journeyByDecisionUniqueId.get(decisions[0].journeyDecisionUniqueId) ||
-          {};
+      if (useJourney) {
+        // Find the specific decision that matches the PR's final status.
+        // A PR can have multiple decisions (e.g. one rejected offer + one completed offer).
+        // Using decisions[0] would pick the wrong one if it's the older, non-journey decision.
+        const journeyDecision =
+          decisions.find((d) => d.journeyStatusId === pr.journeyStatusId) ||
+          decisions[0];
+        if (journeyDecision?.journeyDecisionUniqueId) {
+          journey =
+            journeyByDecisionUniqueId.get(
+              journeyDecision.journeyDecisionUniqueId,
+            ) || {};
+        }
       }
 
       return {
@@ -996,8 +1004,7 @@ const getAllActiveRequests = async (filters = {}) => {
     return {
       status: "error",
       error: "Unable to retrieve active ride requests",
-      details:
-        Config.NODE_ENV === "development" ? error.message : undefined,
+      details: Config.NODE_ENV === "development" ? error.message : undefined,
     };
   }
 };
