@@ -373,7 +373,6 @@ const updateUser = async (req, res, next) => {
         });
       });
     }
-    console.log("@response", response);
     // Handle deferred SMS and Email after transaction commit
     if (response?.deferredOTP) {
       const { sendSms } = require("../Utils/smsSender");
@@ -405,7 +404,6 @@ const updateUser = async (req, res, next) => {
               phoneVerificationOTP,
               "update",
             );
-            console.log("@linkMsg", linkMsg);
             sendSms(targetPhone, linkMsg.sms).catch((err) => {
               logger.warn("Phone Verification Link SMS failed on update", {
                 phoneNumber: targetPhone,
@@ -417,10 +415,10 @@ const updateUser = async (req, res, next) => {
             const oldPhone = user.phoneNumber;
             const roleId = Number(req.user.roleId);
             let userType = "passenger";
-            if (roleId === usersRoles.driverRoleId) userType = "driver";
-            else if (roleId === usersRoles.adminRoleId) userType = "admin";
+            if (roleId === usersRoles.driverRoleId) {userType = "driver";}
+            else if (roleId === usersRoles.adminRoleId) {userType = "admin";}
             else if (roleId === usersRoles.supperAdminRoleId)
-              userType = "admin";
+            {userType = "admin";}
 
             const socketId = await getSocket(
               userType,
@@ -534,7 +532,6 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       const { roleId } = req.body;
       const {
         phoneVerificationOTP,
-        emailVerificationOTP,
         emailVerificationToken,
       } = response.deferredOTP;
 
@@ -628,7 +625,7 @@ const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
     // Call the service to mark the email as verified and generate fresh tokens
-    const response = await services.verifyEmailByToken(token);
+    await services.verifyEmailByToken(token);
 
     // Render a clean HTML success page (OTP is no longer shown here for security)
     res.send(getSuccessEmailVerificationHtml());

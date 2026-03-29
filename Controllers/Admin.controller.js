@@ -120,16 +120,16 @@ const AdminController = {
               </span>
             </div>
             ${lastLines
-              .map((line) => {
-                let colorClass = "";
-                if (line.includes('"level":"error"')) colorClass = "error";
-                if (line.includes('"level":"warn"')) colorClass = "warn";
-                if (line.includes('"level":"info"')) colorClass = "info";
-                return `<div class="log-entry ${colorClass}">${line
-                  .replace(/>/g, "&gt;")
-                  .replace(/</g, "&lt;")}</div>`;
-              })
-              .join("")}
+    .map((line) => {
+      let colorClass = "";
+      if (line.includes('"level":"error"')) {colorClass = "error";}
+      if (line.includes('"level":"warn"')) {colorClass = "warn";}
+      if (line.includes('"level":"info"')) {colorClass = "info";}
+      return `<div class="log-entry ${colorClass}">${line
+        .replace(/>/g, "&gt;")
+        .replace(/</g, "&lt;")}</div>`;
+    })
+    .join("")}
           </body>
         </html>
       `);
@@ -199,27 +199,27 @@ const AdminController = {
                 </div>
               </div>
               ${fileInfos
-                .map(
-                  (f) => `
+    .map(
+      (f) => `
                 <div class="file-row">
                   <div>
                     <a href="${f.url}" target="_blank" class="file-name">${
-                      f.name
-                    }</a>
+  f.name
+}</a>
                     <div class="file-meta">Size: ${
-                      f.size
-                    } | Uploaded: ${f.mtime.toLocaleString()}</div>
+  f.size
+} | Uploaded: ${f.mtime.toLocaleString()}</div>
                   </div>
                   <a href="${f.url}" target="_blank" class="btn">View</a>
                 </div>
               `,
-                )
-                .join("")}
+    )
+    .join("")}
               ${
-                fileInfos.length === 0
-                  ? '<p style="text-align:center; color:#95a5a6;">No files uploaded yet.</p>'
-                  : ""
-              }
+  fileInfos.length === 0
+    ? '<p style="text-align:center; color:#95a5a6;">No files uploaded yet.</p>'
+    : ""
+}
             </div>
           </body>
         </html>

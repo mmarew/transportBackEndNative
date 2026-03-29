@@ -163,7 +163,7 @@ const getEmailVerificationLinkMessage = (
  * @param {string} [type='update'] - The context (registration or update).
  * @returns {Object} Message object.
  */
-const getPhoneVerificationLinkMessage = (link, otp, type = "update") => {
+const getPhoneVerificationLinkMessage = (link, otp) => {
   const brandName = Config.BRAND_NAME;
 
   return {

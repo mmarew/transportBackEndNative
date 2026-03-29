@@ -106,7 +106,9 @@ const handleExistingUser = async ({
   if (!isEmailVerified) {
     // If link is missing or expired, generate a new one
     const parseDate = (d) => {
-      if (d instanceof Date) return d;
+      if (d instanceof Date) {
+        return d;
+      }
       return new Date(String(d).replace(" ", "T") + "Z");
     };
 
@@ -552,9 +554,13 @@ const verifyEmailByToken = async (token) => {
       for (const ur of userRoles) {
         const roleId = Number(ur.roleId);
         let userType = "passenger";
-        if (roleId === usersRoles.driverRoleId) userType = "driver";
-        else if (roleId === usersRoles.adminRoleId) userType = "admin";
-        else if (roleId === usersRoles.supperAdminRoleId) userType = "admin";
+        if (roleId === usersRoles.driverRoleId) {
+          userType = "driver";
+        } else if (roleId === usersRoles.adminRoleId) {
+          userType = "admin";
+        } else if (roleId === usersRoles.supperAdminRoleId) {
+          userType = "admin";
+        }
 
         const socketId = await getSocket(userType, cleanedPhone);
         if (socketId) {

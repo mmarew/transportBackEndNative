@@ -375,14 +375,6 @@ const createUserByAdminOrSuperAdmin = async ({
         data: "User already exists with this email address",
       };
     }
-    console.log(
-      "@email",
-      email,
-      " userDataByEmail",
-      userDataByEmail,
-      "!isPlaceholderEmail(email))",
-      !isPlaceholderEmail(email),
-    );
 
     if (isPlaceholderEmail(email)) {
       // If we found a user by this placeholder email but their phone number doesn't match,

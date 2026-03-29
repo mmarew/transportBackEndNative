@@ -1,5 +1,4 @@
 const request = require("supertest");
-const axios = require("axios");
 const Config = require("../../Utils/Config");
 const app = require("../../Config/Express.config");
 

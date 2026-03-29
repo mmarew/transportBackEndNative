@@ -29,12 +29,6 @@ const sendEmail = async (to, subject, body, html = null) => {
 
     // SMTP Configuration from centralized Config
     const { HOST, PORT, USER, PASS, FROM } = Config.SMTP;
-    console.log(
-      "Config.SMTP",
-      Config.SMTP,
-      " Config.BRAND_NAME",
-      Config.BRAND_NAME,
-    );
     const from = FROM || `"${Config.BRAND_NAME}" <${USER}>`;
 
     // Fallback if not configured
