@@ -451,7 +451,9 @@ const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
   if (isApproving && depositStatus !== "approved") {
     // When approving, use new amount from payload if provided so we add balance once with the final amount (avoids add old then deduct old + add new)
     const amountToAdd =
-      data.depositAmount !== null ? data.depositAmount : oldDepositAmount;
+      data.depositAmount !== undefined && data.depositAmount !== null
+        ? Number(data.depositAmount)
+        : Number(oldDepositAmount);
 
     // 1. Add balance for approved deposit (single operation with correct amount)
     await prepareAndCreateNewBalance({
@@ -697,7 +699,9 @@ const updateUserDepositStatusService = async (userDepositUniqueId, data) => {
   const newDepositAmount = Number(data.depositAmount);
   if (isApproving) {
     const amountToAdd =
-      newDepositAmount !== null ? newDepositAmount : oldDepositAmount;
+      data.depositAmount !== undefined && data.depositAmount !== null
+        ? Number(data.depositAmount)
+        : Number(oldDepositAmount);
     await prepareAndCreateNewBalance({
       addOrDeduct: "add",
       amount: amountToAdd,
