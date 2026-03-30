@@ -56,10 +56,10 @@
     "morgan": "^1.10.1",
     "multer": "^1.4.5-lts.2",
     "mysql2": "^3.10.1",
-    "nodemailer": "^8.0.2",
+    "nodemailer": "^8.0.4",
     "os": "^0.1.2",
     "path": "^0.12.7",
-    "pm2": "^6.0.8",
+    "pm2": "^6.0.14",
     "redis": "^5.0.0",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
@@ -67,7 +67,11 @@
     "winston": "^3.19.0"
   },
   "overrides": {
-    "node-forge": "1.4.0"
+    "node-forge": "1.4.0",
+    "picomatch": "4.0.4",
+    "path-to-regexp": "0.1.13",
+    "@tootallnate/once": "^2.0.0",
+    "dicer": "0.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
