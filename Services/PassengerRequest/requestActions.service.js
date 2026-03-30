@@ -65,6 +65,9 @@ const acceptDriverRequest = async (body) => {
     }
 
     return await executeInTransaction(async () => {
+      // Fetch ALL open bids for this passenger — both status 2 (requested) and status 3 (acceptedByDriver).
+      // Without this, bids still at status 2 (not yet interacted with) are skipped and never marked
+      // as `notSelectedInBid`, leaving stale decisions in the DB with an incorrect status.
       const connectedDrivers = await performJoinSelect({
         baseTable: "DriverRequest",
         selectColumns:
@@ -85,7 +88,10 @@ const acceptDriverRequest = async (body) => {
         ],
         conditions: {
           "PassengerRequest.userUniqueId": userUniqueId,
-          "JourneyDecisions.journeyStatusId": journeyStatusMap.acceptedByDriver,
+          "JourneyDecisions.journeyStatusId": [
+            journeyStatusMap.requested,      // 2 — driver bid, not yet interacted
+            journeyStatusMap.acceptedByDriver, // 3 — driver accepted, waiting on passenger
+          ],
         },
       });
 
