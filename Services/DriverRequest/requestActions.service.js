@@ -20,7 +20,10 @@ const {
 const { createJourneyDecision } = require("../JourneyDecisions.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 const { createJourney } = require("../Journey.service");
-const { createCanceledJourney } = require("../CanceledJourneys.service");
+const {
+  createCanceledJourney,
+  getJourneyDataByContextType,
+} = require("../CanceledJourneys.service");
 const messageTypes = require("../../Utils/MessageTypes");
 const {
   journeyStatusMap,
@@ -1252,16 +1255,21 @@ const cancelDriverRequest = async (data) => {
         // Send admin notification only when no journey exists (first cancellation registration)
         // This happens after successful transaction commit
         if (!hasJourney) {
-          const cancellationDetails = canceledJourneyResult.cancellationDetails;
+          const cancellationDetails =
+            canceledJourneyResult?.data?.cancellationDetails;
+          const journeyData = await getJourneyDataByContextType({
+            contextType,
+            contextId,
+          });
+
           sendSocketIONotificationToAdmin({
             message: {
               message: "success",
               messageType: "cancelledJourney",
               data: [
                 {
-                  driver: getActiveRequest?.at(0), // Driver details
-                  passenger: passenger?.at(0), // Passenger details
                   cancellationDetails,
+                  journeyDetails: journeyData,
                 },
               ],
             },

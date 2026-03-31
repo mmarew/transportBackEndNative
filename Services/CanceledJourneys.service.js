@@ -1037,4 +1037,5 @@ module.exports = {
   createCanceledJourney,
   deleteCanceledJourney,
   updateCanceledJourney,
+  getJourneyDataByContextType,
 };
