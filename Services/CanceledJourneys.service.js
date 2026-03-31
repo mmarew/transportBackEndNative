@@ -413,7 +413,8 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
     // Status filters
     if (isSeenByAdmin !== undefined) {
       whereConditions.push("cj.isSeenByAdmin = ?");
-      queryParams.push(isSeenByAdmin === "true" ? 1 : 0);
+      // Joi validator converts "true"/"false" strings to boolean true/false
+      queryParams.push(isSeenByAdmin === true || isSeenByAdmin === "true" ? 1 : 0);
     }
 
     // Date range filters
