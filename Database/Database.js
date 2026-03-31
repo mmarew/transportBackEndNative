@@ -727,6 +727,7 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
     isSeenByAdmin TINYINT(1) NOT NULL DEFAULT 0,
+    canceledJourneySeenByAdminAt DATETIME NULL,
     canceledJourneyCreatedBy VARCHAR(36) NOT NULL,  -- Who created the canceled journey record
     canceledJourneyUpdatedBy VARCHAR(36) NULL,  -- Who updated the canceled journey record
     canceledJourneyDeletedBy VARCHAR(36) NULL,  -- Who deleted the canceled journey record

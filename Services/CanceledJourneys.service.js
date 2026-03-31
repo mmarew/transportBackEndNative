@@ -453,6 +453,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
         cj.cancellationReasonsTypeId,
         cj.canceledTime,
         cj.isSeenByAdmin,
+        cj.canceledJourneySeenByAdminAt,
         crt.cancellationReason,
         crt.cancellationReasonTypeUniqueId
       FROM CanceledJourneys cj
@@ -499,6 +500,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
             cancellationReasonsTypeId: item.cancellationReasonsTypeId,
             canceledTime: item.canceledTime,
             isSeenByAdmin: item.isSeenByAdmin,
+            canceledJourneySeenByAdminAt: item.canceledJourneySeenByAdminAt,
             cancellationReasonTypeUniqueId: item.cancellationReasonTypeUniqueId,
             cancellationReason: item.cancellationReason,
           };
@@ -566,7 +568,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
 const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
   try {
     const sql =
-      "UPDATE CanceledJourneys SET isSeenByAdmin = 1, seenAt = ? WHERE canceledJourneyUniqueId = ?";
+      "UPDATE CanceledJourneys SET isSeenByAdmin = 1, canceledJourneySeenByAdminAt = ? WHERE canceledJourneyUniqueId = ?";
     const result = await query(sql, [currentDate(), canceledJourneyUniqueId]);
 
     return result.affectedRows > 0
