@@ -28,7 +28,7 @@ const getOtpMessage = (otp, type = "login") => {
   const phoneLink = `tel:${supportPhone}`;
 
   return {
-    sms: `Dear user, your ${brand} code is: ${otp}. For your security, please do not share this with anyone. Sharing this code could give others access to your account and data.`,
+    sms: `Dear user, your ${brand} ${action} code is: ${otp} . For your security, please do not share this with anyone. Sharing this code could give others access to your account and data.`,
     emailSubject: `${otp} is your ${brand} verification code`,
     emailHtml: `
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
@@ -317,7 +317,11 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
  * --- Passenger Operational Templates ---
  */
 
-const getBookingConfirmationMessage = (bookingId, passengerName, pickupLocation) => {
+const getBookingConfirmationMessage = (
+  bookingId,
+  passengerName,
+  pickupLocation,
+) => {
   const brand = Config.BRAND_NAME;
   return {
     sms: `Dear ${passengerName}, your booking #${bookingId} with ${brand} is confirmed. Your driver will pick you up at ${pickupLocation}. Thank you for choosing us!`,
@@ -338,7 +342,7 @@ const getTripUpdateMessage = (type, tripId, reason = "operational issues") => {
   const isDelay = type === "delay";
   const action = isDelay ? "delayed" : "cancelled";
   const emoji = isDelay ? "⏳" : "❌";
-  
+
   return {
     sms: `${emoji} Dear user, your trip #${tripId} has been ${action} due to ${reason}. We apologize for the inconvenience. Thank you for your patience with ${brand}.`,
     emailSubject: `Important: Your trip #${tripId} has been ${action}`,
