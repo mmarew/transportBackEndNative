@@ -32,6 +32,8 @@ const createUser = async (req, res, next) => {
       // return req?.body
       return await services.createUser({ ...req?.body, requestedFrom: "user" });
     });
+    console.log("@response", response);
+
     // Handle deferred SMS and Email after transaction commit
     if (response?.deferredOTP) {
       const { sendSms } = require("../Utils/smsSender");
@@ -42,10 +44,10 @@ const createUser = async (req, res, next) => {
         emailVerificationOTP,
         emailVerificationToken,
       } = response.deferredOTP;
-
       // 1. Send SMS (Always OTP)
       if (phoneNumber && phoneVerificationOTP) {
         const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
+        console.log("@phoneMsg", phoneMsg);
         sendSms(phoneNumber, null, phoneMsg.sms).catch((err) => {
           const logger = require("../Utils/logger");
           logger.warn("Deferred SMS sending failed", {
@@ -128,13 +130,21 @@ const loginUser = async (req, res, next) => {
 
       // 1. Send SMS (Always OTP for login)
       if (phoneNumber && phoneVerificationOTP) {
+        logger.info("Initiating Login SMS Dispatch", { phoneNumber });
         const phoneMsg = getOtpMessage(phoneVerificationOTP, "login");
-        sendSms(phoneNumber, null, phoneMsg.sms).catch((err) => {
-          logger.warn("Deferred Login SMS sending failed", {
-            phoneNumber,
-            error: err.message,
+        sendSms(phoneNumber, null, phoneMsg.sms)
+          .then((res) => {
+            logger.info("Login SMS successfully dispatched", {
+              phoneNumber,
+              response: res,
+            });
+          })
+          .catch((err) => {
+            logger.warn("Deferred Login SMS sending failed", {
+              phoneNumber,
+              error: err.message,
+            });
           });
-        });
       }
 
       // 2. Send Email (OTP or Link)
@@ -415,10 +425,13 @@ const updateUser = async (req, res, next) => {
             const oldPhone = user.phoneNumber;
             const roleId = Number(req.user.roleId);
             let userType = "passenger";
-            if (roleId === usersRoles.driverRoleId) {userType = "driver";}
-            else if (roleId === usersRoles.adminRoleId) {userType = "admin";}
-            else if (roleId === usersRoles.supperAdminRoleId)
-            {userType = "admin";}
+            if (roleId === usersRoles.driverRoleId) {
+              userType = "driver";
+            } else if (roleId === usersRoles.adminRoleId) {
+              userType = "admin";
+            } else if (roleId === usersRoles.supperAdminRoleId) {
+              userType = "admin";
+            }
 
             const socketId = await getSocket(
               userType,
@@ -530,10 +543,8 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       const { sendEmail } = require("../Utils/emailSender");
       const { phoneNumber, email, isEmailVerified } = response.data || {};
       const { roleId } = req.body;
-      const {
-        phoneVerificationOTP,
-        emailVerificationToken,
-      } = response.deferredOTP;
+      const { phoneVerificationOTP, emailVerificationToken } =
+        response.deferredOTP;
 
       // 1. Send SMS (Admin Assignment Message)
       if (phoneNumber && phoneVerificationOTP) {

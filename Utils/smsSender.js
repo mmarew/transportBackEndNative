@@ -1,6 +1,7 @@
 const axios = require("axios");
 const AppError = require("./AppError");
 const Config = require("./Config");
+const logger = require("./logger");
 
 const sendSms = async (
   receiverPhoneNumber,
@@ -17,7 +18,10 @@ const sendSms = async (
       CALLBACK: callback,
       OTP_TEMPLATE: otpTemplate,
     } = Config.SMS;
-
+    logger.info("SMS Configuration Details:", {
+      config: Config.SMS,
+      receiverPhoneNumber,
+    });
     // Validate required fields
     if (!token) {
       throw new AppError("SMS_TOKEN is not configured", 500);
@@ -91,7 +95,11 @@ const sendSms = async (
       headers,
       timeout: 30000,
     });
-
+    logger.info("SMS API Raw Response:", {
+      status: apiResponse.status,
+      data: apiResponse.data,
+      receiverPhoneNumber,
+    });
     const { status, data } = apiResponse;
 
     if (status === 200) {
@@ -110,6 +118,11 @@ const sendSms = async (
       throw new AppError(`SMS API HTTP Error: ${status}`, 502);
     }
   } catch (error) {
+    logger.error("SMS API Request Error Details:", {
+      message: error.message,
+      response: error.response?.data,
+      receiverPhoneNumber,
+    });
     if (error instanceof AppError) {
       throw error;
     }
