@@ -10,6 +10,7 @@ const { getData } = require("../CRUD/Read/ReadData");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const messageTypes = require("../Utils/MessageTypes");
 
 // Create
 const createUserDeposit = async (data) => {
@@ -145,7 +146,11 @@ const createUserDeposit = async (data) => {
     ? fullData.data[0]
     : fullData?.data;
   sendSocketIONotificationToAdmin({
-    message: { message: "success", data: result },
+    message: {
+      message: "success",
+      messageType: messageTypes?.create_deposit_By_driver,
+      data: result,
+    },
   });
 
   return { message: "success", data: result };

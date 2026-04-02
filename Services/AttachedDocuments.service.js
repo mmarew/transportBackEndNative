@@ -20,6 +20,7 @@ const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const { accountStatus } = require("./Account.service");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const messageTypes = require("../Utils/MessageTypes");
 const createAttachedDocument = async ({
   attachedDocumentDescription,
   attachedDocumentName, // This is now the URL from FTP
@@ -377,6 +378,7 @@ const acceptRejectAttachedDocuments = async (body) => {
     }
 
     if (roleId === usersRoles.adminRoleId) {
+      message.messageType = messageTypes?.accept_reject_driver_document;
       sendSocketIONotificationToAdmin({ message, phoneNumber });
     }
     // adjust drivers role status based on document acceptance

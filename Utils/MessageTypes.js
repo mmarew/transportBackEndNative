@@ -144,5 +144,13 @@ const messageTypes = {
     message: "Phone number updated - Session Revoked",
     details: "Your phone number has been changed. For security reasons, you have been logged out. Please verify your new number and log in again.",
   },
+  create_vehicle: {
+    message: "New vehicle registered",
+    details: "When a driver registers a new vehicle and it needs to be attached with documents.",
+  },
+  accept_reject_driver_document: {
+    message: "Driver document status updated",
+    details: "When an admin accepts or rejects a driver's document.",
+  },
 };
 module.exports = messageTypes;
