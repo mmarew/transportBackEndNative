@@ -274,6 +274,14 @@ X-RateLimit-Reset: 1640995200
 X-RateLimit-Retry-After: 3600
 ```
 
+### Database Errors
+
+#### Unknown column 'X' in 'where clause' (500)
+**Scenario**: Searching in Admin tables fails with a field error.
+**Cause**: The query references a column in a table that hasn't been joined yet (e.g., searching for a license plate in a list of drivers without an active vehicle).
+**Fixed in**: `Services/Admin.service.js` now dynamically ensures vehicle-related joins are included whenever the `search` parameter is present.
+**Standard Fix**: Ensure the `joins` string contains all tables referenced in the `where` clause.
+
 ## Error Handling Best Practices
 
 ### Client-Side Error Handling

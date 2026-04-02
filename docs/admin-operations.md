@@ -163,8 +163,26 @@ Regular admins can perform the following operations but cannot access Super Admi
 ### Get Unauthorized Drivers
 
 **Endpoint**: `GET /api/admin/getUnAuthorizedDriver`
-**Description**: View drivers pending authorization
+**Description**: View and filter drivers whose status is not yet active (e.g., pending review, rejected documents, missing registration). This endpoint automatically enriches each driver with their current document statuses and provides full pagination.
+
 **Authentication**: Admin token required
+
+**Query Parameters:**
+
+- `search`: General search across full name, email, phone, license plate, and vehicle types.
+- `name`: Filter by full name.
+- `phone`: Filter by phone number.
+- `email`: Filter by email.
+- `status`: Specific status ID(s). (Accepts single ID or array)
+- `vehicleType`: Filter by the name of the vehicle type assigned to the driver.
+- `licensePlate`: Filter by the vehicle's license plate.
+- `page`: Page number for pagination (Default: 1).
+- `limit`: Records per page (Default: 10).
+- `sortBy`: Field to sort by (`userRoleStatusCreatedAt`, `fullName`, `email`, `phoneNumber`, `statusName`).
+- `sortOrder`: Sorting direction (`ASC` or `DESC`).
+
+**Behavior (FIXED):** 
+The endpoint now correctly handles the `search` parameter for drivers with and without existing vehicle assignments.
 
 ### Get Online Drivers
 

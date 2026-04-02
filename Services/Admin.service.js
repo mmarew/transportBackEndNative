@@ -553,6 +553,28 @@ const adminServices = {
     }
   },
 
+  /**
+   * Fetches unauthorized drivers (those with statuses like pending documents, rejected, etc.).
+   * Handles complex filtering, searching, and pagination.
+   *
+   * NOTE (FIXED): Previously, searching with the 'search' parameter would fail if not accompanied 
+   * by 'vehicleType' or 'licensePlate' due to missing joins. The joins are now included whenever 
+   * 'search' is present.
+   *
+   * @param {Object} query - The query parameters from the request
+   * @param {number} [query.page=1] - Page number for pagination
+   * @param {number} [query.limit=10] - Number of records per page
+   * @param {string} [query.search] - Full-text search across name, email, phone, plate, and vehicle type
+   * @param {string} [query.name] - Filter specifically by full name
+   * @param {string} [query.email] - Filter specifically by email
+   * @param {string} [query.phone] - Filter specifically by phone number
+   * @param {number|number[]} [query.status] - Filter by specific status ID(s)
+   * @param {string} [query.vehicleType] - Filter by vehicle type name
+   * @param {string} [query.licensePlate] - Filter by license plate
+   * @param {string} [query.sortBy] - Field to sort by
+   * @param {string} [query.sortOrder] - Sort direction ('ASC' or 'DESC')
+   * @returns {Promise<Object>} Paginated result with driver data and document status
+   */
   getUnauthorizedDriver: async (query) => {
     const {
       page = 1,
@@ -670,8 +692,8 @@ const adminServices = {
     JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
     `;
 
-    // Add vehicle-related JOINs only if vehicle filters are provided
-    if (vehicleType || licensePlate) {
+    // Add vehicle-related JOINs only if vehicle filters or search are provided
+    if (vehicleType || licensePlate || (search && search.trim() !== "")) {
       joins += `
     LEFT JOIN VehicleDriver ON Users.userUniqueId = VehicleDriver.driverUserUniqueId 
       AND VehicleDriver.assignmentStatus = 'active'
@@ -693,7 +715,7 @@ const adminServices = {
 
     const executor = transactionStorage.getStore() || pool;
     const [countRows] = await executor.query(countSql, params);
-    const total = countRows[0].total;
+    const total = countRows[0]?.total || 0;
     const totalPages = Math.ceil(total / limit);
     const currentPage = parseInt(page);
 
