@@ -2,9 +2,10 @@ const bcrypt = require("bcryptjs");
 const AppError = require("./AppError");
 
 const verifyPassword = async ({ hashedPassword, notHashedPassword }) => {
-  if (notHashedPassword === "101010" || notHashedPassword === 101010) {
-    return { message: "success", data: true };
-  }
+  //enable it when an app is in testing mode
+  // if (notHashedPassword === "101010" || notHashedPassword === 101010) {
+  //   return { message: "success", data: true };
+  // }
   // validate hashed password and not hashed password
   if (!hashedPassword) {
     throw new AppError("hashed Password is required", 400);
