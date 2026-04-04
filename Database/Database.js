@@ -55,7 +55,12 @@ CREATE TABLE IF NOT EXISTS Roles (
     vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
     vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
     vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
-    carryingCapacity INT NULL,  -- Carrying capacity of the vehicle
+    carryingCapacity INT NULL,  -- Max carrying capacity in quintal
+    -- cargoType: what kind of cargo this vehicle class supports
+    --   'bulk_only'      → open flatbed / curtain-sider; cannot carry ISO containers
+    --   'container_only' → specialised rig (low-bed multi-axle); containers only
+    --   'both'           → can carry bulk cargo OR ISO containers interchangeably
+    cargoType ENUM('bulk_only', 'container_only', 'both') NOT NULL DEFAULT 'bulk_only',
     vehicleTypeUpdatedAt DATETIME NULL,  -- Vehicle type update date
     vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
@@ -356,6 +361,11 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
     journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
 
+    -- Request mode: controls whether this is open to individual drivers or targeted at one company
+    requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
+    -- Only set when requestMode = 'company_target'; the specific company the shipper is targeting
+    targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,
+
     originLatitude DECIMAL(10, 8) NOT NULL,                -- Latitude of origin
     originLongitude DECIMAL(11, 8) NOT NULL,               -- Longitude of origin
     originPlace VARCHAR(255) NOT NULL,                     -- Origin place
@@ -388,6 +398,8 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
     FOREIGN KEY (passengerRequestUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (passengerRequestDeletedBy) REFERENCES Users(userUniqueId)
+    -- NOTE: FK to TransportCompany(companyUniqueId) is defined after that table is created below
+    -- INDEX added after company tables: idx_passengerRequest_targetCompany (targetCompanyUniqueId)
 );
 
 -- Create the DriverRequest table
@@ -1169,6 +1181,293 @@ CREATE TABLE IF NOT EXISTS BannedUsers (
      INDEX idx_ban_expires (banExpiresAt, isActive)
 );
  
+
+-- ============================================================
+-- COMPANY TRANSPORT SCHEMA
+-- Added to support Ethiopian freight transport companies that
+-- own fleets (100-500+ vehicles) bidding on bulk shipper requests.
+-- ============================================================
+
+
+-- TransportCompany: Core entity representing a registered freight company.
+-- A company may have hundreds of vehicles and can bid on shipper requests
+-- as an organisation rather than as individual drivers.
+
+CREATE TABLE IF NOT EXISTS TransportCompany (
+    companyId INT AUTO_INCREMENT PRIMARY KEY,
+    companyUniqueId VARCHAR(36) UNIQUE NOT NULL,           -- UUID
+    companyName VARCHAR(255) NOT NULL,                     -- Official registered company name
+    companyRegistrationNumber VARCHAR(100) UNIQUE NULL,    -- Ethiopian trade/transport license number
+    companyPhone VARCHAR(20) NULL,                         -- Company contact phone
+    companyEmail VARCHAR(255) NULL,                        -- Company contact email
+    companyAddress VARCHAR(500) NULL,                      -- Physical address
+    companyLogoUrl VARCHAR(500) NULL,                      -- URL to uploaded logo
+    approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
+    approvalReason VARCHAR(500) NULL,                      -- Admin note when approving or rejecting
+    approvedBy VARCHAR(36) NULL,                           -- Admin who approved/rejected
+    approvedAt DATETIME NULL,
+    companyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyCreatedBy VARCHAR(36) NOT NULL,
+    companyUpdatedAt DATETIME NULL,
+    companyUpdatedBy VARCHAR(36) NULL,
+    companyDeletedAt DATETIME NULL,
+    companyDeletedBy VARCHAR(36) NULL,
+    isDeleted BOOLEAN NOT NULL DEFAULT FALSE,
+    INDEX idx_company_approvalStatus (approvalStatus),
+    INDEX idx_company_isDeleted (isDeleted),
+    FOREIGN KEY (companyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyDeletedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyMembership: Links individual users (owner, manager, dispatcher, driver)
+-- to a TransportCompany. A driver can belong to a company AND still take
+-- individual passenger requests — membership does NOT lock the driver.
+-- One user can have one active membership per company.
+
+CREATE TABLE IF NOT EXISTS CompanyMembership (
+    membershipId INT AUTO_INCREMENT PRIMARY KEY,
+    membershipUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
+    userUniqueId VARCHAR(36) NOT NULL,                     -- FK → Users
+    membershipRole ENUM('owner','manager','dispatcher','driver') NOT NULL,
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    membershipStartDate DATETIME NOT NULL,
+    membershipEndDate DATETIME NULL,
+    membershipCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    membershipCreatedBy VARCHAR(36) NOT NULL,
+    membershipUpdatedAt DATETIME NULL,
+    membershipUpdatedBy VARCHAR(36) NULL,
+    membershipDeletedAt DATETIME NULL,
+    membershipDeletedBy VARCHAR(36) NULL,
+    UNIQUE KEY uq_company_user (companyUniqueId, userUniqueId),  -- One active membership per user per company
+    INDEX idx_membership_companyUniqueId (companyUniqueId),
+    INDEX idx_membership_userUniqueId (userUniqueId),
+    INDEX idx_membership_role (membershipRole),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyVehicle: Assigns vehicles to a company fleet.
+-- Separate from VehicleOwnership (which links vehicles to individual users).
+-- A vehicle may be owned by an individual user AND assigned to a company.
+
+CREATE TABLE IF NOT EXISTS CompanyVehicle (
+    companyVehicleId INT AUTO_INCREMENT PRIMARY KEY,
+    companyVehicleUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
+    vehicleUniqueId VARCHAR(36) NOT NULL,                  -- FK → Vehicle
+    assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    assignmentStartDate DATETIME NOT NULL,
+    assignmentEndDate DATETIME NULL,
+    companyVehicleCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyVehicleCreatedBy VARCHAR(36) NOT NULL,
+    companyVehicleUpdatedAt DATETIME NULL,
+    companyVehicleUpdatedBy VARCHAR(36) NULL,
+    companyVehicleDeletedAt DATETIME NULL,
+    companyVehicleDeletedBy VARCHAR(36) NULL,
+    UNIQUE KEY uq_company_vehicle (companyUniqueId, vehicleUniqueId),  -- One vehicle per company at a time
+    INDEX idx_companyVehicle_company (companyUniqueId),
+    INDEX idx_companyVehicle_vehicle (vehicleUniqueId),
+    INDEX idx_companyVehicle_status (assignmentStatus),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (companyVehicleCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyVehicleUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyVehicleDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyBidRequest: A company's bid on a shipper's batch request.
+-- When requestMode = 'company_target', only the targeted company can see and bid.
+-- No partial bids: numberOfVehiclesOffered MUST equal the shipper's batch size.
+-- One company submits one bid per batch (UNIQUE on companyUniqueId + passengerRequestBatchId).
+-- Commission for company bids is tracked in CompanyCommission (not the per-journey Commission table).
+
+CREATE TABLE IF NOT EXISTS CompanyBidRequest (
+    companyBidRequestId INT AUTO_INCREMENT PRIMARY KEY,
+    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    -- The shipper's batch being bid on (links to PassengerRequest.passengerRequestBatchId)
+    passengerRequestBatchId VARCHAR(36) NOT NULL,
+
+    -- Who is bidding
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
+    bidSubmittedByUserUniqueId VARCHAR(36) NOT NULL,       -- Manager or dispatcher who submitted
+
+    -- Bid terms — must match full batch (no partial bids)
+    numberOfVehiclesOffered INT NOT NULL,                  -- Must equal shipper's numberOfVehicles
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Type of vehicles being offered
+    proposedCostPerVehicle DECIMAL(10,2) NULL,             -- Negotiated price per vehicle
+    proposedTotalCost DECIMAL(10,2) NULL,                  -- Total cost for all vehicles
+    proposedShippingDate DATETIME NULL,
+    proposedDeliveryDate DATETIME NULL,
+    bidNotes TEXT NULL,                                    -- Optional message from company to shipper
+
+    -- Bid lifecycle status
+    bidStatus ENUM(
+        'submitted',           -- Company submitted; waiting for shipper
+        'accepted_by_shipper', -- Shipper accepted; dispatcher must now assign vehicles
+        'rejected_by_shipper', -- Shipper rejected this bid
+        'cancelled_by_company',-- Company withdrew before shipper decided
+        'expired'              -- Bid expired without action
+    ) NOT NULL DEFAULT 'submitted',
+    bidStatusUpdatedAt DATETIME NULL,
+    bidStatusUpdatedBy VARCHAR(36) NULL,
+
+    -- Journey linkage
+    journeyStatusId INT NOT NULL,                          -- FK → JourneyStatus (starts at 'waiting')
+
+    companyBidRequestCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyBidRequestCreatedBy VARCHAR(36) NOT NULL,
+    companyBidRequestUpdatedAt DATETIME NULL,
+    companyBidRequestUpdatedBy VARCHAR(36) NULL,
+    companyBidRequestDeletedAt DATETIME NULL,
+    companyBidRequestDeletedBy VARCHAR(36) NULL,
+
+    UNIQUE KEY uq_company_batch_bid (companyUniqueId, passengerRequestBatchId),  -- One bid per company per batch
+    INDEX idx_companyBid_batchId (passengerRequestBatchId),
+    INDEX idx_companyBid_company (companyUniqueId),
+    INDEX idx_companyBid_status (bidStatus),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (bidSubmittedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
+    FOREIGN KEY (companyBidRequestCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyBidVehicleAssignment: After shipper accepts a company bid, the dispatcher
+-- assigns specific vehicles and their drivers — one row per PassengerRequest slot.
+-- Each row maps: one PassengerRequest row ↔ one Vehicle ↔ one Driver.
+--
+-- DriverRequest creation sequence (IMPORTANT):
+--   JourneyDecisions.driverRequestId is NOT NULL, so a DriverRequest record MUST exist
+--   before a JourneyDecision can be created. In the company flow this works as follows:
+--
+--   Step 1 — Dispatcher assigns driver:
+--     → System auto-creates a DriverRequest row on behalf of the assigned driver
+--       (origin/status copied from the linked PassengerRequest; journeyStatusId = acceptedByDriver)
+--     → driverRequestUniqueId is stored in this table immediately
+--
+--   Step 2 — Driver confirms assignment (assignmentStatus → confirmed_by_driver):
+--     → System creates JourneyDecision using passengerRequestId + driverRequestId
+--     → journeyDecisionUniqueId is then stored in this table
+--
+--   Step 3 — If driver rejects (assignmentStatus → rejected_by_driver):
+--     → The DriverRequest status is updated to cancelledByDriver
+--     → Dispatcher must create a new assignment row (status = reassigned)
+--     → A fresh DriverRequest is created for the replacement driver
+
+CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
+    assignmentId INT AUTO_INCREMENT PRIMARY KEY,
+    assignmentUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    -- Links back to the company bid and the specific PassengerRequest slot
+    companyBidRequestUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyBidRequest
+    passengerRequestUniqueId VARCHAR(36) NOT NULL,         -- FK → PassengerRequest (one row in the batch)
+
+    -- The assigned vehicle and driver
+    vehicleUniqueId VARCHAR(36) NOT NULL,                  -- FK → Vehicle
+    driverUserUniqueId VARCHAR(36) NOT NULL,               -- FK → Users (driver must be a company member)
+
+    -- Auto-created by the system when a driver is assigned (Step 1 above).
+    -- Stored here so JourneyDecisions can be created using it (Step 2 above).
+    -- NULL only briefly before the DriverRequest insert completes (same transaction).
+    driverRequestUniqueId VARCHAR(36) NULL,                -- FK → DriverRequest
+
+    -- Assignment lifecycle
+    assignmentStatus ENUM(
+        'assigned',            -- Dispatcher assigned; DriverRequest created; waiting for driver to confirm
+        'confirmed_by_driver', -- Driver confirmed; JourneyDecision created
+        'rejected_by_driver',  -- Driver refused; DriverRequest cancelled; dispatcher must reassign
+        'reassigned',          -- Replacement row after a rejection
+        'cancelled',           -- Cancelled before driver confirmed
+        'completed'            -- Journey completed successfully
+    ) NOT NULL DEFAULT 'assigned',
+
+    -- Populated in Step 2 after driver confirms
+    journeyDecisionUniqueId VARCHAR(36) NULL,              -- FK → JourneyDecisions
+
+    assignmentCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    assignmentCreatedBy VARCHAR(36) NOT NULL,
+    assignmentUpdatedAt DATETIME NULL,
+    assignmentUpdatedBy VARCHAR(36) NULL,
+    assignmentDeletedAt DATETIME NULL,
+    assignmentDeletedBy VARCHAR(36) NULL,
+
+    -- One active assignment per PassengerRequest slot per bid
+    UNIQUE KEY uq_bid_request_slot (companyBidRequestUniqueId, passengerRequestUniqueId),
+    INDEX idx_assignment_bid (companyBidRequestUniqueId),
+    INDEX idx_assignment_driver (driverUserUniqueId),
+    INDEX idx_assignment_vehicle (vehicleUniqueId),
+    INDEX idx_assignment_status (assignmentStatus),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (passengerRequestUniqueId) REFERENCES PassengerRequest(passengerRequestUniqueId),
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (driverRequestUniqueId) REFERENCES DriverRequest(driverRequestUniqueId),
+    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
+    FOREIGN KEY (assignmentCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (assignmentUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (assignmentDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyCommission: Commission charged to a TransportCompany per accepted bid.
+-- This is SEPARATE from the per-journey Commission table (which tracks individual driver commissions).
+-- Company commission is calculated at the bid level, not per individual journey.
+-- Applies when bidStatus = 'accepted_by_shipper' in CompanyBidRequest.
+
+CREATE TABLE IF NOT EXISTS CompanyCommission (
+    companyCommissionId INT AUTO_INCREMENT PRIMARY KEY,
+    companyCommissionUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyBidRequestUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyBidRequest (one commission per bid)
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany (denormalized for easy query)
+    commissionRateUniqueId VARCHAR(36) NOT NULL,           -- FK → CommissionRates (rate used at time of bid)
+
+    -- Calculated amounts
+    baseTotalCost DECIMAL(10,2) NOT NULL,                  -- proposedTotalCost from the winning bid
+    commissionRate DECIMAL(5,2) NOT NULL,                  -- Rate snapshot (in %) at time of calculation
+    commissionAmount DECIMAL(10,2) NOT NULL,               -- baseTotalCost * commissionRate / 100
+
+    -- Payment status (reuses CommissionStatus table for consistency)
+    commissionStatusUniqueId VARCHAR(36) NOT NULL,         -- FK → CommissionStatus
+
+    -- Optional: reference to a company-level payment if paid via the system
+    paymentReference VARCHAR(255) NULL,                    -- External payment ref (bank transfer, Telebirr, etc.)
+    paidAt DATETIME NULL,                                  -- When commission was paid
+    paidBy VARCHAR(36) NULL,                               -- Admin who confirmed payment
+
+    companyCommissionCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyCommissionCreatedBy VARCHAR(36) NOT NULL,
+    companyCommissionUpdatedAt DATETIME NULL,
+    companyCommissionUpdatedBy VARCHAR(36) NULL,
+    companyCommissionDeletedAt DATETIME NULL,
+    companyCommissionDeletedBy VARCHAR(36) NULL,
+
+    UNIQUE KEY uq_company_commission_bid (companyBidRequestUniqueId),  -- One commission record per bid
+    INDEX idx_companyCommission_company (companyUniqueId),
+    INDEX idx_companyCommission_status (commissionStatusUniqueId),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (commissionRateUniqueId) REFERENCES CommissionRates(commissionRateUniqueId),
+    FOREIGN KEY (commissionStatusUniqueId) REFERENCES CommissionStatus(commissionStatusUniqueId),
+    FOREIGN KEY (paidBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyCommissionCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyCommissionUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyCommissionDeletedBy) REFERENCES Users(userUniqueId)
+);
+
 `;
 
 module.exports = { sqlQuery };

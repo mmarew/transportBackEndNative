@@ -332,27 +332,79 @@ const passengerDocumentRequirement = [
   },
 ];
 const vehicleTypes = [
+  // ── Light & Medium — open flatbed/curtain trucks, bulk cargo only ──────────
   {
-    vehicleTypeName: "Isuzu FSR",
-    carryingCapacity: 100,
+    vehicleTypeName: "Light Truck (up to 35 Quintal)",
+    carryingCapacity: 35,
+    cargoType: "bulk_only", // open/flatbed, no container fittings
+    vehicleTypeDescription:
+      "Small/light freight truck for bulk cargo up to 35 quintal. Cannot carry ISO containers.",
     createdAt: null,
     updatedAt: null,
   },
   {
-    vehicleTypeName: "Isuzu NPR",
+    vehicleTypeName: "Medium Truck (up to 50 Quintal)",
     carryingCapacity: 50,
+    cargoType: "bulk_only",
+    vehicleTypeDescription:
+      "Medium freight truck for bulk cargo up to 50 quintal. Cannot carry ISO containers.",
     createdAt: null,
     updatedAt: null,
   },
   {
-    vehicleTypeName: "Euro tracker",
-    carryingCapacity: 430,
+    vehicleTypeName: "Medium Truck (up to 100 Quintal)",
+    carryingCapacity: 100,
+    cargoType: "bulk_only",
+    vehicleTypeDescription:
+      "Medium freight truck for bulk cargo up to 100 quintal. Cannot carry ISO containers.",
+    createdAt: null,
+    updatedAt: null,
+  },
+  // ── Heavy — flatbed trucks that can also accept ISO containers ────────────
+  {
+    vehicleTypeName: "Heavy Truck (125–175 Quintal)",
+    carryingCapacity: 175,
+    cargoType: "both", // flatbed: bulk load OR a 20ft container
+    vehicleTypeDescription:
+      "Heavy truck for loads 125–175 quintal. Accepts bulk cargo or a single 20ft ISO container.",
     createdAt: null,
     updatedAt: null,
   },
   {
-    vehicleTypeName: "Sino truck",
-    carryingCapacity: 150,
+    vehicleTypeName: "Extra Heavy Truck (176–250 Quintal)",
+    carryingCapacity: 250,
+    cargoType: "both", // flatbed: bulk load OR containers
+    vehicleTypeDescription:
+      "Extra-heavy truck for loads 176–250 quintal. Accepts bulk cargo or ISO containers.",
+    createdAt: null,
+    updatedAt: null,
+  },
+  // ── Container trucks — fitted with cassoni; bulk or container ─────────────
+  {
+    vehicleTypeName: "20ft Container Truck (251–300 Quintal)",
+    carryingCapacity: 300,
+    cargoType: "both", // cassoni truck: bulk or 20ft container
+    vehicleTypeDescription:
+      "Container truck with 20ft cassoni fitting for loads 251–300 quintal. Accepts bulk cargo or a 20ft ISO container.",
+    createdAt: null,
+    updatedAt: null,
+  },
+  // ── Specialised multi-container rigs — containers ONLY ───────────────────
+  {
+    vehicleTypeName: "2×20ft or 40ft Low-Bed Truck (301–350 Quintal)",
+    carryingCapacity: 350,
+    cargoType: "container_only", // specialised low-bed multi-axle rig
+    vehicleTypeDescription:
+      "Specialised low-bed container rig for 301–350 quintal. Carries either 2 × 20ft OR 1 × 40ft ISO containers ",
+    createdAt: null,
+    updatedAt: null,
+  },
+  {
+    vehicleTypeName: "2×20ft or 40ft Container Truck (351–400 Quintal)",
+    carryingCapacity: 400,
+    cargoType: "container_only", // specialised multi-axle container rig
+    vehicleTypeDescription:
+      "Specialised multi-container truck for 351–400 quintal. Carries either 2 × 20ft OR 1 × 40ft ISO containers  ",
     createdAt: null,
     updatedAt: null,
   },
