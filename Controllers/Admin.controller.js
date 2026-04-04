@@ -1,6 +1,5 @@
 const adminServices = require("../Services/Admin.service");
 const ServerResponder = require("../Utils/ServerResponder");
-const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const fs = require("fs");
 const path = require("path");
 const Config = require("../Utils/Config");
