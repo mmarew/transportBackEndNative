@@ -108,6 +108,11 @@ const createNewPassengerRequest = async (
     deliveryDate,
     shippingCost,
     passengerRequestBatchId,
+    // Bidding mode: 'individual_target' (open to all drivers) or 'company_target'
+    // Falls back to schema default ('individual_target') if not provided.
+    ...(body?.requestMode && { requestMode: body.requestMode }),
+    // The specific company this batch is targeting (only set when requestMode = 'company_target')
+    ...(body?.targetCompanyUniqueId && { targetCompanyUniqueId: body.targetCompanyUniqueId }),
   };
 
   // Insert the new request into the database

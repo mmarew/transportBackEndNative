@@ -4,9 +4,11 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 const createTableController = async (req, res, next) => {
   try {
-    const result = await executeInTransaction(async () => {
-      return await databaseService.createTable();
-    });
+    // NOTE: Do NOT wrap in executeInTransaction here.
+    // executeInTransaction calls pool.getConnection() first, which requires
+    // the database to already exist. createTable() creates the database itself
+    // using its own dedicated connection before touching the pool.
+    const result = await databaseService.createTable();
     res.status(200).json(result);
   } catch (error) {
     next(error);

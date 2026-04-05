@@ -16,6 +16,9 @@ const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const logger = require("../Utils/logger");
+const { sendFCMNotificationToUser } = require("./Firebase.service");
+const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 
 const db = () => transactionStorage.getStore() || pool;
 
@@ -410,6 +413,61 @@ exports.updateBidStatus = async (companyBidRequestUniqueId, bidStatus, updatedBy
     [bidStatus, currentDate(), updatedBy, updatedBy, currentDate(), companyBidRequestUniqueId],
   );
   if (res.affectedRows === 0) throw new AppError("Bid update failed", 500);
+
+  // ── Sync PassengerRequest statuses in the batch ───────────────────────────
+  // When the shipper accepts the company bid → advance all PassengerRequests
+  // in the batch to acceptedByPassenger (4) so the shipper's dashboard reflects
+  // that this batch has been taken by a company.
+  // When cancelled/rejected → reset to waiting (1) so the batch re-enters the pool.
+  let newPRStatus = null;
+  if (bidStatus === "accepted_by_shipper") {
+    newPRStatus = journeyStatusMap.acceptedByPassenger; // 4
+  } else if (
+    bidStatus === "cancelled_by_company" ||
+    bidStatus === "rejected_by_shipper" ||
+    bidStatus === "expired"
+  ) {
+    newPRStatus = journeyStatusMap.waiting; // 1
+  }
+
+  if (newPRStatus !== null) {
+    await db().query(
+      `UPDATE PassengerRequest
+       SET journeyStatusId = ?
+       WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
+      [newPRStatus, bid.passengerRequestBatchId],
+    );
+  }
+
+  // ── Notify the company dispatcher who submitted the bid ───────────────────
+  // Fire-and-forget — don't let notification failure roll back the status update.
+  const notificationMap = {
+    accepted_by_shipper:   { title: "Bid accepted",   body: "The shipper has accepted your company's freight bid." },
+    rejected_by_shipper:   { title: "Bid rejected",   body: "The shipper has rejected your company's freight bid." },
+    cancelled_by_company:  { title: "Bid cancelled",  body: "Your company's bid has been cancelled." },
+    expired:               { title: "Bid expired",    body: "Your company's bid has expired without a response." },
+  };
+  const notif = notificationMap[bidStatus];
+  if (notif && bid.bidSubmittedByUserUniqueId) {
+    sendFCMNotificationToUser({
+      userUniqueId: bid.bidSubmittedByUserUniqueId,
+      roleId: usersRoles.driverRoleId, // dispatcher shares driver-role FCM token bucket
+      notification: notif,
+      data: {
+        type: "company_bid_status",
+        bidStatus,
+        companyBidRequestUniqueId,
+        passengerRequestBatchId: bid.passengerRequestBatchId,
+      },
+    }).catch((e) =>
+      logger.error("FCM notification failed for bid status update", {
+        error: e.message,
+        companyBidRequestUniqueId,
+        bidStatus,
+      }),
+    );
+  }
+
   return { message: "success", data: `Bid status updated to ${bidStatus}` };
 };
 
@@ -480,19 +538,25 @@ exports.createAssignment = async (data) => {
   );
   const acceptedStatusId = acceptedStatusRows?.[0]?.journeyStatusId ?? 3;
 
+  // Copy origin coords from the PassengerRequest so DriverRequest is not 0,0.
+  // The driver's actual live GPS will overwrite these when they start the journey.
   const driverRequestUniqueId = uuidv4();
-  // DriverRequest schema: originLatitude/Longitude/Place are NOT NULL.
-  // This is a system-generated row (dispatcher assigns; driver has no GPS yet).
-  // Coordinates are set to 0,0 placeholder — updated when driver starts journey.
   await db().query(
     `INSERT INTO DriverRequest
       (driverRequestUniqueId, userUniqueId,
        originLatitude, originLongitude, originPlace,
        journeyStatusId,
        driverRequestCreatedAt)
-     VALUES (?, ?, 0, 0, 'Assigned by dispatcher', ?, ?)`,
-    [driverRequestUniqueId, driverUserUniqueId,
-      acceptedStatusId, currentDate()],
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      driverRequestUniqueId,
+      driverUserUniqueId,
+      pr.originLatitude  ?? 0,
+      pr.originLongitude ?? 0,
+      pr.originPlace     ?? "Assigned by dispatcher",
+      acceptedStatusId,
+      currentDate(),
+    ],
   );
   // ────────────────────────────────────────────────────────────────────────
 
@@ -506,6 +570,30 @@ exports.createAssignment = async (data) => {
     [assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
       vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
       createdByUserUniqueId, currentDate()],
+  );
+
+  // ── Notify the assigned driver via FCM ────────────────────────────────────
+  // Fire-and-forget — don't let notification failure roll back the insert.
+  sendFCMNotificationToUser({
+    userUniqueId: driverUserUniqueId,
+    roleId: usersRoles.driverRoleId,
+    notification: {
+      title: "New freight assignment",
+      body: "You have been assigned to a freight job by your dispatcher. Please confirm or reject.",
+    },
+    data: {
+      type: "company_driver_assignment",
+      assignmentUniqueId,
+      driverRequestUniqueId,
+      passengerRequestUniqueId,
+      companyBidRequestUniqueId,
+    },
+  }).catch((e) =>
+    logger.error("FCM notification failed for driver assignment", {
+      error: e.message,
+      driverUserUniqueId,
+      assignmentUniqueId,
+    }),
   );
 
   return {
@@ -588,10 +676,31 @@ exports.updateAssignmentStatus = async (assignmentUniqueId, assignmentStatus, up
         (journeyDecisionUniqueId, passengerRequestId, driverRequestId,
          journeyStatusId, decisionTime, decisionBy,
          journeyDecisionCreatedBy, journeyDecisionCreatedAt)
-       VALUES (?, ?, ?, ?, ?, 'driver', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
       [journeyDecisionUniqueId, prRows[0].passengerRequestId,
         drRows[0].driverRequestId, jStatusId,
         currentDate(), updatedBy, currentDate()],
+    );
+
+    // Notify driver that their confirmation was recorded and journey is locked in
+    sendFCMNotificationToUser({
+      userUniqueId: assignment.driverUserUniqueId,
+      roleId: usersRoles.driverRoleId,
+      notification: {
+        title: "Assignment confirmed",
+        body: "Your freight assignment is confirmed. Prepare for pickup.",
+      },
+      data: {
+        type: "company_assignment_confirmed",
+        assignmentUniqueId,
+        journeyDecisionUniqueId,
+        passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+      },
+    }).catch((e) =>
+      logger.error("FCM notification failed for assignment confirmation", {
+        error: e.message,
+        assignmentUniqueId,
+      }),
     );
 
     setParts.push("journeyDecisionUniqueId = ?");

@@ -349,6 +349,14 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(filters.passengerRequestUniqueId);
     }
 
+    // Filter by requestMode: 'open' (visible to all drivers) or 'company_target' (visible only to targeted company)
+    if (filters?.requestMode) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " PassengerRequest.requestMode = ?";
+      queryParams.push(filters.requestMode);
+      countParams.push(filters.requestMode);
+    }
+
     // Add date range filters
     if (filters?.startDate && filters?.endDate) {
       whereClause += whereClause ? " AND " : " WHERE ";
