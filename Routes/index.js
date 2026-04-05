@@ -52,6 +52,7 @@ const routesArray = [
   require("./VehicleDriver.routes"),
   require("./Account.routes"),
   require("./Health.routes"),
+  require("./CompanyBid.routes"),
 ];
 
 // Register all routes
