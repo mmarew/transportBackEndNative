@@ -1,14 +1,14 @@
 "use strict";
-const service = require("../Services/CompanyBid.service");
+const service = require("../Services/CompanyMembership.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
-exports.submitBid = async (req, res, next) => {
+exports.addMember = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.submitBid({
+      service.addMember({
         ...req.body,
-        bidSubmittedByUserUniqueId: req.user.userUniqueId,
+        createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
     ServerResponder(res, result, 201);
@@ -17,20 +17,19 @@ exports.submitBid = async (req, res, next) => {
   }
 };
 
-exports.getBids = async (req, res, next) => {
+exports.getMembers = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getBids(req.query));
+    ServerResponder(res, await service.getMembers(req.query));
   } catch (e) {
     next(e);
   }
 };
 
-exports.updateBidStatus = async (req, res, next) => {
+exports.deactivateMember = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.updateBidStatus(
-        req.params.companyBidRequestUniqueId,
-        req.body.bidStatus,
+      service.deactivateMember(
+        req.params.membershipUniqueId,
         req.user.userUniqueId,
       ),
     );
@@ -40,11 +39,11 @@ exports.updateBidStatus = async (req, res, next) => {
   }
 };
 
-exports.deleteBid = async (req, res, next) => {
+exports.deleteMember = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.deleteBid(
-        req.params.companyBidRequestUniqueId,
+      service.deleteMember(
+        req.params.membershipUniqueId,
         req.user.userUniqueId,
       ),
     );

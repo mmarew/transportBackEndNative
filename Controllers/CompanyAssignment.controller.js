@@ -1,14 +1,14 @@
 "use strict";
-const service = require("../Services/CompanyBid.service");
+const service = require("../Services/CompanyAssignment.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
-exports.submitBid = async (req, res, next) => {
+exports.createAssignment = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.submitBid({
+      service.createAssignment({
         ...req.body,
-        bidSubmittedByUserUniqueId: req.user.userUniqueId,
+        createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
     ServerResponder(res, result, 201);
@@ -17,20 +17,20 @@ exports.submitBid = async (req, res, next) => {
   }
 };
 
-exports.getBids = async (req, res, next) => {
+exports.getAssignments = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getBids(req.query));
+    ServerResponder(res, await service.getAssignments(req.query));
   } catch (e) {
     next(e);
   }
 };
 
-exports.updateBidStatus = async (req, res, next) => {
+exports.updateAssignmentStatus = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.updateBidStatus(
-        req.params.companyBidRequestUniqueId,
-        req.body.bidStatus,
+      service.updateAssignmentStatus(
+        req.params.assignmentUniqueId,
+        req.body.assignmentStatus,
         req.user.userUniqueId,
       ),
     );
@@ -40,11 +40,11 @@ exports.updateBidStatus = async (req, res, next) => {
   }
 };
 
-exports.deleteBid = async (req, res, next) => {
+exports.deleteAssignment = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.deleteBid(
-        req.params.companyBidRequestUniqueId,
+      service.deleteAssignment(
+        req.params.assignmentUniqueId,
         req.user.userUniqueId,
       ),
     );

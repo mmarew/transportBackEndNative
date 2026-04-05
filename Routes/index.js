@@ -52,7 +52,12 @@ const routesArray = [
   require("./VehicleDriver.routes"),
   require("./Account.routes"),
   require("./Health.routes"),
+  // Modular Company Routes
+  require("./TransportCompany.routes"),
+  require("./CompanyMembership.routes"),
+  require("./CompanyVehicle.routes"),
   require("./CompanyBid.routes"),
+  require("./CompanyAssignment.routes"),
 ];
 
 // Register all routes
