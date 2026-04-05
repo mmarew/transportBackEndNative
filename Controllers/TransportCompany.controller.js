@@ -19,7 +19,7 @@ exports.createCompany = async (req, res, next) => {
 
 exports.getCompanies = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getCompanies(req.query));
+    ServerResponder(res, await service.getCompanies(req.query, req.user));
   } catch (e) {
     next(e);
   }

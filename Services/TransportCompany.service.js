@@ -31,23 +31,46 @@ exports.createCompany = async (data) => {
   return { message: "success", data: { companyUniqueId } };
 };
 
-exports.getCompanies = async (filters = {}) => {
+exports.getCompanies = async (filters = {}, user = {}) => {
   const { page, limit, offset } = paginate(filters);
-  const clauses = ["isDeleted = 0"];
+  const clauses = ["TransportCompany.isDeleted = 0"];
   const params = [];
 
-  if (filters.companyUniqueId) { clauses.push("companyUniqueId = ?"); params.push(filters.companyUniqueId); }
-  if (filters.companyName) { clauses.push("companyName LIKE ?"); params.push(`%${filters.companyName}%`); }
-  if (filters.approvalStatus) { clauses.push("approvalStatus = ?"); params.push(filters.approvalStatus); }
+  // Data Segregation: Non-admins only see companies they belong to
+  if (user.roleId !== 3 && user.roleId !== 6) {
+    clauses.push(
+      `TransportCompany.companyUniqueId IN (
+        SELECT companyUniqueId FROM CompanyMembership 
+        WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
+      )`,
+    );
+    params.push(user.userUniqueId);
+  }
+
+  if (filters.companyUniqueId) {
+    clauses.push("TransportCompany.companyUniqueId = ?");
+    params.push(filters.companyUniqueId);
+  }
+  if (filters.companyName) {
+    clauses.push("TransportCompany.companyName LIKE ?");
+    params.push(`%${filters.companyName}%`);
+  }
+  if (filters.approvalStatus) {
+    clauses.push("TransportCompany.approvalStatus = ?");
+    params.push(filters.approvalStatus);
+  }
   if (filters.isDeleted !== undefined) {
-    clauses[0] = `isDeleted = ${filters.isDeleted ? 1 : 0}`;
+    clauses[0] = `TransportCompany.isDeleted = ${filters.isDeleted ? 1 : 0}`;
   }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
-    `SELECT * FROM TransportCompany ${where} ORDER BY companyCreatedAt DESC`,
+    `SELECT * FROM TransportCompany ${where} ORDER BY TransportCompany.companyCreatedAt DESC`,
     `SELECT COUNT(*) AS total FROM TransportCompany ${where}`,
-    params, page, limit, offset,
+    params,
+    page,
+    limit,
+    offset,
   );
 };
 
