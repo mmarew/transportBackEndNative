@@ -14,13 +14,17 @@ exports.createCompany = async (req, res, next) => {
       }),
     );
     ServerResponder(res, result, 201);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.getCompanies = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getCompanies(req.query));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.updateCompany = async (req, res, next) => {
@@ -33,7 +37,9 @@ exports.updateCompany = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.approveCompany = async (req, res, next) => {
@@ -47,7 +53,9 @@ exports.approveCompany = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.deleteCompany = async (req, res, next) => {
@@ -56,7 +64,9 @@ exports.deleteCompany = async (req, res, next) => {
       service.deleteCompany(req.params.companyUniqueId, req.user.userUniqueId),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // ── CompanyMembership ─────────────────────────────────────────────────────────
@@ -70,13 +80,17 @@ exports.addMember = async (req, res, next) => {
       }),
     );
     ServerResponder(res, result, 201);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.getMembers = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getMembers(req.query));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.deactivateMember = async (req, res, next) => {
@@ -88,7 +102,9 @@ exports.deactivateMember = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.deleteMember = async (req, res, next) => {
@@ -100,7 +116,9 @@ exports.deleteMember = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // ── CompanyVehicle ────────────────────────────────────────────────────────────
@@ -114,13 +132,17 @@ exports.assignVehicle = async (req, res, next) => {
       }),
     );
     ServerResponder(res, result, 201);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.getCompanyVehicles = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getCompanyVehicles(req.query));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.removeVehicle = async (req, res, next) => {
@@ -132,7 +154,9 @@ exports.removeVehicle = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // ── CompanyBidRequest ─────────────────────────────────────────────────────────
@@ -146,13 +170,17 @@ exports.submitBid = async (req, res, next) => {
       }),
     );
     ServerResponder(res, result, 201);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.getBids = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getBids(req.query));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.updateBidStatus = async (req, res, next) => {
@@ -165,7 +193,9 @@ exports.updateBidStatus = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.deleteBid = async (req, res, next) => {
@@ -177,7 +207,9 @@ exports.deleteBid = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 // ── CompanyBidVehicleAssignment ───────────────────────────────────────────────
@@ -191,13 +223,17 @@ exports.createAssignment = async (req, res, next) => {
       }),
     );
     ServerResponder(res, result, 201);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.getAssignments = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getAssignments(req.query));
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.updateAssignmentStatus = async (req, res, next) => {
@@ -210,7 +246,9 @@ exports.updateAssignmentStatus = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };
 
 exports.deleteAssignment = async (req, res, next) => {
@@ -222,5 +260,7 @@ exports.deleteAssignment = async (req, res, next) => {
       ),
     );
     ServerResponder(res, result);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 };

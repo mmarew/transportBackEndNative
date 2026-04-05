@@ -52,13 +52,29 @@ const { createDepositSource } = require("./DepositSource.service");
 const { createPricing } = require("./SubscriptionPlanPricing.service");
 
 const createTable = async () => {
-  // Use a dedicated connection with multiple statements enabled for schema setup
+  // Connect WITHOUT specifying the database so we can create it if it doesn't exist.
+  const { database: dbName, ...configWithoutDb } = dbConfig;
+
   const adminConnection = await mysql.createConnection({
-    ...dbConfig,
+    ...configWithoutDb,
     multipleStatements: true,
   });
-  await adminConnection.query(sqlQuery);
-  await adminConnection.end();
+
+  try {
+    // Create the database if it doesn't already exist
+    await adminConnection.query(
+      `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+    );
+    logger.info(`Database '${dbName}' ensured (created if not existed)`);
+
+    // Select the database before running the schema DDL
+    await adminConnection.query(`USE \`${dbName}\``);
+
+    // Run the full schema (all CREATE TABLE IF NOT EXISTS statements)
+    await adminConnection.query(sqlQuery);
+  } finally {
+    await adminConnection.end();
+  }
 
   // Insert Super Admin user first (minimal Users row) to use as createdBy for seeding
   const superAdminId = uuidv4();
