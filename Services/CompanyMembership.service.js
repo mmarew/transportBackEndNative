@@ -86,9 +86,12 @@ exports.getMembers = async (filters = {}) => {
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
-    `SELECT cm.*, cr.companyRoleName, cr.companyRoleDescription 
+    `SELECT cm.*, 
+            cr.companyRoleName, cr.companyRoleDescription,
+            u.fullName, u.phoneNumber, u.email
      FROM CompanyMembership cm
      JOIN CompanyRoles cr ON cm.companyRoleUniqueId = cr.companyRoleUniqueId
+     JOIN Users u ON cm.userUniqueId = u.userUniqueId
      ${where} 
      ORDER BY cm.membershipCreatedAt DESC`,
     `SELECT COUNT(*) AS total FROM CompanyMembership cm ${where}`,
