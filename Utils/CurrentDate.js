@@ -29,6 +29,10 @@ const addHours = (dateStr, h) => {
   date.setUTCHours(date.getUTCHours() + h);
   return formatDateTime(date);
 };
-const toDateOnly = (dateStr) =>
-  dateStr && typeof dateStr === "string" ? dateStr.trim().slice(0, 10) : null;
+const toDateOnly = (dateStr) => {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) return dateStr.toISOString().slice(0, 10);
+  if (typeof dateStr === "string") return dateStr.trim().slice(0, 10);
+  return null;
+};
 module.exports = { currentDate, formatDateTime, toDateOnly, addHours };
