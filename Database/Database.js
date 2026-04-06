@@ -1222,6 +1222,16 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
 );
 
 
+CREATE TABLE IF NOT EXISTS CompanyRoles (
+    companyRoleId INT AUTO_INCREMENT PRIMARY KEY,
+    companyRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyRoleName VARCHAR(50) UNIQUE NOT NULL, -- 'owner', 'manager', 'dispatcher', 'driver'
+    companyRoleDescription TEXT,
+    companyRoleCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyRoleUpdatedAt DATETIME NULL
+);
+
+
 -- CompanyMembership: Links individual users (owner, manager, dispatcher, driver)
 -- to a TransportCompany. A driver can belong to a company AND still take
 -- individual passenger requests — membership does NOT lock the driver.
@@ -1232,7 +1242,7 @@ CREATE TABLE IF NOT EXISTS CompanyMembership (
     membershipUniqueId VARCHAR(36) UNIQUE NOT NULL,
     companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
     userUniqueId VARCHAR(36) NOT NULL,                     -- FK → Users
-    membershipRole ENUM('owner','manager','dispatcher','driver') NOT NULL,
+    companyRoleUniqueId VARCHAR(36) NOT NULL,             -- FK → CompanyRoles
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
     membershipStartDate DATETIME NOT NULL,
     membershipEndDate DATETIME NULL,
@@ -1245,9 +1255,11 @@ CREATE TABLE IF NOT EXISTS CompanyMembership (
     UNIQUE KEY uq_company_user (companyUniqueId, userUniqueId),  -- One active membership per user per company
     INDEX idx_membership_companyUniqueId (companyUniqueId),
     INDEX idx_membership_userUniqueId (userUniqueId),
-    INDEX idx_membership_role (membershipRole),
+    INDEX idx_membership_role (companyRoleUniqueId),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRoleUniqueId) REFERENCES CompanyRoles(companyRoleUniqueId)
+);
     FOREIGN KEY (membershipCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (membershipUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (membershipDeletedBy) REFERENCES Users(userUniqueId)

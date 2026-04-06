@@ -5,9 +5,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 exports.addMember = Joi.object({
   companyUniqueId: uuidSchema.required(),
   userUniqueId: uuidSchema.required(),
-  membershipRole: Joi.string()
-    .valid("owner", "manager", "dispatcher", "driver")
-    .required(),
+  membershipRole: uuidSchema.required(),
   membershipStartDate: Joi.date().iso().required(),
   membershipEndDate: Joi.date().iso().optional().allow(null),
 }).unknown(true);
@@ -18,10 +16,10 @@ exports.memberParams = Joi.object({
 
 exports.getMembersQuery = Joi.object({
   companyUniqueId: uuidSchema.optional(),
-  userUniqueId: uuidSchema.optional(),
-  membershipRole: Joi.string()
-    .valid("owner", "manager", "dispatcher", "driver")
+  userUniqueId: Joi.alternatives()
+    .try(uuidSchema.optional(), Joi.string().valid("self"))
     .optional(),
+  membershipRole: uuidSchema.optional(),
   isActive: Joi.boolean().optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(10).optional(),

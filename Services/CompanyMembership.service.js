@@ -3,7 +3,12 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const {
+  db,
+  findOne,
+  paginate,
+  paginatedQuery,
+} = require("./CompanyHelper.service");
 
 exports.addMember = async (data) => {
   const {
@@ -33,37 +38,64 @@ exports.addMember = async (data) => {
     "SELECT membershipId FROM CompanyMembership WHERE companyUniqueId = ? AND userUniqueId = ? AND membershipDeletedAt IS NULL",
     [companyUniqueId, userUniqueId],
   );
-  if (dup.length > 0) throw new AppError("User is already a member of this company", 409);
+  if (dup.length > 0)
+    throw new AppError("User is already a member of this company", 409);
 
   const membershipUniqueId = uuidv4();
   await db().query(
     `INSERT INTO CompanyMembership
-      (membershipUniqueId, companyUniqueId, userUniqueId, membershipRole,
+      (membershipUniqueId, companyUniqueId, userUniqueId, companyRoleUniqueId,
        isActive, membershipStartDate, membershipEndDate,
        membershipCreatedBy, membershipCreatedAt)
      VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-    [membershipUniqueId, companyUniqueId, userUniqueId, membershipRole,
-      membershipStartDate, membershipEndDate || null,
-      createdByUserUniqueId, currentDate()],
+    [
+      membershipUniqueId,
+      companyUniqueId,
+      userUniqueId,
+      membershipRole, // This is now a UUID from the schema
+      membershipStartDate,
+      membershipEndDate || null,
+      createdByUserUniqueId,
+      currentDate(),
+    ],
   );
   return { message: "success", data: { membershipUniqueId } };
 };
 
 exports.getMembers = async (filters = {}) => {
   const { page, limit, offset } = paginate(filters);
-  const clauses = ["membershipDeletedAt IS NULL"];
+  const clauses = ["cm.membershipDeletedAt IS NULL"];
   const params = [];
 
-  if (filters.companyUniqueId) { clauses.push("companyUniqueId = ?"); params.push(filters.companyUniqueId); }
-  if (filters.userUniqueId) { clauses.push("userUniqueId = ?"); params.push(filters.userUniqueId); }
-  if (filters.membershipRole) { clauses.push("membershipRole = ?"); params.push(filters.membershipRole); }
-  if (filters.isActive !== undefined) { clauses.push("isActive = ?"); params.push(filters.isActive ? 1 : 0); }
+  if (filters.companyUniqueId) {
+    clauses.push("cm.companyUniqueId = ?");
+    params.push(filters.companyUniqueId);
+  }
+  if (filters.userUniqueId) {
+    clauses.push("cm.userUniqueId = ?");
+    params.push(filters.userUniqueId);
+  }
+  if (filters.membershipRole) {
+    clauses.push("cm.companyRoleUniqueId = ?");
+    params.push(filters.membershipRole);
+  }
+  if (filters.isActive !== undefined) {
+    clauses.push("cm.isActive = ?");
+    params.push(filters.isActive ? 1 : 0);
+  }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
-    `SELECT * FROM CompanyMembership ${where} ORDER BY membershipCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyMembership ${where}`,
-    params, page, limit, offset,
+    `SELECT cm.*, cr.companyRoleName, cr.companyRoleDescription 
+     FROM CompanyMembership cm
+     JOIN CompanyRoles cr ON cm.companyRoleUniqueId = cr.companyRoleUniqueId
+     ${where} 
+     ORDER BY cm.membershipCreatedAt DESC`,
+    `SELECT COUNT(*) AS total FROM CompanyMembership cm ${where}`,
+    params,
+    page,
+    limit,
+    offset,
   );
 };
 
@@ -85,6 +117,7 @@ exports.deleteMember = async (membershipUniqueId, deletedBy) => {
      WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL`,
     [currentDate(), deletedBy, membershipUniqueId],
   );
-  if (res.affectedRows === 0) throw new AppError("Membership not found or already deleted", 404);
+  if (res.affectedRows === 0)
+    throw new AppError("Membership not found or already deleted", 404);
   return { message: "success", data: "Membership deleted" };
 };

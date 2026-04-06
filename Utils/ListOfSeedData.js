@@ -202,8 +202,36 @@ const vehicleStatusTypes = [
   },
 ];
 
-// Alias for use in Database.service and elsewhere
 const listOfVehicleStatusTypes = vehicleStatusTypes;
+const companyRoles = {
+  ownerUniqueId: "company-role-owner-uuid-static",
+  managerUniqueId: "company-role-manager-uuid-static",
+  dispatcherUniqueId: "company-role-dispatcher-uuid-static",
+  driverUniqueId: "company-role-driver-uuid-static",
+};
+
+const companyRoleList = [
+  {
+    companyRoleUniqueId: companyRoles.ownerUniqueId,
+    companyRoleName: "owner",
+    companyRoleDescription: "Top level access to company management.",
+  },
+  {
+    companyRoleUniqueId: companyRoles.managerUniqueId,
+    companyRoleName: "manager",
+    companyRoleDescription: "Can manage members and fleet.",
+  },
+  {
+    companyRoleUniqueId: companyRoles.dispatcherUniqueId,
+    companyRoleName: "dispatcher",
+    companyRoleDescription: "Manages assignments and bids.",
+  },
+  {
+    companyRoleUniqueId: companyRoles.driverUniqueId,
+    companyRoleName: "driver",
+    companyRoleDescription: "Associated driver member of the company.",
+  },
+];
 const VEHICLE_STATUS_TYPES = {
   ACTIVE: 1,
   INACTIVE: 2,
@@ -874,4 +902,6 @@ module.exports = {
   commissionStatusList,
   USER_STATUS,
   VEHICLE_STATUS_TYPES,
+  companyRoles,
+  companyRoleList,
 };

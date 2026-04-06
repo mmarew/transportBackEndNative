@@ -20,8 +20,8 @@ exports.addMember = async (req, res, next) => {
 exports.getMembers = async (req, res, next) => {
   try {
     const user = req.user;
-    const userUniqueId = req.params.userUniqueId;
-    if (userUniqueId === "self") {
+    // Check query instead of params for userUniqueId
+    if (req.query.userUniqueId === "self") {
       req.query.userUniqueId = user.userUniqueId;
     }
     ServerResponder(res, await service.getMembers(req.query));

@@ -91,7 +91,7 @@ exports.createCompany = async (data) => {
     await addMember({
       companyUniqueId,
       userUniqueId: user.userUniqueId,
-      membershipRole: "owner",
+      membershipRole: companyRoles.ownerUniqueId,
       membershipStartDate: currentDate(),
       createdByUserUniqueId: createdByUserUniqueId,
       skipApprovalCheck: true,
