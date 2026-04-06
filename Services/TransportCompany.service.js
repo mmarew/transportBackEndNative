@@ -78,6 +78,27 @@ exports.createCompany = async (data) => {
       currentDate(),
     ],
   );
+
+  // Auto-link creator as owner if they are not system admins (3 or 6)
+  const user = data.user;
+  if (user && user.roleId !== 3 && user.roleId !== 6) {
+    const membershipUniqueId = uuidv4();
+    await db().query(
+      `INSERT INTO CompanyMembership
+        (membershipUniqueId, companyUniqueId, userUniqueId, membershipRole,
+         isActive, membershipStartDate, membershipCreatedBy, membershipCreatedAt)
+       VALUES (?, ?, ?, 'owner', 1, ?, ?, ?)`,
+      [
+        membershipUniqueId,
+        companyUniqueId,
+        user.userUniqueId,
+        currentDate(),
+        createdByUserUniqueId,
+        currentDate(),
+      ],
+    );
+  }
+
   return { message: "success", data: { companyUniqueId } };
 };
 

@@ -5,7 +5,7 @@ const router = express.Router();
 const controller = require("../Controllers/TransportCompany.controller");
 const schema = require("../Validations/TransportCompany.schema");
 const { validator } = require("../Middleware/Validator");
-const { verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin } = require("../Middleware/VerifyToken");
+const { verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin, verifyIfUserIsAdminSuperAdminOrCompanyAdmin } = require("../Middleware/VerifyToken");
 
 // Authentication middleware for all routes
 router.use(verifyTokenOfAxios);
@@ -16,7 +16,7 @@ router.use(verifyTokenOfAxios);
  */
 router.post(
   "/api/company/companies",
-  verifyIfUserIsAdminOrSupperAdmin,
+  verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.createCompany),
   controller.createCompany,
 );
@@ -32,7 +32,7 @@ router.get("/api/company/companies", validator(schema.getCompaniesQuery, "query"
  */
 router.patch(
   "/api/company/companies/:companyUniqueId",
-  verifyIfUserIsAdminOrSupperAdmin,
+  verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.companyParams, "params"),
   validator(schema.updateCompany),
   controller.updateCompany,

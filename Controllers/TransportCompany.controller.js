@@ -8,6 +8,7 @@ exports.createCompany = async (req, res, next) => {
     const result = await executeInTransaction(() =>
       service.createCompany({
         ...req.body,
+        user: req.user,
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
