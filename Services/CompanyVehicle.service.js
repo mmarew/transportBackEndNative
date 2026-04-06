@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
  * Assigns a vehicle to a transport company fleet.
@@ -46,10 +47,29 @@ exports.assignVehicle = async (data) => {
   return { message: "success", data: { companyVehicleUniqueId } };
 };
 
-exports.getCompanyVehicles = async (filters = {}) => {
+/**
+ * @param {Object} [filters={}] - Query filters (companyUniqueId, vehicleUniqueId, status)
+ * @param {Object} [user={}] - Authenticated user object for data segregation
+ * @returns {Promise<Object>} Paginated list of company vehicles
+ */
+exports.getCompanyVehicles = async (filters = {}, user = {}) => {
   const { page, limit, offset } = paginate(filters);
   const clauses = ["companyVehicleDeletedAt IS NULL"];
   const params = [];
+
+  // Data Segregation: Non-admins only see vehicles of companies they belong to
+  if (
+    user.roleId !== usersRoles.adminRoleId &&
+    user.roleId !== usersRoles.supperAdminRoleId
+  ) {
+    clauses.push(
+      `companyUniqueId IN (
+        SELECT companyUniqueId FROM CompanyMembership 
+        WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
+      )`,
+    );
+    params.push(user.userUniqueId);
+  }
 
   if (filters.companyUniqueId) { clauses.push("companyUniqueId = ?"); params.push(filters.companyUniqueId); }
   if (filters.vehicleUniqueId) { clauses.push("vehicleUniqueId = ?"); params.push(filters.vehicleUniqueId); }
@@ -57,11 +77,21 @@ exports.getCompanyVehicles = async (filters = {}) => {
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
-    `SELECT * FROM CompanyVehicle ${where} ORDER BY companyVehicleCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyVehicle ${where}`,
-    params, page, limit, offset,
+    `SELECT cv.*, 
+            v.licensePlate, v.color, 
+            vt.vehicleTypeName, vt.carryingCapacity
+     FROM CompanyVehicle cv
+     JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
+     JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+     ${where} 
+     ORDER BY cv.companyVehicleCreatedAt DESC`,
+    `SELECT COUNT(*) AS total FROM CompanyVehicle cv ${where}`,
+    params,
+    page,
+    limit,
+    offset,
   );
-};
+}
 
 exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
   const [res] = await db().query(

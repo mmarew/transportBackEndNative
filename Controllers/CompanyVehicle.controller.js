@@ -19,7 +19,7 @@ exports.assignVehicle = async (req, res, next) => {
 
 exports.getCompanyVehicles = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getCompanyVehicles(req.query));
+    ServerResponder(res, await service.getCompanyVehicles(req.query, req.user));
   } catch (e) {
     next(e);
   }

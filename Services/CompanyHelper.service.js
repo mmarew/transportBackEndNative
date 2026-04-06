@@ -31,12 +31,17 @@ async function paginatedQuery(baseSql, countSql, params, page, limit, offset) {
     [...params, limit, offset],
   );
   const [countRows] = await executor.query(countSql, params);
+  const dataRowsResult = dataRows || [];
   const total = countRows?.[0]?.total || 0;
-  if (!dataRows || dataRows.length === 0) throw new AppError("No records found", 404);
   return {
     message: "success",
-    data: dataRows,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
+    data: dataRowsResult,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    },
   };
 }
 
