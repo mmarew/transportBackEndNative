@@ -53,11 +53,7 @@ const routesArray = [
   require("./Account.routes"),
   require("./Health.routes"),
   // Modular Company Routes
-  require("./TransportCompany.routes"),
-  require("./CompanyMembership.routes"),
-  require("./CompanyVehicle.routes"),
-  require("./CompanyBid.routes"),
-  require("./CompanyAssignment.routes"),
+  { path: "/api/company", handler: require("./company") },
 ];
 
 // Register all routes

@@ -2,10 +2,10 @@
 
 const express = require("express");
 const router = express.Router();
-const controller = require("../Controllers/CompanyMembership.controller");
-const schema = require("../Validations/CompanyMembership.schema");
-const { validator } = require("../Middleware/Validator");
-const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const controller = require("../../Controllers/CompanyMembership.controller");
+const schema = require("../../Validations/CompanyMembership.schema");
+const { validator } = require("../../Middleware/Validator");
+const { verifyTokenOfAxios } = require("../../Middleware/VerifyToken");
 
 router.use(verifyTokenOfAxios);
 
@@ -13,7 +13,7 @@ router.use(verifyTokenOfAxios);
  * @route   POST /api/company/memberships
  */
 router.post(
-  "/api/company/memberships",
+  "/",
   validator(schema.addMember),
   controller.addMember,
 );
@@ -22,7 +22,7 @@ router.post(
  * @route   GET /api/company/memberships
  */
 router.get(
-  "/api/company/memberships",
+  "/",
   validator(schema.getMembersQuery, "query"),
   controller.getMembers,
 );
@@ -31,7 +31,7 @@ router.get(
  * @route   PATCH /api/company/memberships/:membershipUniqueId/deactivate
  */
 router.patch(
-  "/api/company/memberships/:membershipUniqueId/deactivate",
+  "/:membershipUniqueId/deactivate",
   validator(schema.memberParams, "params"),
   controller.deactivateMember,
 );
@@ -40,7 +40,7 @@ router.patch(
  * @route   DELETE /api/company/memberships/:membershipUniqueId
  */
 router.delete(
-  "/api/company/memberships/:membershipUniqueId",
+  "/:membershipUniqueId",
   validator(schema.memberParams, "params"),
   controller.deleteMember,
 );

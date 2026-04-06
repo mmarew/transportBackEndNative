@@ -2,20 +2,25 @@
 
 const express = require("express");
 const router = express.Router();
-const controller = require("../Controllers/TransportCompany.controller");
-const schema = require("../Validations/TransportCompany.schema");
-const { validator } = require("../Middleware/Validator");
-const { verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin, verifyIfUserIsAdminSuperAdminOrCompanyAdmin } = require("../Middleware/VerifyToken");
+const controller = require("../../Controllers/TransportCompany.controller");
+const schema = require("../../Validations/TransportCompany.schema");
+const { validator } = require("../../Middleware/Validator");
+const {
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+  verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
+} = require("../../Middleware/VerifyToken");
 
 // Authentication middleware for all routes
 router.use(verifyTokenOfAxios);
 
 /**
  * @route   POST /api/company/companies
- * @access  Admin, Super Admin
+ * @desc    Create a new transport company (Admin/SuperAdmin/CompanyAdmin only)
+ * @access  Private
  */
 router.post(
-  "/api/company/companies",
+  "/",
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.createCompany),
   controller.createCompany,
@@ -23,15 +28,18 @@ router.post(
 
 /**
  * @route   GET /api/company/companies
+ * @desc    Get all transport companies (with filtering and pagination)
+ * @access  Private
  */
-router.get("/api/company/companies", validator(schema.getCompaniesQuery, "query"), controller.getCompanies);
+router.get("/", controller.getCompanies);
 
 /**
  * @route   PATCH /api/company/companies/:companyUniqueId
- * @access  Admin, Super Admin
+ * @desc    Update company details (Admin/SuperAdmin/CompanyAdmin only)
+ * @access  Private
  */
 router.patch(
-  "/api/company/companies/:companyUniqueId",
+  "/:companyUniqueId",
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   validator(schema.companyParams, "params"),
   validator(schema.updateCompany),
@@ -40,10 +48,11 @@ router.patch(
 
 /**
  * @route   PATCH /api/company/companies/:companyUniqueId/approve
- * @access  Admin, Super Admin
+ * @desc    Approve/Reject a company (SuperAdmin only)
+ * @access  Private
  */
 router.patch(
-  "/api/company/companies/:companyUniqueId/approve",
+  "/:companyUniqueId/approve",
   verifyIfUserIsAdminOrSupperAdmin,
   validator(schema.companyParams, "params"),
   validator(schema.approveCompany),
@@ -52,10 +61,11 @@ router.patch(
 
 /**
  * @route   DELETE /api/company/companies/:companyUniqueId
- * @access  Admin, Super Admin
+ * @desc    Soft delete a company (Admin/SuperAdmin only)
+ * @access  Private
  */
 router.delete(
-  "/api/company/companies/:companyUniqueId",
+  "/:companyUniqueId",
   verifyIfUserIsAdminOrSupperAdmin,
   validator(schema.companyParams, "params"),
   controller.deleteCompany,

@@ -2,10 +2,10 @@
 
 const express = require("express");
 const router = express.Router();
-const controller = require("../Controllers/CompanyVehicle.controller");
-const schema = require("../Validations/CompanyVehicle.schema");
-const { validator } = require("../Middleware/Validator");
-const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const controller = require("../../Controllers/CompanyVehicle.controller");
+const schema = require("../../Validations/CompanyVehicle.schema");
+const { validator } = require("../../Middleware/Validator");
+const { verifyTokenOfAxios } = require("../../Middleware/VerifyToken");
 
 router.use(verifyTokenOfAxios);
 
@@ -13,7 +13,7 @@ router.use(verifyTokenOfAxios);
  * @route   POST /api/company/fleet
  */
 router.post(
-  "/api/company/fleet",
+  "/",
   validator(schema.assignVehicle),
   controller.assignVehicle,
 );
@@ -22,7 +22,7 @@ router.post(
  * @route   GET /api/company/fleet
  */
 router.get(
-  "/api/company/fleet",
+  "/",
   validator(schema.getCompanyVehiclesQuery, "query"),
   controller.getCompanyVehicles,
 );
@@ -31,7 +31,7 @@ router.get(
  * @route   DELETE /api/company/fleet/:companyVehicleUniqueId
  */
 router.delete(
-  "/api/company/fleet/:companyVehicleUniqueId",
+  "/:companyVehicleUniqueId",
   validator(schema.companyVehicleParams, "params"),
   controller.removeVehicle,
 );
