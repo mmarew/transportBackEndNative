@@ -21,8 +21,12 @@ const validator = (schema, source = "body") => {
       req.method === "POST" &&
       (!data || Object.keys(data).length === 0)
     ) {
-      //Request body cannot be empty
-      return next(new AppError("Error happened", 400));
+      return next(
+        new AppError(
+          `Request body cannot be empty for ${req.method} requests to ${path}`,
+          400,
+        ),
+      );
     }
 
     const { error, value } = schema.validate(data, {
