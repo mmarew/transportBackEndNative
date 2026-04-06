@@ -3,18 +3,61 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const {
+  db,
+  findOne,
+  paginate,
+  paginatedQuery,
+} = require("./CompanyHelper.service");
 
 exports.createCompany = async (data) => {
-  const { companyName, companyRegistrationNumber, companyPhone, companyEmail,
-    companyAddress, companyLogoUrl, createdByUserUniqueId } = data;
+  const {
+    companyName,
+    companyRegistrationNumber,
+    companyPhone,
+    companyEmail,
+    companyAddress,
+    companyLogoUrl,
+    createdByUserUniqueId,
+  } = data;
 
-  // Duplicate check on name
-  const [dup] = await db().query(
-    "SELECT companyId FROM TransportCompany WHERE companyName = ? AND isDeleted = 0",
-    [companyName],
-  );
-  if (dup.length > 0) throw new AppError("A company with this name already exists", 409);
+  // Duplicate check for critical fields
+  const dupCheckFields = {
+    companyName: "name",
+    companyRegistrationNumber: "registration number",
+    companyPhone: "phone number",
+    companyEmail: "email address",
+  };
+
+  const checks = [];
+  const checkParams = [];
+
+  for (const field in dupCheckFields) {
+    if (data[field]) {
+      checks.push(`${field} = ?`);
+      checkParams.push(data[field]);
+    }
+  }
+
+  if (checks.length > 0) {
+    const [existing] = await db().query(
+      `SELECT companyName, companyRegistrationNumber, companyPhone, companyEmail 
+       FROM TransportCompany 
+       WHERE (${checks.join(" OR ")}) AND isDeleted = 0`,
+      checkParams,
+    );
+
+    if (existing.length > 0) {
+      for (const field in dupCheckFields) {
+        if (data[field] && existing.some((e) => e[field] === data[field])) {
+          throw new AppError(
+            `A company with this ${dupCheckFields[field]} already exists`,
+            409,
+          );
+        }
+      }
+    }
+  }
 
   const companyUniqueId = uuidv4();
   await db().query(
@@ -23,10 +66,17 @@ exports.createCompany = async (data) => {
        companyEmail, companyAddress, companyLogoUrl, approvalStatus,
        companyCreatedBy, companyCreatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-    [companyUniqueId, companyName, companyRegistrationNumber || null,
-      companyPhone || null, companyEmail || null,
-      companyAddress || null, companyLogoUrl || null,
-      createdByUserUniqueId, currentDate()],
+    [
+      companyUniqueId,
+      companyName,
+      companyRegistrationNumber || null,
+      companyPhone || null,
+      companyEmail || null,
+      companyAddress || null,
+      companyLogoUrl || null,
+      createdByUserUniqueId,
+      currentDate(),
+    ],
   );
   return { message: "success", data: { companyUniqueId } };
 };
@@ -73,16 +123,65 @@ exports.getCompanies = async (filters = {}, user = {}) => {
     offset,
   );
 };
+// update company
 
 exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
-  const allowed = ["companyName", "companyRegistrationNumber", "companyPhone",
-    "companyEmail", "companyAddress", "companyLogoUrl"];
+  const allowed = [
+    "companyName",
+    "companyRegistrationNumber",
+    "companyPhone",
+    "companyEmail",
+    "companyAddress",
+    "companyLogoUrl",
+  ];
+  // Duplicate check for critical fields
+  const dupCheckFields = {
+    companyName: "name",
+    companyRegistrationNumber: "registration number",
+    companyPhone: "phone number",
+    companyEmail: "email address",
+  };
+
+  const checks = [];
+  const checkParams = [];
+
+  for (const field in dupCheckFields) {
+    if (data[field]) {
+      checks.push(`${field} = ?`);
+      checkParams.push(data[field]);
+    }
+  }
+
+  if (checks.length > 0) {
+    const [existing] = await db().query(
+      `SELECT companyName, companyRegistrationNumber, companyPhone, companyEmail 
+       FROM TransportCompany 
+       WHERE (${checks.join(" OR ")}) AND companyUniqueId != ? AND isDeleted = 0`,
+      [...checkParams, companyUniqueId],
+    );
+
+    if (existing.length > 0) {
+      for (const field in dupCheckFields) {
+        if (data[field] && existing.some((e) => e[field] === data[field])) {
+          throw new AppError(
+            `A company with this ${dupCheckFields[field]} already exists`,
+            409,
+          );
+        }
+      }
+    }
+  }
+
   const setParts = [];
   const vals = [];
+
   for (const k of allowed) {
-    if (data[k] !== undefined) { setParts.push(`${k} = ?`); vals.push(data[k]); }
+    if (data[k] !== undefined) {
+      setParts.push(`${k} = ?`);
+      vals.push(data[k]);
+    }
   }
-  if (setParts.length === 0) throw new AppError("No fields to update", 400);
+  if (setParts.length === 0) {throw new AppError("No fields to update", 400);}
   setParts.push("companyUpdatedBy = ?", "companyUpdatedAt = ?");
   vals.push(updatedBy, currentDate(), companyUniqueId);
 
@@ -90,21 +189,37 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     `UPDATE TransportCompany SET ${setParts.join(", ")} WHERE companyUniqueId = ? AND isDeleted = 0`,
     vals,
   );
-  if (res.affectedRows === 0) throw new AppError("Company not found", 404);
+  if (res.affectedRows === 0) {throw new AppError("Company not found", 404);}
   return { message: "success", data: "Company updated" };
 };
 
-exports.approveCompany = async (companyUniqueId, approvalStatus, approvalReason, approvedBy) => {
-  await findOne("TransportCompany", { companyUniqueId, isDeleted: 0 }, "Company not found");
+exports.approveCompany = async (
+  companyUniqueId,
+  approvalStatus,
+  approvalReason,
+  approvedBy,
+) => {
+  await findOne(
+    "TransportCompany",
+    { companyUniqueId, isDeleted: 0 },
+    "Company not found",
+  );
   const [res] = await db().query(
     `UPDATE TransportCompany
      SET approvalStatus = ?, approvalReason = ?, approvedBy = ?, approvedAt = ?,
          companyUpdatedBy = ?, companyUpdatedAt = ?
      WHERE companyUniqueId = ? AND isDeleted = 0`,
-    [approvalStatus, approvalReason || null, approvedBy, currentDate(),
-      approvedBy, currentDate(), companyUniqueId],
+    [
+      approvalStatus,
+      approvalReason || null,
+      approvedBy,
+      currentDate(),
+      approvedBy,
+      currentDate(),
+      companyUniqueId,
+    ],
   );
-  if (res.affectedRows === 0) throw new AppError("Company not found", 404);
+  if (res.affectedRows === 0) {throw new AppError("Company not found", 404);}
   return { message: "success", data: `Company ${approvalStatus}` };
 };
 
@@ -115,6 +230,7 @@ exports.deleteCompany = async (companyUniqueId, deletedBy) => {
      WHERE companyUniqueId = ? AND isDeleted = 0`,
     [currentDate(), deletedBy, companyUniqueId],
   );
-  if (res.affectedRows === 0) throw new AppError("Company not found or already deleted", 404);
+  if (res.affectedRows === 0)
+  {throw new AppError("Company not found or already deleted", 404);}
   return { message: "success", data: "Company deleted" };
 };
