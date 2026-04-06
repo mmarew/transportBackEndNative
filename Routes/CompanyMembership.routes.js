@@ -12,12 +12,20 @@ router.use(verifyTokenOfAxios);
 /**
  * @route   POST /api/company/memberships
  */
-router.post("/api/company/memberships", validator(schema.addMember), controller.addMember);
+router.post(
+  "/api/company/memberships",
+  validator(schema.addMember),
+  controller.addMember,
+);
 
 /**
  * @route   GET /api/company/memberships
  */
-router.get("/api/company/memberships", validator(schema.getMembersQuery, "query"), controller.getMembers);
+router.get(
+  "/api/company/memberships",
+  validator(schema.getMembersQuery, "query"),
+  controller.getMembers,
+);
 
 /**
  * @route   PATCH /api/company/memberships/:membershipUniqueId/deactivate
