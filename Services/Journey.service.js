@@ -336,20 +336,44 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
     const executor = transactionStorage.getStore() || pool;
     const [countRows] = await executor.query(countSql, queryParams);
 
-    // Transform results into the desired format { date: count, ... }
-    const dateCounts = {};
+    // Transform results into a lookup map
+    const dbCounts = {};
     countRows.forEach((row) => {
-      dateCounts[row.journeyDate] = row.totalCount;
+      dbCounts[row.journeyDate] = row.totalCount;
     });
+
+    // Zero-Padding Logic: Ensure every date in the range reflects a count
+    const fullData = [];
+    const dateCounts = {};
+    const finalFromDate = fromDateOnly || fromDateStr;
+    const finalToDate = toDateOnlyVal || toDateStr;
+
+    if (finalFromDate && finalToDate) {
+      const start = new Date(finalFromDate);
+      const end = new Date(finalToDate);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().slice(0, 10);
+        const count = dbCounts[dateStr] || 0;
+        fullData.push({ journeyDate: dateStr, totalCount: count });
+        dateCounts[dateStr] = count;
+      }
+    } else {
+      // Fallback if range is undefined (e.g., direct status-only query)
+      countRows.forEach((row) => {
+        fullData.push(row);
+        dateCounts[row.journeyDate] = row.totalCount;
+      });
+    }
 
     return {
       message: "success",
-      data: countRows,
+      data: fullData,
       dateCounts,
-      totalDates: countRows.length,
+      totalDates: fullData.length,
       dateRange: {
-        fromDate: fromDateOnly || fromDateStr,
-        toDate: toDateOnlyVal || toDateStr,
+        fromDate: finalFromDate,
+        toDate: finalToDate,
       },
     };
   } catch (error) {
