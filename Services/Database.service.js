@@ -405,21 +405,53 @@ const installPreDefinedData = async (req) => {
     "JourneyStatus",
   );
 
-  // await processDataSequentially(
-  //   statusList,
-  //   createStatus,
-  //   statusSuccess,
-  //   statusErrors,
-  //   "Status",
-  // );
+  await processDataSequentially(
+    statusList,
+    async (status) => {
+      const { statusId, statusUniqueId, statusName, statusDescription } = status;
+      const seedStatusSql = `
+        INSERT INTO Statuses (statusId, statusUniqueId, statusName, statusDescription, statusCreatedBy, statusCreatedAt)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE statusName = VALUES(statusName), statusDescription = VALUES(statusDescription);
+      `;
+      await pool.query(seedStatusSql, [
+        statusId,
+        statusUniqueId,
+        statusName,
+        statusDescription,
+        userUniqueId,
+        currentDate(),
+      ]);
+      return { message: "success" };
+    },
+    statusSuccess,
+    statusErrors,
+    "Status",
+  );
 
-  // await processDataSequentially(
-  //   roleList,
-  //   (role) => createRole({ ...role, user }),
-  //   successRoles,
-  //   failedRoles,
-  //   "Role",
-  // );
+  await processDataSequentially(
+    roleList,
+    async (role) => {
+      const { roleId, roleUniqueId, roleName, roleDescription } = role;
+      const seedSql = `
+        INSERT INTO Roles (roleId, roleUniqueId, roleName, roleDescription, roleCreatedBy, roleCreatedAt)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE roleName = VALUES(roleName), roleDescription = VALUES(roleDescription);
+      `;
+      await pool.query(seedSql, [
+        roleId,
+        roleUniqueId,
+        roleName,
+        roleDescription,
+        userUniqueId,
+        currentDate(),
+      ]);
+      return { message: "success" };
+    },
+    successRoles,
+    failedRoles,
+    "Role",
+  );
 
   await processDataSequentially(
     vehicleTypes,

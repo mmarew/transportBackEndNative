@@ -29,11 +29,11 @@ exports.accountStatusParams = Joi.object({
     "string.base": "email must be a string",
   }),
 
-  roleId: Joi.number().integer().min(1).max(3).required().messages({
+  roleId: Joi.number().integer().min(1).max(10).required().messages({
     "number.base": "roleId must be a number",
     "number.integer": "roleId must be an integer",
     "number.min": "roleId must be at least 1",
-    "number.max": "roleId must be at most 3",
+    "number.max": "roleId must be at most 10",
     "any.required": "roleId is required",
   }),
 

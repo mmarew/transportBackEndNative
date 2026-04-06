@@ -20,9 +20,13 @@ exports.createUser = Joi.object({
   // register only 1 shipper/passengerDocumentRequirement and 2 driver
   roleId: Joi.number()
     .integer()
-    .valid(usersRoles.passengerRoleId, usersRoles.driverRoleId)
+    .valid(
+      usersRoles.passengerRoleId,
+      usersRoles.driverRoleId,
+      usersRoles.companyAdminRoleId,
+    )
     .required(),
-  statusId: Joi.number().integer().default(USER_STATUS.ACTIVE), // Default to 1 (active status) if not provided
+  statusId: Joi.number().integer().default(USER_STATUS.ACTIVE),
   fullName: Joi.string().when("roleId", {
     is: usersRoles.driverRoleId,
     then: Joi.required(),
@@ -45,6 +49,7 @@ exports.createUserByAdmin = Joi.object({
       usersRoles.driverRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.adminRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .required(),
   // ... other fields
@@ -62,6 +67,7 @@ exports.loginUser = Joi.object({
       usersRoles.supperAdminRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .required(),
 }).or("phoneNumber", "email"); // Login still allows either since they are in the DB
@@ -79,6 +85,7 @@ exports.verifyUserByOTP = Joi.object({
       usersRoles.supperAdminRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .optional(),
 })
@@ -122,6 +129,7 @@ exports.getUserFilter = Joi.object({
       usersRoles.supperAdminRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .optional(),
   roleUniqueId: Joi.string().optional(),
