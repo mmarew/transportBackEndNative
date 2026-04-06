@@ -10,6 +10,7 @@ const {
   paginate,
   paginatedQuery,
 } = require("./CompanyHelper.service");
+const { addMember } = require("./CompanyMembership.service");
 
 exports.createCompany = async (data) => {
   const {
@@ -87,21 +88,14 @@ exports.createCompany = async (data) => {
     user.roleId !== usersRoles.adminRoleId &&
     user.roleId !== usersRoles.supperAdminRoleId
   ) {
-    const membershipUniqueId = uuidv4();
-    await db().query(
-      `INSERT INTO CompanyMembership
-        (membershipUniqueId, companyUniqueId, userUniqueId, membershipRole,
-         isActive, membershipStartDate, membershipCreatedBy, membershipCreatedAt)
-       VALUES (?, ?, ?, 'owner', 1, ?, ?, ?)`,
-      [
-        membershipUniqueId,
-        companyUniqueId,
-        user.userUniqueId,
-        currentDate(),
-        createdByUserUniqueId,
-        currentDate(),
-      ],
-    );
+    await addMember({
+      companyUniqueId,
+      userUniqueId: user.userUniqueId,
+      membershipRole: "owner",
+      membershipStartDate: currentDate(),
+      createdByUserUniqueId: createdByUserUniqueId,
+      skipApprovalCheck: true,
+    });
   }
 
   return { message: "success", data: { companyUniqueId } };

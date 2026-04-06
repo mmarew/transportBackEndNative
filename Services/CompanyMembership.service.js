@@ -6,14 +6,27 @@ const AppError = require("../Utils/AppError");
 const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
 
 exports.addMember = async (data) => {
-  const { companyUniqueId, userUniqueId, membershipRole,
-    membershipStartDate, membershipEndDate, createdByUserUniqueId } = data;
+  const {
+    companyUniqueId,
+    userUniqueId,
+    membershipRole,
+    membershipStartDate,
+    membershipEndDate,
+    createdByUserUniqueId,
+    skipApprovalCheck = false,
+  } = data;
 
-  // Verify company exists and is approved
-  const company = await findOne("TransportCompany",
-    { companyUniqueId, isDeleted: 0 }, "Company not found");
-  if (company.approvalStatus !== "approved")
+  // Verify company exists
+  const company = await findOne(
+    "TransportCompany",
+    { companyUniqueId, isDeleted: 0 },
+    "Company not found",
+  );
+
+  // Status check (unless skipped for initial creation)
+  if (!skipApprovalCheck && company.approvalStatus !== "approved") {
     throw new AppError("Company is not approved yet", 400);
+  }
 
   // Duplicate membership check
   const [dup] = await db().query(
