@@ -3,6 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 const {
   db,
   findOne,
@@ -81,7 +82,11 @@ exports.createCompany = async (data) => {
 
   // Auto-link creator as owner if they are not system admins (3 or 6)
   const user = data.user;
-  if (user && user.roleId !== 3 && user.roleId !== 6) {
+  if (
+    user &&
+    user.roleId !== usersRoles.adminRoleId &&
+    user.roleId !== usersRoles.supperAdminRoleId
+  ) {
     const membershipUniqueId = uuidv4();
     await db().query(
       `INSERT INTO CompanyMembership
@@ -108,7 +113,10 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   const params = [];
 
   // Data Segregation: Non-admins only see companies they belong to
-  if (user.roleId !== 3 && user.roleId !== 6) {
+  if (
+    user.roleId !== usersRoles.adminRoleId &&
+    user.roleId !== usersRoles.supperAdminRoleId
+  ) {
     clauses.push(
       `TransportCompany.companyUniqueId IN (
         SELECT companyUniqueId FROM CompanyMembership 
