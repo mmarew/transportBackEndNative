@@ -5,9 +5,22 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
 
+/**
+ * Assigns a vehicle to a transport company fleet.
+ * @param {Object} data - The assignment data
+ * @param {string} data.companyUniqueId - ID of the company
+ * @param {string} data.vehicleUniqueId - ID of the vehicle being assigned
+ * @param {Date} data.assignmentStartDate - Start date for the assignment
+ * @param {string} data.createdByUserUniqueId - Originator of the assignment
+ */
 exports.assignVehicle = async (data) => {
-  const { companyUniqueId, vehicleUniqueId, assignmentStartDate,
-    assignmentEndDate, createdByUserUniqueId } = data;
+  const {
+    companyUniqueId,
+    vehicleUniqueId,
+    assignmentStartDate,
+    assignmentEndDate,
+    createdByUserUniqueId,
+  } = data;
 
   await findOne("TransportCompany", { companyUniqueId, isDeleted: 0 }, "Company not found");
 
