@@ -5,9 +5,15 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 exports.addMember = async (req, res, next) => {
   try {
+    let userUniqueId = req.params.userUniqueId;
+    console.log("@addMember userUniqueId", userUniqueId);
+    if (userUniqueId === "self") {
+      userUniqueId = req.user.userUniqueId;
+    }
     const result = await executeInTransaction(() =>
       service.addMember({
         ...req.body,
+        userUniqueId,
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );

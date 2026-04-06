@@ -13,7 +13,8 @@ router.use(verifyTokenOfAxios);
  * @route   POST /api/company/memberships
  */
 router.post(
-  "/",
+  "/:userUniqueId",
+  validator(schema.userParam, "params"),
   validator(schema.addMember),
   controller.addMember,
 );

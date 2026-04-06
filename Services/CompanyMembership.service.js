@@ -14,7 +14,7 @@ exports.addMember = async (data) => {
   const {
     companyUniqueId,
     userUniqueId,
-    membershipRole,
+    companyRoleUniqueId,
     membershipStartDate,
     membershipEndDate,
     createdByUserUniqueId,
@@ -52,7 +52,7 @@ exports.addMember = async (data) => {
       membershipUniqueId,
       companyUniqueId,
       userUniqueId,
-      membershipRole, // This is now a UUID from the schema
+      companyRoleUniqueId, // This is now a UUID from the schema
       membershipStartDate,
       membershipEndDate || null,
       createdByUserUniqueId,

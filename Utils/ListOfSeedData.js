@@ -204,10 +204,10 @@ const vehicleStatusTypes = [
 
 const listOfVehicleStatusTypes = vehicleStatusTypes;
 const companyRoles = {
-  ownerUniqueId: "company-role-owner-uuid-static",
-  managerUniqueId: "company-role-manager-uuid-static",
-  dispatcherUniqueId: "company-role-dispatcher-uuid-static",
-  driverUniqueId: "company-role-driver-uuid-static",
+  ownerUniqueId: "57898801-e280-4020-9178-f5122fe6bec9",
+  managerUniqueId: "57e8b851-dceb-4423-99e0-eb9b2b4f9d81",
+  dispatcherUniqueId: "750858d6-e816-45b0-a088-9dfe6b4d80ff",
+  driverUniqueId: "b7ab7faa-0c76-45e2-a973-ecf4478e9ece",
 };
 
 const companyRoleList = [
