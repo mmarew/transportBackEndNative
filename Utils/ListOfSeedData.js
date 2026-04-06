@@ -8,6 +8,7 @@ const usersRoles = {
   vehicleOwnerRoleId: 4,
   systemRoleId: 5,
   supperAdminRoleId: 6,
+  companyAdminRoleId: 7,
 };
 const usersRolesList = {
   passenger: { roleId: 1, roleName: "passenger" },
@@ -16,8 +17,7 @@ const usersRolesList = {
   vehicleOwner: { roleId: 4, roleName: "vehicle owner" },
   system: { roleId: 5, roleName: "system" },
   supperAdmin: { roleId: 6, roleName: "supper admin" },
-  unknownRoleId: { roleId: 7, roleName: "unknown role id" },
-  unknownRoleName: { roleId: 7, roleName: "unknown role name" },
+  companyAdmin: { roleId: 7, roleName: "CompanyAdmin" },
 };
 const roleList = [
   {
@@ -67,9 +67,9 @@ const roleList = [
   {
     roleId: 7,
     roleUniqueId: uuidv4(),
-    roleName: "unknown role id",
+    roleName: "CompanyAdmin",
     roleDescription:
-      "This role is used to register user as default role and can be updated by supper admin ",
+      "A person who manages their company fleet, bids on requests, and assigns drivers.",
     roleCreatedAt: currentDate(),
   },
 ];
