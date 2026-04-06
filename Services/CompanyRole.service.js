@@ -1,8 +1,14 @@
 "use strict";
 
-const { db } = require("./CompanyHelper.service");
+const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
 
-exports.getCompanyRoles = async () => {
+/**
+ * Returns the list of availble dynamic company roles (owner, manager, etc.).
+ *
+ * @param {Object} [filters={}] - Query filters (page, limit)
+ * @returns {Promise<Object>} Paginated list of roles with their Unique IDs
+ */
+exports.getRoles = async (filters = {}) => {
   const [roles] = await db().query(
     "SELECT * FROM CompanyRoles ORDER BY companyRoleName ASC"
   );

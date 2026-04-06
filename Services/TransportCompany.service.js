@@ -12,14 +12,24 @@ const {
 } = require("./CompanyHelper.service");
 const { addMember } = require("./CompanyMembership.service");
 
+/**
+ * Creates a new transport company and auto-assigns the creator as owner.
+ *
+ * @param {Object} data - Company data
+ * @param {string} data.companyName - Legal name of the company
+ * @param {string} [data.companyRegistrationNumber] - Business registration ID
+ * @param {string} [data.companyPhone] - Contact phone
+ * @param {string} [data.companyEmail] - Contact email
+ * @param {string} [data.companyAddress] - Physical address
+ * @param {string} data.createdByUserUniqueId - Unique ID of the creator
+ * @param {Object} [data.user] - Authenticated user object for role check
+ * @returns {Promise<Object>} Success message and new companyUniqueId
+ * @throws {AppError} 409 if company name/phone/email already exists
+ */
 exports.createCompany = async (data) => {
   const {
-    companyName,
-    companyRegistrationNumber,
-    companyPhone,
     companyEmail,
     companyAddress,
-    companyLogoUrl,
     createdByUserUniqueId,
   } = data;
 
@@ -65,9 +75,9 @@ exports.createCompany = async (data) => {
   await db().query(
     `INSERT INTO TransportCompany
       (companyUniqueId, companyName, companyRegistrationNumber, companyPhone,
-       companyEmail, companyAddress, companyLogoUrl, approvalStatus,
+       companyEmail, companyAddress, approvalStatus,
        companyCreatedBy, companyCreatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
     [
       companyUniqueId,
       companyName,
@@ -75,7 +85,6 @@ exports.createCompany = async (data) => {
       companyPhone || null,
       companyEmail || null,
       companyAddress || null,
-      companyLogoUrl || null,
       createdByUserUniqueId,
       currentDate(),
     ],
@@ -101,6 +110,13 @@ exports.createCompany = async (data) => {
   return { message: "success", data: { companyUniqueId } };
 };
 
+/**
+ * Retrieves a list of transport companies with data segregation for non-admins.
+ *
+ * @param {Object} [filters={}] - Query filters (companyName, approvalStatus, etc.)
+ * @param {Object} [user={}] - Authenticated user object for access control
+ * @returns {Promise<Object>} Paginated list of companies
+ */
 exports.getCompanies = async (filters = {}, user = {}) => {
   const { page, limit, offset } = paginate(filters);
   const clauses = ["TransportCompany.isDeleted = 0"];
@@ -146,8 +162,17 @@ exports.getCompanies = async (filters = {}, user = {}) => {
     offset,
   );
 };
-// update company
 
+/**
+ * Updates an existing transport company's profile.
+ * NOTE: Company Logo is now managed via the Documents system (Profile Photo ID 4).
+ *
+ * @param {string} companyUniqueId - ID of the company to update
+ * @param {Object} data - Fields to update
+ * @param {string} updatedBy - ID of the user performing the update
+ * @returns {Promise<Object>} Success message
+ * @throws {AppError} 404 if not found, 409 on duplicate fields
+ */
 exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
   const allowed = [
     "companyName",
@@ -155,7 +180,6 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     "companyPhone",
     "companyEmail",
     "companyAddress",
-    "companyLogoUrl",
   ];
   // Duplicate check for critical fields
   const dupCheckFields = {

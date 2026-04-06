@@ -9,7 +9,21 @@ const {
   paginate,
   paginatedQuery,
 } = require("./CompanyHelper.service");
+const { companyRoles } = require("../Utils/ListOfSeedData");
 
+/**
+ * Adds a new member to a company with a specific role ID.
+ *
+ * @param {Object} data - Membership data
+ * @param {string} data.companyUniqueId - ID of the company
+ * @param {string} data.userUniqueId - ID of the user (or "self")
+ * @param {string} data.companyRoleUniqueId - Valid UUID of the company role
+ * @param {string} data.membershipStartDate - ISO date
+ * @param {string} [data.membershipEndDate] - Optional ISO date
+ * @param {string} data.createdByUserUniqueId - ID of the creator
+ * @param {boolean} [data.skipApprovalCheck=false] - For system auto-linking
+ * @returns {Promise<Object>} Success message and new membershipUniqueId
+ */
 exports.addMember = async (data) => {
   const {
     companyUniqueId,
@@ -62,6 +76,13 @@ exports.addMember = async (data) => {
   return { message: "success", data: { membershipUniqueId } };
 };
 
+/**
+ * Retrieves a list of company members with roles and user profile details.
+ * Performs JOINs with CompanyRoles and Users tables.
+ *
+ * @param {Object} [filters={}] - Query filters (userUniqueId, companyUniqueId, roleID, etc.)
+ * @returns {Promise<Object>} Paginated list of members with fullName, role name, etc.
+ */
 exports.getMembers = async (filters = {}) => {
   const { page, limit, offset } = paginate(filters);
   const clauses = ["cm.membershipDeletedAt IS NULL"];

@@ -8,7 +8,6 @@ exports.createCompany = Joi.object({
   companyPhone: Joi.string().max(20).optional().allow("", null),
   companyEmail: Joi.string().email().max(255).optional().allow("", null),
   companyAddress: Joi.string().max(500).optional().allow("", null),
-  companyLogoUrl: Joi.string().max(500).optional().allow("", null),
 }).unknown(true);
 
 exports.updateCompany = Joi.object({
@@ -17,7 +16,6 @@ exports.updateCompany = Joi.object({
   companyPhone: Joi.string().max(20).optional().allow("", null),
   companyEmail: Joi.string().email().max(255).optional().allow("", null),
   companyAddress: Joi.string().max(500).optional().allow("", null),
-  companyLogoUrl: Joi.string().max(500).optional().allow("", null),
 }).unknown(true);
 
 exports.approveCompany = Joi.object({

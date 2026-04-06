@@ -24,6 +24,7 @@ const {
   subscriptionPlanLists,
   depositSources,
   passengerDocumentRequirement,
+  companyDocumentRequirement,
   listOfDelinquenciesTypes,
   subscriptionPlanPricingLists,
   commissionStatusList,
@@ -495,6 +496,18 @@ const installPreDefinedData = async (req) => {
     successPassengerDocumentRequirement,
     failedPassengerDocumentRequirement,
     "ShipperDocumentRequirement",
+  );
+
+  await processDataSequentially(
+    companyDocumentRequirement,
+    (document) =>
+      createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      }),
+    [], // Not tracking success/failure for now or add to return data if needed
+    [],
+    "CompanyDocumentRequirement",
   );
 
   await processDataSequentially(

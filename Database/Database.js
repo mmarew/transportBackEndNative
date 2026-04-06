@@ -1201,7 +1201,6 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
     companyPhone VARCHAR(20) NULL,                         -- Company contact phone
     companyEmail VARCHAR(255) NULL,                        -- Company contact email
     companyAddress VARCHAR(500) NULL,                      -- Physical address
-    companyLogoUrl VARCHAR(500) NULL,                      -- URL to uploaded logo
     approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
     approvalReason VARCHAR(500) NULL,                      -- Admin note when approving or rejecting
     approvedBy VARCHAR(36) NULL,                           -- Admin who approved/rejected

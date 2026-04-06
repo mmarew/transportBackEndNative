@@ -284,6 +284,24 @@ const listOfDocuments = [
     documentTypeDescription:
       "A valid and unexpired national ID. The admin needs this to ensure the driver is legally permitted to operate a vehicle.",
   },
+  {
+    isExpirationDateRequired: true,
+    documentTypeName: "Business License",
+    documentTypeDescription:
+      "A valid business license for the transport company, verifying legal operational status.",
+  },
+  {
+    isExpirationDateRequired: true,
+    documentTypeName: "Commercial Registration",
+    documentTypeDescription:
+      "Official commercial registration document for the legal entity.",
+  },
+  {
+    isExpirationDateRequired: true,
+    documentTypeName: "Tax Registration (TIN) Certificate",
+    documentTypeDescription:
+      "Official tax identification number certificate for the company.",
+  },
 ];
 
 const listOfDocumentsTypeAndId = {
@@ -294,6 +312,9 @@ const listOfDocumentsTypeAndId = {
   taxIdentificationNumber: 5,
   delegationOfVehicleUse: 6,
   nationalId: 7,
+  businessLicense: 8,
+  commercialRegistration: 9,
+  taxRegistrationCertificate: 10,
 };
 
 const driversDocumentRequirement = [
@@ -357,6 +378,41 @@ const passengerDocumentRequirement = [
     documentTypeName: "National ID",
     isDocumentMandatory: false,
     isExpirationDateRequired: false,
+  },
+];
+
+const companyDocumentRequirement = [
+  {
+    roleId: 7,
+    documentTypeId: 8,
+    documentTypeName: "Business License",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: true,
+    isFileNumberRequired: true,
+  },
+  {
+    roleId: 7,
+    documentTypeId: 9,
+    documentTypeName: "Commercial Registration",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: true,
+    isFileNumberRequired: true,
+  },
+  {
+    roleId: 7,
+    documentTypeId: 10,
+    documentTypeName: "Tax Registration (TIN) Certificate",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: true,
+    isFileNumberRequired: true,
+  },
+  {
+    roleId: 7,
+    documentTypeId: 4,
+    documentTypeName: "Profile Photo",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: false,
+    isFileNumberRequired: false,
   },
 ];
 const vehicleTypes = [
@@ -904,4 +960,5 @@ module.exports = {
   VEHICLE_STATUS_TYPES,
   companyRoles,
   companyRoleList,
+  companyDocumentRequirement,
 };
