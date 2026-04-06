@@ -27,11 +27,7 @@ const { addMember } = require("./CompanyMembership.service");
  * @throws {AppError} 409 if company name/phone/email already exists
  */
 exports.createCompany = async (data) => {
-  const {
-    companyEmail,
-    companyAddress,
-    createdByUserUniqueId,
-  } = data;
+  const { companyEmail, companyAddress, createdByUserUniqueId } = data;
 
   // Duplicate check for critical fields
   const dupCheckFields = {
@@ -228,7 +224,9 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
       vals.push(data[k]);
     }
   }
-  if (setParts.length === 0) {throw new AppError("No fields to update", 400);}
+  if (setParts.length === 0) {
+    throw new AppError("No fields to update", 400);
+  }
   setParts.push("companyUpdatedBy = ?", "companyUpdatedAt = ?");
   vals.push(updatedBy, currentDate(), companyUniqueId);
 
@@ -236,7 +234,9 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     `UPDATE TransportCompany SET ${setParts.join(", ")} WHERE companyUniqueId = ? AND isDeleted = 0`,
     vals,
   );
-  if (res.affectedRows === 0) {throw new AppError("Company not found", 404);}
+  if (res.affectedRows === 0) {
+    throw new AppError("Company not found", 404);
+  }
   return { message: "success", data: "Company updated" };
 };
 
@@ -266,7 +266,9 @@ exports.approveCompany = async (
       companyUniqueId,
     ],
   );
-  if (res.affectedRows === 0) {throw new AppError("Company not found", 404);}
+  if (res.affectedRows === 0) {
+    throw new AppError("Company not found", 404);
+  }
   return { message: "success", data: `Company ${approvalStatus}` };
 };
 
@@ -277,7 +279,8 @@ exports.deleteCompany = async (companyUniqueId, deletedBy) => {
      WHERE companyUniqueId = ? AND isDeleted = 0`,
     [currentDate(), deletedBy, companyUniqueId],
   );
-  if (res.affectedRows === 0)
-  {throw new AppError("Company not found or already deleted", 404);}
+  if (res.affectedRows === 0) {
+    throw new AppError("Company not found or already deleted", 404);
+  }
   return { message: "success", data: "Company deleted" };
 };

@@ -30,7 +30,7 @@ exports.getMembers = async (req, res, next) => {
     if (req.query.userUniqueId === "self") {
       req.query.userUniqueId = user.userUniqueId;
     }
-    ServerResponder(res, await service.getMembers(req.query));
+    ServerResponder(res, await service.getMembers(req.query, req.user));
   } catch (e) {
     next(e);
   }

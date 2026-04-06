@@ -9,7 +9,7 @@ const {
   paginate,
   paginatedQuery,
 } = require("./CompanyHelper.service");
-const { companyRoles } = require("../Utils/ListOfSeedData");
+const { companyRoles, usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
  * Adds a new member to a company with a specific role ID.
@@ -81,12 +81,27 @@ exports.addMember = async (data) => {
  * Performs JOINs with CompanyRoles and Users tables.
  *
  * @param {Object} [filters={}] - Query filters (userUniqueId, companyUniqueId, roleID, etc.)
+ * @param {Object} [user={}] - Authenticated user object for data segregation
  * @returns {Promise<Object>} Paginated list of members with fullName, role name, etc.
  */
-exports.getMembers = async (filters = {}) => {
+exports.getMembers = async (filters = {}, user = {}) => {
   const { page, limit, offset } = paginate(filters);
   const clauses = ["cm.membershipDeletedAt IS NULL"];
   const params = [];
+
+  // Data Segregation: Non-admins only see members of companies they belong to
+  if (
+    user.roleId !== usersRoles.adminRoleId &&
+    user.roleId !== usersRoles.supperAdminRoleId
+  ) {
+    clauses.push(
+      `cm.companyUniqueId IN (
+        SELECT companyUniqueId FROM CompanyMembership 
+        WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
+      )`,
+    );
+    params.push(user.userUniqueId);
+  }
 
   if (filters.companyUniqueId) {
     clauses.push("cm.companyUniqueId = ?");
