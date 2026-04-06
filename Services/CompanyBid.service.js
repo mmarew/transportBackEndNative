@@ -3,21 +3,53 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const {
+  db,
+  findOne,
+  paginate,
+  paginatedQuery,
+} = require("./CompanyHelper.service");
 const logger = require("../Utils/logger");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 
+/**
+ * Submits a bid for a passenger request batch.
+ * Ensures full-batch bid, company approval, and no duplicate bids.
+ *
+ * @param {Object} data - Bid submission data
+ * @param {string} data.passengerRequestBatchId - Batch ID to bid on
+ * @param {string} data.companyUniqueId - Company submitting the bid
+ * @param {string} data.bidSubmittedByUserUniqueId - User submitting the bid
+ * @param {number} data.numberOfVehiclesOffered - Number of vehicles offered (must match batch count)
+ * @param {string} data.vehicleTypeUniqueId - Vehicle type ID
+ * @param {number} [data.proposedCostPerVehicle] - Proposed cost per vehicle
+ * @param {number} [data.proposedTotalCost] - Proposed total cost
+ * @param {string} [data.proposedShippingDate] - Proposed shipping date
+ * @param {string} [data.proposedDeliveryDate] - Proposed delivery date
+ * @param {string} [data.bidNotes] - Additional notes
+ * @returns {Promise<Object>} Result with bidUniqueId
+ */
 exports.submitBid = async (data) => {
   const {
-    passengerRequestBatchId, companyUniqueId, bidSubmittedByUserUniqueId,
-    numberOfVehiclesOffered, vehicleTypeUniqueId,
-    proposedCostPerVehicle, proposedTotalCost,
-    proposedShippingDate, proposedDeliveryDate, bidNotes,
+    passengerRequestBatchId,
+    companyUniqueId,
+    bidSubmittedByUserUniqueId,
+    numberOfVehiclesOffered,
+    vehicleTypeUniqueId,
+    proposedCostPerVehicle,
+    proposedTotalCost,
+    proposedShippingDate,
+    proposedDeliveryDate,
+    bidNotes,
   } = data;
 
   // Company must be approved
-  const company = await findOne("TransportCompany", { companyUniqueId, isDeleted: 0 }, "Company not found");
+  const company = await findOne(
+    "TransportCompany",
+    { companyUniqueId, isDeleted: 0 },
+    "Company not found",
+  );
   if (company.approvalStatus !== "approved")
     throw new AppError("Only approved companies can submit bids", 400);
 
@@ -29,7 +61,8 @@ exports.submitBid = async (data) => {
     [passengerRequestBatchId],
   );
   const batchCount = Number(countRows?.[0]?.batchCount ?? 0);
-  if (batchCount === 0) throw new AppError("Passenger request batch not found", 404);
+  if (batchCount === 0)
+    throw new AppError("Passenger request batch not found", 404);
 
   // Check company-targeting
   try {
@@ -45,11 +78,14 @@ exports.submitBid = async (data) => {
         targetCompanyUniqueId !== null &&
         targetCompanyUniqueId !== companyUniqueId
       ) {
-        throw new AppError("This batch is targeted at a different company", 403);
+        throw new AppError(
+          "This batch is targeted at a different company",
+          403,
+        );
       }
     }
   } catch (e) {
-    if (e.code !== "ER_BAD_FIELD_ERROR") throw e; 
+    if (e.code !== "ER_BAD_FIELD_ERROR") throw e;
   }
 
   // Full-batch bid only
@@ -65,7 +101,10 @@ exports.submitBid = async (data) => {
     [companyUniqueId, passengerRequestBatchId],
   );
   if (existing.length > 0)
-    throw new AppError("This company has already submitted a bid for this batch", 409);
+    throw new AppError(
+      "This company has already submitted a bid for this batch",
+      409,
+    );
 
   const [jsRows] = await db().query(
     "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'waiting' LIMIT 1",
@@ -81,12 +120,22 @@ exports.submitBid = async (data) => {
        proposedDeliveryDate, bidNotes, bidStatus, journeyStatusId,
        companyBidRequestCreatedBy, companyBidRequestCreatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', ?, ?, ?)`,
-    [companyBidRequestUniqueId, passengerRequestBatchId, companyUniqueId,
-      bidSubmittedByUserUniqueId, numberOfVehiclesOffered, vehicleTypeUniqueId,
-      proposedCostPerVehicle ?? null, proposedTotalCost ?? null,
-      proposedShippingDate ?? null, proposedDeliveryDate ?? null,
-      bidNotes ?? null, journeyStatusId,
-      bidSubmittedByUserUniqueId, currentDate()],
+    [
+      companyBidRequestUniqueId,
+      passengerRequestBatchId,
+      companyUniqueId,
+      bidSubmittedByUserUniqueId,
+      numberOfVehiclesOffered,
+      vehicleTypeUniqueId,
+      proposedCostPerVehicle ?? null,
+      proposedTotalCost ?? null,
+      proposedShippingDate ?? null,
+      proposedDeliveryDate ?? null,
+      bidNotes ?? null,
+      journeyStatusId,
+      bidSubmittedByUserUniqueId,
+      currentDate(),
+    ],
   );
   return { message: "success", data: { companyBidRequestUniqueId } };
 };
@@ -96,20 +145,39 @@ exports.getBids = async (filters = {}) => {
   const clauses = ["companyBidRequestDeletedAt IS NULL"];
   const params = [];
 
-  if (filters.companyBidRequestUniqueId) { clauses.push("companyBidRequestUniqueId = ?"); params.push(filters.companyBidRequestUniqueId); }
-  if (filters.passengerRequestBatchId) { clauses.push("passengerRequestBatchId = ?"); params.push(filters.passengerRequestBatchId); }
-  if (filters.companyUniqueId) { clauses.push("companyUniqueId = ?"); params.push(filters.companyUniqueId); }
-  if (filters.bidStatus) { clauses.push("bidStatus = ?"); params.push(filters.bidStatus); }
+  if (filters.companyBidRequestUniqueId) {
+    clauses.push("companyBidRequestUniqueId = ?");
+    params.push(filters.companyBidRequestUniqueId);
+  }
+  if (filters.passengerRequestBatchId) {
+    clauses.push("passengerRequestBatchId = ?");
+    params.push(filters.passengerRequestBatchId);
+  }
+  if (filters.companyUniqueId) {
+    clauses.push("companyUniqueId = ?");
+    params.push(filters.companyUniqueId);
+  }
+  if (filters.bidStatus) {
+    clauses.push("bidStatus = ?");
+    params.push(filters.bidStatus);
+  }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
     `SELECT * FROM CompanyBidRequest ${where} ORDER BY companyBidRequestCreatedAt DESC`,
     `SELECT COUNT(*) AS total FROM CompanyBidRequest ${where}`,
-    params, page, limit, offset,
+    params,
+    page,
+    limit,
+    offset,
   );
 };
 
-exports.updateBidStatus = async (companyBidRequestUniqueId, bidStatus, updatedBy) => {
+exports.updateBidStatus = async (
+  companyBidRequestUniqueId,
+  bidStatus,
+  updatedBy,
+) => {
   const bid = await findOne(
     "CompanyBidRequest",
     { companyBidRequestUniqueId },
@@ -123,19 +191,26 @@ exports.updateBidStatus = async (companyBidRequestUniqueId, bidStatus, updatedBy
      SET bidStatus = ?, bidStatusUpdatedAt = ?, bidStatusUpdatedBy = ?,
          companyBidRequestUpdatedBy = ?, companyBidRequestUpdatedAt = ?
      WHERE companyBidRequestUniqueId = ?`,
-    [bidStatus, currentDate(), updatedBy, updatedBy, currentDate(), companyBidRequestUniqueId],
+    [
+      bidStatus,
+      currentDate(),
+      updatedBy,
+      updatedBy,
+      currentDate(),
+      companyBidRequestUniqueId,
+    ],
   );
   if (res.affectedRows === 0) throw new AppError("Bid update failed", 500);
 
   let newPRStatus = null;
   if (bidStatus === "accepted_by_shipper") {
-    newPRStatus = journeyStatusMap.acceptedByPassenger; 
+    newPRStatus = journeyStatusMap.acceptedByPassenger;
   } else if (
     bidStatus === "cancelled_by_company" ||
     bidStatus === "rejected_by_shipper" ||
     bidStatus === "expired"
   ) {
-    newPRStatus = journeyStatusMap.waiting; 
+    newPRStatus = journeyStatusMap.waiting;
   }
 
   if (newPRStatus !== null) {
@@ -148,10 +223,22 @@ exports.updateBidStatus = async (companyBidRequestUniqueId, bidStatus, updatedBy
   }
 
   const notificationMap = {
-    accepted_by_shipper:   { title: "Bid accepted",   body: "The shipper has accepted your company's freight bid." },
-    rejected_by_shipper:   { title: "Bid rejected",   body: "The shipper has rejected your company's freight bid." },
-    cancelled_by_company:  { title: "Bid cancelled",  body: "Your company's bid has been cancelled." },
-    expired:               { title: "Bid expired",    body: "Your company's bid has expired without a response." },
+    accepted_by_shipper: {
+      title: "Bid accepted",
+      body: "The shipper has accepted your company's freight bid.",
+    },
+    rejected_by_shipper: {
+      title: "Bid rejected",
+      body: "The shipper has rejected your company's freight bid.",
+    },
+    cancelled_by_company: {
+      title: "Bid cancelled",
+      body: "Your company's bid has been cancelled.",
+    },
+    expired: {
+      title: "Bid expired",
+      body: "Your company's bid has expired without a response.",
+    },
   };
   const notif = notificationMap[bidStatus];
   if (notif && bid.bidSubmittedByUserUniqueId) {
@@ -184,6 +271,7 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
      WHERE companyBidRequestUniqueId = ? AND companyBidRequestDeletedAt IS NULL`,
     [currentDate(), deletedBy, companyBidRequestUniqueId],
   );
-  if (res.affectedRows === 0) throw new AppError("Bid not found or already deleted", 404);
+  if (res.affectedRows === 0)
+    throw new AppError("Bid not found or already deleted", 404);
   return { message: "success", data: "Bid deleted" };
 };
