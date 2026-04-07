@@ -1,6 +1,6 @@
 ━━ Fleet Capacity Validation Test ━━━━━━━━━━━━━━
   [01] Infrastructure Setup ...
-04:04:46 [[32minfo[39m]: MySQL pool created
+04:08:26 [[32minfo[39m]: MySQL pool created
 {
   "service": "ride-hailing-api",
   "environment": "development",
@@ -9,7 +9,7 @@
   "port": 8888,
   "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
 }
-04:04:46 [[32minfo[39m]: MySQL connectivity check succeeded
+04:08:26 [[32minfo[39m]: MySQL connectivity check succeeded
 {
   "service": "ride-hailing-api",
   "environment": "development"
@@ -43,7 +43,37 @@
 }
   ✅ PASS
   [02] Setup 2-Truck Fleet ...
-  [DEBUG] Company Create Status: 404
-  [DEBUG] Company Create Data: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /api/company</pre>\n</body>\n</html>\n"
+  [DEBUG] Company Create Status: 201
+  [DEBUG] Company Create Data: {
+  "message": "success",
+  "data": {
+    "companyUniqueId": "fb9a6793-0860-4b56-9aca-6128b6932eac"
+  }
+}
+  ✅ PASS — Company ready with 2 trucks
+  [03] Creating Test Batches ...
+  [DEBUG] Batch 1 Create Status: 200
+  [DEBUG] Batch 1 Create Data: {
+  "message": "success",
+  "totalRecords": {
+    "totalCount": 2,
+    "waitingCount": 2,
+    "requestedCount": 0,
+    "acceptedByDriverCount": 0,
+    "acceptedByPassengerCount": 0,
+    "journeyStartedCount": 0,
+    "notSeenCompletedCount": 0,
+    "notSeenCancelledByDriverCount": 0
+  }
+}
+  [DEBUG] Batch 2 Create Status: 200
+  ✅ PASS — Batch1 (2 trucks), Batch2 (1 truck)
+  [04] Submitting Bid for Batch 1 (2 trucks) ...
+  ✅ PASS — Bid submitted (Capacity utilized: 2/2)
+  [05] Attempting Over-bid for Batch 2 (1 truck) ...
+  ✅ PASS — Correctly blocked (Capacity overflow prevented)
+  [06] Rejecting Bid 1 to free capacity ...
+  [07] Retrying Bid for Batch 2 ...
+  ✅ PASS — Capacity released and reused!
 
-❌ FAIL: Company creation failed
+🚀 Fleet Capacity Validation is fully operational!

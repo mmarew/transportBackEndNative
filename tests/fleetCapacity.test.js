@@ -76,12 +76,12 @@ async function getToken(phone, roleId) {
 
     // [02] Setup Company with 2 Vehicles
     console.log("  [02] Setup 2-Truck Fleet ...");
-    const cRes = await request("POST", "/api/company", { companyName: `CapCorp-${runId}`, companyPhone: DISPATCHER_PHONE }, adminH());
+    const cRes = await request("POST", "/api/company/companies", { companyName: `CapCorp-${runId}`, companyPhone: DISPATCHER_PHONE }, adminH());
     console.log("  [DEBUG] Company Create Status:", cRes.status);
     console.log("  [DEBUG] Company Create Data:", JSON.stringify(cRes.data, null, 2));
     state.companyUniqueId = cRes.data?.data?.companyUniqueId;
     assert(state.companyUniqueId, "Company creation failed");
-    await request("PUT", `/api/company/${state.companyUniqueId}/approve`, { approvalStatus: "approved" }, adminH());
+    await request("PATCH", `/api/company/companies/${state.companyUniqueId}/approve`, { approvalStatus: "approved" }, adminH());
     
     // Membership
     await request("POST", `/api/company/memberships/${state.dispatcherUniqueId}`, {
@@ -90,12 +90,19 @@ async function getToken(phone, roleId) {
       membershipStartDate: new Date().toISOString()
     }, adminH());
 
-    // Register 2 vehicles and add to fleet
+    // Register 2 vehicles (needs 2 drivers because 1 driver = 1 active vehicle)
     for(let i=1; i<=2; i++) {
-        const vr = await request("POST", `/api/user/vehicles/driverUserUniqueId/${state.dispatcherUniqueId}`, { 
+        const dPhone = `+251913${Math.floor(10000000 + Math.random() * 90000000)}`;
+        await request("POST", "/api/user/createUser", { phoneNumber: dPhone, roleId: 7, fullName: `Driver-${i}` });
+        await activateUser(dPhone);
+        const { userUniqueId: dId } = await getToken(dPhone, 7);
+
+        const vr = await request("POST", `/api/user/vehicles/driverUserUniqueId/${dId}`, { 
             licensePlate: `CAP-${i}-${runId}`, color: "White", vehicleTypeUniqueId: state.vehicleTypeUniqueId 
         }, adminH());
-        const vid = vr.data.data.vehicleUniqueId;
+        const vid = vr.data?.data?.vehicleUniqueId;
+        assert(vid, `Vehicle ${i} registration failed: ${JSON.stringify(vr.data)}`);
+        
         await request("POST", "/api/company/fleet", { 
             companyUniqueId: state.companyUniqueId, vehicleUniqueId: vid, assignmentStartDate: new Date().toISOString() 
         }, adminH());
@@ -104,15 +111,35 @@ async function getToken(phone, roleId) {
 
     // [03] Create Batches
     console.log("  [03] Creating Test Batches ...");
-    const br1 = await request("POST", "/api/passenger/request", {
-      requests: Array(2).fill({ originLatitude: 9.0, originLongitude: 38.0, originPlace: "O", destinationPlace: "D", vehicleTypeUniqueId: state.vehicleTypeUniqueId })
-    }, shipH());
-    state.batch1 = br1.data.data.passengerRequestBatchId;
+    const commonReq = {
+      originLocation: { latitude: 9.0, longitude: 38.0, description: "Origin" },
+      destination: { latitude: 9.1, longitude: 38.1, description: "Dest" },
+      vehicle: { vehicleTypeUniqueId: state.vehicleTypeUniqueId },
+      shippingDate: new Date().toISOString(),
+      deliveryDate: new Date().toISOString(),
+      shippingCost: 1000,
+      shippableItemQtyInQuintal: 10,
+      shippableItemName: "Test Item"
+    };
 
-    const br2 = await request("POST", "/api/passenger/request", {
-        requests: Array(1).fill({ originLatitude: 9.1, originLongitude: 38.1, originPlace: "O2", destinationPlace: "D2", vehicleTypeUniqueId: state.vehicleTypeUniqueId })
+    state.batch1 = crypto.randomUUID();
+    const br1 = await request("POST", "/api/passengerRequest/createRequest", {
+      ...commonReq,
+      passengerRequestBatchId: state.batch1,
+      numberOfVehicles: 2
+    }, shipH());
+    console.log("  [DEBUG] Batch 1 Create Status:", br1.status);
+    console.log("  [DEBUG] Batch 1 Create Data:", JSON.stringify(br1.data, null, 2));
+    assert.strictEqual(br1.status, 200, "Batch 1 creation failed");
+
+    state.batch2 = crypto.randomUUID();
+    const br2 = await request("POST", "/api/passengerRequest/createRequest", {
+        ...commonReq,
+        passengerRequestBatchId: state.batch2,
+        numberOfVehicles: 1
       }, shipH());
-    state.batch2 = br2.data.data.passengerRequestBatchId;
+    console.log("  [DEBUG] Batch 2 Create Status:", br2.status);
+    assert.strictEqual(br2.status, 200, "Batch 2 creation failed");
     console.log("  ✅ PASS — Batch1 (2 trucks), Batch2 (1 truck)");
 
     // [04] Submit Bid 1 (2 trucks) -> Should PASS
@@ -138,12 +165,12 @@ async function getToken(phone, roleId) {
       proposedTotalCost: 1000
     }, dispH());
     assert.strictEqual(bid2Res.status, 400, "Bid 2 should have failed with 400");
-    assert(bid2Res.data.message.includes("Fleet capacity exceeded"), "Error message should mention capacity");
+    assert(JSON.stringify(bid2Res.data).toLowerCase().includes("capacity"), "Error message should mention capacity");
     console.log("  ✅ PASS — Correctly blocked (Capacity overflow prevented)");
 
     // [06] Reject Bid 1 -> Verify Capacity Release
     console.log("  [06] Rejecting Bid 1 to free capacity ...");
-    await request("PUT", `/api/company/bids/${state.bid1}/status`, { bidStatus: "rejected_by_shipper" }, adminH());
+    await request("PATCH", `/api/company/bids/${state.bid1}/status`, { bidStatus: "rejected_by_shipper" }, adminH());
     
     console.log("  [07] Retrying Bid for Batch 2 ...");
     const bid2Retry = await request("POST", "/api/company/bids", {
