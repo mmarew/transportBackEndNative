@@ -326,8 +326,12 @@ exports.updateAssignmentStatus = async (
   const vals = [assignmentStatus, updatedBy, currentDate()];
 
   // On driver confirmation → create JourneyDecision
-  let journeyDecisionUniqueId = null;
-  if (assignmentStatus === "confirmed_by_driver") {
+  let journeyDecisionUniqueId = assignment.journeyDecisionUniqueId;
+
+  if (
+    assignmentStatus === "confirmed_by_driver" &&
+    assignment.assignmentStatus !== "confirmed_by_driver"
+  ) {
     if (!assignment.driverRequestUniqueId)
       throw new AppError("No DriverRequest linked to this assignment", 500);
 
@@ -408,20 +412,20 @@ exports.updateAssignmentStatus = async (
 /**
  * autoAssignBatch
  * ───────────────
- * The "Auto-Assigner" intelligence layer. This function automatically maps available 
+ * The "Auto-Assigner" intelligence layer. This function automatically maps available
  * fleet (vehicle/driver pairs) to unassigned slots within a single accepted bid.
- * 
+ *
  * ### HOW IT WORKS (Technical Workflow):
- * 1. **Slot Discovery**: Finds all `PassengerRequest` items in the batch that are 
+ * 1. **Slot Discovery**: Finds all `PassengerRequest` items in the batch that are
  *    NOT yet assigned in `CompanyBidVehicleAssignment`.
- * 2. **Availability Check**: Queries the company's active fleet. A driver/vehicle 
- *    is only "Available" if they have no active trip where the status is NOT 
+ * 2. **Availability Check**: Queries the company's active fleet. A driver/vehicle
+ *    is only "Available" if they have no active trip where the status is NOT
  *    one of (completed, cancelled, rejected).
  * 3. **1-to-1 Mapping**: Matches slots to the next available driver-vehicle pair.
- * 4. **Partial Support**: If the fleet is smaller than the total slots, it 
+ * 4. **Partial Support**: If the fleet is smaller than the total slots, it
  *    assigns as many as possible and returns a summary of the remainder.
  * 5. **Atomicity**: Executed inside a database transaction to ensure batch integrity.
- * 
+ *
  * @param {Object} data - Payload
  * @param {string} data.companyBidRequestUniqueId - The ID of the winning bid.
  * @param {string} data.createdByUserUniqueId - The dispatcher's user ID.
@@ -446,6 +450,7 @@ exports.autoAssignBatch = async (data) => {
   const { passengerRequestBatchId, companyUniqueId } = bid;
 
   // 2. Find Unassigned Slots for this Batch (Priority Check)
+
   const [unassignedSlots] = await db().query(
     `SELECT pr.passengerRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
      FROM PassengerRequest pr
@@ -454,14 +459,18 @@ exports.autoAssignBatch = async (data) => {
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
          WHERE cba.passengerRequestUniqueId = pr.passengerRequestUniqueId
+           AND cba.companyBidRequestUniqueId = ?
            AND cba.assignmentDeletedAt IS NULL
            AND cba.assignmentStatus NOT IN ('rejected_by_driver', 'cancelled')
        )`,
-    [passengerRequestBatchId],
+    [passengerRequestBatchId, companyBidRequestUniqueId],
   );
 
   if (unassignedSlots.length === 0) {
-    return { message: "success", data: "All slots in this batch are already assigned." };
+    return {
+      message: "success",
+      data: "All slots in this batch are already assigned.",
+    };
   }
 
   // 3. Find Available Fleet (Vehicles + Drivers)
@@ -557,13 +566,17 @@ exports.autoAssignBatch = async (data) => {
     );
 
     // Skip FCM for bulk auto-assign speed, but we can add it if needed
-    results.push({ assignmentUniqueId, passengerRequestUniqueId: item.passengerRequestUniqueId });
+    results.push({
+      assignmentUniqueId,
+      passengerRequestUniqueId: item.passengerRequestUniqueId,
+    });
   }
 
   const unassignedCount = unassignedSlots.length - results.length;
-  const summary = unassignedCount > 0 
-    ? `Successfully auto-assigned ${results.length} slots. ${unassignedCount} slots remain unassigned due to limited fleet availability.`
-    : `Successfully auto-assigned all ${results.length} slots.`;
+  const summary =
+    unassignedCount > 0
+      ? `Successfully auto-assigned ${results.length} slots. ${unassignedCount} slots remain unassigned due to limited fleet availability.`
+      : `Successfully auto-assigned all ${results.length} slots.`;
 
   return {
     message: "success",
