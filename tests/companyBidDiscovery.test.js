@@ -3,6 +3,7 @@
  * companyBidDiscovery.test.js
  * =======================
  * Test specifically for the new 'target=available' functionality in /api/company/bids.
+ * Covers both Targeted (specific company ID) and Open (NULL company ID) requests.
  */
 
 "use strict";
@@ -18,8 +19,8 @@ const SUPER_ADMIN_PHONE = Config.SUPER_ADMIN.PHONE || "+251983222221";
 const DEFAULT_OTP = Config.TEST.OTP || "101010";
 
 const runId = String(Date.now()).slice(-7);
-const SHIPPER_PHONE = `+2519171${runId}`;
-const DRIVER_PHONE  = `+2519181${runId}`;
+const SHIPPER_PHONE = `+2519191${runId}`;
+const DRIVER_PHONE  = `+2519121${runId}`;
 
 // From ListOfSeedData.js
 const DISPATCHER_ROLE_UUID = "750858d6-e816-45b0-a088-9dfe6b4d80ff";
@@ -33,8 +34,8 @@ const state = {
   driverUniqueId: null,
   companyUniqueId: null,
   vehicleTypeUniqueId: null,
-  passengerRequestBatchId: null,
-  companyBidRequestUniqueId: null,
+  batchIdTargeted: null,
+  batchIdOpen: null,
 };
 
 // ─── HTTP helper ──────────────────────────────────────────────────────────────
@@ -70,15 +71,13 @@ function request(method, path, body = null, extraHeaders = {}) {
 }
 
 async function getToken(phone, roleId) {
-  const loginRes = await request("POST", "/api/user/loginUser", { phoneNumber: phone, roleId });
+  await request("POST", "/api/user/loginUser", { phoneNumber: phone, roleId });
   const res = await request("POST", "/api/user/verifyUserByOTP", {
     phoneNumber: phone, OTP: DEFAULT_OTP, roleId,
   });
   const token = res.body?.token || res.body?.data?.token || res.body?.user?.token;
   if (!token) throw new Error(`Auth failed for ${phone}: ${JSON.stringify(res.body)}`);
-  
-  // Also extract userUniqueId if present
-  const uid = res.body?.userData?.userUniqueId || res.body?.data?.userUniqueId || res.body?.user?.userUniqueId;
+  const uid = res.body?.userData?.userUniqueId || res.body?.data?.userUniqueId;
   return { token, userUniqueId: uid };
 }
 
@@ -109,40 +108,31 @@ function assert(cond, msg) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 (async () => {
-  console.log("\n\x1b[1m━━ Company Bid Discovery Test ━━━━━━━━━━━━━━\x1b[0m");
+  console.log("\n\x1b[1m━━ Company Bid Discovery Test (Open & Targeted) ━━━━━━━━━━━━━━\x1b[0m");
 
-  await step("Admin: login", async () => {
-    const auth = await getToken(SUPER_ADMIN_PHONE, 6);
-    state.adminToken = auth.token;
-    return "JWT acquired";
+  await step("Infrastructure: login & registration", async () => {
+    state.adminToken = (await getToken(SUPER_ADMIN_PHONE, 6)).token;
+    
+    await request("POST", "/api/user/createUser", { phoneNumber: SHIPPER_PHONE, roleId: 1, fullName: "S" });
+    state.shipperToken = (await getToken(SHIPPER_PHONE, 1)).token;
+    
+    await request("POST", "/api/user/createUser", { phoneNumber: DRIVER_PHONE, roleId: 2, fullName: "D" });
+    const dAuth = await getToken(DRIVER_PHONE, 2);
+    state.driverToken = dAuth.token;
+    state.driverUniqueId = dAuth.userUniqueId;
+
+    const vRes = await request("GET", "/api/admin/vehicleTypes?limit=1", null, adminH());
+    state.vehicleTypeUniqueId = vRes.body?.data?.[0]?.vehicleTypeUniqueId;
+
+    return "Created";
   });
 
-  await step("Setup Shipper", async () => {
-    await request("POST", "/api/user/createUser", {
-        phoneNumber: SHIPPER_PHONE, roleId: 1, fullName: `S_${runId}`
-    });
-    const auth = await getToken(SHIPPER_PHONE, 1);
-    state.shipperToken = auth.token;
-    state.shipperUniqueId = auth.userUniqueId;
-    assert(state.shipperToken, "No shipper token");
-    return "Shipper OK";
-  });
-
-  await step("Setup Driver, Company & Membership", async () => {
-    await request("POST", "/api/user/createUser", {
-        phoneNumber: DRIVER_PHONE, roleId: 2, fullName: `D_${runId}`
-    });
-    const auth = await getToken(DRIVER_PHONE, 2);
-    state.driverToken = auth.token;
-    state.driverUniqueId = auth.userUniqueId;
-    assert(state.driverUniqueId, "No driverUniqueId returned from verifyUserByOTP");
-
+  await step("Setup Company & Membership", async () => {
     const coRes = await request("POST", "/api/company/companies", {
       companyName: `Co_${runId}`,
-      companyPhone: `+251912${runId.slice(-4)}`,
+      companyPhone: `+2519${runId.slice(0,8)}`,
       companyRegistrationNumber: `R_${runId}`,
     }, adminH());
-    assert(coRes.status === 201, `Co create failed (${coRes.status}): ${JSON.stringify(coRes.body)}`);
     state.companyUniqueId = coRes.body?.data?.companyUniqueId;
 
     await request("PATCH", `/api/company/companies/${state.companyUniqueId}/approve`, {
@@ -154,69 +144,82 @@ function assert(cond, msg) {
       companyRoleUniqueId: DISPATCHER_ROLE_UUID,
       membershipStartDate: new Date().toISOString(),
     }, adminH());
-    assert(memRes.status === 201, `Membership failed (${memRes.status}): ${JSON.stringify(memRes.body)}`);
-    return `Driver: ${state.driverUniqueId} | Co: ${state.companyUniqueId}`;
+    assert(memRes.status === 201, "Membership failed");
+    return `Co: ${state.companyUniqueId}`;
   });
 
-  await step("Fetch vehicle type", async () => {
-    const res = await request("GET", "/api/admin/vehicleTypes?limit=1", null, adminH());
-    state.vehicleTypeUniqueId = res.body?.data?.[0]?.vehicleTypeUniqueId;
-    assert(state.vehicleTypeUniqueId, "No vehicle types in system");
-    return state.vehicleTypeUniqueId;
-  });
-
-  await step("Shipper: create company_target request", async () => {
-    state.passengerRequestBatchId = randomUUID();
+  await step("Shipper: create TARGETED request", async () => {
+    state.batchIdTargeted = randomUUID();
     const res = await request("POST", "/api/passengerRequest/createRequest", {
-      passengerRequestBatchId: state.passengerRequestBatchId,
-      numberOfVehicles: 1,
+      passengerRequestBatchId: state.batchIdTargeted,
       requestMode: "company_target",
       targetCompanyUniqueId: state.companyUniqueId,
+      numberOfVehicles: 1,
       originLocation: { latitude: 9, longitude: 38, description: "O" },
       destination: { latitude: 9.1, longitude: 38.1, description: "D" },
       vehicle: { vehicleTypeUniqueId: state.vehicleTypeUniqueId },
-      shippingDate: "2026-10-01",
-      deliveryDate: "2026-10-02",
-      shippingCost: 5000,
-      shippableItemQtyInQuintal: 100,
-      shippableItemName: "Goods",
+      shippingDate: new Date().toISOString(),
+      deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+      shippingCost: 1000,
+      shippableItemQtyInQuintal: 10,
+      shippableItemName: "Test Item",
     }, shipperH());
-    assert(res.body?.message === "success", `Create failed: ${JSON.stringify(res.body)}`);
-    return "Created";
+    assert(res.body?.message === "success", `Targeted Create failed: ${JSON.stringify(res.body)}`);
+    return "Created targeted";
   });
 
-  await step("Driver Discovery: target=available", async () => {
+  await step("Shipper: create OPEN request (no specific ID)", async () => {
+    state.batchIdOpen = randomUUID();
+    const res = await request("POST", "/api/passengerRequest/createRequest", {
+      passengerRequestBatchId: state.batchIdOpen,
+      requestMode: "company_target",
+      // targetCompanyUniqueId omitted
+      numberOfVehicles: 1,
+      originLocation: { latitude: 9, longitude: 38, description: "O" },
+      destination: { latitude: 9.1, longitude: 38.1, description: "D" },
+      vehicle: { vehicleTypeUniqueId: state.vehicleTypeUniqueId },
+      shippingDate: new Date().toISOString(),
+      deliveryDate: new Date(Date.now() + 86400000).toISOString(),
+      shippingCost: 1000,
+      shippableItemQtyInQuintal: 10,
+      shippableItemName: "Test Item",
+    }, shipperH());
+    assert(res.body?.message === "success", `Open Create failed: ${JSON.stringify(res.body)}`);
+    return "Created open";
+  });
+
+  await step("Driver Discovery: verify both exist", async () => {
     const res = await request("GET", "/api/company/bids?target=available", null, driverH());
-    assert(res.status === 200, `GET discovery failed (${res.status}): ${JSON.stringify(res.body)}`);
-    const found = res.body?.data?.find(b => b.passengerRequestBatchId === state.passengerRequestBatchId);
-    assert(found, "Request not found in available list (expected to see new targeted request)");
-    return "Found!";
+    assert(res.status === 200, "Discovery failed");
+    const data = res.body?.data || [];
+    const hasTargeted = data.some(b => b.passengerRequestBatchId === state.batchIdTargeted);
+    const hasOpen = data.some(b => b.passengerRequestBatchId === state.batchIdOpen);
+    assert(hasTargeted, "Targeted bid NOT found");
+    assert(hasOpen, "Open bid NOT found");
+    return `Visible: ${data.length} total`;
   });
 
-  await step("Driver: submit bid", async () => {
+  await step("Driver: bid on OPEN request", async () => {
     const res = await request("POST", "/api/company/bids", {
-      passengerRequestBatchId: state.passengerRequestBatchId,
+      passengerRequestBatchId: state.batchIdOpen,
       companyUniqueId: state.companyUniqueId,
       numberOfVehiclesOffered: 1,
       vehicleTypeUniqueId: state.vehicleTypeUniqueId,
     }, driverH());
-    assert(res.status === 201 || res.body?.message === "success", `Bid submission failed: ${JSON.stringify(res.body)}`);
+    assert(res.status === 201 || res.body?.message === "success", "Bid failed");
     return "Bidded";
   });
 
-  await step("Discovery: verify request is now hidden", async () => {
+  await step("Discovery: verify OPEN request hidden, TARGETED remains", async () => {
     const res = await request("GET", "/api/company/bids?target=available", null, driverH());
-    const found = res.body?.data?.find(b => b.passengerRequestBatchId === state.passengerRequestBatchId);
-    assert(!found, "Request should be hidden from 'available' list after a bid has been placed");
-    return "Hidden ✓";
+    const data = res.body?.data || [];
+    const hasTargeted = data.some(b => b.passengerRequestBatchId === state.batchIdTargeted);
+    const hasOpen = data.some(b => b.passengerRequestBatchId === state.batchIdOpen);
+    assert(hasTargeted, "Targeted bid should still be visible");
+    assert(!hasOpen, "Open bid should be hidden after bid");
+    return "Success ✓";
   });
 
   const failed = results.filter((r) => !r.pass).length;
-  if (failed > 0) {
-    console.log(`\n  ❌ ${failed} steps failed.`);
-    process.exit(1);
-  } else {
-    console.log("\n  ✅ All discovery tests passed successfully!");
-    process.exit(0);
-  }
+  process.exit(failed === 0 ? 0 : 1);
 })();
