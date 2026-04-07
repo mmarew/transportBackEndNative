@@ -17,28 +17,31 @@ const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
  * ### CORE LOGIC - Submit a Freight Bid
  * Processes a transport company's bid for a shipper's request batch.
  *
- * **Junior Note: High Stakes!**
- * This function handles the "Heart" of the company bidding flow. It performs multiple security
- * and business checks before inserting a row into `CompanyBidRequest`.
+ * **Junior Note: Source of Truth Pattern**
+ * To ensure data integrity, this function automatically fetches the vehicle type and
+ * vehicle count from the `PassengerRequestBatch` table. This prevents the frontend
+ * from accidentally sending mismatched data.
  *
  * **Important Rules:**
- * 1. Only 'Approved' companies can bid (Security).
- * 2. Companies can't bid on work targeted at *other* specific companies (Privacy).
- * 3. Companies must bid on the *entire* batch (No partial loads for fleet dispatch).
+ * 1. Only 'Approved' companies can bid.
+ * 2. Companies can't bid on work targeted at *other* specific companies.
+ * 3. **Full Batch Only**: By default, companies bid on the *entire* batch.
  *
- * > [!IMPORTANT]
- * > **4. Fleet Capacity Validation (NEW):**
- * > To prevent over-commitment, the system now calls `validateFleetCapacity()`.
- * > This ensures the company has enough "Free" trucks in their fleet to fulfill this
- * > bid if they win. If they are already fully committed, the bid is blocked.
+ * > [!TIP]
+ * > **HOW TO ENABLE PARTIAL BIDDING (Future Restore):**
+ * > If you need to allow companies to bid on only part of a batch:
+ * > 1. Update `Validations/CompanyBid.schema.js` to make `numberOfVehiclesOffered` required.
+ * > 2. Remove the line `const finalCount = totalVehicles;`.
+ * > 3. Un-comment the validation: `if (numberOfVehiclesOffered > totalVehicles) { throw ... }`.
+ * > 4. Use `numberOfVehiclesOffered` as the `finalCount` in the INSERT query.
  *
  * @param {Object} data - The payload containing bid details.
  * @param {string} data.passengerRequestBatchId - The UUID that groups the shipper's requests.
  * @param {string} data.companyUniqueId - The ID of the bidding fleet.
- * @param {string} data.bidSubmittedByUserUniqueId - The User ID of the dispatcher who clicked 'Send'.
- * @param {number} data.numberOfVehiclesOffered - Must match the batch total.
- * @param {string} data.vehicleTypeUniqueId - Validates the fleet can provide this type.
- * @returns {Promise<Object>} A success message with the new bid's unique ID.
+ * @param {string} data.bidSubmittedByUserUniqueId - The User ID of the dispatcher.
+ * @param {number} [data.numberOfVehiclesOffered] - Optional; defaults to batch total.
+ * @param {string} [data.vehicleTypeUniqueId] - Optional; defaults to batch requirement.
+ * @returns {Promise<Object>} Success message.
  */
 exports.submitBid = async (data) => {
   const {
@@ -63,7 +66,7 @@ exports.submitBid = async (data) => {
   if (company.approvalStatus !== "approved")
     throw new AppError("Only approved companies can submit bids", 400);
 
-  // 1. Verify the batch exists and get its metadata (Header Table)
+  // 1. Verify the batch exists and get its metadata
   const [batchRows] = await db().query(
     `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId 
      FROM PassengerRequestBatch 
@@ -74,8 +77,8 @@ exports.submitBid = async (data) => {
     throw new AppError("Passenger request batch not found", 404);
 
   const { totalVehicles, requestMode, targetCompanyUniqueId } = batchRows[0];
-  // Determine final values (prioritize DB, fallback to user input for legacy)
-  const finalNumberOfVehicles = totalVehicles || numberOfVehiclesOffered;
+
+  // --- SOURCE OF TRUTH: We prioritize the batch's required vehicle type ---
   const finalVehicleTypeUniqueId = batchRows[0].vehicleTypeUniqueId || vehicleTypeUniqueId;
 
   // 2. Check company-targeting
@@ -90,7 +93,7 @@ exports.submitBid = async (data) => {
     );
   }
 
-  // 3. Verify consistency with individual requests (Optional but recommended)
+  // 3. Verify the batch has actual requests (Sanity Check)
   const [countRows] = await db().query(
     `SELECT COUNT(*) AS batchCount
      FROM PassengerRequest
@@ -101,8 +104,17 @@ exports.submitBid = async (data) => {
   if (actualRequestCount === 0)
     throw new AppError("This batch contains no individual requests", 400);
 
-  // We enforce the full batch size from the meta-table
-  const finalCount = finalNumberOfVehicles;
+  // 4. Determine final vehicle count (Full Batch Logic)
+  // To restore partial bidding, use the user input instead of totalVehicles.
+  const finalCount = totalVehicles;
+
+  /* 
+  // PARTIAL BID RESTORATION LOGIC:
+  if (numberOfVehiclesOffered > totalVehicles) {
+     throw new AppError(`Cannot bid for ${numberOfVehiclesOffered} when batch only needs ${totalVehicles}`, 400);
+  }
+  const finalCount = numberOfVehiclesOffered; 
+  */
 
   // One bid per company per batch
   const [existing] = await db().query(
