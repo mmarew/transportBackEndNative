@@ -51,6 +51,9 @@ const {
   getSubscriptionPlans,
 } = require("./SubscriptionPlan.service");
 const { createDepositSource } = require("./DepositSource.service");
+const { createStatus } = require("./Status.service");
+const { createRole } = require("./Role.service");
+const { createRole: createCompanyRole } = require("./CompanyRole.service");
 const { createPricing } = require("./SubscriptionPlanPricing.service");
 
 const createTable = async () => {
@@ -109,61 +112,42 @@ const createTable = async () => {
     rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
   });
 
+  const adminUser = { userUniqueId: effectiveSuperAdminId };
+
   // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent
   for (const status of statusList) {
-    const { statusId, statusUniqueId, statusName, statusDescription } = status;
-    const seedStatusSql = `
-      INSERT INTO Statuses (statusId, statusUniqueId, statusName, statusDescription, statusCreatedBy, statusCreatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE statusName = VALUES(statusName), statusDescription = VALUES(statusDescription);
-    `;
-    await pool.query(seedStatusSql, [
-      statusId,
-      statusUniqueId,
-      statusName,
-      statusDescription,
-      effectiveSuperAdminId,
-      currentDate(),
-    ]);
+    try {
+      await createStatus({ ...status, user: adminUser });
+    } catch (error) {
+      if (!error.message || !error.message.includes("already exists")) {
+        console.error(`Error seeding status ${status.statusName}:`, error);
+      }
+    }
   }
 
   // Seed Roles to satisfy FK constraints for UserRole
   for (const role of roleList) {
-    const { roleId, roleUniqueId, roleName, roleDescription } = role;
-    const seedSql = `
-      INSERT INTO Roles (roleId, roleUniqueId, roleName, roleDescription, roleCreatedBy, roleCreatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE roleName = VALUES(roleName), roleDescription = VALUES(roleDescription);
-    `;
-    await pool.query(seedSql, [
-      roleId,
-      roleUniqueId,
-      roleName,
-      roleDescription,
-      effectiveSuperAdminId,
-      currentDate(),
-    ]);
+    try {
+      await createRole({ ...role, user: adminUser });
+    } catch (error) {
+      if (!error.message || !error.message.includes("already exists")) {
+        console.error(`Error seeding role ${role.roleName}:`, error);
+      }
+    }
   }
 
   // Seed VehicleStatusTypes (e.g. for VehicleStatus FK)
-  for (const row of listOfVehicleStatusTypes) {
-    const {
-      VehicleStatusTypeId,
-      VehicleStatusTypeName,
-      statusTypeDescription,
-    } = row;
-    const seedSql = `
-      INSERT INTO VehicleStatusTypes (VehicleStatusTypeId, VehicleStatusTypeName, VehicleStatusTypeDescription, VehicleStatusTypeCreatedBy, VehicleStatusTypeCreatedAt)
-      VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE VehicleStatusTypeName = VALUES(VehicleStatusTypeName), VehicleStatusTypeDescription = VALUES(VehicleStatusTypeDescription);
-    `;
-    await pool.query(seedSql, [
-      VehicleStatusTypeId,
-      VehicleStatusTypeName,
-      statusTypeDescription ?? null,
-      effectiveSuperAdminId,
-      currentDate(),
-    ]);
+  for (const vehicleStatusType of listOfVehicleStatusTypes) {
+    try {
+      await createVehicleStatusType({ ...vehicleStatusType, user: adminUser });
+    } catch (error) {
+      if (!error.message || !error.message.includes("already exists")) {
+        console.error(
+          `Error seeding vehicle status type ${vehicleStatusType.VehicleStatusTypeName}:`,
+          error,
+        );
+      }
+    }
   }
 
   // Now create system and super admin users (relies on Roles existing)
@@ -389,239 +373,221 @@ const installPreDefinedData = async (req) => {
     subscriptionPlanPricingSuccess = [],
     subscriptionPlanPricingErrors = [];
 
-  // await processDataSequentially(
-  //   listOfVehicleStatusTypes,
-  //   (vehicleStatusType) =>
-  //     createVehicleStatusType({
-  //       ...vehicleStatusType,
-  //       user,
-  //     }),
-  //   successVehicleStatusTypes,
-  //   failedVehicleStatusTypes,
-  //   "VehicleStatusType",
-  // );
+  await processDataSequentially(
+    listOfVehicleStatusTypes,
+    (vehicleStatusType) =>
+      createVehicleStatusType({
+        ...vehicleStatusType,
+        user,
+      }),
+    successVehicleStatusTypes,
+    failedVehicleStatusTypes,
+    "VehicleStatusType",
+  );
 
-  // await processDataSequentially(
-  //   journeyStatus,
-  //   (status) => createJourneyStatus(status, user),
-  //   successJourneyStatus,
-  //   failedJourneyStatus,
-  //   "JourneyStatus",
-  // );
+  await processDataSequentially(
+    journeyStatus,
+    (status) => createJourneyStatus(status, user),
+    successJourneyStatus,
+    failedJourneyStatus,
+    "JourneyStatus",
+  );
 
   const executor = transactionStorage.getStore() || pool;
 
-  // await processDataSequentially(
-  //   statusList,
-  //   async (status) => {
-  //     const { statusId, statusUniqueId, statusName, statusDescription } =
-  //       status;
-  //     const seedStatusSql = `
-  //       INSERT INTO Statuses (statusId, statusUniqueId, statusName, statusDescription, statusCreatedBy, statusCreatedAt)
-  //       VALUES (?, ?, ?, ?, ?, ?)
-  //       ON DUPLICATE KEY UPDATE statusName = VALUES(statusName), statusDescription = VALUES(statusDescription);
-  //     `;
-  //     await executor.query(seedStatusSql, [
-  //       statusId,
-  //       statusUniqueId,
-  //       statusName,
-  //       statusDescription,
-  //       userUniqueId,
-  //       currentDate(),
-  //     ]);
-  //     return { message: "success" };
-  //   },
-  //   statusSuccess,
-  //   statusErrors,
-  //   "Status",
-  // );
+  await processDataSequentially(
+    statusList,
+    async (status) => {
+      try {
+        return await createStatus({ ...status, user });
+      } catch (error) {
+        if (error.message && error.message.includes("already exists")) {
+          return { message: "success", data: "Status already exists, skipping" };
+        }
+        throw error;
+      }
+    },
+    statusSuccess,
+    statusErrors,
+    "Status",
+  );
 
-  // await processDataSequentially(
-  //   roleList,
-  //   async (role) => {
-  //     const { roleId, roleUniqueId, roleName, roleDescription } = role;
-  //     const seedRoleSql = `
-  //       INSERT INTO Roles (roleId, roleUniqueId, roleName, roleDescription, roleCreatedBy, roleCreatedAt)
-  //       VALUES (?, ?, ?, ?, ?, ?)
-  //       ON DUPLICATE KEY UPDATE roleName = VALUES(roleName), roleDescription = VALUES(roleDescription);
-  //     `;
-  //     await executor.query(seedRoleSql, [
-  //       roleId,
-  //       roleUniqueId,
-  //       roleName,
-  //       roleDescription,
-  //       userUniqueId,
-  //       currentDate(),
-  //     ]);
-  //     return { message: "success" };
-  //   },
-  //   roleSuccess,
-  //   roleErrors,
-  //   "Role",
-  // );
+  await processDataSequentially(
+    roleList,
+    async (role) => {
+      try {
+        return await createRole({ ...role, user });
+      } catch (error) {
+        if (error.message && error.message.includes("already exists")) {
+          return { message: "success", data: "Role already exists, skipping" };
+        }
+        throw error;
+      }
+    },
+    roleSuccess,
+    roleErrors,
+    "Role",
+  );
 
   await processDataSequentially(
     companyRoleList,
     async (companyRole) => {
-      const { companyRoleUniqueId, companyRoleName, companyRoleDescription } =
-        companyRole;
-      const seedSql = `
-        INSERT INTO CompanyRoles (companyRoleUniqueId, companyRoleName, companyRoleDescription, companyRoleCreatedBy, companyRoleCreatedAt) VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE companyRoleName = VALUES(companyRoleName), companyRoleDescription = VALUES(companyRoleDescription);
-      `;
-      await executor.query(seedSql, [
-        companyRoleUniqueId,
-        companyRoleName,
-        companyRoleDescription,
-        userUniqueId,
-        currentDate(),
-      ]);
-      return { message: "success" };
+      try {
+        return await createCompanyRole({ ...companyRole, userUniqueId });
+      } catch (error) {
+        if (error.message && error.message.includes("already exists")) {
+          return {
+            message: "success",
+            data: "Company role already exists, skipping",
+          };
+        }
+        throw error;
+      }
     },
     companyRoleSuccess,
     companyRoleErrors,
     "CompanyRoles",
   );
 
-  // await processDataSequentially(
-  //   vehicleTypes,
-  //   (VehicleType) => createVehicleType({ ...VehicleType }, user.userUniqueId),
-  //   successVehicleTypes,
-  //   failedVehicleTypes,
-  //   "VehicleTypes",
-  // );
+  await processDataSequentially(
+    vehicleTypes,
+    (VehicleType) => createVehicleType({ ...VehicleType }, user.userUniqueId),
+    successVehicleTypes,
+    failedVehicleTypes,
+    "VehicleTypes",
+  );
 
-  // await processDataSequentially(
-  //   listOfDocuments,
-  //   (document) =>
-  //     createDocumentType({
-  //       body: { ...document, user },
-  //     }),
-  //   successDocumentTypes,
-  //   failedDocumentTypes,
-  //   "DocumentType",
-  // );
+  await processDataSequentially(
+    listOfDocuments,
+    (document) =>
+      createDocumentType({
+        body: { ...document, user },
+      }),
+    successDocumentTypes,
+    failedDocumentTypes,
+    "DocumentType",
+  );
 
-  // await processDataSequentially(
-  //   driversDocumentRequirement,
-  //   (document) => {
-  //     return createMapping({
-  //       body: document,
-  //       userUniqueId: user.userUniqueId,
-  //     });
-  //   },
-  //   successOnDocumentRequirement,
-  //   failedOnDocumentRequirement,
-  //   "DocumentRequirement",
-  // );
+  await processDataSequentially(
+    driversDocumentRequirement,
+    (document) => {
+      return createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      });
+    },
+    successOnDocumentRequirement,
+    failedOnDocumentRequirement,
+    "DocumentRequirement",
+  );
 
-  // await processDataSequentially(
-  //   passengerDocumentRequirement,
-  //   (document) =>
-  //     createMapping({
-  //       body: document,
-  //       userUniqueId: user.userUniqueId,
-  //     }),
-  //   successPassengerDocumentRequirement,
-  //   failedPassengerDocumentRequirement,
-  //   "ShipperDocumentRequirement",
-  // );
+  await processDataSequentially(
+    passengerDocumentRequirement,
+    (document) =>
+      createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      }),
+    successPassengerDocumentRequirement,
+    failedPassengerDocumentRequirement,
+    "ShipperDocumentRequirement",
+  );
 
-  // await processDataSequentially(
-  //   companyDocumentRequirement,
-  //   (document) =>
-  //     createMapping({
-  //       body: document,
-  //       userUniqueId: user.userUniqueId,
-  //     }),
-  //   [], // Not tracking success/failure for now or add to return data if needed
-  //   [],
-  //   "CompanyDocumentRequirement",
-  // );
+  await processDataSequentially(
+    companyDocumentRequirement,
+    (document) =>
+      createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      }),
+    [], // Not tracking success/failure for now or add to return data if needed
+    [],
+    "CompanyDocumentRequirement",
+  );
 
-  // await processDataSequentially(
-  //   cancellationReasons,
-  //   (reason) => addCancellationReason(reason, user),
-  //   cancellationReasonsSuccess,
-  //   cancellationReasonsErrors,
-  //   "CancellationReasonsType",
-  // );
+  await processDataSequentially(
+    cancellationReasons,
+    (reason) => addCancellationReason(reason, user),
+    cancellationReasonsSuccess,
+    cancellationReasonsErrors,
+    "CancellationReasonsType",
+  );
 
-  // await processDataSequentially(
-  //   paymentStatus,
-  //   createPaymentStatus,
-  //   paymentStatusSuccess,
-  //   paymentStatusErrors,
-  //   "PaymentStatus",
-  // );
+  await processDataSequentially(
+    paymentStatus,
+    createPaymentStatus,
+    paymentStatusSuccess,
+    paymentStatusErrors,
+    "PaymentStatus",
+  );
 
-  // await processDataSequentially(
-  //   paymentMethod,
-  //   (method) =>
-  //     createPaymentMethod({ paymentMethod: method.paymentMethod, user }),
-  //   createPaymentMethodSuccess,
-  //   createPaymentMethodErrors,
-  //   "PaymentMethod",
-  // );
+  await processDataSequentially(
+    paymentMethod,
+    (method) =>
+      createPaymentMethod({ paymentMethod: method.paymentMethod, user }),
+    createPaymentMethodSuccess,
+    createPaymentMethodErrors,
+    "PaymentMethod",
+  );
 
   let updatedCommissionRates = CommissionRates.map((item) => {
     return { ...item, commissionRateCreatedBy: user.userUniqueId };
   });
-  // await processDataSequentially(
-  //   updatedCommissionRates,
-  //   createCommissionRate,
-  //   successCommissionRates,
-  //   failedCommissionRates,
-  //   "CommissionRates",
-  // );
+  await processDataSequentially(
+    updatedCommissionRates,
+    createCommissionRate,
+    successCommissionRates,
+    failedCommissionRates,
+    "CommissionRates",
+  );
 
-  // await processDataSequentially(
-  //   TariffRateList,
-  //   createTariffRate,
-  //   successTariffRate,
-  //   failedTariffRate,
-  //   "TariffRateList",
-  // );
+  await processDataSequentially(
+    TariffRateList,
+    createTariffRate,
+    successTariffRate,
+    failedTariffRate,
+    "TariffRateList",
+  );
 
-  // await processDataSequentially(
-  //   financialInstitutionAccount,
-  //   (account) => createFinancialInstitutionAccount({ ...account, user }),
-  //   financialInstitutionAccountSuccess,
-  //   financialInstitutionAccountErrors,
-  //   "financialInstitutionAccount",
-  // );
+  await processDataSequentially(
+    financialInstitutionAccount,
+    (account) => createFinancialInstitutionAccount({ ...account, user }),
+    financialInstitutionAccountSuccess,
+    financialInstitutionAccountErrors,
+    "financialInstitutionAccount",
+  );
 
-  // await processDataSequentially(
-  //   subscriptionPlanLists,
-  //   (plan) => createSubscriptionPlan({ ...plan, user }),
-  //   subscriptionPlanListsSuccess,
-  //   subscriptionPlanListsErrors,
-  //   "subscriptionPlanLists",
-  // );
+  await processDataSequentially(
+    subscriptionPlanLists,
+    (plan) => createSubscriptionPlan({ ...plan, user }),
+    subscriptionPlanListsSuccess,
+    subscriptionPlanListsErrors,
+    "subscriptionPlanLists",
+  );
 
-  // await processDataSequentially(
-  //   depositSources,
-  //   (source) => createDepositSource({ ...source, user }),
-  //   depositSourcesSuccess,
-  //   depositSourcesErrors,
-  //   "depositSources",
-  // );
+  await processDataSequentially(
+    depositSources,
+    (source) => createDepositSource({ ...source, user }),
+    depositSourcesSuccess,
+    depositSourcesErrors,
+    "depositSources",
+  );
 
-  // await processDataSequentially(
-  //   listOfDelinquenciesTypes,
-  //   createDelinquencyType,
-  //   listOfDelinquenciesTypesSuccess,
-  //   listOfDelinquenciesTypesErrors,
-  //   "listOfDelinquenciesTypes",
-  // );
+  await processDataSequentially(
+    listOfDelinquenciesTypes,
+    createDelinquencyType,
+    listOfDelinquenciesTypesSuccess,
+    listOfDelinquenciesTypesErrors,
+    "listOfDelinquenciesTypes",
+  );
 
-  // await processDataSequentially(
-  //   commissionStatusList,
-  //   (status) => createCommissionStatus({ ...status, user }),
-  //   commissionStatusSuccess,
-  //   commissionStatusErrors,
-  //   "commissionStatusList",
-  // );
+  await processDataSequentially(
+    commissionStatusList,
+    (status) => createCommissionStatus({ ...status, user }),
+    commissionStatusSuccess,
+    commissionStatusErrors,
+    "commissionStatusList",
+  );
 
   const plansResult = await getSubscriptionPlans({ limit: 100 });
   const savedSubscriptionPlanLists =
@@ -648,13 +614,13 @@ const installPreDefinedData = async (req) => {
     },
   );
 
-  // await processDataSequentially(
-  //   updatedSubscriptionPlanPricingLists,
-  //   (pricing) => createPricing({ ...pricing, user }),
-  //   subscriptionPlanPricingSuccess,
-  //   subscriptionPlanPricingErrors,
-  //   "subscriptionPlanPricing",
-  // );
+  await processDataSequentially(
+    updatedSubscriptionPlanPricingLists,
+    (pricing) => createPricing({ ...pricing, user }),
+    subscriptionPlanPricingSuccess,
+    subscriptionPlanPricingErrors,
+    "subscriptionPlanPricing",
+  );
 
   return {
     message: "success",
