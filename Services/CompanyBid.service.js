@@ -406,6 +406,35 @@ exports.updateBidStatus = async (
 
   let newPRStatus = null;
   if (bidStatus === "accepted_by_shipper") {
+    // 1. LOCK ALL PASSENGER REQUESTS IN THIS BATCH
+    // We use 'FOR UPDATE' to prevent individual drivers from 'Accepting' these 
+    // requests while we are processing this company bid.
+    const [rows] = await db().query(
+      `SELECT passengerRequestId, journeyStatusId 
+       FROM PassengerRequest 
+       WHERE passengerRequestBatchId = ? 
+         AND passengerRequestDeletedAt IS NULL 
+       FOR UPDATE`,
+      [bid.passengerRequestBatchId],
+    );
+
+    // 2. VERIFY STATE (Integrity Check)
+    // Ensure all requests in the batch are still 'Free' (waiting or requested)
+    // If an individual driver already claimed one, this will catch it.
+    const freeRequests = rows.filter(
+      (r) =>
+        r.journeyStatusId === journeyStatusMap.waiting ||
+        r.journeyStatusId === journeyStatusMap.requested ||
+        r.journeyStatusId === journeyStatusMap.acceptedByDriver, // Could have bids, but not accepted by shipper yet
+    );
+
+    if (freeRequests.length < bid.numberOfVehiclesOffered) {
+      throw new AppError(
+        `Consistency Conflict: Only ${freeRequests.length} of ${bid.numberOfVehiclesOffered} requests in this batch are still available. Some may have been claimed individually.`,
+        409,
+      );
+    }
+
     newPRStatus = journeyStatusMap.acceptedByPassenger;
   } else if (
     bidStatus === "cancelled_by_company" ||

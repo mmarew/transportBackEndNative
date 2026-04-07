@@ -1,0 +1,41 @@
+━━ Consistency & Transactional Atomicity Test ━━━━━━━━━━━━━━
+04:21:20 [[32minfo[39m]: MySQL pool created
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "host": "localhost",
+  "database": "transport",
+  "port": 8888,
+  "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
+}
+04:21:20 [[32minfo[39m]: MySQL connectivity check succeeded
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+  [DEBUG] Login (+251983222221, role 6) -> Status: 200
+  [DEBUG] Verify OTP -> Status: 200
+  [DEBUG] Login (+25194471405496, role 1) -> Status: 200
+  [DEBUG] Verify OTP -> Status: 200
+  [DEBUG] Login (+25194586502998, role 7) -> Status: 200
+  [DEBUG] Verify OTP -> Status: 200
+  [DEBUG] Company Create Status: 201
+  [01] Creating Batch Request ...
+  ✅ Batch Created: 0b70ee1a-098f-4521-b63b-0b92e7d2d18d
+  [02] Company Submits Bid ...
+  ✅ Bid Submitted: bb9049b2-be51-4e1d-85c8-06566db4cb3d
+  [03] Simulating Individual Driver 'Hijack' ...
+  ✅ Request marked as 'Claimed' (Status 4)
+  [04] Shipper attempts to accept Company Bid ...
+  [DEBUG] Accept Status: 409
+  [DEBUG] Accept Error: {
+  "status": "fail",
+  "message": "fail",
+  "error": {
+    "statusCode": 409,
+    "status": "fail",
+    "isOperational": true
+  },
+  "stack": "Error: Consistency Conflict: Only 0 of 1 requests in this batch are still available. Some may have been claimed individually.\n    at exports.updateBidStatus (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyBid.service.js:432:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /Users/zewedu/Desktop/Projects/transportBackEndNative/Utils/DatabaseTransaction.js:101:14\n    at async executeInTransaction (/Users/zewedu/Desktop/Projects/transportBackEndNative/Utils/DatabaseTransaction.js:99:20)\n    at async exports.updateBidStatus (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/CompanyBid.controller.js:33:20)"
+}
+  ✅ PASS — System correctly detected the 'Hijack' and blocked the company bid.
