@@ -179,48 +179,42 @@ exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
   }
   const companyUniqueId = membership[0].companyUniqueId;
 
-  // 2. Fetch requests targeted at this company or open to all transport companies
+  // 2. Fetch Requests from the optimized Metadata table (O(N) PERFORMANCE)
   const activeStatusIds = [journeyStatusMap.requested, journeyStatusMap.waiting];
 
-  // Logic: Selective bids (targetCompanyUniqueId = ?) OR Open bids (targetCompanyUniqueId IS NULL)
-  // We must ensure the same filtering logic is used for BOTH the main query and the batch selection.
   const filterClauses = [
-    "pr_f.passengerRequestDeletedAt IS NULL",
-    "pr_f.requestMode = 'company_target'",
-    "(pr_f.targetCompanyUniqueId = ? OR pr_f.targetCompanyUniqueId IS NULL)",
-    "pr_f.journeyStatusId IN (?)",
+    "b.batchDeletedAt IS NULL",
+    "b.requestMode = 'company_target'",
+    "(b.targetCompanyUniqueId = ? OR b.targetCompanyUniqueId IS NULL)",
+    "b.journeyStatusId IN (?)",
     `NOT EXISTS (
       SELECT 1 FROM CompanyBidRequest cbr 
-      WHERE cbr.passengerRequestBatchId = pr_f.passengerRequestBatchId 
+      WHERE cbr.passengerRequestBatchId = b.batchUniqueId 
       AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
     )`,
   ];
   const params = [companyUniqueId, activeStatusIds, companyUniqueId];
   const filterWhere = `WHERE ${filterClauses.join(" AND ")}`;
 
-  // baseSql: Selects one representative row (MIN ID) per batch that matches filters.
+  // baseSql: No subqueries, no Group By! Pure performance.
   const baseSql = `
-    SELECT pr.*, vt.vehicleTypeName, js.journeyStatusName
-    FROM PassengerRequest pr
-    LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
-    WHERE pr.passengerRequestId IN (
-      SELECT MIN(pr_f.passengerRequestId)
-      FROM PassengerRequest pr_f
-      ${filterWhere}
-      GROUP BY pr_f.passengerRequestBatchId
-    )
+    SELECT b.*, 
+           b.batchUniqueId AS passengerRequestBatchId, -- backwards compatibility
+           vt.vehicleTypeName, js.journeyStatusName
+    FROM PassengerRequestBatch b
+    LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+    ${filterWhere}
   `;
 
-  // countSql: Counts unique batches that match filters.
   const countSql = `
-    SELECT COUNT(DISTINCT pr_f.passengerRequestBatchId) AS total 
-    FROM PassengerRequest pr_f
+    SELECT COUNT(*) AS total 
+    FROM PassengerRequestBatch b
     ${filterWhere}
   `;
 
   return paginatedQuery(
-    `${baseSql} ORDER BY pr.shipperRequestCreatedAt DESC`,
+    `${baseSql} ORDER BY b.batchCreatedAt DESC`,
     countSql,
     params,
     page,
@@ -261,15 +255,15 @@ exports.getBidsSummary = async (userUniqueId) => {
   // 2. Count Available (matching discovery boards filters)
   const activeStatusIds = [journeyStatusMap.requested, journeyStatusMap.waiting];
   const [availableRes] = await db().query(
-    `SELECT COUNT(DISTINCT pr.passengerRequestBatchId) AS total 
-     FROM PassengerRequest pr
-     WHERE pr.passengerRequestDeletedAt IS NULL
-       AND pr.requestMode = 'company_target'
-       AND (pr.targetCompanyUniqueId = ? OR pr.targetCompanyUniqueId IS NULL)
-       AND pr.journeyStatusId IN (?)
+    `SELECT COUNT(*) AS total 
+     FROM PassengerRequestBatch b
+     WHERE b.batchDeletedAt IS NULL
+       AND b.requestMode = 'company_target'
+       AND (b.targetCompanyUniqueId = ? OR b.targetCompanyUniqueId IS NULL)
+       AND b.journeyStatusId IN (?)
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidRequest cbr 
-         WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId 
+         WHERE cbr.passengerRequestBatchId = b.batchUniqueId 
          AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
        )`,
     [companyUniqueId, activeStatusIds, companyUniqueId],

@@ -13,6 +13,7 @@ router.use(verifyTokenOfAxios);
  * @route   POST /api/company/assignments
  */
 router.post("/", validator(schema.createAssignment), controller.createAssignment);
+router.post("/bulk", validator(schema.bulkAssign), controller.createBulkAssignments);
 
 /**
  * @route   GET /api/company/assignments

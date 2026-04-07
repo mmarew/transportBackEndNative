@@ -112,6 +112,107 @@ exports.createAssignment = async (data) => {
   };
 };
 
+/**
+ * createBulkAssignments
+ * ─────────────────────
+ * Assigns multiple vehicles/drivers to different slots of a single bid batch.
+ * Junior Note: This is an Atomic Operation. If one assignment fails, all fail.
+ */
+exports.createBulkAssignments = async (data) => {
+  const { companyBidRequestUniqueId, assignments, createdByUserUniqueId } = data;
+
+  // 1. Validate the bid once
+  const bid = await findOne(
+    "CompanyBidRequest",
+    { companyBidRequestUniqueId },
+    "Bid not found",
+  );
+  if (bid.bidStatus !== "accepted_by_shipper") {
+    throw new AppError("Vehicles can only be assigned after the shipper accepts the bid", 400);
+  }
+
+  // 2. Optimized: Cache status IDs for the loop
+  const [acceptedStatusRows] = await db().query(
+    "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'acceptedByDriver' LIMIT 1",
+  );
+  const acceptedStatusId = acceptedStatusRows?.[0]?.journeyStatusId ?? 3;
+
+  const results = [];
+
+  // 3. Process each assignment in the bulk array
+  for (const item of assignments) {
+    const { passengerRequestUniqueId, vehicleUniqueId, driverUserUniqueId } = item;
+
+    // Check if slot belongs to the batch
+    const [prRows] = await db().query(
+      `SELECT passengerRequestId, originLatitude, originLongitude, originPlace FROM PassengerRequest
+       WHERE passengerRequestUniqueId = ? AND passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
+      [passengerRequestUniqueId, bid.passengerRequestBatchId],
+    );
+    if (!prRows || prRows.length === 0) {
+      throw new AppError(`Passenger request ${passengerRequestUniqueId} does not belong to this batch`, 400);
+    }
+    const pr = prRows[0];
+
+    // Prevent duplicate assignment
+    const [dup] = await db().query(
+      `SELECT assignmentId FROM CompanyBidVehicleAssignment
+       WHERE companyBidRequestUniqueId = ? AND passengerRequestUniqueId = ? AND assignmentDeletedAt IS NULL
+       AND assignmentStatus NOT IN ('rejected_by_driver','cancelled')`,
+      [companyBidRequestUniqueId, passengerRequestUniqueId],
+    );
+    if (dup.length > 0) {
+      throw new AppError(`Slot ${passengerRequestUniqueId} already has an active assignment`, 409);
+    }
+
+    const driverRequestUniqueId = uuidv4();
+    const assignmentUniqueId = uuidv4();
+
+    // Create DriverRequest
+    await db().query(
+      `INSERT INTO DriverRequest
+        (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace,
+         journeyStatusId, driverRequestCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [driverRequestUniqueId, driverUserUniqueId, pr.originLatitude ?? 0, pr.originLongitude ?? 0,
+        pr.originPlace ?? "Bulk assigned", acceptedStatusId, currentDate()],
+    );
+
+    // Create Assignment
+    await db().query(
+      `INSERT INTO CompanyBidVehicleAssignment
+        (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
+         vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
+         assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
+      [assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
+        vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
+        createdByUserUniqueId, currentDate()],
+    );
+
+    // Notification (Side effect - best effort)
+    sendFCMNotificationToUser({
+      userUniqueId: driverUserUniqueId,
+      roleId: usersRoles.driverRoleId,
+      notification: {
+        title: "New freight assignment",
+        body: "You have been assigned to a freight job by your dispatcher.",
+      },
+      data: {
+        type: "company_driver_assignment",
+        assignmentUniqueId,
+        driverRequestUniqueId,
+        passengerRequestUniqueId,
+        companyBidRequestUniqueId,
+      },
+    }).catch((e) => logger.error("FCM failed in bulk", { error: e.message, driverUserUniqueId }));
+
+    results.push({ assignmentUniqueId, passengerRequestUniqueId });
+  }
+
+  return { message: "success", data: results };
+};
+
 exports.getAssignments = async (filters = {}) => {
   const { page, limit, offset } = paginate(filters);
   const clauses = ["assignmentDeletedAt IS NULL"];

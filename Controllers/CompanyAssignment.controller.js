@@ -17,6 +17,20 @@ exports.createAssignment = async (req, res, next) => {
   }
 };
 
+exports.createBulkAssignments = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.createBulkAssignments({
+        ...req.body,
+        createdByUserUniqueId: req.user.userUniqueId,
+      }),
+    );
+    ServerResponder(res, result, 201);
+  } catch (e) {
+    next(e);
+  }
+};
+
 exports.getAssignments = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getAssignments(req.query));

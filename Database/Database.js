@@ -402,6 +402,42 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     -- INDEX added after company tables: idx_passengerRequest_targetCompany (targetCompanyUniqueId)
 );
 
+-- PassengerRequestBatch: A metadata table that summarizes a group of requests.
+-- Junior Note: Performance Optimization!
+-- Instead of grouping 1000s of individual requests on every discovery call, 
+-- we query this single "Header" table. This turns an O(N*M) operation into O(N).
+CREATE TABLE IF NOT EXISTS PassengerRequestBatch (
+    batchId INT AUTO_INCREMENT PRIMARY KEY,
+    batchUniqueId VARCHAR(36) UNIQUE NOT NULL,             -- The common ID for all requests in this batch
+    shipperUserUniqueId VARCHAR(36) NOT NULL,              -- FK → Users
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- FK → VehicleTypes
+    totalVehicles INT NOT NULL DEFAULT 1,                  -- Total number of vehicles requested
+
+    requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
+    targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,   -- FK → TransportCompany (null if open)
+
+    -- Descriptive metadata for the "Bid Board"
+    originPlace VARCHAR(255) NOT NULL,
+    destinationPlace VARCHAR(255) NOT NULL,
+    shippableItemName VARCHAR(100) NULL,
+    shippableItemQtyInQuintal DECIMAL(15,2) NULL,
+    shippingDate DATETIME NULL,
+    deliveryDate DATETIME NULL,
+    shippingCost DECIMAL(10,2) NULL,
+
+    journeyStatusId INT NOT NULL DEFAULT 1,                -- FK → JourneyStatus
+    batchCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    batchUpdatedAt DATETIME NULL,
+    batchDeletedAt DATETIME NULL,
+
+    INDEX idx_batch_target (targetCompanyUniqueId),
+    INDEX idx_batch_status (journeyStatusId),
+    INDEX idx_batch_mode (requestMode),
+    FOREIGN KEY (shipperUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
+);
+
 -- Create the DriverRequest table
 
 CREATE TABLE IF NOT EXISTS DriverRequest (

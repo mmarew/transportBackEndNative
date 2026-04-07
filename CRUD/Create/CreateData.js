@@ -120,8 +120,45 @@ const createNewPassengerRequest = async (
     const result = await insertData({
       tableName: "PassengerRequest",
       colAndVal: requestPayload,
-      connection, // Pass connection for transaction support
+      connection,
     });
+
+    // ARCHITECTURAL UPGRADE: Metadata Sync
+    // Junior Note: We use 'ON DUPLICATE KEY UPDATE' to ensure the batch header 
+    // is created by the first request in a batch and remains consistent.
+    if (passengerRequestBatchId) {
+      const queryExecutor = transactionStorage.getStore() || connection || pool;
+      await queryExecutor.query(
+        `INSERT INTO PassengerRequestBatch 
+          (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles, 
+           requestMode, targetCompanyUniqueId, originPlace, destinationPlace, 
+           shippableItemName, shippableItemQtyInQuintal, shippingDate, deliveryDate, 
+           shippingCost, journeyStatusId, batchCreatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE 
+           totalVehicles = VALUES(totalVehicles),
+           journeyStatusId = VALUES(journeyStatusId),
+           batchUpdatedAt = ?`,
+        [
+          passengerRequestBatchId,
+          userUniqueId,
+          vehicleTypeUniqueId,
+          body.numberOfVehicles || 1,
+          body.requestMode || "individual_target",
+          body.targetCompanyUniqueId || null,
+          originPlace,
+          destinationPlace,
+          shippableItemName || null,
+          shippableItemQtyInQuintal || null,
+          shippingDate || null,
+          deliveryDate || null,
+          shippingCost || null,
+          journeyStatusId,
+          currentDate(),
+          currentDate(),
+        ],
+      );
+    }
 
     return {
       message: "success",
@@ -130,7 +167,7 @@ const createNewPassengerRequest = async (
   } catch (error) {
     throw error;
   }
-};
+}
 const createDriverRequest = async (
   body,
   userUniqueId,

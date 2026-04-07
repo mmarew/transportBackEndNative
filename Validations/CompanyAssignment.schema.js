@@ -41,3 +41,17 @@ exports.getAssignmentsQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(10).optional(),
 }).unknown(true);
+
+exports.bulkAssign = Joi.object({
+  companyBidRequestUniqueId: uuidSchema.required(),
+  assignments: Joi.array()
+    .items(
+      Joi.object({
+        passengerRequestUniqueId: uuidSchema.required(),
+        vehicleUniqueId: uuidSchema.required(),
+        driverUserUniqueId: uuidSchema.required(),
+      }),
+    )
+    .min(1)
+    .required(),
+}).unknown(true);
