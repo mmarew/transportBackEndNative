@@ -3,7 +3,12 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const {
+  db,
+  findOne,
+  paginate,
+  paginatedQuery,
+} = require("./CompanyHelper.service");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const logger = require("../Utils/logger");
@@ -13,8 +18,13 @@ const logger = require("../Utils/logger");
  * ─────────────────
  */
 exports.createAssignment = async (data) => {
-  const { companyBidRequestUniqueId, passengerRequestUniqueId,
-    vehicleUniqueId, driverUserUniqueId, createdByUserUniqueId } = data;
+  const {
+    companyBidRequestUniqueId,
+    passengerRequestUniqueId,
+    vehicleUniqueId,
+    driverUserUniqueId,
+    createdByUserUniqueId,
+  } = data;
 
   // Bid must be accepted by shipper
   const bid = await findOne(
@@ -23,7 +33,10 @@ exports.createAssignment = async (data) => {
     "Bid not found",
   );
   if (bid.bidStatus !== "accepted_by_shipper")
-    throw new AppError("Vehicles can only be assigned after the shipper accepts the bid", 400);
+    throw new AppError(
+      "Vehicles can only be assigned after the shipper accepts the bid",
+      400,
+    );
 
   // PassengerRequest must belong to the bid's batch
   const [prRows] = await db().query(
@@ -32,7 +45,10 @@ exports.createAssignment = async (data) => {
     [passengerRequestUniqueId, bid.passengerRequestBatchId],
   );
   if (!prRows || prRows.length === 0)
-    throw new AppError("Passenger request does not belong to this bid's batch", 400);
+    throw new AppError(
+      "Passenger request does not belong to this bid's batch",
+      400,
+    );
 
   const pr = prRows[0];
 
@@ -44,7 +60,10 @@ exports.createAssignment = async (data) => {
     [companyBidRequestUniqueId, passengerRequestUniqueId],
   );
   if (dup.length > 0)
-    throw new AppError("This passenger request slot already has an active assignment", 409);
+    throw new AppError(
+      "This passenger request slot already has an active assignment",
+      409,
+    );
 
   // ── Auto-create DriverRequest on behalf of the assigned driver ──────────
   const [acceptedStatusRows] = await db().query(
@@ -63,9 +82,9 @@ exports.createAssignment = async (data) => {
     [
       driverRequestUniqueId,
       driverUserUniqueId,
-      pr.originLatitude  ?? 0,
+      pr.originLatitude ?? 0,
       pr.originLongitude ?? 0,
-      pr.originPlace     ?? "Assigned by dispatcher",
+      pr.originPlace ?? "Assigned by dispatcher",
       acceptedStatusId,
       currentDate(),
     ],
@@ -78,9 +97,16 @@ exports.createAssignment = async (data) => {
        vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
        assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
      VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
-    [assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
-      vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
-      createdByUserUniqueId, currentDate()],
+    [
+      assignmentUniqueId,
+      companyBidRequestUniqueId,
+      passengerRequestUniqueId,
+      vehicleUniqueId,
+      driverUserUniqueId,
+      driverRequestUniqueId,
+      createdByUserUniqueId,
+      currentDate(),
+    ],
   );
 
   // ── Notify the assigned driver via FCM ────────────────────────────────────
@@ -119,7 +145,8 @@ exports.createAssignment = async (data) => {
  * Junior Note: This is an Atomic Operation. If one assignment fails, all fail.
  */
 exports.createBulkAssignments = async (data) => {
-  const { companyBidRequestUniqueId, assignments, createdByUserUniqueId } = data;
+  const { companyBidRequestUniqueId, assignments, createdByUserUniqueId } =
+    data;
 
   // 1. Validate the bid once
   const bid = await findOne(
@@ -128,7 +155,10 @@ exports.createBulkAssignments = async (data) => {
     "Bid not found",
   );
   if (bid.bidStatus !== "accepted_by_shipper") {
-    throw new AppError("Vehicles can only be assigned after the shipper accepts the bid", 400);
+    throw new AppError(
+      "Vehicles can only be assigned after the shipper accepts the bid",
+      400,
+    );
   }
 
   // 2. Optimized: Cache status IDs for the loop
@@ -141,7 +171,8 @@ exports.createBulkAssignments = async (data) => {
 
   // 3. Process each assignment in the bulk array
   for (const item of assignments) {
-    const { passengerRequestUniqueId, vehicleUniqueId, driverUserUniqueId } = item;
+    const { passengerRequestUniqueId, vehicleUniqueId, driverUserUniqueId } =
+      item;
 
     // Check if slot belongs to the batch
     const [prRows] = await db().query(
@@ -150,7 +181,10 @@ exports.createBulkAssignments = async (data) => {
       [passengerRequestUniqueId, bid.passengerRequestBatchId],
     );
     if (!prRows || prRows.length === 0) {
-      throw new AppError(`Passenger request ${passengerRequestUniqueId} does not belong to this batch`, 400);
+      throw new AppError(
+        `Passenger request ${passengerRequestUniqueId} does not belong to this batch`,
+        400,
+      );
     }
     const pr = prRows[0];
 
@@ -162,7 +196,10 @@ exports.createBulkAssignments = async (data) => {
       [companyBidRequestUniqueId, passengerRequestUniqueId],
     );
     if (dup.length > 0) {
-      throw new AppError(`Slot ${passengerRequestUniqueId} already has an active assignment`, 409);
+      throw new AppError(
+        `Slot ${passengerRequestUniqueId} already has an active assignment`,
+        409,
+      );
     }
 
     const driverRequestUniqueId = uuidv4();
@@ -174,8 +211,15 @@ exports.createBulkAssignments = async (data) => {
         (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace,
          journeyStatusId, driverRequestCreatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [driverRequestUniqueId, driverUserUniqueId, pr.originLatitude ?? 0, pr.originLongitude ?? 0,
-        pr.originPlace ?? "Bulk assigned", acceptedStatusId, currentDate()],
+      [
+        driverRequestUniqueId,
+        driverUserUniqueId,
+        pr.originLatitude ?? 0,
+        pr.originLongitude ?? 0,
+        pr.originPlace ?? "Bulk assigned",
+        acceptedStatusId,
+        currentDate(),
+      ],
     );
 
     // Create Assignment
@@ -185,9 +229,16 @@ exports.createBulkAssignments = async (data) => {
          vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
          assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
        VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
-      [assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
-        vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
-        createdByUserUniqueId, currentDate()],
+      [
+        assignmentUniqueId,
+        companyBidRequestUniqueId,
+        passengerRequestUniqueId,
+        vehicleUniqueId,
+        driverUserUniqueId,
+        driverRequestUniqueId,
+        createdByUserUniqueId,
+        currentDate(),
+      ],
     );
 
     // Notification (Side effect - best effort)
@@ -205,7 +256,12 @@ exports.createBulkAssignments = async (data) => {
         passengerRequestUniqueId,
         companyBidRequestUniqueId,
       },
-    }).catch((e) => logger.error("FCM failed in bulk", { error: e.message, driverUserUniqueId }));
+    }).catch((e) =>
+      logger.error("FCM failed in bulk", {
+        error: e.message,
+        driverUserUniqueId,
+      }),
+    );
 
     results.push({ assignmentUniqueId, passengerRequestUniqueId });
   }
@@ -237,10 +293,8 @@ exports.getAssignments = async (filters = {}) => {
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   const baseSql = `
-    SELECT cba.*,
-           u.firstName AS driverFirstName, u.lastName AS driverLastName, u.phoneNumber AS driverPhone,
-           v.licensePlate, vt.vehicleTypeName
-    FROM CompanyBidVehicleAssignment cba
+    SELECT cba.*, u.fullName AS driverName, u.phoneNumber AS driverPhone,
+    v.licensePlate, vt.vehicleTypeName FROM CompanyBidVehicleAssignment cba
     LEFT JOIN Users u ON cba.driverUserUniqueId = u.userUniqueId
     LEFT JOIN Vehicle v ON cba.vehicleUniqueId = v.vehicleUniqueId
     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
@@ -257,7 +311,11 @@ exports.getAssignments = async (filters = {}) => {
   );
 };
 
-exports.updateAssignmentStatus = async (assignmentUniqueId, assignmentStatus, updatedBy) => {
+exports.updateAssignmentStatus = async (
+  assignmentUniqueId,
+  assignmentStatus,
+  updatedBy,
+) => {
   const assignment = await findOne(
     "CompanyBidVehicleAssignment",
     { assignmentUniqueId },
@@ -305,9 +363,15 @@ exports.updateAssignmentStatus = async (assignmentUniqueId, assignmentStatus, up
          journeyStatusId, decisionTime, decisionBy,
          journeyDecisionCreatedBy, journeyDecisionCreatedAt)
        VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
-      [journeyDecisionUniqueId, prRows[0].passengerRequestId,
-        drRows[0].driverRequestId, jStatusId,
-        currentDate(), updatedBy, currentDate()],
+      [
+        journeyDecisionUniqueId,
+        prRows[0].passengerRequestId,
+        drRows[0].driverRequestId,
+        jStatusId,
+        currentDate(),
+        updatedBy,
+        currentDate(),
+      ],
     );
 
     sendFCMNotificationToUser({
@@ -344,7 +408,8 @@ exports.updateAssignmentStatus = async (assignmentUniqueId, assignmentStatus, up
     message: "success",
     data: {
       assignmentStatus,
-      journeyDecisionUniqueId: journeyDecisionUniqueId || assignment.journeyDecisionUniqueId,
+      journeyDecisionUniqueId:
+        journeyDecisionUniqueId || assignment.journeyDecisionUniqueId,
     },
   };
 };
@@ -356,6 +421,7 @@ exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
      WHERE assignmentUniqueId = ? AND assignmentDeletedAt IS NULL`,
     [currentDate(), deletedBy, assignmentUniqueId],
   );
-  if (res.affectedRows === 0) throw new AppError("Assignment not found or already deleted", 404);
+  if (res.affectedRows === 0)
+    throw new AppError("Assignment not found or already deleted", 404);
   return { message: "success", data: "Assignment deleted" };
 };

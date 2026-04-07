@@ -214,7 +214,7 @@ exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
   const baseSql = `
     SELECT b.*, 
            b.batchUniqueId AS passengerRequestBatchId, -- backwards compatibility
-           u.firstName AS shipperFirstName, u.lastName AS shipperLastName,
+           u.fullName AS shipperName,
            vt.vehicleTypeName, js.journeyStatusName
     FROM PassengerRequestBatch b
     LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
