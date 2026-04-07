@@ -310,11 +310,19 @@ exports.updateAssignmentStatus = async (
   assignmentStatus,
   updatedBy,
 ) => {
-  const assignment = await findOne(
-    "CompanyBidVehicleAssignment",
-    { assignmentUniqueId },
-    "Assignment not found",
+  // Acquire an exclusive lock on the assignment to prevent race conditions
+  // (e.g. multiple concurrent "confirm" requests leading to duplicate inserts)
+  const [rows] = await db().query(
+    "SELECT * FROM CompanyBidVehicleAssignment WHERE assignmentUniqueId = ? LIMIT 1 FOR UPDATE",
+    [assignmentUniqueId]
   );
+  
+  if (!rows || rows.length === 0) {
+    throw new AppError("Assignment not found", 404);
+  }
+  
+  const assignment = rows[0];
+
   if (assignment.assignmentDeletedAt)
     throw new AppError("Assignment has been deleted", 400);
 
@@ -351,23 +359,33 @@ exports.updateAssignmentStatus = async (
 
     const jStatusId = journeyStatusMap.acceptedByPassenger;
 
-    journeyDecisionUniqueId = uuidv4();
-    await db().query(
-      `INSERT INTO JourneyDecisions
-        (journeyDecisionUniqueId, passengerRequestId, driverRequestId,
-         journeyStatusId, decisionTime, decisionBy,
-         journeyDecisionCreatedBy, journeyDecisionCreatedAt)
-       VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
-      [
-        journeyDecisionUniqueId,
-        prRows[0].passengerRequestId,
-        drRows[0].driverRequestId,
-        jStatusId,
-        currentDate(),
-        updatedBy,
-        currentDate(),
-      ],
+    // --- IDEMPOTENCY CHECK: Ensure we don't insert if decision already exists for this driver ---
+    const [existingDecision] = await db().query(
+      "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
+      [drRows[0].driverRequestId],
     );
+
+    if (existingDecision && existingDecision.length > 0) {
+      journeyDecisionUniqueId = existingDecision[0].journeyDecisionUniqueId;
+    } else {
+      journeyDecisionUniqueId = uuidv4();
+      await db().query(
+        `INSERT INTO JourneyDecisions
+          (journeyDecisionUniqueId, passengerRequestId, driverRequestId,
+           journeyStatusId, decisionTime, decisionBy,
+           journeyDecisionCreatedBy, journeyDecisionCreatedAt)
+         VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
+        [
+          journeyDecisionUniqueId,
+          prRows[0].passengerRequestId,
+          drRows[0].driverRequestId,
+          jStatusId,
+          currentDate(),
+          updatedBy,
+          currentDate(),
+        ],
+      );
+    }
 
     // ── Sync DriverRequest status ───────────────────────────────────────────
     await db().query(
