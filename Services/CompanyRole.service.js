@@ -13,7 +13,7 @@ const AppError = require("../Utils/AppError");
  */
 exports.createRole = async (body) => {
   const { companyRoleName, companyRoleDescription, userUniqueId } = body;
-  const companyRoleUniqueId = uuidv4();
+  const companyRoleUniqueId = body.companyRoleUniqueId || uuidv4();
 
   // Check if role already exists
   const [existing] = await db().query(

@@ -9,7 +9,7 @@ const {
   paginate,
   paginatedQuery,
 } = require("./CompanyHelper.service");
-const { companyRoles, usersRoles } = require("../Utils/ListOfSeedData");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
  * Adds a new member to a company with a specific role ID.
@@ -75,54 +75,54 @@ exports.addMember = async (data) => {
   );
   return { message: "success", data: { membershipUniqueId } };
 };
+("INSERT INTO CompanyMembership\n      (membershipUniqueId, companyUniqueId, userUniqueId, companyRoleUniqueId,\n       isActive, membershipStartDate, membershipEndDate,\n       membershipCreatedBy, membershipCreatedAt)\n     VALUES ('42e2225c-4c42-4cb2-98c9-93cadf2ca611', '78a64dd5-df3c-4103-b670-08a88e306b5d', '53ac1089-a02e-4246-8861-93fa9fda290a', '57898801-e280-4020-9178-f5122fe6bec9', 1, '2026-04-07 06:58:17', NULL, '53ac1089-a02e-4246-8861-93fa9fda290a', '2026-04-07 06:58:17')",
+  /**
+   * Retrieves a list of company members with roles and user profile details.
+   * Performs JOINs with CompanyRoles and Users tables.
+   *
+   * @param {Object} [filters={}] - Query filters (userUniqueId, companyUniqueId, roleID, etc.)
+   * @param {Object} [user={}] - Authenticated user object for data segregation
+   * @returns {Promise<Object>} Paginated list of members with fullName, role name, etc.
+   */
+  (exports.getMembers = async (filters = {}, user = {}) => {
+    const { page, limit, offset } = paginate(filters);
+    const clauses = ["cm.membershipDeletedAt IS NULL"];
+    const params = [];
 
-/**
- * Retrieves a list of company members with roles and user profile details.
- * Performs JOINs with CompanyRoles and Users tables.
- *
- * @param {Object} [filters={}] - Query filters (userUniqueId, companyUniqueId, roleID, etc.)
- * @param {Object} [user={}] - Authenticated user object for data segregation
- * @returns {Promise<Object>} Paginated list of members with fullName, role name, etc.
- */
-exports.getMembers = async (filters = {}, user = {}) => {
-  const { page, limit, offset } = paginate(filters);
-  const clauses = ["cm.membershipDeletedAt IS NULL"];
-  const params = [];
-
-  // Data Segregation: Non-admins only see members of companies they belong to
-  if (
-    user.roleId !== usersRoles.adminRoleId &&
-    user.roleId !== usersRoles.supperAdminRoleId
-  ) {
-    clauses.push(
-      `cm.companyUniqueId IN (
+    // Data Segregation: Non-admins only see members of companies they belong to
+    if (
+      user.roleId !== usersRoles.adminRoleId &&
+      user.roleId !== usersRoles.supperAdminRoleId
+    ) {
+      clauses.push(
+        `cm.companyUniqueId IN (
         SELECT companyUniqueId FROM CompanyMembership 
         WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
       )`,
-    );
-    params.push(user.userUniqueId);
-  }
+      );
+      params.push(user.userUniqueId);
+    }
 
-  if (filters.companyUniqueId) {
-    clauses.push("cm.companyUniqueId = ?");
-    params.push(filters.companyUniqueId);
-  }
-  if (filters.userUniqueId) {
-    clauses.push("cm.userUniqueId = ?");
-    params.push(filters.userUniqueId);
-  }
-  if (filters.membershipRole) {
-    clauses.push("cm.companyRoleUniqueId = ?");
-    params.push(filters.membershipRole);
-  }
-  if (filters.isActive !== undefined) {
-    clauses.push("cm.isActive = ?");
-    params.push(filters.isActive ? 1 : 0);
-  }
+    if (filters.companyUniqueId) {
+      clauses.push("cm.companyUniqueId = ?");
+      params.push(filters.companyUniqueId);
+    }
+    if (filters.userUniqueId) {
+      clauses.push("cm.userUniqueId = ?");
+      params.push(filters.userUniqueId);
+    }
+    if (filters.membershipRole) {
+      clauses.push("cm.companyRoleUniqueId = ?");
+      params.push(filters.membershipRole);
+    }
+    if (filters.isActive !== undefined) {
+      clauses.push("cm.isActive = ?");
+      params.push(filters.isActive ? 1 : 0);
+    }
 
-  const where = `WHERE ${clauses.join(" AND ")}`;
-  return paginatedQuery(
-    `SELECT cm.*, 
+    const where = `WHERE ${clauses.join(" AND ")}`;
+    return paginatedQuery(
+      `SELECT cm.*, 
             cr.companyRoleName, cr.companyRoleDescription,
             u.fullName, u.phoneNumber, u.email
      FROM CompanyMembership cm
@@ -130,13 +130,13 @@ exports.getMembers = async (filters = {}, user = {}) => {
      JOIN Users u ON cm.userUniqueId = u.userUniqueId
      ${where} 
      ORDER BY cm.membershipCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyMembership cm ${where}`,
-    params,
-    page,
-    limit,
-    offset,
-  );
-};
+      `SELECT COUNT(*) AS total FROM CompanyMembership cm ${where}`,
+      params,
+      page,
+      limit,
+      offset,
+    );
+  }));
 
 exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
   const [res] = await db().query(

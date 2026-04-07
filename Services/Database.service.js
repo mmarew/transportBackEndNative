@@ -150,6 +150,20 @@ const createTable = async () => {
     }
   }
 
+  // Seed CompanyRoles (Required for company creation)
+  for (const companyRole of companyRoleList) {
+    try {
+      await createCompanyRole({ ...companyRole, userUniqueId: effectiveSuperAdminId });
+    } catch (error) {
+      if (!error.message || !error.message.includes("already exists")) {
+        console.error(
+          `Error seeding company role ${companyRole.companyRoleName}:`,
+          error,
+        );
+      }
+    }
+  }
+
   // Now create system and super admin users (relies on Roles existing)
   await createUserSystem();
   return {

@@ -8,7 +8,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 
 const createRole = async (body) => {
   const { roleName, roleDescription, user } = body;
-  const roleUniqueId = uuidv4();
+  const roleUniqueId = body.roleUniqueId || uuidv4();
   const userUniqueId = user?.userUniqueId;
   const existedData = await getData({
     tableName: "Roles",

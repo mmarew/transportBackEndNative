@@ -14,7 +14,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 // Create a new journey status
 const createJourneyStatus = async (body, user) => {
   const { journeyStatusName, journeyStatusDescription } = body;
-  const journeyStatusUniqueId = uuidv4();
+  const journeyStatusUniqueId = body.journeyStatusUniqueId || uuidv4();
   const createdBy = user?.userUniqueId || journeyStatusUniqueId;
 
   // Check if the journey status already exists

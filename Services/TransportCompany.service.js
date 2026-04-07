@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 const {
   db,
   findOne,
@@ -75,22 +75,23 @@ exports.createCompany = async (data) => {
   }
 
   const companyUniqueId = uuidv4();
+  const values = [
+    companyUniqueId,
+    companyName,
+    companyRegistrationNumber || null,
+    companyPhone || null,
+    companyEmail || null,
+    companyAddress || null,
+    createdByUserUniqueId,
+    currentDate(),
+  ];
   await db().query(
     `INSERT INTO TransportCompany
       (companyUniqueId, companyName, companyRegistrationNumber, companyPhone,
        companyEmail, companyAddress, approvalStatus,
        companyCreatedBy, companyCreatedAt)
      VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-    [
-      companyUniqueId,
-      companyName,
-      companyRegistrationNumber || null,
-      companyPhone || null,
-      companyEmail || null,
-      companyAddress || null,
-      createdByUserUniqueId,
-      currentDate(),
-    ],
+    values,
   );
 
   // Auto-link creator as owner if they are not system admins (3 or 6)
@@ -100,10 +101,16 @@ exports.createCompany = async (data) => {
     user.roleId !== usersRoles.adminRoleId &&
     user.roleId !== usersRoles.supperAdminRoleId
   ) {
+    const ownerRole = await findOne(
+      "CompanyRoles",
+      { companyRoleName: "owner" },
+      "Owner role not found in system. Please seed the database.",
+    );
+
     await addMember({
       companyUniqueId,
       userUniqueId: user.userUniqueId,
-      companyRoleUniqueId: companyRoles.ownerUniqueId,
+      companyRoleUniqueId: ownerRole.companyRoleUniqueId,
       membershipStartDate: currentDate(),
       createdByUserUniqueId: createdByUserUniqueId,
       skipApprovalCheck: true,

@@ -9,7 +9,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const createStatus = async (body) => {
   const { statusName, statusDescription, user } = body;
   const userUniqueId = user?.userUniqueId;
-  const statusUniqueId = uuidv4();
+  const statusUniqueId = body.statusUniqueId || uuidv4();
   const verifyResult = await getData({
     tableName: "Statuses",
     conditions: { statusName },

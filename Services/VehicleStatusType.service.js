@@ -30,7 +30,7 @@ const createVehicleStatusType = async (data) => {
   }
 
   const VehicleStatusTypeCreatedBy = "admin";
-  const vehicleStatusTypeUniqueId = uuidv4();
+  const vehicleStatusTypeUniqueId = data.vehicleStatusTypeUniqueId || uuidv4();
   const payload = {
     vehicleStatusTypeUniqueId,
     VehicleStatusTypeName: statusTypeName,
