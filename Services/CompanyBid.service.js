@@ -110,6 +110,11 @@ exports.submitBid = async (data) => {
       409,
     );
 
+  // --- NEW: CAPACITY VALIDATION ---
+  // Ensure the company has enough trucks available in their fleet to fulfill this bid
+  // if they win it.
+  await validateFleetCapacity(companyUniqueId, numberOfVehiclesOffered);
+
   const [jsRows] = await db().query(
     "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'waiting' LIMIT 1",
   );
@@ -466,3 +471,53 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
     throw new AppError("Bid not found or already deleted", 404);
   return { message: "success", data: "Bid deleted" };
 };
+/**
+ * ### CORE LOGIC - Fleet Capacity Validation
+ * Ensures a company doesn't over-commit its fleet by checking current capacity.
+ *
+ * **Total Fleet**: Active vehicles in `CompanyVehicle`.
+ * **Reserved**: Sum of `numberOfVehiclesOffered` for bids that are:
+ *   1. 'submitted' (waiting for shipper)
+ *   2. 'accepted_by_shipper' (won but not finished)
+ *   3. Exclude 'expired', 'rejected_by_shipper', 'cancelled_by_company'
+ *   4. Exclude bids that reached 'journeyCompleted' (Status ID 6)
+ *
+ * @param {string} companyUniqueId - The company ID.
+ * @param {number} requestedCount - How many trucks this new bid requires.
+ */
+async function validateFleetCapacity(companyUniqueId, requestedCount) {
+  // 1. Get total active fleet size
+  const [fleetRows] = await db().query(
+    `SELECT COUNT(*) AS fleetSize FROM CompanyVehicle 
+     WHERE companyUniqueId = ? AND assignmentStatus = 'active' AND companyVehicleDeletedAt IS NULL`,
+    [companyUniqueId],
+  );
+  const fleetSize = Number(fleetRows?.[0]?.fleetSize ?? 0);
+  if (fleetSize === 0) {
+    throw new AppError(
+      "Your company has no active vehicles in its fleet. Registration required.",
+      400,
+    );
+  }
+
+  // 2. Get currently reserved capacity
+  const [reservedRows] = await db().query(
+    `SELECT SUM(numberOfVehiclesOffered) AS reserved
+     FROM CompanyBidRequest
+     WHERE companyUniqueId = ? 
+       AND bidStatus IN ('submitted', 'accepted_by_shipper')
+       AND journeyStatusId < ? 
+       AND companyBidRequestDeletedAt IS NULL`,
+    [companyUniqueId, journeyStatusMap.journeyCompleted],
+  );
+  const reserved = Number(reservedRows?.[0]?.reserved ?? 0);
+
+  const available = fleetSize - reserved;
+
+  if (requestedCount > available) {
+    throw new AppError(
+      `Fleet capacity exceeded. Total fleet: ${fleetSize}, Current commitments: ${reserved}, Available: ${available}. You need ${requestedCount} available trucks to bid on this batch.`,
+      400,
+    );
+  }
+}

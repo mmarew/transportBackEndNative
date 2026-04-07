@@ -1,0 +1,49 @@
+━━ Fleet Capacity Validation Test ━━━━━━━━━━━━━━
+  [01] Infrastructure Setup ...
+04:04:46 [[32minfo[39m]: MySQL pool created
+{
+  "service": "ride-hailing-api",
+  "environment": "development",
+  "host": "localhost",
+  "database": "transport",
+  "port": 8888,
+  "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
+}
+04:04:46 [[32minfo[39m]: MySQL connectivity check succeeded
+{
+  "service": "ride-hailing-api",
+  "environment": "development"
+}
+  [DEBUG] VT Response Status: 200
+  [DEBUG] VT Response Data: {
+  "message": "success",
+  "data": [
+    {
+      "vehicleTypeId": 1,
+      "vehicleTypeUniqueId": "c9ebf5fe-63f8-464f-94a2-8cfc99b8b69f",
+      "vehicleTypeName": "Light Truck (up to 35 Quintal)",
+      "vehicleTypeIconName": null,
+      "vehicleTypeDescription": "Small/light freight truck for bulk cargo up to 35 quintal. Cannot carry ISO containers.",
+      "vehicleTypeCreatedBy": "2ed0127a-deaa-4eba-82ff-150aca34219b",
+      "vehicleTypeUpdatedBy": null,
+      "vehicleTypeDeletedBy": null,
+      "carryingCapacity": 35,
+      "cargoType": "bulk_only",
+      "vehicleTypeUpdatedAt": null,
+      "vehicleTypeCreatedAt": "2026-04-05T02:55:17.000Z",
+      "vehicleTypeDeletedAt": null
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 1,
+    "total": 8,
+    "totalPages": 8
+  }
+}
+  ✅ PASS
+  [02] Setup 2-Truck Fleet ...
+  [DEBUG] Company Create Status: 404
+  [DEBUG] Company Create Data: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /api/company</pre>\n</body>\n</html>\n"
+
+❌ FAIL: Company creation failed
