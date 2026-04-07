@@ -1364,7 +1364,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     proposedDeliveryDate DATETIME NULL,
     bidNotes TEXT NULL,                                    -- Optional message from company to shipper
 
-    -- Bid lifecycle status
+    -- Bid lifecycle status which is relation between company and shipper
     bidStatus ENUM(
         'submitted',           -- Company submitted; waiting for shipper
         'accepted_by_shipper', -- Shipper accepted; dispatcher must now assign vehicles
