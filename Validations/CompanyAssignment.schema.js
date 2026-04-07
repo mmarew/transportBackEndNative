@@ -18,6 +18,9 @@ exports.updateAssignmentStatus = Joi.object({
       "completed",
     )
     .required(),
+  originLatitude: Joi.number().optional(),
+  originLongitude: Joi.number().optional(),
+  originPlace: Joi.string().allow("").optional(),
 }).unknown(true);
 
 exports.assignmentParams = Joi.object({

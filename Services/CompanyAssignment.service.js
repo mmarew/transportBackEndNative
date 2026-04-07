@@ -309,6 +309,7 @@ exports.updateAssignmentStatus = async (
   assignmentUniqueId,
   assignmentStatus,
   updatedBy,
+  payload = {},
 ) => {
   // Acquire an exclusive lock on the assignment to prevent race conditions
   // (e.g. multiple concurrent "confirm" requests leading to duplicate inserts)
@@ -387,11 +388,28 @@ exports.updateAssignmentStatus = async (
       );
     }
 
-    // ── Sync DriverRequest status ───────────────────────────────────────────
-    await db().query(
-      "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestId = ?",
-      [jStatusId, currentDate(), drRows[0].driverRequestId],
-    );
+    // ── Sync DriverRequest status and location ──────────────────────────────
+    const { originLatitude, originLongitude, originPlace } = payload;
+    let drUpdateQuery = "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?";
+    let drUpdateVals = [jStatusId, currentDate()];
+
+    if (originLatitude !== undefined) {
+      drUpdateQuery += ", originLatitude = ?";
+      drUpdateVals.push(originLatitude);
+    }
+    if (originLongitude !== undefined) {
+      drUpdateQuery += ", originLongitude = ?";
+      drUpdateVals.push(originLongitude);
+    }
+    if (originPlace !== undefined) {
+      drUpdateQuery += ", originPlace = ?";
+      drUpdateVals.push(originPlace);
+    }
+
+    drUpdateQuery += " WHERE driverRequestId = ?";
+    drUpdateVals.push(drRows[0].driverRequestId);
+
+    await db().query(drUpdateQuery, drUpdateVals);
 
     sendFCMNotificationToUser({
       userUniqueId: assignment.driverUserUniqueId,
