@@ -11,8 +11,16 @@ router.use(verifyTokenOfAxios);
 
 /**
  * @route   POST /api/company/assignments
+ * @desc    Assigns a single driver and vehicle to a specific freight job (slot).
+ *          Automatically creates a DriverRequest and notifies the driver.
  */
 router.post("/", validator(schema.createAssignment), controller.createAssignment);
+
+/**
+ * @route   POST /api/company/assignments/bulk
+ * @desc    Assigns multiple vehicles/drivers to different slots of a single bid batch.
+ *          This is an Atomic Operation (all-or-nothing).
+ */
 router.post("/bulk", validator(schema.bulkAssign), controller.createBulkAssignments);
 
 /**

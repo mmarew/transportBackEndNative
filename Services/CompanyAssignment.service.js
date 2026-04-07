@@ -66,10 +66,7 @@ exports.createAssignment = async (data) => {
     );
 
   // ── Auto-create DriverRequest on behalf of the assigned driver ──────────
-  const [acceptedStatusRows] = await db().query(
-    "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'acceptedByDriver' LIMIT 1",
-  );
-  const acceptedStatusId = acceptedStatusRows?.[0]?.journeyStatusId ?? 3;
+  const acceptedStatusId = journeyStatusMap.acceptedByDriver;
 
   const driverRequestUniqueId = uuidv4();
   await db().query(
@@ -162,10 +159,7 @@ exports.createBulkAssignments = async (data) => {
   }
 
   // 2. Optimized: Cache status IDs for the loop
-  const [acceptedStatusRows] = await db().query(
-    "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'acceptedByDriver' LIMIT 1",
-  );
-  const acceptedStatusId = acceptedStatusRows?.[0]?.journeyStatusId ?? 3;
+  const acceptedStatusId = journeyStatusMap.acceptedByDriver;
 
   const results = [];
 
@@ -351,10 +345,7 @@ exports.updateAssignmentStatus = async (
     if (!drRows || drRows.length === 0)
       throw new AppError("Driver request not found", 404);
 
-    const [acceptedPassengerStatus] = await db().query(
-      "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'acceptedByPassenger' LIMIT 1",
-    );
-    const jStatusId = acceptedPassengerStatus?.[0]?.journeyStatusId ?? 4;
+    const jStatusId = journeyStatusMap.acceptedByPassenger;
 
     journeyDecisionUniqueId = uuidv4();
     await db().query(

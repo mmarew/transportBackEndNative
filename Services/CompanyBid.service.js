@@ -132,10 +132,7 @@ exports.submitBid = async (data) => {
   // if they win it.
   await validateFleetCapacity(companyUniqueId, finalCount);
 
-  const [jsRows] = await db().query(
-    "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'waiting' LIMIT 1",
-  );
-  const journeyStatusId = jsRows?.[0]?.journeyStatusId ?? 1;
+  const journeyStatusId = journeyStatusMap.waiting;
 
   const companyBidRequestUniqueId = uuidv4();
   await db().query(
@@ -482,16 +479,24 @@ exports.updateBidStatus = async (
     // 2. VERIFY STATE (Integrity Check)
     // Ensure all requests in the batch are still 'Free' (waiting or requested)
     // If an individual driver already claimed one, this will catch it.
+    if (rows.length === 0) {
+      throw new AppError(
+        `Consistency Conflict: No requests found for batch '${bid.passengerRequestBatchId}'. The shipper may have cancelled the entire batch or you are using a stale bid from before a database reset.`,
+        409,
+      );
+    }
+
     const freeRequests = rows.filter(
       (r) =>
         r.journeyStatusId === journeyStatusMap.waiting ||
         r.journeyStatusId === journeyStatusMap.requested ||
-        r.journeyStatusId === journeyStatusMap.acceptedByDriver, // Could have bids, but not accepted by shipper yet
+        r.journeyStatusId === journeyStatusMap.acceptedByDriver,
     );
 
     if (freeRequests.length < bid.numberOfVehiclesOffered) {
+      const alreadyClaimed = rows.length - freeRequests.length;
       throw new AppError(
-        `Consistency Conflict: Only ${freeRequests.length} of ${bid.numberOfVehiclesOffered} requests in this batch are still available. Some may have been claimed individually.`,
+        `Consistency Conflict: Only ${freeRequests.length} of ${bid.numberOfVehiclesOffered} requested vehicles are still available. ${alreadyClaimed} individual driver(s) have already been accepted for this freight.`,
         409,
       );
     }

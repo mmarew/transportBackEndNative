@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { usersRoles } = require("../Utils/ListOfSeedData");
+const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
 const {
   db,
   findOne,
@@ -101,16 +101,12 @@ exports.createCompany = async (data) => {
     user.roleId !== usersRoles.adminRoleId &&
     user.roleId !== usersRoles.supperAdminRoleId
   ) {
-    const ownerRole = await findOne(
-      "CompanyRoles",
-      { companyRoleName: "owner" },
-      "Owner role not found in system. Please seed the database.",
-    );
+    const ownerRoleUniqueId = companyRoles.ownerUniqueId;
 
     await addMember({
       companyUniqueId,
       userUniqueId: user.userUniqueId,
-      companyRoleUniqueId: ownerRole.companyRoleUniqueId,
+      companyRoleUniqueId: ownerRoleUniqueId,
       membershipStartDate: currentDate(),
       createdByUserUniqueId: createdByUserUniqueId,
       skipApprovalCheck: true,
