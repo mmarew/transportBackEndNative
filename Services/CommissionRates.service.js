@@ -7,6 +7,7 @@ const createCommissionRate = async ({
   commissionRateUniqueId,
   commissionRate,
   commissionRateEffectiveDate,
+  commissionRateExpirationDate,
   commissionRateCreatedBy,
 }) => {
   const executor = transactionStorage.getStore() || pool;
@@ -48,15 +49,17 @@ const createCommissionRate = async ({
       commissionRateUniqueId,
       commissionRate,
       commissionRateEffectiveDate,
+      commissionRateExpirationDate,
       commissionRateCreatedBy,
       commissionRateCreatedAt
-    ) VALUES (?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
     commissionRateUniqueId,
     commissionRate,
     commissionRateEffectiveDate,
+    commissionRateExpirationDate,
     commissionRateCreatedBy,
     currentDate(),
   ];

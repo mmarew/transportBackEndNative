@@ -16,11 +16,11 @@ const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 /**
  * ### CORE LOGIC - Submit a Freight Bid
  * Processes a transport company's bid for a shipper's request batch.
- * 
+ *
  * **Junior Note: High Stakes!**
  * This function handles the "Heart" of the company bidding flow. It performs multiple security
  * and business checks before inserting a row into `CompanyBidRequest`.
- * 
+ *
  * **Important Rules:**
  * 1. Only 'Approved' companies can bid (Security).
  * 2. Companies can't bid on work targeted at *other* specific companies (Privacy).
@@ -29,9 +29,9 @@ const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
  * > [!IMPORTANT]
  * > **4. Fleet Capacity Validation (NEW):**
  * > To prevent over-commitment, the system now calls `validateFleetCapacity()`.
- * > This ensures the company has enough "Free" trucks in their fleet to fulfill this 
+ * > This ensures the company has enough "Free" trucks in their fleet to fulfill this
  * > bid if they win. If they are already fully committed, the bid is blocked.
- * 
+ *
  * @param {Object} data - The payload containing bid details.
  * @param {string} data.passengerRequestBatchId - The UUID that groups the shipper's requests.
  * @param {string} data.companyUniqueId - The ID of the bidding fleet.
@@ -191,7 +191,10 @@ exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
   const companyUniqueId = membership[0].companyUniqueId;
 
   // 2. Fetch Requests from the optimized Metadata table (O(N) PERFORMANCE)
-  const activeStatusIds = [journeyStatusMap.requested, journeyStatusMap.waiting];
+  const activeStatusIds = [
+    journeyStatusMap.requested,
+    journeyStatusMap.waiting,
+  ];
 
   const filterClauses = [
     "b.batchDeletedAt IS NULL",
@@ -211,8 +214,10 @@ exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
   const baseSql = `
     SELECT b.*, 
            b.batchUniqueId AS passengerRequestBatchId, -- backwards compatibility
+           u.firstName AS shipperFirstName, u.lastName AS shipperLastName,
            vt.vehicleTypeName, js.journeyStatusName
     FROM PassengerRequestBatch b
+    LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
     LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
     ${filterWhere}
@@ -259,12 +264,18 @@ exports.getBidsSummary = async (userUniqueId) => {
     [userUniqueId],
   );
   if (!membership || membership.length === 0) {
-    throw new AppError("User is not an active member of any transport company", 403);
+    throw new AppError(
+      "User is not an active member of any transport company",
+      403,
+    );
   }
   const companyUniqueId = membership[0].companyUniqueId;
 
   // 2. Count Available (matching discovery boards filters)
-  const activeStatusIds = [journeyStatusMap.requested, journeyStatusMap.waiting];
+  const activeStatusIds = [
+    journeyStatusMap.requested,
+    journeyStatusMap.waiting,
+  ];
   const [availableRes] = await db().query(
     `SELECT COUNT(*) AS total 
      FROM PassengerRequestBatch b
@@ -302,7 +313,10 @@ exports.getBidsSummary = async (userUniqueId) => {
       available: availableRes[0]?.total || 0,
       submitted: submittedRes[0]?.total || 0,
       accepted: acceptedRes[0]?.total || 0,
-      total: (availableRes[0]?.total || 0) + (submittedRes[0]?.total || 0) + (acceptedRes[0]?.total || 0),
+      total:
+        (availableRes[0]?.total || 0) +
+        (submittedRes[0]?.total || 0) +
+        (acceptedRes[0]?.total || 0),
     },
   };
 };
@@ -329,30 +343,41 @@ exports.getBids = async (filters = {}, userUniqueId = null) => {
     return exports.getAvailableRequests(userUniqueId, filters);
   }
   const { page, limit, offset } = paginate(filters);
-  const clauses = ["companyBidRequestDeletedAt IS NULL"];
+  const clauses = ["cbr.companyBidRequestDeletedAt IS NULL"];
   const params = [];
 
   if (filters.companyBidRequestUniqueId) {
-    clauses.push("companyBidRequestUniqueId = ?");
+    clauses.push("cbr.companyBidRequestUniqueId = ?");
     params.push(filters.companyBidRequestUniqueId);
   }
   if (filters.passengerRequestBatchId) {
-    clauses.push("passengerRequestBatchId = ?");
+    clauses.push("cbr.passengerRequestBatchId = ?");
     params.push(filters.passengerRequestBatchId);
   }
   if (filters.companyUniqueId) {
-    clauses.push("companyUniqueId = ?");
+    clauses.push("cbr.companyUniqueId = ?");
     params.push(filters.companyUniqueId);
   }
   if (filters.bidStatus) {
-    clauses.push("bidStatus = ?");
+    clauses.push("cbr.bidStatus = ?");
     params.push(filters.bidStatus);
   }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
+  const baseSql = `
+    SELECT cbr.*, 
+           tc.companyName, tc.companyPhone, tc.companyEmail,
+           vt.vehicleTypeName, js.journeyStatusName
+    FROM CompanyBidRequest cbr
+    LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
+    LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON cbr.journeyStatusId = js.journeyStatusId
+    ${where}
+  `;
+
   return paginatedQuery(
-    `SELECT * FROM CompanyBidRequest ${where} ORDER BY companyBidRequestCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyBidRequest ${where}`,
+    `${baseSql} ORDER BY cbr.companyBidRequestCreatedAt DESC`,
+    `SELECT COUNT(*) AS total FROM CompanyBidRequest cbr ${where}`,
     params,
     page,
     limit,
@@ -377,22 +402,22 @@ exports.getBids = async (filters = {}, userUniqueId = null) => {
  */
 /**
  * Updates the status of a company bid (e.g., Accepting, Rejecting, or Cancelling).
- * 
+ *
  * ### CRITICAL: Consistency & Atomicity (for Junior Developers):
- * This function handles the most sensitive state transitions in the bidding system. 
- * Because it affects both the `CompanyBidRequest` and `PassengerRequest` tables, 
- * it MUST be executed inside a database transaction to prevent "partial updates" 
+ * This function handles the most sensitive state transitions in the bidding system.
+ * Because it affects both the `CompanyBidRequest` and `PassengerRequest` tables,
+ * it MUST be executed inside a database transaction to prevent "partial updates"
  * if the server crashes.
- * 
+ *
  * #### The "Race Condition" Shield (Part E):
  * When a shipper accepts a company bid (`accepted_by_shipper`), we perform two vital steps:
- * 1. **Locking**: We use `FOR UPDATE` on all requests in the batch. This "locks" the 
- *    rows in MySQL so that an individual driver cannot claim them while this 
+ * 1. **Locking**: We use `FOR UPDATE` on all requests in the batch. This "locks" the
+ *    rows in MySQL so that an individual driver cannot claim them while this
  *    function is running.
- * 2. **Verification**: After locking, we re-check if any request was already 
- *    claimed by someone else just milliseconds prior. If so, we "Hard Fail" 
+ * 2. **Verification**: After locking, we re-check if any request was already
+ *    claimed by someone else just milliseconds prior. If so, we "Hard Fail"
  *    (Conflict 409) rather than overwriting someone else's work.
- * 
+ *
  * @param {string} companyBidRequestUniqueId - The ID of the bid being updated.
  * @param {string} bidStatus - The new status (e.g., 'accepted_by_shipper', 'rejected_by_shipper').
  * @param {string} updatedBy - The User Unique ID of the person making the change.
@@ -432,7 +457,7 @@ exports.updateBidStatus = async (
   let newPRStatus = null;
   if (bidStatus === "accepted_by_shipper") {
     // 1. LOCK ALL PASSENGER REQUESTS IN THIS BATCH
-    // We use 'FOR UPDATE' to prevent individual drivers from 'Accepting' these 
+    // We use 'FOR UPDATE' to prevent individual drivers from 'Accepting' these
     // requests while we are processing this company bid.
     const [rows] = await db().query(
       `SELECT passengerRequestId, journeyStatusId 
@@ -533,22 +558,22 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
 };
 /**
  * Validates if a transport company has enough available vehicles to submit a new bid.
- * 
+ *
  * ### How it works (for Junior Developers):
- * To prevent a company from promising more trucks than they actually have, we perform a 
+ * To prevent a company from promising more trucks than they actually have, we perform a
  * "Live Capacity Check" before every bid.
- * 
- * 1. **Count Total Fleet**: We query the `CompanyVehicle` table for all active, non-deleted 
+ *
+ * 1. **Count Total Fleet**: We query the `CompanyVehicle` table for all active, non-deleted
  *    vehicles currently assigned to this company.
- * 2. **Count Reserved Capacity**: We look at the `CompanyBidRequest` table for all active 
- *    bids that haven't finished yet. 
+ * 2. **Count Reserved Capacity**: We look at the `CompanyBidRequest` table for all active
+ *    bids that haven't finished yet.
  *    - A bid is "Active" if its status is 'submitted' (waiting for shipper) or 'accepted_by_shipper'.
- *    - A bid is "Finished" once the journey reaches 'journeyCompleted' (Status ID 6), 
+ *    - A bid is "Finished" once the journey reaches 'journeyCompleted' (Status ID 6),
  *      at which point the truck is free again.
  * 3. **Calculation**: `Available = Total Fleet - Already Reserved`.
- * 4. **Block**: If the `requestedCount` for the new bid is greater than `Available`, 
+ * 4. **Block**: If the `requestedCount` for the new bid is greater than `Available`,
  *    we throw an error to block the submission.
- * 
+ *
  * @param {string} companyUniqueId - The unique identifier of the transport company.
  * @param {number} requestedCount - The number of vehicles the company is offering for this specific bid.
  * @throws {AppError} 400 - If the company has no vehicles or lacks sufficient available capacity.
@@ -561,9 +586,9 @@ async function validateFleetCapacity(companyUniqueId, requestedCount) {
      WHERE companyUniqueId = ? AND assignmentStatus = 'active' AND companyVehicleDeletedAt IS NULL`,
     [companyUniqueId],
   );
-  
+
   const fleetSize = Number(fleetRows?.[0]?.fleetSize ?? 0);
-  
+
   // Rule: If you don't have vehicles registered, you can't bid on anything.
   if (fleetSize === 0) {
     throw new AppError(
@@ -583,7 +608,7 @@ async function validateFleetCapacity(companyUniqueId, requestedCount) {
        AND companyBidRequestDeletedAt IS NULL`,
     [companyUniqueId, journeyStatusMap.journeyCompleted],
   );
-  
+
   const reserved = Number(reservedRows?.[0]?.reserved ?? 0);
 
   // 3. Simple math to find the current 'Free' capacity

@@ -215,19 +215,45 @@ exports.createBulkAssignments = async (data) => {
 
 exports.getAssignments = async (filters = {}) => {
   const { page, limit, offset } = paginate(filters);
-  const clauses = ["assignmentDeletedAt IS NULL"];
+  const clauses = ["cba.assignmentDeletedAt IS NULL"];
   const params = [];
 
-  if (filters.companyBidRequestUniqueId) { clauses.push("companyBidRequestUniqueId = ?"); params.push(filters.companyBidRequestUniqueId); }
-  if (filters.passengerRequestUniqueId) { clauses.push("passengerRequestUniqueId = ?"); params.push(filters.passengerRequestUniqueId); }
-  if (filters.driverUserUniqueId) { clauses.push("driverUserUniqueId = ?"); params.push(filters.driverUserUniqueId); }
-  if (filters.assignmentStatus) { clauses.push("assignmentStatus = ?"); params.push(filters.assignmentStatus); }
+  if (filters.companyBidRequestUniqueId) {
+    clauses.push("cba.companyBidRequestUniqueId = ?");
+    params.push(filters.companyBidRequestUniqueId);
+  }
+  if (filters.passengerRequestUniqueId) {
+    clauses.push("cba.passengerRequestUniqueId = ?");
+    params.push(filters.passengerRequestUniqueId);
+  }
+  if (filters.driverUserUniqueId) {
+    clauses.push("cba.driverUserUniqueId = ?");
+    params.push(filters.driverUserUniqueId);
+  }
+  if (filters.assignmentStatus) {
+    clauses.push("cba.assignmentStatus = ?");
+    params.push(filters.assignmentStatus);
+  }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
+  const baseSql = `
+    SELECT cba.*,
+           u.firstName AS driverFirstName, u.lastName AS driverLastName, u.phoneNumber AS driverPhone,
+           v.licensePlate, vt.vehicleTypeName
+    FROM CompanyBidVehicleAssignment cba
+    LEFT JOIN Users u ON cba.driverUserUniqueId = u.userUniqueId
+    LEFT JOIN Vehicle v ON cba.vehicleUniqueId = v.vehicleUniqueId
+    LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    ${where}
+  `;
+
   return paginatedQuery(
-    `SELECT * FROM CompanyBidVehicleAssignment ${where} ORDER BY assignmentCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyBidVehicleAssignment ${where}`,
-    params, page, limit, offset,
+    `${baseSql} ORDER BY cba.assignmentCreatedAt DESC`,
+    `SELECT COUNT(*) AS total FROM CompanyBidVehicleAssignment cba ${where}`,
+    params,
+    page,
+    limit,
+    offset,
   );
 };
 

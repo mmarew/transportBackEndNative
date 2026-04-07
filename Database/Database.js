@@ -1262,8 +1262,15 @@ CREATE TABLE IF NOT EXISTS CompanyRoles (
     companyRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,
     companyRoleName VARCHAR(50) UNIQUE NOT NULL, -- 'owner', 'manager', 'dispatcher', 'driver'
     companyRoleDescription TEXT,
+    companyRoleCreatedBy VARCHAR(36) NOT NULL,
+    companyRoleUpdatedBy VARCHAR(36) NULL,
+    companyRoleDeletedBy VARCHAR(36) NULL,
     companyRoleCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    companyRoleUpdatedAt DATETIME NULL
+    companyRoleUpdatedAt DATETIME NULL,
+    companyRoleDeletedAt DATETIME NULL,
+    FOREIGN KEY (companyRoleCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRoleUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRoleDeletedBy) REFERENCES Users(userUniqueId)
 );
 
 
