@@ -140,7 +140,85 @@ exports.submitBid = async (data) => {
   return { message: "success", data: { companyBidRequestUniqueId } };
 };
 
-exports.getBids = async (filters = {}) => {
+/**
+ * Gets available passenger requests (batches) targeted at the company
+ * that haven't been bidded on yet.
+ *
+ * @param {string} userUniqueId - User seeking available requests
+ * @param {Object} filters - Query filters
+ * @returns {Promise<Object>} Paginated list of PassengerRequest batches
+ */
+exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
+  const { page, limit, offset } = paginate(filters);
+
+  // 1. Identify the company for this user
+  const [membership] = await db().query(
+    `SELECT companyUniqueId FROM CompanyMembership 
+     WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL LIMIT 1`,
+    [userUniqueId],
+  );
+  if (!membership || membership.length === 0) {
+    throw new AppError(
+      "User is not an active member of any transport company",
+      403,
+    );
+  }
+  const companyUniqueId = membership[0].companyUniqueId;
+
+  // 2. Fetch requests targeted at this company where no bid exists from this company
+  const activeStatusIds = [journeyStatusMap.requested, journeyStatusMap.waiting];
+
+  const clauses = [
+    "pr.passengerRequestDeletedAt IS NULL",
+    "pr.requestMode = 'company_target'",
+    "pr.targetCompanyUniqueId = ?",
+    "pr.journeyStatusId IN (?)",
+    `NOT EXISTS (
+      SELECT 1 FROM CompanyBidRequest cbr 
+      WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId 
+      AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
+    )`,
+  ];
+  const params = [companyUniqueId, activeStatusIds, companyUniqueId];
+
+  const where = `WHERE ${clauses.join(" AND ")}`;
+
+  // Select unique batches using a subquery to find a representative row (MIN ID) per batch.
+  // This ensures compatibility with ONLY_FULL_GROUP_BY.
+  const baseSql = `
+    SELECT pr.*, vt.vehicleTypeName, js.journeyStatusName
+    FROM PassengerRequest pr
+    INNER JOIN (
+      SELECT MIN(passengerRequestId) as minId
+      FROM PassengerRequest
+      WHERE passengerRequestDeletedAt IS NULL
+      GROUP BY passengerRequestBatchId
+    ) as batch_rep ON pr.passengerRequestId = batch_rep.minId
+    LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
+    ${where}
+  `;
+
+  const countSql = `
+    SELECT COUNT(DISTINCT pr.passengerRequestBatchId) AS total 
+    FROM PassengerRequest pr ${where}
+  `;
+
+  return paginatedQuery(
+    `${baseSql} ORDER BY pr.shipperRequestCreatedAt DESC`,
+    countSql,
+    params,
+    page,
+    limit,
+    offset,
+  );
+};
+
+exports.getBids = async (filters = {}, userUniqueId = null) => {
+  if (filters.target === "available") {
+    if (!userUniqueId) throw new AppError("Authentication required", 401);
+    return exports.getAvailableRequests(userUniqueId, filters);
+  }
   const { page, limit, offset } = paginate(filters);
   const clauses = ["companyBidRequestDeletedAt IS NULL"];
   const params = [];

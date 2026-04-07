@@ -27,7 +27,14 @@ const { addMember } = require("./CompanyMembership.service");
  * @throws {AppError} 409 if company name/phone/email already exists
  */
 exports.createCompany = async (data) => {
-  const { companyEmail, companyAddress, createdByUserUniqueId } = data;
+  const {
+    companyName,
+    companyRegistrationNumber,
+    companyPhone,
+    companyEmail,
+    companyAddress,
+    createdByUserUniqueId,
+  } = data;
 
   // Duplicate check for critical fields
   const dupCheckFields = {

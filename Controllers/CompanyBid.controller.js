@@ -19,7 +19,10 @@ exports.submitBid = async (req, res, next) => {
 
 exports.getBids = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getBids(req.query));
+    ServerResponder(
+      res,
+      await service.getBids(req.query, req.user.userUniqueId),
+    );
   } catch (e) {
     next(e);
   }
