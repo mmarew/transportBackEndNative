@@ -7,8 +7,8 @@ const { uuidSchema } = require("../Middleware/Validator");
 exports.submitBid = Joi.object({
   passengerRequestBatchId: uuidSchema.required(),
   companyUniqueId: uuidSchema.required(),
-  numberOfVehiclesOffered: Joi.number().integer().min(1).required(),
-  vehicleTypeUniqueId: uuidSchema.required(),
+  numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
+  vehicleTypeUniqueId: uuidSchema.optional(),
   proposedCostPerVehicle: Joi.number().min(0).optional().allow(null),
   proposedTotalCost: Joi.number().min(0).optional().allow(null),
   proposedShippingDate: Joi.date().iso().optional().allow(null),

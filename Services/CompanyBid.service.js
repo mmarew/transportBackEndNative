@@ -63,47 +63,46 @@ exports.submitBid = async (data) => {
   if (company.approvalStatus !== "approved")
     throw new AppError("Only approved companies can submit bids", 400);
 
-  // Verify the batch exists and count its rows
+  // 1. Verify the batch exists and get its metadata (Header Table)
+  const [batchRows] = await db().query(
+    `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId 
+     FROM PassengerRequestBatch 
+     WHERE batchUniqueId = ? AND batchDeletedAt IS NULL LIMIT 1`,
+    [passengerRequestBatchId],
+  );
+  if (!batchRows || batchRows.length === 0)
+    throw new AppError("Passenger request batch not found", 404);
+
+  const { totalVehicles, requestMode, targetCompanyUniqueId } = batchRows[0];
+  // Determine final values (prioritize DB, fallback to user input for legacy)
+  const finalNumberOfVehicles = totalVehicles || numberOfVehiclesOffered;
+  const finalVehicleTypeUniqueId = batchRows[0].vehicleTypeUniqueId || vehicleTypeUniqueId;
+
+  // 2. Check company-targeting
+  if (
+    requestMode === "company_target" &&
+    targetCompanyUniqueId !== null &&
+    targetCompanyUniqueId !== companyUniqueId
+  ) {
+    throw new AppError(
+      "This batch is targeted at a different company",
+      403,
+    );
+  }
+
+  // 3. Verify consistency with individual requests (Optional but recommended)
   const [countRows] = await db().query(
     `SELECT COUNT(*) AS batchCount
      FROM PassengerRequest
      WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
     [passengerRequestBatchId],
   );
-  const batchCount = Number(countRows?.[0]?.batchCount ?? 0);
-  if (batchCount === 0)
-    throw new AppError("Passenger request batch not found", 404);
+  const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
+  if (actualRequestCount === 0)
+    throw new AppError("This batch contains no individual requests", 400);
 
-  // Check company-targeting
-  try {
-    const [tRows] = await db().query(
-      `SELECT requestMode, targetCompanyUniqueId FROM PassengerRequest
-       WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL LIMIT 1`,
-      [passengerRequestBatchId],
-    );
-    if (tRows?.length > 0) {
-      const { requestMode, targetCompanyUniqueId } = tRows[0];
-      if (
-        requestMode === "company_target" &&
-        targetCompanyUniqueId !== null &&
-        targetCompanyUniqueId !== companyUniqueId
-      ) {
-        throw new AppError(
-          "This batch is targeted at a different company",
-          403,
-        );
-      }
-    }
-  } catch (e) {
-    if (e.code !== "ER_BAD_FIELD_ERROR") throw e;
-  }
-
-  // Full-batch bid only
-  if (Number(numberOfVehiclesOffered) !== batchCount)
-    throw new AppError(
-      `Full batch bid required. Batch has ${batchCount} vehicles; you offered ${numberOfVehiclesOffered}`,
-      400,
-    );
+  // We enforce the full batch size from the meta-table
+  const finalCount = finalNumberOfVehicles;
 
   // One bid per company per batch
   const [existing] = await db().query(
@@ -119,7 +118,7 @@ exports.submitBid = async (data) => {
   // --- NEW: CAPACITY VALIDATION ---
   // Ensure the company has enough trucks available in their fleet to fulfill this bid
   // if they win it.
-  await validateFleetCapacity(companyUniqueId, numberOfVehiclesOffered);
+  await validateFleetCapacity(companyUniqueId, finalCount);
 
   const [jsRows] = await db().query(
     "SELECT journeyStatusId FROM JourneyStatus WHERE journeyStatusName = 'waiting' LIMIT 1",
@@ -140,8 +139,8 @@ exports.submitBid = async (data) => {
       passengerRequestBatchId,
       companyUniqueId,
       bidSubmittedByUserUniqueId,
-      numberOfVehiclesOffered,
-      vehicleTypeUniqueId,
+      finalCount,
+      finalVehicleTypeUniqueId,
       proposedCostPerVehicle ?? null,
       proposedTotalCost ?? null,
       proposedShippingDate ?? null,
