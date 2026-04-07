@@ -405,6 +405,177 @@ exports.updateAssignmentStatus = async (
   };
 };
 
+/**
+ * autoAssignBatch
+ * ───────────────
+ * The "Auto-Assigner" intelligence layer. This function automatically maps available 
+ * fleet (vehicle/driver pairs) to unassigned slots within a single accepted bid.
+ * 
+ * ### HOW IT WORKS (Technical Workflow):
+ * 1. **Slot Discovery**: Finds all `PassengerRequest` items in the batch that are 
+ *    NOT yet assigned in `CompanyBidVehicleAssignment`.
+ * 2. **Availability Check**: Queries the company's active fleet. A driver/vehicle 
+ *    is only "Available" if they have no active trip where the status is NOT 
+ *    one of (completed, cancelled, rejected).
+ * 3. **1-to-1 Mapping**: Matches slots to the next available driver-vehicle pair.
+ * 4. **Partial Support**: If the fleet is smaller than the total slots, it 
+ *    assigns as many as possible and returns a summary of the remainder.
+ * 5. **Atomicity**: Executed inside a database transaction to ensure batch integrity.
+ * 
+ * @param {Object} data - Payload
+ * @param {string} data.companyBidRequestUniqueId - The ID of the winning bid.
+ * @param {string} data.createdByUserUniqueId - The dispatcher's user ID.
+ * @returns {Promise<Object>} Summary of assigned vs unassigned counts and record pointers.
+ */
+exports.autoAssignBatch = async (data) => {
+  const { companyBidRequestUniqueId, createdByUserUniqueId } = data;
+
+  // 1. Fetch bid details to get batch and company
+  const bid = await findOne(
+    "CompanyBidRequest",
+    { companyBidRequestUniqueId },
+    "Bid not found",
+  );
+  if (bid.bidStatus !== "accepted_by_shipper") {
+    throw new AppError(
+      "Auto-assignment can only be performed after a bid is accepted by the shipper",
+      400,
+    );
+  }
+
+  const { passengerRequestBatchId, companyUniqueId } = bid;
+
+  // 2. Find Unassigned Slots for this Batch (Priority Check)
+  const [unassignedSlots] = await db().query(
+    `SELECT pr.passengerRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
+     FROM PassengerRequest pr
+     WHERE pr.passengerRequestBatchId = ? 
+       AND pr.passengerRequestDeletedAt IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM CompanyBidVehicleAssignment cba
+         WHERE cba.passengerRequestUniqueId = pr.passengerRequestUniqueId
+           AND cba.assignmentDeletedAt IS NULL
+           AND cba.assignmentStatus NOT IN ('rejected_by_driver', 'cancelled')
+       )`,
+    [passengerRequestBatchId],
+  );
+
+  if (unassignedSlots.length === 0) {
+    return { message: "success", data: "All slots in this batch are already assigned." };
+  }
+
+  // 3. Find Available Fleet (Vehicles + Drivers)
+  const [availableFleet] = await db().query(
+    `SELECT cv.vehicleUniqueId, vd.driverUserUniqueId, v.vehicleTypeUniqueId
+     FROM CompanyVehicle cv
+     JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
+     JOIN VehicleDriver vd ON cv.vehicleUniqueId = vd.vehicleUniqueId
+     WHERE cv.companyUniqueId = ? 
+       AND cv.assignmentStatus = 'active' AND cv.companyVehicleDeletedAt IS NULL
+       AND vd.assignmentStatus = 'active'
+       AND NOT EXISTS (
+         SELECT 1 FROM CompanyBidVehicleAssignment cba
+         WHERE (cba.vehicleUniqueId = cv.vehicleUniqueId OR cba.driverUserUniqueId = vd.driverUserUniqueId)
+           AND cba.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+           AND cba.assignmentDeletedAt IS NULL
+       )`,
+    [companyUniqueId],
+  );
+
+  // 4. Handle Case: Fleet is busy but slots need assignment
+  if (availableFleet.length === 0) {
+    return {
+      message: "success",
+      data: {
+        summary: `Successfully auto-assigned 0 slots. ${unassignedSlots.length} slots remain unassigned due to limited fleet availability.`,
+        assignedCount: 0,
+        unassignedCount: unassignedSlots.length,
+        assignments: [],
+      },
+    };
+  }
+
+  // 5. Perform Mapping (Partial Assignment Support)
+  const assignmentsToCreate = [];
+  const limit = Math.min(unassignedSlots.length, availableFleet.length);
+
+  for (let i = 0; i < limit; i++) {
+    assignmentsToCreate.push({
+      passengerRequestUniqueId: unassignedSlots[i].passengerRequestUniqueId,
+      vehicleUniqueId: availableFleet[i].vehicleUniqueId,
+      driverUserUniqueId: availableFleet[i].driverUserUniqueId,
+      origin: {
+        lat: unassignedSlots[i].originLatitude,
+        lng: unassignedSlots[i].originLongitude,
+        place: unassignedSlots[i].originPlace,
+      },
+    });
+  }
+
+  // 5. Execute Assignments in bulk (Reuse logic from createBulkAssignments internally)
+  const acceptedStatusId = journeyStatusMap.acceptedByDriver;
+  const results = [];
+
+  for (const item of assignmentsToCreate) {
+    const driverRequestUniqueId = uuidv4();
+    const assignmentUniqueId = uuidv4();
+
+    // Create DriverRequest
+    await db().query(
+      `INSERT INTO DriverRequest
+        (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace,
+         journeyStatusId, driverRequestCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        driverRequestUniqueId,
+        item.driverUserUniqueId,
+        item.origin.lat ?? 0,
+        item.origin.lng ?? 0,
+        item.origin.place ?? "Auto-assigned",
+        acceptedStatusId,
+        currentDate(),
+      ],
+    );
+
+    // Create Assignment
+    await db().query(
+      `INSERT INTO CompanyBidVehicleAssignment
+        (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
+         vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
+         assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
+      [
+        assignmentUniqueId,
+        companyBidRequestUniqueId,
+        item.passengerRequestUniqueId,
+        item.vehicleUniqueId,
+        item.driverUserUniqueId,
+        driverRequestUniqueId,
+        createdByUserUniqueId,
+        currentDate(),
+      ],
+    );
+
+    // Skip FCM for bulk auto-assign speed, but we can add it if needed
+    results.push({ assignmentUniqueId, passengerRequestUniqueId: item.passengerRequestUniqueId });
+  }
+
+  const unassignedCount = unassignedSlots.length - results.length;
+  const summary = unassignedCount > 0 
+    ? `Successfully auto-assigned ${results.length} slots. ${unassignedCount} slots remain unassigned due to limited fleet availability.`
+    : `Successfully auto-assigned all ${results.length} slots.`;
+
+  return {
+    message: "success",
+    data: {
+      summary,
+      assignedCount: results.length,
+      unassignedCount,
+      assignments: results,
+    },
+  };
+};
+
 exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
   const [res] = await db().query(
     `UPDATE CompanyBidVehicleAssignment

@@ -17,11 +17,25 @@ router.use(verifyTokenOfAxios);
 router.post("/", validator(schema.createAssignment), controller.createAssignment);
 
 /**
- * @route   POST /api/company/assignments/bulk
- * @desc    Assigns multiple vehicles/drivers to different slots of a single bid batch.
- *          This is an Atomic Operation (all-or-nothing).
+ * @route POST /api/company/assignments/bulk
+ * @description Atomic Batch Assignment: Manually assigns multiple drivers/vehicles to specific slots.
  */
-router.post("/bulk", validator(schema.bulkAssign), controller.createBulkAssignments);
+router.post(
+  "/bulk",
+  validator(schema.bulkAssign),
+  controller.createBulkAssignments,
+);
+
+/**
+ * @route   POST /api/company/assignments/auto
+ * @desc    The "Auto-Assigner" intelligence layer. Automatically maps available drivers/vehicles 
+ *          to unassigned slots in an accepted bid batch.
+ * @access  Private (Dispatcher)
+ * @body    { "companyBidRequestUniqueId": "UUID" }
+ * @returns { "summary": "Successfully assigned 45 slots. 15 remain...", "assignedCount": 45, "unassignedCount": 15 }
+ * @note    This is a "Best-Effort" operation. It assigns as many drivers as are currently free.
+ */
+router.post("/auto", validator(schema.autoAssign), controller.autoAssignBatch);
 
 /**
  * @route   GET /api/company/assignments

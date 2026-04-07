@@ -55,3 +55,7 @@ exports.bulkAssign = Joi.object({
     .min(1)
     .required(),
 }).unknown(true);
+
+exports.autoAssign = Joi.object({
+  companyBidRequestUniqueId: uuidSchema.required(),
+}).unknown(true);
