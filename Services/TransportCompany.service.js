@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { usersRoles } = require("../Utils/ListOfSeedData");
+const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
 const {
   db,
   findOne,
@@ -103,7 +103,7 @@ exports.createCompany = async (data) => {
     await addMember({
       companyUniqueId,
       userUniqueId: user.userUniqueId,
-      membershipRole: companyRoles.ownerUniqueId,
+      companyRoleUniqueId: companyRoles.ownerUniqueId,
       membershipStartDate: currentDate(),
       createdByUserUniqueId: createdByUserUniqueId,
       skipApprovalCheck: true,
