@@ -18,16 +18,22 @@ const createStatus = async (body) => {
     throw new AppError("Status already exists", 400);
   }
 
+  const colAndVal = {
+    statusUniqueId,
+    statusName,
+    statusDescription,
+    statusCreatedBy: userUniqueId,
+    statusCreatedAt: currentDate(),
+  };
+
+  if (body.statusId) {
+    colAndVal.statusId = body.statusId;
+  }
+
   // Insert the new status into the database
   const result = await insertData({
     tableName: "Statuses",
-    colAndVal: {
-      statusUniqueId,
-      statusName,
-      statusDescription,
-      statusCreatedBy: userUniqueId,
-      statusCreatedAt: currentDate(),
-    },
+    colAndVal,
   });
 
   if (result.affectedRows === 0) {

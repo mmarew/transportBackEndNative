@@ -24,6 +24,9 @@ const createRole = async (body) => {
     roleCreatedBy: userUniqueId,
     roleCreatedAt: currentDate(),
   };
+  if (body.roleId) {
+    colAndVal.roleId = body.roleId;
+  }
   const tableName = "Roles";
   try {
     const registeredRole = await insertData({ tableName, colAndVal });

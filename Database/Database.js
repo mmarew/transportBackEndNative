@@ -561,6 +561,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
 
 CREATE TABLE IF NOT EXISTS VehicleStatusTypes (
     VehicleStatusTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    VehicleStatusTypeUniqueId VARCHAR(36) UNIQUE NOT NULL, -- UUID for the vehicle status type
     VehicleStatusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
     VehicleStatusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
     VehicleStatusTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle status type

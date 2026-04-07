@@ -153,7 +153,10 @@ const createTable = async () => {
   // Seed CompanyRoles (Required for company creation)
   for (const companyRole of companyRoleList) {
     try {
-      await createCompanyRole({ ...companyRole, userUniqueId: effectiveSuperAdminId });
+      await createCompanyRole({
+        ...companyRole,
+        userUniqueId: effectiveSuperAdminId,
+      });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
         console.error(
@@ -185,32 +188,32 @@ const checkTableExists = async (tableName) => {
     WHERE table_schema = DATABASE() 
     AND table_name = ?;
   `;
-  const [rows] = await pool.query(sqlQuery, [tableName]);
+  const executor = transactionStorage.getStore() || pool;
+  const [rows] = await executor.query(sqlQuery, [tableName]);
   return rows[0].tableExists > 0;
 };
 
-const dropTable = async (tableName) => {
-  const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
-  const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
-  const sqlQuery = `DROP TABLE IF EXISTS \`${tableName}\`;`;
+const dropTable = async (tables) => {
+  const tableList = Array.isArray(tables) ? tables : [tables];
   const executor = transactionStorage.getStore() || pool;
 
   try {
-    await executor.query(disableForeignKeyChecks);
-    await executor.query(sqlQuery);
+    await executor.query(`SET FOREIGN_KEY_CHECKS = 0;`);
+    for (const table of tableList) {
+      const sqlQuery = `DROP TABLE IF EXISTS \`${table}\`;`;
+      await executor.query(sqlQuery);
 
-    const tableExists = await checkTableExists(tableName);
-    if (tableExists) {
-      throw new Error(`Table ${tableName} still exists after drop attempt.`);
+      const tableExists = await checkTableExists(table);
+      if (tableExists) {
+        throw new Error(`Table ${table} still exists after drop attempt.`);
+      }
     }
-
     return {
-      tableExists: false,
       message: "success",
-      data: `Table ${tableName} dropped successfully`,
+      data: `Table(s) [${tableList.join(", ")}] dropped successfully`,
     };
   } finally {
-    await executor.query(enableForeignKeyChecks);
+    await executor.query(`SET FOREIGN_KEY_CHECKS = 1;`);
   }
 };
 
@@ -308,6 +311,19 @@ const installPreDefinedData = async (req) => {
   const user = req?.user;
   const userUniqueId = user?.userUniqueId;
 
+  logger.info("Starting installPreDefinedData", {
+    hasUser: !!user,
+    userUniqueId,
+    counts: {
+      listOfVehicleStatusTypes: listOfVehicleStatusTypes?.length,
+      journeyStatus: journeyStatus?.length,
+      statusList: statusList?.length,
+      roleList: roleList?.length,
+      companyRoleList: companyRoleList?.length,
+      vehicleTypes: vehicleTypes?.length,
+    },
+  });
+
   // Helper function to insert data sequentially
   const processDataSequentially = async (
     list,
@@ -316,9 +332,20 @@ const installPreDefinedData = async (req) => {
     errorArray,
     label,
   ) => {
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      logger.warn(`No data found for ${label} to seed`);
+      return;
+    }
     for (const item of list) {
       try {
         const result = await createFunction({ ...item, user, userUniqueId });
+        logger.info(`Seeded ${label}:`, {
+          item:
+            item.statusName ||
+            item.roleName ||
+            item.VehicleStatusTypeName ||
+            item.journeyStatusName,
+        });
         if (result.message === "success") {
           successArray.push({ label, item });
         } else {
@@ -416,7 +443,10 @@ const installPreDefinedData = async (req) => {
         return await createStatus({ ...status, user });
       } catch (error) {
         if (error.message && error.message.includes("already exists")) {
-          return { message: "success", data: "Status already exists, skipping" };
+          return {
+            message: "success",
+            data: "Status already exists, skipping",
+          };
         }
         throw error;
       }
@@ -655,7 +685,10 @@ const installPreDefinedData = async (req) => {
         success: successPassengerDocumentRequirement,
         errors: failedPassengerDocumentRequirement,
       },
-      VehicleTypes: { successVehicleStatusTypes, failedVehicleStatusTypes },
+      VehicleStatusTypes: {
+        success: successVehicleStatusTypes,
+        errors: failedVehicleStatusTypes,
+      },
       CommissionRates: { successCommissionRates, failedCommissionRates },
       TariffRateForVehcleTypes: {
         successTariffRateForVehicleType,

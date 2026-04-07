@@ -35,6 +35,10 @@ const createJourneyStatus = async (body, user) => {
     journeyStatusCreatedAt: currentDate(),
   };
 
+  if (body.journeyStatusId) {
+    newJourneyStatus.journeyStatusId = body.journeyStatusId;
+  }
+
   const result = await insertData({
     tableName: "JourneyStatus",
     colAndVal: newJourneyStatus,

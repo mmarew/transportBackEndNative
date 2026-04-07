@@ -6,6 +6,7 @@ const AppError = require("../Utils/AppError");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const logger = require("../Utils/logger");
 
 // Create a new VehicleStatusType
 const createVehicleStatusType = async (data) => {
@@ -29,7 +30,7 @@ const createVehicleStatusType = async (data) => {
     };
   }
 
-  const VehicleStatusTypeCreatedBy = "admin";
+  const VehicleStatusTypeCreatedBy = data.userUniqueId || "admin";
   const vehicleStatusTypeUniqueId = data.vehicleStatusTypeUniqueId || uuidv4();
   const payload = {
     vehicleStatusTypeUniqueId,
@@ -38,6 +39,13 @@ const createVehicleStatusType = async (data) => {
     VehicleStatusTypeCreatedAt: currentDate(),
     VehicleStatusTypeCreatedBy,
   };
+
+  if (data.VehicleStatusTypeId) {
+    payload.VehicleStatusTypeId = data.VehicleStatusTypeId;
+  }
+  
+  logger.info(`Inserting VehicleStatusType: ${statusTypeName}`, { vehicleStatusTypeUniqueId });
+  
   const result = await insertData({
     tableName: "VehicleStatusTypes",
     colAndVal: payload,

@@ -26,12 +26,12 @@ const getAllTablesController = async (req, res, next) => {
 
 const dropTableController = async (req, res, next) => {
   try {
-    const tableName = req.query.tableName;
-    if (!tableName) {
+    const tables = req.body.tables;
+    if (!tables) {
       return res.status(400).json({ message: "Table name is required" });
     }
     const result = await executeInTransaction(async () => {
-      return await databaseService.dropTable(tableName);
+      return await databaseService.dropTable(tables);
     });
     res.status(200).json(result);
   } catch (error) {
@@ -53,10 +53,7 @@ const dropAllTablesController = async (req, res, next) => {
 const updateTableController = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async () => {
-      return await databaseService.updateTable(
-        req.params.tableName,
-        req.body,
-      );
+      return await databaseService.updateTable(req.params.tableName, req.body);
     });
     res.status(200).json(result);
   } catch (error) {
@@ -68,10 +65,7 @@ const changeColumnPropertyController = async (req, res, next) => {
   try {
     const { tableName } = req.params;
     const result = await executeInTransaction(async () => {
-      return await databaseService.changeColumnProperty(
-        tableName,
-        req.body,
-      );
+      return await databaseService.changeColumnProperty(tableName, req.body);
     });
     res.status(200).json(result);
   } catch (error) {
