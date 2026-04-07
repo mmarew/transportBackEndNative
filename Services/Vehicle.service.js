@@ -79,7 +79,13 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
   });
   logger.debug("@activeAssignments", activeAssignments);
   if (activeAssignments?.length > 0) {
-    throw new AppError("Driver already has an active vehicle", 400);
+    return {
+      message: "success",
+      data: {
+        message: "Driver already has an active vehicle",
+        vehicleUniqueId: activeAssignments[0].vehicleUniqueId,
+      },
+    };
   }
 
   const vehicleUniqueId = vehicle?.[0]?.vehicleUniqueId;
