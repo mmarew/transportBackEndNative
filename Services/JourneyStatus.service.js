@@ -609,6 +609,40 @@ const updateJourneyStatus = async (body) => {
       );
     }
 
+    // ── NEW: Propagate Status to Company Bidding Tables (Fleet Capacity Release) ──
+    if (passengerRequestUniqueId || driverRequestUniqueId) {
+      const executor = transactionStorage.getStore() || pool;
+
+      // 1. Update CompanyBidVehicleAssignment status if journey completed
+      if (journeyStatusId === journeyStatusMap.journeyCompleted) {
+        updatePromises.push(
+          executor.query(
+            "UPDATE CompanyBidVehicleAssignment SET assignmentStatus = 'completed', assignmentUpdatedAt = ? WHERE passengerRequestUniqueId = ? OR driverRequestUniqueId = ?",
+            [currentDate(), passengerRequestUniqueId, driverRequestUniqueId],
+          ).catch(e => logger.error("Propagate Status to CompanyBidVehicleAssignment failed", { error: e.message }))
+        );
+      }
+
+      // 2. Propagate journeyStatusId to CompanyBidRequest
+      // This is what allows validateFleetCapacity to release the reserved trucks.
+      const bidPropSql = `
+        UPDATE CompanyBidRequest 
+        SET journeyStatusId = ?, companyBidRequestUpdatedAt = ? 
+        WHERE companyBidRequestUniqueId IN (
+          SELECT DISTINCT cp.companyBidRequestUniqueId 
+          FROM (SELECT companyBidRequestUniqueId FROM CompanyBidVehicleAssignment WHERE passengerRequestUniqueId = ? OR driverRequestUniqueId = ?) cp
+        )
+      `;
+      updatePromises.push(
+        executor.query(bidPropSql, [
+          journeyStatusId,
+          currentDate(),
+          passengerRequestUniqueId,
+          driverRequestUniqueId,
+        ]).catch(e => logger.error("Propagate journeyStatusId to CompanyBidRequest failed", { error: e.message }))
+      );
+    }
+
     // Execute all updates in parallel and wait for all to complete
     const results = await Promise.all(updatePromises);
 

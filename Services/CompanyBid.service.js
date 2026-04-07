@@ -375,6 +375,31 @@ exports.getBids = async (filters = {}, userUniqueId = null) => {
  * @param {string} bidStatus - The new desired status (e.g., 'accepted_by_shipper').
  * @param {string} updatedBy - The admin/shipper ID performing the action.
  */
+/**
+ * Updates the status of a company bid (e.g., Accepting, Rejecting, or Cancelling).
+ * 
+ * ### CRITICAL: Consistency & Atomicity (for Junior Developers):
+ * This function handles the most sensitive state transitions in the bidding system. 
+ * Because it affects both the `CompanyBidRequest` and `PassengerRequest` tables, 
+ * it MUST be executed inside a database transaction to prevent "partial updates" 
+ * if the server crashes.
+ * 
+ * #### The "Race Condition" Shield (Part E):
+ * When a shipper accepts a company bid (`accepted_by_shipper`), we perform two vital steps:
+ * 1. **Locking**: We use `FOR UPDATE` on all requests in the batch. This "locks" the 
+ *    rows in MySQL so that an individual driver cannot claim them while this 
+ *    function is running.
+ * 2. **Verification**: After locking, we re-check if any request was already 
+ *    claimed by someone else just milliseconds prior. If so, we "Hard Fail" 
+ *    (Conflict 409) rather than overwriting someone else's work.
+ * 
+ * @param {string} companyBidRequestUniqueId - The ID of the bid being updated.
+ * @param {string} bidStatus - The new status (e.g., 'accepted_by_shipper', 'rejected_by_shipper').
+ * @param {string} updatedBy - The User Unique ID of the person making the change.
+ * @throws {AppError} 404 - If the bid is not found.
+ * @throws {AppError} 409 - If a consistency conflict is detected (someone already claimed the freight).
+ * @returns {Promise<Object>} Success message.
+ */
 exports.updateBidStatus = async (
   companyBidRequestUniqueId,
   bidStatus,

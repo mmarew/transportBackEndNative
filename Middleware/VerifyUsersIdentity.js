@@ -89,6 +89,7 @@ const verifyDriversIdentity = async (req, res, next) => {
     }
     req.userRoleStatus = userRoleStatus[0];
     const statusId = userRoleStatus[0]?.statusId;
+    if (process.env.DEBUG_TEST) console.log("@verifyDriversIdentity statusId:", statusId, "data:", userRoleStatus[0]);
     if (statusId !== 1) {
       throw new AppError("Driver in inactive status", 403);
     }

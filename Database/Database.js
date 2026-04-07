@@ -1293,8 +1293,7 @@ CREATE TABLE IF NOT EXISTS CompanyMembership (
     INDEX idx_membership_role (companyRoleUniqueId),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRoleUniqueId) REFERENCES CompanyRoles(companyRoleUniqueId)
-);
+    FOREIGN KEY (companyRoleUniqueId) REFERENCES CompanyRoles(companyRoleUniqueId),
     FOREIGN KEY (membershipCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (membershipUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (membershipDeletedBy) REFERENCES Users(userUniqueId)
