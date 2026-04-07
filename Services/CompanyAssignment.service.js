@@ -369,6 +369,12 @@ exports.updateAssignmentStatus = async (
       ],
     );
 
+    // ── Sync DriverRequest status ───────────────────────────────────────────
+    await db().query(
+      "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestId = ?",
+      [jStatusId, currentDate(), drRows[0].driverRequestId],
+    );
+
     sendFCMNotificationToUser({
       userUniqueId: assignment.driverUserUniqueId,
       roleId: usersRoles.driverRoleId,
