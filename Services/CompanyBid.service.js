@@ -14,21 +14,25 @@ const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
- * Submits a bid for a passenger request batch.
- * Ensures full-batch bid, company approval, and no duplicate bids.
+ * ### CORE LOGIC - Submit a Freight Bid
+ * Processes a transport company's bid for a shipper's request batch.
  *
- * @param {Object} data - Bid submission data
- * @param {string} data.passengerRequestBatchId - Batch ID to bid on
- * @param {string} data.companyUniqueId - Company submitting the bid
- * @param {string} data.bidSubmittedByUserUniqueId - User submitting the bid
- * @param {number} data.numberOfVehiclesOffered - Number of vehicles offered (must match batch count)
- * @param {string} data.vehicleTypeUniqueId - Vehicle type ID
- * @param {number} [data.proposedCostPerVehicle] - Proposed cost per vehicle
- * @param {number} [data.proposedTotalCost] - Proposed total cost
- * @param {string} [data.proposedShippingDate] - Proposed shipping date
- * @param {string} [data.proposedDeliveryDate] - Proposed delivery date
- * @param {string} [data.bidNotes] - Additional notes
- * @returns {Promise<Object>} Result with bidUniqueId
+ * **Junior Note: High Stakes!**
+ * This function handles the "Heart" of the company bidding flow. It performs multiple security
+ * and business checks before inserting a row into `CompanyBidRequest`.
+ *
+ * **Important Rules:**
+ * 1. Only 'Approved' companies can bid (Security).
+ * 2. Companies can't bid on work targeted at *other* specific companies (Privacy).
+ * 3. Companies must bid on the *entire* batch (No partial loads for fleet dispatch).
+ *
+ * @param {Object} data - The payload containing bid details.
+ * @param {string} data.passengerRequestBatchId - The UUID that groups the shipper's requests.
+ * @param {string} data.companyUniqueId - The ID of the bidding fleet.
+ * @param {string} data.bidSubmittedByUserUniqueId - The User ID of the dispatcher who clicked 'Send'.
+ * @param {number} data.numberOfVehiclesOffered - Must match the batch total.
+ * @param {string} data.vehicleTypeUniqueId - Validates the fleet can provide this type.
+ * @returns {Promise<Object>} A success message with the new bid's unique ID.
  */
 exports.submitBid = async (data) => {
   const {
@@ -141,12 +145,22 @@ exports.submitBid = async (data) => {
 };
 
 /**
- * Gets available passenger requests (batches) targeted at the company
- * that haven't been bidded on yet.
+ * ### DISCOVERY LOGIC - Find Available Bids
+ * Fetches batches targeted at the company or open to all companies.
  *
- * @param {string} userUniqueId - User seeking available requests
- * @param {Object} filters - Query filters
- * @returns {Promise<Object>} Paginated list of PassengerRequest batches
+ * **Junior Note: SQL Optimization Corner**
+ * 1. **`ONLY_FULL_GROUP_BY` Workaround**: In modern MySQL, `GROUP BY` is strict. To select a full
+ *    set of data (`SELECT *`) while grouping by a batch ID, we first use a subquery to find
+ *    the `MIN(passengerRequestId)` for each matching batch. Then we join back to those specific IDs.
+ * 2. **Hiding Existing Bids**: We use a `NOT EXISTS` block. This ensures that once your company
+ *    submits a bid, the request automatically disappears from your "Available" board to prevent
+ *    double-bidding.
+ * 3. **Open Bids**: We check for `targetCompanyUniqueId IS NULL`. This allows shippers to broadcast
+ *    work to all transport fleets at once.
+ *
+ * @param {string} userUniqueId - The authenticated dispatcher seeking work.
+ * @param {Object} filters - Pagination and search filters.
+ * @returns {Promise<Object>} A paginated object with `data` (list) and `pagination` (total).
  */
 exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
   const { page, limit, offset } = paginate(filters);
@@ -216,11 +230,21 @@ exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
 };
 
 /**
- * Gets a summary of counts for different bid categories.
- * Useful for building dashboard counters/badges.
+ * ### DASHBOARD LOGIC - Get Dashboard Counts
+ * Fetches total counts for different bid categories (badges/notifications).
  *
- * @param {string} userUniqueId - User seeking summary
- * @returns {Promise<Object>} Counts for available, submitted, and accepted bids
+ * **Junior Note: "The Dashboard Speed Pattern"**
+ * Mobile apps shouldn't load all 50 shipping requests just to show a "4" badge. This method
+ * runs multiple lightweight `COUNT` operations in parallel. This is the **Best Practice** for
+ * low-latency landing pages.
+ *
+ * **Counts Provided:**
+ * - `available`: New work ready for discovery.
+ * - `submitted`: Active bids waiting for shipper response.
+ * - `accepted`: Winning bids ready for you to assign drivers/vehicles.
+ *
+ * @param {string} userUniqueId - The user identity to derive the company membership.
+ * @returns {Promise<Object>} An object with structured counts for UI badges.
  */
 exports.getBidsSummary = async (userUniqueId) => {
   // 1. Identify the company for this user
@@ -278,6 +302,18 @@ exports.getBidsSummary = async (userUniqueId) => {
   };
 };
 
+/**
+ * ### GATEWAY LOGIC - The Bid Access Point
+ * Routes unified requests to the specialized 'Available' or 'Summary' logic.
+ *
+ * **Junior Note: Route Cleanliness**
+ * Instead of creating 5 different routes, we use a single `GET /` with a `target` query param.
+ * This keeps the API surface clean and similar to how a folder/tab system works on the frontend.
+ *
+ * @param {Object} filters - Raw query parameters from the request.
+ * @param {string} [userUniqueId] - Optional ID for authenticated scoping.
+ * @returns {Promise<Object>} Any format requested via the `target` parameter.
+ */
 exports.getBids = async (filters = {}, userUniqueId = null) => {
   if (filters.target === "summary") {
     if (!userUniqueId) throw new AppError("Authentication required", 401);
@@ -319,6 +355,21 @@ exports.getBids = async (filters = {}, userUniqueId = null) => {
   );
 };
 
+/**
+ * ### STATE MACHINE - Multi-step Status Updates
+ * Updates the bid status and manages the lifecycle of the linked PassengerRequest.
+ *
+ * **Junior Note: Synchronization Logic**
+ * - When you accept a bid, the *Request* also updates its status so no one else can take it.
+ * - When a bid is rejected/cancelled, the *Request* falls back to 'waiting' so other
+ *   companies can see it again.
+ * - This function also triggers **FCM Notifications** to notify the dispatcher instantly
+ *   about the shipper's decision.
+ *
+ * @param {string} companyBidRequestUniqueId - The ID of the bid record to update.
+ * @param {string} bidStatus - The new desired status (e.g., 'accepted_by_shipper').
+ * @param {string} updatedBy - The admin/shipper ID performing the action.
+ */
 exports.updateBidStatus = async (
   companyBidRequestUniqueId,
   bidStatus,
