@@ -1458,8 +1458,6 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     assignmentDeletedAt DATETIME NULL,
     assignmentDeletedBy VARCHAR(36) NULL,
 
-    -- One active assignment per PassengerRequest slot per bid
-    UNIQUE KEY uq_bid_request_slot (companyBidRequestUniqueId, passengerRequestUniqueId),
     INDEX idx_assignment_bid (companyBidRequestUniqueId),
     INDEX idx_assignment_driver (driverUserUniqueId),
     INDEX idx_assignment_vehicle (vehicleUniqueId),
