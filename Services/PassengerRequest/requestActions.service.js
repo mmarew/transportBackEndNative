@@ -534,6 +534,16 @@ const cancelPassengerRequest = async (body) => {
           },
         });
 
+        // 1b. Update CompanyBidVehicleAssignment if this was a company bid
+        await updateData({
+          tableName: "CompanyBidVehicleAssignment",
+          conditions: { passengerRequestUniqueId },
+          updateValues: {
+            assignmentStatus: "cancelled",
+            assignmentUpdatedAt: currentDate(),
+          },
+        });
+
         // 2. If journey decisions found, update all related tables atomically
         if (journeyDecisions.length) {
           // Process all journey decisions - collect data for notifications but only update DB in transaction

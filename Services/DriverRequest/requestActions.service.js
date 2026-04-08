@@ -1130,6 +1130,16 @@ const cancelDriverRequest = async (data) => {
             connection, // Pass connection for transaction support
           });
         }
+
+        // 6. Update CompanyBidVehicleAssignment if this driver was on a company bid
+        // We use driverRequestId to uniquely identify the assignment.
+        const assignmentStatusStr = journeyStatusId === journeyStatusMap.rejectedByDriver ? 'rejected_by_driver' : 'cancelled';
+        await connection.query(
+          `UPDATE CompanyBidVehicleAssignment 
+           SET assignmentStatus = ?, assignmentUpdatedAt = ? 
+           WHERE driverRequestUniqueId = (SELECT driverRequestUniqueId FROM DriverRequest WHERE driverRequestId = ?)`,
+          [assignmentStatusStr, currentDate(), driverRequestId]
+        );
       },
       {
         timeout: 20000, // 20 second timeout for cancellation operations
