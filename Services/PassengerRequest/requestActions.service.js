@@ -89,7 +89,7 @@ const acceptDriverRequest = async (body) => {
         conditions: {
           "PassengerRequest.userUniqueId": userUniqueId,
           "JourneyDecisions.journeyStatusId": [
-            journeyStatusMap.requested,      // 2 — driver bid, not yet interacted
+            journeyStatusMap.requested, // 2 — driver bid, not yet interacted
             journeyStatusMap.acceptedByDriver, // 3 — driver accepted, waiting on passenger
           ],
         },
@@ -104,7 +104,8 @@ const acceptDriverRequest = async (body) => {
         const phoneNumber = driver?.phoneNumber;
         const targetDriverUserUniqueId = driver?.driverUserUniqueId;
 
-        const isAccepted = driverRequestUniqueId === driver.driverRequestUniqueId;
+        const isAccepted =
+          driverRequestUniqueId === driver.driverRequestUniqueId;
 
         const updatePayload = {
           journeyStatusId: isAccepted
@@ -433,7 +434,9 @@ const cancelPassengerRequest = async (body) => {
     `;
 
     const executor = transactionStorage.getStore() || pool;
-    const [combinedResults] = await executor.query(sql, [passengerRequestUniqueId]);
+    const [combinedResults] = await executor.query(sql, [
+      passengerRequestUniqueId,
+    ]);
     logger.debug("@combinedResults", { combinedResults });
     if (!combinedResults || combinedResults.length === 0) {
       throw new AppError("Passenger request not found", 404);
