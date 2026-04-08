@@ -21,7 +21,7 @@ exports.getBids = async (req, res, next) => {
   try {
     ServerResponder(
       res,
-      await service.getBids(req.query, req.user.userUniqueId),
+      await service.getBids(req.query, req.user.userUniqueId, req.user.roleId),
     );
   } catch (e) {
     next(e);

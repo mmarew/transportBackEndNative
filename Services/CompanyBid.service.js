@@ -181,22 +181,8 @@ exports.submitBid = async (data) => {
  * @param {Object} filters - Pagination and search filters.
  * @returns {Promise<Object>} A paginated object with `data` (list) and `pagination` (total).
  */
-exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
+exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
   const { page, limit, offset } = paginate(filters);
-
-  // 1. Identify the company for this user
-  const [membership] = await db().query(
-    `SELECT companyUniqueId FROM CompanyMembership 
-     WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL LIMIT 1`,
-    [userUniqueId],
-  );
-  if (!membership || membership.length === 0) {
-    throw new AppError(
-      "User is not an active member of any transport company",
-      403,
-    );
-  }
-  const companyUniqueId = membership[0].companyUniqueId;
 
   // 2. Fetch Requests from the optimized Metadata table (O(N) PERFORMANCE)
   const activeStatusIds = [
@@ -264,21 +250,7 @@ exports.getAvailableRequests = async (userUniqueId, filters = {}) => {
  * @param {string} userUniqueId - The user identity to derive the company membership.
  * @returns {Promise<Object>} An object with structured counts for UI badges.
  */
-exports.getBidsSummary = async (userUniqueId) => {
-  // 1. Identify the company for this user
-  const [membership] = await db().query(
-    `SELECT companyUniqueId FROM CompanyMembership 
-     WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL LIMIT 1`,
-    [userUniqueId],
-  );
-  if (!membership || membership.length === 0) {
-    throw new AppError(
-      "User is not an active member of any transport company",
-      403,
-    );
-  }
-  const companyUniqueId = membership[0].companyUniqueId;
-
+exports.getBidsSummary = async (companyUniqueId) => {
   // 2. Count Available (matching discovery boards filters)
   const activeStatusIds = [
     journeyStatusMap.requested,
@@ -341,15 +313,66 @@ exports.getBidsSummary = async (userUniqueId) => {
  * @param {string} [userUniqueId] - Optional ID for authenticated scoping.
  * @returns {Promise<Object>} Any format requested via the `target` parameter.
  */
-exports.getBids = async (filters = {}, userUniqueId = null) => {
+exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
+  if (!userUniqueId) throw new AppError("Authentication required", 401);
+
+  const isAdmin =
+    roleId === usersRoles.adminRoleId ||
+    roleId === usersRoles.supperAdminRoleId;
+
+  let resolvedCompanyUniqueId = null;
+
+  if (isAdmin) {
+    // Admins can target a specific company by passing it in the query, else null (to get all if listing)
+    resolvedCompanyUniqueId = filters.companyUniqueId || null;
+  } else {
+    // Standard users MUST resolve to their own company
+    const [membership] = await db().query(
+      `SELECT companyUniqueId FROM CompanyMembership 
+       WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL`,
+      [userUniqueId],
+    );
+    if (!membership || membership.length === 0) {
+      throw new AppError(
+        "User is not an active member of any transport company",
+        403,
+      );
+    }
+
+    if (filters.companyUniqueId) {
+      const isMember = membership.some(
+        (m) => m.companyUniqueId === filters.companyUniqueId,
+      );
+      if (!isMember) {
+        throw new AppError(
+          "Access Denied: You are not an active member of the specified company",
+          403,
+        );
+      }
+      resolvedCompanyUniqueId = filters.companyUniqueId;
+    } else {
+      if (membership.length === 1) {
+        resolvedCompanyUniqueId = membership[0].companyUniqueId;
+      } else {
+        throw new AppError(
+          "You belong to multiple companies. Please provide companyUniqueId in your query to specify which company you are fetching data for.",
+          400,
+        );
+      }
+    }
+  }
+
   if (filters.target === "summary") {
-    if (!userUniqueId) throw new AppError("Authentication required", 401);
-    return exports.getBidsSummary(userUniqueId);
+    if (!resolvedCompanyUniqueId)
+      throw new AppError("companyUniqueId is required for summary mode", 400);
+    return exports.getBidsSummary(resolvedCompanyUniqueId);
   }
   if (filters.target === "available") {
-    if (!userUniqueId) throw new AppError("Authentication required", 401);
-    return exports.getAvailableRequests(userUniqueId, filters);
+    if (!resolvedCompanyUniqueId)
+      throw new AppError("companyUniqueId is required for available mode", 400);
+    return exports.getAvailableRequests(resolvedCompanyUniqueId, filters);
   }
+
   const { page, limit, offset } = paginate(filters);
   const clauses = ["cbr.companyBidRequestDeletedAt IS NULL"];
   const params = [];
@@ -362,30 +385,56 @@ exports.getBids = async (filters = {}, userUniqueId = null) => {
     clauses.push("cbr.passengerRequestBatchId = ?");
     params.push(filters.passengerRequestBatchId);
   }
-  if (filters.companyUniqueId) {
+
+  if (resolvedCompanyUniqueId) {
     clauses.push("cbr.companyUniqueId = ?");
-    params.push(filters.companyUniqueId);
+    params.push(resolvedCompanyUniqueId);
   }
   if (filters.bidStatus) {
     clauses.push("cbr.bidStatus = ?");
     params.push(filters.bidStatus);
   }
+  if (filters.bidSubmittedByUserUniqueId) {
+    clauses.push("cbr.bidSubmittedByUserUniqueId = ?");
+    params.push(filters.bidSubmittedByUserUniqueId);
+  }
+  if (filters.numberOfVehiclesOffered) {
+    clauses.push("cbr.numberOfVehiclesOffered = ?");
+    params.push(filters.numberOfVehiclesOffered);
+  }
+  if (filters.vehicleTypeUniqueId) {
+    clauses.push("cbr.vehicleTypeUniqueId = ?");
+    params.push(filters.vehicleTypeUniqueId);
+  }
+  if (filters.journeyStatusId) {
+    clauses.push("cbr.journeyStatusId = ?");
+    params.push(filters.journeyStatusId);
+  }
+  if (filters.journeyStatusName) {
+    clauses.push("js.journeyStatusName = ?");
+    // Since we are referencing 'js', the query joins cleanly.
+    params.push(filters.journeyStatusName);
+  }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
+  const joinSql = `
+    LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
+    LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON cbr.journeyStatusId = js.journeyStatusId
+  `;
+  
   const baseSql = `
     SELECT cbr.*, 
            tc.companyName, tc.companyPhone, tc.companyEmail,
            vt.vehicleTypeName, js.journeyStatusName
     FROM CompanyBidRequest cbr
-    LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
-    LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN JourneyStatus js ON cbr.journeyStatusId = js.journeyStatusId
+    ${joinSql}
     ${where}
   `;
 
   return paginatedQuery(
     `${baseSql} ORDER BY cbr.companyBidRequestCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyBidRequest cbr ${where}`,
+    `SELECT COUNT(*) AS total FROM CompanyBidRequest cbr ${joinSql} ${where}`,
     params,
     page,
     limit,

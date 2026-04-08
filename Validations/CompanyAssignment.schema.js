@@ -28,9 +28,13 @@ exports.assignmentParams = Joi.object({
 });
 
 exports.getAssignmentsQuery = Joi.object({
+  assignmentUniqueId: uuidSchema.optional(),
   companyBidRequestUniqueId: uuidSchema.optional(),
   passengerRequestUniqueId: uuidSchema.optional(),
+  vehicleUniqueId: uuidSchema.optional(),
   driverUserUniqueId: uuidSchema.optional(),
+  driverRequestUniqueId: uuidSchema.optional(),
+  journeyDecisionUniqueId: uuidSchema.optional(),
   assignmentStatus: Joi.string()
     .valid(
       "assigned",

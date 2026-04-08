@@ -35,6 +35,11 @@ exports.getBidsQuery = Joi.object({
   companyBidRequestUniqueId: uuidSchema.optional(),
   passengerRequestBatchId: uuidSchema.optional(),
   companyUniqueId: uuidSchema.optional(),
+  bidSubmittedByUserUniqueId: uuidSchema.optional(),
+  numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
+  vehicleTypeUniqueId: uuidSchema.optional(),
+  journeyStatusId: Joi.number().integer().optional(),
+  journeyStatusName: Joi.string().optional(),
   bidStatus: Joi.string()
     .valid(
       "submitted",

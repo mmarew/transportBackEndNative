@@ -268,6 +268,10 @@ exports.getAssignments = async (filters = {}) => {
   const clauses = ["cba.assignmentDeletedAt IS NULL"];
   const params = [];
 
+  if (filters.assignmentUniqueId) {
+    clauses.push("cba.assignmentUniqueId = ?");
+    params.push(filters.assignmentUniqueId);
+  }
   if (filters.companyBidRequestUniqueId) {
     clauses.push("cba.companyBidRequestUniqueId = ?");
     params.push(filters.companyBidRequestUniqueId);
@@ -276,13 +280,25 @@ exports.getAssignments = async (filters = {}) => {
     clauses.push("cba.passengerRequestUniqueId = ?");
     params.push(filters.passengerRequestUniqueId);
   }
+  if (filters.vehicleUniqueId) {
+    clauses.push("cba.vehicleUniqueId = ?");
+    params.push(filters.vehicleUniqueId);
+  }
   if (filters.driverUserUniqueId) {
     clauses.push("cba.driverUserUniqueId = ?");
     params.push(filters.driverUserUniqueId);
   }
+  if (filters.driverRequestUniqueId) {
+    clauses.push("cba.driverRequestUniqueId = ?");
+    params.push(filters.driverRequestUniqueId);
+  }
   if (filters.assignmentStatus) {
     clauses.push("cba.assignmentStatus = ?");
     params.push(filters.assignmentStatus);
+  }
+  if (filters.journeyDecisionUniqueId) {
+    clauses.push("cba.journeyDecisionUniqueId = ?");
+    params.push(filters.journeyDecisionUniqueId);
   }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
