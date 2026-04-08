@@ -9,7 +9,7 @@ exports.submitBid = Joi.object({
   companyUniqueId: uuidSchema.required(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
-  proposedCostPerVehicle: Joi.number().min(0).optional().allow(null),
+  proposedCostPerVehicle: Joi.number().greater(0).required(),
   proposedTotalCost: Joi.number().min(0).optional().allow(null),
   proposedShippingDate: Joi.date().iso().optional().allow(null),
   proposedDeliveryDate: Joi.date().iso().optional().allow(null),

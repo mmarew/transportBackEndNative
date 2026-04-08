@@ -135,6 +135,8 @@ exports.submitBid = async (data) => {
   const journeyStatusId = journeyStatusMap.waiting;
 
   const companyBidRequestUniqueId = uuidv4();
+  const calculatedTotalCost = proposedTotalCost ?? (proposedCostPerVehicle * finalCount);
+
   await db().query(
     `INSERT INTO CompanyBidRequest
       (companyBidRequestUniqueId, passengerRequestBatchId, companyUniqueId,
@@ -150,8 +152,8 @@ exports.submitBid = async (data) => {
       bidSubmittedByUserUniqueId,
       finalCount,
       finalVehicleTypeUniqueId,
-      proposedCostPerVehicle ?? null,
-      proposedTotalCost ?? null,
+      proposedCostPerVehicle,
+      calculatedTotalCost,
       proposedShippingDate ?? null,
       proposedDeliveryDate ?? null,
       bidNotes ?? null,
