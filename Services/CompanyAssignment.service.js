@@ -337,10 +337,19 @@ exports.updateAssignmentStatus = async (
   // On driver confirmation → create JourneyDecision
   let journeyDecisionUniqueId = assignment.journeyDecisionUniqueId;
 
-  if (
-    assignmentStatus === "confirmed_by_driver" &&
-    assignment.assignmentStatus !== "confirmed_by_driver"
-  ) {
+  if (assignmentStatus === "confirmed_by_driver") {
+    if (assignment.assignmentStatus === "completed") {
+      throw new AppError("Cannot confirm a completed assignment", 400);
+    }
+    if (assignment.assignmentStatus === "confirmed_by_driver") {
+      return {
+        message: "success",
+        data: {
+          assignmentStatus,
+          journeyDecisionUniqueId: assignment.journeyDecisionUniqueId,
+        },
+      };
+    }
     if (!assignment.driverRequestUniqueId)
       throw new AppError("No DriverRequest linked to this assignment", 500);
 
