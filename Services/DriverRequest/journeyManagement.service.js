@@ -63,6 +63,12 @@ const startJourney = async (body) => {
 
     const combinedData = journeyDecisionDriverData[0];
 
+    if (combinedData.journeyStatusId === journeyStatusMap.journeyStarted) {
+      throw new AppError("This journey has already been started", 400);
+    }
+    if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
+      throw new AppError("This journey has already been completed", 400);
+    }
     if (combinedData.journeyStatusId !== journeyStatusMap.acceptedByPassenger) {
       throw new AppError("This journey is not accepted by passenger", 400);
     }
@@ -236,6 +242,11 @@ const completeJourney = async (body) => {
     }
 
     const combinedData = journeyDecisionDriverData[0];
+
+    if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
+      throw new AppError("This journey has already been completed", 400);
+    }
+
     const isAdmin = body.roleId === usersRoles?.adminRoleId || body.roleId === usersRoles?.supperAdminRoleId;
     if (!isAdmin && combinedData?.userUniqueId !== userUniqueId) {
       throw new AppError("Driver user does not match journey decision", 403);
