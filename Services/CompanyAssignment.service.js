@@ -315,13 +315,13 @@ exports.updateAssignmentStatus = async (
   // (e.g. multiple concurrent "confirm" requests leading to duplicate inserts)
   const [rows] = await db().query(
     "SELECT * FROM CompanyBidVehicleAssignment WHERE assignmentUniqueId = ? LIMIT 1 FOR UPDATE",
-    [assignmentUniqueId]
+    [assignmentUniqueId],
   );
-  
+
   if (!rows || rows.length === 0) {
     throw new AppError("Assignment not found", 404);
   }
-  
+
   const assignment = rows[0];
 
   if (assignment.assignmentDeletedAt)
@@ -390,7 +390,8 @@ exports.updateAssignmentStatus = async (
 
     // ── Sync DriverRequest status and location ──────────────────────────────
     const { originLatitude, originLongitude, originPlace } = payload;
-    let drUpdateQuery = "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?";
+    let drUpdateQuery =
+      "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?";
     let drUpdateVals = [jStatusId, currentDate()];
 
     if (originLatitude !== undefined) {
