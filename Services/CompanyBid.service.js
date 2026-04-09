@@ -432,7 +432,10 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
            tc.companyName, tc.companyPhone, tc.companyEmail,
            vt.vehicleTypeName, js.journeyStatusName,
            u.fullName AS shipperName, u.phoneNumber AS shipperPhone, u.email AS shipperEmail,
-           prb.totalVehicles, prb.requestMode, prb.batchCreatedAt
+           prb.totalVehicles, prb.requestMode, prb.batchCreatedAt,
+           prb.originPlace, prb.destinationPlace, prb.shippableItemName,
+           prb.shippableItemQtyInQuintal, prb.shippingDate AS batchShippingDate,
+           prb.deliveryDate AS batchDeliveryDate, prb.shippingCost AS batchShippingCost
     FROM CompanyBidRequest cbr
     ${joinSql}
     ${where}
