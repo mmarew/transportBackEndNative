@@ -423,12 +423,16 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
     LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus js ON cbr.journeyStatusId = js.journeyStatusId
+    LEFT JOIN PassengerRequestBatch prb ON cbr.passengerRequestBatchId = prb.batchUniqueId
+    LEFT JOIN Users u ON prb.shipperUserUniqueId = u.userUniqueId
   `;
   
   const baseSql = `
     SELECT cbr.*, 
            tc.companyName, tc.companyPhone, tc.companyEmail,
-           vt.vehicleTypeName, js.journeyStatusName
+           vt.vehicleTypeName, js.journeyStatusName,
+           u.fullName AS shipperName, u.phoneNumber AS shipperPhone, u.email AS shipperEmail,
+           prb.totalVehicles, prb.requestMode, prb.batchCreatedAt
     FROM CompanyBidRequest cbr
     ${joinSql}
     ${where}
