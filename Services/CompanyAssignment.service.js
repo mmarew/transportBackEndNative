@@ -343,6 +343,52 @@ exports.updateAssignmentStatus = async (
   if (assignment.assignmentDeletedAt)
     throw new AppError("Assignment has been deleted", 400);
 
+  // ── REJECTION & CANCELLATION HANDLER (Clean up state + Notify Dispatcher) ──
+  if (
+    assignmentStatus === "rejected_by_driver" ||
+    assignmentStatus === "cancelled"
+  ) {
+    const statusId =
+      assignmentStatus === "rejected_by_driver"
+        ? journeyStatusMap.rejectedByDriver
+        : journeyStatusMap.cancelledBySystem;
+
+    if (assignment.driverRequestUniqueId) {
+      await db().query(
+        "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestUniqueId = ?",
+        [statusId, currentDate(), assignment.driverRequestUniqueId],
+      );
+    }
+
+    // Notify dispatcher if it's a rejection
+    if (assignmentStatus === "rejected_by_driver") {
+      const [driverRows] = await db().query(
+        "SELECT fullName FROM Users WHERE userUniqueId = ?",
+        [assignment.driverUserUniqueId],
+      );
+      const driver = driverRows?.[0];
+
+      sendFCMNotificationToUser({
+        userUniqueId: assignment.assignmentCreatedBy,
+        roleId: usersRoles.companyAdminRoleId,
+        notification: {
+          title: "Assignment Rejected",
+          body: `Driver ${driver?.fullName || "assigned"} has rejected the freight assignment. Please reassign.`,
+        },
+        data: {
+          type: "assignment_rejected",
+          assignmentUniqueId,
+          passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+          companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+        },
+      }).catch((e) =>
+        logger.error("FCM failed for dispatcher notification", {
+          error: e.message,
+        }),
+      );
+    }
+  }
+
   const setParts = [
     "assignmentStatus = ?",
     "assignmentUpdatedBy = ?",
