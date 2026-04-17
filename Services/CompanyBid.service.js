@@ -79,7 +79,8 @@ exports.submitBid = async (data) => {
   const { totalVehicles, requestMode, targetCompanyUniqueId } = batchRows[0];
 
   // --- SOURCE OF TRUTH: We prioritize the batch's required vehicle type ---
-  const finalVehicleTypeUniqueId = batchRows[0].vehicleTypeUniqueId || vehicleTypeUniqueId;
+  const finalVehicleTypeUniqueId =
+    batchRows[0].vehicleTypeUniqueId || vehicleTypeUniqueId;
 
   // 2. Check company-targeting
   if (
@@ -87,10 +88,7 @@ exports.submitBid = async (data) => {
     targetCompanyUniqueId !== null &&
     targetCompanyUniqueId !== companyUniqueId
   ) {
-    throw new AppError(
-      "This batch is targeted at a different company",
-      403,
-    );
+    throw new AppError("This batch is targeted at a different company", 403);
   }
 
   // 3. Verify the batch has actual requests (Sanity Check)
@@ -135,7 +133,8 @@ exports.submitBid = async (data) => {
   const journeyStatusId = journeyStatusMap.waiting;
 
   const companyBidRequestUniqueId = uuidv4();
-  const calculatedTotalCost = proposedTotalCost ?? (proposedCostPerVehicle * finalCount);
+  const calculatedTotalCost =
+    proposedTotalCost ?? proposedCostPerVehicle * finalCount;
 
   await db().query(
     `INSERT INTO CompanyBidRequest
@@ -330,8 +329,7 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   } else {
     // Standard users MUST resolve to their own company
     const [membership] = await db().query(
-      `SELECT companyUniqueId FROM CompanyMembership 
-       WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL`,
+      `SELECT companyUniqueId FROM CompanyMembership WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL`,
       [userUniqueId],
     );
     if (!membership || membership.length === 0) {
@@ -426,7 +424,7 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     LEFT JOIN PassengerRequestBatch prb ON cbr.passengerRequestBatchId = prb.batchUniqueId
     LEFT JOIN Users u ON prb.shipperUserUniqueId = u.userUniqueId
   `;
-  
+
   const baseSql = `
     SELECT cbr.*, 
            tc.companyName, tc.companyPhone, tc.companyEmail,
