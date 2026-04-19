@@ -57,23 +57,67 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
   const clauses = ["companyVehicleDeletedAt IS NULL"];
   const params = [];
 
-  // Data Segregation: Non-admins only see vehicles of companies they belong to
-  if (
-    user.roleId !== usersRoles.adminRoleId &&
-    user.roleId !== usersRoles.supperAdminRoleId
-  ) {
-    clauses.push(
-      `companyUniqueId IN (
-        SELECT companyUniqueId FROM CompanyMembership 
-        WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
-      )`,
+  const { userUniqueId, roleId } = user;
+  const isAdmin =
+    roleId === usersRoles.adminRoleId ||
+    roleId === usersRoles.supperAdminRoleId;
+
+  let resolvedCompanyUniqueId = null;
+
+  if (isAdmin) {
+    // Admins can see everything or target a specific company
+    resolvedCompanyUniqueId = filters.companyUniqueId || null;
+  } else {
+    // Standard users MUST resolve to their own company
+    const [membership] = await db().query(
+      `SELECT companyUniqueId FROM CompanyMembership 
+       WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL`,
+      [userUniqueId],
     );
-    params.push(user.userUniqueId);
+
+    if (!membership || membership.length === 0) {
+      throw new AppError(
+        "User is not an active member of any transport company",
+        403,
+      );
+    }
+
+    if (filters.companyUniqueId) {
+      const isMember = membership.some(
+        (m) => m.companyUniqueId === filters.companyUniqueId,
+      );
+      if (!isMember) {
+        throw new AppError(
+          "Access Denied: You are not an active member of the specified company",
+          403,
+        );
+      }
+      resolvedCompanyUniqueId = filters.companyUniqueId;
+    } else {
+      if (membership.length === 1) {
+        resolvedCompanyUniqueId = membership[0].companyUniqueId;
+      } else {
+        throw new AppError(
+          "You belong to multiple companies. Please provide companyUniqueId in your query to specify which company you are fetching data for.",
+          400,
+        );
+      }
+    }
   }
 
-  if (filters.companyUniqueId) { clauses.push("companyUniqueId = ?"); params.push(filters.companyUniqueId); }
-  if (filters.vehicleUniqueId) { clauses.push("vehicleUniqueId = ?"); params.push(filters.vehicleUniqueId); }
-  if (filters.assignmentStatus) { clauses.push("assignmentStatus = ?"); params.push(filters.assignmentStatus); }
+  if (resolvedCompanyUniqueId) {
+    clauses.push("cv.companyUniqueId = ?");
+    params.push(resolvedCompanyUniqueId);
+  }
+
+  if (filters.vehicleUniqueId) {
+    clauses.push("cv.vehicleUniqueId = ?");
+    params.push(filters.vehicleUniqueId);
+  }
+  if (filters.assignmentStatus) {
+    clauses.push("cv.assignmentStatus = ?");
+    params.push(filters.assignmentStatus);
+  }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
