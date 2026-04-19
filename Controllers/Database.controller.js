@@ -98,9 +98,13 @@ const getTableColumnsController = async (req, res, next) => {
 
 const installPreDefinedDataController = async (req, res, next) => {
   try {
-    const result = await executeInTransaction(async () => {
-      return await databaseService.installPreDefinedData(req);
-    });
+    // Seed data installs many records across multiple tables — extend timeout to 5 minutes.
+    const result = await executeInTransaction(
+      async () => {
+        return await databaseService.installPreDefinedData(req);
+      },
+      { timeout: 300000 }, // 5 minutes
+    );
     res.status(200).json(result);
   } catch (error) {
     next(error);
