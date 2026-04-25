@@ -9,7 +9,6 @@ const {
 } = require("../../Utils/ListOfSeedData");
 const { currentDate } = require("../../Utils/CurrentDate");
 // Single source of truth for PassengerRequestBatch writes
-const batchService = require("../../Services/PassengerRequestBatch.service");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal, connection = null }) => {
@@ -114,7 +113,9 @@ const createNewPassengerRequest = async (
     // Falls back to schema default ('individual_target') if not provided.
     ...(body?.requestMode && { requestMode: body.requestMode }),
     // The specific company this batch is targeting (only set when requestMode = 'company_target')
-    ...(body?.targetCompanyUniqueId && { targetCompanyUniqueId: body.targetCompanyUniqueId }),
+    ...(body?.targetCompanyUniqueId && {
+      targetCompanyUniqueId: body.targetCompanyUniqueId,
+    }),
   };
 
   // Insert the new request into the database
@@ -125,28 +126,9 @@ const createNewPassengerRequest = async (
       connection,
     });
 
-    // ARCHITECTURAL UPGRADE: Batch Header Sync
-    // Junior Note: All batch SQL lives in PassengerRequestBatch.service.js.
-    // This call uses SELECT-first logic to avoid AUTO_INCREMENT gaps caused
-    // by the old ON DUPLICATE KEY UPDATE pattern.
-    if (passengerRequestBatchId) {
-      await batchService.upsertBatch({
-        batchUniqueId:             passengerRequestBatchId,
-        shipperUserUniqueId:       userUniqueId,
-        vehicleTypeUniqueId,
-        totalVehicles:             body.numberOfVehicles || 1,
-        requestMode:               body.requestMode || "individual_target",
-        targetCompanyUniqueId:     body.targetCompanyUniqueId || null,
-        originPlace,
-        destinationPlace,
-        shippableItemName:         shippableItemName || null,
-        shippableItemQtyInQuintal: shippableItemQtyInQuintal || null,
-        shippingDate:              shippingDate || null,
-        deliveryDate:              deliveryDate || null,
-        shippingCost:              shippingCost || null,
-        journeyStatusId,
-      });
-    }
+    // NOTE: upsertBatch is intentionally NOT called here.
+    // It must be called ONCE by the caller before spawning parallel requests,
+    // so that concurrent Promise.all calls don't race to INSERT the same batchUniqueId.
 
     return {
       message: "success",
@@ -155,7 +137,7 @@ const createNewPassengerRequest = async (
   } catch (error) {
     throw error;
   }
-}
+};
 const createDriverRequest = async (
   body,
   userUniqueId,

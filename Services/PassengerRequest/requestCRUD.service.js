@@ -3,6 +3,7 @@ const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { deleteData } = require("../../CRUD/Delete/DeleteData");
 const { createNewPassengerRequest } = require("../../CRUD/Create/CreateData");
+const batchService = require("../PassengerRequestBatch.service");
 const { pool } = require("../../Middleware/Database.config");
 const {
   journeyStatusMap,
@@ -103,7 +104,28 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     // - No dependencies between requests - each is independent
     // - Batch limit check happens before creation, so we create exactly noOfRecords
     if (noOfRecords > 0) {
-      // Create array of promises for parallel execution
+      // Step 1a: Create the batch header ONCE before spawning parallel requests.
+      // If this runs inside Promise.all, every concurrent call does SELECT → sees nothing
+      // → all try to INSERT the same batchUniqueId → duplicate key crash.
+      await batchService.upsertBatch({
+        batchUniqueId:             passengerRequestBatchId,
+        shipperUserUniqueId:       userUniqueId,
+        vehicleTypeUniqueId:       body.vehicle?.vehicleTypeUniqueId,
+        totalVehicles:             body.numberOfVehicles || 1,
+        requestMode:               body.requestMode || "individual_target",
+        targetCompanyUniqueId:     body.targetCompanyUniqueId || null,
+        originPlace:               body.originLocation?.description || "",
+        destinationPlace:          body.destination?.description || "",
+        shippableItemName:         body.shippableItemName || null,
+        shippableItemQtyInQuintal: body.shippableItemQtyInQuintal || null,
+        shippingDate:              body.shippingDate || null,
+        deliveryDate:              body.deliveryDate || null,
+        shippingCost:              body.shippingCost || null,
+        journeyStatusId,
+      });
+
+      // Step 1b: Now create individual PassengerRequest rows in parallel — safe because
+      //          the batch header already exists and upsertBatch is no longer called inside.
       const promises = Array(noOfRecords)
         .fill()
         .map(() =>
