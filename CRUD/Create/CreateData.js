@@ -8,6 +8,8 @@ const {
   activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 const { currentDate } = require("../../Utils/CurrentDate");
+// Single source of truth for PassengerRequestBatch writes
+const batchService = require("../../Services/PassengerRequestBatch.service");
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal, connection = null }) => {
@@ -123,41 +125,27 @@ const createNewPassengerRequest = async (
       connection,
     });
 
-    // ARCHITECTURAL UPGRADE: Metadata Sync
-    // Junior Note: We use 'ON DUPLICATE KEY UPDATE' to ensure the batch header 
-    // is created by the first request in a batch and remains consistent.
+    // ARCHITECTURAL UPGRADE: Batch Header Sync
+    // Junior Note: All batch SQL lives in PassengerRequestBatch.service.js.
+    // This call uses SELECT-first logic to avoid AUTO_INCREMENT gaps caused
+    // by the old ON DUPLICATE KEY UPDATE pattern.
     if (passengerRequestBatchId) {
-      const queryExecutor = transactionStorage.getStore() || connection || pool;
-      await queryExecutor.query(
-        `INSERT INTO PassengerRequestBatch 
-          (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles, 
-           requestMode, targetCompanyUniqueId, originPlace, destinationPlace, 
-           shippableItemName, shippableItemQtyInQuintal, shippingDate, deliveryDate, 
-           shippingCost, journeyStatusId, batchCreatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE 
-           totalVehicles = VALUES(totalVehicles),
-           journeyStatusId = VALUES(journeyStatusId),
-           batchUpdatedAt = ?`,
-        [
-          passengerRequestBatchId,
-          userUniqueId,
-          vehicleTypeUniqueId,
-          body.numberOfVehicles || 1,
-          body.requestMode || "individual_target",
-          body.targetCompanyUniqueId || null,
-          originPlace,
-          destinationPlace,
-          shippableItemName || null,
-          shippableItemQtyInQuintal || null,
-          shippingDate || null,
-          deliveryDate || null,
-          shippingCost || null,
-          journeyStatusId,
-          currentDate(),
-          currentDate(),
-        ],
-      );
+      await batchService.upsertBatch({
+        batchUniqueId:             passengerRequestBatchId,
+        shipperUserUniqueId:       userUniqueId,
+        vehicleTypeUniqueId,
+        totalVehicles:             body.numberOfVehicles || 1,
+        requestMode:               body.requestMode || "individual_target",
+        targetCompanyUniqueId:     body.targetCompanyUniqueId || null,
+        originPlace,
+        destinationPlace,
+        shippableItemName:         shippableItemName || null,
+        shippableItemQtyInQuintal: shippableItemQtyInQuintal || null,
+        shippingDate:              shippingDate || null,
+        deliveryDate:              deliveryDate || null,
+        shippingCost:              shippingCost || null,
+        journeyStatusId,
+      });
     }
 
     return {

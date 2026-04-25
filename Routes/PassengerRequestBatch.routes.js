@@ -7,11 +7,8 @@ const schema = require("../Validations/PassengerRequestBatch.schema");
 const { validator } = require("../Middleware/Validator");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
-// All routes require a valid JWT
-router.use(verifyTokenOfAxios);
-
 /**
- * @route   GET /api/passenger-request-batches
+ * @route   GET /api/passengerRequestBatch
  * @desc    List batches with optional filters + pagination
  * @access  Authenticated
  *
@@ -22,24 +19,15 @@ router.use(verifyTokenOfAxios);
  *   includeDeleted, page, limit
  */
 router.get(
-  "/",
+  "/api/passengerRequestBatch",
+  verifyTokenOfAxios,
   validator(schema.getBatchesQuery, "query"),
   controller.getBatches,
 );
 
-/**
- * @route   GET /api/passenger-request-batches/:batchUniqueId
- * @desc    Fetch a single batch by UUID
- * @access  Authenticated
- */
-router.get(
-  "/:batchUniqueId",
-  validator(schema.batchParams, "params"),
-  controller.getBatchById,
-);
 
 /**
- * @route   PATCH /api/passenger-request-batches/:batchUniqueId
+ * @route   PATCH /api/passengerRequestBatch/:batchUniqueId
  * @desc    Partially update a batch — only supplied fields are changed
  * @access  Authenticated
  *
@@ -50,19 +38,21 @@ router.get(
  *   shippingCost, journeyStatusId
  */
 router.patch(
-  "/:batchUniqueId",
+  "/api/passengerRequestBatch/:batchUniqueId",
+  verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   validator(schema.updateBatch),
   controller.updateBatch,
 );
 
 /**
- * @route   DELETE /api/passenger-request-batches/:batchUniqueId
+ * @route   DELETE /api/passengerRequestBatch/:batchUniqueId
  * @desc    Soft-delete a batch (stamps batchDeletedAt)
  * @access  Authenticated
  */
 router.delete(
-  "/:batchUniqueId",
+  "/api/passengerRequestBatch/:batchUniqueId",
+  verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   controller.deleteBatch,
 );

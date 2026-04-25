@@ -26,6 +26,87 @@ const UPDATABLE_COLS = [
   "journeyStatusId",
 ];
 
+// ── CREATE / UPSERT ──────────────────────────────────────────────────────────
+
+/**
+ * ### Single Source of Truth — Create or sync a batch header
+ *
+ * Called by `createNewPassengerRequest` every time a new individual request
+ * is added to a batch.  Rules:
+ *
+ * - **First request in a batch** → INSERT the batch header row.
+ * - **Subsequent requests in the same batch** → UPDATE only `totalVehicles`
+ *   and `journeyStatusId` so the counter stays accurate.
+ *
+ * **Junior Note: Why not `ON DUPLICATE KEY UPDATE`?**
+ * MySQL pre-increments `AUTO_INCREMENT` BEFORE checking for a duplicate key.
+ * If a duplicate is found it rolls back the insert but keeps the incremented
+ * counter, creating permanent gaps (e.g. 1, 5, 9…).  The SELECT-first pattern
+ * below avoids this entirely: we only reach the INSERT branch when we are
+ * certain the row does not yet exist.
+ *
+ * @param {Object} data - All batch metadata needed for the header row.
+ */
+exports.upsertBatch = async ({
+  batchUniqueId,
+  shipperUserUniqueId,
+  vehicleTypeUniqueId,
+  totalVehicles,
+  requestMode,
+  targetCompanyUniqueId,
+  originPlace,
+  destinationPlace,
+  shippableItemName,
+  shippableItemQtyInQuintal,
+  shippingDate,
+  deliveryDate,
+  shippingCost,
+  journeyStatusId,
+}) => {
+  // 1. Check existence first — avoids AUTO_INCREMENT wastage
+  const [existing] = await db().query(
+    `SELECT batchId FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+    [batchUniqueId],
+  );
+
+  if (existing.length === 0) {
+    // First request in this batch → create the header row
+    await db().query(
+      `INSERT INTO PassengerRequestBatch
+        (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles,
+         requestMode, targetCompanyUniqueId, originPlace, destinationPlace,
+         shippableItemName, shippableItemQtyInQuintal, shippingDate, deliveryDate,
+         shippingCost, journeyStatusId, batchCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        batchUniqueId,
+        shipperUserUniqueId,
+        vehicleTypeUniqueId,
+        totalVehicles,
+        requestMode,
+        targetCompanyUniqueId,
+        originPlace,
+        destinationPlace,
+        shippableItemName,
+        shippableItemQtyInQuintal,
+        shippingDate,
+        deliveryDate,
+        shippingCost,
+        journeyStatusId,
+        currentDate(),
+      ],
+    );
+  } else {
+    // Subsequent request in same batch → sync mutable counters only
+    await db().query(
+      `UPDATE PassengerRequestBatch
+         SET totalVehicles = ?, journeyStatusId = ?, batchUpdatedAt = ?
+       WHERE batchUniqueId = ?`,
+      [totalVehicles, journeyStatusId, currentDate(), batchUniqueId],
+    );
+  }
+};
+
 // ── GET with filters + pagination ─────────────────────────────────────────────
 
 /**
@@ -126,40 +207,8 @@ exports.getBatches = async (filters = {}) => {
   );
 };
 
-// ── GET single ────────────────────────────────────────────────────────────────
-
-/**
- * Fetch one batch by its UUID (404 if not found or soft-deleted).
- *
- * @param {string} batchUniqueId
- * @returns {Promise<Object>}
- */
-exports.getBatchById = async (batchUniqueId) => {
-  const [rows] = await db().query(
-    `SELECT
-       b.*,
-       u.fullName        AS shipperName,
-       u.phoneNumber     AS shipperPhone,
-       vt.vehicleTypeName,
-       js.journeyStatusName,
-       tc.companyName    AS targetCompanyName
-     FROM PassengerRequestBatch b
-     LEFT JOIN Users          u  ON b.shipperUserUniqueId   = u.userUniqueId
-     LEFT JOIN VehicleTypes   vt ON b.vehicleTypeUniqueId   = vt.vehicleTypeUniqueId
-     LEFT JOIN JourneyStatus  js ON b.journeyStatusId       = js.journeyStatusId
-     LEFT JOIN TransportCompany tc ON b.targetCompanyUniqueId = tc.companyUniqueId
-     WHERE b.batchUniqueId = ? AND b.batchDeletedAt IS NULL
-     LIMIT 1`,
-    [batchUniqueId],
-  );
-
-  if (!rows || rows.length === 0)
-    throw new AppError("Passenger request batch not found", 404);
-
-  return { message: "success", data: rows[0] };
-};
-
 // ── PATCH (partial update) ────────────────────────────────────────────────────
+
 
 /**
  * ### Partial Update — "Update only what I give you"

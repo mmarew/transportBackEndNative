@@ -5,24 +5,13 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 /**
- * GET /api/passenger-request-batches
+ * GET /api/passengerRequestBatch
  * Returns a paginated list filtered by any combination of query params.
+ * Pass ?batchUniqueId=<uuid> to fetch a single specific batch.
  */
 exports.getBatches = async (req, res, next) => {
   try {
     ServerResponder(res, await service.getBatches(req.query));
-  } catch (e) {
-    next(e);
-  }
-};
-
-/**
- * GET /api/passenger-request-batches/:batchUniqueId
- * Returns a single batch by its UUID.
- */
-exports.getBatchById = async (req, res, next) => {
-  try {
-    ServerResponder(res, await service.getBatchById(req.params.batchUniqueId));
   } catch (e) {
     next(e);
   }
