@@ -164,5 +164,9 @@ const messageTypes = {
     message: "Company bid cancelled",
     details: "When a transport company bid is cancelled.",
   },
+  company_bid_submitted: {
+    message: "Company submitted a bid",
+    details: "When a transport company submits a bid for a freight batch, the shipper is notified.",
+  },
 };
 module.exports = messageTypes;

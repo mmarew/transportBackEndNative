@@ -71,7 +71,7 @@ exports.submitBid = async (data) => {
 
   // 1. Verify the batch exists and get its metadata
   const [batchRows] = await db().query(
-    `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId 
+    `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId, shipperUserUniqueId 
      FROM PassengerRequestBatch 
      WHERE batchUniqueId = ? AND batchDeletedAt IS NULL LIMIT 1`,
     [passengerRequestBatchId],
@@ -79,7 +79,12 @@ exports.submitBid = async (data) => {
   if (!batchRows || batchRows.length === 0)
   {throw new AppError("Passenger request batch not found", 404);}
 
-  const { totalVehicles, requestMode, targetCompanyUniqueId } = batchRows[0];
+  const {
+    totalVehicles,
+    requestMode,
+    targetCompanyUniqueId,
+    shipperUserUniqueId,
+  } = batchRows[0];
 
   // --- SOURCE OF TRUTH: We prioritize the batch's required vehicle type ---
   const finalVehicleTypeUniqueId =
@@ -163,6 +168,42 @@ exports.submitBid = async (data) => {
       currentDate(),
     ],
   );
+  // 🔔 Notify Shipper via WebSocket
+  if (shipperUserUniqueId) {
+    // Get shipper phone number for socket identifier
+    const [shipperRows] = await db().query(
+      "SELECT phoneNumber FROM Users WHERE userUniqueId = ?",
+      [shipperUserUniqueId],
+    );
+
+    if (shipperRows?.[0]?.phoneNumber) {
+      const {
+        sendSocketIONotificationToPassenger,
+      } = require("../Utils/Notifications");
+      sendSocketIONotificationToPassenger({
+        phoneNumber: shipperRows[0].phoneNumber,
+        message: {
+          messageTypes: messageTypes.company_bid_submitted,
+          notification: {
+            title: "New Company Bid",
+            body: `${company.companyName} has submitted a bid for your freight.`,
+          },
+          data: {
+            companyBidRequestUniqueId,
+            companyName: company.companyName,
+            passengerRequestBatchId,
+            proposedTotalCost: calculatedTotalCost,
+          },
+        },
+      }).catch((e) =>
+        logger.error("WebSocket notification to shipper failed in submitBid", {
+          error: e.message,
+          shipperUserUniqueId,
+        }),
+      );
+    }
+  }
+
   return { message: "success", data: { companyBidRequestUniqueId } };
 };
 
