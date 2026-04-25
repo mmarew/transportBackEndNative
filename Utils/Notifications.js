@@ -5,7 +5,6 @@ const logger = require("./logger");
 const AppError = require("./AppError");
 const { db } = require("../Services/CompanyHelper.service");
 
-
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
 
@@ -105,7 +104,10 @@ const sendSocketIONotificationToPassenger = async ({
       return { status: "success", data: "Message sent to passenger" };
     } else {
       logger.error("Failed to send message to passenger", { res });
-      return { status: "error", message: "Failed to send message to passenger" };
+      return {
+        status: "error",
+        message: "Failed to send message to passenger",
+      };
     }
   } catch (error) {
     logger.error("Error sending notification to passenger", {
@@ -238,7 +240,9 @@ const sendSocketIONotificationToCompany = async ({
     );
 
     if (!members || members.length === 0) {
-      logger.debug("No members found for company to notify via socket", { companyUniqueId });
+      logger.debug("No members found for company to notify via socket", {
+        companyUniqueId,
+      });
       return { status: "success", data: "No members to notify" };
     }
 
