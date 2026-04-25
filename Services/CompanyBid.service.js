@@ -11,6 +11,10 @@ const {
 } = require("./CompanyHelper.service");
 const logger = require("../Utils/logger");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
+const {
+  sendSocketIONotificationToCompany,
+} = require("../Utils/Notifications");
+const messageTypes = require("../Utils/MessageTypes");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
@@ -468,16 +472,16 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
  * ### CRITICAL: Consistency & Atomicity (for Junior Developers):
  * This function handles the most sensitive state transitions in the bidding system.
  * Because it affects both the `CompanyBidRequest` and `PassengerRequest` tables,
- * it MUST be executed inside a database transaction to prevent "partial updates"
+ * it MUST be executed inside a database transaction to prevent \"partial updates\"
  * if the server crashes.
  *
- * #### The "Race Condition" Shield (Part E):
+ * #### The \"Race Condition\" Shield (Part E):
  * When a shipper accepts a company bid (`accepted_by_shipper`), we perform two vital steps:
- * 1. **Locking**: We use `FOR UPDATE` on all requests in the batch. This "locks" the
+ * 1. **Locking**: We use `FOR UPDATE` on all requests in the batch. This \"locks\" the
  *    rows in MySQL so that an individual driver cannot claim them while this
  *    function is running.
  * 2. **Verification**: After locking, we re-check if any request was already
- *    claimed by someone else just milliseconds prior. If so, we "Hard Fail"
+ *    claimed by someone else just milliseconds prior. If so, we \"Hard Fail\"
  *    (Conflict 409) rather than overwriting someone else's work.
  *
  * @param {string} companyBidRequestUniqueId - The ID of the bid being updated.
@@ -598,7 +602,7 @@ exports.updateBidStatus = async (
       roleId: usersRoles.driverRoleId,
       notification: notif,
       data: {
-        type: "company_bid_status",
+        type: "company_bid_status_update",
         bidStatus,
         companyBidRequestUniqueId,
         passengerRequestBatchId: bid.passengerRequestBatchId,
@@ -606,13 +610,39 @@ exports.updateBidStatus = async (
     }).catch((e) =>
       logger.error("FCM notification failed for bid status update", {
         error: e.message,
-        companyBidRequestUniqueId,
-        bidStatus,
       }),
     );
+
+    // 🔔 Real-time WebSocket Notification
+    const socketMessageTypeMap = {
+      accepted_by_shipper: messageTypes.company_bid_accepted,
+      rejected_by_shipper: messageTypes.company_bid_rejected,
+      cancelled_by_company: messageTypes.company_bid_cancelled,
+    };
+
+    const socketMsgType = socketMessageTypeMap[bidStatus];
+    if (socketMsgType) {
+      sendSocketIONotificationToCompany({
+        companyUniqueId: bid.companyUniqueId,
+        message: {
+          messageTypes: socketMsgType,
+          notification: notif,
+          data: {
+            bidStatus,
+            companyBidRequestUniqueId,
+            passengerRequestBatchId: bid.passengerRequestBatchId,
+          },
+        },
+      }).catch((e) =>
+        logger.error("WebSocket notification failed for company bid status", {
+          error: e.message,
+          companyUniqueId: bid.companyUniqueId,
+        }),
+      );
+    }
   }
 
-  return { message: "success", data: `Bid status updated to ${bidStatus}` };
+  return { message: "success", data: "Bid status updated" };
 };
 
 exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {

@@ -152,5 +152,17 @@ const messageTypes = {
     message: "Driver document status updated",
     details: "When an admin accepts or rejects a driver's document.",
   },
+  company_bid_accepted: {
+    message: "Company bid accepted",
+    details: "When a shipper accepts a transport company's bid for a freight batch.",
+  },
+  company_bid_rejected: {
+    message: "Company bid rejected",
+    details: "When a shipper rejects a transport company's bid.",
+  },
+  company_bid_cancelled: {
+    message: "Company bid cancelled",
+    details: "When a transport company bid is cancelled.",
+  },
 };
 module.exports = messageTypes;
