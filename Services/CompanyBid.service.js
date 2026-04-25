@@ -280,6 +280,157 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
 };
 
 /**
+ * ### UNIFIED GROUPED VIEW - Batches with Nested Offers
+ * Works for both Shippers and Company Dispatchers.
+ *
+ * - **Shipper**: Shows their freight batches, each with ALL company offers inside `offers[]`.
+ * - **Company**: Shows batches they bid on, each with their own offer inside `offers[]`.
+ *
+ * Offers are sorted cheapest first so shippers can compare prices at a glance.
+ *
+ * @param {Object} scope - { shipperUserUniqueId } or { companyUniqueId }
+ * @param {Object} filters - Pagination and optional bidStatus/passengerRequestBatchId.
+ * @returns {Promise<Object>} Paginated list of batches with nested offers.
+ */
+exports.getGroupedBids = async (scope = {}, filters = {}) => {
+  const { shipperUserUniqueId, companyUniqueId } = scope;
+  const { page, limit, offset } = paginate(filters);
+
+  // ── 1. Build the batch WHERE clause ──────────────────────────────────────
+  const batchClauses = ["b.batchDeletedAt IS NULL"];
+  const batchParams = [];
+
+  if (shipperUserUniqueId) {
+    // Shippers see their own batches
+    batchClauses.push("b.shipperUserUniqueId = ?");
+    batchParams.push(shipperUserUniqueId);
+  } else if (companyUniqueId) {
+    // Companies see only batches they have a bid on
+    batchClauses.push(
+      `EXISTS (
+        SELECT 1 FROM CompanyBidRequest cbr
+        WHERE cbr.passengerRequestBatchId = b.batchUniqueId
+          AND cbr.companyUniqueId = ?
+          AND cbr.companyBidRequestDeletedAt IS NULL
+      )`,
+    );
+    batchParams.push(companyUniqueId);
+  }
+
+  if (filters.passengerRequestBatchId) {
+    batchClauses.push("b.batchUniqueId = ?");
+    batchParams.push(filters.passengerRequestBatchId);
+  }
+
+  const batchWhere = `WHERE ${batchClauses.join(" AND ")}`;
+
+  const [batches] = await db().query(
+    `SELECT b.batchUniqueId,
+            b.batchUniqueId AS passengerRequestBatchId,
+            b.batchId,
+            b.originPlace, b.destinationPlace,
+            b.shippableItemName, b.shippableItemQtyInQuintal,
+            b.totalVehicles, b.shippingCost AS batchShippingCost,
+            b.shippingDate AS batchShippingDate, b.deliveryDate AS batchDeliveryDate,
+            b.journeyStatusId, b.requestMode, b.batchCreatedAt,
+            js.journeyStatusName, vt.vehicleTypeName,
+            u.fullName AS shipperName
+     FROM PassengerRequestBatch b
+     LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+     LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+     LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+     ${batchWhere}
+     ORDER BY b.batchCreatedAt DESC
+     LIMIT ? OFFSET ?`,
+    [...batchParams, limit, offset],
+  );
+
+  const [[{ total }]] = await db().query(
+    `SELECT COUNT(*) AS total FROM PassengerRequestBatch b ${batchWhere}`,
+    batchParams,
+  );
+
+  if (!batches || batches.length === 0) {
+    return {
+      message: "success",
+      data: [],
+      pagination: { page, limit, total: 0, totalPages: 0 },
+    };
+  }
+
+  // ── 2. Fetch all matching offers in ONE query (avoids N+1) ───────────────
+  const batchIds = batches.map((b) => b.batchUniqueId);
+
+  const offerClauses = [
+    "cbr.passengerRequestBatchId IN (?)",
+    "cbr.companyBidRequestDeletedAt IS NULL",
+  ];
+  const offerParams = [batchIds];
+
+  // Companies only see their own offer; shippers see everyone's
+  if (companyUniqueId) {
+    offerClauses.push("cbr.companyUniqueId = ?");
+    offerParams.push(companyUniqueId);
+  }
+  if (filters.bidStatus) {
+    offerClauses.push("cbr.bidStatus = ?");
+    offerParams.push(filters.bidStatus);
+  }
+
+  const [offers] = await db().query(
+    `SELECT cbr.companyBidRequestUniqueId,
+            cbr.passengerRequestBatchId,
+            cbr.companyUniqueId,
+            cbr.bidSubmittedByUserUniqueId,
+            cbr.numberOfVehiclesOffered,
+            cbr.proposedCostPerVehicle,
+            cbr.proposedTotalCost,
+            cbr.proposedShippingDate,
+            cbr.proposedDeliveryDate,
+            cbr.bidNotes,
+            cbr.bidStatus,
+            cbr.bidStatusUpdatedAt,
+            cbr.companyBidRequestCreatedAt,
+            tc.companyName, tc.companyPhone, tc.companyEmail,
+            vt.vehicleTypeName AS offeredVehicleTypeName,
+            u.fullName AS submittedByName
+     FROM CompanyBidRequest cbr
+     LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
+     LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+     LEFT JOIN Users u ON cbr.bidSubmittedByUserUniqueId = u.userUniqueId
+     WHERE ${offerClauses.join(" AND ")}
+     ORDER BY cbr.proposedTotalCost ASC`,
+    offerParams,
+  );
+
+  // ── 3. Group offers under each batch using a Map (O(N)) ──────────────────
+  const offersByBatchId = new Map();
+  for (const offer of offers) {
+    if (!offersByBatchId.has(offer.passengerRequestBatchId)) {
+      offersByBatchId.set(offer.passengerRequestBatchId, []);
+    }
+    offersByBatchId.get(offer.passengerRequestBatchId).push(offer);
+  }
+
+  const grouped = batches.map((batch) => ({
+    ...batch,
+    offerCount: (offersByBatchId.get(batch.batchUniqueId) || []).length,
+    offers: offersByBatchId.get(batch.batchUniqueId) || [],
+  }));
+
+  return {
+    message: "success",
+    data: grouped,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+/**
  * ### DASHBOARD LOGIC - Get Dashboard Counts
  * Fetches total counts for different bid categories (badges/notifications).
  *
@@ -426,83 +577,13 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     return exports.getAvailableRequests(resolvedCompanyUniqueId, filters);
   }
 
-  const { page, limit, offset } = paginate(filters);
-  const clauses = ["cbr.companyBidRequestDeletedAt IS NULL"];
-  const params = [];
-
-  if (filters.companyBidRequestUniqueId) {
-    clauses.push("cbr.companyBidRequestUniqueId = ?");
-    params.push(filters.companyBidRequestUniqueId);
-  }
-  if (filters.passengerRequestBatchId) {
-    clauses.push("cbr.passengerRequestBatchId = ?");
-    params.push(filters.passengerRequestBatchId);
-  }
-
-  if (resolvedCompanyUniqueId) {
-    clauses.push("cbr.companyUniqueId = ?");
-    params.push(resolvedCompanyUniqueId);
-  }
-  if (resolvedShipperUserUniqueId) {
-    clauses.push("prb.shipperUserUniqueId = ?");
-    params.push(resolvedShipperUserUniqueId);
-  }
-  if (filters.bidStatus) {
-    clauses.push("cbr.bidStatus = ?");
-    params.push(filters.bidStatus);
-  }
-  if (filters.bidSubmittedByUserUniqueId) {
-    clauses.push("cbr.bidSubmittedByUserUniqueId = ?");
-    params.push(filters.bidSubmittedByUserUniqueId);
-  }
-  if (filters.numberOfVehiclesOffered) {
-    clauses.push("cbr.numberOfVehiclesOffered = ?");
-    params.push(filters.numberOfVehiclesOffered);
-  }
-  if (filters.vehicleTypeUniqueId) {
-    clauses.push("cbr.vehicleTypeUniqueId = ?");
-    params.push(filters.vehicleTypeUniqueId);
-  }
-  if (filters.journeyStatusId) {
-    clauses.push("cbr.journeyStatusId = ?");
-    params.push(filters.journeyStatusId);
-  }
-  if (filters.journeyStatusName) {
-    clauses.push("js.journeyStatusName = ?");
-    // Since we are referencing 'js', the query joins cleanly.
-    params.push(filters.journeyStatusName);
-  }
-
-  const where = `WHERE ${clauses.join(" AND ")}`;
-  const joinSql = `
-    LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
-    LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN JourneyStatus js ON cbr.journeyStatusId = js.journeyStatusId
-    LEFT JOIN PassengerRequestBatch prb ON cbr.passengerRequestBatchId = prb.batchUniqueId
-    LEFT JOIN Users u ON prb.shipperUserUniqueId = u.userUniqueId
-  `;
-
-  const baseSql = `
-    SELECT cbr.*, 
-           tc.companyName, tc.companyPhone, tc.companyEmail,
-           vt.vehicleTypeName, js.journeyStatusName,
-           u.fullName AS shipperName, u.phoneNumber AS shipperPhone, u.email AS shipperEmail,
-           prb.totalVehicles, prb.requestMode, prb.batchCreatedAt,
-           prb.originPlace, prb.destinationPlace, prb.shippableItemName,
-           prb.shippableItemQtyInQuintal, prb.shippingDate AS batchShippingDate,
-           prb.deliveryDate AS batchDeliveryDate, prb.shippingCost AS batchShippingCost
-    FROM CompanyBidRequest cbr
-    ${joinSql}
-    ${where}
-  `;
-
-  return paginatedQuery(
-    `${baseSql} ORDER BY cbr.companyBidRequestCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyBidRequest cbr ${joinSql} ${where}`,
-    params,
-    page,
-    limit,
-    offset,
+  // Default (grouped) — works for shippers, companies, and admins
+  return exports.getGroupedBids(
+    {
+      shipperUserUniqueId: resolvedShipperUserUniqueId,
+      companyUniqueId: resolvedCompanyUniqueId,
+    },
+    filters,
   );
 };
 
