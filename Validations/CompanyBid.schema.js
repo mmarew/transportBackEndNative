@@ -49,6 +49,7 @@ exports.getBidsQuery = Joi.object({
       "expired",
     )
     .optional(),
+  shipperUserUniqueId: uuidSchema.optional(),
   target: Joi.string().valid("available", "submitted", "summary").default("submitted").optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(10).optional(),

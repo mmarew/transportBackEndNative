@@ -11,9 +11,7 @@ const {
 } = require("./CompanyHelper.service");
 const logger = require("../Utils/logger");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
-const {
-  sendSocketIONotificationToCompany,
-} = require("../Utils/Notifications");
+const { sendSocketIONotificationToCompany } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 
@@ -66,8 +64,9 @@ exports.submitBid = async (data) => {
     { companyUniqueId, isDeleted: 0 },
     "Company not found",
   );
-  if (company.approvalStatus !== "approved")
-  {throw new AppError("Only approved companies can submit bids", 400);}
+  if (company.approvalStatus !== "approved") {
+    throw new AppError("Only approved companies can submit bids", 400);
+  }
 
   // 1. Verify the batch exists and get its metadata
   const [batchRows] = await db().query(
@@ -76,8 +75,9 @@ exports.submitBid = async (data) => {
      WHERE batchUniqueId = ? AND batchDeletedAt IS NULL LIMIT 1`,
     [passengerRequestBatchId],
   );
-  if (!batchRows || batchRows.length === 0)
-  {throw new AppError("Passenger request batch not found", 404);}
+  if (!batchRows || batchRows.length === 0) {
+    throw new AppError("Passenger request batch not found", 404);
+  }
 
   const {
     totalVehicles,
@@ -107,8 +107,9 @@ exports.submitBid = async (data) => {
     [passengerRequestBatchId],
   );
   const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
-  if (actualRequestCount === 0)
-  {throw new AppError("This batch contains no individual requests", 400);}
+  if (actualRequestCount === 0) {
+    throw new AppError("This batch contains no individual requests", 400);
+  }
 
   // 4. Determine final vehicle count (Full Batch Logic)
   // To restore partial bidding, use the user input instead of totalVehicles.
@@ -127,13 +128,14 @@ exports.submitBid = async (data) => {
     "SELECT companyBidRequestId FROM CompanyBidRequest WHERE companyUniqueId = ? AND passengerRequestBatchId = ? AND companyBidRequestDeletedAt IS NULL",
     [companyUniqueId, passengerRequestBatchId],
   );
-  if (existing.length > 0)
-  {throw new AppError(
-    "This company has already submitted a bid for this batch",
-    409,
-  );}
+  if (existing.length > 0) {
+    throw new AppError(
+      "This company has already submitted a bid for this batch",
+      409,
+    );
+  }
 
-  // Note: Capacity validation removed per user request. 
+  // Note: Capacity validation removed per user request.
   // Companies can now bid even if requested vehicles exceed their current free fleet,
   // as they may fulfill the request in multiple rounds.
 
@@ -358,19 +360,25 @@ exports.getBidsSummary = async (companyUniqueId) => {
  * @returns {Promise<Object>} Any format requested via the `target` parameter.
  */
 exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
-  if (!userUniqueId) {throw new AppError("Authentication required", 401);}
-
+  if (!userUniqueId) {
+    throw new AppError("Authentication required", 401);
+  }
   const isAdmin =
     roleId === usersRoles.adminRoleId ||
     roleId === usersRoles.supperAdminRoleId;
-
+  const isShipper = roleId === usersRoles.passengerRoleId;
   let resolvedCompanyUniqueId = null;
+  let resolvedShipperUserUniqueId = null;
 
   if (isAdmin) {
-    // Admins can target a specific company by passing it in the query, else null (to get all if listing)
+    // Admins can target a specific company or shipper
     resolvedCompanyUniqueId = filters.companyUniqueId || null;
+    resolvedShipperUserUniqueId = filters.shipperUserUniqueId || null;
+  } else if (isShipper) {
+    // Shippers can only see bids for their own batches
+    resolvedShipperUserUniqueId = userUniqueId;
   } else {
-    // Standard users MUST resolve to their own company
+    // Standard users (Dispatchers) MUST resolve to their own company
     const [membership] = await db().query(
       `SELECT companyUniqueId FROM CompanyMembership WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL`,
       [userUniqueId],
@@ -406,13 +414,15 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   }
 
   if (filters.target === "summary") {
-    if (!resolvedCompanyUniqueId)
-    {throw new AppError("companyUniqueId is required for summary mode", 400);}
+    if (!resolvedCompanyUniqueId) {
+      throw new AppError("companyUniqueId is required for summary mode", 400);
+    }
     return exports.getBidsSummary(resolvedCompanyUniqueId);
   }
   if (filters.target === "available") {
-    if (!resolvedCompanyUniqueId)
-    {throw new AppError("companyUniqueId is required for available mode", 400);}
+    if (!resolvedCompanyUniqueId) {
+      throw new AppError("companyUniqueId is required for available mode", 400);
+    }
     return exports.getAvailableRequests(resolvedCompanyUniqueId, filters);
   }
 
@@ -432,6 +442,10 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   if (resolvedCompanyUniqueId) {
     clauses.push("cbr.companyUniqueId = ?");
     params.push(resolvedCompanyUniqueId);
+  }
+  if (resolvedShipperUserUniqueId) {
+    clauses.push("prb.shipperUserUniqueId = ?");
+    params.push(resolvedShipperUserUniqueId);
   }
   if (filters.bidStatus) {
     clauses.push("cbr.bidStatus = ?");
@@ -542,8 +556,9 @@ exports.updateBidStatus = async (
     { companyBidRequestUniqueId },
     "Bid not found",
   );
-  if (bid.companyBidRequestDeletedAt)
-  {throw new AppError("Bid has been deleted", 400);}
+  if (bid.companyBidRequestDeletedAt) {
+    throw new AppError("Bid has been deleted", 400);
+  }
 
   const [res] = await db().query(
     `UPDATE CompanyBidRequest
@@ -559,7 +574,9 @@ exports.updateBidStatus = async (
       companyBidRequestUniqueId,
     ],
   );
-  if (res.affectedRows === 0) {throw new AppError("Bid update failed", 500);}
+  if (res.affectedRows === 0) {
+    throw new AppError("Bid update failed", 500);
+  }
 
   let newPRStatus = null;
   if (bidStatus === "accepted_by_shipper") {
@@ -693,8 +710,8 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
      WHERE companyBidRequestUniqueId = ? AND companyBidRequestDeletedAt IS NULL`,
     [currentDate(), deletedBy, companyBidRequestUniqueId],
   );
-  if (res.affectedRows === 0)
-  {throw new AppError("Bid not found or already deleted", 404);}
+  if (res.affectedRows === 0) {
+    throw new AppError("Bid not found or already deleted", 404);
+  }
   return { message: "success", data: "Bid deleted" };
 };
-
