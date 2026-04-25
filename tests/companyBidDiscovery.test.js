@@ -76,7 +76,7 @@ async function getToken(phone, roleId) {
     phoneNumber: phone, OTP: DEFAULT_OTP, roleId,
   });
   const token = res.body?.token || res.body?.data?.token || res.body?.user?.token;
-  if (!token) throw new Error(`Auth failed for ${phone}: ${JSON.stringify(res.body)}`);
+  if (!token) {throw new Error(`Auth failed for ${phone}: ${JSON.stringify(res.body)}`);}
   const uid = res.body?.userData?.userUniqueId || res.body?.data?.userUniqueId;
   return { token, userUniqueId: uid };
 }
@@ -103,7 +103,7 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) throw new Error(msg);
+  if (!cond) {throw new Error(msg);}
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

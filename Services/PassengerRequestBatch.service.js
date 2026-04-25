@@ -234,7 +234,7 @@ exports.updateBatch = async (batchUniqueId, fields, updatedBy) => {
     "Passenger request batch not found",
   );
   if (batch.batchDeletedAt)
-    throw new AppError("Batch has already been deleted", 400);
+  {throw new AppError("Batch has already been deleted", 400);}
 
   // 2. Build the SET clause from whitelisted keys only
   const setClauses = [];
@@ -249,7 +249,7 @@ exports.updateBatch = async (batchUniqueId, fields, updatedBy) => {
 
   // Defensive guard (schema.min(1) should already prevent this)
   if (setClauses.length === 0)
-    throw new AppError("No valid fields supplied for update", 400);
+  {throw new AppError("No valid fields supplied for update", 400);}
 
   // Always stamp the audit columns
   setClauses.push("batchUpdatedAt = ?");
@@ -262,7 +262,7 @@ exports.updateBatch = async (batchUniqueId, fields, updatedBy) => {
   );
 
   if (res.affectedRows === 0)
-    throw new AppError("Batch update failed", 500);
+  {throw new AppError("Batch update failed", 500);}
 
   return { message: "success", data: { batchUniqueId, updated: fields } };
 };
@@ -285,7 +285,7 @@ exports.deleteBatch = async (batchUniqueId, deletedBy) => {
   );
 
   if (res.affectedRows === 0)
-    throw new AppError("Batch not found or already deleted", 404);
+  {throw new AppError("Batch not found or already deleted", 404);}
 
   return { message: "success", data: "Batch deleted" };
 };

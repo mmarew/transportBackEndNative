@@ -40,9 +40,9 @@ async function activateUser(phone) {
 
 async function getToken(phone, roleId) {
   const loginRes = await request("POST", "/api/user/loginUser", { phoneNumber: phone, roleId });
-  if (loginRes.status !== 200) console.log(`Login failed for ${phone}:`, loginRes.data);
+  if (loginRes.status !== 200) {console.log(`Login failed for ${phone}:`, loginRes.data);}
   const res = await request("POST", "/api/user/verifyUserByOTP", { phoneNumber: phone, OTP: "101010", roleId });
-  if (res.status !== 200) console.log(`Verify-OTP failed for ${phone}:`, res.data);
+  if (res.status !== 200) {console.log(`Verify-OTP failed for ${phone}:`, res.data);}
   return { token: res.data?.token, userUniqueId: res.data?.userData?.userUniqueId };
 }
 
@@ -92,20 +92,20 @@ async function getToken(phone, roleId) {
 
     // Register 2 vehicles (needs 2 drivers because 1 driver = 1 active vehicle)
     for(let i=1; i<=2; i++) {
-        const dPhone = `+251913${Math.floor(10000000 + Math.random() * 90000000)}`;
-        await request("POST", "/api/user/createUser", { phoneNumber: dPhone, roleId: 7, fullName: `Driver-${i}` });
-        await activateUser(dPhone);
-        const { userUniqueId: dId } = await getToken(dPhone, 7);
+      const dPhone = `+251913${Math.floor(10000000 + Math.random() * 90000000)}`;
+      await request("POST", "/api/user/createUser", { phoneNumber: dPhone, roleId: 7, fullName: `Driver-${i}` });
+      await activateUser(dPhone);
+      const { userUniqueId: dId } = await getToken(dPhone, 7);
 
-        const vr = await request("POST", `/api/user/vehicles/driverUserUniqueId/${dId}`, { 
-            licensePlate: `CAP-${i}-${runId}`, color: "White", vehicleTypeUniqueId: state.vehicleTypeUniqueId 
-        }, adminH());
-        const vid = vr.data?.data?.vehicleUniqueId;
-        assert(vid, `Vehicle ${i} registration failed: ${JSON.stringify(vr.data)}`);
+      const vr = await request("POST", `/api/user/vehicles/driverUserUniqueId/${dId}`, { 
+        licensePlate: `CAP-${i}-${runId}`, color: "White", vehicleTypeUniqueId: state.vehicleTypeUniqueId 
+      }, adminH());
+      const vid = vr.data?.data?.vehicleUniqueId;
+      assert(vid, `Vehicle ${i} registration failed: ${JSON.stringify(vr.data)}`);
         
-        await request("POST", "/api/company/fleet", { 
-            companyUniqueId: state.companyUniqueId, vehicleUniqueId: vid, assignmentStartDate: new Date().toISOString() 
-        }, adminH());
+      await request("POST", "/api/company/fleet", { 
+        companyUniqueId: state.companyUniqueId, vehicleUniqueId: vid, assignmentStartDate: new Date().toISOString() 
+      }, adminH());
     }
     console.log("  ✅ PASS — Company ready with 2 trucks");
 
@@ -134,10 +134,10 @@ async function getToken(phone, roleId) {
 
     state.batch2 = crypto.randomUUID();
     const br2 = await request("POST", "/api/passengerRequest/createRequest", {
-        ...commonReq,
-        passengerRequestBatchId: state.batch2,
-        numberOfVehicles: 1
-      }, shipH());
+      ...commonReq,
+      passengerRequestBatchId: state.batch2,
+      numberOfVehicles: 1
+    }, shipH());
     console.log("  [DEBUG] Batch 2 Create Status:", br2.status);
     assert.strictEqual(br2.status, 200, "Batch 2 creation failed");
     console.log("  ✅ PASS — Batch1 (2 trucks), Batch2 (1 truck)");
@@ -174,11 +174,11 @@ async function getToken(phone, roleId) {
     
     console.log("  [07] Retrying Bid for Batch 2 ...");
     const bid2Retry = await request("POST", "/api/company/bids", {
-        passengerRequestBatchId: state.batch2,
-        companyUniqueId: state.companyUniqueId,
-        numberOfVehiclesOffered: 1,
-        vehicleTypeUniqueId: state.vehicleTypeUniqueId,
-        proposedTotalCost: 1000
+      passengerRequestBatchId: state.batch2,
+      companyUniqueId: state.companyUniqueId,
+      numberOfVehiclesOffered: 1,
+      vehicleTypeUniqueId: state.vehicleTypeUniqueId,
+      proposedTotalCost: 1000
     }, dispH());
     assert.strictEqual(bid2Retry.status, 201, `Retry failed: ${JSON.stringify(bid2Retry.data)}`);
     console.log("  ✅ PASS — Capacity released and reused!");

@@ -129,7 +129,7 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) throw new Error(msg);
+  if (!cond) {throw new Error(msg);}
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

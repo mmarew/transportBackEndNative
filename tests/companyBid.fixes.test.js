@@ -135,7 +135,7 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) throw new Error(msg);
+  if (!cond) {throw new Error(msg);}
 }
 
 // ─── Utility: fetch a PR by batchId from shipper's list ───────────────────────
@@ -598,35 +598,35 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
   console.log("\n\x1b[1m━━ Phase Z: Cleanup ━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m");
 
   await step("Delete assignment", async () => {
-    if (!state.assignmentUniqueId) return "skipped";
+    if (!state.assignmentUniqueId) {return "skipped";}
     const res = await request("DELETE", `/api/company/assignments/${state.assignmentUniqueId}`, null, adminH());
     assert(res.body?.message === "success", JSON.stringify(res.body));
     return "deleted";
   });
 
   await step("Delete bid", async () => {
-    if (!state.companyBidRequestUniqueId) return "skipped";
+    if (!state.companyBidRequestUniqueId) {return "skipped";}
     const res = await request("DELETE", `/api/company/bids/${state.companyBidRequestUniqueId}`, null, adminH());
     assert(res.body?.message === "success", JSON.stringify(res.body));
     return "deleted";
   });
 
   await step("Remove vehicle from fleet", async () => {
-    if (!state.companyVehicleUniqueId) return "skipped";
+    if (!state.companyVehicleUniqueId) {return "skipped";}
     const res = await request("DELETE", `/api/company/fleet/${state.companyVehicleUniqueId}`, null, adminH());
     assert(res.body?.message === "success", JSON.stringify(res.body));
     return "removed";
   });
 
   await step("Delete membership", async () => {
-    if (!state.membershipUniqueId) return "skipped";
+    if (!state.membershipUniqueId) {return "skipped";}
     const res = await request("DELETE", `/api/company/memberships/${state.membershipUniqueId}`, null, adminH());
     assert(res.body?.message === "success", JSON.stringify(res.body));
     return "deleted";
   });
 
   await step("Delete company", async () => {
-    if (!state.companyUniqueId) return "skipped";
+    if (!state.companyUniqueId) {return "skipped";}
     const res = await request("DELETE", `/api/company/companies/${state.companyUniqueId}`, null, adminH());
     assert(res.body?.message === "success", JSON.stringify(res.body));
     return "deleted";

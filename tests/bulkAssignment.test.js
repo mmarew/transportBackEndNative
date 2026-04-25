@@ -79,7 +79,7 @@ async function getToken(phone, roleId) {
     phoneNumber: phone, OTP: DEFAULT_OTP, roleId,
   });
   const token = res.body?.token || res.body?.data?.token || res.body?.user?.token;
-  if (!token) throw new Error(`Auth failed for ${phone}: ${JSON.stringify(res.body)}`);
+  if (!token) {throw new Error(`Auth failed for ${phone}: ${JSON.stringify(res.body)}`);}
   const uid = res.body?.userData?.userUniqueId || res.body?.data?.userUniqueId;
   return { token, userUniqueId: uid };
 }
@@ -103,7 +103,7 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) throw new Error(msg);
+  if (!cond) {throw new Error(msg);}
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -158,9 +158,9 @@ function assert(cond, msg) {
 
     // Register 2 vehicles
     const vr1 = await request("POST", `/api/user/vehicles/driverUserUniqueId/${state.driverUniqueId}`, { licensePlate: `B1-${runId.slice(-3)}`, color: "Red", vehicleTypeUniqueId: state.vehicleTypeUniqueId }, adminH());
-    if (!vr1.body?.data) throw new Error(`VR1 failed: ${JSON.stringify(vr1.body)}`);
+    if (!vr1.body?.data) {throw new Error(`VR1 failed: ${JSON.stringify(vr1.body)}`);}
     const vr2 = await request("POST", `/api/user/vehicles/driverUserUniqueId/${state.driver2UniqueId}`, { licensePlate: `B2-${runId.slice(-3)}`, color: "Blue", vehicleTypeUniqueId: state.vehicleTypeUniqueId }, adminH());
-    if (!vr2.body?.data) throw new Error(`VR2 failed: ${JSON.stringify(vr2.body)}`);
+    if (!vr2.body?.data) {throw new Error(`VR2 failed: ${JSON.stringify(vr2.body)}`);}
     
     state.v1 = vr1.body.data.vehicleUniqueId;
     state.v2 = vr2.body.data.vehicleUniqueId;

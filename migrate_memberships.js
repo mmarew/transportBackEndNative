@@ -14,10 +14,10 @@ async function migrateMembershipRoles() {
     // 2. Map existing ENUM values to new UUIDs
     console.log("Mapping existing ENUM values to UUIDs...");
     const mapping = {
-      'owner': companyRoles.ownerUniqueId,
-      'manager': companyRoles.managerUniqueId,
-      'dispatcher': companyRoles.dispatcherUniqueId,
-      'driver': companyRoles.driverUniqueId
+      "owner": companyRoles.ownerUniqueId,
+      "manager": companyRoles.managerUniqueId,
+      "dispatcher": companyRoles.dispatcherUniqueId,
+      "driver": companyRoles.driverUniqueId
     };
 
     for (const [roleName, roleUuid] of Object.entries(mapping)) {

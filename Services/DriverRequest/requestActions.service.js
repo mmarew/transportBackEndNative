@@ -1133,7 +1133,7 @@ const cancelDriverRequest = async (data) => {
 
         // 6. Update CompanyBidVehicleAssignment if this driver was on a company bid
         // We use driverRequestId to uniquely identify the assignment.
-        const assignmentStatusStr = journeyStatusId === journeyStatusMap.rejectedByDriver ? 'rejected_by_driver' : 'cancelled';
+        const assignmentStatusStr = journeyStatusId === journeyStatusMap.rejectedByDriver ? "rejected_by_driver" : "cancelled";
         await connection.query(
           `UPDATE CompanyBidVehicleAssignment 
            SET assignmentStatus = ?, assignmentUpdatedAt = ? 

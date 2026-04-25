@@ -33,10 +33,10 @@ exports.createAssignment = async (data) => {
     "Bid not found",
   );
   if (bid.bidStatus !== "accepted_by_shipper")
-    throw new AppError(
-      "Vehicles can only be assigned after the shipper accepts the bid",
-      400,
-    );
+  {throw new AppError(
+    "Vehicles can only be assigned after the shipper accepts the bid",
+    400,
+  );}
 
   // PassengerRequest must belong to the bid's batch
   const [prRows] = await db().query(
@@ -45,10 +45,10 @@ exports.createAssignment = async (data) => {
     [passengerRequestUniqueId, bid.passengerRequestBatchId],
   );
   if (!prRows || prRows.length === 0)
-    throw new AppError(
-      "Passenger request does not belong to this bid's batch",
-      400,
-    );
+  {throw new AppError(
+    "Passenger request does not belong to this bid's batch",
+    400,
+  );}
 
   const pr = prRows[0];
 
@@ -60,10 +60,10 @@ exports.createAssignment = async (data) => {
     [companyBidRequestUniqueId, passengerRequestUniqueId],
   );
   if (dup.length > 0)
-    throw new AppError(
-      "This passenger request slot already has an active assignment",
-      409,
-    );
+  {throw new AppError(
+    "This passenger request slot already has an active assignment",
+    409,
+  );}
 
   // ── Auto-create DriverRequest on behalf of the assigned driver ──────────
   const acceptedStatusId = journeyStatusMap.acceptedByDriver;
@@ -341,7 +341,7 @@ exports.updateAssignmentStatus = async (
   const assignment = rows[0];
 
   if (assignment.assignmentDeletedAt)
-    throw new AppError("Assignment has been deleted", 400);
+  {throw new AppError("Assignment has been deleted", 400);}
 
   // ── REJECTION & CANCELLATION HANDLER (Clean up state + Notify Dispatcher) ──
   if (
@@ -413,21 +413,21 @@ exports.updateAssignmentStatus = async (
       };
     }
     if (!assignment.driverRequestUniqueId)
-      throw new AppError("No DriverRequest linked to this assignment", 500);
+    {throw new AppError("No DriverRequest linked to this assignment", 500);}
 
     const [prRows] = await db().query(
       "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
       [assignment.passengerRequestUniqueId],
     );
     if (!prRows || prRows.length === 0)
-      throw new AppError("Passenger request not found", 404);
+    {throw new AppError("Passenger request not found", 404);}
 
     const [drRows] = await db().query(
       "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
       [assignment.driverRequestUniqueId],
     );
     if (!drRows || drRows.length === 0)
-      throw new AppError("Driver request not found", 404);
+    {throw new AppError("Driver request not found", 404);}
 
     const jStatusId = journeyStatusMap.acceptedByPassenger;
 
@@ -711,6 +711,6 @@ exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
     [currentDate(), deletedBy, assignmentUniqueId],
   );
   if (res.affectedRows === 0)
-    throw new AppError("Assignment not found or already deleted", 404);
+  {throw new AppError("Assignment not found or already deleted", 404);}
   return { message: "success", data: "Assignment deleted" };
 };

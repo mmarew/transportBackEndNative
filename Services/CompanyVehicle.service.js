@@ -31,7 +31,7 @@ exports.assignVehicle = async (data) => {
      WHERE companyUniqueId = ? AND vehicleUniqueId = ? AND assignmentStatus = 'active' AND companyVehicleDeletedAt IS NULL`,
     [companyUniqueId, vehicleUniqueId],
   );
-  if (dup.length > 0) throw new AppError("Vehicle is already assigned to this company", 409);
+  if (dup.length > 0) {throw new AppError("Vehicle is already assigned to this company", 409);}
 
   const companyVehicleUniqueId = uuidv4();
   await db().query(
@@ -135,7 +135,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
     limit,
     offset,
   );
-}
+};
 
 exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
   const [res] = await db().query(
@@ -144,6 +144,6 @@ exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
      WHERE companyVehicleUniqueId = ? AND companyVehicleDeletedAt IS NULL`,
     [currentDate(), deletedBy, companyVehicleUniqueId],
   );
-  if (res.affectedRows === 0) throw new AppError("Fleet assignment not found or already removed", 404);
+  if (res.affectedRows === 0) {throw new AppError("Fleet assignment not found or already removed", 404);}
   return { message: "success", data: "Vehicle removed from fleet" };
 };

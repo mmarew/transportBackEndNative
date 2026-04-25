@@ -14,7 +14,7 @@ async function findOne(table, conditions, errorMsg, errorCode = 404) {
     `SELECT * FROM ${table} WHERE ${where} LIMIT 1`,
     vals,
   );
-  if (!rows || rows.length === 0) throw new AppError(errorMsg, errorCode);
+  if (!rows || rows.length === 0) {throw new AppError(errorMsg, errorCode);}
   return rows[0];
 }
 
