@@ -21,6 +21,10 @@ const createPassengerRequest = async (req, res, next) => {
       shippableItemQtyInQuintal,
       shippableItemName,
       deliveryDate,
+      // Bidding mode: 'individual_target' (open to all drivers) | 'company_target' (targets a transport company)
+      requestMode = "individual_target",
+      // UUID of the company being targeted — mandatory when requestMode = 'company_target'
+      targetCompanyUniqueId,
     } = req.body;
 
     if (
@@ -37,6 +41,14 @@ const createPassengerRequest = async (req, res, next) => {
     ) {
       throw new AppError(
         "Missing required fields to create passenger request",
+        400,
+      );
+    }
+
+    // Cross-field guard: company_target mode requires knowing which company to target
+    if (requestMode === "company_target" && !targetCompanyUniqueId) {
+      throw new AppError(
+        "targetCompanyUniqueId is required when requestMode is 'company_target'",
         400,
       );
     }

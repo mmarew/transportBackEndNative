@@ -19,6 +19,17 @@ exports.createPassengerRequest = Joi.object({
   shipperPhoneNumber: Joi.string().optional(), // required only when admin creates on behalf
   requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
 
+  // Bidding mode:
+  //   'individual_target' — open bid visible to all individual drivers
+  //   'company_target'    — targeted to a transport company (group of drivers) for large/heavy loads
+  requestMode: Joi.string()
+    .valid("individual_target", "company_target")
+    .default("individual_target")
+    .optional(),
+
+  // Required when requestMode = 'company_target'; identifies which company to target
+  targetCompanyUniqueId: Joi.string().uuid().optional(),
+
   // Nested objects used by service
   originLocation: locationSchema,
   destination: locationSchema,
