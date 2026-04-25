@@ -124,10 +124,9 @@ exports.submitBid = async (data) => {
     409,
   );}
 
-  // --- NEW: CAPACITY VALIDATION ---
-  // Ensure the company has enough trucks available in their fleet to fulfill this bid
-  // if they win it.
-  await validateFleetCapacity(companyUniqueId, finalCount);
+  // Note: Capacity validation removed per user request. 
+  // Companies can now bid even if requested vehicles exceed their current free fleet,
+  // as they may fulfill the request in multiple rounds.
 
   const journeyStatusId = journeyStatusMap.waiting;
 
@@ -627,75 +626,4 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
   {throw new AppError("Bid not found or already deleted", 404);}
   return { message: "success", data: "Bid deleted" };
 };
-/**
- * Validates if a transport company has enough available vehicles to submit a new bid.
- *
- * ### How it works (for Junior Developers):
- * To prevent a company from promising more trucks than they actually have, we perform a
- * "Live Capacity Check" before every bid.
- *
- * 1. **Count Total Fleet**: We query the `CompanyVehicle` table for all active, non-deleted
- *    vehicles currently assigned to this company.
- * 2. **Count Reserved Capacity**: We look at the `CompanyBidRequest` table for all active
- *    bids that haven't finished yet.
- *    - A bid is "Active" if its status is 'submitted' (waiting for shipper) or 'accepted_by_shipper'.
- *    - A bid is "Finished" once the journey reaches 'journeyCompleted' (Status ID 6),
- *      at which point the truck is free again.
- * 3. **Calculation**: `Available = Total Fleet - Already Reserved`.
- * 4. **Block**: If the `requestedCount` for the new bid is greater than `Available`,
- *    we throw an error to block the submission.
- *
- * @param {string} companyUniqueId - The unique identifier of the transport company.
- * @param {number} requestedCount - The number of vehicles the company is offering for this specific bid.
- * @throws {AppError} 400 - If the company has no vehicles or lacks sufficient available capacity.
- * @returns {Promise<void>} - Resolves if validation passes, otherwise throws an error.
- */
-async function validateFleetCapacity(companyUniqueId, requestedCount) {
-  // 1. Get total active fleet size from our records
-  const [fleetRows] = await db().query(
-    `SELECT COUNT(*) AS fleetSize FROM CompanyVehicle 
-     WHERE companyUniqueId = ? AND assignmentStatus = 'active' AND companyVehicleDeletedAt IS NULL`,
-    [companyUniqueId],
-  );
 
-  const fleetSize = Number(fleetRows?.[0]?.fleetSize ?? 0);
-
-  // Rule: If you don't have vehicles registered, you can't bid on anything.
-  if (fleetSize === 0) {
-    throw new AppError(
-      "Your company has no active vehicles in its fleet. Please register vehicles before bidding.",
-      400,
-    );
-  }
-
-  // 2. Calculate how many trucks are already 'busy' or 'promised' to other shippers.
-  // We sum 'numberOfVehiclesOffered' for all bids that are still in progress.
-  const [reservedRows] = await db().query(
-    `SELECT SUM(numberOfVehiclesOffered) AS reserved
-     FROM CompanyBidRequest
-     WHERE companyUniqueId = ? 
-       AND bidStatus IN ('submitted', 'accepted_by_shipper')
-       AND journeyStatusId < ? 
-       AND companyBidRequestDeletedAt IS NULL`,
-    [companyUniqueId, journeyStatusMap.journeyCompleted],
-  );
-
-  const reserved = Number(reservedRows?.[0]?.reserved ?? 0);
-
-  // 3. Simple math to find the current 'Free' capacity
-  const available = fleetSize - reserved;
-
-  // 4. Final Check: Does the company have enough free trucks for this new request?
-  if (requestedCount > available) {
-    throw new AppError(
-      `Fleet capacity exceeded. 
-       Total Trucks: ${fleetSize}
-       Currently Busy: ${reserved}
-       Available Now: ${available}
-       Requested for this bid: ${requestedCount}
-       
-       Please wait for current journeys to complete before bidding again.`,
-      400,
-    );
-  }
-}
