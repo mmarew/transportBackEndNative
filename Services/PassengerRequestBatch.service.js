@@ -223,10 +223,9 @@ exports.getBatches = async (filters = {}) => {
  *
  * @param {string} batchUniqueId  - The batch to update (from URL params).
  * @param {Object} fields         - Validated body fields (at least 1 key).
- * @param {string} updatedBy      - userUniqueId of the actor.
  * @returns {Promise<Object>}
  */
-exports.updateBatch = async (batchUniqueId, fields, updatedBy) => {
+exports.updateBatch = async (batchUniqueId, fields) => {
   // 1. Confirm it exists and is not deleted
   const batch = await findOne(
     "PassengerRequestBatch",
@@ -273,10 +272,9 @@ exports.updateBatch = async (batchUniqueId, fields, updatedBy) => {
  * Soft-delete a batch by stamping `batchDeletedAt`.
  *
  * @param {string} batchUniqueId
- * @param {string} deletedBy
  * @returns {Promise<Object>}
  */
-exports.deleteBatch = async (batchUniqueId, deletedBy) => {
+exports.deleteBatch = async (batchUniqueId) => {
   const [res] = await db().query(
     `UPDATE PassengerRequestBatch
      SET batchDeletedAt = ?

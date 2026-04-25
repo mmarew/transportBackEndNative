@@ -21,10 +21,6 @@ const createPassengerRequest = async (req, res, next) => {
       shippableItemQtyInQuintal,
       shippableItemName,
       deliveryDate,
-      // Bidding mode: 'individual_target' (open to all drivers) | 'company_target' (open bid to all transport companies)
-      requestMode = "individual_target",
-      // Optional: populated later when a company accepts the bid
-      targetCompanyUniqueId,
     } = req.body;
 
     if (

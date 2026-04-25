@@ -48,7 +48,6 @@ exports.submitBid = async (data) => {
     passengerRequestBatchId,
     companyUniqueId,
     bidSubmittedByUserUniqueId,
-    numberOfVehiclesOffered,
     vehicleTypeUniqueId,
     proposedCostPerVehicle,
     proposedTotalCost,
