@@ -9,6 +9,7 @@ const routesArray = [
   require("./JourneyRoutePoints.routes"),
   require("./CanceledJourneys.routes"),
   require("./JourneyStatus.routes"),
+  require("./PassengerRequestBatch.routes"),
   require("./Database.routes"),
   require("./RoleDocumentRequirements.routes"),
   require("./AttachedDocuments.routes"),
