@@ -1265,6 +1265,118 @@ const markCancellationAsSeen = async ({
   return "Cancellation notification marked as seen";
 };
 
+/**
+ * cancelPassengerRequestBatch
+ *
+ * Cancels a company-targeted freight batch by updating ONE row:
+ *   PassengerRequestBatch.journeyStatusId = cancelledByPassenger (7) / cancelledByAdmin (10)
+ *
+ * WHY only the batch row — NOT the individual PassengerRequest rows?
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PassengerRequestBatch  = SHIPPER's view of the whole order  ← we update THIS
+ * PassengerRequest rows  = per-vehicle driver workflow         ← UNTOUCHED
+ * JourneyDecisions       = bid/decision records                ← UNTOUCHED
+ * DriverRequest          = driver-side lifecycle               ← UNTOUCHED
+ *
+ * The individual cancelPassengerRequest() carries complex side-effects:
+ * updating DriverRequest, JourneyDecisions, creating per-request
+ * CanceledJourneys records, and firing socket/FCM notifications to drivers.
+ * A bulk UPDATE on PassengerRequest rows bypasses all of that — leaving
+ * drivers uninformed and JourneyDecisions in stale states.
+ *
+ * Marking the BATCH as cancelled is the safe, single-responsibility action.
+ * Driver-side cancellation flows are triggered separately if needed.
+ *
+ * Side effects:
+ *   - All submitted CompanyBidRequest rows → 'expired'
+ *   - One CanceledJourneys audit record written for the batch
+ */
+const cancelPassengerRequestBatch = async ({
+  passengerRequestBatchId,
+  userUniqueId,
+  roleId,
+  cancellationReasonsTypeId,
+}) => {
+  if (!passengerRequestBatchId || !userUniqueId) {
+    throw new AppError("passengerRequestBatchId and userUniqueId are required", 400);
+  }
+
+  const executor = transactionStorage.getStore() || pool;
+
+  // 1. Verify batch exists + ownership via PassengerRequestBatch (not individual rows)
+  const [batchResult] = await executor.query(
+    `SELECT batchId, shipperUserUniqueId, journeyStatusId
+       FROM PassengerRequestBatch
+      WHERE batchUniqueId = ?
+      LIMIT 1`,
+    [passengerRequestBatchId],
+  );
+
+  const batch = batchResult[0];
+  if (!batch) {
+    throw new AppError("Batch not found", 404);
+  }
+
+  const isAdmin = roleId === 3 || roleId === 6;
+  if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
+    throw new AppError("Unauthorized: batch does not belong to you", 403);
+  }
+
+  if (
+    batch.journeyStatusId === journeyStatusMap.cancelledByPassenger ||
+    batch.journeyStatusId === journeyStatusMap.cancelledByAdmin
+  ) {
+    throw new AppError("Batch is already cancelled", 400);
+  }
+
+  const cancellationStatusId = isAdmin
+    ? journeyStatusMap.cancelledByAdmin
+    : journeyStatusMap.cancelledByPassenger;
+
+  // 2. Update only the BATCH row — individual PassengerRequest rows keep their statuses
+  await executor.query(
+    `UPDATE PassengerRequestBatch
+        SET journeyStatusId = ?,
+            batchUpdatedAt  = NOW()
+      WHERE batchUniqueId = ?`,
+    [cancellationStatusId, passengerRequestBatchId],
+  );
+
+  // 3. Expire all submitted company bids — companies see opportunity is closed
+  await executor.query(
+    `UPDATE CompanyBidRequest
+        SET bidStatus = 'expired'
+      WHERE passengerRequestBatchId = ?
+        AND bidStatus = 'submitted'`,
+    [passengerRequestBatchId],
+  );
+
+  // 4. Write ONE audit record for the batch cancellation
+  const [existing] = await executor.query(
+    `SELECT canceledJourneyId FROM CanceledJourneys
+      WHERE contextId = ? AND contextType = 'PassengerRequest'
+      LIMIT 1`,
+    [batch.batchId],
+  );
+
+  if (!existing[0]) {
+    await createCanceledJourney({
+      canceledBy: userUniqueId,
+      canceledTime: new Date().toISOString().slice(0, 19).replace("T", " "),
+      contextId: batch.batchId,
+      contextType: "PassengerRequest",
+      cancellationReasonsTypeId: cancellationReasonsTypeId || null,
+      roleId,
+      passengerUserUniqueId: batch.shipperUserUniqueId,
+    });
+  }
+
+  return {
+    message: "success",
+    data: { passengerRequestBatchId, status: "cancelled" },
+  };
+};
+
 // verifyPassengerStatus starts here
 const verifyPassengerStatus = async ({
   userUniqueId,
@@ -1294,6 +1406,9 @@ const verifyPassengerStatus = async ({
       journeyStartedCount: 0,
       notSeenCompletedCount: 0,
       notSeenCancelledByDriverCount: 0,
+      individualWaitingCount: 0,
+      companyBatchWaitingCount: 0,
+      companyAuctionCount: 0,
     };
 
     return {
@@ -1557,6 +1672,7 @@ module.exports = {
   getAllActiveRequests,
   getPassengerJourneyStatus,
   cancelPassengerRequest,
+  cancelPassengerRequestBatch,
   createPassengerRequest,
   updateRequestById,
   deleteRequest,

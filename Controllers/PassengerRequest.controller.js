@@ -277,6 +277,32 @@ const cancelPassengerRequest = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Cancel an entire passenger request batch in one atomic operation.
+ * PUT /api/passengerRequest/cancelBatch/:passengerRequestBatchId
+ */
+const cancelPassengerRequestBatch = async (req, res, next) => {
+  try {
+    const { userUniqueId, roleId } = req.user;
+    const { passengerRequestBatchId } = req.params;
+    const { cancellationReasonsTypeId } = req.body;
+
+    const result = await executeInTransaction(async () =>
+      PassengerService.cancelPassengerRequestBatch({
+        passengerRequestBatchId,
+        userUniqueId,
+        roleId,
+        cancellationReasonsTypeId,
+      }),
+    );
+
+    ServerResponder(res, result, 200);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const markJourneyCompletionAsSeenController = async (req, res, next) => {
   try {
     const user = req.user;
@@ -366,6 +392,7 @@ module.exports = {
   getPassengerRequestByPassengerRequestUniqueId,
   getPassengerRequest4allOrSingleUser,
   cancelPassengerRequest,
+  cancelPassengerRequestBatch,
   verifyPassengerStatus,
   createPassengerRequest,
   updateRequestById,

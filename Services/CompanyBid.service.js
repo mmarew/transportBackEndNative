@@ -448,6 +448,9 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
  * @returns {Promise<Object>} An object with structured counts for UI badges.
  */
 exports.getBidsSummary = async (companyUniqueId) => {
+  if (!companyUniqueId) {
+    throw new AppError("companyUniqueId is required", 400);
+  }
   // 2. Count Available (matching discovery boards filters)
   const activeStatusIds = [
     journeyStatusMap.requested,
@@ -518,6 +521,9 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     roleId === usersRoles.adminRoleId ||
     roleId === usersRoles.supperAdminRoleId;
   const isShipper = roleId === usersRoles.passengerRoleId;
+  const isCompanyAdmin =
+    roleId === usersRoles.companyAdminRoleId ||
+    roleId === usersRoles.companyDispatchRoleId;
   let resolvedCompanyUniqueId = null;
   let resolvedShipperUserUniqueId = null;
 
@@ -528,7 +534,7 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   } else if (isShipper) {
     // Shippers can only see bids for their own batches
     resolvedShipperUserUniqueId = userUniqueId;
-  } else {
+  } else if (isCompanyAdmin) {
     // Standard users (Dispatchers) MUST resolve to their own company
     const [membership] = await db().query(
       `SELECT companyUniqueId FROM CompanyMembership WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL`,
@@ -540,10 +546,10 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
         403,
       );
     }
-
-    if (filters.companyUniqueId) {
+    //if filters.companyUniqueId is provided, check if the user is a member of that company
+    if (filters?.companyUniqueId) {
       const isMember = membership.some(
-        (m) => m.companyUniqueId === filters.companyUniqueId,
+        (m) => m?.companyUniqueId === filters?.companyUniqueId,
       );
       if (!isMember) {
         throw new AppError(
@@ -551,11 +557,13 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
           403,
         );
       }
-      resolvedCompanyUniqueId = filters.companyUniqueId;
+      resolvedCompanyUniqueId = filters?.companyUniqueId;
     } else {
-      if (membership.length === 1) {
-        resolvedCompanyUniqueId = membership[0].companyUniqueId;
+      //if filters.companyUniqueId is not provided, check if the user is a member of only one company
+      if (membership?.length === 1) {
+        resolvedCompanyUniqueId = membership?.[0]?.companyUniqueId;
       } else {
+        //if the user is a member of multiple companies, throw an error
         throw new AppError(
           "You belong to multiple companies. Please provide companyUniqueId in your query to specify which company you are fetching data for.",
           400,
@@ -563,14 +571,16 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
       }
     }
   }
+  //get all company bids for the resolved companyUniqueId
 
-  if (filters.target === "summary") {
+  if (filters?.target === "summary") {
     if (!resolvedCompanyUniqueId) {
       throw new AppError("companyUniqueId is required for summary mode", 400);
     }
     return exports.getBidsSummary(resolvedCompanyUniqueId);
   }
-  if (filters.target === "available") {
+  // if filters.target is available, get available requests, get biddable requests only when target is company and
+  if (filters?.target === "available") {
     if (!resolvedCompanyUniqueId) {
       throw new AppError("companyUniqueId is required for available mode", 400);
     }

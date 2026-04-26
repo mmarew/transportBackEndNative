@@ -710,6 +710,37 @@ router.put(
 );
 
 /**
+ * Cancel Passenger Request Batch Endpoint
+ *
+ * Purpose: Cancels ALL PassengerRequest rows that share a passengerRequestBatchId
+ *          in a single atomic database operation.
+ *
+ * How it works:
+ * - One UPDATE sets journeyStatusId = cancelledByPassenger/Admin for every row in the batch
+ * - All pending CompanyBidRequest offers on the batch are marked 'expired'
+ * - One CanceledJourney record is written for audit purposes
+ *
+ * Why batch-level? For company-targeted freight, the batch IS the order.
+ * Cancelling N individual requests separately would require N round-trips and risks
+ * partial failure. This endpoint is atomic via executeInTransaction.
+ *
+ * Params:
+ * - passengerRequestBatchId: UUID of the batch to cancel
+ *
+ * Body (optional):
+ * - cancellationReasonsTypeId: Reason for cancellation
+ *
+ * Auth:
+ * - Shipper can cancel their own batch
+ * - Admin/Super Admin can cancel any batch
+ */
+router.put(
+  "/api/passengerRequest/cancelBatch/:passengerRequestBatchId",
+  verifyTokenOfAxios,
+  controller.cancelPassengerRequestBatch,
+);
+
+/**
  * Mark Journey Completion as Seen Endpoint
  *
  * Purpose: Marks a completed journey as seen by the passenger and creates a rating.

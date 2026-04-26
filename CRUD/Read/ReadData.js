@@ -369,7 +369,38 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByPassengerCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as journeyStartedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.passengerRequestId END) as notSeenCompletedCount,
-      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ? THEN pr.passengerRequestId END) as notSeenCancelledByDriverCount
+      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ? THEN pr.passengerRequestId END) as notSeenCancelledByDriverCount,
+
+      -- Individual-mode requests in waiting/requested status (excludes company_target batches)
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId IN (?, ?)
+          AND (pr.requestMode IS NULL OR pr.requestMode = 'individual')
+        THEN pr.passengerRequestId
+      END) as individualWaitingCount,
+
+      -- Distinct company batches in waiting/requested status with no accepted offer yet
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId IN (?, ?)
+          AND pr.requestMode = 'company_target'
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+              AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
+          )
+        THEN pr.passengerRequestBatchId
+      END) as companyBatchWaitingCount,
+
+      -- Distinct company batches with at least one SUBMITTED offer (in auction — shipper must review)
+      COUNT(DISTINCT CASE
+        WHEN pr.requestMode = 'company_target'
+          AND EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+              AND cbr.bidStatus = 'submitted'
+          )
+        THEN pr.passengerRequestBatchId
+      END) as companyAuctionCount
+
     FROM PassengerRequest pr
     LEFT JOIN JourneyDecisions jd ON pr.passengerRequestId = jd.passengerRequestId
     WHERE pr.userUniqueId = ?
@@ -390,6 +421,14 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     false, // not seen completed only
     journeyStatusMap.cancelledByDriver,
     "not seen by passenger yet", // not seen cancellation by driver
+    // individualWaitingCount
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    // companyBatchWaitingCount
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    // companyAuctionCount — no extra values (uses EXISTS subquery only)
+    // WHERE clause
     userUniqueId,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
