@@ -363,7 +363,9 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   const query = `
     SELECT 
       COUNT(DISTINCT pr.passengerRequestId) as totalCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as waitingCount,
+      -- allWaitingCount: ALL requests with journeyStatusId=1 regardless of mode.
+      -- Use individualWaitingCount + companyBatchWaitingCount for mode-specific counts.
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as allWaitingCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as requestedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByDriverCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByPassengerCount,
@@ -371,10 +373,12 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.passengerRequestId END) as notSeenCompletedCount,
       COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ? THEN pr.passengerRequestId END) as notSeenCancelledByDriverCount,
 
-      -- Individual-mode requests in waiting/requested status (excludes company_target batches)
+      -- Individual-mode requests in waiting/requested status (excludes company_target batches).
+      -- Uses != 'company_target' to correctly match NULL, 'individual', 'individual_target'
+      -- (stored value varies by when the request was created).
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId IN (?, ?)
-          AND (pr.requestMode IS NULL OR pr.requestMode = 'individual')
+          AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
         THEN pr.passengerRequestId
       END) as individualWaitingCount,
 
