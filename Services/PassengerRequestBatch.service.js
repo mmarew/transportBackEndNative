@@ -8,8 +8,11 @@ const logger = require("../Utils/logger");
 const {
   sendSocketIONotificationToCompany,
   sendSocketIONotificationToDriver,
+  sendSocketIONotificationToPassenger,
 } = require("../Utils/Notifications");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
+const { createCanceledJourney } = require("./CanceledJourneys.service");
+const { getData } = require("../CRUD/Read/ReadData");
 const {
   db,
   findOne,
@@ -444,13 +447,34 @@ exports.cancelBatch = async ({
     ),
   ]);
 
-  //8 register cancellation reasons like individual cancellation is done.
+  // 8. Register one CanceledJourneys audit record for the batch.
+  //    Uses contextType 'PassengerRequestBatch' so it is separate from
+  //    per-vehicle PassengerRequest cancellation records.
+  //    Duplicate guard: only insert if no record exists yet.
+  const existingBatchCancel = await getData({
+    tableName: "CanceledJourneys",
+    conditions: {
+      contextId: batchUniqueId,
+      contextType: "PassengerRequestBatch",
+    },
+  });
+  if (existingBatchCancel.length === 0) {
+    await createCanceledJourney({
+      canceledBy: userUniqueId,
+      canceledTime: now,
+      contextId: batchUniqueId,
+      contextType: "PassengerRequestBatch",
+      cancellationReasonsTypeId: cancellationReasonsTypeId || null,
+      roleId,
+      passengerUserUniqueId: batch.shipperUserUniqueId,
+    });
+  }
 
   // ── Collect notification targets in parallel (reads only) ─────────────────
   // Fired AFTER all writes succeed but still inside the transaction so reads
   // see the committed state.  Notifications are sent by the controller AFTER
   // the transaction commits to avoid holding DB locks during I/O.
-  const [[companyRows], [driverRows]] = await Promise.all([
+  const [[companyRows], [driverRows], [shipperRows]] = await Promise.all([
     // Companies that had bids on this batch
     db().query(
       `SELECT DISTINCT companyUniqueId
@@ -472,6 +496,15 @@ exports.cancelBatch = async ({
         WHERE pr.passengerRequestBatchId = ?`,
       [batchUniqueId],
     ),
+
+    // Shipper who owns the batch — for real-time confirmation on other devices
+    db().query(
+      `SELECT u.phoneNumber, u.userUniqueId
+         FROM Users u
+        WHERE u.userUniqueId = ?
+        LIMIT 1`,
+      [batch.shipperUserUniqueId],
+    ),
   ]);
 
   return {
@@ -485,6 +518,7 @@ exports.cancelBatch = async ({
     _notificationTargets: {
       companies: companyRows.map((r) => r.companyUniqueId),
       drivers: driverRows,
+      shipper: shipperRows[0] || null,
       cancelStatusId,
       batchUniqueId,
     },
@@ -507,6 +541,7 @@ exports.sendBatchCancelNotifications = async ({
   cancelStatusId,
   companies,
   drivers,
+  shipper,
 }) => {
   const cancelMsg =
     cancelStatusId === journeyStatusMap.cancelledByAdmin
@@ -522,8 +557,9 @@ exports.sendBatchCancelNotifications = async ({
 
   const promises = [];
 
-  // ── Notify each company (all active members via CompanyMembership) ────────
+  // ── Notify each company (WebSocket to all active members + FCM push) ─────
   for (const companyUniqueId of companies) {
+    // WebSocket
     promises.push(
       sendSocketIONotificationToCompany({
         companyUniqueId,
@@ -547,6 +583,7 @@ exports.sendBatchCancelNotifications = async ({
       batchUniqueId,
     };
 
+    // WebSocket
     promises.push(
       sendSocketIONotificationToDriver({
         message: driverPayload,
@@ -560,7 +597,7 @@ exports.sendBatchCancelNotifications = async ({
       ),
     );
 
-    // FCM push notification (non-blocking)
+    // FCM push
     promises.push(
       sendFCMNotificationToUser({
         userUniqueId,
@@ -576,6 +613,50 @@ exports.sendBatchCancelNotifications = async ({
       }).catch((err) =>
         logger.warn("cancelBatch: driver FCM error", {
           userUniqueId,
+          error: err.message,
+        }),
+      ),
+    );
+  }
+
+  // ── Notify the shipper on any other open devices ───────────────────────
+  if (shipper?.phoneNumber) {
+    const shipperPayload = {
+      messageTypes: cancelMsg,
+      message: "success",
+      status: cancelStatusId,
+      batchUniqueId,
+    };
+
+    // WebSocket (catches the case where another device/tab is open)
+    promises.push(
+      sendSocketIONotificationToPassenger({
+        message: shipperPayload,
+        phoneNumber: shipper.phoneNumber,
+      }).catch((err) =>
+        logger.warn("cancelBatch: shipper socket error", {
+          userUniqueId: shipper.userUniqueId,
+          error: err.message,
+        }),
+      ),
+    );
+
+    // FCM push (wakes up app if in background)
+    promises.push(
+      sendFCMNotificationToUser({
+        userUniqueId: shipper.userUniqueId,
+        roleId: 1, // passenger/shipper role
+        notification: {
+          title: "Batch cancelled",
+          body: "Your freight batch has been cancelled successfully.",
+        },
+        data: {
+          type: "batch_cancelled",
+          batchUniqueId: String(batchUniqueId),
+        },
+      }).catch((err) =>
+        logger.warn("cancelBatch: shipper FCM error", {
+          userUniqueId: shipper.userUniqueId,
           error: err.message,
         }),
       ),

@@ -769,7 +769,7 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
     canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
     contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
     roleId INT NOT NULL,  -- ID from the Roles table
-    contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey') NOT NULL,  -- Type of context being referenced
+    contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey', 'PassengerRequestBatch') NOT NULL,  -- Type of context being referenced
     driverUserUniqueId VARCHAR(36) , 
     passengerUserUniqueId VARCHAR(36),
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
