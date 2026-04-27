@@ -1444,7 +1444,8 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
         'confirmed_by_driver', -- Driver confirmed; JourneyDecision created
         'rejected_by_driver',  -- Driver refused; DriverRequest cancelled; dispatcher must reassign
         'reassigned',          -- Replacement row after a rejection
-        'cancelled',           -- Cancelled before driver confirmed
+        'cancelled_by_company',           -- Cancelled before driver confirmed
+        'cancelled_by_shipper',           -- Cancelled before driver confirmed
         'completed'            -- Journey completed successfully
     ) NOT NULL DEFAULT 'assigned',
 
