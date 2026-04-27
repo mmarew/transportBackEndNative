@@ -423,9 +423,12 @@ exports.cancelBatch = async ({
     ),
 
     // 6. Cancel all submitted CompanyBidRequest offers — batch is closed.
+    //    Also flag isCancellationSeenByCompany so companies can detect the
+    //    cancellation via REST polling if they missed the WebSocket event.
     db().query(
       `UPDATE CompanyBidRequest
-          SET bidStatus = 'cancelled_by_company'
+          SET bidStatus = 'cancelled_by_company',
+              isCancellationSeenByCompany = 'not seen by company yet'
         WHERE passengerRequestBatchId = ?
           AND bidStatus = 'submitted'`,
       [batchUniqueId],

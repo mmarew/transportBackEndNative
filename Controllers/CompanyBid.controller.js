@@ -56,3 +56,15 @@ exports.deleteBid = async (req, res, next) => {
     next(e);
   }
 };
+
+exports.markCancellationAsSeen = async (req, res, next) => {
+  try {
+    const result = await service.markCancellationAsSeen({
+      companyBidRequestUniqueId: req.params.companyBidRequestUniqueId,
+      userUniqueId: req.user.userUniqueId,
+    });
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};

@@ -38,4 +38,15 @@ router.delete(
   controller.deleteBid,
 );
 
+/**
+ * @route   PATCH /api/company/bids/:companyBidRequestUniqueId/markAsSeen
+ * Marks a cancelled bid's notification as seen by the company.
+ * Call this when the company dispatcher acknowledges the cancellation in the UI.
+ */
+router.patch(
+  "/:companyBidRequestUniqueId/markAsSeen",
+  validator(schema.bidParams, "params"),
+  controller.markCancellationAsSeen,
+);
+
 module.exports = router;

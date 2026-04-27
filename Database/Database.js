@@ -1375,6 +1375,12 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     bidStatusUpdatedAt DATETIME NULL,
     bidStatusUpdatedBy VARCHAR(36) NULL,
 
+    -- Cancellation acknowledgement (mirrors DriverRequest.isCancellationByPassengerSeenByDriver)
+    -- NULL  = no cancellation occurred
+    -- 'not seen by company yet' = batch was cancelled; company has not acknowledged
+    -- 'seen by company'         = company tapped/polled and acknowledged the cancellation
+    isCancellationSeenByCompany ENUM('not seen by company yet', 'seen by company') NULL DEFAULT NULL,
+
     -- Journey linkage
     journeyStatusId INT NOT NULL,                          -- FK → JourneyStatus (starts at 'waiting')
 

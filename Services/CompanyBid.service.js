@@ -806,3 +806,68 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
   }
   return { message: "success", data: "Bid deleted" };
 };
+
+// ── Mark cancellation as seen by company ──────────────────────────────────────
+// Called when a company dispatcher opens/acknowledges the cancelled bid.
+// Mirrors DriverRequest.isCancellationByPassengerSeenByDriver pattern.
+exports.markCancellationAsSeen = async ({
+  companyBidRequestUniqueId,
+  userUniqueId,
+}) => {
+  // 1. Fetch the bid
+  const [[bid]] = await db().query(
+    `SELECT cbr.companyBidRequestId,
+            cbr.companyUniqueId,
+            cbr.bidStatus,
+            cbr.isCancellationSeenByCompany
+       FROM CompanyBidRequest cbr
+      WHERE cbr.companyBidRequestUniqueId = ?
+        AND cbr.companyBidRequestDeletedAt IS NULL
+      LIMIT 1`,
+    [companyBidRequestUniqueId],
+  );
+
+  if (!bid) {
+    throw new AppError("Bid not found", 404);
+  }
+
+  // 2. Verify the caller belongs to the company that owns the bid
+  const [[membership]] = await db().query(
+    `SELECT 1 FROM CompanyMembership
+      WHERE companyUniqueId = ?
+        AND userUniqueId = ?
+        AND isActive = 1
+        AND membershipDeletedAt IS NULL
+      LIMIT 1`,
+    [bid.companyUniqueId, userUniqueId],
+  );
+
+  if (!membership) {
+    throw new AppError(
+      "Unauthorized: you are not a member of this company",
+      403,
+    );
+  }
+
+  // 3. Guard: only mark if the bid is actually cancelled and unseen
+  if (bid.bidStatus !== "cancelled_by_company") {
+    throw new AppError(
+      "This bid has not been cancelled — nothing to mark as seen",
+      400,
+    );
+  }
+  if (bid.isCancellationSeenByCompany === "seen by company") {
+    return { message: "success", data: "Already marked as seen" };
+  }
+
+  // 4. Mark as seen
+  await db().query(
+    `UPDATE CompanyBidRequest
+        SET isCancellationSeenByCompany = 'seen by company',
+            companyBidRequestUpdatedAt  = ?
+      WHERE companyBidRequestUniqueId = ?`,
+    [currentDate(), companyBidRequestUniqueId],
+  );
+
+  return { message: "success", data: "Cancellation marked as seen" };
+};
