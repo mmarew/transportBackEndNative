@@ -57,4 +57,23 @@ router.delete(
   controller.deleteBatch,
 );
 
+/**
+ * @route   PUT /api/passengerRequestBatch/:batchUniqueId/cancel
+ * @desc    Atomically cancel a company freight batch and all related records
+ * @access  Authenticated (shipper who owns the batch, or admin)
+ *
+ * One atomic DB transaction updates:
+ *   PassengerRequestBatch, PassengerRequest (all rows),
+ *   JourneyDecisions, DriverRequest, CompanyBidRequest, CompanyBidVehicleAssignment
+ *
+ * Body (optional): { cancellationReasonsTypeId }
+ */
+router.put(
+  "/api/passengerRequestBatch/:batchUniqueId/cancel",
+  verifyTokenOfAxios,
+  validator(schema.batchParams, "params"),
+  validator(schema.cancelBatchBody),
+  controller.cancelBatch,
+);
+
 module.exports = router;

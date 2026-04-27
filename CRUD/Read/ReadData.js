@@ -363,9 +363,27 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   const query = `
     SELECT 
       COUNT(DISTINCT pr.passengerRequestId) as totalCount,
-      -- allWaitingCount: ALL requests with journeyStatusId=1 regardless of mode.
-      -- Use individualWaitingCount + companyBatchWaitingCount for mode-specific counts.
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as allWaitingCount,
+
+      -- Total VEHICLE SLOTS waiting in company batches (e.g. 1 batch of 11 trucks = 11)
+      -- Use this alongside companyBatchWaitingCount to understand: N batches covering M vehicles.
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId IN (?, ?)
+          AND pr.requestMode = 'company_target'
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+              AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
+          )
+        THEN pr.passengerRequestId
+      END) as companyBatchWaitingVehicles,
+
+      -- Total individual waiting/requested requests (each row = 1 vehicle/trip)
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId IN (?, ?)
+          AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
+        THEN pr.passengerRequestId
+      END) as individualWaitingVehicles,
+
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as requestedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByDriverCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByPassengerCount,
@@ -416,19 +434,27 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   `;
 
   const values = [
+    // companyBatchWaitingVehicles (IN ?, ?)
     journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    // individualWaitingVehicles (IN ?, ?)
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    // requestedCount, acceptedByDriverCount, acceptedByPassengerCount, journeyStartedCount
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
     journeyStatusMap.acceptedByPassenger,
     journeyStatusMap.journeyStarted,
+    // notSeenCompletedCount
     journeyStatusMap.journeyCompleted,
-    false, // not seen completed only
+    false,
+    // notSeenCancelledByDriverCount
     journeyStatusMap.cancelledByDriver,
-    "not seen by passenger yet", // not seen cancellation by driver
-    // individualWaitingCount
+    "not seen by passenger yet",
+    // individualWaitingCount (IN ?, ?)
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
-    // companyBatchWaitingCount
+    // companyBatchWaitingCount (IN ?, ?)
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
     // companyAuctionCount — no extra values (uses EXISTS subquery only)

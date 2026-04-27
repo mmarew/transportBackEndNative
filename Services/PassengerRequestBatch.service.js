@@ -2,6 +2,14 @@
 
 const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
+const { journeyStatusMap } = require("../Utils/ListOfSeedData");
+const messageTypes = require("../Utils/MessageTypes");
+const logger = require("../Utils/logger");
+const {
+  sendSocketIONotificationToCompany,
+  sendSocketIONotificationToDriver,
+} = require("../Utils/Notifications");
+const { sendFCMNotificationToUser } = require("./Firebase.service");
 const {
   db,
   findOne,
@@ -286,4 +294,288 @@ exports.deleteBatch = async (batchUniqueId) => {
   {throw new AppError("Batch not found or already deleted", 404);}
 
   return { message: "success", data: "Batch deleted" };
+};
+
+// ── CANCEL (company batch) ────────────────────────────────────────────────────────
+
+/**
+ * ### Atomically cancel an entire company-targeted freight batch.
+ *
+ * **What is updated in one DB transaction:**
+ *
+ * | Table                          | What changes                                                  |
+ * |-------------------------------|---------------------------------------------------------------|
+ * | PassengerRequestBatch          | journeyStatusId → 7 (cancelledByPassenger) or 10 (Admin)      |
+ * | PassengerRequest               | All rows in this batch → same cancelled status                |
+ * | JourneyDecisions               | All open decisions for those requests → same cancelled status |
+ * | DriverRequest                  | Matched drivers released back to waiting (status 1)           |
+ * | CompanyBidRequest              | All submitted bids → 'expired'                                |
+ * | CompanyBidVehicleAssignment    | All assignments → 'cancelled'                                 |
+ *
+ * **Why this approach?**
+ * Sending N individual HTTP cancel calls from the client is wasteful and risks
+ * partial failure.  One atomic transaction guarantees either everything cancels
+ * or nothing does.
+ *
+ * **Junior Note — terminal statuses guard:**
+ * `journeyStatusId NOT IN (7,9,10,12)` prevents re-cancelling rows that are
+ * already in a terminal state (e.g. a driver independently cancelled their side).
+ *
+ * @param {string} batchUniqueId            - UUID of the batch to cancel.
+ * @param {string} userUniqueId             - Authenticated user's UUID.
+ * @param {number} roleId                   - Authenticated user's role ID.
+ * @param {number|null} cancellationReasonsTypeId - Optional reason FK.
+ */
+exports.cancelBatch = async ({
+  batchUniqueId,
+  userUniqueId,
+  roleId,
+  cancellationReasonsTypeId,
+}) => {
+  if (!batchUniqueId || !userUniqueId) {
+    throw new AppError("batchUniqueId and userUniqueId are required", 400);
+  }
+
+  // 1. Verify batch exists + ownership
+  const batch = await findOne(
+    "PassengerRequestBatch",
+    { batchUniqueId },
+    "Batch not found",
+  );
+
+  const isAdmin =
+    roleId === 3 || roleId === 6; // admin / super-admin
+
+  if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
+    throw new AppError("Unauthorized: batch does not belong to you", 403);
+  }
+
+  const terminalStatuses = [
+    journeyStatusMap.cancelledByPassenger,  // 7
+    journeyStatusMap.cancelledByDriver,     // 9
+    journeyStatusMap.cancelledByAdmin,      // 10
+    journeyStatusMap.cancelledBySystem,     // 12
+  ].filter(Boolean); // remove undefined if any key is missing
+
+  if (terminalStatuses.includes(batch.journeyStatusId)) {
+    throw new AppError("Batch is already cancelled", 400);
+  }
+
+  const cancelStatusId = isAdmin
+    ? journeyStatusMap.cancelledByAdmin      // 10
+    : journeyStatusMap.cancelledByPassenger; // 7
+
+  const now = currentDate();
+  const inClause = terminalStatuses.join(","); // e.g. "7,9,10,12"
+
+  // All queries below run inside the transaction injected by executeInTransaction
+  // in the controller layer.  db() automatically picks up the active transaction
+  // connection from transactionStorage.
+
+  // 2. Cancel the batch header row
+  await db().query(
+    `UPDATE PassengerRequestBatch
+        SET journeyStatusId = ?,
+            batchUpdatedAt  = ?
+      WHERE batchUniqueId = ?`,
+    [cancelStatusId, now, batchUniqueId],
+  );
+
+  // 3. Cancel every individual PassengerRequest row that belongs to this batch.
+  //    Guard: skip rows already in a terminal state.
+  await db().query(
+    `UPDATE PassengerRequest
+        SET journeyStatusId = ?
+      WHERE passengerRequestBatchId = ?
+        AND journeyStatusId NOT IN (${inClause})`,
+    [cancelStatusId, batchUniqueId],
+  );
+
+  // 4. Cancel all open JourneyDecisions linked to those PassengerRequest rows.
+  //    An INNER JOIN ensures we only touch decisions that belong to this batch.
+  await db().query(
+    `UPDATE JourneyDecisions jd
+       INNER JOIN PassengerRequest pr
+               ON jd.passengerRequestId = pr.passengerRequestId
+        SET jd.journeyStatusId = ?
+      WHERE pr.passengerRequestBatchId = ?
+        AND jd.journeyStatusId NOT IN (${inClause})`,
+    [cancelStatusId, batchUniqueId],
+  );
+
+  // 5. Release matched DriverRequest rows back to waiting (status 1).
+  //    Only release drivers that were in a non-terminal, pre-journey state
+  //    (waiting=1, requested=2, acceptedByDriver=3, acceptedByPassenger=4).
+  //    DO NOT touch drivers already on a journey (5+) or in a terminal state.
+  await db().query(
+    `UPDATE DriverRequest dr
+       INNER JOIN JourneyDecisions jd
+               ON dr.driverRequestId = jd.driverRequestId
+       INNER JOIN PassengerRequest pr
+               ON jd.passengerRequestId = pr.passengerRequestId
+        SET dr.journeyStatusId = ?
+      WHERE pr.passengerRequestBatchId = ?
+        AND dr.journeyStatusId IN (1,2,3,4)`,
+    [journeyStatusMap.waiting, batchUniqueId],
+  );
+
+  // 6. Expire all submitted CompanyBidRequest offers — companies see opportunity is closed.
+  await db().query(
+    `UPDATE CompanyBidRequest
+        SET bidStatus = 'expired'
+      WHERE passengerRequestBatchId = ?
+        AND bidStatus = 'submitted'`,
+    [batchUniqueId],
+  );
+
+  // 7. Mark any vehicle assignments as cancelled.
+  await db().query(
+    `UPDATE CompanyBidVehicleAssignment cba
+       INNER JOIN PassengerRequest pr
+               ON cba.passengerRequestUniqueId = pr.passengerRequestUniqueId
+        SET cba.assignmentStatus   = 'cancelled',
+            cba.assignmentUpdatedAt = ?
+      WHERE pr.passengerRequestBatchId = ?
+        AND cba.assignmentStatus != 'cancelled'`,
+    [now, batchUniqueId],
+  );
+
+  // ── Collect notification targets (reads only — safe inside transaction) ────────
+  // These are returned to the controller so it can fire WebSocket + FCM
+  // notifications AFTER the transaction commits.  Sending inside the
+  // transaction would hold the DB locks longer and risk partial failure.
+
+  // Companies that had bids on this batch
+  const [companyRows] = await db().query(
+    `SELECT DISTINCT companyUniqueId
+       FROM CompanyBidRequest
+      WHERE passengerRequestBatchId = ?`,
+    [batchUniqueId],
+  );
+
+  // Drivers who had a JourneyDecision linked to any request in this batch.
+  // For company_target batches this list is usually empty (no individual
+  // driver assignments happen before a bid is accepted), but we handle it
+  // defensively in case some hybrid flow assigned drivers directly.
+  const [driverRows] = await db().query(
+    `SELECT DISTINCT u.phoneNumber, u.userUniqueId, dr.driverRequestId
+       FROM DriverRequest dr
+       INNER JOIN JourneyDecisions jd
+               ON dr.driverRequestId = jd.driverRequestId
+       INNER JOIN PassengerRequest pr
+               ON jd.passengerRequestId = pr.passengerRequestId
+       INNER JOIN Users u
+               ON dr.userUniqueId = u.userUniqueId
+      WHERE pr.passengerRequestBatchId = ?`,
+    [batchUniqueId],
+  );
+
+  return {
+    message: "success",
+    data: {
+      batchUniqueId,
+      cancelledStatus: cancelStatusId,
+      cancellationReasonsTypeId: cancellationReasonsTypeId || null,
+    },
+    // ── Internal use only — stripped before HTTP response ──────────────────
+    _notificationTargets: {
+      companies: companyRows.map(r => r.companyUniqueId),
+      drivers: driverRows,
+      cancelStatusId,
+      batchUniqueId,
+    },
+  };
+};
+
+// ── Notification helpers (fire-and-forget, called by the controller) ──────────
+
+/**
+ * Send WebSocket + FCM notifications to everyone affected by a batch cancel.
+ *
+ * @param {Object} targets - Object returned as _notificationTargets from cancelBatch
+ * @param {string} targets.batchUniqueId
+ * @param {number} targets.cancelStatusId
+ * @param {Array<string>} targets.companies - companyUniqueId list
+ * @param {Array<{phoneNumber, userUniqueId}>} targets.drivers
+ */
+exports.sendBatchCancelNotifications = async ({
+  batchUniqueId,
+  cancelStatusId,
+  companies,
+  drivers,
+}) => {
+  const cancelMsg = cancelStatusId === journeyStatusMap.cancelledByAdmin
+    ? messageTypes.admin_cancelled_request
+    : messageTypes.passenger_cancelled_request;
+
+  const socketPayload = {
+    messageTypes: messageTypes.company_bid_cancelled,
+    message: "success",
+    status: cancelStatusId,
+    batchUniqueId,
+  };
+
+  const promises = [];
+
+  // ── Notify each company (all active members via CompanyMembership) ────────
+  for (const companyUniqueId of companies) {
+    promises.push(
+      sendSocketIONotificationToCompany({
+        companyUniqueId,
+        message: socketPayload,
+        userType: "driver", // company dispatchers are registered under driver role
+      }).catch(err =>
+        logger.warn("cancelBatch: company socket error", {
+          companyUniqueId,
+          error: err.message,
+        }),
+      ),
+    );
+  }
+
+  // ── Notify each driver that had a decision on this batch ───────────────
+  for (const { phoneNumber, userUniqueId } of drivers) {
+    const driverPayload = {
+      messageTypes: cancelMsg,
+      message: "success",
+      status: cancelStatusId,
+      batchUniqueId,
+    };
+
+    promises.push(
+      sendSocketIONotificationToDriver({
+        message: driverPayload,
+        phoneNumber,
+        userType: "driver",
+      }).catch(err =>
+        logger.warn("cancelBatch: driver socket error", {
+          userUniqueId,
+          error: err.message,
+        }),
+      ),
+    );
+
+    // FCM push notification (non-blocking)
+    promises.push(
+      sendFCMNotificationToUser({
+        userUniqueId,
+        roleId: 2, // driver role
+        notification: {
+          title: "Request cancelled",
+          body: "The shipper has cancelled the freight batch.",
+        },
+        data: {
+          type: "batch_cancelled",
+          batchUniqueId: String(batchUniqueId),
+        },
+      }).catch(err =>
+        logger.warn("cancelBatch: driver FCM error", {
+          userUniqueId,
+          error: err.message,
+        }),
+      ),
+    );
+  }
+
+  await Promise.allSettled(promises);
 };

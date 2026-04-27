@@ -54,3 +54,11 @@ exports.updateBatch = Joi.object({
 exports.batchParams = Joi.object({
   batchUniqueId: uuidSchema.required(),
 });
+
+/**
+ * PUT /api/passengerRequestBatch/:batchUniqueId/cancel
+ * Body is optional — only cancellationReasonsTypeId is accepted.
+ */
+exports.cancelBatchBody = Joi.object({
+  cancellationReasonsTypeId: Joi.number().integer().min(1).optional().allow(null),
+}).unknown(false);
