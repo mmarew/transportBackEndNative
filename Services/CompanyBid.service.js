@@ -376,6 +376,10 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
     offerClauses.push("cbr.bidStatus = ?");
     offerParams.push(filters.bidStatus);
   }
+  if (filters.isCancellationSeenByCompany) {
+    offerClauses.push("cbr.isCancellationSeenByCompany = ?");
+    offerParams.push(filters.isCancellationSeenByCompany);
+  }
 
   const [offers] = await db().query(
     `SELECT cbr.companyBidRequestUniqueId,
@@ -390,6 +394,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
             cbr.bidNotes,
             cbr.bidStatus,
             cbr.bidStatusUpdatedAt,
+            cbr.isCancellationSeenByCompany,
             cbr.companyBidRequestCreatedAt,
             tc.companyName, tc.companyPhone, tc.companyEmail,
             vt.vehicleTypeName AS offeredVehicleTypeName,

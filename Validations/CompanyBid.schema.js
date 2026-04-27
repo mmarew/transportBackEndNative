@@ -49,6 +49,9 @@ exports.getBidsQuery = Joi.object({
       "expired",
     )
     .optional(),
+  isCancellationSeenByCompany: Joi.string()
+    .valid("not seen by company yet", "seen by company")
+    .optional(),
   shipperUserUniqueId: uuidSchema.optional(),
   target: Joi.string().valid("available", "submitted", "summary", "grouped").default("grouped").optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
