@@ -448,13 +448,14 @@ exports.cancelBatch = async ({
   ]);
 
   // 8. Register one CanceledJourneys audit record for the batch.
+  //    contextId must be the integer batchId — the contextId column is INT.
   //    Uses contextType 'PassengerRequestBatch' so it is separate from
   //    per-vehicle PassengerRequest cancellation records.
   //    Duplicate guard: only insert if no record exists yet.
   const existingBatchCancel = await getData({
     tableName: "CanceledJourneys",
     conditions: {
-      contextId: batchUniqueId,
+      contextId: batch.batchId,
       contextType: "PassengerRequestBatch",
     },
   });
@@ -462,7 +463,7 @@ exports.cancelBatch = async ({
     await createCanceledJourney({
       canceledBy: userUniqueId,
       canceledTime: now,
-      contextId: batchUniqueId,
+      contextId: batch.batchId,
       contextType: "PassengerRequestBatch",
       cancellationReasonsTypeId: cancellationReasonsTypeId || null,
       roleId,
