@@ -564,7 +564,6 @@ exports.sendBatchCancelNotifications = async ({
       sendSocketIONotificationToCompany({
         companyUniqueId,
         message: socketPayload,
-        userType: "driver", // company dispatchers are registered under driver role
       }).catch((err) =>
         logger.warn("cancelBatch: company socket error", {
           companyUniqueId,

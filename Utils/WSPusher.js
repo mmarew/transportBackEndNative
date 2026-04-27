@@ -48,7 +48,7 @@ async function WSPusher({ socket }) {
       );
     }
 
-    const validUserTypes = ["driver", "passenger", "SMSSender", "admin"];
+    const validUserTypes = ["driver", "passenger", "SMSSender", "admin", "company"];
     if (!validUserTypes.includes(user)) {
       return sendError(socket, "Invalid user type", "BAD_REQUEST");
     }

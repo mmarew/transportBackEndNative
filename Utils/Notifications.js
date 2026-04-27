@@ -226,7 +226,7 @@ const sendSocketIONotificationToCompany = async ({
   companyUniqueId,
   message,
   eventName,
-  userType = "driver", // Default to driver as dispatchers often use this role for sockets
+  userType = "company", // Company admins/dispatchers connect with user=company
 }) => {
   try {
     const [members] = await db().query(
