@@ -301,20 +301,61 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
   const batchParams = [];
 
   if (shipperUserUniqueId) {
-    // Shippers see their own batches
+    // Shippers see their own batches.
+    // When offer-level filters are provided, we add an EXISTS guard so that
+    // batches with 0 matching offers are never returned — same pattern as
+    // the company path below.
     batchClauses.push("b.shipperUserUniqueId = ?");
     batchParams.push(shipperUserUniqueId);
+
+    if (filters.bidStatus || filters.isCancellationSeenByCompany) {
+      const existsClauses = [
+        "cbr.passengerRequestBatchId = b.batchUniqueId",
+        "cbr.companyBidRequestDeletedAt IS NULL",
+      ];
+
+      if (filters.bidStatus) {
+        existsClauses.push("cbr.bidStatus = ?");
+        batchParams.push(filters.bidStatus);
+      }
+      if (filters.isCancellationSeenByCompany) {
+        existsClauses.push("cbr.isCancellationSeenByCompany = ?");
+        batchParams.push(filters.isCancellationSeenByCompany);
+      }
+
+      batchClauses.push(
+        `EXISTS (
+          SELECT 1 FROM CompanyBidRequest cbr
+          WHERE ${existsClauses.join(" AND ")}
+        )`,
+      );
+    }
   } else if (companyUniqueId) {
-    // Companies see only batches they have a bid on
+    // Companies see only batches they have a matching bid on.
+    // The EXISTS subquery mirrors the same filters applied to offers (Step 2)
+    // so that batches with 0 matching offers are never returned.
+    const existsClauses = [
+      "cbr.passengerRequestBatchId = b.batchUniqueId",
+      "cbr.companyUniqueId = ?",
+      "cbr.companyBidRequestDeletedAt IS NULL",
+    ];
+    batchParams.push(companyUniqueId);
+
+    if (filters.bidStatus) {
+      existsClauses.push("cbr.bidStatus = ?");
+      batchParams.push(filters.bidStatus);
+    }
+    if (filters.isCancellationSeenByCompany) {
+      existsClauses.push("cbr.isCancellationSeenByCompany = ?");
+      batchParams.push(filters.isCancellationSeenByCompany);
+    }
+
     batchClauses.push(
       `EXISTS (
         SELECT 1 FROM CompanyBidRequest cbr
-        WHERE cbr.passengerRequestBatchId = b.batchUniqueId
-          AND cbr.companyUniqueId = ?
-          AND cbr.companyBidRequestDeletedAt IS NULL
+        WHERE ${existsClauses.join(" AND ")}
       )`,
     );
-    batchParams.push(companyUniqueId);
   }
 
   if (filters.passengerRequestBatchId) {
