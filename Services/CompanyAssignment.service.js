@@ -514,6 +514,76 @@ exports.updateAssignmentStatus = async (
     vals.push(journeyDecisionUniqueId);
   }
 
+  // ── Journey progress states: sync DriverRequest.journeyStatusId ──────────
+  // assignmentStatus is the primary company-specific tracking field.
+  // journeyStatusId on DriverRequest is kept in sync as a cross-reference
+  // to the individual-flow infrastructure (for auditing and consistency checks).
+  //
+  // Mapping:
+  //   going_to_loading  → journeyStatusId 5 (journeyStarted: driver moving toward pickup)
+  //   journey_started   → journeyStatusId 5 (journeyStarted: cargo loaded, en route — same underlying state)
+  //   completed         → journeyStatusId 6 (journeyCompleted)
+  //
+  // Note: going_to_loading and journey_started both map to journeyStatusId=5 because
+  // the individual flow only has one "in-progress" state. The company flow has more
+  // granularity via assignmentStatus. journeyStatusId=5 just means "driver is moving".
+
+  if (
+    assignmentStatus === "going_to_loading" ||
+    assignmentStatus === "journey_started" ||
+    assignmentStatus === "completed"
+  ) {
+    if (!assignment.driverRequestUniqueId) {
+      throw new AppError("No DriverRequest linked to this assignment", 500);
+    }
+
+    const [drRows] = await db().query(
+      "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
+      [assignment.driverRequestUniqueId],
+    );
+    if (!drRows || drRows.length === 0) {
+      throw new AppError("Driver request not found", 404);
+    }
+
+    const syncStatusId =
+      assignmentStatus === "completed"
+        ? journeyStatusMap.journeyCompleted   // 6
+        : journeyStatusMap.journeyStarted;    // 5
+
+    await db().query(
+      "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestId = ?",
+      [syncStatusId, currentDate(), drRows[0].driverRequestId],
+    );
+
+    // Notify the shipper about driver progress (best-effort)
+    sendFCMNotificationToUser({
+      userUniqueId: assignment.assignmentCreatedBy, // dispatcher / company admin
+      roleId: usersRoles.companyAdminRoleId,
+      notification: {
+        title:
+          assignmentStatus === "completed"
+            ? "Delivery completed"
+            : assignmentStatus === "journey_started"
+              ? "Driver en route to destination"
+              : "Driver heading to loading point",
+        body: `Assignment ${assignmentUniqueId} status updated to: ${assignmentStatus}.`,
+      },
+      data: {
+        type: "company_assignment_progress",
+        assignmentStatus,
+        assignmentUniqueId,
+        companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+        passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+      },
+    }).catch((e) =>
+      logger.error("FCM failed for assignment progress notification", {
+        error: e.message,
+        assignmentUniqueId,
+        assignmentStatus,
+      }),
+    );
+  }
+
   vals.push(assignmentUniqueId);
   await db().query(
     `UPDATE CompanyBidVehicleAssignment SET ${setParts.join(", ")} WHERE assignmentUniqueId = ?`,

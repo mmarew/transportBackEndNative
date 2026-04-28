@@ -14,6 +14,8 @@ exports.updateAssignmentStatus = Joi.object({
     .valid(
       "confirmed_by_driver",
       "rejected_by_driver",
+      "going_to_loading",   // driver heading to loading/pickup point
+      "journey_started",    // cargo loaded, driver en route to destination
       "cancelled",
       "completed",
     )
@@ -40,6 +42,8 @@ exports.getAssignmentsQuery = Joi.object({
       "assigned",
       "confirmed_by_driver",
       "rejected_by_driver",
+      "going_to_loading",
+      "journey_started",
       "reassigned",
       "cancelled",
       "completed",
