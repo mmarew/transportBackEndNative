@@ -421,7 +421,32 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
               AND cbr.bidStatus = 'submitted'
           )
         THEN pr.passengerRequestBatchId
-      END) as companyAuctionCount
+      END) as companyAuctionCount,
+
+      -- Distinct company batches the shipper has already accepted and are now
+      -- in the "Ongoing" state (company is assigning/dispatching drivers).
+      -- These feed the badge on the Active top-level tab.
+      COUNT(DISTINCT CASE
+        WHEN pr.requestMode = 'company_target'
+          AND EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+              AND cbr.bidStatus = 'accepted_by_shipper'
+          )
+        THEN pr.passengerRequestBatchId
+      END) as companyOngoingCount,
+
+      -- Individual vehicle SLOTS inside accepted batches (explains totalCount).
+      -- companyOngoingCount = N batches; companyOngoingVehicles = total trucks across those batches.
+      COUNT(DISTINCT CASE
+        WHEN pr.requestMode = 'company_target'
+          AND EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+              AND cbr.bidStatus = 'accepted_by_shipper'
+          )
+        THEN pr.passengerRequestId
+      END) as companyOngoingVehicles
 
     FROM PassengerRequest pr
     LEFT JOIN JourneyDecisions jd ON pr.passengerRequestId = jd.passengerRequestId

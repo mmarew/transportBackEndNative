@@ -379,6 +379,16 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(filters.requestMode);
     }
 
+    // Exclude a specific requestMode while keeping NULL rows (legacy individual requests).
+    // e.g. excludeRequestMode='company_target' → AND (requestMode IS NULL OR requestMode != 'company_target')
+    // Needed because individual completed view must not show company batch completions.
+    if (filters?.excludeRequestMode) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != ?)";
+      queryParams.push(filters.excludeRequestMode);
+      countParams.push(filters.excludeRequestMode);
+    }
+
     // Add date range filters
     if (filters?.startDate && filters?.endDate) {
       whereClause += whereClause ? " AND " : " WHERE ";

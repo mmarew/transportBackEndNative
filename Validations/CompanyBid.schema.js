@@ -47,6 +47,7 @@ exports.getBidsQuery = Joi.object({
       "rejected_by_shipper",
       "cancelled_by_company",
       "expired",
+      "completed",   // auto-set when all assignments reach a terminal state
     )
     .optional(),
   isCancellationSeenByCompany: Joi.string()

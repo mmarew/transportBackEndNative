@@ -590,6 +590,41 @@ exports.updateAssignmentStatus = async (
     vals,
   );
 
+  // ── Batch completion check ──────────────────────────────────────────────────
+  // Only run on terminal states (completed / cancelled / rejected_by_driver).
+  // Check: are ALL assignments for this batch now in a terminal state?
+  // Terminal = completed | cancelled | rejected_by_driver
+  //
+  // If 2 of 43 finish → remaining non-terminal = 41 → batch stays 'accepted_by_shipper'
+  // If all 43 reach any terminal state → remaining = 0 → batch → 'completed'
+  if (
+    assignmentStatus === "completed" ||
+    assignmentStatus === "cancelled" ||
+    assignmentStatus === "rejected_by_driver"
+  ) {
+    const [[{ remainingCount }]] = await db().query(
+      `SELECT COUNT(*) AS remainingCount
+       FROM CompanyBidVehicleAssignment
+       WHERE companyBidRequestUniqueId = ?
+         AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+         AND assignmentDeletedAt IS NULL`,
+      [assignment.companyBidRequestUniqueId],
+    );
+
+    if (remainingCount === 0) {
+      await db().query(
+        `UPDATE CompanyBidRequest
+         SET bidStatus = 'completed', bidUpdatedAt = ?
+         WHERE companyBidRequestUniqueId = ?`,
+        [currentDate(), assignment.companyBidRequestUniqueId],
+      );
+      logger.info("Batch auto-completed: all assignments resolved", {
+        companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+        finalAssignmentStatus: assignmentStatus,
+      });
+    }
+  }
+
   return {
     message: "success",
     data: {
@@ -665,21 +700,39 @@ exports.autoAssignBatch = async (data) => {
   }
 
   // 3. Find Available Fleet (Vehicles + Drivers)
+  //
+  // Two-layer exclusion:
+  //   Layer 1 (global):  Skip drivers/vehicles that have any ACTIVE assignment
+  //                      anywhere (not completed/cancelled/rejected).
+  //   Layer 2 (per-batch): Skip drivers who already REJECTED this specific batch.
+  //                        Once a driver declines, they should not be re-offered
+  //                        the same job even after auto-reassign is triggered.
+  //                        Note: only the driver is blocked, NOT the vehicle —
+  //                        the vehicle can still be paired with a different driver.
   const [availableFleet] = await db().query(
     `SELECT cv.vehicleUniqueId, vd.driverUserUniqueId, v.vehicleTypeUniqueId
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleDriver vd ON cv.vehicleUniqueId = vd.vehicleUniqueId
-     WHERE cv.companyUniqueId = ? 
+     WHERE cv.companyUniqueId = ?
        AND cv.assignmentStatus = 'active' AND cv.companyVehicleDeletedAt IS NULL
        AND vd.assignmentStatus = 'active'
+       -- Layer 1: no active trip elsewhere
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
          WHERE (cba.vehicleUniqueId = cv.vehicleUniqueId OR cba.driverUserUniqueId = vd.driverUserUniqueId)
            AND cba.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
            AND cba.assignmentDeletedAt IS NULL
+       )
+       -- Layer 2: driver has not already rejected THIS batch
+       AND NOT EXISTS (
+         SELECT 1 FROM CompanyBidVehicleAssignment cba_rej
+         WHERE cba_rej.driverUserUniqueId = vd.driverUserUniqueId
+           AND cba_rej.companyBidRequestUniqueId = ?
+           AND cba_rej.assignmentStatus = 'rejected_by_driver'
+           AND cba_rej.assignmentDeletedAt IS NULL
        )`,
-    [companyUniqueId],
+    [companyUniqueId, companyBidRequestUniqueId],
   );
 
   // 4. Handle Case: Fleet is busy but slots need assignment
