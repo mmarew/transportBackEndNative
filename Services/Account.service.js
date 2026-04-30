@@ -7,6 +7,7 @@ const {
   getRoleDocumentRequirements,
 } = require("./RoleDocumentRequirements.service");
 const { getUserByFilterDetailed } = require("./User.service");
+const { getDriverCompanies } = require("./CompanyVehicle.service");
 const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
@@ -337,6 +338,7 @@ const accountStatus = async ({
       requiredDocsResult,
       subscriptionCheck,
       userBalanceCheck,
+      companiesCheck,
     ] = await Promise.allSettled([
       // 1. Ban Check
       (async () => {
@@ -387,6 +389,11 @@ const accountStatus = async ({
           { userUniqueId: resolvedUserUniqueId, page: 1, limit: 1 },
         )
         : Promise.resolve(null),
+
+      // 6. Company Memberships (Drivers Only)
+      Number(roleId) === usersRoles.driverRoleId
+        ? getDriverCompanies(resolvedUserUniqueId)
+        : Promise.resolve([]),
     ]);
     //--- Process User Balance Check Result ---
     if (
@@ -525,6 +532,9 @@ const accountStatus = async ({
     const latestUserData = await getUserRoleStatusCurrent({
       data: latestUserDataParams,
     });
+    const driverCompanies =
+      companiesCheck.status === "fulfilled" ? companiesCheck.value || [] : [];
+
     return {
       message: "success",
 
@@ -536,6 +546,7 @@ const accountStatus = async ({
       unAttachedDocumentTypes,
       requiredDocuments,
       subscription: subscriptionInfo,
+      companies: driverCompanies,   // Companies this driver is a member of
       status: finalStatusId,
       reason,
       banData: banData?.isBanned ? banData.banDetails : null,

@@ -7,6 +7,65 @@ const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.servi
 const { usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
+ * Returns all companies a driver is associated with, via two paths:
+ *   1. Direct membership  (CompanyMembership)
+ *   2. Vehicle fleet      (VehicleDriver → CompanyVehicle → TransportCompany)
+ *
+ * This is the single source of truth for "which companies does this driver belong to?"
+ * Use this instead of writing raw SQL in other services.
+ *
+ * @param {string} driverUserUniqueId
+ * @returns {Promise<Array>} Array of company objects with a `source` field ('membership' | 'fleet')
+ */
+exports.getDriverCompanies = async (driverUserUniqueId) => {
+  const [rows] = await db().query(
+    `-- Path 1: driver is an explicit company member
+     SELECT
+       tc.companyUniqueId,
+       tc.companyName,
+       tc.companyPhone,
+       tc.companyEmail,
+       tc.companyAddress,
+       tc.approvalStatus,
+       cm.membershipUniqueId,
+       cm.membershipStartDate,
+       'membership' AS source
+     FROM CompanyMembership cm
+     JOIN TransportCompany tc ON cm.companyUniqueId = tc.companyUniqueId
+     WHERE cm.userUniqueId = ?
+       AND cm.membershipDeletedAt IS NULL
+       AND tc.isDeleted = 0
+
+     UNION
+
+     -- Path 2: driver's vehicle is in a company fleet
+     SELECT
+       tc.companyUniqueId,
+       tc.companyName,
+       tc.companyPhone,
+       tc.companyEmail,
+       tc.companyAddress,
+       tc.approvalStatus,
+       NULL               AS membershipUniqueId,
+       cv.assignmentStartDate AS membershipStartDate,
+       'fleet'            AS source
+     FROM VehicleDriver vd
+     JOIN CompanyVehicle cv
+        ON cv.vehicleUniqueId = vd.vehicleUniqueId
+       AND cv.assignmentStatus = 'active'
+       AND cv.companyVehicleDeletedAt IS NULL
+     JOIN TransportCompany tc
+        ON tc.companyUniqueId = cv.companyUniqueId
+       AND tc.isDeleted = 0
+     WHERE vd.driverUserUniqueId = ?
+       AND vd.assignmentStatus = 'active'
+       AND vd.assignmentEndDate IS NULL`,
+    [driverUserUniqueId, driverUserUniqueId],
+  );
+  return rows || [];
+};
+
+/**
  * Assigns a vehicle to a transport company fleet.
  * @param {Object} data - The assignment data
  * @param {string} data.companyUniqueId - ID of the company
@@ -121,13 +180,23 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
-    `SELECT cv.*, 
-            v.licensePlate, v.color, 
-            vt.vehicleTypeName, vt.carryingCapacity
+    `SELECT cv.*,
+            v.licensePlate, v.color,
+            vt.vehicleTypeName, vt.carryingCapacity,
+            vd.driverUserUniqueId,
+            vd.assignmentStartDate AS driverAssignmentStartDate,
+            u.fullName  AS driverFullName,
+            u.phoneNumber AS driverPhoneNumber,
+            u.email AS driverEmail
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-     ${where} 
+     LEFT JOIN VehicleDriver vd
+            ON vd.vehicleUniqueId = cv.vehicleUniqueId
+           AND vd.assignmentStatus = 'active'
+           AND vd.assignmentEndDate IS NULL
+     LEFT JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
+     ${where}
      ORDER BY cv.companyVehicleCreatedAt DESC`,
     `SELECT COUNT(*) AS total FROM CompanyVehicle cv ${where}`,
     params,
