@@ -128,18 +128,26 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   const clauses = ["TransportCompany.isDeleted = 0"];
   const params = [];
 
-  // Data Segregation: Non-admins only see companies they belong to
+  // Data Segregation:
+  // - Admins/SuperAdmins: see all companies
+  // - Drivers: see all APPROVED companies (needed to pick a company when registering a vehicle)
+  // - Other non-admins (passengers, companyAdmin, etc.): only see companies they belong to
   if (
     user.roleId !== usersRoles.adminRoleId &&
     user.roleId !== usersRoles.supperAdminRoleId
   ) {
-    clauses.push(
-      `TransportCompany.companyUniqueId IN (
-        SELECT companyUniqueId FROM CompanyMembership 
-        WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
-      )`,
-    );
-    params.push(user.userUniqueId);
+    if (user.roleId === usersRoles.driverRoleId) {
+      // Drivers can browse all approved companies to register their vehicle
+      clauses.push("TransportCompany.approvalStatus = 'approved'");
+    } else {
+      clauses.push(
+        `TransportCompany.companyUniqueId IN (
+          SELECT companyUniqueId FROM CompanyMembership 
+          WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
+        )`,
+      );
+      params.push(user.userUniqueId);
+    }
   }
 
   if (filters.companyUniqueId) {
