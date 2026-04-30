@@ -11,7 +11,86 @@ const {
 } = require("./CompanyHelper.service");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
+const { sendSocketIONotificationToDriver } = require("../Utils/Notifications");
+const messageTypes = require("../Utils/MessageTypes");
 const logger = require("../Utils/logger");
+
+/**
+ * Sends both FCM + WebSocket notification to an assigned driver.
+ * Used by createAssignment, createBulkAssignments, and autoAssignBatch
+ * so all three paths behave identically.
+ *
+ * @param {Object} opts
+ * @param {string} opts.driverUserUniqueId
+ * @param {string} opts.assignmentUniqueId
+ * @param {string} opts.driverRequestUniqueId
+ * @param {string} opts.passengerRequestUniqueId
+ * @param {string} opts.companyBidRequestUniqueId
+ */
+const notifyAssignedDriver = async (opts) => {
+  const {
+    driverUserUniqueId,
+    assignmentUniqueId,
+    driverRequestUniqueId,
+    passengerRequestUniqueId,
+    companyBidRequestUniqueId,
+  } = opts;
+
+  const notificationData = {
+    type: "company_driver_assignment",
+    assignmentUniqueId,
+    driverRequestUniqueId,
+    passengerRequestUniqueId,
+    companyBidRequestUniqueId,
+  };
+
+  // 1. FCM — wakes up the app even when it's in the background
+  sendFCMNotificationToUser({
+    userUniqueId: driverUserUniqueId,
+    roleId: usersRoles.driverRoleId,
+    notification: {
+      title: "New freight assignment",
+      body: "You have been assigned to a freight job. Please confirm or reject.",
+    },
+    data: notificationData,
+  }).catch((e) =>
+    logger.error("FCM failed for driver assignment", {
+      error: e.message,
+      driverUserUniqueId,
+      assignmentUniqueId,
+    }),
+  );
+
+  // 2. WebSocket — instant delivery when app is already open
+  try {
+    const [userRows] = await db().query(
+      "SELECT phoneNumber FROM Users WHERE userUniqueId = ? LIMIT 1",
+      [driverUserUniqueId],
+    );
+    const phoneNumber = userRows?.[0]?.phoneNumber;
+    if (phoneNumber) {
+      sendSocketIONotificationToDriver({
+        phoneNumber,
+        message: {
+          messageTypes: messageTypes.company_driver_assignment,
+          message: "success",
+          data: notificationData,
+        },
+      }).catch((e) =>
+        logger.warn("WebSocket failed for driver assignment (driver may be offline)", {
+          error: e.message,
+          driverUserUniqueId,
+          assignmentUniqueId,
+        }),
+      );
+    }
+  } catch (e) {
+    logger.warn("Could not fetch driver phone for WebSocket notification", {
+      error: e.message,
+      driverUserUniqueId,
+    });
+  }
+};
 
 /**
  * createAssignment
@@ -106,28 +185,14 @@ exports.createAssignment = async (data) => {
     ],
   );
 
-  // ── Notify the assigned driver via FCM ────────────────────────────────────
-  sendFCMNotificationToUser({
-    userUniqueId: driverUserUniqueId,
-    roleId: usersRoles.driverRoleId,
-    notification: {
-      title: "New freight assignment",
-      body: "You have been assigned to a freight job by your dispatcher. Please confirm or reject.",
-    },
-    data: {
-      type: "company_driver_assignment",
-      assignmentUniqueId,
-      driverRequestUniqueId,
-      passengerRequestUniqueId,
-      companyBidRequestUniqueId,
-    },
-  }).catch((e) =>
-    logger.error("FCM notification failed for driver assignment", {
-      error: e.message,
-      driverUserUniqueId,
-      assignmentUniqueId,
-    }),
-  );
+  // ── Notify the assigned driver (FCM + WebSocket) ──────────────────────────
+  notifyAssignedDriver({
+    driverUserUniqueId,
+    assignmentUniqueId,
+    driverRequestUniqueId,
+    passengerRequestUniqueId,
+    companyBidRequestUniqueId,
+  });
 
   return {
     message: "success",
@@ -235,27 +300,14 @@ exports.createBulkAssignments = async (data) => {
       ],
     );
 
-    // Notification (Side effect - best effort)
-    sendFCMNotificationToUser({
-      userUniqueId: driverUserUniqueId,
-      roleId: usersRoles.driverRoleId,
-      notification: {
-        title: "New freight assignment",
-        body: "You have been assigned to a freight job by your dispatcher.",
-      },
-      data: {
-        type: "company_driver_assignment",
-        assignmentUniqueId,
-        driverRequestUniqueId,
-        passengerRequestUniqueId,
-        companyBidRequestUniqueId,
-      },
-    }).catch((e) =>
-      logger.error("FCM failed in bulk", {
-        error: e.message,
-        driverUserUniqueId,
-      }),
-    );
+    // Notify driver (FCM + WebSocket)
+    notifyAssignedDriver({
+      driverUserUniqueId,
+      assignmentUniqueId,
+      driverRequestUniqueId,
+      passengerRequestUniqueId,
+      companyBidRequestUniqueId,
+    });
 
     results.push({ assignmentUniqueId, passengerRequestUniqueId });
   }
@@ -809,7 +861,15 @@ exports.autoAssignBatch = async (data) => {
       ],
     );
 
-    // Skip FCM for bulk auto-assign speed, but we can add it if needed
+    // Notify driver (FCM + WebSocket)
+    notifyAssignedDriver({
+      driverUserUniqueId: item.driverUserUniqueId,
+      assignmentUniqueId,
+      driverRequestUniqueId,
+      passengerRequestUniqueId: item.passengerRequestUniqueId,
+      companyBidRequestUniqueId,
+    });
+
     results.push({
       assignmentUniqueId,
       passengerRequestUniqueId: item.passengerRequestUniqueId,

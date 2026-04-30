@@ -6,6 +6,7 @@ const {
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
 } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
+const { pool } = require("../../Middleware/Database.config");
 const {
   journeyStatusMap,
   listOfDocumentsTypeAndId,
@@ -555,10 +556,44 @@ const handleExistingJourney = async (
     }
   }
 
+  // ── Company assignment check (single extra query) ───────────────────────
+  // If this DriverRequest was created by a dispatcher (company flow), attach
+  // the assignment metadata so the driver app knows to call
+  // PATCH /api/company/assignments/:assignmentUniqueId/status
+  // instead of the individual-flow endpoints.
+  let companyAssignment = null;
+  try {
+    const db = pool;
+    const [caRows] = await db.query(
+      `SELECT
+         assignmentUniqueId,
+         companyBidRequestUniqueId,
+         passengerRequestUniqueId,
+         vehicleUniqueId,
+         assignmentStatus
+       FROM CompanyBidVehicleAssignment
+       WHERE driverRequestUniqueId = ?
+         AND assignmentDeletedAt IS NULL
+       LIMIT 1`,
+      [driverRequestUniqueId],
+    );
+    if (caRows && caRows.length > 0) {
+      companyAssignment = caRows[0];
+    }
+  } catch (caErr) {
+    logger.warn("Could not fetch company assignment for driver request", {
+      driverRequestUniqueId,
+      error: caErr.message,
+    });
+  }
+
   return {
     message: "success",
     status: passenger?.journeyStatusId || journeyStatusId,
     ...responseMessage,
+    // null  → individual job  → use /api/driver/* endpoints
+    // object → company job    → use PATCH /api/company/assignments/:id/status
+    companyAssignment,
   };
 };
 

@@ -168,5 +168,9 @@ const messageTypes = {
     message: "Company submitted a bid",
     details: "When a transport company submits a bid for a freight batch, the shipper is notified.",
   },
+  company_driver_assignment: {
+    message: "New freight assignment",
+    details: "When a dispatcher assigns a driver to a freight job via company bid. Driver must confirm or reject.",
+  },
 };
 module.exports = messageTypes;
