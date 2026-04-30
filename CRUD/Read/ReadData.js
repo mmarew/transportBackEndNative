@@ -169,7 +169,6 @@ const findNearbyPassengers = async ({
   originLongitude,
   vehicleTypeUniqueId,
 }) => {
-  // find near by passengers based on location they stand, so we can find passengers who are close to the driver, but not canceled by driver before
   const latitudeRange = {
     min: parseFloat(originLatitude) - searchRange,
     max: parseFloat(originLatitude) + searchRange,
@@ -184,7 +183,12 @@ const findNearbyPassengers = async ({
     joins: [
       {
         table: "PassengerRequest",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        // company_target requests are excluded here: they must go through the
+        // company bid → assignment flow and must never be auto-matched to
+        // individual drivers. passengerRequestDeletedAt IS NULL skips soft deletes.
+        on: `PassengerRequest.userUniqueId = Users.userUniqueId
+             AND (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != 'company_target')
+             AND PassengerRequest.passengerRequestDeletedAt IS NULL`,
       },
     ],
     conditions: {
@@ -198,13 +202,14 @@ const findNearbyPassengers = async ({
         journeyStatusMap.waiting,
         journeyStatusMap.requested,
         journeyStatusMap.acceptedByDriver,
-      ], // Status 1: Waiting for a driver
+      ],
     },
     operator: "AND",
   });
 
   return nearByPassengers;
 };
+
 const performJoinSelect = async ({
   baseTable,
   joins = [],
@@ -309,6 +314,7 @@ const checkActivePassengerRequest = async ({
         pr.shippingDate,
         pr.deliveryDate,
         pr.shippingCost,
+        pr.requestMode,
         u.fullName,
         u.phoneNumber,
         u.email,

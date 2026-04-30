@@ -1430,6 +1430,12 @@ const verifyPassengerStatus = async ({
     passenger.push(passengerRequest);
 
     if (journeyStatusId === journeyStatusMap?.waiting) {
+      // company_target requests go through the company bid → assignment flow.
+      // They must NEVER be auto-matched to individual drivers here.
+      if (passengerRequest.requestMode === 'company_target') {
+        continue;
+      }
+
       const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
       for (const driver of nearbyDrivers) {
         const [documents, vehicle] = await Promise.all([

@@ -51,7 +51,6 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // 5. Data Sanitization - Handled by Joi and Helmet
 
-
 // --- ROUTES ---
 
 // Serve static files from the 'uploads' directory
@@ -59,14 +58,18 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/Assets", express.static(path.join(__dirname, "../Assets")));
 
 // API Documentation - Swagger UI
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  explorer: true,
-  swaggerOptions: {
-    docExpansion: "none",
-    filter: true,
-    showRequestDuration: true,
-  }
-}));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    explorer: true,
+    swaggerOptions: {
+      docExpansion: "none",
+      filter: true,
+      showRequestDuration: true,
+    },
+  }),
+);
 
 // API Routes - Protected by API Key
 // app.use("/", apiKeyAuth, Routes);

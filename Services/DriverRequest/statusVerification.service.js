@@ -119,20 +119,26 @@ const handleJourneyStatusOne = async (
       driverRequestUniqueId,
       userUniqueId,
     } = driverRequest;
-    // 1. Find nearby passengers
+    // 1. Find nearby passengers (already excludes company_target at DB level)
     const nearbyPassengers = await findNearbyPassengers({
       originLatitude,
       originLongitude,
       vehicleTypeUniqueId,
     });
+
+    // Defence-in-depth: drop any company_target slips through (e.g. NULL edge case)
+    const individualPassengers = (nearbyPassengers || []).filter(
+      p => !p.requestMode || p.requestMode !== 'company_target',
+    );
+
     // 2. If no passengers found, return early
-    if (!nearbyPassengers?.length) {
+    if (!individualPassengers?.length) {
       return createResponse(driverRequest, vehicle, null, null, 1);
     }
 
     // 3. Find first non-rejected passenger
     const nonRejectedPassenger = await findNonRejectedPassenger(
-      nearbyPassengers,
+      individualPassengers,
       userUniqueId,
     );
 
