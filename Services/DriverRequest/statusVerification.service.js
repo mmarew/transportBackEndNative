@@ -129,17 +129,24 @@ const handleJourneyStatusOne = async (
     try {
       const [caRows] = await pool.query(
         `SELECT
-           assignmentUniqueId,
-           companyBidRequestUniqueId,
-           passengerRequestUniqueId,
-           vehicleUniqueId,
-           driverRequestUniqueId,
-           assignmentStatus
-         FROM CompanyBidVehicleAssignment
-         WHERE driverUserUniqueId = ?
-           AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
-           AND assignmentDeletedAt IS NULL
-         ORDER BY assignmentCreatedAt DESC
+           cbva.assignmentUniqueId,
+           cbva.companyBidRequestUniqueId,
+           cbva.passengerRequestUniqueId,
+           cbva.vehicleUniqueId,
+           cbva.driverRequestUniqueId,
+           cbva.assignmentStatus,
+           tc.companyUniqueId,
+           tc.companyName,
+           tc.companyPhone
+         FROM CompanyBidVehicleAssignment cbva
+         LEFT JOIN CompanyBidRequest cbr
+           ON cbva.companyBidRequestUniqueId = cbr.companyBidRequestUniqueId
+         LEFT JOIN TransportCompany tc
+           ON cbr.companyUniqueId = tc.companyUniqueId
+         WHERE cbva.driverUserUniqueId = ?
+           AND cbva.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+           AND cbva.assignmentDeletedAt IS NULL
+         ORDER BY cbva.assignmentCreatedAt DESC
          LIMIT 1`,
         [userUniqueId],
       );
@@ -631,17 +638,24 @@ const handleExistingJourney = async (
     const db = pool;
     const [caRows] = await db.query(
       `SELECT
-         assignmentUniqueId,
-         companyBidRequestUniqueId,
-         passengerRequestUniqueId,
-         vehicleUniqueId,
-         driverRequestUniqueId,
-         assignmentStatus
-       FROM CompanyBidVehicleAssignment
-       WHERE driverUserUniqueId = ?
-         AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
-         AND assignmentDeletedAt IS NULL
-       ORDER BY assignmentCreatedAt DESC
+         cbva.assignmentUniqueId,
+         cbva.companyBidRequestUniqueId,
+         cbva.passengerRequestUniqueId,
+         cbva.vehicleUniqueId,
+         cbva.driverRequestUniqueId,
+         cbva.assignmentStatus,
+         tc.companyUniqueId,
+         tc.companyName,
+         tc.companyPhone
+       FROM CompanyBidVehicleAssignment cbva
+       LEFT JOIN CompanyBidRequest cbr
+         ON cbva.companyBidRequestUniqueId = cbr.companyBidRequestUniqueId
+       LEFT JOIN TransportCompany tc
+         ON cbr.companyUniqueId = tc.companyUniqueId
+       WHERE cbva.driverUserUniqueId = ?
+         AND cbva.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+         AND cbva.assignmentDeletedAt IS NULL
+       ORDER BY cbva.assignmentCreatedAt DESC
        LIMIT 1`,
       [driverRequest.userUniqueId],
     );
