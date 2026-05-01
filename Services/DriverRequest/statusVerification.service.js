@@ -144,7 +144,7 @@ const handleJourneyStatusOne = async (
          LEFT JOIN TransportCompany tc
            ON cbr.companyUniqueId = tc.companyUniqueId
          WHERE cbva.driverUserUniqueId = ?
-           AND cbva.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+           AND cbva.assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
            AND cbva.assignmentDeletedAt IS NULL
          ORDER BY cbva.assignmentCreatedAt DESC
          LIMIT 1`,
@@ -314,7 +314,7 @@ const handleExistingJourney = async (
       const [activeCompanyAssignment] = await pool.query(
         `SELECT assignmentId FROM CompanyBidVehicleAssignment
          WHERE driverUserUniqueId = ?
-           AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+           AND assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
            AND assignmentDeletedAt IS NULL
          LIMIT 1`,
         [driverRequest.userUniqueId],
@@ -658,7 +658,7 @@ const handleExistingJourney = async (
        LEFT JOIN TransportCompany tc
          ON cbr.companyUniqueId = tc.companyUniqueId
        WHERE cbva.driverUserUniqueId = ?
-         AND cbva.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+         AND cbva.assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
          AND cbva.assignmentDeletedAt IS NULL
        ORDER BY cbva.assignmentCreatedAt DESC
        LIMIT 1`,

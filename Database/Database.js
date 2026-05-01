@@ -1447,11 +1447,12 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     -- Assignment lifecycle
     assignmentStatus ENUM(
         'assigned',            -- Dispatcher assigned; DriverRequest created; waiting for driver to confirm
-        'confirmed_by_driver', -- Driver confirmed; JourneyDecision created
-        'rejected_by_driver',  -- Driver refused; DriverRequest cancelled; dispatcher must reassign
+        'confirmed_by_driver', -- Driver confirmed; JourneyDecision advanced to status 4
+        'rejected_by_driver',  -- Driver refused BEFORE confirming; dispatcher must reassign
+        'cancelled_by_driver', -- Driver cancelled AFTER confirming (mid-job cancellation)
         'reassigned',          -- Replacement row after a rejection
-        'cancelled_by_company',           -- Cancelled before driver confirmed
-        'cancelled_by_shipper',           -- Cancelled before driver confirmed
+        'cancelled_by_company',  -- Dispatcher/company cancelled the assignment
+        'cancelled_by_shipper',  -- Shipper cancelled the request
         'completed'            -- Journey completed successfully
     ) NOT NULL DEFAULT 'assigned',
 

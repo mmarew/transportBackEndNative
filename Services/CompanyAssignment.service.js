@@ -341,7 +341,7 @@ exports.createAssignment = async (data) => {
   const [dup] = await db().query(
     `SELECT assignmentId FROM CompanyBidVehicleAssignment
      WHERE companyBidRequestUniqueId = ? AND passengerRequestUniqueId = ? AND assignmentDeletedAt IS NULL
-     AND assignmentStatus NOT IN ('rejected_by_driver','cancelled')`,
+     AND assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')`,
     [companyBidRequestUniqueId, passengerRequestUniqueId],
   );
   if (dup.length > 0) {
@@ -465,7 +465,7 @@ exports.createBulkAssignments = async (data) => {
     const [dup] = await db().query(
       `SELECT assignmentId FROM CompanyBidVehicleAssignment
        WHERE companyBidRequestUniqueId = ? AND passengerRequestUniqueId = ? AND assignmentDeletedAt IS NULL
-       AND assignmentStatus NOT IN ('rejected_by_driver','cancelled')`,
+       AND assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')`,
       [companyBidRequestUniqueId, passengerRequestUniqueId],
     );
     if (dup.length > 0) {
@@ -622,14 +622,20 @@ exports.updateAssignmentStatus = async (
   }
 
   // ── REJECTION & CANCELLATION HANDLER (Clean up state + Notify Dispatcher) ──
+  //
+  // Three terminal-cancel statuses a driver can set:
+  //   rejected_by_driver  — driver refused BEFORE confirming (never committed)
+  //   cancelled_by_driver — driver cancelled AFTER confirming (committed but pulled out)
+  //   cancelled           — legacy fallthrough, treated the same as cancelled_by_driver
+  //
+  // All three reset DriverRequest to waiting (status 1) so the driver is
+  // available again and the slot can be reassigned.
   if (
     assignmentStatus === "rejected_by_driver" ||
+    assignmentStatus === "cancelled_by_driver" ||
     assignmentStatus === "cancelled"
   ) {
-    const statusId =
-      assignmentStatus === "rejected_by_driver"
-        ? journeyStatusMap.rejectedByDriver
-        : journeyStatusMap.cancelledBySystem;
+    const statusId = journeyStatusMap.waiting; // always reset to 1 — driver is free again
 
     if (assignment.driverRequestUniqueId) {
       await db().query(
@@ -638,32 +644,39 @@ exports.updateAssignmentStatus = async (
       );
     }
 
-    // Notify dispatcher if it's a rejection
-    if (assignmentStatus === "rejected_by_driver") {
-      const [driverRows] = await db().query(
-        "SELECT fullName FROM Users WHERE userUniqueId = ?",
-        [assignment.driverUserUniqueId],
-      );
-      const driver = driverRows?.[0];
+    // Notify the dispatcher for any cancellation so they can reassign
+    const [driverRows] = await db().query(
+      "SELECT fullName FROM Users WHERE userUniqueId = ?",
+      [assignment.driverUserUniqueId],
+    );
+    const driver = driverRows?.[0];
+    const isMidJobCancel =
+      assignmentStatus === "cancelled_by_driver" || assignmentStatus === "cancelled";
 
-      sendFCMNotificationToUser({
-        userUniqueId: assignment.assignmentCreatedBy,
-        roleId: usersRoles.companyAdminRoleId,
-        notification: {
-          title: "Assignment Rejected",
-          body: `Driver ${driver?.fullName || "assigned"} has rejected the freight assignment. Please reassign.`,
-        },
-        data: {
-          type: "assignment_rejected",
-          assignmentUniqueId,
-          passengerRequestUniqueId: assignment.passengerRequestUniqueId,
-          companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
-        },
-      }).catch((e) =>
-        logger.error("FCM failed for dispatcher notification", {
-          error: e.message,
-        }),
-      );
+    sendFCMNotificationToUser({
+      userUniqueId: assignment.assignmentCreatedBy,
+      roleId: usersRoles.companyAdminRoleId,
+      notification: {
+        title: isMidJobCancel ? "Assignment Cancelled by Driver" : "Assignment Rejected",
+        body: isMidJobCancel
+          ? `Driver ${driver?.fullName || "assigned"} cancelled the freight assignment mid-job. Please reassign.`
+          : `Driver ${driver?.fullName || "assigned"} has rejected the freight assignment. Please reassign.`,
+      },
+      data: {
+        type: isMidJobCancel ? "assignment_cancelled_by_driver" : "assignment_rejected",
+        assignmentUniqueId,
+        passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+        companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+      },
+    }).catch((e) =>
+      logger.error("FCM failed for dispatcher notification", {
+        error: e.message,
+      }),
+    );
+
+    // Normalise legacy 'cancelled' to the correct ENUM value
+    if (assignmentStatus === "cancelled") {
+      assignmentStatus = "cancelled_by_driver";
     }
   }
 
@@ -890,7 +903,7 @@ exports.updateAssignmentStatus = async (
       `SELECT COUNT(*) AS remainingCount
        FROM CompanyBidVehicleAssignment
        WHERE companyBidRequestUniqueId = ?
-         AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+         AND assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
          AND assignmentDeletedAt IS NULL`,
       [assignment.companyBidRequestUniqueId],
     );
@@ -971,7 +984,7 @@ exports.autoAssignBatch = async (data) => {
          WHERE cba.passengerRequestUniqueId = pr.passengerRequestUniqueId
            AND cba.companyBidRequestUniqueId = ?
            AND cba.assignmentDeletedAt IS NULL
-           AND cba.assignmentStatus NOT IN ('rejected_by_driver', 'cancelled')
+           AND cba.assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')
        )`,
     [passengerRequestBatchId, companyBidRequestUniqueId],
   );
@@ -1005,7 +1018,7 @@ exports.autoAssignBatch = async (data) => {
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
          WHERE (cba.vehicleUniqueId = cv.vehicleUniqueId OR cba.driverUserUniqueId = vd.driverUserUniqueId)
-           AND cba.assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+           AND cba.assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
            AND cba.assignmentDeletedAt IS NULL
        )
        -- Layer 2: driver has not already rejected THIS batch

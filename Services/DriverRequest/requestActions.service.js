@@ -1131,16 +1131,19 @@ const cancelDriverRequest = async (data) => {
           });
         }
 
-        // 6. Update CompanyBidVehicleAssignment if this driver was on a company bid
-        // We use driverRequestId to uniquely identify the assignment.
+        // 6. Update CompanyBidVehicleAssignment if this driver was on a company bid.
+        // ENUM values: 'rejected_by_driver' (pre-confirm) | 'cancelled_by_driver' (post-confirm)
         const assignmentStatusStr =
           journeyStatusId === journeyStatusMap.rejectedByDriver
             ? "rejected_by_driver"
-            : "cancelled";
+            : "cancelled_by_driver";
         await connection.query(
-          `UPDATE CompanyBidVehicleAssignment 
-           SET assignmentStatus = ?, assignmentUpdatedAt = ? 
-           WHERE driverRequestUniqueId = (SELECT driverRequestUniqueId FROM DriverRequest WHERE driverRequestId = ?)`,
+          `UPDATE CompanyBidVehicleAssignment
+           SET assignmentStatus = ?, assignmentUpdatedAt = ?
+           WHERE driverRequestUniqueId = (
+             SELECT driverRequestUniqueId FROM DriverRequest WHERE driverRequestId = ? LIMIT 1
+           )
+             AND assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')`,
           [assignmentStatusStr, currentDate(), driverRequestId],
         );
       },
