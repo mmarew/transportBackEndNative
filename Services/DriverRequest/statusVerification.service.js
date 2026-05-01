@@ -119,6 +119,40 @@ const handleJourneyStatusOne = async (
       driverRequestUniqueId,
       userUniqueId,
     } = driverRequest;
+
+    // ── Company assignment check ─────────────────────────────────────────
+    // A status-1 driver may have a pending company assignment even though
+    // they have no individual passengers nearby.
+    // Look up by driverUserUniqueId (not driverRequestUniqueId) because
+    // company flows create a NEW separate DriverRequest.
+    let companyAssignment = null;
+    try {
+      const [caRows] = await pool.query(
+        `SELECT
+           assignmentUniqueId,
+           companyBidRequestUniqueId,
+           passengerRequestUniqueId,
+           vehicleUniqueId,
+           driverRequestUniqueId,
+           assignmentStatus
+         FROM CompanyBidVehicleAssignment
+         WHERE driverUserUniqueId = ?
+           AND assignmentStatus = 'assigned'
+           AND assignmentDeletedAt IS NULL
+         ORDER BY assignmentCreatedAt DESC
+         LIMIT 1`,
+        [userUniqueId],
+      );
+      if (caRows && caRows.length > 0) {
+        companyAssignment = caRows[0];
+      }
+    } catch (caErr) {
+      logger.warn("Could not fetch company assignment for status-1 driver", {
+        driverUserUniqueId: userUniqueId,
+        error: caErr.message,
+      });
+    }
+
     // 1. Find nearby passengers (already excludes company_target at DB level)
     const nearbyPassengers = await findNearbyPassengers({
       originLatitude,
@@ -128,12 +162,12 @@ const handleJourneyStatusOne = async (
 
     // Defence-in-depth: drop any company_target slips through (e.g. NULL edge case)
     const individualPassengers = (nearbyPassengers || []).filter(
-      p => !p.requestMode || p.requestMode !== 'company_target',
+      (p) => !p.requestMode || p.requestMode !== "company_target",
     );
 
-    // 2. If no passengers found, return early
+    // 2. If no passengers found, return with companyAssignment (may be non-null for company drivers)
     if (!individualPassengers?.length) {
-      return createResponse(driverRequest, vehicle, null, null, 1);
+      return { ...createResponse(driverRequest, vehicle, null, null, 1), companyAssignment };
     }
 
     // 3. Find first non-rejected passenger
@@ -142,10 +176,9 @@ const handleJourneyStatusOne = async (
       userUniqueId,
     );
 
-    // return;
     // 4. If no suitable passenger found, return waiting status
     if (!nonRejectedPassenger) {
-      return createResponse(driverRequest, vehicle, null, null, 1);
+      return { ...createResponse(driverRequest, vehicle, null, null, 1), companyAssignment };
     }
 
     // 5. Create journey decision and update statuses
@@ -185,11 +218,6 @@ const handleJourneyStatusOne = async (
       const driverProfilePhoto =
         driverProfilePhotoData?.[lastPhotoIndex]?.attachedDocumentName;
 
-      // Transform structure to match getDetailedJourneyData format:
-      // - passengerRequest (single object, not array)
-      // - driverRequests (array with vehicleOfDriver, not nested driver/vehicle)
-      // - decisions (array)
-      // - journey (empty object, not null)
       const passengerRequest = {
         ...nonRejectedPassenger,
         journeyStatusId: journeyStatusMap?.requested,
@@ -202,8 +230,6 @@ const handleJourneyStatusOne = async (
         vehicleOfDriver: vehicle,
       };
 
-      // Send notification with structure matching getDetailedJourneyData format
-      // Wrap in formattedData array to match getPassengerRequest4allOrSingleUser response
       await sendSocketIONotificationToPassenger({
         message: {
           messageTypes: messageTypes.driver_found_shipper_request,
@@ -211,10 +237,10 @@ const handleJourneyStatusOne = async (
           status: journeyStatusMap.requested,
           formattedData: [
             {
-              passengerRequest, // Single object, not array
-              driverRequests: [driverRequestWithVehicle], // Array with vehicleOfDriver
+              passengerRequest,
+              driverRequests: [driverRequestWithVehicle],
               decisions: [journeyDecisionPayload],
-              journey: {}, // Empty object, not null
+              journey: {},
             },
           ],
         },
@@ -226,6 +252,7 @@ const handleJourneyStatusOne = async (
       message: "success",
       status: journeyStatusMap.requested,
       ...response,
+      companyAssignment, // always included — null for individual matches
     };
   } catch (error) {
     throw error;
@@ -562,11 +589,12 @@ const handleExistingJourney = async (
     }
   }
 
-  // ── Company assignment check (single extra query) ───────────────────────
-  // If this DriverRequest was created by a dispatcher (company flow), attach
-  // the assignment metadata so the driver app knows to call
-  // PATCH /api/company/assignments/:assignmentUniqueId/status
-  // instead of the individual-flow endpoints.
+  // ── Company assignment check ────────────────────────────────────────────
+  // Look up pending company assignments by driverUserUniqueId (not driverRequestUniqueId)
+  // because company assignment flows (auto/bulk/manual) create a NEW DriverRequest —
+  // different from the one the driver is currently polling with.
+  // Filtering by assignmentStatus='assigned' ensures we only show jobs
+  // still waiting for the driver to confirm.
   let companyAssignment = null;
   try {
     const db = pool;
@@ -576,19 +604,22 @@ const handleExistingJourney = async (
          companyBidRequestUniqueId,
          passengerRequestUniqueId,
          vehicleUniqueId,
+         driverRequestUniqueId,
          assignmentStatus
        FROM CompanyBidVehicleAssignment
-       WHERE driverRequestUniqueId = ?
+       WHERE driverUserUniqueId = ?
+         AND assignmentStatus = 'assigned'
          AND assignmentDeletedAt IS NULL
+       ORDER BY assignmentCreatedAt DESC
        LIMIT 1`,
-      [driverRequestUniqueId],
+      [driverRequest.userUniqueId],
     );
     if (caRows && caRows.length > 0) {
       companyAssignment = caRows[0];
     }
   } catch (caErr) {
-    logger.warn("Could not fetch company assignment for driver request", {
-      driverRequestUniqueId,
+    logger.warn("Could not fetch company assignment for driver", {
+      driverUserUniqueId: driverRequest.userUniqueId,
       error: caErr.message,
     });
   }

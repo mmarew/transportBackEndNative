@@ -150,8 +150,12 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     // - Local arrays prevent race conditions on shared data structures
     // Note: Minor race condition on notifiedDrivers Set (check-then-add) may cause
     // duplicate notifications to the same driver, but this is acceptable and non-critical
+    // Only individual requests get auto-matched to nearby drivers.
+    // company_target requests go through company bid → dispatcher assignment flow.
     const waitingRequests = newRequests.filter(
-      (req) => req?.journeyStatusId === journeyStatusMap.waiting,
+      (req) =>
+        req?.journeyStatusId === journeyStatusMap.waiting &&
+        req?.requestMode !== 'company_target',
     );
 
     if (waitingRequests.length > 0) {
