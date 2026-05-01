@@ -137,7 +137,7 @@ const handleJourneyStatusOne = async (
            assignmentStatus
          FROM CompanyBidVehicleAssignment
          WHERE driverUserUniqueId = ?
-           AND assignmentStatus = 'assigned'
+           AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
            AND assignmentDeletedAt IS NULL
          ORDER BY assignmentCreatedAt DESC
          LIMIT 1`,
@@ -285,12 +285,43 @@ const handleExistingJourney = async (
 
   const journeyDecisionUniqueId = journeyDecision?.journeyDecisionUniqueId;
 
-  // If no journeyDecisionUniqueId, handle early return
-  // This is a data consistency fix: if status > 1 but no JourneyDecision exists, mark as waiting
+  // If no journeyDecisionUniqueId, handle early return.
+  // This is a data consistency fix: if status > 1 but no JourneyDecision exists, mark as waiting.
+  //
+  // ⚠️  COMPANY FLOW EXCEPTION: In the company bid flow, DriverRequest is set to
+  //     status 2 (requested) when the dispatcher assigns the driver, but a
+  //     JourneyDecision is NOT created until the driver explicitly confirms (→ status 4).
+  //     We must NOT reset status-2 company drivers to status 1 — they are waiting
+  //     for the driver to confirm the assignment via PATCH /api/company/assignments/:id/status.
   if (!journeyDecisionUniqueId) {
-    // if driverRequest?.journeyStatusId > 1 there must be a connection with shipper and JourneyDecisions can't be null/undefined but here it is null/undefined so we need to handle this case so let us update the journeyStatusId to waiting
-    // Single table update - no transaction needed (only updating DriverRequest)
     if (driverRequest?.journeyStatusId > 1) {
+      // Check for an active company assignment before resetting.
+      // If one exists, this driver is in the company flow and the missing
+      // JourneyDecision is expected — do NOT reset to waiting.
+      const [activeCompanyAssignment] = await pool.query(
+        `SELECT assignmentId FROM CompanyBidVehicleAssignment
+         WHERE driverUserUniqueId = ?
+           AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
+           AND assignmentDeletedAt IS NULL
+         LIMIT 1`,
+        [driverRequest.userUniqueId],
+      );
+
+      if (activeCompanyAssignment && activeCompanyAssignment.length > 0) {
+        // Company flow: no JourneyDecision yet is expected. Return current status as-is.
+        return {
+          message: "success",
+          status: driverRequest.journeyStatusId,
+          driver: { driver: driverRequest, vehicle },
+          passenger: null,
+          journey: null,
+          decision: null,
+          companyAssignment: activeCompanyAssignment[0],
+        };
+      }
+
+      // Individual flow only: status > 1 with no JourneyDecision is a data
+      // inconsistency — reset to waiting so the driver can re-enter the queue.
       await updateData({
         tableName: "DriverRequest",
         conditions: { driverRequestUniqueId },
@@ -313,6 +344,7 @@ const handleExistingJourney = async (
       decision: journeyDecision,
     };
   }
+
 
   // Fetch all journey notification data using helper
   // Pass journeyDecisionArray to avoid re-fetching (already fetched above)
@@ -590,11 +622,10 @@ const handleExistingJourney = async (
   }
 
   // ── Company assignment check ────────────────────────────────────────────
-  // Look up pending company assignments by driverUserUniqueId (not driverRequestUniqueId)
-  // because company assignment flows (auto/bulk/manual) create a NEW DriverRequest —
-  // different from the one the driver is currently polling with.
-  // Filtering by assignmentStatus='assigned' ensures we only show jobs
-  // still waiting for the driver to confirm.
+  // Look up the most recent ACTIVE company assignment for this driver.
+  // We use NOT IN (terminal statuses) so the assignment is returned at every
+  // stage of its lifecycle: assigned → confirmed_by_driver → going_to_loading
+  // → journey_started.  Only completed / cancelled / rejected are excluded.
   let companyAssignment = null;
   try {
     const db = pool;
@@ -608,7 +639,7 @@ const handleExistingJourney = async (
          assignmentStatus
        FROM CompanyBidVehicleAssignment
        WHERE driverUserUniqueId = ?
-         AND assignmentStatus = 'assigned'
+         AND assignmentStatus NOT IN ('completed', 'cancelled', 'rejected_by_driver')
          AND assignmentDeletedAt IS NULL
        ORDER BY assignmentCreatedAt DESC
        LIMIT 1`,

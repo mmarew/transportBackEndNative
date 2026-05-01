@@ -56,6 +56,76 @@ const logger = require("../Utils/logger");
 const { createDriverRequest } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
 
+/**
+ * Creates a JourneyDecision record that formally links a PassengerRequest
+ * to a DriverRequest at the moment of company assignment (status 2).
+ *
+ * This is the canonical join between the shipper's request and the assigned
+ * driver's request. Without it, `handleExistingJourney` in the status-
+ * verification service cannot resolve the passenger context and would
+ * incorrectly reset the DriverRequest back to status 1.
+ *
+ * Called by: createAssignment, createBulkAssignments, autoAssignBatch.
+ * At confirmation (confirmed_by_driver) the same row is updated to status 4.
+ *
+ * @param {string} passengerRequestUniqueId
+ * @param {string} driverRequestUniqueId
+ * @param {string} createdByUserUniqueId  — dispatcher / company admin
+ * @returns {Promise<string>} journeyDecisionUniqueId
+ */
+async function createJourneyDecisionForAssignment(
+  passengerRequestUniqueId,
+  driverRequestUniqueId,
+  createdByUserUniqueId,
+) {
+  // Resolve numeric PKs
+  const [[prRow]] = await db().query(
+    "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
+    [passengerRequestUniqueId],
+  );
+  if (!prRow) throw new AppError("Passenger request not found while creating JourneyDecision", 404);
+
+  const [[drRow]] = await db().query(
+    "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
+    [driverRequestUniqueId],
+  );
+  if (!drRow) throw new AppError("Driver request not found while creating JourneyDecision", 404);
+
+  // Idempotency: if a decision already exists for this driverRequestId, return it
+  const [[existing]] = await db().query(
+    "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
+    [drRow.driverRequestId],
+  );
+  if (existing) return existing.journeyDecisionUniqueId;
+
+  const journeyDecisionUniqueId = uuidv4();
+  await db().query(
+    `INSERT INTO JourneyDecisions
+      (journeyDecisionUniqueId, passengerRequestId, driverRequestId,
+       journeyStatusId, decisionTime, decisionBy,
+       journeyDecisionCreatedBy, journeyDecisionCreatedAt)
+     VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
+    [
+      journeyDecisionUniqueId,
+      prRow.passengerRequestId,
+      drRow.driverRequestId,
+      journeyStatusMap.requested,   // status 2 — company has requested this driver
+      currentDate(),
+      createdByUserUniqueId,
+      currentDate(),
+    ],
+  );
+
+  logger.info("JourneyDecision created at assignment time", {
+    journeyDecisionUniqueId,
+    passengerRequestUniqueId,
+    driverRequestUniqueId,
+    journeyStatusId: journeyStatusMap.requested,
+  });
+
+  return journeyDecisionUniqueId;
+}
+
 
 /**
  * Sends both FCM + WebSocket notification to an assigned driver.
@@ -110,6 +180,7 @@ const notifyAssignedDriver = async (opts) => {
       [driverUserUniqueId],
     );
     const phoneNumber = userRows?.[0]?.phoneNumber;
+
     if (phoneNumber) {
       sendSocketIONotificationToDriver({
         phoneNumber,
@@ -281,13 +352,24 @@ exports.createAssignment = async (data) => {
     originPlace: pr.originPlace,
   });
 
+  // ── Create JourneyDecision at assignment time (status 2) ─────────────────
+  // This is the canonical link between the shipper's PassengerRequest and
+  // the driver's DriverRequest. Creating it here (not at confirmation)
+  // ensures verifyDriverJourneyStatus can resolve the passenger context
+  // immediately after assignment.
+  const journeyDecisionUniqueId = await createJourneyDecisionForAssignment(
+    passengerRequestUniqueId,
+    driverRequestUniqueId,
+    createdByUserUniqueId,
+  );
+
   const assignmentUniqueId = uuidv4();
   await db().query(
     `INSERT INTO CompanyBidVehicleAssignment
       (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
        vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
-       assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
+       assignmentStatus, journeyDecisionUniqueId, assignmentCreatedBy, assignmentCreatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?, ?)`,
     [
       assignmentUniqueId,
       companyBidRequestUniqueId,
@@ -295,6 +377,7 @@ exports.createAssignment = async (data) => {
       vehicleUniqueId,
       driverUserUniqueId,
       driverRequestUniqueId,
+      journeyDecisionUniqueId,
       createdByUserUniqueId,
       currentDate(),
     ],
@@ -311,7 +394,7 @@ exports.createAssignment = async (data) => {
 
   return {
     message: "success",
-    data: { assignmentUniqueId, driverRequestUniqueId },
+    data: { assignmentUniqueId, driverRequestUniqueId, journeyDecisionUniqueId },
   };
 };
 
@@ -385,6 +468,14 @@ exports.createBulkAssignments = async (data) => {
       originLng: pr.originLongitude,
       originPlace: pr.originPlace ?? "Bulk assigned",
     });
+
+    // ── Create JourneyDecision at assignment time (status 2) ───────────────
+    const journeyDecisionUniqueId = await createJourneyDecisionForAssignment(
+      passengerRequestUniqueId,
+      driverRequestUniqueId,
+      createdByUserUniqueId,
+    );
+
     const assignmentUniqueId = uuidv4();
 
     // Create Assignment
@@ -392,8 +483,8 @@ exports.createBulkAssignments = async (data) => {
       `INSERT INTO CompanyBidVehicleAssignment
         (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
          vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
-         assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
+         assignmentStatus, journeyDecisionUniqueId, assignmentCreatedBy, assignmentCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?, ?)`,
       [
         assignmentUniqueId,
         companyBidRequestUniqueId,
@@ -401,6 +492,7 @@ exports.createBulkAssignments = async (data) => {
         vehicleUniqueId,
         driverUserUniqueId,
         driverRequestUniqueId,
+        journeyDecisionUniqueId,
         createdByUserUniqueId,
         currentDate(),
       ],
@@ -415,7 +507,7 @@ exports.createBulkAssignments = async (data) => {
       companyBidRequestUniqueId,
     });
 
-    results.push({ assignmentUniqueId, passengerRequestUniqueId });
+    results.push({ assignmentUniqueId, passengerRequestUniqueId, journeyDecisionUniqueId });
   }
 
   return { message: "success", data: results };
@@ -596,7 +688,11 @@ exports.updateAssignmentStatus = async (
 
     const jStatusId = journeyStatusMap.acceptedByPassenger;
 
-    // --- IDEMPOTENCY CHECK: Ensure we don't insert if decision already exists for this driver ---
+    // ── Advance the existing JourneyDecision to status 4 ───────────────────
+    // JourneyDecision is created at assignment time (status 2) by
+    // createJourneyDecisionForAssignment(). Here we just promote it to
+    // status 4 (acceptedByPassenger = all parties agreed).
+    // If for any reason it doesn't exist yet (legacy record), create it now.
     const [existingDecision] = await db().query(
       "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
       [drRows[0].driverRequestId],
@@ -604,7 +700,13 @@ exports.updateAssignmentStatus = async (
 
     if (existingDecision && existingDecision.length > 0) {
       journeyDecisionUniqueId = existingDecision[0].journeyDecisionUniqueId;
+      // Update status from 2 (requested) → 4 (acceptedByPassenger)
+      await db().query(
+        "UPDATE JourneyDecisions SET journeyStatusId = ?, decisionTime = ? WHERE journeyDecisionUniqueId = ?",
+        [jStatusId, currentDate(), journeyDecisionUniqueId],
+      );
     } else {
+      // Fallback: create fresh (handles legacy assignments made before this fix)
       journeyDecisionUniqueId = uuidv4();
       await db().query(
         `INSERT INTO JourneyDecisions
@@ -938,6 +1040,14 @@ exports.autoAssignBatch = async (data) => {
       originLng: item.origin.lng,
       originPlace: item.origin.place ?? "Auto-assigned",
     });
+
+    // ── Create JourneyDecision at assignment time (status 2) ───────────────
+    const journeyDecisionUniqueId = await createJourneyDecisionForAssignment(
+      item.passengerRequestUniqueId,
+      driverRequestUniqueId,
+      createdByUserUniqueId,
+    );
+
     const assignmentUniqueId = uuidv4();
 
     // Create Assignment
@@ -945,8 +1055,8 @@ exports.autoAssignBatch = async (data) => {
       `INSERT INTO CompanyBidVehicleAssignment
         (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
          vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
-         assignmentStatus, assignmentCreatedBy, assignmentCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?)`,
+         assignmentStatus, journeyDecisionUniqueId, assignmentCreatedBy, assignmentCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?, ?)`,
       [
         assignmentUniqueId,
         companyBidRequestUniqueId,
@@ -954,6 +1064,7 @@ exports.autoAssignBatch = async (data) => {
         item.vehicleUniqueId,
         item.driverUserUniqueId,
         driverRequestUniqueId,
+        journeyDecisionUniqueId,
         createdByUserUniqueId,
         currentDate(),
       ],
@@ -971,6 +1082,7 @@ exports.autoAssignBatch = async (data) => {
     results.push({
       assignmentUniqueId,
       passengerRequestUniqueId: item.passengerRequestUniqueId,
+      journeyDecisionUniqueId,
     });
   }
 
