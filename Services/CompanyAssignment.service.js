@@ -1,5 +1,44 @@
 "use strict";
 
+/**
+ * CompanyAssignment Service
+ * ─────────────────────────
+ * Manages the assignment of individual drivers/vehicles to slots within an
+ * accepted company freight bid.
+ *
+ * ── Journey Status Design (Company Bid Flow) ────────────────────────────────
+ *
+ * The shared `journeyStatusId` scale (1-6) was originally designed for the
+ * INDIVIDUAL bidding flow, where the driver is the bidder:
+ *
+ *   Individual:  1(waiting) → 2(requested) → 3(acceptedByDriver) → 4(acceptedByPassenger) → 5 → 6
+ *                                              ↑
+ *                                   Driver bids & bargains here
+ *
+ * In the COMPANY bid flow, the company — not the individual driver — is the
+ * bidder. The company bids, bargains, and commits on behalf of its entire
+ * fleet. Status 3 (acceptedByDriver) represents that bidding act.
+ *
+ * By the time a dispatcher assigns an individual driver to a slot, the
+ * bidding phase is completely over (CompanyBidRequest = 'accepted_by_shipper').
+ * The driver is being *requested* to carry out an already-agreed job —
+ * they did not bid themselves.
+ *
+ * Therefore, in the company flow, status 3 is intentionally skipped:
+ *
+ *   Company:     1(waiting) → 2(requested) → [3 SKIPPED] → 4(acceptedByPassenger) → 5 → 6
+ *                                ↑                              ↑
+ *                      Dispatcher assigns                Driver confirms
+ *                      (company requested driver)        (all parties agreed)
+ *
+ * Status 4 is reached when the driver explicitly confirms the assignment,
+ * meaning: shipper accepted the bid (company-level) + driver accepted the
+ * assignment (individual-level) = full agreement on all sides = 4.
+ *
+ * See: Docs/journey_status_lifecycle.md for the full reference table.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
@@ -229,12 +268,14 @@ exports.createAssignment = async (data) => {
     409,
   );}
 
-  // ── Upsert DriverRequest — reuse existing waiting row if available ────────
-  const acceptedStatusId = journeyStatusMap.acceptedByDriver;
+  // ── Upsert DriverRequest — status 2 (requested): company is requesting
+  //    the driver. Status advances to 4 (acceptedByPassenger = all agreed)
+  //    only after the driver explicitly confirms the assignment.
+  const requestedStatusId = journeyStatusMap.requested;
 
   const driverRequestUniqueId = await upsertDriverRequest({
     driverUserUniqueId,
-    newStatusId: acceptedStatusId,
+    newStatusId: requestedStatusId,
     originLat: pr.originLatitude,
     originLng: pr.originLongitude,
     originPlace: pr.originPlace,
@@ -335,10 +376,11 @@ exports.createBulkAssignments = async (data) => {
       );
     }
 
-    // Upsert DriverRequest — reuse existing waiting row if available
+    // Upsert DriverRequest — status 2 (requested): company is requesting the
+    // driver. Status advances to 4 when driver confirms.
     const driverRequestUniqueId = await upsertDriverRequest({
       driverUserUniqueId,
-      newStatusId: acceptedStatusId,
+      newStatusId: journeyStatusMap.requested,
       originLat: pr.originLatitude,
       originLng: pr.originLongitude,
       originPlace: pr.originPlace ?? "Bulk assigned",
@@ -881,15 +923,17 @@ exports.autoAssignBatch = async (data) => {
     });
   }
 
-  // 5. Execute Assignments in bulk (Reuse logic from createBulkAssignments internally)
-  const acceptedStatusId = journeyStatusMap.acceptedByDriver;
+  // 5. Execute Assignments in bulk
+  // Status 2 (requested): company is requesting the driver.
+  // Status advances to 4 (all agreed) when driver explicitly confirms.
   const results = [];
 
   for (const item of assignmentsToCreate) {
-    // Upsert DriverRequest — reuse existing waiting row if available
+    // Upsert DriverRequest — status 2 (requested): company is requesting the
+    // driver. Status advances to 4 (all agreed) when driver confirms.
     const driverRequestUniqueId = await upsertDriverRequest({
       driverUserUniqueId: item.driverUserUniqueId,
-      newStatusId: acceptedStatusId,
+      newStatusId: journeyStatusMap.requested,
       originLat: item.origin.lat,
       originLng: item.origin.lng,
       originPlace: item.origin.place ?? "Auto-assigned",
