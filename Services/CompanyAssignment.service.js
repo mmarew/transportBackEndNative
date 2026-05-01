@@ -14,6 +14,9 @@ const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { sendSocketIONotificationToDriver } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const logger = require("../Utils/logger");
+const { createDriverRequest } = require("../CRUD/Create/CreateData");
+const { updateData } = require("../CRUD/Update/Data.update");
+
 
 /**
  * Sends both FCM + WebSocket notification to an assigned driver.
@@ -93,6 +96,88 @@ const notifyAssignedDriver = async (opts) => {
 };
 
 /**
+ * upsertDriverRequest
+ * ────────────────────
+ * Reuses an existing "waiting" (journeyStatusId = 1) DriverRequest for the
+ * driver instead of creating a new one each time they are assigned to a job.
+ *
+ * **Why?**  Without this, every assignment — manual or auto — INSERTs a brand
+ * new DriverRequest row, leaving the original row (created when the driver went
+ * online) orphaned and causing `verifyDriverJourneyStatus` to return stale data.
+ *
+ * **Rules:**
+ * - If the driver has exactly one non-deleted DriverRequest with
+ *   `journeyStatusId = 1`, UPDATE it to the new status and reuse its UUID.
+ * - Otherwise (multiple rows, or none in status 1), INSERT a fresh row.
+ *
+ * @param {Object} opts
+ * @param {string} opts.driverUserUniqueId
+ * @param {number} opts.newStatusId        - journeyStatusId to set (e.g. acceptedByDriver)
+ * @param {number} opts.originLat
+ * @param {number} opts.originLng
+ * @param {string} opts.originPlace
+ * @returns {Promise<string>} The driverRequestUniqueId to link in the assignment.
+ */
+const upsertDriverRequest = async ({
+  driverUserUniqueId,
+  newStatusId,
+  originLat,
+  originLng,
+  originPlace,
+}) => {
+  // Look for a single waiting request belonging to this driver
+  const [waitingRows] = await db().query(
+    `SELECT driverRequestUniqueId
+     FROM DriverRequest
+     WHERE userUniqueId = ?
+       AND journeyStatusId = 1
+       AND driverRequestDeletedAt IS NULL
+     LIMIT 1`,
+    [driverUserUniqueId],
+  );
+
+  if (waitingRows && waitingRows.length === 1) {
+    // Reuse the existing row — update it via the shared CRUD service
+    const existingUniqueId = waitingRows[0].driverRequestUniqueId;
+    await updateData({
+      tableName: "DriverRequest",
+      conditions: { driverRequestUniqueId: existingUniqueId },
+      updateValues: {
+        journeyStatusId: newStatusId,
+        originLatitude: originLat ?? 0,
+        originLongitude: originLng ?? 0,
+        originPlace: originPlace ?? "Assigned by dispatcher",
+        driverRequestUpdatedAt: currentDate(),
+      },
+    });
+    return existingUniqueId;
+  }
+
+  // No waiting row found — create a fresh one via the shared CRUD service.
+  // Shape body to match createDriverRequest's expected interface.
+  const result = await createDriverRequest(
+    {
+      currentLocation: {
+        latitude: originLat ?? 0,
+        longitude: originLng ?? 0,
+        description: originPlace ?? "Assigned by dispatcher",
+      },
+    },
+    driverUserUniqueId,
+    newStatusId,
+  );
+
+  // createDriverRequest returns existing active rows without inserting when
+  // one already exists (activeJourneyStatuses check). Extract the UUID safely.
+  const row = result?.data?.[0];
+  if (!row?.driverRequestUniqueId) {
+    throw new AppError("Failed to create or reuse DriverRequest", 500);
+  }
+  return row.driverRequestUniqueId;
+};
+
+
+/**
  * createAssignment
  * ─────────────────
  */
@@ -144,27 +229,16 @@ exports.createAssignment = async (data) => {
     409,
   );}
 
-  // ── Auto-create DriverRequest on behalf of the assigned driver ──────────
+  // ── Upsert DriverRequest — reuse existing waiting row if available ────────
   const acceptedStatusId = journeyStatusMap.acceptedByDriver;
 
-  const driverRequestUniqueId = uuidv4();
-  await db().query(
-    `INSERT INTO DriverRequest
-      (driverRequestUniqueId, userUniqueId,
-       originLatitude, originLongitude, originPlace,
-       journeyStatusId,
-       driverRequestCreatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      driverRequestUniqueId,
-      driverUserUniqueId,
-      pr.originLatitude ?? 0,
-      pr.originLongitude ?? 0,
-      pr.originPlace ?? "Assigned by dispatcher",
-      acceptedStatusId,
-      currentDate(),
-    ],
-  );
+  const driverRequestUniqueId = await upsertDriverRequest({
+    driverUserUniqueId,
+    newStatusId: acceptedStatusId,
+    originLat: pr.originLatitude,
+    originLng: pr.originLongitude,
+    originPlace: pr.originPlace,
+  });
 
   const assignmentUniqueId = uuidv4();
   await db().query(
@@ -261,25 +335,15 @@ exports.createBulkAssignments = async (data) => {
       );
     }
 
-    const driverRequestUniqueId = uuidv4();
+    // Upsert DriverRequest — reuse existing waiting row if available
+    const driverRequestUniqueId = await upsertDriverRequest({
+      driverUserUniqueId,
+      newStatusId: acceptedStatusId,
+      originLat: pr.originLatitude,
+      originLng: pr.originLongitude,
+      originPlace: pr.originPlace ?? "Bulk assigned",
+    });
     const assignmentUniqueId = uuidv4();
-
-    // Create DriverRequest
-    await db().query(
-      `INSERT INTO DriverRequest
-        (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace,
-         journeyStatusId, driverRequestCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        driverRequestUniqueId,
-        driverUserUniqueId,
-        pr.originLatitude ?? 0,
-        pr.originLongitude ?? 0,
-        pr.originPlace ?? "Bulk assigned",
-        acceptedStatusId,
-        currentDate(),
-      ],
-    );
 
     // Create Assignment
     await db().query(
@@ -822,25 +886,15 @@ exports.autoAssignBatch = async (data) => {
   const results = [];
 
   for (const item of assignmentsToCreate) {
-    const driverRequestUniqueId = uuidv4();
+    // Upsert DriverRequest — reuse existing waiting row if available
+    const driverRequestUniqueId = await upsertDriverRequest({
+      driverUserUniqueId: item.driverUserUniqueId,
+      newStatusId: acceptedStatusId,
+      originLat: item.origin.lat,
+      originLng: item.origin.lng,
+      originPlace: item.origin.place ?? "Auto-assigned",
+    });
     const assignmentUniqueId = uuidv4();
-
-    // Create DriverRequest
-    await db().query(
-      `INSERT INTO DriverRequest
-        (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude, originPlace,
-         journeyStatusId, driverRequestCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        driverRequestUniqueId,
-        item.driverUserUniqueId,
-        item.origin.lat ?? 0,
-        item.origin.lng ?? 0,
-        item.origin.place ?? "Auto-assigned",
-        acceptedStatusId,
-        currentDate(),
-      ],
-    );
 
     // Create Assignment
     await db().query(
