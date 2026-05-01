@@ -174,7 +174,10 @@ const handleJourneyStatusOne = async (
 
     // 2. If no passengers found, return with companyAssignment (may be non-null for company drivers)
     if (!individualPassengers?.length) {
-      return { ...createResponse(driverRequest, vehicle, null, null, 1), companyAssignment };
+      return {
+        ...createResponse(driverRequest, vehicle, null, null, 1),
+        companyAssignment,
+      };
     }
 
     // 3. Find first non-rejected passenger
@@ -185,7 +188,10 @@ const handleJourneyStatusOne = async (
 
     // 4. If no suitable passenger found, return waiting status
     if (!nonRejectedPassenger) {
-      return { ...createResponse(driverRequest, vehicle, null, null, 1), companyAssignment };
+      return {
+        ...createResponse(driverRequest, vehicle, null, null, 1),
+        companyAssignment,
+      };
     }
 
     // 5. Create journey decision and update statuses
@@ -351,7 +357,6 @@ const handleExistingJourney = async (
       decision: journeyDecision,
     };
   }
-
 
   // Fetch all journey notification data using helper
   // Pass journeyDecisionArray to avoid re-fetching (already fetched above)

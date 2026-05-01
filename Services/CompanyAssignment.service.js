@@ -83,13 +83,21 @@ async function createJourneyDecisionForAssignment(
     "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
     [passengerRequestUniqueId],
   );
-  if (!prRow) throw new AppError("Passenger request not found while creating JourneyDecision", 404);
+  if (!prRow)
+    throw new AppError(
+      "Passenger request not found while creating JourneyDecision",
+      404,
+    );
 
   const [[drRow]] = await db().query(
     "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
     [driverRequestUniqueId],
   );
-  if (!drRow) throw new AppError("Driver request not found while creating JourneyDecision", 404);
+  if (!drRow)
+    throw new AppError(
+      "Driver request not found while creating JourneyDecision",
+      404,
+    );
 
   // Idempotency: if a decision already exists for this driverRequestId, return it
   const [[existing]] = await db().query(
@@ -109,7 +117,7 @@ async function createJourneyDecisionForAssignment(
       journeyDecisionUniqueId,
       prRow.passengerRequestId,
       drRow.driverRequestId,
-      journeyStatusMap.requested,   // status 2 — company has requested this driver
+      journeyStatusMap.requested, // status 2 — company has requested this driver
       currentDate(),
       createdByUserUniqueId,
       currentDate(),
@@ -125,7 +133,6 @@ async function createJourneyDecisionForAssignment(
 
   return journeyDecisionUniqueId;
 }
-
 
 /**
  * Sends both FCM + WebSocket notification to an assigned driver.
@@ -190,11 +197,14 @@ const notifyAssignedDriver = async (opts) => {
           data: notificationData,
         },
       }).catch((e) =>
-        logger.warn("WebSocket failed for driver assignment (driver may be offline)", {
-          error: e.message,
-          driverUserUniqueId,
-          assignmentUniqueId,
-        }),
+        logger.warn(
+          "WebSocket failed for driver assignment (driver may be offline)",
+          {
+            error: e.message,
+            driverUserUniqueId,
+            assignmentUniqueId,
+          },
+        ),
       );
     }
   } catch (e) {
@@ -286,7 +296,6 @@ const upsertDriverRequest = async ({
   return row.driverRequestUniqueId;
 };
 
-
 /**
  * createAssignment
  * ─────────────────
@@ -306,11 +315,12 @@ exports.createAssignment = async (data) => {
     { companyBidRequestUniqueId },
     "Bid not found",
   );
-  if (bid.bidStatus !== "accepted_by_shipper")
-  {throw new AppError(
-    "Vehicles can only be assigned after the shipper accepts the bid",
-    400,
-  );}
+  if (bid.bidStatus !== "accepted_by_shipper") {
+    throw new AppError(
+      "Vehicles can only be assigned after the shipper accepts the bid",
+      400,
+    );
+  }
 
   // PassengerRequest must belong to the bid's batch
   const [prRows] = await db().query(
@@ -318,11 +328,12 @@ exports.createAssignment = async (data) => {
      WHERE passengerRequestUniqueId = ? AND passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
     [passengerRequestUniqueId, bid.passengerRequestBatchId],
   );
-  if (!prRows || prRows.length === 0)
-  {throw new AppError(
-    "Passenger request does not belong to this bid's batch",
-    400,
-  );}
+  if (!prRows || prRows.length === 0) {
+    throw new AppError(
+      "Passenger request does not belong to this bid's batch",
+      400,
+    );
+  }
 
   const pr = prRows[0];
 
@@ -333,11 +344,12 @@ exports.createAssignment = async (data) => {
      AND assignmentStatus NOT IN ('rejected_by_driver','cancelled')`,
     [companyBidRequestUniqueId, passengerRequestUniqueId],
   );
-  if (dup.length > 0)
-  {throw new AppError(
-    "This passenger request slot already has an active assignment",
-    409,
-  );}
+  if (dup.length > 0) {
+    throw new AppError(
+      "This passenger request slot already has an active assignment",
+      409,
+    );
+  }
 
   // ── Upsert DriverRequest — status 2 (requested): company is requesting
   //    the driver. Status advances to 4 (acceptedByPassenger = all agreed)
@@ -394,7 +406,11 @@ exports.createAssignment = async (data) => {
 
   return {
     message: "success",
-    data: { assignmentUniqueId, driverRequestUniqueId, journeyDecisionUniqueId },
+    data: {
+      assignmentUniqueId,
+      driverRequestUniqueId,
+      journeyDecisionUniqueId,
+    },
   };
 };
 
@@ -507,7 +523,11 @@ exports.createBulkAssignments = async (data) => {
       companyBidRequestUniqueId,
     });
 
-    results.push({ assignmentUniqueId, passengerRequestUniqueId, journeyDecisionUniqueId });
+    results.push({
+      assignmentUniqueId,
+      passengerRequestUniqueId,
+      journeyDecisionUniqueId,
+    });
   }
 
   return { message: "success", data: results };
@@ -597,8 +617,9 @@ exports.updateAssignmentStatus = async (
 
   const assignment = rows[0];
 
-  if (assignment.assignmentDeletedAt)
-  {throw new AppError("Assignment has been deleted", 400);}
+  if (assignment.assignmentDeletedAt) {
+    throw new AppError("Assignment has been deleted", 400);
+  }
 
   // ── REJECTION & CANCELLATION HANDLER (Clean up state + Notify Dispatcher) ──
   if (
@@ -669,22 +690,25 @@ exports.updateAssignmentStatus = async (
         },
       };
     }
-    if (!assignment.driverRequestUniqueId)
-    {throw new AppError("No DriverRequest linked to this assignment", 500);}
+    if (!assignment.driverRequestUniqueId) {
+      throw new AppError("No DriverRequest linked to this assignment", 500);
+    }
 
     const [prRows] = await db().query(
       "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
       [assignment.passengerRequestUniqueId],
     );
-    if (!prRows || prRows.length === 0)
-    {throw new AppError("Passenger request not found", 404);}
+    if (!prRows || prRows.length === 0) {
+      throw new AppError("Passenger request not found", 404);
+    }
 
     const [drRows] = await db().query(
       "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
       [assignment.driverRequestUniqueId],
     );
-    if (!drRows || drRows.length === 0)
-    {throw new AppError("Driver request not found", 404);}
+    if (!drRows || drRows.length === 0) {
+      throw new AppError("Driver request not found", 404);
+    }
 
     const jStatusId = journeyStatusMap.acceptedByPassenger;
 
@@ -807,8 +831,8 @@ exports.updateAssignmentStatus = async (
 
     const syncStatusId =
       assignmentStatus === "completed"
-        ? journeyStatusMap.journeyCompleted   // 6
-        : journeyStatusMap.journeyStarted;    // 5
+        ? journeyStatusMap.journeyCompleted // 6
+        : journeyStatusMap.journeyStarted; // 5
 
     await db().query(
       "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ? WHERE driverRequestId = ?",
@@ -1110,7 +1134,8 @@ exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
      WHERE assignmentUniqueId = ? AND assignmentDeletedAt IS NULL`,
     [currentDate(), deletedBy, assignmentUniqueId],
   );
-  if (res.affectedRows === 0)
-  {throw new AppError("Assignment not found or already deleted", 404);}
+  if (res.affectedRows === 0) {
+    throw new AppError("Assignment not found or already deleted", 404);
+  }
   return { message: "success", data: "Assignment deleted" };
 };
