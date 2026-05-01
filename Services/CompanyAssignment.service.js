@@ -55,6 +55,9 @@ const messageTypes = require("../Utils/MessageTypes");
 const logger = require("../Utils/logger");
 const { createDriverRequest } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
+const {
+  getPassengerRequestByUniqueId,
+} = require("./PassengerRequest");
 
 /**
  * Creates a JourneyDecision record that formally links a PassengerRequest
@@ -81,6 +84,7 @@ async function createJourneyDecisionForAssignment(
   // Resolve numeric PKs
   const [[prRow]] = await db().query(
     "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
+
     [passengerRequestUniqueId],
   );
   if (!prRow)
@@ -297,6 +301,44 @@ const upsertDriverRequest = async ({
 };
 
 /**
+ * findActiveAssignmentForSlot
+ * ────────────────────────────
+ * Checks whether a given PassengerRequest slot already has a non-terminal
+ * CompanyBidVehicleAssignment for the specified bid.
+ *
+ * "Active" means any status that is NOT a terminal cancel/reject:
+ *   assigned | confirmed_by_driver | going_to_loading | journey_started
+ *
+ * Returns the assignment row if one exists, or null if the slot is free.
+ * Used as a duplicate-assignment guard before creating a new assignment.
+ *
+ * @param {string} companyBidRequestUniqueId
+ * @param {string} passengerRequestUniqueId
+ * @returns {Promise<Object|null>} existing assignment row or null
+ */
+async function findActiveAssignmentForSlot(
+  companyBidRequestUniqueId,
+  passengerRequestUniqueId,
+) {
+  const [rows] = await db().query(
+    `SELECT assignmentUniqueId, assignmentStatus
+     FROM CompanyBidVehicleAssignment
+     WHERE companyBidRequestUniqueId = ?
+       AND passengerRequestUniqueId  = ?
+       AND assignmentDeletedAt IS NULL
+       AND assignmentStatus NOT IN (
+         'rejected_by_driver',
+         'cancelled_by_company',
+         'cancelled_by_shipper',
+         'cancelled_by_driver'
+       )
+     LIMIT 1`,
+    [companyBidRequestUniqueId, passengerRequestUniqueId],
+  );
+  return rows.length > 0 ? rows[0] : null;
+}
+
+/**
  * createAssignment
  * ─────────────────
  */
@@ -323,28 +365,18 @@ exports.createAssignment = async (data) => {
   }
 
   // PassengerRequest must belong to the bid's batch
-  const [prRows] = await db().query(
-    `SELECT passengerRequestId, originLatitude, originLongitude, originPlace FROM PassengerRequest
-     WHERE passengerRequestUniqueId = ? AND passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
-    [passengerRequestUniqueId, bid.passengerRequestBatchId],
+  // Uses the dedicated PassengerRequest service instead of raw SQL
+  const pr = await getPassengerRequestByUniqueId(
+    passengerRequestUniqueId,
+    bid.passengerRequestBatchId,
   );
-  if (!prRows || prRows.length === 0) {
-    throw new AppError(
-      "Passenger request does not belong to this bid's batch",
-      400,
-    );
-  }
-
-  const pr = prRows[0];
 
   // Prevent duplicate assignment for the same slot
-  const [dup] = await db().query(
-    `SELECT assignmentId FROM CompanyBidVehicleAssignment
-     WHERE companyBidRequestUniqueId = ? AND passengerRequestUniqueId = ? AND assignmentDeletedAt IS NULL
-     AND assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')`,
-    [companyBidRequestUniqueId, passengerRequestUniqueId],
+  const existingAssignment = await findActiveAssignmentForSlot(
+    companyBidRequestUniqueId,
+    passengerRequestUniqueId,
   );
-  if (dup.length > 0) {
+  if (existingAssignment) {
     throw new AppError(
       "This passenger request slot already has an active assignment",
       409,
@@ -447,28 +479,18 @@ exports.createBulkAssignments = async (data) => {
     const { passengerRequestUniqueId, vehicleUniqueId, driverUserUniqueId } =
       item;
 
-    // Check if slot belongs to the batch
-    const [prRows] = await db().query(
-      `SELECT passengerRequestId, originLatitude, originLongitude, originPlace FROM PassengerRequest
-       WHERE passengerRequestUniqueId = ? AND passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
-      [passengerRequestUniqueId, bid.passengerRequestBatchId],
+    // Check if slot belongs to the batch — uses the dedicated service function
+    const pr = await getPassengerRequestByUniqueId(
+      passengerRequestUniqueId,
+      bid.passengerRequestBatchId,
     );
-    if (!prRows || prRows.length === 0) {
-      throw new AppError(
-        `Passenger request ${passengerRequestUniqueId} does not belong to this batch`,
-        400,
-      );
-    }
-    const pr = prRows[0];
 
     // Prevent duplicate assignment
-    const [dup] = await db().query(
-      `SELECT assignmentId FROM CompanyBidVehicleAssignment
-       WHERE companyBidRequestUniqueId = ? AND passengerRequestUniqueId = ? AND assignmentDeletedAt IS NULL
-       AND assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')`,
-      [companyBidRequestUniqueId, passengerRequestUniqueId],
+    const existingAssignment = await findActiveAssignmentForSlot(
+      companyBidRequestUniqueId,
+      passengerRequestUniqueId,
     );
-    if (dup.length > 0) {
+    if (existingAssignment) {
       throw new AppError(
         `Slot ${passengerRequestUniqueId} already has an active assignment`,
         409,
@@ -651,19 +673,24 @@ exports.updateAssignmentStatus = async (
     );
     const driver = driverRows?.[0];
     const isMidJobCancel =
-      assignmentStatus === "cancelled_by_driver" || assignmentStatus === "cancelled";
+      assignmentStatus === "cancelled_by_driver" ||
+      assignmentStatus === "cancelled";
 
     sendFCMNotificationToUser({
       userUniqueId: assignment.assignmentCreatedBy,
       roleId: usersRoles.companyAdminRoleId,
       notification: {
-        title: isMidJobCancel ? "Assignment Cancelled by Driver" : "Assignment Rejected",
+        title: isMidJobCancel
+          ? "Assignment Cancelled by Driver"
+          : "Assignment Rejected",
         body: isMidJobCancel
           ? `Driver ${driver?.fullName || "assigned"} cancelled the freight assignment mid-job. Please reassign.`
           : `Driver ${driver?.fullName || "assigned"} has rejected the freight assignment. Please reassign.`,
       },
       data: {
-        type: isMidJobCancel ? "assignment_cancelled_by_driver" : "assignment_rejected",
+        type: isMidJobCancel
+          ? "assignment_cancelled_by_driver"
+          : "assignment_rejected",
         assignmentUniqueId,
         passengerRequestUniqueId: assignment.passengerRequestUniqueId,
         companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
@@ -707,13 +734,10 @@ exports.updateAssignmentStatus = async (
       throw new AppError("No DriverRequest linked to this assignment", 500);
     }
 
-    const [prRows] = await db().query(
-      "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
-      [assignment.passengerRequestUniqueId],
+    // Uses the dedicated PassengerRequest service instead of raw SQL
+    const prRow = await getPassengerRequestByUniqueId(
+      assignment.passengerRequestUniqueId,
     );
-    if (!prRows || prRows.length === 0) {
-      throw new AppError("Passenger request not found", 404);
-    }
 
     const [drRows] = await db().query(
       "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
@@ -753,7 +777,7 @@ exports.updateAssignmentStatus = async (
          VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
         [
           journeyDecisionUniqueId,
-          prRows[0].passengerRequestId,
+          prRow.passengerRequestId,
           drRows[0].driverRequestId,
           jStatusId,
           currentDate(),

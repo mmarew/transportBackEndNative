@@ -1053,9 +1053,63 @@ const getAllActiveRequests = async (filters = {}) => {
   }
 };
 
+/**
+ * Fetches a single PassengerRequest by its UUID.
+ *
+ * This is the dedicated, reusable service function for looking up a passenger
+ * request by unique ID. Used by CompanyAssignment.service.js and any other
+ * service that needs to resolve a passengerRequestUniqueId → row without
+ * duplicating raw SQL.
+ *
+ * @param {string} passengerRequestUniqueId  - UUID of the request
+ * @param {string} [passengerRequestBatchId] - Optional: also validates batch membership
+ * @returns {Promise<Object>}  The matched row or null if not found
+ * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
+ */
+const getPassengerRequestByUniqueId = async (
+  passengerRequestUniqueId,
+  passengerRequestBatchId = null,
+) => {
+  let sql = `SELECT passengerRequestId,
+                    passengerRequestUniqueId,
+                    passengerRequestBatchId,
+                    vehicleTypeUniqueId,
+                    journeyStatusId,
+                    originLatitude,
+                    originLongitude,
+                    originPlace,
+                    userUniqueId
+             FROM PassengerRequest
+             WHERE passengerRequestUniqueId = ?
+               AND passengerRequestDeletedAt IS NULL`;
+  const params = [passengerRequestUniqueId];
+
+  if (passengerRequestBatchId) {
+    sql += " AND passengerRequestBatchId = ?";
+    params.push(passengerRequestBatchId);
+  }
+
+  sql += " LIMIT 1";
+
+  const [rows] = await pool.query(sql, params);
+
+  if (!rows || rows.length === 0) {
+    if (passengerRequestBatchId) {
+      throw new AppError(
+        "Passenger request does not belong to this bid's batch",
+        400,
+      );
+    }
+    throw new AppError("Passenger request not found", 404);
+  }
+
+  return rows[0];
+};
+
 module.exports = {
   createPassengerRequest,
   getPassengerRequestByPassengerRequestId,
+  getPassengerRequestByUniqueId,
   getPassengerRequest4allOrSingleUser,
   getDetailedJourneyData,
   updateRequestById,

@@ -18,6 +18,7 @@ module.exports = {
   createPassengerRequest: requestCRUD.createPassengerRequest,
   getPassengerRequestByPassengerRequestId:
     requestCRUD.getPassengerRequestByPassengerRequestId,
+  getPassengerRequestByUniqueId: requestCRUD.getPassengerRequestByUniqueId,
   getPassengerRequest4allOrSingleUser:
     requestCRUD.getPassengerRequest4allOrSingleUser,
   getDetailedJourneyData: requestCRUD.getDetailedJourneyData,
