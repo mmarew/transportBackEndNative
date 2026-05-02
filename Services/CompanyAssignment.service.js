@@ -55,9 +55,7 @@ const messageTypes = require("../Utils/MessageTypes");
 const logger = require("../Utils/logger");
 const { createDriverRequest } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
-const {
-  getPassengerRequestByUniqueId,
-} = require("./PassengerRequest");
+const { getPassengerRequestByUniqueId } = require("./PassengerRequest");
 
 /**
  * Creates a JourneyDecision record that formally links a PassengerRequest
@@ -222,21 +220,21 @@ const notifyAssignedDriver = async (opts) => {
 /**
  * upsertDriverRequest
  * ────────────────────
- * Reuses an existing "waiting" (journeyStatusId = 1) DriverRequest for the
- * driver instead of creating a new one each time they are assigned to a job.
+ * Creates or reuses a DriverRequest row for the given driver at assignment time.
  *
- * **Why?**  Without this, every assignment — manual or auto — INSERTs a brand
- * new DriverRequest row, leaving the original row (created when the driver went
- * online) orphaned and causing `verifyDriverJourneyStatus` to return stale data.
+ * **Offline-first design:** A dispatcher can assign a driver even when the driver
+ * is offline (no active DriverRequest). In that case a fresh row is inserted with
+ * the origin coordinates from the PassengerRequest, so the driver wakes up to a
+ * pre-populated job card.
  *
- * **Rules:**
- * - If the driver has exactly one non-deleted DriverRequest with
- *   `journeyStatusId = 1`, UPDATE it to the new status and reuse its UUID.
- * - Otherwise (multiple rows, or none in status 1), INSERT a fresh row.
+ * **Rules (in order):**
+ * 1. Exactly ONE non-deleted DriverRequest exists → UPDATE it in-place and reuse
+ *    its UUID. No status filter — works for waiting, offline, or any state.
+ * 2. Zero rows (driver offline) or 2+ rows (test pollution) → INSERT a fresh row.
  *
  * @param {Object} opts
  * @param {string} opts.driverUserUniqueId
- * @param {number} opts.newStatusId        - journeyStatusId to set (e.g. acceptedByDriver)
+ * @param {number} opts.newStatusId        - journeyStatusId to set (e.g. requested = 2)
  * @param {number} opts.originLat
  * @param {number} opts.originLng
  * @param {string} opts.originPlace
@@ -249,20 +247,20 @@ const upsertDriverRequest = async ({
   originLng,
   originPlace,
 }) => {
-  // Look for a single waiting request belonging to this driver
-  const [waitingRows] = await db().query(
+  // Fetch up to 2 rows — no status filter so offline drivers (0 rows) fall through
+  // to the INSERT path, and drivers with exactly 1 row are updated in-place.
+  const [existingRows] = await db().query(
     `SELECT driverRequestUniqueId
      FROM DriverRequest
      WHERE userUniqueId = ?
-       AND journeyStatusId = 1
        AND driverRequestDeletedAt IS NULL
-     LIMIT 1`,
+     LIMIT 2`,
     [driverUserUniqueId],
   );
 
-  if (waitingRows && waitingRows.length === 1) {
-    // Reuse the existing row — update it via the shared CRUD service
-    const existingUniqueId = waitingRows[0].driverRequestUniqueId;
+  if (existingRows && existingRows.length === 1) {
+    // Exactly one row — update it in-place regardless of its current status.
+    const existingUniqueId = existingRows[0].driverRequestUniqueId;
     await updateData({
       tableName: "DriverRequest",
       conditions: { driverRequestUniqueId: existingUniqueId },
@@ -277,8 +275,7 @@ const upsertDriverRequest = async ({
     return existingUniqueId;
   }
 
-  // No waiting row found — create a fresh one via the shared CRUD service.
-  // Shape body to match createDriverRequest's expected interface.
+  // 0 rows (offline driver) or 2+ rows (stale test data) → INSERT fresh row.
   const result = await createDriverRequest(
     {
       currentLocation: {
@@ -299,6 +296,7 @@ const upsertDriverRequest = async ({
   }
   return row.driverRequestUniqueId;
 };
+
 
 /**
  * findActiveAssignmentForSlot
