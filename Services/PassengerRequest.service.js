@@ -258,6 +258,7 @@ const getAllActiveRequests = async (filters = {}) => {
     limit = 2,
     sortBy = "passengerRequestCreatedAt",
     sortOrder = "DESC",
+    requestMode,
   } = filters;
 
   const activeStatusIds = [
@@ -338,6 +339,10 @@ const getAllActiveRequests = async (filters = {}) => {
   if (deliveryDate) {
     whereConditions.push("DATE(pr.deliveryDate) = ?");
     values.push(deliveryDate);
+  }
+  if (requestMode) {
+    whereConditions.push("pr.requestMode = ?");
+    values.push(requestMode);
   }
 
   if (whereConditions.length > 0) {
