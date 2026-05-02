@@ -909,37 +909,61 @@ exports.updateAssignmentStatus = async (
     vals,
   );
 
-  // ── Batch completion check ──────────────────────────────────────────────────
-  // Only run on terminal states (completed / cancelled / rejected_by_driver).
-  // Check: are ALL assignments for this batch now in a terminal state?
-  // Terminal = completed | cancelled | rejected_by_driver
+  // ── Batch completion check ─────────────────────────────────────────────────
   //
-  // If 2 of 43 finish → remaining non-terminal = 41 → batch stays 'accepted_by_shipper'
-  // If all 43 reach any terminal state → remaining = 0 → batch → 'completed'
-  if (
-    assignmentStatus === "completed" ||
-    assignmentStatus === "cancelled" ||
-    assignmentStatus === "rejected_by_driver"
-  ) {
-    const [[{ remainingCount }]] = await db().query(
-      `SELECT COUNT(*) AS remainingCount
+  // RULES:
+  //   rejected_by_driver   → slot is OPEN again; dispatcher will reassign.
+  //                          Do NOT change CompanyBidRequest at all.
+  //   cancelled_by_driver /
+  //   cancelled_by_company /
+  //   cancelled_by_shipper → slot gone; only auto-complete if every other
+  //                          slot is also gone / completed.
+  //   completed            → check if all slots are now completed.
+  //
+  // The bid is marked 'completed' ONLY when every PassengerRequest slot in
+  // the batch has a corresponding assignment with status = 'completed'.
+  // A rejection leaves the slot available for reassignment — the bid stays
+  // 'accepted_by_shipper' so the dispatcher can re-assign.
+  //
+  if (assignmentStatus === "rejected_by_driver") {
+    // Slot is free again. No bid-level change needed.
+    logger.info("Assignment rejected — slot open for reassignment", {
+      assignmentUniqueId,
+      companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+    });
+  } else if (assignmentStatus === "completed") {
+    // Check if EVERY slot in the batch now has a 'completed' assignment.
+    const [[{ totalSlots }]] = await db().query(
+      `SELECT COUNT(*) AS totalSlots
+       FROM PassengerRequest
+       WHERE passengerRequestBatchId = (
+         SELECT passengerRequestBatchId FROM CompanyBidRequest
+         WHERE companyBidRequestUniqueId = ? LIMIT 1
+       )
+         AND passengerRequestDeletedAt IS NULL`,
+      [assignment.companyBidRequestUniqueId],
+    );
+
+    const [[{ completedSlots }]] = await db().query(
+      `SELECT COUNT(*) AS completedSlots
        FROM CompanyBidVehicleAssignment
        WHERE companyBidRequestUniqueId = ?
-         AND assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
+         AND assignmentStatus = 'completed'
          AND assignmentDeletedAt IS NULL`,
       [assignment.companyBidRequestUniqueId],
     );
 
-    if (remainingCount === 0) {
+    if (completedSlots >= totalSlots && totalSlots > 0) {
       await db().query(
         `UPDATE CompanyBidRequest
-         SET bidStatus = 'completed', bidUpdatedAt = ?
+         SET bidStatus = 'completed', companyBidRequestUpdatedAt = ?
          WHERE companyBidRequestUniqueId = ?`,
         [currentDate(), assignment.companyBidRequestUniqueId],
       );
-      logger.info("Batch auto-completed: all assignments resolved", {
+      logger.info("Batch auto-completed: all slots delivered", {
         companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
-        finalAssignmentStatus: assignmentStatus,
+        completedSlots,
+        totalSlots,
       });
     }
   }
