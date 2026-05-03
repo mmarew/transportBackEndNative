@@ -1104,13 +1104,13 @@ exports.autoAssignBatch = async (data) => {
            AND cba.assignmentDeletedAt IS NULL
        )
        -- Layer 2: driver has not already rejected THIS batch
-       AND NOT EXISTS (
-         SELECT 1 FROM CompanyBidVehicleAssignment cba_rej
-         WHERE cba_rej.driverUserUniqueId = vd.driverUserUniqueId
-           AND cba_rej.companyBidRequestUniqueId = ?
-           AND cba_rej.assignmentStatus = 'rejected_by_driver'
-           AND cba_rej.assignmentDeletedAt IS NULL
-       )`,
+        --  AND NOT EXISTS (
+        --  SELECT 1 FROM CompanyBidVehicleAssignment cba_rej
+        --  WHERE cba_rej.driverUserUniqueId = vd.driverUserUniqueId
+        --    AND cba_rej.companyBidRequestUniqueId = ?
+        --    AND cba_rej.assignmentStatus = 'rejected_by_driver'
+        --    AND cba_rej.assignmentDeletedAt IS NULL
+       -- )`,
     [companyUniqueId, companyBidRequestUniqueId],
   );
 

@@ -187,36 +187,66 @@ const createAttachedDocuments = async (req, res, next) => {
     });
 
     if (fileSuccesses.length > 0) {
-      const userData = await performJoinSelect({
-        baseTable: "Users",
-        joins: [
-          {
-            table: "UserRole",
-            on: "Users.userUniqueId = UserRole.userUniqueId",
-          },
-          {
-            table: "UserRoleStatusCurrent",
-            on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
-          },
-        ],
-        conditions: {
-          "Users.userUniqueId": userUniqueId,
-          "UserRole.roleId": roleId,
-        },
-      });
+      const isDriver = roleId === usersRolesList.driver.roleId;
 
-      await attachedDocumentsService.getAttachedDocumentsByFilter({
-        filter: { userUniqueId },
-      });
+      if (isDriver) {
+        // Driver-specific: check document + vehicle completeness then notify admin
+        try {
+          const userData = await performJoinSelect({
+            baseTable: "Users",
+            joins: [
+              {
+                table: "UserRole",
+                on: "Users.userUniqueId = UserRole.userUniqueId",
+              },
+              {
+                table: "UserRoleStatusCurrent",
+                on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+              },
+            ],
+            conditions: {
+              "Users.userUniqueId": userUniqueId,
+              "UserRole.roleId": roleId,
+            },
+          });
 
-      const documentAndVehicleOfDriver =
-        await driversDocumentVehicleRequirement({
-          ownerUserUniqueId: userUniqueId,
-          user: userData[0],
-        });
+          await attachedDocumentsService.getAttachedDocumentsByFilter({
+            filter: { userUniqueId },
+          });
 
-      const message = documentAndVehicleOfDriver;
-      sendSocketIONotificationToAdmin({ message });
+          const documentAndVehicleOfDriver =
+            await driversDocumentVehicleRequirement({
+              ownerUserUniqueId: userUniqueId,
+              user: userData[0],
+            });
+
+          sendSocketIONotificationToAdmin({ message: documentAndVehicleOfDriver });
+        } catch (notificationError) {
+          logger.warn("Driver admin notification failed after document upload", {
+            reason: notificationError?.message,
+            userUniqueId,
+            roleId,
+          });
+        }
+      } else {
+        // Non-driver (company, shipper, admin, etc.): send a simple admin notification
+        try {
+          sendSocketIONotificationToAdmin({
+            message: {
+              type: "document_uploaded",
+              userUniqueId,
+              roleId,
+              uploadedFiles: fileSuccesses,
+            },
+          });
+        } catch (notificationError) {
+          logger.warn("Admin notification failed after non-driver document upload", {
+            reason: notificationError?.message,
+            userUniqueId,
+            roleId,
+          });
+        }
+      }
     }
 
     // Check if there were duplicate files that were skipped
