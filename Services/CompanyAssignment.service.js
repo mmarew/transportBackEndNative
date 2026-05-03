@@ -56,7 +56,9 @@ const logger = require("../Utils/logger");
 const { createDriverRequest } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { getPassengerRequestByUniqueId } = require("./PassengerRequest");
-const { verifyDriverJourneyStatus } = require("./DriverRequest/statusVerification.service");
+const {
+  verifyDriverJourneyStatus,
+} = require("./DriverRequest/statusVerification.service");
 
 /**
  * Creates a JourneyDecision record that formally links a PassengerRequest
@@ -196,23 +198,37 @@ const notifyAssignedDriver = async (opts) => {
       // would receive on the next poll — includes passenger, decision, companyAssignment.
       let wsPayload;
       try {
-        const statusResult = await verifyDriverJourneyStatus({ userUniqueId: driverUserUniqueId });
-        wsPayload = {
-          messageTypes: messageTypes.company_driver_assignment,
-          message: "success",
-          ...statusResult,  // status, driver, passenger, decision, journey, companyAssignment
-        };
-      } catch (verifyErr) {
-        // Fallback: send minimal payload so ResponseHandler still dispatches status=2
-        logger.warn("verifyDriverJourneyStatus failed in notifyAssignedDriver, using fallback payload", {
-          error: verifyErr.message, driverUserUniqueId,
+        const statusResult = await verifyDriverJourneyStatus({
+          userUniqueId: driverUserUniqueId,
         });
         wsPayload = {
           messageTypes: messageTypes.company_driver_assignment,
           message: "success",
+          ...statusResult, // status, driver, passenger, decision, journey, companyAssignment
+        };
+      } catch (verifyErr) {
+        // Fallback: send minimal payload so ResponseHandler still dispatches status=2
+        logger.warn(
+          "verifyDriverJourneyStatus failed in notifyAssignedDriver, using fallback payload",
+          {
+            error: verifyErr.message,
+            driverUserUniqueId,
+          },
+        );
+        wsPayload = {
+          messageTypes: messageTypes.company_driver_assignment,
+          message: "success",
           status: journeyStatusMap.requested,
-          companyAssignment: { assignmentUniqueId, driverRequestUniqueId, passengerRequestUniqueId, companyBidRequestUniqueId },
-          driver: null, passenger: null, journey: null, decision: null,
+          companyAssignment: {
+            assignmentUniqueId,
+            driverRequestUniqueId,
+            passengerRequestUniqueId,
+            companyBidRequestUniqueId,
+          },
+          driver: null,
+          passenger: null,
+          journey: null,
+          decision: null,
         };
       }
 
@@ -317,7 +333,6 @@ const upsertDriverRequest = async ({
   }
   return row.driverRequestUniqueId;
 };
-
 
 /**
  * findActiveAssignmentForSlot
