@@ -172,8 +172,66 @@ const handleJourneyStatusOne = async (
       (p) => !p.requestMode || p.requestMode !== "company_target",
     );
 
-    // 2. If no passengers found, return with companyAssignment (may be non-null for company drivers)
+    // 2. If no individual passengers found, check if a company assignment
+    //    is pending — if so, surface status 2 with the real passenger + decision.
     if (!individualPassengers?.length) {
+      // ── Company-assigned driver: re-surface status 2 ──────────────────────
+      // The DriverRequest may have been reset to 1 by a previous poll cycle.
+      // If the assignment is still "assigned", promote back to status 2 and
+      // return the passenger + decision so the frontend shows IncomingRequests.
+      if (companyAssignment?.assignmentStatus === 'assigned') {
+        try {
+          // Re-sync DriverRequest to status 2 in case it was reset
+          await updateData({
+            tableName: 'DriverRequest',
+            conditions: { driverRequestUniqueId: companyAssignment.driverRequestUniqueId },
+            updateValues: {
+              journeyStatusId: journeyStatusMap.requested,
+              driverRequestUpdatedAt: new Date(),
+            },
+          });
+
+          // Fetch the PassengerRequest for this assignment
+          const passengerRows = await getData({
+            tableName: 'PassengerRequest',
+            conditions: { passengerRequestUniqueId: companyAssignment.passengerRequestUniqueId },
+          });
+          const passenger = passengerRows?.[0] ?? null;
+
+          // Fetch the JourneyDecision created at assignment time
+          const [drRow] = await pool.query(
+            `SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1`,
+            [companyAssignment.driverRequestUniqueId],
+          );
+          const driverRequestId = drRow?.[0]?.driverRequestId;
+          let decision = null;
+          if (driverRequestId) {
+            const decisionRows = await getData({
+              tableName: 'JourneyDecisions',
+              conditions: { driverRequestId },
+            });
+            decision = decisionRows?.[0] ?? null;
+          }
+
+          return {
+            ...createResponse(
+              { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
+              vehicle,
+              passenger,
+              decision,
+              journeyStatusMap.requested,
+            ),
+            companyAssignment,
+          };
+        } catch (promotionErr) {
+          logger.warn('Could not promote company-assigned driver to status 2', {
+            error: promotionErr.message,
+            driverUserUniqueId: userUniqueId,
+          });
+          // Fall through to the generic status-1 response below
+        }
+      }
+
       return {
         ...createResponse(driverRequest, vehicle, null, null, 1),
         companyAssignment,
