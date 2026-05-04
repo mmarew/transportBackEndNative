@@ -41,16 +41,25 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
       return ServerResponder(res, result);
     }
 
-    // Determine the target userUniqueId for filtering
-    let targetUserUniqueId = userUniqueId;
-    if (userUniqueId === "self" || !userUniqueId) {
-      targetUserUniqueId = currentUser.userUniqueId;
+    // ── Resolve owner context ────────────────────────────────────────────────
+    // ownerType is injected by the route middleware (company/vehicle routes).
+    // Falls back to 'user' for the legacy /api/user/attachedDocuments route.
+    const resolvedOwnerType = req.ownerType ?? "user";
+
+    // ownerUniqueId: route-injected param takes priority (company/vehicle routes),
+    // then explicit query param, then 'self' (logged-in user).
+    let resolvedOwnerUniqueId =
+      req.ownerUniqueIdParam ??   // set by route middleware
+      userUniqueId;               // from query string (legacy/admin usage)
+
+    if (!resolvedOwnerUniqueId || resolvedOwnerUniqueId === "self") {
+      resolvedOwnerUniqueId = currentUser.userUniqueId;
     }
 
     // Build filter object
     const filter = {
-      ownerType: "user",
-      ownerUniqueId: targetUserUniqueId,
+      ownerType: resolvedOwnerType,
+      ownerUniqueId: resolvedOwnerUniqueId,
     };
 
     // Add additional filters if provided

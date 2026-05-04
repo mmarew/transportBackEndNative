@@ -81,11 +81,40 @@ router.post(
   attachedDocumentsController.createAttachedDocuments,
 );
 
-// Single consolidated filter endpoint for ALL document retrieval
+// ── User documents GET ───────────────────────────────────────────────────────
+// GET /api/user/attachedDocuments?userUniqueId=self&documentTypeId=...
+// ownerType defaults to 'user' in the controller
 router.get(
   "/api/user/attachedDocuments",
   verifyTokenOfAxios,
   validator(getAttachedDocumentsQuery, "query"),
+  attachedDocumentsController.getAttachedDocumentsByFilter,
+);
+
+// ── Company documents GET ─────────────────────────────────────────────────────
+// GET /api/company/attachedDocuments/:companyUniqueId
+// No query params needed — companyUniqueId comes from the URL path.
+router.get(
+  "/api/company/attachedDocuments/:companyUniqueId",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    req.ownerType = "company";
+    req.ownerUniqueIdParam = req.params.companyUniqueId;
+    next();
+  },
+  attachedDocumentsController.getAttachedDocumentsByFilter,
+);
+
+// ── Vehicle documents GET ─────────────────────────────────────────────────────
+// GET /api/vehicle/attachedDocuments/:vehicleUniqueId
+router.get(
+  "/api/vehicle/attachedDocuments/:vehicleUniqueId",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    req.ownerType = "vehicle";
+    req.ownerUniqueIdParam = req.params.vehicleUniqueId;
+    next();
+  },
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
