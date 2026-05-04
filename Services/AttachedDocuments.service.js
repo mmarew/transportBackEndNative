@@ -34,8 +34,9 @@ const createAttachedDocument = async ({
   uploadedByUserId,        // userUniqueId of the person who pressed upload (audit)
 }) => {
   try {
-    // Validate roleId / documentType link (only meaningful for user docs)
-    if (roleId) {
+    // Validate roleId / documentType link — only for user-owned documents.
+    // Company and vehicle docs are NOT tied to RoleDocumentRequirements.
+    if (ownerType === 'user' && roleId) {
       const documentType = await getData({
         tableName: "RoleDocumentRequirements",
         conditions: { documentTypeId, roleId },
