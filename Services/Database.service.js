@@ -25,6 +25,7 @@ const {
   depositSources,
   passengerDocumentRequirement,
   companyDocumentRequirement,
+  vehicleDocumentRequirement,
   listOfDelinquenciesTypes,
   subscriptionPlanPricingLists,
   companyRoleList,
@@ -407,6 +408,10 @@ const installPreDefinedData = async (req) => {
     depositSourcesErrors = [],
     successPassengerDocumentRequirement = [],
     failedPassengerDocumentRequirement = [],
+    successCompanyDocumentRequirement = [],
+    failedCompanyDocumentRequirement = [],
+    successVehicleDocumentRequirement = [],
+    failedVehicleDocumentRequirement = [],
     listOfDelinquenciesTypesSuccess = [],
     listOfDelinquenciesTypesErrors = [],
     commissionStatusSuccess = [],
@@ -544,9 +549,21 @@ const installPreDefinedData = async (req) => {
         body: document,
         userUniqueId: user.userUniqueId,
       }),
-    [], // Not tracking success/failure for now or add to return data if needed
-    [],
+    successCompanyDocumentRequirement,
+    failedCompanyDocumentRequirement,
     "CompanyDocumentRequirement",
+  );
+
+  await processDataSequentially(
+    vehicleDocumentRequirement,
+    (document) =>
+      createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      }),
+    successVehicleDocumentRequirement,
+    failedVehicleDocumentRequirement,
+    "VehicleDocumentRequirement",
   );
 
   await processDataSequentially(
@@ -684,6 +701,14 @@ const installPreDefinedData = async (req) => {
       passengerDocumentRequirement: {
         success: successPassengerDocumentRequirement,
         errors: failedPassengerDocumentRequirement,
+      },
+      companyDocumentRequirement: {
+        success: successCompanyDocumentRequirement,
+        errors: failedCompanyDocumentRequirement,
+      },
+      vehicleDocumentRequirement: {
+        success: successVehicleDocumentRequirement,
+        errors: failedVehicleDocumentRequirement,
       },
       VehicleStatusTypes: {
         success: successVehicleStatusTypes,

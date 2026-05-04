@@ -345,6 +345,9 @@ const listOfDocumentsTypeAndId = {
 };
 
 const driversDocumentRequirement = [
+  // Driver personal documents only.
+  // Vehicle-level docs (librea typeId=2, insurance typeId=3)
+  // are now in vehicleDocumentRequirement (roleId=9).
   {
     roleId: "2",
     documentTypeId: "1",
@@ -355,38 +358,12 @@ const driversDocumentRequirement = [
   },
   {
     roleId: "2",
-    documentTypeId: "2",
-    documentTypeName: "Vehicle Registration (librea)",
-    isDocumentMandatory: true,
-    isExpirationDateRequired: false,
-    isFileNumberRequired: true,
-  },
-  // {
-  //   roleId: "2",
-  //   documentTypeId: "3",
-  //   isDocumentMandatory: true,
-  //   isExpirationDateRequired: true,
-  // },
-  {
-    roleId: "2",
     documentTypeId: "4",
     documentTypeName: "Profile Photo",
     isDocumentMandatory: true,
     isExpirationDateRequired: false,
     isFileNumberRequired: false,
   },
-  // {
-  //   roleId: "2",
-  //   documentTypeId: "5",
-  //   isDocumentMandatory: true,
-  //   isExpirationDateRequired: true,
-  // },
-  // {
-  //   roleId: "2",
-  //   documentTypeId: "6",
-  //   isDocumentMandatory: true,
-  //   isExpirationDateRequired: true,
-  // },
 ];
 // document type and id to passenger/shipper
 const passengerDocumentRequirement = [
