@@ -301,52 +301,68 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
 
 CREATE TABLE IF NOT EXISTS AttachedDocuments (
     attachedDocumentId INT AUTO_INCREMENT PRIMARY KEY,
-    attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users and is used to show owner of documents
-    attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
-    documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
-    attachedDocumentFileNumber VARCHAR(25) NULL,  -- File number associated with the attached document
-    documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
-    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
-    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
-    documentVersion INT NOT NULL DEFAULT 1,  -- Document version number (to track changes)
-    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
-    attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
-    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
-    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
-    INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
-    INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
-    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-)  ; 
+    attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,    -- UUID for the attached document
+
+    -- Polymorphic owner (Option B): who/what this document belongs to.
+    -- ownerType  = 'user'    → ownerUniqueId is Users.userUniqueId
+    -- ownerType  = 'company' → ownerUniqueId is TransportCompany.companyUniqueId
+    -- ownerType  = 'vehicle' → ownerUniqueId is Vehicle.vehicleUniqueId
+    -- No DB-level FK here because ownerUniqueId points to different tables.
+    -- Application layer enforces referential integrity.
+    ownerType    ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
+    ownerUniqueId VARCHAR(36) NOT NULL,
+
+    attachedDocumentDescription VARCHAR(255) NULL,           -- Description of the attached document
+    documentTypeId INT NOT NULL,                             -- Foreign key to DocumentTypes
+    attachedDocumentFileNumber VARCHAR(25) NULL,             -- File number associated with the document
+    documentExpirationDate DATETIME NULL,                    -- Expiration date for time-sensitive docs
+    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    attachedDocumentName VARCHAR(255) NOT NULL,              -- File path / URL stored on FTP
+    documentVersion INT NOT NULL DEFAULT 1,                  -- Version counter (incremented on update)
+    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,    -- Audit: which user uploaded this doc
+    attachedDocumentCreatedAt DATETIME NOT NULL,
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,
+    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,
+    attachedDocumentAcceptedRejectedAt DATETIME NULL,
+
+    INDEX idx_owner (ownerType, ownerUniqueId),              -- Fast owner lookup
+    INDEX idx_documentTypeId (documentTypeId),
+    FOREIGN KEY (attachedDocumentCreatedByUserId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
+)  ;
 -- Create the AttachedDocumentsHistory Table (for Historical Records)
 
 CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     attachedDocumentHistoryId INT AUTO_INCREMENT PRIMARY KEY,
-    attachedDocumentId INT NOT NULL,  -- Reference to the original AttachedDocuments
-    attachedDocumentUniqueId VARCHAR(36) NOT NULL,  -- UUID for the attached document (links to the current active document)
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
-    documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
-    documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
-    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,  -- Status of the attached document
-    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
-    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
-    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
-    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    attachedDocumentDeletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document
-    attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
-    attachedDocumentUpdatedAt DATETIME NULL,  -- When the attached document was updated
-    attachedDocumentDeletedAt DATETIME NULL,  -- When the attached document was deleted
-    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,  -- Was the attached document expired
-    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
-    documentVersion INT NOT NULL DEFAULT 1,  -- Document version number (to track changes)
-    INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
-    INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
-    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
+    attachedDocumentId INT NOT NULL,                             -- Reference to the original AttachedDocuments row
+    attachedDocumentUniqueId VARCHAR(36) NOT NULL,               -- UUID of the document at snapshot time
+
+    -- Polymorphic owner — mirrors AttachedDocuments.ownerType / ownerUniqueId.
+    -- Stored here so history rows are self-contained: no join to parent needed
+    -- to know whether this snapshot belonged to a user, company, or vehicle.
+    ownerType    ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
+    ownerUniqueId VARCHAR(36) NOT NULL,
+
+    attachedDocumentDescription VARCHAR(255) NULL,
+    documentTypeId INT NOT NULL,
+    documentExpirationDate DATETIME NULL,
+    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,
+    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,
+    attachedDocumentAcceptedRejectedAt DATETIME NULL,
+    attachedDocumentName VARCHAR(255) NOT NULL,
+    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,        -- Audit: who originally uploaded
+    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,
+    attachedDocumentDeletedByUserId VARCHAR(36) NULL,
+    attachedDocumentCreatedAt DATETIME NOT NULL,
+    attachedDocumentUpdatedAt DATETIME NULL,
+    attachedDocumentDeletedAt DATETIME NULL,
+    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,
+    documentVersion INT NOT NULL DEFAULT 1,
+
+    INDEX idx_history_owner (ownerType, ownerUniqueId),          -- Fast owner history lookup
+    INDEX idx_history_documentTypeId (documentTypeId),
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 )  ;
 
  

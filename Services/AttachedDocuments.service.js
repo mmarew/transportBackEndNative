@@ -23,55 +23,48 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const messageTypes = require("../Utils/MessageTypes");
 const createAttachedDocument = async ({
   attachedDocumentDescription,
-  attachedDocumentName, // This is now the URL from FTP
+  attachedDocumentName,    // URL from FTP upload
   documentTypeId,
   documentExpirationDate,
   attachedDocumentFileNumber,
   roleId,
-  userUniqueId,
+  // Polymorphic owner fields
+  ownerType   = 'user',   // 'user' | 'company' | 'vehicle'
+  ownerUniqueId,           // UUID of the owning entity
+  uploadedByUserId,        // userUniqueId of the person who pressed upload (audit)
 }) => {
   try {
-    const conditions = {
-      documentTypeId,
-      roleId: roleId,
-    };
+    // Validate roleId / documentType link (only meaningful for user docs)
+    if (roleId) {
+      const documentType = await getData({
+        tableName: "RoleDocumentRequirements",
+        conditions: { documentTypeId, roleId },
+      });
 
-    const documentType = await getData({
-      tableName: "RoleDocumentRequirements",
-      conditions,
-    });
+      if (documentType.length === 0) {
+        throw new AppError(`Role Document requirement not found`, 400);
+      }
 
-    if (documentType.length === 0) {
-      throw new AppError(`Role Document requirement not found`, 400);
+      const isExpirationDateRequired = documentType[0].isExpirationDateRequired;
+      if (isExpirationDateRequired && !documentExpirationDate) {
+        throw new AppError(`Document expiration date is required`, 400);
+      }
     }
 
-    const isExpirationDateRequired = documentType[0].isExpirationDateRequired;
-    if (isExpirationDateRequired && !documentExpirationDate) {
-      throw new AppError(`Document expiration date is required`, 400);
-    }
-
-    // Check if the document already exists
+    // Duplicate check: same owner + same document type
     const existingDocument = await getData({
       tableName: "AttachedDocuments",
-      conditions: {
-        userUniqueId,
-        documentTypeId,
-      },
+      conditions: { ownerType, ownerUniqueId, documentTypeId },
     });
 
     if (existingDocument.length > 0) {
       throw new AppError(
-        `Document already exists for this user and document type`,
+        `Document already exists for this ${ownerType} and document type`,
         409,
       );
     }
-    logger.debug("@currentDate", new Date(currentDate()));
-    logger.debug(
-      "@new Date(documentExpirationDate) ",
-      new Date(documentExpirationDate),
-    );
-    // return;
-    // Check if document is expired
+
+    // Expiry check
     const isExpired = documentExpirationDate
       ? new Date(documentExpirationDate) < new Date(currentDate())
       : false;
@@ -82,13 +75,14 @@ const createAttachedDocument = async ({
 
     const newDocument = {
       attachedDocumentUniqueId: uuidv4(),
-      userUniqueId,
+      ownerType,
+      ownerUniqueId,
       attachedDocumentDescription,
-      attachedDocumentName, // This is now the URL
+      attachedDocumentName,
       documentTypeId,
       documentExpirationDate,
       attachedDocumentAcceptance: "PENDING",
-      attachedDocumentCreatedByUserId: userUniqueId,
+      attachedDocumentCreatedByUserId: uploadedByUserId ?? ownerUniqueId,
       attachedDocumentFileNumber,
       attachedDocumentCreatedAt: currentDate(),
     };
@@ -99,19 +93,20 @@ const createAttachedDocument = async ({
     });
 
     if (result?.affectedRows > 0) {
-      // Automatically update user status after document attachment
-      try {
-        await accountStatus({
-          ownerUserUniqueId: userUniqueId,
-          body: { roleId },
-        });
-      } catch (statusError) {
-        logger.error("Failed to update user status after document attachment", {
-          error: statusError.message,
-          userUniqueId,
-          roleId,
-        });
-        // Don't fail the document creation if status update fails
+      // Only trigger accountStatus for user-owned docs
+      if (ownerType === 'user' && roleId) {
+        try {
+          await accountStatus({
+            ownerUserUniqueId: ownerUniqueId,
+            body: { roleId },
+          });
+        } catch (statusError) {
+          logger.error("Failed to update user status after document attachment", {
+            error: statusError.message,
+            ownerUniqueId,
+            roleId,
+          });
+        }
       }
 
       return { message: "success", data: "Document created successfully" };
@@ -123,29 +118,33 @@ const createAttachedDocument = async ({
       error: error.message,
       stack: error.stack,
     });
+    if (error instanceof AppError) throw error;
     throw new AppError("An error occurred while creating the document", 500);
   }
 };
 
-// Retrieve all attached documents
-const getAttachedDocumentsByUser = async (userUniqueId) => {
+/**
+ * Retrieve all documents belonging to an owner (user, company, or vehicle).
+ * @param {string} ownerUniqueId
+ * @param {'user'|'company'|'vehicle'} [ownerType='user']
+ */
+const getAttachedDocumentsByOwner = async (ownerUniqueId, ownerType = 'user') => {
   const documents = await performJoinSelect({
     baseTable: "AttachedDocuments",
     joins: [
       {
         table: "DocumentTypes",
-        on: "AttachedDocuments.documentTypeId=DocumentTypes.documentTypeId",
+        on: "AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId",
       },
     ],
-    conditions: {
-      userUniqueId,
-    },
+    conditions: { ownerType, ownerUniqueId },
   });
-  return {
-    message: "success",
-    data: documents,
-  };
+  return { message: "success", data: documents };
 };
+
+// Keep backward-compat alias — callers passing a userUniqueId still work
+const getAttachedDocumentsByUser = (userUniqueId) =>
+  getAttachedDocumentsByOwner(userUniqueId, 'user');
 
 // Retrieve an attached document by ID
 const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
@@ -314,29 +313,31 @@ const acceptRejectAttachedDocuments = async (body) => {
     throw new AppError("Invalid action. Must be 'ACCEPTED' or 'REJECTED'", 400);
   }
 
-  // Fetch the document to ensure it exists and extract the owner's userUniqueId
-  const attachedDocument = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        table: "AttachedDocuments",
-        on: "AttachedDocuments.userUniqueId = Users.userUniqueId",
-      },
-    ],
-    conditions: {
-      attachedDocumentUniqueId,
-    },
+  // Fetch the document to get owner info (no longer joins Users since owner may be a company)
+  const attachedDocument = await getData({
+    tableName: "AttachedDocuments",
+    conditions: { attachedDocumentUniqueId },
   });
 
-  if (attachedDocument?.length === 0) {
+  if (!attachedDocument || attachedDocument.length === 0) {
     throw new AppError("Document not found", 404);
   }
 
-  // Extract the owner's userUniqueId from the document
-  const ownerUserUniqueId = attachedDocument[0]?.userUniqueId;
-  const phoneNumber = attachedDocument[0]?.phoneNumber;
+  // Extract polymorphic owner info
+  const ownerUniqueId = attachedDocument[0]?.ownerUniqueId;
+  const ownerType     = attachedDocument[0]?.ownerType;
 
-  if (!ownerUserUniqueId) {
+  // For notifications we still need the phone number — only available for user owners
+  let phoneNumber = null;
+  if (ownerType === 'user' && ownerUniqueId) {
+    const [userRows] = await pool.query(
+      "SELECT phoneNumber FROM Users WHERE userUniqueId = ? LIMIT 1",
+      [ownerUniqueId],
+    );
+    phoneNumber = userRows?.[0]?.phoneNumber ?? null;
+  }
+
+  if (!ownerUniqueId) {
     throw new AppError("Document owner information not found", 400);
   }
 
@@ -358,44 +359,41 @@ const acceptRejectAttachedDocuments = async (body) => {
   };
 
   if (updatedDocument.affectedRows > 0) {
-    // Automatically update user status after document acceptance/rejection
-    try {
-      await accountStatus({
-        ownerUserUniqueId,
-        body: { roleId },
-      });
-    } catch (statusError) {
-      logger.error(
-        "Failed to update user status after document approval/rejection",
-        {
-          error: statusError.message,
-          ownerUserUniqueId,
-          roleId,
-          action,
-        },
-      );
-      // Don't fail the document update if status update fails
-    }
+    // Trigger accountStatus only for user-owned documents
+    if (ownerType === 'user') {
+      try {
+        await accountStatus({
+          ownerUserUniqueId: ownerUniqueId,
+          body: { roleId },
+        });
+      } catch (statusError) {
+        logger.error(
+          "Failed to update user status after document approval/rejection",
+          {
+            error: statusError.message,
+            ownerUniqueId,
+            roleId,
+            action,
+          },
+        );
+      }
 
-    if (roleId === usersRoles.adminRoleId) {
-      message.messageType = messageTypes?.accept_reject_driver_document;
-      sendSocketIONotificationToAdmin({ message, phoneNumber });
-    }
-    // adjust drivers role status based on document acceptance
-    const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
-      ownerUserUniqueId,
-      user: attachedDocument[0],
-    });
-    if (roleId === usersRoles.driverRoleId) {
-      // messageType ==="acceptOrRejectDriverDocument";
-      documentAndVehicleOfDriver.messageType = "acceptOrRejectDriverDocument";
-      sendSocketIONotificationToDriver({
-        message: documentAndVehicleOfDriver,
-        phoneNumber,
+      const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
+        ownerUserUniqueId: ownerUniqueId,
+        user: { userUniqueId: ownerUniqueId },
       });
-    }
-    if (roleId === usersRoles.passengerRoleId) {
-      sendSocketIONotificationToPassenger({ message, phoneNumber });
+
+      if (roleId === usersRoles.adminRoleId) {
+        message.messageType = messageTypes?.accept_reject_driver_document;
+        sendSocketIONotificationToAdmin({ message, phoneNumber });
+      }
+      if (roleId === usersRoles.driverRoleId) {
+        documentAndVehicleOfDriver.messageType = "acceptOrRejectDriverDocument";
+        sendSocketIONotificationToDriver({ message: documentAndVehicleOfDriver, phoneNumber });
+      }
+      if (roleId === usersRoles.passengerRoleId) {
+        sendSocketIONotificationToPassenger({ message, phoneNumber });
+      }
     }
 
     return message;
@@ -408,8 +406,10 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
   try {
     const {
       attachedDocumentUniqueId,
-      userUniqueId,
+      ownerType,
+      ownerUniqueId,
       documentTypeId,
+      // User-specific filters (only apply when ownerType='user')
       email,
       phoneNumber,
       fullName,
@@ -421,21 +421,9 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
     // If specific document ID is provided, return only that document
     if (attachedDocumentUniqueId) {
       const sql = `
-        SELECT
-          ad.*,
-          dt.*,
-          u.userId,
-          u.fullName,
-          u.phoneNumber,
-          u.email,
-          u.userCreatedAt,
-          u.userCreatedBy,
-          u.userDeletedAt,
-          u.userDeletedBy,
-          u.isDeleted
+        SELECT ad.*, dt.*
         FROM AttachedDocuments ad
         JOIN DocumentTypes dt ON ad.documentTypeId = dt.documentTypeId
-        JOIN Users u ON ad.userUniqueId = u.userUniqueId
         WHERE ad.attachedDocumentUniqueId = ?
       `;
       const executor = transactionStorage.getStore() || pool;
@@ -445,20 +433,21 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
         throw new AppError("Document not found", 404);
       }
 
-      return {
-        message: "success",
-        data: document[0],
-      };
+      return { message: "success", data: document[0] };
     }
 
     // Build WHERE conditions
     const whereClauses = [];
     const params = [];
 
-    // Only filter by userUniqueId if provided, otherwise search by email/phone/name
-    if (userUniqueId && userUniqueId !== "all") {
-      whereClauses.push("ad.userUniqueId = ?");
-      params.push(userUniqueId);
+    if (ownerType) {
+      whereClauses.push("ad.ownerType = ?");
+      params.push(ownerType);
+    }
+
+    if (ownerUniqueId && ownerUniqueId !== "all") {
+      whereClauses.push("ad.ownerUniqueId = ?");
+      params.push(ownerUniqueId);
     }
 
     if (documentTypeId && documentTypeId !== "all") {
@@ -466,17 +455,20 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
       params.push(documentTypeId);
     }
 
-    // Add user profile filters (email, phone, name)
+    // User-profile filters: only join Users when filtering by user attributes
+    const needsUserJoin = email || phoneNumber || fullName;
+    const userJoin = needsUserJoin
+      ? `JOIN Users u ON ad.ownerType = 'user' AND ad.ownerUniqueId = u.userUniqueId`
+      : "";
+
     if (email && email !== "all") {
       whereClauses.push("u.email = ?");
       params.push(email);
     }
-
     if (phoneNumber && phoneNumber !== "all") {
       whereClauses.push("u.phoneNumber = ?");
       params.push(phoneNumber);
     }
-
     if (fullName && fullName !== "all") {
       whereClauses.push("u.fullName = ?");
       params.push(fullName);
@@ -490,7 +482,7 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
       SELECT COUNT(*) as total
       FROM AttachedDocuments ad
       JOIN DocumentTypes dt ON ad.documentTypeId = dt.documentTypeId
-      JOIN Users u ON ad.userUniqueId = u.userUniqueId
+      ${userJoin}
       ${whereClause}
     `;
     const executor = transactionStorage.getStore() || pool;
@@ -500,26 +492,14 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
 
     // Get paginated results
     const sql = `
-      SELECT
-        ad.*,
-        dt.*,
-        u.userId,
-        u.fullName,
-        u.phoneNumber,
-        u.email,
-        u.userCreatedAt,
-        u.userCreatedBy,
-        u.userDeletedAt,
-        u.userDeletedBy,
-        u.isDeleted
+      SELECT ad.*, dt.*
       FROM AttachedDocuments ad
       JOIN DocumentTypes dt ON ad.documentTypeId = dt.documentTypeId
-      JOIN Users u ON ad.userUniqueId = u.userUniqueId
+      ${userJoin}
       ${whereClause}
       ORDER BY ad.${by} ${order}
       LIMIT ? OFFSET ?
     `;
-    logger.debug("@sql", sql, "@userUniqueId", userUniqueId);
     const [documents] = await executor.query(sql, [...params, limit, offset]);
 
     return {
@@ -535,7 +515,8 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
         },
       },
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof AppError) throw error;
     throw new AppError("Unable to retrieve documents", 500);
   }
 };
@@ -544,7 +525,8 @@ module.exports = {
   getAttachedDocumentsByFilter,
   acceptRejectAttachedDocuments,
   createAttachedDocument,
-  getAttachedDocumentsByUser,
+  getAttachedDocumentsByOwner,
+  getAttachedDocumentsByUser,      // backward-compat alias
   getAttachedDocumentByUniqueId,
   updateAttachedDocument,
   deleteAttachedDocument,
