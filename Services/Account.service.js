@@ -418,6 +418,7 @@ const accountStatus = async ({
     if (enableDocumentChecks && requiredDocsResult.status === "fulfilled") {
       requiredDocuments = requiredDocsResult.value?.data || [];
       if (requiredDocuments.length > 0) {
+        // ── Driver personal docs (ownerType='user', roleId=2) ────────────────
         const sql = `
           SELECT
             ad.*,
@@ -447,6 +448,48 @@ const accountStatus = async ({
             attachedDocumentsByStatus[doc.doc_status].push(doc);
           }
         });
+      }
+
+      // ── Vehicle docs (ownerType='vehicle', roleId=9) — only for drivers ────
+      if (Number(roleId) === usersRoles.driverRoleId && userVehicle?.vehicleUniqueId) {
+        const vehicleRoleId = usersRoles.vehicleRoleId; // 9
+        const vehicleDocSql = `
+          SELECT
+            ad.*,
+            dt.*,
+            rdr.*,
+            CASE
+              WHEN ad.attachedDocumentId IS NULL THEN 'NOT_ATTACHED'
+              ELSE ad.attachedDocumentAcceptance
+            END as doc_status
+          FROM RoleDocumentRequirements rdr
+          JOIN DocumentTypes dt ON rdr.documentTypeId = dt.documentTypeId
+          LEFT JOIN AttachedDocuments ad ON ad.documentTypeId = dt.documentTypeId
+            AND ad.ownerType = 'vehicle' AND ad.ownerUniqueId = ?
+            AND ad.attachedDocumentAcceptance != 'DELETED'
+          WHERE rdr.roleId = ?
+          ORDER BY dt.documentTypeId
+        `;
+        const executorV = transactionStorage.getStore() || pool;
+        const [vehicleDocs] = await executorV.query(vehicleDocSql, [
+          userVehicle.vehicleUniqueId,
+          vehicleRoleId,
+        ]);
+        vehicleDocs.forEach((doc) => {
+          if (doc.doc_status === "NOT_ATTACHED") {
+            unAttachedDocumentTypes.push(doc);
+          } else if (attachedDocumentsByStatus[doc.doc_status]) {
+            attachedDocumentsByStatus[doc.doc_status].push(doc);
+          }
+        });
+        // Also merge vehicle requirements into requiredDocuments so the
+        // frontend knows all docs needed in one list
+        const vehicleRequiredDocs = vehicleDocs.map((d) => ({
+          ...d,
+          _ownerType: "vehicle", // hint for frontend: upload to /api/vehicle/attachDocuments/:vehicleUniqueId
+          _vehicleUniqueId: userVehicle.vehicleUniqueId,
+        }));
+        requiredDocuments = [...requiredDocuments, ...vehicleRequiredDocs];
       }
     }
 

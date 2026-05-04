@@ -445,19 +445,62 @@ const driversDocumentVehicleRequirement = async (body) => {
         },
       };
     }
-    //Get attached documents
-    const sql = `
-SELECT DISTINCT   AttachedDocuments.*,  DocumentTypes.*, 
-  RoleDocumentRequirements.* FROM AttachedDocuments
-JOIN DocumentTypes    ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
-JOIN RoleDocumentRequirements    ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
-WHERE AttachedDocuments.ownerType = 'user' AND AttachedDocuments.ownerUniqueId = ? and RoleDocumentRequirements.roleId = ?
+    //Get attached documents — driver personal docs (ownerType='user')
+    const driverDocSql = `
+SELECT DISTINCT ad.*, dt.*, rdr.*
+FROM AttachedDocuments ad
+JOIN DocumentTypes dt ON ad.documentTypeId = dt.documentTypeId
+JOIN RoleDocumentRequirements rdr ON rdr.documentTypeId = dt.documentTypeId
+WHERE ad.ownerType = 'user'
+  AND ad.ownerUniqueId = ?
+  AND rdr.roleId = ?
 `;
     const executor = transactionStorage.getStore() || pool;
-    const values = [ownerUserUniqueId, roleId];
-    const [attachedDocuments] = await executor.query(sql, values);
-    // Find unattached document types
-    const unAttachedDocumentTypes = requiredDocuments.filter(
+    const [driverAttachedDocuments] = await executor.query(driverDocSql, [ownerUserUniqueId, roleId]);
+
+    // Also check vehicle requirements (roleId=9) for the driver's assigned vehicle
+    const vehicleRequirementsResult = await getRoleDocumentRequirements({
+      roleId: usersRoles.vehicleRoleId,   // 9
+      page: 1,
+      limit: 1000,
+      sortBy: "documentTypeId",
+      sortOrder: "ASC",
+    });
+    const vehicleRequiredDocuments = vehicleRequirementsResult?.data || [];
+
+    let vehicleAttachedDocuments = [];
+    if (vehicleRequiredDocuments.length > 0) {
+      // Get the driver's active vehicle assignment
+      const [vehicleRows] = await executor.query(
+        `SELECT vehicleUniqueId FROM VehicleDriver
+         WHERE driverUserUniqueId = ? AND assignmentStatus = 'active'
+         LIMIT 1`,
+        [ownerUserUniqueId],
+      );
+      const vehicleUniqueId = vehicleRows[0]?.vehicleUniqueId;
+
+      if (vehicleUniqueId) {
+        const vehicleDocSql = `
+SELECT DISTINCT ad.*, dt.*, rdr.*
+FROM AttachedDocuments ad
+JOIN DocumentTypes dt ON ad.documentTypeId = dt.documentTypeId
+JOIN RoleDocumentRequirements rdr ON rdr.documentTypeId = dt.documentTypeId
+WHERE ad.ownerType = 'vehicle'
+  AND ad.ownerUniqueId = ?
+  AND rdr.roleId = ?
+`;
+        [vehicleAttachedDocuments] = await executor.query(vehicleDocSql, [vehicleUniqueId, usersRoles.vehicleRoleId]);
+      }
+    }
+
+    // Merge: all attached documents across driver + vehicle
+    const attachedDocuments = [...driverAttachedDocuments, ...vehicleAttachedDocuments];
+
+    // All required documents across both roles
+    const allRequiredDocuments = [...requiredDocuments, ...vehicleRequiredDocuments];
+
+    // Find unattached document types (driver docs + vehicle docs combined)
+    const unAttachedDocumentTypes = allRequiredDocuments.filter(
       (requiredDocument) =>
         !attachedDocuments.some(
           (attachedDocument) =>
@@ -544,10 +587,10 @@ WHERE AttachedDocuments.ownerType = 'user' AND AttachedDocuments.ownerUniqueId =
       const resultOfStatus = findStatusByVehicleAndDocuments({
         attachedDocuments,
         attachedDocumentsByStatus,
-        requiredDocuments,
+        requiredDocuments: allRequiredDocuments,   // driver + vehicle requirements
         vehicleRegistered,
         unAttachedDocumentTypes,
-        hasActiveSubscription, // Pass subscription status
+        hasActiveSubscription,
       });
 
       if (resultOfStatus?.message === "error") {
