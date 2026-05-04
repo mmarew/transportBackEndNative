@@ -214,7 +214,7 @@ const accountStatus = async ({
         const rolesAndStatuses = firstEntry.rolesAndStatuses || [];
         const roleEntry = requestedRoleId
           ? rolesAndStatuses.find(
-            (rs) => rs?.userRoles?.roleId === requestedRoleId,
+            (rs) => Number(rs?.userRoles?.roleId) === Number(requestedRoleId),
           )
           : rolesAndStatuses[0];
 
