@@ -322,6 +322,12 @@ const listOfDocuments = [
     documentTypeDescription:
       "Official tax identification number certificate for the company.",
   },
+  {
+    isExpirationDateRequired: false,
+    documentTypeName: "Company Logo",
+    documentTypeDescription:
+      "Official logo of the transport company, used for branding and identification in the platform.",
+  },
 ];
 
 const listOfDocumentsTypeAndId = {
@@ -335,6 +341,7 @@ const listOfDocumentsTypeAndId = {
   businessLicense: 8,
   commercialRegistration: 9,
   taxRegistrationCertificate: 10,
+  companyLogo: 11,              // typeId 11 — company branding document
 };
 
 const driversDocumentRequirement = [
@@ -401,9 +408,11 @@ const passengerDocumentRequirement = [
   },
 ];
 
+// Company entity document requirements (roleId 8 — 'company' entity role)
+// These are attached via POST /api/company/attachDocuments/:companyUniqueId
 const companyDocumentRequirement = [
   {
-    roleId: 7,
+    roleId: 8,                        // company entity role (NOT companyAdmin user role)
     documentTypeId: 8,
     documentTypeName: "Business License",
     isDocumentMandatory: true,
@@ -411,7 +420,7 @@ const companyDocumentRequirement = [
     isFileNumberRequired: true,
   },
   {
-    roleId: 7,
+    roleId: 8,
     documentTypeId: 9,
     documentTypeName: "Commercial Registration",
     isDocumentMandatory: true,
@@ -419,7 +428,7 @@ const companyDocumentRequirement = [
     isFileNumberRequired: true,
   },
   {
-    roleId: 7,
+    roleId: 8,
     documentTypeId: 10,
     documentTypeName: "Tax Registration (TIN) Certificate",
     isDocumentMandatory: true,
@@ -427,12 +436,33 @@ const companyDocumentRequirement = [
     isFileNumberRequired: true,
   },
   {
-    roleId: 7,
-    documentTypeId: 4,
-    documentTypeName: "Profile Photo",
-    isDocumentMandatory: true,
+    roleId: 8,
+    documentTypeId: 11,
+    documentTypeName: "Company Logo",
+    isDocumentMandatory: false,       // optional — nice to have but not blocking
     isExpirationDateRequired: false,
     isFileNumberRequired: false,
+  },
+];
+
+// Vehicle entity document requirements (roleId 9 — 'vehicle' entity role)
+// These are attached via POST /api/vehicle/attachDocuments/:vehicleUniqueId
+const vehicleDocumentRequirement = [
+  {
+    roleId: 9,
+    documentTypeId: 3,
+    documentTypeName: "Insurance Document",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: true,
+    isFileNumberRequired: true,
+  },
+  {
+    roleId: 9,
+    documentTypeId: 2,
+    documentTypeName: "Vehicle Registration (librea)",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: false,
+    isFileNumberRequired: true,
   },
 ];
 const vehicleTypes = [
@@ -981,4 +1011,5 @@ module.exports = {
   companyRoles,
   companyRoleList,
   companyDocumentRequirement,
+  vehicleDocumentRequirement,
 };
