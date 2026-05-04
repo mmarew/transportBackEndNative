@@ -9,21 +9,21 @@ const usersRoles = {
   systemRoleId: 5,
   supperAdminRoleId: 6,
   companyAdminRoleId: 7,
-  companyRoleId: 8,     // entity role — for company document requirements
-  vehicleRoleId: 9,    // entity role — for vehicle document requirements
+  companyRoleId: 8, // entity role — for company document requirements
+  vehicleRoleId: 9, // entity role — for vehicle document requirements
   dispatcherRoleId: 10, // company dispatcher — manages fleet dispatch
 };
 const usersRolesList = {
-  passenger:    { roleId: 1,  roleName: "passenger" },
-  driver:       { roleId: 2,  roleName: "driver" },
-  admin:        { roleId: 3,  roleName: "admin" },
-  vehicleOwner: { roleId: 4,  roleName: "vehicle owner" },
-  system:       { roleId: 5,  roleName: "system" },
-  supperAdmin:  { roleId: 6,  roleName: "supper admin" },
-  companyAdmin: { roleId: 7,  roleName: "CompanyAdmin" },
-  company:      { roleId: 8,  roleName: "company" },
-  vehicle:      { roleId: 9,  roleName: "vehicle" },
-  dispatcher:   { roleId: 10, roleName: "Dispatcher" },
+  passenger: { roleId: 1, roleName: "passenger" },
+  driver: { roleId: 2, roleName: "driver" },
+  admin: { roleId: 3, roleName: "admin" },
+  vehicleOwner: { roleId: 4, roleName: "vehicle owner" },
+  system: { roleId: 5, roleName: "system" },
+  supperAdmin: { roleId: 6, roleName: "supper admin" },
+  companyAdmin: { roleId: 7, roleName: "CompanyAdmin" },
+  company: { roleId: 8, roleName: "company" },
+  vehicle: { roleId: 9, roleName: "vehicle" },
+  dispatcher: { roleId: 10, roleName: "Dispatcher" },
 };
 const roleList = [
   {
@@ -351,7 +351,7 @@ const listOfDocumentsTypeAndId = {
   businessLicense: 8,
   commercialRegistration: 9,
   taxRegistrationCertificate: 10,
-  companyLogo: 11,              // typeId 11 — company branding document
+  companyLogo: 11, // typeId 11 — company branding document
 };
 
 const driversDocumentRequirement = [
@@ -399,7 +399,7 @@ const passengerDocumentRequirement = [
 // These are attached via POST /api/company/attachDocuments/:companyUniqueId
 const companyDocumentRequirement = [
   {
-    roleId: 8,                        // company entity role (NOT companyAdmin user role)
+    roleId: 8, // company entity role (NOT companyAdmin user role)
     documentTypeId: 8,
     documentTypeName: "Business License",
     isDocumentMandatory: true,
@@ -426,7 +426,7 @@ const companyDocumentRequirement = [
     roleId: 8,
     documentTypeId: 11,
     documentTypeName: "Company Logo",
-    isDocumentMandatory: false,       // optional — nice to have but not blocking
+    isDocumentMandatory: false, // optional — nice to have but not blocking
     isExpirationDateRequired: false,
     isFileNumberRequired: false,
   },

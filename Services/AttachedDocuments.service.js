@@ -379,18 +379,13 @@ const acceptRejectAttachedDocuments = async (body) => {
         );
       }
 
-      const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
-        ownerUserUniqueId: ownerUniqueId,
-        user: { userUniqueId: ownerUniqueId },
-      });
-
       if (roleId === usersRoles.adminRoleId) {
         message.messageType = messageTypes?.accept_reject_driver_document;
         sendSocketIONotificationToAdmin({ message, phoneNumber });
       }
       if (roleId === usersRoles.driverRoleId) {
-        documentAndVehicleOfDriver.messageType = "acceptOrRejectDriverDocument";
-        sendSocketIONotificationToDriver({ message: documentAndVehicleOfDriver, phoneNumber });
+        message.messageType = "acceptOrRejectDriverDocument";
+        sendSocketIONotificationToDriver({ message, phoneNumber });
       }
       if (roleId === usersRoles.passengerRoleId) {
         sendSocketIONotificationToPassenger({ message, phoneNumber });
