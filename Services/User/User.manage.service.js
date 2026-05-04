@@ -137,6 +137,7 @@ const getUserByFilterDetailed = async (
   // Build WHERE conditions
   const whereParts = [];
   const params = [];
+  const exactMatch = filters.exactMatch === true;
 
   // User-level filters
   if (filters.userUniqueId) {
@@ -145,12 +146,22 @@ const getUserByFilterDetailed = async (
   }
 
   if (filters.phoneNumber) {
-    whereParts.push(`Users.phoneNumber LIKE ?`);
-    params.push(`%${filters.phoneNumber}%`);
+    if (exactMatch) {
+      whereParts.push(`Users.phoneNumber = ?`);
+      params.push(filters.phoneNumber);
+    } else {
+      whereParts.push(`Users.phoneNumber LIKE ?`);
+      params.push(`%${filters.phoneNumber}%`);
+    }
   }
   if (filters.email) {
-    whereParts.push(`Users.email LIKE ?`);
-    params.push(`%${filters.email}%`);
+    if (exactMatch) {
+      whereParts.push(`Users.email = ?`);
+      params.push(filters.email);
+    } else {
+      whereParts.push(`Users.email LIKE ?`);
+      params.push(`%${filters.email}%`);
+    }
   }
   if (filters.fullName) {
     whereParts.push(`Users.fullName LIKE ?`);

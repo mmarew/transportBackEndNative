@@ -191,17 +191,12 @@ const accountStatus = async ({
     // If ownerUserUniqueId is not provided, try to resolve by phone or email
     if (!resolvedUserUniqueId && (phoneNumber || email)) {
       // First, find the user by phone/email WITHOUT roleId filter
-      // (roleId filter would exclude users who don't have that role)
-      // We use limit=1 because for account status we only need one specific user
-      // If multiple users match (e.g., partial phone number), we take the first match
-      const userFilters = {};
-      if (phoneNumber) {
-        userFilters.phoneNumber = phoneNumber;
-      }
-      if (email) {
-        userFilters.email = email;
-      }
-      // Don't include roleId here - we'll check it separately
+      // Build filters: exact phone/email match + roleId so the SQL JOIN
+      // filters to exactly the role the admin is asking about.
+      const userFilters = { exactMatch: true };
+      if (phoneNumber) userFilters.phoneNumber = phoneNumber;
+      if (email)       userFilters.email       = email;
+      if (requestedRoleId) userFilters.roleId  = Number(requestedRoleId);
 
       const userResult = await getUserByFilterDetailed(userFilters, 1, 1);
       if (
