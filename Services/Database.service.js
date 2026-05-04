@@ -26,6 +26,8 @@ const {
   passengerDocumentRequirement,
   companyDocumentRequirement,
   vehicleDocumentRequirement,
+  companyAdminDocumentRequirement,
+  dispatcherDocumentRequirement,
   listOfDelinquenciesTypes,
   subscriptionPlanPricingLists,
   companyRoleList,
@@ -412,6 +414,10 @@ const installPreDefinedData = async (req) => {
     failedCompanyDocumentRequirement = [],
     successVehicleDocumentRequirement = [],
     failedVehicleDocumentRequirement = [],
+    successCompanyAdminDocumentRequirement = [],
+    failedCompanyAdminDocumentRequirement = [],
+    successDispatcherDocumentRequirement = [],
+    failedDispatcherDocumentRequirement = [],
     listOfDelinquenciesTypesSuccess = [],
     listOfDelinquenciesTypesErrors = [],
     commissionStatusSuccess = [],
@@ -567,6 +573,30 @@ const installPreDefinedData = async (req) => {
   );
 
   await processDataSequentially(
+    companyAdminDocumentRequirement,
+    (document) =>
+      createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      }),
+    successCompanyAdminDocumentRequirement,
+    failedCompanyAdminDocumentRequirement,
+    "CompanyAdminDocumentRequirement",
+  );
+
+  await processDataSequentially(
+    dispatcherDocumentRequirement,
+    (document) =>
+      createMapping({
+        body: document,
+        userUniqueId: user.userUniqueId,
+      }),
+    successDispatcherDocumentRequirement,
+    failedDispatcherDocumentRequirement,
+    "DispatcherDocumentRequirement",
+  );
+
+  await processDataSequentially(
     cancellationReasons,
     (reason) => addCancellationReason(reason, user),
     cancellationReasonsSuccess,
@@ -709,6 +739,14 @@ const installPreDefinedData = async (req) => {
       vehicleDocumentRequirement: {
         success: successVehicleDocumentRequirement,
         errors: failedVehicleDocumentRequirement,
+      },
+      companyAdminDocumentRequirement: {
+        success: successCompanyAdminDocumentRequirement,
+        errors: failedCompanyAdminDocumentRequirement,
+      },
+      dispatcherDocumentRequirement: {
+        success: successDispatcherDocumentRequirement,
+        errors: failedDispatcherDocumentRequirement,
       },
       VehicleStatusTypes: {
         success: successVehicleStatusTypes,

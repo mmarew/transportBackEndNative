@@ -11,17 +11,19 @@ const usersRoles = {
   companyAdminRoleId: 7,
   companyRoleId: 8,     // entity role — for company document requirements
   vehicleRoleId: 9,    // entity role — for vehicle document requirements
+  dispatcherRoleId: 10, // company dispatcher — manages fleet dispatch
 };
 const usersRolesList = {
-  passenger: { roleId: 1, roleName: "passenger" },
-  driver: { roleId: 2, roleName: "driver" },
-  admin: { roleId: 3, roleName: "admin" },
-  vehicleOwner: { roleId: 4, roleName: "vehicle owner" },
-  system: { roleId: 5, roleName: "system" },
-  supperAdmin: { roleId: 6, roleName: "supper admin" },
-  companyAdmin: { roleId: 7, roleName: "CompanyAdmin" },
-  company: { roleId: 8, roleName: "company" },
-  vehicle: { roleId: 9, roleName: "vehicle" },
+  passenger:    { roleId: 1,  roleName: "passenger" },
+  driver:       { roleId: 2,  roleName: "driver" },
+  admin:        { roleId: 3,  roleName: "admin" },
+  vehicleOwner: { roleId: 4,  roleName: "vehicle owner" },
+  system:       { roleId: 5,  roleName: "system" },
+  supperAdmin:  { roleId: 6,  roleName: "supper admin" },
+  companyAdmin: { roleId: 7,  roleName: "CompanyAdmin" },
+  company:      { roleId: 8,  roleName: "company" },
+  vehicle:      { roleId: 9,  roleName: "vehicle" },
+  dispatcher:   { roleId: 10, roleName: "Dispatcher" },
 };
 const roleList = [
   {
@@ -90,6 +92,14 @@ const roleList = [
     roleName: "vehicle",
     roleDescription:
       "Entity role for vehicles. Used to define and verify vehicle-level document requirements (insurance, roadworthiness certificate, etc.).",
+    roleCreatedAt: currentDate(),
+  },
+  {
+    roleId: 10,
+    roleUniqueId: uuidv4(),
+    roleName: "Dispatcher",
+    roleDescription:
+      "A company dispatcher who manages fleet assignments, monitors vehicle availability, and coordinates driver schedules on behalf of the company.",
     roleCreatedAt: currentDate(),
   },
 ];
@@ -442,6 +452,49 @@ const vehicleDocumentRequirement = [
     isFileNumberRequired: true,
   },
 ];
+
+// CompanyAdmin user document requirements (roleId 7)
+// National ID is mandatory to verify the identity of company admins.
+const companyAdminDocumentRequirement = [
+  {
+    roleId: 7,
+    documentTypeId: 7,
+    documentTypeName: "National ID",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: false,
+    isFileNumberRequired: true,
+  },
+  {
+    roleId: 7,
+    documentTypeId: 4,
+    documentTypeName: "Profile Photo",
+    isDocumentMandatory: false,
+    isExpirationDateRequired: false,
+    isFileNumberRequired: false,
+  },
+];
+
+// Dispatcher user document requirements (roleId 10)
+// National ID + Profile Photo required for fleet dispatcher identity.
+const dispatcherDocumentRequirement = [
+  {
+    roleId: 10,
+    documentTypeId: 7,
+    documentTypeName: "National ID",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: false,
+    isFileNumberRequired: true,
+  },
+  {
+    roleId: 10,
+    documentTypeId: 4,
+    documentTypeName: "Profile Photo",
+    isDocumentMandatory: true,
+    isExpirationDateRequired: false,
+    isFileNumberRequired: false,
+  },
+];
+
 const vehicleTypes = [
   // ── Light & Medium — open flatbed/curtain trucks, bulk cargo only ──────────
   {
@@ -981,6 +1034,8 @@ module.exports = {
   statusList,
   usersRoles,
   passengerDocumentRequirement,
+  companyAdminDocumentRequirement,
+  dispatcherDocumentRequirement,
   subscriptionPlanPricingLists,
   commissionStatusList,
   USER_STATUS,

@@ -118,6 +118,8 @@ exports.createCompany = async (data) => {
 
 /**
  * Retrieves a list of transport companies with data segregation for non-admins.
+ * For admins/superAdmins, each company includes a `documentCompliance` summary
+ * so the admin dashboard can show doc status without extra API calls.
  *
  * @param {Object} [filters={}] - Query filters (companyName, approvalStatus, etc.)
  * @param {Object} [user={}] - Authenticated user object for access control
@@ -128,21 +130,26 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   const clauses = ["TransportCompany.isDeleted = 0"];
   const params = [];
 
+  const isAdmin =
+    user.roleId === usersRoles.adminRoleId ||
+    user.roleId === usersRoles.supperAdminRoleId;
+
+  // Company owners/admins also get the full compliance picture for their own companies.
+  // They can only ever see their own companies (membership filter below), so this is safe.
+  const isCompanyAdmin = user.roleId === usersRoles.companyAdminRoleId;
+  const showCompliance = isAdmin || isCompanyAdmin;
+
   // Data Segregation:
   // - Admins/SuperAdmins: see all companies
   // - Drivers: see all APPROVED companies (needed to pick a company when registering a vehicle)
   // - Other non-admins (passengers, companyAdmin, etc.): only see companies they belong to
-  if (
-    user.roleId !== usersRoles.adminRoleId &&
-    user.roleId !== usersRoles.supperAdminRoleId
-  ) {
+  if (!isAdmin) {
     if (user.roleId === usersRoles.driverRoleId) {
-      // Drivers can browse all approved companies to register their vehicle
       clauses.push("TransportCompany.approvalStatus = 'approved'");
     } else {
       clauses.push(
         `TransportCompany.companyUniqueId IN (
-          SELECT companyUniqueId FROM CompanyMembership 
+          SELECT companyUniqueId FROM CompanyMembership
           WHERE userUniqueId = ? AND membershipDeletedAt IS NULL
         )`,
       );
@@ -167,14 +174,131 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
-  return paginatedQuery(
-    `SELECT * FROM TransportCompany ${where} ORDER BY TransportCompany.companyCreatedAt DESC`,
+  const executor = db();
+
+  // ── 1. Paginated list of companies ────────────────────────────────────────
+  const [companies] = await executor.query(
+    `SELECT * FROM TransportCompany ${where}
+     ORDER BY TransportCompany.companyCreatedAt DESC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset],
+  );
+  const [[{ total }]] = await executor.query(
     `SELECT COUNT(*) AS total FROM TransportCompany ${where}`,
     params,
-    page,
-    limit,
-    offset,
   );
+
+  // ── 2. Batch document compliance — for admins AND company owners/admins
+  // Returns EVERY required doc per company so they know exactly which to upload/chase.
+  let complianceMap = {};
+  if (showCompliance && companies.length > 0) {
+    const companyIds = companies.map((c) => c.companyUniqueId);
+    const placeholders = companyIds.map(() => "?").join(", ");
+
+    // One query: every company × every required doc (mandatory + optional),
+    // LEFT JOINed to actual uploads. Companies with zero uploads still appear.
+    const [docRows] = await executor.query(
+      `SELECT
+         c.companyUniqueId,
+         rdr.documentTypeId,
+         rdr.isDocumentMandatory,
+         rdr.isExpirationDateRequired,
+         rdr.isFileNumberRequired,
+         dt.documentTypeName,
+         dt.documentTypeDescription,
+         ad.attachedDocumentUniqueId,
+         ad.attachedDocumentName,
+         ad.attachedDocumentAcceptance,
+         ad.attachedDocumentAcceptanceReason,
+         ad.documentExpirationDate,
+         ad.attachedDocumentFileNumber,
+         ad.attachedDocumentCreatedAt,
+         CASE
+           WHEN ad.attachedDocumentId IS NULL          THEN 'NOT_ATTACHED'
+           ELSE ad.attachedDocumentAcceptance
+         END AS docStatus
+       FROM TransportCompany c
+       JOIN RoleDocumentRequirements rdr
+         ON rdr.roleId = 8
+         AND rdr.roleDocumentRequirementDeletedAt IS NULL
+       JOIN DocumentTypes dt ON dt.documentTypeId = rdr.documentTypeId
+       LEFT JOIN AttachedDocuments ad
+         ON ad.documentTypeId = rdr.documentTypeId
+         AND ad.ownerType = 'company'
+         AND ad.ownerUniqueId = c.companyUniqueId
+         AND ad.attachedDocumentAcceptance != 'DELETED'
+       WHERE c.companyUniqueId IN (${placeholders})
+       ORDER BY c.companyUniqueId, rdr.isDocumentMandatory DESC, dt.documentTypeId`,
+      companyIds,
+    );
+
+    // Group rows per company in JS — zero extra queries
+    for (const row of docRows) {
+      if (!complianceMap[row.companyUniqueId]) {
+        complianceMap[row.companyUniqueId] = {
+          accepted:    [],
+          pending:     [],
+          rejected:    [],
+          notAttached: [],
+          isCompliant: false,
+        };
+      }
+      const entry = complianceMap[row.companyUniqueId];
+      const doc = {
+        documentTypeId:             row.documentTypeId,
+        documentTypeName:           row.documentTypeName,
+        documentTypeDescription:    row.documentTypeDescription,
+        isDocumentMandatory:        Boolean(row.isDocumentMandatory),
+        isExpirationDateRequired:   Boolean(row.isExpirationDateRequired),
+        isFileNumberRequired:       Boolean(row.isFileNumberRequired),
+        attachedDocumentUniqueId:   row.attachedDocumentUniqueId ?? null,
+        attachedDocumentName:       row.attachedDocumentName ?? null,
+        attachedDocumentAcceptance: row.attachedDocumentAcceptance ?? null,
+        acceptanceReason:           row.attachedDocumentAcceptanceReason ?? null,
+        documentExpirationDate:     row.documentExpirationDate ?? null,
+        fileNumber:                 row.attachedDocumentFileNumber ?? null,
+        uploadedAt:                 row.attachedDocumentCreatedAt ?? null,
+      };
+
+      if      (row.docStatus === "ACCEPTED")     entry.accepted.push(doc);
+      else if (row.docStatus === "PENDING")      entry.pending.push(doc);
+      else if (row.docStatus === "REJECTED")     entry.rejected.push(doc);
+      else                                       entry.notAttached.push(doc);
+    }
+
+    // isCompliant = all mandatory docs are in ACCEPTED list
+    for (const id of companyIds) {
+      if (!complianceMap[id]) continue;
+      const e = complianceMap[id];
+      const mandatoryNotDone = [...e.pending, ...e.rejected, ...e.notAttached]
+        .filter((d) => d.isDocumentMandatory);
+      e.isCompliant = mandatoryNotDone.length === 0 && e.accepted.length > 0;
+      // handy counts
+      e.counts = {
+        accepted:    e.accepted.length,
+        pending:     e.pending.length,
+        rejected:    e.rejected.length,
+        notAttached: e.notAttached.length,
+      };
+    }
+  }
+
+  // ── 3. Merge compliance into each company row ─────────────────────────────
+  const data = companies.map((c) => ({
+    ...c,
+    documentCompliance: complianceMap[c.companyUniqueId] ?? null,
+  }));
+
+  return {
+    message: "success",
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    },
+  };
 };
 
 /**
@@ -264,11 +388,93 @@ exports.approveCompany = async (
   approvalReason,
   approvedBy,
 ) => {
-  await findOne(
+  // ── Guard 1: Company must exist ───────────────────────────────────────────
+  const company = await findOne(
     "TransportCompany",
     { companyUniqueId, isDeleted: 0 },
     "Company not found",
   );
+
+  // ── Guard 2: Valid status transitions ─────────────────────────────────────
+  // pending   → approved | rejected
+  // approved  → suspended | rejected
+  // suspended → approved | rejected
+  // rejected  → pending (re-submission flow only)
+  const current = company.approvalStatus;
+  const validTransitions = {
+    pending:   ["approved", "rejected"],
+    approved:  ["suspended", "rejected"],
+    suspended: ["approved", "rejected"],
+    rejected:  ["pending"],
+  };
+  if (!validTransitions[current]?.includes(approvalStatus)) {
+    throw new AppError(
+      `Cannot change approval status from '${current}' to '${approvalStatus}'`,
+      422,
+    );
+  }
+
+  // ── Guard 3: Rejection must include a reason ──────────────────────────────
+  if (approvalStatus === "rejected" && !approvalReason?.trim()) {
+    throw new AppError(
+      "A reason is required when rejecting a company",
+      422,
+    );
+  }
+
+  // ── Guard 4: Document compliance — only when approving ───────────────────
+  // All mandatory company documents (roleId=8) must be ACCEPTED before approval.
+  if (approvalStatus === "approved") {
+    const [docRows] = await db().query(
+      `SELECT
+         rdr.documentTypeId,
+         rdr.isDocumentMandatory,
+         dt.documentTypeName,
+         ad.attachedDocumentAcceptance
+       FROM RoleDocumentRequirements rdr
+       JOIN DocumentTypes dt ON dt.documentTypeId = rdr.documentTypeId
+       LEFT JOIN AttachedDocuments ad
+         ON ad.documentTypeId = rdr.documentTypeId
+         AND ad.ownerType = 'company'
+         AND ad.ownerUniqueId = ?
+         AND ad.attachedDocumentAcceptance != 'DELETED'
+       WHERE rdr.roleId = 8
+         AND rdr.roleDocumentRequirementDeletedAt IS NULL`,
+      [companyUniqueId],
+    );
+
+    const missingMandatory = docRows.filter(
+      (d) =>
+        Number(d.isDocumentMandatory) === 1 &&
+        d.attachedDocumentAcceptance !== "ACCEPTED",
+    );
+
+    if (missingMandatory.length > 0) {
+      const names = missingMandatory
+        .map((d) => `"${d.documentTypeName}" (${d.attachedDocumentAcceptance ?? "NOT_ATTACHED"})`)
+        .join(", ");
+      throw new AppError(
+        `Cannot approve: the following mandatory documents are not yet accepted — ${names}`,
+        422,
+      );
+    }
+
+    // ── Guard 5: Company must have at least one active member ───────────────
+    const [[{ memberCount }]] = await db().query(
+      `SELECT COUNT(*) AS memberCount
+       FROM CompanyMembership
+       WHERE companyUniqueId = ? AND membershipDeletedAt IS NULL`,
+      [companyUniqueId],
+    );
+    if (Number(memberCount) === 0) {
+      throw new AppError(
+        "Cannot approve a company with no members. At least one member (owner/admin) must be registered.",
+        422,
+      );
+    }
+  }
+
+  // ── All guards passed — execute status change ─────────────────────────────
   const [res] = await db().query(
     `UPDATE TransportCompany
      SET approvalStatus = ?, approvalReason = ?, approvedBy = ?, approvedAt = ?,
@@ -289,6 +495,7 @@ exports.approveCompany = async (
   }
   return { message: "success", data: `Company ${approvalStatus}` };
 };
+
 
 exports.deleteCompany = async (companyUniqueId, deletedBy) => {
   const [res] = await db().query(
