@@ -9,6 +9,8 @@ const usersRoles = {
   systemRoleId: 5,
   supperAdminRoleId: 6,
   companyAdminRoleId: 7,
+  companyRoleId: 8,     // entity role — for company document requirements
+  vehicleRoleId: 9,    // entity role — for vehicle document requirements
 };
 const usersRolesList = {
   passenger: { roleId: 1, roleName: "passenger" },
@@ -18,6 +20,8 @@ const usersRolesList = {
   system: { roleId: 5, roleName: "system" },
   supperAdmin: { roleId: 6, roleName: "supper admin" },
   companyAdmin: { roleId: 7, roleName: "CompanyAdmin" },
+  company: { roleId: 8, roleName: "company" },
+  vehicle: { roleId: 9, roleName: "vehicle" },
 };
 const roleList = [
   {
@@ -70,6 +74,22 @@ const roleList = [
     roleName: "CompanyAdmin",
     roleDescription:
       "A person who manages their company fleet, bids on requests, and assigns drivers.",
+    roleCreatedAt: currentDate(),
+  },
+  {
+    roleId: 8,
+    roleUniqueId: uuidv4(),
+    roleName: "company",
+    roleDescription:
+      "Entity role for transport companies. Used to define and verify company-level document requirements (TIN, trade license, etc.).",
+    roleCreatedAt: currentDate(),
+  },
+  {
+    roleId: 9,
+    roleUniqueId: uuidv4(),
+    roleName: "vehicle",
+    roleDescription:
+      "Entity role for vehicles. Used to define and verify vehicle-level document requirements (insurance, roadworthiness certificate, etc.).",
     roleCreatedAt: currentDate(),
   },
 ];

@@ -599,9 +599,110 @@ WHERE AttachedDocuments.ownerType = 'user' AND AttachedDocuments.ownerUniqueId =
   }
 };
 
+/**
+ * entityDocumentRequirement
+ * ─────────────────────────
+ * General document compliance check for ANY owner type: 'user', 'company', 'vehicle'.
+ *
+ * Maps ownerType → roleId to pull the correct RoleDocumentRequirements rows:
+ *   ownerType='company' → roleId 8
+ *   ownerType='vehicle' → roleId 9
+ *   ownerType='user'    → caller must pass roleId explicitly (default: driver=2)
+ *
+ * Returns:
+ *   - requiredDocuments      — all docs mapped to this entity type
+ *   - attachedDocumentsByStatus { PENDING, ACCEPTED, REJECTED }
+ *   - unAttachedDocumentTypes  — required but not yet uploaded
+ *   - isCompliant              — true when all mandatory docs are ACCEPTED
+ *
+ * @param {Object} opts
+ * @param {'user'|'company'|'vehicle'} opts.ownerType
+ * @param {string}  opts.ownerUniqueId  — UUID of the entity
+ * @param {number}  [opts.roleId]       — override roleId (user path only)
+ */
+const entityDocumentRequirement = async ({ ownerType, ownerUniqueId, roleId: explicitRoleId }) => {
+  // Map ownerType → roleId for RoleDocumentRequirements lookup
+  const OWNER_ROLE_MAP = {
+    company: usersRoles.companyRoleId,   // 8
+    vehicle: usersRoles.vehicleRoleId,   // 9
+    user:    explicitRoleId ?? usersRoles.driverRoleId, // caller-supplied or default driver
+  };
+
+  const roleId = OWNER_ROLE_MAP[ownerType];
+  if (!roleId) {
+    throw new AppError(`Unknown ownerType: ${ownerType}`, 400);
+  }
+
+  // 1. Fetch what documents this entity type is required to have
+  const requiredDocsResult = await getRoleDocumentRequirements({
+    roleId,
+    page: 1,
+    limit: 1000,
+    sortBy: "documentTypeId",
+    sortOrder: "ASC",
+  });
+
+  const requiredDocuments = requiredDocsResult?.data || [];
+
+  if (requiredDocuments.length === 0) {
+    return {
+      message: "success",
+      messageType: "entityDocumentRequirement",
+      ownerType,
+      ownerUniqueId,
+      requiredDocuments: [],
+      unAttachedDocumentTypes: [],
+      attachedDocumentsByStatus: { PENDING: [], ACCEPTED: [], REJECTED: [] },
+      isCompliant: true,   // no requirements = compliant by default
+    };
+  }
+
+  // 2. Fetch what this specific entity has actually uploaded
+  const executor = transactionStorage.getStore() || pool;
+  const [attachedDocuments] = await executor.query(
+    `SELECT DISTINCT ad.*, dt.*, rdr.*
+     FROM AttachedDocuments ad
+     JOIN DocumentTypes dt ON ad.documentTypeId = dt.documentTypeId
+     JOIN RoleDocumentRequirements rdr ON rdr.documentTypeId = dt.documentTypeId
+     WHERE ad.ownerType = ? AND ad.ownerUniqueId = ? AND rdr.roleId = ?`,
+    [ownerType, ownerUniqueId, roleId],
+  );
+
+  // 3. Group by acceptance status
+  const attachedDocumentsByStatus = { PENDING: [], ACCEPTED: [], REJECTED: [] };
+  attachedDocuments.forEach((doc) => {
+    const status = doc.attachedDocumentAcceptance;
+    if (attachedDocumentsByStatus[status]) {
+      attachedDocumentsByStatus[status].push(doc);
+    }
+  });
+
+  // 4. Find mandatory gaps
+  const unAttachedDocumentTypes = requiredDocuments.filter(
+    (req) => !attachedDocuments.some((att) => att.documentTypeId === req.documentTypeId),
+  );
+
+  const mandatoryMissing = unAttachedDocumentTypes.filter((d) => Number(d.isDocumentMandatory) === 1);
+  const mandatoryRejected = attachedDocumentsByStatus.REJECTED.filter((d) => Number(d.isDocumentMandatory) === 1);
+  const isCompliant = mandatoryMissing.length === 0 && mandatoryRejected.length === 0;
+
+  return {
+    message: "success",
+    messageType: "entityDocumentRequirement",
+    ownerType,
+    ownerUniqueId,
+    roleId,
+    requiredDocuments,
+    attachedDocumentsByStatus,
+    unAttachedDocumentTypes,
+    isCompliant,
+  };
+};
+
 module.exports = {
   getRoleDocumentRequirements,
   driversDocumentVehicleRequirement,
+  entityDocumentRequirement,
   createMapping,
   updateMapping,
   deleteMapping,

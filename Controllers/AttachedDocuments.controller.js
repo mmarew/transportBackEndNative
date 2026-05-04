@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const attachedDocumentsService = require("../Services/AttachedDocuments.service");
 const {
   driversDocumentVehicleRequirement,
+  entityDocumentRequirement,
 } = require("../Services/RoleDocumentRequirements.service");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
@@ -199,22 +200,17 @@ const createAttachedDocuments = async (req, res, next) => {
     });
 
     if (fileSuccesses.length > 0) {
-      const isDriver = roleId === usersRolesList.driver.roleId;
+      const resolvedOwnerType = req.ownerType ?? "user";
+      const isDriver = resolvedOwnerType === "user" && roleId === usersRolesList.driver.roleId;
 
       if (isDriver) {
-        // Driver-specific: check document + vehicle completeness then notify admin
+        // Driver: full doc + vehicle + subscription check → notify admin
         try {
           const userData = await performJoinSelect({
             baseTable: "Users",
             joins: [
-              {
-                table: "UserRole",
-                on: "Users.userUniqueId = UserRole.userUniqueId",
-              },
-              {
-                table: "UserRoleStatusCurrent",
-                on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
-              },
+              { table: "UserRole", on: "Users.userUniqueId = UserRole.userUniqueId" },
+              { table: "UserRoleStatusCurrent", on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId" },
             ],
             conditions: {
               "Users.userUniqueId": userUniqueId,
@@ -222,15 +218,10 @@ const createAttachedDocuments = async (req, res, next) => {
             },
           });
 
-          await attachedDocumentsService.getAttachedDocumentsByFilter({
-            filter: { ownerType: "user", ownerUniqueId: userUniqueId },
+          const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
+            ownerUserUniqueId: userUniqueId,
+            user: userData[0],
           });
-
-          const documentAndVehicleOfDriver =
-            await driversDocumentVehicleRequirement({
-              ownerUserUniqueId: userUniqueId,
-              user: userData[0],
-            });
 
           sendSocketIONotificationToAdmin({ message: documentAndVehicleOfDriver });
         } catch (notificationError) {
@@ -241,21 +232,26 @@ const createAttachedDocuments = async (req, res, next) => {
           });
         }
       } else {
-        // Non-driver (company, shipper, admin, etc.): send a simple admin notification
+        // Company, vehicle, or any non-driver entity:
+        // Run the general entity document compliance check and notify admin.
         try {
+          const complianceResult = await entityDocumentRequirement({
+            ownerType: resolvedOwnerType,
+            ownerUniqueId: userUniqueId,
+          });
+
           sendSocketIONotificationToAdmin({
             message: {
-              type: "document_uploaded",
-              userUniqueId,
-              roleId,
+              type: "entity_document_uploaded",
+              ...complianceResult,
               uploadedFiles: fileSuccesses,
             },
           });
         } catch (notificationError) {
-          logger.warn("Admin notification failed after non-driver document upload", {
+          logger.warn("Entity admin notification failed after document upload", {
             reason: notificationError?.message,
-            userUniqueId,
-            roleId,
+            ownerType: resolvedOwnerType,
+            ownerUniqueId: userUniqueId,
           });
         }
       }
