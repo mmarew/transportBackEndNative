@@ -430,7 +430,7 @@ const accountStatus = async ({
           FROM RoleDocumentRequirements rdr
           JOIN DocumentTypes dt ON rdr.documentTypeId = dt.documentTypeId
           LEFT JOIN AttachedDocuments ad ON ad.documentTypeId = dt.documentTypeId
-            AND ad.userUniqueId = ?
+            AND ad.ownerType = 'user' AND ad.ownerUniqueId = ?
             AND ad.attachedDocumentAcceptance != 'DELETED'
           WHERE rdr.roleId = ?
           ORDER BY dt.documentTypeId

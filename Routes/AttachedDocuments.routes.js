@@ -38,14 +38,46 @@ const {
   acceptRejectDocs,
 } = require("../Validations/AttachedDocuments.schema");
 
-// Define routes for handling multiple file uploads
+// ── User document upload ─────────────────────────────────────────────────────
 router.post(
   "/api/user/attachDocuments/:userUniqueId",
   verifyTokenOfAxios,
-  validator(userParams, "params"), // Validate params first
-  upload.any(), // File upload - parse files and form fields
-  checkDuplicateDocuments, // Check for duplicates after parsing but before processing
-  // Body validation might be tricky with dynamic fields from multers
+  validator(userParams, "params"),
+  (req, _res, next) => { req.ownerType = "user"; next(); },   // inject owner type
+  upload.any(),
+  checkDuplicateDocuments,
+  attachedDocumentsController.createAttachedDocuments,
+);
+
+// ── Company document upload ───────────────────────────────────────────────────
+// Frontend hits: POST /api/company/attachDocuments/:companyUniqueId
+// ownerType is inferred from the route — frontend sends ONLY the files.
+router.post(
+  "/api/company/attachDocuments/:companyUniqueId",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    // Normalise: treat companyUniqueId the same as userUniqueId param name
+    // so the rest of the middleware chain works unchanged.
+    req.params.userUniqueId = req.params.companyUniqueId;
+    req.ownerType = "company";
+    next();
+  },
+  upload.any(),
+  checkDuplicateDocuments,
+  attachedDocumentsController.createAttachedDocuments,
+);
+
+// ── Vehicle document upload ───────────────────────────────────────────────────
+router.post(
+  "/api/vehicle/attachDocuments/:vehicleUniqueId",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    req.params.userUniqueId = req.params.vehicleUniqueId;
+    req.ownerType = "vehicle";
+    next();
+  },
+  upload.any(),
+  checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
 );
 

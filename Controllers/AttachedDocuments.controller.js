@@ -49,7 +49,8 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
 
     // Build filter object
     const filter = {
-      userUniqueId: targetUserUniqueId,
+      ownerType: "user",
+      ownerUniqueId: targetUserUniqueId,
     };
 
     // Add additional filters if provided
@@ -167,7 +168,9 @@ const createAttachedDocuments = async (req, res, next) => {
           await attachedDocumentsService.createAttachedDocument({
             ...document,
             roleId,
-            userUniqueId,
+            ownerType: req.ownerType ?? "user",   // set by route middleware
+            ownerUniqueId: userUniqueId,
+            uploadedByUserId: user?.userUniqueId,
           });
 
           fileSuccesses.push(document.originalFileName);
@@ -211,7 +214,7 @@ const createAttachedDocuments = async (req, res, next) => {
           });
 
           await attachedDocumentsService.getAttachedDocumentsByFilter({
-            filter: { userUniqueId },
+            filter: { ownerType: "user", ownerUniqueId: userUniqueId },
           });
 
           const documentAndVehicleOfDriver =

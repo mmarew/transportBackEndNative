@@ -50,7 +50,8 @@ const checkDuplicateDocuments = async (req, res, next) => {
         const existingDocs = await getData({
           tableName: "AttachedDocuments",
           conditions: {
-            userUniqueId,
+            ownerType: "user",
+            ownerUniqueId: userUniqueId,
             documentTypeId,
           },
         });

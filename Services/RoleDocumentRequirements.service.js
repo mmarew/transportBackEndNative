@@ -451,7 +451,7 @@ SELECT DISTINCT   AttachedDocuments.*,  DocumentTypes.*,
   RoleDocumentRequirements.* FROM AttachedDocuments
 JOIN DocumentTypes    ON AttachedDocuments.documentTypeId = DocumentTypes.documentTypeId
 JOIN RoleDocumentRequirements    ON RoleDocumentRequirements.documentTypeId = DocumentTypes.documentTypeId
-WHERE AttachedDocuments.userUniqueId = ? and RoleDocumentRequirements.roleId = ?
+WHERE AttachedDocuments.ownerType = 'user' AND AttachedDocuments.ownerUniqueId = ? and RoleDocumentRequirements.roleId = ?
 `;
     const executor = transactionStorage.getStore() || pool;
     const values = [ownerUserUniqueId, roleId];
