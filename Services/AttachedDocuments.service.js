@@ -347,21 +347,29 @@ const acceptRejectAttachedDocuments = async (body) => {
     tableName: "AttachedDocuments",
     conditions: { attachedDocumentUniqueId },
     updateValues: {
-      attachedDocumentAcceptance: action, // Update status to 'ACCEPTED' or 'REJECTED'
-      attachedDocumentAcceptedRejectedByUserId: userUniqueId, // Record admin's unique ID for tracking
+      attachedDocumentAcceptance: action,
+      attachedDocumentAcceptedRejectedByUserId: userUniqueId,
       attachedDocumentAcceptedRejectedAt: currentDate(),
-      attachedDocumentAcceptanceReason: adminDecisionReason, // Record reason if provided
+      attachedDocumentAcceptanceReason: adminDecisionReason,
     },
   });
+
+  if (updatedDocument.affectedRows === 0) {
+    throw new AppError("Failed to update the document status", 500);
+  }
+
   const message = {
     attachedDocument,
     message: "success",
     data: `Document has been ${action.toLowerCase()}`,
   };
 
-  if (updatedDocument.affectedRows > 0) {
-    // Trigger accountStatus only for user-owned documents
-    if (ownerType === 'user') {
+  // ── Post-commit: status recalc + socket notifications ─────────────────────
+  // Run AFTER the transaction closes to avoid deadlocking the connection pool.
+  // accountStatus calls getUserByFilterDetailed which uses pool directly —
+  // calling it inside a transaction starves the pool and causes a timeout.
+  if (ownerType === 'user') {
+    setImmediate(async () => {
       try {
         await accountStatus({
           ownerUserUniqueId: ownerUniqueId,
@@ -369,33 +377,34 @@ const acceptRejectAttachedDocuments = async (body) => {
         });
       } catch (statusError) {
         logger.error(
-          "Failed to update user status after document approval/rejection",
-          {
-            error: statusError.message,
-            ownerUniqueId,
-            roleId,
-            action,
-          },
+          "Post-commit: failed to update user status after document action",
+          { error: statusError.message, ownerUniqueId, roleId, action },
         );
       }
 
-      if (roleId === usersRoles.adminRoleId) {
-        message.messageType = messageTypes?.accept_reject_driver_document;
-        sendSocketIONotificationToAdmin({ message, phoneNumber });
+      try {
+        if (Number(roleId) === usersRoles.adminRoleId) {
+          message.messageType = messageTypes?.accept_reject_driver_document;
+          sendSocketIONotificationToAdmin({ message, phoneNumber });
+        }
+        if (Number(roleId) === usersRoles.driverRoleId) {
+          message.messageType = "acceptOrRejectDriverDocument";
+          sendSocketIONotificationToDriver({ message, phoneNumber });
+        }
+        if (Number(roleId) === usersRoles.passengerRoleId) {
+          sendSocketIONotificationToPassenger({ message, phoneNumber });
+        }
+      } catch (notifError) {
+        logger.error("Post-commit: socket notification failed", {
+          error: notifError.message,
+          ownerUniqueId,
+          roleId,
+        });
       }
-      if (roleId === usersRoles.driverRoleId) {
-        message.messageType = "acceptOrRejectDriverDocument";
-        sendSocketIONotificationToDriver({ message, phoneNumber });
-      }
-      if (roleId === usersRoles.passengerRoleId) {
-        sendSocketIONotificationToPassenger({ message, phoneNumber });
-      }
-    }
-
-    return message;
-  } else {
-    throw new AppError("Failed to update the document status", 500);
+    });
   }
+
+  return message;
 };
 
 const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {

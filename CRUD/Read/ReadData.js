@@ -8,7 +8,11 @@ const {
 } = require("../../Utils/RejectedRequests");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
-const searchRange = 0.941;
+// Maximum matching radius in kilometres for driver ↔ passenger proximity
+const MAX_RADIUS_KM = 10;
+// Bounding-box pre-filter in degrees (1° lat ≈ 111 km → 10 km ≈ 0.09°).
+// Slightly enlarged to avoid clipping true great-circle matches near the edge.
+const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // ≈ 0.10°
 
 const getData = async ({
   tableName,
@@ -106,40 +110,45 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
     passengerRequestId,
   } = passengerRequest;
 
-  // Define the search range for latitude and longitude (0.01 degree ~ 1 km)
-  const latitudeRange = {
-    min: Number.parseFloat(originLatitude) - searchRange,
-    max: Number.parseFloat(originLatitude) + searchRange,
-  };
-  const longitudeRange = {
-    min: Number.parseFloat(originLongitude) - searchRange,
-    max: Number.parseFloat(originLongitude) + searchRange,
-  };
+  const lat = Number.parseFloat(originLatitude);
+  const lng = Number.parseFloat(originLongitude);
 
-  // Create SQL query to find nearby drivers with matching vehicle type and within the coordinate range
+  // Bounding-box pre-filter (fast index scan) then exact Haversine check (≤ MAX_RADIUS_KM)
+  // Haversine formula gives the great-circle distance in km between two lat/lng points.
   const sqlQuery = `
-      SELECT 
-         * 
+      SELECT
+         *,
+         (
+           6371 * 2 * ASIN(SQRT(
+             POWER(SIN(RADIANS(DriverRequest.originLatitude - ?) / 2), 2) +
+             COS(RADIANS(?)) * COS(RADIANS(DriverRequest.originLatitude)) *
+             POWER(SIN(RADIANS(DriverRequest.originLongitude - ?) / 2), 2)
+           ))
+         ) AS distanceKm
       FROM DriverRequest
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       JOIN VehicleDriver vd ON vd.driverUserUniqueId = Users.userUniqueId
       JOIN Vehicle ON vd.vehicleUniqueId = Vehicle.vehicleUniqueId
       JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
-      WHERE 
-        DriverRequest.originLatitude BETWEEN ? AND ?
+      WHERE
+        DriverRequest.originLatitude  BETWEEN ? AND ?
         AND DriverRequest.originLongitude BETWEEN ? AND ?
         AND DriverRequest.journeyStatusId = 1 -- Status 'Waiting'
         AND vd.assignmentStatus = 'active'
-        AND Vehicle.vehicleTypeUniqueId = ? LIMIT 10
+        AND Vehicle.vehicleTypeUniqueId = ?
+      HAVING distanceKm <= ?
+      ORDER BY distanceKm ASC
+      LIMIT 10
     `;
 
-  // Values to be passed to the query for parameterized SQL
   const values = [
-    latitudeRange.min,
-    latitudeRange.max, // Latitude range
-    longitudeRange.min,
-    longitudeRange.max, // Longitude range
-    vehicleTypeUniqueId, // Vehicle type
+    // Haversine inputs
+    lat, lat, lng,
+    // Bounding-box pre-filter
+    lat - DEGREE_BUFFER, lat + DEGREE_BUFFER,
+    lng - DEGREE_BUFFER, lng + DEGREE_BUFFER,
+    vehicleTypeUniqueId,
+    MAX_RADIUS_KM,
   ];
 
   // Execute the query
@@ -169,44 +178,51 @@ const findNearbyPassengers = async ({
   originLongitude,
   vehicleTypeUniqueId,
 }) => {
-  const latitudeRange = {
-    min: parseFloat(originLatitude) - searchRange,
-    max: parseFloat(originLatitude) + searchRange,
-  };
-  const longitudeRange = {
-    min: parseFloat(originLongitude) - searchRange,
-    max: parseFloat(originLongitude) + searchRange,
-  };
+  const lat = parseFloat(originLatitude);
+  const lng = parseFloat(originLongitude);
 
-  const nearByPassengers = await performJoinSelect({
-    baseTable: "Users",
-    joins: [
-      {
-        table: "PassengerRequest",
-        // company_target requests are excluded here: they must go through the
-        // company bid → assignment flow and must never be auto-matched to
-        // individual drivers. passengerRequestDeletedAt IS NULL skips soft deletes.
-        on: `PassengerRequest.userUniqueId = Users.userUniqueId
-             AND (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != 'company_target')
-             AND PassengerRequest.passengerRequestDeletedAt IS NULL`,
-      },
-    ],
-    conditions: {
-      "PassengerRequest.vehicleTypeUniqueId": vehicleTypeUniqueId,
-      "PassengerRequest.originLatitude": [latitudeRange.min, latitudeRange.max],
-      "PassengerRequest.originLongitude": [
-        longitudeRange.min,
-        longitudeRange.max,
-      ],
-      "PassengerRequest.journeyStatusId": [
-        journeyStatusMap.waiting,
-        journeyStatusMap.requested,
-        journeyStatusMap.acceptedByDriver,
-      ],
-    },
-    operator: "AND",
-  });
+  // Use Haversine inside a raw query so we can apply the exact radius check.
+  // A bounding-box pre-filter on indexed lat/lng columns keeps the scan fast.
+  const sqlQuery = `
+    SELECT
+      Users.*,
+      PassengerRequest.*,
+      (
+        6371 * 2 * ASIN(SQRT(
+          POWER(SIN(RADIANS(PassengerRequest.originLatitude - ?) / 2), 2) +
+          COS(RADIANS(?)) * COS(RADIANS(PassengerRequest.originLatitude)) *
+          POWER(SIN(RADIANS(PassengerRequest.originLongitude - ?) / 2), 2)
+        ))
+      ) AS distanceKm
+    FROM Users
+    JOIN PassengerRequest
+      ON PassengerRequest.userUniqueId = Users.userUniqueId
+      AND (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != 'company_target')
+      AND PassengerRequest.passengerRequestDeletedAt IS NULL
+    WHERE
+      PassengerRequest.vehicleTypeUniqueId = ?
+      AND PassengerRequest.originLatitude  BETWEEN ? AND ?
+      AND PassengerRequest.originLongitude BETWEEN ? AND ?
+      AND PassengerRequest.journeyStatusId IN (?, ?, ?)
+    HAVING distanceKm <= ?
+    ORDER BY distanceKm ASC
+  `;
 
+  const values = [
+    // Haversine inputs
+    lat, lat, lng,
+    // Exact filter conditions
+    vehicleTypeUniqueId,
+    lat - DEGREE_BUFFER, lat + DEGREE_BUFFER,
+    lng - DEGREE_BUFFER, lng + DEGREE_BUFFER,
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    journeyStatusMap.acceptedByDriver,
+    MAX_RADIUS_KM,
+  ];
+
+  const queryExecutor = transactionStorage.getStore() || pool;
+  const [nearByPassengers] = await queryExecutor.query(sqlQuery, values);
   return nearByPassengers;
 };
 
