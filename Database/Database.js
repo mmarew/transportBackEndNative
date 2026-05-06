@@ -1390,13 +1390,14 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
 );
 
 -- CompanyBan: active suspensions for transport companies.
--- A ban sets TransportCompany.approvalStatus = 'suspended' and records expiry.
--- Mirrors BannedUsers but references CompanyDelinquency instead.
+-- A ban records expiry, reason, and who triggered it.
+-- For auto-bans (accumulated points), all contributing delinquencies
+-- are linked via CompanyBanDelinquency junction table.
 CREATE TABLE IF NOT EXISTS CompanyBan (
     companyBanId INT AUTO_INCREMENT PRIMARY KEY,
     companyBanUniqueId VARCHAR(36) UNIQUE NOT NULL,
     companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
-    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- The triggering delinquency
+    companyDelinquencyUniqueId VARCHAR(36) NULL,            -- The FINAL triggering delinquency (NULL for manual bans)
     bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',
     banReason TEXT NOT NULL,
     banDurationDays INT NOT NULL,
@@ -1408,6 +1409,23 @@ CREATE TABLE IF NOT EXISTS CompanyBan (
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
     FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
     FOREIGN KEY (bannedBy) REFERENCES Users(userUniqueId)
+);
+
+-- CompanyBanDelinquency: Junction table linking one ban to ALL delinquencies
+-- that contributed to it via point accumulation.
+-- Answers: "which violations caused this ban, and how many points did each add?"
+-- For a manual ban, this table may have 0 rows (it was not point-triggered).
+-- For an auto-ban, every delinquency within the 30-day window is recorded here.
+CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan (which ban)
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency (which violation)
+    pointsAtTime INT NOT NULL,                             -- Points this delinquency contributed at ban time
+    UNIQUE KEY uq_ban_delinquency (companyBanUniqueId, companyDelinquencyUniqueId),
+    FOREIGN KEY (companyBanUniqueId) REFERENCES CompanyBan(companyBanUniqueId),
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    INDEX idx_cbd_ban (companyBanUniqueId),
+    INDEX idx_cbd_delinquency (companyDelinquencyUniqueId)
 );
 
 

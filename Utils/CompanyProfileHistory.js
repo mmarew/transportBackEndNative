@@ -116,6 +116,8 @@ exports.recordProfileChanges = async ({ companyUniqueId, oldData, newData, chang
 // ─── Read history ─────────────────────────────────────────────────────────────
 /**
  * Get full history for a company, newest first.
+ * For ban/unban events, also returns banAt, banExpiresAt, banDurationDays
+ * from the linked CompanyBan record via referenceUniqueId.
  *
  * @param {string} companyUniqueId
  * @param {object} [opts]
@@ -148,9 +150,16 @@ exports.getHistory = async (companyUniqueId, { page = 1, limit = 20, fieldName, 
        h.source,
        h.referenceUniqueId,
        h.changedAt,
-       u.fullName AS changedByName
+       u.fullName AS changedByName,
+       -- Ban date range: populated for source = 'ban' or 'unban'
+       -- Lets you see exactly when the ban started and when it expires, even years later.
+       b.banAt,
+       b.banExpiresAt,
+       b.banDurationDays,
+       b.banReason
      FROM CompanyProfileHistory h
      LEFT JOIN Users u ON h.changedBy = u.userUniqueId
+     LEFT JOIN CompanyBan b ON h.referenceUniqueId = b.companyBanUniqueId
      ${whereClause}
      ORDER BY h.changedAt DESC
      LIMIT ? OFFSET ?`,

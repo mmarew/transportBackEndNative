@@ -66,10 +66,7 @@ const createCompanyDelinquency = async (data) => {
   if (!delinquencyType)
     throw new AppError("Invalid or inactive delinquency type", 404);
 
-  const {
-    defaultPoints,
-    defaultSeverity,
-  } = delinquencyType;
+  const { defaultPoints, defaultSeverity } = delinquencyType;
   const duplicateCheckWindowHours = 24; // default window
 
   // Duplicate check
@@ -139,12 +136,18 @@ const checkAndApplyAutomaticCompanyBan = async (
   triggeringDelinquencyUniqueId,
   bannedBy,
 ) => {
-  const [[{ totalPoints }]] = await exec().query(
-    `SELECT COALESCE(SUM(delinquencyPoints), 0) AS totalPoints
+  // Fetch ALL delinquencies in the 30-day window — we need both the SUM and the individual rows
+  // so we can link each one to the ban via CompanyBanDelinquency.
+  const [delinquencies] = await exec().query(
+    `SELECT companyDelinquencyUniqueId, delinquencyPoints
      FROM CompanyDelinquency
      WHERE companyUniqueId = ?
        AND delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
     [companyUniqueId],
+  );
+  const totalPoints = delinquencies.reduce(
+    (sum, d) => sum + d.delinquencyPoints,
+    0,
   );
 
   // Already banned?
@@ -172,16 +175,18 @@ const checkAndApplyAutomaticCompanyBan = async (
     banAt.getTime() + rule.duration * 24 * 60 * 60 * 1000,
   );
   const banReason = `Auto-ban: ${totalPoints} pts — ${rule.severity} threshold reached`;
-
+  //map over delinquencies and insert each delinquiencies
   await exec().query(
     `INSERT INTO CompanyBan
        (companyBanUniqueId, companyUniqueId, companyDelinquencyUniqueId,
         bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+     VALUES (?, ?, NULL, ?, ?, ?, ?, ?, TRUE)`,
+    // companyDelinquencyUniqueId = NULL for auto-bans.
+    // All contributing delinquency UUIDs are stored in CompanyBanDelinquency (junction table).
+    // companyDelinquencyUniqueId is only used for manual bans where an admin references one specific violation.
     [
       companyBanUniqueId,
       companyUniqueId,
-      triggeringDelinquencyUniqueId,
       bannedBy,
       banReason,
       rule.duration,
@@ -189,6 +194,22 @@ const checkAndApplyAutomaticCompanyBan = async (
       banExpiresAt,
     ],
   );
+
+  // Link ALL contributing delinquencies to this ban in the junction table.
+  // This answers "which violations caused this ban?" even years later.
+  if (delinquencies.length > 0) {
+    const junctionRows = delinquencies.map((d) => [
+      companyBanUniqueId,
+      d.companyDelinquencyUniqueId,
+      d.delinquencyPoints,
+    ]);
+    await exec().query(
+      `INSERT INTO CompanyBanDelinquency
+         (companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
+       VALUES ?`,
+      [junctionRows],
+    );
+  }
 
   // NOTE: approvalStatus is NOT touched here.
   // The bid-submission guard checks CompanyBan directly for an active ban,
@@ -205,7 +226,12 @@ const checkAndApplyAutomaticCompanyBan = async (
     referenceUniqueId: companyBanUniqueId,
   });
 
-  logger.info("Company auto-banned", { companyUniqueId, rule, totalPoints, banExpiresAt });
+  logger.info("Company auto-banned", {
+    companyUniqueId,
+    rule,
+    totalPoints,
+    banExpiresAt,
+  });
 
   return {
     action: "suspended",
