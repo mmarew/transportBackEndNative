@@ -11,7 +11,7 @@ const {
   paginatedQuery,
 } = require("./CompanyHelper.service");
 const { addMember } = require("./CompanyMembership.service");
-const { recordStatusChange, recordProfileChanges } = require("../Utils/CompanyHistory");
+const { recordStatusChange, recordProfileChanges } = require("../Utils/CompanyProfileHistory");
 
 /**
  * Creates a new transport company and auto-assigns the creator as owner.

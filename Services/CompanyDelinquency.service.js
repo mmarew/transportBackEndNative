@@ -18,7 +18,7 @@ const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
-const { recordStatusChange } = require("../Utils/CompanyHistory");
+const { recordStatusChange } = require("../Utils/CompanyProfileHistory");
 
 const exec = () => transactionStorage.getStore() || pool;
 

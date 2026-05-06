@@ -708,17 +708,17 @@ CREATE TABLE IF NOT EXISTS CompanyRating (
     INDEX idx_company_rating_job (companyBidRequestUniqueId)
 ) ;
 
--- CompanyHistory: Unified append-only audit log for ALL company changes.
--- Covers both profile field changes (phone, email, name...) and status transitions (approvalStatus).
--- One row per field changed per event. NEVER updated or deleted — pure history.
+-- CompanyProfileHistory: Unified append-only audit log for ALL company profile & status changes.
+-- Covers profile field changes (phone, email, name...) AND status transitions (approvalStatus).
+-- Named to clearly separate from job/bid history. One row per field per event. Never updated or deleted.
 --
 -- fieldName examples:
---   'approvalStatus'            → status transition (fromValue=old, toValue=new, source=ban|document_approval|...)
---   'companyPhone'              → profile update (source=profile_update)
+--   'approvalStatus'            → status transition (source: ban | unban | document_approval | registration)
+--   'companyPhone'              → profile update (source: profile_update)
 --   'companyEmail', 'companyName', 'companyAddress', 'companyRegistrationNumber'
 --
 -- This single table answers: who changed what, from what, to what, when, and why.
-CREATE TABLE IF NOT EXISTS CompanyHistory (
+CREATE TABLE IF NOT EXISTS CompanyProfileHistory (
     historyId INT AUTO_INCREMENT PRIMARY KEY,
     historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
     companyUniqueId VARCHAR(36) NOT NULL,
@@ -738,9 +738,9 @@ CREATE TABLE IF NOT EXISTS CompanyHistory (
     ) NOT NULL,
     referenceUniqueId VARCHAR(36) NULL,                 -- links to CompanyBan when source = ban|unban
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    INDEX idx_ch_company (companyUniqueId),
-    INDEX idx_ch_field (fieldName),
-    INDEX idx_ch_changed_at (changedAt)
+    INDEX idx_cph2_company (companyUniqueId),
+    INDEX idx_cph2_field (fieldName),
+    INDEX idx_cph2_changed_at (changedAt)
 ) ;
 
 -- UserProfileHistory: Append-only audit log for user profile & status changes.

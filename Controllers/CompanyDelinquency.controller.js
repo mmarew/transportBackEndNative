@@ -3,7 +3,7 @@
 const companyDelinquencyService = require("../Services/CompanyDelinquency.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
-const { getHistory } = require("../Utils/CompanyHistory");
+const { getHistory } = require("../Utils/CompanyProfileHistory");
 
 // POST /api/admin/company-delinquency
 const createCompanyDelinquency = async (req, res, next) => {

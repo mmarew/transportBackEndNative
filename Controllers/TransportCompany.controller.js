@@ -2,7 +2,7 @@
 const service = require("../Services/TransportCompany.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
-const { getHistory } = require("../Utils/CompanyHistory");
+const { getHistory } = require("../Utils/CompanyProfileHistory");
 
 exports.createCompany = async (req, res, next) => {
   try {
