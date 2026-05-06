@@ -10,6 +10,7 @@ const {
   paginatedQuery,
 } = require("./CompanyHelper.service");
 const logger = require("../Utils/logger");
+const { reportCompanyCommissionEvasion } = require("./CommissionEvasion.service");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { sendSocketIONotificationToCompany } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
@@ -761,6 +762,35 @@ exports.updateBidStatus = async (
     bidStatus === "expired"
   ) {
     newPRStatus = journeyStatusMap.waiting;
+
+    // ── Commission evasion check ───────────────────────────────────────────
+    // A company cancelling AFTER the shipper already accepted = evasion.
+    // The previous bidStatus is still in `bid` (fetched before the UPDATE).
+    // Fire post-commit (setImmediate) so it does NOT block this transaction.
+    if (
+      bidStatus === "cancelled_by_company" &&
+      bid.bidStatus === "accepted_by_shipper"
+    ) {
+      setImmediate(async () => {
+        try {
+          const result = await reportCompanyCommissionEvasion({
+            companyUniqueId:         bid.companyUniqueId,
+            reportedByUniqueId:      updatedBy,
+            journeyDecisionUniqueId: companyBidRequestUniqueId,
+            reason: `Company cancelled freight bid after shipper acceptance (bid: ${companyBidRequestUniqueId})`,
+          });
+          logger.info("Commission evasion recorded for company", {
+            companyUniqueId: bid.companyUniqueId,
+            automaticAction: result.automaticAction,
+          });
+        } catch (err) {
+          logger.error("Failed to record commission evasion", {
+            companyUniqueId: bid.companyUniqueId,
+            error: err.message,
+          });
+        }
+      });
+    }
   }
 
   if (newPRStatus !== null) {
