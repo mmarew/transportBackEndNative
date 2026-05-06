@@ -18,6 +18,7 @@ const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { recordStatusChange } = require("../Utils/CompanyStatusHistory");
 
 const exec = () => transactionStorage.getStore() || pool;
 
@@ -193,12 +194,18 @@ const checkAndApplyAutomaticCompanyBan = async (
   // The bid-submission guard checks CompanyBan directly for an active ban,
   // keeping the ban history clean and approvalStatus reserved for admin registration decisions.
 
-  logger.info("Company auto-banned", {
+  // Record in the audit log — ban events are tracked here, not via approvalStatus
+  await recordStatusChange({
     companyUniqueId,
-    rule,
-    totalPoints,
-    banExpiresAt,
+    fromStatus: "approved",
+    toStatus: "suspended",
+    changedBy: bannedBy,
+    source: "ban",
+    reason: banReason,
+    referenceUniqueId: companyBanUniqueId,
   });
+
+  logger.info("Company auto-banned", { companyUniqueId, rule, totalPoints, banExpiresAt });
 
   return {
     action: "suspended",
@@ -453,6 +460,17 @@ const banCompany = async ({
 
   // NOTE: approvalStatus is NOT touched here (see auto-ban note above).
 
+  // Record in the audit log
+  await recordStatusChange({
+    companyUniqueId,
+    fromStatus: "approved",
+    toStatus: "suspended",
+    changedBy: bannedBy,
+    source: "ban",
+    reason: banReason,
+    referenceUniqueId: companyBanUniqueId,
+  });
+
   return {
     message: "success",
     data: "Company banned successfully",
@@ -480,7 +498,16 @@ const unbanCompany = async ({ companyBanUniqueId, unbannedBy }) => {
     [companyBanUniqueId],
   );
 
-  // No approvalStatus change — history lives entirely in CompanyBan.
+  // Record in the audit log — unban event
+  await recordStatusChange({
+    companyUniqueId: ban.companyUniqueId,
+    fromStatus: "suspended",
+    toStatus: "approved",
+    changedBy: unbannedBy,
+    source: "unban",
+    reason: "Ban lifted by admin",
+    referenceUniqueId: companyBanUniqueId,
+  });
 
   return { message: "success", data: "Company ban deactivated successfully" };
 };

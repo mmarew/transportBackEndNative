@@ -11,6 +11,8 @@ const {
   paginatedQuery,
 } = require("./CompanyHelper.service");
 const { addMember } = require("./CompanyMembership.service");
+const { recordStatusChange } = require("../Utils/CompanyStatusHistory");
+const { recordProfileChanges } = require("../Utils/CompanyProfileHistory");
 
 /**
  * Creates a new transport company and auto-assigns the creator as owner.
@@ -369,6 +371,15 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
   if (setParts.length === 0) {
     throw new AppError("No fields to update", 400);
   }
+
+  // Fetch current values BEFORE the update so we can diff them for history
+  const [[currentRow]] = await db().query(
+    `SELECT companyName, companyRegistrationNumber, companyPhone, companyEmail, companyAddress
+     FROM TransportCompany WHERE companyUniqueId = ? AND isDeleted = 0 LIMIT 1`,
+    [companyUniqueId],
+  );
+  if (!currentRow) throw new AppError("Company not found", 404);
+
   setParts.push("companyUpdatedBy = ?", "companyUpdatedAt = ?");
   vals.push(updatedBy, currentDate(), companyUniqueId);
 
@@ -379,6 +390,15 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
   if (res.affectedRows === 0) {
     throw new AppError("Company not found", 404);
   }
+
+  // Write one history row per field that actually changed
+  await recordProfileChanges({
+    companyUniqueId,
+    oldData: currentRow,
+    newData: data,
+    changedBy: updatedBy,
+  });
+
   return { message: "success", data: "Company updated" };
 };
 
@@ -493,6 +513,17 @@ exports.approveCompany = async (
   if (res.affectedRows === 0) {
     throw new AppError("Company not found", 404);
   }
+
+  // Record status transition in the append-only audit log
+  await recordStatusChange({
+    companyUniqueId,
+    fromStatus: current,
+    toStatus: approvalStatus,
+    changedBy: approvedBy,
+    source: "document_approval",
+    reason: approvalReason || null,
+  });
+
   return { message: "success", data: `Company ${approvalStatus}` };
 };
 

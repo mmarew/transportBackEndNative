@@ -82,7 +82,17 @@ const routes = [
     method: "patch",
     middleware: [...adminOnly, validator(companyBanParams, "params")],
     handler: controller.unbanCompany,
-    // Deactivates ban + restores company to 'approved' if no other active bans
+    // Deactivates ban; records unban event in CompanyStatusHistory
+  },
+
+  // ── Company Status History (audit trail) ──────────────────────────────────
+  {
+    path: "/api/admin/companyStatusHistory/:companyUniqueId",
+    method: "get",
+    middleware: [...adminOnly],
+    handler: controller.getCompanyStatusHistory,
+    // Returns append-only log: registered→approved→suspended→unbanned with who/when/why
+    // Query: page?, limit?
   },
 ];
 
