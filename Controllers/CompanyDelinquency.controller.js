@@ -3,7 +3,7 @@
 const companyDelinquencyService = require("../Services/CompanyDelinquency.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
-const { getStatusHistory } = require("../Utils/CompanyStatusHistory");
+const { getHistory } = require("../Utils/CompanyHistory");
 
 // POST /api/admin/company-delinquency
 const createCompanyDelinquency = async (req, res, next) => {
@@ -75,7 +75,7 @@ const getCompanyStatusHistory = async (req, res, next) => {
   try {
     const { companyUniqueId } = req.params;
     const { page, limit } = req.query;
-    const result = await getStatusHistory(companyUniqueId, { page, limit });
+    const result = await getHistory(companyUniqueId, { page, limit });
     ServerResponder(res, result);
   } catch (error) { next(error); }
 };

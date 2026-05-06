@@ -708,52 +708,39 @@ CREATE TABLE IF NOT EXISTS CompanyRating (
     INDEX idx_company_rating_job (companyBidRequestUniqueId)
 ) ;
 
--- CompanyStatusHistory: Append-only audit log for TransportCompany status changes.
--- Every time approvalStatus changes (registration, document approval, ban, unban, manual admin),
--- a row is inserted here. The table is NEVER updated or deleted — pure history.
+-- CompanyHistory: Unified append-only audit log for ALL company changes.
+-- Covers both profile field changes (phone, email, name...) and status transitions (approvalStatus).
+-- One row per field changed per event. NEVER updated or deleted — pure history.
 --
--- This solves the "who changed it, when, and why" problem:
---   registered at A → approved at B → suspended at C → unbanned at D
--- is all visible with changedAt, changedBy, fromStatus, toStatus, source.
-CREATE TABLE IF NOT EXISTS CompanyStatusHistory (
-    historyId INT AUTO_INCREMENT PRIMARY KEY,
-    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
-    fromStatus ENUM('pending','approved','rejected','suspended') NULL, -- NULL on first record (creation)
-    toStatus   ENUM('pending','approved','rejected','suspended') NOT NULL,
-    reason TEXT NULL,                                       -- Why the change was made
-    changedBy VARCHAR(36) NOT NULL,                         -- Admin or 'system' UUID
-    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    source ENUM(
-        'registration',       -- Initial record creation
-        'document_approval',  -- Admin reviewed documents and approved/rejected
-        'ban',                -- Compliance ban triggered (links to CompanyBan)
-        'unban',              -- Admin lifted a ban
-        'manual'              -- Direct admin override with no other trigger
-    ) NOT NULL,
-    referenceUniqueId VARCHAR(36) NULL,  -- e.g. companyBanUniqueId when source = 'ban' or 'unban'
-    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    INDEX idx_csh_company (companyUniqueId),
-    INDEX idx_csh_changed_at (changedAt)
-) ;
-
--- CompanyProfileHistory: Append-only log for company profile field changes.
--- One row per field that changed per update event (phone, email, name, etc.).
--- Answers: who changed what field, from what value, to what value, and when.
-CREATE TABLE IF NOT EXISTS CompanyProfileHistory (
+-- fieldName examples:
+--   'approvalStatus'            → status transition (fromValue=old, toValue=new, source=ban|document_approval|...)
+--   'companyPhone'              → profile update (source=profile_update)
+--   'companyEmail', 'companyName', 'companyAddress', 'companyRegistrationNumber'
+--
+-- This single table answers: who changed what, from what, to what, when, and why.
+CREATE TABLE IF NOT EXISTS CompanyHistory (
     historyId INT AUTO_INCREMENT PRIMARY KEY,
     historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
     companyUniqueId VARCHAR(36) NOT NULL,
-    changedBy VARCHAR(36) NOT NULL,
+    changedBy VARCHAR(36) NOT NULL,                     -- userUniqueId of admin or 'system'
     changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fieldName VARCHAR(100) NOT NULL,   -- e.g. 'companyPhone', 'companyEmail'
-    oldValue TEXT NULL,                -- value before the change
-    newValue TEXT NULL,                -- value after the change
+    fieldName VARCHAR(100) NOT NULL,                    -- which field changed
+    oldValue TEXT NULL,                                 -- value before the change (NULL on first record)
+    newValue TEXT NULL,                                 -- value after the change
+    reason TEXT NULL,                                   -- optional human-readable reason
+    source ENUM(
+        'registration',       -- company first created
+        'document_approval',  -- admin reviewed documents and approved/rejected
+        'ban',                -- compliance ban (referenceUniqueId = companyBanUniqueId)
+        'unban',              -- admin lifted a ban (referenceUniqueId = companyBanUniqueId)
+        'profile_update',     -- phone/email/name/address/registration number change
+        'manual'              -- direct admin override with no other specific trigger
+    ) NOT NULL,
+    referenceUniqueId VARCHAR(36) NULL,                 -- links to CompanyBan when source = ban|unban
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    FOREIGN KEY (changedBy) REFERENCES Users(userUniqueId),
-    INDEX idx_cph_company (companyUniqueId),
-    INDEX idx_cph_field (fieldName),
-    INDEX idx_cph_changed_at (changedAt)
+    INDEX idx_ch_company (companyUniqueId),
+    INDEX idx_ch_field (fieldName),
+    INDEX idx_ch_changed_at (changedAt)
 ) ;
 
 -- Create the SMSSender table

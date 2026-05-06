@@ -2,6 +2,7 @@
 const service = require("../Services/TransportCompany.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { getHistory } = require("../Utils/CompanyHistory");
 
 exports.createCompany = async (req, res, next) => {
   try {
@@ -62,6 +63,17 @@ exports.deleteCompany = async (req, res, next) => {
     const result = await executeInTransaction(() =>
       service.deleteCompany(req.params.companyUniqueId, req.user.userUniqueId),
     );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.getCompanyHistory = async (req, res, next) => {
+  try {
+    const { companyUniqueId } = req.params;
+    const { page, limit, fieldName, source } = req.query;
+    const result = await getHistory(companyUniqueId, { page, limit, fieldName, source });
     ServerResponder(res, result);
   } catch (e) {
     next(e);

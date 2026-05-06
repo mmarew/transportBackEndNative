@@ -71,4 +71,20 @@ router.delete(
   controller.deleteCompany,
 );
 
+/**
+ * @route   GET /api/company/companies/:companyUniqueId/profileHistory
+ * @desc    Audit log of company PROFILE & STATUS changes only
+ *          (name, phone, email, address, approvalStatus transitions, bans, unbans).
+ *          NOT job/bid history — use the bid endpoints for operational history.
+ *          One row per field per event, newest first.
+ * @access  Private (Admin / CompanyAdmin)
+ * @query   page?, limit?, fieldName? (e.g. 'approvalStatus' or 'companyPhone'), source? (e.g. 'ban', 'profile_update')
+ */
+router.get(
+  "/:companyUniqueId/profileHistory",
+  verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
+  validator(schema.companyParams, "params"),
+  controller.getCompanyHistory,
+);
+
 module.exports = router;
