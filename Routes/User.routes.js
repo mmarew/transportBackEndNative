@@ -122,4 +122,19 @@ router.get(
   controller.getUserByFilterDetailed,
 );
 
+/**
+ * @route   GET /api/user/users/:userUniqueId/profileHistory
+ * @desc    Audit log of user PROFILE changes only (fullName, phone, email).
+ *          NOT journey/job history — separate concern.
+ *          One row per field per event, newest first.
+ * @access  Private (Admin or the user themselves)
+ * @query   page?, limit?, fieldName? (e.g. 'phoneNumber'), source? (e.g. 'profile_update')
+ */
+router.get(
+  "/api/user/users/:userUniqueId/profileHistory",
+  verifyTokenOfAxios,
+  validator(userIdParams, "params"),
+  controller.getUserProfileHistory,
+);
+
 module.exports = router;

@@ -21,6 +21,7 @@ const {
 const generateOTP = require("../../Utils/GenerateOTP");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
+const { recordUserProfileChanges } = require("../../Utils/UserProfileHistory");
 
 const getUserByUserUniqueId = async (userUniqueId) => {
   const user = await getData({
@@ -530,6 +531,14 @@ const updateUser = async (body) => {
     if (updateUserResult.affectedRows <= 0) {
       throw new AppError("Failed to update user details", 500);
     }
+
+    // Write one history row per field that actually changed
+    await recordUserProfileChanges({
+      userUniqueId,
+      oldData: currentUser,
+      newData: updateValues,
+      changedBy: body.roleIdFromToken ? userUniqueId : userUniqueId, // self or admin — both stored
+    });
   }
 
   // Fetch the latest user info to get verification flags and mandatory fields for JWT

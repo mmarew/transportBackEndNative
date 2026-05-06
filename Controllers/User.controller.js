@@ -731,6 +731,8 @@ const verifyPhone = async (req, res, next) => {
   }
 };
 
+const { getUserHistory } = require("../Utils/UserProfileHistory");
+
 module.exports = {
   createUserByAdminOrSuperAdmin,
   updateUser,
@@ -742,4 +744,12 @@ module.exports = {
   verifyEmail,
   verifyPhone,
   reportWrongEmail,
+  getUserProfileHistory: async (req, res, next) => {
+    try {
+      const { userUniqueId } = req.params;
+      const { page, limit, fieldName, source } = req.query;
+      const result = await getUserHistory(userUniqueId, { page, limit, fieldName, source });
+      res.json(result);
+    } catch (e) { next(e); }
+  },
 };
