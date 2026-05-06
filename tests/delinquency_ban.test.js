@@ -333,7 +333,7 @@ function assert(cond, msg) {
   console.log("\n\x1b[1m━━ Phase E: Company Delinquency CRUD ━━━━━━━━━━\x1b[0m");
 
   await step("Create company delinquency", async () => {
-    const r = await request("POST", "/api/admin/company-delinquency", {
+    const r = await request("POST", "/api/admin/companyDelinquency", {
       companyUniqueId: s.companyUniqueId,
       delinquencyTypeUniqueId: s.companyDelinquencyTypeUniqueId,
       delinquencyDescription: "Test: company commission evasion",
@@ -350,7 +350,7 @@ function assert(cond, msg) {
 
   await step("Get company delinquencies — verify created", async () => {
     const r = await request("GET",
-      `/api/admin/company-delinquency?companyUniqueId=${s.companyUniqueId}`, null, adminH());
+      `/api/admin/companyDelinquency?companyUniqueId=${s.companyUniqueId}`, null, adminH());
     assert(r.body?.message === "success", `Get failed: ${JSON.stringify(r.body)}`);
     const found = r.body?.data?.find((d) => d.companyDelinquencyUniqueId === s.companyDelinquencyUniqueId);
     assert(found, "Created company delinquency not in list");
@@ -359,14 +359,14 @@ function assert(cond, msg) {
 
   await step("Get company delinquencies — filter by severity", async () => {
     const r = await request("GET",
-      `/api/admin/company-delinquency?companyUniqueId=${s.companyUniqueId}&delinquencySeverity=CRITICAL`,
+      `/api/admin/companyDelinquency?companyUniqueId=${s.companyUniqueId}&delinquencySeverity=CRITICAL`,
       null, adminH());
     assert(r.body?.message === "success", `Filter failed: ${JSON.stringify(r.body)}`);
     return `CRITICAL count: ${r.body?.data?.length}`;
   });
 
   await step("Missing required field → 400", async () => {
-    const r = await request("POST", "/api/admin/company-delinquency", {
+    const r = await request("POST", "/api/admin/companyDelinquency", {
       // missing companyUniqueId
       delinquencyTypeUniqueId: s.companyDelinquencyTypeUniqueId,
     }, adminH());
@@ -377,7 +377,7 @@ function assert(cond, msg) {
   await step("Delete company delinquency with active ban → 400", async () => {
     // 30 pts auto-creates a ban, so delete should be blocked
     const r = await request("DELETE",
-      `/api/admin/company-delinquency/${s.companyDelinquencyUniqueId}`, null, adminH());
+      `/api/admin/companyDelinquency/${s.companyDelinquencyUniqueId}`, null, adminH());
     if (r.status === 400) return "Correctly blocked — ban is linked";
     if (r.body?.message === "success") return "Deleted (no ban was linked)";
     return `status ${r.status}`;
@@ -390,7 +390,7 @@ function assert(cond, msg) {
 
   await step("Get company bans — verify auto-ban created", async () => {
     const r = await request("GET",
-      `/api/admin/company-ban?companyUniqueId=${s.companyUniqueId}&isActive=true`, null, adminH());
+      `/api/admin/companyBan?companyUniqueId=${s.companyUniqueId}&isActive=true`, null, adminH());
     assert(r.body?.message === "success", `Get company bans failed: ${JSON.stringify(r.body)}`);
     const ban = r.body?.data?.[0];
     if (ban) {
@@ -402,7 +402,7 @@ function assert(cond, msg) {
 
   await step("Manual ban company (if no auto-ban)", async () => {
     if (s.companyBanUniqueId) return "Skipped — auto-ban already exists";
-    const r = await request("POST", "/api/admin/company-ban", {
+    const r = await request("POST", "/api/admin/companyBan", {
       companyUniqueId: s.companyUniqueId,
       companyDelinquencyUniqueId: s.companyDelinquencyUniqueId,
       banReason: "Manual test company ban",
@@ -424,7 +424,7 @@ function assert(cond, msg) {
   });
 
   await step("Duplicate ban → 409", async () => {
-    const r = await request("POST", "/api/admin/company-ban", {
+    const r = await request("POST", "/api/admin/companyBan", {
       companyUniqueId: s.companyUniqueId,
       companyDelinquencyUniqueId: s.companyDelinquencyUniqueId,
       banReason: "Duplicate ban attempt",
@@ -436,7 +436,7 @@ function assert(cond, msg) {
 
   await step("Get company bans with isActive=false — none expected", async () => {
     const r = await request("GET",
-      `/api/admin/company-ban?companyUniqueId=${s.companyUniqueId}&isActive=false`, null, adminH());
+      `/api/admin/companyBan?companyUniqueId=${s.companyUniqueId}&isActive=false`, null, adminH());
     assert(r.body?.message === "success", `Get failed: ${JSON.stringify(r.body)}`);
     return `inactive bans: ${r.body?.data?.length}`;
   });
@@ -444,7 +444,7 @@ function assert(cond, msg) {
   await step("Unban company → approvalStatus restored to approved", async () => {
     if (!s.companyBanUniqueId) return "Skipped — no companyBanUniqueId";
     const r = await request("PATCH",
-      `/api/admin/company-ban/${s.companyBanUniqueId}/unban`, null, adminH());
+      `/api/admin/companyBan/${s.companyBanUniqueId}/unban`, null, adminH());
     assert(r.body?.message === "success", `Unban failed: ${JSON.stringify(r.body)}`);
     return "Unbanned";
   });
@@ -461,7 +461,7 @@ function assert(cond, msg) {
 
   await step("Unban non-existent company ban → 404", async () => {
     const r = await request("PATCH",
-      `/api/admin/company-ban/00000000-0000-4000-8000-000000000002/unban`, null, adminH());
+      `/api/admin/companyBan/00000000-0000-4000-8000-000000000002/unban`, null, adminH());
     assert(r.status >= 400, `Expected error, got ${r.status}`);
     return `Correctly rejected (${r.status})`;
   });

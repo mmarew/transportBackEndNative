@@ -680,6 +680,34 @@ CREATE TABLE IF NOT EXISTS Ratings (
     FOREIGN KEY (ratingDeletedBy) REFERENCES Users(userUniqueId)
 ) ;
 
+-- CompanyRating: Shipper rates a Transport Company after a completed freight job.
+-- One rating per companyBidRequest (UNIQUE on companyBidRequestUniqueId).
+-- The average of these ratings forms the company's public reputation score,
+-- visible to shippers during the bidding process.
+CREATE TABLE IF NOT EXISTS CompanyRating (
+    companyRatingId INT AUTO_INCREMENT PRIMARY KEY,
+    companyRatingUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,     -- One rating per completed job
+    companyUniqueId VARCHAR(36) NOT NULL,                      -- FK → TransportCompany
+    ratedByUserUniqueId VARCHAR(36) NOT NULL,                  -- FK → Users (the shipper)
+    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),   -- 1 (worst) to 5 (best)
+    comment TEXT NULL,
+    companyRatingCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyRatingUpdatedAt DATETIME NULL,
+    companyRatingDeletedAt DATETIME NULL,
+    companyRatingCreatedBy VARCHAR(36) NOT NULL,
+    companyRatingUpdatedBy VARCHAR(36) NULL,
+    companyRatingDeletedBy VARCHAR(36) NULL,
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (ratedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_company_rating_company (companyUniqueId),
+    INDEX idx_company_rating_job (companyBidRequestUniqueId)
+) ;
+
 -- Create the SMSSender table
 
 CREATE TABLE IF NOT EXISTS SMSSender (
