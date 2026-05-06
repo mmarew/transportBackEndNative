@@ -49,6 +49,7 @@ const routesArray = [
   require("./Firebase.routes"),
   require("./UserDelinquency.routes"),
   require("./BannedUsers.routes"),
+  require("./CompanyDelinquency.routes"),
   require("./DelinquencyTypes.routes"),
   require("./VehicleDriver.routes"),
   require("./Account.routes"),

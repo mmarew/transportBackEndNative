@@ -1209,7 +1209,7 @@ CREATE TABLE IF NOT EXISTS UserDelinquency (
     delinquencyUpdatedAt DATETIME NULL DEFAULT NULL,
     delinquencyCreatedBy VARCHAR(36) NOT NULL DEFAULT 'system',  -- 'system' for automatic bans
     journeyDecisionUniqueId VARCHAR(36) NULL, -- for which journey decision this delinquency is applied if it is from journey may be passenger complay againest driver
-    isDeliquencySeenByAdmin TINYINT(1) NOT NULL DEFAULT 0, -- 0 = Unseen, 1 = Seen
+    isDelinquencySeenByAdmin TINYINT(1) NOT NULL DEFAULT 0, -- 0 = Unseen, 1 = Seen
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (roleId) REFERENCES Roles(roleId),
     FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
@@ -1271,6 +1271,47 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
     FOREIGN KEY (companyUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (companyDeletedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
+);
+
+-- CompanyDelinquency: audit trail of rule violations by transport companies.
+-- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
+CREATE TABLE IF NOT EXISTS CompanyDelinquency (
+    companyDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    companyDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
+    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,           -- FK → DelinquencyTypes
+    delinquencyDescription TEXT NOT NULL,
+    delinquencySeverity ENUM('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+    delinquencyPoints INT NOT NULL DEFAULT 1,
+    journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: links to the evaded bid
+    delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
+    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_company_delinquency_company (companyUniqueId),
+    INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
+    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId)
+);
+
+-- CompanyBan: active suspensions for transport companies.
+-- A ban sets TransportCompany.approvalStatus = 'suspended' and records expiry.
+-- Mirrors BannedUsers but references CompanyDelinquency instead.
+CREATE TABLE IF NOT EXISTS CompanyBan (
+    companyBanId INT AUTO_INCREMENT PRIMARY KEY,
+    companyBanUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- The triggering delinquency
+    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',
+    banReason TEXT NOT NULL,
+    banDurationDays INT NOT NULL,
+    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    banExpiresAt DATETIME NOT NULL,
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    INDEX idx_company_ban_company (companyUniqueId, isActive),
+    INDEX idx_company_ban_expires (banExpiresAt, isActive),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    FOREIGN KEY (bannedBy) REFERENCES Users(userUniqueId)
 );
 
 
