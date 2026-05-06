@@ -1,5 +1,7 @@
 "use strict";
 
+const { reportDriverCommissionEvasion } = require("./CommissionEvasion.service");
+
 /**
  * CompanyAssignment Service
  * ─────────────────────────
@@ -738,6 +740,36 @@ exports.updateAssignmentStatus = async (
     // Normalise legacy 'cancelled' to the correct ENUM value
     if (assignmentStatus === "cancelled") {
       assignmentStatus = "cancelled_by_driver";
+    }
+
+    // ── Commission evasion: driver cancelled AFTER confirming ────────────────
+    // 'cancelled_by_driver' on a previously 'confirmed_by_driver' assignment
+    // means the driver agreed to the job and then backed out = evasion.
+    // 'rejected_by_driver' (before confirmation) is NOT evasion — just a refusal.
+    // Fire post-commit so it never blocks this transaction.
+    if (
+      (assignmentStatus === "cancelled_by_driver") &&
+      assignment.assignmentStatus === "confirmed_by_driver"
+    ) {
+      setImmediate(async () => {
+        try {
+          const result = await reportDriverCommissionEvasion({
+            driverUserUniqueId:      assignment.driverUserUniqueId,
+            reportedByUniqueId:      updatedBy,
+            journeyDecisionUniqueId: assignment.journeyDecisionUniqueId || null,
+            reason: `Driver cancelled freight assignment after confirmation (assignment: ${assignmentUniqueId})`,
+          });
+          logger.info("Driver commission evasion recorded", {
+            driverUserUniqueId: assignment.driverUserUniqueId,
+            automaticAction:    result.automaticAction,
+          });
+        } catch (err) {
+          logger.error("Failed to record driver commission evasion", {
+            driverUserUniqueId: assignment.driverUserUniqueId,
+            error: err.message,
+          });
+        }
+      });
     }
   }
 
