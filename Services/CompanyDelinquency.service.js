@@ -4,8 +4,13 @@
  * CompanyDelinquency.service.js
  * ──────────────────────────────
  * CRUD + auto-ban logic for company-level rule violations.
- * Companies are NOT users — this uses CompanyDelinquency + CompanyBan tables,
- * and suspends the company via TransportCompany.approvalStatus = 'suspended'.
+ *
+ * Ban design (important):
+ *  - CompanyBan is the SINGLE SOURCE OF TRUTH for ban history.
+ *  - approvalStatus on TransportCompany is NEVER modified by this service.
+ *    It is reserved exclusively for the admin registration/document-approval workflow.
+ *  - The bid guard in CompanyBid.service.js queries CompanyBan directly,
+ *    giving a "suspended until [date]" message and keeping full ban history intact.
  */
 
 const { v4: uuidv4 } = require("uuid");
@@ -184,20 +189,9 @@ const checkAndApplyAutomaticCompanyBan = async (
     ],
   );
 
-  // Suspend the company
-  await exec().query(
-    `UPDATE TransportCompany
-     SET approvalStatus = 'suspended',
-         approvalReason = ?,
-         approvedBy = ?,
-         approvedAt = NOW()
-     WHERE companyUniqueId = ?`,
-    [
-      `Suspended: commission evasion. Expires ${banExpiresAt.toISOString().slice(0, 10)}.`,
-      bannedBy,
-      companyUniqueId,
-    ],
-  );
+  // NOTE: approvalStatus is NOT touched here.
+  // The bid-submission guard checks CompanyBan directly for an active ban,
+  // keeping the ban history clean and approvalStatus reserved for admin registration decisions.
 
   logger.info("Company auto-banned", {
     companyUniqueId,
@@ -457,14 +451,7 @@ const banCompany = async ({
     ],
   );
 
-  await exec().query(
-    `UPDATE TransportCompany SET approvalStatus = 'suspended', approvalReason = ?, approvedBy = ?, approvedAt = NOW() WHERE companyUniqueId = ?`,
-    [
-      `Suspended by admin. Expires ${banExpiresAt.toISOString().slice(0, 10)}.`,
-      bannedBy,
-      companyUniqueId,
-    ],
-  );
+  // NOTE: approvalStatus is NOT touched here (see auto-ban note above).
 
   return {
     message: "success",
@@ -493,18 +480,7 @@ const unbanCompany = async ({ companyBanUniqueId, unbannedBy }) => {
     [companyBanUniqueId],
   );
 
-  // Only restore to 'approved' if no other active bans remain
-  const [[{ remaining }]] = await exec().query(
-    `SELECT COUNT(*) AS remaining FROM CompanyBan WHERE companyUniqueId = ? AND isActive = TRUE AND banExpiresAt > NOW()`,
-    [ban.companyUniqueId],
-  );
-
-  if (remaining === 0) {
-    await exec().query(
-      `UPDATE TransportCompany SET approvalStatus = 'approved', approvalReason = ?, approvedBy = ?, approvedAt = NOW() WHERE companyUniqueId = ?`,
-      ["Ban lifted by admin", unbannedBy, ban.companyUniqueId],
-    );
-  }
+  // No approvalStatus change — history lives entirely in CompanyBan.
 
   return { message: "success", data: "Company ban deactivated successfully" };
 };

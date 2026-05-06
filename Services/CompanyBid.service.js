@@ -59,14 +59,34 @@ exports.submitBid = async (data) => {
     bidNotes,
   } = data;
 
-  // Company must be approved
+  // Company must be approved (registration-level check)
   const company = await findOne(
     "TransportCompany",
     { companyUniqueId, isDeleted: 0 },
     "Company not found",
   );
   if (company.approvalStatus !== "approved") {
-    throw new AppError("Only approved companies can submit bids", 400);
+    throw new AppError(
+      `Company is not eligible to bid. Registration status: ${company.approvalStatus}`,
+      400,
+    );
+  }
+
+  // Company must not have an active ban (compliance-level check)
+  // CompanyBan is the single source of truth for ban history — approvalStatus is never modified by bans.
+  const [[activeBan]] = await db().query(
+    `SELECT companyBanUniqueId, banReason, banExpiresAt
+     FROM CompanyBan
+     WHERE companyUniqueId = ? AND isActive = TRUE AND banExpiresAt > NOW()
+     LIMIT 1`,
+    [companyUniqueId],
+  );
+  if (activeBan) {
+    const expiresOn = new Date(activeBan.banExpiresAt).toISOString().slice(0, 10);
+    throw new AppError(
+      `Company is currently suspended from bidding until ${expiresOn}. Reason: ${activeBan.banReason}`,
+      403,
+    );
   }
 
   // 1. Verify the batch exists and get its metadata
