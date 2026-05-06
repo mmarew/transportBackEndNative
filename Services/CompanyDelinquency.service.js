@@ -67,9 +67,19 @@ const createCompanyDelinquency = async (data) => {
     throw new AppError("Invalid or inactive delinquency type", 404);
 
   const { defaultPoints, defaultSeverity } = delinquencyType;
-  const duplicateCheckWindowHours = 24; // default window
+  const duplicateCheckWindowHours = 0.24; // default window
 
-  // Duplicate check
+  /**
+   * DUPLICATE CHECK (Anti-Spam / Double-click prevention)
+   * ─────────────────────────────────────────────────────
+   * We restrict logging the exact same delinquency type for the same company 
+   * within a short time window (e.g., 0.24 hours = ~14 mins).
+   * 
+   * Why? If a passenger angrily taps "Report" 5 times instantly, we don't 
+   * want to penalize the company 5 times for a single fault. 
+   * However, if the company commits the same fault an hour later on a new trip, 
+   * it WILL be counted.
+   */
   if (!skipDuplicateCheck) {
     const windowHours = duplicateCheckWindowHours;
     const [[dup]] = await exec().query(
@@ -114,11 +124,10 @@ const createCompanyDelinquency = async (data) => {
   );
 
   // Apply automatic ban
-  const automaticAction = await checkAndApplyAutomaticCompanyBan(
+  const automaticAction = await checkAndApplyAutomaticCompanyBan({
     companyUniqueId,
-    companyDelinquencyUniqueId,
-    delinquencyCreatedBy,
-  );
+    bannedBy: delinquencyCreatedBy,
+  });
 
   return {
     message: "success",
@@ -131,11 +140,10 @@ const createCompanyDelinquency = async (data) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Auto-ban: sum points over last 30 days and apply ban if threshold met
 // ─────────────────────────────────────────────────────────────────────────────
-const checkAndApplyAutomaticCompanyBan = async (
+const checkAndApplyAutomaticCompanyBan = async ({
   companyUniqueId,
-  triggeringDelinquencyUniqueId,
   bannedBy,
-) => {
+}) => {
   // Fetch ALL delinquencies in the 30-day window — we need both the SUM and the individual rows
   // so we can link each one to the ban via CompanyBanDelinquency.
   const [delinquencies] = await exec().query(
@@ -199,7 +207,7 @@ const checkAndApplyAutomaticCompanyBan = async (
   // This answers "which violations caused this ban?" even years later.
   if (delinquencies.length > 0) {
     const junctionRows = delinquencies.map((d) => [
-      uuidv4(),                        // CompanyBanDelinquencyUniqueId
+      uuidv4(), // CompanyBanDelinquencyUniqueId
       companyBanUniqueId,
       d.companyDelinquencyUniqueId,
       d.delinquencyPoints,

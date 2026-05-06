@@ -1011,7 +1011,7 @@ const listOfDelinquenciesTypes = [
       "Driver rejected or cancelled a freight job after accepting a bid, " +
       "bypassing platform commission. This is a HIGH severity violation.",
     delinquencyTypeId: 8,
-    defaultPoints: 25,          // ← crosses 20-pt (3-day) on 1st offense; 50-pt (30-day) on 2nd
+    defaultPoints: 25, // ← crosses 20-pt (3-day) on 1st offense; 50-pt (30-day) on 2nd
     defaultSeverity: "HIGH",
     duplicateCheckWindowHours: 1, // same job cannot be reported twice within 1h
     applicableRoles: "Driver",
@@ -1024,7 +1024,7 @@ const listOfDelinquenciesTypes = [
       "A transport company rejected or cancelled a freight job after the bid " +
       "was accepted by the shipper, bypassing platform commission. CRITICAL violation.",
     delinquencyTypeId: 9,
-    defaultPoints: 30,          // ← crosses 30-day ban on 2nd offense (60 total)
+    defaultPoints: 30, // ← crosses 30-day ban on 2nd offense (60 total)
     defaultSeverity: "CRITICAL",
     duplicateCheckWindowHours: 1,
     applicableRoles: "CompanyAdmin",
@@ -1032,6 +1032,7 @@ const listOfDelinquenciesTypes = [
     createdAt: currentDate(),
   },
 ];
+
 const CANCELED_JOURNEY_CONTEXTS = {
   PASSENGER_REQUEST: "PassengerRequest",
   DRIVER_REQUEST: "DriverRequest",
