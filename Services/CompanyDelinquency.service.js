@@ -178,9 +178,9 @@ const checkAndApplyAutomaticCompanyBan = async (
   //map over delinquencies and insert each delinquiencies
   await exec().query(
     `INSERT INTO CompanyBan
-       (companyBanUniqueId, companyUniqueId, companyDelinquencyUniqueId,
+       (companyBanUniqueId, companyUniqueId,
         bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive)
-     VALUES (?, ?, NULL, ?, ?, ?, ?, ?, TRUE)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
     // companyDelinquencyUniqueId = NULL for auto-bans.
     // All contributing delinquency UUIDs are stored in CompanyBanDelinquency (junction table).
     // companyDelinquencyUniqueId is only used for manual bans where an admin references one specific violation.
@@ -199,13 +199,14 @@ const checkAndApplyAutomaticCompanyBan = async (
   // This answers "which violations caused this ban?" even years later.
   if (delinquencies.length > 0) {
     const junctionRows = delinquencies.map((d) => [
+      uuidv4(),                        // CompanyBanDelinquencyUniqueId
       companyBanUniqueId,
       d.companyDelinquencyUniqueId,
       d.delinquencyPoints,
     ]);
     await exec().query(
       `INSERT INTO CompanyBanDelinquency
-         (companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
+         (CompanyBanDelinquencyUniqueId, companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
        VALUES ?`,
       [junctionRows],
     );
@@ -393,7 +394,6 @@ const getCompanyBans = async (filters = {}) => {
     SELECT
       cb.companyBanUniqueId,
       cb.companyUniqueId,
-      cb.companyDelinquencyUniqueId,
       cb.banReason,
       cb.banDurationDays,
       cb.banAt,
@@ -401,13 +401,9 @@ const getCompanyBans = async (filters = {}) => {
       cb.isActive,
       tc.companyName,
       tc.approvalStatus,
-      u.fullName AS bannedByName,
-      cd.delinquencySeverity,
-      dt.delinquencyTypeName
+      u.fullName AS bannedByName
     FROM CompanyBan cb
     INNER JOIN TransportCompany tc ON cb.companyUniqueId = tc.companyUniqueId
-    INNER JOIN CompanyDelinquency cd ON cb.companyDelinquencyUniqueId = cd.companyDelinquencyUniqueId
-    INNER JOIN DelinquencyTypes dt ON cd.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     LEFT  JOIN Users u ON cb.bannedBy = u.userUniqueId
     WHERE ${whereClause}
     ORDER BY cb.${sortBy} ${safeOrder}
@@ -469,19 +465,28 @@ const banCompany = async ({
 
   await exec().query(
     `INSERT INTO CompanyBan
-       (companyBanUniqueId, companyUniqueId, companyDelinquencyUniqueId,
+       (companyBanUniqueId, companyUniqueId,
         bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
     [
       companyBanUniqueId,
       companyUniqueId,
-      companyDelinquencyUniqueId,
       bannedBy,
       banReason,
       banDurationDays,
       banAt,
       banExpiresAt,
     ],
+  );
+
+  // Link the single delinquency to this ban via the bridge table
+  // (same pattern as auto-ban, just one row instead of many)
+  await exec().query(
+    `INSERT INTO CompanyBanDelinquency
+       (CompanyBanDelinquencyUniqueId, companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
+     VALUES (?, ?, ?, ?)`,
+    [uuidv4(), companyBanUniqueId, companyDelinquencyUniqueId, 0],
+    // pointsAtTime = 0 for manual bans — admin chose this violation directly, not by points
   );
 
   // NOTE: approvalStatus is NOT touched here (see auto-ban note above).

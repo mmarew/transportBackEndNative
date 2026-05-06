@@ -414,14 +414,7 @@ function assert(cond, msg) {
     return `Manual ban: ${s.companyBanUniqueId}`;
   });
 
-  await step("Verify company approvalStatus = suspended", async () => {
-    const r = await request("GET",
-      `/api/company/companies?companyUniqueId=${s.companyUniqueId}`, null, adminH());
-    const co = r.body?.data?.[0];
-    assert(co?.approvalStatus === "suspended",
-      `Expected suspended, got: ${co?.approvalStatus}. (Auto-ban may not have hit threshold)`);
-    return `approvalStatus: ${co.approvalStatus}`;
-  });
+
 
   await step("Duplicate ban → 409", async () => {
     const r = await request("POST", "/api/admin/companyBan", {
@@ -449,15 +442,7 @@ function assert(cond, msg) {
     return "Unbanned";
   });
 
-  await step("Verify company approvalStatus restored to approved", async () => {
-    if (!s.companyBanUniqueId) return "Skipped";
-    const r = await request("GET",
-      `/api/company/companies?companyUniqueId=${s.companyUniqueId}`, null, adminH());
-    const co = r.body?.data?.[0];
-    assert(co?.approvalStatus === "approved",
-      `Expected approved after unban, got: ${co?.approvalStatus}`);
-    return `approvalStatus: ${co.approvalStatus}`;
-  });
+
 
   await step("Unban non-existent company ban → 404", async () => {
     const r = await request("PATCH",

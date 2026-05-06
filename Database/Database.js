@@ -1369,19 +1369,49 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
     FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
 );
 
+-- CompanyBan: active suspensions for transport companies.
+-- A ban records expiry, reason, and who triggered it.
+-- For auto-bans (accumulated points), all contributing delinquencies
+-- are linked via CompanyBanDelinquency junction table.
+
+CREATE TABLE IF NOT EXISTS CompanyBan (
+
+    companyBanId INT AUTO_INCREMENT PRIMARY KEY,
+    companyBanUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyUniqueId VARCHAR(36) NOT NULL, -- FK → TransportCompany
+    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',
+    banReason TEXT NOT NULL,
+    banDurationDays INT NOT NULL,
+    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    banExpiresAt DATETIME NOT NULL,
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+
+    INDEX idx_company_ban_company (companyUniqueId, isActive),
+    INDEX idx_company_ban_expires (banExpiresAt, isActive),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (bannedBy) REFERENCES Users(userUniqueId)
+);
+
 -- CompanyDelinquency: audit trail of rule violations by transport companies.
 -- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
+
+
 CREATE TABLE IF NOT EXISTS CompanyDelinquency (
+
     companyDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     companyDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
     companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
     delinquencyTypeUniqueId VARCHAR(36) NOT NULL,           -- FK → DelinquencyTypes
     delinquencyDescription TEXT NOT NULL,
     delinquencySeverity ENUM('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+
     delinquencyPoints INT NOT NULL DEFAULT 1,
     journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: links to the evaded bid
     delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
     delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     INDEX idx_company_delinquency_company (companyUniqueId),
     INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
@@ -1389,35 +1419,20 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
     FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId)
 );
 
--- CompanyBan: active suspensions for transport companies.
--- A ban records expiry, reason, and who triggered it.
--- For auto-bans (accumulated points), all contributing delinquencies
--- are linked via CompanyBanDelinquency junction table.
-CREATE TABLE IF NOT EXISTS CompanyBan (
-    companyBanId INT AUTO_INCREMENT PRIMARY KEY,
-    companyBanUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
-    companyDelinquencyUniqueId VARCHAR(36) NULL,            -- The FINAL triggering delinquency (NULL for manual bans)
-    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',
-    banReason TEXT NOT NULL,
-    banDurationDays INT NOT NULL,
-    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    banExpiresAt DATETIME NOT NULL,
-    isActive BOOLEAN NOT NULL DEFAULT TRUE,
-    INDEX idx_company_ban_company (companyUniqueId, isActive),
-    INDEX idx_company_ban_expires (banExpiresAt, isActive),
-    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
-    FOREIGN KEY (bannedBy) REFERENCES Users(userUniqueId)
-);
 
--- CompanyBanDelinquency: Junction table linking one ban to ALL delinquencies
+
+-- CompanyBanDelinquency: it is abridge between CompanyBan and CompanyDelinquency tables.
+-- It is a Junction table linking one ban to ALL delinquencies,
 -- that contributed to it via point accumulation.
 -- Answers: "which violations caused this ban, and how many points did each add?"
 -- For a manual ban, this table may have 0 rows (it was not point-triggered).
 -- For an auto-ban, every delinquency within the 30-day window is recorded here.
+
+
 CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
     companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan (which ban)
     companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency (which violation)
     pointsAtTime INT NOT NULL,                             -- Points this delinquency contributed at ban time
@@ -1491,12 +1506,14 @@ CREATE TABLE IF NOT EXISTS CompanyVehicle (
     assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
     assignmentStartDate DATETIME NOT NULL,
     assignmentEndDate DATETIME NULL,
+
     companyVehicleCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     companyVehicleCreatedBy VARCHAR(36) NOT NULL,
     companyVehicleUpdatedAt DATETIME NULL,
     companyVehicleUpdatedBy VARCHAR(36) NULL,
     companyVehicleDeletedAt DATETIME NULL,
     companyVehicleDeletedBy VARCHAR(36) NULL,
+
     UNIQUE KEY uq_company_vehicle (companyUniqueId, vehicleUniqueId),  -- One vehicle per company at a time
     INDEX idx_companyVehicle_company (companyUniqueId),
     INDEX idx_companyVehicle_vehicle (vehicleUniqueId),
