@@ -53,7 +53,7 @@ const createCompanyDelinquency = async (data) => {
 
   // Fetch delinquency type defaults
   const [[delinquencyType]] = await exec().query(
-    `SELECT delinquencyTypeUniqueId, defaultPoints, defaultSeverity, duplicateCheckWindowHours
+    `SELECT delinquencyTypeUniqueId, defaultPoints, defaultSeverity
      FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ? AND isActive = TRUE LIMIT 1`,
     [delinquencyTypeUniqueId],
   );
@@ -63,8 +63,8 @@ const createCompanyDelinquency = async (data) => {
   const {
     defaultPoints,
     defaultSeverity,
-    duplicateCheckWindowHours = 24,
   } = delinquencyType;
+  const duplicateCheckWindowHours = 24; // default window
 
   // Duplicate check
   if (!skipDuplicateCheck) {

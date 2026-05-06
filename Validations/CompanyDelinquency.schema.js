@@ -42,7 +42,7 @@ exports.banCompany = Joi.object({
 exports.getCompanyBansQuery = Joi.object({
   companyUniqueId:   uuidSchema.optional(),
   companyBanUniqueId: uuidSchema.optional(),
-  isActive:          Joi.boolean().optional(),
+  isActive:          Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true","false")).optional(),
   startDate:         Joi.string().optional(),
   endDate:           Joi.string().optional(),
   page:              Joi.number().integer().min(1).optional(),
