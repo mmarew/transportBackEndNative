@@ -10,7 +10,7 @@ const AccountController = require("../Controllers/Account.controller");
 const { validator } = require("../Middleware/Validator");
 const { accountStatusParams } = require("../Validations/Account.schema");
 
-// ── Self account routes ───────────────────────────────────────────────────────
+// ───────────────────── Self account routes ─────────────────────────────────
 // Role and identity are resolved 100% from the JWT token.
 // No roleId or ownerUserUniqueId params needed or accepted for non-admins.
 
