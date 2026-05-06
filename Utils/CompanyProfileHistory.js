@@ -29,7 +29,16 @@ const PROFILE_FIELDS = [
 ];
 
 // ─── Write a single row ───────────────────────────────────────────────────────
-const writeRow = async ({ companyUniqueId, changedBy, fieldName, oldValue, newValue, reason, source, referenceUniqueId }) => {
+const writeRow = async ({
+  companyUniqueId,
+  changedBy,
+  fieldName,
+  oldValue,
+  newValue,
+  reason,
+  source,
+  referenceUniqueId,
+}) => {
   await exec().query(
     `INSERT INTO CompanyProfileHistory
        (historyUniqueId, companyUniqueId, changedBy, fieldName,
@@ -61,7 +70,15 @@ const writeRow = async ({ companyUniqueId, changedBy, fieldName, oldValue, newVa
  * @param {string}      [opts.reason]
  * @param {string}      [opts.referenceUniqueId] - companyBanUniqueId when source=ban|unban
  */
-exports.recordStatusChange = async ({ companyUniqueId, fromStatus, toStatus, changedBy, source, reason, referenceUniqueId }) => {
+exports.recordStatusChange = async ({
+  companyUniqueId,
+  fromStatus,
+  toStatus,
+  changedBy,
+  source,
+  reason,
+  referenceUniqueId,
+}) => {
   await writeRow({
     companyUniqueId,
     changedBy,
@@ -85,7 +102,12 @@ exports.recordStatusChange = async ({ companyUniqueId, fromStatus, toStatus, cha
  * @param {object} opts.newData   - Incoming request body
  * @param {string} opts.changedBy - userUniqueId
  */
-exports.recordProfileChanges = async ({ companyUniqueId, oldData, newData, changedBy }) => {
+exports.recordProfileChanges = async ({
+  companyUniqueId,
+  oldData,
+  newData,
+  changedBy,
+}) => {
   const rows = [];
 
   for (const field of PROFILE_FIELDS) {
@@ -97,8 +119,15 @@ exports.recordProfileChanges = async ({ companyUniqueId, oldData, newData, chang
     if (oldVal === newVal) continue;
 
     rows.push([
-      uuidv4(), companyUniqueId, changedBy,
-      field, oldVal, newVal, null, "profile_update", null,
+      uuidv4(),
+      companyUniqueId,
+      changedBy,
+      field,
+      oldVal,
+      newVal,
+      null,
+      "profile_update",
+      null,
     ]);
   }
 
@@ -126,18 +155,28 @@ exports.recordProfileChanges = async ({ companyUniqueId, oldData, newData, chang
  * @param {string} [opts.fieldName]  - Filter e.g. 'approvalStatus' or 'companyPhone'
  * @param {string} [opts.source]     - Filter e.g. 'ban', 'profile_update'
  */
-exports.getHistory = async (companyUniqueId, { page = 1, limit = 20, fieldName, source } = {}) => {
+exports.getHistory = async (
+  companyUniqueId,
+  { page = 1, limit = 20, fieldName, source } = {},
+) => {
   const offset = (page - 1) * limit;
   const where = ["h.companyUniqueId = ?"];
   const params = [companyUniqueId];
 
-  if (fieldName) { where.push("h.fieldName = ?"); params.push(fieldName); }
-  if (source)    { where.push("h.source = ?");    params.push(source); }
+  if (fieldName) {
+    where.push("h.fieldName = ?");
+    params.push(fieldName);
+  }
+  if (source) {
+    where.push("h.source = ?");
+    params.push(source);
+  }
 
   const whereClause = `WHERE ${where.join(" AND ")}`;
 
   const [[{ total }]] = await exec().query(
-    `SELECT COUNT(*) AS total FROM CompanyProfileHistory h ${whereClause}`, params,
+    `SELECT COUNT(*) AS total FROM CompanyProfileHistory h ${whereClause}`,
+    params,
   );
 
   const [rows] = await exec().query(
