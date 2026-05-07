@@ -102,8 +102,23 @@ const findStatusByVehicleAndDocuments = (data) => {
     };
   }
 
-  // Fallback: if all accepted but vehicle not registered would have matched #2 above.
-  // If inputs don't fit any case, return error for visibility.
+  // Fallback: all priority branches exhausted.
+  // This can happen when a driver has attached documents but their
+  // acceptanceStatus is null or an unexpected value (not PENDING/ACCEPTED/REJECTED).
+  // Treat it as PENDING so the driver is not blocked from logging in.
+  const attached = [
+    ...(attachedDocumentsByStatus?.PENDING || []),
+    ...(attachedDocumentsByStatus?.ACCEPTED || []),
+    ...(attachedDocumentsByStatus?.REJECTED || []),
+  ];
+  if (vehicleRegistered && attached.length > 0) {
+    return {
+      message: "success",
+      finalStatusId: USER_STATUS.INACTIVE_DOCUMENTS_PENDING,
+    };
+  }
+
+  // Last resort — truly unresolvable state, surface it for debugging
   const AppError = require("./AppError");
   throw new AppError(
     "Unable to determine driver's status with provided data.",
