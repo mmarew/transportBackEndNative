@@ -15,8 +15,8 @@ const companyBan = require("./CompanyBan.routes");
 const companyRatting = require("./CompanyRating.routes");
 
 // Mount routes with appropriate sub-paths
-router.use("/admin/delinquency", companyDelinquency);
 router.use("/admin/delinquency/bans", companyBan);
+router.use("/admin/delinquency", companyDelinquency);
 router.use("/ratings", companyRatting);
 router.use("/companies", transportCompanyRoutes);
 router.use("/memberships", companyMembershipRoutes);

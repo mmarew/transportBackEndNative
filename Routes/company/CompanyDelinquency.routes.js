@@ -60,15 +60,6 @@ const routes = [
 
 
 
-  // ── Company Status History (audit trail) ──────────────────────────────────
-  {
-    path: "/statusHistory/:companyUniqueId",
-    method: "get",
-    middleware: [...adminOnly],
-    handler: controller.getCompanyStatusHistory,
-    // Returns append-only log: registered→approved→suspended→unbanned with who/when/why
-    // Query: page?, limit?
-  },
 ];
 
 registerRoutes(router, routes);

@@ -134,6 +134,108 @@ const createCompanyDelinquency = async (data) => {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Get company delinquencies (paginated + filtered)
+// ─────────────────────────────────────────────────────────────────────────────
+const getCompanyDelinquencies = async (filters = {}) => {
+  const {
+    page = 1,
+    limit = 10,
+    companyUniqueId,
+    companyDelinquencyUniqueId,
+    delinquencyTypeUniqueId,
+    delinquencySeverity,
+    journeyDecisionUniqueId,
+    startDate,
+    endDate,
+    sortBy = "delinquencyCreatedAt",
+    sortOrder = "DESC",
+  } = filters;
+
+  const allowed = [
+    "delinquencyCreatedAt",
+    "delinquencyPoints",
+    "delinquencySeverity",
+  ];
+  const safeSort = allowed.includes(sortBy) ? sortBy : "delinquencyCreatedAt";
+  const safeOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+  const where = ["1=1"];
+  const params = [];
+
+  if (companyUniqueId) {
+    where.push("cd.companyUniqueId = ?");
+    params.push(companyUniqueId);
+  }
+  if (companyDelinquencyUniqueId) {
+    where.push("cd.companyDelinquencyUniqueId = ?");
+    params.push(companyDelinquencyUniqueId);
+  }
+  if (delinquencyTypeUniqueId) {
+    where.push("cd.delinquencyTypeUniqueId = ?");
+    params.push(delinquencyTypeUniqueId);
+  }
+  if (delinquencySeverity) {
+    where.push("cd.delinquencySeverity = ?");
+    params.push(delinquencySeverity);
+  }
+  if (journeyDecisionUniqueId) {
+    where.push("cd.journeyDecisionUniqueId = ?");
+    params.push(journeyDecisionUniqueId);
+  }
+  if (startDate) {
+    where.push("cd.delinquencyCreatedAt >= ?");
+    params.push(startDate);
+  }
+  if (endDate) {
+    where.push("cd.delinquencyCreatedAt <= ?");
+    params.push(endDate);
+  }
+
+  const whereClause = where.join(" AND ");
+  const offset = (page - 1) * limit;
+
+  const sql = `
+    SELECT
+      cd.companyDelinquencyUniqueId,
+      cd.companyUniqueId,
+      cd.delinquencyDescription,
+      cd.delinquencySeverity,
+      cd.delinquencyPoints,
+      cd.journeyDecisionUniqueId,
+      cd.delinquencyCreatedAt,
+      tc.companyName,
+      tc.approvalStatus,
+      dt.delinquencyTypeName,
+      dt.delinquencyTypeDescription,
+      u.fullName AS createdByName
+    FROM CompanyDelinquency cd
+    INNER JOIN TransportCompany tc ON cd.companyUniqueId = tc.companyUniqueId
+    INNER JOIN DelinquencyTypes dt ON cd.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+    LEFT  JOIN Users u ON cd.delinquencyCreatedBy = u.userUniqueId
+    WHERE ${whereClause}
+    ORDER BY cd.${safeSort} ${safeOrder}
+    LIMIT ? OFFSET ?
+  `;
+  const countSql = `SELECT COUNT(*) AS total FROM CompanyDelinquency cd WHERE ${whereClause}`;
+
+  const [[{ total }]] = await exec().query(countSql, params);
+  const [rows] = await exec().query(sql, [...params, parseInt(limit), offset]);
+
+  return {
+    message: "success",
+    data: rows,
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Delete a delinquency (only if no ban is linked)
 // ─────────────────────────────────────────────────────────────────────────────
 const deleteCompanyDelinquency = async (companyDelinquencyUniqueId) => {
@@ -164,3 +266,4 @@ module.exports = {
   getCompanyDelinquencies,
   deleteCompanyDelinquency,
 };
+

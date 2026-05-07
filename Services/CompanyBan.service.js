@@ -193,6 +193,49 @@ const getCompanyBans = async (filters = {}) => {
   const [[{ total }]] = await exec().query(countSql, params);
   const [rows] = await exec().query(sql, [...params, parseInt(limit), offset]);
 
+  // Fetch the specific violations (delinquencies) that caused these bans
+  if (rows.length > 0) {
+    const banIds = rows.map((r) => r.companyBanUniqueId);
+    
+    // Batch query to avoid N+1 queries
+    const [delinquencies] = await exec().query(
+      `SELECT 
+         cbd.companyBanUniqueId,
+         cbd.pointsAtTime,
+         cd.companyDelinquencyUniqueId,
+         cd.delinquencyDescription,
+         cd.delinquencySeverity,
+         cd.delinquencyCreatedAt,
+         dt.delinquencyTypeName
+       FROM CompanyBanDelinquency cbd
+       INNER JOIN CompanyDelinquency cd ON cbd.companyDelinquencyUniqueId = cd.companyDelinquencyUniqueId
+       INNER JOIN DelinquencyTypes dt ON cd.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+       WHERE cbd.companyBanUniqueId IN (?)`,
+      [banIds]
+    );
+
+    // Group the delinquencies by ban ID
+    const delinquenciesByBanId = {};
+    delinquencies.forEach((d) => {
+      if (!delinquenciesByBanId[d.companyBanUniqueId]) {
+        delinquenciesByBanId[d.companyBanUniqueId] = [];
+      }
+      delinquenciesByBanId[d.companyBanUniqueId].push({
+        companyDelinquencyUniqueId: d.companyDelinquencyUniqueId,
+        delinquencyTypeName: d.delinquencyTypeName,
+        delinquencyDescription: d.delinquencyDescription,
+        delinquencySeverity: d.delinquencySeverity,
+        pointsAtTime: d.pointsAtTime,
+        delinquencyCreatedAt: d.delinquencyCreatedAt
+      });
+    });
+
+    // Attach them to the ban rows
+    rows.forEach((row) => {
+      row.delinquencies = delinquenciesByBanId[row.companyBanUniqueId] || [];
+    });
+  }
+
   return {
     message: "success",
     data: rows,
