@@ -444,6 +444,17 @@ exports.approveCompany = async (
   // ── Guard 4: Document compliance — only when approving ───────────────────
   // All mandatory company documents (roleId=8) must be ACCEPTED before approval.
   if (approvalStatus === "approved") {
+    // Also look for documents under the company owner's userUniqueId as a fallback.
+    // Documents uploaded before the auto-company-detection fix may be stored
+    // with ownerType='user' instead of ownerType='company'.
+    const [[ownerRow]] = await db().query(
+      `SELECT userUniqueId FROM CompanyMembership
+       WHERE companyUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL
+       ORDER BY membershipStartDate ASC LIMIT 1`,
+      [companyUniqueId],
+    );
+    const ownerUserUniqueId = ownerRow?.userUniqueId ?? null;
+
     const [docRows] = await db().query(
       `SELECT
          rdr.documentTypeId,
@@ -454,12 +465,14 @@ exports.approveCompany = async (
        JOIN DocumentTypes dt ON dt.documentTypeId = rdr.documentTypeId
        LEFT JOIN AttachedDocuments ad
          ON ad.documentTypeId = rdr.documentTypeId
-         AND ad.ownerType = 'company'
-         AND ad.ownerUniqueId = ?
+         AND (
+               (ad.ownerType = 'company' AND ad.ownerUniqueId = ?)
+            OR (ad.ownerType = 'user'    AND ad.ownerUniqueId = ?)
+         )
          AND ad.attachedDocumentAcceptance != 'DELETED'
        WHERE rdr.roleId = 8
          AND rdr.roleDocumentRequirementDeletedAt IS NULL`,
-      [companyUniqueId],
+      [companyUniqueId, ownerUserUniqueId ?? ""],
     );
 
     const missingMandatory = docRows.filter(
