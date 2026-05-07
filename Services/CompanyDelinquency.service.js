@@ -22,13 +22,7 @@ const { recordStatusChange } = require("../Utils/CompanyProfileHistory");
 
 const exec = () => transactionStorage.getStore() || pool;
 
-// Graduated ban rules: points accumulated over last 30 days
-const COMPANY_BAN_RULES = [
-  { threshold: 90, duration: 365, severity: "PERMANENT" },
-  { threshold: 60, duration: 90, severity: "CRITICAL" },
-  { threshold: 30, duration: 7, severity: "HIGH" }, // 1st offense (30 pts)
-  { threshold: 15, duration: 3, severity: "MEDIUM" },
-];
+const { checkAndApplyAutomaticCompanyBan } = require("./CompanyBan.service");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Create a company delinquency record + apply automatic ban if threshold met
@@ -42,7 +36,7 @@ const createCompanyDelinquency = async (data) => {
     journeyDecisionUniqueId = null,
     skipDuplicateCheck = false,
   } = data;
-
+  //add validation for required fields not to be empty strings
   if (!companyUniqueId || !delinquencyTypeUniqueId || !delinquencyCreatedBy) {
     throw new AppError(
       "companyUniqueId, delinquencyTypeUniqueId, delinquencyCreatedBy are required",
@@ -72,12 +66,12 @@ const createCompanyDelinquency = async (data) => {
   /**
    * DUPLICATE CHECK (Anti-Spam / Double-click prevention)
    * ─────────────────────────────────────────────────────
-   * We restrict logging the exact same delinquency type for the same company 
+   * We restrict logging the exact same delinquency type for the same company
    * within a short time window (e.g., 0.24 hours = ~14 mins).
-   * 
-   * Why? If a passenger angrily taps "Report" 5 times instantly, we don't 
-   * want to penalize the company 5 times for a single fault. 
-   * However, if the company commits the same fault an hour later on a new trip, 
+   *
+   * Why? If a passenger angrily taps "Report" 5 times instantly, we don't
+   * want to penalize the company 5 times for a single fault.
+   * However, if the company commits the same fault an hour later on a new trip,
    * it WILL be counted.
    */
   if (!skipDuplicateCheck) {
@@ -137,426 +131,14 @@ const createCompanyDelinquency = async (data) => {
   };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Auto-ban: sum points over last 30 days and apply ban if threshold met
-// ─────────────────────────────────────────────────────────────────────────────
-const checkAndApplyAutomaticCompanyBan = async ({
-  companyUniqueId,
-  bannedBy,
-}) => {
-  // Fetch ALL delinquencies in the 30-day window — we need both the SUM and the individual rows
-  // so we can link each one to the ban via CompanyBanDelinquency.
-  const [delinquencies] = await exec().query(
-    `SELECT companyDelinquencyUniqueId, delinquencyPoints
-     FROM CompanyDelinquency
-     WHERE companyUniqueId = ?
-       AND delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
-    [companyUniqueId],
-  );
-  const totalPoints = delinquencies.reduce(
-    (sum, d) => sum + d.delinquencyPoints,
-    0,
-  );
 
-  // Already banned?
-  const [[activeBan]] = await exec().query(
-    `SELECT companyBanId FROM CompanyBan
-     WHERE companyUniqueId = ? AND isActive = TRUE AND banExpiresAt > NOW() LIMIT 1`,
-    [companyUniqueId],
-  );
-  if (activeBan) {
-    return {
-      action: "none",
-      reason: "Company already under active ban",
-      totalPoints,
-    };
-  }
-
-  const rule = COMPANY_BAN_RULES.find((r) => totalPoints >= r.threshold);
-  if (!rule) {
-    return { action: "none", reason: "No ban threshold met", totalPoints };
-  }
-
-  const companyBanUniqueId = uuidv4();
-  const banAt = new Date();
-  const banExpiresAt = new Date(
-    banAt.getTime() + rule.duration * 24 * 60 * 60 * 1000,
-  );
-  const banReason = `Auto-ban: ${totalPoints} pts — ${rule.severity} threshold reached`;
-  //map over delinquencies and insert each delinquiencies
-  await exec().query(
-    `INSERT INTO CompanyBan
-       (companyBanUniqueId, companyUniqueId,
-        bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive)
-     VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
-    // companyDelinquencyUniqueId = NULL for auto-bans.
-    // All contributing delinquency UUIDs are stored in CompanyBanDelinquency (junction table).
-    // companyDelinquencyUniqueId is only used for manual bans where an admin references one specific violation.
-    [
-      companyBanUniqueId,
-      companyUniqueId,
-      bannedBy,
-      banReason,
-      rule.duration,
-      banAt,
-      banExpiresAt,
-    ],
-  );
-
-  // Link ALL contributing delinquencies to this ban in the junction table.
-  // This answers "which violations caused this ban?" even years later.
-  if (delinquencies.length > 0) {
-    const junctionRows = delinquencies.map((d) => [
-      uuidv4(), // CompanyBanDelinquencyUniqueId
-      companyBanUniqueId,
-      d.companyDelinquencyUniqueId,
-      d.delinquencyPoints,
-    ]);
-    await exec().query(
-      `INSERT INTO CompanyBanDelinquency
-         (CompanyBanDelinquencyUniqueId, companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
-       VALUES ?`,
-      [junctionRows],
-    );
-  }
-
-  // NOTE: approvalStatus is NOT touched here.
-  // The bid-submission guard checks CompanyBan directly for an active ban,
-  // keeping the ban history clean and approvalStatus reserved for admin registration decisions.
-
-  // Record in the audit log — ban events are tracked here, not via approvalStatus
-  await recordStatusChange({
-    companyUniqueId,
-    fromStatus: "approved",
-    toStatus: "suspended",
-    changedBy: bannedBy,
-    source: "ban",
-    reason: banReason,
-    referenceUniqueId: companyBanUniqueId,
-  });
-
-  logger.info("Company auto-banned", {
-    companyUniqueId,
-    rule,
-    totalPoints,
-    banExpiresAt,
-  });
-
-  return {
-    action: "suspended",
-    banDurationDays: rule.duration,
-    severity: rule.severity,
-    totalPoints,
-    banExpiresAt,
-    companyBanUniqueId,
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Get company delinquencies (paginated + filtered)
-// ─────────────────────────────────────────────────────────────────────────────
-const getCompanyDelinquencies = async (filters = {}) => {
-  const {
-    page = 1,
-    limit = 10,
-    companyUniqueId,
-    companyDelinquencyUniqueId,
-    delinquencyTypeUniqueId,
-    delinquencySeverity,
-    journeyDecisionUniqueId,
-    startDate,
-    endDate,
-    sortBy = "delinquencyCreatedAt",
-    sortOrder = "DESC",
-  } = filters;
-
-  const allowed = [
-    "delinquencyCreatedAt",
-    "delinquencyPoints",
-    "delinquencySeverity",
-  ];
-  const safeSort = allowed.includes(sortBy) ? sortBy : "delinquencyCreatedAt";
-  const safeOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
-
-  const where = ["1=1"];
-  const params = [];
-
-  if (companyUniqueId) {
-    where.push("cd.companyUniqueId = ?");
-    params.push(companyUniqueId);
-  }
-  if (companyDelinquencyUniqueId) {
-    where.push("cd.companyDelinquencyUniqueId = ?");
-    params.push(companyDelinquencyUniqueId);
-  }
-  if (delinquencyTypeUniqueId) {
-    where.push("cd.delinquencyTypeUniqueId = ?");
-    params.push(delinquencyTypeUniqueId);
-  }
-  if (delinquencySeverity) {
-    where.push("cd.delinquencySeverity = ?");
-    params.push(delinquencySeverity);
-  }
-  if (journeyDecisionUniqueId) {
-    where.push("cd.journeyDecisionUniqueId = ?");
-    params.push(journeyDecisionUniqueId);
-  }
-  if (startDate) {
-    where.push("cd.delinquencyCreatedAt >= ?");
-    params.push(startDate);
-  }
-  if (endDate) {
-    where.push("cd.delinquencyCreatedAt <= ?");
-    params.push(endDate);
-  }
-
-  const whereClause = where.join(" AND ");
-  const offset = (page - 1) * limit;
-
-  const sql = `
-    SELECT
-      cd.companyDelinquencyUniqueId,
-      cd.companyUniqueId,
-      cd.delinquencyDescription,
-      cd.delinquencySeverity,
-      cd.delinquencyPoints,
-      cd.journeyDecisionUniqueId,
-      cd.delinquencyCreatedAt,
-      tc.companyName,
-      tc.approvalStatus,
-      dt.delinquencyTypeName,
-      dt.delinquencyTypeDescription,
-      u.fullName AS createdByName
-    FROM CompanyDelinquency cd
-    INNER JOIN TransportCompany tc ON cd.companyUniqueId = tc.companyUniqueId
-    INNER JOIN DelinquencyTypes dt ON cd.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    LEFT  JOIN Users u ON cd.delinquencyCreatedBy = u.userUniqueId
-    WHERE ${whereClause}
-    ORDER BY cd.${safeSort} ${safeOrder}
-    LIMIT ? OFFSET ?
-  `;
-  const countSql = `SELECT COUNT(*) AS total FROM CompanyDelinquency cd WHERE ${whereClause}`;
-
-  const [[{ total }]] = await exec().query(countSql, params);
-  const [rows] = await exec().query(sql, [...params, parseInt(limit), offset]);
-
-  return {
-    message: "success",
-    data: rows,
-    pagination: {
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
-    },
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Get company bans (paginated + filtered)
-// ─────────────────────────────────────────────────────────────────────────────
-const getCompanyBans = async (filters = {}) => {
-  const {
-    page = 1,
-    limit = 10,
-    companyUniqueId,
-    companyBanUniqueId,
-    isActive,
-    startDate,
-    endDate,
-    sortBy = "banAt",
-    sortOrder = "DESC",
-  } = filters;
-
-  const safeOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
-  const where = ["1=1"];
-  const params = [];
-
-  if (companyUniqueId) {
-    where.push("cb.companyUniqueId = ?");
-    params.push(companyUniqueId);
-  }
-  if (companyBanUniqueId) {
-    where.push("cb.companyBanUniqueId = ?");
-    params.push(companyBanUniqueId);
-  }
-  if (isActive !== undefined) {
-    where.push("cb.isActive = ?");
-    params.push(isActive === "true" || isActive === true ? 1 : 0);
-  }
-  if (startDate) {
-    where.push("cb.banAt >= ?");
-    params.push(startDate);
-  }
-  if (endDate) {
-    where.push("cb.banAt <= ?");
-    params.push(endDate);
-  }
-
-  const whereClause = where.join(" AND ");
-  const offset = (page - 1) * limit;
-
-  const sql = `
-    SELECT
-      cb.companyBanUniqueId,
-      cb.companyUniqueId,
-      cb.banReason,
-      cb.banDurationDays,
-      cb.banAt,
-      cb.banExpiresAt,
-      cb.isActive,
-      tc.companyName,
-      tc.approvalStatus,
-      u.fullName AS bannedByName
-    FROM CompanyBan cb
-    INNER JOIN TransportCompany tc ON cb.companyUniqueId = tc.companyUniqueId
-    LEFT  JOIN Users u ON cb.bannedBy = u.userUniqueId
-    WHERE ${whereClause}
-    ORDER BY cb.${sortBy} ${safeOrder}
-    LIMIT ? OFFSET ?
-  `;
-  const countSql = `SELECT COUNT(*) AS total FROM CompanyBan cb WHERE ${whereClause}`;
-
-  const [[{ total }]] = await exec().query(countSql, params);
-  const [rows] = await exec().query(sql, [...params, parseInt(limit), offset]);
-
-  return {
-    message: "success",
-    data: rows,
-    pagination: {
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
-    },
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Manual ban (admin-initiated, bypasses point threshold)
-// ─────────────────────────────────────────────────────────────────────────────
-const banCompany = async ({
-  companyUniqueId,
-  companyDelinquencyUniqueId,
-  bannedBy,
-  banReason,
-  banDurationDays,
-}) => {
-  if (
-    !companyUniqueId ||
-    !companyDelinquencyUniqueId ||
-    !bannedBy ||
-    !banReason ||
-    !banDurationDays
-  ) {
-    throw new AppError(
-      "companyUniqueId, companyDelinquencyUniqueId, bannedBy, banReason, banDurationDays are required",
-      400,
-    );
-  }
-
-  const [[existing]] = await exec().query(
-    `SELECT companyBanId FROM CompanyBan WHERE companyUniqueId = ? AND isActive = TRUE AND banExpiresAt > NOW() LIMIT 1`,
-    [companyUniqueId],
-  );
-  if (existing) throw new AppError("Company already has an active ban", 409);
-
-  const companyBanUniqueId = uuidv4();
-  const banAt = new Date();
-  const banExpiresAt = new Date(
-    banAt.getTime() + banDurationDays * 24 * 60 * 60 * 1000,
-  );
-
-  await exec().query(
-    `INSERT INTO CompanyBan
-       (companyBanUniqueId, companyUniqueId,
-        bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive)
-     VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
-    [
-      companyBanUniqueId,
-      companyUniqueId,
-      bannedBy,
-      banReason,
-      banDurationDays,
-      banAt,
-      banExpiresAt,
-    ],
-  );
-
-  // Link the single delinquency to this ban via the bridge table
-  // (same pattern as auto-ban, just one row instead of many)
-  await exec().query(
-    `INSERT INTO CompanyBanDelinquency
-       (CompanyBanDelinquencyUniqueId, companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
-     VALUES (?, ?, ?, ?)`,
-    [uuidv4(), companyBanUniqueId, companyDelinquencyUniqueId, 0],
-    // pointsAtTime = 0 for manual bans — admin chose this violation directly, not by points
-  );
-
-  // NOTE: approvalStatus is NOT touched here (see auto-ban note above).
-
-  // Record in the audit log
-  await recordStatusChange({
-    companyUniqueId,
-    fromStatus: "approved",
-    toStatus: "suspended",
-    changedBy: bannedBy,
-    source: "ban",
-    reason: banReason,
-    referenceUniqueId: companyBanUniqueId,
-  });
-
-  return {
-    message: "success",
-    data: "Company banned successfully",
-    companyBanUniqueId,
-    banExpiresAt,
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Unban: deactivate ban + restore company to approved
-// ─────────────────────────────────────────────────────────────────────────────
-const unbanCompany = async ({ companyBanUniqueId, unbannedBy }) => {
-  if (!companyBanUniqueId || !unbannedBy) {
-    throw new AppError("companyBanUniqueId and unbannedBy are required", 400);
-  }
-
-  const [[ban]] = await exec().query(
-    `SELECT companyUniqueId FROM CompanyBan WHERE companyBanUniqueId = ? LIMIT 1`,
-    [companyBanUniqueId],
-  );
-  if (!ban) throw new AppError("Ban record not found", 404);
-
-  await exec().query(
-    `UPDATE CompanyBan SET isActive = FALSE WHERE companyBanUniqueId = ?`,
-    [companyBanUniqueId],
-  );
-
-  // Record in the audit log — unban event
-  await recordStatusChange({
-    companyUniqueId: ban.companyUniqueId,
-    fromStatus: "suspended",
-    toStatus: "approved",
-    changedBy: unbannedBy,
-    source: "unban",
-    reason: "Ban lifted by admin",
-    referenceUniqueId: companyBanUniqueId,
-  });
-
-  return { message: "success", data: "Company ban deactivated successfully" };
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Delete a delinquency (only if no ban is linked)
 // ─────────────────────────────────────────────────────────────────────────────
 const deleteCompanyDelinquency = async (companyDelinquencyUniqueId) => {
   const [[{ cnt }]] = await exec().query(
-    `SELECT COUNT(*) AS cnt FROM CompanyBan WHERE companyDelinquencyUniqueId = ?`,
+    `SELECT COUNT(*) AS cnt FROM CompanyBanDelinquency WHERE companyDelinquencyUniqueId = ?`,
     [companyDelinquencyUniqueId],
   );
   if (cnt > 0)
@@ -580,9 +162,5 @@ const deleteCompanyDelinquency = async (companyDelinquencyUniqueId) => {
 module.exports = {
   createCompanyDelinquency,
   getCompanyDelinquencies,
-  getCompanyBans,
-  banCompany,
-  unbanCompany,
   deleteCompanyDelinquency,
-  checkAndApplyAutomaticCompanyBan,
 };

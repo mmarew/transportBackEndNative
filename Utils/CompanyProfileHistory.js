@@ -72,18 +72,24 @@ const writeRow = async ({
  */
 exports.recordStatusChange = async ({
   companyUniqueId,
-  fromStatus,
   toStatus,
   changedBy,
   source,
   reason,
   referenceUniqueId,
 }) => {
+  // Fetch the current status directly from the database to ensure accuracy
+  const [[company]] = await exec().query(
+    `SELECT approvalStatus FROM TransportCompany WHERE companyUniqueId = ? LIMIT 1`,
+    [companyUniqueId]
+  );
+  const fromStatus = company ? company.approvalStatus : null;
+
   await writeRow({
     companyUniqueId,
     changedBy,
     fieldName: "approvalStatus",
-    oldValue: fromStatus ?? null,
+    oldValue: fromStatus,
     newValue: toStatus,
     reason,
     source,

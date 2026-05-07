@@ -36,56 +36,10 @@ const deleteCompanyDelinquency = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// GET /api/admin/company-ban
-const getCompanyBans = async (req, res, next) => {
-  try {
-    const result = await companyDelinquencyService.getCompanyBans(req.query);
-    ServerResponder(res, result);
-  } catch (error) { next(error); }
-};
 
-// POST /api/admin/company-ban
-const banCompany = async (req, res, next) => {
-  try {
-    const result = await executeInTransaction(async () =>
-      companyDelinquencyService.banCompany({
-        ...req.body,
-        bannedBy: req.user.userUniqueId,
-      }),
-    );
-    ServerResponder(res, result);
-  } catch (error) { next(error); }
-};
-
-// PATCH /api/admin/company-ban/:companyBanUniqueId/unban
-const unbanCompany = async (req, res, next) => {
-  try {
-    const result = await executeInTransaction(async () =>
-      companyDelinquencyService.unbanCompany({
-        companyBanUniqueId: req.params.companyBanUniqueId,
-        unbannedBy: req.user.userUniqueId,
-      }),
-    );
-    ServerResponder(res, result);
-  } catch (error) { next(error); }
-};
-
-// GET /api/admin/companyStatusHistory/:companyUniqueId
-const getCompanyStatusHistory = async (req, res, next) => {
-  try {
-    const { companyUniqueId } = req.params;
-    const { page, limit } = req.query;
-    const result = await getHistory(companyUniqueId, { page, limit });
-    ServerResponder(res, result);
-  } catch (error) { next(error); }
-};
 
 module.exports = {
   createCompanyDelinquency,
   getCompanyDelinquencies,
   deleteCompanyDelinquency,
-  getCompanyBans,
-  banCompany,
-  unbanCompany,
-  getCompanyStatusHistory,
 };

@@ -19,26 +19,29 @@
  */
 
 const express = require("express");
-const router  = express.Router();
-const controller = require("../Controllers/CompanyRating.controller");
-const { verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin } = require("../Middleware/VerifyToken");
-const { validator } = require("../Middleware/Validator");
-const { registerRoutes } = require("../Utils/RouteUtils");
+const router = express.Router();
+const controller = require("../../Controllers/CompanyRating.controller");
+const {
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+} = require("../../Middleware/VerifyToken");
+const { validator } = require("../../Middleware/Validator");
+const { registerRoutes } = require("../../Utils/RouteUtils");
 const {
   createCompanyRating,
   getCompanyRatingsQuery,
   companyAverageParams,
   companyRatingParams,
   updateCompanyRating,
-} = require("../Validations/CompanyRating.schema");
+} = require("../../Validations/CompanyRating.schema");
 
-const adminOnly  = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
-const authOnly   = [verifyTokenOfAxios];
+const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
+const authOnly = [verifyTokenOfAxios];
 
 const routes = [
   // ── Submit a rating (shipper only, one per job) ────────────────────────────
   {
-    path: "/api/companyRating",
+    path: "/",
     method: "post",
     middleware: [...authOnly, validator(createCompanyRating)],
     handler: controller.createCompanyRating,
@@ -47,7 +50,7 @@ const routes = [
 
   // ── List ratings (admin or public query) ──────────────────────────────────
   {
-    path: "/api/companyRating",
+    path: "/",
     method: "get",
     middleware: [...authOnly, validator(getCompanyRatingsQuery, "query")],
     handler: controller.getCompanyRatings,
@@ -57,7 +60,7 @@ const routes = [
 
   // ── Average rating for a specific company (shown on bid list) ─────────────
   {
-    path: "/api/companyRating/average/:companyUniqueId",
+    path: "/average/:companyUniqueId",
     method: "get",
     middleware: [...authOnly, validator(companyAverageParams, "params")],
     handler: controller.getCompanyAverageRating,
@@ -66,15 +69,19 @@ const routes = [
 
   // ── Update a rating (admin corrects erroneous submissions) ────────────────
   {
-    path: "/api/companyRating/:companyRatingUniqueId",
+    path: "/:companyRatingUniqueId",
     method: "put",
-    middleware: [...adminOnly, validator(companyRatingParams, "params"), validator(updateCompanyRating)],
+    middleware: [
+      ...adminOnly,
+      validator(companyRatingParams, "params"),
+      validator(updateCompanyRating),
+    ],
     handler: controller.updateCompanyRating,
   },
 
   // ── Soft-delete a rating (admin only) ────────────────────────────────────
   {
-    path: "/api/companyRating/:companyRatingUniqueId",
+    path: "/:companyRatingUniqueId",
     method: "delete",
     middleware: [...adminOnly, validator(companyRatingParams, "params")],
     handler: controller.deleteCompanyRating,
