@@ -171,15 +171,85 @@ const createAttachedDocuments = async (req, res, next) => {
     const fileErrors = [];
     const fileSuccesses = [];
 
+    // ── Auto-resolve company ownership ──────────────────────────────────────────
+    // When a company admin uploads via /self, the route sets ownerType='user'.
+    // But company-level documents (logo, TIN, business license) must be stored
+    // with ownerType='company' + companyUniqueId, not the user's UUID.
+    //
+    // Strategy: For each document, if the documentTypeId is mapped to the
+    // company entity role (roleId=8) in RoleDocumentRequirements, look up the
+    // user's active CompanyMembership and use the companyUniqueId.
+    // This avoids requiring the frontend to know/pass the companyUniqueId.
+
+    const { pool: dbPool } = require("../Middleware/Database.config");
+
+    // Preload company membership once (not per file) to avoid duplicate queries
+    let resolvedCompanyUniqueId = null;
+    let companyDocTypeIds = new Set();          // populated below if ownerType='user'
+    const routeOwnerType = req.ownerType ?? "user";
+
+    if (routeOwnerType === "user") {
+      // Fetch company document typeIds (roleId=8) in a single query
+      const [companyDocTypes] = await dbPool.query(
+        `SELECT documentTypeId FROM RoleDocumentRequirements WHERE roleId = 8 AND roleDocumentRequirementDeletedAt IS NULL`,
+      );
+      companyDocTypeIds = new Set(companyDocTypes.map((r) => String(r.documentTypeId)));
+
+      // Check if ANY of the documents being uploaded is a company document
+      const hasCompanyDoc = documentsToRegister.some((d) =>
+        companyDocTypeIds.has(String(d.documentTypeId)),
+      );
+
+      if (hasCompanyDoc) {
+        // Resolve the user's active company membership
+        const [membershipRows] = await dbPool.query(
+          `SELECT companyUniqueId FROM CompanyMembership
+           WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL
+           LIMIT 1`,
+          [userUniqueId],
+        );
+        resolvedCompanyUniqueId = membershipRows[0]?.companyUniqueId ?? null;
+
+        if (!resolvedCompanyUniqueId) {
+          logger.warn("User is uploading a company document but has no active CompanyMembership", {
+            userUniqueId,
+          });
+        }
+      }
+    }
+
     // Save all documents to database within a transaction
     await executeInTransaction(async () => {
       for (const document of documentsToRegister) {
         try {
+          // Per-document: check if THIS specific documentTypeId is a company document
+          const isCompanyDoc =
+            routeOwnerType === "user" &&
+            companyDocTypeIds.has(String(document.documentTypeId));
+
+          let finalOwnerType = routeOwnerType;
+          let finalOwnerUniqueId = userUniqueId;
+
+          if (isCompanyDoc) {
+            if (resolvedCompanyUniqueId) {
+              // Company document + membership found → save as company
+              finalOwnerType = "company";
+              finalOwnerUniqueId = resolvedCompanyUniqueId;
+            } else {
+              // Company document but user has no active membership
+              // Log warning and fall back to user — admin must fix the membership
+              logger.warn("Company document uploaded but no active membership found", {
+                userUniqueId,
+                documentTypeId: document.documentTypeId,
+              });
+            }
+          }
+
           await attachedDocumentsService.createAttachedDocument({
             ...document,
             roleId,
-            ownerType: req.ownerType ?? "user",   // set by route middleware
-            ownerUniqueId: userUniqueId,
+            ownerType: finalOwnerType,
+            ownerUniqueId: finalOwnerUniqueId,
             uploadedByUserId: user?.userUniqueId,
           });
 
