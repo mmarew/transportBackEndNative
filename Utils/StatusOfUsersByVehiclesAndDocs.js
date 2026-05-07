@@ -91,9 +91,14 @@ const findStatusByVehicleAndDocuments = (data) => {
       finalStatusId: USER_STATUS.INACTIVE_DOCUMENTS_PENDING,
     };
   }
-  // 1) active: vehicle registered AND all required docs accepted
-  if (vehicleRegistered && acc >= requiredCount) {
-    // Ensure subscription is active, otherwise override to 7
+  // 1) active: vehicle registered AND all required docs are attached and none missing.
+  // NOTE: We use !missingRequired (unAttachedDocumentTypes.length === 0) instead of
+  // acc >= requiredCount because the same documentTypeId can appear in BOTH driver
+  // and vehicle requirement lists (e.g. Vehicle Registration librea is required for
+  // both roleId=2 and roleId=9). This causes requiredCount to be inflated while acc
+  // (a Set of unique documentTypeIds) correctly deduplicates — making acc >= requiredCount
+  // always false even when all documents are fully accepted.
+  if (vehicleRegistered && !missingRequired) {
     return {
       message: "success",
       finalStatusId: hasActiveSubscription
