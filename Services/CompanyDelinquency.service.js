@@ -34,6 +34,7 @@ const createCompanyDelinquency = async (data) => {
     delinquencyDescription,
     delinquencyCreatedBy,
     journeyDecisionUniqueId = null,
+    companyBidRequestUniqueId = null,
     skipDuplicateCheck = false,
   } = data;
   //add validation for required fields not to be empty strings
@@ -101,8 +102,8 @@ const createCompanyDelinquency = async (data) => {
     `INSERT INTO CompanyDelinquency
        (companyDelinquencyUniqueId, companyUniqueId, delinquencyTypeUniqueId,
         delinquencyDescription, delinquencySeverity, delinquencyPoints,
-        journeyDecisionUniqueId, delinquencyCreatedBy)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        journeyDecisionUniqueId, companyBidRequestUniqueId, delinquencyCreatedBy)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       companyDelinquencyUniqueId,
       companyUniqueId,
@@ -113,6 +114,7 @@ const createCompanyDelinquency = async (data) => {
       data.delinquencySeverity || defaultSeverity,
       data.delinquencyPoints || defaultPoints,
       journeyDecisionUniqueId,
+      companyBidRequestUniqueId,
       delinquencyCreatedBy,
     ],
   );
@@ -145,6 +147,7 @@ const getCompanyDelinquencies = async (filters = {}) => {
     delinquencyTypeUniqueId,
     delinquencySeverity,
     journeyDecisionUniqueId,
+    companyBidRequestUniqueId,
     startDate,
     endDate,
     sortBy = "delinquencyCreatedAt",
@@ -182,6 +185,10 @@ const getCompanyDelinquencies = async (filters = {}) => {
     where.push("cd.journeyDecisionUniqueId = ?");
     params.push(journeyDecisionUniqueId);
   }
+  if (companyBidRequestUniqueId) {
+    where.push("cd.companyBidRequestUniqueId = ?");
+    params.push(companyBidRequestUniqueId);
+  }
   if (startDate) {
     where.push("cd.delinquencyCreatedAt >= ?");
     params.push(startDate);
@@ -202,6 +209,7 @@ const getCompanyDelinquencies = async (filters = {}) => {
       cd.delinquencySeverity,
       cd.delinquencyPoints,
       cd.journeyDecisionUniqueId,
+      cd.companyBidRequestUniqueId,
       cd.delinquencyCreatedAt,
       tc.companyName,
       tc.approvalStatus,

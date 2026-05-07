@@ -206,6 +206,8 @@ const getCompanyBans = async (filters = {}) => {
          cd.delinquencyDescription,
          cd.delinquencySeverity,
          cd.delinquencyCreatedAt,
+         cd.journeyDecisionUniqueId,
+         cd.companyBidRequestUniqueId,
          dt.delinquencyTypeName
        FROM CompanyBanDelinquency cbd
        INNER JOIN CompanyDelinquency cd ON cbd.companyDelinquencyUniqueId = cd.companyDelinquencyUniqueId
@@ -226,6 +228,8 @@ const getCompanyBans = async (filters = {}) => {
         delinquencyDescription: d.delinquencyDescription,
         delinquencySeverity: d.delinquencySeverity,
         pointsAtTime: d.pointsAtTime,
+        journeyDecisionUniqueId: d.journeyDecisionUniqueId,
+        companyBidRequestUniqueId: d.companyBidRequestUniqueId,
         delinquencyCreatedAt: d.delinquencyCreatedAt
       });
     });

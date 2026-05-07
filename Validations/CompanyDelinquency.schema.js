@@ -7,6 +7,7 @@ exports.createCompanyDelinquency = Joi.object({
   delinquencyTypeUniqueId:  uuidSchema.required(),
   delinquencyDescription:   Joi.string().optional(),
   journeyDecisionUniqueId:  uuidSchema.optional(),
+  companyBidRequestUniqueId: uuidSchema.optional(),
   skipDuplicateCheck:       Joi.boolean().optional(),
 }).unknown(true);
 
@@ -17,6 +18,7 @@ exports.getCompanyDelinquenciesQuery = Joi.object({
   delinquencyTypeUniqueId:    uuidSchema.optional(),
   delinquencySeverity:        Joi.string().valid("LOW","MEDIUM","HIGH","CRITICAL").optional(),
   journeyDecisionUniqueId:    uuidSchema.optional(),
+  companyBidRequestUniqueId:  uuidSchema.optional(),
   startDate:                  Joi.string().optional(),
   endDate:                    Joi.string().optional(),
   page:                       Joi.number().integer().min(1).optional(),

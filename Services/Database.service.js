@@ -268,14 +268,42 @@ const dropAllTables = async () => {
 };
 
 const updateTable = async (tableName, updateData) => {
-  const { columnName, columnType, defaultValue } = updateData;
-  const sqlQuery = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType} DEFAULT ${defaultValue}`;
+  const { columnName, columnType, defaultValue, foreignKey } = updateData;
   const executor = transactionStorage.getStore() || pool;
 
-  await executor.query(sqlQuery);
+  // 1. Add the column itself
+  const addColumnSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnType} DEFAULT ${defaultValue}`;
+  await executor.query(addColumnSql);
+
+  /**
+   * 2. Optionally add a Foreign Key constraint.
+   * We run this as a SEPARATE ALTER TABLE because MySQL does not allow
+   * ADD COLUMN and ADD FOREIGN KEY in a single statement reliably.
+   *
+   * Expected foreignKey shape:
+   * {
+   *   "column": "companyBidRequestUniqueId",
+   *   "references": {
+   *     "table": "CompanyBidRequest",
+   *     "column": "companyBidRequestUniqueId"
+   *   }
+   * }
+   */
+  if (foreignKey && foreignKey.column && foreignKey.references) {
+    const { column: fkColumn, references } = foreignKey;
+    const constraintName = `fk_${tableName}_${fkColumn}`.substring(0, 64); // MySQL limit: 64 chars
+    const addFkSql = `ALTER TABLE \`${tableName}\`
+      ADD CONSTRAINT \`${constraintName}\`
+      FOREIGN KEY (\`${fkColumn}\`)
+      REFERENCES \`${references.table}\` (\`${references.column}\`)`;
+    await executor.query(addFkSql);
+  }
+
   return {
     message: "success",
-    data: `Table ${tableName} updated successfully`,
+    data: `Table ${tableName} updated successfully${
+      foreignKey ? ` with FK on ${foreignKey.column}` : ""
+    }`,
   };
 };
 

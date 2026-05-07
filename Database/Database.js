@@ -1408,7 +1408,8 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
     delinquencySeverity ENUM('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL DEFAULT 'MEDIUM',
 
     delinquencyPoints INT NOT NULL DEFAULT 1,
-    journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: links to the evaded bid
+    journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: identifies the specific DRIVER's journey leg within a bid where the fault occurred (not the company or shipper — drills down to which driver did what, on which trip)
+    companyBidRequestUniqueId VARCHAR(36) NULL,             -- Optional: links to the entire freight bid/contract (e.g., commission evasion, cargo damage, no-show on load day)
     delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
     delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -1416,7 +1417,8 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
     INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
     FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
-    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId)
 );
 
 
