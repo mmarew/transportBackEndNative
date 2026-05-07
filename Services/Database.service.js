@@ -282,19 +282,19 @@ const updateTable = async (tableName, updateData) => {
    *
    * Expected foreignKey shape:
    * {
-   *   "column": "companyBidRequestUniqueId",
    *   "references": {
    *     "table": "CompanyBidRequest",
    *     "column": "companyBidRequestUniqueId"
    *   }
    * }
+   * Note: the FK column is always the same as columnName — no need to repeat it.
    */
-  if (foreignKey && foreignKey.column && foreignKey.references) {
-    const { column: fkColumn, references } = foreignKey;
-    const constraintName = `fk_${tableName}_${fkColumn}`.substring(0, 64); // MySQL limit: 64 chars
+  if (foreignKey && foreignKey.references) {
+    const { references } = foreignKey;
+    const constraintName = `fk_${tableName}_${columnName}`.substring(0, 64);
     const addFkSql = `ALTER TABLE \`${tableName}\`
       ADD CONSTRAINT \`${constraintName}\`
-      FOREIGN KEY (\`${fkColumn}\`)
+      FOREIGN KEY (\`${columnName}\`)
       REFERENCES \`${references.table}\` (\`${references.column}\`)`;
     await executor.query(addFkSql);
   }
@@ -302,7 +302,7 @@ const updateTable = async (tableName, updateData) => {
   return {
     message: "success",
     data: `Table ${tableName} updated successfully${
-      foreignKey ? ` with FK on ${foreignKey.column}` : ""
+      foreignKey ? ` with FK on ${columnName}` : ""
     }`,
   };
 };
