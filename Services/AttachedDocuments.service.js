@@ -23,20 +23,20 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const messageTypes = require("../Utils/MessageTypes");
 const createAttachedDocument = async ({
   attachedDocumentDescription,
-  attachedDocumentName,    // URL from FTP upload
+  attachedDocumentName, // URL from FTP upload
   documentTypeId,
   documentExpirationDate,
   attachedDocumentFileNumber,
   roleId,
   // Polymorphic owner fields
-  ownerType   = 'user',   // 'user' | 'company' | 'vehicle'
-  ownerUniqueId,           // UUID of the owning entity
-  uploadedByUserId,        // userUniqueId of the person who pressed upload (audit)
+  ownerType = "user", // 'user' | 'company' | 'vehicle'
+  ownerUniqueId, // UUID of the owning entity
+  uploadedByUserId, // userUniqueId of the person who pressed upload (audit)
 }) => {
   try {
     // Validate roleId / documentType link — only for user-owned documents.
     // Company and vehicle docs are NOT tied to RoleDocumentRequirements.
-    if (ownerType === 'user' && roleId) {
+    if (ownerType === "user" && roleId) {
       /**
        * Role mapping context:
        *  - roleId=7 (company_admin) is the HUMAN who logs in and manages the company.
@@ -83,7 +83,11 @@ const createAttachedDocument = async ({
       }
 
       // Enforce expiration date only when a requirement explicitly demands it
-      if (requirement && requirement.isExpirationDateRequired && !documentExpirationDate) {
+      if (
+        requirement &&
+        requirement.isExpirationDateRequired &&
+        !documentExpirationDate
+      ) {
         throw new AppError(`Document expiration date is required`, 400);
       }
       // No matching requirement anywhere → still allow upload (valid documentTypeId is enough)
@@ -132,18 +136,21 @@ const createAttachedDocument = async ({
 
     if (result?.affectedRows > 0) {
       // Only trigger accountStatus for user-owned docs
-      if (ownerType === 'user' && roleId) {
+      if (ownerType === "user" && roleId) {
         try {
           await accountStatus({
             ownerUserUniqueId: ownerUniqueId,
             body: { roleId },
           });
         } catch (statusError) {
-          logger.error("Failed to update user status after document attachment", {
-            error: statusError.message,
-            ownerUniqueId,
-            roleId,
-          });
+          logger.error(
+            "Failed to update user status after document attachment",
+            {
+              error: statusError.message,
+              ownerUniqueId,
+              roleId,
+            },
+          );
         }
       }
 
@@ -166,7 +173,10 @@ const createAttachedDocument = async ({
  * @param {string} ownerUniqueId
  * @param {'user'|'company'|'vehicle'} [ownerType='user']
  */
-const getAttachedDocumentsByOwner = async (ownerUniqueId, ownerType = 'user') => {
+const getAttachedDocumentsByOwner = async (
+  ownerUniqueId,
+  ownerType = "user",
+) => {
   const documents = await performJoinSelect({
     baseTable: "AttachedDocuments",
     joins: [
@@ -182,7 +192,7 @@ const getAttachedDocumentsByOwner = async (ownerUniqueId, ownerType = 'user') =>
 
 // Keep backward-compat alias — callers passing a userUniqueId still work
 const getAttachedDocumentsByUser = (userUniqueId) =>
-  getAttachedDocumentsByOwner(userUniqueId, 'user');
+  getAttachedDocumentsByOwner(userUniqueId, "user");
 
 // Retrieve an attached document by ID
 const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
@@ -363,11 +373,11 @@ const acceptRejectAttachedDocuments = async (body) => {
 
   // Extract polymorphic owner info
   const ownerUniqueId = attachedDocument[0]?.ownerUniqueId;
-  const ownerType     = attachedDocument[0]?.ownerType;
+  const ownerType = attachedDocument[0]?.ownerType;
 
   // For notifications we still need the phone number — only available for user owners
   let phoneNumber = null;
-  if (ownerType === 'user' && ownerUniqueId) {
+  if (ownerType === "user" && ownerUniqueId) {
     const [userRows] = await pool.query(
       "SELECT phoneNumber FROM Users WHERE userUniqueId = ? LIMIT 1",
       [ownerUniqueId],
@@ -405,7 +415,7 @@ const acceptRejectAttachedDocuments = async (body) => {
   // Run AFTER the transaction closes to avoid deadlocking the connection pool.
   // accountStatus calls getUserByFilterDetailed which uses pool directly —
   // calling it inside a transaction starves the pool and causes a timeout.
-  if (ownerType === 'user') {
+  if (ownerType === "user") {
     setImmediate(async () => {
       try {
         await accountStatus({
@@ -568,7 +578,7 @@ module.exports = {
   acceptRejectAttachedDocuments,
   createAttachedDocument,
   getAttachedDocumentsByOwner,
-  getAttachedDocumentsByUser,      // backward-compat alias
+  getAttachedDocumentsByUser, // backward-compat alias
   getAttachedDocumentByUniqueId,
   updateAttachedDocument,
   deleteAttachedDocument,
