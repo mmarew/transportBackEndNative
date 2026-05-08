@@ -24,7 +24,7 @@
  * Call from: journey cancellation handler, bid rejection handler.
  */
 
-const { v4: uuidv4 } = require("uuid");
+// const { v4: uuidv4 } = require("uuid");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
@@ -40,12 +40,14 @@ const DELINQUENCY_TYPE = {
 };
 
 // Escalating ban rules (points accumulated over last 30 days)
+/*
 const COMPANY_BAN_RULES = [
   { threshold: 90,  duration: 365,  severity: "PERMANENT"  },
   { threshold: 60,  duration: 90,   severity: "CRITICAL"   },
   { threshold: 30,  duration: 7,    severity: "HIGH"        }, // 1st company offense (30 pts)
   { threshold: 15,  duration: 3,    severity: "MEDIUM"      },
 ];
+*/
 
 const exec = () => transactionStorage.getStore() || pool;
 

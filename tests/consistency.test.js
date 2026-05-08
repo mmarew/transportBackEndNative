@@ -53,7 +53,7 @@ async function getToken(phone, roleId) {
     
   // Create Shipper
   const sPhone = `+251944${Math.floor(10000000 + Math.random() * 89999999)}`;
-  const cs1 = await request("POST", "/api/user/createUser", { phoneNumber: sPhone, roleId: 1, fullName: "Consistency Shipper" });
+  /* const cs1 = */ await request("POST", "/api/user/createUser", { phoneNumber: sPhone, roleId: 1, fullName: "Consistency Shipper" });
   await activateUser(sPhone);
   const shipAuth = await getToken(sPhone, 1);
   const shipH = { Authorization: `Bearer ${shipAuth.token}` };
@@ -112,7 +112,7 @@ async function getToken(phone, roleId) {
     deliveryDate: new Date().toISOString()
   };
 
-  const br = await request("POST", "/api/passengerRequest/createRequest", commonReq, shipH);
+  /* const br = */ await request("POST", "/api/passengerRequest/createRequest", commonReq, shipH);
   const { pool } = require("../Middleware/Database.config");
   const [rows] = await pool.query("SELECT passengerRequestUniqueId FROM PassengerRequest WHERE passengerRequestBatchId = ?", [batchId]);
   const finalPrId = rows[0]?.passengerRequestUniqueId;

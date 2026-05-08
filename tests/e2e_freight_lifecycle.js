@@ -122,11 +122,11 @@ async function runE2E() {
     console.log("\n[2/9] Shipper is creating a Freight Request Batch...");
     // Define coordinates (e.g. Addis Ababa to Adama)
     // const pickUpLocation = {
-      latitude: 8.9806, longitude: 38.7578, locationName: "Addis Ababa"
-    };
+    //  latitude: 8.9806, longitude: 38.7578, locationName: "Addis Ababa"
+    // };
     // const dropOffLocation = {
-      latitude: 8.5414, longitude: 39.2688, locationName: "Adama"
-    };
+    //  latitude: 8.5414, longitude: 39.2688, locationName: "Adama"
+    // };
         
     let batchId;
     let passengerRequestArray;
