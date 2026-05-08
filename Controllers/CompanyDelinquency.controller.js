@@ -35,6 +35,13 @@ const deleteCompanyDelinquency = async (req, res, next) => {
     ServerResponder(res, result);
   } catch (error) { next(error); }
 };
+// GET /api/company/delinquency/pending
+const getPendingDelinquencies = async (req, res, next) => {
+  try {
+    const result = await companyDelinquencyService.getPendingDelinquencies(req.query);
+    ServerResponder(res, result);
+  } catch (error) { next(error); }
+};
 
 
 
@@ -42,4 +49,5 @@ module.exports = {
   createCompanyDelinquency,
   getCompanyDelinquencies,
   deleteCompanyDelinquency,
+  getPendingDelinquencies,
 };

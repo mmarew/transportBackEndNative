@@ -32,6 +32,13 @@ exports.companyDelinquencyParams = Joi.object({
   companyDelinquencyUniqueId: uuidSchema.required(),
 });
 
+// GET /api/company/delinquency/pending (query)
+exports.pendingDelinquenciesQuery = Joi.object({
+  companyUniqueId: uuidSchema.required(),
+  page:  Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+}).unknown(true);
+
 // POST /api/admin/company-ban
 exports.banCompany = Joi.object({
   companyUniqueId:              uuidSchema.required(),

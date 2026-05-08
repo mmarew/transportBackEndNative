@@ -3,6 +3,7 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../../Controllers/CompanyDelinquencyDispute.controller");
+const delinquencyController = require("../../Controllers/CompanyDelinquency.controller");
 const {
   verifyTokenOfAxios,
 } = require("../../Middleware/VerifyToken");
@@ -12,8 +13,29 @@ const {
   createDelinquencyResponse,
   getDelinquencyResponsesQuery,
 } = require("../../Validations/CompanyDelinquencyDispute.schema");
+const {
+  pendingDelinquenciesQuery,
+} = require("../../Validations/CompanyDelinquency.schema");
 
 const routes = [
+  // ── Pending delinquencies (company sees what needs attention) ──────────────
+  /**
+   * GET /api/company/delinquency-response/pending
+   * Query: companyUniqueId (required), page?, limit?
+   *
+   * Returns delinquencies that have NO admin decision yet.
+   * Each row includes a responseStatus: 'AWAITING_RESPONSE' or 'RESPONDED'.
+   */
+  {
+    path: "/pending",
+    method: "get",
+    middleware: [
+      verifyTokenOfAxios,
+      validator(pendingDelinquenciesQuery, "query"),
+    ],
+    handler: delinquencyController.getPendingDelinquencies,
+  },
+
   // ── Company submits a dispute response ────────────────────────────────────
   /**
    * POST /api/company/delinquency-response/response

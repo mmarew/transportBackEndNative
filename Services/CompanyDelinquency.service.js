@@ -22,9 +22,11 @@
 
 const { v4: uuidv4 } = require("uuid");
 const AppError = require("../Utils/AppError");
+const logger = require("../Utils/logger");
 
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.service");
 
 
 const exec = () => transactionStorage.getStore() || pool;
@@ -123,6 +125,56 @@ const createCompanyDelinquency = async (data) => {
       delinquencyCreatedBy,
     ],
   );
+
+  // ── Notify company owner via push notification ────────────────────────────
+  // Fire-and-forget: notification failure should never block delinquency creation.
+  try {
+    const [[companyOwner]] = await exec().query(
+      `SELECT tc.companyCreatedBy, tc.companyName
+       FROM TransportCompany tc
+       WHERE tc.companyUniqueId = ? LIMIT 1`,
+      [companyUniqueId],
+    );
+
+    if (companyOwner?.companyCreatedBy) {
+      // Fetch the delinquency type name for a clear notification
+      const [[dtype]] = await exec().query(
+        `SELECT delinquencyTypeName FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ? LIMIT 1`,
+        [delinquencyTypeUniqueId],
+      );
+
+      const { data: tokens } = await getActiveTokensByUser(
+        companyOwner.companyCreatedBy,
+        4, // companyOwner roleId
+      );
+
+      if (tokens.length > 0) {
+        await sendNotificationToTokens({
+          tokens,
+          notification: {
+            title: "⚠️ Delinquency Notice",
+            body: `Your company has received a delinquency for: ${dtype?.delinquencyTypeName || "rule violation"}. You may submit a response.`,
+          },
+          data: {
+            type: "DELINQUENCY_CREATED",
+            companyDelinquencyUniqueId,
+            companyUniqueId,
+          },
+        });
+        logger.info("Delinquency notification sent to company owner", {
+          companyUniqueId,
+          companyDelinquencyUniqueId,
+          ownerUniqueId: companyOwner.companyCreatedBy,
+        });
+      }
+    }
+  } catch (notifErr) {
+    // Log but never throw — notification failure is non-critical
+    logger.warn("Failed to send delinquency notification", {
+      error: notifErr.message,
+      companyDelinquencyUniqueId,
+    });
+  }
 
   return {
     message: "success",
@@ -269,9 +321,81 @@ const deleteCompanyDelinquency = async (companyDelinquencyUniqueId, deletedBy) =
   };
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Get pending delinquencies for a company (no response + no admin decision yet)
+// ─────────────────────────────────────────────────────────────────────────────
+const getPendingDelinquencies = async (filters = {}) => {
+  const {
+    companyUniqueId,
+    page = 1,
+    limit = 10,
+  } = filters;
+
+  if (!companyUniqueId) {
+    throw new AppError("companyUniqueId is required", 400);
+  }
+
+  const offset = (page - 1) * limit;
+
+  const whereClause = `
+    cd.companyUniqueId = ?
+    AND cd.delinquencyDeletedAt IS NULL
+    AND NOT EXISTS (
+      SELECT 1 FROM AdminDecisionOnDelinquency ad
+      WHERE ad.companyDelinquencyUniqueId = cd.companyDelinquencyUniqueId
+        AND ad.adminDecisionOnDelinquencyDeletedAt IS NULL
+    )
+  `;
+
+  const [[{ total }]] = await exec().query(
+    `SELECT COUNT(*) AS total FROM CompanyDelinquency cd WHERE ${whereClause}`,
+    [companyUniqueId],
+  );
+
+  const [rows] = await exec().query(
+    `SELECT
+       cd.companyDelinquencyUniqueId,
+       cd.delinquencyDescription,
+       cd.delinquencySeverity,
+       cd.delinquencyPoints,
+       cd.delinquencyCreatedAt,
+       dt.delinquencyTypeName,
+       dt.delinquencyTypeDescription,
+       u.fullName AS accusedByName,
+       CASE
+         WHEN EXISTS (
+           SELECT 1 FROM CompanyDelinquencyResponse cdr
+           WHERE cdr.companyDelinquencyUniqueId = cd.companyDelinquencyUniqueId
+             AND cdr.companyDelinquencyResponseDeletedAt IS NULL
+         ) THEN 'RESPONDED'
+         ELSE 'AWAITING_RESPONSE'
+       END AS responseStatus
+     FROM CompanyDelinquency cd
+     INNER JOIN DelinquencyTypes dt ON cd.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+     LEFT JOIN Users u ON cd.delinquencyCreatedBy = u.userUniqueId
+     WHERE ${whereClause}
+     ORDER BY cd.delinquencyCreatedAt DESC
+     LIMIT ? OFFSET ?`,
+    [companyUniqueId, parseInt(limit), offset],
+  );
+
+  return {
+    message: "success",
+    data: rows,
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
 module.exports = {
   createCompanyDelinquency,
   getCompanyDelinquencies,
   deleteCompanyDelinquency,
+  getPendingDelinquencies,
 };
-

@@ -21,6 +21,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const exec = () => transactionStorage.getStore() || pool;
 
 const { checkAndApplyAutomaticCompanyBan } = require("./CompanyBan.service");
+const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.service");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE — Admin issues a formal ruling on a delinquency dispute
@@ -146,6 +147,56 @@ const createAdminDecision = async ({
     });
   }
   // DISMISSED: no side-effect — case closed, delinquency stands unchanged
+
+  // ── Notify company owner about the admin decision ───────────────────────
+  // Fire-and-forget: notification failure should never block the decision.
+  const DECISION_MESSAGES = {
+    EXONERATED: "Your company has been cleared. The delinquency accusation has been dismissed.",
+    UPHELD:     "The accusation against your company has been upheld. A graduated review has been applied.",
+    REDUCED:    "The delinquency points against your company have been reduced after admin review.",
+    DISMISSED:  "The delinquency case has been closed with no further action.",
+  };
+
+  try {
+    const { companyUniqueId } = delinquency;
+    const [[companyOwner]] = await exec().query(
+      `SELECT tc.companyCreatedBy FROM TransportCompany tc WHERE tc.companyUniqueId = ? LIMIT 1`,
+      [companyUniqueId],
+    );
+
+    if (companyOwner?.companyCreatedBy) {
+      const { data: tokens } = await getActiveTokensByUser(
+        companyOwner.companyCreatedBy,
+        4, // companyOwner roleId
+      );
+
+      if (tokens.length > 0) {
+        await sendNotificationToTokens({
+          tokens,
+          notification: {
+            title: `📜 Delinquency Decision: ${decisionOutcome}`,
+            body: DECISION_MESSAGES[decisionOutcome] || "An admin has ruled on your delinquency.",
+          },
+          data: {
+            type: "DELINQUENCY_DECISION",
+            decisionOutcome,
+            companyDelinquencyUniqueId,
+            adminDecisionOnDelinquencyUniqueId,
+          },
+        });
+        logger.info("Decision notification sent to company owner", {
+          companyUniqueId,
+          decisionOutcome,
+          adminDecisionOnDelinquencyUniqueId,
+        });
+      }
+    }
+  } catch (notifErr) {
+    logger.warn("Failed to send decision notification", {
+      error: notifErr.message,
+      adminDecisionOnDelinquencyUniqueId,
+    });
+  }
 
   return {
     message: "success",
