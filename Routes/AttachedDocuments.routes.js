@@ -139,4 +139,46 @@ router.put(
   attachedDocumentsController.acceptRejectAttachedDocuments,
 );
 
+// ── Document history GET ──────────────────────────────────────────────────────
+// Same ownership rules as the main document GET endpoints.
+// Optional query param: ?attachedDocumentUniqueId=<uuid> to narrow to one doc.
+
+// GET /api/user/documentHistory?userUniqueId=<uuid>&attachedDocumentUniqueId=<optional>
+router.get(
+  "/api/user/documentHistory",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    req.ownerType = "user";
+    next();
+  },
+  authorizeDocumentAccess(),
+  attachedDocumentsController.getDocumentHistory,
+);
+
+// GET /api/company/documentHistory/:companyUniqueId?attachedDocumentUniqueId=<optional>
+router.get(
+  "/api/company/documentHistory/:companyUniqueId",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    req.ownerType = "company";
+    req.ownerUniqueIdParam = req.params.companyUniqueId;
+    next();
+  },
+  authorizeDocumentAccess(),
+  attachedDocumentsController.getDocumentHistory,
+);
+
+// GET /api/vehicle/documentHistory/:vehicleUniqueId?attachedDocumentUniqueId=<optional>
+router.get(
+  "/api/vehicle/documentHistory/:vehicleUniqueId",
+  verifyTokenOfAxios,
+  (req, _res, next) => {
+    req.ownerType = "vehicle";
+    req.ownerUniqueIdParam = req.params.vehicleUniqueId;
+    next();
+  },
+  authorizeDocumentAccess(),
+  attachedDocumentsController.getDocumentHistory,
+);
+
 module.exports = router;

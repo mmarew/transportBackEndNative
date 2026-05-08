@@ -494,10 +494,69 @@ const acceptRejectAttachedDocuments = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/user/documentHistory
+ * GET /api/company/documentHistory/:companyUniqueId
+ * GET /api/vehicle/documentHistory/:vehicleUniqueId
+ *
+ * Optional query params:
+ *   attachedDocumentUniqueId  → narrow history to one specific document
+ *   page, limit, sortBy, sortOrder
+ */
+const getDocumentHistory = async (req, res, next) => {
+  try {
+    const {
+      attachedDocumentUniqueId, // optional — narrow to a single doc's history
+      page = 1,
+      limit = 10,
+      sortBy = "attachedDocumentUpdatedAt",
+      sortOrder = "DESC",
+    } = req.query;
+
+    const currentUser = req.user;
+
+    // ownerType is injected by the route inline middleware
+    const ownerType = req.ownerType ?? "user";
+
+    // ownerUniqueId: route param takes priority, then 'self' → current user
+    let ownerUniqueId =
+      req.ownerUniqueIdParam ??
+      req.query?.userUniqueId ??
+      currentUser.userUniqueId;
+
+    if (!ownerUniqueId || ownerUniqueId === "self") {
+      ownerUniqueId = currentUser.userUniqueId;
+    }
+
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const result = await attachedDocumentsService.getDocumentHistory({
+      ownerType,
+      ownerUniqueId,
+      attachedDocumentUniqueId: attachedDocumentUniqueId || null,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        offset,
+      },
+      sort: {
+        by: sortBy,
+        order: sortOrder,
+      },
+    });
+
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
-  getAttachedDocumentsByFilter, // Only this GET method
+  getAttachedDocumentsByFilter,
   acceptRejectAttachedDocuments,
   createAttachedDocuments,
   updateAttachedDocument,
   deleteAttachedDocument,
+  getDocumentHistory,
 };

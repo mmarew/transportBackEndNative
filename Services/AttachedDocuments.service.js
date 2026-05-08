@@ -683,6 +683,85 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
   }
 };
 
+/**
+ * getDocumentHistory
+ * Returns the full snapshot history for all documents owned by an entity
+ * (user / company / vehicle), newest snapshot first.
+ *
+ * Optional: filter to a single document by attachedDocumentUniqueId.
+ */
+const getDocumentHistory = async ({
+  ownerType,
+  ownerUniqueId,
+  attachedDocumentUniqueId = null, // optional: narrow to one document
+  pagination = {},
+  sort = {},
+}) => {
+  try {
+    const { page = 1, limit = 10, offset = 0 } = pagination;
+    const { by = "attachedDocumentUpdatedAt", order = "DESC" } = sort;
+
+    // Whitelist sort columns to prevent SQL injection
+    const allowedSortCols = [
+      "attachedDocumentUpdatedAt",
+      "attachedDocumentCreatedAt",
+      "documentVersion",
+      "attachedDocumentAcceptance",
+    ];
+    const safeBy = allowedSortCols.includes(by) ? by : "attachedDocumentUpdatedAt";
+    const safeOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    const params = [ownerType, ownerUniqueId];
+    let whereExtra = "";
+
+    if (attachedDocumentUniqueId) {
+      whereExtra = " AND h.attachedDocumentUniqueId = ?";
+      params.push(attachedDocumentUniqueId);
+    }
+
+    // Count total rows for pagination
+    const [[{ total }]] = await pool.query(
+      `SELECT COUNT(*) AS total FROM AttachedDocumentsHistory h
+       WHERE h.ownerType = ? AND h.ownerUniqueId = ?${whereExtra}`,
+      params,
+    );
+
+    const totalCount = Number(total);
+    const totalPages = Math.ceil(totalCount / limit) || 0;
+
+    // Fetch history rows joined with DocumentTypes for context
+    const [history] = await pool.query(
+      `SELECT
+          h.*,
+          dt.documentTypeName,
+          dt.documentTypeDescription
+       FROM AttachedDocumentsHistory h
+       LEFT JOIN DocumentTypes dt ON dt.documentTypeId = h.documentTypeId
+       WHERE h.ownerType = ? AND h.ownerUniqueId = ?${whereExtra}
+       ORDER BY h.${safeBy} ${safeOrder}
+       LIMIT ? OFFSET ?`,
+      [...params, Number(limit), Number(offset)],
+    );
+
+    return {
+      message: "success",
+      data: {
+        history,
+        pagination: {
+          currentPage: Number(page),
+          totalPages,
+          totalCount,
+          hasNext: Number(page) < totalPages,
+          hasPrevious: Number(page) > 1,
+        },
+      },
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError("Unable to retrieve document history", 500);
+  }
+};
+
 module.exports = {
   getAttachedDocumentsByFilter,
   acceptRejectAttachedDocuments,
@@ -692,4 +771,5 @@ module.exports = {
   getAttachedDocumentByUniqueId,
   updateAttachedDocument,
   deleteAttachedDocument,
+  getDocumentHistory,
 };
