@@ -5,23 +5,18 @@ const router = express.Router();
 const controller = require("../../Controllers/CompanyDelinquencyDispute.controller");
 const {
   verifyTokenOfAxios,
-  verifyIfUserIsAdminOrSupperAdmin,
 } = require("../../Middleware/VerifyToken");
 const { validator } = require("../../Middleware/Validator");
 const { registerRoutes } = require("../../Utils/RouteUtils");
 const {
   createDelinquencyResponse,
   getDelinquencyResponsesQuery,
-  createAdminDecision,
-  getAdminDecisionsQuery,
 } = require("../../Validations/CompanyDelinquencyDispute.schema");
-
-const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 
 const routes = [
   // ── Company submits a dispute response ────────────────────────────────────
   /**
-   * POST /api/company/delinquency-response
+   * POST /api/company/delinquency-response/response
    * Body: { companyDelinquencyUniqueId, companyDelinquencyResponse }
    *
    * Any authenticated company member (owner/dispatcher) can submit ONE response
@@ -47,37 +42,6 @@ const routes = [
       validator(getDelinquencyResponsesQuery, "query"),
     ],
     handler: controller.getDelinquencyResponses,
-  },
-
-  // ── Admin issues a formal ruling ──────────────────────────────────────────
-  /**
-   * POST /api/company/delinquency-response/decision
-   * Body: { companyDelinquencyUniqueId, companyDelinquencyResponseUniqueId?,
-   *         decisionOutcome, adminDecisionText, delinquencyPointsAfter? }
-   *
-   * Outcomes:
-   *   ACCEPTED  → delinquency record deleted (company cleared)
-   *   REJECTED  → ban issued (banSource='admin_decision')
-   *   REDUCED   → delinquency points updated to delinquencyPointsAfter
-   *   DISMISSED → case closed, no side-effect
-   */
-  {
-    path: "/decision",
-    method: "post",
-    middleware: [...adminOnly, validator(createAdminDecision)],
-    handler: controller.createAdminDecision,
-  },
-
-  // ── Admin views all decisions ─────────────────────────────────────────────
-  /**
-   * GET /api/company/delinquency-response/decision
-   * Query: companyDelinquencyUniqueId?, decisionOutcome?, page?, limit?
-   */
-  {
-    path: "/decision",
-    method: "get",
-    middleware: [...adminOnly, validator(getAdminDecisionsQuery, "query")],
-    handler: controller.getAdminDecisions,
   },
 ];
 
