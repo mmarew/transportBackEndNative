@@ -218,12 +218,19 @@ const createAdminDecision = async ({
 
   // ── Apply outcome side-effects ─────────────────────────────────────────────
   if (decisionOutcome === "ACCEPTED") {
-    // Remove the delinquency record entirely
+    // ACCEPTED: company defense was valid — clear the delinquency.
+    // We must delete AdminDecisionOnDelinquency first (it has a FK to CompanyDelinquency),
+    // then delete CompanyDelinquency. The audit record is preserved in the decision INSERT above;
+    // but since the delinquency is being cleared we also remove the decision to keep the DB clean.
+    await exec().query(
+      `DELETE FROM AdminDecisionOnDelinquency WHERE adminDecisionOnDelinquencyUniqueId = ?`,
+      [adminDecisionOnDelinquencyUniqueId],
+    );
     await exec().query(
       `DELETE FROM CompanyDelinquency WHERE companyDelinquencyUniqueId = ?`,
       [companyDelinquencyUniqueId],
     );
-    logger.info("Delinquency removed after admin ACCEPTED the company response", {
+    logger.info("Delinquency cleared after admin ACCEPTED the company response", {
       companyDelinquencyUniqueId,
       adminDecisionOnDelinquencyUniqueId,
     });
@@ -242,18 +249,24 @@ const createAdminDecision = async ({
     const { companyUniqueId } = delinquency;
     const banUniqueId = uuidv4();
 
+    // Compute expiry date in JS (DATE_ADD with ? inside the string isn't supported by mysql2)
+    const banExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
     await exec().query(
       `INSERT INTO CompanyBan
          (companyBanUniqueId, companyUniqueId, bannedBy, banReason,
           banDurationDays, banAt, banExpiresAt, isActive,
           banSource, adminDecisionOnDelinquencyUniqueId)
-       VALUES (?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? DAY), TRUE, 'admin_decision', ?)`,
+       VALUES (?, ?, ?, ?, 30, NOW(), ?, TRUE, 'admin_decision', ?)`,
       [
         banUniqueId,
         companyUniqueId,
         adminUniqueId,
         adminDecisionText,
-        30, // default ban duration for rejected disputes; can be made configurable
+        banExpiresAt,
         adminDecisionOnDelinquencyUniqueId,
       ],
     );
