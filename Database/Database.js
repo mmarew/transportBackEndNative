@@ -1328,7 +1328,7 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
 --   AUTO  → company hit the delinquency point threshold; system creates the ban automatically.
 --           adminDecisionOnDelinquencyUniqueId = NULL, banSource = 'auto_threshold'
 --
---   MANUAL → admin issued a formal ruling via AdminDecisionOnDelinquency (decisionOutcome = 'REJECTED').
+--   MANUAL → admin issued a formal ruling via AdminDecisionOnDelinquency (decisionOutcome = 'UPHELD').
 --            adminDecisionOnDelinquencyUniqueId = <uuid>, banSource = 'admin_decision'
 --
 -- In both paths, CompanyBanDelinquency records WHICH delinquencies contributed to the ban.
@@ -1668,12 +1668,15 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
     companyBidRequestUniqueId VARCHAR(36) NULL,             -- Optional: links to the entire freight bid/contract
     delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
     delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delinquencyDeletedAt DATETIME NULL,                     -- Soft-delete timestamp (set on EXONERATED)
+    delinquencyDeletedBy VARCHAR(36) NULL,                  -- Admin who cleared the delinquency
 
     INDEX idx_company_delinquency_company (companyUniqueId),
     INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
     FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
     FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (delinquencyDeletedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId)
 );
 
@@ -1687,7 +1690,7 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
 --      even if the company does not respond.
 --   3. The admin reviews the delinquency (and the response, if one exists)
 --      and issues a formal decision via AdminDecisionOnDelinquency.
---      Possible outcomes: ACCEPTED, REJECTED, REDUCED, or DISMISSED.
+--      Possible outcomes: EXONERATED, UPHELD, REDUCED, or DISMISSED.
 --   4. If the company fails to respond, the admin may proceed to ban
 --      or apply other penalties at their discretion.
 
@@ -1719,10 +1722,10 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquencyResponse (
 -- AdminDecisionOnDelinquency: admin's formal ruling on a company delinquency dispute.
 -- Created after the company submits a CompanyDelinquencyResponse (or admin acts without one).
 -- decisionOutcome determines what happens to the delinquency record:
---   ACCEPTED  → company's defense is valid; delinquency is removed
---   REJECTED  → defense not accepted; delinquency and any ban stand
---   REDUCED   → admin reduces the delinquency points (delinquencyPointsAfter holds new value)
---   DISMISSED → admin closes the case without any company response needed
+--   EXONERATED → company is cleared; accusation was wrong, delinquency removed
+--   UPHELD     → accusation stands; defense failed, ban may be issued
+--   REDUCED    → partial mitigation; admin reduces the delinquency points
+--   DISMISSED  → case closed; no further action needed
 
 
 CREATE TABLE IF NOT EXISTS AdminDecisionOnDelinquency (
@@ -1733,7 +1736,7 @@ CREATE TABLE IF NOT EXISTS AdminDecisionOnDelinquency (
     companyDelinquencyUniqueId          VARCHAR(36) NOT NULL,   -- FK → CompanyDelinquency (required)
     companyDelinquencyResponseUniqueId  VARCHAR(36) NULL,       -- FK → CompanyDelinquencyResponse (NULL if admin decides without a response)
 
-    decisionOutcome ENUM('ACCEPTED','REJECTED','REDUCED','DISMISSED') NOT NULL,
+    decisionOutcome ENUM('EXONERATED','UPHELD','REDUCED','DISMISSED') NOT NULL,
     adminDecisionText TEXT NOT NULL,         -- written reason / notes from admin
     delinquencyPointsAfter INT NULL,         -- only set when decisionOutcome = 'REDUCED'
 

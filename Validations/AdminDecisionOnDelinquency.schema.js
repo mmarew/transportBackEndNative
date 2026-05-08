@@ -8,7 +8,7 @@ exports.createAdminDecision = Joi.object({
   companyDelinquencyUniqueId:         uuidSchema.required(),
   companyDelinquencyResponseUniqueId: uuidSchema.optional(), // NULL if admin acts without a response
   decisionOutcome: Joi.string()
-    .valid("ACCEPTED", "REJECTED", "REDUCED", "DISMISSED")
+    .valid("EXONERATED", "UPHELD", "REDUCED", "DISMISSED")
     .required(),
   adminDecisionText:      Joi.string().min(10).required(),
   delinquencyPointsAfter: Joi.number().integer().min(0).optional(), // required when REDUCED
@@ -19,7 +19,7 @@ exports.getAdminDecisionsQuery = Joi.object({
   companyDelinquencyUniqueId:         uuidSchema.optional(),
   companyDelinquencyResponseUniqueId: uuidSchema.optional(),
   decisionOutcome: Joi.string()
-    .valid("ACCEPTED", "REJECTED", "REDUCED", "DISMISSED")
+    .valid("EXONERATED", "UPHELD", "REDUCED", "DISMISSED")
     .optional(),
   page:      Joi.number().integer().min(1).optional(),
   limit:     Joi.number().integer().min(1).max(100).optional(),

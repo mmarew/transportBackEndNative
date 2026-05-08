@@ -273,7 +273,7 @@ const updateTable = async (tableName, updateData) => {
 
   // 1. Add the column itself
   const addColumnSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnType} DEFAULT ${defaultValue}`;
-  await executor.query(addColumnSql);
+  await pool.query(addColumnSql);
 
   /**
    * 2. Optionally add a Foreign Key constraint.
@@ -296,7 +296,7 @@ const updateTable = async (tableName, updateData) => {
       ADD CONSTRAINT \`${constraintName}\`
       FOREIGN KEY (\`${columnName}\`)
       REFERENCES \`${references.table}\` (\`${references.column}\`)`;
-    await executor.query(addFkSql);
+    await pool.query(addFkSql);
   }
 
   return {
@@ -314,7 +314,7 @@ const changeColumnProperty = async (
   const sqlQuery = `ALTER TABLE ${tableName} CHANGE ${oldColumnName} ${newColumnName} ${newColumnType}`;
   
 
-  await executor.query(sqlQuery);
+  await pool.query(sqlQuery);
   return {
     message: "success",
     data: `Column ${oldColumnName} changed to ${newColumnName} with type ${newColumnType}`,
@@ -325,7 +325,7 @@ const dropColumn = async (tableName, columnName) => {
   const sqlQuery = `ALTER TABLE ${tableName} DROP COLUMN ${columnName}`;
   
 
-  await executor.query(sqlQuery);
+  await pool.query(sqlQuery);
   return {
     message: "success",
     data: `Column ${columnName} dropped from table ${tableName}`,

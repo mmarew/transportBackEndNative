@@ -5,9 +5,9 @@
  * FLOW UNDER TEST:
  *   1. Admin creates a delinquency against a company
  *   2. Company owner submits a dispute response
- *   3. Admin issues a ruling (ACCEPTED / REJECTED / REDUCED / DISMISSED)
- *   4. On REJECTED → verify a CompanyBan is created with banSource='admin_decision'
- *   5. On ACCEPTED → verify the delinquency is removed
+ *   3. Admin issues a ruling (EXONERATED / UPHELD / REDUCED / DISMISSED)
+ *   4. On UPHELD → verify a CompanyBan is created with banSource='admin_decision'
+ *   5. On EXONERATED → verify the delinquency is removed
  *   6. Guard: company cannot bid while banned
  *
  * SETUP STRATEGY:
@@ -343,11 +343,11 @@ describe("4. GET /api/company/delinquency-response/response — list responses",
 // ═════════════════════════════════════════════════════════════════════════════
 // SUITE 5 — Admin issues a DISMISSED ruling (first, to test non-ban outcomes)
 // ═════════════════════════════════════════════════════════════════════════════
-describe("5. POST /api/company/delinquency-response/decision — DISMISSED outcome", () => {
+describe("5. POST /api/company/admin/delinquency-decisions — DISMISSED outcome", () => {
   test("DISMISSED: requires adminDecisionText of at least 10 chars", async () => {
     if (!companyDelinquencyUniqueId) {return;}
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId,
@@ -361,7 +361,7 @@ describe("5. POST /api/company/delinquency-response/decision — DISMISSED outco
     if (!companyDelinquencyUniqueId) {return;}
 
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId,
@@ -395,11 +395,11 @@ describe("5. POST /api/company/delinquency-response/decision — DISMISSED outco
   test("duplicate admin decision on same delinquency is blocked", async () => {
     if (!companyDelinquencyUniqueId) {return;}
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId,
-        decisionOutcome: "ACCEPTED",
+        decisionOutcome: "EXONERATED",
         adminDecisionText: "Trying a second decision on same delinquency.",
       });
     expect([400, 409]).toContain(res.status);
@@ -407,23 +407,23 @@ describe("5. POST /api/company/delinquency-response/decision — DISMISSED outco
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SUITE 6 — REJECTED outcome creates a ban
+// SUITE 6 — UPHELD outcome creates a ban
 // ═════════════════════════════════════════════════════════════════════════════
-describe("6. Admin REJECTED decision → CompanyBan created", () => {
+describe("6. Admin UPHELD decision → CompanyBan created", () => {
   let rejectedDelinquencyUniqueId;
   let rejectedDecisionUniqueId;
 
   beforeAll(async () => {
     if (!companyUniqueId || !delinquencyTypeUniqueId) {return;}
 
-    // Create a fresh delinquency to test REJECTED flow
+    // Create a fresh delinquency to test UPHELD flow
     const res = await request(app)
       .post("/api/company/admin/delinquency")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyUniqueId,
         delinquencyTypeUniqueId,
-        delinquencyDescription: "E2E: REJECTED flow delinquency",
+        delinquencyDescription: "E2E: UPHELD flow delinquency",
         skipDuplicateCheck: true,
       });
 
@@ -433,28 +433,28 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
     }
   }, 15000);
 
-  test("REJECTED: admin issues REJECTED decision", async () => {
+  test("UPHELD: admin issues UPHELD decision", async () => {
     if (!rejectedDelinquencyUniqueId) {return;}
 
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId: rejectedDelinquencyUniqueId,
-        decisionOutcome: "REJECTED",
+        decisionOutcome: "UPHELD",
         adminDecisionText:
           "Company response was insufficient. Ban is applied for 30 days.",
       })
       .expect(200);
 
     expect(res.body.message).toBe("success");
-    expect(res.body.decisionOutcome).toBe("REJECTED");
+    expect(res.body.decisionOutcome).toBe("UPHELD");
 
     rejectedDecisionUniqueId = res.body.adminDecisionOnDelinquencyUniqueId;
     cleanup.decisionUniqueIds.push(rejectedDecisionUniqueId);
   });
 
-  test("REJECTED: CompanyBan created with banSource=admin_decision", async () => {
+  test("UPHELD: CompanyBan created with banSource=admin_decision", async () => {
     if (!rejectedDecisionUniqueId) {return;}
 
     const [[ban]] = await pool.query(
@@ -473,7 +473,7 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
     cleanup.banUniqueIds.push(banUniqueId);
   });
 
-  test("REJECTED: CompanyBanDelinquency junction row links the ban to the delinquency", async () => {
+  test("UPHELD: CompanyBanDelinquency junction row links the ban to the delinquency", async () => {
     if (!banUniqueId || !rejectedDelinquencyUniqueId) {return;}
 
     const [[junctionRow]] = await pool.query(
@@ -487,9 +487,9 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SUITE 7 — ACCEPTED outcome removes the delinquency
+// SUITE 7 — EXONERATED outcome removes the delinquency
 // ═════════════════════════════════════════════════════════════════════════════
-describe("7. Admin ACCEPTED decision → delinquency deleted", () => {
+describe("7. Admin EXONERATED decision → delinquency deleted", () => {
   let acceptedDelinquencyUniqueId;
 
   beforeAll(async () => {
@@ -501,36 +501,36 @@ describe("7. Admin ACCEPTED decision → delinquency deleted", () => {
       .send({
         companyUniqueId,
         delinquencyTypeUniqueId,
-        delinquencyDescription: "E2E: ACCEPTED flow delinquency",
+        delinquencyDescription: "E2E: EXONERATED flow delinquency",
         skipDuplicateCheck: true,
       });
 
     if (res.body.companyDelinquencyUniqueId) {
       acceptedDelinquencyUniqueId = res.body.companyDelinquencyUniqueId;
-      // Note: we do NOT push to cleanup because ACCEPTED will delete it
+      // Note: we do NOT push to cleanup because EXONERATED will delete it
     }
   }, 15000);
 
-  test("ACCEPTED: admin clears the delinquency", async () => {
+  test("EXONERATED: admin clears the delinquency", async () => {
     if (!acceptedDelinquencyUniqueId) {return;}
 
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId: acceptedDelinquencyUniqueId,
-        decisionOutcome: "ACCEPTED",
+        decisionOutcome: "EXONERATED",
         adminDecisionText:
           "Company defense was valid. Delinquency is cleared with no further penalty.",
       })
       .expect(200);
 
     expect(res.body.message).toBe("success");
-    expect(res.body.decisionOutcome).toBe("ACCEPTED");
+    expect(res.body.decisionOutcome).toBe("EXONERATED");
     cleanup.decisionUniqueIds.push(res.body.adminDecisionOnDelinquencyUniqueId);
   });
 
-  test("ACCEPTED: delinquency row is removed from DB", async () => {
+  test("EXONERATED: delinquency row is removed from DB", async () => {
     if (!acceptedDelinquencyUniqueId) {return;}
 
     const [[row]] = await pool.query(
@@ -574,7 +574,7 @@ describe("8. Admin REDUCED decision → delinquency points updated", () => {
   test("REDUCED: requires delinquencyPointsAfter", async () => {
     if (!reducedDelinquencyUniqueId) {return;}
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId: reducedDelinquencyUniqueId,
@@ -589,7 +589,7 @@ describe("8. Admin REDUCED decision → delinquency points updated", () => {
     if (!reducedDelinquencyUniqueId) {return;}
 
     const res = await request(app)
-      .post("/api/company/delinquency-response/decision")
+      .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
         companyDelinquencyUniqueId: reducedDelinquencyUniqueId,
@@ -620,10 +620,10 @@ describe("8. Admin REDUCED decision → delinquency points updated", () => {
 // ═════════════════════════════════════════════════════════════════════════════
 // SUITE 9 — Admin reads decision list
 // ═════════════════════════════════════════════════════════════════════════════
-describe("9. GET /api/company/delinquency-response/decision — list decisions", () => {
+describe("9. GET /api/company/admin/delinquency-decisions — list decisions", () => {
   test("admin can list decisions with pagination", async () => {
     const res = await request(app)
-      .get("/api/company/delinquency-response/decision")
+      .get("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .query({ page: 1, limit: 10 })
       .expect(200);
@@ -636,13 +636,13 @@ describe("9. GET /api/company/delinquency-response/decision — list decisions",
   test("non-admin cannot access the decision list", async () => {
     // No token
     const res = await request(app)
-      .get("/api/company/delinquency-response/decision");
+      .get("/api/company/admin/delinquency-decisions");
     expect([401, 403]).toContain(res.status);
   });
 
   test("filter by decisionOutcome=DISMISSED returns only DISMISSED records", async () => {
     const res = await request(app)
-      .get("/api/company/delinquency-response/decision")
+      .get("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .query({ decisionOutcome: "DISMISSED", page: 1, limit: 10 })
       .expect(200);

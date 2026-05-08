@@ -132,7 +132,9 @@ const createCompanyDelinquency = async (data) => {
   let automaticAction = { action: "none", reason: "Non-admin accuser — requires admin review" };
 
   const [[accuser]] = await exec().query(
-    `SELECT roleId FROM Users WHERE userUniqueId = ? LIMIT 1`,
+    `SELECT ur.roleId FROM UserRole ur
+     WHERE ur.userUniqueId = ? AND ur.userRoleDeletedAt IS NULL
+     ORDER BY ur.userRoleCreatedAt DESC LIMIT 1`,
     [delinquencyCreatedBy],
   );
   const isAdmin = accuser &&

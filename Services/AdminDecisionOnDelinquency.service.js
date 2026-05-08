@@ -102,18 +102,16 @@ const createAdminDecision = async ({
   );
 
   // ── Apply outcome side-effects ─────────────────────────────────────────────
-  if (decisionOutcome === "ACCEPTED") {
-    // ACCEPTED: company defense was valid — clear the delinquency.
-    // Delete the decision first (FK to CompanyDelinquency), then the delinquency.
+  if (decisionOutcome === "EXONERATED") {
+    // EXONERATED: company is cleared — accusation was wrong.
+    // Soft-delete the delinquency (preserves audit trail).
     await exec().query(
-      `DELETE FROM AdminDecisionOnDelinquency WHERE adminDecisionOnDelinquencyUniqueId = ?`,
-      [adminDecisionOnDelinquencyUniqueId],
+      `UPDATE CompanyDelinquency
+       SET delinquencyDeletedAt = NOW(), delinquencyDeletedBy = ?
+       WHERE companyDelinquencyUniqueId = ?`,
+      [adminUniqueId, companyDelinquencyUniqueId],
     );
-    await exec().query(
-      `DELETE FROM CompanyDelinquency WHERE companyDelinquencyUniqueId = ?`,
-      [companyDelinquencyUniqueId],
-    );
-    logger.info("Delinquency cleared after admin ACCEPTED the company response", {
+    logger.info("Delinquency soft-deleted — company EXONERATED by admin", {
       companyDelinquencyUniqueId,
       adminDecisionOnDelinquencyUniqueId,
     });
@@ -127,8 +125,8 @@ const createAdminDecision = async ({
       companyDelinquencyUniqueId,
       newPoints: delinquencyPointsAfter,
     });
-  } else if (decisionOutcome === "REJECTED") {
-    // Issue a manual ban referencing this admin decision
+  } else if (decisionOutcome === "UPHELD") {
+    // UPHELD: accusation stands — defense failed, issue a manual ban
     const { companyUniqueId } = delinquency;
     const banUniqueId = uuidv4();
 
@@ -162,7 +160,7 @@ const createAdminDecision = async ({
       [uuidv4(), banUniqueId, companyDelinquencyUniqueId, delinquency.delinquencyPoints],
     );
 
-    logger.info("Ban issued after admin REJECTED company dispute response", {
+    logger.info("Ban issued — accusation UPHELD by admin", {
       companyUniqueId,
       banUniqueId,
       adminDecisionOnDelinquencyUniqueId,
