@@ -20,6 +20,8 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 
 const exec = () => transactionStorage.getStore() || pool;
 
+const { checkAndApplyAutomaticCompanyBan } = require("./CompanyBan.service");
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE — Admin issues a formal ruling on a delinquency dispute
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,44 +128,21 @@ const createAdminDecision = async ({
       newPoints: delinquencyPointsAfter,
     });
   } else if (decisionOutcome === "UPHELD") {
-    // UPHELD: accusation stands — defense failed, issue a manual ban
+    // UPHELD: accusation stands — defense failed.
+    // Run the graduated auto-ban check (sums all delinquency points in the
+    // 30-day window). If total points meet a threshold → ban is applied
+    // with duration proportional to severity. If below threshold → no ban,
+    // company just receives a warning.
     const { companyUniqueId } = delinquency;
-    const banUniqueId = uuidv4();
-
-    // Compute expiry date in JS (mysql2 does not support DATE_ADD with ? placeholder)
-    const banExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
-
-    await exec().query(
-      `INSERT INTO CompanyBan
-         (companyBanUniqueId, companyUniqueId, bannedBy, banReason,
-          banDurationDays, banAt, banExpiresAt, isActive,
-          banSource, adminDecisionOnDelinquencyUniqueId)
-       VALUES (?, ?, ?, ?, 30, NOW(), ?, TRUE, 'admin_decision', ?)`,
-      [
-        banUniqueId,
-        companyUniqueId,
-        adminUniqueId,
-        adminDecisionText,
-        banExpiresAt,
-        adminDecisionOnDelinquencyUniqueId,
-      ],
-    );
-
-    // Link delinquency to this new ban via CompanyBanDelinquency
-    await exec().query(
-      `INSERT INTO CompanyBanDelinquency
-         (CompanyBanDelinquencyUniqueId, companyBanUniqueId, companyDelinquencyUniqueId, pointsAtTime)
-       VALUES (?, ?, ?, ?)`,
-      [uuidv4(), banUniqueId, companyDelinquencyUniqueId, delinquency.delinquencyPoints],
-    );
-
-    logger.info("Ban issued — accusation UPHELD by admin", {
+    const banResult = await checkAndApplyAutomaticCompanyBan({
       companyUniqueId,
-      banUniqueId,
+      bannedBy: adminUniqueId,
+    });
+
+    logger.info("Accusation UPHELD by admin — auto-ban check executed", {
+      companyUniqueId,
       adminDecisionOnDelinquencyUniqueId,
+      banResult,
     });
   }
   // DISMISSED: no side-effect — case closed, delinquency stands unchanged

@@ -1324,14 +1324,18 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
 
 -- CompanyBan: records a ban issued against a transport company.
 --
--- Two ban paths:
---   AUTO  → company hit the delinquency point threshold; system creates the ban automatically.
---           adminDecisionOnDelinquencyUniqueId = NULL, banSource = 'auto_threshold'
+-- Ban path (single):
+--   Delinquency → (optional company response) → AdminDecisionOnDelinquency
+--   → UPHELD → checkAndApplyAutomaticCompanyBan (graduated threshold check)
 --
---   MANUAL → admin issued a formal ruling via AdminDecisionOnDelinquency (decisionOutcome = 'UPHELD').
---            adminDecisionOnDelinquencyUniqueId = <uuid>, banSource = 'admin_decision'
+-- The graduated system sums all active delinquency points in a 30-day window:
+--   15+ pts → 3-day ban (MEDIUM)
+--   30+ pts → 7-day ban (HIGH)
+--   60+ pts → 90-day ban (CRITICAL)
+--   90+ pts → 365-day ban (PERMANENT)
+--   Below 15 → no ban issued (warning only)
 --
--- In both paths, CompanyBanDelinquency records WHICH delinquencies contributed to the ban.
+-- CompanyBanDelinquency records WHICH delinquencies contributed to the ban.
 CREATE TABLE IF NOT EXISTS CompanyBan (
 
     companyBanId       INT AUTO_INCREMENT PRIMARY KEY,

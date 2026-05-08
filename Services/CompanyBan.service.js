@@ -30,7 +30,8 @@ const checkAndApplyAutomaticCompanyBan = async ({
     `SELECT companyDelinquencyUniqueId, delinquencyPoints
      FROM CompanyDelinquency
      WHERE companyUniqueId = ?
-       AND delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
+       AND delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+       AND delinquencyDeletedAt IS NULL`,
     [companyUniqueId],
   );
   const totalPoints = delinquencies.reduce(

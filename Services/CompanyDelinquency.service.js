@@ -3,13 +3,14 @@
 /**
  * CompanyDelinquency.service.js
  * ──────────────────────────────
- * CRUD + conditional auto-ban logic for company-level rule violations.
+ * CRUD for company-level rule violations (delinquencies).
  *
- * Auto-ban gating:
- *  - Admin/SuperAdmin accuser  → auto-ban is applied if point threshold is met
- *  - Non-admin accuser (e.g., shipper) → NO auto-ban; the delinquency must go
- *    through the full dispute lifecycle:
- *      CompanyDelinquencyResponse → AdminDecisionOnDelinquency → Ban
+ * IMPORTANT — No auto-ban at creation:
+ *  - Creating a delinquency NEVER triggers a ban automatically.
+ *  - ALL bans are issued exclusively through the AdminDecisionOnDelinquency
+ *    flow (UPHELD outcome → graduated checkAndApplyAutomaticCompanyBan).
+ *  - This ensures the company always has the opportunity to respond before
+ *    any penalty is applied.
  *
  * Ban design (important):
  *  - CompanyBan is the SINGLE SOURCE OF TRUTH for ban history.
@@ -28,10 +29,8 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 
 const exec = () => transactionStorage.getStore() || pool;
 
-const { checkAndApplyAutomaticCompanyBan } = require("./CompanyBan.service");
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Create a company delinquency record + apply automatic ban if threshold met
+// Create a company delinquency record (no auto-ban — ban is via UPHELD only)
 // ─────────────────────────────────────────────────────────────────────────────
 const createCompanyDelinquency = async (data) => {
   const {
@@ -125,33 +124,10 @@ const createCompanyDelinquency = async (data) => {
     ],
   );
 
-  // ── Auto-ban logic ───────────────────────────────────────────────────────
-  // Only apply automatic ban when the accuser is an admin or super-admin.
-  // Non-admin reporters (e.g., shippers) must go through the full dispute
-  // lifecycle: CompanyDelinquencyResponse → AdminDecisionOnDelinquency → Ban.
-  let automaticAction = { action: "none", reason: "Non-admin accuser — requires admin review" };
-
-  const [[accuser]] = await exec().query(
-    `SELECT ur.roleId FROM UserRole ur
-     WHERE ur.userUniqueId = ? AND ur.userRoleDeletedAt IS NULL
-     ORDER BY ur.userRoleCreatedAt DESC LIMIT 1`,
-    [delinquencyCreatedBy],
-  );
-  const isAdmin = accuser &&
-    (accuser.roleId === 3 || accuser.roleId === 6); // adminRoleId=3, supperAdminRoleId=6
-
-  if (isAdmin) {
-    automaticAction = await checkAndApplyAutomaticCompanyBan({
-      companyUniqueId,
-      bannedBy: delinquencyCreatedBy,
-    });
-  }
-
   return {
     message: "success",
     data: "Company delinquency recorded successfully",
     companyDelinquencyUniqueId,
-    automaticAction,
   };
 };
 
@@ -184,7 +160,7 @@ const getCompanyDelinquencies = async (filters = {}) => {
   const safeSort = allowed.includes(sortBy) ? sortBy : "delinquencyCreatedAt";
   const safeOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
-  const where = ["1=1"];
+  const where = ["cd.delinquencyDeletedAt IS NULL"];
   const params = [];
 
   if (companyUniqueId) {
@@ -266,9 +242,9 @@ const getCompanyDelinquencies = async (filters = {}) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Delete a delinquency (only if no ban is linked)
+// Soft-delete a delinquency (only if no ban is linked)
 // ─────────────────────────────────────────────────────────────────────────────
-const deleteCompanyDelinquency = async (companyDelinquencyUniqueId) => {
+const deleteCompanyDelinquency = async (companyDelinquencyUniqueId, deletedBy) => {
   const [[{ cnt }]] = await exec().query(
     `SELECT COUNT(*) AS cnt FROM CompanyBanDelinquency WHERE companyDelinquencyUniqueId = ?`,
     [companyDelinquencyUniqueId],
@@ -280,11 +256,13 @@ const deleteCompanyDelinquency = async (companyDelinquencyUniqueId) => {
   );}
 
   const [result] = await exec().query(
-    `DELETE FROM CompanyDelinquency WHERE companyDelinquencyUniqueId = ?`,
-    [companyDelinquencyUniqueId],
+    `UPDATE CompanyDelinquency
+     SET delinquencyDeletedAt = NOW(), delinquencyDeletedBy = ?
+     WHERE companyDelinquencyUniqueId = ? AND delinquencyDeletedAt IS NULL`,
+    [deletedBy, companyDelinquencyUniqueId],
   );
   if (result.affectedRows === 0)
-  {throw new AppError("Delinquency not found", 404);}
+  {throw new AppError("Delinquency not found or already deleted", 404);}
   return {
     message: "success",
     data: "Company delinquency deleted successfully",

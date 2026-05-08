@@ -407,82 +407,86 @@ describe("5. POST /api/company/admin/delinquency-decisions — DISMISSED outcome
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SUITE 6 — UPHELD outcome creates a ban
+// SUITE 6 — UPHELD outcome triggers graduated auto-ban (if points meet threshold)
 // ═════════════════════════════════════════════════════════════════════════════
-describe("6. Admin UPHELD decision → CompanyBan created", () => {
-  let rejectedDelinquencyUniqueId;
-  let rejectedDecisionUniqueId;
+describe("6. Admin UPHELD decision → graduated auto-ban check", () => {
+  let upheldDelinquencyIds = [];
+  let upheldDecisionUniqueId;
 
   beforeAll(async () => {
     if (!companyUniqueId || !delinquencyTypeUniqueId) {return;}
 
-    // Create a fresh delinquency to test UPHELD flow
-    const res = await request(app)
-      .post("/api/company/admin/delinquency")
-      .set(auth(ADMIN_TOKEN))
-      .send({
-        companyUniqueId,
-        delinquencyTypeUniqueId,
-        delinquencyDescription: "E2E: UPHELD flow delinquency",
-        skipDuplicateCheck: true,
-      });
+    // Create multiple delinquencies to accumulate enough points to meet
+    // the 15-point MEDIUM threshold (default delinquency type typically = 5 pts each).
+    for (let i = 0; i < 4; i++) {
+      const res = await request(app)
+        .post("/api/company/admin/delinquency")
+        .set(auth(ADMIN_TOKEN))
+        .send({
+          companyUniqueId,
+          delinquencyTypeUniqueId,
+          delinquencyDescription: `E2E: UPHELD flow delinquency #${i + 1}`,
+          skipDuplicateCheck: true,
+        });
 
-    if (res.body.companyDelinquencyUniqueId) {
-      rejectedDelinquencyUniqueId = res.body.companyDelinquencyUniqueId;
-      cleanup.delinquencyUniqueIds.push(rejectedDelinquencyUniqueId);
+      if (res.body.companyDelinquencyUniqueId) {
+        upheldDelinquencyIds.push(res.body.companyDelinquencyUniqueId);
+        cleanup.delinquencyUniqueIds.push(res.body.companyDelinquencyUniqueId);
+      }
     }
-  }, 15000);
+  }, 30000);
 
-  test("UPHELD: admin issues UPHELD decision", async () => {
-    if (!rejectedDelinquencyUniqueId) {return;}
+  test("UPHELD: admin issues UPHELD decision on one of the delinquencies", async () => {
+    if (upheldDelinquencyIds.length === 0) {return;}
 
     const res = await request(app)
       .post("/api/company/admin/delinquency-decisions")
       .set(auth(ADMIN_TOKEN))
       .send({
-        companyDelinquencyUniqueId: rejectedDelinquencyUniqueId,
+        companyDelinquencyUniqueId: upheldDelinquencyIds[0],
         decisionOutcome: "UPHELD",
         adminDecisionText:
-          "Company response was insufficient. Ban is applied for 30 days.",
+          "Company response was insufficient. Graduated ban check applies.",
       })
       .expect(200);
 
     expect(res.body.message).toBe("success");
     expect(res.body.decisionOutcome).toBe("UPHELD");
 
-    rejectedDecisionUniqueId = res.body.adminDecisionOnDelinquencyUniqueId;
-    cleanup.decisionUniqueIds.push(rejectedDecisionUniqueId);
+    upheldDecisionUniqueId = res.body.adminDecisionOnDelinquencyUniqueId;
+    cleanup.decisionUniqueIds.push(upheldDecisionUniqueId);
   });
 
-  test("UPHELD: CompanyBan created with banSource=admin_decision", async () => {
-    if (!rejectedDecisionUniqueId) {return;}
+  test("UPHELD: CompanyBan created via graduated auto-ban (points >= threshold)", async () => {
+    if (!upheldDecisionUniqueId) {return;}
 
     const [[ban]] = await pool.query(
-      `SELECT companyBanUniqueId, banSource, adminDecisionOnDelinquencyUniqueId, isActive
+      `SELECT companyBanUniqueId, banReason, isActive
        FROM CompanyBan
-       WHERE adminDecisionOnDelinquencyUniqueId = ?`,
-      [rejectedDecisionUniqueId],
+       WHERE companyUniqueId = ? AND isActive = TRUE AND banExpiresAt > NOW()
+       ORDER BY banAt DESC LIMIT 1`,
+      [companyUniqueId],
     );
 
     expect(ban).toBeDefined();
-    expect(ban.banSource).toBe("admin_decision");
-    expect(ban.adminDecisionOnDelinquencyUniqueId).toBe(rejectedDecisionUniqueId);
     expect(ban.isActive).toBe(1);
+    expect(ban.banReason).toContain("Auto-ban");
 
     banUniqueId = ban.companyBanUniqueId;
     cleanup.banUniqueIds.push(banUniqueId);
   });
 
-  test("UPHELD: CompanyBanDelinquency junction row links the ban to the delinquency", async () => {
-    if (!banUniqueId || !rejectedDelinquencyUniqueId) {return;}
+  test("UPHELD: CompanyBanDelinquency junction rows link ban to contributing delinquencies", async () => {
+    if (!banUniqueId) {return;}
 
-    const [[junctionRow]] = await pool.query(
-      `SELECT * FROM CompanyBanDelinquency
-       WHERE companyBanUniqueId = ? AND companyDelinquencyUniqueId = ?`,
-      [banUniqueId, rejectedDelinquencyUniqueId],
+    const [junctionRows] = await pool.query(
+      `SELECT * FROM CompanyBanDelinquency WHERE companyBanUniqueId = ?`,
+      [banUniqueId],
     );
-    expect(junctionRow).toBeDefined();
-    expect(junctionRow.pointsAtTime).toBeGreaterThanOrEqual(0);
+    expect(junctionRows.length).toBeGreaterThanOrEqual(1);
+    junctionRows.forEach((row) => {
+      expect(row.pointsAtTime).toBeGreaterThanOrEqual(0);
+    });
   });
 });
 
@@ -507,7 +511,8 @@ describe("7. Admin EXONERATED decision → delinquency deleted", () => {
 
     if (res.body.companyDelinquencyUniqueId) {
       acceptedDelinquencyUniqueId = res.body.companyDelinquencyUniqueId;
-      // Note: we do NOT push to cleanup because EXONERATED will delete it
+      // Soft-deleted on EXONERATED, but row still exists — add to cleanup
+      cleanup.delinquencyUniqueIds.push(acceptedDelinquencyUniqueId);
     }
   }, 15000);
 
@@ -530,16 +535,17 @@ describe("7. Admin EXONERATED decision → delinquency deleted", () => {
     cleanup.decisionUniqueIds.push(res.body.adminDecisionOnDelinquencyUniqueId);
   });
 
-  test("EXONERATED: delinquency row is removed from DB", async () => {
+  test("EXONERATED: delinquency row is soft-deleted in DB", async () => {
     if (!acceptedDelinquencyUniqueId) {return;}
 
     const [[row]] = await pool.query(
-      `SELECT companyDelinquencyUniqueId FROM CompanyDelinquency
+      `SELECT companyDelinquencyUniqueId, delinquencyDeletedAt FROM CompanyDelinquency
        WHERE companyDelinquencyUniqueId = ?`,
       [acceptedDelinquencyUniqueId],
     );
-    // Row must be gone
-    expect(row).toBeUndefined();
+    // Row still exists but is soft-deleted
+    expect(row).toBeDefined();
+    expect(row.delinquencyDeletedAt).not.toBeNull();
   });
 });
 
