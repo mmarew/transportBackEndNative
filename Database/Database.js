@@ -1322,24 +1322,48 @@ CREATE TABLE IF NOT EXISTS TransportCompany (
 -- For auto-bans (accumulated points), all contributing delinquencies
 -- are linked via CompanyBanDelinquency junction table.
 
+-- CompanyBan: records a ban issued against a transport company.
+--
+-- Two ban paths:
+--   AUTO  → company hit the delinquency point threshold; system creates the ban automatically.
+--           adminDecisionOnDelinquencyUniqueId = NULL, banSource = 'auto_threshold'
+--
+--   MANUAL → admin issued a formal ruling via AdminDecisionOnDelinquency (decisionOutcome = 'REJECTED').
+--            adminDecisionOnDelinquencyUniqueId = <uuid>, banSource = 'admin_decision'
+--
+-- In both paths, CompanyBanDelinquency records WHICH delinquencies contributed to the ban.
 CREATE TABLE IF NOT EXISTS CompanyBan (
 
-    companyBanId INT AUTO_INCREMENT PRIMARY KEY,
+    companyBanId       INT AUTO_INCREMENT PRIMARY KEY,
     companyBanUniqueId VARCHAR(36) UNIQUE NOT NULL,
 
-    companyUniqueId VARCHAR(36) NOT NULL, -- FK → TransportCompany
-    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',
-    banReason TEXT NOT NULL,
-    banDurationDays INT NOT NULL,
-    banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    banExpiresAt DATETIME NOT NULL,
-    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    companyUniqueId    VARCHAR(36) NOT NULL,  -- FK → TransportCompany
+    bannedBy           VARCHAR(36) NOT NULL DEFAULT 'system',
+    banReason          TEXT NOT NULL,
+    banDurationDays    INT NOT NULL,
+    banAt              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    banExpiresAt       DATETIME NOT NULL,
+    isActive           BOOLEAN NOT NULL DEFAULT TRUE,
+
+    -- Identifies whether the ban was triggered automatically (point threshold)
+    -- or manually by an admin decision after a dispute.
+    banSource ENUM('auto_threshold', 'admin_decision') NOT NULL DEFAULT 'auto_threshold',
+
+    -- Set only when banSource = 'admin_decision'.
+    -- Links to the AdminDecisionOnDelinquency record that triggered this ban.
+    -- NULL when banSource = 'auto_threshold'.
+    adminDecisionOnDelinquencyUniqueId VARCHAR(36) NULL,
 
     INDEX idx_company_ban_company (companyUniqueId, isActive),
     INDEX idx_company_ban_expires (banExpiresAt, isActive),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
     FOREIGN KEY (bannedBy) REFERENCES Users(userUniqueId)
+    -- Note: FK to AdminDecisionOnDelinquency is NOT declared here because
+    -- AdminDecisionOnDelinquency is defined AFTER CompanyBan in this file.
+    -- Referential integrity for adminDecisionOnDelinquencyUniqueId is enforced
+    -- at the application layer (service validates before insert).
 );
+
 
 -- CompanyDelinquency: audit trail of rule violations by transport companies.
 -- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
@@ -1656,6 +1680,8 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
 
 -- CompanyBanDelinquency: junction table linking one ban to ALL delinquencies that contributed.
 -- Placed at end of schema because it references CompanyDelinquency (created above).
+
+
 CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
     CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
@@ -1695,7 +1721,63 @@ CREATE TABLE IF NOT EXISTS CompanyRating (
     INDEX idx_company_rating_company (companyUniqueId),
     INDEX idx_company_rating_job (companyBidRequestUniqueId)
 );
+-- company maybe accused by delinquency. then company must give responce. because dispute is araisd. then company must give responces to it. then admin give descision on the dispute. here company may give responces or not. it depend on the situation. and if company cant give responce admin can descide ban or other things.
 
+CREATE TABLE IF NOT EXISTS CompanyDelinquencyResponse ( 
+companyDelinquencyResponseId INT AUTO_INCREMENT PRIMARY KEY,
+companyDelinquencyResponseUniqueId VARCHAR(36) UNIQUE NOT NULL,
+companyDelinquencyUniqueId VARCHAR(36) NOT NULL,
+companyDelinquencyResponse TEXT NOT NULL,
+companyDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+companyDelinquencyResponseUpdatedAt DATETIME NULL,
+companyDelinquencyResponseDeletedAt DATETIME NULL,
+companyDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
+companyDelinquencyResponseUpdatedBy VARCHAR(36) NULL,
+companyDelinquencyResponseDeletedBy VARCHAR(36) NULL,
+FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+FOREIGN KEY (companyDelinquencyResponseCreatedBy) REFERENCES Users(userUniqueId),
+FOREIGN KEY (companyDelinquencyResponseUpdatedBy) REFERENCES Users(userUniqueId),
+FOREIGN KEY (companyDelinquencyResponseDeletedBy) REFERENCES Users(userUniqueId),
+INDEX idx_company_delinquency_response_company (companyDelinquencyUniqueId)
+);   
+
+-- once the the company give responces  admin should give descision on it. 
+
+-- AdminDecisionOnDelinquency table is responsible for this. 
+
+-- AdminDecisionOnDelinquency: admin's formal ruling on a company delinquency dispute.
+-- Created after the company submits a CompanyDelinquencyResponse (or admin acts without one).
+-- decisionOutcome determines what happens to the delinquency record:
+--   ACCEPTED  → company's defense is valid; delinquency is removed
+--   REJECTED  → defense not accepted; delinquency and any ban stand
+--   REDUCED   → admin reduces the delinquency points (delinquencyPointsAfter holds new value)
+--   DISMISSED → admin closes the case without any company response needed
+CREATE TABLE IF NOT EXISTS AdminDecisionOnDelinquency (
+    adminDecisionOnDelinquencyId        INT AUTO_INCREMENT PRIMARY KEY,
+    adminDecisionOnDelinquencyUniqueId  VARCHAR(36) UNIQUE NOT NULL,
+
+    companyDelinquencyUniqueId          VARCHAR(36) NOT NULL,   -- FK → CompanyDelinquency (required)
+    companyDelinquencyResponseUniqueId  VARCHAR(36) NULL,       -- FK → CompanyDelinquencyResponse (NULL if admin decides without a response)
+
+    decisionOutcome ENUM('ACCEPTED','REJECTED','REDUCED','DISMISSED') NOT NULL,
+    adminDecisionText TEXT NOT NULL,         -- written reason / notes from admin
+    delinquencyPointsAfter INT NULL,         -- only set when decisionOutcome = 'REDUCED'
+
+    adminDecisionOnDelinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    adminDecisionOnDelinquencyUpdatedAt DATETIME NULL,
+    adminDecisionOnDelinquencyDeletedAt DATETIME NULL,
+    adminDecisionOnDelinquencyCreatedBy VARCHAR(36) NOT NULL,   -- FK → Users (admin)
+    adminDecisionOnDelinquencyUpdatedBy VARCHAR(36) NULL,
+    adminDecisionOnDelinquencyDeletedBy VARCHAR(36) NULL,
+
+    FOREIGN KEY (companyDelinquencyUniqueId)         REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseUniqueId) REFERENCES CompanyDelinquencyResponse(companyDelinquencyResponseUniqueId),
+    FOREIGN KEY (adminDecisionOnDelinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (adminDecisionOnDelinquencyUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (adminDecisionOnDelinquencyDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_admin_decision_delinquency (companyDelinquencyUniqueId),
+    INDEX idx_admin_decision_response (companyDelinquencyResponseUniqueId)
+);
 
 -- CompanyProfileHistory: append-only audit log for company profile & status changes.
 -- Placed at end of schema because it references TransportCompany (created above).

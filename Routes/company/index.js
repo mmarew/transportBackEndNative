@@ -13,10 +13,12 @@ const companyRoleRoutes = require("./CompanyRole.routes");
 const companyDelinquency = require("./CompanyDelinquency.routes");
 const companyBan = require("./CompanyBan.routes");
 const companyRatting = require("./CompanyRating.routes");
+const companyDelinquencyDispute = require("./CompanyDelinquencyDispute.routes");
 
 // Mount routes with appropriate sub-paths
 router.use("/admin/delinquency/bans", companyBan);
 router.use("/admin/delinquency", companyDelinquency);
+router.use("/delinquency-response", companyDelinquencyDispute);  // company response + admin decision
 router.use("/ratings", companyRatting);
 router.use("/companies", transportCompanyRoutes);
 router.use("/memberships", companyMembershipRoutes);
