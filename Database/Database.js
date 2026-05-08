@@ -309,7 +309,10 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     -- ownerType  = 'vehicle' → ownerUniqueId is Vehicle.vehicleUniqueId
     -- No DB-level FK here because ownerUniqueId points to different tables.
     -- Application layer enforces referential integrity.
+
+
     ownerType    ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
+    
     ownerUniqueId VARCHAR(36) NOT NULL,
 
     attachedDocumentDescription VARCHAR(255) NULL,           -- Description of the attached document
@@ -680,68 +683,11 @@ CREATE TABLE IF NOT EXISTS Ratings (
     FOREIGN KEY (ratingDeletedBy) REFERENCES Users(userUniqueId)
 ) ;
 
--- CompanyRating: Shipper rates a Transport Company after a completed freight job.
--- One rating per companyBidRequest (UNIQUE on companyBidRequestUniqueId).
--- The average of these ratings forms the company's public reputation score,
--- visible to shippers during the bidding process.
-CREATE TABLE IF NOT EXISTS CompanyRating (
-    companyRatingId INT AUTO_INCREMENT PRIMARY KEY,
-    companyRatingUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,     -- One rating per completed job
-    companyUniqueId VARCHAR(36) NOT NULL,                      -- FK → TransportCompany
-    ratedByUserUniqueId VARCHAR(36) NOT NULL,                  -- FK → Users (the shipper)
-    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),   -- 1 (worst) to 5 (best)
-    comment TEXT NULL,
-    companyRatingCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    companyRatingUpdatedAt DATETIME NULL,
-    companyRatingDeletedAt DATETIME NULL,
-    companyRatingCreatedBy VARCHAR(36) NOT NULL,
-    companyRatingUpdatedBy VARCHAR(36) NULL,
-    companyRatingDeletedBy VARCHAR(36) NULL,
-    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
-    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    FOREIGN KEY (ratedByUserUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRatingCreatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRatingUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRatingDeletedBy) REFERENCES Users(userUniqueId),
-    INDEX idx_company_rating_company (companyUniqueId),
-    INDEX idx_company_rating_job (companyBidRequestUniqueId)
-) ;
+-- CompanyRating is defined at the end of the schema (after CompanyBidRequest is created).
 
--- CompanyProfileHistory: Unified append-only audit log for ALL company profile & status changes.
--- Covers profile field changes (phone, email, name...) AND status transitions (approvalStatus).
--- Named to clearly separate from job/bid history. One row per field per event. Never updated or deleted.
---
--- fieldName examples:
---   'approvalStatus'            → status transition (source: ban | unban | document_approval | registration)
---   'companyPhone'              → profile update (source: profile_update)
---   'companyEmail', 'companyName', 'companyAddress', 'companyRegistrationNumber'
---
--- This single table answers: who changed what, from what, to what, when, and why.
-CREATE TABLE IF NOT EXISTS CompanyProfileHistory (
-    historyId INT AUTO_INCREMENT PRIMARY KEY,
-    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyUniqueId VARCHAR(36) NOT NULL,
-    changedBy VARCHAR(36) NOT NULL,                     -- userUniqueId of admin or 'system'
-    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fieldName VARCHAR(100) NOT NULL,                    -- which field changed
-    oldValue TEXT NULL,                                 -- value before the change (NULL on first record)
-    newValue TEXT NULL,                                 -- value after the change
-    reason TEXT NULL,                                   -- optional human-readable reason
-    source ENUM(
-        'registration',       -- company first created
-        'document_approval',  -- admin reviewed documents and approved/rejected
-        'ban',                -- compliance ban (referenceUniqueId = companyBanUniqueId)
-        'unban',              -- admin lifted a ban (referenceUniqueId = companyBanUniqueId)
-        'profile_update',     -- phone/email/name/address/registration number change
-        'manual'              -- direct admin override with no other specific trigger
-    ) NOT NULL,
-    referenceUniqueId VARCHAR(36) NULL,                 -- links to CompanyBan when source = ban|unban
-    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    INDEX idx_cph2_company (companyUniqueId),
-    INDEX idx_cph2_field (fieldName),
-    INDEX idx_cph2_changed_at (changedAt)
-) ;
+
+-- CompanyProfileHistory is defined at the end of the schema (after TransportCompany is created).
+
 
 -- UserProfileHistory: Append-only audit log for user profile & status changes.
 -- Same pattern as CompanyHistory — one row per field per event.
@@ -1397,53 +1343,11 @@ CREATE TABLE IF NOT EXISTS CompanyBan (
 -- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
 
 
-CREATE TABLE IF NOT EXISTS CompanyDelinquency (
 
-    companyDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
-    companyDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-
-    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
-    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,           -- FK → DelinquencyTypes
-    delinquencyDescription TEXT NOT NULL,
-    delinquencySeverity ENUM('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL DEFAULT 'MEDIUM',
-
-    delinquencyPoints INT NOT NULL DEFAULT 1,
-    journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: identifies the specific DRIVER's journey leg within a bid where the fault occurred (not the company or shipper — drills down to which driver did what, on which trip)
-    companyBidRequestUniqueId VARCHAR(36) NULL,             -- Optional: links to the entire freight bid/contract (e.g., commission evasion, cargo damage, no-show on load day)
-    delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
-    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    INDEX idx_company_delinquency_company (companyUniqueId),
-    INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
-    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
-    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId)
-);
+-- CompanyBanDelinquency is defined at the end of the schema (after CompanyDelinquency is created).
 
 
 
--- CompanyBanDelinquency: it is abridge between CompanyBan and CompanyDelinquency tables.
--- It is a Junction table linking one ban to ALL delinquencies,
--- that contributed to it via point accumulation.
--- Answers: "which violations caused this ban, and how many points did each add?"
--- For a manual ban, this table may have 0 rows (it was not point-triggered).
--- For an auto-ban, every delinquency within the 30-day window is recorded here.
-
-
-CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
-
-    CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
-    CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan (which ban)
-    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency (which violation)
-    pointsAtTime INT NOT NULL,                             -- Points this delinquency contributed at ban time
-    UNIQUE KEY uq_ban_delinquency (companyBanUniqueId, companyDelinquencyUniqueId),
-    FOREIGN KEY (companyBanUniqueId) REFERENCES CompanyBan(companyBanUniqueId),
-    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
-    INDEX idx_cbd_ban (companyBanUniqueId),
-    INDEX idx_cbd_delinquency (companyDelinquencyUniqueId)
-);
 
 
 CREATE TABLE IF NOT EXISTS CompanyRoles (
@@ -1716,6 +1620,106 @@ CREATE TABLE IF NOT EXISTS CompanyCommission (
     FOREIGN KEY (companyCommissionCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (companyCommissionUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (companyCommissionDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyDelinquency: audit trail of rule violations by transport companies.
+-- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
+-- Placed at end of schema because it references CompanyBidRequest (created above).
+
+CREATE TABLE IF NOT EXISTS CompanyDelinquency (
+
+    companyDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    companyDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
+    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,           -- FK → DelinquencyTypes
+    delinquencyDescription TEXT NOT NULL,
+    delinquencySeverity ENUM('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+
+    delinquencyPoints INT NOT NULL DEFAULT 1,
+    journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: identifies the specific DRIVER's journey leg within a bid
+    companyBidRequestUniqueId VARCHAR(36) NULL,             -- Optional: links to the entire freight bid/contract
+    delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
+    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_company_delinquency_company (companyUniqueId),
+    INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
+    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId)
+);
+
+
+-- CompanyBanDelinquency: junction table linking one ban to ALL delinquencies that contributed.
+-- Placed at end of schema because it references CompanyDelinquency (created above).
+CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
+    CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency
+    pointsAtTime INT NOT NULL,
+    UNIQUE KEY uq_ban_delinquency (companyBanUniqueId, companyDelinquencyUniqueId),
+    FOREIGN KEY (companyBanUniqueId) REFERENCES CompanyBan(companyBanUniqueId),
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    INDEX idx_cbd_ban (companyBanUniqueId),
+    INDEX idx_cbd_delinquency (companyDelinquencyUniqueId)
+);
+
+
+-- CompanyRating: Shipper rates a Transport Company after a completed freight job.
+-- Placed at end of schema because it references CompanyBidRequest (created above).
+CREATE TABLE IF NOT EXISTS CompanyRating (
+    companyRatingId INT AUTO_INCREMENT PRIMARY KEY,
+    companyRatingUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,
+    ratedByUserUniqueId VARCHAR(36) NOT NULL,
+    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT NULL,
+    companyRatingCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyRatingUpdatedAt DATETIME NULL,
+    companyRatingDeletedAt DATETIME NULL,
+    companyRatingCreatedBy VARCHAR(36) NOT NULL,
+    companyRatingUpdatedBy VARCHAR(36) NULL,
+    companyRatingDeletedBy VARCHAR(36) NULL,
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (ratedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_company_rating_company (companyUniqueId),
+    INDEX idx_company_rating_job (companyBidRequestUniqueId)
+);
+
+
+-- CompanyProfileHistory: append-only audit log for company profile & status changes.
+-- Placed at end of schema because it references TransportCompany (created above).
+CREATE TABLE IF NOT EXISTS CompanyProfileHistory (
+    historyId INT AUTO_INCREMENT PRIMARY KEY,
+    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,
+    changedBy VARCHAR(36) NOT NULL,
+    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fieldName VARCHAR(100) NOT NULL,
+    oldValue TEXT NULL,
+    newValue TEXT NULL,
+    reason TEXT NULL,
+    source ENUM(
+        'registration',
+        'document_approval',
+        'ban',
+        'unban',
+        'profile_update',
+        'manual'
+    ) NOT NULL,
+    referenceUniqueId VARCHAR(36) NULL,
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    INDEX idx_cph2_company (companyUniqueId),
+    INDEX idx_cph2_field (fieldName),
+    INDEX idx_cph2_changed_at (changedAt)
 );
 
 `;

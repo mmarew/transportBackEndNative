@@ -1,35 +1,16 @@
 const express = require("express");
 
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, "uploads/"); // Specify where the files will be stored
-//   },
-//   filename: function (req, file, cb) {
-//     const userId = req.user.userId;
-//     const randomNumber = Math.floor(Math.random() * 10000000000);
-//     const uniqueName =
-//       userId +
-//       "_" +
-//       randomNumber +
-//       "_" +
-//       currentDate() +
-//       "-" +
-//       path.extname(file.originalname); // Unique filename with extension
-//     cb(null, uniqueName); // Use uniqueName as the final filename
-//   },
-// });
-
 const router = express.Router();
 const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const attachedDocumentsController = require("../Controllers/AttachedDocuments.controller");
 const multer = require("multer");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const checkDuplicateDocuments = require("../Middleware/CheckDuplicateDocuments");
+const { authorizeDocumentAccess } = require("../Middleware/AuthorizeDocumentAccess");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Define routes for handling multiple file uploads
 const { validator } = require("../Middleware/Validator");
 const {
   getAttachedDocumentsQuery,
@@ -43,25 +24,24 @@ router.post(
   "/api/user/attachDocuments/:userUniqueId",
   verifyTokenOfAxios,
   validator(userParams, "params"),
-  (req, _res, next) => { req.ownerType = "user"; next(); },   // inject owner type
+  (req, _res, next) => { req.ownerType = "user"; next(); },
+  authorizeDocumentAccess("write"),
   upload.any(),
   checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
 );
 
 // ── Company document upload ───────────────────────────────────────────────────
-// Frontend hits: POST /api/company/attachDocuments/:companyUniqueId
-// ownerType is inferred from the route — frontend sends ONLY the files.
 router.post(
   "/api/company/attachDocuments/:companyUniqueId",
   verifyTokenOfAxios,
   (req, _res, next) => {
-    // Normalise: treat companyUniqueId the same as userUniqueId param name
-    // so the rest of the middleware chain works unchanged.
     req.params.userUniqueId = req.params.companyUniqueId;
     req.ownerType = "company";
+    req.ownerUniqueIdParam = req.params.companyUniqueId;
     next();
   },
+  authorizeDocumentAccess("write"),
   upload.any(),
   checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
@@ -74,26 +54,26 @@ router.post(
   (req, _res, next) => {
     req.params.userUniqueId = req.params.vehicleUniqueId;
     req.ownerType = "vehicle";
+    req.ownerUniqueIdParam = req.params.vehicleUniqueId;
     next();
   },
+  authorizeDocumentAccess("write"),
   upload.any(),
   checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
 );
 
 // ── User documents GET ───────────────────────────────────────────────────────
-// GET /api/user/attachedDocuments?userUniqueId=self&documentTypeId=...
-// ownerType defaults to 'user' in the controller
 router.get(
   "/api/user/attachedDocuments",
   verifyTokenOfAxios,
   validator(getAttachedDocumentsQuery, "query"),
+  (req, _res, next) => { req.ownerType = "user"; next(); },
+  authorizeDocumentAccess("read"),
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
 // ── Company documents GET ─────────────────────────────────────────────────────
-// GET /api/company/attachedDocuments/:companyUniqueId
-// No query params needed — companyUniqueId comes from the URL path.
 router.get(
   "/api/company/attachedDocuments/:companyUniqueId",
   verifyTokenOfAxios,
@@ -102,11 +82,11 @@ router.get(
     req.ownerUniqueIdParam = req.params.companyUniqueId;
     next();
   },
+  authorizeDocumentAccess("read"),
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
 // ── Vehicle documents GET ─────────────────────────────────────────────────────
-// GET /api/vehicle/attachedDocuments/:vehicleUniqueId
 router.get(
   "/api/vehicle/attachedDocuments/:vehicleUniqueId",
   verifyTokenOfAxios,
@@ -115,24 +95,32 @@ router.get(
     req.ownerUniqueIdParam = req.params.vehicleUniqueId;
     next();
   },
+  authorizeDocumentAccess("read"),
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
+// ── Update a document ────────────────────────────────────────────────────────
 router.put(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   verifyTokenOfAxios,
-  validator(attachedDocumentParams, "params"), // Validate params first
-  upload.any(), // File upload - parse files and form fields
+  validator(attachedDocumentParams, "params"),
+  (req, _res, next) => { req.ownerType = "user"; next(); },
+  authorizeDocumentAccess("write"),
+  upload.any(),
   attachedDocumentsController.updateAttachedDocument,
 );
 
+// ── Delete a document ────────────────────────────────────────────────────────
 router.delete(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   verifyTokenOfAxios,
   validator(attachedDocumentParams, "params"),
+  (req, _res, next) => { req.ownerType = "user"; next(); },
+  authorizeDocumentAccess("delete"),
   attachedDocumentsController.deleteAttachedDocument,
 );
 
+// ── Admin: accept / reject documents (admin-only) ────────────────────────────
 router.put(
   "/api/admin/acceptRejectAttachedDocuments",
   verifyTokenOfAxios,

@@ -39,8 +39,51 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
         await attachedDocumentsService.getAttachedDocumentByUniqueId(
           attachedDocumentUniqueId,
         );
+
+      // ── Ownership guard for single-doc fetch ──────────────────────────────
+      // Admins and SuperAdmins can see any document.
+      // Everyone else can only see a document if they are the owner:
+      //   ownerType='user'    → ownerUniqueId must match currentUser.userUniqueId
+      //   ownerType='company' → currentUser must have an active CompanyMembership
+      //   ownerType='vehicle' → currentUser must be actively assigned to the vehicle
+      // If the document doesn't exist, just return the (empty) service result.
+      const doc = result?.data;
+      const isAdminOrSuper =
+        currentUser.roleId === usersRolesList.admin.roleId ||
+        currentUser.roleId === usersRolesList.supperAdmin.roleId;
+
+      if (doc && !isAdminOrSuper) {
+        const { pool: dbPool } = require("../Middleware/Database.config");
+        let allowed = false;
+
+        if (doc.ownerType === "user") {
+          allowed = doc.ownerUniqueId === currentUser.userUniqueId;
+        } else if (doc.ownerType === "company") {
+          const [rows] = await dbPool.query(
+            `SELECT membershipId FROM CompanyMembership
+             WHERE userUniqueId = ? AND companyUniqueId = ?
+               AND isActive = 1 AND membershipDeletedAt IS NULL LIMIT 1`,
+            [currentUser.userUniqueId, doc.ownerUniqueId],
+          );
+          allowed = rows.length > 0;
+        } else if (doc.ownerType === "vehicle") {
+          const [rows] = await dbPool.query(
+            `SELECT vehicleDriverId FROM VehicleDriver
+             WHERE driverUserUniqueId = ? AND vehicleUniqueId = ?
+               AND assignmentStatus = 'active' AND vehicleDriverDeletedAt IS NULL LIMIT 1`,
+            [currentUser.userUniqueId, doc.ownerUniqueId],
+          );
+          allowed = rows.length > 0;
+        }
+
+        if (!allowed) {
+          return next(new AppError("Forbidden: you do not own this document.", 403));
+        }
+      }
+
       return ServerResponder(res, result);
     }
+
 
     // ── Resolve owner context ────────────────────────────────────────────────
     // ownerType is injected by the route middleware (company/vehicle routes).
