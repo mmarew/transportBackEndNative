@@ -13,14 +13,14 @@ const companyRoleRoutes = require("./CompanyRole.routes");
 const companyDelinquency = require("./CompanyDelinquency.routes");
 const companyBan = require("./CompanyBan.routes");
 const companyRatting = require("./CompanyRating.routes");
-const companyDelinquencyDispute = require("./CompanyDelinquencyDispute.routes");
+const companyDelinquencyDispute = require("./CompanyDelinquencyResponces.routes");
 const adminDecisionOnDelinquency = require("./AdminDecisionOnDelinquency.routes");
 
 // Mount routes with appropriate sub-paths
 router.use("/admin/delinquency/bans", companyBan);
 router.use("/admin/delinquency-decisions", adminDecisionOnDelinquency); // admin rulings (CRUD)
 router.use("/admin/delinquency", companyDelinquency);
-router.use("/delinquency-response", companyDelinquencyDispute);  // company dispute responses only
+router.use("/delinquency-response", companyDelinquencyDispute); // company dispute responses only
 router.use("/ratings", companyRatting);
 router.use("/companies", transportCompanyRoutes);
 router.use("/memberships", companyMembershipRoutes);
