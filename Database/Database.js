@@ -1653,7 +1653,7 @@ CREATE TABLE IF NOT EXISTS CompanyCommission (
 -- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
 -- Placed at end of schema because it references CompanyBidRequest (created above).
 
-CREATE TABLE IF NOT EXISTS CompanyDelinquency (
+CREATE TABLE IF NOT EXISTS CompanyDelinquency ( 
 
     companyDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     companyDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
@@ -1678,72 +1678,43 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
 );
 
 
--- CompanyBanDelinquency: junction table linking one ban to ALL delinquencies that contributed.
--- Placed at end of schema because it references CompanyDelinquency (created above).
-
-
-CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
-    CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
-    CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan
-    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency
-    pointsAtTime INT NOT NULL,
-    UNIQUE KEY uq_ban_delinquency (companyBanUniqueId, companyDelinquencyUniqueId),
-    FOREIGN KEY (companyBanUniqueId) REFERENCES CompanyBan(companyBanUniqueId),
-    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
-    INDEX idx_cbd_ban (companyBanUniqueId),
-    INDEX idx_cbd_delinquency (companyDelinquencyUniqueId)
-);
-
-
--- CompanyRating: Shipper rates a Transport Company after a completed freight job.
--- Placed at end of schema because it references CompanyBidRequest (created above).
-CREATE TABLE IF NOT EXISTS CompanyRating (
-    companyRatingId INT AUTO_INCREMENT PRIMARY KEY,
-    companyRatingUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    companyUniqueId VARCHAR(36) NOT NULL,
-    ratedByUserUniqueId VARCHAR(36) NOT NULL,
-    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    comment TEXT NULL,
-    companyRatingCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    companyRatingUpdatedAt DATETIME NULL,
-    companyRatingDeletedAt DATETIME NULL,
-    companyRatingCreatedBy VARCHAR(36) NOT NULL,
-    companyRatingUpdatedBy VARCHAR(36) NULL,
-    companyRatingDeletedBy VARCHAR(36) NULL,
-    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
-    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
-    FOREIGN KEY (ratedByUserUniqueId) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRatingCreatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRatingUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (companyRatingDeletedBy) REFERENCES Users(userUniqueId),
-    INDEX idx_company_rating_company (companyUniqueId),
-    INDEX idx_company_rating_job (companyBidRequestUniqueId)
-);
--- company maybe accused by delinquency. then company must give responce. because dispute is araisd. then company must give responces to it. then admin give descision on the dispute. here company may give responces or not. it depend on the situation. and if company cant give responce admin can descide ban or other things.
+-- CompanyDelinquencyResponse: a company's formal defense against a delinquency accusation.
+--
+-- LIFECYCLE:
+--   1. A delinquency record is created against a company (CompanyDelinquency).
+--   2. The company MAY submit a written response to dispute the accusation.
+--      Submitting a response is optional — the admin can still issue a ruling
+--      even if the company does not respond.
+--   3. The admin reviews the delinquency (and the response, if one exists)
+--      and issues a formal decision via AdminDecisionOnDelinquency.
+--      Possible outcomes: ACCEPTED, REJECTED, REDUCED, or DISMISSED.
+--   4. If the company fails to respond, the admin may proceed to ban
+--      or apply other penalties at their discretion.
 
 CREATE TABLE IF NOT EXISTS CompanyDelinquencyResponse ( 
-companyDelinquencyResponseId INT AUTO_INCREMENT PRIMARY KEY,
-companyDelinquencyResponseUniqueId VARCHAR(36) UNIQUE NOT NULL,
-companyDelinquencyUniqueId VARCHAR(36) NOT NULL,
-companyDelinquencyResponse TEXT NOT NULL,
-companyDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-companyDelinquencyResponseUpdatedAt DATETIME NULL,
-companyDelinquencyResponseDeletedAt DATETIME NULL,
-companyDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
-companyDelinquencyResponseUpdatedBy VARCHAR(36) NULL,
-companyDelinquencyResponseDeletedBy VARCHAR(36) NULL,
-FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
-FOREIGN KEY (companyDelinquencyResponseCreatedBy) REFERENCES Users(userUniqueId),
-FOREIGN KEY (companyDelinquencyResponseUpdatedBy) REFERENCES Users(userUniqueId),
-FOREIGN KEY (companyDelinquencyResponseDeletedBy) REFERENCES Users(userUniqueId),
-INDEX idx_company_delinquency_response_company (companyDelinquencyUniqueId)
+
+    companyDelinquencyResponseId INT AUTO_INCREMENT PRIMARY KEY,
+    companyDelinquencyResponseUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,
+    companyDelinquencyResponse TEXT NOT NULL,
+
+    companyDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyDelinquencyResponseUpdatedAt DATETIME NULL,
+    companyDelinquencyResponseDeletedAt DATETIME NULL,
+    
+    companyDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
+    companyDelinquencyResponseUpdatedBy VARCHAR(36) NULL,
+    companyDelinquencyResponseDeletedBy VARCHAR(36) NULL,
+
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_company_delinquency_response_company (companyDelinquencyUniqueId)
 );   
 
--- once the the company give responces  admin should give descision on it. 
 
--- AdminDecisionOnDelinquency table is responsible for this. 
 
 -- AdminDecisionOnDelinquency: admin's formal ruling on a company delinquency dispute.
 -- Created after the company submits a CompanyDelinquencyResponse (or admin acts without one).
@@ -1752,7 +1723,10 @@ INDEX idx_company_delinquency_response_company (companyDelinquencyUniqueId)
 --   REJECTED  → defense not accepted; delinquency and any ban stand
 --   REDUCED   → admin reduces the delinquency points (delinquencyPointsAfter holds new value)
 --   DISMISSED → admin closes the case without any company response needed
+
+
 CREATE TABLE IF NOT EXISTS AdminDecisionOnDelinquency (
+
     adminDecisionOnDelinquencyId        INT AUTO_INCREMENT PRIMARY KEY,
     adminDecisionOnDelinquencyUniqueId  VARCHAR(36) UNIQUE NOT NULL,
 
@@ -1778,6 +1752,31 @@ CREATE TABLE IF NOT EXISTS AdminDecisionOnDelinquency (
     INDEX idx_admin_decision_delinquency (companyDelinquencyUniqueId),
     INDEX idx_admin_decision_response (companyDelinquencyResponseUniqueId)
 );
+
+
+-- CompanyBanDelinquency: junction table linking a single ban to ALL delinquencies
+-- that contributed to its issuance.
+--
+-- PURPOSE:
+--   A company may commit more than one delinquency within the same period.
+--   The accumulated sum of delinquency points across those records is what
+--   triggers the ban. This table preserves the reference from the ban back
+--   to every delinquency that contributed, along with each delinquency's
+--   point value at the time the ban was issued (pointsAtTime).
+
+CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
+    CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency
+    pointsAtTime INT NOT NULL,
+    UNIQUE KEY uq_ban_delinquency (companyBanUniqueId, companyDelinquencyUniqueId),
+    FOREIGN KEY (companyBanUniqueId) REFERENCES CompanyBan(companyBanUniqueId),
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    INDEX idx_cbd_ban (companyBanUniqueId),
+    INDEX idx_cbd_delinquency (companyDelinquencyUniqueId)
+);
+
 
 -- CompanyProfileHistory: append-only audit log for company profile & status changes.
 -- Placed at end of schema because it references TransportCompany (created above).
@@ -1806,6 +1805,32 @@ CREATE TABLE IF NOT EXISTS CompanyProfileHistory (
     INDEX idx_cph2_changed_at (changedAt)
 );
 
+
+-- CompanyRating: Shipper rates a Transport Company after a completed freight job.
+-- Placed at end of schema because it references CompanyBidRequest (created above).
+CREATE TABLE IF NOT EXISTS CompanyRating (
+    companyRatingId INT AUTO_INCREMENT PRIMARY KEY,
+    companyRatingUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,
+    ratedByUserUniqueId VARCHAR(36) NOT NULL,
+    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT NULL,
+    companyRatingCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyRatingUpdatedAt DATETIME NULL,
+    companyRatingDeletedAt DATETIME NULL,
+    companyRatingCreatedBy VARCHAR(36) NOT NULL,
+    companyRatingUpdatedBy VARCHAR(36) NULL,
+    companyRatingDeletedBy VARCHAR(36) NULL,
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (ratedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_company_rating_company (companyUniqueId),
+    INDEX idx_company_rating_job (companyBidRequestUniqueId)
+);
 `;
 
 module.exports = { sqlQuery };

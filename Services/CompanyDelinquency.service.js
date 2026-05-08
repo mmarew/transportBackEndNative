@@ -3,7 +3,13 @@
 /**
  * CompanyDelinquency.service.js
  * ──────────────────────────────
- * CRUD + auto-ban logic for company-level rule violations.
+ * CRUD + conditional auto-ban logic for company-level rule violations.
+ *
+ * Auto-ban gating:
+ *  - Admin/SuperAdmin accuser  → auto-ban is applied if point threshold is met
+ *  - Non-admin accuser (e.g., shipper) → NO auto-ban; the delinquency must go
+ *    through the full dispute lifecycle:
+ *      CompanyDelinquencyResponse → AdminDecisionOnDelinquency → Ban
  *
  * Ban design (important):
  *  - CompanyBan is the SINGLE SOURCE OF TRUTH for ban history.
@@ -119,11 +125,25 @@ const createCompanyDelinquency = async (data) => {
     ],
   );
 
-  // Apply automatic ban
-  const automaticAction = await checkAndApplyAutomaticCompanyBan({
-    companyUniqueId,
-    bannedBy: delinquencyCreatedBy,
-  });
+  // ── Auto-ban logic ───────────────────────────────────────────────────────
+  // Only apply automatic ban when the accuser is an admin or super-admin.
+  // Non-admin reporters (e.g., shippers) must go through the full dispute
+  // lifecycle: CompanyDelinquencyResponse → AdminDecisionOnDelinquency → Ban.
+  let automaticAction = { action: "none", reason: "Non-admin accuser — requires admin review" };
+
+  const [[accuser]] = await exec().query(
+    `SELECT roleId FROM Users WHERE userUniqueId = ? LIMIT 1`,
+    [delinquencyCreatedBy],
+  );
+  const isAdmin = accuser &&
+    (accuser.roleId === 3 || accuser.roleId === 6); // adminRoleId=3, supperAdminRoleId=6
+
+  if (isAdmin) {
+    automaticAction = await checkAndApplyAutomaticCompanyBan({
+      companyUniqueId,
+      bannedBy: delinquencyCreatedBy,
+    });
+  }
 
   return {
     message: "success",
