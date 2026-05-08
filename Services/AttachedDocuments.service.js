@@ -211,6 +211,7 @@ const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
 const updateAttachedDocument = async ({
   attachedDocumentUniqueId,
   roleId,
+  updatedByUserId,   // userUniqueId of the person triggering the update (for audit)
   documentExpirationDate,
   attachedDocumentDescription,
   attachedDocumentFileNumber,
@@ -229,41 +230,105 @@ const updateAttachedDocument = async ({
 
     const existingDoc = existingDocs[0];
 
-    // Check role requirement
-    const documentType = await getData({
-      tableName: "RoleDocumentRequirements",
-      conditions: {
-        documentTypeId: existingDoc.documentTypeId,
-        roleId,
-      },
-    });
+    // ── Role requirement check ─────────────────────────────────────────────
+    // For user-owned docs: check the user's own role.
+    // For company/vehicle docs: check entity roles (8 or 9) instead,
+    // because a company admin (roleId=7) updates docs mapped to roleId=8.
+    const executor = transactionStorage.getStore() || pool;
 
-    if (documentType.length === 0) {
-      throw new AppError(`Role Document requirement not found`, 400);
+    let documentType = null;
+
+    if (existingDoc.ownerType === "user") {
+      // Check user's own role requirement
+      const [userReqs] = await executor.query(
+        `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
+        [existingDoc.documentTypeId, roleId],
+      );
+      if (userReqs.length > 0) documentType = userReqs[0];
+
+      // Fallback: check entity roles if user's own role has no requirement
+      if (!documentType) {
+        const [entityReqs] = await executor.query(
+          `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId IN (8, 9) AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
+          [existingDoc.documentTypeId],
+        );
+        if (entityReqs.length > 0) documentType = entityReqs[0];
+      }
+    } else {
+      // Company or vehicle doc — check entity role directly
+      const entityRoleId = existingDoc.ownerType === "company" ? 8 : 9;
+      const [entityReqs] = await executor.query(
+        `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
+        [existingDoc.documentTypeId, entityRoleId],
+      );
+      if (entityReqs.length > 0) documentType = entityReqs[0];
     }
 
-    // Expiration date requirement
-    const isExpirationDateRequired = documentType?.[0].isExpirationDateRequired;
-    if (isExpirationDateRequired && !documentExpirationDate) {
+    // Expiration date enforcement (only if requirement specifies it)
+    if (documentType?.isExpirationDateRequired && !documentExpirationDate) {
       throw new AppError(`Document expiration date is required`, 400);
     }
 
-    // Expired check
+    // Reject if the supplied expiration date is already in the past
     if (documentExpirationDate) {
-      const isExpired = new Date(documentExpirationDate) < currentDate();
+      const isExpired = new Date(documentExpirationDate) < new Date();
       if (isExpired) {
-        throw new AppError(`Document is expired`, 400);
+        throw new AppError(`Document expiration date cannot be in the past`, 400);
       }
     }
 
-    // Prepare update data
+    // ── Snapshot current state to history BEFORE applying any changes ──────
+    const wasExpired = existingDoc.documentExpirationDate
+      ? new Date(existingDoc.documentExpirationDate) < new Date()
+      : false;
+
+    await executor.query(
+      `INSERT INTO AttachedDocumentsHistory (
+        attachedDocumentId, attachedDocumentUniqueId,
+        ownerType, ownerUniqueId,
+        attachedDocumentDescription, documentTypeId,
+        attachedDocumentFileNumber, documentExpirationDate,
+        attachedDocumentAcceptance,
+        attachedDocumentAcceptedRejectedByUserId, attachedDocumentAcceptedRejectedAt,
+        attachedDocumentName,
+        attachedDocumentCreatedByUserId, attachedDocumentUpdatedByUserId,
+        attachedDocumentCreatedAt, attachedDocumentUpdatedAt,
+        attachedDocumentIsExpired, attachedDocumentAcceptanceReason,
+        documentVersion
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        existingDoc.attachedDocumentId,
+        existingDoc.attachedDocumentUniqueId,
+        existingDoc.ownerType,
+        existingDoc.ownerUniqueId,
+        existingDoc.attachedDocumentDescription,
+        existingDoc.documentTypeId,
+        existingDoc.attachedDocumentFileNumber,
+        existingDoc.documentExpirationDate,
+        existingDoc.attachedDocumentAcceptance,
+        existingDoc.attachedDocumentAcceptedRejectedByUserId,
+        existingDoc.attachedDocumentAcceptedRejectedAt,
+        existingDoc.attachedDocumentName,
+        existingDoc.attachedDocumentCreatedByUserId,
+        updatedByUserId,              // who triggered this snapshot
+        existingDoc.attachedDocumentCreatedAt,
+        currentDate(),                // snapshot taken now
+        wasExpired,                   // was the old doc already expired?
+        existingDoc.attachedDocumentAcceptanceReason,
+        existingDoc.documentVersion,  // version at time of snapshot
+      ],
+    );
+
+    // ── Apply the update ───────────────────────────────────────────────────
     const newUpdateData = {
-      // change to PENDING status
-      attachedDocumentAcceptance: "PENDING",
+      attachedDocumentAcceptance: "PENDING",  // reset to pending on any change
       attachedDocumentDescription,
       attachedDocumentFileNumber,
       documentExpirationDate,
-      // attachedDocumentUpdatedAt: currentDate(),
+      documentVersion: existingDoc.documentVersion + 1,  // increment version
+      attachedDocumentAcceptedRejectedByUserId: null,    // clear old decision
+      attachedDocumentAcceptedRejectedAt: null,
+      attachedDocumentAcceptanceReason: null,
     };
 
     let oldFileUrl = null;
@@ -279,10 +344,10 @@ const updateAttachedDocument = async ({
     });
 
     if (result?.affectedRows > 0) {
-      // Async cleanup of the old file
+      // Async cleanup of the old file from FTP
       if (oldFileUrl) {
         deleteFromFTP(oldFileUrl).catch((err) => {
-          logger.warn("Failed to delete stale attached document", {
+          logger.warn("Failed to delete stale attached document from FTP", {
             oldFileUrl,
             error: err.message,
           });
@@ -293,6 +358,7 @@ const updateAttachedDocument = async ({
       throw new AppError("Failed to update document", 500);
     }
   } catch (error) {
+    if (error instanceof AppError) throw error;
     logger.error("Error updating attached document", {
       error: error.message,
       stack: error.stack,
@@ -374,6 +440,7 @@ const acceptRejectAttachedDocuments = async (body) => {
   // Extract polymorphic owner info
   const ownerUniqueId = attachedDocument[0]?.ownerUniqueId;
   const ownerType = attachedDocument[0]?.ownerType;
+  const docToSnapshot = attachedDocument[0];
 
   // For notifications we still need the phone number — only available for user owners
   let phoneNumber = null;
@@ -388,6 +455,49 @@ const acceptRejectAttachedDocuments = async (body) => {
   if (!ownerUniqueId) {
     throw new AppError("Document owner information not found", 400);
   }
+
+  // ── Snapshot current state to history BEFORE changing acceptance status ──
+  const executor = transactionStorage.getStore() || pool;
+  const wasExpired = docToSnapshot.documentExpirationDate
+    ? new Date(docToSnapshot.documentExpirationDate) < new Date()
+    : false;
+
+  await executor.query(
+    `INSERT INTO AttachedDocumentsHistory (
+      attachedDocumentId, attachedDocumentUniqueId,
+      ownerType, ownerUniqueId,
+      attachedDocumentDescription, documentTypeId,
+      attachedDocumentFileNumber, documentExpirationDate,
+      attachedDocumentAcceptance,
+      attachedDocumentAcceptedRejectedByUserId, attachedDocumentAcceptedRejectedAt,
+      attachedDocumentName,
+      attachedDocumentCreatedByUserId, attachedDocumentUpdatedByUserId,
+      attachedDocumentCreatedAt, attachedDocumentUpdatedAt,
+      attachedDocumentIsExpired, attachedDocumentAcceptanceReason,
+      documentVersion
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      docToSnapshot.attachedDocumentId,
+      docToSnapshot.attachedDocumentUniqueId,
+      docToSnapshot.ownerType,
+      docToSnapshot.ownerUniqueId,
+      docToSnapshot.attachedDocumentDescription,
+      docToSnapshot.documentTypeId,
+      docToSnapshot.attachedDocumentFileNumber,
+      docToSnapshot.documentExpirationDate,
+      docToSnapshot.attachedDocumentAcceptance,
+      docToSnapshot.attachedDocumentAcceptedRejectedByUserId,
+      docToSnapshot.attachedDocumentAcceptedRejectedAt,
+      docToSnapshot.attachedDocumentName,
+      docToSnapshot.attachedDocumentCreatedByUserId,
+      userUniqueId,              // admin who triggered this snapshot
+      docToSnapshot.attachedDocumentCreatedAt,
+      currentDate(),             // snapshot taken now
+      wasExpired,
+      docToSnapshot.attachedDocumentAcceptanceReason,
+      docToSnapshot.documentVersion,
+    ],
+  );
 
   // Proceed with updating the document's acceptance status
   const updatedDocument = await updateData({

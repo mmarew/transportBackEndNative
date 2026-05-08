@@ -311,8 +311,8 @@ CREATE TABLE IF NOT EXISTS AttachedDocuments (
     -- Application layer enforces referential integrity.
 
 
-    ownerType    ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
-    
+    ownerType ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
+
     ownerUniqueId VARCHAR(36) NOT NULL,
 
     attachedDocumentDescription VARCHAR(255) NULL,           -- Description of the attached document
@@ -348,25 +348,27 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
 
     attachedDocumentDescription VARCHAR(255) NULL,
     documentTypeId INT NOT NULL,
+    attachedDocumentFileNumber VARCHAR(25) NULL,                 -- Snapshot of file number at time of change
     documentExpirationDate DATETIME NULL,
     attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,
     attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,
     attachedDocumentAcceptedRejectedAt DATETIME NULL,
     attachedDocumentName VARCHAR(255) NOT NULL,
     attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,        -- Audit: who originally uploaded
-    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,
+    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,            -- Audit: who triggered this snapshot
     attachedDocumentDeletedByUserId VARCHAR(36) NULL,
     attachedDocumentCreatedAt DATETIME NOT NULL,
-    attachedDocumentUpdatedAt DATETIME NULL,
+    attachedDocumentUpdatedAt DATETIME NULL,                     -- When this snapshot was taken
     attachedDocumentDeletedAt DATETIME NULL,
-    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,
+    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,    -- Was the doc expired at snapshot time?
     attachedDocumentAcceptanceReason VARCHAR(255) NULL,
-    documentVersion INT NOT NULL DEFAULT 1,
+    documentVersion INT NOT NULL DEFAULT 1,                      -- Version number at snapshot time
 
     INDEX idx_history_owner (ownerType, ownerUniqueId),          -- Fast owner history lookup
     INDEX idx_history_documentTypeId (documentTypeId),
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 )  ;
+
 
  
 -- Create the PassengerRequest table

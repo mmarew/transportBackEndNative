@@ -6,7 +6,9 @@ const attachedDocumentsController = require("../Controllers/AttachedDocuments.co
 const multer = require("multer");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const checkDuplicateDocuments = require("../Middleware/CheckDuplicateDocuments");
-const { authorizeDocumentAccess } = require("../Middleware/AuthorizeDocumentAccess");
+const {
+  authorizeDocumentAccess,
+} = require("../Middleware/AuthorizeDocumentAccess");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -24,8 +26,11 @@ router.post(
   "/api/user/attachDocuments/:userUniqueId",
   verifyTokenOfAxios,
   validator(userParams, "params"),
-  (req, _res, next) => { req.ownerType = "user"; next(); },
-  authorizeDocumentAccess("write"),
+  (req, _res, next) => {
+    req.ownerType = "user";
+    next();
+  },
+  authorizeDocumentAccess(),
   upload.any(),
   checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
@@ -41,7 +46,7 @@ router.post(
     req.ownerUniqueIdParam = req.params.companyUniqueId;
     next();
   },
-  authorizeDocumentAccess("write"),
+  authorizeDocumentAccess(),
   upload.any(),
   checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
@@ -57,7 +62,7 @@ router.post(
     req.ownerUniqueIdParam = req.params.vehicleUniqueId;
     next();
   },
-  authorizeDocumentAccess("write"),
+  authorizeDocumentAccess(),
   upload.any(),
   checkDuplicateDocuments,
   attachedDocumentsController.createAttachedDocuments,
@@ -68,8 +73,11 @@ router.get(
   "/api/user/attachedDocuments",
   verifyTokenOfAxios,
   validator(getAttachedDocumentsQuery, "query"),
-  (req, _res, next) => { req.ownerType = "user"; next(); },
-  authorizeDocumentAccess("read"),
+  (req, _res, next) => {
+    req.ownerType = "user";
+    next();
+  },
+  authorizeDocumentAccess(),
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
@@ -82,7 +90,7 @@ router.get(
     req.ownerUniqueIdParam = req.params.companyUniqueId;
     next();
   },
-  authorizeDocumentAccess("read"),
+  authorizeDocumentAccess(),
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
@@ -95,7 +103,7 @@ router.get(
     req.ownerUniqueIdParam = req.params.vehicleUniqueId;
     next();
   },
-  authorizeDocumentAccess("read"),
+  authorizeDocumentAccess(),
   attachedDocumentsController.getAttachedDocumentsByFilter,
 );
 
@@ -104,19 +112,21 @@ router.put(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   verifyTokenOfAxios,
   validator(attachedDocumentParams, "params"),
-  (req, _res, next) => { req.ownerType = "user"; next(); },
-  authorizeDocumentAccess("write"),
+  (req, _res, next) => {
+    req.ownerType = "user";
+    next();
+  },
+  authorizeDocumentAccess(),
   upload.any(),
   attachedDocumentsController.updateAttachedDocument,
 );
 
-// ── Delete a document ────────────────────────────────────────────────────────
+// ── Delete a document (admin / superAdmin only) ─────────────────────────────
 router.delete(
   "/api/user/attachedDocuments/:attachedDocumentUniqueId",
   verifyTokenOfAxios,
+  verifyAdminsIdentity,
   validator(attachedDocumentParams, "params"),
-  (req, _res, next) => { req.ownerType = "user"; next(); },
-  authorizeDocumentAccess("delete"),
   attachedDocumentsController.deleteAttachedDocument,
 );
 

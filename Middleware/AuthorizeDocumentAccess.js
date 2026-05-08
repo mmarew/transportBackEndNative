@@ -18,7 +18,7 @@
  *   router.get('/api/company/attachedDocuments/:companyUniqueId',
  *     verifyTokenOfAxios,
  *     (req, _res, next) => { req.ownerType = 'company'; req.ownerUniqueIdParam = req.params.companyUniqueId; next(); },
- *     authorizeDocumentAccess('read'),
+ *     authorizeDocumentAccess(),
  *     controller.getAttachedDocumentsByFilter,
  *   );
  */
@@ -29,11 +29,9 @@ const { usersRolesList, companyRoles } = require("../Utils/ListOfSeedData");
 
 /**
  * Returns an Express middleware that checks if the requesting user is allowed
- * to perform `action` ('read' | 'write' | 'delete') on the resolved owner context.
- *
- * @param {'read'|'write'|'delete'} action
+ * to access the resolved owner context.
  */
-const authorizeDocumentAccess = (action = "read") => {
+const authorizeDocumentAccess = () => {
   return async (req, _res, next) => {
     try {
       const currentUser = req.user;

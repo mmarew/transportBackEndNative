@@ -437,11 +437,13 @@ const updateAttachedDocument = async (req, res, next) => {
     const updatePayload = {
       attachedDocumentUniqueId,
       roleId,
+      updatedByUserId: user?.userUniqueId,   // audit: who triggered this update
       documentExpirationDate,
       attachedDocumentDescription,
       attachedDocumentFileNumber,
       attachedDocumentName: fileUrl,
     };
+
 
     const result = await executeInTransaction(async () => {
       return await attachedDocumentsService.updateAttachedDocument(
