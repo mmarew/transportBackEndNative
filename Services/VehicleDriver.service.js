@@ -3,7 +3,7 @@ const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const logger = require("../Utils/logger");
+
 const { transactionStorage } = require("../Utils/TransactionContext");
 
 // Create a new VehicleDriver assignment

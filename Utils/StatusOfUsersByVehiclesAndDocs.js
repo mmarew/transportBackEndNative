@@ -19,10 +19,11 @@ const findStatusByVehicleAndDocuments = (data) => {
   const requiredCount = requiredDocuments?.length || 0;
 
   // Fix: Count unique document types that have at least one ACCEPTED document
-  const acceptedDocTypes = new Set(
-    attachedDocumentsByStatus?.ACCEPTED?.map((doc) => doc.documentTypeId) || [],
-  );
-  const acc = acceptedDocTypes.size;
+  // (Left commented as they aren't directly used below)
+  // const acceptedDocTypes = new Set(
+  //   attachedDocumentsByStatus?.ACCEPTED?.map((doc) => doc.documentTypeId) || [],
+  // );
+  // const acc = acceptedDocTypes.size;
 
   const pend = attachedDocumentsByStatus?.PENDING?.length || 0;
   const rej = attachedDocumentsByStatus?.REJECTED?.length || 0;

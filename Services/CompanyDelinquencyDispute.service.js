@@ -36,7 +36,7 @@ const createDelinquencyResponse = async ({
      WHERE companyDelinquencyUniqueId = ? LIMIT 1`,
     [companyDelinquencyUniqueId],
   );
-  if (!delinquency) throw new AppError("Delinquency not found", 404);
+  if (!delinquency) {throw new AppError("Delinquency not found", 404);}
 
   // Prevent duplicate responses to the same delinquency
   const [[existing]] = await exec().query(
@@ -165,7 +165,7 @@ const createAdminDecision = async ({
      WHERE companyDelinquencyUniqueId = ? LIMIT 1`,
     [companyDelinquencyUniqueId],
   );
-  if (!delinquency) throw new AppError("Delinquency not found", 404);
+  if (!delinquency) {throw new AppError("Delinquency not found", 404);}
 
   // Validate that response exists if provided
   if (companyDelinquencyResponseUniqueId) {
@@ -177,7 +177,7 @@ const createAdminDecision = async ({
          AND companyDelinquencyResponseDeletedAt IS NULL LIMIT 1`,
       [companyDelinquencyResponseUniqueId, companyDelinquencyUniqueId],
     );
-    if (!response) throw new AppError("Response not found or does not belong to this delinquency", 404);
+    if (!response) {throw new AppError("Response not found or does not belong to this delinquency", 404);}
   }
 
   // Prevent duplicate decisions on the same delinquency

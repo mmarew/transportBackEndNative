@@ -1,7 +1,7 @@
 const ServerResponder = require("../Utils/ServerResponder");
 const AccountService = require("../Services/Account.service");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
-const AppError = require("../Utils/AppError");
+
 
 /**
  * GET /api/me/account  (and role-scoped variants)

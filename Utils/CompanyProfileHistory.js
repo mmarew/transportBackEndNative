@@ -117,12 +117,12 @@ exports.recordProfileChanges = async ({
   const rows = [];
 
   for (const field of PROFILE_FIELDS) {
-    if (newData[field] === undefined) continue;
+    if (newData[field] === undefined) {continue;}
 
-    const oldVal = oldData[field] != null ? String(oldData[field]) : null;
-    const newVal = newData[field] != null ? String(newData[field]) : null;
+    const oldVal = oldData[field] !== null ? String(oldData[field]) : null;
+    const newVal = newData[field] !== null ? String(newData[field]) : null;
 
-    if (oldVal === newVal) continue;
+    if (oldVal === newVal) {continue;}
 
     rows.push([
       uuidv4(),
@@ -137,7 +137,7 @@ exports.recordProfileChanges = async ({
     ]);
   }
 
-  if (rows.length === 0) return;
+  if (rows.length === 0) {return;}
 
   await exec().query(
     `INSERT INTO CompanyProfileHistory

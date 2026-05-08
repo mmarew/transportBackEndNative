@@ -91,27 +91,27 @@ async function createJourneyDecisionForAssignment(
     [passengerRequestUniqueId],
   );
   if (!prRow)
-    throw new AppError(
-      "Passenger request not found while creating JourneyDecision",
-      404,
-    );
+  {throw new AppError(
+    "Passenger request not found while creating JourneyDecision",
+    404,
+  );}
 
   const [[drRow]] = await db().query(
     "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
     [driverRequestUniqueId],
   );
   if (!drRow)
-    throw new AppError(
-      "Driver request not found while creating JourneyDecision",
-      404,
-    );
+  {throw new AppError(
+    "Driver request not found while creating JourneyDecision",
+    404,
+  );}
 
   // Idempotency: if a decision already exists for this driverRequestId, return it
   const [[existing]] = await db().query(
     "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
     [drRow.driverRequestId],
   );
-  if (existing) return existing.journeyDecisionUniqueId;
+  if (existing) {return existing.journeyDecisionUniqueId;}
 
   const journeyDecisionUniqueId = uuidv4();
   await db().query(
@@ -506,7 +506,7 @@ exports.createBulkAssignments = async (data) => {
   }
 
   // 2. Optimized: Cache status IDs for the loop
-  const acceptedStatusId = journeyStatusMap.acceptedByDriver;
+  // const acceptedStatusId = journeyStatusMap.acceptedByDriver;
 
   const results = [];
 

@@ -1,5 +1,5 @@
 const mysql = require("mysql2/promise");
-const { companyRoles, companyRoleList } = require("./Utils/ListOfSeedData");
+// const { companyRoles, companyRoleList } = require("./Utils/ListOfSeedData");
 
 const config = {
   host: "localhost",

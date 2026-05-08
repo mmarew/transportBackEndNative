@@ -75,7 +75,7 @@ exports.addMember = async (data) => {
   );
   return { message: "success", data: { membershipUniqueId } };
 };
-("INSERT INTO CompanyMembership\n      (membershipUniqueId, companyUniqueId, userUniqueId, companyRoleUniqueId,\n       isActive, membershipStartDate, membershipEndDate,\n       membershipCreatedBy, membershipCreatedAt)\n     VALUES ('42e2225c-4c42-4cb2-98c9-93cadf2ca611', '78a64dd5-df3c-4103-b670-08a88e306b5d', '53ac1089-a02e-4246-8861-93fa9fda290a', '57898801-e280-4020-9178-f5122fe6bec9', 1, '2026-04-07 06:58:17', NULL, '53ac1089-a02e-4246-8861-93fa9fda290a', '2026-04-07 06:58:17')",
+
 /**
    * Retrieves a list of company members with roles and user profile details.
    * Performs JOINs with CompanyRoles and Users tables.
@@ -84,7 +84,7 @@ exports.addMember = async (data) => {
    * @param {Object} [user={}] - Authenticated user object for data segregation
    * @returns {Promise<Object>} Paginated list of members with fullName, role name, etc.
    */
-(exports.getMembers = async (filters = {}, user = {}) => {
+exports.getMembers = async (filters = {}, user = {}) => {
   const { page, limit, offset } = paginate(filters);
   const clauses = ["cm.membershipDeletedAt IS NULL"];
   const params = [];
@@ -136,7 +136,7 @@ exports.addMember = async (data) => {
     limit,
     offset,
   );
-}));
+};
 
 exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
   const [res] = await db().query(

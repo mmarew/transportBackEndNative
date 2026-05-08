@@ -43,7 +43,6 @@ const createVehicleStatus = async (data) => {
     vehicleStatusCreatedBy,
     vehicleStatusCreatedAt: currentDate(),
   };
-  console.log("@createVehicleStatus colAndVal", colAndVal);
   // Insert new status
   const result = await insertData({
     tableName: "VehicleStatus",

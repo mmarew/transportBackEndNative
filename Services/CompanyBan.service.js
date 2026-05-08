@@ -286,7 +286,7 @@ const banCompany = async ({
     `SELECT companyBanId FROM CompanyBan WHERE companyUniqueId = ? AND isActive = TRUE AND banExpiresAt > NOW() LIMIT 1`,
     [companyUniqueId],
   );
-  if (existing) throw new AppError("Company already has an active ban", 409);
+  if (existing) {throw new AppError("Company already has an active ban", 409);}
 
   const companyBanUniqueId = uuidv4();
   const banAt = new Date();
@@ -359,7 +359,7 @@ const unbanCompany = async ({ companyBanUniqueId, unbannedBy }) => {
     `SELECT companyUniqueId FROM CompanyBan WHERE companyBanUniqueId = ? LIMIT 1`,
     [companyBanUniqueId],
   );
-  if (!ban) throw new AppError("Ban record not found", 404);
+  if (!ban) {throw new AppError("Ban record not found", 404);}
 
   await exec().query(
     `UPDATE CompanyBan SET isActive = FALSE WHERE companyBanUniqueId = ?`,

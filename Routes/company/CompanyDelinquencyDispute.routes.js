@@ -12,7 +12,6 @@ const { registerRoutes } = require("../../Utils/RouteUtils");
 const {
   createDelinquencyResponse,
   getDelinquencyResponsesQuery,
-  delinquencyResponseParams,
   createAdminDecision,
   getAdminDecisionsQuery,
 } = require("../../Validations/CompanyDelinquencyDispute.schema");
@@ -43,7 +42,10 @@ const routes = [
   {
     path: "/response",
     method: "get",
-    middleware: [verifyTokenOfAxios, validator(getDelinquencyResponsesQuery, "query")],
+    middleware: [
+      verifyTokenOfAxios,
+      validator(getDelinquencyResponsesQuery, "query"),
+    ],
     handler: controller.getDelinquencyResponses,
   },
 

@@ -179,11 +179,11 @@ const handleJourneyStatusOne = async (
       // The DriverRequest may have been reset to 1 by a previous poll cycle.
       // If the assignment is still "assigned", promote back to status 2 and
       // return the passenger + decision so the frontend shows IncomingRequests.
-      if (companyAssignment?.assignmentStatus === 'assigned') {
+      if (companyAssignment?.assignmentStatus === "assigned") {
         try {
           // Re-sync DriverRequest to status 2 in case it was reset
           await updateData({
-            tableName: 'DriverRequest',
+            tableName: "DriverRequest",
             conditions: { driverRequestUniqueId: companyAssignment.driverRequestUniqueId },
             updateValues: {
               journeyStatusId: journeyStatusMap.requested,
@@ -193,7 +193,7 @@ const handleJourneyStatusOne = async (
 
           // Fetch the PassengerRequest for this assignment
           const passengerRows = await getData({
-            tableName: 'PassengerRequest',
+            tableName: "PassengerRequest",
             conditions: { passengerRequestUniqueId: companyAssignment.passengerRequestUniqueId },
           });
           const passenger = passengerRows?.[0] ?? null;
@@ -207,7 +207,7 @@ const handleJourneyStatusOne = async (
           let decision = null;
           if (driverRequestId) {
             const decisionRows = await getData({
-              tableName: 'JourneyDecisions',
+              tableName: "JourneyDecisions",
               conditions: { driverRequestId },
             });
             decision = decisionRows?.[0] ?? null;
@@ -224,7 +224,7 @@ const handleJourneyStatusOne = async (
             companyAssignment,
           };
         } catch (promotionErr) {
-          logger.warn('Could not promote company-assigned driver to status 2', {
+          logger.warn("Could not promote company-assigned driver to status 2", {
             error: promotionErr.message,
             driverUserUniqueId: userUniqueId,
           });

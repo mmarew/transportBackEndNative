@@ -34,7 +34,7 @@ exports.createCompanyRating = async ({
      WHERE cbr.companyBidRequestUniqueId = ? LIMIT 1`,
     [companyBidRequestUniqueId],
   );
-  if (!bid) throw new AppError("Freight job not found", 404);
+  if (!bid) {throw new AppError("Freight job not found", 404);}
 
   // 2. Prevent duplicate rating
   const [[existing]] = await exec().query(
@@ -42,7 +42,7 @@ exports.createCompanyRating = async ({
      WHERE companyBidRequestUniqueId = ? AND companyRatingDeletedAt IS NULL LIMIT 1`,
     [companyBidRequestUniqueId],
   );
-  if (existing) throw new AppError("A rating already exists for this job", 409);
+  if (existing) {throw new AppError("A rating already exists for this job", 409);}
 
   // 3. Insert
   const companyRatingUniqueId = uuidv4();
@@ -178,7 +178,7 @@ exports.updateCompanyRating = async (companyRatingUniqueId, { rating, comment, u
      WHERE companyRatingUniqueId = ? AND companyRatingDeletedAt IS NULL LIMIT 1`,
     [companyRatingUniqueId],
   );
-  if (!existing) throw new AppError("Rating not found", 404);
+  if (!existing) {throw new AppError("Rating not found", 404);}
 
   const fields = [];
   const values = [];
@@ -201,7 +201,7 @@ exports.deleteCompanyRating = async (companyRatingUniqueId, deletedBy) => {
      WHERE companyRatingUniqueId = ? AND companyRatingDeletedAt IS NULL LIMIT 1`,
     [companyRatingUniqueId],
   );
-  if (!existing) throw new AppError("Rating not found", 404);
+  if (!existing) {throw new AppError("Rating not found", 404);}
 
   await exec().query(
     `UPDATE CompanyRating

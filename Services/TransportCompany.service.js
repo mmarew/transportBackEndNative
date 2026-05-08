@@ -8,7 +8,7 @@ const {
   db,
   findOne,
   paginate,
-  paginatedQuery,
+
 } = require("./CompanyHelper.service");
 const { addMember } = require("./CompanyMembership.service");
 const { recordStatusChange, recordProfileChanges } = require("../Utils/CompanyProfileHistory");
@@ -261,15 +261,15 @@ exports.getCompanies = async (filters = {}, user = {}) => {
         uploadedAt:                 row.attachedDocumentCreatedAt ?? null,
       };
 
-      if      (row.docStatus === "ACCEPTED")     entry.accepted.push(doc);
-      else if (row.docStatus === "PENDING")      entry.pending.push(doc);
-      else if (row.docStatus === "REJECTED")     entry.rejected.push(doc);
-      else                                       entry.notAttached.push(doc);
+      if      (row.docStatus === "ACCEPTED")     {entry.accepted.push(doc);}
+      else if (row.docStatus === "PENDING")      {entry.pending.push(doc);}
+      else if (row.docStatus === "REJECTED")     {entry.rejected.push(doc);}
+      else                                       {entry.notAttached.push(doc);}
     }
 
     // isCompliant = all mandatory docs are in ACCEPTED list
     for (const id of companyIds) {
-      if (!complianceMap[id]) continue;
+      if (!complianceMap[id]) {continue;}
       const e = complianceMap[id];
       const mandatoryNotDone = [...e.pending, ...e.rejected, ...e.notAttached]
         .filter((d) => d.isDocumentMandatory);
@@ -377,7 +377,7 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
      FROM TransportCompany WHERE companyUniqueId = ? AND isDeleted = 0 LIMIT 1`,
     [companyUniqueId],
   );
-  if (!currentRow) throw new AppError("Company not found", 404);
+  if (!currentRow) {throw new AppError("Company not found", 404);}
 
   setParts.push("companyUpdatedBy = ?", "companyUpdatedAt = ?");
   vals.push(updatedBy, currentDate(), companyUniqueId);

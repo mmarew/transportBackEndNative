@@ -22,7 +22,7 @@
 const http  = require("http");
 const https = require("https");
 const Config = require("../Utils/Config");
-const { randomUUID } = require("crypto");
+// const { randomUUID } = require("crypto");
 
 const BASE_URL         = (Config.APP_API_URL || "http://localhost:3000").replace(/\/+$/, "");
 const SUPER_ADMIN_PHONE = Config.SUPER_ADMIN.PHONE || "+251983222221";
@@ -39,7 +39,7 @@ function request(method, path, body = null, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const bodyStr = body ? JSON.stringify(body) : null;
     const headers = { "Content-Type": "application/json", ...extraHeaders };
-    if (bodyStr) headers["Content-Length"] = Buffer.byteLength(bodyStr);
+    if (bodyStr) {headers["Content-Length"] = Buffer.byteLength(bodyStr);}
     const req = transport.request(
       { hostname: parsedBase.hostname, port: parsedBase.port || 80, path, method, headers },
       (res) => {
@@ -52,7 +52,7 @@ function request(method, path, body = null, extraHeaders = {}) {
       },
     );
     req.on("error", reject);
-    if (bodyStr) req.write(bodyStr);
+    if (bodyStr) {req.write(bodyStr);}
     req.end();
   });
 }
@@ -114,7 +114,7 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) throw new Error(msg);
+  if (!cond) {throw new Error(msg);}
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -204,7 +204,7 @@ function assert(cond, msg) {
   await step("Approve company (skip if docs required)", async () => {
     const r = await request("PATCH", `/api/company/companies/${s.companyUniqueId}/approve`,
       { approvalStatus: "approved", approvalReason: "Test approval" }, adminH());
-    if (r.status === 422) return "Skipped — company documents not uploaded (out of scope for this test)";
+    if (r.status === 422) {return "Skipped — company documents not uploaded (out of scope for this test)";}
     assert(r.body?.message === "success", `Approve failed: ${JSON.stringify(r.body)}`);
     return "Approved";
   });
@@ -262,7 +262,7 @@ function assert(cond, msg) {
       skipDuplicateCheck: true,
     }, adminH());
     const tempId = r2.body?.userDelinquencyUniqueId || r2.body?.data?.userDelinquencyUniqueId;
-    if (!tempId) return "Skipped — could not create temp delinquency";
+    if (!tempId) {return "Skipped — could not create temp delinquency";}
 
     // Only delete if no ban was auto-created for it
     if (r2.body?.automaticAction?.action === "none") {
@@ -292,13 +292,13 @@ function assert(cond, msg) {
     const urRes = await request("GET",
       `/api/user/userRoles?userUniqueId=${s.driverUniqueId}&roleId=2`, null, adminH());
     const userRole = urRes.body?.data?.[0];
-    if (!userRole?.userRoleUniqueId) return "Skipped — could not find userRoleUniqueId for driver";
+    if (!userRole?.userRoleUniqueId) {return "Skipped — could not find userRoleUniqueId for driver";}
     const r = await request("POST", "/api/admin/banned-users", {
       userRoleUniqueId: userRole.userRoleUniqueId,
       reason: "Manual test ban for commission evasion",
       banDuration: 3,
     }, adminH());
-    if (r.status === 409) return "Skipped — driver already under auto-ban";
+    if (r.status === 409) {return "Skipped — driver already under auto-ban";}
     assert(r.body?.message === "success", `Ban failed: ${JSON.stringify(r.body)}`);
     s.banUniqueId = r.body?.banUniqueId;
     return `banUniqueId: ${s.banUniqueId}`;
@@ -312,7 +312,7 @@ function assert(cond, msg) {
   });
 
   await step("Unban driver", async () => {
-    if (!s.banUniqueId) return "Skipped — no banUniqueId available";
+    if (!s.banUniqueId) {return "Skipped — no banUniqueId available";}
     const r = await request("DELETE", `/api/admin/banned-users?banUniqueId=${s.banUniqueId}&phoneNumber=${encodeURIComponent(DRIVER_PHONE)}&roleId=2&newStatusId=1`,
       null, adminH());
     assert(r.body?.message === "success", `Unban failed: ${JSON.stringify(r.body)}`);
@@ -344,7 +344,7 @@ function assert(cond, msg) {
     assert(s.companyDelinquencyUniqueId, `No companyDelinquencyUniqueId in: ${JSON.stringify(r.body)}`);
     const action = r.body?.automaticAction;
     // Capture auto-ban UUID if threshold was met (30 pts = 7-day ban)
-    if (action?.companyBanUniqueId) s.companyBanUniqueId = action.companyBanUniqueId;
+    if (action?.companyBanUniqueId) {s.companyBanUniqueId = action.companyBanUniqueId;}
     return `uuid: ${s.companyDelinquencyUniqueId} | auto-ban: ${action?.action} | banId: ${s.companyBanUniqueId || "none"}`;
   });
 
@@ -378,8 +378,8 @@ function assert(cond, msg) {
     // 30 pts auto-creates a ban, so delete should be blocked
     const r = await request("DELETE",
       `/api/company/admin/delinquency/${s.companyDelinquencyUniqueId}`, null, adminH());
-    if (r.status === 400) return "Correctly blocked — ban is linked";
-    if (r.body?.message === "success") return "Deleted (no ban was linked)";
+    if (r.status === 400) {return "Correctly blocked — ban is linked";}
+    if (r.body?.message === "success") {return "Deleted (no ban was linked)";}
     return `status ${r.status}`;
   });
 
@@ -401,7 +401,7 @@ function assert(cond, msg) {
   });
 
   await step("Manual ban company (if no auto-ban)", async () => {
-    if (s.companyBanUniqueId) return "Skipped — auto-ban already exists";
+    if (s.companyBanUniqueId) {return "Skipped — auto-ban already exists";}
     const r = await request("POST", "/api/company/admin/delinquency/bans", {
       companyUniqueId: s.companyUniqueId,
       companyDelinquencyUniqueId: s.companyDelinquencyUniqueId,
@@ -435,7 +435,7 @@ function assert(cond, msg) {
   });
 
   await step("Unban company → approvalStatus restored to approved", async () => {
-    if (!s.companyBanUniqueId) return "Skipped — no companyBanUniqueId";
+    if (!s.companyBanUniqueId) {return "Skipped — no companyBanUniqueId";}
     const r = await request("PATCH",
       `/api/company/admin/delinquency/bans/${s.companyBanUniqueId}/unban`, null, adminH());
     assert(r.body?.message === "success", `Unban failed: ${JSON.stringify(r.body)}`);
@@ -462,7 +462,7 @@ function assert(cond, msg) {
   for (const r of results) {
     const icon = r.pass ? "\x1b[32m✅\x1b[0m" : "\x1b[31m❌\x1b[0m";
     console.log(`  ${icon} [${r.num}] ${r.name}`);
-    if (!r.pass) console.log(`       → ${r.error}`);
+    if (!r.pass) {console.log(`       → ${r.error}`);}
   }
   console.log(`\n  Total: ${results.length}  \x1b[32mPassed: ${passed}\x1b[0m  \x1b[31mFailed: ${failed}\x1b[0m`);
   if (failed === 0) {

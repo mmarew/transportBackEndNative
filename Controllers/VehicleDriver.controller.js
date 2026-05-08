@@ -13,7 +13,7 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 // Shared helper — recalculates driver status on pool AFTER transaction is done.
 // Must be called outside executeInTransaction to avoid holding write locks.
 const refreshDriverStatus = async (driverUserUniqueId) => {
-  if (!driverUserUniqueId) return;
+  if (!driverUserUniqueId) {return;}
   try {
     await accountStatus({
       ownerUserUniqueId: driverUserUniqueId,

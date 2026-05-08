@@ -1437,7 +1437,7 @@ const verifyPassengerStatus = async ({
     if (journeyStatusId === journeyStatusMap?.waiting) {
       // company_target requests go through the company bid → assignment flow.
       // They must NEVER be auto-matched to individual drivers here.
-      if (passengerRequest.requestMode === 'company_target') {
+      if (passengerRequest.requestMode === "company_target") {
         continue;
       }
 

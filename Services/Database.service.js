@@ -6,7 +6,7 @@ const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const mysql = require("mysql2/promise");
 const { v4: uuidv4 } = require("uuid");
-const { transactionStorage } = require("../Utils/TransactionContext");
+
 const {
   vehicleTypes,
   driversDocumentRequirement,
@@ -191,14 +191,14 @@ const checkTableExists = async (tableName) => {
     WHERE table_schema = DATABASE() 
     AND table_name = ?;
   `;
-  const executor = transactionStorage.getStore() || pool;
+  
   const [rows] = await executor.query(sqlQuery, [tableName]);
   return rows[0].tableExists > 0;
 };
 
 const dropTable = async (tables) => {
   const tableList = Array.isArray(tables) ? tables : [tables];
-  const executor = transactionStorage.getStore() || pool;
+  
 
   try {
     await executor.query(`SET FOREIGN_KEY_CHECKS = 0;`);
@@ -224,7 +224,7 @@ const dropAllTables = async () => {
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
   const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
   const maxRetries = 3;
-  const executor = transactionStorage.getStore() || pool;
+  
 
   try {
     await executor.query(disableForeignKeyChecks);
@@ -269,7 +269,7 @@ const dropAllTables = async () => {
 
 const updateTable = async (tableName, updateData) => {
   const { columnName, columnType, defaultValue, foreignKey } = updateData;
-  const executor = transactionStorage.getStore() || pool;
+  
 
   // 1. Add the column itself
   const addColumnSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnType} DEFAULT ${defaultValue}`;
@@ -312,7 +312,7 @@ const changeColumnProperty = async (
   { oldColumnName, newColumnName, newColumnType },
 ) => {
   const sqlQuery = `ALTER TABLE ${tableName} CHANGE ${oldColumnName} ${newColumnName} ${newColumnType}`;
-  const executor = transactionStorage.getStore() || pool;
+  
 
   await executor.query(sqlQuery);
   return {
@@ -323,7 +323,7 @@ const changeColumnProperty = async (
 
 const dropColumn = async (tableName, columnName) => {
   const sqlQuery = `ALTER TABLE ${tableName} DROP COLUMN ${columnName}`;
-  const executor = transactionStorage.getStore() || pool;
+  
 
   await executor.query(sqlQuery);
   return {
@@ -473,7 +473,7 @@ const installPreDefinedData = async (req) => {
     "JourneyStatus",
   );
 
-  const executor = transactionStorage.getStore() || pool;
+  
 
   await processDataSequentially(
     statusList,

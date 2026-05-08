@@ -194,9 +194,9 @@ const accountStatus = async ({
       // Build filters: exact phone/email match + roleId so the SQL JOIN
       // filters to exactly the role the admin is asking about.
       const userFilters = { exactMatch: true };
-      if (phoneNumber) userFilters.phoneNumber = phoneNumber;
-      if (email)       userFilters.email       = email;
-      if (requestedRoleId) userFilters.roleId  = Number(requestedRoleId);
+      if (phoneNumber) {userFilters.phoneNumber = phoneNumber;}
+      if (email)       {userFilters.email       = email;}
+      if (requestedRoleId) {userFilters.roleId  = Number(requestedRoleId);}
 
       const userResult = await getUserByFilterDetailed(userFilters, 1, 1);
       if (

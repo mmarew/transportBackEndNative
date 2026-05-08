@@ -155,7 +155,7 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     const waitingRequests = newRequests.filter(
       (req) =>
         req?.journeyStatusId === journeyStatusMap.waiting &&
-        req?.requestMode !== 'company_target',
+        req?.requestMode !== "company_target",
     );
 
     if (waitingRequests.length > 0) {

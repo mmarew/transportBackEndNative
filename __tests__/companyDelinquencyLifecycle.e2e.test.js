@@ -29,7 +29,7 @@ let COMPANY_TOKEN = process.env.TEST_COMPANY_TOKEN || null;
  * Returns null if login fails (tests will skip gracefully).
  */
 async function resolveAdminToken() {
-  if (ADMIN_TOKEN) return ADMIN_TOKEN; // already have one (env var)
+  if (ADMIN_TOKEN) {return ADMIN_TOKEN;} // already have one (env var)
 
   const phone = process.env.SUPER_ADMIN_PHONE || "+251983222221";
   const otp = process.env.TEST_OTP || 101010;
@@ -44,14 +44,14 @@ async function resolveAdminToken() {
       ADMIN_TOKEN = token;
       return token;
     }
-  } catch (_) { /* ignore */ }
+  } catch { /* ignore */ }
 
   console.warn("⚠️  Could not obtain admin token. Set TEST_ADMIN_TOKEN env var to run admin tests.");
   return null;
 }
 
 async function resolveCompanyToken() {
-  if (COMPANY_TOKEN) return COMPANY_TOKEN;
+  if (COMPANY_TOKEN) {return COMPANY_TOKEN;}
   // Fallback: reuse admin token (admin can act on company routes too)
   COMPANY_TOKEN = ADMIN_TOKEN;
   return COMPANY_TOKEN;
@@ -170,7 +170,7 @@ describe("1. POST /api/company/admin/delinquency — create delinquency", () => 
   });
 
   test("rejects missing required fields", async () => {
-    if (!companyUniqueId) return;
+    if (!companyUniqueId) {return;}
     const res = await request(app)
       .post("/api/company/admin/delinquency")
       .set(auth(ADMIN_TOKEN))
@@ -202,7 +202,7 @@ describe("1. POST /api/company/admin/delinquency — create delinquency", () => 
   });
 
   test("delinquency record exists in DB", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
     const [[row]] = await pool.query(
       `SELECT companyDelinquencyUniqueId, companyUniqueId FROM CompanyDelinquency
        WHERE companyDelinquencyUniqueId = ?`,
@@ -218,7 +218,7 @@ describe("1. POST /api/company/admin/delinquency — create delinquency", () => 
 // ═════════════════════════════════════════════════════════════════════════════
 describe("2. GET /api/company/admin/delinquency — list delinquencies", () => {
   test("returns paginated list with the created delinquency", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .get("/api/company/admin/delinquency")
@@ -255,7 +255,7 @@ describe("2. GET /api/company/admin/delinquency — list delinquencies", () => {
 // ═════════════════════════════════════════════════════════════════════════════
 describe("3. POST /api/company/delinquency-response/response — company dispute", () => {
   test("rejects response shorter than 10 characters", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
     const res = await request(app)
       .post("/api/company/delinquency-response/response")
       .set(auth(COMPANY_TOKEN))
@@ -267,7 +267,7 @@ describe("3. POST /api/company/delinquency-response/response — company dispute
   });
 
   test("company submits a valid dispute response", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/delinquency-response/response")
@@ -288,7 +288,7 @@ describe("3. POST /api/company/delinquency-response/response — company dispute
   });
 
   test("duplicate response to the same delinquency is blocked", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/delinquency-response/response")
@@ -302,7 +302,7 @@ describe("3. POST /api/company/delinquency-response/response — company dispute
   });
 
   test("response record is stored correctly in DB", async () => {
-    if (!companyDelinquencyResponseUniqueId) return;
+    if (!companyDelinquencyResponseUniqueId) {return;}
     const [[row]] = await pool.query(
       `SELECT * FROM CompanyDelinquencyResponse
        WHERE companyDelinquencyResponseUniqueId = ?`,
@@ -318,7 +318,7 @@ describe("3. POST /api/company/delinquency-response/response — company dispute
 // ═════════════════════════════════════════════════════════════════════════════
 describe("4. GET /api/company/delinquency-response/response — list responses", () => {
   test("admin can list responses filtered by delinquency", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .get("/api/company/delinquency-response/response")
@@ -345,7 +345,7 @@ describe("4. GET /api/company/delinquency-response/response — list responses",
 // ═════════════════════════════════════════════════════════════════════════════
 describe("5. POST /api/company/delinquency-response/decision — DISMISSED outcome", () => {
   test("DISMISSED: requires adminDecisionText of at least 10 chars", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
       .set(auth(ADMIN_TOKEN))
@@ -358,7 +358,7 @@ describe("5. POST /api/company/delinquency-response/decision — DISMISSED outco
   });
 
   test("DISMISSED: successfully records admin decision", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
@@ -382,7 +382,7 @@ describe("5. POST /api/company/delinquency-response/decision — DISMISSED outco
   });
 
   test("DISMISSED: delinquency record still exists (no side-effect)", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
     const [[row]] = await pool.query(
       `SELECT companyDelinquencyUniqueId FROM CompanyDelinquency
        WHERE companyDelinquencyUniqueId = ?`,
@@ -393,7 +393,7 @@ describe("5. POST /api/company/delinquency-response/decision — DISMISSED outco
   });
 
   test("duplicate admin decision on same delinquency is blocked", async () => {
-    if (!companyDelinquencyUniqueId) return;
+    if (!companyDelinquencyUniqueId) {return;}
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
       .set(auth(ADMIN_TOKEN))
@@ -414,7 +414,7 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
   let rejectedDecisionUniqueId;
 
   beforeAll(async () => {
-    if (!companyUniqueId || !delinquencyTypeUniqueId) return;
+    if (!companyUniqueId || !delinquencyTypeUniqueId) {return;}
 
     // Create a fresh delinquency to test REJECTED flow
     const res = await request(app)
@@ -434,7 +434,7 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
   }, 15000);
 
   test("REJECTED: admin issues REJECTED decision", async () => {
-    if (!rejectedDelinquencyUniqueId) return;
+    if (!rejectedDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
@@ -455,7 +455,7 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
   });
 
   test("REJECTED: CompanyBan created with banSource=admin_decision", async () => {
-    if (!rejectedDecisionUniqueId) return;
+    if (!rejectedDecisionUniqueId) {return;}
 
     const [[ban]] = await pool.query(
       `SELECT companyBanUniqueId, banSource, adminDecisionOnDelinquencyUniqueId, isActive
@@ -474,7 +474,7 @@ describe("6. Admin REJECTED decision → CompanyBan created", () => {
   });
 
   test("REJECTED: CompanyBanDelinquency junction row links the ban to the delinquency", async () => {
-    if (!banUniqueId || !rejectedDelinquencyUniqueId) return;
+    if (!banUniqueId || !rejectedDelinquencyUniqueId) {return;}
 
     const [[junctionRow]] = await pool.query(
       `SELECT * FROM CompanyBanDelinquency
@@ -493,7 +493,7 @@ describe("7. Admin ACCEPTED decision → delinquency deleted", () => {
   let acceptedDelinquencyUniqueId;
 
   beforeAll(async () => {
-    if (!companyUniqueId || !delinquencyTypeUniqueId) return;
+    if (!companyUniqueId || !delinquencyTypeUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/admin/delinquency")
@@ -512,7 +512,7 @@ describe("7. Admin ACCEPTED decision → delinquency deleted", () => {
   }, 15000);
 
   test("ACCEPTED: admin clears the delinquency", async () => {
-    if (!acceptedDelinquencyUniqueId) return;
+    if (!acceptedDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
@@ -531,7 +531,7 @@ describe("7. Admin ACCEPTED decision → delinquency deleted", () => {
   });
 
   test("ACCEPTED: delinquency row is removed from DB", async () => {
-    if (!acceptedDelinquencyUniqueId) return;
+    if (!acceptedDelinquencyUniqueId) {return;}
 
     const [[row]] = await pool.query(
       `SELECT companyDelinquencyUniqueId FROM CompanyDelinquency
@@ -548,10 +548,10 @@ describe("7. Admin ACCEPTED decision → delinquency deleted", () => {
 // ═════════════════════════════════════════════════════════════════════════════
 describe("8. Admin REDUCED decision → delinquency points updated", () => {
   let reducedDelinquencyUniqueId;
-  let originalPoints;
+
 
   beforeAll(async () => {
-    if (!companyUniqueId || !delinquencyTypeUniqueId) return;
+    if (!companyUniqueId || !delinquencyTypeUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/admin/delinquency")
@@ -567,16 +567,12 @@ describe("8. Admin REDUCED decision → delinquency points updated", () => {
       reducedDelinquencyUniqueId = res.body.companyDelinquencyUniqueId;
       cleanup.delinquencyUniqueIds.push(reducedDelinquencyUniqueId);
 
-      const [[row]] = await pool.query(
-        `SELECT delinquencyPoints FROM CompanyDelinquency WHERE companyDelinquencyUniqueId = ?`,
-        [reducedDelinquencyUniqueId],
-      );
-      originalPoints = row?.delinquencyPoints ?? 1;
+      // Query removed since we don't need row or originalPoints
     }
   }, 15000);
 
   test("REDUCED: requires delinquencyPointsAfter", async () => {
-    if (!reducedDelinquencyUniqueId) return;
+    if (!reducedDelinquencyUniqueId) {return;}
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
       .set(auth(ADMIN_TOKEN))
@@ -590,7 +586,7 @@ describe("8. Admin REDUCED decision → delinquency points updated", () => {
   });
 
   test("REDUCED: admin reduces delinquency points", async () => {
-    if (!reducedDelinquencyUniqueId) return;
+    if (!reducedDelinquencyUniqueId) {return;}
 
     const res = await request(app)
       .post("/api/company/delinquency-response/decision")
@@ -610,7 +606,7 @@ describe("8. Admin REDUCED decision → delinquency points updated", () => {
   });
 
   test("REDUCED: delinquency points updated in DB", async () => {
-    if (!reducedDelinquencyUniqueId) return;
+    if (!reducedDelinquencyUniqueId) {return;}
 
     const [[row]] = await pool.query(
       `SELECT delinquencyPoints FROM CompanyDelinquency WHERE companyDelinquencyUniqueId = ?`,

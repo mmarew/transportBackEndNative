@@ -11,7 +11,7 @@ const {
 } = require("../Utils/Notifications");
 
 const {
-  driversDocumentVehicleRequirement,
+
 } = require("./RoleDocumentRequirements.service");
 const logger = require("../Utils/logger");
 const { usersRoles } = require("../Utils/ListOfSeedData");
@@ -163,7 +163,7 @@ const createAttachedDocument = async ({
       error: error.message,
       stack: error.stack,
     });
-    if (error instanceof AppError) throw error;
+    if (error instanceof AppError) {throw error;}
     throw new AppError("An error occurred while creating the document", 500);
   }
 };
@@ -244,7 +244,7 @@ const updateAttachedDocument = async ({
         `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
         [existingDoc.documentTypeId, roleId],
       );
-      if (userReqs.length > 0) documentType = userReqs[0];
+      if (userReqs.length > 0) {documentType = userReqs[0];}
 
       // Fallback: check entity roles if user's own role has no requirement
       if (!documentType) {
@@ -252,7 +252,7 @@ const updateAttachedDocument = async ({
           `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId IN (8, 9) AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
           [existingDoc.documentTypeId],
         );
-        if (entityReqs.length > 0) documentType = entityReqs[0];
+        if (entityReqs.length > 0) {documentType = entityReqs[0];}
       }
     } else {
       // Company or vehicle doc — check entity role directly
@@ -261,7 +261,7 @@ const updateAttachedDocument = async ({
         `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
         [existingDoc.documentTypeId, entityRoleId],
       );
-      if (entityReqs.length > 0) documentType = entityReqs[0];
+      if (entityReqs.length > 0) {documentType = entityReqs[0];}
     }
 
     // Expiration date enforcement (only if requirement specifies it)
@@ -358,7 +358,7 @@ const updateAttachedDocument = async ({
       throw new AppError("Failed to update document", 500);
     }
   } catch (error) {
-    if (error instanceof AppError) throw error;
+    if (error instanceof AppError) {throw error;}
     logger.error("Error updating attached document", {
       error: error.message,
       stack: error.stack,
@@ -678,7 +678,7 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
       },
     };
   } catch (error) {
-    if (error instanceof AppError) throw error;
+    if (error instanceof AppError) {throw error;}
     throw new AppError("Unable to retrieve documents", 500);
   }
 };
@@ -757,7 +757,7 @@ const getDocumentHistory = async ({
       },
     };
   } catch (error) {
-    if (error instanceof AppError) throw error;
+    if (error instanceof AppError) {throw error;}
     throw new AppError("Unable to retrieve document history", 500);
   }
 };

@@ -15,10 +15,10 @@
 
 const { v4: uuidv4 } = require("uuid");
 const AppError = require("../Utils/AppError");
-const logger = require("../Utils/logger");
+
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
-const { recordStatusChange } = require("../Utils/CompanyProfileHistory");
+
 
 const exec = () => transactionStorage.getStore() || pool;
 
@@ -50,7 +50,7 @@ const createCompanyDelinquency = async (data) => {
     `SELECT companyUniqueId FROM TransportCompany WHERE companyUniqueId = ? AND isDeleted = FALSE LIMIT 1`,
     [companyUniqueId],
   );
-  if (!company) throw new AppError("Company not found", 404);
+  if (!company) {throw new AppError("Company not found", 404);}
 
   // Fetch delinquency type defaults
   const [[delinquencyType]] = await exec().query(
@@ -59,7 +59,7 @@ const createCompanyDelinquency = async (data) => {
     [delinquencyTypeUniqueId],
   );
   if (!delinquencyType)
-    throw new AppError("Invalid or inactive delinquency type", 404);
+  {throw new AppError("Invalid or inactive delinquency type", 404);}
 
   const { defaultPoints, defaultSeverity } = delinquencyType;
   const duplicateCheckWindowHours = 0.24; // default window
@@ -252,17 +252,17 @@ const deleteCompanyDelinquency = async (companyDelinquencyUniqueId) => {
     [companyDelinquencyUniqueId],
   );
   if (cnt > 0)
-    throw new AppError(
-      "Cannot delete: delinquency is linked to a ban record",
-      400,
-    );
+  {throw new AppError(
+    "Cannot delete: delinquency is linked to a ban record",
+    400,
+  );}
 
   const [result] = await exec().query(
     `DELETE FROM CompanyDelinquency WHERE companyDelinquencyUniqueId = ?`,
     [companyDelinquencyUniqueId],
   );
   if (result.affectedRows === 0)
-    throw new AppError("Delinquency not found", 404);
+  {throw new AppError("Delinquency not found", 404);}
   return {
     message: "success",
     data: "Company delinquency deleted successfully",
