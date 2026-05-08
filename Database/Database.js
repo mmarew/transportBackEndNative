@@ -1672,6 +1672,7 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquency (
     companyBidRequestUniqueId VARCHAR(36) NULL,             -- Optional: links to the entire freight bid/contract
     delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
     delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    responseDeadline DATETIME NULL,                         -- Auto-set based on severity: CRITICAL=1d, HIGH=3d, MEDIUM=5d, LOW=7d
     delinquencyDeletedAt DATETIME NULL,                     -- Soft-delete timestamp (set on EXONERATED)
     delinquencyDeletedBy VARCHAR(36) NULL,                  -- Admin who cleared the delinquency
 
@@ -1705,6 +1706,7 @@ CREATE TABLE IF NOT EXISTS CompanyDelinquencyResponse (
 
     companyDelinquencyUniqueId VARCHAR(36) NOT NULL,
     companyDelinquencyResponse TEXT NOT NULL,
+    isLateResponse BOOLEAN NOT NULL DEFAULT FALSE,          -- TRUE if submitted after the responseDeadline
 
     companyDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     companyDelinquencyResponseUpdatedAt DATETIME NULL,

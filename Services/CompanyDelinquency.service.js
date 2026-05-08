@@ -31,6 +31,14 @@ const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.
 
 const exec = () => transactionStorage.getStore() || pool;
 
+// Graduated response deadlines by severity (in days)
+const RESPONSE_DEADLINE_DAYS = {
+  CRITICAL: 1,
+  HIGH:     3,
+  MEDIUM:   5,
+  LOW:      7,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Create a company delinquency record (no auto-ban — ban is via UPHELD only)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,12 +113,21 @@ const createCompanyDelinquency = async (data) => {
 
   const companyDelinquencyUniqueId = uuidv4();
 
+  // Calculate response deadline based on severity
+  const severity = data.delinquencySeverity || defaultSeverity;
+  const deadlineDays = RESPONSE_DEADLINE_DAYS[severity] || 5;
+  const responseDeadline = new Date(Date.now() + deadlineDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
   await exec().query(
     `INSERT INTO CompanyDelinquency
        (companyDelinquencyUniqueId, companyUniqueId, delinquencyTypeUniqueId,
         delinquencyDescription, delinquencySeverity, delinquencyPoints,
-        journeyDecisionUniqueId, companyBidRequestUniqueId, delinquencyCreatedBy)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        journeyDecisionUniqueId, companyBidRequestUniqueId, delinquencyCreatedBy,
+        responseDeadline)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       companyDelinquencyUniqueId,
       companyUniqueId,
@@ -118,11 +135,12 @@ const createCompanyDelinquency = async (data) => {
       delinquencyDescription ||
         delinquencyType.delinquencyTypeDescription ||
         "",
-      data.delinquencySeverity || defaultSeverity,
+      severity,
       data.delinquencyPoints || defaultPoints,
       journeyDecisionUniqueId,
       companyBidRequestUniqueId,
       delinquencyCreatedBy,
+      responseDeadline,
     ],
   );
 
@@ -153,7 +171,7 @@ const createCompanyDelinquency = async (data) => {
           tokens,
           notification: {
             title: "⚠️ Delinquency Notice",
-            body: `Your company has received a delinquency for: ${dtype?.delinquencyTypeName || "rule violation"}. You may submit a response.`,
+            body: `Your company has received a ${severity} delinquency for: ${dtype?.delinquencyTypeName || "rule violation"}. You have ${deadlineDays} day${deadlineDays > 1 ? "s" : ""} to respond.`,
           },
           data: {
             type: "DELINQUENCY_CREATED",
@@ -359,6 +377,8 @@ const getPendingDelinquencies = async (filters = {}) => {
        cd.delinquencySeverity,
        cd.delinquencyPoints,
        cd.delinquencyCreatedAt,
+       cd.responseDeadline,
+       CASE WHEN cd.responseDeadline < NOW() THEN TRUE ELSE FALSE END AS isOverdue,
        dt.delinquencyTypeName,
        dt.delinquencyTypeDescription,
        u.fullName AS accusedByName,
