@@ -7,6 +7,7 @@ require("dotenv").config();
  * single object. This makes it easier to track which variables are required,
  * set consistent defaults, and update them in one place.
  */
+console.log(" process.env.APP_API_URL", process.env.APP_API_URL);
 
 const Config = {
   // Server & Environment
