@@ -4,9 +4,7 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../../Controllers/CompanyDelinquencyDispute.controller");
 const delinquencyController = require("../../Controllers/CompanyDelinquency.controller");
-const {
-  verifyTokenOfAxios,
-} = require("../../Middleware/VerifyToken");
+const { verifyTokenOfAxios } = require("../../Middleware/VerifyToken");
 const { validator } = require("../../Middleware/Validator");
 const { registerRoutes } = require("../../Utils/RouteUtils");
 const {
