@@ -20,10 +20,7 @@ const routes = [
   {
     path: "/api/admin/user-delinquency-decisions",
     method: "post",
-    middleware: [
-      ...adminOnly,
-      validator(createAdminDecisionOnUserDelinquency),
-    ],
+    middleware: [...adminOnly, validator(createAdminDecisionOnUserDelinquency)],
     handler: controller.createAdminDecision,
   },
   {
