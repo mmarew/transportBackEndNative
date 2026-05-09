@@ -1,7 +1,7 @@
 const { insertData } = require("../CRUD/Create/CreateData");
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const uuidv4 = require("uuid").v4;
-const { deleteFromFTP } = require("../Utils/FTPHandler");
+const { deleteFromFTP, resolveDocumentUrl } = require("../Utils/FTPHandler");
 const { updateData } = require("../CRUD/Update/Data.update");
 const deleteData = require("../CRUD/Delete/DeleteData");
 const {
@@ -187,6 +187,10 @@ const getAttachedDocumentsByOwner = async (
     ],
     conditions: { ownerType, ownerUniqueId },
   });
+  // Resolve document URLs to current domain
+  for (const doc of documents) {
+    doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
+  }
   return { message: "success", data: documents };
 };
 
@@ -205,7 +209,9 @@ const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
     return null;
   }
 
-  return result[0];
+  const doc = result[0];
+  doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
+  return doc;
 };
 
 const updateAttachedDocument = async ({
@@ -595,7 +601,9 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
         throw new AppError("Document not found", 404);
       }
 
-      return { message: "success", data: document[0] };
+      const doc = document[0];
+      doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
+      return { message: "success", data: doc };
     }
 
     // Build WHERE conditions
@@ -663,6 +671,11 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
       LIMIT ? OFFSET ?
     `;
     const [documents] = await executor.query(sql, [...params, limit, offset]);
+
+    // Resolve document URLs to current domain
+    for (const doc of documents) {
+      doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
+    }
 
     return {
       message: "success",
