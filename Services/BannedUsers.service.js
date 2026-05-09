@@ -13,32 +13,31 @@ const query = async (sql, values = []) => {
 };
 
 const banUser = async (data) => {
-  const { userDelinquencyUniqueId, bannedBy, banReason, banDurationDays } =
+  const { userUniqueId, roleId, bannedBy, banReason, banDurationDays } =
     data;
 
   const executor = transactionStorage.getStore() || pool;
-  // fetch user phone and role by userDelinquencyUniqueId and validate existence
-  const [userInfoRows] = await executor.query(
-    `SELECT u.phoneNumber, ur.roleId
-     FROM UserDelinquency ud
-     INNER JOIN UserRole ur ON ud.userRoleUniqueId = ur.userRoleUniqueId
-     INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-     WHERE ud.userDelinquencyUniqueId = ?`,
-    [userDelinquencyUniqueId],
-  );
 
+  // Validate user exists
+  const [userInfoRows] = await executor.query(
+    `SELECT u.phoneNumber
+     FROM Users u
+     WHERE u.userUniqueId = ?`,
+    [userUniqueId],
+  );
   if (userInfoRows.length === 0) {
-    throw new AppError("Invalid userDelinquencyUniqueId", 400);
+    throw new AppError("Invalid userUniqueId", 400);
   }
-  const { phoneNumber, roleId } = userInfoRows[0];
+  const { phoneNumber } = userInfoRows[0];
 
   const [existingActiveBanRows] = await executor.query(
     `SELECT b.* FROM BannedUsers b 
-     WHERE b.userDelinquencyUniqueId = ? 
+     WHERE b.userUniqueId = ? 
+       AND b.roleId = ?
        AND b.isActive = TRUE 
        AND (b.banExpiresAt IS NULL OR b.banExpiresAt > ?) 
      LIMIT 1`,
-    [userDelinquencyUniqueId, currentDate()],
+    [userUniqueId, roleId, currentDate()],
   );
   if (existingActiveBanRows.length > 0) {
     throw new AppError("User already has an active ban", 409);
@@ -52,15 +51,15 @@ const banUser = async (data) => {
 
   const sql = `
     INSERT INTO BannedUsers (
-      banUniqueId,   userDelinquencyUniqueId,
+      banUniqueId, userUniqueId, roleId,
       bannedBy, banReason, banDurationDays, banExpiresAt
-    ) VALUES (?, ?, ?, ?, ?,  ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
     banUniqueId,
-
-    userDelinquencyUniqueId,
+    userUniqueId,
+    roleId,
     bannedBy,
     banReason,
     banDurationDays,
@@ -197,13 +196,13 @@ const getBannedUsers = async (filters = {}) => {
       s.statusName as currentStatusName,
       s.statusDescription as currentStatusDescription
     FROM BannedUsers bu
-    INNER JOIN UserDelinquency ud ON bu.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
-    INNER JOIN UserRole ur ON ud.userUniqueId = ur.userUniqueId and ur.roleId = ud.roleId
-    INNER JOIN Users u ON ur.userUniqueId = u.userUniqueId
-    INNER JOIN Roles r ON ur.roleId = r.roleId
+    INNER JOIN Users u ON bu.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON bu.roleId = r.roleId
+    INNER JOIN UserRole ur ON bu.userUniqueId = ur.userUniqueId AND bu.roleId = ur.roleId
     INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
-    INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    -- LEFT JOIN with UserRoleStatusCurrent to get current status (may not exist for banned users)
+    LEFT JOIN BannedUserDelinquency bud ON bu.banUniqueId = bud.banUniqueId
+    LEFT JOIN UserDelinquency ud ON bud.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+    LEFT JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     LEFT JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId
     LEFT JOIN Statuses s ON ursc.statusId = s.statusId
     WHERE ${whereConditions.join(" AND ")}
@@ -322,10 +321,109 @@ const deactivateBan = async (banUniqueId) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Graduated auto-ban: sum user delinquency points (30-day window) and ban
+// if threshold met. Mirrors CompanyBan.service → checkAndApplyAutomaticCompanyBan
+// ─────────────────────────────────────────────────────────────────────────────
+const USER_BAN_RULES = [
+  { threshold: 90, duration: 365, severity: "PERMANENT" },
+  { threshold: 60, duration: 90,  severity: "CRITICAL" },
+  { threshold: 30, duration: 7,   severity: "HIGH" },
+  { threshold: 15, duration: 3,   severity: "MEDIUM" },
+];
+
+const checkAndApplyAutomaticUserBan = async ({
+  userUniqueId,
+  roleId,
+  bannedBy,
+}) => {
+  const logger = require("../Utils/logger");
+  const executor = transactionStorage.getStore() || pool;
+
+  // Fetch all active delinquencies in the 30-day window
+  const [delinquencies] = await executor.query(
+    `SELECT userDelinquencyUniqueId, delinquencyPoints
+     FROM UserDelinquency
+     WHERE userUniqueId = ? AND roleId = ?
+       AND delinquencyCreatedAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+       AND delinquencyDeletedAt IS NULL`,
+    [userUniqueId, roleId],
+  );
+  const totalPoints = delinquencies.reduce(
+    (sum, d) => sum + d.delinquencyPoints,
+    0,
+  );
+
+  // Already banned?
+  const [activeBanRows] = await executor.query(
+    `SELECT banId FROM BannedUsers
+     WHERE userUniqueId = ? AND roleId = ? AND isActive = TRUE AND banExpiresAt > NOW()
+     LIMIT 1`,
+    [userUniqueId, roleId],
+  );
+  if (activeBanRows.length > 0) {
+    return { action: "none", reason: "User already under active ban", totalPoints };
+  }
+
+  const rule = USER_BAN_RULES.find((r) => totalPoints >= r.threshold);
+  if (!rule) {
+    return { action: "none", reason: "No ban threshold met", totalPoints };
+  }
+
+  const banUniqueId = uuidv4();
+  const banAt = new Date();
+  const banExpiresAt = new Date(
+    banAt.getTime() + rule.duration * 24 * 60 * 60 * 1000,
+  );
+  const banReason = `Auto-ban: ${totalPoints} pts — ${rule.severity} threshold reached`;
+
+  await executor.query(
+    `INSERT INTO BannedUsers
+       (banUniqueId, userUniqueId, roleId,
+        bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+    [banUniqueId, userUniqueId, roleId, bannedBy, banReason, rule.duration, banAt, banExpiresAt],
+  );
+
+  // Link ALL contributing delinquencies to this ban
+  if (delinquencies.length > 0) {
+    const junctionRows = delinquencies.map((d) => [
+      uuidv4(),
+      banUniqueId,
+      d.userDelinquencyUniqueId,
+      d.delinquencyPoints,
+    ]);
+    await executor.query(
+      `INSERT INTO BannedUserDelinquency
+         (bannedUserDelinquencyUniqueId, banUniqueId, userDelinquencyUniqueId, pointsAtTime)
+       VALUES ?`,
+      [junctionRows],
+    );
+  }
+
+  logger.info("User auto-banned", {
+    userUniqueId,
+    roleId,
+    rule,
+    totalPoints,
+    banExpiresAt,
+  });
+
+  return {
+    action: "suspended",
+    banDurationDays: rule.duration,
+    severity: rule.severity,
+    totalPoints,
+    banExpiresAt,
+    banUniqueId,
+  };
+};
+
 module.exports = {
   banUser,
   getBannedUsers,
   updateBannedUser,
   unbanUser,
   deactivateBan,
+  checkAndApplyAutomaticUserBan,
 };

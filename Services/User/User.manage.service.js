@@ -234,8 +234,7 @@ const getUserByFilterDetailed = async (
   LEFT JOIN Roles ON UserRole.roleId = Roles.roleId
   LEFT JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
   LEFT JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
-    LEFT JOIN UserDelinquency ON Users.userUniqueId = UserDelinquency.userUniqueId AND UserDelinquency.roleId = UserRole.roleId
-    LEFT JOIN BannedUsers ON UserDelinquency.userDelinquencyUniqueId = BannedUsers.userDelinquencyUniqueId AND BannedUsers.isActive = 1
+    LEFT JOIN BannedUsers ON Users.userUniqueId = BannedUsers.userUniqueId AND BannedUsers.roleId = UserRole.roleId AND BannedUsers.isActive = 1
     ${whereClause}
     ORDER BY Users.userCreatedAt DESC
     LIMIT ? OFFSET ?
@@ -248,8 +247,7 @@ const getUserByFilterDetailed = async (
     LEFT JOIN Roles ON UserRole.roleId = Roles.roleId
     LEFT JOIN UserRoleStatusCurrent ON UserRole.userRoleId = UserRoleStatusCurrent.userRoleId
     LEFT JOIN Statuses ON UserRoleStatusCurrent.statusId = Statuses.statusId
-    LEFT JOIN UserDelinquency ON Users.userUniqueId = UserDelinquency.userUniqueId AND UserDelinquency.roleId = UserRole.roleId
-    LEFT JOIN BannedUsers ON UserDelinquency.userDelinquencyUniqueId = BannedUsers.userDelinquencyUniqueId AND BannedUsers.isActive = 1
+    LEFT JOIN BannedUsers ON Users.userUniqueId = BannedUsers.userUniqueId AND BannedUsers.roleId = UserRole.roleId AND BannedUsers.isActive = 1
     ${whereClause}
   `;
   const executor = connection || pool;

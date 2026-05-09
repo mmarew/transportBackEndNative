@@ -71,10 +71,18 @@ const checkAutomaticBan = async (req, res, next) => {
   }
 };
 
+const getPendingUserDelinquencies = async (req, res, next) => {
+  try {
+    const result = await userDelinquencyService.getPendingUserDelinquencies(req.query);
+    ServerResponder(res, result);
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createUserDelinquency,
   getUserDelinquencies,
   updateUserDelinquency,
   deleteUserDelinquency,
   checkAutomaticBan,
+  getPendingUserDelinquencies,
 };

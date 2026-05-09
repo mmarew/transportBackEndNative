@@ -50,6 +50,8 @@ const routesArray = [
   require("./UserDelinquency.routes"),
   require("./BannedUsers.routes"),
   require("./DelinquencyTypes.routes"),
+  require("./AdminDecisionOnUserDelinquency.routes"),
+  { path: "/api/user/delinquency-response", handler: require("./UserDelinquencyResponse.routes") },
   require("./VehicleDriver.routes"),
   require("./Account.routes"),
   require("./Health.routes"),

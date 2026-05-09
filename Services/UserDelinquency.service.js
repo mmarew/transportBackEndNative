@@ -183,7 +183,6 @@ const createUserDelinquency = async (data) => {
     const banResult = await checkAndApplyAutomaticBan(
       userUniqueId,
       roleId,
-      userDelinquencyUniqueId,
     );
 
     return {
@@ -228,7 +227,6 @@ const createUserDelinquency = async (data) => {
 const checkAndApplyAutomaticBan = async (
   userUniqueId,
   roleId,
-  triggeringDelinquencyId,
 ) => {
   // Calculate total points for this user with specific role (last 30 days)
   const pointsQuery = `
@@ -237,6 +235,7 @@ const checkAndApplyAutomaticBan = async (
     WHERE userUniqueId = ? 
     AND roleId = ?
     AND delinquencyCreatedAt >= DATE_SUB(?, INTERVAL 30 DAY)
+    AND delinquencyDeletedAt IS NULL
   `;
   const [pointsResult] = await (transactionStorage.getStore() || pool).query(pointsQuery, [
     userUniqueId,
@@ -273,12 +272,10 @@ const checkAndApplyAutomaticBan = async (
   }
 
   // Check if already banned for this user-role combination
-  // BannedUsers has no userUniqueId — join through UserDelinquency
   const activeBanQuery = `
     SELECT b.banUniqueId FROM BannedUsers b
-    INNER JOIN UserDelinquency ud ON b.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
-    WHERE ud.userUniqueId = ?
-    AND ud.roleId = ?
+    WHERE b.userUniqueId = ?
+    AND b.roleId = ?
     AND b.isActive = TRUE
     LIMIT 1
   `;
@@ -299,17 +296,17 @@ const checkAndApplyAutomaticBan = async (
     banAt.getTime() + applicableRule.duration * 24 * 60 * 60 * 1000,
   );
 
-  // BannedUsers schema: banUniqueId, userDelinquencyUniqueId, banAt, bannedBy, banReason, banDurationDays, banExpiresAt, isActive
   const banSql = `
     INSERT INTO BannedUsers (
-      banUniqueId, userDelinquencyUniqueId,
+      banUniqueId, userUniqueId, roleId,
       bannedBy, banReason, banDurationDays, banAt, banExpiresAt, isActive
-    ) VALUES (?, ?, 'system', ?, ?, ?, ?, TRUE)
+    ) VALUES (?, ?, ?, 'system', ?, ?, ?, ?, TRUE)
   `;
 
   const banValues = [
     banUniqueId,
-    triggeringDelinquencyId,
+    userUniqueId,
+    roleId,
     `Automatic ban: ${totalPoints} points reached ${applicableRule.severity} threshold`,
     applicableRule.duration,
     banAt,
@@ -637,10 +634,81 @@ const checkAutomaticBan = async (userUniqueId, roleId) => {
   };
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Get pending user delinquencies (no admin decision yet)
+// ─────────────────────────────────────────────────────────────────────────────
+const getPendingUserDelinquencies = async (filters = {}) => {
+  const { userUniqueId, roleId, page = 1, limit = 10 } = filters;
+
+  if (!userUniqueId || !roleId) {
+    throw new AppError("userUniqueId and roleId are required", 400);
+  }
+
+  const offset = (page - 1) * limit;
+
+  const whereClause = `
+    ud.userUniqueId = ? AND ud.roleId = ?
+    AND ud.delinquencyDeletedAt IS NULL
+    AND NOT EXISTS (
+      SELECT 1 FROM AdminDecisionOnUserDelinquency ad
+      WHERE ad.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+        AND ad.adminDecisionOnUserDelinquencyDeletedAt IS NULL
+    )
+  `;
+
+  const [[{ total }]] = await (transactionStorage.getStore() || pool).query(
+    `SELECT COUNT(*) AS total FROM UserDelinquency ud WHERE ${whereClause}`,
+    [userUniqueId, roleId],
+  );
+
+  const [rows] = await (transactionStorage.getStore() || pool).query(
+    `SELECT
+       ud.userDelinquencyUniqueId,
+       ud.delinquencyDescription,
+       ud.delinquencySeverity,
+       ud.delinquencyPoints,
+       ud.delinquencyCreatedAt,
+       ud.responseDeadline,
+       CASE WHEN ud.responseDeadline < NOW() THEN TRUE ELSE FALSE END AS isOverdue,
+       dt.delinquencyTypeName,
+       dt.delinquencyTypeDescription,
+       u.fullName AS accusedByName,
+       CASE
+         WHEN EXISTS (
+           SELECT 1 FROM UserDelinquencyResponse udr
+           WHERE udr.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+             AND udr.userDelinquencyResponseDeletedAt IS NULL
+         ) THEN 'RESPONDED'
+         ELSE 'AWAITING_RESPONSE'
+       END AS responseStatus
+     FROM UserDelinquency ud
+     INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+     LEFT JOIN Users u ON ud.delinquencyCreatedBy = u.userUniqueId
+     WHERE ${whereClause}
+     ORDER BY ud.delinquencyCreatedAt DESC
+     LIMIT ? OFFSET ?`,
+    [userUniqueId, roleId, parseInt(limit), offset],
+  );
+
+  return {
+    message: "success",
+    data: rows,
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
 module.exports = {
   createUserDelinquency,
   getUserDelinquencies,
   updateUserDelinquency,
   deleteUserDelinquency,
   checkAutomaticBan,
+  getPendingUserDelinquencies,
 };
