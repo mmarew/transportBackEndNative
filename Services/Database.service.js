@@ -192,7 +192,7 @@ const checkTableExists = async (tableName) => {
     AND table_name = ?;
   `;
   
-  const [rows] = await executor.query(sqlQuery, [tableName]);
+  const [rows] = await pool.query(sqlQuery, [tableName]);
   return rows[0].tableExists > 0;
 };
 
@@ -201,10 +201,10 @@ const dropTable = async (tables) => {
   
 
   try {
-    await executor.query(`SET FOREIGN_KEY_CHECKS = 0;`);
+    await pool.query(`SET FOREIGN_KEY_CHECKS = 0;`);
     for (const table of tableList) {
       const sqlQuery = `DROP TABLE IF EXISTS \`${table}\`;`;
-      await executor.query(sqlQuery);
+      await pool.query(sqlQuery);
 
       const tableExists = await checkTableExists(table);
       if (tableExists) {
@@ -216,7 +216,7 @@ const dropTable = async (tables) => {
       data: `Table(s) [${tableList.join(", ")}] dropped successfully`,
     };
   } finally {
-    await executor.query(`SET FOREIGN_KEY_CHECKS = 1;`);
+    await pool.query(`SET FOREIGN_KEY_CHECKS = 1;`);
   }
 };
 
@@ -227,10 +227,10 @@ const dropAllTables = async () => {
   
 
   try {
-    await executor.query(disableForeignKeyChecks);
+    await pool.query(disableForeignKeyChecks);
 
     const sqlQuery = `SHOW TABLES`;
-    const [tables] = await executor.query(sqlQuery);
+    const [tables] = await pool.query(sqlQuery);
     const tableNames = tables.map((table) => Object.values(table)[0]);
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -239,7 +239,7 @@ const dropAllTables = async () => {
       for (const tableName of tableNames) {
         const sqlToDropTable = `DROP TABLE IF EXISTS \`${tableName}\``;
         try {
-          await executor.query(sqlToDropTable);
+          await pool.query(sqlToDropTable);
           logger.info(`Table dropped: ${tableName}`);
         } catch (error) {
           if (error.code === "ER_ROW_IS_REFERENCED_2") {
@@ -263,7 +263,7 @@ const dropAllTables = async () => {
 
     return { message: "success", data: "All tables dropped successfully" };
   } finally {
-    await executor.query(enableForeignKeyChecks);
+    await pool.query(enableForeignKeyChecks);
   }
 };
 
