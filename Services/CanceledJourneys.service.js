@@ -547,18 +547,18 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
       filters:
         Object.keys(filters).length > 0
           ? {
-              contextType,
-              roleId,
-              cancellationReasonsTypeId,
-              canceledBy,
-              userUniqueId,
-              isSeenByAdmin,
-              startDate,
-              endDate,
-              search,
-              sortBy: safeSortBy,
-              sortOrder: finalSortOrder,
-            }
+            contextType,
+            roleId,
+            cancellationReasonsTypeId,
+            canceledBy,
+            userUniqueId,
+            isSeenByAdmin,
+            startDate,
+            endDate,
+            search,
+            sortBy: safeSortBy,
+            sortOrder: finalSortOrder,
+          }
           : null,
     };
   } catch {
@@ -575,13 +575,13 @@ const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
 
     return result.affectedRows > 0
       ? {
-          message: "success",
-          data: { updated: true },
-        }
+        message: "success",
+        data: { updated: true },
+      }
       : {
-          message: "success",
-          data: { updated: false },
-        };
+        message: "success",
+        data: { updated: false },
+      };
   } catch {
     throw new AppError("Failed to update seen status", 500);
   }
@@ -623,13 +623,13 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
 
     return result.affectedRows > 0
       ? {
-          message: "success",
-          data: { updated: true },
-        }
+        message: "success",
+        data: { updated: true },
+      }
       : {
-          message: "success",
-          data: { updated: false },
-        };
+        message: "success",
+        data: { updated: false },
+      };
   } catch {
     throw new AppError("Failed to update canceled journey", 500);
   }
@@ -644,13 +644,13 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
 
     return result.affectedRows > 0
       ? {
-          message: "success",
-          data: { deleted: true },
-        }
+        message: "success",
+        data: { deleted: true },
+      }
       : {
-          message: "success",
-          data: { deleted: false },
-        };
+        message: "success",
+        data: { deleted: false },
+      };
   } catch {
     throw new AppError("Failed to delete canceled journey", 500);
   }
@@ -885,32 +885,32 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
     let groupByClause, selectFields;
 
     switch (groupBy) {
-      case "role":
-        selectFields = `
+    case "role":
+      selectFields = `
           crt.cancellationReason,
           r.roleName as groupName,
           COUNT(*) as count
         `;
-        groupByClause = "crt.cancellationReason, r.roleName";
-        break;
+      groupByClause = "crt.cancellationReason, r.roleName";
+      break;
 
-      case "contextType":
-        selectFields = `
+    case "contextType":
+      selectFields = `
           crt.cancellationReason,
           cj.contextType as groupName,
           COUNT(*) as count
         `;
-        groupByClause = "crt.cancellationReason, cj.contextType";
-        break;
+      groupByClause = "crt.cancellationReason, cj.contextType";
+      break;
 
-      case "reason":
-      default:
-        selectFields = `
+    case "reason":
+    default:
+      selectFields = `
           crt.cancellationReason as reason,
           COUNT(*) as qty
         `;
-        groupByClause = "crt.cancellationReason";
-        break;
+      groupByClause = "crt.cancellationReason";
+      break;
     }
 
     const sql = `
@@ -932,55 +932,55 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
     let totalCanceled = 0;
 
     switch (groupBy) {
-      case "role":
-        // Group by role: array of { role: "Driver", reasons: [{reason: "...", qty: 10}, ...] }
-        const rolesMap = {};
-        results.forEach((row) => {
-          totalCanceled += row.count;
-          if (!rolesMap[row.groupName]) {
-            rolesMap[row.groupName] = {
-              role: row.groupName,
-              reasons: [],
-            };
-          }
-          rolesMap[row.groupName].reasons.push({
-            reason: row.cancellationReason,
-            qty: row.count,
-          });
-        });
-        formattedData = Object.values(rolesMap);
-        break;
-
-      case "contextType":
-        // Group by context type: array of { contextType: "JourneyDecisions", reasons: [{reason: "...", qty: 10}, ...] }
-        const contextMap = {};
-        results.forEach((row) => {
-          totalCanceled += row.count;
-          if (!contextMap[row.groupName]) {
-            contextMap[row.groupName] = {
-              contextType: row.groupName,
-              reasons: [],
-            };
-          }
-          contextMap[row.groupName].reasons.push({
-            reason: row.cancellationReason,
-            qty: row.count,
-          });
-        });
-        formattedData = Object.values(contextMap);
-        break;
-
-      case "reason":
-      default:
-        // Simple array of { reason: "...", qty: 10 }
-        formattedData = results.map((row) => {
-          totalCanceled += row.qty;
-          return {
-            reason: row.reason,
-            qty: row.qty,
+    case "role":
+      // Group by role: array of { role: "Driver", reasons: [{reason: "...", qty: 10}, ...] }
+      const rolesMap = {};
+      results.forEach((row) => {
+        totalCanceled += row.count;
+        if (!rolesMap[row.groupName]) {
+          rolesMap[row.groupName] = {
+            role: row.groupName,
+            reasons: [],
           };
+        }
+        rolesMap[row.groupName].reasons.push({
+          reason: row.cancellationReason,
+          qty: row.count,
         });
-        break;
+      });
+      formattedData = Object.values(rolesMap);
+      break;
+
+    case "contextType":
+      // Group by context type: array of { contextType: "JourneyDecisions", reasons: [{reason: "...", qty: 10}, ...] }
+      const contextMap = {};
+      results.forEach((row) => {
+        totalCanceled += row.count;
+        if (!contextMap[row.groupName]) {
+          contextMap[row.groupName] = {
+            contextType: row.groupName,
+            reasons: [],
+          };
+        }
+        contextMap[row.groupName].reasons.push({
+          reason: row.cancellationReason,
+          qty: row.count,
+        });
+      });
+      formattedData = Object.values(contextMap);
+      break;
+
+    case "reason":
+    default:
+      // Simple array of { reason: "...", qty: 10 }
+      formattedData = results.map((row) => {
+        totalCanceled += row.qty;
+        return {
+          reason: row.reason,
+          qty: row.qty,
+        };
+      });
+      break;
     }
 
     // If includeEmptyReasons is true, get all reasons and include zeros

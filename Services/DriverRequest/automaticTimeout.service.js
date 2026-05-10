@@ -195,17 +195,17 @@ const processAutomaticTimeout = async (timedOutRequest) => {
           driverUserUniqueId,
           driverPhoneNumber: driverPhoneNumber
             ? `${driverPhoneNumber.substring(
-                0,
-                3,
-              )}***${driverPhoneNumber.substring(driverPhoneNumber.length - 2)}`
+              0,
+              3,
+            )}***${driverPhoneNumber.substring(driverPhoneNumber.length - 2)}`
             : null, // Mask phone for privacy
           shipperPhoneNumber: shipperPhoneNumber
             ? `${shipperPhoneNumber.substring(
-                0,
-                3,
-              )}***${shipperPhoneNumber.substring(
-                shipperPhoneNumber.length - 2,
-              )}`
+              0,
+              3,
+            )}***${shipperPhoneNumber.substring(
+              shipperPhoneNumber.length - 2,
+            )}`
             : null,
           driverFullName,
           vehicleTypeName,

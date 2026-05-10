@@ -30,7 +30,7 @@ describe("Company-Target Lazy PR Creation", () => {
        WHERE ur.roleId = 1 LIMIT 1`,
     );
     if (users.length === 0)
-      throw new Error("No shipper user found — seed DB first");
+    {throw new Error("No shipper user found — seed DB first");}
     shipperUniqueId = users[0].userUniqueId;
 
     // Find an existing vehicle type
@@ -38,7 +38,7 @@ describe("Company-Target Lazy PR Creation", () => {
       `SELECT vehicleTypeUniqueId FROM VehicleTypes LIMIT 1`,
     );
     if (vtypes.length === 0)
-      throw new Error("No VehicleTypes found — seed DB first");
+    {throw new Error("No VehicleTypes found — seed DB first");}
     vehicleTypeUniqueId = vtypes[0].vehicleTypeUniqueId;
   });
 

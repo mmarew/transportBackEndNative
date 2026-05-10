@@ -255,18 +255,18 @@ const performJoinSelect = async ({
   const whereClause =
     columns.length > 0
       ? `WHERE ${columns
-          .map((col) => {
-            const value = conditions[col];
-            if (Array.isArray(value) && value.length === 2) {
-              return `${col} BETWEEN ? AND ?`;
-            } else if (Array.isArray(value)) {
-              const placeholders = value.map(() => "?").join(", ");
-              return `${col} IN (${placeholders})`;
-            } else {
-              return `${col} = ?`;
-            }
-          })
-          .join(` ${operator} `)}`
+        .map((col) => {
+          const value = conditions[col];
+          if (Array.isArray(value) && value.length === 2) {
+            return `${col} BETWEEN ? AND ?`;
+          } else if (Array.isArray(value)) {
+            const placeholders = value.map(() => "?").join(", ");
+            return `${col} IN (${placeholders})`;
+          } else {
+            return `${col} = ?`;
+          }
+        })
+        .join(` ${operator} `)}`
       : ""; // No WHERE clause if conditions are empty
 
   const values = Object.values(conditions).flat();
