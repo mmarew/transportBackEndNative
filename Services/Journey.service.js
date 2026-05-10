@@ -194,14 +194,14 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
 };
 
 // Helper function to get shipper request by ID
-const getPassengerRequestByPassengerRequestId = async (shipperRequestId) => {
+const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
   try {
     const result = await performJoinSelect({
-      baseTable: "PassengerRequest",
+      baseTable: "ShipperRequest",
       joins: [
         {
           table: "Users",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          on: "ShipperRequest.userUniqueId = Users.userUniqueId",
         },
       ],
       conditions: { shipperRequestId },
@@ -250,7 +250,7 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
     // Owner filter - check both shipper and driver
     if (ownerUserUniqueId && ownerUserUniqueId !== "all") {
       queryWhereParts.push(`
-        (PassengerRequest.userUniqueId = ? OR DriverRequest.userUniqueId = ?)
+        (ShipperRequest.userUniqueId = ? OR DriverRequest.userUniqueId = ?)
       `);
       queryParams.push(ownerUserUniqueId, ownerUserUniqueId);
     }
@@ -295,8 +295,8 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
         driverUser.fullName LIKE ? OR
         driverUser.phoneNumber LIKE ? OR 
         driverUser.email LIKE ? OR
-        PassengerRequest.originPlace LIKE ? OR
-        PassengerRequest.destinationPlace LIKE ? OR
+        ShipperRequest.originPlace LIKE ? OR
+        ShipperRequest.destinationPlace LIKE ? OR
         DriverRequest.originPlace LIKE ?
       )`);
       queryParams.push(
@@ -324,9 +324,9 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
         COUNT(*) as totalCount
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      INNER JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      INNER JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
+      INNER JOIN Users as shipperUser ON ShipperRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       ${whereClause}
       GROUP BY DATE_FORMAT(Journey.endTime, '%Y-%m-%d')
@@ -393,7 +393,7 @@ const searchCompletedJourneyByUserData = async (
     const offset = (page - 1) * limit;
 
     const roleConfig = {
-      1: { userField: "PassengerRequest.userUniqueId" },
+      1: { userField: "ShipperRequest.userUniqueId" },
       2: { userField: "DriverRequest.userUniqueId" },
     };
 
@@ -408,7 +408,7 @@ const searchCompletedJourneyByUserData = async (
       SELECT Journey.*, JourneyDecisions.* 
       FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
@@ -426,7 +426,7 @@ const searchCompletedJourneyByUserData = async (
 
     const countSql = ` SELECT COUNT(*) as total  FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
@@ -440,7 +440,7 @@ const searchCompletedJourneyByUserData = async (
     const data = await Promise.all(
       result.map(async (item) => {
         const [shipperData, driverData] = await Promise.all([
-          getPassengerRequestByPassengerRequestId(item.shipperRequestId),
+          getShipperRequestByShipperRequestId(item.shipperRequestId),
           getDriverRequestByRequestId(item.driverRequestId),
         ]);
 
@@ -481,10 +481,10 @@ const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
 
     const roleConfig = {
       1: {
-        joinTable: "PassengerRequest",
+        joinTable: "ShipperRequest",
         joinCondition:
-          "PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
-        userField: "PassengerRequest.userUniqueId",
+          "ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
+        userField: "ShipperRequest.userUniqueId",
       },
       2: {
         joinTable: "DriverRequest",
@@ -601,7 +601,7 @@ const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
     const data = await Promise.all(
       ongoingJourneys.map(async (item) => {
         const [shipperData, driverData] = await Promise.all([
-          getPassengerRequestByPassengerRequestId(item.shipperRequestId),
+          getShipperRequestByShipperRequestId(item.shipperRequestId),
           getDriverRequestByRequestId(item.driverRequestId),
         ]);
         // get vehicle of driver based on driver data
@@ -671,24 +671,24 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         JourneyDecisions.deliveryDateByDriver,
         JourneyDecisions.shippingCostByDriver,
         
-        -- PassengerRequest data
-        PassengerRequest.shipperRequestUniqueId,
-        PassengerRequest.userUniqueId as shipperUserUniqueId,
-        PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as shipperOriginLat,
-        PassengerRequest.originLongitude as shipperOriginLng,
-        PassengerRequest.originPlace as shipperOriginPlace,
-        PassengerRequest.destinationLatitude as shipperDestLat,
-        PassengerRequest.destinationLongitude as shipperDestLng,
-        PassengerRequest.destinationPlace as shipperDestPlace,
-        PassengerRequest.shipperRequestCreatedAt,
-        PassengerRequest.shippableItemName,
-        PassengerRequest.shippableItemQtyInQuintal,
-        PassengerRequest.shippingDate,
-        PassengerRequest.deliveryDate,
-        PassengerRequest.shippingCost,
+        -- ShipperRequest data
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperRequest.vehicleTypeUniqueId,
+        ShipperRequest.originLatitude as shipperOriginLat,
+        ShipperRequest.originLongitude as shipperOriginLng,
+        ShipperRequest.originPlace as shipperOriginPlace,
+        ShipperRequest.destinationLatitude as shipperDestLat,
+        ShipperRequest.destinationLongitude as shipperDestLng,
+        ShipperRequest.destinationPlace as shipperDestPlace,
+        ShipperRequest.shipperRequestCreatedAt,
+        ShipperRequest.shippableItemName,
+        ShipperRequest.shippableItemQtyInQuintal,
+        ShipperRequest.shippingDate,
+        ShipperRequest.deliveryDate,
+        ShipperRequest.shippingCost,
         
-        -- Passenger User data
+        -- Shipper User data
         shipperUser.fullName as shipperFullName,
         shipperUser.phoneNumber as shipperPhone,
         shipperUser.email as shipperEmail,
@@ -708,8 +708,8 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         
       FROM Journey 
       INNER JOIN JourneyDecisions ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId 
-      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
-      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
+      INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+      INNER JOIN Users as shipperUser ON ShipperRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       WHERE Journey.journeyStatusId = ?
@@ -831,10 +831,10 @@ const getJourneys = async (filters = {}) => {
 
     const roleConfig = {
       1: {
-        joinTable: "PassengerRequest",
+        joinTable: "ShipperRequest",
         joinCondition:
-          "PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
-        userField: "PassengerRequest.userUniqueId",
+          "ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
+        userField: "ShipperRequest.userUniqueId",
       },
       2: {
         joinTable: "DriverRequest",
@@ -922,8 +922,8 @@ const getJourneys = async (filters = {}) => {
         driverUser.fullName LIKE ? OR
         driverUser.phoneNumber LIKE ? OR 
         driverUser.email LIKE ? OR
-        PassengerRequest.originPlace LIKE ? OR
-        PassengerRequest.destinationPlace LIKE ? OR
+        ShipperRequest.originPlace LIKE ? OR
+        ShipperRequest.destinationPlace LIKE ? OR
         DriverRequest.originPlace LIKE ?
       )`);
       queryParams.push(
@@ -967,27 +967,27 @@ const getJourneys = async (filters = {}) => {
         JourneyDecisions.deliveryDateByDriver,
         JourneyDecisions.shippingCostByDriver,
         
-        -- PassengerRequest data
-        PassengerRequest.shipperRequestId,
-        PassengerRequest.shipperRequestUniqueId,
-        PassengerRequest.userUniqueId as shipperUserUniqueId,
-        PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.journeyStatusId as shipperJourneyStatusId,
-        PassengerRequest.originLatitude as shipperOriginLat,
-        PassengerRequest.originLongitude as shipperOriginLng,
-        PassengerRequest.originPlace as shipperOriginPlace,
-        PassengerRequest.destinationLatitude as shipperDestLat,
-        PassengerRequest.destinationLongitude as shipperDestLng,
-        PassengerRequest.destinationPlace as shipperDestPlace,
-        PassengerRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
-        PassengerRequest.shippableItemName,
-        PassengerRequest.shippableItemQtyInQuintal,
-        PassengerRequest.shippingDate,
-        PassengerRequest.deliveryDate,
-        PassengerRequest.shippingCost,
-        PassengerRequest.isCompletionSeen,
-        PassengerRequest.shipperRequestCreatedBy,
-        PassengerRequest.shipperRequestCreatedByRoleId,
+        -- ShipperRequest data
+        ShipperRequest.shipperRequestId,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperRequest.vehicleTypeUniqueId,
+        ShipperRequest.journeyStatusId as shipperJourneyStatusId,
+        ShipperRequest.originLatitude as shipperOriginLat,
+        ShipperRequest.originLongitude as shipperOriginLng,
+        ShipperRequest.originPlace as shipperOriginPlace,
+        ShipperRequest.destinationLatitude as shipperDestLat,
+        ShipperRequest.destinationLongitude as shipperDestLng,
+        ShipperRequest.destinationPlace as shipperDestPlace,
+        ShipperRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
+        ShipperRequest.shippableItemName,
+        ShipperRequest.shippableItemQtyInQuintal,
+        ShipperRequest.shippingDate,
+        ShipperRequest.deliveryDate,
+        ShipperRequest.shippingCost,
+        ShipperRequest.isCompletionSeen,
+        ShipperRequest.shipperRequestCreatedBy,
+        ShipperRequest.shipperRequestCreatedByRoleId,
         
         -- DriverRequest data
         DriverRequest.driverRequestId,
@@ -999,7 +999,7 @@ const getJourneys = async (filters = {}) => {
         DriverRequest.driverRequestCreatedAt as driverRequestCreatedAt,
         DriverRequest.journeyStatusId as driverJourneyStatusId,
         
-        -- Passenger User data
+        -- Shipper User data
         shipperUser.fullName as shipperFullName,
         shipperUser.phoneNumber as shipperPhone,
         shipperUser.email as shipperEmail,
@@ -1016,10 +1016,10 @@ const getJourneys = async (filters = {}) => {
         
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      INNER JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      INNER JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       -- Join shipper user data
-      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
+      INNER JOIN Users as shipperUser ON ShipperRequest.userUniqueId = shipperUser.userUniqueId
       -- Join driver user data  
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       -- Join journey status
@@ -1038,9 +1038,9 @@ const getJourneys = async (filters = {}) => {
       SELECT COUNT(*) as total
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      INNER JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      INNER JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
+      INNER JOIN Users as shipperUser ON ShipperRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       INNER JOIN JourneyStatus ON JourneyStatus.journeyStatusId = Journey.journeyStatusId
       ${whereClause}
@@ -1177,5 +1177,5 @@ module.exports = {
   getOngoingJourney,
   getAllCompletedJourneys,
   getDriverRequestByRequestId,
-  getPassengerRequestByPassengerRequestId,
+  getShipperRequestByShipperRequestId,
 };

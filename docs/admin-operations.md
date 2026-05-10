@@ -25,7 +25,7 @@ Super Admins have elevated privileges beyond regular admins. They can perform al
 #### 3. Assign User Roles
 
 **Endpoint**: `POST /api/admin/userRole/create`
-**Description**: Assign specific roles to users (Passenger, Driver, Admin, etc.)
+**Description**: Assign specific roles to users (Shipper, Driver, Admin, etc.)
 **Authentication**: Super Admin token required
 **Impact**: Controls user permissions and access levels
 
@@ -148,7 +148,7 @@ Regular admins can perform the following operations but cannot access Super Admi
 **Query Parameters:**
 
 - `phoneNumber`: Filter by phone
-- `roleId`: Filter by role (1=Passenger, 2=Driver, 3=Admin)
+- `roleId`: Filter by role (1=Shipper, 2=Driver, 3=Admin)
 - `statusId`: Filter by status
 - `fullName`: Search by name
 
@@ -181,7 +181,7 @@ Regular admins can perform the following operations but cannot access Super Admi
 - `sortBy`: Field to sort by (`userRoleStatusCreatedAt`, `fullName`, `email`, `phoneNumber`, `statusName`).
 - `sortOrder`: Sorting direction (`ASC` or `DESC`).
 
-**Behavior (FIXED):** 
+**Behavior (FIXED):**
 The endpoint now correctly handles the `search` parameter for drivers with and without existing vehicle assignments.
 
 ### Get Online Drivers

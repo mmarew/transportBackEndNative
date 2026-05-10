@@ -20,14 +20,14 @@ const getJourneyDataByContextType = async ({ contextType, contextId }) => {
   const dataHandlers = {
     JourneyDecisions: async () => {
       const [shipperData, driverData] = await Promise.all([
-        getPassengerDataByJourneyDecision(contextId),
+        getShipperDataByJourneyDecision(contextId),
         getDriverDataByJourneyDecision(contextId),
       ]);
       return { driver: driverData, shipper: shipperData };
     },
     Journey: async () => {
       const [shipperData, driverData] = await Promise.all([
-        getPassengerDataByJourney(contextId),
+        getShipperDataByJourney(contextId),
         getDriverDataByJourney(contextId),
       ]);
       return { driver: driverData, shipper: shipperData };
@@ -36,8 +36,8 @@ const getJourneyDataByContextType = async ({ contextType, contextId }) => {
       const driverData = await getDriverRequest(contextId);
       return { driver: driverData, shipper: null };
     },
-    PassengerRequest: async () => {
-      const shipperData = await getPassengerRequest(contextId);
+    ShipperRequest: async () => {
+      const shipperData = await getShipperRequest(contextId);
       return { driver: null, shipper: shipperData };
     },
   };
@@ -657,17 +657,17 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
 };
 
 // Helper functions for data retrieval (keep existing ones)
-const getPassengerDataByJourneyDecision = (journeyDecisionId) =>
+const getShipperDataByJourneyDecision = (journeyDecisionId) =>
   performJoinSelect({
     baseTable: "JourneyDecisions",
     joins: [
       {
-        table: "PassengerRequest",
-        on: "JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId",
+        table: "ShipperRequest",
+        on: "JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId",
       },
       {
         table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        on: "ShipperRequest.userUniqueId = Users.userUniqueId",
       },
     ],
     conditions: { "JourneyDecisions.journeyDecisionId": journeyDecisionId },
@@ -689,7 +689,7 @@ const getDriverDataByJourneyDecision = (journeyDecisionId) =>
     conditions: { "JourneyDecisions.journeyDecisionId": journeyDecisionId },
   });
 
-const getPassengerDataByJourney = async (journeyId) => {
+const getShipperDataByJourney = async (journeyId) => {
   const record = await performJoinSelect({
     baseTable: "Journey",
     joins: [
@@ -698,12 +698,12 @@ const getPassengerDataByJourney = async (journeyId) => {
         on: "JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId",
       },
       {
-        table: "PassengerRequest",
-        on: "JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId",
+        table: "ShipperRequest",
+        on: "JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId",
       },
       {
         table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        on: "ShipperRequest.userUniqueId = Users.userUniqueId",
       },
     ],
     conditions: { "Journey.journeyId": journeyId },
@@ -731,10 +731,10 @@ const getDriverDataByJourney = async (journeyId) =>
     conditions: { "Journey.journeyId": journeyId },
   });
 
-const getPassengerRequest = (shipperRequestId) =>
+const getShipperRequest = (shipperRequestId) =>
   query(
-    `SELECT * FROM PassengerRequest 
-     JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId 
+    `SELECT * FROM ShipperRequest 
+     JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId 
      WHERE shipperRequestId = ?`,
     [shipperRequestId],
   );

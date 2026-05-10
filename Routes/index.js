@@ -9,7 +9,7 @@ const routesArray = [
   require("./JourneyRoutePoints.routes"),
   require("./CanceledJourneys.routes"),
   require("./JourneyStatus.routes"),
-  require("./PassengerRequestBatch.routes"),
+  require("./ShipperRequestBatch.routes"),
   require("./Database.routes"),
   require("./RoleDocumentRequirements.routes"),
   require("./AttachedDocuments.routes"),
@@ -29,9 +29,9 @@ const routesArray = [
   })(),
   (() => {
     try {
-      return require("./PassengerRequest.routes");
+      return require("./ShipperRequest.routes");
     } catch (error) {
-      console.error("ERROR LOADING PassengerRequest.routes:", error.message);
+      console.error("ERROR LOADING ShipperRequest.routes:", error.message);
       console.error(error.stack);
       throw error;
     }
@@ -51,7 +51,10 @@ const routesArray = [
   require("./BannedUsers.routes"),
   require("./DelinquencyTypes.routes"),
   require("./AdminDecisionOnUserDelinquency.routes"),
-  { path: "/api/user/delinquency-response", handler: require("./UserDelinquencyResponse.routes") },
+  {
+    path: "/api/user/delinquency-response",
+    handler: require("./UserDelinquencyResponse.routes"),
+  },
   require("./VehicleDriver.routes"),
   require("./Account.routes"),
   require("./Health.routes"),

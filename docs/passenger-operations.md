@@ -1,14 +1,14 @@
-# Passenger Operations
+# Shipper Operations
 
 Complete guide to shipper ride requests, journey management, and transportation services.
 
 ## Ride Request Creation
 
-### 1. Create Passenger Request
+### 1. Create Shipper Request
 
 **Endpoint**: `POST /api/shipperRequest/createRequest`
 **Description**: Creates a new ride request for transporting goods.
-**Authentication**: Passenger token required
+**Authentication**: Shipper token required
 **Request Body**:
 
 ```json
@@ -48,7 +48,7 @@ Complete guide to shipper ride requests, journey management, and transportation 
     "waitingCount": 73,
     "requestedCount": 1,
     "acceptedByDriverCount": 0,
-    "acceptedByPassengerCount": 0,
+    "acceptedByShipperCount": 0,
     "journeyStartedCount": 0,
     "notSeenCompletedCount": 1,
     "notSeenCancelledByDriverCount": 0
@@ -58,9 +58,9 @@ Complete guide to shipper ride requests, journey management, and transportation 
 }
 ```
 
-### 2. Get Passenger Requests
+### 2. Get Shipper Requests
 
-**Endpoint**: `GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId={JourneyStatusId}`
+**Endpoint**: `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId={JourneyStatusId}`
 **Description**: Retrieves detailed shipper request data filtered by journey status. Use this endpoint to get the actual request details for each status count.
 
 **Authentication**: User token required
@@ -81,10 +81,10 @@ Complete guide to shipper ride requests, journey management, and transportation 
 **Example Usage**:
 
 ```
-GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1          # Get waiting requests
-GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3          # Get driver-accepted requests
-GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=5,3        # Get active journeys and driver-accepted
-GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # Get completed journeys
+GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1          # Get waiting requests
+GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3          # Get driver-accepted requests
+GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=5,3        # Get active journeys and driver-accepted
+GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=6          # Get completed journeys
 ```
 
 **Response**:
@@ -256,17 +256,17 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
 
 ## Request Management
 
-### View Passenger Requests
+### View Shipper Requests
 
-**Endpoint**: `GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=5,1,2`
+**Endpoint**: `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=5,1,2`
 **Description**: Get shipper requests with filtering
 **Authentication**: User token required
 
-### Cancel Passenger Request
+### Cancel Shipper Request
 
-**Endpoint**: `PUT /api/shipperRequest/cancelPassengerRequest/self`
+**Endpoint**: `PUT /api/shipperRequest/cancelShipperRequest/self`
 **Description**: Cancels an active shipper request. Updates all related driver requests and journey decisions to cancelled status, sends notifications to affected drivers, and creates cancellation records.
-**Authentication**: Passenger token required
+**Authentication**: Shipper token required
 
 **Request Body**:
 
@@ -287,7 +287,7 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
     "waitingCount": 73,
     "requestedCount": 1,
     "acceptedByDriverCount": 0,
-    "acceptedByPassengerCount": 0,
+    "acceptedByShipperCount": 0,
     "journeyStartedCount": 0,
     "notSeenCompletedCount": 1,
     "notSeenCancelledByDriverCount": 0
@@ -302,17 +302,17 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
 - **400 Bad Request**: Missing required fields or invalid request status
 - **401 Unauthorized**: Invalid or missing shipper token
 - **403 Forbidden**: Not authorized to cancel this request
-- **404 Not Found**: Passenger request not found
+- **404 Not Found**: Shipper request not found
 - **409 Conflict**: Request already cancelled or in terminal status
 - **500 Internal Server Error**: Server error during cancellation
 
-**Note**: Admin/Super Admin can cancel any request using `/api/shipperRequest/cancelPassengerRequest/:userUniqueId` where `:userUniqueId` is the target user's ID.
+**Note**: Admin/Super Admin can cancel any request using `/api/shipperRequest/cancelShipperRequest/:userUniqueId` where `:userUniqueId` is the target user's ID.
 
 ### Accept Driver Request (Selection in Bid)
 
 **Endpoint**: `PUT /api/shipper/acceptDriverRequest`
 **Description**: Allows a shipper to select and accept a driver's offer from multiple driver bids. Updates the selected driver's status to "accepted by shipper" and all other drivers' status to "not selected in bid".
-**Authentication**: Passenger token required
+**Authentication**: Shipper token required
 
 **Request Body**:
 
@@ -334,7 +334,7 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
     "waitingCount": 73,
     "requestedCount": 1,
     "acceptedByDriverCount": 0,
-    "acceptedByPassengerCount": 0,
+    "acceptedByShipperCount": 0,
     "journeyStartedCount": 0,
     "notSeenCompletedCount": 1,
     "notSeenCancelledByDriverCount": 0
@@ -349,13 +349,13 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
 - **400 Bad Request**: Missing required fields or invalid request status
 - **401 Unauthorized**: Invalid or missing shipper token
 - **403 Forbidden**: Not authorized to accept this request
-- **404 Not Found**: Passenger request, driver request, or journey decision not found
+- **404 Not Found**: Shipper request, driver request, or journey decision not found
 - **409 Conflict**: Request not in appropriate status for acceptance or already processed
 - **500 Internal Server Error**: Server error during acceptance
 
 **Business Logic**:
 
-- Updates selected driver status to `acceptedByPassenger` (4)
+- Updates selected driver status to `acceptedByShipper` (4)
 - Updates all other drivers to `notSelectedInBid` (14)
 - Sends notifications to all affected drivers (accepted and rejected)
 - Updates shipper request status to reflect selection
@@ -365,7 +365,7 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
 
 **Endpoint**: `GET /api/shipperRequest/getCancellationNotifications?seenStatus=not seen by shipper yet`
 **Description**: Retrieves cancellation notifications for a shipper, filtered by seen status. Used to display notifications when drivers cancel requests or when requests are cancelled by other means.
-**Authentication**: Passenger token required
+**Authentication**: Shipper token required
 
 **Query Parameters**:
 
@@ -389,7 +389,7 @@ GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6          # G
       "cancellationReason": "Driver cancelled due to emergency",
       "cancelledBy": "driver",
       "cancelledByUserUniqueId": "driver-uuid-here",
-      "isSeenByPassenger": "not seen by shipper yet",
+      "isSeenByShipper": "not seen by shipper yet",
       "createdAt": "2026-02-02T16:30:00.000Z",
       "driver": {
         "fullName": "Driver Name",
@@ -439,14 +439,14 @@ Journey status IDs and descriptions:
 - **1: Waiting for driver** - Initial state when a shipper creates a transport request, waiting for drivers to respond and accept
 - **2: Requested** - A shipper request has been sent or forwarded to a driver. The driver has received the request but has not yet responded
 - **3: Accepted by Driver** - Driver has accepted the shipper request and provided their bidding price. A JourneyDecision record is created, linking the driver and shipper request
-- **4: Accepted by Passenger** - Passenger has selected one driver from multiple drivers who accepted the request. This occurs when multiple drivers accepted (status 3), and the shipper chooses one driver's offer
+- **4: Accepted by Shipper** - Shipper has selected one driver from multiple drivers who accepted the request. This occurs when multiple drivers accepted (status 3), and the shipper chooses one driver's offer
 - **5: Journey Started** - The actual journey has been initiated by the driver. This occurs after the shipper has accepted the driver (status 4), and the driver begins the transportation
 - **6: Journey Completed** - The journey has been successfully completed by the driver. The transportation service has been fully delivered
 
 **Terminal Statuses (7-15):**
 
-- **7: Cancelled by Passenger** - Passenger has cancelled the entire transport request. This cancellation affects all drivers who were involved, and the entire shipment is cancelled
-- **8: Rejected by Passenger** - Passenger has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the shipper can still select other drivers who accepted the request
+- **7: Cancelled by Shipper** - Shipper has cancelled the entire transport request. This cancellation affects all drivers who were involved, and the entire shipment is cancelled
+- **8: Rejected by Shipper** - Shipper has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the shipper can still select other drivers who accepted the request
 - **9: Cancelled by Driver** - Driver canceled the request after accepting it and providing their bidding price. This occurs after the driver has committed to participate in the bid (status 3 - acceptedByDriver), meaning a JourneyDecision record exists
 - **10: Cancelled by Admin** - Admin has cancelled the request. This administrative cancellation can occur at various stages of the journey lifecycle
 - **11: Completed by Admin** - Admin has manually marked the journey as completed. This administrative action is used when a journey needs to be marked as completed through administrative intervention
@@ -459,13 +459,13 @@ Journey status IDs and descriptions:
 
 ### Track Active Journey
 
-**Endpoint**: `GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=5,3`
+**Endpoint**: `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=5,3`
 **Description**: Get current active journeys (journey started or accepted by shipper)
 **Authentication**: User token required
 
 **Query Parameters:**
 
-- `journeyStatusId`: Comma-separated status IDs (5=journeyStarted, 3=acceptedByPassenger)
+- `journeyStatusId`: Comma-separated status IDs (5=journeyStarted, 3=acceptedByShipper)
 - `page`: Page number (default: 1)
 - `limit`: Results per page (default: 10)
 - `ownerUserUniqueId`: Filter by user (default: self)
@@ -517,7 +517,7 @@ Journey status IDs and descriptions:
 
 ### Journey History
 
-**Endpoint**: `GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6`
+**Endpoint**: `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=6`
 **Description**: View completed journey history
 **Authentication**: User token required
 
@@ -578,4 +578,4 @@ Journey status IDs and descriptions:
 }
 ```
 
-**For shippers and drivers**, use `GET /api/user/getPassengerRequest4allOrSingleUser` with appropriate journey status filters.
+**For shippers and drivers**, use `GET /api/user/getShipperRequest4allOrSingleUser` with appropriate journey status filters.

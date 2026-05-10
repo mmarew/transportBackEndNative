@@ -2,8 +2,8 @@ const Config = require("../../Utils/Config");
 const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { deleteData } = require("../../CRUD/Delete/DeleteData");
-const { createNewPassengerRequest } = require("../../CRUD/Create/CreateData");
-const batchService = require("../PassengerRequestBatch.service");
+const { createNewShipperRequest } = require("../../CRUD/Create/CreateData");
+const batchService = require("../ShipperRequestBatch.service");
 const { pool } = require("../../Middleware/Database.config");
 const {
   journeyStatusMap,
@@ -14,17 +14,17 @@ const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
-// verifyPassengerStatus removed - only available via API endpoint to reduce heavy operations
+// verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 const {
   handleWaitingRequest,
-  verifyPassengerStatus,
+  verifyShipperStatus,
 } = require("./statusVerification.service");
 
 /**
  * Creates a new shipper request
  *
  * This function consolidates three creation scenarios:
- * 1. **Passenger self-creates**: Sets audit fields from token, journeyStatusId = waiting
+ * 1. **Shipper self-creates**: Sets audit fields from token, journeyStatusId = waiting
  * 2. **Admin creates for shipper**: Creates user first, sets audit fields from admin token, journeyStatusId = waiting
  * 3. **Driver takes from street**: Creates user first, sets audit fields from driver info, journeyStatusId = journeyStarted
  *
@@ -39,11 +39,11 @@ const {
  * Return Behavior:
  * - If shipperRequestCreatedByRoleId ===driverRoleId (2): Returns array of created requests directly
  *   (Driver scenario - no need for status counts, request is used immediately)
- * - Otherwise (shipper/admin): Returns verifyPassengerStatus result with status counts
- *   (Passenger/Admin scenario - frontend needs status counts for notifications)
+ * - Otherwise (shipper/admin): Returns verifyShipperStatus result with status counts
+ *   (Shipper/Admin scenario - frontend needs status counts for notifications)
  *
  * @param {Object} body - Request body data
- *   - userUniqueId: Required - Passenger's userUniqueId (set by caller)
+ *   - userUniqueId: Required - Shipper's userUniqueId (set by caller)
  *   - shipperRequestCreatedBy: Required - userUniqueId of who created this request (audit trail)
  *   - shipperRequestCreatedByRoleId: Required - roleId of who created this request (1=shipper, 2=driver, 3=admin)
  *   - shipperRequestBatchId: Required - Batch ID for grouping related requests
@@ -57,10 +57,10 @@ const {
  *   - If null, uses connection pool (default behavior)
  * @returns {Promise<Object|Array>}
  *   - If driver scenario: Returns array of created request objects directly
- *   - If shipper/admin scenario: Returns verifyPassengerStatus result with status counts
+ *   - If shipper/admin scenario: Returns verifyShipperStatus result with status counts
  *   - On error: Returns { message: "error", error: "error message" }
  */
-const createPassengerRequest = async (body, journeyStatusId) => {
+const createShipperRequest = async (body, journeyStatusId) => {
   try {
     const { shipperRequestCreatedByRoleId } = body;
 
@@ -80,7 +80,7 @@ const createPassengerRequest = async (body, journeyStatusId) => {
 
     // Use context-aware executor for raw query with locking
     const executor = transactionStorage.getStore() || pool;
-    const batchCheckSql = `SELECT * FROM PassengerRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ? FOR UPDATE`;
+    const batchCheckSql = `SELECT * FROM ShipperRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ? FOR UPDATE`;
     const [dataByBatchId] = await executor.query(batchCheckSql, [
       shipperRequestBatchId,
       userUniqueId,
@@ -130,7 +130,7 @@ const createPassengerRequest = async (body, journeyStatusId) => {
 
       // ── company_target mode: DEFER individual PR creation ──────────────────
       // For company_target requests, we only create the batch header now.
-      // Individual PassengerRequest rows will be created lazily when the shipper
+      // Individual ShipperRequest rows will be created lazily when the shipper
       // accepts a company bid (in updateBidStatus → accepted_by_shipper).
       //
       // Why?  1. Faster creation (1 insert vs N inserts)
@@ -149,15 +149,15 @@ const createPassengerRequest = async (body, journeyStatusId) => {
           },
         );
 
-        return await verifyPassengerStatus({ userUniqueId });
+        return await verifyShipperStatus({ userUniqueId });
       }
 
-      // Step 1b: Now create individual PassengerRequest rows in parallel — safe because
+      // Step 1b: Now create individual ShipperRequest rows in parallel — safe because
       //          the batch header already exists and upsertBatch is no longer called inside.
       const promises = Array(noOfRecords)
         .fill()
         .map(() =>
-          createNewPassengerRequest(body, userUniqueId, journeyStatusId),
+          createNewShipperRequest(body, userUniqueId, journeyStatusId),
         );
 
       // Wait for all requests to be created in parallel
@@ -220,11 +220,11 @@ const createPassengerRequest = async (body, journeyStatusId) => {
     if (shipperRequestCreatedByRoleId === usersRoles.driverRoleId) {
       return newRequests;
     }
-    return await verifyPassengerStatus({
+    return await verifyShipperStatus({
       userUniqueId,
     });
   } catch (error) {
-    logger.error("Error in createPassengerRequest service", {
+    logger.error("Error in createShipperRequest service", {
       message: error.message,
       stack: error.stack,
       name: error.name,
@@ -242,17 +242,17 @@ const createPassengerRequest = async (body, journeyStatusId) => {
 
 /**
  * Gets a shipper request by shipper request ID
- * @param {number} shipperRequestId - Passenger request ID
+ * @param {number} shipperRequestId - Shipper request ID
  * @returns {Promise<Object>} Success or error response with request data
  */
-const getPassengerRequestByPassengerRequestId = async (shipperRequestId) => {
+const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
   try {
     const result = await performJoinSelect({
-      baseTable: "PassengerRequest",
+      baseTable: "ShipperRequest",
       joins: [
         {
           table: "Users",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          on: "ShipperRequest.userUniqueId = Users.userUniqueId",
         },
       ],
       conditions: { shipperRequestId },
@@ -270,20 +270,20 @@ const getPassengerRequestByPassengerRequestId = async (shipperRequestId) => {
 
 /**
  * Gets a shipper request by shipper request unique ID
- * @param {string} shipperRequestUniqueId - Passenger request unique ID
+ * @param {string} shipperRequestUniqueId - Shipper request unique ID
  * @returns {Promise<Object>} Success or error response with request data
  */
-// DEPRECATED: Use getPassengerRequest4allOrSingleUser with filters.shipperRequestUniqueId instead
-// const getPassengerRequestByPassengerRequestUniqueId = async (
+// DEPRECATED: Use getShipperRequest4allOrSingleUser with filters.shipperRequestUniqueId instead
+// const getShipperRequestByShipperRequestUniqueId = async (
 //   shipperRequestUniqueId
 // ) => {
 //   try {
 //     const result = await performJoinSelect({
-//       baseTable: "PassengerRequest",
+//       baseTable: "ShipperRequest",
 //       joins: [
 //         {
 //           table: "Users",
-//           on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+//           on: "ShipperRequest.userUniqueId = Users.userUniqueId",
 //         },
 //       ],
 //       conditions: {
@@ -305,9 +305,9 @@ const getPassengerRequestByPassengerRequestId = async (shipperRequestId) => {
  * Gets shipper requests with filtering and pagination
  * @param {Object} params - Query parameters
  * @param {Object} params.data - Filter and pagination data
- * @returns {Promise<Object>} Passenger requests with pagination
+ * @returns {Promise<Object>} Shipper requests with pagination
  */
-const getPassengerRequest4allOrSingleUser = async ({ data }) => {
+const getShipperRequest4allOrSingleUser = async ({ data }) => {
   try {
     const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
     const offset = (page - 1) * limit;
@@ -323,9 +323,9 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     Users.phoneNumber LIKE ? OR 
     Users.email LIKE ? OR 
     Users.fullName LIKE ? OR
-    PassengerRequest.shippableItemName LIKE ? OR
-    PassengerRequest.originPlace LIKE ? OR
-    PassengerRequest.destinationPlace LIKE ?
+    ShipperRequest.shippableItemName LIKE ? OR
+    ShipperRequest.originPlace LIKE ? OR
+    ShipperRequest.destinationPlace LIKE ?
   )`;
 
       const searchPattern = `%${filters.search}%`;
@@ -350,7 +350,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
 
     // Build WHERE clause based on target and filters
     if (target !== "all" && userUniqueId) {
-      whereClause = " WHERE PassengerRequest.userUniqueId = ?";
+      whereClause = " WHERE ShipperRequest.userUniqueId = ?";
       queryParams = [userUniqueId];
       countParams = [userUniqueId];
     }
@@ -358,7 +358,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     // Add additional filters if provided
     if (filters?.vehicleTypeUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.vehicleTypeUniqueId = ?";
+      whereClause += " ShipperRequest.vehicleTypeUniqueId = ?";
       queryParams.push(filters.vehicleTypeUniqueId);
       countParams.push(filters.vehicleTypeUniqueId);
     }
@@ -366,7 +366,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     // If isCompletionSeen is provided
     if (filters?.isCompletionSeen !== undefined) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.isCompletionSeen = ?";
+      whereClause += " ShipperRequest.isCompletionSeen = ?";
       queryParams.push(filters.isCompletionSeen);
       countParams.push(filters.isCompletionSeen);
     }
@@ -377,13 +377,13 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
 
       if (filters.journeyStatusIds.length === 1) {
         // Single value for efficiency
-        whereClause += " PassengerRequest.journeyStatusId = ?";
+        whereClause += " ShipperRequest.journeyStatusId = ?";
         queryParams.push(filters.journeyStatusIds[0]);
         countParams.push(filters.journeyStatusIds[0]);
       } else {
         // Multiple values using IN clause
         const placeholders = filters.journeyStatusIds.map(() => "?").join(",");
-        whereClause += ` PassengerRequest.journeyStatusId IN (${placeholders})`;
+        whereClause += ` ShipperRequest.journeyStatusId IN (${placeholders})`;
         queryParams.push(...filters.journeyStatusIds);
         countParams.push(...filters.journeyStatusIds);
       }
@@ -391,14 +391,14 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
 
     if (filters?.shipperRequestBatchId) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.shipperRequestBatchId = ?";
+      whereClause += " ShipperRequest.shipperRequestBatchId = ?";
       queryParams.push(filters.shipperRequestBatchId);
       countParams.push(filters.shipperRequestBatchId);
     }
 
     if (filters?.shipperRequestUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.shipperRequestUniqueId = ?";
+      whereClause += " ShipperRequest.shipperRequestUniqueId = ?";
       queryParams.push(filters.shipperRequestUniqueId);
       countParams.push(filters.shipperRequestUniqueId);
     }
@@ -406,7 +406,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     // Filter by requestMode: 'open' (visible to all drivers) or 'company_target' (visible only to targeted company)
     if (filters?.requestMode) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.requestMode = ?";
+      whereClause += " ShipperRequest.requestMode = ?";
       queryParams.push(filters.requestMode);
       countParams.push(filters.requestMode);
     }
@@ -417,7 +417,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     if (filters?.excludeRequestMode) {
       whereClause += whereClause ? " AND " : " WHERE ";
       whereClause +=
-        " (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != ?)";
+        " (ShipperRequest.requestMode IS NULL OR ShipperRequest.requestMode != ?)";
       queryParams.push(filters.excludeRequestMode);
       countParams.push(filters.excludeRequestMode);
     }
@@ -425,24 +425,23 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     // Add date range filters
     if (filters?.startDate && filters?.endDate) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause +=
-        " PassengerRequest.shipperRequestCreatedAt BETWEEN ? AND ?";
+      whereClause += " ShipperRequest.shipperRequestCreatedAt BETWEEN ? AND ?";
       queryParams.push(filters.startDate, filters.endDate);
       countParams.push(filters.startDate, filters.endDate);
     } else if (filters?.startDate) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.shipperRequestCreatedAt >= ?";
+      whereClause += " ShipperRequest.shipperRequestCreatedAt >= ?";
       queryParams.push(filters.startDate);
       countParams.push(filters.startDate);
     } else if (filters?.endDate) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " PassengerRequest.shipperRequestCreatedAt <= ?";
+      whereClause += " ShipperRequest.shipperRequestCreatedAt <= ?";
       queryParams.push(filters.endDate);
       countParams.push(filters.endDate);
     }
 
     // Add sorting
-    let orderBy = "ORDER BY PassengerRequest.shipperRequestId DESC";
+    let orderBy = "ORDER BY ShipperRequest.shipperRequestId DESC";
     if (filters?.sortBy) {
       const validSortColumns = [
         "shipperRequestCreatedAt",
@@ -460,21 +459,21 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
       if (sortColumn === "fullName") {
         orderBy = `ORDER BY Users.fullName ${sortOrder}`;
       } else {
-        orderBy = `ORDER BY PassengerRequest.${sortColumn} ${sortOrder}`;
+        orderBy = `ORDER BY ShipperRequest.${sortColumn} ${sortOrder}`;
       }
     }
 
     // Get paginated results - Include VehicleTypes join like original
     const sqlToGetRequests = `
       SELECT 
-        PassengerRequest.*,
+        ShipperRequest.*,
         Users.fullName,
         Users.email,
         Users.phoneNumber,
         VehicleTypes.vehicleTypeName
-      FROM PassengerRequest 
-      JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
-      JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = PassengerRequest.vehicleTypeUniqueId
+      FROM ShipperRequest 
+      JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
+      JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = ShipperRequest.vehicleTypeUniqueId
       ${whereClause}
       ${orderBy}
       LIMIT ? OFFSET ?
@@ -486,9 +485,9 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
 
     const sqlCount = `
       SELECT COUNT(*) as total 
-      FROM PassengerRequest 
-      JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
-      JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = PassengerRequest.vehicleTypeUniqueId
+      FROM ShipperRequest 
+      JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
+      JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = ShipperRequest.vehicleTypeUniqueId
       ${whereClause}
     `;
 
@@ -530,7 +529,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
  * Enriches shipper requests (PRs) with their related driver data, decisions, vehicles, and journey info.
  *
  * Abbreviations used in this function:
- *  - PR  = PassengerRequest (a shipper's shipping request)
+ *  - PR  = ShipperRequest (a shipper's shipping request)
  *  - DR  = DriverRequest (a driver's response/bid to a PR)
  *  - JD  = JourneyDecision (links a PR ↔ DR with a status: accepted, cancelled, etc.)
  *  - VD  = VehicleDriver (links a driver user to a vehicle)
@@ -568,7 +567,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     for (const pr of shipperRequests) {
       if (
         pr.journeyStatusId === journeyStatusMap.waiting ||
-        pr.journeyStatusId === journeyStatusMap.cancelledByPassenger ||
+        pr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
         pr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
         waitingResults.push({
@@ -591,7 +590,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     const positiveStatuses = [
       journeyStatusMap.requested,
       journeyStatusMap.acceptedByDriver,
-      journeyStatusMap.acceptedByPassenger,
+      journeyStatusMap.acceptedByShipper,
       journeyStatusMap.journeyStarted,
       journeyStatusMap.journeyCompleted,
     ];
@@ -636,7 +635,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
             newStatus: maxDecisionStatus,
           });
           await executor.query(
-            "UPDATE PassengerRequest SET journeyStatusId = ? WHERE shipperRequestId = ?",
+            "UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId = ?",
             [maxDecisionStatus, pr.shipperRequestId],
           );
           pr.journeyStatusId = maxDecisionStatus; // Sync in-memory
@@ -659,7 +658,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     // Batch update stale PRs to waiting
     if (stalePRIds.length > 0) {
       await executor.query(
-        `UPDATE PassengerRequest SET journeyStatusId = ? WHERE shipperRequestId IN (?)`,
+        `UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId IN (?)`,
         [journeyStatusMap.waiting, stalePRIds],
       );
     }
@@ -823,14 +822,14 @@ const getDetailedJourneyData = async (shipperRequests) => {
 
 /**
  * Updates a shipper request by ID
- * @param {number} requestId - Passenger request ID
+ * @param {number} requestId - Shipper request ID
  * @param {Object} updates - Update values
  * @returns {Promise<Object>} Success or error response
  */
 const updateRequestById = async (requestId, updates) => {
   try {
     const result = await updateData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       conditions: { shipperRequestId: requestId },
       updateValues: updates,
     });
@@ -852,13 +851,13 @@ const updateRequestById = async (requestId, updates) => {
 
 /**
  * Deletes a shipper request by ID
- * @param {number} requestId - Passenger request ID
+ * @param {number} requestId - Shipper request ID
  * @returns {Promise<Object>} Success or error response
  */
 const deleteRequest = async (requestId) => {
   try {
     const result = await deleteData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       conditions: { shipperRequestId: requestId },
     });
 
@@ -951,7 +950,7 @@ const getAllActiveRequests = async (filters = {}) => {
       u.userCreatedAt as userCreatedAt,
       vt.vehicleTypeName,
       js.journeyStatusName  
-    FROM PassengerRequest pr
+    FROM ShipperRequest pr
     JOIN Users u ON u.userUniqueId = pr.userUniqueId 
     LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
@@ -1082,7 +1081,7 @@ const getAllActiveRequests = async (filters = {}) => {
 };
 
 /**
- * Fetches a single PassengerRequest by its UUID.
+ * Fetches a single ShipperRequest by its UUID.
  *
  * This is the dedicated, reusable service function for looking up a shipper
  * request by unique ID. Used by CompanyAssignment.service.js and any other
@@ -1094,7 +1093,7 @@ const getAllActiveRequests = async (filters = {}) => {
  * @returns {Promise<Object>}  The matched row or null if not found
  * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
  */
-const getPassengerRequestByUniqueId = async (
+const getShipperRequestByUniqueId = async (
   shipperRequestUniqueId,
   shipperRequestBatchId = null,
 ) => {
@@ -1107,7 +1106,7 @@ const getPassengerRequestByUniqueId = async (
                     originLongitude,
                     originPlace,
                     userUniqueId
-             FROM PassengerRequest
+             FROM ShipperRequest
              WHERE shipperRequestUniqueId = ?
                AND shipperRequestDeletedAt IS NULL`;
   const params = [shipperRequestUniqueId];
@@ -1124,21 +1123,21 @@ const getPassengerRequestByUniqueId = async (
   if (!rows || rows.length === 0) {
     if (shipperRequestBatchId) {
       throw new AppError(
-        "Passenger request does not belong to this bid's batch",
+        "Shipper request does not belong to this bid's batch",
         400,
       );
     }
-    throw new AppError("Passenger request not found", 404);
+    throw new AppError("Shipper request not found", 404);
   }
 
   return rows[0];
 };
 
 module.exports = {
-  createPassengerRequest,
-  getPassengerRequestByPassengerRequestId,
-  getPassengerRequestByUniqueId,
-  getPassengerRequest4allOrSingleUser,
+  createShipperRequest,
+  getShipperRequestByShipperRequestId,
+  getShipperRequestByUniqueId,
+  getShipperRequest4allOrSingleUser,
   getDetailedJourneyData,
   updateRequestById,
   deleteRequest,

@@ -15,7 +15,7 @@ const {
  * The shared `journeyStatusId` scale (1-6) was originally designed for the
  * INDIVIDUAL bidding flow, where the driver is the bidder:
  *
- *   Individual:  1(waiting) → 2(requested) → 3(acceptedByDriver) → 4(acceptedByPassenger) → 5 → 6
+ *   Individual:  1(waiting) → 2(requested) → 3(acceptedByDriver) → 4(acceptedByShipper) → 5 → 6
  *                                              ↑
  *                                   Driver bids & bargains here
  *
@@ -30,7 +30,7 @@ const {
  *
  * Therefore, in the company flow, status 3 is intentionally skipped:
  *
- *   Company:     1(waiting) → 2(requested) → [3 SKIPPED] → 4(acceptedByPassenger) → 5 → 6
+ *   Company:     1(waiting) → 2(requested) → [3 SKIPPED] → 4(acceptedByShipper) → 5 → 6
  *                                ↑                              ↑
  *                      Dispatcher assigns                Driver confirms
  *                      (company requested driver)        (all parties agreed)
@@ -59,13 +59,13 @@ const messageTypes = require("../Utils/MessageTypes");
 const logger = require("../Utils/logger");
 const { createDriverRequest } = require("../CRUD/Create/CreateData");
 const { updateData } = require("../CRUD/Update/Data.update");
-const { getPassengerRequestByUniqueId } = require("./PassengerRequest");
+const { getShipperRequestByUniqueId } = require("./ShipperRequest");
 const {
   verifyDriverJourneyStatus,
 } = require("./DriverRequest/statusVerification.service");
 
 /**
- * Creates a JourneyDecision record that formally links a PassengerRequest
+ * Creates a JourneyDecision record that formally links a ShipperRequest
  * to a DriverRequest at the moment of company assignment (status 2).
  *
  * This is the canonical join between the shipper's request and the assigned
@@ -88,13 +88,13 @@ async function createJourneyDecisionForAssignment(
 ) {
   // Resolve numeric PKs
   const [[prRow]] = await db().query(
-    "SELECT shipperRequestId FROM PassengerRequest WHERE shipperRequestUniqueId = ? LIMIT 1",
+    "SELECT shipperRequestId FROM ShipperRequest WHERE shipperRequestUniqueId = ? LIMIT 1",
 
     [shipperRequestUniqueId],
   );
   if (!prRow) {
     throw new AppError(
-      "Passenger request not found while creating JourneyDecision",
+      "Shipper request not found while creating JourneyDecision",
       404,
     );
   }
@@ -269,7 +269,7 @@ const notifyAssignedDriver = async (opts) => {
  *
  * **Offline-first design:** A dispatcher can assign a driver even when the driver
  * is offline (no active DriverRequest). In that case a fresh row is inserted with
- * the origin coordinates from the PassengerRequest, so the driver wakes up to a
+ * the origin coordinates from the ShipperRequest, so the driver wakes up to a
  * pre-populated job card.
  *
  * **Rules (in order):**
@@ -345,7 +345,7 @@ const upsertDriverRequest = async ({
 /**
  * findActiveAssignmentForSlot
  * ────────────────────────────
- * Checks whether a given PassengerRequest slot already has a non-terminal
+ * Checks whether a given ShipperRequest slot already has a non-terminal
  * CompanyBidVehicleAssignment for the specified bid.
  *
  * "Active" means any status that is NOT a terminal cancel/reject:
@@ -387,7 +387,7 @@ async function findActiveAssignmentForSlot(
  *
  * **Just-In-Time PR Creation (company_target):**
  * When `shipperRequestUniqueId` is omitted (company_target deferred flow),
- * a new PassengerRequest row is created automatically from the batch metadata.
+ * a new ShipperRequest row is created automatically from the batch metadata.
  * This avoids bulk-creating N rows upfront — even 450,000 vehicles = 0 rows
  * until the dispatcher actually assigns a driver to each slot.
  *
@@ -422,7 +422,7 @@ exports.createAssignment = async (data) => {
 
   if (shipperRequestUniqueId) {
     // ── EAGER PATH: PR already exists (individual_target or pre-created) ───
-    pr = await getPassengerRequestByUniqueId(
+    pr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -449,7 +449,7 @@ exports.createAssignment = async (data) => {
 
     // 2. Fetch batch metadata for the new PR
     const [[batch]] = await db().query(
-      `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+      `SELECT * FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
       [bid.shipperRequestBatchId],
     );
     if (!batch) {
@@ -464,7 +464,7 @@ exports.createAssignment = async (data) => {
     shipperRequestUniqueId = uuidv4();
 
     await db().query(
-      `INSERT INTO PassengerRequest
+      `INSERT INTO ShipperRequest
         (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
          vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
          originLatitude, originLongitude, originPlace,
@@ -479,7 +479,7 @@ exports.createAssignment = async (data) => {
         batch.shipperUserUniqueId,
         batch.batchUniqueId,
         batch.vehicleTypeUniqueId,
-        journeyStatusMap.acceptedByPassenger, // born accepted
+        journeyStatusMap.acceptedByShipper, // born accepted
         batch.requestMode,
         batch.targetCompanyUniqueId,
         batch.originLatitude,
@@ -500,7 +500,7 @@ exports.createAssignment = async (data) => {
     );
 
     // Fetch the freshly created PR
-    pr = await getPassengerRequestByUniqueId(
+    pr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -526,7 +526,7 @@ exports.createAssignment = async (data) => {
   }
 
   // ── Upsert DriverRequest — status 2 (requested): company is requesting
-  //    the driver. Status advances to 4 (acceptedByPassenger = all agreed)
+  //    the driver. Status advances to 4 (acceptedByShipper = all agreed)
   //    only after the driver explicitly confirms the assignment.
   const requestedStatusId = journeyStatusMap.requested;
 
@@ -539,7 +539,7 @@ exports.createAssignment = async (data) => {
   });
 
   // ── Create JourneyDecision at assignment time (status 2) ─────────────────
-  // This is the canonical link between the shipper's PassengerRequest and
+  // This is the canonical link between the shipper's ShipperRequest and
   // the driver's DriverRequest. Creating it here (not at confirmation)
   // ensures verifyDriverJourneyStatus can resolve the shipper context
   // immediately after assignment.
@@ -623,7 +623,7 @@ exports.createBulkAssignments = async (data) => {
       item;
 
     // Check if slot belongs to the batch — uses the dedicated service function
-    const pr = await getPassengerRequestByUniqueId(
+    const pr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -907,8 +907,8 @@ exports.updateAssignmentStatus = async (
       throw new AppError("No DriverRequest linked to this assignment", 500);
     }
 
-    // Uses the dedicated PassengerRequest service instead of raw SQL
-    const prRow = await getPassengerRequestByUniqueId(
+    // Uses the dedicated ShipperRequest service instead of raw SQL
+    const prRow = await getShipperRequestByUniqueId(
       assignment.shipperRequestUniqueId,
     );
 
@@ -920,12 +920,12 @@ exports.updateAssignmentStatus = async (
       throw new AppError("Driver request not found", 404);
     }
 
-    const jStatusId = journeyStatusMap.acceptedByPassenger;
+    const jStatusId = journeyStatusMap.acceptedByShipper;
 
     // ── Advance the existing JourneyDecision to status 4 ───────────────────
     // JourneyDecision is created at assignment time (status 2) by
     // createJourneyDecisionForAssignment(). Here we just promote it to
-    // status 4 (acceptedByPassenger = all parties agreed).
+    // status 4 (acceptedByShipper = all parties agreed).
     // If for any reason it doesn't exist yet (legacy record), create it now.
     const [existingDecision] = await db().query(
       "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
@@ -934,7 +934,7 @@ exports.updateAssignmentStatus = async (
 
     if (existingDecision && existingDecision.length > 0) {
       journeyDecisionUniqueId = existingDecision[0].journeyDecisionUniqueId;
-      // Update status from 2 (requested) → 4 (acceptedByPassenger)
+      // Update status from 2 (requested) → 4 (acceptedByShipper)
       await db().query(
         "UPDATE JourneyDecisions SET journeyStatusId = ?, decisionTime = ? WHERE journeyDecisionUniqueId = ?",
         [jStatusId, currentDate(), journeyDecisionUniqueId],
@@ -1095,7 +1095,7 @@ exports.updateAssignmentStatus = async (
   //                          slot is also gone / completed.
   //   completed            → check if all slots are now completed.
   //
-  // The bid is marked 'completed' ONLY when every PassengerRequest slot in
+  // The bid is marked 'completed' ONLY when every ShipperRequest slot in
   // the batch has a corresponding assignment with status = 'completed'.
   // A rejection leaves the slot available for reassignment — the bid stays
   // 'accepted_by_shipper' so the dispatcher can re-assign.
@@ -1110,7 +1110,7 @@ exports.updateAssignmentStatus = async (
     // Check if EVERY slot in the batch now has a 'completed' assignment.
     const [[{ totalSlots }]] = await db().query(
       `SELECT COUNT(*) AS totalSlots
-       FROM PassengerRequest
+       FROM ShipperRequest
        WHERE shipperRequestBatchId = (
          SELECT shipperRequestBatchId FROM CompanyBidRequest
          WHERE companyBidRequestUniqueId = ? LIMIT 1
@@ -1160,7 +1160,7 @@ exports.updateAssignmentStatus = async (
  * fleet (vehicle/driver pairs) to unassigned slots within a single accepted bid.
  *
  * ### HOW IT WORKS (Technical Workflow):
- * 1. **Slot Discovery**: Finds all `PassengerRequest` items in the batch that are
+ * 1. **Slot Discovery**: Finds all `ShipperRequest` items in the batch that are
  *    NOT yet assigned in `CompanyBidVehicleAssignment`.
  * 2. **Availability Check**: Queries the company's active fleet. A driver/vehicle
  *    is only "Available" if they have no active trip where the status is NOT
@@ -1197,7 +1197,7 @@ exports.autoAssignBatch = async (data) => {
 
   const [unassignedSlots] = await db().query(
     `SELECT pr.shipperRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
-     FROM PassengerRequest pr
+     FROM ShipperRequest pr
      WHERE pr.shipperRequestBatchId = ? 
        AND pr.shipperRequestDeletedAt IS NULL
        AND NOT EXISTS (

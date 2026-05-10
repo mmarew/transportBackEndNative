@@ -39,7 +39,7 @@ const CHECK_INTERVAL_SECONDS = parseInt(
  * Criteria:
  * - JourneyDecisions.journeyStatusId = 2 (requested)
  * - JourneyDecisions.decisionTime is older than DRIVER_RESPONSE_TIMEOUT_MINUTES
- * - PassengerRequest.journeyStatusId = 2 (requested) - driver hasn't accepted yet
+ * - ShipperRequest.journeyStatusId = 2 (requested) - driver hasn't accepted yet
  * - JourneyDecisions.journeyStatusId hasn't been updated to acceptedByDriver (3) or higher
  *
  * @returns {Promise<Array>} Array of timed-out journey decisions with associated data
@@ -60,24 +60,24 @@ const findTimedOutDriverRequests = async () => {
         JourneyDecisions.journeyStatusId as decisionStatusId,
         JourneyDecisions.decisionBy,
         
-        PassengerRequest.shipperRequestUniqueId,
-        PassengerRequest.userUniqueId as shipperUserUniqueId,
-        PassengerRequest.journeyStatusId as shipperStatusId,
-        PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude,
-        PassengerRequest.originLongitude,
-        PassengerRequest.originPlace,
-        PassengerRequest.destinationLatitude,
-        PassengerRequest.destinationLongitude,
-        PassengerRequest.destinationPlace,
-        PassengerRequest.shippableItemName,
-        PassengerRequest.shippableItemQtyInQuintal,
-        PassengerRequest.shippingDate,
-        PassengerRequest.deliveryDate,
-        PassengerRequest.shippingCost,
-        PassengerRequest.shipperRequestBatchId,
-        PassengerRequest.shipperRequestCreatedBy,
-        PassengerRequest.shipperRequestCreatedByRoleId,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperRequest.journeyStatusId as shipperStatusId,
+        ShipperRequest.vehicleTypeUniqueId,
+        ShipperRequest.originLatitude,
+        ShipperRequest.originLongitude,
+        ShipperRequest.originPlace,
+        ShipperRequest.destinationLatitude,
+        ShipperRequest.destinationLongitude,
+        ShipperRequest.destinationPlace,
+        ShipperRequest.shippableItemName,
+        ShipperRequest.shippableItemQtyInQuintal,
+        ShipperRequest.shippingDate,
+        ShipperRequest.deliveryDate,
+        ShipperRequest.shippingCost,
+        ShipperRequest.shipperRequestBatchId,
+        ShipperRequest.shipperRequestCreatedBy,
+        ShipperRequest.shipperRequestCreatedByRoleId,
         
         DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId as driverUserUniqueId,
@@ -90,15 +90,15 @@ const findTimedOutDriverRequests = async () => {
         VehicleTypes.vehicleTypeName
         
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
+      INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      INNER JOIN Users ON PassengerRequest.userUniqueId = Users.userUniqueId
+      INNER JOIN Users ON ShipperRequest.userUniqueId = Users.userUniqueId
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
-      INNER JOIN VehicleTypes ON PassengerRequest.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
+      INNER JOIN VehicleTypes ON ShipperRequest.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
       
       WHERE 
         JourneyDecisions.journeyStatusId = ? 
-        AND PassengerRequest.journeyStatusId = ?
+        AND ShipperRequest.journeyStatusId = ?
         AND DriverRequest.journeyStatusId = ?
         AND JourneyDecisions.decisionTime < ?
         AND (JourneyDecisions.decisionBy = 'driver' OR JourneyDecisions.decisionBy IS NULL)
@@ -109,7 +109,7 @@ const findTimedOutDriverRequests = async () => {
 
     const [results] = await pool.query(sql, [
       journeyStatusMap.requested, // JourneyDecisions status = requested (2)
-      journeyStatusMap.requested, // PassengerRequest status = requested (2)
+      journeyStatusMap.requested, // ShipperRequest status = requested (2)
       journeyStatusMap.requested, // DriverRequest status = requested (2)
       timeoutMinutesAgo, // Decision time older than timeout
     ]);
@@ -227,7 +227,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
     const timeoutBody = {
       shipperRequestUniqueId,
       driverRequestUniqueId,
-      userUniqueId: shipperUserUniqueId, // Passenger's userUniqueId (for consistency, though not required)
+      userUniqueId: shipperUserUniqueId, // Shipper's userUniqueId (for consistency, though not required)
       journeyStatusId: journeyStatusMap.noAnswerFromDriver, // 13 - noAnswerFromDriver (fixed from 11)
       previousStatusId: journeyStatusMap.requested, // 2 - requested
       vehicle: {
@@ -250,7 +250,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
         shipperRequestUniqueId,
         driverRequestUniqueId,
         journeyDecisionUniqueId,
-        newPassengerRequestStatus: result.status,
+        newShipperRequestStatus: result.status,
         automatic: true,
       });
     } else {

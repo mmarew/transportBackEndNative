@@ -1,7 +1,7 @@
 /**
- * E2E Test: Passenger Request Journey Data Population
+ * E2E Test: Shipper Request Journey Data Population
  *
- * Tests the GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6 endpoint.
+ * Tests the GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=6 endpoint.
  *
  * WHAT WE ARE TESTING:
  *   The critical bug was that for shipperRequestId=44, which had TWO decisions:
@@ -22,12 +22,12 @@ const app = require("../Config/Express.config");
 const TEST_TOKEN =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJVbmlxdWVJZCI6ImU1NTg0ZGYyLWNlM2QtNDUyNS05ZTIzLTAxZWRjYjczNTIyZiIsImZ1bGxOYW1lIjoiTWFyZXcgTWFzcmVzaGEgQWJhdGUiLCJwaG9uZU51bWJlciI6IisyNTE5MjIxMTI0ODgiLCJlbWFpbCI6IjI1MTkyMjExMjQ4MEBkeW5hbWljcy5jb20iLCJyb2xlSWQiOjEsImlzUGhvbmVWZXJpZmllZCI6dHJ1ZSwiaXNFbWFpbFZlcmlmaWVkIjpmYWxzZX0sImlhdCI6MTc3NDgwODU2NH0.fiEjQgb7ILdb6EMjIcodzwWItOT6gDUaUFjJWJWWKj8";
 
-describe("GET /api/user/getPassengerRequest4allOrSingleUser - Journey Population", () => {
+describe("GET /api/user/getShipperRequest4allOrSingleUser - Journey Population", () => {
   let completedRequests;
 
   beforeAll(async () => {
     const res = await request(app)
-      .get("/api/user/getPassengerRequest4allOrSingleUser")
+      .get("/api/user/getShipperRequest4allOrSingleUser")
       .query({ journeyStatusId: 6 })
       .set("Authorization", `Bearer ${TEST_TOKEN}`)
       .expect(200);

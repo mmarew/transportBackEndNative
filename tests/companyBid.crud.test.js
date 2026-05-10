@@ -11,7 +11,7 @@
  *   D — TransportCompany CRUD
  *   E — CompanyMembership CRUD
  *   F — CompanyVehicle (fleet) CRUD
- *   G — PassengerRequest (company_target mode)
+ *   G — ShipperRequest (company_target mode)
  *   H — CompanyBidRequest CRUD
  *   I — CompanyBidVehicleAssignment CRUD (confirm → auto JourneyDecision)
  *   J — Cleanup assertions
@@ -538,7 +538,7 @@ function assert(cond, msg) {
   });
 
   // ════════════════════════════════════════════════════════════════
-  // PHASE G — PassengerRequest (company_target mode)
+  // PHASE G — ShipperRequest (company_target mode)
   // ════════════════════════════════════════════════════════════════
   console.log(
     "\n\x1b[1m━━ Phase G: Shipper Request (company_target) ━━\x1b[0m",
@@ -583,7 +583,7 @@ function assert(cond, msg) {
   await step("Fetch shipperRequestUniqueId for batch", async () => {
     const res = await request(
       "GET",
-      `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1,2,3,4,5&limit=5`,
+      `/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1,2,3,4,5&limit=5`,
       null,
       shipperH(),
     );

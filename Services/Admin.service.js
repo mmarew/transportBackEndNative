@@ -320,8 +320,8 @@ const adminServices = {
         CASE 
           WHEN dr.journeyStatusId IS NULL THEN 'No recent requests'
           WHEN dr.journeyStatusId = ${journeyStatusMap.journeyCompleted} THEN 'Completed'
-          WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByPassenger} THEN 'Cancelled by shipper'
-          WHEN dr.journeyStatusId = ${journeyStatusMap.rejectedByPassenger} THEN 'Rejected by shipper'
+          WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByShipper} THEN 'Cancelled by shipper'
+          WHEN dr.journeyStatusId = ${journeyStatusMap.rejectedByShipper} THEN 'Rejected by shipper'
           WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByDriver} THEN 'Cancelled by driver'
           WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByAdmin} THEN 'Cancelled by admin'
           WHEN dr.journeyStatusId = ${journeyStatusMap.completedByAdmin} THEN 'Completed by admin'
@@ -510,7 +510,7 @@ const adminServices = {
           WHEN dr.journeyStatusId = ${journeyStatusMap.waiting} THEN 'Waiting'
           WHEN dr.journeyStatusId = ${journeyStatusMap.requested} THEN 'Requested'
           WHEN dr.journeyStatusId = ${journeyStatusMap.acceptedByDriver} THEN 'Accepted by driver'
-          WHEN dr.journeyStatusId = ${journeyStatusMap.acceptedByPassenger} THEN 'Accepted by shipper'
+          WHEN dr.journeyStatusId = ${journeyStatusMap.acceptedByShipper} THEN 'Accepted by shipper'
           WHEN dr.journeyStatusId = ${journeyStatusMap.journeyStarted} THEN 'Journey started'
           ELSE 'Unknown status'
         END as journeyStatusName

@@ -156,7 +156,7 @@ const s = {
 
   // Individual flow
   indiBatchId: randomUUID(),
-  indiPassengerRequestId: null,
+  indiShipperRequestId: null,
   indiDriverRequestId: null,
   indiJourneyDecisionId: null,
   indiJourneyUniqueId: null,
@@ -552,7 +552,7 @@ async function run() {
     await step("Fetch individual shipperRequestUniqueId", async () => {
       const r = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1&limit=5`,
+        `/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1&limit=5`,
         null,
         bearer(s.shipperToken),
       );
@@ -561,12 +561,12 @@ async function run() {
       );
       const match =
         rows.find((x) => x.shipperRequestBatchId === s.indiBatchId) || rows[0];
-      s.indiPassengerRequestId = match?.shipperRequestUniqueId;
+      s.indiShipperRequestId = match?.shipperRequestUniqueId;
       assert(
-        s.indiPassengerRequestId,
+        s.indiShipperRequestId,
         `No shipperRequestUniqueId: ${JSON.stringify(r.body).slice(0, 200)}`,
       );
-      return `shipperRequestUniqueId: ${s.indiPassengerRequestId}`;
+      return `shipperRequestUniqueId: ${s.indiShipperRequestId}`;
     });
 
     await step("Driver: Accept individual request (status 1→3)", async () => {
@@ -574,7 +574,7 @@ async function run() {
         "POST",
         "/api/driver/createAndAcceptNewRequest",
         {
-          shipperRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiShipperRequestId,
           shippingCostByDriver: 5000,
           currentLocation: ORIGIN,
         },
@@ -590,7 +590,7 @@ async function run() {
     await step("Fetch journey decision IDs (status=3)", async () => {
       const r = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3&shipperRequestUniqueId=${s.indiPassengerRequestId}&limit=1`,
+        `/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3&shipperRequestUniqueId=${s.indiShipperRequestId}&limit=1`,
         null,
         bearer(s.shipperToken),
       );
@@ -615,7 +615,7 @@ async function run() {
         {
           driverRequestUniqueId: s.indiDriverRequestId,
           journeyDecisionUniqueId: s.indiJourneyDecisionId,
-          shipperRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiShipperRequestId,
         },
         bearer(s.shipperToken),
       );
@@ -632,7 +632,7 @@ async function run() {
         "/api/driver/startJourney",
         {
           driverRequestUniqueId: s.indiDriverRequestId,
-          shipperRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiShipperRequestId,
           journeyDecisionUniqueId: s.indiJourneyDecisionId,
           latitude: ORIGIN.latitude,
           longitude: ORIGIN.longitude,
@@ -655,7 +655,7 @@ async function run() {
         "/api/driver/completeJourney",
         {
           driverRequestUniqueId: s.indiDriverRequestId,
-          shipperRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiShipperRequestId,
           journeyDecisionUniqueId: s.indiJourneyDecisionId,
           journeyUniqueId: s.indiJourneyUniqueId,
           latitude: DEST.latitude,

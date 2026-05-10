@@ -38,8 +38,8 @@ router.get(
 
 /**
  * @route   GET /api/shipper/account
- * @desc    Passenger/Shipper self account status
- * @access  Passenger token
+ * @desc    Shipper/Shipper self account status
+ * @access  Shipper token
  */
 router.get(
   "/api/shipper/account",

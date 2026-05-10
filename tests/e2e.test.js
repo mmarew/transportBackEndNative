@@ -202,7 +202,7 @@ async function run() {
   console.log(`  Server        : ${BASE_URL}`);
   console.log(`  Run ID        : ${runId}`);
   console.log(`  OTP           : ${DEFAULT_OTP}  (default dev OTP)`);
-  console.log(`  Passenger     : ${PASSENGER_PHONE}`);
+  console.log(`  Shipper     : ${PASSENGER_PHONE}`);
   console.log(`  Driver        : ${DRIVER_PHONE}\n`);
 
   try {
@@ -240,17 +240,15 @@ async function run() {
     });
 
     // ═══════════════════════════════════════════════════════════════
-    // PHASE B — Passenger onboarding
+    // PHASE B — Shipper onboarding
     // ═══════════════════════════════════════════════════════════════
-    console.log(
-      "\n\x1b[1m━━ Phase B: Passenger Onboarding ━━━━━━━━━━━━\x1b[0m",
-    );
+    console.log("\n\x1b[1m━━ Phase B: Shipper Onboarding ━━━━━━━━━━━━\x1b[0m");
 
-    await step("Passenger: Register (roleId 1)", async () => {
+    await step("Shipper: Register (roleId 1)", async () => {
       const res = await request("POST", "/api/user/createUser", {
         phoneNumber: PASSENGER_PHONE,
         roleId: 1,
-        fullName: "E2E Passenger",
+        fullName: "E2E Shipper",
         email: `e2e_pass_${runId}@test.com`,
       });
       assert(
@@ -262,9 +260,9 @@ async function run() {
       return `userUniqueId: ${state.shipperUniqueId}`;
     });
 
-    await step("Passenger: Verify OTP (101010) → JWT", async () => {
+    await step("Shipper: Verify OTP (101010) → JWT", async () => {
       state.shipperToken = await verifyOtp(PASSENGER_PHONE, 1);
-      return "Passenger JWT acquired";
+      return "Shipper JWT acquired";
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -363,7 +361,7 @@ async function run() {
 
     state.shipperRequestBatchId = randomUUID(); // Must be a valid GUID
 
-    await step("Passenger: Create shipping request (POST)", async () => {
+    await step("Shipper: Create shipping request (POST)", async () => {
       const res = await request(
         "POST",
         "/api/shipperRequest/createRequest",
@@ -397,11 +395,11 @@ async function run() {
     });
 
     // createRequest returns totalRecords counts, not the ID — fetch it separately
-    await step("Passenger: Fetch created request ID", async () => {
+    await step("Shipper: Fetch created request ID", async () => {
       // Try with multiple statuses — createRequest returns totalCount:0 but may store at status 1,2 etc.
       const res = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1,2,3,4,5&limit=5`,
+        `/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1,2,3,4,5&limit=5`,
         null,
         { Authorization: `Bearer ${state.shipperToken}` },
       );
@@ -472,7 +470,7 @@ async function run() {
       async () => {
         const res = await request(
           "GET",
-          `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3&shipperRequestUniqueId=${state.shipperRequestUniqueId}&limit=1`,
+          `/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3&shipperRequestUniqueId=${state.shipperRequestUniqueId}&limit=1`,
           null,
           { Authorization: `Bearer ${state.shipperToken}` },
         );
@@ -496,7 +494,7 @@ async function run() {
       },
     );
 
-    await step("Passenger: Accept driver's bid", async () => {
+    await step("Shipper: Accept driver's bid", async () => {
       const res = await request(
         "PUT",
         "/api/shipper/acceptDriverRequest",
@@ -511,7 +509,7 @@ async function run() {
         res.body?.message === "success",
         `Failed: ${JSON.stringify(res.body).slice(0, 400)}`,
       );
-      return "Passenger accepted driver's bid ✓";
+      return "Shipper accepted driver's bid ✓";
     });
 
     await step("Driver: Start journey", async () => {

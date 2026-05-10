@@ -8,7 +8,7 @@ const {
   activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 const { currentDate } = require("../../Utils/CurrentDate");
-// Single source of truth for PassengerRequestBatch writes
+// Single source of truth for ShipperRequestBatch writes
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal, connection = null }) => {
@@ -36,7 +36,7 @@ const insertData = async ({ tableName, colAndVal, connection = null }) => {
   }
 };
 
-const createNewPassengerRequest = async (
+const createNewShipperRequest = async (
   body,
   userUniqueId,
   journeyStatusId = journeyStatusMap.waiting, // 1
@@ -121,7 +121,7 @@ const createNewPassengerRequest = async (
   // Insert the new request into the database
   try {
     const result = await insertData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       colAndVal: requestPayload,
       connection,
     });
@@ -210,6 +210,6 @@ const createDriverRequest = async (
 
 module.exports = {
   createDriverRequest,
-  createNewPassengerRequest,
+  createNewShipperRequest,
   insertData,
 };

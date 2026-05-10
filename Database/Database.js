@@ -371,9 +371,9 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
 
 
  
--- Create the PassengerRequest table
+-- Create the ShipperRequest table
 
-CREATE TABLE IF NOT EXISTS PassengerRequest (
+CREATE TABLE IF NOT EXISTS ShipperRequest (
     shipperRequestId INT AUTO_INCREMENT PRIMARY KEY,
     shipperRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the shipper request
 
@@ -423,11 +423,11 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     -- INDEX added after company tables: idx_shipperRequest_targetCompany (targetCompanyUniqueId)
 );
 
--- PassengerRequestBatch: A metadata table that summarizes a group of requests.
+-- ShipperRequestBatch: A metadata table that summarizes a group of requests.
 -- Junior Note: Performance Optimization!
 -- Instead of grouping 1000s of individual requests on every discovery call, 
 -- we query this single "Header" table. This turns an O(N*M) operation into O(N).
-CREATE TABLE IF NOT EXISTS PassengerRequestBatch (
+CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     batchId INT AUTO_INCREMENT PRIMARY KEY,
     batchUniqueId VARCHAR(36) UNIQUE NOT NULL,             -- The common ID for all requests in this batch
     shipperUserUniqueId VARCHAR(36) NOT NULL,              -- FK → Users
@@ -474,7 +474,7 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
     originPlace VARCHAR(255) NOT NULL,  -- Origin place
    --   TIMESTAMP NOT NULL,  -- Time of the request
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
-    isCancellationByPassengerSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen cancellation notification
+    isCancellationByShipperSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen cancellation notification
    -- driverRequestCreatedBy VARCHAR(36) NOT NULL,  -- Who created the driver request
     driverRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the driver request
     driverRequestDeletedBy VARCHAR(36) NULL,  -- Who deleted the driver request
@@ -493,7 +493,7 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey decision
-    shipperRequestId INT NOT NULL,  -- Foreign key to PassengerRequest
+    shipperRequestId INT NOT NULL,  -- Foreign key to ShipperRequest
     driverRequestId INT UNIQUE NOT NULL,  -- Foreign key to DriverRequest
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
@@ -503,8 +503,8 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     deliveryDateByDriver DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCostByDriver DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
     isNotSelectedSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen not selected notification
-    isCancellationByDriverSeenByPassenger ENUM('no need to see it', 'not seen by shipper yet', 'seen by shipper') DEFAULT 'no need to see it',  -- Track if shipper has seen driver cancellation notification
-    isRejectionByPassengerSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen shipper rejection notification (before bid completion)
+    isCancellationByDriverSeenByShipper ENUM('no need to see it', 'not seen by shipper yet', 'seen by shipper') DEFAULT 'no need to see it',  -- Track if shipper has seen driver cancellation notification
+    isRejectionByShipperSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen shipper rejection notification (before bid completion)
     journeyDecisionCreatedBy VARCHAR(36) NOT NULL,  -- Who created the journey decision
     journeyDecisionUpdatedBy VARCHAR(36) NULL,  -- Who updated the journey decision
     journeyDecisionDeletedBy VARCHAR(36) NULL,  -- Who deleted the journey decision
@@ -512,7 +512,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionUpdatedAt DATETIME NULL,  -- When the journey decision was updated
     journeyDecisionDeletedAt DATETIME NULL,  -- When the journey decision was deleted
     
-    FOREIGN KEY (shipperRequestId) REFERENCES PassengerRequest(shipperRequestId),
+    FOREIGN KEY (shipperRequestId) REFERENCES ShipperRequest(shipperRequestId),
     FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
     FOREIGN KEY (journeyDecisionCreatedBy) REFERENCES Users(userUniqueId),
@@ -833,7 +833,7 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
     canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
     contextId INT NOT NULL,  -- ID from the relevant table (shipper request, driver request, journey decision, or journey)
     roleId INT NOT NULL,  -- ID from the Roles table
-    contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey', 'PassengerRequestBatch') NOT NULL,  -- Type of context being referenced
+    contextType ENUM('ShipperRequest', 'DriverRequest', 'JourneyDecisions', 'Journey', 'ShipperRequestBatch') NOT NULL,  -- Type of context being referenced
     driverUserUniqueId VARCHAR(36) , 
     shipperUserUniqueId VARCHAR(36),
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
@@ -1536,7 +1536,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     companyBidRequestId INT AUTO_INCREMENT PRIMARY KEY,
     companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
 
-    -- The shipper's batch being bid on (links to PassengerRequest.shipperRequestBatchId)
+    -- The shipper's batch being bid on (links to ShipperRequest.shipperRequestBatchId)
     shipperRequestBatchId VARCHAR(36) NOT NULL,
 
     -- Who is bidding
@@ -1563,7 +1563,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     bidStatusUpdatedAt DATETIME NULL,
     bidStatusUpdatedBy VARCHAR(36) NULL,
 
-    -- Cancellation acknowledgement (mirrors DriverRequest.isCancellationByPassengerSeenByDriver)
+    -- Cancellation acknowledgement (mirrors DriverRequest.isCancellationByShipperSeenByDriver)
     -- NULL  = no cancellation occurred
     -- 'not seen by company yet' = batch was cancelled; company has not acknowledged
     -- 'seen by company'         = company tapped/polled and acknowledged the cancellation
@@ -1594,8 +1594,8 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
 
 
 -- CompanyBidVehicleAssignment: After shipper accepts a company bid, the dispatcher
--- assigns specific vehicles and their drivers — one row per PassengerRequest slot.
--- Each row maps: one PassengerRequest row ↔ one Vehicle ↔ one Driver.
+-- assigns specific vehicles and their drivers — one row per ShipperRequest slot.
+-- Each row maps: one ShipperRequest row ↔ one Vehicle ↔ one Driver.
 --
 -- DriverRequest creation sequence (IMPORTANT):
 --   JourneyDecisions.driverRequestId is NOT NULL, so a DriverRequest record MUST exist
@@ -1603,7 +1603,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
 --
 --   Step 1 — Dispatcher assigns driver:
 --     → System auto-creates a DriverRequest row on behalf of the assigned driver
---       (origin/status copied from the linked PassengerRequest; journeyStatusId = acceptedByDriver)
+--       (origin/status copied from the linked ShipperRequest; journeyStatusId = acceptedByDriver)
 --     → driverRequestUniqueId is stored in this table immediately
 --
 --   Step 2 — Driver confirms assignment (assignmentStatus → confirmed_by_driver):
@@ -1619,9 +1619,9 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     assignmentId INT AUTO_INCREMENT PRIMARY KEY,
     assignmentUniqueId VARCHAR(36) UNIQUE NOT NULL,
 
-    -- Links back to the company bid and the specific PassengerRequest slot
+    -- Links back to the company bid and the specific ShipperRequest slot
     companyBidRequestUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyBidRequest
-    shipperRequestUniqueId VARCHAR(36) NOT NULL,         -- FK → PassengerRequest (one row in the batch)
+    shipperRequestUniqueId VARCHAR(36) NOT NULL,         -- FK → ShipperRequest (one row in the batch)
 
     -- The assigned vehicle and driver
     vehicleUniqueId VARCHAR(36) NOT NULL,                  -- FK → Vehicle
@@ -1659,7 +1659,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     INDEX idx_assignment_vehicle (vehicleUniqueId),
     INDEX idx_assignment_status (assignmentStatus),
     FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
-    FOREIGN KEY (shipperRequestUniqueId) REFERENCES PassengerRequest(shipperRequestUniqueId),
+    FOREIGN KEY (shipperRequestUniqueId) REFERENCES ShipperRequest(shipperRequestUniqueId),
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (driverRequestUniqueId) REFERENCES DriverRequest(driverRequestUniqueId),

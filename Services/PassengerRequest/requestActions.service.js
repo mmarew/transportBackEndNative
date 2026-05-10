@@ -24,7 +24,7 @@ const {
 const messageTypes = require("../../Utils/MessageTypes");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
-const { verifyPassengerStatus } = require("./statusVerification.service");
+const { verifyShipperStatus } = require("./statusVerification.service");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const { currentDate } = require("../../Utils/CurrentDate");
 const { transactionStorage } = require("../../Utils/TransactionContext");
@@ -35,12 +35,12 @@ const { verifyDriverJourneyStatus } = require("../DriverRequest");
 /**
  * Accepts a driver's request/offer
  * @param {Object} body - Request body
- * @param {string} body.userUniqueId - Passenger's unique ID
+ * @param {string} body.userUniqueId - Shipper's unique ID
  * @param {string} body.journeyDecisionUniqueId - Journey decision unique ID
  * @param {string} body.driverRequestUniqueId - Driver request unique ID
- * @param {string} body.shipperRequestUniqueId - Passenger request unique ID
- * @param {string} body.userUniqueId - Passenger's unique ID
- * @returns {Promise<Object>} Passenger status after acceptance
+ * @param {string} body.shipperRequestUniqueId - Shipper request unique ID
+ * @param {string} body.userUniqueId - Shipper's unique ID
+ * @returns {Promise<Object>} Shipper status after acceptance
  */
 const acceptDriverRequest = async (body) => {
   try {
@@ -71,15 +71,15 @@ const acceptDriverRequest = async (body) => {
       const connectedDrivers = await performJoinSelect({
         baseTable: "DriverRequest",
         selectColumns:
-          "DriverRequest.*, Users.phoneNumber, DriverRequest.userUniqueId AS driverUserUniqueId, PassengerRequest.userUniqueId AS shipperUserUniqueId, PassengerRequest.shipperRequestUniqueId, JourneyDecisions.journeyDecisionUniqueId, JourneyDecisions.driverRequestId as jd_driverRequestId, PassengerRequest.shipperRequestId as pr_shipperRequestId",
+          "DriverRequest.*, Users.phoneNumber, DriverRequest.userUniqueId AS driverUserUniqueId, ShipperRequest.userUniqueId AS shipperUserUniqueId, ShipperRequest.shipperRequestUniqueId, JourneyDecisions.journeyDecisionUniqueId, JourneyDecisions.driverRequestId as jd_driverRequestId, ShipperRequest.shipperRequestId as pr_shipperRequestId",
         joins: [
           {
             table: "JourneyDecisions",
             on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
           },
           {
-            table: "PassengerRequest",
-            on: "JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId",
+            table: "ShipperRequest",
+            on: "JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId",
           },
           {
             table: "Users",
@@ -87,7 +87,7 @@ const acceptDriverRequest = async (body) => {
           },
         ],
         conditions: {
-          "PassengerRequest.userUniqueId": userUniqueId,
+          "ShipperRequest.userUniqueId": userUniqueId,
           "JourneyDecisions.journeyStatusId": [
             journeyStatusMap.requested, // 2 — driver bid, not yet interacted
             journeyStatusMap.acceptedByDriver, // 3 — driver accepted, waiting on shipper
@@ -109,7 +109,7 @@ const acceptDriverRequest = async (body) => {
 
         const updatePayload = {
           journeyStatusId: isAccepted
-            ? journeyStatusMap.acceptedByPassenger
+            ? journeyStatusMap.acceptedByShipper
             : journeyStatusMap.notSelectedInBid,
           driverRequestUniqueId: driver?.driverRequestUniqueId,
           journeyDecisionUniqueId: driver?.journeyDecisionUniqueId,
@@ -126,8 +126,8 @@ const acceptDriverRequest = async (body) => {
         const notification = {
           title: isAccepted ? "Offer accepted" : "Offer not selected",
           body: isAccepted
-            ? "Passenger accepted your price."
-            : "Passenger selected another offer.",
+            ? "Shipper accepted your price."
+            : "Shipper selected another offer.",
         };
         const data = {
           type: "driver_offer_status",
@@ -154,7 +154,7 @@ const acceptDriverRequest = async (body) => {
         }
       }
 
-      const statusResult = await verifyPassengerStatus({
+      const statusResult = await verifyShipperStatus({
         userUniqueId,
       });
 
@@ -180,7 +180,7 @@ const acceptDriverRequest = async (body) => {
 /**
  * Rejects a driver's offer
  * @param {Object} body - Request body with rejection data
- * @returns {Promise<Object>} Passenger status after rejection
+ * @returns {Promise<Object>} Shipper status after rejection
  */
 const rejectDriverOffer = async (body) => {
   try {
@@ -200,23 +200,23 @@ const rejectDriverOffer = async (body) => {
     }
 
     // Get all requests which are accepted by driver shipper requests for this shipper
-    const allPassengerRequests = await getData({
+    const allShipperRequests = await getData({
       tableName: "JourneyDecisions",
       conditions: {
         shipperRequestId: body.shipperRequestId,
         journeyStatusId: journeyStatusMap.acceptedByDriver,
       },
     });
-    logger.debug("@allPassengerRequests", { allPassengerRequests });
+    logger.debug("@allShipperRequests", { allShipperRequests });
 
     // Wrap all updates in a transaction to ensure atomicity
     let negativeStatusUpdateResult;
     await executeInTransaction(
       async () => {
-        // Update PassengerRequest if there is only one request (all-or-nothing)
-        if (allPassengerRequests.length <= 1) {
+        // Update ShipperRequest if there is only one request (all-or-nothing)
+        if (allShipperRequests.length <= 1) {
           await updateData({
-            tableName: "PassengerRequest",
+            tableName: "ShipperRequest",
             conditions: {
               shipperRequestUniqueId: body.shipperRequestUniqueId,
             },
@@ -230,7 +230,7 @@ const rejectDriverOffer = async (body) => {
         negativeStatusUpdateResult = await updateNegativeJourneyStatus({
           driverRequestUniqueId: body.driverRequestUniqueId,
           journeyDecisionUniqueId: body.journeyDecisionUniqueId,
-          newStatusId: journeyStatusMap.rejectedByPassenger,
+          newStatusId: journeyStatusMap.rejectedByShipper,
         });
       },
       {
@@ -266,11 +266,11 @@ const rejectDriverOffer = async (body) => {
           },
         }),
         performJoinSelect({
-          baseTable: "PassengerRequest",
+          baseTable: "ShipperRequest",
           joins: [
             {
               table: "Users",
-              on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+              on: "ShipperRequest.userUniqueId = Users.userUniqueId",
             },
           ],
           conditions: {
@@ -303,7 +303,7 @@ const rejectDriverOffer = async (body) => {
       const message = {
         messageTypes: messageTypes.shipper_rejected_request,
         message: "success",
-        status: journeyStatusMap.rejectedByPassenger,
+        status: journeyStatusMap.rejectedByShipper,
         shipper: shipper ? shipper : null,
         driver: {
           driver: driver,
@@ -340,7 +340,7 @@ const rejectDriverOffer = async (body) => {
           roleId: usersRoles.driverRoleId,
           notification: {
             title: "Offer rejected",
-            body: "Passenger has excluded your offer from the bid.",
+            body: "Shipper has excluded your offer from the bid.",
           },
           data: {
             type: "driver_offer_rejected",
@@ -359,7 +359,7 @@ const rejectDriverOffer = async (body) => {
       }
     }
 
-    // Return success message - client should call verifyPassengerStatus endpoint for full status
+    // Return success message - client should call verifyShipperStatus endpoint for full status
     return {
       message: "success",
       data: "Driver offer rejected successfully",
@@ -379,10 +379,10 @@ const rejectDriverOffer = async (body) => {
  * @param {Object} body.user - User object with userUniqueId and roleId
  * @param {string} body.ownerUserUniqueId - Owner's unique ID
  * @param {number} body.cancellationReasonsTypeId - Cancellation reason type ID
- * @param {string} body.shipperRequestUniqueId - Passenger request unique ID
+ * @param {string} body.shipperRequestUniqueId - Shipper request unique ID
  * @returns {Promise<Object>} Success or error response
  */
-const cancelPassengerRequest = async (body) => {
+const cancelShipperRequest = async (body) => {
   try {
     const {
       cancellationJourneyStatusId,
@@ -405,8 +405,8 @@ const cancelPassengerRequest = async (body) => {
     // Using LEFT JOIN for JourneyDecisions since they may not exist for all requests
     const sql = `
       SELECT 
-        -- PassengerRequest columns
-        PassengerRequest.*,
+        -- ShipperRequest columns
+        ShipperRequest.*,
         -- Users columns (prefixed to avoid conflicts)
         Users.userUniqueId,
         Users.fullName,
@@ -423,12 +423,12 @@ const cancelPassengerRequest = async (body) => {
         JourneyDecisions.deliveryDateByDriver,
         JourneyDecisions.shippingCostByDriver,
         JourneyDecisions.isNotSelectedSeenByDriver,
-        JourneyDecisions.isCancellationByDriverSeenByPassenger,
-        JourneyDecisions.isRejectionByPassengerSeenByDriver
-      FROM PassengerRequest
-      INNER JOIN Users ON PassengerRequest.userUniqueId = Users.userUniqueId
-      LEFT JOIN JourneyDecisions ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
-      WHERE PassengerRequest.shipperRequestUniqueId = ?
+        JourneyDecisions.isCancellationByDriverSeenByShipper,
+        JourneyDecisions.isRejectionByShipperSeenByDriver
+      FROM ShipperRequest
+      INNER JOIN Users ON ShipperRequest.userUniqueId = Users.userUniqueId
+      LEFT JOIN JourneyDecisions ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+      WHERE ShipperRequest.shipperRequestUniqueId = ?
     `;
 
     const executor = transactionStorage.getStore() || pool;
@@ -437,7 +437,7 @@ const cancelPassengerRequest = async (body) => {
     ]);
     logger.debug("@combinedResults", { combinedResults });
     if (!combinedResults || combinedResults.length === 0) {
-      throw new AppError("Passenger request not found", 404);
+      throw new AppError("Shipper request not found", 404);
     }
 
     // Extract shipper request data from first row (all rows have same shipper data)
@@ -455,8 +455,8 @@ const cancelPassengerRequest = async (body) => {
       deliveryDateByDriver: undefined,
       shippingCostByDriver: undefined,
       isNotSelectedSeenByDriver: undefined,
-      isCancellationByDriverSeenByPassenger: undefined,
-      isRejectionByPassengerSeenByDriver: undefined,
+      isCancellationByDriverSeenByShipper: undefined,
+      isRejectionByShipperSeenByDriver: undefined,
     };
     // Clean up undefined properties
     Object.keys(shipperRequest).forEach(
@@ -468,7 +468,7 @@ const cancelPassengerRequest = async (body) => {
 
     // Check if the request is already cancelled
     // const cancelledStatuses = [
-    //   journeyStatusMap.cancelledByPassenger, // 7
+    //   journeyStatusMap.cancelledByShipper, // 7
     //   journeyStatusMap.cancelledByDriver, // 9
     //   journeyStatusMap.cancelledByAdmin, // 10
     //   journeyStatusMap.cancelledBySystem, // 12
@@ -508,10 +508,9 @@ const cancelPassengerRequest = async (body) => {
         deliveryDateByDriver: row.deliveryDateByDriver,
         shippingCostByDriver: row.shippingCostByDriver,
         isNotSelectedSeenByDriver: row.isNotSelectedSeenByDriver,
-        isCancellationByDriverSeenByPassenger:
-          row.isCancellationByDriverSeenByPassenger,
-        isRejectionByPassengerSeenByDriver:
-          row.isRejectionByPassengerSeenByDriver,
+        isCancellationByDriverSeenByShipper:
+          row.isCancellationByDriverSeenByShipper,
+        isRejectionByShipperSeenByDriver: row.isRejectionByShipperSeenByDriver,
       }));
 
     // Use shipper data from the combined fetch (already includes User join)
@@ -519,18 +518,18 @@ const cancelPassengerRequest = async (body) => {
     logger.debug("@journeyDecisions", { journeyDecisions });
 
     // Wrap all database updates in a transaction to ensure atomicity
-    // This prevents partial updates where PassengerRequest is updated but DriverRequest/JourneyDecisions are not
+    // This prevents partial updates where ShipperRequest is updated but DriverRequest/JourneyDecisions are not
     // Store driver notification data to send after transaction commits
     const driverNotificationData = [];
 
     await executeInTransaction(
       async () => {
-        // 1. Update PassengerRequest
+        // 1. Update ShipperRequest
         await updateData({
-          tableName: "PassengerRequest",
+          tableName: "ShipperRequest",
           conditions: { shipperRequestId },
           updateValues: {
-            journeyStatusId: cancellationJourneyStatusId, // Can be cancelledByPassenger (7) or cancelledByAdmin (10)
+            journeyStatusId: cancellationJourneyStatusId, // Can be cancelledByShipper (7) or cancelledByAdmin (10)
           },
         });
 
@@ -634,13 +633,12 @@ const cancelPassengerRequest = async (body) => {
 
           const notificationMessage =
             userUniqueId === ownerUserUniqueId
-              ? "Passenger cancelled Journey."
+              ? "Shipper cancelled Journey."
               : "System cancelled Journey.";
 
           // Determine appropriate message type based on who cancelled
           const cancellationMessageType =
-            cancellationJourneyStatusId ===
-            journeyStatusMap.cancelledByPassenger
+            cancellationJourneyStatusId === journeyStatusMap.cancelledByShipper
               ? messageTypes?.shipper_cancelled_request
               : messageTypes?.admin_cancelled_request;
 
@@ -710,7 +708,7 @@ const cancelPassengerRequest = async (body) => {
       tableName: "CanceledJourneys",
       conditions: {
         contextId: shipperRequestId,
-        contextType: "PassengerRequest",
+        contextType: "ShipperRequest",
       },
     });
 
@@ -720,7 +718,7 @@ const cancelPassengerRequest = async (body) => {
         canceledBy: userUniqueId,
         canceledTime: currentDate(),
         contextId: shipperRequestId,
-        contextType: "PassengerRequest",
+        contextType: "ShipperRequest",
         cancellationReasonsTypeId,
         roleId,
         shipperUserUniqueId: requestOwnerUserUniqueId,
@@ -729,7 +727,7 @@ const cancelPassengerRequest = async (body) => {
 
     // Get updated status counts after cancellation
     // This updates totalRecords with new counts (cancelled requests removed from active counts)
-    const statusResult = await verifyPassengerStatus({
+    const statusResult = await verifyShipperStatus({
       userUniqueId: requestOwnerUserUniqueId,
       sendNotificationsToDrivers: false, // Don't send notifications, just get counts
     });
@@ -739,7 +737,7 @@ const cancelPassengerRequest = async (body) => {
       message: "success",
       status: cancellationJourneyStatusId,
       data:
-        cancellationJourneyStatusId === journeyStatusMap.cancelledByPassenger
+        cancellationJourneyStatusId === journeyStatusMap.cancelledByShipper
           ? "You have successfully cancelled your request."
           : "Request has been cancelled by admin.",
       // Provide unique IDs so frontend knows what was cancelled
@@ -761,5 +759,5 @@ const cancelPassengerRequest = async (body) => {
 module.exports = {
   acceptDriverRequest,
   rejectDriverOffer,
-  cancelPassengerRequest,
+  cancelShipperRequest,
 };

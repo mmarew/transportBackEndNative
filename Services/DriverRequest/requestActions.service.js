@@ -8,7 +8,7 @@ const { updateData } = require("../../CRUD/Update/Data.update");
 const { createDriverRequest } = require("../../CRUD/Create/CreateData");
 const { getUserByUserUniqueId, createUser } = require("../User.service");
 const {
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
   sendSocketIONotificationToAdmin,
   sendNotificationToDriver,
 } = require("../../Utils/Notifications");
@@ -110,7 +110,7 @@ const takeFromStreet = async (body, user) => {
     // User creation now happens INSIDE transaction (if needed)
     // This ensures user creation + shipper request + driver request + journey decision + journey + route points are all atomic
     // All operations must succeed together or all fail together (prevents orphaned records)
-    let userPassenger,
+    let userShipper,
       shipperRequest,
       driverRequest,
       journeyDecision,
@@ -121,25 +121,25 @@ const takeFromStreet = async (body, user) => {
       async (connection) => {
         // Create shipper user INSIDE transaction (with connection for transaction support)
         // This ensures if request creation fails, user creation is rolled back (no orphaned users)
-        userPassenger = await createUser({ ...body, ...data }, connection);
+        userShipper = await createUser({ ...body, ...data }, connection);
 
-        if (userPassenger.message === "error") {
+        if (userShipper.message === "error") {
           throw new Error(
-            userPassenger.error || "Unable to create user data to ship goods",
+            userShipper.error || "Unable to create user data to ship goods",
           );
         }
 
-        const dataOfPassenger = userPassenger?.data;
-        if (!dataOfPassenger?.userUniqueId) {
+        const dataOfShipper = userShipper?.data;
+        if (!dataOfShipper?.userUniqueId) {
           throw new Error("Failed to get userUniqueId from created user");
         }
 
         // Create shipper request (with connection for transaction support)
-        const { createPassengerRequest } = require("../PassengerRequest");
-        shipperRequest = await createPassengerRequest(
+        const { createShipperRequest } = require("../ShipperRequest");
+        shipperRequest = await createShipperRequest(
           {
             ...body,
-            userUniqueId: dataOfPassenger.userUniqueId, // Set shipper's userUniqueId after creating shipper user
+            userUniqueId: dataOfShipper.userUniqueId, // Set shipper's userUniqueId after creating shipper user
             // shipperRequestCreatedBy and shipperRequestCreatedByRoleId are already in body from controller
           },
           journeyStatusId, // journeyStarted (5) - driver already picked up goods from street
@@ -303,7 +303,7 @@ const takeFromStreet = async (body, user) => {
       vehicleTariffRate: vehicleTariffRate.data[0],
     };
     responseData.shipper = {
-      ...userPassenger?.dataOfPassenger,
+      ...userShipper?.dataOfShipper,
       ...targetRequest,
     };
     responseData.driver = driverData;
@@ -340,10 +340,8 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
     // return;
     const { shipperRequestUniqueId, userUniqueId } = body;
     // get shipper request data by shipperRequestUniqueId,
-    const {
-      getPassengerRequest4allOrSingleUser,
-    } = require("../PassengerRequest");
-    const shipperRequestResult = await getPassengerRequest4allOrSingleUser({
+    const { getShipperRequest4allOrSingleUser } = require("../ShipperRequest");
+    const shipperRequestResult = await getShipperRequest4allOrSingleUser({
       data: {
         target: "all",
         filters: { shipperRequestUniqueId },
@@ -359,24 +357,21 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
     const shipperRequestId = shipperRequest?.shipperRequestId;
     // check if the shipper request is already accepted by driver
     if (shipperJourneyStatusId > journeyStatusMap.acceptedByDriver) {
-      throw new AppError("Passenger request already accepted by driver", 400);
+      throw new AppError("Shipper request already accepted by driver", 400);
     }
     if (!shipperJourneyStatusId) {
-      throw new AppError("Passenger request not found", 404);
+      throw new AppError("Shipper request not found", 404);
     }
     // validate if the request exists
     if (shipperRequest?.message === "error") {
-      throw new AppError(
-        shipperRequest.error || "Passenger request error",
-        400,
-      );
+      throw new AppError(shipperRequest.error || "Shipper request error", 400);
     }
     // verify if there was any shipper-driver relation/decision before
     // Only match ACTIVE decisions (statuses 1-5) — ignore completed, cancelled, etc.
     const { pool } = require("../../Middleware/Database.config");
-    const sql = `SELECT * FROM JourneyDecisions, PassengerRequest, DriverRequest 
-    WHERE PassengerRequest.shipperRequestId=? 
-    AND JourneyDecisions.shipperRequestId=PassengerRequest.shipperRequestId 
+    const sql = `SELECT * FROM JourneyDecisions, ShipperRequest, DriverRequest 
+    WHERE ShipperRequest.shipperRequestId=? 
+    AND JourneyDecisions.shipperRequestId=ShipperRequest.shipperRequestId 
     AND JourneyDecisions.driverRequestId=DriverRequest.driverRequestId 
     AND DriverRequest.userUniqueId=?
     AND JourneyDecisions.journeyStatusId IN (${activeJourneyStatuses.join(", ")})`;
@@ -406,9 +401,9 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
             connection, // Pass connection for transaction support
           });
 
-          // Update PassengerRequest
+          // Update ShipperRequest
           await updateData({
-            tableName: "PassengerRequest",
+            tableName: "ShipperRequest",
             conditions: { shipperRequestUniqueId },
             updateValues: {
               journeyStatusId: journeyStatusMap.acceptedByDriver,
@@ -524,8 +519,8 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
           }
 
           // Update shipper request status to accepted by driver within transaction
-          const updatedPassengerRequest = await updateData({
-            tableName: "PassengerRequest",
+          const updatedShipperRequest = await updateData({
+            tableName: "ShipperRequest",
             conditions: { shipperRequestUniqueId },
             updateValues: {
               journeyStatusId: journeyStatusMap.acceptedByDriver,
@@ -534,8 +529,8 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
           });
 
           // validate if the update was successful
-          if (updatedPassengerRequest.affectedRows === 0) {
-            throw new Error("Passenger request not found or update failed");
+          if (updatedShipperRequest.affectedRows === 0) {
+            throw new Error("Shipper request not found or update failed");
           }
         },
         {
@@ -569,7 +564,7 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
  * @param {Object} body - Request body containing shipperRequestUniqueId, journeyDecisionUniqueId, driverRequestUniqueId, and userUniqueId
  * @returns {Promise<Object>} Response containing driver status with accepted shipper request
  */
-const acceptPassengerRequest = async (body) => {
+const acceptShipperRequest = async (body) => {
   try {
     const {
       shipperRequestUniqueId,
@@ -593,7 +588,7 @@ const acceptPassengerRequest = async (body) => {
       throw new AppError("Driver request unique id is required", 400);
     }
     if (!shipperRequestUniqueId) {
-      throw new AppError("Passenger request unique id is required", 400);
+      throw new AppError("Shipper request unique id is required", 400);
     }
     if (shippingCostByDriver <= 0) {
       throw new AppError("Shipping cost by driver must be greater than 0", 400);
@@ -608,8 +603,8 @@ const acceptPassengerRequest = async (body) => {
           on: "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
         },
         {
-          table: "PassengerRequest",
-          on: "PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
+          table: "ShipperRequest",
+          on: "ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
         },
         {
           table: "Users",
@@ -667,8 +662,8 @@ const acceptPassengerRequest = async (body) => {
     // This is more efficient - only processes the ONE request that changed
     // Import here to avoid circular dependency
     const {
-      sendPassengerNotification,
-    } = require("../PassengerRequest/statusVerification.service");
+      sendShipperNotification,
+    } = require("../ShipperRequest/statusVerification.service");
 
     // Fetch all journey notification data using helper function
     // Pass existingRequest[0] (requestData) as driverRequest to avoid re-fetching (already fetched from join query)
@@ -688,7 +683,7 @@ const acceptPassengerRequest = async (body) => {
     }
 
     // Send notification directly - no need to process all shipper requests
-    await sendPassengerNotification({
+    await sendShipperNotification({
       shipperRequest,
       journeyDecision: journeyDecisionData,
       driverInfo,
@@ -753,10 +748,8 @@ const acceptPassengerRequest = async (body) => {
  */
 const noAnswerFromDriver = async (body) => {
   const shipperRequestUniqueId = body.shipperRequestUniqueId;
-  const {
-    getPassengerRequest4allOrSingleUser,
-  } = require("../PassengerRequest");
-  const shipperRequestResult = await getPassengerRequest4allOrSingleUser({
+  const { getShipperRequest4allOrSingleUser } = require("../ShipperRequest");
+  const shipperRequestResult = await getShipperRequest4allOrSingleUser({
     data: {
       target: "all",
       filters: { shipperRequestUniqueId },
@@ -782,7 +775,7 @@ const noAnswerFromDriver = async (body) => {
 
   // Validate shipper data exists
   if (!shipperData) {
-    throw new AppError("Passenger request not found", 404);
+    throw new AppError("Shipper request not found", 404);
   }
 
   // Validate driver data exists
@@ -790,7 +783,7 @@ const noAnswerFromDriver = async (body) => {
     throw new AppError("Driver request not found", 404);
   }
 
-  // Check if driver already responded (status > 2 and < 5 means acceptedByDriver or acceptedByPassenger)
+  // Check if driver already responded (status > 2 and < 5 means acceptedByDriver or acceptedByShipper)
   if (shipperData.journeyStatusId > 2 && shipperData.journeyStatusId < 5) {
     return {
       message: "success",
@@ -804,7 +797,7 @@ const noAnswerFromDriver = async (body) => {
 
   // Determine if shipper should be updated to waiting
   // This will be set within the transaction based on active driver count
-  let shouldUpdatePassengerToWaiting = false;
+  let shouldUpdateShipperToWaiting = false;
 
   // Wrap status updates in a single transaction to ensure atomicity
   // All operations must succeed or all must fail to maintain data consistency
@@ -817,21 +810,21 @@ const noAnswerFromDriver = async (body) => {
       if (shipperRequestUniqueId) {
         // Count journey decisions for this shipper request using transaction connection
         // This ensures we see a consistent snapshot within the transaction
-        // Count only active JourneyDecisions (status IN 2, 3, 4): requested, acceptedByDriver, acceptedByPassenger
+        // Count only active JourneyDecisions (status IN 2, 3, 4): requested, acceptedByDriver, acceptedByShipper
         // If count === 1, this is the only active driver, so shipper goes back to waiting
         // If count > 1, multiple drivers are active, so shipper status stays unchanged
         const countSql = `
           SELECT COUNT(*) as count 
           FROM JourneyDecisions 
-          INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId 
-          WHERE PassengerRequest.shipperRequestUniqueId = ?
+          INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId 
+          WHERE ShipperRequest.shipperRequestUniqueId = ?
             AND JourneyDecisions.journeyStatusId IN (?, ?, ?)
         `;
         const [countResult] = await connection.query(countSql, [
           shipperRequestUniqueId,
           journeyStatusMap.requested, // 2
           journeyStatusMap.acceptedByDriver, // 3
-          journeyStatusMap.acceptedByPassenger, // 4
+          journeyStatusMap.acceptedByShipper, // 4
         ]);
         journeyDecisionCount = countResult[0]?.count || 0;
 
@@ -839,7 +832,7 @@ const noAnswerFromDriver = async (body) => {
         // Only update if this is the only active driver (only 1 JourneyDecision with status IN 2, 3, 4)
         // If shipper has multiple active drivers (count > 1), leave status unchanged
         // This logic: if only 1 active driver was matched, and they don't answer, shipper has no active drivers left
-        shouldUpdatePassengerToWaiting = journeyDecisionCount === 1;
+        shouldUpdateShipperToWaiting = journeyDecisionCount === 1;
       }
 
       // 2. Update journey status to noAnswerFromDriver (within transaction)
@@ -849,13 +842,13 @@ const noAnswerFromDriver = async (body) => {
         connection, // Pass connection for transaction support
       });
 
-      // 3. Update PassengerRequest status (only if this is the only active driver)
+      // 3. Update ShipperRequest status (only if this is the only active driver)
       // If shipper has multiple active drivers, leave status unchanged
-      if (shipperRequestId && shouldUpdatePassengerToWaiting) {
-        // Update the PassengerRequest to reflect the no answer and set journeyStatusId to 1 (waiting)
+      if (shipperRequestId && shouldUpdateShipperToWaiting) {
+        // Update the ShipperRequest to reflect the no answer and set journeyStatusId to 1 (waiting)
         // This happens when this driver is the only active one, so shipper request returns to waiting state
         await updateData({
-          tableName: "PassengerRequest",
+          tableName: "ShipperRequest",
           conditions: { shipperRequestId },
           updateValues: {
             journeyStatusId: journeyStatusMap.waiting,
@@ -875,18 +868,18 @@ const noAnswerFromDriver = async (body) => {
   const shipperPhoneNumber = shipperData?.phoneNumber;
 
   // Determine final shipper status for response
-  const finalPassengerStatus = shouldUpdatePassengerToWaiting
+  const finalShipperStatus = shouldUpdateShipperToWaiting
     ? journeyStatusMap.waiting
     : shipperData.journeyStatusId;
 
-  const messageToPassenger = {
+  const messageToShipper = {
     messageType: messageTypes.request_other_driver,
     message: "success",
     shipper: {
       ...shipperData,
-      journeyStatusId: finalPassengerStatus,
+      journeyStatusId: finalShipperStatus,
     },
-    status: finalPassengerStatus,
+    status: finalShipperStatus,
   };
 
   const messageToDriver = {
@@ -902,13 +895,13 @@ const noAnswerFromDriver = async (body) => {
     message: messageToDriver,
     phoneNumber: driverPhoneNumber,
   });
-  sendSocketIONotificationToPassenger({
-    message: messageToPassenger,
+  sendSocketIONotificationToShipper({
+    message: messageToShipper,
     phoneNumber: shipperPhoneNumber,
   });
 
   return {
-    status: finalPassengerStatus,
+    status: finalShipperStatus,
     message: "success",
     data: messageTypes.driver_not_answered,
   };
@@ -952,13 +945,13 @@ const cancelDriverRequest = async (data) => {
      *   - Occurs at status 1 (waiting) or 2 (requested)
      *   - No JourneyDecision record exists yet
      *   - Driver never committed to participate in the bid
-     *   - Passenger doesn't need to be notified (no expectation was set)
+     *   - Shipper doesn't need to be notified (no expectation was set)
      *
      * cancelledByDriver (9): Used when driver cancels AFTER accepting the request
-     *   - Occurs at status 3+ (acceptedByDriver, acceptedByPassenger, journeyStarted, etc.)
+     *   - Occurs at status 3+ (acceptedByDriver, acceptedByShipper, journeyStarted, etc.)
      *   - JourneyDecision record exists (driver had accepted and provided bidding price)
      *   - Driver committed but then withdrew their commitment
-     *   - Passenger should be notified (expectation was set and then broken)
+     *   - Shipper should be notified (expectation was set and then broken)
      */
     // Determine the appropriate journey status based on when the driver cancels/rejects
     let journeyStatusId =
@@ -1001,15 +994,15 @@ const cancelDriverRequest = async (data) => {
     // Fetch shipper details (read operation - before transaction)
     let shipper = null;
     let shipperRequestUniqueId = null;
-    let shouldUpdatePassengerToWaiting = false;
+    let shouldUpdateShipperToWaiting = false;
 
     if (shipperRequestId) {
       shipper = await performJoinSelect({
-        baseTable: "PassengerRequest",
+        baseTable: "ShipperRequest",
         joins: [
           {
             table: "Users",
-            on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+            on: "ShipperRequest.userUniqueId = Users.userUniqueId",
           },
         ],
         conditions: { shipperRequestId },
@@ -1051,8 +1044,8 @@ const cancelDriverRequest = async (data) => {
           const countSql = `
             SELECT COUNT(*) as count 
             FROM JourneyDecisions 
-            INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId 
-            WHERE PassengerRequest.shipperRequestUniqueId = ?
+            INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId 
+            WHERE ShipperRequest.shipperRequestUniqueId = ?
               AND JourneyDecisions.journeyStatusId IN (${activeJourneyStatuses.join(", ")})
           `;
           const [countResult] = await connection.query(countSql, [
@@ -1064,7 +1057,7 @@ const cancelDriverRequest = async (data) => {
           // Only update if this is the only driver (only 1 JourneyDecision exists for this shipper)
           // If shipper has multiple drivers (count > 1), leave status unchanged
           // This logic: if only 1 driver was ever matched, and we're cancelling it, shipper has no drivers left
-          shouldUpdatePassengerToWaiting = journeyDecisionCount === 1;
+          shouldUpdateShipperToWaiting = journeyDecisionCount === 1;
         }
 
         // 3. Update JourneyDecisions if a decision record exists
@@ -1072,7 +1065,7 @@ const cancelDriverRequest = async (data) => {
         //       since the driver never accepted the request. This update only runs if one exists.
         if (journeyDecisions?.length > 0 && journeyDecisionUniqueId) {
           /**
-           * Set isCancellationByDriverSeenByPassenger status:
+           * Set isCancellationByDriverSeenByShipper status:
            *
            * "no need to see it": For rejectedByDriver (15)
            *   - Driver rejected before accepting, so shipper never expected this driver
@@ -1081,9 +1074,9 @@ const cancelDriverRequest = async (data) => {
            *
            * "not seen by shipper yet": For cancelledByDriver (9)
            *   - Driver cancelled after accepting, breaking their commitment
-           *   - Passenger should be notified via WebSocket (if online) or HTTP GET (if offline)
-           *   - This status triggers notification in verifyPassengerStatus
-           *   - Passenger can mark as seen via PUT /api/shipperRequest/markCancellationAsSeen
+           *   - Shipper should be notified via WebSocket (if online) or HTTP GET (if offline)
+           *   - This status triggers notification in verifyShipperStatus
+           *   - Shipper can mark as seen via PUT /api/shipperRequest/markCancellationAsSeen
            */
           const cancellationSeenStatus =
             journeyStatusId === journeyStatusMap.rejectedByDriver
@@ -1098,19 +1091,19 @@ const cancelDriverRequest = async (data) => {
                 userUniqueId === ownerUserUniqueId
                   ? journeyStatusId // Use the determined status (rejectedByDriver or cancelledByDriver)
                   : journeyStatusMap.cancelledByAdmin, // 10 for admin cancellation
-              isCancellationByDriverSeenByPassenger: cancellationSeenStatus,
+              isCancellationByDriverSeenByShipper: cancellationSeenStatus,
             },
             connection, // Pass connection for transaction support
           });
         }
 
-        // 4. Update PassengerRequest status (only if this is the only driver)
+        // 4. Update ShipperRequest status (only if this is the only driver)
         // If shipper has multiple drivers, leave status unchanged
-        if (shipperRequestId && shouldUpdatePassengerToWaiting) {
-          // Update the PassengerRequest to reflect the cancellation and set journeyStatusId to 1 (waiting)
+        if (shipperRequestId && shouldUpdateShipperToWaiting) {
+          // Update the ShipperRequest to reflect the cancellation and set journeyStatusId to 1 (waiting)
           // This happens when this driver is the only one, so shipper request returns to waiting state
           await updateData({
-            tableName: "PassengerRequest",
+            tableName: "ShipperRequest",
             conditions: { shipperRequestId },
             updateValues: {
               journeyStatusId: journeyStatusMap.waiting,
@@ -1191,10 +1184,10 @@ const cancelDriverRequest = async (data) => {
         if (shipperRequest?.phoneNumber) {
           // Import here to avoid circular dependency
           const {
-            sendPassengerNotification,
-          } = require("../PassengerRequest/statusVerification.service");
+            sendShipperNotification,
+          } = require("../ShipperRequest/statusVerification.service");
 
-          await sendPassengerNotification({
+          await sendShipperNotification({
             shipperRequest,
             journeyDecision: notificationData.journeyDecision,
             driverInfo: notificationData.driverInfo,
@@ -1346,7 +1339,7 @@ const cancelDriverRequest = async (data) => {
 module.exports = {
   takeFromStreet,
   createAndAcceptNewRequest,
-  acceptPassengerRequest,
+  acceptShipperRequest,
   noAnswerFromDriver,
   cancelDriverRequest,
 };

@@ -151,7 +151,7 @@ exports.getAllJourneyPayments = async ({
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      LEFT JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       ${whereClause}
     `;
   const executor = transactionStorage.getStore() || pool;
@@ -171,7 +171,7 @@ exports.getAllJourneyPayments = async ({
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      LEFT JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       ${whereClause}
@@ -214,7 +214,7 @@ exports.getJourneyPaymentById = async (paymentUniqueId) => {
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      LEFT JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       WHERE jp.paymentUniqueId = ?

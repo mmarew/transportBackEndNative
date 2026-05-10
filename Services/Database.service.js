@@ -431,8 +431,8 @@ const installPreDefinedData = async (req) => {
     subscriptionPlanListsErrors = [],
     depositSourcesSuccess = [],
     depositSourcesErrors = [],
-    successPassengerDocumentRequirement = [],
-    failedPassengerDocumentRequirement = [],
+    successShipperDocumentRequirement = [],
+    failedShipperDocumentRequirement = [],
     successCompanyDocumentRequirement = [],
     failedCompanyDocumentRequirement = [],
     successVehicleDocumentRequirement = [],
@@ -564,8 +564,8 @@ const installPreDefinedData = async (req) => {
         body: document,
         userUniqueId: user.userUniqueId,
       }),
-    successPassengerDocumentRequirement,
-    failedPassengerDocumentRequirement,
+    successShipperDocumentRequirement,
+    failedShipperDocumentRequirement,
     "ShipperDocumentRequirement",
   );
 
@@ -750,8 +750,8 @@ const installPreDefinedData = async (req) => {
         errors: commissionStatusErrors,
       },
       shipperDocumentRequirement: {
-        success: successPassengerDocumentRequirement,
-        errors: failedPassengerDocumentRequirement,
+        success: successShipperDocumentRequirement,
+        errors: failedShipperDocumentRequirement,
       },
       companyDocumentRequirement: {
         success: successCompanyDocumentRequirement,

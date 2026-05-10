@@ -4,11 +4,11 @@
  * ========================
  * Validates the 5 fixes applied to the company bid flow:
  *
- *  Fix 1 — updateBidStatus syncs PassengerRequest.journeyStatusId
- *           accepted_by_shipper  → PR status becomes 4 (acceptedByPassenger)
+ *  Fix 1 — updateBidStatus syncs ShipperRequest.journeyStatusId
+ *           accepted_by_shipper  → PR status becomes 4 (acceptedByShipper)
  *           rejected_by_shipper  → PR status resets to 1 (waiting)
  *
- *  Fix 2 — createAssignment copies origin from PassengerRequest (not 0,0)
+ *  Fix 2 — createAssignment copies origin from ShipperRequest (not 0,0)
  *           Verify the auto-created DriverRequest has a real originPlace
  *
  *  Fix 3 — updateAssignmentStatus writes decisionBy = 'dispatcher'
@@ -18,7 +18,7 @@
  *           (fire-and-forget; we verify the response still succeeds even if
  *            FCM is not configured in dev, because errors are swallowed)
  *
- *  Fix 5 — getPassengerRequest4allOrSingleUser supports requestMode filter
+ *  Fix 5 — getShipperRequest4allOrSingleUser supports requestMode filter
  *           Filtering by requestMode=company_target returns only company-target rows
  *
  * Usage:
@@ -162,7 +162,7 @@ function assert(cond, msg) {
 async function fetchPRByBatchId(batchId) {
   const res = await request(
     "GET",
-    `/api/user/getPassengerRequest4allOrSingleUser?limit=20`,
+    `/api/user/getShipperRequest4allOrSingleUser?limit=20`,
     null,
     shipperH(),
   );
@@ -400,13 +400,13 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
 
   await step("Fetch shipperRequestUniqueId", async () => {
     const pr = await fetchPRByBatchId(state.shipperRequestBatchId);
-    assert(pr, "PassengerRequest not found for batch");
+    assert(pr, "ShipperRequest not found for batch");
     state.shipperRequestUniqueId = pr.shipperRequestUniqueId;
     return state.shipperRequestUniqueId;
   });
 
   // ══════════════════════════════════════════════════════════════════
-  // FIX 5 — requestMode filter on getPassengerRequest list
+  // FIX 5 — requestMode filter on getShipperRequest list
   // ══════════════════════════════════════════════════════════════════
   console.log("\n\x1b[1m━━ Fix 5: requestMode Filter ━━━━━━━━━━━━━━━━━\x1b[0m");
 
@@ -415,7 +415,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
     async () => {
       const res = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?requestMode=company_target&limit=20`,
+        `/api/user/getShipperRequest4allOrSingleUser?requestMode=company_target&limit=20`,
         null,
         shipperH(),
       );
@@ -438,7 +438,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
     async () => {
       const res = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?requestMode=individual_target&limit=20`,
+        `/api/user/getShipperRequest4allOrSingleUser?requestMode=individual_target&limit=20`,
         null,
         shipperH(),
       );
@@ -505,12 +505,12 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
   );
 
   // ══════════════════════════════════════════════════════════════════
-  // FIX 1 — PassengerRequest status synced on bid accept
+  // FIX 1 — ShipperRequest status synced on bid accept
   // ══════════════════════════════════════════════════════════════════
-  console.log("\n\x1b[1m━━ Fix 1: PassengerRequest Status Sync ━━━━━━━\x1b[0m");
+  console.log("\n\x1b[1m━━ Fix 1: ShipperRequest Status Sync ━━━━━━━\x1b[0m");
 
   await step(
-    "FIX-1a: after bid accepted, PR journeyStatusId = 4 (acceptedByPassenger)",
+    "FIX-1a: after bid accepted, PR journeyStatusId = 4 (acceptedByShipper)",
     async () => {
       // Primary verification: the bid status is 'accepted_by_shipper' (proves updateBidStatus ran)
       const bidRes = await request(
@@ -549,7 +549,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
 
       assert(
         pr.journeyStatusId === 4,
-        `Expected journeyStatusId=4 (acceptedByPassenger), got ${pr.journeyStatusId}`,
+        `Expected journeyStatusId=4 (acceptedByShipper), got ${pr.journeyStatusId}`,
       );
       return `journeyStatusId = ${pr.journeyStatusId} ✓ (confirmed via admin endpoint)`;
     },
@@ -618,7 +618,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
       // Now verify the PR went back to waiting (1)
       const prRes = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?limit=20`,
+        `/api/user/getShipperRequest4allOrSingleUser?limit=20`,
         null,
         shipperH(),
       );
@@ -626,7 +626,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
         .map((f) => f.shipperRequest || f)
         .filter(Boolean);
       const pr2 = rows.find((r) => r.shipperRequestBatchId === batchId2);
-      assert(pr2, "Second PassengerRequest not found");
+      assert(pr2, "Second ShipperRequest not found");
       assert(
         pr2.journeyStatusId === 1,
         `Expected journeyStatusId=1 after rejection, got ${pr2.journeyStatusId}`,
@@ -645,7 +645,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
   );
 
   // ══════════════════════════════════════════════════════════════════
-  // FIX 2 — Origin coords copied from PassengerRequest (not 0,0)
+  // FIX 2 — Origin coords copied from ShipperRequest (not 0,0)
   // ══════════════════════════════════════════════════════════════════
   console.log("\n\x1b[1m━━ Fix 2: DriverRequest Origin Coords ━━━━━━━━\x1b[0m");
 
@@ -673,7 +673,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
   );
 
   await step(
-    "FIX-2: DriverRequest originLatitude ≠ 0 (copied from PassengerRequest)",
+    "FIX-2: DriverRequest originLatitude ≠ 0 (copied from ShipperRequest)",
     async () => {
       const dr = await fetchDriverRequest(state.driverRequestUniqueId);
       // If the admin endpoint doesn't expose this directly, fall back to checking

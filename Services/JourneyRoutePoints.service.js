@@ -1,9 +1,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { v4: uuidv4 } = require("uuid");
-const {
-  sendSocketIONotificationToPassenger,
-} = require("../Utils/Notifications");
+const { sendSocketIONotificationToShipper } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes.js");
 const { currentDate } = require("../Utils/CurrentDate");
 const { getData } = require("../CRUD/Read/ReadData");
@@ -75,7 +73,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
     // Note: Notifications sent outside transaction to avoid blocking
     if (shipperPhoneNumber) {
       try {
-        await sendSocketIONotificationToPassenger({
+        await sendSocketIONotificationToShipper({
           phoneNumber: shipperPhoneNumber,
           eventName: "locationUpdateToShipper",
           message: {

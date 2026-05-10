@@ -264,7 +264,7 @@ async function getToken(phone, roleId) {
       );
       const fetch = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?target=all&shipperRequestBatchId=${bId}`,
+        `/api/user/getShipperRequest4allOrSingleUser?target=all&shipperRequestBatchId=${bId}`,
         null,
         shipH,
       );

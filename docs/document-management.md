@@ -165,7 +165,7 @@ Document types define the categories of documents that users can upload. These a
 
 ## Role Document Requirements Management
 
-After creating document types, you need to assign them to specific user roles with defined requirements. This determines which documents are required for each role (e.g., Driver, Passenger) and what information must be provided with each document.
+After creating document types, you need to assign them to specific user roles with defined requirements. This determines which documents are required for each role (e.g., Driver, Shipper) and what information must be provided with each document.
 
 ### Create Role Document Requirement
 
@@ -188,7 +188,7 @@ After creating document types, you need to assign them to specific user roles wi
 
 **Request Body Fields**:
 
-- `roleId`: Role ID (2=Driver, 1=Passenger, etc.)
+- `roleId`: Role ID (2=Driver, 1=Shipper, etc.)
 - `documentTypeId`: Document type ID to assign
 - `isDocumentMandatory`: 1 if document is required, 0 if optional
 - `isFileNumberRequired`: 1 if file number must be provided, 0 if optional
@@ -623,10 +623,10 @@ vehicleRegistrationFileNumber: "VR789012"
 - `vehicleInsurance`: Vehicle insurance certificate (required)
 - `profilePhoto`: Driver profile photo (optional)
 
-**Passenger Documents:**
+**Shipper Documents:**
 
 - `idCard`: Government ID card (optional)
-- `profilePhoto`: Passenger profile photo (optional)
+- `profilePhoto`: Shipper profile photo (optional)
 
 ## Getting Required Documents
 
@@ -641,7 +641,7 @@ Users can retrieve their required document types and current document status by 
 **Query Parameters**:
 
 - `ownerUserUniqueId`: Use "self" for current user
-- `roleId`: User's role ID (2=Driver, 1=Passenger, etc.)
+- `roleId`: User's role ID (2=Driver, 1=Shipper, etc.)
 
 **Response Structure**:
 
@@ -739,7 +739,7 @@ curl -X GET "http://localhost:3000/api/account/status?ownerUserUniqueId=self&rol
 - Vehicle Insurance (Mandatory)
 - Profile Photo (Mandatory)
 
-**Passenger (roleId: 1):**
+**Shipper (roleId: 1):**
 
 - ID Card (Optional)
 - Profile Photo (Optional)

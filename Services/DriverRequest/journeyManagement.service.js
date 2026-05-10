@@ -42,13 +42,13 @@ const startJourney = async (body) => {
         JourneyDecisions.*,
         DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId,
-        PassengerRequest.shipperRequestUniqueId,
+        ShipperRequest.shipperRequestUniqueId,
         Users.fullName,
         Users.email,
         Users.phoneNumber
       FROM JourneyDecisions
       JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
+      JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       WHERE JourneyDecisions.journeyDecisionUniqueId = ?
       LIMIT 1
@@ -70,9 +70,7 @@ const startJourney = async (body) => {
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
         throw new AppError("This journey has already been completed", 400);
       }
-      if (
-        combinedData.journeyStatusId !== journeyStatusMap.acceptedByPassenger
-      ) {
+      if (combinedData.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
         throw new AppError("This journey is not accepted by shipper", 400);
       }
       if (combinedData.userUniqueId !== userUniqueId) {
@@ -124,8 +122,8 @@ const startJourney = async (body) => {
   ).then(async ({ combinedData, finalJourneyUniqueId }) => {
     // Notifications after transaction
     const {
-      sendPassengerNotification,
-    } = require("../PassengerRequest/statusVerification.service");
+      sendShipperNotification,
+    } = require("../ShipperRequest/statusVerification.service");
 
     const journeyDecisionFromJoin = {
       journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
@@ -161,7 +159,7 @@ const startJourney = async (body) => {
     );
 
     if (shipperRequest && journeyDecisionData && driverInfo) {
-      await sendPassengerNotification({
+      await sendShipperNotification({
         shipperRequest,
         journeyDecision: journeyDecisionData,
         driverInfo,
@@ -227,18 +225,18 @@ const completeJourney = async (body) => {
       const validateQuery = `
       SELECT JourneyDecisions.*, DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId,
-        PassengerRequest.shipperRequestUniqueId,
-        PassengerRequest.userUniqueId as shipperUserUniqueId,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
         Journey.journeyUniqueId,
         Journey.startTime, Journey.endTime,
         Users.fullName,
         Users.phoneNumber FROM JourneyDecisions
       JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
+      JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
       JOIN Journey ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       WHERE JourneyDecisions.journeyDecisionUniqueId = ?
-        AND PassengerRequest.shipperRequestUniqueId = ?
+        AND ShipperRequest.shipperRequestUniqueId = ?
         AND DriverRequest.driverRequestUniqueId = ?
         AND Journey.journeyUniqueId = ?
       LIMIT 1
@@ -315,8 +313,8 @@ const completeJourney = async (body) => {
   ).then(async (combinedData) => {
     // Notifications after successful transaction commit
     const {
-      sendPassengerNotification,
-    } = require("../PassengerRequest/statusVerification.service");
+      sendShipperNotification,
+    } = require("../ShipperRequest/statusVerification.service");
 
     const journeyDecisionFromJoin = {
       journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
@@ -353,7 +351,7 @@ const completeJourney = async (body) => {
     } = notificationDataResult;
 
     if (shipperRequest && journeyDecisionData && driverInfo) {
-      await sendPassengerNotification({
+      await sendShipperNotification({
         shipperRequest,
         journeyDecision: journeyDecisionData,
         driverInfo,
@@ -461,7 +459,7 @@ const sendUpdatedLocation = async (body) => {
     const journeyStatusId = driverRequest[0].journeyStatusId;
     const activeStatuses = [
       journeyStatusMap.acceptedByDriver,
-      journeyStatusMap.acceptedByPassenger,
+      journeyStatusMap.acceptedByShipper,
       journeyStatusMap.journeyStarted,
     ];
 
@@ -496,7 +494,7 @@ const sendUpdatedLocation = async (body) => {
       shipperPhoneNumber = notificationData.shipperRequest?.phoneNumber || null;
 
       if (!shipperPhoneNumber) {
-        throw new AppError("Passenger phone number not found", 404);
+        throw new AppError("Shipper phone number not found", 404);
       }
     }
 

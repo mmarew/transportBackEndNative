@@ -11,8 +11,8 @@ const verifyExistanceOfPassangerInWaitingStage = async (userUniqueId) => {
     throw new AppError("shipper not found", 404);
   }
 
-  // Query to check existence in the PassengerRequest table
-  const requestSql = `SELECT * FROM PassengerRequest WHERE userUniqueId = ? AND userJourneyStatusId IN ('1', '2', '3','4')`;
+  // Query to check existence in the ShipperRequest table
+  const requestSql = `SELECT * FROM ShipperRequest WHERE userUniqueId = ? AND userJourneyStatusId IN ('1', '2', '3','4')`;
   const requestValues = [userUniqueId];
   const [requestResult] = await pool.query(requestSql, requestValues);
 

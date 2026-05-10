@@ -549,7 +549,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       // 1. Send SMS (Admin Assignment Message)
       if (phoneNumber && phoneVerificationOTP) {
         const roleNameMap = {
-          [usersRoles.shipperRoleId]: "Passenger",
+          [usersRoles.shipperRoleId]: "Shipper",
           [usersRoles.driverRoleId]: "Driver",
           [usersRoles.adminRoleId]: "Admin",
           [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
@@ -574,7 +574,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       if (email) {
         if (isEmailVerified) {
           const roleNameMap = {
-            [usersRoles.shipperRoleId]: "Passenger",
+            [usersRoles.shipperRoleId]: "Shipper",
             [usersRoles.driverRoleId]: "Driver",
             [usersRoles.adminRoleId]: "Admin",
             [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",

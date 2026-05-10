@@ -70,7 +70,7 @@ const sendSocketIONotificationToDriver = async ({
 };
 
 // 🔔 Notify a specific shipper by phone number
-const sendSocketIONotificationToPassenger = async ({
+const sendSocketIONotificationToShipper = async ({
   message,
   phoneNumber,
   eventName,
@@ -90,7 +90,7 @@ const sendSocketIONotificationToPassenger = async ({
       return {
         status: "success",
         message: "success",
-        data: "Notification skipped: Passenger offline",
+        data: "Notification skipped: Shipper offline",
       };
     }
 
@@ -270,6 +270,6 @@ const sendSocketIONotificationToCompany = async ({
 module.exports = {
   sendSocketIONotificationToAdmin,
   sendSocketIONotificationToDriver,
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
   sendSocketIONotificationToCompany,
 };

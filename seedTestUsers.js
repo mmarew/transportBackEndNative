@@ -139,17 +139,17 @@ for (let i = 1; i <= 50; i++) {
   });
 }
 
-// Generate 40 Passengers (roleId: 1) - phone numbers +251960000001 to +251999000001
-const testPassengers = [];
+// Generate 40 Shippers (roleId: 1) - phone numbers +251960000001 to +251999000001
+const testShippers = [];
 for (let i = 1; i <= 40; i++) {
   const firstName = firstNames[(i + 30) % firstNames.length];
   const lastName = lastNames[(i + 10) % lastNames.length];
   const phoneNum = String(59 + i).padStart(2, "0"); // 60, 61, ... 99
-  testPassengers.push({
+  testShippers.push({
     fullName: `${firstName} ${lastName}`,
     email: `shipper${i}@test.com`,
     phoneNumber: `+2519${phoneNum}000001`,
-    roleId: 1, // Passenger
+    roleId: 1, // Shipper
   });
 }
 
@@ -400,8 +400,8 @@ async function seedTestUsers() {
   // SEED PASSENGERS (40 users)
   // ============================================
 
-  for (let i = 0; i < testPassengers.length; i++) {
-    const user = testPassengers[i];
+  for (let i = 0; i < testShippers.length; i++) {
+    const user = testShippers[i];
     const now = currentDate();
 
     // Check if user already exists
@@ -442,7 +442,7 @@ async function seedTestUsers() {
         [credentialUniqueId, userUniqueId, hashedOTP, hashedOTP, now],
       );
 
-      // 3. Insert UserRole (Passenger roleId = 1)
+      // 3. Insert UserRole (Shipper roleId = 1)
       const [userRoleResult] = await pool.query(
         `INSERT INTO UserRole (userRoleUniqueId, userUniqueId, roleId, userRoleCreatedAt, userRoleCreatedBy)
          VALUES (?, ?, ?, ?, ?)`,

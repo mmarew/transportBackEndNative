@@ -1,14 +1,14 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
 
-// Nested location schema expected by createNewPassengerRequest
+// Nested location schema expected by createNewShipperRequest
 const locationSchema = Joi.object({
   latitude: Joi.number().required(),
   longitude: Joi.number().required(),
   description: Joi.string().required(),
 }).required();
 
-exports.createPassengerRequest = Joi.object({
+exports.createShipperRequest = Joi.object({
   shipperRequestBatchId: uuidSchema.required(),
   numberOfVehicles: Joi.number().integer().min(1).max(100).default(1),
   shippingDate: Joi.date().iso().required(),
@@ -67,7 +67,7 @@ exports.cancelRequestParams = Joi.object({
     .required(),
 });
 
-exports.cancelPassengerRequestBody = Joi.object({
+exports.cancelShipperRequestBody = Joi.object({
   shipperRequestUniqueId: uuidSchema.required(),
   cancellationReasonsTypeId: Joi.number().integer().optional(),
 }).unknown(true);
@@ -93,12 +93,12 @@ exports.markJourneyCompletionAsSeen = Joi.object({
   rating: Joi.number().integer().min(1).max(5).required(),
 }).unknown(true); // Allow additional fields for future extensibility
 
-exports.verifyPassengerStatusQuery = Joi.object({
+exports.verifyShipperStatusQuery = Joi.object({
   pageSize: Joi.number().integer().min(1).max(100).optional(),
   page: Joi.number().integer().min(1).optional(),
 }).unknown(true);
 
-exports.getPassengerRequestQuery = Joi.object({
+exports.getShipperRequestQuery = Joi.object({
   target: Joi.string().valid("all", "single").optional(),
   journeyStatusId: Joi.string().optional(), // single or comma-separated IDs
   limit: Joi.number().integer().min(1).max(100).optional(),

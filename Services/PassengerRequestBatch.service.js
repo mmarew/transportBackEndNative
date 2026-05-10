@@ -8,7 +8,7 @@ const logger = require("../Utils/logger");
 const {
   sendSocketIONotificationToCompany,
   sendSocketIONotificationToDriver,
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
 } = require("../Utils/Notifications");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { createCanceledJourney } = require("./CanceledJourneys.service");
@@ -42,7 +42,7 @@ const UPDATABLE_COLS = [
 /**
  * ### Single Source of Truth — Create or sync a batch header
  *
- * Called by `createNewPassengerRequest` every time a new individual request
+ * Called by `createNewShipperRequest` every time a new individual request
  * is added to a batch.  Rules:
  *
  * - **First request in a batch** → INSERT the batch header row.
@@ -80,14 +80,14 @@ exports.upsertBatch = async ({
 }) => {
   // 1. Check existence first — avoids AUTO_INCREMENT wastage
   const [existing] = await db().query(
-    `SELECT batchId FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+    `SELECT batchId FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
     [batchUniqueId],
   );
 
   if (existing.length === 0) {
     // First request in this batch → create the header row
     await db().query(
-      `INSERT INTO PassengerRequestBatch
+      `INSERT INTO ShipperRequestBatch
         (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles,
          requestMode, targetCompanyUniqueId,
          originLatitude, originLongitude, originPlace,
@@ -120,7 +120,7 @@ exports.upsertBatch = async ({
   } else {
     // Subsequent request in same batch → sync mutable counters only
     await db().query(
-      `UPDATE PassengerRequestBatch
+      `UPDATE ShipperRequestBatch
          SET totalVehicles = ?, journeyStatusId = ?, batchUpdatedAt = ?
        WHERE batchUniqueId = ?`,
       [totalVehicles, journeyStatusId, currentDate(), batchUniqueId],
@@ -131,7 +131,7 @@ exports.upsertBatch = async ({
 // ── GET with filters + pagination ─────────────────────────────────────────────
 
 /**
- * ### List PassengerRequestBatches
+ * ### List ShipperRequestBatches
  *
  * Supports any combination of optional filters. Only the filters actually
  * sent in `query` are added to the WHERE clause — everything else is ignored.
@@ -203,7 +203,7 @@ exports.getBatches = async (filters = {}) => {
       vt.vehicleTypeName,
       js.journeyStatusName,
       tc.companyName    AS targetCompanyName
-    FROM PassengerRequestBatch b
+    FROM ShipperRequestBatch b
     LEFT JOIN Users          u  ON b.shipperUserUniqueId   = u.userUniqueId
     LEFT JOIN VehicleTypes   vt ON b.vehicleTypeUniqueId   = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus  js ON b.journeyStatusId       = js.journeyStatusId
@@ -213,7 +213,7 @@ exports.getBatches = async (filters = {}) => {
 
   const countSql = `
     SELECT COUNT(*) AS total
-    FROM PassengerRequestBatch b
+    FROM ShipperRequestBatch b
     LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
     ${where}
   `;
@@ -248,9 +248,9 @@ exports.getBatches = async (filters = {}) => {
 exports.updateBatch = async (batchUniqueId, fields) => {
   // 1. Confirm it exists and is not deleted
   const batch = await findOne(
-    "PassengerRequestBatch",
+    "ShipperRequestBatch",
     { batchUniqueId },
-    "Passenger request batch not found",
+    "Shipper request batch not found",
   );
   if (batch.batchDeletedAt) {
     throw new AppError("Batch has already been deleted", 400);
@@ -278,7 +278,7 @@ exports.updateBatch = async (batchUniqueId, fields) => {
 
   // 3. Execute
   const [res] = await db().query(
-    `UPDATE PassengerRequestBatch SET ${setClauses.join(", ")} WHERE batchUniqueId = ?`,
+    `UPDATE ShipperRequestBatch SET ${setClauses.join(", ")} WHERE batchUniqueId = ?`,
     [...setValues, batchUniqueId],
   );
 
@@ -299,7 +299,7 @@ exports.updateBatch = async (batchUniqueId, fields) => {
  */
 exports.deleteBatch = async (batchUniqueId) => {
   const [res] = await db().query(
-    `UPDATE PassengerRequestBatch
+    `UPDATE ShipperRequestBatch
      SET batchDeletedAt = ?
      WHERE batchUniqueId = ? AND batchDeletedAt IS NULL`,
     [currentDate(), batchUniqueId],
@@ -321,8 +321,8 @@ exports.deleteBatch = async (batchUniqueId) => {
  *
  * | Table                          | What changes                                                  |
  * |-------------------------------|---------------------------------------------------------------|
- * | PassengerRequestBatch          | journeyStatusId → 7 (cancelledByPassenger) or 10 (Admin)      |
- * | PassengerRequest               | All rows in this batch → same cancelled status                |
+ * | ShipperRequestBatch          | journeyStatusId → 7 (cancelledByShipper) or 10 (Admin)      |
+ * | ShipperRequest               | All rows in this batch → same cancelled status                |
  * | JourneyDecisions               | All open decisions for those requests → same cancelled status |
  * | DriverRequest                  | Matched drivers released back to waiting (status 1)           |
  * | CompanyBidRequest              | All submitted bids → 'expired'                                |
@@ -354,7 +354,7 @@ exports.cancelBatch = async ({
 
   // 1. Verify batch exists + ownership
   const batch = await findOne(
-    "PassengerRequestBatch",
+    "ShipperRequestBatch",
     { batchUniqueId },
     "Batch not found",
   );
@@ -366,7 +366,7 @@ exports.cancelBatch = async ({
   }
 
   const terminalStatuses = [
-    journeyStatusMap.cancelledByPassenger, // 7
+    journeyStatusMap.cancelledByShipper, // 7
     journeyStatusMap.cancelledByDriver, // 9
     journeyStatusMap.cancelledByAdmin, // 10
     journeyStatusMap.cancelledBySystem, // 12
@@ -378,7 +378,7 @@ exports.cancelBatch = async ({
 
   const cancelStatusId = isAdmin
     ? journeyStatusMap.cancelledByAdmin // 10
-    : journeyStatusMap.cancelledByPassenger; // 7
+    : journeyStatusMap.cancelledByShipper; // 7
 
   const now = currentDate();
   const inClause = terminalStatuses.join(","); // e.g. "7,9,10,12"
@@ -390,17 +390,17 @@ exports.cancelBatch = async ({
   await Promise.all([
     // 2. Cancel the batch header row
     db().query(
-      `UPDATE PassengerRequestBatch
+      `UPDATE ShipperRequestBatch
           SET journeyStatusId = ?,
               batchUpdatedAt  = ?
         WHERE batchUniqueId = ?`,
       [cancelStatusId, now, batchUniqueId],
     ),
 
-    // 3. Cancel every individual PassengerRequest row in the batch.
+    // 3. Cancel every individual ShipperRequest row in the batch.
     //    Guard: skip rows already in a terminal state.
     db().query(
-      `UPDATE PassengerRequest
+      `UPDATE ShipperRequest
           SET journeyStatusId = ?
         WHERE shipperRequestBatchId = ?
           AND journeyStatusId NOT IN (${inClause})`,
@@ -410,7 +410,7 @@ exports.cancelBatch = async ({
     // 4. Cancel all open JourneyDecisions linked to this batch.
     db().query(
       `UPDATE JourneyDecisions jd
-         INNER JOIN PassengerRequest pr
+         INNER JOIN ShipperRequest pr
                  ON jd.shipperRequestId = pr.shipperRequestId
           SET jd.journeyStatusId = ?
         WHERE pr.shipperRequestBatchId = ?
@@ -424,7 +424,7 @@ exports.cancelBatch = async ({
       `UPDATE DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
-         INNER JOIN PassengerRequest pr
+         INNER JOIN ShipperRequest pr
                  ON jd.shipperRequestId = pr.shipperRequestId
           SET dr.journeyStatusId = ?
         WHERE pr.shipperRequestBatchId = ?
@@ -451,7 +451,7 @@ exports.cancelBatch = async ({
     //    OR != form was logically always TRUE.
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
-         INNER JOIN PassengerRequest pr
+         INNER JOIN ShipperRequest pr
                  ON cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
@@ -463,14 +463,14 @@ exports.cancelBatch = async ({
 
   // 8. Register one CanceledJourneys audit record for the batch.
   //    contextId must be the integer batchId — the contextId column is INT.
-  //    Uses contextType 'PassengerRequestBatch' so it is separate from
-  //    per-vehicle PassengerRequest cancellation records.
+  //    Uses contextType 'ShipperRequestBatch' so it is separate from
+  //    per-vehicle ShipperRequest cancellation records.
   //    Duplicate guard: only insert if no record exists yet.
   const existingBatchCancel = await getData({
     tableName: "CanceledJourneys",
     conditions: {
       contextId: batch.batchId,
-      contextType: "PassengerRequestBatch",
+      contextType: "ShipperRequestBatch",
     },
   });
   if (existingBatchCancel.length === 0) {
@@ -478,7 +478,7 @@ exports.cancelBatch = async ({
       canceledBy: userUniqueId,
       canceledTime: now,
       contextId: batch.batchId,
-      contextType: "PassengerRequestBatch",
+      contextType: "ShipperRequestBatch",
       cancellationReasonsTypeId: cancellationReasonsTypeId || null,
       roleId,
       shipperUserUniqueId: batch.shipperUserUniqueId,
@@ -504,7 +504,7 @@ exports.cancelBatch = async ({
          FROM DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
-         INNER JOIN PassengerRequest pr
+         INNER JOIN ShipperRequest pr
                  ON jd.shipperRequestId = pr.shipperRequestId
          INNER JOIN Users u
                  ON dr.userUniqueId = u.userUniqueId
@@ -644,7 +644,7 @@ exports.sendBatchCancelNotifications = async ({
 
     // WebSocket (catches the case where another device/tab is open)
     promises.push(
-      sendSocketIONotificationToPassenger({
+      sendSocketIONotificationToShipper({
         message: shipperPayload,
         phoneNumber: shipper.phoneNumber,
       }).catch((err) =>

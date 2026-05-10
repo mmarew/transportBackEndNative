@@ -7,7 +7,7 @@ const deleteData = require("../CRUD/Delete/DeleteData");
 const {
   sendSocketIONotificationToAdmin,
   sendSocketIONotificationToDriver,
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
 } = require("../Utils/Notifications");
 
 const {} = require("./RoleDocumentRequirements.service");
@@ -566,7 +566,7 @@ const acceptRejectAttachedDocuments = async (body) => {
           sendSocketIONotificationToDriver({ message, phoneNumber });
         }
         if (Number(roleId) === usersRoles.shipperRoleId) {
-          sendSocketIONotificationToPassenger({ message, phoneNumber });
+          sendSocketIONotificationToShipper({ message, phoneNumber });
         }
       } catch (notifError) {
         logger.error("Post-commit: socket notification failed", {

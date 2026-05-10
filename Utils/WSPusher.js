@@ -4,7 +4,7 @@ const verifyToken = require("../Middleware/VerifyToken");
 const verifyPassword = require("./VerifyPassword");
 const { emitMessage, sendError } = require("./WsServerResponder");
 const { setSocket } = require("./WsConnectionStore");
-const { getPassengerJourneyStatus } = require("../Services/PassengerRequest");
+const { getShipperJourneyStatus } = require("../Services/ShipperRequest");
 const { getDriverJourneyStatus } = require("../Services/DriverRequest");
 const messageTypes = require("./MessageTypes");
 
@@ -101,7 +101,7 @@ async function WSPusher({ socket }) {
     // Get status if shipper or driver
     let status = null;
     if (user === "shipper") {
-      status = await getPassengerJourneyStatus(userUniqueId);
+      status = await getShipperJourneyStatus(userUniqueId);
     } else if (user === "driver") {
       status = await getDriverJourneyStatus(userUniqueId);
     }

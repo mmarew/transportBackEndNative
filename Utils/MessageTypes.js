@@ -106,15 +106,15 @@ const messageTypes = {
   },
   driver_not_selected_in_bid: {
     message: "Driver not selected in bid",
-    details: "Passenger selected another driver's offer during bid selection",
+    details: "Shipper selected another driver's offer during bid selection",
   },
   shipper_accepted_driver_request: {
-    message: "Passenger accepted your request",
-    details: "Passenger selected your offer during bid selection",
+    message: "Shipper accepted your request",
+    details: "Shipper selected your offer during bid selection",
   },
   shipper_cancelled_request: {
-    message: "Passenger cancelled request",
-    details: "Passenger cancelled the transport request",
+    message: "Shipper cancelled request",
+    details: "Shipper cancelled the transport request",
   },
   admin_cancelled_request: {
     message: "Request cancelled by admin",
@@ -125,8 +125,8 @@ const messageTypes = {
     details: "Driver cancelled the transport request",
   },
   shipper_rejected_request: {
-    message: "Passenger rejected request",
-    details: "Passenger rejected the driver's offer",
+    message: "Shipper rejected request",
+    details: "Shipper rejected the driver's offer",
   },
   driver_rejected_request: {
     message: "Driver rejected request",

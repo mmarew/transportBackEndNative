@@ -304,7 +304,7 @@ function assert(cond, msg) {
     // Robust Lookup: Get the IDs from the database
     const lookup = await request(
       "GET",
-      `/api/user/getPassengerRequest4allOrSingleUser?target=all&shipperRequestBatchId=${state.batchId}`,
+      `/api/user/getShipperRequest4allOrSingleUser?target=all&shipperRequestBatchId=${state.batchId}`,
       null,
       adminH(),
     );

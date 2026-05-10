@@ -28,7 +28,7 @@ This documentation is organized into modular files for better navigation and mai
 
 ### 🚛 Core Operations
 
-- **[Passenger Operations](shipper-operations.md)** - Ride requests, journey management, and tracking
+- **[Shipper Operations](shipper-operations.md)** - Ride requests, journey management, and tracking
 - **[Admin Operations](admin-operations.md)** - Administrative functions, user approval, and system management
 - **[Finance Management](finance-management.md)** - Deposits, payments, balances, and financial operations
 

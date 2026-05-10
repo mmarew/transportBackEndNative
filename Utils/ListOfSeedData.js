@@ -29,7 +29,7 @@ const roleList = [
   {
     roleId: 1,
     roleUniqueId: uuidv4(),
-    roleName: "Passenger",
+    roleName: "Shipper",
     roleDescription: "a person who can make order to driver to load goods",
     roleCreatedAt: currentDate(),
   },
@@ -593,9 +593,9 @@ const journeyStatus = [
   },
   {
     journeyStatusId: 4,
-    journeyStatusName: "acceptedByPassenger",
+    journeyStatusName: "acceptedByShipper",
     journeyStatusDescription:
-      "Passenger has selected one driver from multiple drivers who accepted the request. This occurs when multiple drivers accepted (status 3), and the shipper chooses one driver's offer.",
+      "Shipper has selected one driver from multiple drivers who accepted the request. This occurs when multiple drivers accepted (status 3), and the shipper chooses one driver's offer.",
   },
   {
     journeyStatusId: 5,
@@ -611,15 +611,15 @@ const journeyStatus = [
   },
   {
     journeyStatusId: 7,
-    journeyStatusName: "cancelledByPassenger",
+    journeyStatusName: "cancelledByShipper",
     journeyStatusDescription:
-      "Passenger has cancelled the entire transport request. This cancellation affects all drivers who were involved, and the entire shipment is cancelled.",
+      "Shipper has cancelled the entire transport request. This cancellation affects all drivers who were involved, and the entire shipment is cancelled.",
   },
   {
     journeyStatusId: 8,
-    journeyStatusName: "rejectedByPassenger",
+    journeyStatusName: "rejectedByShipper",
     journeyStatusDescription:
-      "Passenger has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the shipper can still select other drivers who accepted the request.",
+      "Shipper has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the shipper can still select other drivers who accepted the request.",
   },
   {
     journeyStatusId: 9,
@@ -669,13 +669,13 @@ const journeyStatusMap = {
   requested: 2,
   acceptedByDriver: 3,
   // accept oly one driver request but others are not selected so they will have notSelectedInBid status
-  acceptedByPassenger: 4,
+  acceptedByShipper: 4,
   journeyStarted: 5,
   journeyCompleted: 6,
   // cancel all shipment
-  cancelledByPassenger: 7,
-  // reject one driver request but others are not selected so they will have either acceptedByPassenger if they willbe selected or   notSelectedInBid status or rejectedByDriver if they will be rejected too
-  rejectedByPassenger: 8,
+  cancelledByShipper: 7,
+  // reject one driver request but others are not selected so they will have either acceptedByShipper if they willbe selected or   notSelectedInBid status or rejectedByDriver if they will be rejected too
+  rejectedByShipper: 8,
   // driver cancelled the request after accepting it and providing their bidding price
   cancelledByDriver: 9,
   // admin cancelled the request
@@ -696,7 +696,7 @@ const activeJourneyStatuses = [
   journeyStatusMap.waiting,
   journeyStatusMap.requested,
   journeyStatusMap.acceptedByDriver,
-  journeyStatusMap.acceptedByPassenger,
+  journeyStatusMap.acceptedByShipper,
   journeyStatusMap.journeyStarted,
 ];
 
@@ -722,20 +722,20 @@ const cancellationReasons = [
     roleId: 1,
   },
 
-  { cancellationReason: "Passenger didn’t show up", roleId: 2 },
-  { cancellationReason: "Passenger was unresponsive", roleId: 2 },
+  { cancellationReason: "Shipper didn’t show up", roleId: 2 },
+  { cancellationReason: "Shipper was unresponsive", roleId: 2 },
   { cancellationReason: "Safety concerns", roleId: 2 },
   { cancellationReason: "Incorrect pickup location", roleId: 2 },
   {
-    cancellationReason: "Passenger had too many people",
+    cancellationReason: "Shipper had too many people",
     roleId: 2,
   },
   {
-    cancellationReason: "Passenger was disrespectful",
+    cancellationReason: "Shipper was disrespectful",
     roleId: 2,
   },
   {
-    cancellationReason: "Passenger requested an illegal or unsafe route",
+    cancellationReason: "Shipper requested an illegal or unsafe route",
     roleId: 2,
   },
   { cancellationReason: "Vehicle issue", roleId: 2 },
@@ -963,7 +963,7 @@ const listOfDelinquenciesTypes = [
   },
   {
     delinquencyTypeName: "rude behavior of shipper",
-    delinquencyTypeDescription: "Passenger rude behavior",
+    delinquencyTypeDescription: "Shipper rude behavior",
     delinquencyTypeId: 4,
     defaultPoints: 1,
     defaultSeverity: "LOW",
@@ -973,7 +973,7 @@ const listOfDelinquenciesTypes = [
   },
   {
     delinquencyTypeName: "late departure of shipper",
-    delinquencyTypeDescription: "Passenger late departure",
+    delinquencyTypeDescription: "Shipper late departure",
     delinquencyTypeId: 5,
     defaultPoints: 1,
     defaultSeverity: "LOW",
@@ -1033,7 +1033,7 @@ const listOfDelinquenciesTypes = [
 ];
 
 const CANCELED_JOURNEY_CONTEXTS = {
-  PASSENGER_REQUEST: "PassengerRequest",
+  PASSENGER_REQUEST: "ShipperRequest",
   DRIVER_REQUEST: "DriverRequest",
   JOURNEY_DECISIONS: "JourneyDecisions",
   JOURNEY: "Journey",

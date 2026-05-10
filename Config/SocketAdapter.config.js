@@ -6,15 +6,13 @@ const WSPusher = require("../Utils/WSPusher");
 const { socketIO, sendError } = require("../Utils/WsServerResponder");
 const { removeSocket } = require("../Utils/WsConnectionStore");
 const {
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
   sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 
 const logger = require("../Utils/logger");
-const {
-  getPassengerRequestByRequestUniqueId,
-} = require("../CRUD/Read/ReadData");
+const { getShipperRequestByRequestUniqueId } = require("../CRUD/Read/ReadData");
 
 async function initSocket({ httpServer }) {
   const io = new socketServer(httpServer, {
@@ -251,7 +249,7 @@ async function initSocket({ httpServer }) {
         // If phone number is missing but we have request ID, fetch it
         if (!phoneNumberOfShipper && data?.shipperRequestUniqueId) {
           try {
-            const shipperRequest = await getPassengerRequestByRequestUniqueId(
+            const shipperRequest = await getShipperRequestByRequestUniqueId(
               data.shipperRequestUniqueId,
             );
             phoneNumberOfShipper = shipperRequest?.phoneNumber;
@@ -267,7 +265,7 @@ async function initSocket({ httpServer }) {
         }
 
         if (phoneNumberOfShipper) {
-          await sendSocketIONotificationToPassenger({
+          await sendSocketIONotificationToShipper({
             eventName: "locationUpdateToShipper",
             phoneNumber: phoneNumberOfShipper,
             message: {

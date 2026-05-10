@@ -151,11 +151,11 @@ async function run() {
       assert(state.vehicleTypeUniqueId, "No vehicle types found");
     });
 
-    await step("Register Passenger", async () => {
+    await step("Register Shipper", async () => {
       const res = await request("POST", "/api/user/createUser", {
         phoneNumber: PASSENGER_PHONE,
         roleId: 1,
-        fullName: "Test Passenger",
+        fullName: "Test Shipper",
         email: `test_pass_${runId}@test.com`,
       });
       state.shipperUniqueId = res.body?.data?.userUniqueId;
@@ -245,7 +245,7 @@ async function run() {
 
       const resReq = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1,2&limit=5`,
+        `/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1,2&limit=5`,
         null,
         { Authorization: `Bearer ${state.shipperToken}` },
       );
@@ -276,7 +276,7 @@ async function run() {
 
       const resFD = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?shipperRequestUniqueId=${state.shipperRequestUniqueId}&journeyStatusId=3`,
+        `/api/user/getShipperRequest4allOrSingleUser?shipperRequestUniqueId=${state.shipperRequestUniqueId}&journeyStatusId=3`,
         null,
         { Authorization: `Bearer ${state.shipperToken}` },
       );

@@ -23,10 +23,10 @@ then run {{url}}/api/admin/getUnAuthorizedDriver to get registerd drivers then
 run  {{url}}/api/admin/acceptRejectAttachedDocuments to accept reject documents of driver
 then creat shipper request via {{url}}/api/shipperRequest/createRequest
 
-verify status via {{url}}/api/shipperRequest/verifyPassengerStatus?page=1&pageSize=10
-get detailes {{url}}/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1  use 2 for requested 3 for accepted by driver 4 accepted by shipper, 5 journey started, 6 journey ended
+verify status via {{url}}/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10
+get detailes {{url}}/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=1  use 2 for requested 3 for accepted by driver 4 accepted by shipper, 5 journey started, 6 journey ended
 then create driver request in {{url}}/api/driver/request
-use {{url}}/api/driver/acceptPassengerRequest to accept shipper request
+use {{url}}/api/driver/acceptShipperRequest to accept shipper request
 use {{url}}/api/shipper/acceptDriverRequest to accept driver request
 
 use {{url}}/api/driver/startJourney to start journey

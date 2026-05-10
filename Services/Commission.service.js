@@ -308,7 +308,7 @@ async function getAllCommissions(filters = {}) {
       left JOIN JourneyDecisions jd ON c.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       left JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
       left JOIN Users u ON dr.userUniqueId = u.userUniqueId
-      left  JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      left  JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       JOIN Users u_pass ON pr.userUniqueId = u_pass.userUniqueId
       JOIN CommissionRates cr ON c.commissionRateUniqueId = cr.commissionRateUniqueId
       ${whereClause}

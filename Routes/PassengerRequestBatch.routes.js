@@ -2,8 +2,8 @@
 
 const express = require("express");
 const router = express.Router();
-const controller = require("../Controllers/PassengerRequestBatch.controller");
-const schema = require("../Validations/PassengerRequestBatch.schema");
+const controller = require("../Controllers/ShipperRequestBatch.controller");
+const schema = require("../Validations/ShipperRequestBatch.schema");
 const { validator } = require("../Middleware/Validator");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
@@ -62,7 +62,7 @@ router.delete(
  * @access  Authenticated (shipper who owns the batch, or admin)
  *
  * One atomic DB transaction updates:
- *   PassengerRequestBatch, PassengerRequest (all rows),
+ *   ShipperRequestBatch, ShipperRequest (all rows),
  *   JourneyDecisions, DriverRequest, CompanyBidRequest, CompanyBidVehicleAssignment
  *
  * Body (optional): { cancellationReasonsTypeId }

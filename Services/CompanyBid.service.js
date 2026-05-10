@@ -24,7 +24,7 @@ const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
  *
  * **Junior Note: Source of Truth Pattern**
  * To ensure data integrity, this function automatically fetches the vehicle type and
- * vehicle count from the `PassengerRequestBatch` table. This prevents the frontend
+ * vehicle count from the `ShipperRequestBatch` table. This prevents the frontend
  * from accidentally sending mismatched data.
  *
  * **Important Rules:**
@@ -96,12 +96,12 @@ exports.submitBid = async (data) => {
   // 1. Verify the batch exists and get its metadata
   const [batchRows] = await db().query(
     `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId, shipperUserUniqueId 
-     FROM PassengerRequestBatch 
+     FROM ShipperRequestBatch 
      WHERE batchUniqueId = ? AND batchDeletedAt IS NULL LIMIT 1`,
     [shipperRequestBatchId],
   );
   if (!batchRows || batchRows.length === 0) {
-    throw new AppError("Passenger request batch not found", 404);
+    throw new AppError("Shipper request batch not found", 404);
   }
 
   const {
@@ -127,7 +127,7 @@ exports.submitBid = async (data) => {
   // 3. Verify the batch has actual requests (Sanity Check)
   const [countRows] = await db().query(
     `SELECT COUNT(*) AS batchCount
-     FROM PassengerRequest
+     FROM ShipperRequest
      WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
     [shipperRequestBatchId],
   );
@@ -205,9 +205,9 @@ exports.submitBid = async (data) => {
 
     if (shipperRows?.[0]?.phoneNumber) {
       const {
-        sendSocketIONotificationToPassenger,
+        sendSocketIONotificationToShipper,
       } = require("../Utils/Notifications");
-      sendSocketIONotificationToPassenger({
+      sendSocketIONotificationToShipper({
         phoneNumber: shipperRows[0].phoneNumber,
         message: {
           messageTypes: messageTypes.company_bid_submitted,
@@ -281,7 +281,7 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
            b.batchUniqueId AS shipperRequestBatchId, -- backwards compatibility
            u.fullName AS shipperName,
            vt.vehicleTypeName, js.journeyStatusName
-    FROM PassengerRequestBatch b
+    FROM ShipperRequestBatch b
     LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
     LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
@@ -290,7 +290,7 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
 
   const countSql = `
     SELECT COUNT(*) AS total 
-    FROM PassengerRequestBatch b
+    FROM ShipperRequestBatch b
     ${filterWhere}
   `;
 
@@ -401,7 +401,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
             b.journeyStatusId, b.requestMode, b.batchCreatedAt,
             js.journeyStatusName, vt.vehicleTypeName,
             u.fullName AS shipperName
-     FROM PassengerRequestBatch b
+     FROM ShipperRequestBatch b
      LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
      LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
      LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
@@ -412,7 +412,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
   );
 
   const [[{ total }]] = await db().query(
-    `SELECT COUNT(*) AS total FROM PassengerRequestBatch b ${batchWhere}`,
+    `SELECT COUNT(*) AS total FROM ShipperRequestBatch b ${batchWhere}`,
     batchParams,
   );
 
@@ -529,7 +529,7 @@ exports.getBidsSummary = async (companyUniqueId) => {
   ];
   const [availableRes] = await db().query(
     `SELECT COUNT(*) AS total 
-     FROM PassengerRequestBatch b
+     FROM ShipperRequestBatch b
      WHERE b.batchDeletedAt IS NULL
        AND b.requestMode = 'company_target'
        AND (b.targetCompanyUniqueId = ? OR b.targetCompanyUniqueId IS NULL)
@@ -670,7 +670,7 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
 
 /**
  * ### STATE MACHINE - Multi-step Status Updates
- * Updates the bid status and manages the lifecycle of the linked PassengerRequest.
+ * Updates the bid status and manages the lifecycle of the linked ShipperRequest.
  *
  * **Junior Note: Synchronization Logic**
  * - When you accept a bid, the *Request* also updates its status so no one else can take it.
@@ -688,7 +688,7 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
  *
  * ### CRITICAL: Consistency & Atomicity (for Junior Developers):
  * This function handles the most sensitive state transitions in the bidding system.
- * Because it affects both the `CompanyBidRequest` and `PassengerRequest` tables,
+ * Because it affects both the `CompanyBidRequest` and `ShipperRequest` tables,
  * it MUST be executed inside a database transaction to prevent \"partial updates\"
  * if the server crashes.
  *
@@ -751,13 +751,13 @@ exports.updateBidStatus = async (
     //   This means 450,000 vehicles = 0 rows now, created 1-at-a-time later.
     //
     // individual_target (eager):
-    //   PRs already exist from createPassengerRequest. Lock and verify they're
+    //   PRs already exist from createShipperRequest. Lock and verify they're
     //   still free, then update their status.
 
     // 1. Check if PRs already exist for this batch
     const [existingPRs] = await db().query(
       `SELECT shipperRequestId, journeyStatusId
-       FROM PassengerRequest
+       FROM ShipperRequest
        WHERE shipperRequestBatchId = ?
          AND shipperRequestDeletedAt IS NULL
        FOR UPDATE`,
@@ -769,11 +769,11 @@ exports.updateBidStatus = async (
       // Just update the batch header status. No PR rows needed yet.
       // createAssignment will create 1 PR per assignment just-in-time.
       await db().query(
-        `UPDATE PassengerRequestBatch
+        `UPDATE ShipperRequestBatch
          SET journeyStatusId = ?, batchUpdatedAt = ?
          WHERE batchUniqueId = ?`,
         [
-          journeyStatusMap.acceptedByPassenger,
+          journeyStatusMap.acceptedByShipper,
           currentDate(),
           bid.shipperRequestBatchId,
         ],
@@ -806,10 +806,10 @@ exports.updateBidStatus = async (
 
       // Update existing PRs to accepted status
       await db().query(
-        `UPDATE PassengerRequest
+        `UPDATE ShipperRequest
          SET journeyStatusId = ?
          WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
-        [journeyStatusMap.acceptedByPassenger, bid.shipperRequestBatchId],
+        [journeyStatusMap.acceptedByShipper, bid.shipperRequestBatchId],
       );
     }
 
@@ -853,7 +853,7 @@ exports.updateBidStatus = async (
 
   if (newPRStatus !== null) {
     await db().query(
-      `UPDATE PassengerRequest
+      `UPDATE ShipperRequest
        SET journeyStatusId = ?
        WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
       [newPRStatus, bid.shipperRequestBatchId],
@@ -943,7 +943,7 @@ exports.deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
 
 // ── Mark cancellation as seen by company ──────────────────────────────────────
 // Called when a company dispatcher opens/acknowledges the cancelled bid.
-// Mirrors DriverRequest.isCancellationByPassengerSeenByDriver pattern.
+// Mirrors DriverRequest.isCancellationByShipperSeenByDriver pattern.
 exports.markCancellationAsSeen = async ({
   companyBidRequestUniqueId,
   userUniqueId,

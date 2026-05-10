@@ -2,13 +2,13 @@ const {
   getData,
   performJoinSelect,
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
-  checkActivePassengerRequest,
+  checkActiveShipperRequest,
 } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { insertData } = require("../../CRUD/Create/CreateData");
 const {
   sendSocketIONotificationToDriver,
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
 } = require("../../Utils/Notifications");
 const { getVehicleDrivers } = require("../VehicleDriver.service");
 const {
@@ -27,13 +27,13 @@ const { transactionStorage } = require("../../Utils/TransactionContext");
 
 /**
  * Gets the shipper's current journey status
- * @param {string} userUniqueId - Passenger's unique identifier
+ * @param {string} userUniqueId - Shipper's unique identifier
  * @returns {Promise<number|null>} Journey status ID or null
  */
-const getPassengerJourneyStatus = async (userUniqueId) => {
+const getShipperJourneyStatus = async (userUniqueId) => {
   try {
     const [currentRequest] = await getData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       conditions: { userUniqueId },
       limit: 1,
       orderBy: "shipperRequestId",
@@ -62,13 +62,13 @@ const getPassengerJourneyStatus = async (userUniqueId) => {
 /**
  * Marks a journey as seen by shipper and creates a rating
  * @param {Object} body - Request body
- * @param {string} body.userUniqueId - Passenger's unique identifier
- * @param {string} body.shipperRequestUniqueId - Passenger request unique ID
+ * @param {string} body.userUniqueId - Shipper's unique identifier
+ * @param {string} body.shipperRequestUniqueId - Shipper request unique ID
  * @param {string} body.journeyDecisionUniqueId - Journey decision unique ID
  * @param {number} body.rating - Rating value
  * @returns {Promise<Object>} Success or error response
  */
-const seenByPassenger = async (body) => {
+const seenByShipper = async (body) => {
   try {
     const {
       userUniqueId,
@@ -92,7 +92,7 @@ const seenByPassenger = async (body) => {
 
     await Promise.all([
       updateData({
-        tableName: "PassengerRequest",
+        tableName: "ShipperRequest",
         conditions: { shipperRequestUniqueId },
         updateValues: { isCompletionSeen: true },
       }),
@@ -124,8 +124,8 @@ const seenByPassenger = async (body) => {
 /**
  * Handles waiting request (status 1) - finds nearby drivers and creates journey decisions
  * @param {Object} params - Handler parameters
- * @param {Object} params.shipperRequest - Passenger request object
- * @param {number} params.shipperRequestId - Passenger request ID
+ * @param {Object} params.shipperRequest - Shipper request object
+ * @param {number} params.shipperRequestId - Shipper request ID
  * @param {Object} params.totalRecords - Total records for pagination
  * @param {number} params.pageSize - Page size
  * @param {number} params.page - Page number
@@ -269,7 +269,7 @@ async function handleWaitingRequest({
 
     // Update shipper request status
     await updateData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       conditions: { shipperRequestId },
       updateValues: { journeyStatusId: journeyStatusMap.requested },
     });
@@ -325,16 +325,16 @@ async function handleWaitingRequest({
 /**
  * Handles non-waiting requests (status 2, 3, etc.) - fetches existing journey decisions and sends notifications
  * @param {Object} params - Handler parameters
- * @param {Object} params.shipperRequest - Passenger request object
+ * @param {Object} params.shipperRequest - Shipper request object
  * @param {Object} params.totalRecords - Total records for pagination
  * @param {number} params.pageSize - Page size
  * @param {number} params.page - Page number
  * @param {Array} params.driversData - Array to push driver data
  * @param {Array} params.decisions - Array to push final decisions
  * @param {Set} params.notifiedDrivers - Set to track notified drivers
- * @param {Set} params.notifiedPassengersForAcceptance - Set to track shipper-driver acceptance notifications
+ * @param {Set} params.notifiedShippersForAcceptance - Set to track shipper-driver acceptance notifications
  * @param {boolean} params.sendNotificationsToDrivers - Whether to send notifications to drivers
- * @param {boolean} params.sendNotificationsToPassenger - Whether to send notifications to shipper
+ * @param {boolean} params.sendNotificationsToShipper - Whether to send notifications to shipper
  */
 // Removed unused function: handleNonWaitingRequest
 // eslint-disable-next-line no-unused-vars
@@ -346,9 +346,9 @@ const _handleNonWaitingRequest = async ({
   driversData,
   decisions,
   notifiedDrivers,
-  notifiedPassengersForAcceptance,
+  notifiedShippersForAcceptance,
   sendNotificationsToDrivers,
-  sendNotificationsToPassenger,
+  sendNotificationsToShipper,
 }) => {
   const filters = {
     shipperRequestId: shipperRequest?.shipperRequestId,
@@ -447,11 +447,11 @@ const _handleNonWaitingRequest = async ({
     }
 
     // Send WebSocket notification to shipper when driver accepts (status 3 - acceptedByDriver)
-    // Only send if sendNotificationsToPassenger is true (e.g., when called from acceptPassengerRequest)
+    // Only send if sendNotificationsToShipper is true (e.g., when called from acceptShipperRequest)
     // Don't send when shipper is just checking their status (API endpoint)
     if (
       journeyStatusId === journeyStatusMap.acceptedByDriver &&
-      sendNotificationsToPassenger
+      sendNotificationsToShipper
     ) {
       const shipperUserUniqueId = shipperRequest?.userUniqueId;
       const driverUserUniqueId = driver?.userUniqueId;
@@ -462,7 +462,7 @@ const _handleNonWaitingRequest = async ({
       if (
         shipperUserUniqueId &&
         driverUserUniqueId &&
-        !notifiedPassengersForAcceptance.has(notificationKey)
+        !notifiedShippersForAcceptance.has(notificationKey)
       ) {
         // Get shipper phone number
         const shipperUserData = await performJoinSelect({
@@ -474,7 +474,7 @@ const _handleNonWaitingRequest = async ({
 
         if (shipperPhoneNumber) {
           // Use the extracted notification function
-          await sendPassengerNotification({
+          await sendShipperNotification({
             shipperRequest,
             journeyDecision,
             driverInfo,
@@ -486,7 +486,7 @@ const _handleNonWaitingRequest = async ({
             page,
           });
 
-          notifiedPassengersForAcceptance.add(notificationKey);
+          notifiedShippersForAcceptance.add(notificationKey);
         }
       }
     }
@@ -498,7 +498,7 @@ const _handleNonWaitingRequest = async ({
  * This is a generic reusable function that can be called for accept, start, complete, reject, cancel events
  * without processing all shipper requests
  * @param {Object} params - Notification parameters
- * @param {Object} params.shipperRequest - Passenger request object
+ * @param {Object} params.shipperRequest - Shipper request object
  * @param {Object} params.journeyDecision - Journey decision object (optional)
  * @param {Object} params.driverInfo - Driver info with vehicle data
  * @param {Object} params.journeyData - Journey data (optional, can be empty object)
@@ -510,7 +510,7 @@ const _handleNonWaitingRequest = async ({
  * @param {number} params.page - Page number (optional)
  * @returns {Promise<void>}
  */
-const sendPassengerNotification = async ({
+const sendShipperNotification = async ({
   shipperRequest,
   journeyDecision,
   driverInfo,
@@ -531,7 +531,7 @@ const sendPassengerNotification = async ({
 
   if (!messageType || !status) {
     console.error(
-      "@sendPassengerNotification: messageType and status are required",
+      "@sendShipperNotification: messageType and status are required",
     );
     return;
   }
@@ -585,7 +585,7 @@ const sendPassengerNotification = async ({
     shipperMessage.page = page;
   }
 
-  await sendSocketIONotificationToPassenger({
+  await sendSocketIONotificationToShipper({
     message: shipperMessage,
     phoneNumber: shipperPhoneNumber,
   });
@@ -596,15 +596,15 @@ const sendPassengerNotification = async ({
  * This is the main function that handles shipper request status verification
  * and driver matching/notifications
  * @param {Object} params - Verification parameters
- * @param {string} params.userUniqueId - Passenger's unique identifier
+ * @param {string} params.userUniqueId - Shipper's unique identifier
  * @param {Array} params.activeRequest - Pre-fetched active requests (optional)
  * @param {Object} params.totalRecords - Pre-calculated total records (optional)
  * @param {boolean} params.sendNotificationsToDrivers - Whether to send notifications to drivers
  * @param {number} params.pageSize - Page size for pagination
  * @param {number} params.page - Page number for pagination
- * @returns {Promise<Object>} Passenger status with drivers, decisions, and journey data
+ * @returns {Promise<Object>} Shipper status with drivers, decisions, and journey data
  */
-const verifyPassengerStatus = async ({
+const verifyShipperStatus = async ({
   userUniqueId,
   activeRequest,
   totalRecords,
@@ -614,7 +614,7 @@ const verifyPassengerStatus = async ({
   try {
     // 1. Check if the user has an active request (status 1, 2, 3, 4, 5, 6)
     if (!activeRequest || activeRequest?.length === 0) {
-      const dataOfActiveRequest = await checkActivePassengerRequest({
+      const dataOfActiveRequest = await checkActiveShipperRequest({
         userUniqueId,
         pageSize,
         page,
@@ -626,13 +626,13 @@ const verifyPassengerStatus = async ({
 
     // If no active request, return with totalRecords format
     if (activeRequest?.length === 0 || !activeRequest) {
-      // Ensure totalRecords is available (should be set by checkActivePassengerRequest)
+      // Ensure totalRecords is available (should be set by checkActiveShipperRequest)
       const defaultTotalRecords = {
         totalCount: 0,
         waitingCount: 0,
         requestedCount: 0,
         acceptedByDriverCount: 0,
-        acceptedByPassengerCount: 0,
+        acceptedByShipperCount: 0,
         journeyStartedCount: 0,
         notSeenCompletedCount: 0,
         notSeenCancelledByDriverCount: 0,
@@ -650,9 +650,9 @@ const verifyPassengerStatus = async ({
 
     // let driverFound = false; // track if driver is found to re get active shipper request because no of waiting can be changed to requested
     // const notifiedDrivers = new Set(); // Track drivers who have already been notified to prevent duplicates
-    // const notifiedPassengersForAcceptance = new Set(); // Track shipper-driver combinations for acceptance notifications
+    // const notifiedShippersForAcceptance = new Set(); // Track shipper-driver combinations for acceptance notifications
 
-    // // Passenger may have many requests so we loop through them
+    // // Shipper may have many requests so we loop through them
     // for (const shipperRequest of activeRequest) {
     //   const journeyStatusId = shipperRequest?.journeyStatusId,
     //     shipperRequestId = shipperRequest?.shipperRequestId;
@@ -682,16 +682,16 @@ const verifyPassengerStatus = async ({
     //       driversData,
     //       decisions,
     //       notifiedDrivers,
-    //       notifiedPassengersForAcceptance,
+    //       notifiedShippersForAcceptance,
     //       sendNotificationsToDrivers,
-    //       sendNotificationsToPassenger,
+    //       sendNotificationsToShipper,
     //     });
     //   }
     // }
 
     // // If driverFound re get active shipper request because no of waiting can be changed to requested
     // if (driverFound) {
-    //   const dataOfActiveRequest = await checkActivePassengerRequest({
+    //   const dataOfActiveRequest = await checkActiveShipperRequest({
     //     userUniqueId,
     //     pageSize,
     //     page,
@@ -721,9 +721,9 @@ const verifyPassengerStatus = async ({
 };
 
 module.exports = {
-  verifyPassengerStatus,
-  getPassengerJourneyStatus,
-  seenByPassenger,
-  sendPassengerNotification,
+  verifyShipperStatus,
+  getShipperJourneyStatus,
+  seenByShipper,
+  sendShipperNotification,
   handleWaitingRequest,
 };

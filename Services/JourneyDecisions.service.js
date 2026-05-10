@@ -121,14 +121,14 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
 
     // Build base WHERE clause based on target and role
     if (target !== "all" && userUniqueId && roleId) {
-      // For single user, we need to join with PassengerRequest or DriverRequest
+      // For single user, we need to join with ShipperRequest or DriverRequest
       // to get the user's requests and then filter JourneyDecisions
       whereClause = `
         WHERE (
           EXISTS (
-            SELECT 1 FROM PassengerRequest 
-            WHERE PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId 
-            AND PassengerRequest.userUniqueId = ?
+            SELECT 1 FROM ShipperRequest 
+            WHERE ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId 
+            AND ShipperRequest.userUniqueId = ?
           ) 
           OR 
           EXISTS (
@@ -234,10 +234,10 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       countParams.push(filters.driverRequestUniqueId);
     }
 
-    // Add filter by shipperRequestUniqueId (requires join with PassengerRequest)
+    // Add filter by shipperRequestUniqueId (requires join with ShipperRequest)
     if (filters.shipperRequestUniqueId) {
       whereClause += whereClause ? " AND " : "WHERE ";
-      whereClause += "PassengerRequest.shipperRequestUniqueId = ?";
+      whereClause += "ShipperRequest.shipperRequestUniqueId = ?";
       queryParams.push(filters.shipperRequestUniqueId);
       countParams.push(filters.shipperRequestUniqueId);
     }
@@ -273,10 +273,10 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       }
     }
 
-    // Add filter by isCompletionSeen (from PassengerRequest table)
+    // Add filter by isCompletionSeen (from ShipperRequest table)
     if (filters.isCompletionSeen !== undefined) {
       whereClause += whereClause ? " AND " : "WHERE ";
-      whereClause += "PassengerRequest.isCompletionSeen = ?";
+      whereClause += "ShipperRequest.isCompletionSeen = ?";
       queryParams.push(filters.isCompletionSeen);
       countParams.push(filters.isCompletionSeen);
     }
@@ -304,18 +304,18 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       SELECT 
         JourneyDecisions.*,
         JourneyStatus.journeyStatusId,
-        PassengerRequest.shipperRequestUniqueId,
-        PassengerRequest.userUniqueId as shipperUserUniqueId,
-        PassengerUser.fullName as shipperFullName,
-        PassengerUser.phoneNumber as shipperPhoneNumber,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperUser.fullName as shipperFullName,
+        ShipperUser.phoneNumber as shipperPhoneNumber,
         DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId as driverUserUniqueId,
         DriverUser.fullName as driverFullName,
         DriverUser.phoneNumber as driverPhoneNumber
       FROM JourneyDecisions 
       JOIN JourneyStatus ON JourneyStatus.journeyStatusId = JourneyDecisions.journeyStatusId
-      JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
-      JOIN Users as PassengerUser ON PassengerUser.userUniqueId = PassengerRequest.userUniqueId
+      JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      JOIN Users as ShipperUser ON ShipperUser.userUniqueId = ShipperRequest.userUniqueId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       JOIN Users as DriverUser ON DriverUser.userUniqueId = DriverRequest.userUniqueId
       ${whereClause}
@@ -329,7 +329,7 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
     const sqlCount = `
       SELECT COUNT(*) as total 
       FROM JourneyDecisions 
-      JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       ${whereClause}
     `;
@@ -393,11 +393,11 @@ exports.getJourneyDecisionByJDriverRequestUniqueId = async (
 };
 
 // Get a specific journey decision by ID
-exports.getJourneyDecisionByPassengerRequestUniqueId = async (
+exports.getJourneyDecisionByShipperRequestUniqueId = async (
   shipperRequestUniqueId,
 ) => {
   const executor = transactionStorage.getStore() || pool;
-  const sql = `SELECT * FROM JourneyDecisions, PassengerRequest WHERE shipperRequestUniqueId = ? and JourneyDecisions.shipperRequestId=PassengerRequest.shipperRequestId `;
+  const sql = `SELECT * FROM JourneyDecisions, ShipperRequest WHERE shipperRequestUniqueId = ? and JourneyDecisions.shipperRequestId=ShipperRequest.shipperRequestId `;
   const [result] = await executor.query(sql, [shipperRequestUniqueId]);
 
   if (result.length === 0) {
@@ -405,7 +405,7 @@ exports.getJourneyDecisionByPassengerRequestUniqueId = async (
   }
   return { message: "success", data: result };
 };
-// getJourneyDecisionByPassengerRequestUniqueId,getJourneyDecisionByJDriverRequestUniqueId
+// getJourneyDecisionByShipperRequestUniqueId,getJourneyDecisionByJDriverRequestUniqueId
 
 // Update a specific journey decision by conditions and update values
 exports.updateJourneyDecision = async ({

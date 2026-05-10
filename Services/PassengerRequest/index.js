@@ -1,5 +1,5 @@
 /**
- * PassengerRequest Service Module
+ * ShipperRequest Service Module
  *
  * This module exports all shipper request-related services organized by functionality:
  * - requestCRUD: Create, Read, Update, Delete operations
@@ -15,12 +15,12 @@ const cancellation = require("./cancellation.service");
 
 module.exports = {
   // CRUD Operations
-  createPassengerRequest: requestCRUD.createPassengerRequest,
-  getPassengerRequestByPassengerRequestId:
-    requestCRUD.getPassengerRequestByPassengerRequestId,
-  getPassengerRequestByUniqueId: requestCRUD.getPassengerRequestByUniqueId,
-  getPassengerRequest4allOrSingleUser:
-    requestCRUD.getPassengerRequest4allOrSingleUser,
+  createShipperRequest: requestCRUD.createShipperRequest,
+  getShipperRequestByShipperRequestId:
+    requestCRUD.getShipperRequestByShipperRequestId,
+  getShipperRequestByUniqueId: requestCRUD.getShipperRequestByUniqueId,
+  getShipperRequest4allOrSingleUser:
+    requestCRUD.getShipperRequest4allOrSingleUser,
   getDetailedJourneyData: requestCRUD.getDetailedJourneyData,
   updateRequestById: requestCRUD.updateRequestById,
   deleteRequest: requestCRUD.deleteRequest,
@@ -29,12 +29,12 @@ module.exports = {
   // Request Actions
   acceptDriverRequest: requestActions.acceptDriverRequest,
   rejectDriverOffer: requestActions.rejectDriverOffer,
-  cancelPassengerRequest: requestActions.cancelPassengerRequest,
+  cancelShipperRequest: requestActions.cancelShipperRequest,
 
   // Status Verification
-  verifyPassengerStatus: statusVerification.verifyPassengerStatus,
-  getPassengerJourneyStatus: statusVerification.getPassengerJourneyStatus,
-  seenByPassenger: statusVerification.seenByPassenger,
+  verifyShipperStatus: statusVerification.verifyShipperStatus,
+  getShipperJourneyStatus: statusVerification.getShipperJourneyStatus,
+  seenByShipper: statusVerification.seenByShipper,
 
   // Cancellation
   getCancellationNotifications: cancellation.getCancellationNotifications,

@@ -1,5 +1,5 @@
-// controllers/Passenger.controller.js
-const PassengerService = require("../Services/PassengerRequest");
+// controllers/Shipper.controller.js
+const ShipperService = require("../Services/ShipperRequest");
 const { journeyStatusMap } = require("../Utils/ListOfSeedData");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
@@ -8,7 +8,7 @@ const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 
-const createPassengerRequest = async (req, res, next) => {
+const createShipperRequest = async (req, res, next) => {
   try {
     const {
       shipperRequestBatchId,
@@ -42,7 +42,7 @@ const createPassengerRequest = async (req, res, next) => {
     }
 
     const roleId = req.user.roleId;
-    logger.debug("createPassengerRequest roleId", { roleId });
+    logger.debug("createShipperRequest roleId", { roleId });
     const userUniqueId = req.user.userUniqueId;
     // return;
     if (roleId === 1) {
@@ -82,8 +82,8 @@ const createPassengerRequest = async (req, res, next) => {
             );
           }
 
-          const dataOfPassenger = createdUser?.dataOfPassenger;
-          userUniqueId = dataOfPassenger?.userUniqueId;
+          const dataOfShipper = createdUser?.dataOfShipper;
+          userUniqueId = dataOfShipper?.userUniqueId;
 
           if (!userUniqueId) {
             throw new AppError(
@@ -95,7 +95,7 @@ const createPassengerRequest = async (req, res, next) => {
           req.body.userUniqueId = userUniqueId;
         }
 
-        return await PassengerService.createPassengerRequest(
+        return await ShipperService.createShipperRequest(
           req.body,
           journeyStatusMap.waiting,
         );
@@ -112,13 +112,13 @@ const createPassengerRequest = async (req, res, next) => {
 };
 const acceptDriverRequest = async (req, res, next) => {
   try {
-    req.body.journeyStatusId = journeyStatusMap.acceptedByPassenger;
+    req.body.journeyStatusId = journeyStatusMap.acceptedByShipper;
     req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
     const user = req?.user;
     const userUniqueId = user.userUniqueId;
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
-      return await PassengerService.acceptDriverRequest(req.body);
+      return await ShipperService.acceptDriverRequest(req.body);
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -128,13 +128,13 @@ const acceptDriverRequest = async (req, res, next) => {
 
 const rejectDriverOffer = async (req, res, next) => {
   try {
-    req.body.journeyStatusId = journeyStatusMap.rejectedByPassenger;
+    req.body.journeyStatusId = journeyStatusMap.rejectedByShipper;
     req.body.previousStatusId = journeyStatusMap.acceptedByDriver;
     const user = req?.user;
     const userUniqueId = user.userUniqueId;
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
-      return await PassengerService.rejectDriverOffer(req.body);
+      return await ShipperService.rejectDriverOffer(req.body);
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -142,13 +142,9 @@ const rejectDriverOffer = async (req, res, next) => {
   }
 };
 
-const getPassengerRequestByPassengerRequestUniqueId = async (
-  req,
-  res,
-  next,
-) => {
+const getShipperRequestByShipperRequestUniqueId = async (req, res, next) => {
   try {
-    const result = await PassengerService.getPassengerRequest4allOrSingleUser({
+    const result = await ShipperService.getShipperRequest4allOrSingleUser({
       data: {
         target: "all",
         filters: { shipperRequestUniqueId: req.params.id },
@@ -167,7 +163,7 @@ const getPassengerRequestByPassengerRequestUniqueId = async (
   }
 };
 
-const getPassengerRequest4allOrSingleUser = async (req, res, next) => {
+const getShipperRequest4allOrSingleUser = async (req, res, next) => {
   try {
     const { target, limit, page, shipperUserUniqueId } = req.query;
     let { userUniqueId } = req.user;
@@ -198,7 +194,7 @@ const getPassengerRequest4allOrSingleUser = async (req, res, next) => {
       page,
     };
 
-    const result = await PassengerService.getPassengerRequest4allOrSingleUser({
+    const result = await ShipperService.getShipperRequest4allOrSingleUser({
       data,
     });
     ServerResponder(res, result);
@@ -210,7 +206,7 @@ const getPassengerRequest4allOrSingleUser = async (req, res, next) => {
 const updateRequestById = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async () => {
-      return await PassengerService.updateRequestById(req.params.id, req.body);
+      return await ShipperService.updateRequestById(req.params.id, req.body);
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -221,18 +217,18 @@ const updateRequestById = async (req, res, next) => {
 const deleteRequest = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async () => {
-      return await PassengerService.deleteRequest(req.params.id);
+      return await ShipperService.deleteRequest(req.params.id);
     });
     ServerResponder(res, result);
   } catch (error) {
     next(error);
   }
 };
-const verifyPassengerStatus = async (req, res, next) => {
+const verifyShipperStatus = async (req, res, next) => {
   try {
     const { pageSize, page } = req?.query;
     const { userUniqueId } = req?.user ?? {};
-    const result = await PassengerService.verifyPassengerStatus({
+    const result = await ShipperService.verifyShipperStatus({
       userUniqueId,
       pageSize,
       page,
@@ -243,7 +239,7 @@ const verifyPassengerStatus = async (req, res, next) => {
     next(error);
   }
 };
-const cancelPassengerRequest = async (req, res, next) => {
+const cancelShipperRequest = async (req, res, next) => {
   try {
     let ownerUserUniqueId = req?.params?.userUniqueId;
     const { userUniqueId, roleId } = req?.user;
@@ -262,7 +258,7 @@ const cancelPassengerRequest = async (req, res, next) => {
 
     const cancellationJourneyStatusId =
       ownerUserUniqueId === userUniqueId
-        ? journeyStatusMap.cancelledByPassenger
+        ? journeyStatusMap.cancelledByShipper
         : journeyStatusMap.cancelledByAdmin;
 
     req.body.ownerUserUniqueId = ownerUserUniqueId;
@@ -270,7 +266,7 @@ const cancelPassengerRequest = async (req, res, next) => {
     req.body.cancellationJourneyStatusId = cancellationJourneyStatusId;
 
     const result = await executeInTransaction(async () => {
-      return await PassengerService.cancelPassengerRequest(req.body);
+      return await ShipperService.cancelShipperRequest(req.body);
     });
     ServerResponder(res, result, 200);
   } catch (error) {
@@ -282,14 +278,14 @@ const cancelPassengerRequest = async (req, res, next) => {
  * Cancel an entire shipper request batch in one atomic operation.
  * PUT /api/shipperRequest/cancelBatch/:shipperRequestBatchId
  */
-const cancelPassengerRequestBatch = async (req, res, next) => {
+const cancelShipperRequestBatch = async (req, res, next) => {
   try {
     const { userUniqueId, roleId } = req.user;
     const { shipperRequestBatchId } = req.params;
     const { cancellationReasonsTypeId } = req.body;
 
     const result = await executeInTransaction(async () =>
-      PassengerService.cancelPassengerRequestBatch({
+      ShipperService.cancelShipperRequestBatch({
         shipperRequestBatchId,
         userUniqueId,
         roleId,
@@ -309,7 +305,7 @@ const markJourneyCompletionAsSeenController = async (req, res, next) => {
     const userUniqueId = user?.userUniqueId;
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
-      return await PassengerService.seenByPassenger(req.body);
+      return await ShipperService.seenByShipper(req.body);
     });
     ServerResponder(res, result, 200);
   } catch (error) {
@@ -326,7 +322,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
       throw new AppError("User not authenticated", 401);
     }
 
-    const result = await PassengerService.getCancellationNotifications({
+    const result = await ShipperService.getCancellationNotifications({
       userUniqueId,
       seenStatus,
       page: page || 1,
@@ -346,7 +342,7 @@ const markCancellationAsSeenController = async (req, res, next) => {
     const bodyUserUniqueId = req.body?.userUniqueId;
 
     const result = await executeInTransaction(async () => {
-      return await PassengerService.markCancellationAsSeen({
+      return await ShipperService.markCancellationAsSeen({
         userUniqueId: bodyUserUniqueId || userUniqueId,
         journeyDecisionUniqueId,
       });
@@ -379,7 +375,7 @@ const getAllActiveRequestsController = async (req, res, next) => {
       sortOrder: req.query.sortOrder || "DESC",
     };
 
-    const result = await PassengerService.getAllActiveRequests(filters);
+    const result = await ShipperService.getAllActiveRequests(filters);
 
     return ServerResponder(res, result);
   } catch (error) {
@@ -389,12 +385,12 @@ const getAllActiveRequestsController = async (req, res, next) => {
 
 module.exports = {
   acceptDriverRequest,
-  getPassengerRequestByPassengerRequestUniqueId,
-  getPassengerRequest4allOrSingleUser,
-  cancelPassengerRequest,
-  cancelPassengerRequestBatch,
-  verifyPassengerStatus,
-  createPassengerRequest,
+  getShipperRequestByShipperRequestUniqueId,
+  getShipperRequest4allOrSingleUser,
+  cancelShipperRequest,
+  cancelShipperRequestBatch,
+  verifyShipperStatus,
+  createShipperRequest,
   updateRequestById,
   deleteRequest,
   rejectDriverOffer,

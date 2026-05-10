@@ -453,7 +453,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
       "originLongitude": "38.80246000",
       "originPlace": "Addis Ababa, Ethiopia",
       "journeyStatusId": 2,
-      "isCancellationByPassengerSeenByDriver": "no need to see it",
+      "isCancellationByShipperSeenByDriver": "no need to see it",
       "driverRequestUpdatedBy": null,
       "driverRequestDeletedBy": null,
       "driverRequestCreatedAt": "2026-02-02T13:49:38.000Z",
@@ -463,7 +463,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
       "phoneNumber": "+251922112480",
       "email": "system@system.com",
       "isNotSelectedSeenByDriver": null,
-      "isRejectionByPassengerSeenByDriver": null
+      "isRejectionByShipperSeenByDriver": null
     },
     "vehicle": {
       "vehicleDriverId": 2,
@@ -645,7 +645,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
       "originLongitude": "38.80246000",
       "originPlace": "Addis Ababa, Ethiopia",
       "journeyStatusId": 2,
-      "isCancellationByPassengerSeenByDriver": "no need to see it",
+      "isCancellationByShipperSeenByDriver": "no need to see it",
       "driverRequestUpdatedBy": null,
       "driverRequestDeletedBy": null,
       "driverRequestCreatedAt": "2026-02-02T13:49:38.000Z",
@@ -655,7 +655,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
       "phoneNumber": "+251922112480",
       "email": "system@system.com",
       "isNotSelectedSeenByDriver": "no need to see it",
-      "isRejectionByPassengerSeenByDriver": "no need to see it",
+      "isRejectionByShipperSeenByDriver": "no need to see it",
       "driverProfilePhoto": "https://transport.masetawosha.com/uploads/2_2bbdf07b-59f0-4372-8d60-96d2aa9a520b.png"
     },
     "vehicle": {
@@ -736,8 +736,8 @@ so we can upload documents for driver verification based on uploadedDocumentName
     "deliveryDateByDriver": null,
     "shippingCostByDriver": null,
     "isNotSelectedSeenByDriver": "no need to see it",
-    "isCancellationByDriverSeenByPassenger": "no need to see it",
-    "isRejectionByPassengerSeenByDriver": "no need to see it",
+    "isCancellationByDriverSeenByShipper": "no need to see it",
+    "isRejectionByShipperSeenByDriver": "no need to see it",
     "journeyDecisionCreatedBy": "02069e59-6b22-4d45-8158-4adcacdbea11",
     "journeyDecisionUpdatedBy": null,
     "journeyDecisionDeletedBy": null,
@@ -795,14 +795,14 @@ so we can upload documents for driver verification based on uploadedDocumentName
 
 Drivers receive real-time notifications through WebSocket connections and can verify their status using the verifyDriverJourneyStatus endpoint. Available requests are handled through the automatic matching system when drivers go online.
 
-**For accepting matched requests, use:** `PUT /api/driver/acceptPassengerRequest`
+**For accepting matched requests, use:** `PUT /api/driver/acceptShipperRequest`
 
 **Error Responses**:
 
 - **400 Bad Request**: Missing required fields or invalid request data
 - **401 Unauthorized**: Invalid or missing driver token
 - **403 Forbidden**: Driver not authorized for this request or request not assigned to driver
-- **404 Not Found**: Passenger request or driver request not found
+- **404 Not Found**: Shipper request or driver request not found
 - **409 Conflict**: Request already accepted by another driver or in invalid status
 - **500 Internal Server Error**: Server error during request acceptance
 
@@ -933,7 +933,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
   "shipperRequestBatchId": "uuid-here",
   "shipper": {
     "phoneNumber": "+251922222229",
-    "fullName": "Street Passenger"
+    "fullName": "Street Shipper"
   }
 }
 ```
@@ -1098,11 +1098,11 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - **403 Forbidden**: Not authorized to view these requests
 - **500 Internal Server Error**: Server error during request retrieval
 
-### Passenger No Answer Report
+### Shipper No Answer Report
 
 **Endpoint**: `PUT /api/shipper/noAnswerFromDriver`
 **Description**: Allows shippers to report when a driver doesn't answer their request. Updates driver status to "no answer" and creates new shipper request if needed.
-**Authentication**: Passenger token required
+**Authentication**: Shipper token required
 
 **Request Body:**
 
@@ -1128,7 +1128,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - **400 Bad Request**: Missing required fields or invalid request status
 - **401 Unauthorized**: Invalid or missing shipper token
 - **403 Forbidden**: Not authorized to report this request
-- **404 Not Found**: Passenger request or driver request not found
+- **404 Not Found**: Shipper request or driver request not found
 - **409 Conflict**: Driver already answered or request in invalid status
 - **500 Internal Server Error**: Server error during no answer processing
 

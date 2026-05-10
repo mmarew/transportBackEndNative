@@ -254,8 +254,8 @@ const deleteJourneyStatus = async (journeyStatusUniqueId) => {
  *
  * Supported statuses:
  * - notSelectedInBid (14)
- * - rejectedByPassenger (8)
- * - cancelledByPassenger (7)
+ * - rejectedByShipper (8)
+ * - cancelledByShipper (7)
  * - cancelledByAdmin (10)
  * - cancelledBySystem (12)
  *
@@ -283,8 +283,8 @@ const updateNegativeJourneyStatus = async ({
     // Validate that newStatusId is one of the supported negative statuses
     const negativeStatuses = [
       journeyStatusMap.notSelectedInBid, // 14
-      journeyStatusMap.rejectedByPassenger, // 8
-      journeyStatusMap.cancelledByPassenger, // 7
+      journeyStatusMap.rejectedByShipper, // 8
+      journeyStatusMap.cancelledByShipper, // 7
       journeyStatusMap.cancelledByAdmin, // 10
       journeyStatusMap.cancelledBySystem, // 12
     ];
@@ -309,7 +309,7 @@ const updateNegativeJourneyStatus = async ({
     const allowedCurrentStatuses = [
       journeyStatusMap.acceptedByDriver, // 3
       journeyStatusMap.requested, // 2
-      journeyStatusMap.acceptedByPassenger,
+      journeyStatusMap.acceptedByShipper,
     ];
 
     const updatePromises = [];
@@ -320,13 +320,13 @@ const updateNegativeJourneyStatus = async ({
       journeyStatusId: newStatusId,
     };
 
-    // Set isCancellationByPassengerSeenByDriver for cancellation statuses
+    // Set isCancellationByShipperSeenByDriver for cancellation statuses
     if (
-      newStatusId === journeyStatusMap.cancelledByPassenger ||
+      newStatusId === journeyStatusMap.cancelledByShipper ||
       newStatusId === journeyStatusMap.cancelledByAdmin ||
       newStatusId === journeyStatusMap.cancelledBySystem
     ) {
-      driverUpdateValues.isCancellationByPassengerSeenByDriver =
+      driverUpdateValues.isCancellationByShipperSeenByDriver =
         "not seen by driver yet";
     }
 
@@ -361,14 +361,14 @@ const updateNegativeJourneyStatus = async ({
       if (newStatusId === journeyStatusMap.notSelectedInBid) {
         journeyDecisionUpdateValues.isNotSelectedSeenByDriver =
           "not seen by driver yet";
-      } else if (newStatusId === journeyStatusMap.rejectedByPassenger) {
-        journeyDecisionUpdateValues.isRejectionByPassengerSeenByDriver =
+      } else if (newStatusId === journeyStatusMap.rejectedByShipper) {
+        journeyDecisionUpdateValues.isRejectionByShipperSeenByDriver =
           "not seen by driver yet";
       } else {
         // Reset other "seen by" flags to default
         journeyDecisionUpdateValues.isNotSelectedSeenByDriver =
           "no need to see it";
-        journeyDecisionUpdateValues.isRejectionByPassengerSeenByDriver =
+        journeyDecisionUpdateValues.isRejectionByShipperSeenByDriver =
           "no need to see it";
       }
 
@@ -446,7 +446,7 @@ const updateJourneyStatus = async (body) => {
     }
     if (
       shipperRequestUniqueId &&
-      journeyStatusId !== journeyStatusMap.rejectedByPassenger &&
+      journeyStatusId !== journeyStatusMap.rejectedByShipper &&
       journeyStatusId !== journeyStatusMap.notSelectedInBid
     ) {
       tableCount++;
@@ -529,12 +529,12 @@ const updateJourneyStatus = async (body) => {
       });
     }
     // return;
-    // Update PassengerRequest if shipperRequestUniqueId is provided
-    // Exclude rejectedByPassenger and notSelectedInBid from updating PassengerRequest
+    // Update ShipperRequest if shipperRequestUniqueId is provided
+    // Exclude rejectedByShipper and notSelectedInBid from updating ShipperRequest
     // (these are driver-level statuses, not shipper request statuses)
     if (
       shipperRequestUniqueId &&
-      journeyStatusId !== journeyStatusMap.rejectedByPassenger &&
+      journeyStatusId !== journeyStatusMap.rejectedByShipper &&
       journeyStatusId !== journeyStatusMap.notSelectedInBid
     ) {
       const shipperConditions = { shipperRequestUniqueId };
@@ -544,7 +544,7 @@ const updateJourneyStatus = async (body) => {
 
       updatePromises.push(
         updateData({
-          tableName: "PassengerRequest",
+          tableName: "ShipperRequest",
           conditions: shipperConditions,
           updateValues: { journeyStatusId },
           connection: null, // Pass connection for transaction support
@@ -594,12 +594,12 @@ const updateJourneyStatus = async (body) => {
 
       const driverUpdateValues = { journeyStatusId };
 
-      // Reset isCancellationByPassengerSeenByDriver when status changes away from cancellation
+      // Reset isCancellationByShipperSeenByDriver when status changes away from cancellation
       if (
-        journeyStatusId !== journeyStatusMap.cancelledByPassenger &&
+        journeyStatusId !== journeyStatusMap.cancelledByShipper &&
         journeyStatusId !== journeyStatusMap.cancelledByAdmin
       ) {
-        driverUpdateValues.isCancellationByPassengerSeenByDriver =
+        driverUpdateValues.isCancellationByShipperSeenByDriver =
           "no need to see it";
       }
 

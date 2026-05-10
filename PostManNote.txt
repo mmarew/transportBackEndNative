@@ -7,7 +7,7 @@ Note This document is used to the developers and testers to understand the flow 
 1. [Setup & Initialization](#setup--initialization)
 2. [Environment Configuration](#environment-configuration)
 3. [User Management](#user-management)
-4. [Passenger Operations](#shipper-operations)
+4. [Shipper Operations](#shipper-operations)
 5. [Driver Registration](#driver-registration)
 6. [Document Management](#document-management)
 7. [Admin Operations](#admin-operations)
@@ -242,7 +242,7 @@ After creating and verifying an admin user, they can perform the following opera
 **Authentication**: Admin token required  
 **Query Parameters** (all optional):
 - `phoneNumber`: Filter by phone number
-- `roleId`: Filter by role ID (1=Passenger, 2=Driver, 3=Admin)
+- `roleId`: Filter by role ID (1=Shipper, 2=Driver, 3=Admin)
 - `statusId`: Filter by status ID
 - `fullName`: Filter by full name
 
@@ -325,7 +325,7 @@ After creating and verifying an admin user, they can perform the following opera
     "data": [
         {
             "journeyUniqueId": "journey-uuid-here",
-            "shipperName": "Passenger Name",
+            "shipperName": "Shipper Name",
             "driverName": "Driver Name",
             "pickupLocation": "Location A",
             "dropoffLocation": "Location B",
@@ -388,7 +388,7 @@ After creating and verifying an admin user, they can perform the following opera
 }
 ```
 
-### 1.12 Create Passenger Request (Admin)
+### 1.12 Create Shipper Request (Admin)
 **Endpoint**: `POST /api/shipperRequest/createRequest`  
 **Description**: Admin can create shipper requests on behalf of users. Supports batch requests for multiple vehicles.  
 **Authentication**: User/Admin token required  
@@ -478,7 +478,7 @@ After creating and verifying an admin user, they can perform the following opera
         {
             "roleId": 1,
             "roleUniqueId": "shipper-role-uuid",
-            "roleName": "Passenger",
+            "roleName": "Shipper",
             "description": "Regular shipper user"
         },
         {
@@ -730,12 +730,12 @@ After creating and verifying an admin user, they can perform the following opera
 }
 ```
 
-## Passenger Operations
+## Shipper Operations
 
-### 1. Create Passenger Request
+### 1. Create Shipper Request
 **Endpoint**: `POST /api/shipperRequest/createRequest`  
 **Description**: Creates a new ride request for transporting goods.  
-**Authentication**: Passenger token required  
+**Authentication**: Shipper token required  
 **Request Body**:
 ```json
 {
@@ -772,7 +772,7 @@ After creating and verifying an admin user, they can perform the following opera
         "waitingCount": 4,
         "requestedCount": 0,
         "acceptedByDriverCount": 0,
-        "acceptedByPassengerCount": 0,
+        "acceptedByShipperCount": 0,
         "journeyStartedCount": 0,
         "notSeenCompletedCount": 0,
         "notSeenCancelledByDriverCount": 0
@@ -780,8 +780,8 @@ After creating and verifying an admin user, they can perform the following opera
 }
 ```
 
-### 2. Get Passenger Requests
-**Endpoint**: `GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=5,1,2`  
+### 2. Get Shipper Requests
+**Endpoint**: `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=5,1,2`  
 **Description**: Retrieves ride requests with optional filtering by journey status.  
 **Authentication**: User token required  
 **Query Parameters**:
@@ -1393,7 +1393,7 @@ Once all driver documents are approved, the driver can create a request to searc
             "originLongitude": "38.80246000",
             "originPlace": "Addis Ababa, Ethiopia",
             "journeyStatusId": 2,
-            "isCancellationByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByShipperSeenByDriver": "no need to see it",
             "driverRequestUpdatedBy": null,
             "driverRequestDeletedBy": null,
             "driverRequestCreatedAt": "2026-01-31T15:00:00.000Z",
@@ -1403,7 +1403,7 @@ Once all driver documents are approved, the driver can create a request to searc
             "phoneNumber": "+251918569809",
             "email": null,
             "isNotSelectedSeenByDriver": null,
-            "isRejectionByPassengerSeenByDriver": null
+            "isRejectionByShipperSeenByDriver": null
         },
         "vehicle": {
             "vehicleDriverId": 1,
@@ -1484,10 +1484,10 @@ Once all driver documents are approved, the driver can create a request to searc
     }
 }
 
-If the response "status" is 1, no shipper/job is found. However, if the status is 2, the driver's phone rings immediately this shows job is found, and the driver can accept the request via `{{url}}/api/driver/acceptPassengerRequest`.
+If the response "status" is 1, no shipper/job is found. However, if the status is 2, the driver's phone rings immediately this shows job is found, and the driver can accept the request via `{{url}}/api/driver/acceptShipperRequest`.
 
-### 4. Accept Passenger Request (Driver)
-**Endpoint**: `POST /api/driver/acceptPassengerRequest`  
+### 4. Accept Shipper Request (Driver)
+**Endpoint**: `POST /api/driver/acceptShipperRequest`  
 **Description**: Driver accepts a shipper request and provides their shipping cost bid.  
 **Authentication**: Driver token required  
 **Request Body**:
@@ -1519,7 +1519,7 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
             "originLongitude": "38.80246000",
             "originPlace": "Addis Ababa, Ethiopia",
             "journeyStatusId": 2,
-            "isCancellationByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByShipperSeenByDriver": "no need to see it",
             "driverRequestUpdatedBy": null,
             "driverRequestDeletedBy": null,
             "driverRequestCreatedAt": "2026-01-31T15:00:00.000Z",
@@ -1534,8 +1534,8 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
             "deliveryDateByDriver": null,
             "shippingCostByDriver": null,
             "isNotSelectedSeenByDriver": "no need to see it",
-            "isCancellationByDriverSeenByPassenger": "no need to see it",
-            "isRejectionByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByDriverSeenByShipper": "no need to see it",
+            "isRejectionByShipperSeenByDriver": "no need to see it",
             "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
             "journeyDecisionUpdatedBy": null,
             "journeyDecisionDeletedBy": null,
@@ -1651,8 +1651,8 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
         "deliveryDateByDriver": null,
         "shippingCostByDriver": "656565.00",
         "isNotSelectedSeenByDriver": "no need to see it",
-        "isCancellationByDriverSeenByPassenger": "no need to see it",
-        "isRejectionByPassengerSeenByDriver": "no need to see it",
+        "isCancellationByDriverSeenByShipper": "no need to see it",
+        "isRejectionByShipperSeenByDriver": "no need to see it",
         "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
         "journeyDecisionUpdatedBy": null,
         "journeyDecisionDeletedBy": null,
@@ -1662,12 +1662,12 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
     }
 }
 
-Once a driver accepts the shipper request as shown above, the shipper must approve it because this is bid-based pricing. The shipper can accept the driver's request via `{{url}}/api/shipper/acceptDriverRequest`. Note: The shipper receives driver acceptance notifications through WebSocket or by checking `{{url}}/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3`.
+Once a driver accepts the shipper request as shown above, the shipper must approve it because this is bid-based pricing. The shipper can accept the driver's request via `{{url}}/api/shipper/acceptDriverRequest`. Note: The shipper receives driver acceptance notifications through WebSocket or by checking `{{url}}/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3`.
 
-### 5. Accept Driver Request (Passenger/Shipper)
+### 5. Accept Driver Request (Shipper/Shipper)
 **Endpoint**: `PUT /api/shipper/acceptDriverRequest`  
-**Description**: Passenger/Shipper accepts a driver's bid and confirms the transportation arrangement.  
-**Authentication**: Passenger token required  
+**Description**: Shipper/Shipper accepts a driver's bid and confirms the transportation arrangement.  
+**Authentication**: Shipper token required  
 **Request Body**:
 ```json
 {
@@ -1692,7 +1692,7 @@ Once a driver accepts the shipper request as shown above, the shipper must appro
         "waitingCount": 3,
         "requestedCount": 0,
         "acceptedByDriverCount": 0,
-        "acceptedByPassengerCount": 1,
+        "acceptedByShipperCount": 1,
         "journeyStartedCount": 0,
         "notSeenCompletedCount": 0,
         "notSeenCancelledByDriverCount": 0
@@ -1745,8 +1745,8 @@ After the shipper approves the bid selection, the driver must go to the loading 
             "deliveryDateByDriver": null,
             "shippingCostByDriver": "656565.00",
             "isNotSelectedSeenByDriver": "no need to see it",
-            "isCancellationByDriverSeenByPassenger": "no need to see it",
-            "isRejectionByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByDriverSeenByShipper": "no need to see it",
+            "isRejectionByShipperSeenByDriver": "no need to see it",
             "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
             "journeyDecisionUpdatedBy": null,
             "journeyDecisionDeletedBy": null,
@@ -1917,8 +1917,8 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
             "deliveryDateByDriver": null,
             "shippingCostByDriver": "656565.00",
             "isNotSelectedSeenByDriver": "no need to see it",
-            "isCancellationByDriverSeenByPassenger": "no need to see it",
-            "isRejectionByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByDriverSeenByShipper": "no need to see it",
+            "isRejectionByShipperSeenByDriver": "no need to see it",
             "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
             "journeyDecisionUpdatedBy": null,
             "journeyDecisionDeletedBy": null,
@@ -2810,7 +2810,7 @@ The Finance Management module handles all financial transactions, deposits, subs
         {
             "commissionRateId": 2,
             "userRoleId": 1,
-            "roleName": "Passenger",
+            "roleName": "Shipper",
             "transactionType": "booking_fee",
             "ratePercentage": 5.00,
             "fixedFee": 10.00,
@@ -3258,7 +3258,7 @@ The Finance Management module handles all financial transactions, deposits, subs
         {
             "commissionRateId": 2,
             "userRoleId": 1,
-            "roleName": "Passenger",
+            "roleName": "Shipper",
             "transactionType": "booking_fee",
             "ratePercentage": 5.00,
             "fixedFee": 10.00,

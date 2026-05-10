@@ -190,7 +190,7 @@ async function runE2E() {
         },
       );
       const getBatchRes = await shipperClient.get(
-        `/user/getPassengerRequest4allOrSingleUser?shipperRequestBatchId=${batchId}`,
+        `/user/getShipperRequest4allOrSingleUser?shipperRequestBatchId=${batchId}`,
       );
       shipperRequestArray =
         getBatchRes.data.formattedData || getBatchRes.data.data;
@@ -343,7 +343,7 @@ async function runE2E() {
     console.log("\n[8/9] Driver 2 confirms the execution...");
     try {
       // The driver confirms it. Based on Company Assignment flows, usually dispatchers create driver request in status 2 or 3.
-      // Let's use the explicit `acceptPassengerRequest`
+      // Let's use the explicit `acceptShipperRequest`
       // Wait, we need journeyDecisionUniqueId.
       // When dispatcher creates company assignment, does the driver need to 'accept'?
       // The `freight_bidding_lifecycle.md` says: PATCH /api/company/assignments/:id/status { "assignmentStatus": "confirmed_by_driver" }

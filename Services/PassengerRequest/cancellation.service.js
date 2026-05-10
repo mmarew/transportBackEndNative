@@ -9,7 +9,7 @@ const logger = require("../../Utils/logger");
 /**
  * Gets cancellation notifications for a shipper
  * @param {Object} params - Query parameters
- * @param {string} params.userUniqueId - Passenger's unique identifier
+ * @param {string} params.userUniqueId - Shipper's unique identifier
  * @param {string} params.seenStatus - Filter by seen status (optional)
  * @param {number} params.page - Page number (default: 1)
  * @param {number} params.limit - Items per page (default: 10)
@@ -25,7 +25,7 @@ const getCancellationNotifications = async ({
     const offset = (page - 1) * limit;
     // Build WHERE conditions
     let whereConditions = [
-      "PassengerRequest.userUniqueId = ?",
+      "ShipperRequest.userUniqueId = ?",
       "JourneyDecisions.journeyStatusId IN (?, ?)",
     ];
     let queryParams = [
@@ -37,7 +37,7 @@ const getCancellationNotifications = async ({
     // Add seen status filter if provided
     if (seenStatus) {
       whereConditions.push(
-        "JourneyDecisions.isCancellationByDriverSeenByPassenger = ?",
+        "JourneyDecisions.isCancellationByDriverSeenByShipper = ?",
       );
       queryParams.push(seenStatus);
     }
@@ -45,28 +45,28 @@ const getCancellationNotifications = async ({
     // Use raw SQL query for better control with aliases
     const sql = `
       SELECT 
-        -- PassengerRequest data
-        PassengerRequest.shipperRequestId,
-        PassengerRequest.shipperRequestUniqueId,
-        PassengerRequest.userUniqueId as shipperUserUniqueId,
-        PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as shipperOriginLatitude,
-        PassengerRequest.originLongitude as shipperOriginLongitude,
-        PassengerRequest.originPlace as shipperOriginPlace,
-        PassengerRequest.destinationLatitude,
-        PassengerRequest.destinationLongitude,
-        PassengerRequest.destinationPlace,
-        PassengerRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
-        PassengerRequest.shippableItemName,
-        PassengerRequest.shippableItemQtyInQuintal,
-        PassengerRequest.shippingDate,
-        PassengerRequest.deliveryDate,
-        PassengerRequest.shippingCost,
+        -- ShipperRequest data
+        ShipperRequest.shipperRequestId,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperRequest.vehicleTypeUniqueId,
+        ShipperRequest.originLatitude as shipperOriginLatitude,
+        ShipperRequest.originLongitude as shipperOriginLongitude,
+        ShipperRequest.originPlace as shipperOriginPlace,
+        ShipperRequest.destinationLatitude,
+        ShipperRequest.destinationLongitude,
+        ShipperRequest.destinationPlace,
+        ShipperRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
+        ShipperRequest.shippableItemName,
+        ShipperRequest.shippableItemQtyInQuintal,
+        ShipperRequest.shippingDate,
+        ShipperRequest.deliveryDate,
+        ShipperRequest.shippingCost,
         
-        -- Passenger User data
-        PassengerUser.fullName as shipperFullName,
-        PassengerUser.phoneNumber as shipperPhoneNumber,
-        PassengerUser.email as shipperEmail,
+        -- Shipper User data
+        ShipperUser.fullName as shipperFullName,
+        ShipperUser.phoneNumber as shipperPhoneNumber,
+        ShipperUser.email as shipperEmail,
         
         -- JourneyDecisions data
         JourneyDecisions.journeyDecisionId,
@@ -74,7 +74,7 @@ const getCancellationNotifications = async ({
         JourneyDecisions.decisionTime,
         JourneyDecisions.decisionBy,
         JourneyDecisions.journeyStatusId,
-        JourneyDecisions.isCancellationByDriverSeenByPassenger,
+        JourneyDecisions.isCancellationByDriverSeenByShipper,
         
         -- DriverRequest data
         DriverRequest.driverRequestId,
@@ -91,8 +91,8 @@ const getCancellationNotifications = async ({
         DriverUser.email as driverEmail
         
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
-      INNER JOIN Users as PassengerUser ON PassengerRequest.userUniqueId = PassengerUser.userUniqueId
+      INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+      INNER JOIN Users as ShipperUser ON ShipperRequest.userUniqueId = ShipperUser.userUniqueId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
       WHERE ${whereConditions.join(" AND ")}
@@ -104,7 +104,7 @@ const getCancellationNotifications = async ({
     const countSql = `
       SELECT COUNT(*) as total
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
+      INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
       WHERE ${whereConditions.join(" AND ")}
     `;
 
@@ -190,8 +190,8 @@ const getCancellationNotifications = async ({
               decisionTime: request.decisionTime,
               decisionBy: request.decisionBy,
               journeyStatusId: request.journeyStatusId,
-              isCancellationByDriverSeenByPassenger:
-                request.isCancellationByDriverSeenByPassenger,
+              isCancellationByDriverSeenByShipper:
+                request.isCancellationByDriverSeenByShipper,
             },
             journey: journey,
           };
@@ -242,7 +242,7 @@ const getCancellationNotifications = async ({
 /**
  * Marks a cancellation notification as seen by shipper
  * @param {Object} body - Mark as seen data
- * @param {string} body.userUniqueId - Passenger's unique identifier
+ * @param {string} body.userUniqueId - Shipper's unique identifier
  * @param {string} body.journeyDecisionUniqueId - Journey decision unique ID
  * @returns {Promise<Object>} Success or error response
  */
@@ -277,7 +277,7 @@ const markCancellationAsSeen = async ({
     );
     // Verify the shipper request belongs to this user
     const shipperRequest = await getData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       conditions: {
         shipperRequestId,
         userUniqueId,
@@ -296,7 +296,7 @@ const markCancellationAsSeen = async ({
       tableName: "JourneyDecisions",
       conditions: { journeyDecisionUniqueId },
       updateValues: {
-        isCancellationByDriverSeenByPassenger: "seen by shipper",
+        isCancellationByDriverSeenByShipper: "seen by shipper",
       },
     });
 

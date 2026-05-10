@@ -1,8 +1,6 @@
 const canceledJourneyService = require("../Services/CanceledJourneys.service");
-const { cancelPassengerRequest } = require("../Services/PassengerRequest");
-const {
-  sendSocketIONotificationToPassenger,
-} = require("../Utils/Notifications");
+const { cancelShipperRequest } = require("../Services/ShipperRequest");
+const { sendSocketIONotificationToShipper } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const messageTypes = require("../Utils/MessageTypes");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
@@ -18,22 +16,22 @@ const cancelJourneyBySystem = async (req, res, next) => {
       const cutoffTime = new Date(now.getTime() - 5 * 60 * 1000);
 
       const sqlQuery = `
-        SELECT PassengerRequest.*, Users.phoneNumber
-        FROM PassengerRequest
-        JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
-        WHERE PassengerRequest.journeyStatusId = ${journeyStatusMap.waiting}
-          AND PassengerRequest.shipperRequestCreatedAt <= ?
+        SELECT ShipperRequest.*, Users.phoneNumber
+        FROM ShipperRequest
+        JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
+        WHERE ShipperRequest.journeyStatusId = ${journeyStatusMap.waiting}
+          AND ShipperRequest.shipperRequestCreatedAt <= ?
       `;
 
       const [activeRequests] = await connection.query(sqlQuery, [cutoffTime]);
 
       for (const request of activeRequests) {
-        await cancelPassengerRequest({
+        await cancelShipperRequest({
           ownerUserUniqueId: request.userUniqueId,
           cancellationReasonsTypeId: 1,
         });
 
-        await sendSocketIONotificationToPassenger({
+        await sendSocketIONotificationToShipper({
           phoneNumber: request.phoneNumber,
           message: {
             message: "success",

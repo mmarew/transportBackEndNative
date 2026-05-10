@@ -190,7 +190,7 @@ Complete guide to user registration, verification, and profile management.
       "statusId": 1,
       "userCreatedAt": "2026-01-31T12:00:00.000Z",
       "userCreatedBy": "admin-uuid-here",
-      "roleName": "Passenger",
+      "roleName": "Shipper",
       "statusName": "Active"
     },
     {
@@ -365,7 +365,7 @@ When contact information is updated, the system triggers a security lifecycle:
 2.  **Logic**: The backend (`verifyEmailByToken`) checks if the UUID token is valid and hasn't expired (2-hour limit).
 3.  **Real-time Update**:
     - The backend marks the email as verified.
-    - **WebSocket Broadcast**: It identifies all active roles for the user (Passenger, Driver, or Admin).
+    - **WebSocket Broadcast**: It identifies all active roles for the user (Shipper, Driver, or Admin).
     - **Fresh JWT**: It generates a brand-new security token (JWT) where `isEmailVerified` is true.
     - **Pusher**: It sends this token to the app via WebSocket. The app then automatically unlocks "verified-only" features without the user having to re-login.
 

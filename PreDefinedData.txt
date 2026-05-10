@@ -20,7 +20,7 @@ This file defines:
 
 ### 1. User Roles (`roleList`)
 Defines the complete user hierarchy in the system:
-- **Passenger (ID: 1)**: Users who create transport requests
+- **Shipper (ID: 1)**: Users who create transport requests
 - **Driver (ID: 2)**: Users who accept and fulfill transport requests
 - **Admin (ID: 3)**: System administrators with management privileges
 - **Vehicle Owner (ID: 4)**: Owners of vehicles in the system
@@ -43,7 +43,7 @@ Complete journey lifecycle management (15 states):
 - **Waiting (1)**: Initial request state
 - **Requested (2)**: Request sent to driver
 - **Accepted by Driver (3)**: Driver accepts with bid
-- **Accepted by Passenger (4)**: Passenger selects driver
+- **Accepted by Shipper (4)**: Shipper selects driver
 - **Journey Started (5)**: Transportation begins
 - **Journey Completed (6)**: Journey finished successfully
 - **Cancelled States (7-12)**: Various cancellation scenarios

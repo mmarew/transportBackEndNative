@@ -314,7 +314,7 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
 };
 
 /**
- * --- Passenger Operational Templates ---
+ * --- Shipper Operational Templates ---
  */
 
 const getBookingConfirmationMessage = (

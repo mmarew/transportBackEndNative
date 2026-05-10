@@ -92,14 +92,14 @@ The platform manages 15 distinct journey states:
 1. **Waiting** — Shipper created request; waiting for driver match.
 2. **Requested** — Request sent to driver(s); driver has not yet responded.
 3. **Accepted by Driver** — Driver accepted and submitted bid.
-4. **Accepted by Passenger** — Shipper selected this driver.
+4. **Accepted by Shipper** — Shipper selected this driver.
 5. **Journey Started** — Driver started the trip; GPS tracking active.
 6. **Journey Completed** — Delivery done; payment and rating follow.
 
 **Terminal states (7–15):**
 
-7. Cancelled by Passenger
-8. Rejected by Passenger (one driver’s offer rejected)
+7. Cancelled by Shipper
+8. Rejected by Shipper (one driver’s offer rejected)
 9. Cancelled by Driver
 10. Cancelled by Admin
 11. Completed by Admin (manual completion)
@@ -136,40 +136,40 @@ The platform manages **15 distinct journey states**:
 
 **Active states (1–6):**
 
-| ID  | Status                | Description                                                  |
-| --- | --------------------- | ------------------------------------------------------------ |
-| 1   | Waiting               | Shipper created request; waiting for driver match.           |
-| 2   | Requested             | Request sent to driver(s); driver has not yet accepted.      |
-| 3   | Accepted by Driver    | Driver accepted and submitted bid; shipper has not selected. |
-| 4   | Accepted by Passenger | Shipper selected this driver; journey can start.             |
-| 5   | Journey Started       | Driver started the trip; GPS tracking active.                |
-| 6   | Journey Completed     | Delivery completed; payment and rating follow.               |
+| ID  | Status              | Description                                                  |
+| --- | ------------------- | ------------------------------------------------------------ |
+| 1   | Waiting             | Shipper created request; waiting for driver match.           |
+| 2   | Requested           | Request sent to driver(s); driver has not yet accepted.      |
+| 3   | Accepted by Driver  | Driver accepted and submitted bid; shipper has not selected. |
+| 4   | Accepted by Shipper | Shipper selected this driver; journey can start.             |
+| 5   | Journey Started     | Driver started the trip; GPS tracking active.                |
+| 6   | Journey Completed   | Delivery completed; payment and rating follow.               |
 
 **Terminal states (7–15):**
 
-| ID  | Status                 | Description                                   |
-| --- | ---------------------- | --------------------------------------------- |
-| 7   | Cancelled by Passenger | Shipper cancelled the request.                |
-| 8   | Rejected by Passenger  | Shipper rejected this driver's bid.           |
-| 9   | Cancelled by Driver    | Driver withdrew after accepting.              |
-| 10  | Cancelled by Admin     | Admin cancelled (e.g. fraud, safety).         |
-| 11  | Completed by Admin     | Admin marked journey completed manually.      |
-| 12  | Cancelled by System    | System auto-cancelled (e.g. timeout).         |
-| 13  | No Answer from Driver  | Driver did not respond; request reassigned.   |
-| 14  | Not Selected in Bid    | Driver bid but shipper chose another driver.  |
-| 15  | Rejected by Driver     | Driver declined the request before accepting. |
+| ID  | Status                | Description                                   |
+| --- | --------------------- | --------------------------------------------- |
+| 7   | Cancelled by Shipper  | Shipper cancelled the request.                |
+| 8   | Rejected by Shipper   | Shipper rejected this driver's bid.           |
+| 9   | Cancelled by Driver   | Driver withdrew after accepting.              |
+| 10  | Cancelled by Admin    | Admin cancelled (e.g. fraud, safety).         |
+| 11  | Completed by Admin    | Admin marked journey completed manually.      |
+| 12  | Cancelled by System   | System auto-cancelled (e.g. timeout).         |
+| 13  | No Answer from Driver | Driver did not respond; request reassigned.   |
+| 14  | Not Selected in Bid   | Driver bid but shipper chose another driver.  |
+| 15  | Rejected by Driver    | Driver declined the request before accepting. |
 
 ---
 
 ## 4. User Roles
 
-| Role                | Description                                                                                                                                                                |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shipper (Passenger) | A business or individual who needs goods transported. Creates shipping requests, reviews driver bids, selects drivers, tracks journeys, and rates service.                 |
-| Driver              | A verified truck driver who registers availability, receives shipping requests, places bids, picks up cargo, and completes deliveries. Must maintain a valid subscription. |
-| Vehicle Owner       | The person or company that owns the truck. Can assign vehicles to drivers. A driver may also be the vehicle owner.                                                         |
-| Admin               | DTC operations staff. Manages users, reviews documents, resolves disputes, handles cancellations, and monitors platform activity.                                          |
-| Super Admin         | Full system access. Manages admins, configures pricing, commission rates, subscription plans, and platform settings.                                                       |
+| Role              | Description                                                                                                                                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shipper (Shipper) | A business or individual who needs goods transported. Creates shipping requests, reviews driver bids, selects drivers, tracks journeys, and rates service.                 |
+| Driver            | A verified truck driver who registers availability, receives shipping requests, places bids, picks up cargo, and completes deliveries. Must maintain a valid subscription. |
+| Vehicle Owner     | The person or company that owns the truck. Can assign vehicles to drivers. A driver may also be the vehicle owner.                                                         |
+| Admin             | DTC operations staff. Manages users, reviews documents, resolves disputes, handles cancellations, and monitors platform activity.                                          |
+| Super Admin       | Full system access. Manages admins, configures pricing, commission rates, subscription plans, and platform settings.                                                       |
 
 ---
 
@@ -198,7 +198,7 @@ Each vehicle on the platform has:
 
 ## 6. Registration and Onboarding
 
-### For Shippers (Passengers)
+### For Shippers (Shippers)
 
 1. Download the DTC app
 2. Register with phone number

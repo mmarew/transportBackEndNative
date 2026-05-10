@@ -9,11 +9,11 @@ const {
 const { insertData } = require("../../CRUD/Create/CreateData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const {
-  VerifyIfPassengerRequestWasNotRejected,
+  VerifyIfShipperRequestWasNotRejected,
 } = require("../../Utils/RejectedRequests");
-// verifyPassengerStatus removed - only available via API endpoint to reduce heavy operations
+// verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 const {
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
 } = require("../../Utils/Notifications");
 const {
   performJoinSelect,
@@ -60,7 +60,7 @@ const checkIfDriverIsHealthy = async (userUniqueId) => {
  * Creates a standardized response object for driver status
  * @param {Object} driver - Driver request object
  * @param {Object} vehicle - Vehicle object
- * @param {Object} shipper - Passenger request object
+ * @param {Object} shipper - Shipper request object
  * @param {Object} decision - Journey decision object
  * @param {number} status - Journey status ID
  * @returns {Object} Standardized response object
@@ -85,9 +85,9 @@ const createResponse = (driver, vehicle, shipper, decision, status) => ({
  * @param {string} userUniqueId - Driver's unique identifier
  * @returns {Promise<Object|null>} - First non-rejected shipper or null
  */
-const findNonRejectedPassenger = async (shippers, userUniqueId) => {
+const findNonRejectedShipper = async (shippers, userUniqueId) => {
   for (const shipper of shippers) {
-    const rejectedResult = await VerifyIfPassengerRequestWasNotRejected({
+    const rejectedResult = await VerifyIfShipperRequestWasNotRejected({
       shipperRequestId: shipper.shipperRequestId,
       driverUserUniqueId: userUniqueId,
     });
@@ -100,7 +100,7 @@ const findNonRejectedPassenger = async (shippers, userUniqueId) => {
 
 /**
  * Creates a journey decision payload object
- * @param {number} shipperRequestId - Passenger request ID
+ * @param {number} shipperRequestId - Shipper request ID
  * @param {number} driverRequestId - Driver request ID
  * @returns {Object} Journey decision payload
  */
@@ -124,7 +124,7 @@ const createJourneyDecisionPayload = (
  * Executes status updates for driver and shipper requests in parallel
  * @param {Object} journeyDecisionPayload - Journey decision data
  * @param {string} driverRequestUniqueId - Driver request unique ID
- * @param {number} shipperRequestId - Passenger request ID
+ * @param {number} shipperRequestId - Shipper request ID
  * @param {Object} connection - Optional: Database connection for transaction support
  * @returns {Promise<void>}
  */
@@ -154,9 +154,9 @@ const executeStatusUpdates = async (
         connection: conn, // Pass connection for transaction support
       });
 
-      // Update PassengerRequest within transaction
+      // Update ShipperRequest within transaction
       await updateData({
-        tableName: "PassengerRequest",
+        tableName: "ShipperRequest",
         conditions: { shipperRequestId },
         updateValues: { journeyStatusId: journeyStatusMap.requested },
         connection: conn, // Pass connection for transaction support
@@ -171,13 +171,13 @@ const executeStatusUpdates = async (
 
 /**
  * Sends WebSocket notification to shipper
- * @param {Object} shipper - Passenger object with userUniqueId and phoneNumber
+ * @param {Object} shipper - Shipper object with userUniqueId and phoneNumber
  * @returns {Promise<Object>} Success or error response
  */
-const sendPassengerNotification = async (shipper) => {
+const sendShipperNotification = async (shipper) => {
   try {
-    // Send simple notification - shipper should call verifyPassengerStatus endpoint for full status
-    await sendSocketIONotificationToPassenger({
+    // Send simple notification - shipper should call verifyShipperStatus endpoint for full status
+    await sendSocketIONotificationToShipper({
       message: {
         message: "success",
         data: "Your request status has been updated. Please check your status.",
@@ -189,7 +189,7 @@ const sendPassengerNotification = async (shipper) => {
     return { message: "success" };
   } catch (error) {
     throw new AppError(
-      error.message || "Error in sendPassengerNotification",
+      error.message || "Error in sendShipperNotification",
       error.statusCode || 500,
     );
   }
@@ -245,18 +245,18 @@ const fetchJourneyNotificationData = async (
 
     // Fetch shipper request data with user info
     const shipperRequestData = await performJoinSelect({
-      baseTable: "PassengerRequest",
+      baseTable: "ShipperRequest",
       joins: [
         {
           table: "Users",
-          on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+          on: "ShipperRequest.userUniqueId = Users.userUniqueId",
         },
       ],
       conditions: { shipperRequestId },
     });
 
     if (!shipperRequestData?.length) {
-      throw new AppError("Passenger request not found", 404);
+      throw new AppError("Shipper request not found", 404);
     }
 
     const shipperRequest = shipperRequestData[0];
@@ -374,9 +374,9 @@ const fetchJourneyNotificationData = async (
 module.exports = {
   checkIfDriverIsHealthy,
   createResponse,
-  findNonRejectedPassenger,
+  findNonRejectedShipper,
   createJourneyDecisionPayload,
   executeStatusUpdates,
-  sendPassengerNotification,
+  sendShipperNotification,
   fetchJourneyNotificationData,
 };

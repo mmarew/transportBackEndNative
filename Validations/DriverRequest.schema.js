@@ -60,7 +60,7 @@ exports.markNegativeStatusAsSeen = Joi.object({
 // Allows unknown query parameters for flexibility, but validates none are required
 exports.verifyDriverJourneyStatus = Joi.object({}).unknown(true);
 
-exports.acceptPassengerRequest = Joi.object({
+exports.acceptShipperRequest = Joi.object({
   driverRequestUniqueId: uuidSchema,
   shipperRequestUniqueId: uuidSchema,
   journeyDecisionUniqueId: uuidSchema,

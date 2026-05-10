@@ -4,7 +4,7 @@ const {
   activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 const {
-  VerifyIfPassengerRequestWasNotRejected,
+  VerifyIfShipperRequestWasNotRejected,
 } = require("../../Utils/RejectedRequests");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
@@ -81,13 +81,13 @@ const getData = async ({
     throw error;
   }
 };
-const getPassengerRequestByRequestUniqueId = async (shipperRequestUniqueId) => {
+const getShipperRequestByRequestUniqueId = async (shipperRequestUniqueId) => {
   const result = await performJoinSelect({
-    baseTable: "PassengerRequest",
+    baseTable: "ShipperRequest",
     joins: [
       {
         table: "Users",
-        on: "PassengerRequest.userUniqueId = Users.userUniqueId",
+        on: "ShipperRequest.userUniqueId = Users.userUniqueId",
       },
     ],
 
@@ -158,7 +158,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
   const [drivers] = await queryExecutor.query(sqlQuery, values);
   const listOfDrivers = [];
   for (const driver of drivers) {
-    const { message } = await VerifyIfPassengerRequestWasNotRejected({
+    const { message } = await VerifyIfShipperRequestWasNotRejected({
       shipperRequestId,
       driverUserUniqueId: driver?.userUniqueId,
     });
@@ -175,7 +175,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
   return listOfDrivers;
 };
 
-const findNearbyPassengers = async ({
+const findNearbyShippers = async ({
   originLatitude,
   originLongitude,
   vehicleTypeUniqueId,
@@ -188,24 +188,24 @@ const findNearbyPassengers = async ({
   const sqlQuery = `
     SELECT
       Users.*,
-      PassengerRequest.*,
+      ShipperRequest.*,
       (
         6371 * 2 * ASIN(SQRT(
-          POWER(SIN(RADIANS(PassengerRequest.originLatitude - ?) / 2), 2) +
-          COS(RADIANS(?)) * COS(RADIANS(PassengerRequest.originLatitude)) *
-          POWER(SIN(RADIANS(PassengerRequest.originLongitude - ?) / 2), 2)
+          POWER(SIN(RADIANS(ShipperRequest.originLatitude - ?) / 2), 2) +
+          COS(RADIANS(?)) * COS(RADIANS(ShipperRequest.originLatitude)) *
+          POWER(SIN(RADIANS(ShipperRequest.originLongitude - ?) / 2), 2)
         ))
       ) AS distanceKm
     FROM Users
-    JOIN PassengerRequest
-      ON PassengerRequest.userUniqueId = Users.userUniqueId
-      AND (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != 'company_target')
-      AND PassengerRequest.shipperRequestDeletedAt IS NULL
+    JOIN ShipperRequest
+      ON ShipperRequest.userUniqueId = Users.userUniqueId
+      AND (ShipperRequest.requestMode IS NULL OR ShipperRequest.requestMode != 'company_target')
+      AND ShipperRequest.shipperRequestDeletedAt IS NULL
     WHERE
-      PassengerRequest.vehicleTypeUniqueId = ?
-      AND PassengerRequest.originLatitude  BETWEEN ? AND ?
-      AND PassengerRequest.originLongitude BETWEEN ? AND ?
-      AND PassengerRequest.journeyStatusId IN (?, ?, ?)
+      ShipperRequest.vehicleTypeUniqueId = ?
+      AND ShipperRequest.originLatitude  BETWEEN ? AND ?
+      AND ShipperRequest.originLongitude BETWEEN ? AND ?
+      AND ShipperRequest.journeyStatusId IN (?, ?, ?)
     HAVING distanceKm <= ?
     ORDER BY distanceKm ASC
   `;
@@ -228,8 +228,8 @@ const findNearbyPassengers = async ({
   ];
 
   const queryExecutor = transactionStorage.getStore() || pool;
-  const [nearByPassengers] = await queryExecutor.query(sqlQuery, values);
-  return nearByPassengers;
+  const [nearByShippers] = await queryExecutor.query(sqlQuery, values);
+  return nearByShippers;
 };
 
 const performJoinSelect = async ({
@@ -299,9 +299,9 @@ const checkUserExists = async (userUniqueId) => {
 
   return existingUser?.length ? existingUser[0] : null;
 };
-//checkActivePassengerRequest is used to get active shipper request from shipper request table, user table ,journey decisions table
+//checkActiveShipperRequest is used to get active shipper request from shipper request table, user table ,journey decisions table
 
-const checkActivePassengerRequest = async ({
+const checkActiveShipperRequest = async ({
   userUniqueId,
   page = 1,
   pageSize = 10,
@@ -312,7 +312,7 @@ const checkActivePassengerRequest = async ({
     journeyStatusMap.waiting, //1
     journeyStatusMap.requested, //2
     journeyStatusMap.acceptedByDriver, //3
-    journeyStatusMap.acceptedByPassenger, //4
+    journeyStatusMap.acceptedByShipper, //4
     journeyStatusMap.journeyStarted, //5
   ];
 
@@ -344,17 +344,17 @@ const checkActivePassengerRequest = async ({
         CASE 
           WHEN pr.journeyStatusId = ? THEN 1 -- acceptedByDriver (highest)
           WHEN (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?) THEN 2 -- not seen completed
-          WHEN (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ?) THEN 2 -- not seen cancelled by driver
+          WHEN (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?) THEN 2 -- not seen cancelled by driver
           ELSE 3 -- other statuses
         END as priority
-    FROM PassengerRequest pr
+    FROM ShipperRequest pr
     INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
     LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
     WHERE pr.userUniqueId = ?
     AND (
       pr.journeyStatusId IN (?,?,?,?,?) 
       OR (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?)
-      OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ?)
+      OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?)
     )
     ORDER BY 
       priority ASC, -- Priority first
@@ -414,10 +414,10 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
 
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as requestedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByDriverCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByPassengerCount,
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByShipperCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as journeyStartedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.shipperRequestId END) as notSeenCompletedCount,
-      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount,
+      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount,
 
       -- Individual-mode requests in waiting/requested status (excludes company_target batches).
       -- Uses != 'company_target' to correctly match NULL, 'individual', 'individual_target'
@@ -476,13 +476,13 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         THEN pr.shipperRequestId
       END) as companyOngoingVehicles
 
-    FROM PassengerRequest pr
+    FROM ShipperRequest pr
     LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
     WHERE pr.userUniqueId = ?
     AND (
       pr.journeyStatusId IN (?,?,?,?,?)
       OR (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?)
-      OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ?)
+      OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?)
     )
   `;
 
@@ -493,10 +493,10 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     // individualWaitingVehicles (IN ?, ?)
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
-    // requestedCount, acceptedByDriverCount, acceptedByPassengerCount, journeyStartedCount
+    // requestedCount, acceptedByDriverCount, acceptedByShipperCount, journeyStartedCount
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
-    journeyStatusMap.acceptedByPassenger,
+    journeyStatusMap.acceptedByShipper,
     journeyStatusMap.journeyStarted,
     // notSeenCompletedCount
     journeyStatusMap.journeyCompleted,
@@ -516,7 +516,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
-    journeyStatusMap.acceptedByPassenger,
+    journeyStatusMap.acceptedByShipper,
     journeyStatusMap.journeyStarted,
     false,
     journeyStatusMap.journeyCompleted,
@@ -543,7 +543,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
         Users.phoneNumber,
         Users.email,
         JourneyDecisions.isNotSelectedSeenByDriver,
-        JourneyDecisions.isRejectionByPassengerSeenByDriver
+        JourneyDecisions.isRejectionByShipperSeenByDriver
       FROM DriverRequest
       INNER JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       LEFT JOIN JourneyDecisions ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
@@ -561,13 +561,13 @@ const checkActiveDriverRequest = async (userUniqueId) => {
         -- Cancellation statuses (7, 10) with not seen status
         (
           DriverRequest.journeyStatusId IN (?, ?)
-          AND DriverRequest.isCancellationByPassengerSeenByDriver = 'not seen by driver yet'
+          AND DriverRequest.isCancellationByShipperSeenByDriver = 'not seen by driver yet'
         )
         OR
-        -- rejectedByPassenger (8) with not seen status
+        -- rejectedByShipper (8) with not seen status
         (
           DriverRequest.journeyStatusId = ?
-          AND JourneyDecisions.isRejectionByPassengerSeenByDriver = 'not seen by driver yet'
+          AND JourneyDecisions.isRejectionByShipperSeenByDriver = 'not seen by driver yet'
         )
       )
       ORDER BY DriverRequest.driverRequestId DESC
@@ -579,9 +579,9 @@ const checkActiveDriverRequest = async (userUniqueId) => {
       userUniqueId,
       ...activeJourneyStatuses,
       journeyStatusMap.notSelectedInBid,
-      journeyStatusMap.cancelledByPassenger,
+      journeyStatusMap.cancelledByShipper,
       journeyStatusMap.cancelledByAdmin,
-      journeyStatusMap.rejectedByPassenger,
+      journeyStatusMap.rejectedByShipper,
     ]);
 
     return results; // Returns an array of active requests (if any)
@@ -652,12 +652,12 @@ module.exports = {
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   getDriverRequestByRequestUniqueId,
   checkActiveDriverRequest,
-  checkActivePassengerRequest,
+  checkActiveShipperRequest,
   checkUserExists,
   performJoinSelect,
   findNearbyDrivers,
-  findNearbyPassengers,
+  findNearbyShippers,
   getData,
-  getPassengerRequestByRequestUniqueId,
+  getShipperRequestByRequestUniqueId,
   getCancellationDetails,
 };

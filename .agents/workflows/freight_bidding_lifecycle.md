@@ -7,10 +7,10 @@ This workflow describes the complete end-to-end journey of a freight request, fr
 ### 1. Request Creation (Shipper)
 
 - **Action**: Shipper creates a "Freight Batch" (Request for multiple or single trucks).
-- **Endpoint**: `POST /api/shipper/createPassengerRequestBatch`
+- **Endpoint**: `POST /api/shipper/createShipperRequestBatch`
 - **Status**: `journeyStatusId` = 1 (Waiting).
-- **Lazy Creation**: For `company_target` mode, ONLY the `PassengerRequestBatch` header
-  is created — no individual `PassengerRequest` rows. PRs are deferred to Step 4.
+- **Lazy Creation**: For `company_target` mode, ONLY the `ShipperRequestBatch` header
+  is created — no individual `ShipperRequest` rows. PRs are deferred to Step 4.
   For `individual_target` mode, PRs are created immediately (eager path).
 
 ### 2. Matching & Notification
@@ -31,9 +31,9 @@ This workflow describes the complete end-to-end journey of a freight request, fr
 - **Action**: Shipper reviews and picks the "Winner".
 - **Endpoint**: `PATCH /api/company/bids/:id/status` (Body: `{ "bidStatus": "accepted_by_shipper" }`)
 - **Status**: `bidStatus` → `accepted_by_shipper`.
-- **Lazy PR Creation**: For `company_target` mode, this is when `PassengerRequest` rows
+- **Lazy PR Creation**: For `company_target` mode, this is when `ShipperRequest` rows
   are created from batch metadata (`numberOfVehiclesOffered` rows). Born with status
-  `acceptedByPassenger`. Coordinates and metadata are inherited from the batch header.
+  `acceptedByShipper`. Coordinates and metadata are inherited from the batch header.
 
 ### 5. Winner & Loser Notifications
 

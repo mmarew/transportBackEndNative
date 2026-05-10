@@ -11,7 +11,14 @@
 require("dotenv").config();
 const path = require("path");
 const request = require("supertest");
-const { setup, auth, test, assert, printResults, BASE_URL } = require("./testHelper");
+const {
+  setup,
+  auth,
+  test,
+  assert,
+  printResults,
+  BASE_URL,
+} = require("./testHelper");
 
 const state = {
   userUniqueId: null,
@@ -36,7 +43,7 @@ const state = {
         fullName: "Photo Test User",
         phoneNumber: phoneNumber,
         email: `photo_test_${Date.now()}@example.com`,
-        roleId: 1, // Passenger
+        roleId: 1, // Shipper
       });
 
     assert(res.body?.message === "success", "Failed to create test user");
@@ -57,11 +64,13 @@ const state = {
       .field("fullName", "Updated Photo Name");
 
     if (res.status !== 200) {
-      throw new Error(`Upload failed with status ${res.status}: ${JSON.stringify(res.body)}`);
+      throw new Error(
+        `Upload failed with status ${res.status}: ${JSON.stringify(res.body)}`,
+      );
     }
 
     assert(res.body?.message === "success", "Response message was not success");
-    
+
     // Check if the URL returned in a subsequent fetch or if it confirms success
     return "Profile photo uploaded and processed via Validator + Multer";
   });
@@ -73,16 +82,19 @@ const state = {
       .set(auth());
 
     const documents = res.body?.data?.documents || [];
-    const photoDoc = documents.find(d => String(d.documentTypeId) === "4");
-    
+    const photoDoc = documents.find((d) => String(d.documentTypeId) === "4");
+
     assert(photoDoc, "Profile photo document not found for user");
     const url = photoDoc.attachedDocumentName;
-    
+
     console.log(`\n    Generated URL: ${url}`);
-    
-    assert(!url.includes("/uploads/uploads/"), "CRITICAL: Double /uploads/ path detected!");
+
+    assert(
+      !url.includes("/uploads/uploads/"),
+      "CRITICAL: Double /uploads/ path detected!",
+    );
     assert(url.startsWith("http"), `URL should start with http, got: ${url}`);
-    
+
     return "URL path is correctly formatted (Single /uploads/)";
   });
 

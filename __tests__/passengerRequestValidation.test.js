@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Unit Tests: PassengerRequest Validation Rules
+ * Unit Tests: ShipperRequest Validation Rules
  *
  * Tests the Joi schema rules WITHOUT needing a database:
  *   1. numberOfVehicles max cap (100)
@@ -12,10 +12,10 @@
 
 const uuid = () => require("uuid").v4();
 
-describe("PassengerRequest Validation", () => {
+describe("ShipperRequest Validation", () => {
   const {
-    createPassengerRequest,
-  } = require("../Validations/PassengerRequest.schema");
+    createShipperRequest,
+  } = require("../Validations/ShipperRequest.schema");
 
   const validPayload = (overrides = {}) => ({
     shipperRequestBatchId: uuid(),
@@ -32,7 +32,7 @@ describe("PassengerRequest Validation", () => {
   });
 
   test("rejects numberOfVehicles > 100", () => {
-    const result = createPassengerRequest.validate(
+    const result = createShipperRequest.validate(
       validPayload({ numberOfVehicles: 101 }),
     );
     expect(result.error).toBeDefined();
@@ -40,7 +40,7 @@ describe("PassengerRequest Validation", () => {
   });
 
   test("accepts numberOfVehicles = 100 with company_target", () => {
-    const result = createPassengerRequest.validate(
+    const result = createShipperRequest.validate(
       validPayload({ numberOfVehicles: 100, requestMode: "company_target" }),
     );
     expect(result.error).toBeUndefined();
@@ -48,7 +48,7 @@ describe("PassengerRequest Validation", () => {
   });
 
   test("rejects individual_target with 10+ vehicles", () => {
-    const result = createPassengerRequest.validate(
+    const result = createShipperRequest.validate(
       validPayload({ numberOfVehicles: 10, requestMode: "individual_target" }),
     );
     expect(result.error).toBeDefined();
@@ -56,7 +56,7 @@ describe("PassengerRequest Validation", () => {
   });
 
   test("rejects default mode (individual_target) with 15 vehicles", () => {
-    const result = createPassengerRequest.validate(
+    const result = createShipperRequest.validate(
       validPayload({ numberOfVehicles: 15 }),
     );
     expect(result.error).toBeDefined();
@@ -64,7 +64,7 @@ describe("PassengerRequest Validation", () => {
   });
 
   test("allows individual_target with exactly 9 vehicles", () => {
-    const result = createPassengerRequest.validate(
+    const result = createShipperRequest.validate(
       validPayload({ numberOfVehicles: 9, requestMode: "individual_target" }),
     );
     expect(result.error).toBeUndefined();
@@ -72,14 +72,14 @@ describe("PassengerRequest Validation", () => {
   });
 
   test("allows individual_target with 1 vehicle (default)", () => {
-    const result = createPassengerRequest.validate(validPayload());
+    const result = createShipperRequest.validate(validPayload());
     expect(result.error).toBeUndefined();
     expect(result.value.numberOfVehicles).toBe(1);
     expect(result.value.requestMode).toBe("individual_target");
   });
 
   test("allows company_target with 1 vehicle", () => {
-    const result = createPassengerRequest.validate(
+    const result = createShipperRequest.validate(
       validPayload({ numberOfVehicles: 1, requestMode: "company_target" }),
     );
     expect(result.error).toBeUndefined();

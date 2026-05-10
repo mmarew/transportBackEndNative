@@ -11,7 +11,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 3. Vehicle Types
 4. Document Types
 5. Driver Document Requirements
-6. Passenger Document Requirements
+6. Shipper Document Requirements
 7. Cancellation Reasons
 8. Payment Status
 9. Payment Methods
@@ -32,7 +32,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 [
   {
     "roleId": 1,
-    "roleName": "Passenger",
+    "roleName": "Shipper",
     "roleDescription": "a person who can make order to driver to load goods"
   },
   {
@@ -219,7 +219,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ]
 ```
 
-### Passenger Document Requirements
+### Shipper Document Requirements
 
 ```json
 [
@@ -286,8 +286,8 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "journeyStatusId": 4,
-    "journeyStatusName": "acceptedByPassenger",
-    "journeyStatusDescription": "Passenger has selected one driver from multiple drivers who accepted the request."
+    "journeyStatusName": "acceptedByShipper",
+    "journeyStatusDescription": "Shipper has selected one driver from multiple drivers who accepted the request."
   },
   {
     "journeyStatusId": 5,
@@ -301,13 +301,13 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "journeyStatusId": 7,
-    "journeyStatusName": "cancelledByPassenger",
-    "journeyStatusDescription": "Passenger has cancelled the entire transport request."
+    "journeyStatusName": "cancelledByShipper",
+    "journeyStatusDescription": "Shipper has cancelled the entire transport request."
   },
   {
     "journeyStatusId": 8,
-    "journeyStatusName": "rejectedByPassenger",
-    "journeyStatusDescription": "Passenger has rejected a specific driver's offer after the driver accepted the request."
+    "journeyStatusName": "rejectedByShipper",
+    "journeyStatusDescription": "Shipper has rejected a specific driver's offer after the driver accepted the request."
   },
   {
     "journeyStatusId": 9,
@@ -372,20 +372,20 @@ The predefined data is installed through the `installPreDefinedData` service fun
     "cancellationReason": "Driver was rude or unprofessional",
     "roleId": 1
   },
-  { "cancellationReason": "Passenger didn't show up", "roleId": 2 },
-  { "cancellationReason": "Passenger was unresponsive", "roleId": 2 },
+  { "cancellationReason": "Shipper didn't show up", "roleId": 2 },
+  { "cancellationReason": "Shipper was unresponsive", "roleId": 2 },
   { "cancellationReason": "Safety concerns", "roleId": 2 },
   { "cancellationReason": "Incorrect pickup location", "roleId": 2 },
   {
-    "cancellationReason": "Passenger had too many people",
+    "cancellationReason": "Shipper had too many people",
     "roleId": 2
   },
   {
-    "cancellationReason": "Passenger was disrespectful",
+    "cancellationReason": "Shipper was disrespectful",
     "roleId": 2
   },
   {
-    "cancellationReason": "Passenger requested an illegal or unsafe route",
+    "cancellationReason": "Shipper requested an illegal or unsafe route",
     "roleId": 2
   },
   { "cancellationReason": "Vehicle issue", "roleId": 2 },
@@ -590,7 +590,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "delinquencyTypeName": "rude behavior of shipper",
-    "delinquencyTypeDescription": "Passenger rude behavior",
+    "delinquencyTypeDescription": "Shipper rude behavior",
     "delinquencyTypeId": 4,
     "defaultPoints": 1,
     "defaultSeverity": "MEDIUM",
@@ -599,7 +599,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "delinquencyTypeName": "late departure of shipper",
-    "delinquencyTypeDescription": "Passenger late departure",
+    "delinquencyTypeDescription": "Shipper late departure",
     "delinquencyTypeId": 5,
     "defaultPoints": 1,
     "defaultSeverity": "MEDIUM",

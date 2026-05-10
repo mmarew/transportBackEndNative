@@ -33,7 +33,7 @@ module.exports = {
   // Request Actions
   takeFromStreet: requestActions.takeFromStreet,
   createAndAcceptNewRequest: requestActions.createAndAcceptNewRequest,
-  acceptPassengerRequest: requestActions.acceptPassengerRequest,
+  acceptShipperRequest: requestActions.acceptShipperRequest,
   noAnswerFromDriver: requestActions.noAnswerFromDriver,
   cancelDriverRequest: requestActions.cancelDriverRequest,
 

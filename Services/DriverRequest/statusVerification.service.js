@@ -2,7 +2,7 @@ const {
   getData,
   checkActiveDriverRequest,
   performJoinSelect,
-  findNearbyPassengers,
+  findNearbyShippers,
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
 } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
@@ -13,19 +13,19 @@ const {
 } = require("../../Utils/ListOfSeedData");
 const messageTypes = require("../../Utils/MessageTypes");
 const {
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
   sendSocketIONotificationToDriver,
 } = require("../../Utils/Notifications");
 const AppError = require("../../Utils/AppError");
 const logger = require("../../Utils/logger");
-// Removed unused import: VerifyIfPassengerRequestWasNotRejected
+// Removed unused import: VerifyIfShipperRequestWasNotRejected
 const { getVehicleDrivers } = require("../VehicleDriver.service");
 const { updateJourneyStatus } = require("../JourneyStatus.service");
 // Removed unused import: executeInTransaction
 // Import helpers from helpers.js
 const {
   createResponse,
-  findNonRejectedPassenger,
+  findNonRejectedShipper,
   createJourneyDecisionPayload,
   executeStatusUpdates,
   fetchJourneyNotificationData,
@@ -67,7 +67,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
 
     // Step 3: Validate journey status
     const journeyStatusId = driverRequest?.journeyStatusId;
-    // Allow notSelectedInBid (14), cancellation statuses (7, 10), and rejectedByPassenger (8) to go through to handleExistingJourney for proper notification
+    // Allow notSelectedInBid (14), cancellation statuses (7, 10), and rejectedByShipper (8) to go through to handleExistingJourney for proper notification
     // Other terminal statuses (> 6) are excluded, but these need to notify the driver
     const notificationStatuses = getNotificationStatuses();
     const shouldHandleStatus = shouldHandleNotificationStatus(
@@ -161,20 +161,20 @@ const handleJourneyStatusOne = async (
     }
 
     // 1. Find nearby shippers (already excludes company_target at DB level)
-    const nearbyPassengers = await findNearbyPassengers({
+    const nearbyShippers = await findNearbyShippers({
       originLatitude,
       originLongitude,
       vehicleTypeUniqueId,
     });
 
     // Defence-in-depth: drop any company_target slips through (e.g. NULL edge case)
-    const individualPassengers = (nearbyPassengers || []).filter(
+    const individualShippers = (nearbyShippers || []).filter(
       (p) => !p.requestMode || p.requestMode !== "company_target",
     );
 
     // 2. If no individual shippers found, check if a company assignment
     //    is pending — if so, surface status 2 with the real shipper + decision.
-    if (!individualPassengers?.length) {
+    if (!individualShippers?.length) {
       // ── Company-assigned driver: re-surface status 2 ──────────────────────
       // The DriverRequest may have been reset to 1 by a previous poll cycle.
       // If the assignment is still "assigned", promote back to status 2 and
@@ -193,9 +193,9 @@ const handleJourneyStatusOne = async (
             },
           });
 
-          // Fetch the PassengerRequest for this assignment
+          // Fetch the ShipperRequest for this assignment
           const shipperRows = await getData({
-            tableName: "PassengerRequest",
+            tableName: "ShipperRequest",
             conditions: {
               shipperRequestUniqueId: companyAssignment.shipperRequestUniqueId,
             },
@@ -243,13 +243,13 @@ const handleJourneyStatusOne = async (
     }
 
     // 3. Find first non-rejected shipper
-    const nonRejectedPassenger = await findNonRejectedPassenger(
-      individualPassengers,
+    const nonRejectedShipper = await findNonRejectedShipper(
+      individualShippers,
       userUniqueId,
     );
 
     // 4. If no suitable shipper found, return waiting status
-    if (!nonRejectedPassenger) {
+    if (!nonRejectedShipper) {
       return {
         ...createResponse(driverRequest, vehicle, null, null, 1),
         companyAssignment,
@@ -258,7 +258,7 @@ const handleJourneyStatusOne = async (
 
     // 5. Create journey decision and update statuses
     const journeyDecisionPayload = createJourneyDecisionPayload(
-      nonRejectedPassenger.shipperRequestId,
+      nonRejectedShipper.shipperRequestId,
       driverRequest.driverRequestId,
       driverRequest.userUniqueId,
       "driver",
@@ -268,20 +268,20 @@ const handleJourneyStatusOne = async (
     await executeStatusUpdates(
       journeyDecisionPayload,
       driverRequestUniqueId,
-      nonRejectedPassenger.shipperRequestId,
+      nonRejectedShipper.shipperRequestId,
     );
 
     // 7. Prepare response
     const response = createResponse(
       { ...driverRequest, journeyStatusId: journeyStatusMap?.requested },
       vehicle,
-      { ...nonRejectedPassenger, journeyStatusId: journeyStatusMap?.requested },
+      { ...nonRejectedShipper, journeyStatusId: journeyStatusMap?.requested },
       journeyDecisionPayload,
       journeyStatusMap?.requested,
     );
 
     // 8. Send notification if shipper has phone number (non-blocking)
-    if (nonRejectedPassenger?.phoneNumber) {
+    if (nonRejectedShipper?.phoneNumber) {
       // Get driver profile photo
       const driverDocuments =
         await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
@@ -294,7 +294,7 @@ const handleJourneyStatusOne = async (
         driverProfilePhotoData?.[lastPhotoIndex]?.attachedDocumentName;
 
       const shipperRequest = {
-        ...nonRejectedPassenger,
+        ...nonRejectedShipper,
         journeyStatusId: journeyStatusMap?.requested,
       };
 
@@ -305,7 +305,7 @@ const handleJourneyStatusOne = async (
         vehicleOfDriver: vehicle,
       };
 
-      await sendSocketIONotificationToPassenger({
+      await sendSocketIONotificationToShipper({
         message: {
           messageTypes: messageTypes.driver_found_shipper_request,
           message: "success",
@@ -319,7 +319,7 @@ const handleJourneyStatusOne = async (
             },
           ],
         },
-        phoneNumber: nonRejectedPassenger.phoneNumber,
+        phoneNumber: nonRejectedShipper.phoneNumber,
       });
     }
 
@@ -436,7 +436,7 @@ const handleExistingJourney = async (
     !notificationData?.shipperRequest
   ) {
     // Prepare payload for updateJourneyStatus
-    // This may update multiple tables: JourneyDecisions, PassengerRequest, DriverRequest, Journey
+    // This may update multiple tables: JourneyDecisions, ShipperRequest, DriverRequest, Journey
     // updateJourneyStatus will automatically wrap in transaction if multiple tables are updated
     const journeyStatusUpdatePayload = {
       journeyDecisionUniqueId,
@@ -498,7 +498,7 @@ const handleExistingJourney = async (
   const isNotSelectedSeenByDriver =
     journeyDecisionData?.isNotSelectedSeenByDriver;
   const isCancellationSeenByDriver =
-    driverRequest?.isCancellationByPassengerSeenByDriver;
+    driverRequest?.isCancellationByShipperSeenByDriver;
 
   // If status is 14 (notSelectedInBid) and isNotSelectedSeenByDriver is not "not seen by driver yet",
   // don't return the decision (filter it out) - return early without decision data
@@ -521,7 +521,7 @@ const handleExistingJourney = async (
   // If status is cancellation (7 or 10) and isCancellationSeenByDriver is not "not seen by driver yet",
   // don't return the decision (filter it out) - return early without decision data
   if (
-    (journeyStatusId === journeyStatusMap?.cancelledByPassenger ||
+    (journeyStatusId === journeyStatusMap?.cancelledByShipper ||
       journeyStatusId === journeyStatusMap?.cancelledByAdmin) &&
     isCancellationSeenByDriver !== "not seen by driver yet"
   ) {
@@ -587,7 +587,7 @@ const handleExistingJourney = async (
 
   // Handle driver notification for cancellation statuses
   if (
-    (journeyStatusId === journeyStatusMap?.cancelledByPassenger ||
+    (journeyStatusId === journeyStatusMap?.cancelledByShipper ||
       journeyStatusId === journeyStatusMap?.cancelledByAdmin) &&
     isCancellationSeenByDriver === "not seen by driver yet"
   ) {
@@ -604,7 +604,7 @@ const handleExistingJourney = async (
 
     // Determine appropriate message type based on cancellation status
     const cancellationMessageType =
-      journeyStatusId === journeyStatusMap?.cancelledByPassenger
+      journeyStatusId === journeyStatusMap?.cancelledByShipper
         ? messageTypes?.shipper_cancelled_request
         : messageTypes?.admin_cancelled_request;
 
@@ -625,7 +625,7 @@ const handleExistingJourney = async (
       });
     }
 
-    // Note: isCancellationByPassengerSeenByDriver is NOT automatically updated here
+    // Note: isCancellationByShipperSeenByDriver is NOT automatically updated here
     // Driver must explicitly mark it as seen via PUT /api/driver/markCancellationAsSeen endpoint
   }
 
@@ -639,16 +639,16 @@ const handleExistingJourney = async (
       shipperMessageType = messageTypes?.driver_found_shipper_request;
     } else if (journeyStatusId === journeyStatusMap?.acceptedByDriver) {
       shipperMessageType = messageTypes?.driver_accepted_shipper_request;
-    } else if (journeyStatusId === journeyStatusMap?.acceptedByPassenger) {
-      // Status 4: Passenger accepted driver request - handled elsewhere, no notification needed here
+    } else if (journeyStatusId === journeyStatusMap?.acceptedByShipper) {
+      // Status 4: Shipper accepted driver request - handled elsewhere, no notification needed here
       shipperMessageType = null;
     } else if (journeyStatusId === journeyStatusMap?.journeyStarted) {
       shipperMessageType = messageTypes?.driver_started_journey;
     } else if (journeyStatusId === journeyStatusMap?.journeyCompleted) {
       shipperMessageType = messageTypes?.driver_completed_journey;
-    } else if (journeyStatusId === journeyStatusMap?.cancelledByPassenger) {
+    } else if (journeyStatusId === journeyStatusMap?.cancelledByShipper) {
       shipperMessageType = messageTypes?.shipper_cancelled_request;
-    } else if (journeyStatusId === journeyStatusMap?.rejectedByPassenger) {
+    } else if (journeyStatusId === journeyStatusMap?.rejectedByShipper) {
       // Status 8: Rejected by shipper - shipper rejected driver's offer
       shipperMessageType = messageTypes?.shipper_rejected_request;
     } else if (journeyStatusId === journeyStatusMap?.cancelledByDriver) {
@@ -659,7 +659,7 @@ const handleExistingJourney = async (
       shipperMessageType = messageTypes?.admin_cancelled_request;
     } else if (journeyStatusId === journeyStatusMap?.notSelectedInBid) {
       // Status 14: Not selected in bid - handled in driver notification section above
-      // Passenger doesn't need notification for this status
+      // Shipper doesn't need notification for this status
       shipperMessageType = null;
     } else if (journeyStatusId === journeyStatusMap?.rejectedByDriver) {
       // Status 15: Rejected by driver - driver rejected shipper's request
@@ -670,8 +670,8 @@ const handleExistingJourney = async (
     if (shipperMessageType) {
       // Import here to avoid circular dependency
       const {
-        sendPassengerNotification,
-      } = require("../PassengerRequest/statusVerification.service");
+        sendShipperNotification,
+      } = require("../ShipperRequest/statusVerification.service");
 
       // Transform structure to match getDetailedJourneyData format:
       // - shipperRequest (single object, not array)
@@ -684,7 +684,7 @@ const handleExistingJourney = async (
         vehicleOfDriver: vehicle,
       };
 
-      await sendPassengerNotification({
+      await sendShipperNotification({
         shipperRequest,
         journeyDecision: journeyDecisionData || null,
         driverInfo: driverInfoForNotification,
@@ -748,9 +748,9 @@ const handleExistingJourney = async (
 
 const getNotificationStatuses = () => [
   journeyStatusMap.notSelectedInBid,
-  journeyStatusMap.cancelledByPassenger,
+  journeyStatusMap.cancelledByShipper,
   journeyStatusMap.cancelledByAdmin,
-  journeyStatusMap.rejectedByPassenger,
+  journeyStatusMap.rejectedByShipper,
 ];
 
 const shouldHandleNotificationStatus = (

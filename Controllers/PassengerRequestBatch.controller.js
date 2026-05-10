@@ -1,6 +1,6 @@
 "use strict";
 
-const service = require("../Services/PassengerRequestBatch.service");
+const service = require("../Services/ShipperRequestBatch.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
@@ -56,8 +56,8 @@ exports.deleteBatch = async (req, res, next) => {
  * PUT /api/shipperRequestBatch/:batchUniqueId/cancel
  *
  * Atomically cancels the whole freight batch in one DB transaction:
- *   - PassengerRequestBatch row → cancelled
- *   - All PassengerRequest rows in batch → cancelled
+ *   - ShipperRequestBatch row → cancelled
+ *   - All ShipperRequest rows in batch → cancelled
  *   - All JourneyDecisions for those rows → cancelled
  *   - Matched DriverRequest rows → released back to waiting
  *   - CompanyBidRequest submitted offers → expired

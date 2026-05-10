@@ -50,13 +50,13 @@ const createAndAcceptNewRequest = async (req, res, next) => {
 };
 // Get a specific driver request by ID
 
-const acceptPassengerRequest = async (req, res, next) => {
+const acceptShipperRequest = async (req, res, next) => {
   try {
     const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.acceptedByDriver;
     const result = await executeInTransaction(async () => {
-      return await services.acceptPassengerRequest(req.body);
+      return await services.acceptShipperRequest(req.body);
     });
     ServerResponder(res, result, 200);
   } catch (error) {
@@ -177,7 +177,7 @@ const startJourney = async (req, res, next) => {
   try {
     const { userUniqueId } = req?.user;
     req.body.journeyStatusId = journeyStatusMap.journeyStarted;
-    req.body.previousStatusId = journeyStatusMap.acceptedByPassenger;
+    req.body.previousStatusId = journeyStatusMap.acceptedByShipper;
     req.body.userUniqueId = userUniqueId;
 
     const result = await executeInTransaction(async () => {
@@ -291,7 +291,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
 
 /**
  * Unified controller to mark any negative status as seen by driver
- * Handles: notSelectedInBid, rejectedByPassenger, cancelledByPassenger, cancelledByAdmin, cancelledBySystem
+ * Handles: notSelectedInBid, rejectedByShipper, cancelledByShipper, cancelledByAdmin, cancelledBySystem
  */
 const markNegativeStatusAsSeenController = async (req, res, next) => {
   try {
@@ -348,7 +348,7 @@ module.exports = {
   noAnswerFromDriver,
   startJourney,
   createRequest,
-  acceptPassengerRequest,
+  acceptShipperRequest,
   deleteRequestController,
   takeFromStreet,
   verifyDriverJourneyStatusController,

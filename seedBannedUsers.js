@@ -166,12 +166,12 @@ for (let i = 1; i <= 15; i++) {
   });
 }
 
-// Generate 15 Banned Passengers - unique phone pattern: +251816000001 to +251830000001
-const bannedPassengers = [];
+// Generate 15 Banned Shippers - unique phone pattern: +251816000001 to +251830000001
+const bannedShippers = [];
 for (let i = 1; i <= 15; i++) {
   const firstName = shipperFirstNames[i - 1];
   const lastName = shipperLastNames[i - 1];
-  bannedPassengers.push({
+  bannedShippers.push({
     fullName: `${firstName} ${lastName}`,
     email: `banned.shipper${i}@test.com`,
     phoneNumber: `+2518${String(15 + i).padStart(2, "0")}000001`, // +251816000001 to +251830000001
@@ -516,8 +516,8 @@ async function seedBannedUsers() {
   // SEED BANNED PASSENGERS (15 users)
   // ============================================
 
-  for (let i = 0; i < bannedPassengers.length; i++) {
-    const shipper = bannedPassengers[i];
+  for (let i = 0; i < bannedShippers.length; i++) {
+    const shipper = bannedShippers[i];
     const now = currentDate();
 
     // Check if user already exists
@@ -566,7 +566,7 @@ async function seedBannedUsers() {
         [credentialUniqueId, userUniqueId, hashedOTP, hashedOTP, now],
       );
 
-      // 3. Insert UserRole (Passenger roleId = 1)
+      // 3. Insert UserRole (Shipper roleId = 1)
       const [userRoleResult] = await pool.query(
         `INSERT INTO UserRole (userRoleUniqueId, userUniqueId, roleId, userRoleCreatedAt, userRoleCreatedBy)
          VALUES (?, ?, ?, ?, ?)`,

@@ -190,7 +190,7 @@ async function getToken(phone, roleId) {
   );
   const { pool } = require("../Middleware/Database.config");
   const [rows] = await pool.query(
-    "SELECT shipperRequestUniqueId FROM PassengerRequest WHERE shipperRequestBatchId = ?",
+    "SELECT shipperRequestUniqueId FROM ShipperRequest WHERE shipperRequestBatchId = ?",
     [batchId],
   );
   const finalPrId = rows[0]?.shipperRequestUniqueId;
@@ -216,11 +216,11 @@ async function getToken(phone, roleId) {
   console.log("  ✅ Bid Submitted:", bidId);
 
   // 4. Individual Driver Submits Bid Directly (Simulated)
-  // We'll manually move the PassengerRequest row status to 'acceptedByPassenger' (4)
+  // We'll manually move the ShipperRequest row status to 'acceptedByShipper' (4)
   // to simulate another driver's claim finishing JUST before the batch acceptance.
   console.log("  [03] Simulating Individual Driver 'Hijack' ...");
   await pool.query(
-    "UPDATE PassengerRequest SET journeyStatusId = 4 WHERE shipperRequestUniqueId = ?",
+    "UPDATE ShipperRequest SET journeyStatusId = 4 WHERE shipperRequestUniqueId = ?",
     [finalPrId],
   );
   console.log("  ✅ Request marked as 'Claimed' (Status 4)");

@@ -2,7 +2,7 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
 
-// ── PassengerRequestBatch ──────────────────────────────────────────────────────
+// ── ShipperRequestBatch ──────────────────────────────────────────────────────
 
 /**
  * GET /api/shipper-request-batches
