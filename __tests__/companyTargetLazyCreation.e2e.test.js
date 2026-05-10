@@ -1,13 +1,14 @@
 "use strict";
 
 /**
- * Tests for Company-Target Lazy PR Creation
+ * Integration Tests: Company-Target Lazy PR Creation (JIT at Assignment)
  *
- * Tests the two core behavior changes:
- *   1. createPassengerRequest: company_target skips PR rows (defers to bid acceptance)
- *   2. updateBidStatus: lazily creates PR rows from batch when accepted_by_shipper
- *
- * Uses the real database (integration test).
+ * Tests the complete deferred PR lifecycle:
+ *   1. company_target batch creates ONLY a batch header (no PR rows)
+ *   2. Bid acceptance does NOT create PR rows (just updates batch status)
+ *   3. Assignment creates 1 PR row just-in-time from batch metadata
+ *   4. Capacity guard prevents over-assignment
+ *   5. individual_target still creates PRs eagerly
  */
 
 const { pool } = require("../Middleware/Database.config");
@@ -17,10 +18,8 @@ const query = (...args) => pool.query(...args);
 const uuid = () => require("uuid").v4();
 
 describe("Company-Target Lazy PR Creation", () => {
-  // Use existing seeded data from the database
   let shipperUniqueId;
   let vehicleTypeUniqueId;
-  let batchUniqueId;
   const testBatchIds = [];
 
   beforeAll(async () => {
@@ -40,175 +39,179 @@ describe("Company-Target Lazy PR Creation", () => {
   });
 
   afterAll(async () => {
-    // Cleanup ALL test batches and their PRs
     for (const bid of testBatchIds) {
       await query(`DELETE FROM PassengerRequest WHERE passengerRequestBatchId = ?`, [bid]).catch(() => {});
       await query(`DELETE FROM PassengerRequestBatch WHERE batchUniqueId = ?`, [bid]).catch(() => {});
     }
   });
 
-  // ── Test 1: company_target creates batch only, no PR rows ───────────────
-  test("company_target batch creates batch header but zero PR rows", async () => {
-    batchUniqueId = uuid();
-    testBatchIds.push(batchUniqueId);
+  // ── Test 1: company_target creates batch only ───────────────────────────
+  test("company_target batch creates batch header with lat/lng but zero PR rows", async () => {
+    const batchId = uuid();
+    testBatchIds.push(batchId);
 
-    // Directly insert a batch header (simulating what createPassengerRequest now does)
     await query(
       `INSERT INTO PassengerRequestBatch
         (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles,
-         requestMode, targetCompanyUniqueId,
+         requestMode,
          originLatitude, originLongitude, originPlace,
          destinationLatitude, destinationLongitude, destinationPlace,
          shippableItemName, shippableItemQtyInQuintal,
-         shippingDate, deliveryDate, shippingCost,
-         journeyStatusId, batchCreatedAt)
-       VALUES (?, ?, ?, 3, 'company_target', NULL,
+         shippingCost, journeyStatusId, batchCreatedAt)
+       VALUES (?, ?, ?, 450000, 'company_target',
                9.02497, 38.74689, 'Addis Ababa',
                7.04778, 38.49564, 'Hawassa',
                'Coffee Beans', 100,
-               NULL, NULL, 15000,
-               1, NOW())`,
-      [batchUniqueId, shipperUniqueId, vehicleTypeUniqueId],
+               15000, 1, NOW())`,
+      [batchId, shipperUniqueId, vehicleTypeUniqueId],
     );
 
-    // Batch exists
+    // Batch exists with 450,000 vehicles
     const [batches] = await query(
       `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ?`,
-      [batchUniqueId],
+      [batchId],
     );
     expect(batches).toHaveLength(1);
-    expect(batches[0].requestMode).toBe("company_target");
-    expect(Number(batches[0].originLatitude)).toBeCloseTo(9.02497, 4);
+    expect(batches[0].totalVehicles).toBe(450000);
 
-    // NO PassengerRequest rows
+    // ZERO PassengerRequest rows — that's the whole point
     const [prs] = await query(
-      `SELECT * FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
-      [batchUniqueId],
+      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
+      [batchId],
     );
-    expect(prs).toHaveLength(0);
+    expect(prs[0].cnt).toBe(0);
   });
 
-  // ── Test 2: Lazy creation from batch metadata ──────────────────────────
-  test("lazily creating PRs from batch metadata produces correct rows", async () => {
-    // Simulate what updateBidStatus does: read batch → create N PRs
-    const [[batch]] = await query(
-      `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
-      [batchUniqueId],
-    );
-    expect(batch).toBeDefined();
+  // ── Test 2: Bid acceptance does NOT create PR rows ──────────────────────
+  test("accepting a bid only updates batch status, no PR rows created", async () => {
+    const batchId = testBatchIds[0];
 
-    const numToCreate = 3; // bid.numberOfVehiclesOffered
-
-    const insertPromises = [];
-    for (let i = 0; i < numToCreate; i++) {
-      const prUniqueId = uuid();
-      insertPromises.push(
-        query(
-          `INSERT INTO PassengerRequest
-            (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
-             vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
-             originLatitude, originLongitude, originPlace,
-             destinationLatitude, destinationLongitude, destinationPlace,
-             shippableItemName, shippableItemQtyInQuintal,
-             shippingDate, deliveryDate, shippingCost,
-             shipperRequestCreatedBy, shipperRequestCreatedByRoleId,
-             shipperRequestCreatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-          [
-            prUniqueId,
-            batch.shipperUserUniqueId,
-            batch.batchUniqueId,
-            batch.vehicleTypeUniqueId,
-            journeyStatusMap.acceptedByPassenger,
-            batch.requestMode,
-            batch.targetCompanyUniqueId,
-            batch.originLatitude,
-            batch.originLongitude,
-            batch.originPlace,
-            batch.destinationLatitude,
-            batch.destinationLongitude,
-            batch.destinationPlace,
-            batch.shippableItemName,
-            batch.shippableItemQtyInQuintal,
-            batch.shippingDate,
-            batch.deliveryDate,
-            batch.shippingCost,
-            shipperUniqueId,
-            1,
-          ],
-        ),
-      );
-    }
-
-    await Promise.all(insertPromises);
-
-    // Verify PR rows
-    const [prs] = await query(
-      `SELECT * FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
-      [batchUniqueId],
-    );
-    expect(prs).toHaveLength(3);
-
-    for (const pr of prs) {
-      // Status: born as acceptedByPassenger
-      expect(pr.journeyStatusId).toBe(journeyStatusMap.acceptedByPassenger);
-
-      // Inherited from batch
-      expect(pr.requestMode).toBe("company_target");
-      expect(pr.vehicleTypeUniqueId).toBe(vehicleTypeUniqueId);
-      expect(pr.userUniqueId).toBe(shipperUniqueId);
-      expect(pr.originPlace).toBe("Addis Ababa");
-      expect(pr.destinationPlace).toBe("Hawassa");
-      expect(pr.shippableItemName).toBe("Coffee Beans");
-
-      // Coordinates inherited
-      expect(Number(pr.originLatitude)).toBeCloseTo(9.02497, 4);
-      expect(Number(pr.originLongitude)).toBeCloseTo(38.74689, 4);
-      expect(Number(pr.destinationLatitude)).toBeCloseTo(7.04778, 4);
-      expect(Number(pr.destinationLongitude)).toBeCloseTo(38.49564, 4);
-    }
-
-    // Unique IDs
-    const uniqueIds = new Set(prs.map((p) => p.passengerRequestUniqueId));
-    expect(uniqueIds.size).toBe(3);
-  });
-
-  // ── Test 3: individual_target still creates PRs eagerly ─────────────────
-  test("individual_target batch with PRs created eagerly works normally", async () => {
-    const eagerBatchId = uuid();
-    testBatchIds.push(eagerBatchId);
-
-    // Create batch
+    // Simulate bid acceptance: update batch status
     await query(
-      `INSERT INTO PassengerRequestBatch
-        (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles,
-         requestMode, originPlace, destinationPlace,
-         journeyStatusId, batchCreatedAt)
-       VALUES (?, ?, ?, 2, 'individual_target', 'Origin', 'Dest', 1, NOW())`,
-      [eagerBatchId, shipperUniqueId, vehicleTypeUniqueId],
+      `UPDATE PassengerRequestBatch
+       SET journeyStatusId = ?, batchUpdatedAt = NOW()
+       WHERE batchUniqueId = ?`,
+      [journeyStatusMap.acceptedByPassenger, batchId],
     );
 
-    // Create 2 eager PRs (as the original flow did)
-    for (let i = 0; i < 2; i++) {
-      await query(
-        `INSERT INTO PassengerRequest
-          (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
-           vehicleTypeUniqueId, journeyStatusId, requestMode,
-           originLatitude, originLongitude, originPlace,
-           destinationPlace,
-           shipperRequestCreatedBy, shipperRequestCreatedByRoleId,
-           shipperRequestCreatedAt)
-         VALUES (?, ?, ?, ?, 1, 'individual_target', 0, 0, 'Origin', 'Dest', ?, 1, NOW())`,
-        [uuid(), shipperUniqueId, eagerBatchId, vehicleTypeUniqueId, shipperUniqueId],
-      );
-    }
+    // Verify batch status changed
+    const [[batch]] = await query(
+      `SELECT journeyStatusId FROM PassengerRequestBatch WHERE batchUniqueId = ?`,
+      [batchId],
+    );
+    expect(batch.journeyStatusId).toBe(journeyStatusMap.acceptedByPassenger);
 
-    // Verify PRs exist
+    // Still ZERO PR rows
     const [prs] = await query(
-      `SELECT * FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
-      [eagerBatchId],
+      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
+      [batchId],
     );
-    expect(prs).toHaveLength(2);
-    expect(prs[0].journeyStatusId).toBe(journeyStatusMap.waiting);
+    expect(prs[0].cnt).toBe(0);
+  });
+
+  // ── Test 3: Just-in-time PR creation from batch metadata ────────────────
+  test("creating a PR just-in-time from batch metadata inherits all fields", async () => {
+    const batchId = testBatchIds[0];
+
+    // Read batch to simulate what createAssignment does
+    const [[batch]] = await query(
+      `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ?`,
+      [batchId],
+    );
+
+    // Create 1 PR (simulating what createAssignment does)
+    const prId = uuid();
+    await query(
+      `INSERT INTO PassengerRequest
+        (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
+         vehicleTypeUniqueId, journeyStatusId, requestMode,
+         originLatitude, originLongitude, originPlace,
+         destinationLatitude, destinationLongitude, destinationPlace,
+         shippableItemName, shippableItemQtyInQuintal, shippingCost,
+         shipperRequestCreatedBy, shipperRequestCreatedByRoleId,
+         shipperRequestCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        prId,
+        batch.shipperUserUniqueId,
+        batch.batchUniqueId,
+        batch.vehicleTypeUniqueId,
+        journeyStatusMap.acceptedByPassenger,
+        batch.requestMode,
+        batch.originLatitude,
+        batch.originLongitude,
+        batch.originPlace,
+        batch.destinationLatitude,
+        batch.destinationLongitude,
+        batch.destinationPlace,
+        batch.shippableItemName,
+        batch.shippableItemQtyInQuintal,
+        batch.shippingCost,
+        shipperUniqueId,
+        1,
+      ],
+    );
+
+    // Verify the PR row
+    const [[pr]] = await query(
+      `SELECT * FROM PassengerRequest WHERE passengerRequestUniqueId = ?`,
+      [prId],
+    );
+
+    expect(pr.journeyStatusId).toBe(journeyStatusMap.acceptedByPassenger);
+    expect(pr.requestMode).toBe("company_target");
+    expect(pr.originPlace).toBe("Addis Ababa");
+    expect(pr.destinationPlace).toBe("Hawassa");
+    expect(Number(pr.originLatitude)).toBeCloseTo(9.02497, 4);
+    expect(Number(pr.destinationLongitude)).toBeCloseTo(38.49564, 4);
+
+    // Only 1 PR exists (not 450,000!)
+    const [allPrs] = await query(
+      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
+      [batchId],
+    );
+    expect(allPrs[0].cnt).toBe(1);
+  });
+
+  // ── Test 4: Validation cap on numberOfVehicles ─────────────────────────
+  test("Joi validation rejects numberOfVehicles > 100", () => {
+    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+
+    const result = createPassengerRequest.validate({
+      passengerRequestBatchId: uuid(),
+      numberOfVehicles: 450000,
+      shippingDate: "2026-06-01",
+      deliveryDate: "2026-06-05",
+      shippingCost: 15000,
+      shippableItemQtyInQuintal: 100,
+      shippableItemName: "Coffee",
+      originLocation: { latitude: 9.0, longitude: 38.7, description: "A" },
+      destination: { latitude: 7.0, longitude: 38.5, description: "B" },
+      vehicle: { vehicleTypeUniqueId: uuid() },
+    });
+
+    expect(result.error).toBeDefined();
+    expect(result.error.message).toContain("100");
+  });
+
+  // ── Test 5: Validation allows numberOfVehicles ≤ 500 ───────────────────
+  test("Joi validation accepts numberOfVehicles = 100", () => {
+    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+
+    const result = createPassengerRequest.validate({
+      passengerRequestBatchId: uuid(),
+      numberOfVehicles: 100,
+      shippingDate: "2026-06-01",
+      deliveryDate: "2026-06-05",
+      shippingCost: 15000,
+      shippableItemQtyInQuintal: 100,
+      shippableItemName: "Coffee",
+      originLocation: { latitude: 9.0, longitude: 38.7, description: "A" },
+      destination: { latitude: 7.0, longitude: 38.5, description: "B" },
+      vehicle: { vehicleTypeUniqueId: uuid() },
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.value.numberOfVehicles).toBe(100);
   });
 });

@@ -10,7 +10,7 @@ const locationSchema = Joi.object({
 
 exports.createPassengerRequest = Joi.object({
   passengerRequestBatchId: uuidSchema.required(),
-  numberOfVehicles: Joi.number().integer().min(1).default(1),
+  numberOfVehicles: Joi.number().integer().min(1).max(100).default(1),
   shippingDate: Joi.date().iso().required(),
   deliveryDate: Joi.date().iso().required(),
   shippingCost: Joi.number().required(),

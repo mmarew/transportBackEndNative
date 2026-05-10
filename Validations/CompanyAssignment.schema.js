@@ -4,7 +4,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 
 exports.createAssignment = Joi.object({
   companyBidRequestUniqueId: uuidSchema.required(),
-  passengerRequestUniqueId: uuidSchema.required(),
+  passengerRequestUniqueId: uuidSchema.optional(), // optional for company_target — auto-created from batch
   vehicleUniqueId: uuidSchema.required(),
   driverUserUniqueId: uuidSchema.required(),
 }).unknown(true);

@@ -377,11 +377,22 @@ async function findActiveAssignmentForSlot(
 /**
  * createAssignment
  * ─────────────────
+ * Assigns a driver+vehicle to a freight slot within an accepted bid.
+ *
+ * **Just-In-Time PR Creation (company_target):**
+ * When `passengerRequestUniqueId` is omitted (company_target deferred flow),
+ * a new PassengerRequest row is created automatically from the batch metadata.
+ * This avoids bulk-creating N rows upfront — even 450,000 vehicles = 0 rows
+ * until the dispatcher actually assigns a driver to each slot.
+ *
+ * **Capacity Guard:**
+ * Before creating a new PR, we check that the batch still has free slots
+ * (totalVehicles > existing assignments). This prevents over-assignment.
  */
 exports.createAssignment = async (data) => {
   const {
     companyBidRequestUniqueId,
-    passengerRequestUniqueId,
+    passengerRequestUniqueId: inputPRUniqueId,
     vehicleUniqueId,
     driverUserUniqueId,
     createdByUserUniqueId,
@@ -400,12 +411,98 @@ exports.createAssignment = async (data) => {
     );
   }
 
-  // PassengerRequest must belong to the bid's batch
-  // Uses the dedicated PassengerRequest service instead of raw SQL
-  const pr = await getPassengerRequestByUniqueId(
-    passengerRequestUniqueId,
-    bid.passengerRequestBatchId,
-  );
+  let passengerRequestUniqueId = inputPRUniqueId;
+  let pr;
+
+  if (passengerRequestUniqueId) {
+    // ── EAGER PATH: PR already exists (individual_target or pre-created) ───
+    pr = await getPassengerRequestByUniqueId(
+      passengerRequestUniqueId,
+      bid.passengerRequestBatchId,
+    );
+  } else {
+    // ── JUST-IN-TIME PATH: Create 1 PR from batch metadata ────────────────
+    // This is the company_target deferred flow — no PR rows exist upfront.
+    // The dispatcher assigns a driver, and we create the PR row on the spot.
+
+    // 1. Capacity guard: ensure batch has free slots
+    const [[slotCount]] = await db().query(
+      `SELECT COUNT(*) AS assigned FROM CompanyBidVehicleAssignment
+       WHERE companyBidRequestUniqueId = ?
+         AND assignmentDeletedAt IS NULL
+         AND assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')`,
+      [companyBidRequestUniqueId],
+    );
+
+    if (slotCount.assigned >= bid.numberOfVehiclesOffered) {
+      throw new AppError(
+        `All ${bid.numberOfVehiclesOffered} vehicle slots have already been assigned for this bid.`,
+        400,
+      );
+    }
+
+    // 2. Fetch batch metadata for the new PR
+    const [[batch]] = await db().query(
+      `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+      [bid.passengerRequestBatchId],
+    );
+    if (!batch) {
+      throw new AppError("Batch not found. The shipper may have cancelled.", 409);
+    }
+
+    // 3. Create 1 PR row from batch metadata
+    const formatDateToReadable = require("../Utils/FormatDateToReadable");
+    passengerRequestUniqueId = uuidv4();
+
+    await db().query(
+      `INSERT INTO PassengerRequest
+        (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
+         vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
+         originLatitude, originLongitude, originPlace,
+         destinationLatitude, destinationLongitude, destinationPlace,
+         shippableItemName, shippableItemQtyInQuintal,
+         shippingDate, deliveryDate, shippingCost,
+         shipperRequestCreatedBy, shipperRequestCreatedByRoleId,
+         shipperRequestCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        passengerRequestUniqueId,
+        batch.shipperUserUniqueId,
+        batch.batchUniqueId,
+        batch.vehicleTypeUniqueId,
+        journeyStatusMap.acceptedByPassenger,       // born accepted
+        batch.requestMode,
+        batch.targetCompanyUniqueId,
+        batch.originLatitude,
+        batch.originLongitude,
+        batch.originPlace,
+        batch.destinationLatitude,
+        batch.destinationLongitude,
+        batch.destinationPlace,
+        batch.shippableItemName,
+        batch.shippableItemQtyInQuintal,
+        batch.shippingDate ? formatDateToReadable(batch.shippingDate) : null,
+        batch.deliveryDate ? formatDateToReadable(batch.deliveryDate) : null,
+        batch.shippingCost,
+        createdByUserUniqueId,                      // dispatcher who assigned
+        usersRoles.companyAdminRoleId,               // company admin role
+        currentDate(),
+      ],
+    );
+
+    // Fetch the freshly created PR
+    pr = await getPassengerRequestByUniqueId(
+      passengerRequestUniqueId,
+      bid.passengerRequestBatchId,
+    );
+
+    logger.info("Just-in-time PR created for assignment", {
+      passengerRequestUniqueId,
+      batchUniqueId: bid.passengerRequestBatchId,
+      slotNumber: slotCount.assigned + 1,
+      totalSlots: bid.numberOfVehiclesOffered,
+    });
+  }
 
   // Prevent duplicate assignment for the same slot
   const existingAssignment = await findActiveAssignmentForSlot(
@@ -476,6 +573,7 @@ exports.createAssignment = async (data) => {
     message: "success",
     data: {
       assignmentUniqueId,
+      passengerRequestUniqueId,
       driverRequestUniqueId,
       journeyDecisionUniqueId,
     },
