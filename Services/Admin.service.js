@@ -799,7 +799,12 @@ const adminServices = {
         sortBy: sortField,
         sortOrder: sortDirection,
       },
-      data: usersWithDocuments,
+      // Filter out users who self-healed to ACTIVE or were dynamically BANNED during the check
+      data: usersWithDocuments.filter(
+        (u) =>
+          u.status !== USER_STATUS.ACTIVE &&
+          u.status !== USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN,
+      ),
     };
   },
 };
