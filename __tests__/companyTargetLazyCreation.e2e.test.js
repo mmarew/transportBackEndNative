@@ -194,13 +194,36 @@ describe("Company-Target Lazy PR Creation", () => {
     expect(result.error.message).toContain("100");
   });
 
-  // ── Test 5: Validation allows numberOfVehicles ≤ 500 ───────────────────
-  test("Joi validation accepts numberOfVehicles = 100", () => {
+  // ── Test 5: individual_target + 10 vehicles → error ────────────────────
+  test("individual_target with 10+ vehicles is rejected", () => {
+    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+
+    const result = createPassengerRequest.validate({
+      passengerRequestBatchId: uuid(),
+      numberOfVehicles: 10,
+      requestMode: "individual_target",
+      shippingDate: "2026-06-01",
+      deliveryDate: "2026-06-05",
+      shippingCost: 15000,
+      shippableItemQtyInQuintal: 100,
+      shippableItemName: "Coffee",
+      originLocation: { latitude: 9.0, longitude: 38.7, description: "A" },
+      destination: { latitude: 7.0, longitude: 38.5, description: "B" },
+      vehicle: { vehicleTypeUniqueId: uuid() },
+    });
+
+    expect(result.error).toBeDefined();
+    expect(result.error.message).toContain("company_target");
+  });
+
+  // ── Test 6: company_target + 100 vehicles → passes ─────────────────────
+  test("company_target with 100 vehicles is accepted", () => {
     const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
 
     const result = createPassengerRequest.validate({
       passengerRequestBatchId: uuid(),
       numberOfVehicles: 100,
+      requestMode: "company_target",
       shippingDate: "2026-06-01",
       deliveryDate: "2026-06-05",
       shippingCost: 15000,
@@ -213,5 +236,27 @@ describe("Company-Target Lazy PR Creation", () => {
 
     expect(result.error).toBeUndefined();
     expect(result.value.numberOfVehicles).toBe(100);
+  });
+
+  // ── Test 7: individual_target + 9 vehicles → passes ────────────────────
+  test("individual_target with 9 vehicles is fine", () => {
+    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+
+    const result = createPassengerRequest.validate({
+      passengerRequestBatchId: uuid(),
+      numberOfVehicles: 9,
+      requestMode: "individual_target",
+      shippingDate: "2026-06-01",
+      deliveryDate: "2026-06-05",
+      shippingCost: 15000,
+      shippableItemQtyInQuintal: 100,
+      shippableItemName: "Coffee",
+      originLocation: { latitude: 9.0, longitude: 38.7, description: "A" },
+      destination: { latitude: 7.0, longitude: 38.5, description: "B" },
+      vehicle: { vehicleTypeUniqueId: uuid() },
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.value.numberOfVehicles).toBe(9);
   });
 });

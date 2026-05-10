@@ -20,8 +20,8 @@ exports.createPassengerRequest = Joi.object({
   requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
 
   // Bidding mode:
-  //   'individual_target' — open bid visible to all individual drivers
-  //   'company_target'    — targeted to a transport company (group of drivers) for large/heavy loads
+  //   'individual_target' — open bid visible to all individual drivers (max 9 vehicles)
+  //   'company_target'    — targeted to a transport company for larger fleets (10+ vehicles)
   requestMode: Joi.string()
     .valid("individual_target", "company_target")
     .default("individual_target")
@@ -36,7 +36,22 @@ exports.createPassengerRequest = Joi.object({
   vehicle: Joi.object({
     vehicleTypeUniqueId: uuidSchema.required(),
   }).required(),
-}).unknown(true); // keep allowing additional fields
+})
+  .custom((value, helpers) => {
+    // Cross-field rule: individual drivers can't handle 10+ vehicles
+    const mode = value.requestMode || "individual_target";
+    const count = value.numberOfVehicles || 1;
+
+    if (count > 9 && mode === "individual_target") {
+      return helpers.message(
+        "Requests for more than 9 vehicles require company_target mode. " +
+        "Please set requestMode to 'company_target' to proceed.",
+      );
+    }
+
+    return value;
+  })
+  .unknown(true); // keep allowing additional fields
 
 exports.requestParams = Joi.object({
   id: uuidSchema.required(),
