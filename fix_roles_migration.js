@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const mysql = require("mysql2/promise");
 // const { companyRoles, companyRoleList } = require("./Utils/ListOfSeedData");
 

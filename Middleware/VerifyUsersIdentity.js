@@ -90,7 +90,7 @@ const verifyDriversIdentity = async (req, res, next) => {
     req.userRoleStatus = userRoleStatus[0];
     const statusId = userRoleStatus[0]?.statusId;
     if (process.env.DEBUG_TEST) {
-      console.log(
+      logger.debug(
         "@verifyDriversIdentity statusId:",
         statusId,
         "data:",

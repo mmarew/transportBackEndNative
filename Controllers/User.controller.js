@@ -32,8 +32,6 @@ const createUser = async (req, res, next) => {
       // return req?.body
       return await services.createUser({ ...req?.body, requestedFrom: "user" });
     });
-    console.log("@response", response);
-
     // Handle deferred SMS and Email after transaction commit
     if (response?.deferredOTP) {
       const { sendSms } = require("../Utils/smsSender");
@@ -47,7 +45,6 @@ const createUser = async (req, res, next) => {
       // 1. Send SMS (Always OTP)
       if (phoneNumber && phoneVerificationOTP) {
         const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
-        console.log("@phoneMsg", phoneMsg);
         sendSms(phoneNumber, null, phoneMsg.sms).catch((err) => {
           const logger = require("../Utils/logger");
           logger.warn("Deferred SMS sending failed", {
