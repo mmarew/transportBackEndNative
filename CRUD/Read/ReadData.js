@@ -8,7 +8,7 @@ const {
 } = require("../../Utils/RejectedRequests");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
-// Maximum matching radius in kilometres for driver ↔ passenger proximity
+// Maximum matching radius in kilometres for driver ↔ shipper proximity
 const MAX_RADIUS_KM = 10;
 // Bounding-box pre-filter in degrees (1° lat ≈ 111 km → 10 km ≈ 0.09°).
 // Slightly enlarged to avoid clipping true great-circle matches near the edge.
@@ -81,9 +81,7 @@ const getData = async ({
     throw error;
   }
 };
-const getPassengerRequestByRequestUniqueId = async (
-  passengerRequestUniqueId,
-) => {
+const getPassengerRequestByRequestUniqueId = async (shipperRequestUniqueId) => {
   const result = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -93,7 +91,7 @@ const getPassengerRequestByRequestUniqueId = async (
       },
     ],
 
-    conditions: { passengerRequestUniqueId },
+    conditions: { shipperRequestUniqueId },
   });
 
   if (!result?.length) {
@@ -101,14 +99,14 @@ const getPassengerRequestByRequestUniqueId = async (
   }
   return result[0];
 };
-const findNearbyDrivers = async ({ passengerRequest }) => {
-  // Destructure the relevant data from the passengerRequest
+const findNearbyDrivers = async ({ shipperRequest }) => {
+  // Destructure the relevant data from the shipperRequest
   const {
     originLatitude,
     originLongitude,
     vehicleTypeUniqueId,
-    passengerRequestId,
-  } = passengerRequest;
+    shipperRequestId,
+  } = shipperRequest;
 
   const lat = Number.parseFloat(originLatitude);
   const lng = Number.parseFloat(originLongitude);
@@ -143,10 +141,14 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
 
   const values = [
     // Haversine inputs
-    lat, lat, lng,
+    lat,
+    lat,
+    lng,
     // Bounding-box pre-filter
-    lat - DEGREE_BUFFER, lat + DEGREE_BUFFER,
-    lng - DEGREE_BUFFER, lng + DEGREE_BUFFER,
+    lat - DEGREE_BUFFER,
+    lat + DEGREE_BUFFER,
+    lng - DEGREE_BUFFER,
+    lng + DEGREE_BUFFER,
     vehicleTypeUniqueId,
     MAX_RADIUS_KM,
   ];
@@ -157,7 +159,7 @@ const findNearbyDrivers = async ({ passengerRequest }) => {
   const listOfDrivers = [];
   for (const driver of drivers) {
     const { message } = await VerifyIfPassengerRequestWasNotRejected({
-      passengerRequestId,
+      shipperRequestId,
       driverUserUniqueId: driver?.userUniqueId,
     });
     if (message === "success") {
@@ -198,7 +200,7 @@ const findNearbyPassengers = async ({
     JOIN PassengerRequest
       ON PassengerRequest.userUniqueId = Users.userUniqueId
       AND (PassengerRequest.requestMode IS NULL OR PassengerRequest.requestMode != 'company_target')
-      AND PassengerRequest.passengerRequestDeletedAt IS NULL
+      AND PassengerRequest.shipperRequestDeletedAt IS NULL
     WHERE
       PassengerRequest.vehicleTypeUniqueId = ?
       AND PassengerRequest.originLatitude  BETWEEN ? AND ?
@@ -210,11 +212,15 @@ const findNearbyPassengers = async ({
 
   const values = [
     // Haversine inputs
-    lat, lat, lng,
+    lat,
+    lat,
+    lng,
     // Exact filter conditions
     vehicleTypeUniqueId,
-    lat - DEGREE_BUFFER, lat + DEGREE_BUFFER,
-    lng - DEGREE_BUFFER, lng + DEGREE_BUFFER,
+    lat - DEGREE_BUFFER,
+    lat + DEGREE_BUFFER,
+    lng - DEGREE_BUFFER,
+    lng + DEGREE_BUFFER,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
@@ -249,18 +255,18 @@ const performJoinSelect = async ({
   const whereClause =
     columns.length > 0
       ? `WHERE ${columns
-        .map((col) => {
-          const value = conditions[col];
-          if (Array.isArray(value) && value.length === 2) {
-            return `${col} BETWEEN ? AND ?`;
-          } else if (Array.isArray(value)) {
-            const placeholders = value.map(() => "?").join(", ");
-            return `${col} IN (${placeholders})`;
-          } else {
-            return `${col} = ?`;
-          }
-        })
-        .join(` ${operator} `)}`
+          .map((col) => {
+            const value = conditions[col];
+            if (Array.isArray(value) && value.length === 2) {
+              return `${col} BETWEEN ? AND ?`;
+            } else if (Array.isArray(value)) {
+              const placeholders = value.map(() => "?").join(", ");
+              return `${col} IN (${placeholders})`;
+            } else {
+              return `${col} = ?`;
+            }
+          })
+          .join(` ${operator} `)}`
       : ""; // No WHERE clause if conditions are empty
 
   const values = Object.values(conditions).flat();
@@ -293,7 +299,7 @@ const checkUserExists = async (userUniqueId) => {
 
   return existingUser?.length ? existingUser[0] : null;
 };
-//checkActivePassengerRequest is used to get active passenger request from passenger request table, user table ,journey decisions table
+//checkActivePassengerRequest is used to get active shipper request from shipper request table, user table ,journey decisions table
 
 const checkActivePassengerRequest = async ({
   userUniqueId,
@@ -312,10 +318,10 @@ const checkActivePassengerRequest = async ({
 
   const query = `
     SELECT 
-        pr.passengerRequestId,
-        pr.passengerRequestUniqueId,
+        pr.shipperRequestId,
+        pr.shipperRequestUniqueId,
         pr.userUniqueId,
-        pr.passengerRequestBatchId,
+        pr.shipperRequestBatchId,
         pr.vehicleTypeUniqueId,
         pr.journeyStatusId,
         pr.originLatitude,
@@ -343,7 +349,7 @@ const checkActivePassengerRequest = async ({
         END as priority
     FROM PassengerRequest pr
     INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
-    LEFT JOIN JourneyDecisions jd ON pr.passengerRequestId = jd.passengerRequestId
+    LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
     WHERE pr.userUniqueId = ?
     AND (
       pr.journeyStatusId IN (?,?,?,?,?) 
@@ -352,7 +358,7 @@ const checkActivePassengerRequest = async ({
     )
     ORDER BY 
       priority ASC, -- Priority first
-      pr.passengerRequestId DESC -- Then by latest
+      pr.shipperRequestId DESC -- Then by latest
     LIMIT ? OFFSET ?
   `;
 
@@ -361,13 +367,13 @@ const checkActivePassengerRequest = async ({
     false, // for CASE
     journeyStatusMap?.journeyCompleted, // for CASE
     journeyStatusMap?.cancelledByDriver, // for CASE
-    "not seen by passenger yet", // for CASE
+    "not seen by shipper yet", // for CASE
     userUniqueId,
     ...activeJourneyStatuses,
     false,
     journeyStatusMap?.journeyCompleted,
     journeyStatusMap?.cancelledByDriver,
-    "not seen by passenger yet",
+    "not seen by shipper yet",
     Number(pageSize),
     Number(offset),
   ];
@@ -384,7 +390,7 @@ const checkActivePassengerRequest = async ({
 const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   const query = `
     SELECT 
-      COUNT(DISTINCT pr.passengerRequestId) as totalCount,
+      COUNT(DISTINCT pr.shipperRequestId) as totalCount,
 
       -- Total VEHICLE SLOTS waiting in company batches (e.g. 1 batch of 11 trucks = 11)
       -- Use this alongside companyBatchWaitingCount to understand: N batches covering M vehicles.
@@ -393,25 +399,25 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
           AND pr.requestMode = 'company_target'
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
               AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
           )
-        THEN pr.passengerRequestId
+        THEN pr.shipperRequestId
       END) as companyBatchWaitingVehicles,
 
       -- Total individual waiting/requested requests (each row = 1 vehicle/trip)
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId IN (?, ?)
           AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
-        THEN pr.passengerRequestId
+        THEN pr.shipperRequestId
       END) as individualWaitingVehicles,
 
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as requestedCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByDriverCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as acceptedByPassengerCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.passengerRequestId END) as journeyStartedCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.passengerRequestId END) as notSeenCompletedCount,
-      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ? THEN pr.passengerRequestId END) as notSeenCancelledByDriverCount,
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as requestedCount,
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByDriverCount,
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByPassengerCount,
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as journeyStartedCount,
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.shipperRequestId END) as notSeenCompletedCount,
+      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByPassenger = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount,
 
       -- Individual-mode requests in waiting/requested status (excludes company_target batches).
       -- Uses != 'company_target' to correctly match NULL, 'individual', 'individual_target'
@@ -419,7 +425,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId IN (?, ?)
           AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
-        THEN pr.passengerRequestId
+        THEN pr.shipperRequestId
       END) as individualWaitingCount,
 
       -- Distinct company batches in waiting/requested status with no accepted offer yet
@@ -428,10 +434,10 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
           AND pr.requestMode = 'company_target'
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
               AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
           )
-        THEN pr.passengerRequestBatchId
+        THEN pr.shipperRequestBatchId
       END) as companyBatchWaitingCount,
 
       -- Distinct company batches with at least one SUBMITTED offer (in auction — shipper must review)
@@ -439,10 +445,10 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         WHEN pr.requestMode = 'company_target'
           AND EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
               AND cbr.bidStatus = 'submitted'
           )
-        THEN pr.passengerRequestBatchId
+        THEN pr.shipperRequestBatchId
       END) as companyAuctionCount,
 
       -- Distinct company batches the shipper has already accepted and are now
@@ -452,10 +458,10 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         WHEN pr.requestMode = 'company_target'
           AND EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
               AND cbr.bidStatus = 'accepted_by_shipper'
           )
-        THEN pr.passengerRequestBatchId
+        THEN pr.shipperRequestBatchId
       END) as companyOngoingCount,
 
       -- Individual vehicle SLOTS inside accepted batches (explains totalCount).
@@ -464,14 +470,14 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         WHEN pr.requestMode = 'company_target'
           AND EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.passengerRequestBatchId = pr.passengerRequestBatchId
+            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
               AND cbr.bidStatus = 'accepted_by_shipper'
           )
-        THEN pr.passengerRequestId
+        THEN pr.shipperRequestId
       END) as companyOngoingVehicles
 
     FROM PassengerRequest pr
-    LEFT JOIN JourneyDecisions jd ON pr.passengerRequestId = jd.passengerRequestId
+    LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
     WHERE pr.userUniqueId = ?
     AND (
       pr.journeyStatusId IN (?,?,?,?,?)
@@ -497,7 +503,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     false,
     // notSeenCancelledByDriverCount
     journeyStatusMap.cancelledByDriver,
-    "not seen by passenger yet",
+    "not seen by shipper yet",
     // individualWaitingCount (IN ?, ?)
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
@@ -515,7 +521,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     false,
     journeyStatusMap.journeyCompleted,
     journeyStatusMap.cancelledByDriver,
-    "not seen by passenger yet",
+    "not seen by shipper yet",
   ];
 
   const queryExecutor = transactionStorage.getStore() || connection || pool;

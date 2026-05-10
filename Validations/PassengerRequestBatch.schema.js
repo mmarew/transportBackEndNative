@@ -5,7 +5,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 // ── PassengerRequestBatch ──────────────────────────────────────────────────────
 
 /**
- * GET /api/passenger-request-batches
+ * GET /api/shipper-request-batches
  * All params are optional — only the ones supplied will be used as filters.
  */
 exports.getBatchesQuery = Joi.object({
@@ -26,7 +26,7 @@ exports.getBatchesQuery = Joi.object({
 }).unknown(true);
 
 /**
- * PATCH /api/passenger-request-batches/:batchUniqueId
+ * PATCH /api/shipper-request-batches/:batchUniqueId
  * At least one field must be present. Only the provided fields are updated.
  */
 exports.updateBatch = Joi.object({
@@ -56,9 +56,13 @@ exports.batchParams = Joi.object({
 });
 
 /**
- * PUT /api/passengerRequestBatch/:batchUniqueId/cancel
+ * PUT /api/shipperRequestBatch/:batchUniqueId/cancel
  * Body is optional — only cancellationReasonsTypeId is accepted.
  */
 exports.cancelBatchBody = Joi.object({
-  cancellationReasonsTypeId: Joi.number().integer().min(1).optional().allow(null),
+  cancellationReasonsTypeId: Joi.number()
+    .integer()
+    .min(1)
+    .optional()
+    .allow(null),
 }).unknown(false);

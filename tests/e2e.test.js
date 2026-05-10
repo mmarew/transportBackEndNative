@@ -17,80 +17,95 @@
 
 "use strict";
 
-const http  = require("http");
+const http = require("http");
 const https = require("https");
 const Config = require("../Utils/Config");
 const { randomUUID } = require("crypto");
-const { seedDriverDocuments, approveAllDocuments } = require("./document.testHelper");
+const {
+  seedDriverDocuments,
+  approveAllDocuments,
+} = require("./document.testHelper");
 
 // ─── Configuration ───────────────────────────────────────────────────────────
-const BASE_URL          = Config.APP_API_URL          || "http://localhost:3000";
+const BASE_URL = Config.APP_API_URL || "http://localhost:3000";
 const SUPER_ADMIN_PHONE = Config.SUPER_ADMIN.PHONE || "+251983222221";
-const DEFAULT_OTP       = Config.TEST.OTP       || "101010";
+const DEFAULT_OTP = Config.TEST.OTP || "101010";
 
 // Unique phone numbers per run using numeric suffix (no hex letters — phone validation rejects them)
-const runId          = String(Date.now()).slice(-6); // 6-digit numeric suffix, unique per run
-const PASSENGER_PHONE = `+2519120${runId}`;          // +251 9120 XXXXXX → 13 chars
-const DRIVER_PHONE    = `+2519130${runId}`;           // +251 9130 XXXXXX → 13 chars
+const runId = String(Date.now()).slice(-6); // 6-digit numeric suffix, unique per run
+const PASSENGER_PHONE = `+2519120${runId}`; // +251 9120 XXXXXX → 13 chars
+const DRIVER_PHONE = `+2519130${runId}`; // +251 9130 XXXXXX → 13 chars
 
 // Test coordinates (Addis Ababa)
-const ORIGIN_LAT = 9.0300;
-const ORIGIN_LNG = 38.7600;
-const DEST_LAT   = 9.0400;
-const DEST_LNG   = 38.7700;
+const ORIGIN_LAT = 9.03;
+const ORIGIN_LNG = 38.76;
+const DEST_LAT = 9.04;
+const DEST_LNG = 38.77;
 
 // ─── Shared State ────────────────────────────────────────────────────────────
 const state = {
-  adminToken               : null,
-  passengerToken           : null,
-  passengerUniqueId        : null,
-  driverToken              : null,
-  driverUniqueId           : null,
-  vehicleUniqueId          : null,
-  vehicleTypeUniqueId      : null,
+  adminToken: null,
+  shipperToken: null,
+  shipperUniqueId: null,
+  driverToken: null,
+  driverUniqueId: null,
+  vehicleUniqueId: null,
+  vehicleTypeUniqueId: null,
   attachedDocumentUniqueIds: [],
-  passengerRequestUniqueId : null,
-  passengerRequestBatchId  : null,
-  driverRequestUniqueId    : null,
-  journeyDecisionUniqueId  : null,
-  journeyUniqueId          : null,
+  shipperRequestUniqueId: null,
+  shipperRequestBatchId: null,
+  driverRequestUniqueId: null,
+  journeyDecisionUniqueId: null,
+  journeyUniqueId: null,
 };
 
 // ─── HTTP helper ─────────────────────────────────────────────────────────────
 const parsedBase = new URL(BASE_URL);
-const transport  = parsedBase.protocol === "https:" ? https : http;
+const transport = parsedBase.protocol === "https:" ? https : http;
 
 function request(method, path, body = null, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const isMultipart = body instanceof Buffer;
-    const bodyStr     = (!isMultipart && body) ? JSON.stringify(body) : null;
-    const headers     = {
+    const bodyStr = !isMultipart && body ? JSON.stringify(body) : null;
+    const headers = {
       "Content-Type": "application/json",
       ...extraHeaders,
     };
-    if (bodyStr)     {headers["Content-Length"] = Buffer.byteLength(bodyStr);}
-    if (isMultipart) {headers["Content-Length"] = body.length;}
+    if (bodyStr) {
+      headers["Content-Length"] = Buffer.byteLength(bodyStr);
+    }
+    if (isMultipart) {
+      headers["Content-Length"] = body.length;
+    }
 
     const req = transport.request(
       {
         hostname: parsedBase.hostname,
-        port    : parsedBase.port || (parsedBase.protocol === "https:" ? 443 : 80),
+        port: parsedBase.port || (parsedBase.protocol === "https:" ? 443 : 80),
         path,
         method,
         headers,
       },
       (res) => {
         let raw = "";
-        res.on("data", (c) => { raw += c; });
-        res.on("end",  () => {
-          try   { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
-          catch { resolve({ status: res.statusCode, body: raw }); }
+        res.on("data", (c) => {
+          raw += c;
+        });
+        res.on("end", () => {
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(raw) });
+          } catch {
+            resolve({ status: res.statusCode, body: raw });
+          }
         });
       },
     );
     req.on("error", reject);
-    if (isMultipart) {req.write(body);}
-    else if (bodyStr) {req.write(bodyStr);}
+    if (isMultipart) {
+      req.write(body);
+    } else if (bodyStr) {
+      req.write(bodyStr);
+    }
     req.end();
   });
 }
@@ -123,7 +138,7 @@ const TINY_PNG = Buffer.from(
 
 // ─── Step runner ─────────────────────────────────────────────────────────────
 const results = [];
-let stepNum   = 0;
+let stepNum = 0;
 
 async function step(name, fn) {
   stepNum++;
@@ -142,24 +157,35 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) {throw new Error(msg);}
+  if (!cond) {
+    throw new Error(msg);
+  }
 }
 
 // ─── OTP helper — just use the default dev OTP (101010) ─────────────────────
 // The OTP is hashed in the DB, so we can't read it; we rely on the system
 // accepting the fixed default OTP value for test/dev environments.
 async function sendOtp(phoneNumber, roleId) {
-  const res = await request("POST", "/api/user/loginUser", { phoneNumber, roleId });
-  assert(res.status === 200, `loginUser HTTP ${res.status}: ${JSON.stringify(res.body)}`);
+  const res = await request("POST", "/api/user/loginUser", {
+    phoneNumber,
+    roleId,
+  });
+  assert(
+    res.status === 200,
+    `loginUser HTTP ${res.status}: ${JSON.stringify(res.body)}`,
+  );
 }
 
 async function verifyOtp(phoneNumber, roleId) {
   const res = await request("POST", "/api/user/verifyUserByOTP", {
     phoneNumber,
-    OTP : DEFAULT_OTP,
+    OTP: DEFAULT_OTP,
     roleId,
   });
-  assert(res.body?.message === "success", `verifyOTP failed: ${JSON.stringify(res.body)}`);
+  assert(
+    res.body?.message === "success",
+    `verifyOTP failed: ${JSON.stringify(res.body)}`,
+  );
   // API returns token at top level: { token, message, data }
   const token = res.body?.token || res.body?.data?.token;
   assert(token, "No JWT token in verifyOTP response");
@@ -168,9 +194,11 @@ async function verifyOtp(phoneNumber, roleId) {
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 async function run() {
-  console.log("\n\x1b[1m╔══════════════════════════════════════════════╗\x1b[0m");
-  console.log(  "\x1b[1m║     E2E Automated Test Suite                 ║\x1b[0m");
-  console.log(  "\x1b[1m╚══════════════════════════════════════════════╝\x1b[0m");
+  console.log(
+    "\n\x1b[1m╔══════════════════════════════════════════════╗\x1b[0m",
+  );
+  console.log("\x1b[1m║     E2E Automated Test Suite                 ║\x1b[0m");
+  console.log("\x1b[1m╚══════════════════════════════════════════════╝\x1b[0m");
   console.log(`  Server        : ${BASE_URL}`);
   console.log(`  Run ID        : ${runId}`);
   console.log(`  OTP           : ${DEFAULT_OTP}  (default dev OTP)`);
@@ -194,11 +222,19 @@ async function run() {
     });
 
     await step("Fetch vehicle type from system", async () => {
-      const res = await request("GET", "/api/admin/vehicleTypes?limit=5", null, {
-        Authorization: `Bearer ${state.adminToken}`,
-      });
+      const res = await request(
+        "GET",
+        "/api/admin/vehicleTypes?limit=5",
+        null,
+        {
+          Authorization: `Bearer ${state.adminToken}`,
+        },
+      );
       const items = res.body?.data || [];
-      assert(items.length > 0, "No vehicle types found — run /api/admin/installPreDefinedData?target=vehicleTypes first");
+      assert(
+        items.length > 0,
+        "No vehicle types found — run /api/admin/installPreDefinedData?target=vehicleTypes first",
+      );
       state.vehicleTypeUniqueId = items[0].vehicleTypeUniqueId;
       return `Using: ${items[0].vehicleTypeName} (${state.vehicleTypeUniqueId})`;
     });
@@ -206,39 +242,49 @@ async function run() {
     // ═══════════════════════════════════════════════════════════════
     // PHASE B — Passenger onboarding
     // ═══════════════════════════════════════════════════════════════
-    console.log("\n\x1b[1m━━ Phase B: Passenger Onboarding ━━━━━━━━━━━━\x1b[0m");
+    console.log(
+      "\n\x1b[1m━━ Phase B: Passenger Onboarding ━━━━━━━━━━━━\x1b[0m",
+    );
 
     await step("Passenger: Register (roleId 1)", async () => {
       const res = await request("POST", "/api/user/createUser", {
         phoneNumber: PASSENGER_PHONE,
-        roleId     : 1,
-        fullName   : "E2E Passenger",
-        email      : `e2e_pass_${runId}@test.com`,
+        roleId: 1,
+        fullName: "E2E Passenger",
+        email: `e2e_pass_${runId}@test.com`,
       });
-      assert(res.body?.message === "success", `Register failed: ${JSON.stringify(res.body)}`);
-      state.passengerUniqueId = res.body?.data?.userUniqueId;
-      assert(state.passengerUniqueId, "No userUniqueId returned");
-      return `userUniqueId: ${state.passengerUniqueId}`;
+      assert(
+        res.body?.message === "success",
+        `Register failed: ${JSON.stringify(res.body)}`,
+      );
+      state.shipperUniqueId = res.body?.data?.userUniqueId;
+      assert(state.shipperUniqueId, "No userUniqueId returned");
+      return `userUniqueId: ${state.shipperUniqueId}`;
     });
 
     await step("Passenger: Verify OTP (101010) → JWT", async () => {
-      state.passengerToken = await verifyOtp(PASSENGER_PHONE, 1);
+      state.shipperToken = await verifyOtp(PASSENGER_PHONE, 1);
       return "Passenger JWT acquired";
     });
 
     // ═══════════════════════════════════════════════════════════════
     // PHASE C — Driver onboarding
     // ═══════════════════════════════════════════════════════════════
-    console.log("\n\x1b[1m━━ Phase C: Driver Onboarding ━━━━━━━━━━━━━━━\x1b[0m");
+    console.log(
+      "\n\x1b[1m━━ Phase C: Driver Onboarding ━━━━━━━━━━━━━━━\x1b[0m",
+    );
 
     await step("Driver: Register (roleId 2)", async () => {
       const res = await request("POST", "/api/user/createUser", {
         phoneNumber: DRIVER_PHONE,
-        roleId     : 2,
-        fullName   : "E2E Driver",
-        email      : `e2e_drv_${runId}@test.com`,
+        roleId: 2,
+        fullName: "E2E Driver",
+        email: `e2e_drv_${runId}@test.com`,
       });
-      assert(res.body?.message === "success", `Register failed: ${JSON.stringify(res.body)}`);
+      assert(
+        res.body?.message === "success",
+        `Register failed: ${JSON.stringify(res.body)}`,
+      );
       state.driverUniqueId = res.body?.data?.userUniqueId;
       assert(state.driverUniqueId, "No userUniqueId returned");
       return `userUniqueId: ${state.driverUniqueId}`;
@@ -254,17 +300,25 @@ async function run() {
         "POST",
         "/api/user/vehicles/driverUserUniqueId/self",
         {
-          vehicleTypeUniqueId  : state.vehicleTypeUniqueId,
-          licensePlate         : `E2E-${runId.toUpperCase()}`,
-          color                : "White",
+          vehicleTypeUniqueId: state.vehicleTypeUniqueId,
+          licensePlate: `E2E-${runId.toUpperCase()}`,
+          color: "White",
           isDriverOwnerOfVehicle: true,
         },
         { Authorization: `Bearer ${state.driverToken}` },
       );
-      assert(res.body?.message === "success", `Create vehicle failed: ${JSON.stringify(res.body)}`);
-      const v = Array.isArray(res.body?.data) ? res.body.data[0] : res.body?.data;
+      assert(
+        res.body?.message === "success",
+        `Create vehicle failed: ${JSON.stringify(res.body)}`,
+      );
+      const v = Array.isArray(res.body?.data)
+        ? res.body.data[0]
+        : res.body?.data;
       state.vehicleUniqueId = v?.vehicleUniqueId;
-      assert(state.vehicleUniqueId, `No vehicleUniqueId in: ${JSON.stringify(res.body)}`);
+      assert(
+        state.vehicleUniqueId,
+        `No vehicleUniqueId in: ${JSON.stringify(res.body)}`,
+      );
       return `vehicleUniqueId: ${state.vehicleUniqueId}`;
     });
 
@@ -274,7 +328,12 @@ async function run() {
     });
 
     await step("Admin: Accept all driver documents", async () => {
-      await approveAllDocuments(request, state.adminToken, state.driverUniqueId, 2);
+      await approveAllDocuments(
+        request,
+        state.adminToken,
+        state.driverUniqueId,
+        2,
+      );
       return "all accepted";
     });
 
@@ -285,37 +344,55 @@ async function run() {
         null,
         { Authorization: `Bearer ${state.adminToken}` },
       );
-      const record = Array.isArray(res.body?.data) ? res.body.data[0] : res.body?.data;
-      assert(record?.statusId === 1, `Expected statusId 1, got ${record?.statusId}`);
+      const record = Array.isArray(res.body?.data)
+        ? res.body.data[0]
+        : res.body?.data;
+      assert(
+        record?.statusId === 1,
+        `Expected statusId 1, got ${record?.statusId}`,
+      );
       return `statusId: ${record.statusId} (active ✓)`;
     });
 
     // ═══════════════════════════════════════════════════════════════
     // PHASE D — Journey lifecycle
     // ═══════════════════════════════════════════════════════════════
-    console.log("\n\x1b[1m━━ Phase D: Journey Lifecycle ━━━━━━━━━━━━━━━\x1b[0m");
+    console.log(
+      "\n\x1b[1m━━ Phase D: Journey Lifecycle ━━━━━━━━━━━━━━━\x1b[0m",
+    );
 
-    state.passengerRequestBatchId = randomUUID(); // Must be a valid GUID
+    state.shipperRequestBatchId = randomUUID(); // Must be a valid GUID
 
     await step("Passenger: Create shipping request (POST)", async () => {
       const res = await request(
         "POST",
-        "/api/passengerRequest/createRequest",
+        "/api/shipperRequest/createRequest",
         {
-          passengerRequestBatchId  : state.passengerRequestBatchId,
-          numberOfVehicles         : 1,
-          originLocation           : { latitude: ORIGIN_LAT, longitude: ORIGIN_LNG, description: "Bole, Addis Ababa" },
-          destination              : { latitude: DEST_LAT,   longitude: DEST_LNG,   description: "Kazanchis, Addis Ababa" },
-          vehicle                  : { vehicleTypeUniqueId: state.vehicleTypeUniqueId },
-          shippingDate             : "2026-08-15",
-          deliveryDate             : "2026-08-16",
-          shippingCost             : 500,
+          shipperRequestBatchId: state.shipperRequestBatchId,
+          numberOfVehicles: 1,
+          originLocation: {
+            latitude: ORIGIN_LAT,
+            longitude: ORIGIN_LNG,
+            description: "Bole, Addis Ababa",
+          },
+          destination: {
+            latitude: DEST_LAT,
+            longitude: DEST_LNG,
+            description: "Kazanchis, Addis Ababa",
+          },
+          vehicle: { vehicleTypeUniqueId: state.vehicleTypeUniqueId },
+          shippingDate: "2026-08-15",
+          deliveryDate: "2026-08-16",
+          shippingCost: 500,
           shippableItemQtyInQuintal: 10,
-          shippableItemName        : "E2E Test Goods",
+          shippableItemName: "E2E Test Goods",
         },
-        { Authorization: `Bearer ${state.passengerToken}` },
+        { Authorization: `Bearer ${state.shipperToken}` },
       );
-      assert(res.body?.message === "success", `Failed: ${JSON.stringify(res.body)}`);
+      assert(
+        res.body?.message === "success",
+        `Failed: ${JSON.stringify(res.body)}`,
+      );
       return `batch created (totalCount: ${res.body?.totalRecords?.totalCount ?? res.body?.totalRecords?.requestedCount ?? "n/a"})`;
     });
 
@@ -326,15 +403,21 @@ async function run() {
         "GET",
         `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1,2,3,4,5&limit=5`,
         null,
-        { Authorization: `Bearer ${state.passengerToken}` },
+        { Authorization: `Bearer ${state.shipperToken}` },
       );
-      // API returns: { formattedData: [{ passengerRequest: {...}, ... }] }
+      // API returns: { formattedData: [{ shipperRequest: {...}, ... }] }
       const formatted = res.body?.formattedData || [];
-      const rows = formatted.map(f => f.passengerRequest || f).filter(Boolean);
-      const match = rows.find(r => r.passengerRequestBatchId === state.passengerRequestBatchId) || rows[0];
-      state.passengerRequestUniqueId = match?.passengerRequestUniqueId;
-      assert(state.passengerRequestUniqueId, `No passengerRequestUniqueId. formattedData length: ${formatted.length}, batchId: ${state.passengerRequestBatchId}, response: ${JSON.stringify(res.body).slice(0, 300)}`);
-      return `passengerRequestUniqueId: ${state.passengerRequestUniqueId} (status: ${match?.journeyStatusId})`;
+      const rows = formatted.map((f) => f.shipperRequest || f).filter(Boolean);
+      const match =
+        rows.find(
+          (r) => r.shipperRequestBatchId === state.shipperRequestBatchId,
+        ) || rows[0];
+      state.shipperRequestUniqueId = match?.shipperRequestUniqueId;
+      assert(
+        state.shipperRequestUniqueId,
+        `No shipperRequestUniqueId. formattedData length: ${formatted.length}, batchId: ${state.shipperRequestBatchId}, response: ${JSON.stringify(res.body).slice(0, 300)}`,
+      );
+      return `shipperRequestUniqueId: ${state.shipperRequestUniqueId} (status: ${match?.journeyStatusId})`;
     });
 
     // Check driver account health before going into journey (informational)
@@ -345,99 +428,140 @@ async function run() {
         null,
         { Authorization: `Bearer ${state.driverToken}` },
       );
-      assert(res.body?.message === "success", `Account status check failed: ${JSON.stringify(res.body).slice(0,200)}`);
-      const balance = res.body?.userBalance?.Balance?.balance ?? res.body?.userBalance?.Balance?.userBalanceId ?? "n/a";
+      assert(
+        res.body?.message === "success",
+        `Account status check failed: ${JSON.stringify(res.body).slice(0, 200)}`,
+      );
+      const balance =
+        res.body?.userBalance?.Balance?.balance ??
+        res.body?.userBalance?.Balance?.userBalanceId ??
+        "n/a";
       return `account response OK (balance: ${balance})`;
     });
 
-    // Driver manually accepts the passenger's request from job board → sets status 3 (acceptedByDriver)
-    await step("Driver: Accept passenger request (createAndAcceptNewRequest)", async () => {
-      const res = await request(
-        "POST",
-        "/api/driver/createAndAcceptNewRequest",
-        {
-          passengerRequestUniqueId: state.passengerRequestUniqueId,
-          shippingCostByDriver    : 500,
-          currentLocation         : { latitude: ORIGIN_LAT, longitude: ORIGIN_LNG, description: "Bole, Addis Ababa" },
-        },
-        { Authorization: `Bearer ${state.driverToken}` },
-      );
-      assert(res.body?.message === "success", `Failed: ${JSON.stringify(res.body).slice(0,400)}`);
-      return `accepted (status: ${res.body?.status ?? "see next step for IDs"})`;
-    });
+    // Driver manually accepts the shipper's request from job board → sets status 3 (acceptedByDriver)
+    await step(
+      "Driver: Accept shipper request (createAndAcceptNewRequest)",
+      async () => {
+        const res = await request(
+          "POST",
+          "/api/driver/createAndAcceptNewRequest",
+          {
+            shipperRequestUniqueId: state.shipperRequestUniqueId,
+            shippingCostByDriver: 500,
+            currentLocation: {
+              latitude: ORIGIN_LAT,
+              longitude: ORIGIN_LNG,
+              description: "Bole, Addis Ababa",
+            },
+          },
+          { Authorization: `Bearer ${state.driverToken}` },
+        );
+        assert(
+          res.body?.message === "success",
+          `Failed: ${JSON.stringify(res.body).slice(0, 400)}`,
+        );
+        return `accepted (status: ${res.body?.status ?? "see next step for IDs"})`;
+      },
+    );
 
     // createAndAcceptNewRequest's verifyDriverJourneyStatus response is unreliable for ID extraction
-    // Fetch the IDs directly from the passenger request which now shows status 3 (acceptedByDriver)
-    await step("Fetch journey decision IDs (GET passengerRequest at status 3)", async () => {
-      const res = await request(
-        "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3&passengerRequestUniqueId=${state.passengerRequestUniqueId}&limit=1`,
-        null,
-        { Authorization: `Bearer ${state.passengerToken}` },
-      );
-      const fd = res.body?.formattedData?.[0] || {};
-      const decision    = fd.decisions?.[0] || {};
-      const driverReq   = fd.driverRequests?.[0] || {};
-      state.journeyDecisionUniqueId = decision.journeyDecisionUniqueId;
-      state.driverRequestUniqueId   = driverReq.driverRequestUniqueId || decision.driverRequestUniqueId || state.driverRequestUniqueId;
-      assert(state.journeyDecisionUniqueId, `No journeyDecisionUniqueId in formattedData: ${JSON.stringify(res.body).slice(0,400)}`);
-      assert(state.driverRequestUniqueId,   `No driverRequestUniqueId in formattedData: ${JSON.stringify(res.body).slice(0,400)}`);
-      return `journeyDecision: ${state.journeyDecisionUniqueId} | driverRequest: ${state.driverRequestUniqueId}`;
-    });
+    // Fetch the IDs directly from the shipper request which now shows status 3 (acceptedByDriver)
+    await step(
+      "Fetch journey decision IDs (GET shipperRequest at status 3)",
+      async () => {
+        const res = await request(
+          "GET",
+          `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3&shipperRequestUniqueId=${state.shipperRequestUniqueId}&limit=1`,
+          null,
+          { Authorization: `Bearer ${state.shipperToken}` },
+        );
+        const fd = res.body?.formattedData?.[0] || {};
+        const decision = fd.decisions?.[0] || {};
+        const driverReq = fd.driverRequests?.[0] || {};
+        state.journeyDecisionUniqueId = decision.journeyDecisionUniqueId;
+        state.driverRequestUniqueId =
+          driverReq.driverRequestUniqueId ||
+          decision.driverRequestUniqueId ||
+          state.driverRequestUniqueId;
+        assert(
+          state.journeyDecisionUniqueId,
+          `No journeyDecisionUniqueId in formattedData: ${JSON.stringify(res.body).slice(0, 400)}`,
+        );
+        assert(
+          state.driverRequestUniqueId,
+          `No driverRequestUniqueId in formattedData: ${JSON.stringify(res.body).slice(0, 400)}`,
+        );
+        return `journeyDecision: ${state.journeyDecisionUniqueId} | driverRequest: ${state.driverRequestUniqueId}`;
+      },
+    );
 
     await step("Passenger: Accept driver's bid", async () => {
       const res = await request(
         "PUT",
-        "/api/passenger/acceptDriverRequest",
+        "/api/shipper/acceptDriverRequest",
         {
-          driverRequestUniqueId   : state.driverRequestUniqueId,
-          journeyDecisionUniqueId : state.journeyDecisionUniqueId,
-          passengerRequestUniqueId: state.passengerRequestUniqueId,
+          driverRequestUniqueId: state.driverRequestUniqueId,
+          journeyDecisionUniqueId: state.journeyDecisionUniqueId,
+          shipperRequestUniqueId: state.shipperRequestUniqueId,
         },
-        { Authorization: `Bearer ${state.passengerToken}` },
+        { Authorization: `Bearer ${state.shipperToken}` },
       );
-      assert(res.body?.message === "success", `Failed: ${JSON.stringify(res.body).slice(0,400)}`);
+      assert(
+        res.body?.message === "success",
+        `Failed: ${JSON.stringify(res.body).slice(0, 400)}`,
+      );
       return "Passenger accepted driver's bid ✓";
     });
-
 
     await step("Driver: Start journey", async () => {
       const res = await request(
         "PUT",
         "/api/driver/startJourney",
         {
-          driverRequestUniqueId   : state.driverRequestUniqueId,
-          passengerRequestUniqueId: state.passengerRequestUniqueId,
-          journeyDecisionUniqueId : state.journeyDecisionUniqueId,
-          latitude                : ORIGIN_LAT,
-          longitude               : ORIGIN_LNG,
+          driverRequestUniqueId: state.driverRequestUniqueId,
+          shipperRequestUniqueId: state.shipperRequestUniqueId,
+          journeyDecisionUniqueId: state.journeyDecisionUniqueId,
+          latitude: ORIGIN_LAT,
+          longitude: ORIGIN_LNG,
         },
         { Authorization: `Bearer ${state.driverToken}` },
       );
-      assert(res.body?.message === "success", `Failed: ${JSON.stringify(res.body).slice(0,400)}`);
-      state.journeyUniqueId = res.body?.uniqueIds?.journeyUniqueId || res.body?.journey?.journeyUniqueId || res.body?.journeyUniqueId;
+      assert(
+        res.body?.message === "success",
+        `Failed: ${JSON.stringify(res.body).slice(0, 400)}`,
+      );
+      state.journeyUniqueId =
+        res.body?.uniqueIds?.journeyUniqueId ||
+        res.body?.journey?.journeyUniqueId ||
+        res.body?.journeyUniqueId;
       return `journeyUniqueId: ${state.journeyUniqueId}`;
     });
 
     await step("Driver: Complete journey", async () => {
-      assert(state.journeyUniqueId, "journeyUniqueId missing — startJourney may have failed");
+      assert(
+        state.journeyUniqueId,
+        "journeyUniqueId missing — startJourney may have failed",
+      );
       const res = await request(
         "PUT",
         "/api/driver/completeJourney",
         {
-          journeyDecisionUniqueId : state.journeyDecisionUniqueId,
-          passengerRequestUniqueId: state.passengerRequestUniqueId,
-          driverRequestUniqueId   : state.driverRequestUniqueId,
-          journeyUniqueId         : state.journeyUniqueId,
-          latitude                : DEST_LAT,
-          longitude               : DEST_LNG,
+          journeyDecisionUniqueId: state.journeyDecisionUniqueId,
+          shipperRequestUniqueId: state.shipperRequestUniqueId,
+          driverRequestUniqueId: state.driverRequestUniqueId,
+          journeyUniqueId: state.journeyUniqueId,
+          latitude: DEST_LAT,
+          longitude: DEST_LNG,
         },
         { Authorization: `Bearer ${state.driverToken}` },
       );
-      assert(res.body?.message === "success", `Failed: ${JSON.stringify(res.body).slice(0,400)}`);
+      assert(
+        res.body?.message === "success",
+        `Failed: ${JSON.stringify(res.body).slice(0, 400)}`,
+      );
       return `🎉 Journey completed — status: ${res.body?.status ?? res.body?.data?.status ?? "done"}`;
     });
-
   } catch {
     // Non-fatal — step already logged the error
   }
@@ -446,18 +570,22 @@ async function run() {
   const passed = results.filter((r) => r.pass).length;
   const failed = results.filter((r) => !r.pass).length;
 
-  console.log("\n\x1b[1m╔══════════════════════════════════════════════╗\x1b[0m");
-  console.log(  "\x1b[1m║             Test Summary                     ║\x1b[0m");
-  console.log(  "\x1b[1m╚══════════════════════════════════════════════╝\x1b[0m");
+  console.log(
+    "\n\x1b[1m╔══════════════════════════════════════════════╗\x1b[0m",
+  );
+  console.log("\x1b[1m║             Test Summary                     ║\x1b[0m");
+  console.log("\x1b[1m╚══════════════════════════════════════════════╝\x1b[0m");
   for (const r of results) {
     const icon = r.pass ? "\x1b[32m✅\x1b[0m" : "\x1b[31m❌\x1b[0m";
     console.log(`  ${icon} [${r.num}] ${r.name}`);
-    if (!r.pass) {console.log(`       ${r.detail}`);}
+    if (!r.pass) {
+      console.log(`       ${r.detail}`);
+    }
   }
   console.log(
     `\n  Total: ${results.length}  ` +
-    `\x1b[32mPassed: ${passed}\x1b[0m  ` +
-    `\x1b[31mFailed: ${failed}\x1b[0m`,
+      `\x1b[32mPassed: ${passed}\x1b[0m  ` +
+      `\x1b[31mFailed: ${failed}\x1b[0m`,
   );
   if (failed === 0) {
     console.log("\n  \x1b[32m\x1b[1m🎉 ALL TESTS PASSED!\x1b[0m\n");

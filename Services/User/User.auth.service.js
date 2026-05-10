@@ -553,7 +553,7 @@ const verifyEmailByToken = async (token) => {
 
       for (const ur of userRoles) {
         const roleId = Number(ur.roleId);
-        let userType = "passenger";
+        let userType = "shipper";
         if (roleId === usersRoles.driverRoleId) {
           userType = "driver";
         } else if (roleId === usersRoles.adminRoleId) {
@@ -650,7 +650,7 @@ const reportMisdirectedEmail = async (token) => {
 
   if (user && user.phoneNumber) {
     const cleanedPhone = user.phoneNumber.replace(/\+/g, "");
-    const roles = ["passenger", "driver", "admin"];
+    const roles = ["shipper", "driver", "admin"];
 
     for (const role of roles) {
       const socketId = await getSocket(role, cleanedPhone);

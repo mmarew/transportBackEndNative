@@ -62,12 +62,12 @@ exports.verifyDriverJourneyStatus = Joi.object({}).unknown(true);
 
 exports.acceptPassengerRequest = Joi.object({
   driverRequestUniqueId: uuidSchema,
-  passengerRequestUniqueId: uuidSchema,
+  shipperRequestUniqueId: uuidSchema,
   journeyDecisionUniqueId: uuidSchema,
   shippingCostByDriver: Joi.number().min(0).required(),
 }).unknown(false);
 
-// Send updated driver location to passenger
+// Send updated driver location to shipper
 exports.sendUpdatedLocation = Joi.object({
   journeyDecisionUniqueId: uuidSchema.required().messages({
     "any.required": "journeyDecisionUniqueId is required",
@@ -83,7 +83,7 @@ exports.sendUpdatedLocation = Joi.object({
     "number.min": "longitude must be between -180 and 180",
     "number.max": "longitude must be between -180 and 180",
   }),
-  passengerPhone: Joi.string().optional(), // Optional - will be fetched from journey data if not provided
+  shipperPhone: Joi.string().optional(), // Optional - will be fetched from journey data if not provided
   additionalData: Joi.object().optional(), // Any additional data to include in notification
 }).unknown(false);
 
@@ -93,9 +93,9 @@ exports.completeJourney = Joi.object({
     "any.required": "journeyDecisionUniqueId is required",
     "string.guid": "journeyDecisionUniqueId must be a valid UUID",
   }),
-  passengerRequestUniqueId: uuidSchema.required().messages({
-    "any.required": "passengerRequestUniqueId is required",
-    "string.guid": "passengerRequestUniqueId must be a valid UUID",
+  shipperRequestUniqueId: uuidSchema.required().messages({
+    "any.required": "shipperRequestUniqueId is required",
+    "string.guid": "shipperRequestUniqueId must be a valid UUID",
   }),
   driverRequestUniqueId: uuidSchema.required().messages({
     "any.required": "driverRequestUniqueId is required",
@@ -129,9 +129,9 @@ exports.startJourney = Joi.object({
     "any.required": "driverRequestUniqueId is required",
     "string.guid": "driverRequestUniqueId must be a valid UUID",
   }),
-  passengerRequestUniqueId: uuidSchema.required().messages({
-    "any.required": "passengerRequestUniqueId is required",
-    "string.guid": "passengerRequestUniqueId must be a valid UUID",
+  shipperRequestUniqueId: uuidSchema.required().messages({
+    "any.required": "shipperRequestUniqueId is required",
+    "string.guid": "shipperRequestUniqueId must be a valid UUID",
   }),
   journeyDecisionUniqueId: uuidSchema.required().messages({
     "any.required": "journeyDecisionUniqueId is required",
@@ -148,11 +148,11 @@ exports.startJourney = Joi.object({
     "number.max": "longitude must be between -180 and 180",
   }),
 }).unknown(true); // Allow additional fields
-// Create and accept new request - driver finds a passenger request and accepts it directly
+// Create and accept new request - driver finds a shipper request and accepts it directly
 exports.createAndAcceptNewRequest = Joi.object({
-  passengerRequestUniqueId: uuidSchema.required().messages({
-    "any.required": "passengerRequestUniqueId is required",
-    "string.guid": "passengerRequestUniqueId must be a valid UUID",
+  shipperRequestUniqueId: uuidSchema.required().messages({
+    "any.required": "shipperRequestUniqueId is required",
+    "string.guid": "shipperRequestUniqueId must be a valid UUID",
   }),
   shippingCostByDriver: Joi.number().min(0).required().messages({
     "any.required": "shippingCostByDriver is required",

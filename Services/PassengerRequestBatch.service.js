@@ -402,7 +402,7 @@ exports.cancelBatch = async ({
     db().query(
       `UPDATE PassengerRequest
           SET journeyStatusId = ?
-        WHERE passengerRequestBatchId = ?
+        WHERE shipperRequestBatchId = ?
           AND journeyStatusId NOT IN (${inClause})`,
       [cancelStatusId, batchUniqueId],
     ),
@@ -411,9 +411,9 @@ exports.cancelBatch = async ({
     db().query(
       `UPDATE JourneyDecisions jd
          INNER JOIN PassengerRequest pr
-                 ON jd.passengerRequestId = pr.passengerRequestId
+                 ON jd.shipperRequestId = pr.shipperRequestId
           SET jd.journeyStatusId = ?
-        WHERE pr.passengerRequestBatchId = ?
+        WHERE pr.shipperRequestBatchId = ?
           AND jd.journeyStatusId NOT IN (${inClause})`,
       [cancelStatusId, batchUniqueId],
     ),
@@ -425,9 +425,9 @@ exports.cancelBatch = async ({
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN PassengerRequest pr
-                 ON jd.passengerRequestId = pr.passengerRequestId
+                 ON jd.shipperRequestId = pr.shipperRequestId
           SET dr.journeyStatusId = ?
-        WHERE pr.passengerRequestBatchId = ?
+        WHERE pr.shipperRequestBatchId = ?
           AND dr.journeyStatusId IN (1,2,3,4)`,
       [cancelStatusId, batchUniqueId],
     ),
@@ -441,7 +441,7 @@ exports.cancelBatch = async ({
       `UPDATE CompanyBidRequest
           SET bidStatus = 'cancelled_by_company',
               isCancellationSeenByCompany = 'not seen by company yet'
-        WHERE passengerRequestBatchId = ?`,
+        WHERE shipperRequestBatchId = ?`,
       [batchUniqueId],
     ),
 
@@ -452,10 +452,10 @@ exports.cancelBatch = async ({
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
          INNER JOIN PassengerRequest pr
-                 ON cba.passengerRequestUniqueId = pr.passengerRequestUniqueId
+                 ON cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
-        WHERE pr.passengerRequestBatchId = ?
+        WHERE pr.shipperRequestBatchId = ?
           AND cba.assignmentStatus IN ('assigned', 'reassigned')`,
       [now, batchUniqueId],
     ),
@@ -481,7 +481,7 @@ exports.cancelBatch = async ({
       contextType: "PassengerRequestBatch",
       cancellationReasonsTypeId: cancellationReasonsTypeId || null,
       roleId,
-      passengerUserUniqueId: batch.shipperUserUniqueId,
+      shipperUserUniqueId: batch.shipperUserUniqueId,
     });
   }
 
@@ -494,7 +494,7 @@ exports.cancelBatch = async ({
     db().query(
       `SELECT DISTINCT companyUniqueId
          FROM CompanyBidRequest
-        WHERE passengerRequestBatchId = ?`,
+        WHERE shipperRequestBatchId = ?`,
       [batchUniqueId],
     ),
 
@@ -505,10 +505,10 @@ exports.cancelBatch = async ({
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN PassengerRequest pr
-                 ON jd.passengerRequestId = pr.passengerRequestId
+                 ON jd.shipperRequestId = pr.shipperRequestId
          INNER JOIN Users u
                  ON dr.userUniqueId = u.userUniqueId
-        WHERE pr.passengerRequestBatchId = ?`,
+        WHERE pr.shipperRequestBatchId = ?`,
       [batchUniqueId],
     ),
 
@@ -561,7 +561,7 @@ exports.sendBatchCancelNotifications = async ({
   const cancelMsg =
     cancelStatusId === journeyStatusMap.cancelledByAdmin
       ? messageTypes.admin_cancelled_request
-      : messageTypes.passenger_cancelled_request;
+      : messageTypes.shipper_cancelled_request;
 
   const socketPayload = {
     messageTypes: messageTypes.company_bid_cancelled,
@@ -659,7 +659,7 @@ exports.sendBatchCancelNotifications = async ({
     promises.push(
       sendFCMNotificationToUser({
         userUniqueId: shipper.userUniqueId,
-        roleId: 1, // passenger/shipper role
+        roleId: 1, // shipper/shipper role
         notification: {
           title: "Batch cancelled",
           body: "Your freight batch has been cancelled successfully.",

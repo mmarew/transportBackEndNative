@@ -60,39 +60,39 @@ const checkIfDriverIsHealthy = async (userUniqueId) => {
  * Creates a standardized response object for driver status
  * @param {Object} driver - Driver request object
  * @param {Object} vehicle - Vehicle object
- * @param {Object} passenger - Passenger request object
+ * @param {Object} shipper - Passenger request object
  * @param {Object} decision - Journey decision object
  * @param {number} status - Journey status ID
  * @returns {Object} Standardized response object
  */
-const createResponse = (driver, vehicle, passenger, decision, status) => ({
+const createResponse = (driver, vehicle, shipper, decision, status) => ({
   message: "success",
   status,
   uniqueIds: {
     driverRequestUniqueId: driver?.driverRequestUniqueId,
-    passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
+    shipperRequestUniqueId: shipper?.shipperRequestUniqueId,
     journeyDecisionUniqueId: decision?.journeyDecisionUniqueId,
   },
   driver: { driver, vehicle },
-  passenger,
+  shipper,
   journey: null,
   decision,
 });
 
 /**
- * Finds the first passenger that hasn't been rejected by the driver
- * @param {Array} passengers - Array of passenger requests
+ * Finds the first shipper that hasn't been rejected by the driver
+ * @param {Array} shippers - Array of shipper requests
  * @param {string} userUniqueId - Driver's unique identifier
- * @returns {Promise<Object|null>} - First non-rejected passenger or null
+ * @returns {Promise<Object|null>} - First non-rejected shipper or null
  */
-const findNonRejectedPassenger = async (passengers, userUniqueId) => {
-  for (const passenger of passengers) {
+const findNonRejectedPassenger = async (shippers, userUniqueId) => {
+  for (const shipper of shippers) {
     const rejectedResult = await VerifyIfPassengerRequestWasNotRejected({
-      passengerRequestId: passenger.passengerRequestId,
+      shipperRequestId: shipper.shipperRequestId,
       driverUserUniqueId: userUniqueId,
     });
     if (rejectedResult?.message === "success") {
-      return passenger;
+      return shipper;
     }
   }
   return null;
@@ -100,18 +100,18 @@ const findNonRejectedPassenger = async (passengers, userUniqueId) => {
 
 /**
  * Creates a journey decision payload object
- * @param {number} passengerRequestId - Passenger request ID
+ * @param {number} shipperRequestId - Passenger request ID
  * @param {number} driverRequestId - Driver request ID
  * @returns {Object} Journey decision payload
  */
 const createJourneyDecisionPayload = (
-  passengerRequestId,
+  shipperRequestId,
   driverRequestId,
   userUniqueId,
   decisionBy = "driver",
 ) => ({
   journeyDecisionUniqueId: uuidv4(),
-  passengerRequestId,
+  shipperRequestId,
   driverRequestId,
   journeyStatusId: journeyStatusMap.requested,
   decisionTime: currentDate(),
@@ -121,17 +121,17 @@ const createJourneyDecisionPayload = (
 });
 
 /**
- * Executes status updates for driver and passenger requests in parallel
+ * Executes status updates for driver and shipper requests in parallel
  * @param {Object} journeyDecisionPayload - Journey decision data
  * @param {string} driverRequestUniqueId - Driver request unique ID
- * @param {number} passengerRequestId - Passenger request ID
+ * @param {number} shipperRequestId - Passenger request ID
  * @param {Object} connection - Optional: Database connection for transaction support
  * @returns {Promise<void>}
  */
 const executeStatusUpdates = async (
   journeyDecisionPayload,
   driverRequestUniqueId,
-  passengerRequestId,
+  shipperRequestId,
 ) => {
   // Wrap all three operations in a transaction to ensure atomicity
   // This prevents partial updates if any operation fails
@@ -157,7 +157,7 @@ const executeStatusUpdates = async (
       // Update PassengerRequest within transaction
       await updateData({
         tableName: "PassengerRequest",
-        conditions: { passengerRequestId },
+        conditions: { shipperRequestId },
         updateValues: { journeyStatusId: journeyStatusMap.requested },
         connection: conn, // Pass connection for transaction support
       });
@@ -170,20 +170,20 @@ const executeStatusUpdates = async (
 };
 
 /**
- * Sends WebSocket notification to passenger
- * @param {Object} passenger - Passenger object with userUniqueId and phoneNumber
+ * Sends WebSocket notification to shipper
+ * @param {Object} shipper - Passenger object with userUniqueId and phoneNumber
  * @returns {Promise<Object>} Success or error response
  */
-const sendPassengerNotification = async (passenger) => {
+const sendPassengerNotification = async (shipper) => {
   try {
-    // Send simple notification - passenger should call verifyPassengerStatus endpoint for full status
+    // Send simple notification - shipper should call verifyPassengerStatus endpoint for full status
     await sendSocketIONotificationToPassenger({
       message: {
         message: "success",
         data: "Your request status has been updated. Please check your status.",
         requiresStatusCheck: true,
       },
-      phoneNumber: passenger.phoneNumber,
+      phoneNumber: shipper.phoneNumber,
     });
 
     return { message: "success" };
@@ -196,7 +196,7 @@ const sendPassengerNotification = async (passenger) => {
 };
 
 /**
- * Fetches all data needed for sending journey notifications to passengers
+ * Fetches all data needed for sending journey notifications to shippers
  * Optimized to accept already-fetched data to avoid redundant database queries
  * @param {string} journeyDecisionUniqueId - Journey decision unique identifier
  * @param {Array} driverRequest - Optional: Driver request data (array format) to avoid re-fetching
@@ -205,7 +205,7 @@ const sendPassengerNotification = async (passenger) => {
  *   - If Array: [journeyDecision] (from getData)
  *   - If Object: { message: "success", data: [journeyDecision] } (from getJourneyDecisionByJourneyDecisionUniqueId)
  *   - If Object with data property: { data: [journeyDecision] }
- * @returns {Promise<Object>} Object containing passengerRequest, journeyDecision, driverInfo, and journeyData
+ * @returns {Promise<Object>} Object containing shipperRequest, journeyDecision, driverInfo, and journeyData
  */
 const fetchJourneyNotificationData = async (
   journeyDecisionUniqueId,
@@ -240,11 +240,11 @@ const fetchJourneyNotificationData = async (
     }
 
     const journeyDecisionDataNormalized = journeyDecision.data[0];
-    const passengerRequestId = journeyDecisionDataNormalized.passengerRequestId;
+    const shipperRequestId = journeyDecisionDataNormalized.shipperRequestId;
     const driverRequestId = journeyDecisionDataNormalized.driverRequestId;
 
-    // Fetch passenger request data with user info
-    const passengerRequestData = await performJoinSelect({
+    // Fetch shipper request data with user info
+    const shipperRequestData = await performJoinSelect({
       baseTable: "PassengerRequest",
       joins: [
         {
@@ -252,14 +252,14 @@ const fetchJourneyNotificationData = async (
           on: "PassengerRequest.userUniqueId = Users.userUniqueId",
         },
       ],
-      conditions: { passengerRequestId },
+      conditions: { shipperRequestId },
     });
 
-    if (!passengerRequestData?.length) {
+    if (!shipperRequestData?.length) {
       throw new AppError("Passenger request not found", 404);
     }
 
-    const passengerRequest = passengerRequestData[0];
+    const shipperRequest = shipperRequestData[0];
 
     // Fetch driver request data with user info
     let driverRequestData = null;
@@ -355,7 +355,7 @@ const fetchJourneyNotificationData = async (
 
     return {
       message: "success",
-      passengerRequest,
+      shipperRequest,
       journeyDecision: journeyDecisionDataNormalized,
       driverInfo,
       journeyData,

@@ -7,7 +7,7 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 exports.createJourneyDecision = async (req, res, next) => {
   try {
     const {
-      passengerRequestId,
+      shipperRequestId,
       driverRequestId,
       journeyStatusId,
       decisionTime,
@@ -18,7 +18,7 @@ exports.createJourneyDecision = async (req, res, next) => {
     } = req.body;
     const result = await executeInTransaction(async () => {
       return await journeyDecisionsService.createJourneyDecision({
-        passengerRequestId,
+        shipperRequestId,
         driverRequestId,
         journeyStatusId,
         decisionTime,
@@ -44,14 +44,14 @@ exports.getJourneyDecision4AllOrSingleUser = async (req, res, next) => {
       limit = 10,
       journeyDecisionUniqueId,
       driverRequestUniqueId,
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       journeyStatusId,
       journeyStatusIds,
       decisionBy,
       decisionBys,
       startDate,
       endDate,
-      passengerRequestId,
+      shipperRequestId,
       driverRequestId,
       minShippingCost,
       maxShippingCost,
@@ -70,8 +70,8 @@ exports.getJourneyDecision4AllOrSingleUser = async (req, res, next) => {
     if (driverRequestUniqueId) {
       filters.driverRequestUniqueId = driverRequestUniqueId;
     }
-    if (passengerRequestUniqueId) {
-      filters.passengerRequestUniqueId = passengerRequestUniqueId;
+    if (shipperRequestUniqueId) {
+      filters.shipperRequestUniqueId = shipperRequestUniqueId;
     }
     if (journeyStatusId) {
       filters.journeyStatusId = parseInt(journeyStatusId);
@@ -95,8 +95,8 @@ exports.getJourneyDecision4AllOrSingleUser = async (req, res, next) => {
     if (endDate) {
       filters.endDate = endDate;
     }
-    if (passengerRequestId) {
-      filters.passengerRequestId = parseInt(passengerRequestId);
+    if (shipperRequestId) {
+      filters.shipperRequestId = parseInt(shipperRequestId);
     }
     if (driverRequestId) {
       filters.driverRequestId = parseInt(driverRequestId);

@@ -89,7 +89,14 @@ const verifyDriversIdentity = async (req, res, next) => {
     }
     req.userRoleStatus = userRoleStatus[0];
     const statusId = userRoleStatus[0]?.statusId;
-    if (process.env.DEBUG_TEST) {console.log("@verifyDriversIdentity statusId:", statusId, "data:", userRoleStatus[0]);}
+    if (process.env.DEBUG_TEST) {
+      console.log(
+        "@verifyDriversIdentity statusId:",
+        statusId,
+        "data:",
+        userRoleStatus[0],
+      );
+    }
     if (statusId !== 1) {
       throw new AppError("Driver in inactive status", 403);
     }
@@ -138,16 +145,16 @@ const verifyPassengersIdentity = async (req, res, next) => {
     // Step 2: Verify if the user has a Passenger role
     const userRole = await getData({
       tableName: "UserRole",
-      conditions: { userUniqueId, roleId: usersRolesList.passenger.roleId }, // 1 indicates the Passenger role
+      conditions: { userUniqueId, roleId: usersRolesList.shipper.roleId }, // 1 indicates the Passenger role
     });
 
     if (!userRole?.length) {
-      throw new AppError("User passenger role not found", 401);
+      throw new AppError("User shipper role not found", 401);
     }
     req.userRole = userRole;
 
-    // Step 3: Check if the Passenger is in an active status (join UserRole so we always use passenger role's status)
-    const passengerRole = userRole[0];
+    // Step 3: Check if the Passenger is in an active status (join UserRole so we always use shipper role's status)
+    const shipperRole = userRole[0];
     const userRoleStatus = await performJoinSelect({
       baseTable: "UserRoleStatusCurrent",
       joins: [
@@ -161,8 +168,8 @@ const verifyPassengersIdentity = async (req, res, next) => {
         },
       ],
       conditions: {
-        "UserRoleStatusCurrent.userRoleId": passengerRole.userRoleId,
-        "UserRole.roleId": usersRolesList.passenger.roleId, // ensure we use passenger role's status, not driver's
+        "UserRoleStatusCurrent.userRoleId": shipperRole.userRoleId,
+        "UserRole.roleId": usersRolesList.shipper.roleId, // ensure we use shipper role's status, not driver's
       },
       orderBy: "userRoleStatusCreatedAt",
       orderDirection: "DESC",
@@ -171,7 +178,7 @@ const verifyPassengersIdentity = async (req, res, next) => {
     logger.debug("@userRoleStatus", userRoleStatus);
 
     if (userRoleStatus.length === 0) {
-      throw new AppError("User passenger role status not found", 401);
+      throw new AppError("User shipper role status not found", 401);
     }
     req.userRoleStatus = userRoleStatus;
     const statusId = userRoleStatus[0]?.statusId;

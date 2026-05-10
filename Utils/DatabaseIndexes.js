@@ -298,7 +298,7 @@ const createCommonIndexes = async () => {
     // PassengerRequest table
     {
       table: "PassengerRequest",
-      columns: "passengerRequestUniqueId",
+      columns: "shipperRequestUniqueId",
       unique: true,
     },
     {
@@ -323,7 +323,7 @@ const createCommonIndexes = async () => {
     },
     {
       table: "JourneyDecisions",
-      columns: ["passengerRequestId", "driverRequestId"],
+      columns: ["shipperRequestId", "driverRequestId"],
       unique: false,
     },
 

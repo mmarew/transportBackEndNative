@@ -1,6 +1,8 @@
 "use strict";
 
-const { reportDriverCommissionEvasion } = require("./CommissionEvasion.service");
+const {
+  reportDriverCommissionEvasion,
+} = require("./CommissionEvasion.service");
 
 /**
  * CompanyAssignment Service
@@ -68,61 +70,65 @@ const {
  *
  * This is the canonical join between the shipper's request and the assigned
  * driver's request. Without it, `handleExistingJourney` in the status-
- * verification service cannot resolve the passenger context and would
+ * verification service cannot resolve the shipper context and would
  * incorrectly reset the DriverRequest back to status 1.
  *
  * Called by: createAssignment, createBulkAssignments, autoAssignBatch.
  * At confirmation (confirmed_by_driver) the same row is updated to status 4.
  *
- * @param {string} passengerRequestUniqueId
+ * @param {string} shipperRequestUniqueId
  * @param {string} driverRequestUniqueId
  * @param {string} createdByUserUniqueId  — dispatcher / company admin
  * @returns {Promise<string>} journeyDecisionUniqueId
  */
 async function createJourneyDecisionForAssignment(
-  passengerRequestUniqueId,
+  shipperRequestUniqueId,
   driverRequestUniqueId,
   createdByUserUniqueId,
 ) {
   // Resolve numeric PKs
   const [[prRow]] = await db().query(
-    "SELECT passengerRequestId FROM PassengerRequest WHERE passengerRequestUniqueId = ? LIMIT 1",
+    "SELECT shipperRequestId FROM PassengerRequest WHERE shipperRequestUniqueId = ? LIMIT 1",
 
-    [passengerRequestUniqueId],
+    [shipperRequestUniqueId],
   );
-  if (!prRow)
-  {throw new AppError(
-    "Passenger request not found while creating JourneyDecision",
-    404,
-  );}
+  if (!prRow) {
+    throw new AppError(
+      "Passenger request not found while creating JourneyDecision",
+      404,
+    );
+  }
 
   const [[drRow]] = await db().query(
     "SELECT driverRequestId FROM DriverRequest WHERE driverRequestUniqueId = ? LIMIT 1",
     [driverRequestUniqueId],
   );
-  if (!drRow)
-  {throw new AppError(
-    "Driver request not found while creating JourneyDecision",
-    404,
-  );}
+  if (!drRow) {
+    throw new AppError(
+      "Driver request not found while creating JourneyDecision",
+      404,
+    );
+  }
 
   // Idempotency: if a decision already exists for this driverRequestId, return it
   const [[existing]] = await db().query(
     "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
     [drRow.driverRequestId],
   );
-  if (existing) {return existing.journeyDecisionUniqueId;}
+  if (existing) {
+    return existing.journeyDecisionUniqueId;
+  }
 
   const journeyDecisionUniqueId = uuidv4();
   await db().query(
     `INSERT INTO JourneyDecisions
-      (journeyDecisionUniqueId, passengerRequestId, driverRequestId,
+      (journeyDecisionUniqueId, shipperRequestId, driverRequestId,
        journeyStatusId, decisionTime, decisionBy,
        journeyDecisionCreatedBy, journeyDecisionCreatedAt)
      VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
     [
       journeyDecisionUniqueId,
-      prRow.passengerRequestId,
+      prRow.shipperRequestId,
       drRow.driverRequestId,
       journeyStatusMap.requested, // status 2 — company has requested this driver
       currentDate(),
@@ -133,7 +139,7 @@ async function createJourneyDecisionForAssignment(
 
   logger.info("JourneyDecision created at assignment time", {
     journeyDecisionUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     driverRequestUniqueId,
     journeyStatusId: journeyStatusMap.requested,
   });
@@ -150,7 +156,7 @@ async function createJourneyDecisionForAssignment(
  * @param {string} opts.driverUserUniqueId
  * @param {string} opts.assignmentUniqueId
  * @param {string} opts.driverRequestUniqueId
- * @param {string} opts.passengerRequestUniqueId
+ * @param {string} opts.shipperRequestUniqueId
  * @param {string} opts.companyBidRequestUniqueId
  */
 const notifyAssignedDriver = async (opts) => {
@@ -158,7 +164,7 @@ const notifyAssignedDriver = async (opts) => {
     driverUserUniqueId,
     assignmentUniqueId,
     driverRequestUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     companyBidRequestUniqueId,
   } = opts;
 
@@ -166,7 +172,7 @@ const notifyAssignedDriver = async (opts) => {
     type: "company_driver_assignment",
     assignmentUniqueId,
     driverRequestUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     companyBidRequestUniqueId,
   };
 
@@ -197,7 +203,7 @@ const notifyAssignedDriver = async (opts) => {
 
     if (phoneNumber) {
       // Call verifyDriverJourneyStatus to get the exact same payload the driver
-      // would receive on the next poll — includes passenger, decision, companyAssignment.
+      // would receive on the next poll — includes shipper, decision, companyAssignment.
       let wsPayload;
       try {
         const statusResult = await verifyDriverJourneyStatus({
@@ -206,7 +212,7 @@ const notifyAssignedDriver = async (opts) => {
         wsPayload = {
           messageTypes: messageTypes.company_driver_assignment,
           message: "success",
-          ...statusResult, // status, driver, passenger, decision, journey, companyAssignment
+          ...statusResult, // status, driver, shipper, decision, journey, companyAssignment
         };
       } catch (verifyErr) {
         // Fallback: send minimal payload so ResponseHandler still dispatches status=2
@@ -224,11 +230,11 @@ const notifyAssignedDriver = async (opts) => {
           companyAssignment: {
             assignmentUniqueId,
             driverRequestUniqueId,
-            passengerRequestUniqueId,
+            shipperRequestUniqueId,
             companyBidRequestUniqueId,
           },
           driver: null,
-          passenger: null,
+          shipper: null,
           journey: null,
           decision: null,
         };
@@ -349,18 +355,18 @@ const upsertDriverRequest = async ({
  * Used as a duplicate-assignment guard before creating a new assignment.
  *
  * @param {string} companyBidRequestUniqueId
- * @param {string} passengerRequestUniqueId
+ * @param {string} shipperRequestUniqueId
  * @returns {Promise<Object|null>} existing assignment row or null
  */
 async function findActiveAssignmentForSlot(
   companyBidRequestUniqueId,
-  passengerRequestUniqueId,
+  shipperRequestUniqueId,
 ) {
   const [rows] = await db().query(
     `SELECT assignmentUniqueId, assignmentStatus
      FROM CompanyBidVehicleAssignment
      WHERE companyBidRequestUniqueId = ?
-       AND passengerRequestUniqueId  = ?
+       AND shipperRequestUniqueId  = ?
        AND assignmentDeletedAt IS NULL
        AND assignmentStatus NOT IN (
          'rejected_by_driver',
@@ -369,7 +375,7 @@ async function findActiveAssignmentForSlot(
          'cancelled_by_driver'
        )
      LIMIT 1`,
-    [companyBidRequestUniqueId, passengerRequestUniqueId],
+    [companyBidRequestUniqueId, shipperRequestUniqueId],
   );
   return rows.length > 0 ? rows[0] : null;
 }
@@ -380,7 +386,7 @@ async function findActiveAssignmentForSlot(
  * Assigns a driver+vehicle to a freight slot within an accepted bid.
  *
  * **Just-In-Time PR Creation (company_target):**
- * When `passengerRequestUniqueId` is omitted (company_target deferred flow),
+ * When `shipperRequestUniqueId` is omitted (company_target deferred flow),
  * a new PassengerRequest row is created automatically from the batch metadata.
  * This avoids bulk-creating N rows upfront — even 450,000 vehicles = 0 rows
  * until the dispatcher actually assigns a driver to each slot.
@@ -392,7 +398,7 @@ async function findActiveAssignmentForSlot(
 exports.createAssignment = async (data) => {
   const {
     companyBidRequestUniqueId,
-    passengerRequestUniqueId: inputPRUniqueId,
+    shipperRequestUniqueId: inputPRUniqueId,
     vehicleUniqueId,
     driverUserUniqueId,
     createdByUserUniqueId,
@@ -411,14 +417,14 @@ exports.createAssignment = async (data) => {
     );
   }
 
-  let passengerRequestUniqueId = inputPRUniqueId;
+  let shipperRequestUniqueId = inputPRUniqueId;
   let pr;
 
-  if (passengerRequestUniqueId) {
+  if (shipperRequestUniqueId) {
     // ── EAGER PATH: PR already exists (individual_target or pre-created) ───
     pr = await getPassengerRequestByUniqueId(
-      passengerRequestUniqueId,
-      bid.passengerRequestBatchId,
+      shipperRequestUniqueId,
+      bid.shipperRequestBatchId,
     );
   } else {
     // ── JUST-IN-TIME PATH: Create 1 PR from batch metadata ────────────────
@@ -444,19 +450,22 @@ exports.createAssignment = async (data) => {
     // 2. Fetch batch metadata for the new PR
     const [[batch]] = await db().query(
       `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
-      [bid.passengerRequestBatchId],
+      [bid.shipperRequestBatchId],
     );
     if (!batch) {
-      throw new AppError("Batch not found. The shipper may have cancelled.", 409);
+      throw new AppError(
+        "Batch not found. The shipper may have cancelled.",
+        409,
+      );
     }
 
     // 3. Create 1 PR row from batch metadata
     const formatDateToReadable = require("../Utils/FormatDateToReadable");
-    passengerRequestUniqueId = uuidv4();
+    shipperRequestUniqueId = uuidv4();
 
     await db().query(
       `INSERT INTO PassengerRequest
-        (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
+        (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
          vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
          originLatitude, originLongitude, originPlace,
          destinationLatitude, destinationLongitude, destinationPlace,
@@ -466,11 +475,11 @@ exports.createAssignment = async (data) => {
          shipperRequestCreatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        passengerRequestUniqueId,
+        shipperRequestUniqueId,
         batch.shipperUserUniqueId,
         batch.batchUniqueId,
         batch.vehicleTypeUniqueId,
-        journeyStatusMap.acceptedByPassenger,       // born accepted
+        journeyStatusMap.acceptedByPassenger, // born accepted
         batch.requestMode,
         batch.targetCompanyUniqueId,
         batch.originLatitude,
@@ -484,21 +493,21 @@ exports.createAssignment = async (data) => {
         batch.shippingDate ? formatDateToReadable(batch.shippingDate) : null,
         batch.deliveryDate ? formatDateToReadable(batch.deliveryDate) : null,
         batch.shippingCost,
-        createdByUserUniqueId,                      // dispatcher who assigned
-        usersRoles.companyAdminRoleId,               // company admin role
+        createdByUserUniqueId, // dispatcher who assigned
+        usersRoles.companyAdminRoleId, // company admin role
         currentDate(),
       ],
     );
 
     // Fetch the freshly created PR
     pr = await getPassengerRequestByUniqueId(
-      passengerRequestUniqueId,
-      bid.passengerRequestBatchId,
+      shipperRequestUniqueId,
+      bid.shipperRequestBatchId,
     );
 
     logger.info("Just-in-time PR created for assignment", {
-      passengerRequestUniqueId,
-      batchUniqueId: bid.passengerRequestBatchId,
+      shipperRequestUniqueId,
+      batchUniqueId: bid.shipperRequestBatchId,
       slotNumber: slotCount.assigned + 1,
       totalSlots: bid.numberOfVehiclesOffered,
     });
@@ -507,11 +516,11 @@ exports.createAssignment = async (data) => {
   // Prevent duplicate assignment for the same slot
   const existingAssignment = await findActiveAssignmentForSlot(
     companyBidRequestUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
   );
   if (existingAssignment) {
     throw new AppError(
-      "This passenger request slot already has an active assignment",
+      "This shipper request slot already has an active assignment",
       409,
     );
   }
@@ -532,10 +541,10 @@ exports.createAssignment = async (data) => {
   // ── Create JourneyDecision at assignment time (status 2) ─────────────────
   // This is the canonical link between the shipper's PassengerRequest and
   // the driver's DriverRequest. Creating it here (not at confirmation)
-  // ensures verifyDriverJourneyStatus can resolve the passenger context
+  // ensures verifyDriverJourneyStatus can resolve the shipper context
   // immediately after assignment.
   const journeyDecisionUniqueId = await createJourneyDecisionForAssignment(
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     driverRequestUniqueId,
     createdByUserUniqueId,
   );
@@ -543,14 +552,14 @@ exports.createAssignment = async (data) => {
   const assignmentUniqueId = uuidv4();
   await db().query(
     `INSERT INTO CompanyBidVehicleAssignment
-      (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
+      (assignmentUniqueId, companyBidRequestUniqueId, shipperRequestUniqueId,
        vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
        assignmentStatus, journeyDecisionUniqueId, assignmentCreatedBy, assignmentCreatedAt)
      VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?, ?)`,
     [
       assignmentUniqueId,
       companyBidRequestUniqueId,
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       vehicleUniqueId,
       driverUserUniqueId,
       driverRequestUniqueId,
@@ -565,7 +574,7 @@ exports.createAssignment = async (data) => {
     driverUserUniqueId,
     assignmentUniqueId,
     driverRequestUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     companyBidRequestUniqueId,
   });
 
@@ -573,7 +582,7 @@ exports.createAssignment = async (data) => {
     message: "success",
     data: {
       assignmentUniqueId,
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       driverRequestUniqueId,
       journeyDecisionUniqueId,
     },
@@ -610,23 +619,23 @@ exports.createBulkAssignments = async (data) => {
 
   // 3. Process each assignment in the bulk array
   for (const item of assignments) {
-    const { passengerRequestUniqueId, vehicleUniqueId, driverUserUniqueId } =
+    const { shipperRequestUniqueId, vehicleUniqueId, driverUserUniqueId } =
       item;
 
     // Check if slot belongs to the batch — uses the dedicated service function
     const pr = await getPassengerRequestByUniqueId(
-      passengerRequestUniqueId,
-      bid.passengerRequestBatchId,
+      shipperRequestUniqueId,
+      bid.shipperRequestBatchId,
     );
 
     // Prevent duplicate assignment
     const existingAssignment = await findActiveAssignmentForSlot(
       companyBidRequestUniqueId,
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
     );
     if (existingAssignment) {
       throw new AppError(
-        `Slot ${passengerRequestUniqueId} already has an active assignment`,
+        `Slot ${shipperRequestUniqueId} already has an active assignment`,
         409,
       );
     }
@@ -643,7 +652,7 @@ exports.createBulkAssignments = async (data) => {
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────
     const journeyDecisionUniqueId = await createJourneyDecisionForAssignment(
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       driverRequestUniqueId,
       createdByUserUniqueId,
     );
@@ -653,14 +662,14 @@ exports.createBulkAssignments = async (data) => {
     // Create Assignment
     await db().query(
       `INSERT INTO CompanyBidVehicleAssignment
-        (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
+        (assignmentUniqueId, companyBidRequestUniqueId, shipperRequestUniqueId,
          vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
          assignmentStatus, journeyDecisionUniqueId, assignmentCreatedBy, assignmentCreatedAt)
        VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?, ?)`,
       [
         assignmentUniqueId,
         companyBidRequestUniqueId,
-        passengerRequestUniqueId,
+        shipperRequestUniqueId,
         vehicleUniqueId,
         driverUserUniqueId,
         driverRequestUniqueId,
@@ -675,13 +684,13 @@ exports.createBulkAssignments = async (data) => {
       driverUserUniqueId,
       assignmentUniqueId,
       driverRequestUniqueId,
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       companyBidRequestUniqueId,
     });
 
     results.push({
       assignmentUniqueId,
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       journeyDecisionUniqueId,
     });
   }
@@ -702,9 +711,9 @@ exports.getAssignments = async (filters = {}) => {
     clauses.push("cba.companyBidRequestUniqueId = ?");
     params.push(filters.companyBidRequestUniqueId);
   }
-  if (filters.passengerRequestUniqueId) {
-    clauses.push("cba.passengerRequestUniqueId = ?");
-    params.push(filters.passengerRequestUniqueId);
+  if (filters.shipperRequestUniqueId) {
+    clauses.push("cba.shipperRequestUniqueId = ?");
+    params.push(filters.shipperRequestUniqueId);
   }
   if (filters.vehicleUniqueId) {
     clauses.push("cba.vehicleUniqueId = ?");
@@ -826,7 +835,7 @@ exports.updateAssignmentStatus = async (
           ? "assignment_cancelled_by_driver"
           : "assignment_rejected",
         assignmentUniqueId,
-        passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+        shipperRequestUniqueId: assignment.shipperRequestUniqueId,
         companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
       },
     }).catch((e) =>
@@ -846,20 +855,20 @@ exports.updateAssignmentStatus = async (
     // 'rejected_by_driver' (before confirmation) is NOT evasion — just a refusal.
     // Fire post-commit so it never blocks this transaction.
     if (
-      (assignmentStatus === "cancelled_by_driver") &&
+      assignmentStatus === "cancelled_by_driver" &&
       assignment.assignmentStatus === "confirmed_by_driver"
     ) {
       setImmediate(async () => {
         try {
           const result = await reportDriverCommissionEvasion({
-            driverUserUniqueId:      assignment.driverUserUniqueId,
-            reportedByUniqueId:      updatedBy,
+            driverUserUniqueId: assignment.driverUserUniqueId,
+            reportedByUniqueId: updatedBy,
             journeyDecisionUniqueId: assignment.journeyDecisionUniqueId || null,
             reason: `Driver cancelled freight assignment after confirmation (assignment: ${assignmentUniqueId})`,
           });
           logger.info("Driver commission evasion recorded", {
             driverUserUniqueId: assignment.driverUserUniqueId,
-            automaticAction:    result.automaticAction,
+            automaticAction: result.automaticAction,
           });
         } catch (err) {
           logger.error("Failed to record driver commission evasion", {
@@ -900,7 +909,7 @@ exports.updateAssignmentStatus = async (
 
     // Uses the dedicated PassengerRequest service instead of raw SQL
     const prRow = await getPassengerRequestByUniqueId(
-      assignment.passengerRequestUniqueId,
+      assignment.shipperRequestUniqueId,
     );
 
     const [drRows] = await db().query(
@@ -935,13 +944,13 @@ exports.updateAssignmentStatus = async (
       journeyDecisionUniqueId = uuidv4();
       await db().query(
         `INSERT INTO JourneyDecisions
-          (journeyDecisionUniqueId, passengerRequestId, driverRequestId,
+          (journeyDecisionUniqueId, shipperRequestId, driverRequestId,
            journeyStatusId, decisionTime, decisionBy,
            journeyDecisionCreatedBy, journeyDecisionCreatedAt)
          VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
         [
           journeyDecisionUniqueId,
-          prRow.passengerRequestId,
+          prRow.shipperRequestId,
           drRows[0].driverRequestId,
           jStatusId,
           currentDate(),
@@ -986,7 +995,7 @@ exports.updateAssignmentStatus = async (
         type: "company_assignment_confirmed",
         assignmentUniqueId,
         journeyDecisionUniqueId,
-        passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+        shipperRequestUniqueId: assignment.shipperRequestUniqueId,
       },
     }).catch((e) =>
       logger.error("FCM notification failed for assignment confirmation", {
@@ -1058,7 +1067,7 @@ exports.updateAssignmentStatus = async (
         assignmentStatus,
         assignmentUniqueId,
         companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
-        passengerRequestUniqueId: assignment.passengerRequestUniqueId,
+        shipperRequestUniqueId: assignment.shipperRequestUniqueId,
       },
     }).catch((e) =>
       logger.error("FCM failed for assignment progress notification", {
@@ -1102,11 +1111,11 @@ exports.updateAssignmentStatus = async (
     const [[{ totalSlots }]] = await db().query(
       `SELECT COUNT(*) AS totalSlots
        FROM PassengerRequest
-       WHERE passengerRequestBatchId = (
-         SELECT passengerRequestBatchId FROM CompanyBidRequest
+       WHERE shipperRequestBatchId = (
+         SELECT shipperRequestBatchId FROM CompanyBidRequest
          WHERE companyBidRequestUniqueId = ? LIMIT 1
        )
-         AND passengerRequestDeletedAt IS NULL`,
+         AND shipperRequestDeletedAt IS NULL`,
       [assignment.companyBidRequestUniqueId],
     );
 
@@ -1182,23 +1191,23 @@ exports.autoAssignBatch = async (data) => {
     );
   }
 
-  const { passengerRequestBatchId, companyUniqueId } = bid;
+  const { shipperRequestBatchId, companyUniqueId } = bid;
 
   // 2. Find Unassigned Slots for this Batch (Priority Check)
 
   const [unassignedSlots] = await db().query(
-    `SELECT pr.passengerRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
+    `SELECT pr.shipperRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
      FROM PassengerRequest pr
-     WHERE pr.passengerRequestBatchId = ? 
-       AND pr.passengerRequestDeletedAt IS NULL
+     WHERE pr.shipperRequestBatchId = ? 
+       AND pr.shipperRequestDeletedAt IS NULL
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
-         WHERE cba.passengerRequestUniqueId = pr.passengerRequestUniqueId
+         WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
            AND cba.companyBidRequestUniqueId = ?
            AND cba.assignmentDeletedAt IS NULL
            AND cba.assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')
        )`,
-    [passengerRequestBatchId, companyBidRequestUniqueId],
+    [shipperRequestBatchId, companyBidRequestUniqueId],
   );
 
   if (unassignedSlots.length === 0) {
@@ -1263,7 +1272,7 @@ exports.autoAssignBatch = async (data) => {
 
   for (let i = 0; i < limit; i++) {
     assignmentsToCreate.push({
-      passengerRequestUniqueId: unassignedSlots[i].passengerRequestUniqueId,
+      shipperRequestUniqueId: unassignedSlots[i].shipperRequestUniqueId,
       vehicleUniqueId: availableFleet[i].vehicleUniqueId,
       driverUserUniqueId: availableFleet[i].driverUserUniqueId,
       origin: {
@@ -1292,7 +1301,7 @@ exports.autoAssignBatch = async (data) => {
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────
     const journeyDecisionUniqueId = await createJourneyDecisionForAssignment(
-      item.passengerRequestUniqueId,
+      item.shipperRequestUniqueId,
       driverRequestUniqueId,
       createdByUserUniqueId,
     );
@@ -1302,14 +1311,14 @@ exports.autoAssignBatch = async (data) => {
     // Create Assignment
     await db().query(
       `INSERT INTO CompanyBidVehicleAssignment
-        (assignmentUniqueId, companyBidRequestUniqueId, passengerRequestUniqueId,
+        (assignmentUniqueId, companyBidRequestUniqueId, shipperRequestUniqueId,
          vehicleUniqueId, driverUserUniqueId, driverRequestUniqueId,
          assignmentStatus, journeyDecisionUniqueId, assignmentCreatedBy, assignmentCreatedAt)
        VALUES (?, ?, ?, ?, ?, ?, 'assigned', ?, ?, ?)`,
       [
         assignmentUniqueId,
         companyBidRequestUniqueId,
-        item.passengerRequestUniqueId,
+        item.shipperRequestUniqueId,
         item.vehicleUniqueId,
         item.driverUserUniqueId,
         driverRequestUniqueId,
@@ -1324,13 +1333,13 @@ exports.autoAssignBatch = async (data) => {
       driverUserUniqueId: item.driverUserUniqueId,
       assignmentUniqueId,
       driverRequestUniqueId,
-      passengerRequestUniqueId: item.passengerRequestUniqueId,
+      shipperRequestUniqueId: item.shipperRequestUniqueId,
       companyBidRequestUniqueId,
     });
 
     results.push({
       assignmentUniqueId,
-      passengerRequestUniqueId: item.passengerRequestUniqueId,
+      shipperRequestUniqueId: item.shipperRequestUniqueId,
       journeyDecisionUniqueId,
     });
   }

@@ -9,7 +9,7 @@ const locationSchema = Joi.object({
 }).required();
 
 exports.createPassengerRequest = Joi.object({
-  passengerRequestBatchId: uuidSchema.required(),
+  shipperRequestBatchId: uuidSchema.required(),
   numberOfVehicles: Joi.number().integer().min(1).max(100).default(1),
   shippingDate: Joi.date().iso().required(),
   deliveryDate: Joi.date().iso().required(),
@@ -45,7 +45,7 @@ exports.createPassengerRequest = Joi.object({
     if (count > 9 && mode === "individual_target") {
       return helpers.message(
         "Requests for more than 9 vehicles require company_target mode. " +
-        "Please set requestMode to 'company_target' to proceed.",
+          "Please set requestMode to 'company_target' to proceed.",
       );
     }
 
@@ -55,9 +55,9 @@ exports.createPassengerRequest = Joi.object({
 
 exports.requestParams = Joi.object({
   id: uuidSchema.required(),
-}).unknown(true); // 'id' in routes probably map to passengerRequestUniqueId or similar
+}).unknown(true); // 'id' in routes probably map to shipperRequestUniqueId or similar
 
-exports.passengerRequestQuery = Joi.object({
+exports.shipperRequestQuery = Joi.object({
   // define query params
 }).unknown(true);
 
@@ -68,17 +68,13 @@ exports.cancelRequestParams = Joi.object({
 });
 
 exports.cancelPassengerRequestBody = Joi.object({
-  passengerRequestUniqueId: uuidSchema.required(),
+  shipperRequestUniqueId: uuidSchema.required(),
   cancellationReasonsTypeId: Joi.number().integer().optional(),
 }).unknown(true);
 
 exports.getCancellationNotificationsQuery = Joi.object({
   seenStatus: Joi.string()
-    .valid(
-      "no need to see it",
-      "not seen by passenger yet",
-      "seen by passenger",
-    )
+    .valid("no need to see it", "not seen by shipper yet", "seen by shipper")
     .optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
@@ -93,7 +89,7 @@ exports.markCancellationAsSeen = Joi.object({
 
 exports.markJourneyCompletionAsSeen = Joi.object({
   journeyDecisionUniqueId: uuidSchema.required(),
-  passengerRequestUniqueId: uuidSchema.required(),
+  shipperRequestUniqueId: uuidSchema.required(),
   rating: Joi.number().integer().min(1).max(5).required(),
 }).unknown(true); // Allow additional fields for future extensibility
 
@@ -107,25 +103,25 @@ exports.getPassengerRequestQuery = Joi.object({
   journeyStatusId: Joi.string().optional(), // single or comma-separated IDs
   limit: Joi.number().integer().min(1).max(100).optional(),
   page: Joi.number().integer().min(1).optional(),
-  passengerRequestUniqueId: uuidSchema.optional(),
-  passengerUserUniqueId: Joi.alternatives()
+  shipperRequestUniqueId: uuidSchema.optional(),
+  shipperUserUniqueId: Joi.alternatives()
     .try(uuidSchema, Joi.string().valid("self"))
     .optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
-  passengerRequestBatchId: uuidSchema.optional(),
+  shipperRequestBatchId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.acceptDriverRequestBody = Joi.object({
   driverRequestUniqueId: uuidSchema.required(),
   journeyDecisionUniqueId: uuidSchema.required(),
-  passengerRequestUniqueId: uuidSchema.required(),
+  shipperRequestUniqueId: uuidSchema.required(),
 }).unknown(true);
 
 exports.rejectDriverOfferBody = Joi.object({
   driverRequestUniqueId: uuidSchema.required(),
   journeyDecisionUniqueId: uuidSchema.required(),
-  passengerRequestUniqueId: uuidSchema.required(),
-  passengerRequestId: Joi.number().integer().required(),
+  shipperRequestUniqueId: uuidSchema.required(),
+  shipperRequestId: Joi.number().integer().required(),
   journeyStatusId: Joi.number().integer().required(),
 }).unknown(true);
 

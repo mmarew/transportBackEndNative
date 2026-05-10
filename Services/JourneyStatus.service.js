@@ -427,7 +427,7 @@ const updateNegativeJourneyStatus = async ({
 const updateJourneyStatus = async (body) => {
   const {
     journeyDecisionUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     driverRequestUniqueId,
     journeyUniqueId,
     journeyStatusId,
@@ -445,7 +445,7 @@ const updateJourneyStatus = async (body) => {
       tableCount++;
     }
     if (
-      passengerRequestUniqueId &&
+      shipperRequestUniqueId &&
       journeyStatusId !== journeyStatusMap.rejectedByPassenger &&
       journeyStatusId !== journeyStatusMap.notSelectedInBid
     ) {
@@ -521,7 +521,7 @@ const updateJourneyStatus = async (body) => {
       logger.warn("Journey table NOT updated - journeyUniqueId missing", {
         providedParams: {
           journeyDecisionUniqueId,
-          passengerRequestUniqueId,
+          shipperRequestUniqueId,
           driverRequestUniqueId,
           journeyUniqueId,
           journeyStatusId,
@@ -529,23 +529,23 @@ const updateJourneyStatus = async (body) => {
       });
     }
     // return;
-    // Update PassengerRequest if passengerRequestUniqueId is provided
+    // Update PassengerRequest if shipperRequestUniqueId is provided
     // Exclude rejectedByPassenger and notSelectedInBid from updating PassengerRequest
-    // (these are driver-level statuses, not passenger request statuses)
+    // (these are driver-level statuses, not shipper request statuses)
     if (
-      passengerRequestUniqueId &&
+      shipperRequestUniqueId &&
       journeyStatusId !== journeyStatusMap.rejectedByPassenger &&
       journeyStatusId !== journeyStatusMap.notSelectedInBid
     ) {
-      const passengerConditions = { passengerRequestUniqueId };
+      const shipperConditions = { shipperRequestUniqueId };
       if (previousStatusId) {
-        passengerConditions.journeyStatusId = previousStatusId;
+        shipperConditions.journeyStatusId = previousStatusId;
       }
 
       updatePromises.push(
         updateData({
           tableName: "PassengerRequest",
-          conditions: passengerConditions,
+          conditions: shipperConditions,
           updateValues: { journeyStatusId },
           connection: null, // Pass connection for transaction support
         }),
@@ -614,16 +614,23 @@ const updateJourneyStatus = async (body) => {
     }
 
     // ── NEW: Propagate Status to Company Bidding Tables (Fleet Capacity Release) ──
-    if (passengerRequestUniqueId || driverRequestUniqueId) {
+    if (shipperRequestUniqueId || driverRequestUniqueId) {
       const executor = transactionStorage.getStore() || pool;
 
       // 1. Update CompanyBidVehicleAssignment status if journey completed
       if (journeyStatusId === journeyStatusMap.journeyCompleted) {
         updatePromises.push(
-          executor.query(
-            "UPDATE CompanyBidVehicleAssignment SET assignmentStatus = 'completed', assignmentUpdatedAt = ? WHERE passengerRequestUniqueId = ? OR driverRequestUniqueId = ?",
-            [currentDate(), passengerRequestUniqueId, driverRequestUniqueId],
-          ).catch(e => logger.error("Propagate Status to CompanyBidVehicleAssignment failed", { error: e.message }))
+          executor
+            .query(
+              "UPDATE CompanyBidVehicleAssignment SET assignmentStatus = 'completed', assignmentUpdatedAt = ? WHERE shipperRequestUniqueId = ? OR driverRequestUniqueId = ?",
+              [currentDate(), shipperRequestUniqueId, driverRequestUniqueId],
+            )
+            .catch((e) =>
+              logger.error(
+                "Propagate Status to CompanyBidVehicleAssignment failed",
+                { error: e.message },
+              ),
+            ),
         );
       }
 
@@ -634,16 +641,23 @@ const updateJourneyStatus = async (body) => {
         SET journeyStatusId = ?, companyBidRequestUpdatedAt = ? 
         WHERE companyBidRequestUniqueId IN (
           SELECT DISTINCT cp.companyBidRequestUniqueId 
-          FROM (SELECT companyBidRequestUniqueId FROM CompanyBidVehicleAssignment WHERE passengerRequestUniqueId = ? OR driverRequestUniqueId = ?) cp
+          FROM (SELECT companyBidRequestUniqueId FROM CompanyBidVehicleAssignment WHERE shipperRequestUniqueId = ? OR driverRequestUniqueId = ?) cp
         )
       `;
       updatePromises.push(
-        executor.query(bidPropSql, [
-          journeyStatusId,
-          currentDate(),
-          passengerRequestUniqueId,
-          driverRequestUniqueId,
-        ]).catch(e => logger.error("Propagate journeyStatusId to CompanyBidRequest failed", { error: e.message }))
+        executor
+          .query(bidPropSql, [
+            journeyStatusId,
+            currentDate(),
+            shipperRequestUniqueId,
+            driverRequestUniqueId,
+          ])
+          .catch((e) =>
+            logger.error(
+              "Propagate journeyStatusId to CompanyBidRequest failed",
+              { error: e.message },
+            ),
+          ),
       );
     }
 
@@ -656,7 +670,7 @@ const updateJourneyStatus = async (body) => {
       journeyStatusId,
       tablesUpdated: {
         journey: !!journeyUniqueId,
-        passengerRequest: !!passengerRequestUniqueId,
+        shipperRequest: !!shipperRequestUniqueId,
         journeyDecision: !!journeyDecisionUniqueId,
         driverRequest: !!driverRequestUniqueId,
       },

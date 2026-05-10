@@ -78,7 +78,7 @@ Supported vehicle classifications with capacity:
 - **Deposit Sources**: Driver transfers, admin deposits, bonuses
 
 ### 8. Quality Management
-- **Delinquency Types**: Driver/passenger behavior tracking
+- **Delinquency Types**: Driver/shipper behavior tracking
 - **Cancellation Reasons**: Role-specific cancellation justifications
 - **Commission Status**: REQUESTED, PENDING, PAID, FREE, CANCELED
 

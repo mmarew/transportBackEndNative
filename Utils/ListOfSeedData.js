@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("./CurrentDate");
 
 const usersRoles = {
-  passengerRoleId: 1,
+  shipperRoleId: 1,
   driverRoleId: 2,
   adminRoleId: 3,
   vehicleOwnerRoleId: 4,
@@ -14,7 +14,7 @@ const usersRoles = {
   dispatcherRoleId: 10, // company dispatcher — manages fleet dispatch
 };
 const usersRolesList = {
-  passenger: { roleId: 1, roleName: "passenger" },
+  shipper: { roleId: 1, roleName: "shipper" },
   driver: { roleId: 2, roleName: "driver" },
   admin: { roleId: 3, roleName: "admin" },
   vehicleOwner: { roleId: 4, roleName: "vehicle owner" },
@@ -37,15 +37,14 @@ const roleList = [
     roleId: 2,
     roleUniqueId: uuidv4(),
     roleName: "Driver",
-    roleDescription:
-      "a person who can recive order from passenger to load goods",
+    roleDescription: "a person who can recive order from shipper to load goods",
     roleCreatedAt: currentDate(),
   },
   {
     roleId: 3,
     roleUniqueId: uuidv4(),
     roleName: "Admin",
-    roleDescription: "a person who can manage the system, driver and passenger",
+    roleDescription: "a person who can manage the system, driver and shipper",
     roleCreatedAt: currentDate(),
   },
   {
@@ -67,7 +66,7 @@ const roleList = [
     roleUniqueId: uuidv4(),
     roleName: "Supper Admin",
     roleDescription:
-      "a person who can manage drivers passengers and admins using api requests",
+      "a person who can manage drivers shippers and admins using api requests",
     roleCreatedAt: currentDate(),
   },
   {
@@ -288,7 +287,7 @@ const listOfDocuments = [
     isExpirationDateRequired: true,
     documentTypeName: "Insurance Document",
     documentTypeDescription:
-      "Proof of insurance coverage, ensuring that the driver and passengers are protected in the event of an accident.",
+      "Proof of insurance coverage, ensuring that the driver and shippers are protected in the event of an accident.",
   },
   {
     isExpirationDateRequired: false,
@@ -375,8 +374,8 @@ const driversDocumentRequirement = [
     isFileNumberRequired: false,
   },
 ];
-// document type and id to passenger/shipper
-const passengerDocumentRequirement = [
+// document type and id to shipper/shipper
+const shipperDocumentRequirement = [
   // profile images
   {
     roleId: 1,
@@ -578,31 +577,31 @@ const journeyStatus = [
     journeyStatusId: 1,
     journeyStatusName: "waiting",
     journeyStatusDescription:
-      "Initial state when a passenger creates a transport request, waiting for drivers to respond and accept.",
+      "Initial state when a shipper creates a transport request, waiting for drivers to respond and accept.",
   },
   {
     journeyStatusId: 2,
     journeyStatusName: "requested",
     journeyStatusDescription:
-      "A passenger request has been sent or forwarded to a driver. The driver has received the request but has not yet responded.",
+      "A shipper request has been sent or forwarded to a driver. The driver has received the request but has not yet responded.",
   },
   {
     journeyStatusId: 3,
     journeyStatusName: "acceptedByDriver",
     journeyStatusDescription:
-      "Driver has accepted the passenger request and provided their bidding price. At this point, a JourneyDecision record is created, linking the driver and passenger request.",
+      "Driver has accepted the shipper request and provided their bidding price. At this point, a JourneyDecision record is created, linking the driver and shipper request.",
   },
   {
     journeyStatusId: 4,
     journeyStatusName: "acceptedByPassenger",
     journeyStatusDescription:
-      "Passenger has selected one driver from multiple drivers who accepted the request. This occurs when multiple drivers accepted (status 3), and the passenger chooses one driver's offer.",
+      "Passenger has selected one driver from multiple drivers who accepted the request. This occurs when multiple drivers accepted (status 3), and the shipper chooses one driver's offer.",
   },
   {
     journeyStatusId: 5,
     journeyStatusName: "journeyStarted",
     journeyStatusDescription:
-      "The actual journey has been initiated by the driver. This occurs after the passenger has accepted the driver (status 4), and the driver begins the transportation.",
+      "The actual journey has been initiated by the driver. This occurs after the shipper has accepted the driver (status 4), and the driver begins the transportation.",
   },
   {
     journeyStatusId: 6,
@@ -620,13 +619,13 @@ const journeyStatus = [
     journeyStatusId: 8,
     journeyStatusName: "rejectedByPassenger",
     journeyStatusDescription:
-      "Passenger has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the passenger can still select other drivers who accepted the request.",
+      "Passenger has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the shipper can still select other drivers who accepted the request.",
   },
   {
     journeyStatusId: 9,
     journeyStatusName: "cancelledByDriver",
     journeyStatusDescription:
-      "Driver canceled the request after accepting it and providing their bidding price. This occurs after the driver has committed to participate in the bid (status 3 - acceptedByDriver), meaning a JourneyDecision record exists. The driver withdraws their commitment, which can happen at any point after acceptance, including before or after the passenger selects a driver, or even after the journey has started.",
+      "Driver canceled the request after accepting it and providing their bidding price. This occurs after the driver has committed to participate in the bid (status 3 - acceptedByDriver), meaning a JourneyDecision record exists. The driver withdraws their commitment, which can happen at any point after acceptance, including before or after the shipper selects a driver, or even after the journey has started.",
   },
   {
     journeyStatusId: 10,
@@ -656,13 +655,13 @@ const journeyStatus = [
     journeyStatusId: 14,
     journeyStatusName: "notSelectedInBid",
     journeyStatusDescription:
-      "Driver had accepted the passenger request (status 3) and participated in the bid process, but the passenger selected a different driver. The driver's offer was not chosen during the bid selection.",
+      "Driver had accepted the shipper request (status 3) and participated in the bid process, but the shipper selected a different driver. The driver's offer was not chosen during the bid selection.",
   },
   {
     journeyStatusId: 15,
     journeyStatusName: "rejectedByDriver",
     journeyStatusDescription:
-      "Driver rejected the incoming passenger request before accepting it. This occurs at the initial request stage (status 2 - requested), meaning the driver never accepted the request, did not provide a bidding price, and no JourneyDecision record was created. The driver declined participation in the bid process from the start.",
+      "Driver rejected the incoming shipper request before accepting it. This occurs at the initial request stage (status 2 - requested), meaning the driver never accepted the request, did not provide a bidding price, and no JourneyDecision record was created. The driver declined participation in the bid process from the start.",
   },
 ];
 const journeyStatusMap = {
@@ -701,7 +700,7 @@ const activeJourneyStatuses = [
   journeyStatusMap.journeyStarted,
 ];
 
-// 21 items: 10 passenger (roleId 1), 8 driver (roleId 2), 3 admin (roleId 3)
+// 21 items: 10 shipper (roleId 1), 8 driver (roleId 2), 3 admin (roleId 3)
 const cancellationReasons = [
   { cancellationReason: "Driver too late", roleId: 1 },
   { cancellationReason: "Driver did not answered requests", roleId: 2 },
@@ -963,22 +962,22 @@ const listOfDelinquenciesTypes = [
     createdAt: currentDate(),
   },
   {
-    delinquencyTypeName: "rude behavior of passenger",
+    delinquencyTypeName: "rude behavior of shipper",
     delinquencyTypeDescription: "Passenger rude behavior",
     delinquencyTypeId: 4,
     defaultPoints: 1,
     defaultSeverity: "LOW",
-    applicableRoles: "passenger",
+    applicableRoles: "shipper",
     isActive: true,
     createdAt: currentDate(),
   },
   {
-    delinquencyTypeName: "late departure of passenger",
+    delinquencyTypeName: "late departure of shipper",
     delinquencyTypeDescription: "Passenger late departure",
     delinquencyTypeId: 5,
     defaultPoints: 1,
     defaultSeverity: "LOW",
-    applicableRoles: "passenger",
+    applicableRoles: "shipper",
     isActive: true,
     createdAt: currentDate(),
   },
@@ -994,11 +993,11 @@ const listOfDelinquenciesTypes = [
   },
   {
     delinquencyTypeName: "Payments not made",
-    delinquencyTypeDescription: "Payments not made to driver by passenger",
+    delinquencyTypeDescription: "Payments not made to driver by shipper",
     delinquencyTypeId: 7,
     defaultPoints: 1,
     defaultSeverity: "LOW",
-    applicableRoles: "passenger",
+    applicableRoles: "shipper",
     isActive: true,
     createdAt: currentDate(),
   },
@@ -1063,7 +1062,7 @@ module.exports = {
   roleList,
   statusList,
   usersRoles,
-  passengerDocumentRequirement,
+  shipperDocumentRequirement,
   companyAdminDocumentRequirement,
   dispatcherDocumentRequirement,
   subscriptionPlanPricingLists,

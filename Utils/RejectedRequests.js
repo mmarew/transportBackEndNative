@@ -1,14 +1,14 @@
 const { pool } = require("../Middleware/Database.config");
 const { journeyStatusMap } = require("./ListOfSeedData");
-//exclude previously rejected passenger requests by driver (rejectedByDriver), cancelled by driver (cancelledByDriver), cancelled by admin (cancelledByAdmin), rejected by passenger (rejectedByPassenger), or by system
+//exclude previously rejected shipper requests by driver (rejectedByDriver), cancelled by driver (cancelledByDriver), cancelled by admin (cancelledByAdmin), rejected by shipper (rejectedByPassenger), or by system
 const VerifyIfPassengerRequestWasNotRejected = async ({
-  passengerRequestId,
+  shipperRequestId,
   driverUserUniqueId,
 }) => {
-  const sql = `Select * from JourneyDecisions join DriverRequest on JourneyDecisions.driverRequestId = DriverRequest.driverRequestId where JourneyDecisions.passengerRequestId = ? and DriverRequest.userUniqueId = ? and (JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ?)`;
+  const sql = `Select * from JourneyDecisions join DriverRequest on JourneyDecisions.driverRequestId = DriverRequest.driverRequestId where JourneyDecisions.shipperRequestId = ? and DriverRequest.userUniqueId = ? and (JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ?)`;
 
   const [result] = await pool.query(sql, [
-    passengerRequestId,
+    shipperRequestId,
     driverUserUniqueId,
     journeyStatusMap.cancelledByDriver,
     journeyStatusMap.rejectedByPassenger,
@@ -26,14 +26,14 @@ const VerifyIfPassengerRequestWasNotRejected = async ({
   }
 };
 const VerifyIfDriverDidNotRejectPassengersRequest = async ({
-  passengerRequestId,
+  shipperRequestId,
   driverUserUniqueId,
 }) => {
-  const sql = `Select * from JourneyDecisions join PassengerRequest on JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId where JourneyDecisions.driverRequestId = ? and PassengerRequest.userUniqueId = ? and (JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ?)`;
+  const sql = `Select * from JourneyDecisions join PassengerRequest on JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId where JourneyDecisions.driverRequestId = ? and PassengerRequest.userUniqueId = ? and (JourneyDecisions.journeyStatusId = ? or JourneyDecisions.journeyStatusId = ?)`;
 
   const [result] = await pool.query(sql, [
     driverUserUniqueId,
-    passengerRequestId,
+    shipperRequestId,
     journeyStatusMap.cancelledByPassenger,
     journeyStatusMap.rejectedByDriver,
   ]);
@@ -43,7 +43,7 @@ const VerifyIfDriverDidNotRejectPassengersRequest = async ({
     return {
       message: "error",
       error:
-        "Driver request was rejected by the passenger or cancelled by the passenger",
+        "Driver request was rejected by the shipper or cancelled by the shipper",
     };
   }
 };

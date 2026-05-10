@@ -26,17 +26,19 @@ const logger = require("../Utils/logger");
 
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
-const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.service");
-
+const {
+  sendNotificationToTokens,
+  getActiveTokensByUser,
+} = require("./Firebase.service");
 
 const exec = () => transactionStorage.getStore() || pool;
 
 // Graduated response deadlines by severity (in days)
 const RESPONSE_DEADLINE_DAYS = {
   CRITICAL: 1,
-  HIGH:     3,
-  MEDIUM:   5,
-  LOW:      7,
+  HIGH: 3,
+  MEDIUM: 5,
+  LOW: 7,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,7 +67,9 @@ const createCompanyDelinquency = async (data) => {
     `SELECT companyUniqueId FROM TransportCompany WHERE companyUniqueId = ? AND isDeleted = FALSE LIMIT 1`,
     [companyUniqueId],
   );
-  if (!company) {throw new AppError("Company not found", 404);}
+  if (!company) {
+    throw new AppError("Company not found", 404);
+  }
 
   // Fetch delinquency type defaults
   const [[delinquencyType]] = await exec().query(
@@ -73,8 +77,9 @@ const createCompanyDelinquency = async (data) => {
      FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ? AND isActive = TRUE LIMIT 1`,
     [delinquencyTypeUniqueId],
   );
-  if (!delinquencyType)
-  {throw new AppError("Invalid or inactive delinquency type", 404);}
+  if (!delinquencyType) {
+    throw new AppError("Invalid or inactive delinquency type", 404);
+  }
 
   const { defaultPoints, defaultSeverity } = delinquencyType;
   const duplicateCheckWindowHours = 0.24; // default window
@@ -85,7 +90,7 @@ const createCompanyDelinquency = async (data) => {
    * We restrict logging the exact same delinquency type for the same company
    * within a short time window (e.g., 0.24 hours = ~14 mins).
    *
-   * Why? If a passenger angrily taps "Report" 5 times instantly, we don't
+   * Why? If a shipper angrily taps "Report" 5 times instantly, we don't
    * want to penalize the company 5 times for a single fault.
    * However, if the company commits the same fault an hour later on a new trip,
    * it WILL be counted.
@@ -116,7 +121,9 @@ const createCompanyDelinquency = async (data) => {
   // Calculate response deadline based on severity
   const severity = data.delinquencySeverity || defaultSeverity;
   const deadlineDays = RESPONSE_DEADLINE_DAYS[severity] || 5;
-  const responseDeadline = new Date(Date.now() + deadlineDays * 24 * 60 * 60 * 1000)
+  const responseDeadline = new Date(
+    Date.now() + deadlineDays * 24 * 60 * 60 * 1000,
+  )
     .toISOString()
     .slice(0, 19)
     .replace("T", " ");
@@ -200,8 +207,6 @@ const createCompanyDelinquency = async (data) => {
     companyDelinquencyUniqueId,
   };
 };
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Get company delinquencies (paginated + filtered)
@@ -314,16 +319,20 @@ const getCompanyDelinquencies = async (filters = {}) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Soft-delete a delinquency (only if no ban is linked)
 // ─────────────────────────────────────────────────────────────────────────────
-const deleteCompanyDelinquency = async (companyDelinquencyUniqueId, deletedBy) => {
+const deleteCompanyDelinquency = async (
+  companyDelinquencyUniqueId,
+  deletedBy,
+) => {
   const [[{ cnt }]] = await exec().query(
     `SELECT COUNT(*) AS cnt FROM CompanyBanDelinquency WHERE companyDelinquencyUniqueId = ?`,
     [companyDelinquencyUniqueId],
   );
-  if (cnt > 0)
-  {throw new AppError(
-    "Cannot delete: delinquency is linked to a ban record",
-    400,
-  );}
+  if (cnt > 0) {
+    throw new AppError(
+      "Cannot delete: delinquency is linked to a ban record",
+      400,
+    );
+  }
 
   const [result] = await exec().query(
     `UPDATE CompanyDelinquency
@@ -331,8 +340,9 @@ const deleteCompanyDelinquency = async (companyDelinquencyUniqueId, deletedBy) =
      WHERE companyDelinquencyUniqueId = ? AND delinquencyDeletedAt IS NULL`,
     [deletedBy, companyDelinquencyUniqueId],
   );
-  if (result.affectedRows === 0)
-  {throw new AppError("Delinquency not found or already deleted", 404);}
+  if (result.affectedRows === 0) {
+    throw new AppError("Delinquency not found or already deleted", 404);
+  }
   return {
     message: "success",
     data: "Company delinquency deleted successfully",
@@ -343,11 +353,7 @@ const deleteCompanyDelinquency = async (companyDelinquencyUniqueId, deletedBy) =
 // Get pending delinquencies for a company (no response + no admin decision yet)
 // ─────────────────────────────────────────────────────────────────────────────
 const getPendingDelinquencies = async (filters = {}) => {
-  const {
-    companyUniqueId,
-    page = 1,
-    limit = 10,
-  } = filters;
+  const { companyUniqueId, page = 1, limit = 10 } = filters;
 
   if (!companyUniqueId) {
     throw new AppError("companyUniqueId is required", 400);

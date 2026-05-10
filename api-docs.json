@@ -146,7 +146,7 @@
     "/api/user/createUser": {
       "post": {
         "summary": "Create User",
-        "description": "Create a new user (passenger or driver)",
+        "description": "Create a new user (shipper or driver)",
         "security": [],
         "requestBody": {
           "required": true,

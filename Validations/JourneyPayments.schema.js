@@ -22,5 +22,5 @@ exports.getJourneyPaymentsQuery = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(10),
   journeyUniqueId: uuidSchema.optional(),
   driverUniqueId: uuidSchema.optional(),
-  passengerUniqueId: uuidSchema.optional(),
+  shipperUniqueId: uuidSchema.optional(),
 }).unknown(true);

@@ -10,7 +10,9 @@ const {
   paginatedQuery,
 } = require("./CompanyHelper.service");
 const logger = require("../Utils/logger");
-const { reportCompanyCommissionEvasion } = require("./CommissionEvasion.service");
+const {
+  reportCompanyCommissionEvasion,
+} = require("./CommissionEvasion.service");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { sendSocketIONotificationToCompany } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
@@ -39,7 +41,7 @@ const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
  * > 4. Use `numberOfVehiclesOffered` as the `finalCount` in the INSERT query.
  *
  * @param {Object} data - The payload containing bid details.
- * @param {string} data.passengerRequestBatchId - The UUID that groups the shipper's requests.
+ * @param {string} data.shipperRequestBatchId - The UUID that groups the shipper's requests.
  * @param {string} data.companyUniqueId - The ID of the bidding fleet.
  * @param {string} data.bidSubmittedByUserUniqueId - The User ID of the dispatcher.
  * @param {number} [data.numberOfVehiclesOffered] - Optional; defaults to batch total.
@@ -48,7 +50,7 @@ const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
  */
 exports.submitBid = async (data) => {
   const {
-    passengerRequestBatchId,
+    shipperRequestBatchId,
     companyUniqueId,
     bidSubmittedByUserUniqueId,
     vehicleTypeUniqueId,
@@ -82,7 +84,9 @@ exports.submitBid = async (data) => {
     [companyUniqueId],
   );
   if (activeBan) {
-    const expiresOn = new Date(activeBan.banExpiresAt).toISOString().slice(0, 10);
+    const expiresOn = new Date(activeBan.banExpiresAt)
+      .toISOString()
+      .slice(0, 10);
     throw new AppError(
       `Company is currently suspended from bidding until ${expiresOn}. Reason: ${activeBan.banReason}`,
       403,
@@ -94,7 +98,7 @@ exports.submitBid = async (data) => {
     `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId, shipperUserUniqueId 
      FROM PassengerRequestBatch 
      WHERE batchUniqueId = ? AND batchDeletedAt IS NULL LIMIT 1`,
-    [passengerRequestBatchId],
+    [shipperRequestBatchId],
   );
   if (!batchRows || batchRows.length === 0) {
     throw new AppError("Passenger request batch not found", 404);
@@ -124,8 +128,8 @@ exports.submitBid = async (data) => {
   const [countRows] = await db().query(
     `SELECT COUNT(*) AS batchCount
      FROM PassengerRequest
-     WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
-    [passengerRequestBatchId],
+     WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
+    [shipperRequestBatchId],
   );
   const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
   if (actualRequestCount === 0) {
@@ -146,8 +150,8 @@ exports.submitBid = async (data) => {
 
   // One bid per company per batch
   const [existing] = await db().query(
-    "SELECT companyBidRequestId FROM CompanyBidRequest WHERE companyUniqueId = ? AND passengerRequestBatchId = ? AND companyBidRequestDeletedAt IS NULL",
-    [companyUniqueId, passengerRequestBatchId],
+    "SELECT companyBidRequestId FROM CompanyBidRequest WHERE companyUniqueId = ? AND shipperRequestBatchId = ? AND companyBidRequestDeletedAt IS NULL",
+    [companyUniqueId, shipperRequestBatchId],
   );
   if (existing.length > 0) {
     throw new AppError(
@@ -168,7 +172,7 @@ exports.submitBid = async (data) => {
 
   await db().query(
     `INSERT INTO CompanyBidRequest
-      (companyBidRequestUniqueId, passengerRequestBatchId, companyUniqueId,
+      (companyBidRequestUniqueId, shipperRequestBatchId, companyUniqueId,
        bidSubmittedByUserUniqueId, numberOfVehiclesOffered, vehicleTypeUniqueId,
        proposedCostPerVehicle, proposedTotalCost, proposedShippingDate,
        proposedDeliveryDate, bidNotes, bidStatus, journeyStatusId,
@@ -176,7 +180,7 @@ exports.submitBid = async (data) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', ?, ?, ?)`,
     [
       companyBidRequestUniqueId,
-      passengerRequestBatchId,
+      shipperRequestBatchId,
       companyUniqueId,
       bidSubmittedByUserUniqueId,
       finalCount,
@@ -214,7 +218,7 @@ exports.submitBid = async (data) => {
           data: {
             companyBidRequestUniqueId,
             companyName: company.companyName,
-            passengerRequestBatchId,
+            shipperRequestBatchId,
             proposedTotalCost: calculatedTotalCost,
           },
         },
@@ -237,7 +241,7 @@ exports.submitBid = async (data) => {
  * **Junior Note: SQL Optimization Corner**
  * 1. **`ONLY_FULL_GROUP_BY` Workaround**: In modern MySQL, `GROUP BY` is strict. To select a full
  *    set of data (`SELECT *`) while grouping by a batch ID, we first use a subquery to find
- *    the `MIN(passengerRequestId)` for each matching batch. Then we join back to those specific IDs.
+ *    the `MIN(shipperRequestId)` for each matching batch. Then we join back to those specific IDs.
  * 2. **Hiding Existing Bids**: We use a `NOT EXISTS` block. This ensures that once your company
  *    submits a bid, the request automatically disappears from your "Available" board to prevent
  *    double-bidding.
@@ -264,7 +268,7 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
     "b.journeyStatusId IN (?)",
     `NOT EXISTS (
       SELECT 1 FROM CompanyBidRequest cbr 
-      WHERE cbr.passengerRequestBatchId = b.batchUniqueId 
+      WHERE cbr.shipperRequestBatchId = b.batchUniqueId 
       AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
     )`,
   ];
@@ -274,7 +278,7 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
   // baseSql: No subqueries, no Group By! Pure performance.
   const baseSql = `
     SELECT b.*, 
-           b.batchUniqueId AS passengerRequestBatchId, -- backwards compatibility
+           b.batchUniqueId AS shipperRequestBatchId, -- backwards compatibility
            u.fullName AS shipperName,
            vt.vehicleTypeName, js.journeyStatusName
     FROM PassengerRequestBatch b
@@ -310,7 +314,7 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
  * Offers are sorted cheapest first so shippers can compare prices at a glance.
  *
  * @param {Object} scope - { shipperUserUniqueId } or { companyUniqueId }
- * @param {Object} filters - Pagination and optional bidStatus/passengerRequestBatchId.
+ * @param {Object} filters - Pagination and optional bidStatus/shipperRequestBatchId.
  * @returns {Promise<Object>} Paginated list of batches with nested offers.
  */
 exports.getGroupedBids = async (scope = {}, filters = {}) => {
@@ -331,7 +335,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
 
     if (filters.bidStatus || filters.isCancellationSeenByCompany) {
       const existsClauses = [
-        "cbr.passengerRequestBatchId = b.batchUniqueId",
+        "cbr.shipperRequestBatchId = b.batchUniqueId",
         "cbr.companyBidRequestDeletedAt IS NULL",
       ];
 
@@ -356,7 +360,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
     // The EXISTS subquery mirrors the same filters applied to offers (Step 2)
     // so that batches with 0 matching offers are never returned.
     const existsClauses = [
-      "cbr.passengerRequestBatchId = b.batchUniqueId",
+      "cbr.shipperRequestBatchId = b.batchUniqueId",
       "cbr.companyUniqueId = ?",
       "cbr.companyBidRequestDeletedAt IS NULL",
     ];
@@ -379,16 +383,16 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
     );
   }
 
-  if (filters.passengerRequestBatchId) {
+  if (filters.shipperRequestBatchId) {
     batchClauses.push("b.batchUniqueId = ?");
-    batchParams.push(filters.passengerRequestBatchId);
+    batchParams.push(filters.shipperRequestBatchId);
   }
 
   const batchWhere = `WHERE ${batchClauses.join(" AND ")}`;
 
   const [batches] = await db().query(
     `SELECT b.batchUniqueId,
-            b.batchUniqueId AS passengerRequestBatchId,
+            b.batchUniqueId AS shipperRequestBatchId,
             b.batchId,
             b.originPlace, b.destinationPlace,
             b.shippableItemName, b.shippableItemQtyInQuintal,
@@ -424,7 +428,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
   const batchIds = batches.map((b) => b.batchUniqueId);
 
   const offerClauses = [
-    "cbr.passengerRequestBatchId IN (?)",
+    "cbr.shipperRequestBatchId IN (?)",
     "cbr.companyBidRequestDeletedAt IS NULL",
   ];
   const offerParams = [batchIds];
@@ -445,7 +449,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
 
   const [offers] = await db().query(
     `SELECT cbr.companyBidRequestUniqueId,
-            cbr.passengerRequestBatchId,
+            cbr.shipperRequestBatchId,
             cbr.companyUniqueId,
             cbr.bidSubmittedByUserUniqueId,
             cbr.numberOfVehiclesOffered,
@@ -473,10 +477,10 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
   // ── 3. Group offers under each batch using a Map (O(N)) ──────────────────
   const offersByBatchId = new Map();
   for (const offer of offers) {
-    if (!offersByBatchId.has(offer.passengerRequestBatchId)) {
-      offersByBatchId.set(offer.passengerRequestBatchId, []);
+    if (!offersByBatchId.has(offer.shipperRequestBatchId)) {
+      offersByBatchId.set(offer.shipperRequestBatchId, []);
     }
-    offersByBatchId.get(offer.passengerRequestBatchId).push(offer);
+    offersByBatchId.get(offer.shipperRequestBatchId).push(offer);
   }
 
   const grouped = batches.map((batch) => ({
@@ -532,7 +536,7 @@ exports.getBidsSummary = async (companyUniqueId) => {
        AND b.journeyStatusId IN (?)
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidRequest cbr 
-         WHERE cbr.passengerRequestBatchId = b.batchUniqueId 
+         WHERE cbr.shipperRequestBatchId = b.batchUniqueId 
          AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
        )`,
     [companyUniqueId, activeStatusIds, companyUniqueId],
@@ -587,7 +591,7 @@ exports.getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   const isAdmin =
     roleId === usersRoles.adminRoleId ||
     roleId === usersRoles.supperAdminRoleId;
-  const isShipper = roleId === usersRoles.passengerRoleId;
+  const isShipper = roleId === usersRoles.shipperRoleId;
   const isCompanyAdmin =
     roleId === usersRoles.companyAdminRoleId ||
     roleId === usersRoles.companyDispatchRoleId;
@@ -752,12 +756,12 @@ exports.updateBidStatus = async (
 
     // 1. Check if PRs already exist for this batch
     const [existingPRs] = await db().query(
-      `SELECT passengerRequestId, journeyStatusId
+      `SELECT shipperRequestId, journeyStatusId
        FROM PassengerRequest
-       WHERE passengerRequestBatchId = ?
-         AND passengerRequestDeletedAt IS NULL
+       WHERE shipperRequestBatchId = ?
+         AND shipperRequestDeletedAt IS NULL
        FOR UPDATE`,
-      [bid.passengerRequestBatchId],
+      [bid.shipperRequestBatchId],
     );
 
     if (existingPRs.length === 0) {
@@ -768,14 +772,21 @@ exports.updateBidStatus = async (
         `UPDATE PassengerRequestBatch
          SET journeyStatusId = ?, batchUpdatedAt = ?
          WHERE batchUniqueId = ?`,
-        [journeyStatusMap.acceptedByPassenger, currentDate(), bid.passengerRequestBatchId],
+        [
+          journeyStatusMap.acceptedByPassenger,
+          currentDate(),
+          bid.shipperRequestBatchId,
+        ],
       );
 
-      logger.info("company_target bid accepted (PR rows deferred to assignment)", {
-        batchUniqueId: bid.passengerRequestBatchId,
-        bidUniqueId: companyBidRequestUniqueId,
-        totalVehicles: bid.numberOfVehiclesOffered,
-      });
+      logger.info(
+        "company_target bid accepted (PR rows deferred to assignment)",
+        {
+          batchUniqueId: bid.shipperRequestBatchId,
+          bidUniqueId: companyBidRequestUniqueId,
+          totalVehicles: bid.numberOfVehiclesOffered,
+        },
+      );
     } else {
       // ── INDIVIDUAL-TARGET EAGER PATH: PRs already exist → verify state ──
       const freeRequests = existingPRs.filter(
@@ -797,8 +808,8 @@ exports.updateBidStatus = async (
       await db().query(
         `UPDATE PassengerRequest
          SET journeyStatusId = ?
-         WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
-        [journeyStatusMap.acceptedByPassenger, bid.passengerRequestBatchId],
+         WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
+        [journeyStatusMap.acceptedByPassenger, bid.shipperRequestBatchId],
       );
     }
 
@@ -821,8 +832,8 @@ exports.updateBidStatus = async (
       setImmediate(async () => {
         try {
           const result = await reportCompanyCommissionEvasion({
-            companyUniqueId:         bid.companyUniqueId,
-            reportedByUniqueId:      updatedBy,
+            companyUniqueId: bid.companyUniqueId,
+            reportedByUniqueId: updatedBy,
             journeyDecisionUniqueId: companyBidRequestUniqueId,
             reason: `Company cancelled freight bid after shipper acceptance (bid: ${companyBidRequestUniqueId})`,
           });
@@ -844,8 +855,8 @@ exports.updateBidStatus = async (
     await db().query(
       `UPDATE PassengerRequest
        SET journeyStatusId = ?
-       WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
-      [newPRStatus, bid.passengerRequestBatchId],
+       WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
+      [newPRStatus, bid.shipperRequestBatchId],
     );
   }
 
@@ -877,7 +888,7 @@ exports.updateBidStatus = async (
         type: "company_bid_status_update",
         bidStatus,
         companyBidRequestUniqueId,
-        passengerRequestBatchId: bid.passengerRequestBatchId,
+        shipperRequestBatchId: bid.shipperRequestBatchId,
       },
     }).catch((e) =>
       logger.error("FCM notification failed for bid status update", {
@@ -902,7 +913,7 @@ exports.updateBidStatus = async (
           data: {
             bidStatus,
             companyBidRequestUniqueId,
-            passengerRequestBatchId: bid.passengerRequestBatchId,
+            shipperRequestBatchId: bid.shipperRequestBatchId,
           },
         },
       }).catch((e) =>

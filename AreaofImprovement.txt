@@ -27,7 +27,7 @@ sequenceDiagram
     D->>S: Journey Decision Created (Journey Starts)
 ```
 
-1.  **Request Batching**: Shippers group multiple `PassengerRequest` rows into a single `passengerRequestBatchId`.
+1.  **Request Batching**: Shippers group multiple `PassengerRequest` rows into a single `shipperRequestBatchId`.
 2.  **Discovery**: Fleet dispatchers use the `getAvailableRequests` logic to see work targeted at them or open to all companies.
 3.  **The Bid**: Unlike individual drivers who "claim" a ride, the company **proposes** a cost for the *entire* batch.
 4.  **Acceptance & Status Sync**: When a shipper accepts, the `CompanyBidRequest` status updates, and the original `PassengerRequest` status shifts to `acceptedByPassenger` to lock the slot.
@@ -41,7 +41,7 @@ While the current system is functional and secure, it contains several "failurit
 
 ### A. The "Batch Representative" Performance Trap
 > [!WARNING]
-> **Performance Failurity**: The discovery query uses a `WHERE pr.passengerRequestId IN (SELECT MIN(...) ...)` pattern. 
+> **Performance Failurity**: The discovery query uses a `WHERE pr.shipperRequestId IN (SELECT MIN(...) ...)` pattern. 
 
 *   **Risk**: As the `PassengerRequest` table grows to hundreds of thousands of rows, this subquery becomes a bottleneck. Even with indexes, MySQL must perform a "Group By" scan on the batch IDs for every discovery call.
 *   **Solution**: Consider a separate `RequestBatch` summary table that stores metadata about the batch (total vehicles, target ID, status) so you don't have to scan individual request rows just to show a list.

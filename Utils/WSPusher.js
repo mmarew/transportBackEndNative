@@ -48,7 +48,13 @@ async function WSPusher({ socket }) {
       );
     }
 
-    const validUserTypes = ["driver", "passenger", "SMSSender", "admin", "company"];
+    const validUserTypes = [
+      "driver",
+      "shipper",
+      "SMSSender",
+      "admin",
+      "company",
+    ];
     if (!validUserTypes.includes(user)) {
       return sendError(socket, "Invalid user type", "BAD_REQUEST");
     }
@@ -92,9 +98,9 @@ async function WSPusher({ socket }) {
     await setSocket(user, cleanedPhoneNumber, socketId);
     socket.userType = user;
     socket.identifier = cleanedPhoneNumber;
-    // Get status if passenger or driver
+    // Get status if shipper or driver
     let status = null;
-    if (user === "passenger") {
+    if (user === "shipper") {
       status = await getPassengerJourneyStatus(userUniqueId);
     } else if (user === "driver") {
       status = await getDriverJourneyStatus(userUniqueId);

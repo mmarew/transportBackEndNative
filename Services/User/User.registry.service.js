@@ -276,9 +276,9 @@ const createUser = async (body) => {
      * we block the request to prevent account takeover.
      *
      * SPECIAL CASE: "Street Hailing" (takeFromStreet)
-     * If a driver is registering a passenger from the street, we allow
+     * If a driver is registering a shipper from the street, we allow
      * using the existing phone record even if it has a different email.
-     * This ensures the driver isn't blocked by the passenger's app privacy
+     * This ensures the driver isn't blocked by the shipper's app privacy
      * settings while on the road.
      */
     const isSavedEmailPlaceholder = isPlaceholderEmail(user?.email);
@@ -482,7 +482,7 @@ const createUserSystem = async () => {
       roleId: usersRoles.supperAdminRoleId,
       statusId: USER_STATUS.ACTIVE,
       userRoleStatusDescription:
-        "Supper Admin can manage drivers passengers and admin using api requests",
+        "Supper Admin can manage drivers shippers and admin using api requests",
     },
     userUniqueId: "Supper Admin",
   });

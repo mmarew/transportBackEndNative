@@ -23,10 +23,7 @@ const { getVehicleDrivers } = require("./VehicleDriver.service");
 const messageTypes = require("../Utils/MessageTypes");
 
 const { pool } = require("../Middleware/Database.config");
-const {
-  journeyStatusMap,
-  usersRoles,
-} = require("../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 const { updateJourneyStatus } = require("./JourneyStatus.service");
 const { verifyDriverJourneyStatus } = require("./DriverRequest.service");
 const {
@@ -38,10 +35,7 @@ const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 require("./AttachedDocuments.service");
 
-const createPassengerRequest = async (
-  body,
-  journeyStatusId
-) => {
+const createPassengerRequest = async (body, journeyStatusId) => {
   const { shipperRequestCreatedByRoleId } = body;
   let userUniqueId = body?.userUniqueId;
 
@@ -50,16 +44,16 @@ const createPassengerRequest = async (
   }
 
   const numberOfVehicles = body?.numberOfVehicles || 1;
-  const passengerRequestBatchId = body?.passengerRequestBatchId;
-  if (!passengerRequestBatchId) {
+  const shipperRequestBatchId = body?.shipperRequestBatchId;
+  if (!shipperRequestBatchId) {
     throw new AppError("Batch uniqueId Can't be null", 400);
   }
 
   // Use context-aware executor for raw query with locking
   const executor = transactionStorage.getStore() || pool;
-  const batchCheckSql = `SELECT * FROM PassengerRequest WHERE passengerRequestBatchId = ? AND userUniqueId = ? FOR UPDATE`;
+  const batchCheckSql = `SELECT * FROM PassengerRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ? FOR UPDATE`;
   const [dataByBatchId] = await executor.query(batchCheckSql, [
-    passengerRequestBatchId,
+    shipperRequestBatchId,
     userUniqueId,
   ]);
 
@@ -70,7 +64,7 @@ const createPassengerRequest = async (
       {
         existingRequestsCount: dataByBatchId?.length,
         requestedVehicles: numberOfVehicles,
-        passengerRequestBatchId,
+        shipperRequestBatchId,
       },
     );
   }
@@ -80,7 +74,7 @@ const createPassengerRequest = async (
     const newRequest = await createNewPassengerRequest(
       body,
       userUniqueId,
-      journeyStatusId
+      journeyStatusId,
     );
     newRequests.push(newRequest?.data[0]);
   }
@@ -103,7 +97,7 @@ const acceptDriverRequest = async (body) => {
       },
       {
         table: "PassengerRequest",
-        on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+        on: "JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId",
       },
     ],
     conditions: {
@@ -129,7 +123,7 @@ const acceptDriverRequest = async (body) => {
         : journeyStatusMap.notSelectedInBid,
       driverRequestUniqueId: driver?.driverRequestUniqueId,
       journeyDecisionUniqueId: driver?.journeyDecisionUniqueId,
-      passengerRequestUniqueId: driver?.passengerRequestUniqueId,
+      shipperRequestUniqueId: driver?.shipperRequestUniqueId,
     };
 
     await updateJourneyStatus(updatePayload);
@@ -149,7 +143,7 @@ const acceptDriverRequest = async (body) => {
       status: isAccepted ? "success" : "not_selected",
       driverRequestUniqueId: String(driver?.driverRequestUniqueId || ""),
       journeyDecisionUniqueId: String(journeyDecisionUniqueId || ""),
-      passengerUserUniqueId: String(userUniqueId || ""),
+      shipperUserUniqueId: String(userUniqueId || ""),
     };
 
     if (targetDriverUserUniqueId) {
@@ -174,8 +168,8 @@ const acceptDriverRequest = async (body) => {
 const rejectDriverOffer = async (body) => {
   // Validate required fields
   const requiredFields = [
-    "passengerRequestId",
-    "passengerRequestUniqueId",
+    "shipperRequestId",
+    "shipperRequestUniqueId",
     "driverRequestUniqueId",
     "journeyDecisionUniqueId",
     "journeyStatusId",
@@ -192,46 +186,46 @@ const rejectDriverOffer = async (body) => {
   const allPassengerRequests = await getData({
     tableName: "JourneyDecisions",
     conditions: {
-      passengerRequestId: body.passengerRequestId,
+      shipperRequestId: body.shipperRequestId,
       journeyStatusId: journeyStatusMap.acceptedByDriver,
     },
   });
 
   const [driverRequestUpdateResult, journeyDecisionUpdateResult] =
-      await Promise.all([
-        allPassengerRequests.length <= 1 &&
-          updateData({
-            tableName: "PassengerRequest",
-            conditions: {
-              passengerRequestUniqueId: body.passengerRequestUniqueId,
-            },
-            updateValues: {
-              journeyStatusId: journeyStatusMap.waiting,
-            },
-          }),
+    await Promise.all([
+      allPassengerRequests.length <= 1 &&
         updateData({
-          tableName: "DriverRequest",
+          tableName: "PassengerRequest",
           conditions: {
-            driverRequestUniqueId: body.driverRequestUniqueId,
+            shipperRequestUniqueId: body.shipperRequestUniqueId,
           },
           updateValues: {
-            journeyStatusId: journeyStatusMap.rejectedByPassenger,
+            journeyStatusId: journeyStatusMap.waiting,
           },
         }),
-        updateData({
-          tableName: "JourneyDecisions",
-          conditions: {
-            journeyDecisionUniqueId: body.journeyDecisionUniqueId,
-          },
-          updateValues: {
-            journeyStatusId: journeyStatusMap.rejectedByPassenger,
-          },
-        }),
-      ]);
+      updateData({
+        tableName: "DriverRequest",
+        conditions: {
+          driverRequestUniqueId: body.driverRequestUniqueId,
+        },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.rejectedByPassenger,
+        },
+      }),
+      updateData({
+        tableName: "JourneyDecisions",
+        conditions: {
+          journeyDecisionUniqueId: body.journeyDecisionUniqueId,
+        },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.rejectedByPassenger,
+        },
+      }),
+    ]);
 
   if (
     !driverRequestUpdateResult?.affectedRows ||
-      !journeyDecisionUpdateResult?.affectedRows
+    !journeyDecisionUpdateResult?.affectedRows
   ) {
     throw new AppError("Failed to reject driver offer", 500);
   }
@@ -256,7 +250,7 @@ const getAllActiveRequests = async (filters = {}) => {
     deliveryDate,
     page = 1,
     limit = 2,
-    sortBy = "passengerRequestCreatedAt",
+    sortBy = "shipperRequestCreatedAt",
     sortOrder = "DESC",
     requestMode,
   } = filters;
@@ -379,7 +373,7 @@ const getAllActiveRequests = async (filters = {}) => {
   };
 };
 
-const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
+const getPassengerRequestByPassengerRequestId = async (shipperRequestId) => {
   const result = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
@@ -388,16 +382,16 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
         on: "PassengerRequest.userUniqueId = Users.userUniqueId",
       },
     ],
-    conditions: { passengerRequestId },
+    conditions: { shipperRequestId },
   });
   if (!result?.length) {
     throw new AppError("Passenger request not found", 404);
   }
   return result[0];
 };
-// DEPRECATED: Use getPassengerRequest4allOrSingleUser with filters.passengerRequestUniqueId instead
+// DEPRECATED: Use getPassengerRequest4allOrSingleUser with filters.shipperRequestUniqueId instead
 // const getPassengerRequestByPassengerRequestUniqueId = async (
-//   passengerRequestUniqueId
+//   shipperRequestUniqueId
 // ) => {
 //   try {
 //     const result = await performJoinSelect({
@@ -409,7 +403,7 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
 //         },
 //       ],
 //       conditions: {
-//         passengerRequestUniqueId,
+//         shipperRequestUniqueId,
 //       },
 //     });
 
@@ -422,13 +416,13 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
 //     return { message: "error", error: "Unable to retrieve request" };
 //   }
 // };
-const getDetailedJourneyData = async (passengerRequests) => {
-  const processPassengerRequest = async (passengerRequest) => {
-    const { journeyStatusId, passengerRequestId } = passengerRequest;
+const getDetailedJourneyData = async (shipperRequests) => {
+  const processPassengerRequest = async (shipperRequest) => {
+    const { journeyStatusId, shipperRequestId } = shipperRequest;
 
     if (journeyStatusId === journeyStatusMap.waiting) {
       return {
-        passengerRequest,
+        shipperRequest,
         driverRequests: [],
         decisions: [],
         journey: {},
@@ -444,12 +438,12 @@ const getDetailedJourneyData = async (passengerRequests) => {
     // Get decisions
     const decisions = await getData({
       tableName: "JourneyDecisions",
-      conditions: { passengerRequestId, journeyStatusId },
+      conditions: { shipperRequestId, journeyStatusId },
     });
 
     if (decisions.length === 0) {
       return {
-        passengerRequest,
+        shipperRequest,
         driverRequests: [],
         decisions: [],
         journey: {},
@@ -530,7 +524,7 @@ const getDetailedJourneyData = async (passengerRequests) => {
     }
 
     return {
-      passengerRequest,
+      shipperRequest,
       // get all non null driverRequests values only
 
       driverRequests: driverRequests.filter((driverRequest) =>
@@ -541,7 +535,7 @@ const getDetailedJourneyData = async (passengerRequests) => {
     };
   };
 
-  return Promise.all(passengerRequests.map(processPassengerRequest));
+  return Promise.all(shipperRequests.map(processPassengerRequest));
 };
 const getPassengerRequest4allOrSingleUser = async ({ data }) => {
   const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
@@ -616,11 +610,11 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
     }
   }
 
-  if (filters?.passengerRequestBatchId) {
+  if (filters?.shipperRequestBatchId) {
     whereClause += whereClause ? " AND " : " WHERE ";
-    whereClause += " PassengerRequest.passengerRequestBatchId = ?";
-    queryParams.push(filters.passengerRequestBatchId);
-    countParams.push(filters.passengerRequestBatchId);
+    whereClause += " PassengerRequest.shipperRequestBatchId = ?";
+    queryParams.push(filters.shipperRequestBatchId);
+    countParams.push(filters.shipperRequestBatchId);
   }
 
   if (filters?.shippableItemName) {
@@ -668,7 +662,7 @@ const getPassengerRequest4allOrSingleUser = async ({ data }) => {
 
   queryParams.push(parseInt(limit), offset);
   const executor = transactionStorage.getStore() || pool;
-  const [passengerRequests] = await executor.query(sqlToGetRequests, queryParams);
+  const [shipperRequests] = await executor.query(sqlToGetRequests, queryParams);
 
   const sqlCount = `
 SELECT COUNT(*) as total 
@@ -681,7 +675,7 @@ ${whereClause}
   const [countResult] = await executor.query(sqlCount, countParams);
   const total = countResult[0]?.total || 0;
   const totalPages = Math.ceil(total / limit);
-  const formattedData = await getDetailedJourneyData(passengerRequests);
+  const formattedData = await getDetailedJourneyData(shipperRequests);
 
   return {
     formattedData,
@@ -701,7 +695,7 @@ ${whereClause}
 const updateRequestById = async (requestId, updates) => {
   const result = await updateData({
     tableName: "PassengerRequest",
-    conditions: { passengerRequestId: requestId },
+    conditions: { shipperRequestId: requestId },
     updateValues: updates,
   });
 
@@ -715,7 +709,7 @@ const updateRequestById = async (requestId, updates) => {
 const deleteRequest = async (requestId) => {
   const result = await deleteData({
     tableName: "PassengerRequest",
-    conditions: { passengerRequestId: requestId },
+    conditions: { shipperRequestId: requestId },
   });
 
   if (result.affectedRows === 0) {
@@ -731,30 +725,30 @@ const cancelPassengerRequest = async (body) => {
     user,
     ownerUserUniqueId,
     cancellationReasonsTypeId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
   } = body;
 
   const { userUniqueId, roleId } = user;
 
-  if (!userUniqueId || !roleId || !passengerRequestUniqueId) {
+  if (!userUniqueId || !roleId || !shipperRequestUniqueId) {
     throw new AppError(
-      "Missing required fields to cancel passenger request",
+      "Missing required fields to cancel shipper request",
       400,
     );
   }
 
-  const passengerRequestData = await getData({
+  const shipperRequestData = await getData({
     tableName: "PassengerRequest",
-    conditions: { passengerRequestUniqueId },
+    conditions: { shipperRequestUniqueId },
   });
 
-  if (!passengerRequestData || passengerRequestData.length === 0) {
+  if (!shipperRequestData || shipperRequestData.length === 0) {
     throw new AppError("Passenger request not found", 404);
   }
 
-  const passengerRequest = passengerRequestData[0];
-  const requestOwnerUserUniqueId = passengerRequest.userUniqueId;
-  const passengerRequestId = passengerRequest.passengerRequestId;
+  const shipperRequest = shipperRequestData[0];
+  const requestOwnerUserUniqueId = shipperRequest.userUniqueId;
+  const shipperRequestId = shipperRequest.shipperRequestId;
 
   const isOwner = requestOwnerUserUniqueId === userUniqueId;
   const isAdmin = roleId === 3 || roleId === 6;
@@ -768,10 +762,10 @@ const cancelPassengerRequest = async (body) => {
 
   const journeyDecisions = await getData({
     tableName: "JourneyDecisions",
-    conditions: { passengerRequestId },
+    conditions: { shipperRequestId },
   });
 
-  const passengerData = await performJoinSelect({
+  const shipperData = await performJoinSelect({
     baseTable: "PassengerRequest",
     joins: [
       {
@@ -779,16 +773,16 @@ const cancelPassengerRequest = async (body) => {
         on: "PassengerRequest.userUniqueId = Users.userUniqueId",
       },
     ],
-    conditions: { passengerRequestId },
+    conditions: { shipperRequestId },
   });
-  const passenger = passengerData?.[0] || null;
+  const shipper = shipperData?.[0] || null;
 
   const driverNotificationData = [];
 
   await (async () => {
     await updateData({
       tableName: "PassengerRequest",
-      conditions: { passengerRequestId },
+      conditions: { shipperRequestId },
       updateValues: {
         journeyStatusId: cancellationJourneyStatusId,
       },
@@ -883,7 +877,7 @@ const cancelPassengerRequest = async (body) => {
 
         const uniqueIds = {
           driverRequestUniqueId: driverRequest?.driverRequestUniqueId,
-          passengerRequestUniqueId: passenger?.passengerRequestUniqueId,
+          shipperRequestUniqueId: shipper?.shipperRequestUniqueId,
           journeyDecisionUniqueId,
           journeyUniqueId: journey?.journeyUniqueId || null,
         };
@@ -895,7 +889,7 @@ const cancelPassengerRequest = async (body) => {
 
         const cancellationMessageType =
           cancellationJourneyStatusId === journeyStatusMap.cancelledByPassenger
-            ? messageTypes?.passenger_cancelled_request
+            ? messageTypes?.shipper_cancelled_request
             : messageTypes?.admin_cancelled_request;
 
         await sendSocketIONotificationToDriver({
@@ -903,7 +897,7 @@ const cancelPassengerRequest = async (body) => {
             messageTypes: cancellationMessageType,
             message: "success",
             status: cancellationJourneyStatusId,
-            passenger: passenger ? [passenger] : null,
+            shipper: shipper ? [shipper] : null,
             drivers: [driverInfo],
             decisions: [journeyDecision] || null,
             journey: journey || null,
@@ -923,8 +917,8 @@ const cancelPassengerRequest = async (body) => {
             data: {
               type: "driver_request_canceled",
               status: "canceled",
-              passengerRequestId: String(passengerRequestId || ""),
-              passengerUserUniqueId: String(ownerUserUniqueId || ""),
+              shipperRequestId: String(shipperRequestId || ""),
+              shipperUserUniqueId: String(ownerUserUniqueId || ""),
             },
           }).catch((e) =>
             logger.error("Error sending FCM notification to driver:", e),
@@ -943,7 +937,7 @@ const cancelPassengerRequest = async (body) => {
   const canceledJourneyBefore = await getData({
     tableName: "CanceledJourneys",
     conditions: {
-      contextId: passengerRequestId,
+      contextId: shipperRequestId,
       contextType: "PassengerRequest",
     },
   });
@@ -952,24 +946,24 @@ const cancelPassengerRequest = async (body) => {
     await createCanceledJourney({
       canceledBy: userUniqueId,
       canceledTime: currentDate(),
-      contextId: passengerRequestId,
+      contextId: shipperRequestId,
       contextType: "PassengerRequest",
       cancellationReasonsTypeId,
       roleId,
-      passengerUserUniqueId: requestOwnerUserUniqueId,
+      shipperUserUniqueId: requestOwnerUserUniqueId,
     });
   }
   return "You have successfully cancelled your request.";
 };
 
-// Function to get the passenger's current journey status
+// Function to get the shipper's current journey status
 const getPassengerJourneyStatus = async (userUniqueId) => {
   try {
     const [currentRequest] = await getData({
       tableName: "PassengerRequest",
       conditions: { userUniqueId },
       limit: 1,
-      orderBy: "passengerRequestId",
+      orderBy: "shipperRequestId",
       orderDirection: "desc",
     });
 
@@ -991,7 +985,7 @@ const getRecentCompletedJourney = async (user) => {
     tableName: "PassengerRequest",
     conditions: { userUniqueId },
     limit: 7,
-    orderBy: "passengerRequestId",
+    orderBy: "shipperRequestId",
     orderDirection: "desc",
   });
   return { message: "success", data: results };
@@ -999,7 +993,7 @@ const getRecentCompletedJourney = async (user) => {
 const seenByPassenger = async (body) => {
   const {
     userUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     journeyDecisionUniqueId,
     rating,
   } = body;
@@ -1007,7 +1001,7 @@ const seenByPassenger = async (body) => {
   await Promise.all([
     updateData({
       tableName: "PassengerRequest",
-      conditions: { passengerRequestUniqueId },
+      conditions: { shipperRequestUniqueId },
       updateValues: { isCompletionSeen: true },
     }),
     createRating({
@@ -1018,11 +1012,11 @@ const seenByPassenger = async (body) => {
     }),
   ]);
 
-  return "Data seen by passenger";
+  return "Data seen by shipper";
 };
 
-// this function is used to get status of passenger and find driver if driver is not found.
-// Get cancellation notifications for passenger
+// this function is used to get status of shipper and find driver if driver is not found.
+// Get cancellation notifications for shipper
 const getCancellationNotifications = async ({
   userUniqueId,
   seenStatus,
@@ -1050,13 +1044,13 @@ const getCancellationNotifications = async ({
 
   const sql = `
       SELECT 
-        PassengerRequest.passengerRequestId,
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
+        PassengerRequest.shipperRequestId,
+        PassengerRequest.shipperRequestUniqueId,
+        PassengerRequest.userUniqueId as shipperUserUniqueId,
         PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as passengerOriginLatitude,
-        PassengerRequest.originLongitude as passengerOriginLongitude,
-        PassengerRequest.originPlace as passengerOriginPlace,
+        PassengerRequest.originLatitude as shipperOriginLatitude,
+        PassengerRequest.originLongitude as shipperOriginLongitude,
+        PassengerRequest.originPlace as shipperOriginPlace,
         PassengerRequest.destinationLatitude,
         PassengerRequest.destinationLongitude,
         PassengerRequest.destinationPlace,
@@ -1066,9 +1060,9 @@ const getCancellationNotifications = async ({
         PassengerRequest.shippingDate,
         PassengerRequest.deliveryDate,
         PassengerRequest.shippingCost,
-        PassengerUser.fullName as passengerFullName,
-        PassengerUser.phoneNumber as passengerPhoneNumber,
-        PassengerUser.email as passengerEmail,
+        PassengerUser.fullName as shipperFullName,
+        PassengerUser.phoneNumber as shipperPhoneNumber,
+        PassengerUser.email as shipperEmail,
         JourneyDecisions.journeyDecisionId,
         JourneyDecisions.journeyDecisionUniqueId,
         JourneyDecisions.decisionTime,
@@ -1086,7 +1080,7 @@ const getCancellationNotifications = async ({
         DriverUser.phoneNumber as driverPhoneNumber,
         DriverUser.email as driverEmail
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       INNER JOIN Users as PassengerUser ON PassengerRequest.userUniqueId = PassengerUser.userUniqueId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
@@ -1098,7 +1092,7 @@ const getCancellationNotifications = async ({
   const countSql = `
       SELECT COUNT(*) as total
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       WHERE ${whereConditions.join(" AND ")}
     `;
 
@@ -1141,14 +1135,14 @@ const getCancellationNotifications = async ({
       }
 
       return {
-        passengerRequest: {
-          passengerRequestId: request.passengerRequestId,
-          passengerRequestUniqueId: request.passengerRequestUniqueId,
-          userUniqueId: request.passengerUserUniqueId,
+        shipperRequest: {
+          shipperRequestId: request.shipperRequestId,
+          shipperRequestUniqueId: request.shipperRequestUniqueId,
+          userUniqueId: request.shipperUserUniqueId,
           vehicleTypeUniqueId: request.vehicleTypeUniqueId,
-          originLatitude: request.passengerOriginLatitude,
-          originLongitude: request.passengerOriginLongitude,
-          originPlace: request.passengerOriginPlace,
+          originLatitude: request.shipperOriginLatitude,
+          originLongitude: request.shipperOriginLongitude,
+          originPlace: request.shipperOriginPlace,
           destinationLatitude: request.destinationLatitude,
           destinationLongitude: request.destinationLongitude,
           destinationPlace: request.destinationPlace,
@@ -1159,11 +1153,11 @@ const getCancellationNotifications = async ({
           deliveryDate: request.deliveryDate,
           shippingCost: request.shippingCost,
         },
-        passenger: {
-          userUniqueId: request.passengerUserUniqueId,
-          fullName: request.passengerFullName,
-          phoneNumber: request.passengerPhoneNumber,
-          email: request.passengerEmail,
+        shipper: {
+          userUniqueId: request.shipperUserUniqueId,
+          fullName: request.shipperFullName,
+          phoneNumber: request.shipperPhoneNumber,
+          email: request.shipperEmail,
         },
         driverRequest: {
           driverRequestId: request.driverRequestId,
@@ -1211,7 +1205,7 @@ const getCancellationNotifications = async ({
   };
 };
 
-// Mark cancellation notification as seen by passenger
+// Mark cancellation notification as seen by shipper
 const markCancellationAsSeen = async ({
   journeyDecisionUniqueId,
   userUniqueId,
@@ -1226,21 +1220,21 @@ const markCancellationAsSeen = async ({
   }
 
   const decisionData = journeyDecision[0];
-  const passengerRequestId = decisionData.passengerRequestId;
+  const shipperRequestId = decisionData.shipperRequestId;
 
-  const passengerRequest = await getData({
+  const shipperRequest = await getData({
     tableName: "PassengerRequest",
-    conditions: { passengerRequestId },
+    conditions: { shipperRequestId },
   });
 
-  if (!passengerRequest || passengerRequest.length === 0) {
+  if (!shipperRequest || shipperRequest.length === 0) {
     throw new AppError("Passenger request not found", 404);
   }
 
-  const requestData = passengerRequest[0];
+  const requestData = shipperRequest[0];
   if (requestData.userUniqueId !== userUniqueId) {
     throw new AppError(
-      "Unauthorized: Journey decision does not belong to this passenger",
+      "Unauthorized: Journey decision does not belong to this shipper",
       403,
     );
   }
@@ -1259,7 +1253,7 @@ const markCancellationAsSeen = async ({
     tableName: "JourneyDecisions",
     conditions: { journeyDecisionUniqueId },
     updateValues: {
-      isCancellationByDriverSeenByPassenger: "seen by passenger",
+      isCancellationByDriverSeenByPassenger: "seen by shipper",
     },
   });
 
@@ -1297,13 +1291,16 @@ const markCancellationAsSeen = async ({
  *   - One CanceledJourneys audit record written for the batch
  */
 const cancelPassengerRequestBatch = async ({
-  passengerRequestBatchId,
+  shipperRequestBatchId,
   userUniqueId,
   roleId,
   cancellationReasonsTypeId,
 }) => {
-  if (!passengerRequestBatchId || !userUniqueId) {
-    throw new AppError("passengerRequestBatchId and userUniqueId are required", 400);
+  if (!shipperRequestBatchId || !userUniqueId) {
+    throw new AppError(
+      "shipperRequestBatchId and userUniqueId are required",
+      400,
+    );
   }
 
   const executor = transactionStorage.getStore() || pool;
@@ -1314,7 +1311,7 @@ const cancelPassengerRequestBatch = async ({
        FROM PassengerRequestBatch
       WHERE batchUniqueId = ?
       LIMIT 1`,
-    [passengerRequestBatchId],
+    [shipperRequestBatchId],
   );
 
   const batch = batchResult[0];
@@ -1344,16 +1341,16 @@ const cancelPassengerRequestBatch = async ({
         SET journeyStatusId = ?,
             batchUpdatedAt  = NOW()
       WHERE batchUniqueId = ?`,
-    [cancellationStatusId, passengerRequestBatchId],
+    [cancellationStatusId, shipperRequestBatchId],
   );
 
   // 3. Expire all submitted company bids — companies see opportunity is closed
   await executor.query(
     `UPDATE CompanyBidRequest
         SET bidStatus = 'expired'
-      WHERE passengerRequestBatchId = ?
+      WHERE shipperRequestBatchId = ?
         AND bidStatus = 'submitted'`,
-    [passengerRequestBatchId],
+    [shipperRequestBatchId],
   );
 
   // 4. Write ONE audit record for the batch cancellation
@@ -1372,13 +1369,13 @@ const cancelPassengerRequestBatch = async ({
       contextType: "PassengerRequest",
       cancellationReasonsTypeId: cancellationReasonsTypeId || null,
       roleId,
-      passengerUserUniqueId: batch.shipperUserUniqueId,
+      shipperUserUniqueId: batch.shipperUserUniqueId,
     });
   }
 
   return {
     message: "success",
-    data: { passengerRequestBatchId, status: "cancelled" },
+    data: { shipperRequestBatchId, status: "cancelled" },
   };
 };
 
@@ -1420,7 +1417,7 @@ const verifyPassengerStatus = async ({
       totalRecords: totalRecords || defaultTotalRecords,
     };
   }
-  const passenger = [],
+  const shipper = [],
     decisions = [],
     drivers = [],
     driversData = [],
@@ -1428,20 +1425,20 @@ const verifyPassengerStatus = async ({
   let journey = [];
   let driverFound = false;
   const notifiedDrivers = new Set();
-  for (const passengerRequest of activeRequest) {
-    const journeyStatusId = passengerRequest.journeyStatusId,
-      passengerRequestId = passengerRequest.passengerRequestId;
+  for (const shipperRequest of activeRequest) {
+    const journeyStatusId = shipperRequest.journeyStatusId,
+      shipperRequestId = shipperRequest.shipperRequestId;
 
-    passenger.push(passengerRequest);
+    shipper.push(shipperRequest);
 
     if (journeyStatusId === journeyStatusMap?.waiting) {
       // company_target requests go through the company bid → assignment flow.
       // They must NEVER be auto-matched to individual drivers here.
-      if (passengerRequest.requestMode === "company_target") {
+      if (shipperRequest.requestMode === "company_target") {
         continue;
       }
 
-      const nearbyDrivers = await findNearbyDrivers({ passengerRequest });
+      const nearbyDrivers = await findNearbyDrivers({ shipperRequest });
       for (const driver of nearbyDrivers) {
         const [documents, vehicle] = await Promise.all([
           getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
@@ -1466,11 +1463,11 @@ const verifyPassengerStatus = async ({
         const journeyDecisionUniqueId = uuidv4();
         const journeyDecisionPayload = {
           journeyDecisionUniqueId,
-          passengerRequestId,
+          shipperRequestId,
           driverRequestId: driver.driverRequestId,
           journeyStatusId: journeyStatusMap.requested,
           decisionTime: currentDate(),
-          decisionBy: "passenger",
+          decisionBy: "shipper",
           journeyDecisionCreatedBy: userUniqueId,
           journeyDecisionCreatedAt: currentDate(),
         };
@@ -1481,7 +1478,7 @@ const verifyPassengerStatus = async ({
         await updateData({
           tableName: "PassengerRequest",
           conditions: {
-            passengerRequestId,
+            shipperRequestId,
           },
           updateValues: { journeyStatusId: journeyStatusMap.requested },
         });
@@ -1492,7 +1489,7 @@ const verifyPassengerStatus = async ({
         });
 
         driver.journeyStatusId = journeyStatusMap.requested;
-        passengerRequest.journeyStatusId = journeyStatusMap.requested;
+        shipperRequest.journeyStatusId = journeyStatusMap.requested;
 
         driversData.push({
           driver: { ...driver, driverProfilePhoto },
@@ -1507,7 +1504,7 @@ const verifyPassengerStatus = async ({
               messageTypes: messageTypes.driver_found_shipper_request,
               message: "success",
               status: journeyStatusMap.requested,
-              passenger: passengerRequest,
+              shipper: shipperRequest,
               driver: {
                 driver: { ...driver, driverProfilePhoto },
                 vehicle: vehicle,
@@ -1529,7 +1526,7 @@ const verifyPassengerStatus = async ({
       decisions.push(...decisionsData);
     } else {
       const filters = {
-        passengerRequestId: passengerRequest?.passengerRequestId,
+        shipperRequestId: shipperRequest?.shipperRequestId,
         journeyStatusIds: [
           journeyStatusMap.requested,
           journeyStatusMap.acceptedByDriver,
@@ -1590,15 +1587,15 @@ const verifyPassengerStatus = async ({
         };
         driversData.push(driverInfo);
 
-        const matchingPassengerRequest = passenger.find(
-          (pr) => pr.passengerRequestId === journeyDecision.passengerRequestId,
+        const matchingPassengerRequest = shipper.find(
+          (pr) => pr.shipperRequestId === journeyDecision.shipperRequestId,
         );
 
         const message = {
           messageTypes: messageTypes.driver_found_shipper_request,
           message: "success",
           status: driver?.journeyStatusId,
-          passenger: matchingPassengerRequest,
+          shipper: matchingPassengerRequest,
           driver: driverInfo,
           journey: journey?.length > 0 ? journey[0] : null,
           decision: journeyDecision || null,
@@ -1629,19 +1626,19 @@ const verifyPassengerStatus = async ({
 
   const cancellationNotifications = await getCancellationNotifications({
     userUniqueId,
-    seenStatus: "not seen by passenger yet",
+    seenStatus: "not seen by shipper yet",
   });
 
   if (cancellationNotifications?.data?.length > 0) {
-    const passengerUserData = await performJoinSelect({
+    const shipperUserData = await performJoinSelect({
       baseTable: "Users",
       joins: [],
       conditions: { userUniqueId },
     });
-    const passengerPhoneNumber = passengerUserData?.[0]?.phoneNumber;
+    const shipperPhoneNumber = shipperUserData?.[0]?.phoneNumber;
 
     for (const notification of cancellationNotifications.data) {
-      if (passengerPhoneNumber) {
+      if (shipperPhoneNumber) {
         const journeyStatusIdInner =
           notification.journeyDecision.journeyStatusId;
         const isDriverCancellation =
@@ -1657,12 +1654,12 @@ const verifyPassengerStatus = async ({
               ? "Driver cancelled your request."
               : "Admin cancelled your request.",
             status: journeyStatusIdInner,
-            passenger: notification.passenger ? [notification.passenger] : null,
+            shipper: notification.shipper ? [notification.shipper] : null,
             driver: notification.driver ? [notification.driver] : null,
             journey: notification.journey || null,
             decision: notification.journeyDecision || null,
           },
-          phoneNumber: passengerPhoneNumber,
+          phoneNumber: shipperPhoneNumber,
         });
       }
     }

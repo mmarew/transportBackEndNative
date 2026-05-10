@@ -424,7 +424,7 @@ const updateUser = async (req, res, next) => {
             // WebSocket Session Revocation
             const oldPhone = user.phoneNumber;
             const roleId = Number(req.user.roleId);
-            let userType = "passenger";
+            let userType = "shipper";
             if (roleId === usersRoles.driverRoleId) {
               userType = "driver";
             } else if (roleId === usersRoles.adminRoleId) {
@@ -549,7 +549,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       // 1. Send SMS (Admin Assignment Message)
       if (phoneNumber && phoneVerificationOTP) {
         const roleNameMap = {
-          [usersRoles.passengerRoleId]: "Passenger",
+          [usersRoles.shipperRoleId]: "Passenger",
           [usersRoles.driverRoleId]: "Driver",
           [usersRoles.adminRoleId]: "Admin",
           [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
@@ -574,7 +574,7 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
       if (email) {
         if (isEmailVerified) {
           const roleNameMap = {
-            [usersRoles.passengerRoleId]: "Passenger",
+            [usersRoles.shipperRoleId]: "Passenger",
             [usersRoles.driverRoleId]: "Driver",
             [usersRoles.adminRoleId]: "Admin",
             [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
@@ -748,8 +748,15 @@ module.exports = {
     try {
       const { userUniqueId } = req.params;
       const { page, limit, fieldName, source } = req.query;
-      const result = await getUserHistory(userUniqueId, { page, limit, fieldName, source });
+      const result = await getUserHistory(userUniqueId, {
+        page,
+        limit,
+        fieldName,
+        source,
+      });
       res.json(result);
-    } catch (e) { next(e); }
+    } catch (e) {
+      next(e);
+    }
   },
 };

@@ -53,7 +53,7 @@ exports.getDriverEarningsByFilter = async ({
       JOIN DriverRequest 
         ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       JOIN PassengerRequest 
-        ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+        ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       WHERE ${whereConditions.join(" AND ")}
       ORDER BY JourneyDecisions.journeyDecisionId DESC
       LIMIT ? OFFSET ?

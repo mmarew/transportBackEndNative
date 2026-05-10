@@ -21,7 +21,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
       journeyDecisionUniqueId,
       latitude,
       longitude,
-      passengerPhoneNumber,
+      shipperPhoneNumber,
       userUniqueId,
       ...additionalData
     } = body;
@@ -71,12 +71,12 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
     ];
 
     await queryExecutor.query(sql, values);
-    // Send notification if passenger phone number is provided
+    // Send notification if shipper phone number is provided
     // Note: Notifications sent outside transaction to avoid blocking
-    if (passengerPhoneNumber) {
+    if (shipperPhoneNumber) {
       try {
         await sendSocketIONotificationToPassenger({
-          phoneNumber: passengerPhoneNumber,
+          phoneNumber: shipperPhoneNumber,
           eventName: "locationUpdateToShipper",
           message: {
             ...additionalData,

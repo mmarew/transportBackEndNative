@@ -95,7 +95,7 @@ const addisAbabaLocations = [
 ];
 
 // Generate 15 Online Drivers - using unique phone pattern that doesn't exist in seedTestUsers.js
-// seedTestUsers.js uses: +251910000001 to +251959000001 (drivers) and +251960000001 to +251999000001 (passengers)
+// seedTestUsers.js uses: +251910000001 to +251959000001 (drivers) and +251960000001 to +251999000001 (shippers)
 // We use: +251901000001 to +251915000001 (completely different pattern)
 const onlineDrivers = [];
 for (let i = 1; i <= 15; i++) {

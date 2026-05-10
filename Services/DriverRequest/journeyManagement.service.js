@@ -22,107 +22,114 @@ const {
 } = require("../UserSubscription.service");
 
 const startJourney = async (body) => {
-  return await executeInTransaction(async (conn) => {
-    const journeyUniqueId = uuidv4();
-    const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
-    const userUniqueId = body?.userUniqueId;
-    const latitude = body?.latitude,
-      longitude = body?.longitude;
+  return await executeInTransaction(
+    async (conn) => {
+      const journeyUniqueId = uuidv4();
+      const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
+      const userUniqueId = body?.userUniqueId;
+      const latitude = body?.latitude,
+        longitude = body?.longitude;
 
-    if (!userUniqueId) {
-      throw new AppError("User authentication required", 401);
-    }
-    if (!latitude || !longitude) {
-      throw new AppError("Latitude and longitude are required", 400);
-    }
+      if (!userUniqueId) {
+        throw new AppError("User authentication required", 401);
+      }
+      if (!latitude || !longitude) {
+        throw new AppError("Latitude and longitude are required", 400);
+      }
 
-    const validateQuery = `
+      const validateQuery = `
       SELECT 
         JourneyDecisions.*,
         DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId,
-        PassengerRequest.passengerRequestUniqueId,
+        PassengerRequest.shipperRequestUniqueId,
         Users.fullName,
         Users.email,
         Users.phoneNumber
       FROM JourneyDecisions
       JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       WHERE JourneyDecisions.journeyDecisionUniqueId = ?
       LIMIT 1
     `;
 
-    const [journeyDecisionDriverData] = await conn.query(validateQuery, [
-      journeyDecisionUniqueId,
-    ]);
+      const [journeyDecisionDriverData] = await conn.query(validateQuery, [
+        journeyDecisionUniqueId,
+      ]);
 
-    if (!journeyDecisionDriverData?.length) {
-      throw new AppError("Journey decision not found", 404);
-    }
+      if (!journeyDecisionDriverData?.length) {
+        throw new AppError("Journey decision not found", 404);
+      }
 
-    const combinedData = journeyDecisionDriverData[0];
+      const combinedData = journeyDecisionDriverData[0];
 
-    if (combinedData.journeyStatusId === journeyStatusMap.journeyStarted) {
-      throw new AppError("This journey has already been started", 400);
-    }
-    if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
-      throw new AppError("This journey has already been completed", 400);
-    }
-    if (combinedData.journeyStatusId !== journeyStatusMap.acceptedByPassenger) {
-      throw new AppError("This journey is not accepted by passenger", 400);
-    }
-    if (combinedData.userUniqueId !== userUniqueId) {
-      throw new AppError("Driver user does not match journey decision", 403);
-    }
+      if (combinedData.journeyStatusId === journeyStatusMap.journeyStarted) {
+        throw new AppError("This journey has already been started", 400);
+      }
+      if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
+        throw new AppError("This journey has already been completed", 400);
+      }
+      if (
+        combinedData.journeyStatusId !== journeyStatusMap.acceptedByPassenger
+      ) {
+        throw new AppError("This journey is not accepted by shipper", 400);
+      }
+      if (combinedData.userUniqueId !== userUniqueId) {
+        throw new AppError("Driver user does not match journey decision", 403);
+      }
 
-    const checkJourneySql = `SELECT * FROM Journey WHERE journeyDecisionUniqueId = ? LIMIT 1`;
-    const [existingJourneyCheck] = await conn.query(checkJourneySql, [
-      journeyDecisionUniqueId,
-    ]);
+      const checkJourneySql = `SELECT * FROM Journey WHERE journeyDecisionUniqueId = ? LIMIT 1`;
+      const [existingJourneyCheck] = await conn.query(checkJourneySql, [
+        journeyDecisionUniqueId,
+      ]);
 
-    let finalJourneyUniqueId = journeyUniqueId;
+      let finalJourneyUniqueId = journeyUniqueId;
 
-    if (!existingJourneyCheck?.length || existingJourneyCheck.length === 0) {
-      await insertData({
-        tableName: "Journey",
-        colAndVal: {
-          journeyUniqueId,
+      if (!existingJourneyCheck?.length || existingJourneyCheck.length === 0) {
+        await insertData({
+          tableName: "Journey",
+          colAndVal: {
+            journeyUniqueId,
+            journeyDecisionUniqueId: body.journeyDecisionUniqueId,
+            journeyStatusId: body.journeyStatusId,
+            startTime: currentDate(),
+            journeyCreatedBy: userUniqueId,
+            journeyCreatedAt: currentDate(),
+          },
+        });
+
+        await createJourneyRoutePoint({
           journeyDecisionUniqueId: body.journeyDecisionUniqueId,
-          journeyStatusId: body.journeyStatusId,
-          startTime: currentDate(),
-          journeyCreatedBy: userUniqueId,
-          journeyCreatedAt: currentDate(),
-        },
+          latitude,
+          longitude,
+          userUniqueId,
+        });
+      } else {
+        finalJourneyUniqueId = existingJourneyCheck[0].journeyUniqueId;
+      }
+
+      await updateJourneyStatus({
+        journeyDecisionUniqueId,
+        shipperRequestUniqueId: combinedData.shipperRequestUniqueId,
+        driverRequestUniqueId: combinedData.driverRequestUniqueId,
+        journeyStatusId: body.journeyStatusId,
+        journeyUniqueId: finalJourneyUniqueId,
+        shippingDateByDriver: currentDate(),
       });
 
-      await createJourneyRoutePoint({
-        journeyDecisionUniqueId: body.journeyDecisionUniqueId,
-        latitude,
-        longitude,
-        userUniqueId,
-      });
-    } else {
-      finalJourneyUniqueId = existingJourneyCheck[0].journeyUniqueId;
-    }
-
-    await updateJourneyStatus({
-      journeyDecisionUniqueId,
-      passengerRequestUniqueId: combinedData.passengerRequestUniqueId,
-      driverRequestUniqueId: combinedData.driverRequestUniqueId,
-      journeyStatusId: body.journeyStatusId,
-      journeyUniqueId: finalJourneyUniqueId,
-      shippingDateByDriver: currentDate(),
-    });
-
-    return { combinedData, finalJourneyUniqueId };
-  }, { timeout: 15000 }).then(async ({ combinedData, finalJourneyUniqueId }) => {
+      return { combinedData, finalJourneyUniqueId };
+    },
+    { timeout: 15000 },
+  ).then(async ({ combinedData, finalJourneyUniqueId }) => {
     // Notifications after transaction
-    const { sendPassengerNotification } = require("../PassengerRequest/statusVerification.service");
-    
+    const {
+      sendPassengerNotification,
+    } = require("../PassengerRequest/statusVerification.service");
+
     const journeyDecisionFromJoin = {
       journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
-      passengerRequestId: combinedData.passengerRequestId,
+      shipperRequestId: combinedData.shipperRequestId,
       driverRequestId: combinedData.driverRequestId,
       journeyStatusId: journeyStatusMap.journeyStarted, // Use updated status, not combinedData.journeyStatusId
       decisionTime: combinedData.decisionTime,
@@ -142,7 +149,7 @@ const startJourney = async (body) => {
     };
 
     const {
-      passengerRequest,
+      shipperRequest,
       journeyDecision: journeyDecisionData,
       driverInfo,
       journeyData,
@@ -153,9 +160,9 @@ const startJourney = async (body) => {
       [journeyDecisionFromJoin],
     );
 
-    if (passengerRequest && journeyDecisionData && driverInfo) {
+    if (shipperRequest && journeyDecisionData && driverInfo) {
       await sendPassengerNotification({
-        passengerRequest,
+        shipperRequest,
         journeyDecision: journeyDecisionData,
         driverInfo,
         journeyData,
@@ -163,9 +170,9 @@ const startJourney = async (body) => {
         status: journeyStatusMap.journeyStarted,
       });
 
-      if (passengerRequest?.userUniqueId) {
+      if (shipperRequest?.userUniqueId) {
         sendFCMNotificationToUser({
-          userUniqueId: passengerRequest.userUniqueId,
+          userUniqueId: shipperRequest.userUniqueId,
           roleId: 1,
           notification: {
             title: messageTypes.driver_started_journey.message,
@@ -180,7 +187,7 @@ const startJourney = async (body) => {
       status: journeyStatusMap.journeyStarted,
       uniqueIds: {
         driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
-        passengerRequestUniqueId: passengerRequest?.passengerRequestUniqueId,
+        shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
         journeyDecisionUniqueId: journeyDecisionData?.journeyDecisionUniqueId,
         journeyUniqueId: journeyData?.journeyUniqueId || finalJourneyUniqueId,
       },
@@ -188,7 +195,7 @@ const startJourney = async (body) => {
         driver: driverInfo?.driver || null,
         vehicle: driverInfo?.vehicleOfDriver || null,
       },
-      passenger: passengerRequest || null,
+      shipper: shipperRequest || null,
       journey: journeyData || null,
       decision: journeyDecisionData || null,
     };
@@ -197,107 +204,123 @@ const startJourney = async (body) => {
 
 //collect scervice charge from journey completion by commision or allow user to do by subscription if it has an active subscription
 const completeJourney = async (body) => {
-  return await executeInTransaction(async (conn) => {
-    const {
-      journeyDecisionUniqueId,
-      userUniqueId,
-      passengerRequestUniqueId,
-      journeyUniqueId,
-      driverRequestUniqueId,
-    } = body;
+  return await executeInTransaction(
+    async (conn) => {
+      const {
+        journeyDecisionUniqueId,
+        userUniqueId,
+        shipperRequestUniqueId,
+        journeyUniqueId,
+        driverRequestUniqueId,
+      } = body;
 
-    if (!journeyDecisionUniqueId || !passengerRequestUniqueId || !driverRequestUniqueId || !journeyUniqueId || !userUniqueId) {
-      throw new AppError("Missing required unique IDs", 400);
-    }
+      if (
+        !journeyDecisionUniqueId ||
+        !shipperRequestUniqueId ||
+        !driverRequestUniqueId ||
+        !journeyUniqueId ||
+        !userUniqueId
+      ) {
+        throw new AppError("Missing required unique IDs", 400);
+      }
 
-    const validateQuery = `
+      const validateQuery = `
       SELECT JourneyDecisions.*, DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId,
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
+        PassengerRequest.shipperRequestUniqueId,
+        PassengerRequest.userUniqueId as shipperUserUniqueId,
         Journey.journeyUniqueId,
         Journey.startTime, Journey.endTime,
         Users.fullName,
         Users.phoneNumber FROM JourneyDecisions
       JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
-      JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       JOIN Journey ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
       JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
       WHERE JourneyDecisions.journeyDecisionUniqueId = ?
-        AND PassengerRequest.passengerRequestUniqueId = ?
+        AND PassengerRequest.shipperRequestUniqueId = ?
         AND DriverRequest.driverRequestUniqueId = ?
         AND Journey.journeyUniqueId = ?
       LIMIT 1
     `;
 
-    const [journeyDecisionDriverData] = await conn.query(validateQuery, [
-      journeyDecisionUniqueId,
-      passengerRequestUniqueId,
-      driverRequestUniqueId,
-      journeyUniqueId,
-    ]);
+      const [journeyDecisionDriverData] = await conn.query(validateQuery, [
+        journeyDecisionUniqueId,
+        shipperRequestUniqueId,
+        driverRequestUniqueId,
+        journeyUniqueId,
+      ]);
 
-    if (!journeyDecisionDriverData?.length) {
-      throw new AppError("Journey data not found or UUIDs mismatch", 404);
-    }
-
-    const combinedData = journeyDecisionDriverData[0];
-
-    if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
-      throw new AppError("This journey has already been completed", 400);
-    }
-
-    const isAdmin = body.roleId === usersRoles?.adminRoleId || body.roleId === usersRoles?.supperAdminRoleId;
-    if (!isAdmin && combinedData?.userUniqueId !== userUniqueId) {
-      throw new AppError("Driver user does not match journey decision", 403);
-    }
-
-    const subscriptionInfo = await getUserSubscriptionsWithFilters({
-      driverUniqueId: userUniqueId,
-      page: 1,
-      limit: 1,
-      isActive: true,
-    });
-
-    const subscriptionData = subscriptionInfo?.data?.[0] || null;
-
-    await updateJourneyStatus({
-      journeyDecisionUniqueId,
-      passengerRequestUniqueId,
-      driverRequestUniqueId,
-      journeyUniqueId,
-      journeyStatusId: body.journeyStatusId,
-      deliveryDateByDriver: currentDate(),
-    });
-
-    const paymentAmount = combinedData?.shippingCostByDriver;
-
-    if (!subscriptionData) {
-      if (!paymentAmount || paymentAmount <= 0) {
-        throw new AppError("Invalid payment amount from journey decision", 400);
+      if (!journeyDecisionDriverData?.length) {
+        throw new AppError("Journey data not found or UUIDs mismatch", 404);
       }
-      await createCommission({
-        journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
-        paymentAmount,
-        commissionCreatedBy: userUniqueId,
+
+      const combinedData = journeyDecisionDriverData[0];
+
+      if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
+        throw new AppError("This journey has already been completed", 400);
+      }
+
+      const isAdmin =
+        body.roleId === usersRoles?.adminRoleId ||
+        body.roleId === usersRoles?.supperAdminRoleId;
+      if (!isAdmin && combinedData?.userUniqueId !== userUniqueId) {
+        throw new AppError("Driver user does not match journey decision", 403);
+      }
+
+      const subscriptionInfo = await getUserSubscriptionsWithFilters({
+        driverUniqueId: userUniqueId,
+        page: 1,
+        limit: 1,
+        isActive: true,
       });
-    }
 
-    await createJourneyRoutePoint({
-      journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
-      latitude: body?.latitude,
-      longitude: body?.longitude,
-      userUniqueId,
-    });
+      const subscriptionData = subscriptionInfo?.data?.[0] || null;
 
-    return combinedData;
-  }, { timeout: 20000 }).then(async (combinedData) => {
+      await updateJourneyStatus({
+        journeyDecisionUniqueId,
+        shipperRequestUniqueId,
+        driverRequestUniqueId,
+        journeyUniqueId,
+        journeyStatusId: body.journeyStatusId,
+        deliveryDateByDriver: currentDate(),
+      });
+
+      const paymentAmount = combinedData?.shippingCostByDriver;
+
+      if (!subscriptionData) {
+        if (!paymentAmount || paymentAmount <= 0) {
+          throw new AppError(
+            "Invalid payment amount from journey decision",
+            400,
+          );
+        }
+        await createCommission({
+          journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
+          paymentAmount,
+          commissionCreatedBy: userUniqueId,
+        });
+      }
+
+      await createJourneyRoutePoint({
+        journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
+        latitude: body?.latitude,
+        longitude: body?.longitude,
+        userUniqueId,
+      });
+
+      return combinedData;
+    },
+    { timeout: 20000 },
+  ).then(async (combinedData) => {
     // Notifications after successful transaction commit
-    const { sendPassengerNotification } = require("../PassengerRequest/statusVerification.service");
-    
+    const {
+      sendPassengerNotification,
+    } = require("../PassengerRequest/statusVerification.service");
+
     const journeyDecisionFromJoin = {
       journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
-      passengerRequestId: combinedData.passengerRequestId,
+      shipperRequestId: combinedData.shipperRequestId,
       driverRequestId: combinedData.driverRequestId,
       journeyStatusId: journeyStatusMap.journeyCompleted, // Use updated status, not combinedData.journeyStatusId
       decisionTime: combinedData.decisionTime,
@@ -322,11 +345,16 @@ const completeJourney = async (body) => {
       [journeyDecisionFromJoin],
     );
 
-    const { passengerRequest, journeyDecision: journeyDecisionData, driverInfo, journeyData } = notificationDataResult;
+    const {
+      shipperRequest,
+      journeyDecision: journeyDecisionData,
+      driverInfo,
+      journeyData,
+    } = notificationDataResult;
 
-    if (passengerRequest && journeyDecisionData && driverInfo) {
+    if (shipperRequest && journeyDecisionData && driverInfo) {
       await sendPassengerNotification({
-        passengerRequest,
+        shipperRequest,
         journeyDecision: journeyDecisionData,
         driverInfo,
         journeyData,
@@ -335,9 +363,9 @@ const completeJourney = async (body) => {
         data: "Journey completed successfully",
       });
 
-      if (passengerRequest?.userUniqueId) {
+      if (shipperRequest?.userUniqueId) {
         sendFCMNotificationToUser({
-          userUniqueId: passengerRequest.userUniqueId,
+          userUniqueId: shipperRequest.userUniqueId,
           roleId: 1,
           notification: {
             title: messageTypes.driver_completed_journey.message,
@@ -352,7 +380,7 @@ const completeJourney = async (body) => {
       status: journeyStatusMap.journeyCompleted,
       uniqueIds: {
         driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
-        passengerRequestUniqueId: passengerRequest?.passengerRequestUniqueId,
+        shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
         journeyDecisionUniqueId: journeyDecisionData?.journeyDecisionUniqueId,
         journeyUniqueId: journeyData?.journeyUniqueId || body.journeyUniqueId,
       },
@@ -360,7 +388,7 @@ const completeJourney = async (body) => {
         driver: driverInfo?.driver || null,
         vehicle: driverInfo?.vehicleOfDriver || null,
       },
-      passenger: passengerRequest || null,
+      shipper: shipperRequest || null,
       journey: journeyData || null,
       decision: journeyDecisionData || null,
     };
@@ -444,9 +472,9 @@ const sendUpdatedLocation = async (body) => {
       );
     }
 
-    // Fetch passenger phone number from journey data if not provided
-    let passengerPhoneNumber = body.passengerPhone;
-    if (!passengerPhoneNumber) {
+    // Fetch shipper phone number from journey data if not provided
+    let shipperPhoneNumber = body.shipperPhone;
+    if (!shipperPhoneNumber) {
       // Pass already-fetched journeyDecision and driverRequest to avoid re-fetching
       const notificationData = await fetchJourneyNotificationData(
         journeyDecisionUniqueId,
@@ -457,32 +485,31 @@ const sendUpdatedLocation = async (body) => {
 
       if (
         notificationData.message === "error" ||
-        !notificationData.passengerRequest
+        !notificationData.shipperRequest
       ) {
         throw new AppError(
-          "Unable to fetch passenger information for location update",
+          "Unable to fetch shipper information for location update",
           404,
         );
       }
 
-      passengerPhoneNumber =
-        notificationData.passengerRequest?.phoneNumber || null;
+      shipperPhoneNumber = notificationData.shipperRequest?.phoneNumber || null;
 
-      if (!passengerPhoneNumber) {
+      if (!shipperPhoneNumber) {
         throw new AppError("Passenger phone number not found", 404);
       }
     }
 
     // Store location in JourneyRoutePoints table for historical tracking and real-time notification
     // Single table insert - no transaction needed (atomic operation)
-    // createJourneyRoutePoint handles storing location and sending notification to passenger
+    // createJourneyRoutePoint handles storing location and sending notification to shipper
     // Note: createJourneyRoutePoint is already imported at the top of the file
     const routePointResult = await createJourneyRoutePoint({
       journeyDecisionUniqueId,
       latitude,
       longitude,
       userUniqueId,
-      passengerPhoneNumber, // Pass for notification (createJourneyRoutePoint sends notification)
+      shipperPhoneNumber, // Pass for notification (createJourneyRoutePoint sends notification)
       ...(body.additionalData || {}), // Include any additional data for notification
     });
 
@@ -494,13 +521,13 @@ const sendUpdatedLocation = async (body) => {
       );
     }
 
-    // Note: createJourneyRoutePoint already sends WebSocket notification to passenger
+    // Note: createJourneyRoutePoint already sends WebSocket notification to shipper
     // with messageType: update_drivers_location_to_shipper
     // No need to send duplicate notification here
 
     return {
       message: "success",
-      data: "Location updated and sent to passenger successfully",
+      data: "Location updated and sent to shipper successfully",
       journeyRoutePointsUniqueId:
         routePointResult.data?.journeyRoutePointsUniqueId,
       latitude,

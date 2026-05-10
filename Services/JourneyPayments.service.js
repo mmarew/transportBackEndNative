@@ -73,7 +73,7 @@ exports.getAllJourneyPayments = async ({
   paymentTimeFrom,
   paymentTimeTo,
   driverUniqueId,
-  passengerUniqueId,
+  shipperUniqueId,
 } = {}) => {
   // Validate pagination
   const validatedPage = Math.max(1, parseInt(page));
@@ -119,15 +119,15 @@ exports.getAllJourneyPayments = async ({
     values.push(paymentTimeTo);
   }
 
-  // Filter by driver or passenger (requires JOIN)
+  // Filter by driver or shipper (requires JOIN)
   if (driverUniqueId) {
     conditions.push("dr.userUniqueId = ?");
     values.push(driverUniqueId);
   }
 
-  if (passengerUniqueId) {
+  if (shipperUniqueId) {
     conditions.push("pr.userUniqueId = ?");
-    values.push(passengerUniqueId);
+    values.push(shipperUniqueId);
   }
 
   const whereClause =
@@ -151,27 +151,27 @@ exports.getAllJourneyPayments = async ({
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
+      LEFT JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       ${whereClause}
     `;
   const executor = transactionStorage.getStore() || pool;
   const [countResult] = await executor.query(countQuery, values);
   const totalCount = countResult[0].total;
 
-  // Get paginated data with driver/passenger info
-  // Actually, checking previous view_file, it was pr.passengerRequestId
+  // Get paginated data with driver/shipper info
+  // Actually, checking previous view_file, it was pr.shipperRequestId
   const correctedDataQuery = `
       SELECT 
         jp.*,
         dr.userUniqueId as driverUniqueId,
-        pr.userUniqueId as passengerUniqueId,
+        pr.userUniqueId as shipperUniqueId,
         jd.shippingCostByDriver,
         pm.paymentMethod,
         ps.paymentStatus
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
+      LEFT JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       ${whereClause}
@@ -207,14 +207,14 @@ exports.getJourneyPaymentById = async (paymentUniqueId) => {
       SELECT 
         jp.*,
         dr.userUniqueId as driverUniqueId,
-        pr.userUniqueId as passengerUniqueId,
+        pr.userUniqueId as shipperUniqueId,
         jd.shippingCostByDriver,
         pm.paymentMethod,
         ps.paymentStatus
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
+      LEFT JOIN PassengerRequest pr ON jd.shipperRequestId = pr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       WHERE jp.paymentUniqueId = ?

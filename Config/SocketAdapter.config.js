@@ -138,8 +138,8 @@ async function initSocket({ httpServer }) {
             new Promise((_, reject) =>
               setTimeout(
                 () => reject(new Error("Redis connection timeout")),
-                5000
-              )
+                5000,
+              ),
             ),
           ]);
 
@@ -165,7 +165,7 @@ async function initSocket({ httpServer }) {
               {
                 error: adapterError.message,
                 name: adapterError.name,
-              }
+              },
             );
           } else {
             logger.error("Failed to initialize Redis adapter", {
@@ -198,7 +198,7 @@ async function initSocket({ httpServer }) {
     }
   } else {
     logger.warn(
-      "UPSTASH_REDIS_URL not configured - running in single server mode"
+      "UPSTASH_REDIS_URL not configured - running in single server mode",
     );
   }
 
@@ -246,21 +246,21 @@ async function initSocket({ httpServer }) {
 
     socket.on("locationUpdateToShipper", async (data) => {
       try {
-        let phoneNumberOfShipper = data?.passengerPhoneNumber;
+        let phoneNumberOfShipper = data?.shipperPhoneNumber;
 
         // If phone number is missing but we have request ID, fetch it
-        if (!phoneNumberOfShipper && data?.passengerRequestUniqueId) {
+        if (!phoneNumberOfShipper && data?.shipperRequestUniqueId) {
           try {
-            const passengerRequest = await getPassengerRequestByRequestUniqueId(
-              data.passengerRequestUniqueId,
+            const shipperRequest = await getPassengerRequestByRequestUniqueId(
+              data.shipperRequestUniqueId,
             );
-            phoneNumberOfShipper = passengerRequest?.phoneNumber;
+            phoneNumberOfShipper = shipperRequest?.phoneNumber;
           } catch (lookupError) {
             logger.warn(
-              "Could not lookup passenger phone number for location update",
+              "Could not lookup shipper phone number for location update",
               {
                 error: lookupError.message,
-                passengerRequestUniqueId: data?.passengerRequestUniqueId,
+                shipperRequestUniqueId: data?.shipperRequestUniqueId,
               },
             );
           }
@@ -276,7 +276,7 @@ async function initSocket({ httpServer }) {
               messageTypes: messageTypes.update_drivers_location_to_shipper,
             },
           });
-          logger.debug("Location update notification sent to passenger", {
+          logger.debug("Location update notification sent to shipper", {
             phoneNumber: phoneNumberOfShipper,
           });
         }

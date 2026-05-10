@@ -7,7 +7,7 @@ const { transactionStorage } = require("../../Utils/TransactionContext");
 const logger = require("../../Utils/logger");
 
 /**
- * Gets cancellation notifications for a passenger
+ * Gets cancellation notifications for a shipper
  * @param {Object} params - Query parameters
  * @param {string} params.userUniqueId - Passenger's unique identifier
  * @param {string} params.seenStatus - Filter by seen status (optional)
@@ -46,13 +46,13 @@ const getCancellationNotifications = async ({
     const sql = `
       SELECT 
         -- PassengerRequest data
-        PassengerRequest.passengerRequestId,
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
+        PassengerRequest.shipperRequestId,
+        PassengerRequest.shipperRequestUniqueId,
+        PassengerRequest.userUniqueId as shipperUserUniqueId,
         PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as passengerOriginLatitude,
-        PassengerRequest.originLongitude as passengerOriginLongitude,
-        PassengerRequest.originPlace as passengerOriginPlace,
+        PassengerRequest.originLatitude as shipperOriginLatitude,
+        PassengerRequest.originLongitude as shipperOriginLongitude,
+        PassengerRequest.originPlace as shipperOriginPlace,
         PassengerRequest.destinationLatitude,
         PassengerRequest.destinationLongitude,
         PassengerRequest.destinationPlace,
@@ -64,9 +64,9 @@ const getCancellationNotifications = async ({
         PassengerRequest.shippingCost,
         
         -- Passenger User data
-        PassengerUser.fullName as passengerFullName,
-        PassengerUser.phoneNumber as passengerPhoneNumber,
-        PassengerUser.email as passengerEmail,
+        PassengerUser.fullName as shipperFullName,
+        PassengerUser.phoneNumber as shipperPhoneNumber,
+        PassengerUser.email as shipperEmail,
         
         -- JourneyDecisions data
         JourneyDecisions.journeyDecisionId,
@@ -91,7 +91,7 @@ const getCancellationNotifications = async ({
         DriverUser.email as driverEmail
         
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       INNER JOIN Users as PassengerUser ON PassengerRequest.userUniqueId = PassengerUser.userUniqueId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
@@ -104,7 +104,7 @@ const getCancellationNotifications = async ({
     const countSql = `
       SELECT COUNT(*) as total
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       WHERE ${whereConditions.join(" AND ")}
     `;
 
@@ -156,14 +156,14 @@ const getCancellationNotifications = async ({
 
           // Structure the response
           return {
-            passenger: {
-              passengerRequestId: request.passengerRequestId,
-              passengerRequestUniqueId: request.passengerRequestUniqueId,
-              passengerUserUniqueId: request.passengerUserUniqueId,
+            shipper: {
+              shipperRequestId: request.shipperRequestId,
+              shipperRequestUniqueId: request.shipperRequestUniqueId,
+              shipperUserUniqueId: request.shipperUserUniqueId,
               vehicleTypeUniqueId: request.vehicleTypeUniqueId,
-              originLatitude: request.passengerOriginLatitude,
-              originLongitude: request.passengerOriginLongitude,
-              originPlace: request.passengerOriginPlace,
+              originLatitude: request.shipperOriginLatitude,
+              originLongitude: request.shipperOriginLongitude,
+              originPlace: request.shipperOriginPlace,
               destinationLatitude: request.destinationLatitude,
               destinationLongitude: request.destinationLongitude,
               destinationPlace: request.destinationPlace,
@@ -173,9 +173,9 @@ const getCancellationNotifications = async ({
               shippingDate: request.shippingDate,
               deliveryDate: request.deliveryDate,
               shippingCost: request.shippingCost,
-              fullName: request.passengerFullName,
-              phoneNumber: request.passengerPhoneNumber,
-              email: request.passengerEmail,
+              fullName: request.shipperFullName,
+              phoneNumber: request.shipperPhoneNumber,
+              email: request.shipperEmail,
             },
             driver: {
               userId: request.driverUserUniqueId,
@@ -203,7 +203,7 @@ const getCancellationNotifications = async ({
           });
           // Return basic structure if enrichment fails
           return {
-            passenger: null,
+            shipper: null,
             driver: null,
             journeyDecision: {
               journeyDecisionUniqueId: request.journeyDecisionUniqueId,
@@ -240,7 +240,7 @@ const getCancellationNotifications = async ({
 };
 
 /**
- * Marks a cancellation notification as seen by passenger
+ * Marks a cancellation notification as seen by shipper
  * @param {Object} body - Mark as seen data
  * @param {string} body.userUniqueId - Passenger's unique identifier
  * @param {string} body.journeyDecisionUniqueId - Journey decision unique ID
@@ -258,7 +258,7 @@ const markCancellationAsSeen = async ({
       );
     }
 
-    // Get the journey decision to verify it belongs to this passenger
+    // Get the journey decision to verify it belongs to this shipper
     const journeyDecision = await getData({
       tableName: "JourneyDecisions",
       conditions: { journeyDecisionUniqueId },
@@ -268,18 +268,23 @@ const markCancellationAsSeen = async ({
       throw new AppError("Journey decision not found", 404);
     }
 
-    const passengerRequestId = journeyDecision?.[0]?.passengerRequestId;
-    logger.debug("@passengerRequestId => "+ passengerRequestId+"\n@userUniqueId => "+ userUniqueId);
-    // Verify the passenger request belongs to this user
-    const passengerRequest = await getData({
+    const shipperRequestId = journeyDecision?.[0]?.shipperRequestId;
+    logger.debug(
+      "@shipperRequestId => " +
+        shipperRequestId +
+        "\n@userUniqueId => " +
+        userUniqueId,
+    );
+    // Verify the shipper request belongs to this user
+    const shipperRequest = await getData({
       tableName: "PassengerRequest",
       conditions: {
-        passengerRequestId,
+        shipperRequestId,
         userUniqueId,
       },
     });
 
-    if (!passengerRequest || passengerRequest.length === 0) {
+    if (!shipperRequest || shipperRequest.length === 0) {
       throw new AppError(
         "Unauthorized: This cancellation does not belong to you",
         403,
@@ -291,7 +296,7 @@ const markCancellationAsSeen = async ({
       tableName: "JourneyDecisions",
       conditions: { journeyDecisionUniqueId },
       updateValues: {
-        isCancellationByDriverSeenByPassenger: "seen by passenger",
+        isCancellationByDriverSeenByPassenger: "seen by shipper",
       },
     });
 

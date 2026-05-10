@@ -6,7 +6,7 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
 
 /**
- * GET /api/passengerRequestBatch
+ * GET /api/shipperRequestBatch
  * Returns a paginated list filtered by any combination of query params.
  * Pass ?batchUniqueId=<uuid> to fetch a single specific batch.
  */
@@ -19,7 +19,7 @@ exports.getBatches = async (req, res, next) => {
 };
 
 /**
- * PATCH /api/passenger-request-batches/:batchUniqueId
+ * PATCH /api/shipper-request-batches/:batchUniqueId
  * Partially updates only the fields supplied in req.body.
  */
 exports.updateBatch = async (req, res, next) => {
@@ -38,7 +38,7 @@ exports.updateBatch = async (req, res, next) => {
 };
 
 /**
- * DELETE /api/passenger-request-batches/:batchUniqueId
+ * DELETE /api/shipper-request-batches/:batchUniqueId
  * Soft-deletes the batch (stamps batchDeletedAt).
  */
 exports.deleteBatch = async (req, res, next) => {
@@ -53,7 +53,7 @@ exports.deleteBatch = async (req, res, next) => {
 };
 
 /**
- * PUT /api/passengerRequestBatch/:batchUniqueId/cancel
+ * PUT /api/shipperRequestBatch/:batchUniqueId/cancel
  *
  * Atomically cancels the whole freight batch in one DB transaction:
  *   - PassengerRequestBatch row → cancelled
@@ -94,7 +94,7 @@ exports.cancelBatch = async (req, res, next) => {
     // ── Fire notifications after commit (fire-and-forget) ─────────────────
     // Errors here must never bubble up — the DB is already committed.
     if (notificationTargets) {
-      service.sendBatchCancelNotifications(notificationTargets).catch(err =>
+      service.sendBatchCancelNotifications(notificationTargets).catch((err) =>
         logger.error("cancelBatch: notification dispatch failed", {
           batchUniqueId,
           error: err.message,

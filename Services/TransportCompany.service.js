@@ -4,14 +4,12 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
-const {
-  db,
-  findOne,
-  paginate,
-
-} = require("./CompanyHelper.service");
+const { db, findOne, paginate } = require("./CompanyHelper.service");
 const { addMember } = require("./CompanyMembership.service");
-const { recordStatusChange, recordProfileChanges } = require("../Utils/CompanyProfileHistory");
+const {
+  recordStatusChange,
+  recordProfileChanges,
+} = require("../Utils/CompanyProfileHistory");
 
 /**
  * Creates a new transport company and auto-assigns the creator as owner.
@@ -143,7 +141,7 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   // Data Segregation:
   // - Admins/SuperAdmins: see all companies
   // - Drivers: see all APPROVED companies (needed to pick a company when registering a vehicle)
-  // - Other non-admins (passengers, companyAdmin, etc.): only see companies they belong to
+  // - Other non-admins (shippers, companyAdmin, etc.): only see companies they belong to
   if (!isAdmin) {
     if (user.roleId === usersRoles.driverRoleId) {
       clauses.push("TransportCompany.approvalStatus = 'approved'");
@@ -237,48 +235,58 @@ exports.getCompanies = async (filters = {}, user = {}) => {
     for (const row of docRows) {
       if (!complianceMap[row.companyUniqueId]) {
         complianceMap[row.companyUniqueId] = {
-          accepted:    [],
-          pending:     [],
-          rejected:    [],
+          accepted: [],
+          pending: [],
+          rejected: [],
           notAttached: [],
           isCompliant: false,
         };
       }
       const entry = complianceMap[row.companyUniqueId];
       const doc = {
-        documentTypeId:             row.documentTypeId,
-        documentTypeName:           row.documentTypeName,
-        documentTypeDescription:    row.documentTypeDescription,
-        isDocumentMandatory:        Boolean(row.isDocumentMandatory),
-        isExpirationDateRequired:   Boolean(row.isExpirationDateRequired),
-        isFileNumberRequired:       Boolean(row.isFileNumberRequired),
-        attachedDocumentUniqueId:   row.attachedDocumentUniqueId ?? null,
-        attachedDocumentName:       row.attachedDocumentName ?? null,
+        documentTypeId: row.documentTypeId,
+        documentTypeName: row.documentTypeName,
+        documentTypeDescription: row.documentTypeDescription,
+        isDocumentMandatory: Boolean(row.isDocumentMandatory),
+        isExpirationDateRequired: Boolean(row.isExpirationDateRequired),
+        isFileNumberRequired: Boolean(row.isFileNumberRequired),
+        attachedDocumentUniqueId: row.attachedDocumentUniqueId ?? null,
+        attachedDocumentName: row.attachedDocumentName ?? null,
         attachedDocumentAcceptance: row.attachedDocumentAcceptance ?? null,
-        acceptanceReason:           row.attachedDocumentAcceptanceReason ?? null,
-        documentExpirationDate:     row.documentExpirationDate ?? null,
-        fileNumber:                 row.attachedDocumentFileNumber ?? null,
-        uploadedAt:                 row.attachedDocumentCreatedAt ?? null,
+        acceptanceReason: row.attachedDocumentAcceptanceReason ?? null,
+        documentExpirationDate: row.documentExpirationDate ?? null,
+        fileNumber: row.attachedDocumentFileNumber ?? null,
+        uploadedAt: row.attachedDocumentCreatedAt ?? null,
       };
 
-      if      (row.docStatus === "ACCEPTED")     {entry.accepted.push(doc);}
-      else if (row.docStatus === "PENDING")      {entry.pending.push(doc);}
-      else if (row.docStatus === "REJECTED")     {entry.rejected.push(doc);}
-      else                                       {entry.notAttached.push(doc);}
+      if (row.docStatus === "ACCEPTED") {
+        entry.accepted.push(doc);
+      } else if (row.docStatus === "PENDING") {
+        entry.pending.push(doc);
+      } else if (row.docStatus === "REJECTED") {
+        entry.rejected.push(doc);
+      } else {
+        entry.notAttached.push(doc);
+      }
     }
 
     // isCompliant = all mandatory docs are in ACCEPTED list
     for (const id of companyIds) {
-      if (!complianceMap[id]) {continue;}
+      if (!complianceMap[id]) {
+        continue;
+      }
       const e = complianceMap[id];
-      const mandatoryNotDone = [...e.pending, ...e.rejected, ...e.notAttached]
-        .filter((d) => d.isDocumentMandatory);
+      const mandatoryNotDone = [
+        ...e.pending,
+        ...e.rejected,
+        ...e.notAttached,
+      ].filter((d) => d.isDocumentMandatory);
       e.isCompliant = mandatoryNotDone.length === 0 && e.accepted.length > 0;
       // handy counts
       e.counts = {
-        accepted:    e.accepted.length,
-        pending:     e.pending.length,
-        rejected:    e.rejected.length,
+        accepted: e.accepted.length,
+        pending: e.pending.length,
+        rejected: e.rejected.length,
         notAttached: e.notAttached.length,
       };
     }
@@ -377,7 +385,9 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
      FROM TransportCompany WHERE companyUniqueId = ? AND isDeleted = 0 LIMIT 1`,
     [companyUniqueId],
   );
-  if (!currentRow) {throw new AppError("Company not found", 404);}
+  if (!currentRow) {
+    throw new AppError("Company not found", 404);
+  }
 
   setParts.push("companyUpdatedBy = ?", "companyUpdatedAt = ?");
   vals.push(updatedBy, currentDate(), companyUniqueId);
@@ -421,10 +431,10 @@ exports.approveCompany = async (
   // rejected  → pending (re-submission flow only)
   const current = company.approvalStatus;
   const validTransitions = {
-    pending:   ["approved", "rejected"],
-    approved:  ["suspended", "rejected"],
+    pending: ["approved", "rejected"],
+    approved: ["suspended", "rejected"],
     suspended: ["approved", "rejected"],
-    rejected:  ["pending"],
+    rejected: ["pending"],
   };
   if (!validTransitions[current]?.includes(approvalStatus)) {
     throw new AppError(
@@ -435,10 +445,7 @@ exports.approveCompany = async (
 
   // ── Guard 3: Rejection must include a reason ──────────────────────────────
   if (approvalStatus === "rejected" && !approvalReason?.trim()) {
-    throw new AppError(
-      "A reason is required when rejecting a company",
-      422,
-    );
+    throw new AppError("A reason is required when rejecting a company", 422);
   }
 
   // ── Guard 4: Document compliance — only when approving ───────────────────
@@ -483,7 +490,10 @@ exports.approveCompany = async (
 
     if (missingMandatory.length > 0) {
       const names = missingMandatory
-        .map((d) => `"${d.documentTypeName}" (${d.attachedDocumentAcceptance ?? "NOT_ATTACHED"})`)
+        .map(
+          (d) =>
+            `"${d.documentTypeName}" (${d.attachedDocumentAcceptance ?? "NOT_ATTACHED"})`,
+        )
         .join(", ");
       throw new AppError(
         `Cannot approve: the following mandatory documents are not yet accepted — ${names}`,
@@ -538,7 +548,6 @@ exports.approveCompany = async (
 
   return { message: "success", data: `Company ${approvalStatus}` };
 };
-
 
 exports.deleteCompany = async (companyUniqueId, deletedBy) => {
   const [res] = await db().query(

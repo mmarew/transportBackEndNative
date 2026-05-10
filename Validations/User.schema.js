@@ -17,11 +17,11 @@ const OTPSchema = Joi.alternatives()
 
 exports.createUser = Joi.object({
   phoneNumber: phoneNumberSchema.required(),
-  // register only 1 shipper/passengerDocumentRequirement and 2 driver
+  // register only 1 shipper/shipperDocumentRequirement and 2 driver
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.companyAdminRoleId,
     )
@@ -45,7 +45,7 @@ exports.createUserByAdmin = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.adminRoleId,
@@ -61,7 +61,7 @@ exports.loginUser = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.adminRoleId,
       usersRoles.supperAdminRoleId,
@@ -79,7 +79,7 @@ exports.verifyUserByOTP = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.adminRoleId,
       usersRoles.supperAdminRoleId,
@@ -98,9 +98,14 @@ exports.updateUser = Joi.object({
   email: emailSchema,
   phoneNumber: phoneNumberSchema.optional(),
   // Profile Photo related fields (used in UserController.updateUser)
-  profilePhotoTypeId: Joi.alternatives().try(Joi.number().integer(), Joi.string()).optional(),
+  profilePhotoTypeId: Joi.alternatives()
+    .try(Joi.number().integer(), Joi.string())
+    .optional(),
   ProfilePhotoDescription: Joi.string().optional().allow("", null),
-  ProfilePhotoExpirationDate: Joi.alternatives().try(Joi.date(), Joi.string()).optional().allow("", null),
+  ProfilePhotoExpirationDate: Joi.alternatives()
+    .try(Joi.date(), Joi.string())
+    .optional()
+    .allow("", null),
   attachedDocumentUniqueId: Joi.string().optional().allow("", null),
 }).unknown(true);
 
@@ -123,7 +128,7 @@ exports.getUserFilter = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.adminRoleId,
       usersRoles.supperAdminRoleId,

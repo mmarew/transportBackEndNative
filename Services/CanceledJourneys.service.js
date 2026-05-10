@@ -19,26 +19,26 @@ const query = async (sql, values = []) => {
 const getJourneyDataByContextType = async ({ contextType, contextId }) => {
   const dataHandlers = {
     JourneyDecisions: async () => {
-      const [passengerData, driverData] = await Promise.all([
+      const [shipperData, driverData] = await Promise.all([
         getPassengerDataByJourneyDecision(contextId),
         getDriverDataByJourneyDecision(contextId),
       ]);
-      return { driver: driverData, passenger: passengerData };
+      return { driver: driverData, shipper: shipperData };
     },
     Journey: async () => {
-      const [passengerData, driverData] = await Promise.all([
+      const [shipperData, driverData] = await Promise.all([
         getPassengerDataByJourney(contextId),
         getDriverDataByJourney(contextId),
       ]);
-      return { driver: driverData, passenger: passengerData };
+      return { driver: driverData, shipper: shipperData };
     },
     DriverRequest: async () => {
       const driverData = await getDriverRequest(contextId);
-      return { driver: driverData, passenger: null };
+      return { driver: driverData, shipper: null };
     },
     PassengerRequest: async () => {
-      const passengerData = await getPassengerRequest(contextId);
-      return { driver: null, passenger: passengerData };
+      const shipperData = await getPassengerRequest(contextId);
+      return { driver: null, shipper: shipperData };
     },
   };
 
@@ -61,7 +61,7 @@ const createCanceledJourney = async (data) => {
     canceledTime,
     roleId,
     driverUserUniqueId,
-    passengerUserUniqueId,
+    shipperUserUniqueId,
   } = data;
 
   const canceledJourneyUniqueId = uuidv4();
@@ -69,7 +69,7 @@ const createCanceledJourney = async (data) => {
     INSERT INTO CanceledJourneys (
       canceledJourneyUniqueId, contextId, contextType, canceledBy, 
       cancellationReasonsTypeId, canceledTime, roleId, 
-      driverUserUniqueId, passengerUserUniqueId,
+      driverUserUniqueId, shipperUserUniqueId,
       canceledJourneyCreatedBy, canceledJourneyCreatedAt
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
@@ -83,7 +83,7 @@ const createCanceledJourney = async (data) => {
     canceledTime || currentDate(),
     roleId,
     driverUserUniqueId,
-    passengerUserUniqueId,
+    shipperUserUniqueId,
     canceledBy,
     currentDate(),
   ];
@@ -167,11 +167,11 @@ const createCanceledJourney = async (data) => {
 //       if (roleId ===2) {
 //         whereConditions.push("cj.driverUserUniqueId = ?");
 //       } else if (roleId ===1) {
-//         whereConditions.push("cj.passengerUserUniqueId = ?");
+//         whereConditions.push("cj.shipperUserUniqueId = ?");
 //       } else {
 //         // If no role specified, search in both fields
 //         whereConditions.push(
-//           "(cj.driverUserUniqueId = ? OR cj.passengerUserUniqueId = ?)"
+//           "(cj.driverUserUniqueId = ? OR cj.shipperUserUniqueId = ?)"
 //         );
 //         queryParams.push(userUniqueId, userUniqueId);
 //       }
@@ -200,7 +200,7 @@ const createCanceledJourney = async (data) => {
 //       whereConditions.push(`
 //         (u_canceled.fullName LIKE ? OR u_canceled.email LIKE ? OR u_canceled.phoneNumber LIKE ?
 //          OR u_driver.fullName LIKE ? OR u_driver.email LIKE ? OR u_driver.phoneNumber LIKE ?
-//          OR u_passenger.fullName LIKE ? OR u_passenger.email LIKE ? OR u_passenger.phoneNumber LIKE ?)
+//          OR u_shipper.fullName LIKE ? OR u_shipper.email LIKE ? OR u_shipper.phoneNumber LIKE ?)
 //       `);
 //       const searchTerm = `%${search}%`;
 //       // Add 9 search terms for all user fields
@@ -219,15 +219,15 @@ const createCanceledJourney = async (data) => {
 //         u_driver.fullName as driverName,
 //         u_driver.phoneNumber as driverPhone,
 //         u_driver.email as driverEmail,
-//         u_passenger.fullName as passengerName,
-//         u_passenger.phoneNumber as passengerPhone,
-//         u_passenger.email as passengerEmail
+//         u_shipper.fullName as shipperName,
+//         u_shipper.phoneNumber as shipperPhone,
+//         u_shipper.email as shipperEmail
 //       FROM CanceledJourneys cj
 //       LEFT JOIN CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
 //       LEFT JOIN Roles r ON cj.roleId = r.roleId
 //       LEFT JOIN Users u_canceled ON cj.canceledBy = u_canceled.userUniqueId
 //       LEFT JOIN Users u_driver ON cj.driverUserUniqueId = u_driver.userUniqueId
-//       LEFT JOIN Users u_passenger ON cj.passengerUserUniqueId = u_passenger.userUniqueId
+//       LEFT JOIN Users u_shipper ON cj.shipperUserUniqueId = u_shipper.userUniqueId
 //       WHERE ${whereConditions.join(" AND ")}
 //     `;
 
@@ -398,12 +398,12 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
     if (userUniqueId) {
       if (roleId === usersRolesList.driver.roleId) {
         whereConditions.push("cj.driverUserUniqueId = ?");
-      } else if (roleId === usersRolesList.passenger.roleId) {
-        whereConditions.push("cj.passengerUserUniqueId = ?");
+      } else if (roleId === usersRolesList.shipper.roleId) {
+        whereConditions.push("cj.shipperUserUniqueId = ?");
       } else {
         // If no role specified, search in both fields
         whereConditions.push(
-          "(cj.driverUserUniqueId = ? OR cj.passengerUserUniqueId = ?)",
+          "(cj.driverUserUniqueId = ? OR cj.shipperUserUniqueId = ?)",
         );
         queryParams.push(userUniqueId, userUniqueId);
       }
@@ -414,7 +414,9 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
     if (isSeenByAdmin !== undefined) {
       whereConditions.push("cj.isSeenByAdmin = ?");
       // Joi validator converts "true"/"false" strings to boolean true/false
-      queryParams.push(isSeenByAdmin === true || isSeenByAdmin === "true" ? 1 : 0);
+      queryParams.push(
+        isSeenByAdmin === true || isSeenByAdmin === "true" ? 1 : 0,
+      );
     }
 
     // Date range filters
@@ -433,7 +435,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
       whereConditions.push(`
         (u_canceled.fullName LIKE ? OR u_canceled.email LIKE ? OR u_canceled.phoneNumber LIKE ?
          OR u_driver.fullName LIKE ? OR u_driver.email LIKE ? OR u_driver.phoneNumber LIKE ?
-         OR u_passenger.fullName LIKE ? OR u_passenger.email LIKE ? OR u_passenger.phoneNumber LIKE ?)
+         OR u_shipper.fullName LIKE ? OR u_shipper.email LIKE ? OR u_shipper.phoneNumber LIKE ?)
       `);
       const searchTerm = `%${search}%`;
       // Add 9 search terms for all user fields
@@ -460,7 +462,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
       LEFT JOIN CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
       LEFT JOIN Users u_canceled ON cj.canceledBy = u_canceled.userUniqueId
       LEFT JOIN Users u_driver ON cj.driverUserUniqueId = u_driver.userUniqueId
-      LEFT JOIN Users u_passenger ON cj.passengerUserUniqueId = u_passenger.userUniqueId
+      LEFT JOIN Users u_shipper ON cj.shipperUserUniqueId = u_shipper.userUniqueId
       WHERE ${whereConditions.join(" AND ")}
     `;
 
@@ -545,18 +547,18 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
       filters:
         Object.keys(filters).length > 0
           ? {
-            contextType,
-            roleId,
-            cancellationReasonsTypeId,
-            canceledBy,
-            userUniqueId,
-            isSeenByAdmin,
-            startDate,
-            endDate,
-            search,
-            sortBy: safeSortBy,
-            sortOrder: finalSortOrder,
-          }
+              contextType,
+              roleId,
+              cancellationReasonsTypeId,
+              canceledBy,
+              userUniqueId,
+              isSeenByAdmin,
+              startDate,
+              endDate,
+              search,
+              sortBy: safeSortBy,
+              sortOrder: finalSortOrder,
+            }
           : null,
     };
   } catch {
@@ -573,13 +575,13 @@ const updateSeenByAdmin = async (canceledJourneyUniqueId) => {
 
     return result.affectedRows > 0
       ? {
-        message: "success",
-        data: { updated: true },
-      }
+          message: "success",
+          data: { updated: true },
+        }
       : {
-        message: "success",
-        data: { updated: false },
-      };
+          message: "success",
+          data: { updated: false },
+        };
   } catch {
     throw new AppError("Failed to update seen status", 500);
   }
@@ -621,13 +623,13 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
 
     return result.affectedRows > 0
       ? {
-        message: "success",
-        data: { updated: true },
-      }
+          message: "success",
+          data: { updated: true },
+        }
       : {
-        message: "success",
-        data: { updated: false },
-      };
+          message: "success",
+          data: { updated: false },
+        };
   } catch {
     throw new AppError("Failed to update canceled journey", 500);
   }
@@ -642,13 +644,13 @@ const deleteCanceledJourney = async (canceledJourneyUniqueId) => {
 
     return result.affectedRows > 0
       ? {
-        message: "success",
-        data: { deleted: true },
-      }
+          message: "success",
+          data: { deleted: true },
+        }
       : {
-        message: "success",
-        data: { deleted: false },
-      };
+          message: "success",
+          data: { deleted: false },
+        };
   } catch {
     throw new AppError("Failed to delete canceled journey", 500);
   }
@@ -661,7 +663,7 @@ const getPassengerDataByJourneyDecision = (journeyDecisionId) =>
     joins: [
       {
         table: "PassengerRequest",
-        on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+        on: "JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId",
       },
       {
         table: "Users",
@@ -697,7 +699,7 @@ const getPassengerDataByJourney = async (journeyId) => {
       },
       {
         table: "PassengerRequest",
-        on: "JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId",
+        on: "JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId",
       },
       {
         table: "Users",
@@ -729,12 +731,12 @@ const getDriverDataByJourney = async (journeyId) =>
     conditions: { "Journey.journeyId": journeyId },
   });
 
-const getPassengerRequest = (passengerRequestId) =>
+const getPassengerRequest = (shipperRequestId) =>
   query(
     `SELECT * FROM PassengerRequest 
      JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId 
-     WHERE passengerRequestId = ?`,
-    [passengerRequestId],
+     WHERE shipperRequestId = ?`,
+    [shipperRequestId],
   );
 
 const getDriverRequest = (driverRequestId) =>
@@ -754,10 +756,10 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
     const queryWhereParts = ["1 = 1"]; // Always true to make building easier
     const queryParams = [];
 
-    // Owner filter - check both passenger and driver
+    // Owner filter - check both shipper and driver
     if (ownerUserUniqueId && ownerUserUniqueId !== "all") {
       queryWhereParts.push(`
-        (cj.driverUserUniqueId = ? OR cj.passengerUserUniqueId = ?)
+        (cj.driverUserUniqueId = ? OR cj.shipperUserUniqueId = ?)
       `);
       queryParams.push(ownerUserUniqueId, ownerUserUniqueId);
     }
@@ -771,19 +773,19 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
     // User-based filters
     if (fullName) {
       queryWhereParts.push(
-        `(u_driver.fullName LIKE ? OR u_passenger.fullName LIKE ? OR u_canceled.fullName LIKE ?)`,
+        `(u_driver.fullName LIKE ? OR u_shipper.fullName LIKE ? OR u_canceled.fullName LIKE ?)`,
       );
       queryParams.push(`%${fullName}%`, `%${fullName}%`, `%${fullName}%`);
     }
     if (phone) {
       queryWhereParts.push(
-        `(u_driver.phoneNumber LIKE ? OR u_passenger.phoneNumber LIKE ? OR u_canceled.phoneNumber LIKE ?)`,
+        `(u_driver.phoneNumber LIKE ? OR u_shipper.phoneNumber LIKE ? OR u_canceled.phoneNumber LIKE ?)`,
       );
       queryParams.push(`%${phone}%`, `%${phone}%`, `%${phone}%`);
     }
     if (email) {
       queryWhereParts.push(
-        `(u_driver.email LIKE ? OR u_passenger.email LIKE ? OR u_canceled.email LIKE ?)`,
+        `(u_driver.email LIKE ? OR u_shipper.email LIKE ? OR u_canceled.email LIKE ?)`,
       );
       queryParams.push(`%${email}%`, `%${email}%`, `%${email}%`);
     }
@@ -792,9 +794,9 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
         u_driver.fullName LIKE ? OR 
         u_driver.phoneNumber LIKE ? OR 
         u_driver.email LIKE ? OR
-        u_passenger.fullName LIKE ? OR
-        u_passenger.phoneNumber LIKE ? OR 
-        u_passenger.email LIKE ? OR
+        u_shipper.fullName LIKE ? OR
+        u_shipper.phoneNumber LIKE ? OR 
+        u_shipper.email LIKE ? OR
         u_canceled.fullName LIKE ? OR
         u_canceled.phoneNumber LIKE ? OR 
         u_canceled.email LIKE ? OR
@@ -817,7 +819,7 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
         COUNT(*) as totalCount
       FROM CanceledJourneys cj
       LEFT JOIN Users u_driver ON cj.driverUserUniqueId = u_driver.userUniqueId
-      LEFT JOIN Users u_passenger ON cj.passengerUserUniqueId = u_passenger.userUniqueId
+      LEFT JOIN Users u_shipper ON cj.shipperUserUniqueId = u_shipper.userUniqueId
       LEFT JOIN Users u_canceled ON cj.canceledBy = u_canceled.userUniqueId
       LEFT JOIN CancellationReasonsType crt ON cj.cancellationReasonsTypeId = crt.cancellationReasonsTypeId
       ${whereClause}
@@ -883,32 +885,32 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
     let groupByClause, selectFields;
 
     switch (groupBy) {
-    case "role":
-      selectFields = `
+      case "role":
+        selectFields = `
           crt.cancellationReason,
           r.roleName as groupName,
           COUNT(*) as count
         `;
-      groupByClause = "crt.cancellationReason, r.roleName";
-      break;
+        groupByClause = "crt.cancellationReason, r.roleName";
+        break;
 
-    case "contextType":
-      selectFields = `
+      case "contextType":
+        selectFields = `
           crt.cancellationReason,
           cj.contextType as groupName,
           COUNT(*) as count
         `;
-      groupByClause = "crt.cancellationReason, cj.contextType";
-      break;
+        groupByClause = "crt.cancellationReason, cj.contextType";
+        break;
 
-    case "reason":
-    default:
-      selectFields = `
+      case "reason":
+      default:
+        selectFields = `
           crt.cancellationReason as reason,
           COUNT(*) as qty
         `;
-      groupByClause = "crt.cancellationReason";
-      break;
+        groupByClause = "crt.cancellationReason";
+        break;
     }
 
     const sql = `
@@ -930,55 +932,55 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
     let totalCanceled = 0;
 
     switch (groupBy) {
-    case "role":
-      // Group by role: array of { role: "Driver", reasons: [{reason: "...", qty: 10}, ...] }
-      const rolesMap = {};
-      results.forEach((row) => {
-        totalCanceled += row.count;
-        if (!rolesMap[row.groupName]) {
-          rolesMap[row.groupName] = {
-            role: row.groupName,
-            reasons: [],
-          };
-        }
-        rolesMap[row.groupName].reasons.push({
-          reason: row.cancellationReason,
-          qty: row.count,
+      case "role":
+        // Group by role: array of { role: "Driver", reasons: [{reason: "...", qty: 10}, ...] }
+        const rolesMap = {};
+        results.forEach((row) => {
+          totalCanceled += row.count;
+          if (!rolesMap[row.groupName]) {
+            rolesMap[row.groupName] = {
+              role: row.groupName,
+              reasons: [],
+            };
+          }
+          rolesMap[row.groupName].reasons.push({
+            reason: row.cancellationReason,
+            qty: row.count,
+          });
         });
-      });
-      formattedData = Object.values(rolesMap);
-      break;
+        formattedData = Object.values(rolesMap);
+        break;
 
-    case "contextType":
-      // Group by context type: array of { contextType: "JourneyDecisions", reasons: [{reason: "...", qty: 10}, ...] }
-      const contextMap = {};
-      results.forEach((row) => {
-        totalCanceled += row.count;
-        if (!contextMap[row.groupName]) {
-          contextMap[row.groupName] = {
-            contextType: row.groupName,
-            reasons: [],
-          };
-        }
-        contextMap[row.groupName].reasons.push({
-          reason: row.cancellationReason,
-          qty: row.count,
+      case "contextType":
+        // Group by context type: array of { contextType: "JourneyDecisions", reasons: [{reason: "...", qty: 10}, ...] }
+        const contextMap = {};
+        results.forEach((row) => {
+          totalCanceled += row.count;
+          if (!contextMap[row.groupName]) {
+            contextMap[row.groupName] = {
+              contextType: row.groupName,
+              reasons: [],
+            };
+          }
+          contextMap[row.groupName].reasons.push({
+            reason: row.cancellationReason,
+            qty: row.count,
+          });
         });
-      });
-      formattedData = Object.values(contextMap);
-      break;
+        formattedData = Object.values(contextMap);
+        break;
 
-    case "reason":
-    default:
-      // Simple array of { reason: "...", qty: 10 }
-      formattedData = results.map((row) => {
-        totalCanceled += row.qty;
-        return {
-          reason: row.reason,
-          qty: row.qty,
-        };
-      });
-      break;
+      case "reason":
+      default:
+        // Simple array of { reason: "...", qty: 10 }
+        formattedData = results.map((row) => {
+          totalCanceled += row.qty;
+          return {
+            reason: row.reason,
+            qty: row.qty,
+          };
+        });
+        break;
     }
 
     // If includeEmptyReasons is true, get all reasons and include zeros
@@ -988,7 +990,10 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
         FROM CancellationReasonsType 
         WHERE roleId = ? OR ? IS NULL
       `;
-      const [allReasons] = await executor.query(allReasonsSql, [roleId, roleId]);
+      const [allReasons] = await executor.query(allReasonsSql, [
+        roleId,
+        roleId,
+      ]);
 
       const existingReasons = new Set(formattedData.map((item) => item.reason));
 

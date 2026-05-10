@@ -374,11 +374,11 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
 -- Create the PassengerRequest table
 
 CREATE TABLE IF NOT EXISTS PassengerRequest (
-    passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
-    passengerRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the passenger request
+    shipperRequestId INT AUTO_INCREMENT PRIMARY KEY,
+    shipperRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the shipper request
 
     userUniqueId VARCHAR(36) NOT NULL,                     -- Foreign key to Users
-    passengerRequestBatchId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
+    shipperRequestBatchId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
     journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
 
@@ -404,23 +404,23 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     shippingDate DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDate DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
-    isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by passenger 
-    shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, passenger himself or driver take from street
+    isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by shipper 
+    shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, shipper himself or driver take from street
     shipperRequestCreatedByRoleId INT NOT NULL,          -- roleId of the creator when it create this request
-    passengerRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the passenger request
-    passengerRequestDeletedBy VARCHAR(36) NULL,  -- Who deleted the passenger request
-    passengerRequestUpdatedAt DATETIME NULL,  -- When the passenger request was updated
-    passengerRequestDeletedAt DATETIME NULL,  -- When the passenger request was deleted
+    shipperRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the shipper request
+    shipperRequestDeletedBy VARCHAR(36) NULL,  -- Who deleted the shipper request
+    shipperRequestUpdatedAt DATETIME NULL,  -- When the shipper request was updated
+    shipperRequestDeletedAt DATETIME NULL,  -- When the shipper request was deleted
 
     foreign key (shipperRequestCreatedByRoleId) references Roles(roleId),
     foreign key (shipperRequestCreatedBy) references Users(userUniqueId),
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
-    FOREIGN KEY (passengerRequestUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (passengerRequestDeletedBy) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (shipperRequestUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (shipperRequestDeletedBy) REFERENCES Users(userUniqueId)
     -- NOTE: FK to TransportCompany(companyUniqueId) is defined after that table is created below
-    -- INDEX added after company tables: idx_passengerRequest_targetCompany (targetCompanyUniqueId)
+    -- INDEX added after company tables: idx_shipperRequest_targetCompany (targetCompanyUniqueId)
 );
 
 -- PassengerRequestBatch: A metadata table that summarizes a group of requests.
@@ -493,18 +493,18 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey decision
-    passengerRequestId INT NOT NULL,  -- Foreign key to PassengerRequest
+    shipperRequestId INT NOT NULL,  -- Foreign key to PassengerRequest
     driverRequestId INT UNIQUE NOT NULL,  -- Foreign key to DriverRequest
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
-    decisionBy ENUM('passenger', 'driver', 'admin') NOT NULL,  -- Who made the decision
+    decisionBy ENUM('shipper', 'driver', 'admin') NOT NULL,  -- Who made the decision
 
     shippingDateByDriver DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDateByDriver DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCostByDriver DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
     isNotSelectedSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen not selected notification
-    isCancellationByDriverSeenByPassenger ENUM('no need to see it', 'not seen by passenger yet', 'seen by passenger') DEFAULT 'no need to see it',  -- Track if passenger has seen driver cancellation notification
-    isRejectionByPassengerSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen passenger rejection notification (before bid completion)
+    isCancellationByDriverSeenByPassenger ENUM('no need to see it', 'not seen by shipper yet', 'seen by shipper') DEFAULT 'no need to see it',  -- Track if shipper has seen driver cancellation notification
+    isRejectionByPassengerSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen shipper rejection notification (before bid completion)
     journeyDecisionCreatedBy VARCHAR(36) NOT NULL,  -- Who created the journey decision
     journeyDecisionUpdatedBy VARCHAR(36) NULL,  -- Who updated the journey decision
     journeyDecisionDeletedBy VARCHAR(36) NULL,  -- Who deleted the journey decision
@@ -512,7 +512,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionUpdatedAt DATETIME NULL,  -- When the journey decision was updated
     journeyDecisionDeletedAt DATETIME NULL,  -- When the journey decision was deleted
     
-    FOREIGN KEY (passengerRequestId) REFERENCES PassengerRequest(passengerRequestId),
+    FOREIGN KEY (shipperRequestId) REFERENCES PassengerRequest(shipperRequestId),
     FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
     FOREIGN KEY (journeyDecisionCreatedBy) REFERENCES Users(userUniqueId),
@@ -751,7 +751,7 @@ CREATE TABLE IF NOT EXISTS CancellationReasonsType (
     cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
     cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
     cancellationReason VARCHAR(150) NOT NULL,  -- Type of cancellation reason
-    roleId int NOT NULL,  -- Who canceled (could be driver, passenger, or admin)
+    roleId int NOT NULL,  -- Who canceled (could be driver, shipper, or admin)
     cancellationReasonTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the cancellation reason
     cancellationReasonTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the cancellation reason
     cancellationReasonTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the cancellation reason
@@ -797,7 +797,7 @@ CREATE TABLE IF NOT EXISTS PaymentStatus (
 ) ;
 
 
--- Create the JourneyPayments table where passenger pays to driver for journey service
+-- Create the JourneyPayments table where shipper pays to driver for journey service
 
 CREATE TABLE IF NOT EXISTS JourneyPayments (
     paymentId INT AUTO_INCREMENT PRIMARY KEY,
@@ -831,11 +831,11 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
  CREATE TABLE IF NOT EXISTS CanceledJourneys (
     canceledJourneyId INT AUTO_INCREMENT PRIMARY KEY,
     canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
-    contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
+    contextId INT NOT NULL,  -- ID from the relevant table (shipper request, driver request, journey decision, or journey)
     roleId INT NOT NULL,  -- ID from the Roles table
     contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey', 'PassengerRequestBatch') NOT NULL,  -- Type of context being referenced
     driverUserUniqueId VARCHAR(36) , 
-    passengerUserUniqueId VARCHAR(36),
+    shipperUserUniqueId VARCHAR(36),
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
@@ -860,9 +860,9 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
     tariffRateId INT AUTO_INCREMENT PRIMARY KEY,
     tariffRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tariff rate
     tariffRateName VARCHAR(255) NOT NULL,  -- Name of the tariff rate
-    standingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate where driver comes to passengers pick up place
-    journeyTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a passengers up to destination place and can be calculated by km
-    timingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a passengers up to destination place and can be calculated by time
+    standingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate where driver comes to shippers pick up place
+    journeyTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a shippers up to destination place and can be calculated by km
+    timingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a shippers up to destination place and can be calculated by time
     tariffRateEffectiveDate DATE NOT NULL,  -- The date from which this rate is effective
     tariffRateExpirationDate DATE NOT NULL,  -- The date after which this rate is no longer effective
     tariffRateDescription TEXT NOT NULL,  -- Description of tariff rate
@@ -1131,7 +1131,7 @@ CREATE TABLE IF NOT EXISTS UserBalanceTransfer (
 
  
 
--- UserRefund can be used to give back users money from ride hailing account (drivers, passengers, etc.)
+-- UserRefund can be used to give back users money from ride hailing account (drivers, shippers, etc.)
 CREATE TABLE IF NOT EXISTS UserRefund (
   userRefundId INT AUTO_INCREMENT PRIMARY KEY, -- Auto-incremented unique identifier for each refund record
 
@@ -1463,7 +1463,7 @@ CREATE TABLE IF NOT EXISTS CompanyRoles (
 
 -- CompanyMembership: Links individual users (owner, manager, dispatcher, driver)
 -- to a TransportCompany. A driver can belong to a company AND still take
--- individual passenger requests — membership does NOT lock the driver.
+-- individual shipper requests — membership does NOT lock the driver.
 -- One user can have one active membership per company.
 
 CREATE TABLE IF NOT EXISTS CompanyMembership (
@@ -1529,15 +1529,15 @@ CREATE TABLE IF NOT EXISTS CompanyVehicle (
 -- CompanyBidRequest: A company's bid on a shipper's batch request.
 -- When requestMode = 'company_target', only the targeted company can see and bid.
 -- No partial bids: numberOfVehiclesOffered MUST equal the shipper's batch size.
--- One company submits one bid per batch (UNIQUE on companyUniqueId + passengerRequestBatchId).
+-- One company submits one bid per batch (UNIQUE on companyUniqueId + shipperRequestBatchId).
 -- Commission for company bids is tracked in CompanyCommission (not the per-journey Commission table).
 
 CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     companyBidRequestId INT AUTO_INCREMENT PRIMARY KEY,
     companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
 
-    -- The shipper's batch being bid on (links to PassengerRequest.passengerRequestBatchId)
-    passengerRequestBatchId VARCHAR(36) NOT NULL,
+    -- The shipper's batch being bid on (links to PassengerRequest.shipperRequestBatchId)
+    shipperRequestBatchId VARCHAR(36) NOT NULL,
 
     -- Who is bidding
     companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
@@ -1579,8 +1579,8 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     companyBidRequestDeletedAt DATETIME NULL,
     companyBidRequestDeletedBy VARCHAR(36) NULL,
 
-    UNIQUE KEY uq_company_batch_bid (companyUniqueId, passengerRequestBatchId),  -- One bid per company per batch
-    INDEX idx_companyBid_batchId (passengerRequestBatchId),
+    UNIQUE KEY uq_company_batch_bid (companyUniqueId, shipperRequestBatchId),  -- One bid per company per batch
+    INDEX idx_companyBid_batchId (shipperRequestBatchId),
     INDEX idx_companyBid_company (companyUniqueId),
     INDEX idx_companyBid_status (bidStatus),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
@@ -1607,7 +1607,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
 --     → driverRequestUniqueId is stored in this table immediately
 --
 --   Step 2 — Driver confirms assignment (assignmentStatus → confirmed_by_driver):
---     → System creates JourneyDecision using passengerRequestId + driverRequestId
+--     → System creates JourneyDecision using shipperRequestId + driverRequestId
 --     → journeyDecisionUniqueId is then stored in this table
 --
 --   Step 3 — If driver rejects (assignmentStatus → rejected_by_driver):
@@ -1621,7 +1621,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
 
     -- Links back to the company bid and the specific PassengerRequest slot
     companyBidRequestUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyBidRequest
-    passengerRequestUniqueId VARCHAR(36) NOT NULL,         -- FK → PassengerRequest (one row in the batch)
+    shipperRequestUniqueId VARCHAR(36) NOT NULL,         -- FK → PassengerRequest (one row in the batch)
 
     -- The assigned vehicle and driver
     vehicleUniqueId VARCHAR(36) NOT NULL,                  -- FK → Vehicle
@@ -1659,7 +1659,7 @@ CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
     INDEX idx_assignment_vehicle (vehicleUniqueId),
     INDEX idx_assignment_status (assignmentStatus),
     FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
-    FOREIGN KEY (passengerRequestUniqueId) REFERENCES PassengerRequest(passengerRequestUniqueId),
+    FOREIGN KEY (shipperRequestUniqueId) REFERENCES PassengerRequest(shipperRequestUniqueId),
     FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
     FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (driverRequestUniqueId) REFERENCES DriverRequest(driverRequestUniqueId),

@@ -39,7 +39,7 @@ const cancelJourneyBySystem = async (req, res, next) => {
             message: "success",
             status: null,
             driver: null,
-            passenger: null,
+            shipper: null,
             messageTypes: messageTypes.request_other_driver,
           },
         });
@@ -95,7 +95,8 @@ const getCanceledJourneyByFilter = async (req, res, next) => {
       filters.userUniqueId = user.userUniqueId;
     }
 
-    const result = await canceledJourneyService.getCanceledJourneyByFilter(filters);
+    const result =
+      await canceledJourneyService.getCanceledJourneyByFilter(filters);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -108,7 +109,9 @@ const updateSeenByAdmin = async (req, res, next) => {
     const { canceledJourneyUniqueId } = req.params;
 
     const result = await executeInTransaction(async () => {
-      return await canceledJourneyService.updateSeenByAdmin(canceledJourneyUniqueId);
+      return await canceledJourneyService.updateSeenByAdmin(
+        canceledJourneyUniqueId,
+      );
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -123,7 +126,10 @@ const updateCanceledJourney = async (req, res, next) => {
     const data = req.body;
 
     const result = await executeInTransaction(async () => {
-      return await canceledJourneyService.updateCanceledJourney(canceledJourneyUniqueId, data);
+      return await canceledJourneyService.updateCanceledJourney(
+        canceledJourneyUniqueId,
+        data,
+      );
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -137,7 +143,9 @@ const deleteCanceledJourney = async (req, res, next) => {
     const { canceledJourneyUniqueId } = req.params;
 
     const result = await executeInTransaction(async () => {
-      return await canceledJourneyService.deleteCanceledJourney(canceledJourneyUniqueId);
+      return await canceledJourneyService.deleteCanceledJourney(
+        canceledJourneyUniqueId,
+      );
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -187,7 +195,8 @@ const getCanceledJourneyCountsByDate = async (req, res, next) => {
       },
     };
 
-    const result = await canceledJourneyService.getCanceledJourneyCountsByDate(filters);
+    const result =
+      await canceledJourneyService.getCanceledJourneyCountsByDate(filters);
     ServerResponder(res, result);
   } catch (error) {
     next(error);

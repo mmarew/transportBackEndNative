@@ -1,8 +1,8 @@
- #  Driver Registration
+# Driver Registration
 
 Complete guide to driver account creation, verification, and management.
 
- Driver Registration Flow
+Driver Registration Flow
 
 ### 1. Create Driver Account
 
@@ -124,7 +124,7 @@ Complete guide to driver account creation, verification, and management.
     "phoneNumber": "+251918569809",
     "email": null,
     "roleName": "Driver",
-    "roleDescription": "a person who can recive order from passenger to load goods",
+    "roleDescription": "a person who can recive order from shipper to load goods",
     "statusName": "inactive - vehicle not registered",
     "statusDescription": "Driver has not registered a vehicle.",
     "createdByName": "user 80"
@@ -418,7 +418,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
 ### Setting Driver Online/Available Status
 
 **Endpoint**: `POST /api/driver/request`
-**Description**: Creates a driver request and automatically searches for nearby passenger requests. If match found, immediately creates journey decision and starts journey.
+**Description**: Creates a driver request and automatically searches for nearby shipper requests. If match found, immediately creates journey decision and starts journey.
 **Authentication**: Driver token required
 
 **Request Body:**
@@ -441,7 +441,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
   "status": 2,
   "uniqueIds": {
     "driverRequestUniqueId": "8f66482b-f0f0-4f94-9d7a-d7d0a6d2c894",
-    "passengerRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
+    "shipperRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
     "journeyDecisionUniqueId": "68ed97a0-a18d-4a92-b15e-808032f96bf3"
   },
   "driver": {
@@ -494,7 +494,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
       "vehicleTypeDeletedAt": null
     }
   },
-  "passenger": {
+  "shipper": {
     "userId": 4,
     "userUniqueId": "81055b1e-fd8e-4efb-9c0c-af9be907bda7",
     "fullName": "Birhanu Gardie",
@@ -505,9 +505,9 @@ so we can upload documents for driver verification based on uploadedDocumentName
     "userDeletedAt": null,
     "userDeletedBy": null,
     "isDeleted": 0,
-    "passengerRequestId": 144,
-    "passengerRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
-    "passengerRequestBatchId": "32ebe525-291c-4e10-953f-4440ae10da69",
+    "shipperRequestId": 144,
+    "shipperRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
+    "shipperRequestBatchId": "32ebe525-291c-4e10-953f-4440ae10da69",
     "vehicleTypeUniqueId": "366883de-0471-4ac3-a2f7-812681091c05",
     "journeyStatusId": 2,
     "originLatitude": "9.00735000",
@@ -525,15 +525,15 @@ so we can upload documents for driver verification based on uploadedDocumentName
     "isCompletionSeen": 0,
     "shipperRequestCreatedBy": "81055b1e-fd8e-4efb-9c0c-af9be907bda7",
     "shipperRequestCreatedByRoleId": 1,
-    "passengerRequestUpdatedBy": null,
-    "passengerRequestDeletedBy": null,
-    "passengerRequestUpdatedAt": null,
-    "passengerRequestDeletedAt": null
+    "shipperRequestUpdatedBy": null,
+    "shipperRequestDeletedBy": null,
+    "shipperRequestUpdatedAt": null,
+    "shipperRequestDeletedAt": null
   },
   "journey": null,
   "decision": {
     "journeyDecisionUniqueId": "68ed97a0-a18d-4a92-b15e-808032f96bf3",
-    "passengerRequestId": 144,
+    "shipperRequestId": 144,
     "driverRequestId": 15,
     "journeyStatusId": 2,
     "decisionTime": "2026-02-02 16:49:39",
@@ -556,7 +556,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
 ### Setting Driver Offline/Unavailable Status
 
 **Endpoint**: `DELETE /api/driver/cancelDriverRequest`
-**Description**: Cancels the active driver request, making the driver unavailable for new passenger requests
+**Description**: Cancels the active driver request, making the driver unavailable for new shipper requests
 **Authentication**: Driver token required
 **Query Parameters:**
 
@@ -633,7 +633,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
   "status": 2,
   "uniqueIds": {
     "driverRequestUniqueId": "8f66482b-f0f0-4f94-9d7a-d7d0a6d2c894",
-    "passengerRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
+    "shipperRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
     "journeyDecisionUniqueId": "68ed97a0-a18d-4a92-b15e-808032f96bf3"
   },
   "driver": {
@@ -687,11 +687,11 @@ so we can upload documents for driver verification based on uploadedDocumentName
       "vehicleTypeDeletedAt": null
     }
   },
-  "passenger": {
-    "passengerRequestId": 144,
-    "passengerRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
+  "shipper": {
+    "shipperRequestId": 144,
+    "shipperRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
     "userUniqueId": "81055b1e-fd8e-4efb-9c0c-af9be907bda7",
-    "passengerRequestBatchId": "32ebe525-291c-4e10-953f-4440ae10da69",
+    "shipperRequestBatchId": "32ebe525-291c-4e10-953f-4440ae10da69",
     "vehicleTypeUniqueId": "366883de-0471-4ac3-a2f7-812681091c05",
     "journeyStatusId": 2,
     "originLatitude": "9.00735000",
@@ -709,10 +709,10 @@ so we can upload documents for driver verification based on uploadedDocumentName
     "isCompletionSeen": 0,
     "shipperRequestCreatedBy": "81055b1e-fd8e-4efb-9c0c-af9be907bda7",
     "shipperRequestCreatedByRoleId": 1,
-    "passengerRequestUpdatedBy": null,
-    "passengerRequestDeletedBy": null,
-    "passengerRequestUpdatedAt": null,
-    "passengerRequestDeletedAt": null,
+    "shipperRequestUpdatedBy": null,
+    "shipperRequestDeletedBy": null,
+    "shipperRequestUpdatedAt": null,
+    "shipperRequestDeletedAt": null,
     "userId": 4,
     "fullName": "Birhanu Gardie",
     "phoneNumber": "+251922112481",
@@ -727,7 +727,7 @@ so we can upload documents for driver verification based on uploadedDocumentName
   "decision": {
     "journeyDecisionId": 70,
     "journeyDecisionUniqueId": "68ed97a0-a18d-4a92-b15e-808032f96bf3",
-    "passengerRequestId": 144,
+    "shipperRequestId": 144,
     "driverRequestId": 15,
     "journeyStatusId": 2,
     "decisionTime": "2026-02-02T13:49:39.000Z",
@@ -809,14 +809,14 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ### Manual Request Acceptance
 
 **Endpoint**: `POST /api/driver/createAndAcceptNewRequest`
-**Description**: Allows drivers to manually create and accept passenger requests that were not auto-matched (outside distance range). Drivers can participate in requests beyond their normal search radius.
+**Description**: Allows drivers to manually create and accept shipper requests that were not auto-matched (outside distance range). Drivers can participate in requests beyond their normal search radius.
 **Authentication**: Driver token required
 
 **Request Body:**
 
 ```json
 {
-  "passengerRequestUniqueId": "3605efdb-45f2-4ecf-ad8e-bb14ddee3cd5",
+  "shipperRequestUniqueId": "3605efdb-45f2-4ecf-ad8e-bb14ddee3cd5",
   "shippingCostByDriver": "58000.00",
   "currentLocation": {
     "latitude": 9.007053,
@@ -837,7 +837,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
         "journeyDecisionUniqueId": "uuid-here"
     },
     "driver": {...},
-    "passenger": {...},
+    "shipper": {...},
     "decision": {...}
 }
 ```
@@ -855,7 +855,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ### Mark Negative Status as Seen
 
 **Endpoint**: `PUT /api/driver/markNegativeStatusAsSeen`
-**Description**: Allows drivers to mark negative notifications as seen. Handles multiple negative statuses: not selected in bid, rejected by passenger, cancelled by passenger, cancelled by admin, or cancelled by system.
+**Description**: Allows drivers to mark negative notifications as seen. Handles multiple negative statuses: not selected in bid, rejected by shipper, cancelled by shipper, cancelled by admin, or cancelled by system.
 **Authentication**: Driver token required
 
 **Request Body:**
@@ -888,7 +888,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ### Street Pickup Requests
 
 **Endpoint**: `POST /api/driver/takeFromStreet`
-**Description**: Allows drivers to create passenger requests for street pickups. Drivers can create requests on behalf of passengers they meet on the street who don't have the app.
+**Description**: Allows drivers to create shipper requests for street pickups. Drivers can create requests on behalf of shippers they meet on the street who don't have the app.
 **Authentication**: Driver token required
 
 **Request Body:**
@@ -914,7 +914,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
     "longitude": 38.8661227,
     "description": "Diredawa, Ethiopia"
   },
-  "passengerRequestBatchId": "uuidv4-8900-uiuip-9090-989800-08991",
+  "shipperRequestBatchId": "uuidv4-8900-uiuip-9090-989800-08991",
   "shippableItemName": "cement",
   "shippableItemQtyInQuintal": 450,
   "shippingDate": "2025-10-10:21:19:21",
@@ -929,9 +929,9 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 {
   "message": "success",
   "status": 1,
-  "passengerRequestUniqueId": "uuid-here",
-  "passengerRequestBatchId": "uuid-here",
-  "passenger": {
+  "shipperRequestUniqueId": "uuid-here",
+  "shipperRequestBatchId": "uuid-here",
+  "shipper": {
     "phoneNumber": "+251922222229",
     "fullName": "Street Passenger"
   }
@@ -943,7 +943,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - **400 Bad Request**: Missing required fields or invalid data format
 - **401 Unauthorized**: Invalid or missing driver token
 - **403 Forbidden**: Driver not authorized to create street requests
-- **409 Conflict**: Duplicate request or passenger phone number already exists
+- **409 Conflict**: Duplicate request or shipper phone number already exists
 - **500 Internal Server Error**: Server error during request creation
 
 ## Journey Management
@@ -951,7 +951,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ### Start Journey
 
 **Endpoint**: `PUT /api/driver/startJourney`
-**Description**: Officially start a journey after accepting a passenger request
+**Description**: Officially start a journey after accepting a shipper request
 **Authentication**: Driver token required
 
 **Request Body:**
@@ -973,7 +973,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
     "data": {
         "journeyUniqueId": "journey-uuid",
         "driver": {...},
-        "passenger": {...},
+        "shipper": {...},
         "journey": {...}
     }
 }
@@ -999,7 +999,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ```json
 {
   "journeyDecisionUniqueId": "uuid-here",
-  "passengerRequestUniqueId": "uuid-here",
+  "shipperRequestUniqueId": "uuid-here",
   "driverRequestUniqueId": "uuid-here",
   "journeyUniqueId": "uuid-here",
   "latitude": 9.012345,
@@ -1017,7 +1017,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
         "journeyUniqueId": "journey-uuid",
         "completionTime": "2026-01-31T15:30:00.000Z",
         "driver": {...},
-        "passenger": {...},
+        "shipper": {...},
         "journey": {...}
     }
 }
@@ -1028,7 +1028,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - **400 Bad Request**: Missing required IDs or location coordinates
 - **401 Unauthorized**: Invalid or missing driver token
 - **403 Forbidden**: Driver not authorized for this journey or journey not in started status
-- **404 Not Found**: Journey, driver request, or passenger request not found
+- **404 Not Found**: Journey, driver request, or shipper request not found
 - **409 Conflict**: Journey already completed or in invalid status
 - **500 Internal Server Error**: Server error during journey completion
 
@@ -1039,6 +1039,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 **Authentication**: Driver token required
 
 **Query Parameters:**
+
 - `target=single` - Get single request or `all` for multiple
 - `journeyStatusIds=6` - Filter by journey status (6 = completed)
 - `driverUserUniqueId=self` - Current user's requests
@@ -1050,6 +1051,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 - `sortOrder=desc` - Sort direction (asc/desc)
 
 **Success Response:**
+
 ```json
 {
   "message": "success",
@@ -1062,9 +1064,9 @@ Drivers receive real-time notifications through WebSocket connections and can ve
       "originLongitude": "38.80246000",
       "originPlace": "Addis Ababa, Ethiopia",
       "driverRequestCreatedAt": "2026-02-02T13:49:38.000Z",
-      "passenger": {
-        "passengerRequestId": 144,
-        "passengerRequestUniqueId": "uuid-here",
+      "shipper": {
+        "shipperRequestId": 144,
+        "shipperRequestUniqueId": "uuid-here",
         "fullName": "Birhanu Gardie",
         "phoneNumber": "+251922112481",
         "destinationPlace": "Gayint, South Gonder, Amhara Region, Ethiopia",
@@ -1090,6 +1092,7 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ```
 
 **Error Responses**:
+
 - **400 Bad Request**: Invalid query parameters
 - **401 Unauthorized**: Invalid or missing driver token
 - **403 Forbidden**: Not authorized to view these requests
@@ -1097,19 +1100,21 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 
 ### Passenger No Answer Report
 
-**Endpoint**: `PUT /api/passenger/noAnswerFromDriver`
-**Description**: Allows passengers to report when a driver doesn't answer their request. Updates driver status to "no answer" and creates new passenger request if needed.
+**Endpoint**: `PUT /api/shipper/noAnswerFromDriver`
+**Description**: Allows shippers to report when a driver doesn't answer their request. Updates driver status to "no answer" and creates new shipper request if needed.
 **Authentication**: Passenger token required
 
 **Request Body:**
+
 ```json
 {
-  "passengerRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
+  "shipperRequestUniqueId": "f64ca621-8b44-4adc-92a9-dc0767542099",
   "driverRequestUniqueId": "8f66482b-f0f0-4f94-9d7a-d7d0a6d2c894"
 }
 ```
 
 **Success Response:**
+
 ```json
 {
   "message": "success",
@@ -1119,8 +1124,9 @@ Drivers receive real-time notifications through WebSocket connections and can ve
 ```
 
 **Error Responses**:
+
 - **400 Bad Request**: Missing required fields or invalid request status
-- **401 Unauthorized**: Invalid or missing passenger token
+- **401 Unauthorized**: Invalid or missing shipper token
 - **403 Forbidden**: Not authorized to report this request
 - **404 Not Found**: Passenger request or driver request not found
 - **409 Conflict**: Driver already answered or request in invalid status

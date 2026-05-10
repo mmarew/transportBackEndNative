@@ -115,7 +115,9 @@ async function step(name, fn) {
 }
 
 function assert(cond, msg) {
-  if (!cond) {throw new Error(msg);}
+  if (!cond) {
+    throw new Error(msg);
+  }
 }
 
 function bearer(token) {
@@ -345,9 +347,9 @@ async function run() {
     await step("Shipper: Create batch (company_target mode)", async () => {
       const r = await request(
         "POST",
-        "/api/passengerRequest/createRequest",
+        "/api/shipperRequest/createRequest",
         {
-          passengerRequestBatchId: s.batchUniqueId,
+          shipperRequestBatchId: s.batchUniqueId,
           numberOfVehicles: 1,
           requestMode: "company_target",
           originLocation: ORIGIN,
@@ -373,7 +375,7 @@ async function run() {
         "POST",
         "/api/company/bids",
         {
-          passengerRequestBatchId: s.batchUniqueId,
+          shipperRequestBatchId: s.batchUniqueId,
           companyUniqueId: s.companyUniqueId,
           proposedCostPerVehicle: 75000,
           note: "E2E auto-assign test bid",
@@ -525,9 +527,9 @@ async function run() {
     await step("Shipper: Create individual request", async () => {
       const r = await request(
         "POST",
-        "/api/passengerRequest/createRequest",
+        "/api/shipperRequest/createRequest",
         {
-          passengerRequestBatchId: s.indiBatchId,
+          shipperRequestBatchId: s.indiBatchId,
           numberOfVehicles: 1,
           originLocation: ORIGIN,
           destination: DEST,
@@ -547,7 +549,7 @@ async function run() {
       return `batchId: ${s.indiBatchId}`;
     });
 
-    await step("Fetch individual passengerRequestUniqueId", async () => {
+    await step("Fetch individual shipperRequestUniqueId", async () => {
       const r = await request(
         "GET",
         `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1&limit=5`,
@@ -555,17 +557,16 @@ async function run() {
         bearer(s.shipperToken),
       );
       const rows = (r.body?.formattedData || []).map(
-        (f) => f.passengerRequest || f,
+        (f) => f.shipperRequest || f,
       );
       const match =
-        rows.find((x) => x.passengerRequestBatchId === s.indiBatchId) ||
-        rows[0];
-      s.indiPassengerRequestId = match?.passengerRequestUniqueId;
+        rows.find((x) => x.shipperRequestBatchId === s.indiBatchId) || rows[0];
+      s.indiPassengerRequestId = match?.shipperRequestUniqueId;
       assert(
         s.indiPassengerRequestId,
-        `No passengerRequestUniqueId: ${JSON.stringify(r.body).slice(0, 200)}`,
+        `No shipperRequestUniqueId: ${JSON.stringify(r.body).slice(0, 200)}`,
       );
-      return `passengerRequestUniqueId: ${s.indiPassengerRequestId}`;
+      return `shipperRequestUniqueId: ${s.indiPassengerRequestId}`;
     });
 
     await step("Driver: Accept individual request (status 1→3)", async () => {
@@ -573,7 +574,7 @@ async function run() {
         "POST",
         "/api/driver/createAndAcceptNewRequest",
         {
-          passengerRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiPassengerRequestId,
           shippingCostByDriver: 5000,
           currentLocation: ORIGIN,
         },
@@ -589,7 +590,7 @@ async function run() {
     await step("Fetch journey decision IDs (status=3)", async () => {
       const r = await request(
         "GET",
-        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3&passengerRequestUniqueId=${s.indiPassengerRequestId}&limit=1`,
+        `/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3&shipperRequestUniqueId=${s.indiPassengerRequestId}&limit=1`,
         null,
         bearer(s.shipperToken),
       );
@@ -610,11 +611,11 @@ async function run() {
     await step("Shipper: Accept driver bid (status→4)", async () => {
       const r = await request(
         "PUT",
-        "/api/passenger/acceptDriverRequest",
+        "/api/shipper/acceptDriverRequest",
         {
           driverRequestUniqueId: s.indiDriverRequestId,
           journeyDecisionUniqueId: s.indiJourneyDecisionId,
-          passengerRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiPassengerRequestId,
         },
         bearer(s.shipperToken),
       );
@@ -631,7 +632,7 @@ async function run() {
         "/api/driver/startJourney",
         {
           driverRequestUniqueId: s.indiDriverRequestId,
-          passengerRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiPassengerRequestId,
           journeyDecisionUniqueId: s.indiJourneyDecisionId,
           latitude: ORIGIN.latitude,
           longitude: ORIGIN.longitude,
@@ -654,7 +655,7 @@ async function run() {
         "/api/driver/completeJourney",
         {
           driverRequestUniqueId: s.indiDriverRequestId,
-          passengerRequestUniqueId: s.indiPassengerRequestId,
+          shipperRequestUniqueId: s.indiPassengerRequestId,
           journeyDecisionUniqueId: s.indiJourneyDecisionId,
           journeyUniqueId: s.indiJourneyUniqueId,
           latitude: DEST.latitude,

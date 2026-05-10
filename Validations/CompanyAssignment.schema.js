@@ -4,7 +4,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 
 exports.createAssignment = Joi.object({
   companyBidRequestUniqueId: uuidSchema.required(),
-  passengerRequestUniqueId: uuidSchema.optional(), // optional for company_target — auto-created from batch
+  shipperRequestUniqueId: uuidSchema.optional(), // optional for company_target — auto-created from batch
   vehicleUniqueId: uuidSchema.required(),
   driverUserUniqueId: uuidSchema.required(),
 }).unknown(true);
@@ -14,8 +14,8 @@ exports.updateAssignmentStatus = Joi.object({
     .valid(
       "confirmed_by_driver",
       "rejected_by_driver",
-      "going_to_loading",   // driver heading to loading/pickup point
-      "journey_started",    // cargo loaded, driver en route to destination
+      "going_to_loading", // driver heading to loading/pickup point
+      "journey_started", // cargo loaded, driver en route to destination
       "cancelled",
       "completed",
     )
@@ -32,7 +32,7 @@ exports.assignmentParams = Joi.object({
 exports.getAssignmentsQuery = Joi.object({
   assignmentUniqueId: uuidSchema.optional(),
   companyBidRequestUniqueId: uuidSchema.optional(),
-  passengerRequestUniqueId: uuidSchema.optional(),
+  shipperRequestUniqueId: uuidSchema.optional(),
   vehicleUniqueId: uuidSchema.optional(),
   driverUserUniqueId: uuidSchema.optional(),
   driverRequestUniqueId: uuidSchema.optional(),
@@ -58,7 +58,7 @@ exports.bulkAssign = Joi.object({
   assignments: Joi.array()
     .items(
       Joi.object({
-        passengerRequestUniqueId: uuidSchema.required(),
+        shipperRequestUniqueId: uuidSchema.required(),
         vehicleUniqueId: uuidSchema.required(),
         driverUserUniqueId: uuidSchema.required(),
       }),

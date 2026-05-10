@@ -147,14 +147,14 @@ for (let i = 1; i <= 40; i++) {
   const phoneNum = String(59 + i).padStart(2, "0"); // 60, 61, ... 99
   testPassengers.push({
     fullName: `${firstName} ${lastName}`,
-    email: `passenger${i}@test.com`,
+    email: `shipper${i}@test.com`,
     phoneNumber: `+2519${phoneNum}000001`,
     roleId: 1, // Passenger
   });
 }
 
 const driverRoleId = 2;
-const passengerRoleId = 1;
+const shipperRoleId = 1;
 const vehicleOwnerRoleId = 4;
 
 // Helper function to check if user exists by phone or email
@@ -167,7 +167,7 @@ async function userExists(phoneNumber, email) {
 }
 
 async function seedTestUsers() {
-  // Removed unused counters: driverSuccessCount, driverSkipCount, passengerSuccessCount, passengerSkipCount, documentCount, vehicleCount
+  // Removed unused counters: driverSuccessCount, driverSkipCount, shipperSuccessCount, shipperSkipCount, documentCount, vehicleCount
 
   // Get required document types for drivers (roleId=2)
   const [requiredDocuments] = await pool.query(
@@ -407,7 +407,7 @@ async function seedTestUsers() {
     // Check if user already exists
     const exists = await userExists(user.phoneNumber, user.email);
     if (exists) {
-      // Removed unused counter increment: passengerSkipCount++
+      // Removed unused counter increment: shipperSkipCount++
       continue;
     }
 
@@ -446,11 +446,11 @@ async function seedTestUsers() {
       const [userRoleResult] = await pool.query(
         `INSERT INTO UserRole (userRoleUniqueId, userUniqueId, roleId, userRoleCreatedAt, userRoleCreatedBy)
          VALUES (?, ?, ?, ?, ?)`,
-        [userRoleUniqueId, userUniqueId, passengerRoleId, now, userUniqueId],
+        [userRoleUniqueId, userUniqueId, shipperRoleId, now, userUniqueId],
       );
       const insertedUserRoleId = userRoleResult.insertId;
 
-      // 4. Insert UserRoleStatusCurrent (statusId=1 for passengers - active)
+      // 4. Insert UserRoleStatusCurrent (statusId=1 for shippers - active)
       await pool.query(
         `INSERT INTO UserRoleStatusCurrent (userRoleStatusUniqueId, userRoleStatusCreatedBy, userRoleId, userRoleStatusDescription, statusId, userRoleStatusCreatedAt)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -458,22 +458,22 @@ async function seedTestUsers() {
           userRoleStatusUniqueId,
           userUniqueId,
           insertedUserRoleId,
-          "Test passenger user",
+          "Test shipper user",
           1,
           now,
         ],
       );
 
-      // NO documents or   Vehicle for passengers
+      // NO documents or   Vehicle for shippers
 
-      // Removed unused counter increment: passengerSuccessCount++
+      // Removed unused counter increment: shipperSuccessCount++
     } catch (error) {
       const logger = require("./Utils/logger");
-      logger.error("Error seeding passenger", {
+      logger.error("Error seeding shipper", {
         error: error.message,
         stack: error.stack,
       });
-      // Removed unused counter increment: passengerSkipCount++
+      // Removed unused counter increment: shipperSkipCount++
     }
   }
 

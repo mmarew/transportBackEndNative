@@ -25,7 +25,7 @@ exports.createCommission = Joi.object({
     }),
 
   commissionStatusUniqueId: uuidSchema.optional().messages({
-    "string.guid": "commissionStatusUniqueId must be a valid UUID"
+    "string.guid": "commissionStatusUniqueId must be a valid UUID",
   }),
 }).strict(); // Disallow unknown fields
 
@@ -51,8 +51,8 @@ exports.getAllCommissions = Joi.object({
       "commissionAmount",
       "paymentTime",
       "driverName",
-      "passengerName",
-      "commissionStatus"
+      "shipperName",
+      "commissionStatus",
     )
     .default("commissionId"),
   sortOrder: Joi.string().valid("ASC", "DESC", "asc", "desc").default("DESC"),
@@ -66,10 +66,10 @@ exports.getAllCommissions = Joi.object({
   driverPhone: Joi.string().max(20),
   driverEmail: Joi.string().email().max(100),
   driverUniqueId: uuidSchema.optional(),
-  passengerName: Joi.string().max(100),
-  passengerPhone: Joi.string().max(20),
-  passengerEmail: Joi.string().email().max(100),
-  passengerUniqueId: uuidSchema.optional(),
+  shipperName: Joi.string().max(100),
+  shipperPhone: Joi.string().max(20),
+  shipperEmail: Joi.string().email().max(100),
+  shipperUniqueId: uuidSchema.optional(),
   commissionStatusUniqueId: uuidSchema.optional(),
   startDate: Joi.date().iso(),
   endDate: Joi.date().iso().min(Joi.ref("startDate")),

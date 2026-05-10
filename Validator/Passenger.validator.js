@@ -2,13 +2,13 @@ const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 
 const verifyExistanceOfPassangerInWaitingStage = async (userUniqueId) => {
-  // Query to check existence in the passenger table
-  const passengerSql = `SELECT * FROM Users WHERE userUniqueId = ?`;
-  const passengerValues = [userUniqueId];
-  const [passengerResult] = await pool.query(passengerSql, passengerValues);
+  // Query to check existence in the shipper table
+  const shipperSql = `SELECT * FROM Users WHERE userUniqueId = ?`;
+  const shipperValues = [userUniqueId];
+  const [shipperResult] = await pool.query(shipperSql, shipperValues);
 
-  if (passengerResult.length === 0) {
-    throw new AppError("passenger not found", 404);
+  if (shipperResult.length === 0) {
+    throw new AppError("shipper not found", 404);
   }
 
   // Query to check existence in the PassengerRequest table
@@ -20,14 +20,14 @@ const verifyExistanceOfPassangerInWaitingStage = async (userUniqueId) => {
   if (requestResult.length > 0) {
     return {
       status: "success",
-      passenger: { ...requestResult[0], ...passengerResult[0] },
-      data: "passenger is in waiting stage",
+      shipper: { ...requestResult[0], ...shipperResult[0] },
+      data: "shipper is in waiting stage",
     };
   } else {
     return {
       status: "success",
-      passenger: { ...passengerResult[0] },
-      data: "passenger is not in waiting stage",
+      shipper: { ...shipperResult[0] },
+      data: "shipper is not in waiting stage",
     };
   }
 };

@@ -1,7 +1,7 @@
 /**
  * PassengerRequest Service Module
  *
- * This module exports all passenger request-related services organized by functionality:
+ * This module exports all shipper request-related services organized by functionality:
  * - requestCRUD: Create, Read, Update, Delete operations
  * - requestActions: Business logic actions (accept, reject, cancel)
  * - statusVerification: Status checking and driver matching

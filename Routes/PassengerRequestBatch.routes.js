@@ -8,7 +8,7 @@ const { validator } = require("../Middleware/Validator");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 /**
- * @route   GET /api/passengerRequestBatch
+ * @route   GET /api/shipperRequestBatch
  * @desc    List batches with optional filters + pagination
  * @access  Authenticated
  *
@@ -19,15 +19,14 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
  *   includeDeleted, page, limit
  */
 router.get(
-  "/api/passengerRequestBatch",
+  "/api/shipperRequestBatch",
   verifyTokenOfAxios,
   validator(schema.getBatchesQuery, "query"),
   controller.getBatches,
 );
 
-
 /**
- * @route   PATCH /api/passengerRequestBatch/:batchUniqueId
+ * @route   PATCH /api/shipperRequestBatch/:batchUniqueId
  * @desc    Partially update a batch — only supplied fields are changed
  * @access  Authenticated
  *
@@ -38,7 +37,7 @@ router.get(
  *   shippingCost, journeyStatusId
  */
 router.patch(
-  "/api/passengerRequestBatch/:batchUniqueId",
+  "/api/shipperRequestBatch/:batchUniqueId",
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   validator(schema.updateBatch),
@@ -46,19 +45,19 @@ router.patch(
 );
 
 /**
- * @route   DELETE /api/passengerRequestBatch/:batchUniqueId
+ * @route   DELETE /api/shipperRequestBatch/:batchUniqueId
  * @desc    Soft-delete a batch (stamps batchDeletedAt)
  * @access  Authenticated
  */
 router.delete(
-  "/api/passengerRequestBatch/:batchUniqueId",
+  "/api/shipperRequestBatch/:batchUniqueId",
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   controller.deleteBatch,
 );
 
 /**
- * @route   PUT /api/passengerRequestBatch/:batchUniqueId/cancel
+ * @route   PUT /api/shipperRequestBatch/:batchUniqueId/cancel
  * @desc    Atomically cancel a company freight batch and all related records
  * @access  Authenticated (shipper who owns the batch, or admin)
  *
@@ -69,7 +68,7 @@ router.delete(
  * Body (optional): { cancellationReasonsTypeId }
  */
 router.put(
-  "/api/passengerRequestBatch/:batchUniqueId/cancel",
+  "/api/shipperRequestBatch/:batchUniqueId/cancel",
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   validator(schema.cancelBatchBody),

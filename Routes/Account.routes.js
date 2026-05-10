@@ -37,12 +37,12 @@ router.get(
 );
 
 /**
- * @route   GET /api/passenger/account
+ * @route   GET /api/shipper/account
  * @desc    Passenger/Shipper self account status
  * @access  Passenger token
  */
 router.get(
-  "/api/passenger/account",
+  "/api/shipper/account",
   verifyTokenOfAxios,
   AccountController.selfAccountStatus,
 );

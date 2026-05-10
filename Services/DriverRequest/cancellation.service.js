@@ -52,12 +52,12 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
         JourneyDecisions.decisionBy,
         
         -- PassengerRequest data
-        PassengerRequest.passengerRequestId,
-        PassengerRequest.passengerRequestUniqueId,
+        PassengerRequest.shipperRequestId,
+        PassengerRequest.shipperRequestUniqueId,
         PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as passengerOriginLatitude,
-        PassengerRequest.originLongitude as passengerOriginLongitude,
-        PassengerRequest.originPlace as passengerOriginPlace,
+        PassengerRequest.originLatitude as shipperOriginLatitude,
+        PassengerRequest.originLongitude as shipperOriginLongitude,
+        PassengerRequest.originPlace as shipperOriginPlace,
         PassengerRequest.destinationLatitude,
         PassengerRequest.destinationLongitude,
         PassengerRequest.destinationPlace,
@@ -69,15 +69,15 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
         PassengerRequest.shippingCost,
         
         -- Passenger User data
-        PassengerUser.userUniqueId as passengerUserUniqueId,
-        PassengerUser.fullName as passengerFullName,
-        PassengerUser.phoneNumber as passengerPhoneNumber,
-        PassengerUser.email as passengerEmail
+        PassengerUser.userUniqueId as shipperUserUniqueId,
+        PassengerUser.fullName as shipperFullName,
+        PassengerUser.phoneNumber as shipperPhoneNumber,
+        PassengerUser.email as shipperEmail
         
       FROM DriverRequest
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
       INNER JOIN JourneyDecisions ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       INNER JOIN Users as PassengerUser ON PassengerRequest.userUniqueId = PassengerUser.userUniqueId
       WHERE ${whereConditions.join(" AND ")}
       ORDER BY DriverRequest.driverRequestCreatedAt DESC
@@ -136,19 +136,19 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
               phoneNumber: request.driverPhoneNumber,
               email: request.driverEmail,
             },
-            passenger: {
-              userUniqueId: request.passengerUserUniqueId,
-              fullName: request.passengerFullName,
-              phoneNumber: request.passengerPhoneNumber,
-              email: request.passengerEmail,
+            shipper: {
+              userUniqueId: request.shipperUserUniqueId,
+              fullName: request.shipperFullName,
+              phoneNumber: request.shipperPhoneNumber,
+              email: request.shipperEmail,
             },
-            passengerRequest: {
-              passengerRequestId: request.passengerRequestId,
-              passengerRequestUniqueId: request.passengerRequestUniqueId,
+            shipperRequest: {
+              shipperRequestId: request.shipperRequestId,
+              shipperRequestUniqueId: request.shipperRequestUniqueId,
               vehicleTypeUniqueId: request.vehicleTypeUniqueId,
-              originLatitude: request.passengerOriginLatitude,
-              originLongitude: request.passengerOriginLongitude,
-              originPlace: request.passengerOriginPlace,
+              originLatitude: request.shipperOriginLatitude,
+              originLongitude: request.shipperOriginLongitude,
+              originPlace: request.shipperOriginPlace,
               destinationLatitude: request.destinationLatitude,
               destinationLongitude: request.destinationLongitude,
               destinationPlace: request.destinationPlace,
@@ -253,7 +253,7 @@ const markNegativeStatusAsSeenByDriver = async ({
       // Status 8: Update JourneyDecisions.isRejectionByPassengerSeenByDriver
       updateTable = "JourneyDecisions";
       updateField = "isRejectionByPassengerSeenByDriver";
-      statusName = "rejected by passenger";
+      statusName = "rejected by shipper";
     } else if (
       currentStatusId === journeyStatusMap.cancelledByPassenger ||
       currentStatusId === journeyStatusMap.cancelledByAdmin ||
@@ -263,7 +263,7 @@ const markNegativeStatusAsSeenByDriver = async ({
       updateTable = "DriverRequest";
       updateField = "isCancellationByPassengerSeenByDriver";
       if (currentStatusId === journeyStatusMap.cancelledByPassenger) {
-        statusName = "cancelled by passenger";
+        statusName = "cancelled by shipper";
       } else if (currentStatusId === journeyStatusMap.cancelledByAdmin) {
         statusName = "cancelled by admin";
       } else {

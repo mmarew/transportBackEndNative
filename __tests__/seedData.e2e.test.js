@@ -7,7 +7,7 @@ const { pool } = require("../Middleware/Database.config");
 
 // Seed expectations from Utils/ListOfSeedData.js
 const expectedRoles = [
-  "passenger",
+  "shipper",
   "driver",
   "admin",
   "vehicle owner",
@@ -46,25 +46,25 @@ const expectedCancellationReasons = [
   "route unavailable",
   "app-related technical issue",
   "vehicle issue",
-  "passenger requested an illegal or unsafe route",
-  "passenger was disrespectful",
-  "passenger had too many people",
+  "shipper requested an illegal or unsafe route",
+  "shipper was disrespectful",
+  "shipper had too many people",
   "incorrect pickup location",
   "safety concerns",
-  "passenger was unresponsive",
+  "shipper was unresponsive",
 ];
 
 const expectedDelinquencyTypes = [
   "late arrival of driver",
   "rude behavior of driver",
-  "late departure of passenger",
+  "late departure of shipper",
 ];
 
 const expectedJourneyStatuses = [
   "waiting",
   "requested",
   "acceptedbydriver",
-  "acceptedbypassenger",
+  "acceptedbyshipper",
   "journeystarted",
 ];
 

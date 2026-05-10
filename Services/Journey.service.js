@@ -193,8 +193,8 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
   }
 };
 
-// Helper function to get passenger request by ID
-const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
+// Helper function to get shipper request by ID
+const getPassengerRequestByPassengerRequestId = async (shipperRequestId) => {
   try {
     const result = await performJoinSelect({
       baseTable: "PassengerRequest",
@@ -204,7 +204,7 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
           on: "PassengerRequest.userUniqueId = Users.userUniqueId",
         },
       ],
-      conditions: { passengerRequestId },
+      conditions: { shipperRequestId },
     });
 
     if (result?.length === 0) {
@@ -214,8 +214,8 @@ const getPassengerRequestByPassengerRequestId = async (passengerRequestId) => {
     return { message: "success", data: result[0] };
   } catch (error) {
     const logger = require("../Utils/logger");
-    logger.error("Unable to retrieve passenger request", {
-      passengerRequestId,
+    logger.error("Unable to retrieve shipper request", {
+      shipperRequestId,
       error: error.message,
       stack: error.stack,
     });
@@ -247,7 +247,7 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
     ];
     const queryParams = [journeyStatusMap.journeyCompleted];
 
-    // Owner filter - check both passenger and driver
+    // Owner filter - check both shipper and driver
     if (ownerUserUniqueId && ownerUserUniqueId !== "all") {
       queryWhereParts.push(`
         (PassengerRequest.userUniqueId = ? OR DriverRequest.userUniqueId = ?)
@@ -271,27 +271,27 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
     // User-based filters
     if (fullName) {
       queryWhereParts.push(
-        `(passengerUser.fullName LIKE ? OR driverUser.fullName LIKE ?)`,
+        `(shipperUser.fullName LIKE ? OR driverUser.fullName LIKE ?)`,
       );
       queryParams.push(`%${fullName}%`, `%${fullName}%`);
     }
     if (phone) {
       queryWhereParts.push(
-        `(passengerUser.phoneNumber LIKE ? OR driverUser.phoneNumber LIKE ?)`,
+        `(shipperUser.phoneNumber LIKE ? OR driverUser.phoneNumber LIKE ?)`,
       );
       queryParams.push(`%${phone}%`, `%${phone}%`);
     }
     if (email) {
       queryWhereParts.push(
-        `(passengerUser.email LIKE ? OR driverUser.email LIKE ?)`,
+        `(shipperUser.email LIKE ? OR driverUser.email LIKE ?)`,
       );
       queryParams.push(`%${email}%`, `%${email}%`);
     }
     if (search) {
       queryWhereParts.push(`(
-        passengerUser.fullName LIKE ? OR 
-        passengerUser.phoneNumber LIKE ? OR 
-        passengerUser.email LIKE ? OR
+        shipperUser.fullName LIKE ? OR 
+        shipperUser.phoneNumber LIKE ? OR 
+        shipperUser.email LIKE ? OR
         driverUser.fullName LIKE ? OR
         driverUser.phoneNumber LIKE ? OR 
         driverUser.email LIKE ? OR
@@ -324,9 +324,9 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
         COUNT(*) as totalCount
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      INNER JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      INNER JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       ${whereClause}
       GROUP BY DATE_FORMAT(Journey.endTime, '%Y-%m-%d')
@@ -408,7 +408,7 @@ const searchCompletedJourneyByUserData = async (
       SELECT Journey.*, JourneyDecisions.* 
       FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
@@ -426,7 +426,7 @@ const searchCompletedJourneyByUserData = async (
 
     const countSql = ` SELECT COUNT(*) as total  FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       WHERE ${userField} IN (${placeholders}) 
         AND Journey.journeyStatusId = ?
@@ -439,13 +439,13 @@ const searchCompletedJourneyByUserData = async (
 
     const data = await Promise.all(
       result.map(async (item) => {
-        const [passengerData, driverData] = await Promise.all([
-          getPassengerRequestByPassengerRequestId(item.passengerRequestId),
+        const [shipperData, driverData] = await Promise.all([
+          getPassengerRequestByPassengerRequestId(item.shipperRequestId),
           getDriverRequestByRequestId(item.driverRequestId),
         ]);
 
         return {
-          passenger: passengerData.data,
+          shipper: shipperData.data,
           driver: driverData.data,
           journey: item,
         };
@@ -483,7 +483,7 @@ const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
       1: {
         joinTable: "PassengerRequest",
         joinCondition:
-          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+          "PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
         userField: "PassengerRequest.userUniqueId",
       },
       2: {
@@ -600,8 +600,8 @@ const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
 
     const data = await Promise.all(
       ongoingJourneys.map(async (item) => {
-        const [passengerData, driverData] = await Promise.all([
-          getPassengerRequestByPassengerRequestId(item.passengerRequestId),
+        const [shipperData, driverData] = await Promise.all([
+          getPassengerRequestByPassengerRequestId(item.shipperRequestId),
           getDriverRequestByRequestId(item.driverRequestId),
         ]);
         // get vehicle of driver based on driver data
@@ -612,7 +612,7 @@ const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
         });
 
         return {
-          passenger: passengerData.data,
+          shipper: shipperData.data,
           driver: { driver: driverData.data, vehicle: vehicle?.data[0] },
           journey: item,
         };
@@ -663,7 +663,7 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         
         -- JourneyDecisions data
         JourneyDecisions.journeyDecisionId,
-        JourneyDecisions.passengerRequestId,
+        JourneyDecisions.shipperRequestId,
         JourneyDecisions.driverRequestId,
         JourneyDecisions.decisionTime,
         JourneyDecisions.decisionBy,
@@ -672,15 +672,15 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         JourneyDecisions.shippingCostByDriver,
         
         -- PassengerRequest data
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
+        PassengerRequest.shipperRequestUniqueId,
+        PassengerRequest.userUniqueId as shipperUserUniqueId,
         PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as passengerOriginLat,
-        PassengerRequest.originLongitude as passengerOriginLng,
-        PassengerRequest.originPlace as passengerOriginPlace,
-        PassengerRequest.destinationLatitude as passengerDestLat,
-        PassengerRequest.destinationLongitude as passengerDestLng,
-        PassengerRequest.destinationPlace as passengerDestPlace,
+        PassengerRequest.originLatitude as shipperOriginLat,
+        PassengerRequest.originLongitude as shipperOriginLng,
+        PassengerRequest.originPlace as shipperOriginPlace,
+        PassengerRequest.destinationLatitude as shipperDestLat,
+        PassengerRequest.destinationLongitude as shipperDestLng,
+        PassengerRequest.destinationPlace as shipperDestPlace,
         PassengerRequest.shipperRequestCreatedAt,
         PassengerRequest.shippableItemName,
         PassengerRequest.shippableItemQtyInQuintal,
@@ -689,9 +689,9 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         PassengerRequest.shippingCost,
         
         -- Passenger User data
-        passengerUser.fullName as passengerFullName,
-        passengerUser.phoneNumber as passengerPhone,
-        passengerUser.email as passengerEmail,
+        shipperUser.fullName as shipperFullName,
+        shipperUser.phoneNumber as shipperPhone,
+        shipperUser.email as shipperEmail,
         
         -- DriverRequest data
         DriverRequest.driverRequestUniqueId,
@@ -708,8 +708,8 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         
       FROM Journey 
       INNER JOIN JourneyDecisions ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId 
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
-      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
+      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       WHERE Journey.journeyStatusId = ?
@@ -726,7 +726,7 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
     const fullData = completedJourneys.map((row) => ({
       decision: {
         journeyDecisionId: row.journeyDecisionId,
-        passengerRequestId: row.passengerRequestId,
+        shipperRequestId: row.shipperRequestId,
         driverRequestId: row.driverRequestId,
         decisionTime: row.decisionTime,
         decisionBy: row.decisionBy,
@@ -743,19 +743,19 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
         fare: row.fare,
         journeyStatusId: row.journeyStatusId,
       },
-      passenger: {
-        passengerRequestUniqueId: row.passengerRequestUniqueId,
-        userUniqueId: row.passengerUserUniqueId,
-        fullName: row.passengerFullName,
-        phoneNumber: row.passengerPhone,
-        email: row.passengerEmail,
+      shipper: {
+        shipperRequestUniqueId: row.shipperRequestUniqueId,
+        userUniqueId: row.shipperUserUniqueId,
+        fullName: row.shipperFullName,
+        phoneNumber: row.shipperPhone,
+        email: row.shipperEmail,
         vehicleTypeUniqueId: row.vehicleTypeUniqueId,
-        originLatitude: row.passengerOriginLat,
-        originLongitude: row.passengerOriginLng,
-        originPlace: row.passengerOriginPlace,
-        destinationLatitude: row.passengerDestLat,
-        destinationLongitude: row.passengerDestLng,
-        destinationPlace: row.passengerDestPlace,
+        originLatitude: row.shipperOriginLat,
+        originLongitude: row.shipperOriginLng,
+        originPlace: row.shipperOriginPlace,
+        destinationLatitude: row.shipperDestLat,
+        destinationLongitude: row.shipperDestLng,
+        destinationPlace: row.shipperDestPlace,
         shipperRequestCreatedAt: row.shipperRequestCreatedAt,
         shippableItemName: row.shippableItemName,
         shippableItemQtyInQuintal: row.shippableItemQtyInQuintal,
@@ -833,7 +833,7 @@ const getJourneys = async (filters = {}) => {
       1: {
         joinTable: "PassengerRequest",
         joinCondition:
-          "PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId",
+          "PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
         userField: "PassengerRequest.userUniqueId",
       },
       2: {
@@ -845,7 +845,7 @@ const getJourneys = async (filters = {}) => {
     };
 
     if (!roleConfig[roleId]) {
-      throw new Error("Invalid role ID. Use 1 for passenger or 2 for driver");
+      throw new Error("Invalid role ID. Use 1 for shipper or 2 for driver");
     }
 
     const { userField } = roleConfig[roleId];
@@ -898,27 +898,27 @@ const getJourneys = async (filters = {}) => {
     // User-based filters
     if (fullName) {
       queryWhereParts.push(
-        `(passengerUser.fullName LIKE ? OR driverUser.fullName LIKE ?)`,
+        `(shipperUser.fullName LIKE ? OR driverUser.fullName LIKE ?)`,
       );
       queryParams.push(`%${fullName}%`, `%${fullName}%`);
     }
     if (phone) {
       queryWhereParts.push(
-        `(passengerUser.phoneNumber LIKE ? OR driverUser.phoneNumber LIKE ?)`,
+        `(shipperUser.phoneNumber LIKE ? OR driverUser.phoneNumber LIKE ?)`,
       );
       queryParams.push(`%${phone}%`, `%${phone}%`);
     }
     if (email) {
       queryWhereParts.push(
-        `(passengerUser.email LIKE ? OR driverUser.email LIKE ?)`,
+        `(shipperUser.email LIKE ? OR driverUser.email LIKE ?)`,
       );
       queryParams.push(`%${email}%`, `%${email}%`);
     }
     if (search) {
       queryWhereParts.push(`(
-        passengerUser.fullName LIKE ? OR 
-        passengerUser.phoneNumber LIKE ? OR 
-        passengerUser.email LIKE ? OR
+        shipperUser.fullName LIKE ? OR 
+        shipperUser.phoneNumber LIKE ? OR 
+        shipperUser.email LIKE ? OR
         driverUser.fullName LIKE ? OR
         driverUser.phoneNumber LIKE ? OR 
         driverUser.email LIKE ? OR
@@ -959,7 +959,7 @@ const getJourneys = async (filters = {}) => {
         -- JourneyDecisions data
         JourneyDecisions.journeyDecisionId,
         JourneyDecisions.journeyDecisionUniqueId as decisionUniqueId,
-        JourneyDecisions.passengerRequestId,
+        JourneyDecisions.shipperRequestId,
         JourneyDecisions.driverRequestId,
         JourneyDecisions.decisionTime,
         JourneyDecisions.decisionBy,
@@ -968,17 +968,17 @@ const getJourneys = async (filters = {}) => {
         JourneyDecisions.shippingCostByDriver,
         
         -- PassengerRequest data
-        PassengerRequest.passengerRequestId,
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
+        PassengerRequest.shipperRequestId,
+        PassengerRequest.shipperRequestUniqueId,
+        PassengerRequest.userUniqueId as shipperUserUniqueId,
         PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.journeyStatusId as passengerJourneyStatusId,
-        PassengerRequest.originLatitude as passengerOriginLat,
-        PassengerRequest.originLongitude as passengerOriginLng,
-        PassengerRequest.originPlace as passengerOriginPlace,
-        PassengerRequest.destinationLatitude as passengerDestLat,
-        PassengerRequest.destinationLongitude as passengerDestLng,
-        PassengerRequest.destinationPlace as passengerDestPlace,
+        PassengerRequest.journeyStatusId as shipperJourneyStatusId,
+        PassengerRequest.originLatitude as shipperOriginLat,
+        PassengerRequest.originLongitude as shipperOriginLng,
+        PassengerRequest.originPlace as shipperOriginPlace,
+        PassengerRequest.destinationLatitude as shipperDestLat,
+        PassengerRequest.destinationLongitude as shipperDestLng,
+        PassengerRequest.destinationPlace as shipperDestPlace,
         PassengerRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
         PassengerRequest.shippableItemName,
         PassengerRequest.shippableItemQtyInQuintal,
@@ -1000,10 +1000,10 @@ const getJourneys = async (filters = {}) => {
         DriverRequest.journeyStatusId as driverJourneyStatusId,
         
         -- Passenger User data
-        passengerUser.fullName as passengerFullName,
-        passengerUser.phoneNumber as passengerPhone,
-        passengerUser.email as passengerEmail,
-        passengerUser.userCreatedAt as passengerCreatedAt,
+        shipperUser.fullName as shipperFullName,
+        shipperUser.phoneNumber as shipperPhone,
+        shipperUser.email as shipperEmail,
+        shipperUser.userCreatedAt as shipperCreatedAt,
         
         -- Driver User data
         driverUser.fullName as driverFullName,
@@ -1016,10 +1016,10 @@ const getJourneys = async (filters = {}) => {
         
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      INNER JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      INNER JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      -- Join passenger user data
-      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      -- Join shipper user data
+      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
       -- Join driver user data  
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       -- Join journey status
@@ -1038,14 +1038,17 @@ const getJourneys = async (filters = {}) => {
       SELECT COUNT(*) as total
       FROM Journey
       INNER JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
-      INNER JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      INNER JOIN PassengerRequest ON PassengerRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       INNER JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      INNER JOIN Users as passengerUser ON PassengerRequest.userUniqueId = passengerUser.userUniqueId
+      INNER JOIN Users as shipperUser ON PassengerRequest.userUniqueId = shipperUser.userUniqueId
       INNER JOIN Users as driverUser ON DriverRequest.userUniqueId = driverUser.userUniqueId
       INNER JOIN JourneyStatus ON JourneyStatus.journeyStatusId = Journey.journeyStatusId
       ${whereClause}
     `;
-    const [countRows] = await executor.query(countSql, queryParams.slice(0, -2));
+    const [countRows] = await executor.query(
+      countSql,
+      queryParams.slice(0, -2),
+    );
     const totalCount = countRows[0]?.total || 0;
     const totalPages = Math.ceil(totalCount / safeLimit);
 
@@ -1061,23 +1064,23 @@ const getJourneys = async (filters = {}) => {
           vehicle = vehicleResult?.data?.[0] || null;
         }
 
-        // Build passenger object
-        const passenger = {
-          passengerRequestId: item.passengerRequestId,
-          passengerRequestUniqueId: item.passengerRequestUniqueId,
-          userUniqueId: item.passengerUserUniqueId,
-          fullName: item.passengerFullName,
-          phoneNumber: item.passengerPhone,
-          email: item.passengerEmail,
-          createdAt: item.passengerCreatedAt,
+        // Build shipper object
+        const shipper = {
+          shipperRequestId: item.shipperRequestId,
+          shipperRequestUniqueId: item.shipperRequestUniqueId,
+          userUniqueId: item.shipperUserUniqueId,
+          fullName: item.shipperFullName,
+          phoneNumber: item.shipperPhone,
+          email: item.shipperEmail,
+          createdAt: item.shipperCreatedAt,
           vehicleTypeUniqueId: item.vehicleTypeUniqueId,
-          journeyStatusId: item.passengerJourneyStatusId,
-          originLatitude: item.passengerOriginLat,
-          originLongitude: item.passengerOriginLng,
-          originPlace: item.passengerOriginPlace,
-          destinationLatitude: item.passengerDestLat,
-          destinationLongitude: item.passengerDestLng,
-          destinationPlace: item.passengerDestPlace,
+          journeyStatusId: item.shipperJourneyStatusId,
+          originLatitude: item.shipperOriginLat,
+          originLongitude: item.shipperOriginLng,
+          originPlace: item.shipperOriginPlace,
+          destinationLatitude: item.shipperDestLat,
+          destinationLongitude: item.shipperDestLng,
+          destinationPlace: item.shipperDestPlace,
           shipperRequestCreatedAt: item.shipperRequestCreatedAt,
           shippableItemName: item.shippableItemName,
           shippableItemQtyInQuintal: item.shippableItemQtyInQuintal,
@@ -1124,7 +1127,7 @@ const getJourneys = async (filters = {}) => {
         const decision = {
           journeyDecisionId: item.journeyDecisionId,
           journeyDecisionUniqueId: item.decisionUniqueId,
-          passengerRequestId: item.passengerRequestId,
+          shipperRequestId: item.shipperRequestId,
           driverRequestId: item.driverRequestId,
           decisionTime: item.decisionTime,
           decisionBy: item.decisionBy,
@@ -1135,7 +1138,7 @@ const getJourneys = async (filters = {}) => {
 
         // Return exact structure you requested
         return {
-          passenger: passenger,
+          shipper: shipper,
           driver: driver,
           journey: journey,
           decision: decision,

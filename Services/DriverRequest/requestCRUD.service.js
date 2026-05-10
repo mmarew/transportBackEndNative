@@ -12,7 +12,7 @@ const AppError = require("../../Utils/AppError");
  * Creates a new driver request
  * @param {Object} params - Request parameters
  * @param {Object} params.body - Request body data
- * @param {boolean} params.findNewRequest - Whether to find matching passengers
+ * @param {boolean} params.findNewRequest - Whether to find matching shippers
  * @param {number} params.journeyStatusId - Initial journey status ID
  * @returns {Promise<Object>} Success or error response
  */
@@ -46,7 +46,7 @@ const createRequest = async ({
       });
     }
 
-    // Find matching passengers and update status
+    // Find matching shippers and update status
     // This returns the standardized format matching verifyDriverJourneyStatus endpoint
     return await verifyDriverJourneyStatus({
       userUniqueId,

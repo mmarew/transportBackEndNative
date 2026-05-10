@@ -4,7 +4,7 @@
  * Tests the GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=6 endpoint.
  *
  * WHAT WE ARE TESTING:
- *   The critical bug was that for passengerRequestId=44, which had TWO decisions:
+ *   The critical bug was that for shipperRequestId=44, which had TWO decisions:
  *     - Decision 61 (journeyStatusId: 2, REJECTED)
  *     - Decision 62 (journeyStatusId: 6, COMPLETED)
  *   The service was using decisions[0] (Decision 61) to look up the journey.
@@ -41,9 +41,9 @@ describe("GET /api/user/getPassengerRequest4allOrSingleUser - Journey Population
     expect(completedRequests.length).toBeGreaterThan(0);
   });
 
-  test("every item should have passengerRequest, driverRequests, decisions, and journey keys", () => {
+  test("every item should have shipperRequest, driverRequests, decisions, and journey keys", () => {
     for (const item of completedRequests) {
-      expect(item).toHaveProperty("passengerRequest");
+      expect(item).toHaveProperty("shipperRequest");
       expect(item).toHaveProperty("driverRequests");
       expect(item).toHaveProperty("decisions");
       expect(item).toHaveProperty("journey");
@@ -52,10 +52,10 @@ describe("GET /api/user/getPassengerRequest4allOrSingleUser - Journey Population
 
   test("every completed request (journeyStatusId=6) must have a non-empty journey object", () => {
     for (const item of completedRequests) {
-      const { passengerRequest, journey } = item;
+      const { shipperRequest, journey } = item;
 
       // Verify we only got completed requests
-      expect(passengerRequest.journeyStatusId).toBe(6);
+      expect(shipperRequest.journeyStatusId).toBe(6);
 
       // THE CORE BUG TEST: journey must NOT be an empty object
       expect(Object.keys(journey).length).toBeGreaterThan(0);
@@ -80,8 +80,7 @@ describe("GET /api/user/getPassengerRequest4allOrSingleUser - Journey Population
 
       // The journey's decision link must exist in the decisions array
       const linkedDecision = decisions.find(
-        (d) =>
-          d.journeyDecisionUniqueId === journey.journeyDecisionUniqueId,
+        (d) => d.journeyDecisionUniqueId === journey.journeyDecisionUniqueId,
       );
       expect(linkedDecision).toBeDefined();
 
@@ -90,18 +89,18 @@ describe("GET /api/user/getPassengerRequest4allOrSingleUser - Journey Population
     }
   });
 
-  test("specific regression: passengerRequestId=44 (multiple decisions) must have journey populated", async () => {
+  test("specific regression: shipperRequestId=44 (multiple decisions) must have journey populated", async () => {
     // This is the exact request that was failing before the fix.
     // It has 2 decisions: Decision 61 (status=2, rejected) + Decision 62 (status=6, completed).
     // The bug was that decisions[0] (Decision 61) was used to find the journey, returning {}.
     const target = completedRequests.find(
-      (item) => item.passengerRequest.passengerRequestId === 44,
+      (item) => item.shipperRequest.shipperRequestId === 44,
     );
 
     if (!target) {
       // If request 44 is not in the result set for this environment, skip gracefully
       console.warn(
-        "passengerRequestId=44 not found in response. Skipping regression test.",
+        "shipperRequestId=44 not found in response. Skipping regression test.",
       );
       return;
     }

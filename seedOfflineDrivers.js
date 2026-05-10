@@ -77,7 +77,7 @@ const colors = [
 ];
 
 // Generate 15 Offline Drivers - using unique phone pattern
-// seedTestUsers.js uses: +251910000001 to +251959000001 (drivers) and +251960000001 to +251999000001 (passengers)
+// seedTestUsers.js uses: +251910000001 to +251959000001 (drivers) and +251960000001 to +251999000001 (shippers)
 // seedOnlineDrivers.js uses: +251901000001 to +251915000001
 // We use: +251700100001 to +251715000001 (completely different pattern)
 const offlineDrivers = [];

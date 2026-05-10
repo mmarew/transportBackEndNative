@@ -29,19 +29,28 @@ describe("Company-Target Lazy PR Creation", () => {
        JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
        WHERE ur.roleId = 1 LIMIT 1`,
     );
-    if (users.length === 0) throw new Error("No shipper user found — seed DB first");
+    if (users.length === 0)
+      throw new Error("No shipper user found — seed DB first");
     shipperUniqueId = users[0].userUniqueId;
 
     // Find an existing vehicle type
-    const [vtypes] = await query(`SELECT vehicleTypeUniqueId FROM VehicleTypes LIMIT 1`);
-    if (vtypes.length === 0) throw new Error("No VehicleTypes found — seed DB first");
+    const [vtypes] = await query(
+      `SELECT vehicleTypeUniqueId FROM VehicleTypes LIMIT 1`,
+    );
+    if (vtypes.length === 0)
+      throw new Error("No VehicleTypes found — seed DB first");
     vehicleTypeUniqueId = vtypes[0].vehicleTypeUniqueId;
   });
 
   afterAll(async () => {
     for (const bid of testBatchIds) {
-      await query(`DELETE FROM PassengerRequest WHERE passengerRequestBatchId = ?`, [bid]).catch(() => {});
-      await query(`DELETE FROM PassengerRequestBatch WHERE batchUniqueId = ?`, [bid]).catch(() => {});
+      await query(
+        `DELETE FROM PassengerRequest WHERE shipperRequestBatchId = ?`,
+        [bid],
+      ).catch(() => {});
+      await query(`DELETE FROM PassengerRequestBatch WHERE batchUniqueId = ?`, [
+        bid,
+      ]).catch(() => {});
     }
   });
 
@@ -76,7 +85,7 @@ describe("Company-Target Lazy PR Creation", () => {
 
     // ZERO PassengerRequest rows — that's the whole point
     const [prs] = await query(
-      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
+      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE shipperRequestBatchId = ?`,
       [batchId],
     );
     expect(prs[0].cnt).toBe(0);
@@ -103,7 +112,7 @@ describe("Company-Target Lazy PR Creation", () => {
 
     // Still ZERO PR rows
     const [prs] = await query(
-      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
+      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE shipperRequestBatchId = ?`,
       [batchId],
     );
     expect(prs[0].cnt).toBe(0);
@@ -123,7 +132,7 @@ describe("Company-Target Lazy PR Creation", () => {
     const prId = uuid();
     await query(
       `INSERT INTO PassengerRequest
-        (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
+        (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
          vehicleTypeUniqueId, journeyStatusId, requestMode,
          originLatitude, originLongitude, originPlace,
          destinationLatitude, destinationLongitude, destinationPlace,
@@ -154,7 +163,7 @@ describe("Company-Target Lazy PR Creation", () => {
 
     // Verify the PR row
     const [[pr]] = await query(
-      `SELECT * FROM PassengerRequest WHERE passengerRequestUniqueId = ?`,
+      `SELECT * FROM PassengerRequest WHERE shipperRequestUniqueId = ?`,
       [prId],
     );
 
@@ -167,7 +176,7 @@ describe("Company-Target Lazy PR Creation", () => {
 
     // Only 1 PR exists (not 450,000!)
     const [allPrs] = await query(
-      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE passengerRequestBatchId = ?`,
+      `SELECT COUNT(*) AS cnt FROM PassengerRequest WHERE shipperRequestBatchId = ?`,
       [batchId],
     );
     expect(allPrs[0].cnt).toBe(1);
@@ -175,10 +184,12 @@ describe("Company-Target Lazy PR Creation", () => {
 
   // ── Test 4: Validation cap on numberOfVehicles ─────────────────────────
   test("Joi validation rejects numberOfVehicles > 100", () => {
-    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+    const {
+      createPassengerRequest,
+    } = require("../Validations/PassengerRequest.schema");
 
     const result = createPassengerRequest.validate({
-      passengerRequestBatchId: uuid(),
+      shipperRequestBatchId: uuid(),
       numberOfVehicles: 450000,
       shippingDate: "2026-06-01",
       deliveryDate: "2026-06-05",
@@ -196,10 +207,12 @@ describe("Company-Target Lazy PR Creation", () => {
 
   // ── Test 5: individual_target + 10 vehicles → error ────────────────────
   test("individual_target with 10+ vehicles is rejected", () => {
-    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+    const {
+      createPassengerRequest,
+    } = require("../Validations/PassengerRequest.schema");
 
     const result = createPassengerRequest.validate({
-      passengerRequestBatchId: uuid(),
+      shipperRequestBatchId: uuid(),
       numberOfVehicles: 10,
       requestMode: "individual_target",
       shippingDate: "2026-06-01",
@@ -218,10 +231,12 @@ describe("Company-Target Lazy PR Creation", () => {
 
   // ── Test 6: company_target + 100 vehicles → passes ─────────────────────
   test("company_target with 100 vehicles is accepted", () => {
-    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+    const {
+      createPassengerRequest,
+    } = require("../Validations/PassengerRequest.schema");
 
     const result = createPassengerRequest.validate({
-      passengerRequestBatchId: uuid(),
+      shipperRequestBatchId: uuid(),
       numberOfVehicles: 100,
       requestMode: "company_target",
       shippingDate: "2026-06-01",
@@ -240,10 +255,12 @@ describe("Company-Target Lazy PR Creation", () => {
 
   // ── Test 7: individual_target + 9 vehicles → passes ────────────────────
   test("individual_target with 9 vehicles is fine", () => {
-    const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+    const {
+      createPassengerRequest,
+    } = require("../Validations/PassengerRequest.schema");
 
     const result = createPassengerRequest.validate({
-      passengerRequestBatchId: uuid(),
+      shipperRequestBatchId: uuid(),
       numberOfVehicles: 9,
       requestMode: "individual_target",
       shippingDate: "2026-06-01",

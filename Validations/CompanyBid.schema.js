@@ -5,7 +5,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 // ── CompanyBidRequest ─────────────────────────────────────────────────────────
 
 exports.submitBid = Joi.object({
-  passengerRequestBatchId: uuidSchema.required(),
+  shipperRequestBatchId: uuidSchema.required(),
   companyUniqueId: uuidSchema.required(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
@@ -33,7 +33,7 @@ exports.bidParams = Joi.object({
 
 exports.getBidsQuery = Joi.object({
   companyBidRequestUniqueId: uuidSchema.optional(),
-  passengerRequestBatchId: uuidSchema.optional(),
+  shipperRequestBatchId: uuidSchema.optional(),
   companyUniqueId: uuidSchema.optional(),
   bidSubmittedByUserUniqueId: uuidSchema.optional(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
@@ -47,14 +47,17 @@ exports.getBidsQuery = Joi.object({
       "rejected_by_shipper",
       "cancelled_by_company",
       "expired",
-      "completed",   // auto-set when all assignments reach a terminal state
+      "completed", // auto-set when all assignments reach a terminal state
     )
     .optional(),
   isCancellationSeenByCompany: Joi.string()
     .valid("not seen by company yet", "seen by company")
     .optional(),
   shipperUserUniqueId: uuidSchema.optional(),
-  target: Joi.string().valid("available", "submitted", "summary", "grouped").default("grouped").optional(),
+  target: Joi.string()
+    .valid("available", "submitted", "summary", "grouped")
+    .default("grouped")
+    .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(10).optional(),
 }).unknown(true);

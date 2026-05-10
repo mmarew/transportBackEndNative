@@ -10,9 +10,7 @@ const {
   sendSocketIONotificationToPassenger,
 } = require("../Utils/Notifications");
 
-const {
-
-} = require("./RoleDocumentRequirements.service");
+const {} = require("./RoleDocumentRequirements.service");
 const logger = require("../Utils/logger");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const { currentDate } = require("../Utils/CurrentDate");
@@ -163,7 +161,9 @@ const createAttachedDocument = async ({
       error: error.message,
       stack: error.stack,
     });
-    if (error instanceof AppError) {throw error;}
+    if (error instanceof AppError) {
+      throw error;
+    }
     throw new AppError("An error occurred while creating the document", 500);
   }
 };
@@ -217,7 +217,7 @@ const getAttachedDocumentByUniqueId = async (attachedDocumentUniqueId) => {
 const updateAttachedDocument = async ({
   attachedDocumentUniqueId,
   roleId,
-  updatedByUserId,   // userUniqueId of the person triggering the update (for audit)
+  updatedByUserId, // userUniqueId of the person triggering the update (for audit)
   documentExpirationDate,
   attachedDocumentDescription,
   attachedDocumentFileNumber,
@@ -250,7 +250,9 @@ const updateAttachedDocument = async ({
         `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
         [existingDoc.documentTypeId, roleId],
       );
-      if (userReqs.length > 0) {documentType = userReqs[0];}
+      if (userReqs.length > 0) {
+        documentType = userReqs[0];
+      }
 
       // Fallback: check entity roles if user's own role has no requirement
       if (!documentType) {
@@ -258,7 +260,9 @@ const updateAttachedDocument = async ({
           `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId IN (8, 9) AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
           [existingDoc.documentTypeId],
         );
-        if (entityReqs.length > 0) {documentType = entityReqs[0];}
+        if (entityReqs.length > 0) {
+          documentType = entityReqs[0];
+        }
       }
     } else {
       // Company or vehicle doc — check entity role directly
@@ -267,7 +271,9 @@ const updateAttachedDocument = async ({
         `SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`,
         [existingDoc.documentTypeId, entityRoleId],
       );
-      if (entityReqs.length > 0) {documentType = entityReqs[0];}
+      if (entityReqs.length > 0) {
+        documentType = entityReqs[0];
+      }
     }
 
     // Expiration date enforcement (only if requirement specifies it)
@@ -279,7 +285,10 @@ const updateAttachedDocument = async ({
     if (documentExpirationDate) {
       const isExpired = new Date(documentExpirationDate) < new Date();
       if (isExpired) {
-        throw new AppError(`Document expiration date cannot be in the past`, 400);
+        throw new AppError(
+          `Document expiration date cannot be in the past`,
+          400,
+        );
       }
     }
 
@@ -316,23 +325,23 @@ const updateAttachedDocument = async ({
         existingDoc.attachedDocumentAcceptedRejectedAt,
         existingDoc.attachedDocumentName,
         existingDoc.attachedDocumentCreatedByUserId,
-        updatedByUserId,              // who triggered this snapshot
+        updatedByUserId, // who triggered this snapshot
         existingDoc.attachedDocumentCreatedAt,
-        currentDate(),                // snapshot taken now
-        wasExpired,                   // was the old doc already expired?
+        currentDate(), // snapshot taken now
+        wasExpired, // was the old doc already expired?
         existingDoc.attachedDocumentAcceptanceReason,
-        existingDoc.documentVersion,  // version at time of snapshot
+        existingDoc.documentVersion, // version at time of snapshot
       ],
     );
 
     // ── Apply the update ───────────────────────────────────────────────────
     const newUpdateData = {
-      attachedDocumentAcceptance: "PENDING",  // reset to pending on any change
+      attachedDocumentAcceptance: "PENDING", // reset to pending on any change
       attachedDocumentDescription,
       attachedDocumentFileNumber,
       documentExpirationDate,
-      documentVersion: existingDoc.documentVersion + 1,  // increment version
-      attachedDocumentAcceptedRejectedByUserId: null,    // clear old decision
+      documentVersion: existingDoc.documentVersion + 1, // increment version
+      attachedDocumentAcceptedRejectedByUserId: null, // clear old decision
       attachedDocumentAcceptedRejectedAt: null,
       attachedDocumentAcceptanceReason: null,
     };
@@ -364,7 +373,9 @@ const updateAttachedDocument = async ({
       throw new AppError("Failed to update document", 500);
     }
   } catch (error) {
-    if (error instanceof AppError) {throw error;}
+    if (error instanceof AppError) {
+      throw error;
+    }
     logger.error("Error updating attached document", {
       error: error.message,
       stack: error.stack,
@@ -496,9 +507,9 @@ const acceptRejectAttachedDocuments = async (body) => {
       docToSnapshot.attachedDocumentAcceptedRejectedAt,
       docToSnapshot.attachedDocumentName,
       docToSnapshot.attachedDocumentCreatedByUserId,
-      userUniqueId,              // admin who triggered this snapshot
+      userUniqueId, // admin who triggered this snapshot
       docToSnapshot.attachedDocumentCreatedAt,
-      currentDate(),             // snapshot taken now
+      currentDate(), // snapshot taken now
       wasExpired,
       docToSnapshot.attachedDocumentAcceptanceReason,
       docToSnapshot.documentVersion,
@@ -554,7 +565,7 @@ const acceptRejectAttachedDocuments = async (body) => {
           message.messageType = "acceptOrRejectDriverDocument";
           sendSocketIONotificationToDriver({ message, phoneNumber });
         }
-        if (Number(roleId) === usersRoles.passengerRoleId) {
+        if (Number(roleId) === usersRoles.shipperRoleId) {
           sendSocketIONotificationToPassenger({ message, phoneNumber });
         }
       } catch (notifError) {
@@ -691,7 +702,9 @@ const getAttachedDocumentsByFilter = async ({ filter, pagination, sort }) => {
       },
     };
   } catch (error) {
-    if (error instanceof AppError) {throw error;}
+    if (error instanceof AppError) {
+      throw error;
+    }
     throw new AppError("Unable to retrieve documents", 500);
   }
 };
@@ -721,7 +734,9 @@ const getDocumentHistory = async ({
       "documentVersion",
       "attachedDocumentAcceptance",
     ];
-    const safeBy = allowedSortCols.includes(by) ? by : "attachedDocumentUpdatedAt";
+    const safeBy = allowedSortCols.includes(by)
+      ? by
+      : "attachedDocumentUpdatedAt";
     const safeOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     const params = [ownerType, ownerUniqueId];
@@ -770,7 +785,9 @@ const getDocumentHistory = async ({
       },
     };
   } catch (error) {
-    if (error instanceof AppError) {throw error;}
+    if (error instanceof AppError) {
+      throw error;
+    }
     throw new AppError("Unable to retrieve document history", 500);
   }
 };

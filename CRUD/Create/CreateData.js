@@ -47,12 +47,12 @@ const createNewPassengerRequest = async (
     shippingDate = formatDateToReadable(body?.shippingDate),
     deliveryDate = formatDateToReadable(body?.deliveryDate),
     shippingCost = body?.shippingCost,
-    passengerRequestBatchId = body?.passengerRequestBatchId,
+    shipperRequestBatchId = body?.shipperRequestBatchId,
     shipperRequestCreatedBy = body?.shipperRequestCreatedBy,
     shipperRequestCreatedByRoleId = body?.shipperRequestCreatedByRoleId;
 
   if (!body || !userUniqueId || !journeyStatusId) {
-    throw new Error("Invalid input parameters to create passenger request");
+    throw new Error("Invalid input parameters to create shipper request");
   }
 
   const { vehicle, destination, originLocation } = body;
@@ -86,11 +86,11 @@ const createNewPassengerRequest = async (
     destinationLongitude = destination.longitude || null,
     destinationPlace = destination.description || null;
 
-  const passengerRequestUniqueId = uuidv4();
+  const shipperRequestUniqueId = uuidv4();
   const requestPayload = {
     userUniqueId,
 
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     shipperRequestCreatedBy,
     shipperRequestCreatedByRoleId,
 
@@ -108,7 +108,7 @@ const createNewPassengerRequest = async (
     shippingDate,
     deliveryDate,
     shippingCost,
-    passengerRequestBatchId,
+    shipperRequestBatchId,
     // Bidding mode: 'individual_target' (open to all drivers) or 'company_target'
     // Falls back to schema default ('individual_target') if not provided.
     ...(body?.requestMode && { requestMode: body.requestMode }),
@@ -132,7 +132,7 @@ const createNewPassengerRequest = async (
 
     return {
       message: "success",
-      data: [{ ...requestPayload, passengerRequestId: result.insertId }],
+      data: [{ ...requestPayload, shipperRequestId: result.insertId }],
     };
   } catch (error) {
     throw error;

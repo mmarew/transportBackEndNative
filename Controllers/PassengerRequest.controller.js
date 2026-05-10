@@ -11,7 +11,7 @@ const logger = require("../Utils/logger");
 const createPassengerRequest = async (req, res, next) => {
   try {
     const {
-      passengerRequestBatchId,
+      shipperRequestBatchId,
       destination,
       vehicle,
       originLocation,
@@ -24,7 +24,7 @@ const createPassengerRequest = async (req, res, next) => {
     } = req.body;
 
     if (
-      !passengerRequestBatchId ||
+      !shipperRequestBatchId ||
       !destination ||
       !vehicle ||
       !originLocation ||
@@ -36,7 +36,7 @@ const createPassengerRequest = async (req, res, next) => {
       !deliveryDate
     ) {
       throw new AppError(
-        "Missing required fields to create passenger request",
+        "Missing required fields to create shipper request",
         400,
       );
     }
@@ -68,9 +68,9 @@ const createPassengerRequest = async (req, res, next) => {
           const createdUser = await createUser({
             phoneNumber: shipperPhoneNumber,
             fullName: null,
-            roleId: usersRoles.passengerRoleId,
+            roleId: usersRoles.shipperRoleId,
             statusId: USER_STATUS.ACTIVE,
-            email: `fakeEmail_${randNumber}@passenger.com`,
+            email: `fakeEmail_${randNumber}@shipper.com`,
             userRoleStatusDescription: "this is shipper ",
             requestedFrom: "system",
           });
@@ -151,14 +151,14 @@ const getPassengerRequestByPassengerRequestUniqueId = async (
     const result = await PassengerService.getPassengerRequest4allOrSingleUser({
       data: {
         target: "all",
-        filters: { passengerRequestUniqueId: req.params.id },
+        filters: { shipperRequestUniqueId: req.params.id },
         page: 1,
         limit: 1,
       },
     });
-    const passengerRequest = result?.formattedData?.[0] || null;
-    if (passengerRequest) {
-      ServerResponder(res, { message: "success", data: passengerRequest });
+    const shipperRequest = result?.formattedData?.[0] || null;
+    if (shipperRequest) {
+      ServerResponder(res, { message: "success", data: shipperRequest });
     } else {
       throw new AppError("Request not found", 404);
     }
@@ -169,7 +169,7 @@ const getPassengerRequestByPassengerRequestUniqueId = async (
 
 const getPassengerRequest4allOrSingleUser = async (req, res, next) => {
   try {
-    const { target, limit, page, passengerUserUniqueId } = req.query;
+    const { target, limit, page, shipperUserUniqueId } = req.query;
     let { userUniqueId } = req.user;
 
     let journeyStatusIds = req.query.journeyStatusId;
@@ -190,9 +190,9 @@ const getPassengerRequest4allOrSingleUser = async (req, res, next) => {
     const data = {
       filters,
       userUniqueId:
-        passengerUserUniqueId === "self" || !passengerUserUniqueId
+        shipperUserUniqueId === "self" || !shipperUserUniqueId
           ? userUniqueId
-          : passengerUserUniqueId,
+          : shipperUserUniqueId,
       target,
       limit,
       page,
@@ -247,11 +247,11 @@ const cancelPassengerRequest = async (req, res, next) => {
   try {
     let ownerUserUniqueId = req?.params?.userUniqueId;
     const { userUniqueId, roleId } = req?.user;
-    const { passengerRequestUniqueId } = req?.body;
+    const { shipperRequestUniqueId } = req?.body;
 
-    if (!passengerRequestUniqueId || !userUniqueId || !roleId) {
+    if (!shipperRequestUniqueId || !userUniqueId || !roleId) {
       throw new AppError(
-        "passengerRequestUniqueId is required in request body",
+        "shipperRequestUniqueId is required in request body",
         400,
       );
     }
@@ -279,18 +279,18 @@ const cancelPassengerRequest = async (req, res, next) => {
 };
 
 /**
- * Cancel an entire passenger request batch in one atomic operation.
- * PUT /api/passengerRequest/cancelBatch/:passengerRequestBatchId
+ * Cancel an entire shipper request batch in one atomic operation.
+ * PUT /api/shipperRequest/cancelBatch/:shipperRequestBatchId
  */
 const cancelPassengerRequestBatch = async (req, res, next) => {
   try {
     const { userUniqueId, roleId } = req.user;
-    const { passengerRequestBatchId } = req.params;
+    const { shipperRequestBatchId } = req.params;
     const { cancellationReasonsTypeId } = req.body;
 
     const result = await executeInTransaction(async () =>
       PassengerService.cancelPassengerRequestBatch({
-        passengerRequestBatchId,
+        shipperRequestBatchId,
         userUniqueId,
         roleId,
         cancellationReasonsTypeId,

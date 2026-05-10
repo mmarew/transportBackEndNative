@@ -23,7 +23,7 @@ const {
   financialInstitutionAccount,
   subscriptionPlanLists,
   depositSources,
-  passengerDocumentRequirement,
+  shipperDocumentRequirement,
   companyDocumentRequirement,
   vehicleDocumentRequirement,
   companyAdminDocumentRequirement,
@@ -191,14 +191,13 @@ const checkTableExists = async (tableName) => {
     WHERE table_schema = DATABASE() 
     AND table_name = ?;
   `;
-  
+
   const [rows] = await pool.query(sqlQuery, [tableName]);
   return rows[0].tableExists > 0;
 };
 
 const dropTable = async (tables) => {
   const tableList = Array.isArray(tables) ? tables : [tables];
-  
 
   try {
     await pool.query(`SET FOREIGN_KEY_CHECKS = 0;`);
@@ -224,7 +223,6 @@ const dropAllTables = async () => {
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
   const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
   const maxRetries = 3;
-  
 
   try {
     await pool.query(disableForeignKeyChecks);
@@ -269,7 +267,6 @@ const dropAllTables = async () => {
 
 const updateTable = async (tableName, updateData) => {
   const { columnName, columnType, defaultValue, foreignKey } = updateData;
-  
 
   // 1. Add the column itself
   const addColumnSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnType} DEFAULT ${defaultValue}`;
@@ -312,7 +309,6 @@ const changeColumnProperty = async (
   { oldColumnName, newColumnName, newColumnType },
 ) => {
   const sqlQuery = `ALTER TABLE ${tableName} CHANGE ${oldColumnName} ${newColumnName} ${newColumnType}`;
-  
 
   await pool.query(sqlQuery);
   return {
@@ -323,7 +319,6 @@ const changeColumnProperty = async (
 
 const dropColumn = async (tableName, columnName) => {
   const sqlQuery = `ALTER TABLE ${tableName} DROP COLUMN ${columnName}`;
-  
 
   await pool.query(sqlQuery);
   return {
@@ -473,8 +468,6 @@ const installPreDefinedData = async (req) => {
     "JourneyStatus",
   );
 
-  
-
   await processDataSequentially(
     statusList,
     async (status) => {
@@ -565,7 +558,7 @@ const installPreDefinedData = async (req) => {
   );
 
   await processDataSequentially(
-    passengerDocumentRequirement,
+    shipperDocumentRequirement,
     (document) =>
       createMapping({
         body: document,
@@ -756,7 +749,7 @@ const installPreDefinedData = async (req) => {
         success: commissionStatusSuccess,
         errors: commissionStatusErrors,
       },
-      passengerDocumentRequirement: {
+      shipperDocumentRequirement: {
         success: successPassengerDocumentRequirement,
         errors: failedPassengerDocumentRequirement,
       },

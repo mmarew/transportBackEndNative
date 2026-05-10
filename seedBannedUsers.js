@@ -60,7 +60,7 @@ const driverLastNames = [
   "Oljira",
 ];
 
-const passengerFirstNames = [
+const shipperFirstNames = [
   "Mekdes",
   "Tigist",
   "Almaz",
@@ -78,7 +78,7 @@ const passengerFirstNames = [
   "Eden",
 ];
 
-const passengerLastNames = [
+const shipperLastNames = [
   "Alemu",
   "Berhanu",
   "Degu",
@@ -116,24 +116,24 @@ const colors = [
 
 // Ban reasons for variety
 const driverBanReasons = [
-  "Multiple complaints from passengers about rude behavior",
+  "Multiple complaints from shippers about rude behavior",
   "Repeated late arrivals to pickup locations",
-  "Unsafe driving reported by multiple passengers",
+  "Unsafe driving reported by multiple shippers",
   "Failure to complete accepted journeys",
   "Violation of platform terms of service",
-  "Inappropriate behavior towards passengers",
+  "Inappropriate behavior towards shippers",
   "Multiple cancellations without valid reason",
   "Fraudulent activity detected",
   "Vehicle condition not meeting standards",
   "Document verification issues",
   "Repeated traffic violations during trips",
-  "Overcharging passengers",
-  "Refusal to take passengers to destination",
+  "Overcharging shippers",
+  "Refusal to take shippers to destination",
   "Operating under influence suspicion",
-  "Multiple negative ratings from passengers",
+  "Multiple negative ratings from shippers",
 ];
 
-const passengerBanReasons = [
+const shipperBanReasons = [
   "Multiple complaints from drivers about rude behavior",
   "Repeated no-shows after booking",
   "Payment fraud detected",
@@ -169,18 +169,18 @@ for (let i = 1; i <= 15; i++) {
 // Generate 15 Banned Passengers - unique phone pattern: +251816000001 to +251830000001
 const bannedPassengers = [];
 for (let i = 1; i <= 15; i++) {
-  const firstName = passengerFirstNames[i - 1];
-  const lastName = passengerLastNames[i - 1];
+  const firstName = shipperFirstNames[i - 1];
+  const lastName = shipperLastNames[i - 1];
   bannedPassengers.push({
     fullName: `${firstName} ${lastName}`,
-    email: `banned.passenger${i}@test.com`,
+    email: `banned.shipper${i}@test.com`,
     phoneNumber: `+2518${String(15 + i).padStart(2, "0")}000001`, // +251816000001 to +251830000001
-    banReason: passengerBanReasons[i - 1],
+    banReason: shipperBanReasons[i - 1],
   });
 }
 
 const driverRoleId = 2;
-const passengerRoleId = 1;
+const shipperRoleId = 1;
 const vehicleOwnerRoleId = 4;
 const bannedStatusId = 6; // Banned status
 
@@ -194,7 +194,7 @@ async function userExists(phoneNumber, email) {
 }
 
 async function seedBannedUsers() {
-  // Removed unused counters: driverSuccessCount, driverSkipCount, passengerSuccessCount, passengerSkipCount, documentCount, vehicleCount
+  // Removed unused counters: driverSuccessCount, driverSkipCount, shipperSuccessCount, shipperSkipCount, documentCount, vehicleCount
 
   // Get required document types for drivers (roleId=2)
   const [requiredDocuments] = await pool.query(
@@ -218,22 +218,22 @@ async function seedBannedUsers() {
 
   const vehicleTypeUniqueId = vehicleTypes[0].vehicleTypeUniqueId;
 
-  // Get delinquency types for drivers and passengers
+  // Get delinquency types for drivers and shippers
   const [driverDelinquencyTypes] = await pool.query(
     `SELECT delinquencyTypeUniqueId, delinquencyTypeName, defaultPoints, defaultSeverity 
      FROM DelinquencyTypes WHERE applicableRoles = (SELECT roleUniqueId FROM Roles WHERE roleId = ?) AND isActive = 1`,
     [driverRoleId],
   );
 
-  const [passengerDelinquencyTypes] = await pool.query(
+  const [shipperDelinquencyTypes] = await pool.query(
     `SELECT delinquencyTypeUniqueId, delinquencyTypeName, defaultPoints, defaultSeverity 
      FROM DelinquencyTypes WHERE applicableRoles = (SELECT roleUniqueId FROM Roles WHERE roleId = ?) AND isActive = 1`,
-    [passengerRoleId],
+    [shipperRoleId],
   );
 
   // If no specific delinquency types, get any available
   let driverDelinquencyType = driverDelinquencyTypes[0];
-  let passengerDelinquencyType = passengerDelinquencyTypes[0];
+  let shipperDelinquencyType = shipperDelinquencyTypes[0];
 
   if (!driverDelinquencyType) {
     const [anyType] = await pool.query(
@@ -243,8 +243,8 @@ async function seedBannedUsers() {
     driverDelinquencyType = anyType[0];
   }
 
-  if (!passengerDelinquencyType) {
-    passengerDelinquencyType = driverDelinquencyType;
+  if (!shipperDelinquencyType) {
+    shipperDelinquencyType = driverDelinquencyType;
   }
 
   if (!driverDelinquencyType) {
@@ -517,13 +517,13 @@ async function seedBannedUsers() {
   // ============================================
 
   for (let i = 0; i < bannedPassengers.length; i++) {
-    const passenger = bannedPassengers[i];
+    const shipper = bannedPassengers[i];
     const now = currentDate();
 
     // Check if user already exists
-    const exists = await userExists(passenger.phoneNumber, passenger.email);
+    const exists = await userExists(shipper.phoneNumber, shipper.email);
     if (exists) {
-      // Removed unused counter: passengerSkipCount
+      // Removed unused counter: shipperSkipCount
       continue;
     }
 
@@ -551,9 +551,9 @@ async function seedBannedUsers() {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           userUniqueId,
-          passenger.fullName,
-          passenger.phoneNumber,
-          passenger.email,
+          shipper.fullName,
+          shipper.phoneNumber,
+          shipper.email,
           now,
           "seed-banned-script",
         ],
@@ -570,7 +570,7 @@ async function seedBannedUsers() {
       const [userRoleResult] = await pool.query(
         `INSERT INTO UserRole (userRoleUniqueId, userUniqueId, roleId, userRoleCreatedAt, userRoleCreatedBy)
          VALUES (?, ?, ?, ?, ?)`,
-        [userRoleUniqueId, userUniqueId, passengerRoleId, now, userUniqueId],
+        [userRoleUniqueId, userUniqueId, shipperRoleId, now, userUniqueId],
       );
       const insertedUserRoleId = userRoleResult.insertId;
 
@@ -582,7 +582,7 @@ async function seedBannedUsers() {
           userRoleStatusUniqueId,
           bannedByUserUniqueId,
           insertedUserRoleId,
-          `Banned: ${passenger.banReason}`,
+          `Banned: ${shipper.banReason}`,
           bannedStatusId,
           now,
         ],
@@ -596,10 +596,10 @@ async function seedBannedUsers() {
         [
           userDelinquencyUniqueId,
           userRoleUniqueId,
-          passengerDelinquencyType.delinquencyTypeUniqueId,
-          passenger.banReason,
-          passengerDelinquencyType.defaultSeverity || "HIGH",
-          passengerDelinquencyType.defaultPoints || 10,
+          shipperDelinquencyType.delinquencyTypeUniqueId,
+          shipper.banReason,
+          shipperDelinquencyType.defaultSeverity || "HIGH",
+          shipperDelinquencyType.defaultPoints || 10,
           now,
           bannedByUserUniqueId,
         ],
@@ -614,23 +614,23 @@ async function seedBannedUsers() {
           userDelinquencyUniqueId,
           now,
           bannedByUserUniqueId,
-          passenger.banReason,
+          shipper.banReason,
           banDurationDays,
           banExpiresAt,
           true,
         ],
       );
 
-      // NO documents or   Vehicle for passengers
+      // NO documents or   Vehicle for shippers
 
-      // Removed unused variable: passengerSuccessCount
+      // Removed unused variable: shipperSuccessCount
     } catch (error) {
       const logger = require("./Utils/logger");
-      logger.error("Error seeding passenger", {
+      logger.error("Error seeding shipper", {
         error: error.message,
         stack: error.stack,
       });
-      // Removed unused variable: passengerSkipCount
+      // Removed unused variable: shipperSkipCount
     }
   }
 

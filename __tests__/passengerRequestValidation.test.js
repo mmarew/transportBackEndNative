@@ -13,10 +13,12 @@
 const uuid = () => require("uuid").v4();
 
 describe("PassengerRequest Validation", () => {
-  const { createPassengerRequest } = require("../Validations/PassengerRequest.schema");
+  const {
+    createPassengerRequest,
+  } = require("../Validations/PassengerRequest.schema");
 
   const validPayload = (overrides = {}) => ({
-    passengerRequestBatchId: uuid(),
+    shipperRequestBatchId: uuid(),
     numberOfVehicles: 1,
     shippingDate: "2026-06-01",
     deliveryDate: "2026-06-05",

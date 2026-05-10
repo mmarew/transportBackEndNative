@@ -319,20 +319,20 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
 
 const getBookingConfirmationMessage = (
   bookingId,
-  passengerName,
+  shipperName,
   pickupLocation,
 ) => {
   const brand = Config.BRAND_NAME;
   return {
-    sms: `Dear ${passengerName}, your booking #${bookingId} with ${brand} is confirmed. Your driver will pick you up at ${pickupLocation}. Thank you for choosing us!`,
+    sms: `Dear ${shipperName}, your booking #${bookingId} with ${brand} is confirmed. Your driver will pick you up at ${pickupLocation}. Thank you for choosing us!`,
     emailSubject: `Booking Confirmed #${bookingId} - ${brand}`,
   };
 };
 
-const getTripReminderMessage = (passengerName, time = "15 minutes") => {
+const getTripReminderMessage = (shipperName, time = "15 minutes") => {
   const brand = Config.BRAND_NAME;
   return {
-    sms: `Hi ${passengerName}, just a reminder that your trip with ${brand} starts in ${time}. Your driver is on the way!`,
+    sms: `Hi ${shipperName}, just a reminder that your trip with ${brand} starts in ${time}. Your driver is on the way!`,
     emailSubject: `Upcoming Trip Reminder - ${brand}`,
   };
 };

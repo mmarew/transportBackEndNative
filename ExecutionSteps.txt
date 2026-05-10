@@ -5,8 +5,8 @@ login supperAdmin with phone +251983222221 and otp 101010 {{url}}/api/user/verif
 run {{url}}/api/admin/installPreDefinedData to install pre defined data
 create admin user with {{url}}/api/admin/createUserByAdminOrSuperAdmin role id 3 and statusId 1 and phone of admin not +251983222221
 verify admin by {{url}}/api/user/verifyUserByOTP to get token 
-create user passenger on {{url}}/api/user/createUser with role id 1 , status id 1 and phone of passenger not +251983222221
-verify passenger by {{url}}/api/user/verifyUserByOTP to get token
+create user shipper on {{url}}/api/user/createUser with role id 1 , status id 1 and phone of shipper not +251983222221
+verify shipper by {{url}}/api/user/verifyUserByOTP to get token
 create driver user on {{url}}/api/user/createUser with role id 2 , status id 2 and phone of driver not +251983222221
 verify driver by {{url}}/api/user/verifyUserByOTP to get token
 create vehicle on {{url}}/api/vehicle/createVehicle with payload like this {
@@ -15,19 +15,19 @@ create vehicle on {{url}}/api/vehicle/createVehicle with payload like this {
     "color": "Gray base red sponda",
     "isDriverOwnerOfVehicle": false
 }
-run {{url}}/api/admin/roles? to get roleUniqueId of driver/passenger/admin and so on
+run {{url}}/api/admin/roles? to get roleUniqueId of driver/shipper/admin and so on
 request required document to driver via {{url}}/api/RoleDocumentRequirements?roleUniqueId=2177462b-1055-462b-a349-63d00e3554ba 
 attach document of driver using {{url}}/api/user/attachDocuments/self with driver token and document type 
 then run {{url}}/api/admin/getUnAuthorizedDriver to get registerd drivers then
 
 run  {{url}}/api/admin/acceptRejectAttachedDocuments to accept reject documents of driver
-then creat shipper request via {{url}}/api/passengerRequest/createRequest
+then creat shipper request via {{url}}/api/shipperRequest/createRequest
 
-verify status via {{url}}/api/passengerRequest/verifyPassengerStatus?page=1&pageSize=10
-get detailes {{url}}/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1  use 2 for requested 3 for accepted by driver 4 accepted by passenger, 5 journey started, 6 journey ended
+verify status via {{url}}/api/shipperRequest/verifyPassengerStatus?page=1&pageSize=10
+get detailes {{url}}/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=1  use 2 for requested 3 for accepted by driver 4 accepted by shipper, 5 journey started, 6 journey ended
 then create driver request in {{url}}/api/driver/request
-use {{url}}/api/driver/acceptPassengerRequest to accept passenger request
-use {{url}}/api/passenger/acceptDriverRequest to accept driver request
+use {{url}}/api/driver/acceptPassengerRequest to accept shipper request
+use {{url}}/api/shipper/acceptDriverRequest to accept driver request
 
 use {{url}}/api/driver/startJourney to start journey
 use {{url}}/api/driver/completeJourney to complete journey

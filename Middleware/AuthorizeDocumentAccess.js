@@ -82,7 +82,7 @@ const authorizeDocumentAccess = () => {
 
         if (!canAccessCompany) {
           throw new AppError(
-            "Forbidden: drivers and passengers cannot access company documents.",
+            "Forbidden: drivers and shippers cannot access company documents.",
             403,
           );
         }
@@ -181,7 +181,7 @@ const authorizeDocumentAccess = () => {
           return next();
         }
 
-        // All other roles (passenger, etc.) are denied vehicle doc access.
+        // All other roles (shipper, etc.) are denied vehicle doc access.
         throw new AppError(
           "Forbidden: you do not have permission to access vehicle documents.",
           403,

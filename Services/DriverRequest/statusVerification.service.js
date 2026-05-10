@@ -82,7 +82,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
         status: null,
         vehicle,
         driver: null,
-        passenger: null,
+        shipper: null,
       };
     }
 
@@ -122,7 +122,7 @@ const handleJourneyStatusOne = async (
 
     // ── Company assignment check ─────────────────────────────────────────
     // A status-1 driver may have a pending company assignment even though
-    // they have no individual passengers nearby.
+    // they have no individual shippers nearby.
     // Look up by driverUserUniqueId (not driverRequestUniqueId) because
     // company flows create a NEW separate DriverRequest.
     let companyAssignment = null;
@@ -131,7 +131,7 @@ const handleJourneyStatusOne = async (
         `SELECT
            cbva.assignmentUniqueId,
            cbva.companyBidRequestUniqueId,
-           cbva.passengerRequestUniqueId,
+           cbva.shipperRequestUniqueId,
            cbva.vehicleUniqueId,
            cbva.driverRequestUniqueId,
            cbva.assignmentStatus,
@@ -160,7 +160,7 @@ const handleJourneyStatusOne = async (
       });
     }
 
-    // 1. Find nearby passengers (already excludes company_target at DB level)
+    // 1. Find nearby shippers (already excludes company_target at DB level)
     const nearbyPassengers = await findNearbyPassengers({
       originLatitude,
       originLongitude,
@@ -172,19 +172,21 @@ const handleJourneyStatusOne = async (
       (p) => !p.requestMode || p.requestMode !== "company_target",
     );
 
-    // 2. If no individual passengers found, check if a company assignment
-    //    is pending — if so, surface status 2 with the real passenger + decision.
+    // 2. If no individual shippers found, check if a company assignment
+    //    is pending — if so, surface status 2 with the real shipper + decision.
     if (!individualPassengers?.length) {
       // ── Company-assigned driver: re-surface status 2 ──────────────────────
       // The DriverRequest may have been reset to 1 by a previous poll cycle.
       // If the assignment is still "assigned", promote back to status 2 and
-      // return the passenger + decision so the frontend shows IncomingRequests.
+      // return the shipper + decision so the frontend shows IncomingRequests.
       if (companyAssignment?.assignmentStatus === "assigned") {
         try {
           // Re-sync DriverRequest to status 2 in case it was reset
           await updateData({
             tableName: "DriverRequest",
-            conditions: { driverRequestUniqueId: companyAssignment.driverRequestUniqueId },
+            conditions: {
+              driverRequestUniqueId: companyAssignment.driverRequestUniqueId,
+            },
             updateValues: {
               journeyStatusId: journeyStatusMap.requested,
               driverRequestUpdatedAt: new Date(),
@@ -192,11 +194,13 @@ const handleJourneyStatusOne = async (
           });
 
           // Fetch the PassengerRequest for this assignment
-          const passengerRows = await getData({
+          const shipperRows = await getData({
             tableName: "PassengerRequest",
-            conditions: { passengerRequestUniqueId: companyAssignment.passengerRequestUniqueId },
+            conditions: {
+              shipperRequestUniqueId: companyAssignment.shipperRequestUniqueId,
+            },
           });
-          const passenger = passengerRows?.[0] ?? null;
+          const shipper = shipperRows?.[0] ?? null;
 
           // Fetch the JourneyDecision created at assignment time
           const [drRow] = await pool.query(
@@ -217,7 +221,7 @@ const handleJourneyStatusOne = async (
             ...createResponse(
               { ...driverRequest, journeyStatusId: journeyStatusMap.requested },
               vehicle,
-              passenger,
+              shipper,
               decision,
               journeyStatusMap.requested,
             ),
@@ -238,13 +242,13 @@ const handleJourneyStatusOne = async (
       };
     }
 
-    // 3. Find first non-rejected passenger
+    // 3. Find first non-rejected shipper
     const nonRejectedPassenger = await findNonRejectedPassenger(
       individualPassengers,
       userUniqueId,
     );
 
-    // 4. If no suitable passenger found, return waiting status
+    // 4. If no suitable shipper found, return waiting status
     if (!nonRejectedPassenger) {
       return {
         ...createResponse(driverRequest, vehicle, null, null, 1),
@@ -254,7 +258,7 @@ const handleJourneyStatusOne = async (
 
     // 5. Create journey decision and update statuses
     const journeyDecisionPayload = createJourneyDecisionPayload(
-      nonRejectedPassenger.passengerRequestId,
+      nonRejectedPassenger.shipperRequestId,
       driverRequest.driverRequestId,
       driverRequest.userUniqueId,
       "driver",
@@ -264,7 +268,7 @@ const handleJourneyStatusOne = async (
     await executeStatusUpdates(
       journeyDecisionPayload,
       driverRequestUniqueId,
-      nonRejectedPassenger.passengerRequestId,
+      nonRejectedPassenger.shipperRequestId,
     );
 
     // 7. Prepare response
@@ -276,7 +280,7 @@ const handleJourneyStatusOne = async (
       journeyStatusMap?.requested,
     );
 
-    // 8. Send notification if passenger has phone number (non-blocking)
+    // 8. Send notification if shipper has phone number (non-blocking)
     if (nonRejectedPassenger?.phoneNumber) {
       // Get driver profile photo
       const driverDocuments =
@@ -289,7 +293,7 @@ const handleJourneyStatusOne = async (
       const driverProfilePhoto =
         driverProfilePhotoData?.[lastPhotoIndex]?.attachedDocumentName;
 
-      const passengerRequest = {
+      const shipperRequest = {
         ...nonRejectedPassenger,
         journeyStatusId: journeyStatusMap?.requested,
       };
@@ -308,7 +312,7 @@ const handleJourneyStatusOne = async (
           status: journeyStatusMap.requested,
           formattedData: [
             {
-              passengerRequest,
+              shipperRequest,
               driverRequests: [driverRequestWithVehicle],
               decisions: [journeyDecisionPayload],
               journey: {},
@@ -384,7 +388,7 @@ const handleExistingJourney = async (
           message: "success",
           status: driverRequest.journeyStatusId,
           driver: { driver: driverRequest, vehicle },
-          passenger: null,
+          shipper: null,
           journey: null,
           decision: null,
           companyAssignment: activeCompanyAssignment[0],
@@ -410,7 +414,7 @@ const handleExistingJourney = async (
         },
         vehicle,
       },
-      passenger: null,
+      shipper: null,
       journey: null,
       decision: journeyDecision,
     };
@@ -426,18 +430,18 @@ const handleExistingJourney = async (
     journeyDecisionArray, // Pass already-fetched journey decision array to avoid re-fetching
   );
 
-  // If helper returned error or no passenger data, handle early return
+  // If helper returned error or no shipper data, handle early return
   if (
     notificationData?.message === "error" ||
-    !notificationData?.passengerRequest
+    !notificationData?.shipperRequest
   ) {
     // Prepare payload for updateJourneyStatus
     // This may update multiple tables: JourneyDecisions, PassengerRequest, DriverRequest, Journey
     // updateJourneyStatus will automatically wrap in transaction if multiple tables are updated
     const journeyStatusUpdatePayload = {
       journeyDecisionUniqueId,
-      passengerRequestUniqueId:
-        notificationData.passengerRequest?.passengerRequestUniqueId || null,
+      shipperRequestUniqueId:
+        notificationData.shipperRequest?.shipperRequestUniqueId || null,
       driverRequestUniqueId,
       journeyUniqueId: notificationData.journeyData?.journeyUniqueId || null,
       journeyStatusId: journeyStatusMap?.cancelledByDriver,
@@ -458,7 +462,7 @@ const handleExistingJourney = async (
         },
         vehicle,
       },
-      passenger: null,
+      shipper: null,
       journey: null,
       decision: null,
     };
@@ -468,7 +472,7 @@ const handleExistingJourney = async (
   notificationData.driverInfo.vehicleOfDriver = vehicle;
 
   // Extract data from helper
-  const passenger = notificationData.passengerRequest;
+  const shipper = notificationData.shipperRequest;
   const journeyDecisionData = notificationData.journeyDecision;
   const journey = notificationData.journeyData?.journeyUniqueId
     ? notificationData.journeyData
@@ -480,11 +484,11 @@ const handleExistingJourney = async (
   };
 
   // Build uniqueIds
-  const passengerRequestUniqueId = passenger?.passengerRequestUniqueId;
+  const shipperRequestUniqueId = shipper?.shipperRequestUniqueId;
   const journeyUniqueId = journey?.journeyUniqueId;
   const uniqueIds = {
     driverRequestUniqueId,
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     journeyDecisionUniqueId,
     journeyUniqueId,
   };
@@ -508,7 +512,7 @@ const handleExistingJourney = async (
       status: null,
       vehicle,
       driver: null,
-      passenger: null,
+      shipper: null,
       journey: null,
       decision: null,
     };
@@ -527,7 +531,7 @@ const handleExistingJourney = async (
       status: null,
       vehicle,
       driver: null,
-      passenger: null,
+      shipper: null,
       journey: null,
       decision: null,
     };
@@ -537,7 +541,7 @@ const handleExistingJourney = async (
     uniqueIds,
     status: journeyStatusId,
     driver,
-    passenger: passenger || null,
+    shipper: shipper || null,
     journey: journey || null,
     decision: journeyDecisionData || null,
   };
@@ -566,7 +570,7 @@ const handleExistingJourney = async (
           messageTypes: messageTypes?.driver_not_selected_in_bid,
           message: "success",
           status: journeyStatusId,
-          passenger: passenger ? [passenger] : null,
+          shipper: shipper ? [shipper] : null,
           drivers: [driver],
           decisions: [journeyDecisionData] || null,
           journey: journey || null,
@@ -601,7 +605,7 @@ const handleExistingJourney = async (
     // Determine appropriate message type based on cancellation status
     const cancellationMessageType =
       journeyStatusId === journeyStatusMap?.cancelledByPassenger
-        ? messageTypes?.passenger_cancelled_request
+        ? messageTypes?.shipper_cancelled_request
         : messageTypes?.admin_cancelled_request;
 
     // Send Socket.IO notification to driver
@@ -611,7 +615,7 @@ const handleExistingJourney = async (
           messageTypes: cancellationMessageType,
           message: "success",
           status: journeyStatusId,
-          passenger: passenger ? [passenger] : null,
+          shipper: shipper ? [shipper] : null,
           drivers: [driver],
           decisions: [journeyDecisionData] || null,
           journey: journey || null,
@@ -625,67 +629,67 @@ const handleExistingJourney = async (
     // Driver must explicitly mark it as seen via PUT /api/driver/markCancellationAsSeen endpoint
   }
 
-  // Send notification to passenger for other statuses
-  // Only send notifications for specific statuses that need passenger notifications
-  if (passenger?.phoneNumber) {
-    let passengerMessageType = null;
+  // Send notification to shipper for other statuses
+  // Only send notifications for specific statuses that need shipper notifications
+  if (shipper?.phoneNumber) {
+    let shipperMessageType = null;
 
     // Determine messageType based on journey status
     if (journeyStatusId === journeyStatusMap?.requested) {
-      passengerMessageType = messageTypes?.driver_found_shipper_request;
+      shipperMessageType = messageTypes?.driver_found_shipper_request;
     } else if (journeyStatusId === journeyStatusMap?.acceptedByDriver) {
-      passengerMessageType = messageTypes?.driver_accepted_shipper_request;
+      shipperMessageType = messageTypes?.driver_accepted_shipper_request;
     } else if (journeyStatusId === journeyStatusMap?.acceptedByPassenger) {
       // Status 4: Passenger accepted driver request - handled elsewhere, no notification needed here
-      passengerMessageType = null;
+      shipperMessageType = null;
     } else if (journeyStatusId === journeyStatusMap?.journeyStarted) {
-      passengerMessageType = messageTypes?.driver_started_journey;
+      shipperMessageType = messageTypes?.driver_started_journey;
     } else if (journeyStatusId === journeyStatusMap?.journeyCompleted) {
-      passengerMessageType = messageTypes?.driver_completed_journey;
+      shipperMessageType = messageTypes?.driver_completed_journey;
     } else if (journeyStatusId === journeyStatusMap?.cancelledByPassenger) {
-      passengerMessageType = messageTypes?.passenger_cancelled_request;
+      shipperMessageType = messageTypes?.shipper_cancelled_request;
     } else if (journeyStatusId === journeyStatusMap?.rejectedByPassenger) {
-      // Status 8: Rejected by passenger - passenger rejected driver's offer
-      passengerMessageType = messageTypes?.passenger_rejected_request;
+      // Status 8: Rejected by shipper - shipper rejected driver's offer
+      shipperMessageType = messageTypes?.shipper_rejected_request;
     } else if (journeyStatusId === journeyStatusMap?.cancelledByDriver) {
-      // Status 9: Cancelled by driver - passenger should be notified
-      passengerMessageType = messageTypes?.driver_cancelled_request;
+      // Status 9: Cancelled by driver - shipper should be notified
+      shipperMessageType = messageTypes?.driver_cancelled_request;
     } else if (journeyStatusId === journeyStatusMap?.cancelledByAdmin) {
-      // Status 10: Cancelled by admin - passenger should be notified
-      passengerMessageType = messageTypes?.admin_cancelled_request;
+      // Status 10: Cancelled by admin - shipper should be notified
+      shipperMessageType = messageTypes?.admin_cancelled_request;
     } else if (journeyStatusId === journeyStatusMap?.notSelectedInBid) {
       // Status 14: Not selected in bid - handled in driver notification section above
       // Passenger doesn't need notification for this status
-      passengerMessageType = null;
+      shipperMessageType = null;
     } else if (journeyStatusId === journeyStatusMap?.rejectedByDriver) {
-      // Status 15: Rejected by driver - driver rejected passenger's request
-      passengerMessageType = messageTypes?.driver_rejected_request;
+      // Status 15: Rejected by driver - driver rejected shipper's request
+      shipperMessageType = messageTypes?.driver_rejected_request;
     }
 
     // Only send notification if we have a valid messageType
-    if (passengerMessageType) {
+    if (shipperMessageType) {
       // Import here to avoid circular dependency
       const {
         sendPassengerNotification,
       } = require("../PassengerRequest/statusVerification.service");
 
       // Transform structure to match getDetailedJourneyData format:
-      // - passengerRequest (single object, not array)
+      // - shipperRequest (single object, not array)
       // - driverRequests (array with vehicleOfDriver, not nested driver/vehicle)
       // - decisions (array)
       // - journey (empty object if null)
-      const passengerRequest = passenger;
+      const shipperRequest = shipper;
       const driverInfoForNotification = {
         driver: driverInfo.driver,
         vehicleOfDriver: vehicle,
       };
 
       await sendPassengerNotification({
-        passengerRequest,
+        shipperRequest,
         journeyDecision: journeyDecisionData || null,
         driverInfo: driverInfoForNotification,
         journeyData: journey || {},
-        messageType: passengerMessageType,
+        messageType: shipperMessageType,
         status: journeyStatusId,
       });
     }
@@ -703,7 +707,7 @@ const handleExistingJourney = async (
       `SELECT
          cbva.assignmentUniqueId,
          cbva.companyBidRequestUniqueId,
-         cbva.passengerRequestUniqueId,
+         cbva.shipperRequestUniqueId,
          cbva.vehicleUniqueId,
          cbva.driverRequestUniqueId,
          cbva.assignmentStatus,
@@ -734,7 +738,7 @@ const handleExistingJourney = async (
 
   return {
     message: "success",
-    status: passenger?.journeyStatusId || journeyStatusId,
+    status: shipper?.journeyStatusId || journeyStatusId,
     ...responseMessage,
     // null  → individual job  → use /api/driver/* endpoints
     // object → company job    → use PATCH /api/company/assignments/:id/status

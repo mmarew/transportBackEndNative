@@ -28,15 +28,15 @@ const {
 /**
  * Passenger Create Request Endpoint
  *
- * Purpose: Creates a new journey/shipping request for a passenger/shipper. This endpoint enables
- * passengers to request transportation services for their goods, allowing drivers to find and
+ * Purpose: Creates a new journey/shipping request for a shipper/shipper. This endpoint enables
+ * shippers to request transportation services for their goods, allowing drivers to find and
  * bid on available journeys. The endpoint supports batch requests (multiple   Vehicle for one batch)
- * and prevents duplicate requests using passengerRequestBatchId grouping.
+ * and prevents duplicate requests using shipperRequestBatchId grouping.
  *
  * Context & Use Case:
  * - Passenger/shipper wants to transport goods from origin to destination
  * - Passenger may need multiple   Vehicle for a single batch of requests (e.g., large shipment)
- * - Request is grouped by passengerRequestBatchId to prevent duplicate creation
+ * - Request is grouped by shipperRequestBatchId to prevent duplicate creation
  * - After creation, request is available for drivers to find and bid on
  * - System automatically finds nearby drivers and sends notifications
  * - Admin can create requests on behalf of shippers (requires phone number)
@@ -47,14 +47,14 @@ const {
  * - Passenger needs multiple   Vehicle (numberOfVehicles > 1)
  * - Admin wants to create request for shipper (requires shipperPhoneNumber)
  * - Driver picks up goods from street and needs to create request (driver "take from street" scenario)
- * - Request is for shipping cargo/goods (not passenger transport)
+ * - Request is for shipping cargo/goods (not shipper transport)
  *
  * How it works:
- * 1. Validates required fields (passengerRequestBatchId, destination, vehicle, originLocation, etc.)
- * 2. Extracts userUniqueId from authentication token (for passengers) or creates user (for admin)
- * 3. If admin: Creates passenger user account within same transaction as request creation (atomic)
+ * 1. Validates required fields (shipperRequestBatchId, destination, vehicle, originLocation, etc.)
+ * 2. Extracts userUniqueId from authentication token (for shippers) or creates user (for admin)
+ * 3. If admin: Creates shipper user account within same transaction as request creation (atomic)
  * 4. Wraps admin user creation (if needed) + batch check + request creation in transaction (atomic operation)
- * 5. Checks existing requests by passengerRequestBatchId + userUniqueId
+ * 5. Checks existing requests by shipperRequestBatchId + userUniqueId
  * 6. Validates not all requests already created (existingRequestsCount < numberOfVehicles)
  * 7. Creates remaining requests sequentially (numberOfVehicles - existingRequestsCount)
  * 8. Each request is created with journeyStatusId = waiting (1)
@@ -66,15 +66,15 @@ const {
  * └────────────────┬────────────────────────────────────────────┘
  *                  │
  *                  ├─→ Step 1: Validate Required Fields
- *                  │   └─→ passengerRequestBatchId, destination, vehicle, originLocation, etc.
+ *                  │   └─→ shipperRequestBatchId, destination, vehicle, originLocation, etc.
  *                  │
  *                  ├─→ Step 2: Extract User Info from Token
- *                  │   ├─→ If roleId ===1 (passenger): userUniqueId from token
+ *                  │   ├─→ If roleId ===1 (shipper): userUniqueId from token
  *                  │   └─→ shipperRequestCreatedBy and shipperRequestCreatedByRoleId from token
  *                  │
  *                  ├─→ Step 3: Handle Admin User Creation (if admin) - INSIDE TRANSACTION
  *                  │   ├─→ ✅ [SAME TRANSACTION] createUser (uses provided connection)
- *                  │   │   └─→ Creates passenger user with phone number (atomic with request creation)
+ *                  │   │   └─→ Creates shipper user with phone number (atomic with request creation)
  *                  │   │       └─→ Returns existing user if phone already exists
  *                  │   └─→ Sets userUniqueId to newly created/existing user
  *                  │
@@ -82,7 +82,7 @@ const {
  *                  │   └─→ [TRANSACTION START]
  *                  │       ├─→ Step 4a: Batch Check (within transaction)
  *                  │       │   └─→ SELECT * FROM PassengerRequest
- *                  │       │       WHERE passengerRequestBatchId = ? AND userUniqueId = ?
+ *                  │       │       WHERE shipperRequestBatchId = ? AND userUniqueId = ?
  *                  │       │   └─→ Gets existing requests count for this batch
  *                  │       │
  *                  │       ├─→ Step 4b: Validate Batch Limit
@@ -95,7 +95,7 @@ const {
  *                  │           └─→ For each remaining request (loop):
  *                  │               ├─→ Validate vehicle type exists
  *                  │               ├─→ [TRANSACTION] INSERT INTO PassengerRequest
- *                  │               │   ├─→ passengerRequestUniqueId (UUID)
+ *                  │               │   ├─→ shipperRequestUniqueId (UUID)
  *                  │               │   ├─→ userUniqueId
  *                  │               │   ├─→ vehicleTypeUniqueId
  *                  │               │   ├─→ originLatitude, originLongitude, originPlace
@@ -103,21 +103,21 @@ const {
  *                  │               │   ├─→ journeyStatusId = waiting (1)
  *                  │               │   ├─→ shippableItemName, shippableItemQtyInQuintal
  *                  │               │   ├─→ shippingDate, deliveryDate, shippingCost
- *                  │               │   └─→ passengerRequestBatchId (groups related requests)
+ *                  │               │   └─→ shipperRequestBatchId (groups related requests)
  *                  │               └─→ Collect new request data
  *                  │
  *                  └─→ [TRANSACTION COMMIT] or [TRANSACTION ROLLBACK] on error
  *                      └─→ Response: Success with all newly created requests
  *
  * Database Operations:
- * 1. ✅ WRITE (Admin only - SAME TRANSACTION): Creates passenger user account
+ * 1. ✅ WRITE (Admin only - SAME TRANSACTION): Creates shipper user account
  *    - If shipperRequestCreatedByRoleId ===adminRoleId: Creates Users record
  *    - ✅ FIXED: Uses createUser function with connection parameter (same transaction)
  *    - Creates Users record with:
  *      - userUniqueId (UUID)
  *      - phoneNumber (from shipperPhoneNumber)
  *      - email (fake email with random number)
- *      - roleId = passengerRoleId (1)
+ *      - roleId = shipperRoleId (1)
  *      - statusId = ACTIVE (1)
  *      - fullName = null
  *    - Also creates usersCredential record (within same transaction)
@@ -126,7 +126,7 @@ const {
  *
  * 2. ✅ READ (within transaction): Checks existing requests by batchId
  *    - Uses connection query if provided (transaction support)
- *    - SELECT * FROM PassengerRequest WHERE passengerRequestBatchId = ? AND userUniqueId = ?
+ *    - SELECT * FROM PassengerRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ?
  *    - Counts existing requests for this batch
  *    - Used to prevent exceeding numberOfVehicles limit
  *
@@ -139,7 +139,7 @@ const {
  *    - For each remaining request: INSERT INTO PassengerRequest
  *    - Creates records sequentially (loop: 0 to noOfRecords)
  *    - Each record includes:
- *      - passengerRequestUniqueId (UUID, auto-generated)
+ *      - shipperRequestUniqueId (UUID, auto-generated)
  *      - userUniqueId (from token or newly created admin user)
  *      - vehicleTypeUniqueId (from request body)
  *      - originLatitude, originLongitude, originPlace (from originLocation)
@@ -147,7 +147,7 @@ const {
  *      - journeyStatusId = waiting (1) - initial status
  *      - shippableItemName, shippableItemQtyInQuintal
  *      - shippingDate, deliveryDate, shippingCost
- *      - passengerRequestBatchId (groups related requests)
+ *      - shipperRequestBatchId (groups related requests)
  *      - shipperRequestCreatedBy, shipperRequestCreatedByRoleId (audit fields)
  *      - shipperRequestCreatedAt (current timestamp)
  *    - All inserts use same connection (within transaction)
@@ -185,7 +185,7 @@ const {
  *   - Database isolation level ensures consistent snapshot during transaction
  *
  * Request Body:
- * - passengerRequestBatchId: Unique ID for batch grouping (required, UUID format)
+ * - shipperRequestBatchId: Unique ID for batch grouping (required, UUID format)
  *   - Groups related requests (e.g., same shipment needing multiple vehicles)
  *   - Prevents duplicate requests by checking existing requests with same batchId
  * - numberOfVehicles: Number of   Vehicle needed for this batch (optional, default: 1, min: 1)
@@ -216,16 +216,16 @@ const {
  *
  * Request Headers:
  * - Authorization: Bearer token (required)
- *   - Token must belong to a passenger role (roleId ===1) or admin role
- *   - userUniqueId extracted from token automatically (for passengers)
+ *   - Token must belong to a shipper role (roleId ===1) or admin role
+ *   - userUniqueId extracted from token automatically (for shippers)
  *   - roleId extracted from token for authorization
  *
  * Response (Success - Passenger Creates Request):
  * - message: "success"
  * - newRequests: [
  *     {
- *       passengerRequestId: number (auto-increment ID),
- *       passengerRequestUniqueId: string (UUID),
+ *       shipperRequestId: number (auto-increment ID),
+ *       shipperRequestUniqueId: string (UUID),
  *       userUniqueId: string (UUID),
  *       vehicleTypeUniqueId: string (UUID),
  *       originLatitude: number,
@@ -240,7 +240,7 @@ const {
  *       shippingDate: date,
  *       deliveryDate: date,
  *       shippingCost: number,
- *       passengerRequestBatchId: string (UUID),
+ *       shipperRequestBatchId: string (UUID),
  *       shipperRequestCreatedBy: string (UUID),
  *       shipperRequestCreatedByRoleId: number,
  *       shipperRequestCreatedAt: datetime
@@ -254,8 +254,8 @@ const {
  *
  * Response (Error):
  * - message: "error"
- * - error: "Missing required fields to create passenger request" (if validation fails in controller)
- * - error: "Batch uniqueId Can't be null" (if passengerRequestBatchId missing)
+ * - error: "Missing required fields to create shipper request" (if validation fails in controller)
+ * - error: "Batch uniqueId Can't be null" (if shipperRequestBatchId missing)
  * - error: "shipperPhoneNumber is required when admin creates request for shipper" (if admin but no phone)
  * - error: "Failed to create user for shipper" (if user creation fails for admin)
  * - error: "Failed to get userUniqueId from created user" (if user creation returns invalid data)
@@ -263,17 +263,17 @@ const {
  * - error: "All required requests have already been created for this batch." (if existingRequestsCount >= numberOfVehicles)
  *   - existingRequestsCount: number (current count of requests for this batch)
  *   - requestedVehicles: number (number of   Vehicle requested)
- *   - passengerRequestBatchId: string (UUID of the batch)
+ *   - shipperRequestBatchId: string (UUID of the batch)
  * - error: "Invalid vehicle type" (if vehicleTypeUniqueId not found in VehicleTypes table)
  * - error: "Vehicle type not found" (if vehicleTypeUniqueId validation fails)
  * - error: "Unable to create request" (general processing error)
  *
  * Security:
  * - Requires valid authentication token (verifyTokenOfAxios)
- * - Validates user has passenger role (roleId ===1) or admin role
- * - For passengers: userUniqueId extracted from token (cannot be spoofed)
- * - For admin: Creates passenger user account within same transaction as request creation (atomic)
- * - Only allows passengers to create requests for themselves (or admin for others)
+ * - Validates user has shipper role (roleId ===1) or admin role
+ * - For shippers: userUniqueId extracted from token (cannot be spoofed)
+ * - For admin: Creates shipper user account within same transaction as request creation (atomic)
+ * - Only allows shippers to create requests for themselves (or admin for others)
  *
  * Authorization:
  * - Passengers (roleId ===1) can create requests for themselves
@@ -283,10 +283,10 @@ const {
  *
  * Validation:
  * - Validates required fields in controller (before service call):
- *   - passengerRequestBatchId, destination, vehicle, originLocation, numberOfVehicles,
+ *   - shipperRequestBatchId, destination, vehicle, originLocation, numberOfVehicles,
  *     shippingDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, deliveryDate
  * - Validates request body format via Joi schema (createPassengerRequest)
- *   - passengerRequestBatchId: UUID format, required
+ *   - shipperRequestBatchId: UUID format, required
  *   - numberOfVehicles: integer, min: 1, default: 1
  *   - shippingDate, deliveryDate: ISO date format, required
  *   - shippingCost: number, required
@@ -297,18 +297,18 @@ const {
  *   - vehicle: object with vehicleTypeUniqueId (UUID, required)
  *   - shipperPhoneNumber: string, optional (required only for admin)
  *   - requestType: "PASSENGER" | "CARGO", optional
- * - Validates passengerRequestBatchId is not null (service level)
+ * - Validates shipperRequestBatchId is not null (service level)
  * - Validates userUniqueId is available (after admin user creation if applicable)
  * - Validates vehicle type exists in VehicleTypes table (for each request creation)
  * - Validates existing requests count < numberOfVehicles (batch limit check)
  *
  * Error Cases:
- * - "Missing required fields to create passenger request": Controller validation failed
+ * - "Missing required fields to create shipper request": Controller validation failed
  *   - Status: 400 Bad Request
  *   - Cause: One or more required fields missing from request body
- * - "Batch uniqueId Can't be null": passengerRequestBatchId missing
+ * - "Batch uniqueId Can't be null": shipperRequestBatchId missing
  *   - Status: 400 Bad Request
- *   - Cause: passengerRequestBatchId not provided or null
+ *   - Cause: shipperRequestBatchId not provided or null
  * - "shipperPhoneNumber is required when admin creates request for shipper": Admin creating but no phone
  *   - Status: 400 Bad Request
  *   - Cause: Admin role but shipperPhoneNumber not provided
@@ -321,7 +321,7 @@ const {
  * - "All required requests have already been created for this batch": Batch limit exceeded
  *   - Status: 409 Conflict (should be, but currently returns error message)
  *   - Cause: Existing requests count >= numberOfVehicles
- *   - Includes: existingRequestsCount, requestedVehicles, passengerRequestBatchId for debugging
+ *   - Includes: existingRequestsCount, requestedVehicles, shipperRequestBatchId for debugging
  * - "Invalid vehicle type" or "Vehicle type not found": VehicleTypeUniqueId doesn't exist
  *   - Status: 500 Internal Server Error
  *   - Cause: VehicleTypeUniqueId not found in VehicleTypes table
@@ -335,11 +335,11 @@ const {
  * 3. Passenger creates partial batch: Existing 1 request, numberOfVehicles = 3 → Creates 2 more → Returns 2 requests
  * 4. Passenger attempts duplicate: numberOfVehicles = 2, existing = 2 → Returns error "already created"
  * 5. Admin creates for shipper: Admin provides phone → Creates user → Creates request → Returns request
- * 6. Driver takes from street: Driver picks up goods → Creates passenger user → Creates request (status = journeyStarted) → Returns array → Creates journey
+ * 6. Driver takes from street: Driver picks up goods → Creates shipper user → Creates request (status = journeyStarted) → Returns array → Creates journey
  *
  * Audit Trail - Who Created the Request:
- * - shipperRequestCreatedBy: userUniqueId of who created the request (passenger/admin/driver)
- * - shipperRequestCreatedByRoleId: roleId of creator (1=passenger, 2=driver, 3=admin)
+ * - shipperRequestCreatedBy: userUniqueId of who created the request (shipper/admin/driver)
+ * - shipperRequestCreatedByRoleId: roleId of creator (1=shipper, 2=driver, 3=admin)
  * - These fields are stored in PassengerRequest table for tracking and reporting
  * - Service uses shipperRequestCreatedByRoleId to determine return behavior:
  *   - Role 1 (Passenger) or 3 (Admin): Returns verifyPassengerStatus result (status counts)
@@ -354,20 +354,20 @@ const {
  * 6. Driver completes journey → Status: journeyCompleted (6)
  *
  * Important Logic - Batch Grouping:
- * - All requests with same passengerRequestBatchId are treated as related (same shipment)
+ * - All requests with same shipperRequestBatchId are treated as related (same shipment)
  * - Prevents creating more requests than numberOfVehicles for a batch
- * - Useful when passenger needs multiple   Vehicle for large shipment
- * - Each request in batch has unique passengerRequestUniqueId but same passengerRequestBatchId
- * - Batch check counts existing requests: WHERE passengerRequestBatchId = ? AND userUniqueId = ?
+ * - Useful when shipper needs multiple   Vehicle for large shipment
+ * - Each request in batch has unique shipperRequestUniqueId but same shipperRequestBatchId
+ * - Batch check counts existing requests: WHERE shipperRequestBatchId = ? AND userUniqueId = ?
  * - If existingRequestsCount >= numberOfVehicles: All requests already created, return error
  * - Otherwise: Create remaining requests (numberOfVehicles - existingRequestsCount)
  *
  * Important Logic - Admin User Creation:
  * - Admin can create requests on behalf of shippers who don't have accounts
- * - Creates passenger user account using shipperPhoneNumber
+ * - Creates shipper user account using shipperPhoneNumber
  * - ✅ FIXED: User creation now uses same transaction as request creation (full transaction support)
  * - If user already exists (same phone), returns existing user (no duplicate)
- * - Generated email: fakeEmail_{randomNumber}@passenger.com
+ * - Generated email: fakeEmail_{randomNumber}@shipper.com
  * - Generated userRoleStatusDescription: "this is shipper "
  * - ✅ FIXED: User creation wrapped in same transaction as request creation
  * - ✅ FIXED: If request creation fails, user creation is rolled back (no orphaned users)
@@ -375,7 +375,7 @@ const {
  *
  * Important Logic - Driver "Take From Street" Scenario:
  * - Driver picks up goods from street while moving (not pre-booked)
- * - ✅ FIXED: Creates passenger user account INSIDE transaction (in DriverRequest.service.js)
+ * - ✅ FIXED: Creates shipper user account INSIDE transaction (in DriverRequest.service.js)
  * - ✅ FIXED: User creation uses same transaction as request creation (full transaction support)
  * - Sets audit fields: shipperRequestCreatedBy = driver.userUniqueId, shipperRequestCreatedByRoleId = driver.roleId (2)
  * - Sets journeyStatusId = journeyStarted (5) - driver already picked up goods, not waiting
@@ -383,7 +383,7 @@ const {
  * - Used immediately to create journey decision and journey record
  * - Audit trail stored in database to track that driver created this request
  * - Note: This is handled in DriverRequest.service.js
- * - ✅ FIXED: All operations atomic - user creation + passenger request + driver request + journey decision + journey + route points
+ * - ✅ FIXED: All operations atomic - user creation + shipper request + driver request + journey decision + journey + route points
  * - ✅ FIXED: No more orphaned users - if any operation fails, all are rolled back
  *
  * Important Logic - Sequential Creation:
@@ -421,7 +421,7 @@ const {
  *
  * Important Notes:
  * - This endpoint supports batch requests (multiple   Vehicle for one shipment)
- * - Batch grouping prevents duplicate requests using passengerRequestBatchId
+ * - Batch grouping prevents duplicate requests using shipperRequestBatchId
  * - Admin can create requests on behalf of shippers (requires phone number)
  * - ✅ FIXED: Admin user creation now uses same transaction as request creation (full transaction support)
  * - Admin user creation + batch check + request creation are all atomic (wrapped in transaction)
@@ -431,17 +431,17 @@ const {
  *
  * Performance Notes:
  * - Admin user creation adds one database transaction (if admin)
- * - Batch check uses indexed query (passengerRequestBatchId + userUniqueId)
+ * - Batch check uses indexed query (shipperRequestBatchId + userUniqueId)
  * - Vehicle type validation happens before loop (efficient - fails early)
  * - Request creation is sequential (could be parallelized, but safer sequential)
  * - Transaction timeout: 20 seconds (enough for multiple request creations)
- * - Consider adding composite index: (passengerRequestBatchId, userUniqueId) for faster batch checks
+ * - Consider adding composite index: (shipperRequestBatchId, userUniqueId) for faster batch checks
  * - Consider caching vehicle type validation (validate once, reuse result)
  *
  * Differences from Other Endpoints:
- * - Unlike /api/driver/request: This endpoint creates passenger requests, not driver requests
- * - Unlike /api/passenger/acceptDriverRequest: This endpoint creates new requests, doesn't accept drivers
- * - Unlike /api/passenger/cancelPassengerRequest: This endpoint creates requests, doesn't cancel them
+ * - Unlike /api/driver/request: This endpoint creates shipper requests, not driver requests
+ * - Unlike /api/shipper/acceptDriverRequest: This endpoint creates new requests, doesn't accept drivers
+ * - Unlike /api/shipper/cancelPassengerRequest: This endpoint creates requests, doesn't cancel them
  * - This endpoint is specifically for request creation (batch support)
  * - Other endpoints handle request actions (accept, cancel, verify status)
  *
@@ -516,7 +516,7 @@ const {
  *    - Requires proper error handling for partial failures
  *    - Current sequential approach is safer
  *
- * 4. Add composite index on (passengerRequestBatchId, userUniqueId)
+ * 4. Add composite index on (shipperRequestBatchId, userUniqueId)
  *    - Would improve batch check query performance
  *    - Recommended for high-frequency batch checks
  *
@@ -526,9 +526,9 @@ const {
  *    - Minor optimization for multiple request creation
  */
 router.post(
-  "/api/passengerRequest/createRequest",
+  "/api/shipperRequest/createRequest",
   verifyTokenOfAxios,
-  validator(createPassengerRequest), // Validates request body: passengerRequestBatchId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional), requestType (optional)
+  validator(createPassengerRequest), // Validates request body: shipperRequestBatchId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional), requestType (optional)
   controller.createPassengerRequest,
 );
 /**
@@ -539,7 +539,7 @@ router.post(
  * Usage Examples:
  * - Get recent completed journeys: ?journeyStatusId=6&limit=7&page=1
  * - Get all requests: ?target=all&limit=10&page=1
- * - Get single request: ?passengerRequestUniqueId=xxx
+ * - Get single request: ?shipperRequestUniqueId=xxx
  * - Filter by status: ?journeyStatusId=1,2,3
  *
  * Query Parameters:
@@ -547,9 +547,9 @@ router.post(
  * - journeyStatusId: single ID or comma-separated IDs (optional)
  * - limit: number of results (optional)
  * - page: page number (optional)
- * - passengerRequestUniqueId: filter by unique ID (optional)
- * - passengerUserUniqueId: filter by user ID, use "self" for current user (optional)
- * - Other filters: vehicleTypeUniqueId, passengerRequestBatchId, etc.
+ * - shipperRequestUniqueId: filter by unique ID (optional)
+ * - shipperUserUniqueId: filter by user ID, use "self" for current user (optional)
+ * - Other filters: vehicleTypeUniqueId, shipperRequestBatchId, etc.
  */
 router.get(
   "/api/user/getPassengerRequest4allOrSingleUser",
@@ -560,26 +560,26 @@ router.get(
 /**
  * Accept Driver Request Endpoint
  *
- * Purpose: Allows a passenger to accept a driver's offer/request for a journey based on bid principles.
+ * Purpose: Allows a shipper to accept a driver's offer/request for a journey based on bid principles.
  *
  * How it works:
  * - Passenger selects one driver from multiple driver offers
- * - Updates the selected driver's status to "accepted by passenger"
+ * - Updates the selected driver's status to "accepted by shipper"
  * - Updates all other drivers' status to "not selected in bid"
  * - Sends notifications to all affected drivers (accepted/rejected)
- * - Returns updated passenger status with unique IDs and status counts
+ * - Returns updated shipper status with unique IDs and status counts
  *
  * Request Body:
  * - driverRequestUniqueId: Unique ID of the driver request to accept
  * - journeyDecisionUniqueId: Unique ID of the journey decision
- * - passengerRequestUniqueId: Unique ID of the passenger request
+ * - shipperRequestUniqueId: Unique ID of the shipper request
  *
  * Response:
  * - Returns success with status, unique IDs, and updated totalRecords (status counts)
  * - Frontend can use this to update UI without additional API calls
  */
 router.put(
-  "/api/passenger/acceptDriverRequest",
+  "/api/shipper/acceptDriverRequest",
   verifyTokenOfAxios,
   validator(acceptDriverRequestBody),
   controller.acceptDriverRequest,
@@ -588,21 +588,21 @@ router.put(
 /**
  * Reject Driver Offer Endpoint
  *
- * Purpose: Allows a passenger to reject a driver's offer/request.
+ * Purpose: Allows a shipper to reject a driver's offer/request.
  *
  * How it works:
  * - Passenger rejects a specific driver's offer
- * - Updates driver request status to "rejected by passenger"
+ * - Updates driver request status to "rejected by shipper"
  * - Updates journey decision status accordingly
- * - If this was the only active request (accepted by driver), passenger request status returns to "waiting"
+ * - If this was the only active request (accepted by driver), shipper request status returns to "waiting"
  * - Sends notification to the rejected driver
  * - Updates are executed in parallel for better performance
  *
  * Request Body:
  * - driverRequestUniqueId: Unique ID of the driver request to reject (required)
  * - journeyDecisionUniqueId: Unique ID of the journey decision (required)
- * - passengerRequestUniqueId: Unique ID of the passenger request (required)
- * - passengerRequestId: Integer ID of the passenger request (required)
+ * - shipperRequestUniqueId: Unique ID of the shipper request (required)
+ * - shipperRequestId: Integer ID of the shipper request (required)
  * - journeyStatusId: Current journey status ID (required)
  *
  * Response:
@@ -620,16 +620,16 @@ router.put(
 /**
  * Update Passenger Request Endpoint
  *
- * Purpose: Updates an existing passenger request by its ID.
+ * Purpose: Updates an existing shipper request by its ID.
  *
  * How it works:
- * - Updates passenger request fields in the PassengerRequest table
- * - Uses passengerRequestId (integer) to identify the request
+ * - Updates shipper request fields in the PassengerRequest table
+ * - Uses shipperRequestId (integer) to identify the request
  * - Validates that the request exists (returns error if not found)
  * - Returns success message on successful update
  *
  * URL Parameters:
- * - id: passengerRequestId (integer) - Note: Despite route name, this uses integer ID, not UUID
+ * - id: shipperRequestId (integer) - Note: Despite route name, this uses integer ID, not UUID
  *
  * Request Body:
  * - Any fields from PassengerRequest table that need to be updated
@@ -641,7 +641,7 @@ router.put(
  * - Returns error if request not found or no changes made
  */
 router.put(
-  "/api/passengerRequest/getById/:id",
+  "/api/shipperRequest/getById/:id",
   verifyTokenOfAxios,
   validator(requestParams, "params"),
   controller.updateRequestById,
@@ -650,16 +650,16 @@ router.put(
 /**
  * Delete Passenger Request Endpoint
  *
- * Purpose: Deletes a passenger request by its ID.
+ * Purpose: Deletes a shipper request by its ID.
  *
  * How it works:
- * - Permanently deletes the passenger request from PassengerRequest table
- * - Uses passengerRequestId (integer) to identify the request
+ * - Permanently deletes the shipper request from PassengerRequest table
+ * - Uses shipperRequestId (integer) to identify the request
  * - Validates that the request exists (returns error if not found)
  * - Note: This is a hard delete - related records may need separate handling
  *
  * URL Parameters:
- * - id: passengerRequestId (integer) - Note: Despite route name, this uses integer ID, not UUID
+ * - id: shipperRequestId (integer) - Note: Despite route name, this uses integer ID, not UUID
  *
  * Response:
  * - Returns success message: "Request deleted successfully"
@@ -667,7 +667,7 @@ router.put(
  * - Frontend should refresh request list after deletion
  */
 router.delete(
-  "/api/passengerRequest/getById/:id",
+  "/api/shipperRequest/getById/:id",
   verifyTokenOfAxios,
   validator(requestParams, "params"),
   controller.deleteRequest,
@@ -676,10 +676,10 @@ router.delete(
 /**
  * Cancel Passenger Request Endpoint
  *
- * Purpose: Cancels an active passenger request (by passenger or admin).
+ * Purpose: Cancels an active shipper request (by shipper or admin).
  *
  * How it works:
- * - Updates passenger request status to "cancelled by passenger" or "cancelled by admin"
+ * - Updates shipper request status to "cancelled by shipper" or "cancelled by admin"
  * - Updates all related driver requests and journey decisions to cancelled status
  * - Updates journey status if journey was started
  * - Sends notifications to all affected drivers
@@ -690,7 +690,7 @@ router.delete(
  * - userUniqueId: User unique ID or "self" for current user
  *
  * Request Body:
- * - passengerRequestUniqueId: Unique ID of the request to cancel
+ * - shipperRequestUniqueId: Unique ID of the request to cancel
  * - cancellationReasonsTypeId: Reason for cancellation (optional)
  *
  * Authorization:
@@ -701,7 +701,7 @@ router.delete(
  * - Returns success with cancellation status, unique IDs, and updated totalRecords
  */
 router.put(
-  "/api/passengerRequest/cancelPassengerRequest/:userUniqueId",
+  "/api/shipperRequest/cancelPassengerRequest/:userUniqueId",
   verifyTokenOfAxios,
   validator(cancelRequestParams, "params"),
   validator(cancelPassengerRequestBody),
@@ -712,7 +712,7 @@ router.put(
 /**
  * Cancel Passenger Request Batch Endpoint
  *
- * Purpose: Cancels ALL PassengerRequest rows that share a passengerRequestBatchId
+ * Purpose: Cancels ALL PassengerRequest rows that share a shipperRequestBatchId
  *          in a single atomic database operation.
  *
  * How it works:
@@ -725,7 +725,7 @@ router.put(
  * partial failure. This endpoint is atomic via executeInTransaction.
  *
  * Params:
- * - passengerRequestBatchId: UUID of the batch to cancel
+ * - shipperRequestBatchId: UUID of the batch to cancel
  *
  * Body (optional):
  * - cancellationReasonsTypeId: Reason for cancellation
@@ -735,7 +735,7 @@ router.put(
  * - Admin/Super Admin can cancel any batch
  */
 router.put(
-  "/api/passengerRequest/cancelBatch/:passengerRequestBatchId",
+  "/api/shipperRequest/cancelBatch/:shipperRequestBatchId",
   verifyTokenOfAxios,
   controller.cancelPassengerRequestBatch,
 );
@@ -743,16 +743,16 @@ router.put(
 /**
  * Mark Journey Completion as Seen Endpoint
  *
- * Purpose: Marks a completed journey as seen by the passenger and creates a rating.
+ * Purpose: Marks a completed journey as seen by the shipper and creates a rating.
  *
  * How it works:
- * - Updates passenger request's isCompletionSeen flag to true
+ * - Updates shipper request's isCompletionSeen flag to true
  * - Creates a rating record for the journey
- * - Used to track which completed journeys the passenger has viewed
- * - Typically called when passenger views journey completion details
+ * - Used to track which completed journeys the shipper has viewed
+ * - Typically called when shipper views journey completion details
  *
  * Request Body:
- * - passengerRequestUniqueId: Unique ID of the passenger request
+ * - shipperRequestUniqueId: Unique ID of the shipper request
  * - journeyDecisionUniqueId: Unique ID of the journey decision
  * - rating: Rating value (1-5 or similar scale)
  *
@@ -761,7 +761,7 @@ router.put(
  * - Frontend can use this to hide "new completion" badges
  */
 router.put(
-  "/api/passengerRequest/markJourneyCompletionAsSeen",
+  "/api/shipperRequest/markJourneyCompletionAsSeen",
   verifyTokenOfAxios,
   validator(markJourneyCompletionAsSeen),
   controller.markJourneyCompletionAsSeenController,
@@ -770,10 +770,10 @@ router.put(
 /**
  * Get Cancellation Notifications Endpoint
  *
- * Purpose: Retrieves cancellation notifications for a passenger.
+ * Purpose: Retrieves cancellation notifications for a shipper.
  *
  * How it works:
- * - Fetches cancellation notifications where passenger hasn't seen them yet
+ * - Fetches cancellation notifications where shipper hasn't seen them yet
  * - Filters by seenStatus (seen/not seen)
  * - Supports pagination for large notification lists
  * - Returns detailed cancellation information including reason and who cancelled
@@ -784,14 +784,14 @@ router.put(
  * - limit: Number of results per page (optional, default: 10)
  *
  * Authorization:
- * - Only passengers can access their own cancellation notifications
+ * - Only shippers can access their own cancellation notifications
  *
  * Response:
  * - Returns array of cancellation notifications with pagination info
  * - Each notification includes cancellation reason, who cancelled, and timestamps
  */
 router.get(
-  "/api/passengerRequest/getCancellationNotifications",
+  "/api/shipperRequest/getCancellationNotifications",
   verifyTokenOfAxios,
   verifyPassengersIdentity,
   validator(getCancellationNotificationsQuery, "query"),
@@ -801,21 +801,21 @@ router.get(
 /**
  * Mark Cancellation as Seen Endpoint
  *
- * Purpose: Marks a cancellation notification as seen by the passenger.
+ * Purpose: Marks a cancellation notification as seen by the shipper.
  *
  * How it works:
- * - Updates JourneyDecisions.isCancellationByDriverSeenByPassenger to "seen by passenger"
- * - Verifies that the journey decision belongs to the passenger's request
+ * - Updates JourneyDecisions.isCancellationByDriverSeenByPassenger to "seen by shipper"
+ * - Verifies that the journey decision belongs to the shipper's request
  * - Prevents duplicate notifications from appearing
- * - Used to track which cancellations the passenger has viewed
- * - Typically called when passenger views cancellation details
+ * - Used to track which cancellations the shipper has viewed
+ * - Typically called when shipper views cancellation details
  *
  * Request Body:
  * - journeyDecisionUniqueId: Unique ID of the journey decision to mark as seen (required)
  *
  * Authorization:
- * - Only passengers can mark their own cancellation notifications as seen
- * - System verifies ownership by checking passengerRequestId matches userUniqueId
+ * - Only shippers can mark their own cancellation notifications as seen
+ * - System verifies ownership by checking shipperRequestId matches userUniqueId
  *
  * Response:
  * - Returns success message: "Cancellation notification marked as seen"
@@ -823,7 +823,7 @@ router.get(
  * - Frontend can use this to hide "new cancellation" badges
  */
 router.put(
-  "/api/passengerRequest/markCancellationAsSeen",
+  "/api/shipperRequest/markCancellationAsSeen",
   verifyTokenOfAxios,
   // verifyPassengersIdentity,
   validator(markCancellationAsSeen),
@@ -842,30 +842,30 @@ router.put(
  *   • waiting
  *   • requested
  *   • accepted by driver
- *   • accepted by passenger
+ *   • accepted by shipper
  *   • journey started
  *   • journey completed
- *   • journey cancelled by passenger
+ *   • journey cancelled by shipper
  *   • journey cancelled by driver
  *   • journey cancelled by admin
  *   • journey cancelled by system
  *   • journey cancelled by no answer from driver
  *   • journey cancelled by not selected in bid
  *   • journey cancelled by rejected by driver
- *   • journey cancelled by rejected by passenger
+ *   • journey cancelled by rejected by shipper
  *
  * Frontend Usage:
  * 1. Call this endpoint to get status counts (totalRecords)
  * 2. Use /api/user/getPassengerRequest4allOrSingleUser with statusId to fetch detailed data
  * 3. Take actions using related endpoints:
- *    - PUT /api/passengerRequest/markJourneyCompletionAsSeen
- *    - PUT /api/passengerRequest/markCancellationAsSeen
- *    - PUT /api/passengerRequest/cancelPassengerRequest/:userUniqueId
- *    - PUT /api/passenger/acceptDriverRequest
+ *    - PUT /api/shipperRequest/markJourneyCompletionAsSeen
+ *    - PUT /api/shipperRequest/markCancellationAsSeen
+ *    - PUT /api/shipperRequest/cancelPassengerRequest/:userUniqueId
+ *    - PUT /api/shipper/acceptDriverRequest
  *    - PUT /api/user/rejectDriverOffer
  */
 router.get(
-  "/api/passengerRequest/verifyPassengerStatus",
+  "/api/shipperRequest/verifyPassengerStatus",
   verifyTokenOfAxios,
   validator(verifyPassengerStatusQuery, "query"),
   controller.verifyPassengerStatus,
@@ -874,7 +874,7 @@ router.get(
 /**
  * Get All Active Requests Endpoint
  *
- * Purpose: Retrieves all active passenger requests for drivers to view available journeys.
+ * Purpose: Retrieves all active shipper requests for drivers to view available journeys.
  *
  * How it works:
  * - Fetches requests with active statuses: waiting, requested, acceptedByDriver
@@ -883,10 +883,10 @@ router.get(
  * - Returns detailed request information with user and vehicle type data
  *
  * Query Parameters:
- * - userUniqueId: Filter by passenger user ID (optional)
- * - email: Filter by passenger email (partial match, optional)
- * - phoneNumber: Filter by passenger phone (partial match, optional)
- * - fullName: Filter by passenger name (partial match, optional)
+ * - userUniqueId: Filter by shipper user ID (optional)
+ * - email: Filter by shipper email (partial match, optional)
+ * - phoneNumber: Filter by shipper phone (partial match, optional)
+ * - fullName: Filter by shipper name (partial match, optional)
  * - vehicleTypeUniqueId: Filter by vehicle type (optional)
  * - journeyStatusId: Filter by specific journey status (optional)
  * - shippableItemName: Filter by item name (partial match, optional)
@@ -907,7 +907,7 @@ router.get(
  *
  * Response:
  * - Returns array of active requests with pagination info
- * - Each request includes passenger details, vehicle type, and journey status
+ * - Each request includes shipper details, vehicle type, and journey status
  * - Includes pagination metadata (currentPage, totalPages, totalCount, etc.)
  */
 router.get(

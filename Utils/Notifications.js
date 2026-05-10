@@ -69,12 +69,12 @@ const sendSocketIONotificationToDriver = async ({
   }
 };
 
-// 🔔 Notify a specific passenger by phone number
+// 🔔 Notify a specific shipper by phone number
 const sendSocketIONotificationToPassenger = async ({
   message,
   phoneNumber,
   eventName,
-  userType = "passenger",
+  userType = "shipper",
 }) => {
   try {
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
@@ -84,7 +84,7 @@ const sendSocketIONotificationToPassenger = async ({
 
     const socketId = await getSocket(userType, cleanedPhoneNumber);
     if (!socketId) {
-      logger.warn("No active passenger socket found for notification", {
+      logger.warn("No active shipper socket found for notification", {
         phoneNumber: cleanedPhoneNumber,
       });
       return {
@@ -101,22 +101,22 @@ const sendSocketIONotificationToPassenger = async ({
     });
 
     if (res.status === "success" || res.message === "success") {
-      return { status: "success", data: "Message sent to passenger" };
+      return { status: "success", data: "Message sent to shipper" };
     } else {
-      logger.error("Failed to send message to passenger", { res });
+      logger.error("Failed to send message to shipper", { res });
       return {
         status: "error",
-        message: "Failed to send message to passenger",
+        message: "Failed to send message to shipper",
       };
     }
   } catch (error) {
-    logger.error("Error sending notification to passenger", {
+    logger.error("Error sending notification to shipper", {
       error: error.message,
       stack: error.stack,
     });
     return {
       status: "error",
-      message: "Message can't be sent to passenger",
+      message: "Message can't be sent to shipper",
     };
   }
 };

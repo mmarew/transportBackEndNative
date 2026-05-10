@@ -158,20 +158,20 @@ const adminServices = {
     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     ${whereClause}
     ORDER BY ${
-  sortField === "createdAt"
-    ? "u.userCreatedAt"
-    : sortField === "fullName"
-      ? "u.fullName"
-      : sortField === "email"
-        ? "u.email"
-        : sortField === "phoneNumber"
-          ? "u.phoneNumber"
-          : sortField === "licensePlate"
-            ? "v.licensePlate"
-            : sortField === "vehicleTypeName"
-              ? "vt.vehicleTypeName"
-              : "ursc.userRoleStatusCreatedAt"
-} ${sortDirection}
+      sortField === "createdAt"
+        ? "u.userCreatedAt"
+        : sortField === "fullName"
+          ? "u.fullName"
+          : sortField === "email"
+            ? "u.email"
+            : sortField === "phoneNumber"
+              ? "u.phoneNumber"
+              : sortField === "licensePlate"
+                ? "v.licensePlate"
+                : sortField === "vehicleTypeName"
+                  ? "vt.vehicleTypeName"
+                  : "ursc.userRoleStatusCreatedAt"
+    } ${sortDirection}
     LIMIT ? OFFSET ?
     `;
 
@@ -320,8 +320,8 @@ const adminServices = {
         CASE 
           WHEN dr.journeyStatusId IS NULL THEN 'No recent requests'
           WHEN dr.journeyStatusId = ${journeyStatusMap.journeyCompleted} THEN 'Completed'
-          WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByPassenger} THEN 'Cancelled by passenger'
-          WHEN dr.journeyStatusId = ${journeyStatusMap.rejectedByPassenger} THEN 'Rejected by passenger'
+          WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByPassenger} THEN 'Cancelled by shipper'
+          WHEN dr.journeyStatusId = ${journeyStatusMap.rejectedByPassenger} THEN 'Rejected by shipper'
           WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByDriver} THEN 'Cancelled by driver'
           WHEN dr.journeyStatusId = ${journeyStatusMap.cancelledByAdmin} THEN 'Cancelled by admin'
           WHEN dr.journeyStatusId = ${journeyStatusMap.completedByAdmin} THEN 'Completed by admin'
@@ -510,7 +510,7 @@ const adminServices = {
           WHEN dr.journeyStatusId = ${journeyStatusMap.waiting} THEN 'Waiting'
           WHEN dr.journeyStatusId = ${journeyStatusMap.requested} THEN 'Requested'
           WHEN dr.journeyStatusId = ${journeyStatusMap.acceptedByDriver} THEN 'Accepted by driver'
-          WHEN dr.journeyStatusId = ${journeyStatusMap.acceptedByPassenger} THEN 'Accepted by passenger'
+          WHEN dr.journeyStatusId = ${journeyStatusMap.acceptedByPassenger} THEN 'Accepted by shipper'
           WHEN dr.journeyStatusId = ${journeyStatusMap.journeyStarted} THEN 'Journey started'
           ELSE 'Unknown status'
         END as journeyStatusName
@@ -557,8 +557,8 @@ const adminServices = {
    * Fetches unauthorized drivers (those with statuses like pending documents, rejected, etc.).
    * Handles complex filtering, searching, and pagination.
    *
-   * NOTE (FIXED): Previously, searching with the 'search' parameter would fail if not accompanied 
-   * by 'vehicleType' or 'licensePlate' due to missing joins. The joins are now included whenever 
+   * NOTE (FIXED): Previously, searching with the 'search' parameter would fail if not accompanied
+   * by 'vehicleType' or 'licensePlate' due to missing joins. The joins are now included whenever
    * 'search' is present.
    *
    * @param {Object} query - The query parameters from the request
@@ -740,27 +740,24 @@ const adminServices = {
         UserRoleStatusCurrent.userRoleStatusId
     ORDER BY 
         ${
-  sortField === "fullName"
-    ? "Users.fullName"
-    : sortField === "email"
-      ? "Users.email"
-      : sortField === "phoneNumber"
-        ? "Users.phoneNumber"
-        : sortField === "createdAt"
-          ? "Users.userCreatedAt"
-          : sortField === "statusName"
-            ? "Statuses.statusName"
-            : "UserRoleStatusCurrent.userRoleStatusCreatedAt"
-} ${sortDirection}
+          sortField === "fullName"
+            ? "Users.fullName"
+            : sortField === "email"
+              ? "Users.email"
+              : sortField === "phoneNumber"
+                ? "Users.phoneNumber"
+                : sortField === "createdAt"
+                  ? "Users.userCreatedAt"
+                  : sortField === "statusName"
+                    ? "Statuses.statusName"
+                    : "UserRoleStatusCurrent.userRoleStatusCreatedAt"
+        } ${sortDirection}
     LIMIT ? OFFSET ?
     `;
 
     const dataParams = [...params, parseInt(limit), parseInt(offset)];
 
-    const [unauthorizedUsers] = await executor.query(
-      dataSql,
-      dataParams,
-    );
+    const [unauthorizedUsers] = await executor.query(dataSql, dataParams);
 
     // Get documents and status for each user using the unified accountStatus service
     const usersWithDocuments = await Promise.all(
@@ -794,7 +791,9 @@ const adminServices = {
         name,
         email,
         phone,
-        status: status || `All except ${USER_STATUS.ACTIVE} (active) and ${USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN} (banned)`, // Show which statuses are included
+        status:
+          status ||
+          `All except ${USER_STATUS.ACTIVE} (active) and ${USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN} (banned)`, // Show which statuses are included
         vehicleType,
         licensePlate,
         sortBy: sortField,

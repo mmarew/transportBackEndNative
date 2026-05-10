@@ -1,14 +1,14 @@
 /**
  * Automatic Timeout Detection Service
  *
- * PURPOSE: Automatically detects when drivers don't respond to passenger requests
+ * PURPOSE: Automatically detects when drivers don't respond to shipper requests
  * within a specified time limit and automatically processes the timeout.
  *
  * This service runs as a background job and:
  * 1. Finds driver requests that have been in "requested" (2) status for longer than the timeout period
  * 2. Automatically updates status to "noAnswerFromDriver" (13)
- * 3. Automatically creates a new passenger request to find another driver
- * 4. Sends notifications to both passenger and driver
+ * 3. Automatically creates a new shipper request to find another driver
+ * 4. Sends notifications to both shipper and driver
  * 5. Logs evidence data for audit purposes
  *
  * CONFIGURATION:
@@ -54,15 +54,15 @@ const findTimedOutDriverRequests = async () => {
       SELECT 
         JourneyDecisions.journeyDecisionId,
         JourneyDecisions.journeyDecisionUniqueId,
-        JourneyDecisions.passengerRequestId,
+        JourneyDecisions.shipperRequestId,
         JourneyDecisions.driverRequestId,
         JourneyDecisions.decisionTime,
         JourneyDecisions.journeyStatusId as decisionStatusId,
         JourneyDecisions.decisionBy,
         
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
-        PassengerRequest.journeyStatusId as passengerStatusId,
+        PassengerRequest.shipperRequestUniqueId,
+        PassengerRequest.userUniqueId as shipperUserUniqueId,
+        PassengerRequest.journeyStatusId as shipperStatusId,
         PassengerRequest.vehicleTypeUniqueId,
         PassengerRequest.originLatitude,
         PassengerRequest.originLongitude,
@@ -75,7 +75,7 @@ const findTimedOutDriverRequests = async () => {
         PassengerRequest.shippingDate,
         PassengerRequest.deliveryDate,
         PassengerRequest.shippingCost,
-        PassengerRequest.passengerRequestBatchId,
+        PassengerRequest.shipperRequestBatchId,
         PassengerRequest.shipperRequestCreatedBy,
         PassengerRequest.shipperRequestCreatedByRoleId,
         
@@ -83,14 +83,14 @@ const findTimedOutDriverRequests = async () => {
         DriverRequest.userUniqueId as driverUserUniqueId,
         DriverRequest.journeyStatusId as driverStatusId,
         
-        Users.phoneNumber as passengerPhoneNumber,
+        Users.phoneNumber as shipperPhoneNumber,
         DriverUser.phoneNumber as driverPhoneNumber,
         DriverUser.fullName as driverFullName,
         
         VehicleTypes.vehicleTypeName
         
       FROM JourneyDecisions
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
+      INNER JOIN PassengerRequest ON JourneyDecisions.shipperRequestId = PassengerRequest.shipperRequestId
       INNER JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
       INNER JOIN Users ON PassengerRequest.userUniqueId = Users.userUniqueId
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
@@ -129,7 +129,7 @@ const findTimedOutDriverRequests = async () => {
  *
  * This function is called by the background job to automatically:
  * 1. Update status to noAnswerFromDriver (13)
- * 2. Create a new passenger request
+ * 2. Create a new shipper request
  * 3. Send notifications
  * 4. Log evidence data
  *
@@ -139,18 +139,18 @@ const findTimedOutDriverRequests = async () => {
 const processAutomaticTimeout = async (timedOutRequest) => {
   try {
     const {
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       driverRequestUniqueId,
       vehicleTypeUniqueId,
       journeyDecisionUniqueId,
       decisionTime,
-      passengerUserUniqueId,
+      shipperUserUniqueId,
       driverUserUniqueId,
       driverPhoneNumber,
-      passengerPhoneNumber,
+      shipperPhoneNumber,
       driverFullName,
       vehicleTypeName,
-      passengerStatusId,
+      shipperStatusId,
       driverStatusId,
       decisionStatusId,
     } = timedOutRequest;
@@ -158,16 +158,16 @@ const processAutomaticTimeout = async (timedOutRequest) => {
     // Safety check: Verify status is still requested (2) before processing
     // This prevents race conditions where status might have changed between query and processing
     if (
-      passengerStatusId !== journeyStatusMap.requested ||
+      shipperStatusId !== journeyStatusMap.requested ||
       driverStatusId !== journeyStatusMap.requested ||
       decisionStatusId !== journeyStatusMap.requested
     ) {
       logger.warn("AUTOMATIC TIMEOUT SKIPPED - Status already changed", {
         timestamp: currentDate(),
-        passengerRequestUniqueId,
+        shipperRequestUniqueId,
         driverRequestUniqueId,
         journeyDecisionUniqueId,
-        passengerStatusId,
+        shipperStatusId,
         driverStatusId,
         decisionStatusId,
         expectedStatus: journeyStatusMap.requested,
@@ -177,7 +177,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
         message: "skipped",
         reason:
           "Status already changed - request may have been processed manually or driver responded",
-        passengerRequestUniqueId,
+        shipperRequestUniqueId,
         driverRequestUniqueId,
       };
     }
@@ -188,24 +188,24 @@ const processAutomaticTimeout = async (timedOutRequest) => {
       {
         timestamp: currentDate(),
         evidence: {
-          passengerRequestUniqueId,
+          shipperRequestUniqueId,
           driverRequestUniqueId,
           journeyDecisionUniqueId,
-          passengerUserUniqueId,
+          shipperUserUniqueId,
           driverUserUniqueId,
           driverPhoneNumber: driverPhoneNumber
             ? `${driverPhoneNumber.substring(
-              0,
-              3,
-            )}***${driverPhoneNumber.substring(driverPhoneNumber.length - 2)}`
+                0,
+                3,
+              )}***${driverPhoneNumber.substring(driverPhoneNumber.length - 2)}`
             : null, // Mask phone for privacy
-          passengerPhoneNumber: passengerPhoneNumber
-            ? `${passengerPhoneNumber.substring(
-              0,
-              3,
-            )}***${passengerPhoneNumber.substring(
-              passengerPhoneNumber.length - 2,
-            )}`
+          shipperPhoneNumber: shipperPhoneNumber
+            ? `${shipperPhoneNumber.substring(
+                0,
+                3,
+              )}***${shipperPhoneNumber.substring(
+                shipperPhoneNumber.length - 2,
+              )}`
             : null,
           driverFullName,
           vehicleTypeName,
@@ -213,7 +213,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
           timeoutMinutes: DRIVER_RESPONSE_TIMEOUT_MINUTES,
           automatic: true,
           currentStatus: {
-            passenger: passengerStatusId,
+            shipper: shipperStatusId,
             driver: driverStatusId,
             decision: decisionStatusId,
           },
@@ -222,12 +222,12 @@ const processAutomaticTimeout = async (timedOutRequest) => {
     );
 
     // Build the body object for noAnswerFromDriver function
-    // Note: userUniqueId is not required for automatic processing, but we include passengerUserUniqueId
+    // Note: userUniqueId is not required for automatic processing, but we include shipperUserUniqueId
     // for potential future use or logging
     const timeoutBody = {
-      passengerRequestUniqueId,
+      shipperRequestUniqueId,
       driverRequestUniqueId,
-      userUniqueId: passengerUserUniqueId, // Passenger's userUniqueId (for consistency, though not required)
+      userUniqueId: shipperUserUniqueId, // Passenger's userUniqueId (for consistency, though not required)
       journeyStatusId: journeyStatusMap.noAnswerFromDriver, // 13 - noAnswerFromDriver (fixed from 11)
       previousStatusId: journeyStatusMap.requested, // 2 - requested
       vehicle: {
@@ -247,7 +247,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
     if (result.message === "success") {
       logger.info("AUTOMATIC TIMEOUT PROCESSED SUCCESSFULLY", {
         timestamp: currentDate(),
-        passengerRequestUniqueId,
+        shipperRequestUniqueId,
         driverRequestUniqueId,
         journeyDecisionUniqueId,
         newPassengerRequestStatus: result.status,
@@ -256,7 +256,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
     } else {
       logger.error("AUTOMATIC TIMEOUT PROCESSING FAILED", {
         timestamp: currentDate(),
-        passengerRequestUniqueId,
+        shipperRequestUniqueId,
         driverRequestUniqueId,
         journeyDecisionUniqueId,
         error: result.error || result.message,
@@ -270,7 +270,7 @@ const processAutomaticTimeout = async (timedOutRequest) => {
       error: error.message,
       stack: error.stack,
       timedOutRequest: {
-        passengerRequestUniqueId: timedOutRequest?.passengerRequestUniqueId,
+        shipperRequestUniqueId: timedOutRequest?.shipperRequestUniqueId,
         driverRequestUniqueId: timedOutRequest?.driverRequestUniqueId,
         journeyDecisionUniqueId: timedOutRequest?.journeyDecisionUniqueId,
       },
@@ -339,7 +339,7 @@ const checkAndProcessTimeouts = async () => {
         } else {
           errorCount++;
           errors.push({
-            passengerRequestUniqueId: timedOutRequest.passengerRequestUniqueId,
+            shipperRequestUniqueId: timedOutRequest.shipperRequestUniqueId,
             driverRequestUniqueId: timedOutRequest.driverRequestUniqueId,
             error: result.error || result.message,
           });
@@ -350,13 +350,13 @@ const checkAndProcessTimeouts = async () => {
       } catch (error) {
         errorCount++;
         errors.push({
-          passengerRequestUniqueId: timedOutRequest.passengerRequestUniqueId,
+          shipperRequestUniqueId: timedOutRequest.shipperRequestUniqueId,
           driverRequestUniqueId: timedOutRequest.driverRequestUniqueId,
           error: error.message,
         });
         logger.error("Error processing individual timeout", {
           error: error.message,
-          passengerRequestUniqueId: timedOutRequest.passengerRequestUniqueId,
+          shipperRequestUniqueId: timedOutRequest.shipperRequestUniqueId,
           driverRequestUniqueId: timedOutRequest.driverRequestUniqueId,
         });
       }
