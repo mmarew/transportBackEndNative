@@ -62,7 +62,7 @@ exports.getCancellationNotificationsQuery = Joi.object({
     .valid(
       "no need to see it",
       "not seen by passenger yet",
-      "seen by passenger"
+      "seen by passenger",
     )
     .optional(),
   page: Joi.number().integer().min(1).optional(),
@@ -132,5 +132,7 @@ exports.getAllActiveRequestsQuery = Joi.object({
   limit: Joi.number().integer().min(1).max(100).optional(),
   sortBy: Joi.string().optional(),
   sortOrder: Joi.string().valid("ASC", "DESC", "asc", "desc").optional(),
-  requestMode: Joi.string().valid("individual_target", "company_target").optional(),
+  requestMode: Joi.string()
+    .valid("individual_target", "company_target")
+    .optional(),
 }).unknown(true);
