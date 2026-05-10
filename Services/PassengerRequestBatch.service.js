@@ -65,7 +65,11 @@ exports.upsertBatch = async ({
   totalVehicles,
   requestMode,
   targetCompanyUniqueId,
+  originLatitude,
+  originLongitude,
   originPlace,
+  destinationLatitude,
+  destinationLongitude,
   destinationPlace,
   shippableItemName,
   shippableItemQtyInQuintal,
@@ -85,10 +89,12 @@ exports.upsertBatch = async ({
     await db().query(
       `INSERT INTO PassengerRequestBatch
         (batchUniqueId, shipperUserUniqueId, vehicleTypeUniqueId, totalVehicles,
-         requestMode, targetCompanyUniqueId, originPlace, destinationPlace,
+         requestMode, targetCompanyUniqueId,
+         originLatitude, originLongitude, originPlace,
+         destinationLatitude, destinationLongitude, destinationPlace,
          shippableItemName, shippableItemQtyInQuintal, shippingDate, deliveryDate,
          shippingCost, journeyStatusId, batchCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         batchUniqueId,
         shipperUserUniqueId,
@@ -96,7 +102,11 @@ exports.upsertBatch = async ({
         totalVehicles,
         requestMode,
         targetCompanyUniqueId,
+        originLatitude ?? null,
+        originLongitude ?? null,
         originPlace,
+        destinationLatitude ?? null,
+        destinationLongitude ?? null,
         destinationPlace,
         shippableItemName,
         shippableItemQtyInQuintal,

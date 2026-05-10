@@ -738,44 +738,120 @@ exports.updateBidStatus = async (
 
   let newPRStatus = null;
   if (bidStatus === "accepted_by_shipper") {
-    // 1. LOCK ALL PASSENGER REQUESTS IN THIS BATCH
-    // We use 'FOR UPDATE' to prevent individual drivers from 'Accepting' these
-    // requests while we are processing this company bid.
-    const [rows] = await db().query(
-      `SELECT passengerRequestId, journeyStatusId 
-       FROM PassengerRequest 
-       WHERE passengerRequestBatchId = ? 
-         AND passengerRequestDeletedAt IS NULL 
+    // ── LAZY CREATION: company_target deferred PR rows ─────────────────────
+    // In company_target mode, createPassengerRequest only creates the batch
+    // header — no individual PassengerRequest rows. We create them NOW, at the
+    // moment the shipper accepts the winning bid, so no orphaned rows exist
+    // if the deal never materializes.
+    //
+    // For individual_target (legacy), PRs already exist, so we skip creation
+    // and fall through to the lock-and-verify path below.
+
+    // 1. Check if PRs already exist for this batch
+    const [existingPRs] = await db().query(
+      `SELECT passengerRequestId, journeyStatusId
+       FROM PassengerRequest
+       WHERE passengerRequestBatchId = ?
+         AND passengerRequestDeletedAt IS NULL
        FOR UPDATE`,
       [bid.passengerRequestBatchId],
     );
 
-    // 2. VERIFY STATE (Integrity Check)
-    // Ensure all requests in the batch are still 'Free' (waiting or requested)
-    // If an individual driver already claimed one, this will catch it.
-    if (rows.length === 0) {
-      throw new AppError(
-        `Consistency Conflict: No requests found for batch '${bid.passengerRequestBatchId}'. The shipper may have cancelled the entire batch or you are using a stale bid from before a database reset.`,
-        409,
+    if (existingPRs.length === 0) {
+      // ── DEFERRED PATH: Create PR rows from batch metadata ──────────────
+      const [[batch]] = await db().query(
+        `SELECT * FROM PassengerRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+        [bid.passengerRequestBatchId],
+      );
+
+      if (!batch) {
+        throw new AppError(
+          `Batch '${bid.passengerRequestBatchId}' not found. The shipper may have cancelled.`,
+          409,
+        );
+      }
+
+      const { v4: uuidv4 } = require("uuid");
+      const { currentDate } = require("../Utils/CurrentDate");
+      const formatDateToReadable = require("../Utils/FormatDateToReadable");
+
+      const numToCreate = bid.numberOfVehiclesOffered;
+      const prInsertPromises = [];
+
+      for (let i = 0; i < numToCreate; i++) {
+        const prUniqueId = uuidv4();
+        prInsertPromises.push(
+          db().query(
+            `INSERT INTO PassengerRequest
+              (passengerRequestUniqueId, userUniqueId, passengerRequestBatchId,
+               vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
+               originLatitude, originLongitude, originPlace,
+               destinationLatitude, destinationLongitude, destinationPlace,
+               shippableItemName, shippableItemQtyInQuintal,
+               shippingDate, deliveryDate, shippingCost,
+               shipperRequestCreatedBy, shipperRequestCreatedByRoleId,
+               shipperRequestCreatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              prUniqueId,
+              batch.shipperUserUniqueId,
+              batch.batchUniqueId,
+              batch.vehicleTypeUniqueId,
+              journeyStatusMap.acceptedByPassenger,   // born accepted
+              batch.requestMode,
+              batch.targetCompanyUniqueId,
+              batch.originLatitude,
+              batch.originLongitude,
+              batch.originPlace,
+              batch.destinationLatitude,
+              batch.destinationLongitude,
+              batch.destinationPlace,
+              batch.shippableItemName,
+              batch.shippableItemQtyInQuintal,
+              batch.shippingDate ? formatDateToReadable(batch.shippingDate) : null,
+              batch.deliveryDate ? formatDateToReadable(batch.deliveryDate) : null,
+              batch.shippingCost,
+              updatedBy,                              // shipper who accepted
+              1,                                      // passengerRoleId
+              currentDate(),
+            ],
+          ),
+        );
+      }
+
+      await Promise.all(prInsertPromises);
+
+      logger.info("Lazy PR creation completed on bid acceptance", {
+        batchUniqueId: bid.passengerRequestBatchId,
+        count: numToCreate,
+      });
+    } else {
+      // ── EAGER PATH (individual_target): PRs already exist → verify state ─
+      const freeRequests = existingPRs.filter(
+        (r) =>
+          r.journeyStatusId === journeyStatusMap.waiting ||
+          r.journeyStatusId === journeyStatusMap.requested ||
+          r.journeyStatusId === journeyStatusMap.acceptedByDriver,
+      );
+
+      if (freeRequests.length < bid.numberOfVehiclesOffered) {
+        const alreadyClaimed = existingPRs.length - freeRequests.length;
+        throw new AppError(
+          `Consistency Conflict: Only ${freeRequests.length} of ${bid.numberOfVehiclesOffered} requested vehicles are still available. ${alreadyClaimed} individual driver(s) have already been accepted for this freight.`,
+          409,
+        );
+      }
+
+      // Update existing PRs to accepted status
+      await db().query(
+        `UPDATE PassengerRequest
+         SET journeyStatusId = ?
+         WHERE passengerRequestBatchId = ? AND passengerRequestDeletedAt IS NULL`,
+        [journeyStatusMap.acceptedByPassenger, bid.passengerRequestBatchId],
       );
     }
 
-    const freeRequests = rows.filter(
-      (r) =>
-        r.journeyStatusId === journeyStatusMap.waiting ||
-        r.journeyStatusId === journeyStatusMap.requested ||
-        r.journeyStatusId === journeyStatusMap.acceptedByDriver,
-    );
-
-    if (freeRequests.length < bid.numberOfVehiclesOffered) {
-      const alreadyClaimed = rows.length - freeRequests.length;
-      throw new AppError(
-        `Consistency Conflict: Only ${freeRequests.length} of ${bid.numberOfVehiclesOffered} requested vehicles are still available. ${alreadyClaimed} individual driver(s) have already been accepted for this freight.`,
-        409,
-      );
-    }
-
-    newPRStatus = journeyStatusMap.acceptedByPassenger;
+    newPRStatus = null; // Already handled above — skip the generic UPDATE below
   } else if (
     bidStatus === "cancelled_by_company" ||
     bidStatus === "rejected_by_shipper" ||

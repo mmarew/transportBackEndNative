@@ -438,7 +438,11 @@ CREATE TABLE IF NOT EXISTS PassengerRequestBatch (
     targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,   -- FK → TransportCompany (null if open)
 
     -- Descriptive metadata for the "Bid Board"
+    originLatitude DECIMAL(10, 8) NULL,                    -- Needed for lazy PR creation at bid approval
+    originLongitude DECIMAL(11, 8) NULL,
     originPlace VARCHAR(255) NOT NULL,
+    destinationLatitude DECIMAL(10, 8) NULL,
+    destinationLongitude DECIMAL(11, 8) NULL,
     destinationPlace VARCHAR(255) NOT NULL,
     shippableItemName VARCHAR(100) NULL,
     shippableItemQtyInQuintal DECIMAL(15,2) NULL,

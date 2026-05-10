@@ -114,7 +114,11 @@ const createPassengerRequest = async (body, journeyStatusId) => {
         totalVehicles:             body.numberOfVehicles || 1,
         requestMode:               body.requestMode || "individual_target",
         targetCompanyUniqueId:     body.targetCompanyUniqueId || null,
+        originLatitude:            body.originLocation?.latitude ?? null,
+        originLongitude:           body.originLocation?.longitude ?? null,
         originPlace:               body.originLocation?.description || "",
+        destinationLatitude:       body.destination?.latitude ?? null,
+        destinationLongitude:      body.destination?.longitude ?? null,
         destinationPlace:          body.destination?.description || "",
         shippableItemName:         body.shippableItemName || null,
         shippableItemQtyInQuintal: body.shippableItemQtyInQuintal || null,
@@ -123,6 +127,26 @@ const createPassengerRequest = async (body, journeyStatusId) => {
         shippingCost:              body.shippingCost || null,
         journeyStatusId,
       });
+
+      // ── company_target mode: DEFER individual PR creation ──────────────────
+      // For company_target requests, we only create the batch header now.
+      // Individual PassengerRequest rows will be created lazily when the shipper
+      // accepts a company bid (in updateBidStatus → accepted_by_shipper).
+      //
+      // Why?  1. Faster creation (1 insert vs N inserts)
+      //       2. If deal fails → no orphaned PR rows to clean up
+      //       3. No race conditions during bid acceptance
+      const isCompanyTarget = (body.requestMode || "individual_target") === "company_target";
+
+      if (isCompanyTarget) {
+        logger.info("company_target batch created (PR rows deferred to bid acceptance)", {
+          passengerRequestBatchId,
+          totalVehicles: body.numberOfVehicles || 1,
+          userUniqueId,
+        });
+
+        return await verifyPassengerStatus({ userUniqueId });
+      }
 
       // Step 1b: Now create individual PassengerRequest rows in parallel — safe because
       //          the batch header already exists and upsertBatch is no longer called inside.
