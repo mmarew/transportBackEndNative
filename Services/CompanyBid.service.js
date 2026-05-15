@@ -124,16 +124,20 @@ exports.submitBid = async (data) => {
     throw new AppError("This batch is targeted at a different company", 403);
   }
 
-  // 3. Verify the batch has actual requests (Sanity Check)
-  const [countRows] = await db().query(
-    `SELECT COUNT(*) AS batchCount
-     FROM ShipperRequest
-     WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
-    [shipperRequestBatchId],
-  );
-  const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
-  if (actualRequestCount === 0) {
-    throw new AppError("This batch contains no individual requests", 400);
+  // 3. Verify the batch has actual requests — only relevant for individual_target batches.
+  //    company_target batches intentionally have zero ShipperRequest rows at bid time;
+  //    rows are bulk-created when the shipper accepts the winning bid.
+  if (requestMode !== "company_target") {
+    const [countRows] = await db().query(
+      `SELECT COUNT(*) AS batchCount
+       FROM ShipperRequest
+       WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
+      [shipperRequestBatchId],
+    );
+    const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
+    if (actualRequestCount === 0) {
+      throw new AppError("This batch contains no individual requests", 400);
+    }
   }
 
   // 4. Determine final vehicle count (Full Batch Logic)
@@ -744,11 +748,11 @@ exports.updateBidStatus = async (
   if (bidStatus === "accepted_by_shipper") {
     // ── COMPANY-TARGET vs INDIVIDUAL-TARGET handling ────────────────────────
     //
-    // company_target (deferred):
-    //   No PR rows exist yet. We do NOT bulk-create them here either.
-    //   Individual PR rows are created just-in-time in createAssignment()
-    //   when the dispatcher assigns each driver+vehicle pair to a slot.
-    //   This means 450,000 vehicles = 0 rows now, created 1-at-a-time later.
+    // company_target (bulk-create on acceptance):
+    //   No PR rows exist yet. We NOW bulk-create all N ShipperRequest rows
+    //   at the moment the shipper accepts the winning company bid.
+    //   Each row starts in `acceptedByShipper` status with no driver assigned.
+    //   The dispatcher then calls createAssignment() to pair each row with a driver.
     //
     // individual_target (eager):
     //   PRs already exist from createShipperRequest. Lock and verify they're
@@ -765,26 +769,79 @@ exports.updateBidStatus = async (
     );
 
     if (existingPRs.length === 0) {
-      // ── COMPANY-TARGET DEFERRED PATH ────────────────────────────────────
-      // Just update the batch header status. No PR rows needed yet.
-      // createAssignment will create 1 PR per assignment just-in-time.
+      // ── COMPANY-TARGET PATH: Bulk-create all N ShipperRequest rows now ──
+      // Fetch full batch metadata needed to populate each row
+      const [[batch]] = await db().query(
+        `SELECT * FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+        [bid.shipperRequestBatchId],
+      );
+      if (!batch) {
+        throw new AppError("Batch not found during acceptance", 409);
+      }
+
+      const { v4: uuidv4 } = require("uuid");
+      const formatDateToReadable = require("../Utils/FormatDateToReadable");
+      const totalSlots = bid.numberOfVehiclesOffered;
+
+      // Build a multi-row INSERT for all N slots in one query
+      const placeholders = Array(totalSlots).fill(
+        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).join(", ");
+
+      const values = [];
+      for (let i = 0; i < totalSlots; i++) {
+        values.push(
+          uuidv4(),                                          // shipperRequestUniqueId
+          batch.shipperUserUniqueId,                        // userUniqueId (shipper)
+          batch.batchUniqueId,                              // shipperRequestBatchId
+          batch.vehicleTypeUniqueId,                        // vehicleTypeUniqueId
+          journeyStatusMap.acceptedByShipper,               // journeyStatusId — born accepted, no driver yet
+          batch.requestMode,                                // requestMode
+          batch.targetCompanyUniqueId,                      // targetCompanyUniqueId
+          batch.originLatitude,
+          batch.originLongitude,
+          batch.originPlace,
+          batch.destinationLatitude,
+          batch.destinationLongitude,
+          batch.destinationPlace,
+          batch.shippableItemName,
+          batch.shippableItemQtyInQuintal,
+          batch.shippingDate ? formatDateToReadable(batch.shippingDate) : null,
+          batch.deliveryDate ? formatDateToReadable(batch.deliveryDate) : null,
+          batch.shippingCost,
+          updatedBy,                                        // shipperRequestCreatedBy (shipper who accepted)
+          usersRoles.shipperRoleId,                         // shipperRequestCreatedByRoleId
+          currentDate(),                                    // shipperRequestCreatedAt
+        );
+      }
+
+      await db().query(
+        `INSERT INTO ShipperRequest
+          (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
+           vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
+           originLatitude, originLongitude, originPlace,
+           destinationLatitude, destinationLongitude, destinationPlace,
+           shippableItemName, shippableItemQtyInQuintal,
+           shippingDate, deliveryDate, shippingCost,
+           shipperRequestCreatedBy, shipperRequestCreatedByRoleId, shipperRequestCreatedAt)
+         VALUES ${placeholders}`,
+        values,
+      );
+
+      // Update the batch header status
       await db().query(
         `UPDATE ShipperRequestBatch
          SET journeyStatusId = ?, batchUpdatedAt = ?
          WHERE batchUniqueId = ?`,
-        [
-          journeyStatusMap.acceptedByShipper,
-          currentDate(),
-          bid.shipperRequestBatchId,
-        ],
+        [journeyStatusMap.acceptedByShipper, currentDate(), bid.shipperRequestBatchId],
       );
 
       logger.info(
-        "company_target bid accepted (PR rows deferred to assignment)",
+        `company_target bid accepted — ${totalSlots} ShipperRequest rows created`,
         {
           batchUniqueId: bid.shipperRequestBatchId,
           bidUniqueId: companyBidRequestUniqueId,
-          totalVehicles: bid.numberOfVehiclesOffered,
+          totalVehicles: totalSlots,
         },
       );
     } else {

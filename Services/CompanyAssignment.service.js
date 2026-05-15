@@ -427,89 +427,44 @@ exports.createAssignment = async (data) => {
       bid.shipperRequestBatchId,
     );
   } else {
-    // ── JUST-IN-TIME PATH: Create 1 PR from batch metadata ────────────────
-    // This is the company_target deferred flow — no PR rows exist upfront.
-    // The dispatcher assigns a driver, and we create the PR row on the spot.
-
-    // 1. Capacity guard: ensure batch has free slots
-    const [[slotCount]] = await db().query(
-      `SELECT COUNT(*) AS assigned FROM CompanyBidVehicleAssignment
-       WHERE companyBidRequestUniqueId = ?
-         AND assignmentDeletedAt IS NULL
-         AND assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')`,
-      [companyBidRequestUniqueId],
+    // ── COMPANY-TARGET PATH: Find a free, unassigned ShipperRequest slot ──
+    // All rows were bulk-created when the shipper accepted the bid.
+    // The dispatcher just needs to claim one that has no active assignment yet.
+    const [[freeSlot]] = await db().query(
+      `SELECT sr.shipperRequestUniqueId
+       FROM ShipperRequest sr
+       WHERE sr.shipperRequestBatchId = ?
+         AND sr.shipperRequestDeletedAt IS NULL
+         AND sr.journeyStatusId = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM CompanyBidVehicleAssignment a
+           WHERE a.shipperRequestUniqueId = sr.shipperRequestUniqueId
+             AND a.assignmentDeletedAt IS NULL
+             AND a.assignmentStatus NOT IN (
+               'rejected_by_driver','cancelled_by_company',
+               'cancelled_by_shipper','cancelled_by_driver'
+             )
+         )
+       LIMIT 1`,
+      [bid.shipperRequestBatchId, journeyStatusMap.acceptedByShipper],
     );
 
-    if (slotCount.assigned >= bid.numberOfVehiclesOffered) {
+    if (!freeSlot) {
       throw new AppError(
-        `All ${bid.numberOfVehiclesOffered} vehicle slots have already been assigned for this bid.`,
+        `All ${bid.numberOfVehiclesOffered} vehicle slots for this batch have already been assigned.`,
         400,
       );
     }
 
-    // 2. Fetch batch metadata for the new PR
-    const [[batch]] = await db().query(
-      `SELECT * FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
-      [bid.shipperRequestBatchId],
-    );
-    if (!batch) {
-      throw new AppError(
-        "Batch not found. The shipper may have cancelled.",
-        409,
-      );
-    }
-
-    // 3. Create 1 PR row from batch metadata
-    const formatDateToReadable = require("../Utils/FormatDateToReadable");
-    shipperRequestUniqueId = uuidv4();
-
-    await db().query(
-      `INSERT INTO ShipperRequest
-        (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
-         vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
-         originLatitude, originLongitude, originPlace,
-         destinationLatitude, destinationLongitude, destinationPlace,
-         shippableItemName, shippableItemQtyInQuintal,
-         shippingDate, deliveryDate, shippingCost,
-         shipperRequestCreatedBy, shipperRequestCreatedByRoleId,
-         shipperRequestCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        shipperRequestUniqueId,
-        batch.shipperUserUniqueId,
-        batch.batchUniqueId,
-        batch.vehicleTypeUniqueId,
-        journeyStatusMap.acceptedByShipper, // born accepted
-        batch.requestMode,
-        batch.targetCompanyUniqueId,
-        batch.originLatitude,
-        batch.originLongitude,
-        batch.originPlace,
-        batch.destinationLatitude,
-        batch.destinationLongitude,
-        batch.destinationPlace,
-        batch.shippableItemName,
-        batch.shippableItemQtyInQuintal,
-        batch.shippingDate ? formatDateToReadable(batch.shippingDate) : null,
-        batch.deliveryDate ? formatDateToReadable(batch.deliveryDate) : null,
-        batch.shippingCost,
-        createdByUserUniqueId, // dispatcher who assigned
-        usersRoles.companyAdminRoleId, // company admin role
-        currentDate(),
-      ],
-    );
-
-    // Fetch the freshly created PR
+    shipperRequestUniqueId = freeSlot.shipperRequestUniqueId;
     pr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
 
-    logger.info("Just-in-time PR created for assignment", {
+    logger.info("Free ShipperRequest slot claimed for assignment", {
       shipperRequestUniqueId,
       batchUniqueId: bid.shipperRequestBatchId,
-      slotNumber: slotCount.assigned + 1,
-      totalSlots: bid.numberOfVehiclesOffered,
     });
   }
 
