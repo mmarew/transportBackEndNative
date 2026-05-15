@@ -17,7 +17,7 @@ exports.createShipperRequest = Joi.object({
   shippableItemQtyInQuintal: Joi.number().required(),
   shippableItemName: Joi.string().required(),
   shipperPhoneNumber: Joi.string().optional(), // required only when admin creates on behalf
-  requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
+  // requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
 
   // Bidding mode:
   //   'individual_target' — open bid visible to all individual drivers (max 9 vehicles)
