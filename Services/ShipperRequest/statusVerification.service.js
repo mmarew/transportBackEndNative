@@ -77,9 +77,6 @@ const seenByShipper = async (body) => {
       rating,
     } = body;
 
-    // TODO: Import createRating once available
-    const { createRating } = require("../Ratings.service");
-
     // Verify that the journeyDecisionUniqueId exists to prevent foreign key errors
     const journeyDecision = await getData({
       tableName: "JourneyDecisions",
@@ -90,19 +87,32 @@ const seenByShipper = async (body) => {
       throw new AppError("Journey decision not found", 404);
     }
 
-    await Promise.all([
-      updateData({
-        tableName: "ShipperRequest",
-        conditions: { shipperRequestUniqueId },
-        updateValues: { isCompletionSeen: true },
-      }),
-      createRating({
+    // Mark the request as seen — always do this, even if rating already exists
+    await updateData({
+      tableName: "ShipperRequest",
+      conditions: { shipperRequestUniqueId },
+      updateValues: { isCompletionSeen: true },
+    });
+
+    // Create rating only if one does not already exist for this journey
+    // (idempotent — handles app retries without throwing)
+    const { createRating, getAllRatings } = require("../Ratings.service");
+    const existingRating = await getAllRatings({ journeyDecisionUniqueId, limit: 1 });
+    const alreadyRated = existingRating?.data?.ratings?.length > 0;
+
+    if (!alreadyRated) {
+      await createRating({
         ratedBy: userUniqueId,
-        journeyDecisionUniqueId: journeyDecisionUniqueId,
+        journeyDecisionUniqueId,
         rating,
         comment: "",
-      }),
-    ]);
+      });
+    } else {
+      logger.debug("Rating already exists — skipping creation (idempotent retry)", {
+        journeyDecisionUniqueId,
+        ratedBy: userUniqueId,
+      });
+    }
 
     return { message: "success", data: "Data seen by shipper" };
   } catch (error) {
