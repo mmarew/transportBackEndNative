@@ -388,24 +388,11 @@ const checkActiveShipperRequest = async ({
 };
 
 const getActiveRequestsCount = async (userUniqueId, connection = null) => {
-  const query = `
+  // ── Part 1: Individual-level counts from ShipperRequest ────────────────
+  const prQuery = `
     SELECT 
       COUNT(DISTINCT pr.shipperRequestId) as totalCount,
 
-      -- Total VEHICLE SLOTS waiting in company batches (e.g. 1 batch of 11 trucks = 11)
-      -- Use this alongside companyBatchWaitingCount to understand: N batches covering M vehicles.
-      COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId IN (?, ?)
-          AND pr.requestMode = 'company_target'
-          AND NOT EXISTS (
-            SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
-              AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
-          )
-        THEN pr.shipperRequestId
-      END) as companyBatchWaitingVehicles,
-
-      -- Total individual waiting/requested requests (each row = 1 vehicle/trip)
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId IN (?, ?)
           AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
@@ -419,66 +406,16 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.shipperRequestId END) as notSeenCompletedCount,
       COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount,
 
-      -- Individual-mode requests in waiting/requested status (excludes company_target batches).
-      -- Uses != 'company_target' to correctly match NULL, 'individual', 'individual_target'
-      -- (stored value varies by when the request was created).
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId IN (?, ?)
           AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
         THEN pr.shipperRequestId
-      END) as individualWaitingCount,
-
-      -- Distinct company batches in waiting/requested status with no accepted offer yet
-      COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId IN (?, ?)
-          AND pr.requestMode = 'company_target'
-          AND NOT EXISTS (
-            SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
-              AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
-          )
-        THEN pr.shipperRequestBatchId
-      END) as companyBatchWaitingCount,
-
-      -- Distinct company batches with at least one SUBMITTED offer (in auction — shipper must review)
-      COUNT(DISTINCT CASE
-        WHEN pr.requestMode = 'company_target'
-          AND EXISTS (
-            SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
-              AND cbr.bidStatus = 'submitted'
-          )
-        THEN pr.shipperRequestBatchId
-      END) as companyAuctionCount,
-
-      -- Distinct company batches the shipper has already accepted and are now
-      -- in the "Ongoing" state (company is assigning/dispatching drivers).
-      -- These feed the badge on the Active top-level tab.
-      COUNT(DISTINCT CASE
-        WHEN pr.requestMode = 'company_target'
-          AND EXISTS (
-            SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
-              AND cbr.bidStatus = 'accepted_by_shipper'
-          )
-        THEN pr.shipperRequestBatchId
-      END) as companyOngoingCount,
-
-      -- Individual vehicle SLOTS inside accepted batches (explains totalCount).
-      -- companyOngoingCount = N batches; companyOngoingVehicles = total trucks across those batches.
-      COUNT(DISTINCT CASE
-        WHEN pr.requestMode = 'company_target'
-          AND EXISTS (
-            SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = pr.shipperRequestBatchId
-              AND cbr.bidStatus = 'accepted_by_shipper'
-          )
-        THEN pr.shipperRequestId
-      END) as companyOngoingVehicles
+      END) as individualWaitingCount
 
     FROM ShipperRequest pr
     LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
     WHERE pr.userUniqueId = ?
+    AND pr.shipperRequestDeletedAt IS NULL
     AND (
       pr.journeyStatusId IN (?,?,?,?,?)
       OR (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?)
@@ -486,32 +423,19 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     )
   `;
 
-  const values = [
-    // companyBatchWaitingVehicles (IN ?, ?)
+  const prValues = [
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
-    // individualWaitingVehicles (IN ?, ?)
-    journeyStatusMap.waiting,
-    journeyStatusMap.requested,
-    // requestedCount, acceptedByDriverCount, acceptedByShipperCount, journeyStartedCount
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
     journeyStatusMap.acceptedByShipper,
     journeyStatusMap.journeyStarted,
-    // notSeenCompletedCount
     journeyStatusMap.journeyCompleted,
     false,
-    // notSeenCancelledByDriverCount
     journeyStatusMap.cancelledByDriver,
     "not seen by shipper yet",
-    // individualWaitingCount (IN ?, ?)
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
-    // companyBatchWaitingCount (IN ?, ?)
-    journeyStatusMap.waiting,
-    journeyStatusMap.requested,
-    // companyAuctionCount — no extra values (uses EXISTS subquery only)
-    // WHERE clause
     userUniqueId,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
@@ -524,10 +448,104 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     "not seen by shipper yet",
   ];
 
+  // ── Part 2: Company batch counts from ShipperRequestBatch ─────────────
+  // For company_target orders, ShipperRequest rows don't exist until a bid
+  // is accepted.  Waiting/auction counts must come from the batch table.
+  const batchQuery = `
+    SELECT
+      COUNT(DISTINCT CASE
+        WHEN b.journeyStatusId IN (?, ?)
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+              AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
+          )
+        THEN b.batchUniqueId
+      END) as companyBatchWaitingCount,
+
+      COALESCE(SUM(CASE
+        WHEN b.journeyStatusId IN (?, ?)
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+              AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
+          )
+        THEN b.totalVehicles
+        ELSE 0
+      END), 0) as companyBatchWaitingVehicles,
+
+      COUNT(DISTINCT CASE
+        WHEN EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+              AND cbr.bidStatus = 'submitted'
+          )
+        THEN b.batchUniqueId
+      END) as companyAuctionCount,
+
+      COUNT(DISTINCT CASE
+        WHEN EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+              AND cbr.bidStatus = 'accepted_by_shipper'
+          )
+        THEN b.batchUniqueId
+      END) as companyOngoingCount,
+
+      COALESCE(SUM(CASE
+        WHEN EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+              AND cbr.bidStatus = 'accepted_by_shipper'
+          )
+        THEN b.totalVehicles
+        ELSE 0
+      END), 0) as companyOngoingVehicles
+
+    FROM ShipperRequestBatch b
+    WHERE b.shipperUserUniqueId = ?
+      AND b.batchDeletedAt IS NULL
+      AND b.requestMode = 'company_target'
+  `;
+
+  const batchValues = [
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    journeyStatusMap.waiting,
+    journeyStatusMap.requested,
+    userUniqueId,
+  ];
+
   const queryExecutor = transactionStorage.getStore() || connection || pool;
-  const [result] = await queryExecutor.query(query, values);
-  return result[0];
+  const [prResult, batchResult] = await Promise.all([
+    queryExecutor.query(prQuery, prValues),
+    queryExecutor.query(batchQuery, batchValues),
+  ]);
+
+  const pr = prResult[0][0];
+  const batch = batchResult[0][0];
+
+  const prTotal = Number(pr.totalCount) || 0;
+  const batchWaitingVehicles = Number(batch.companyBatchWaitingVehicles) || 0;
+
+  return {
+    totalCount: prTotal + batchWaitingVehicles,
+    companyBatchWaitingVehicles: batchWaitingVehicles,
+    individualWaitingVehicles: Number(pr.individualWaitingVehicles) || 0,
+    requestedCount: Number(pr.requestedCount) || 0,
+    acceptedByDriverCount: Number(pr.acceptedByDriverCount) || 0,
+    acceptedByShipperCount: Number(pr.acceptedByShipperCount) || 0,
+    journeyStartedCount: Number(pr.journeyStartedCount) || 0,
+    notSeenCompletedCount: Number(pr.notSeenCompletedCount) || 0,
+    notSeenCancelledByDriverCount: Number(pr.notSeenCancelledByDriverCount) || 0,
+    individualWaitingCount: Number(pr.individualWaitingCount) || 0,
+    companyBatchWaitingCount: Number(batch.companyBatchWaitingCount) || 0,
+    companyAuctionCount: Number(batch.companyAuctionCount) || 0,
+    companyOngoingCount: Number(batch.companyOngoingCount) || 0,
+    companyOngoingVehicles: Number(batch.companyOngoingVehicles) || 0,
+  };
 };
+
 
 const checkActiveDriverRequest = async (userUniqueId) => {
   try {
