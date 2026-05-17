@@ -353,12 +353,12 @@ const upsertDriverRequest = async ({
         });
 
         for (const decision of activeDecisions) {
-          // 1. Cancel the individual JourneyDecision (status → 12 = cancelledBySystem)
+          // 1. Mark the individual JourneyDecision as replaced by company assignment (status 16)
           await updateData({
             tableName: "JourneyDecisions",
             conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
             updateValues: {
-              journeyStatusId: journeyStatusMap.cancelledBySystem,
+              journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
               journeyDecisionUpdatedAt: currentDate(),
             },
           });
@@ -427,7 +427,7 @@ const upsertDriverRequest = async ({
           tableName: "DriverRequest",
           conditions: { driverRequestUniqueId: existingUniqueId },
           updateValues: {
-            journeyStatusId: journeyStatusMap.cancelledBySystem,
+          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
             driverRequestDeletedAt: currentDate(),
             driverRequestUpdatedAt: currentDate(),
           },

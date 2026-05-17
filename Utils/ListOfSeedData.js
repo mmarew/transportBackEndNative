@@ -663,6 +663,12 @@ const journeyStatus = [
     journeyStatusDescription:
       "Driver rejected the incoming shipper request before accepting it. This occurs at the initial request stage (status 2 - requested), meaning the driver never accepted the request, did not provide a bidding price, and no JourneyDecision record was created. The driver declined participation in the bid process from the start.",
   },
+  {
+    journeyStatusId: 16,
+    journeyStatusName: "replacedByCompanyAssignment",
+    journeyStatusDescription:
+      "The individual driver-shipper connection was automatically replaced because a transport company assigned this driver to a company-managed freight job. The individual ShipperRequest is returned to the waiting pool and the driver's new JourneyDecision is linked to the company assignment. This is a system-level status with clear intent — company assignments take priority over individual matches.",
+  },
 ];
 const journeyStatusMap = {
   waiting: 1,
@@ -690,6 +696,8 @@ const journeyStatusMap = {
   notSelectedInBid: 14,
   // driver rejected incoming call before accepting it
   rejectedByDriver: 15,
+  // individual link replaced because company assigned this driver to a company freight job
+  replacedByCompanyAssignment: 16,
 };
 // these are active because they can be used to check if it is active or not
 const activeJourneyStatuses = [

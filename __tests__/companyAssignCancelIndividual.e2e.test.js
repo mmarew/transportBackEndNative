@@ -7,8 +7,8 @@
  *   individual shipper request, the system must create clean separation:
  *
  *   Expected records after successful reassignment:
- *     JourneyDecisions:  2 rows — old one cancelled (status 12), new one for company (status 2)
- *     DriverRequest:     2 rows — old one soft-deleted (cancelledBySystem), new one for company
+ *     JourneyDecisions:  2 rows — old one replaced (status 16), new one for company (status 2)
+ *     DriverRequest:     2 rows — old one soft-deleted (replacedByCompanyAssignment), new one for company
  *     ShipperRequest:    existing — individual SR updated back to waiting (status 1)
  *     CanceledJourneys:  1 row  — audit trail for the system cancellation
  *
@@ -397,10 +397,10 @@ describe("Company Auto-Assign cancels individual connection (Option B)", () => {
         // Row 1: old individual DR — cancelled + soft-deleted
         const oldDr = rows.find(r => r.driverRequestUniqueId === individualDriverRequestUniqueId);
         expect(oldDr).toBeTruthy();
-        expect(oldDr.journeyStatusId).toBe(12); // cancelled_by_system
+        expect(oldDr.journeyStatusId).toBe(16); // replacedByCompanyAssignment
         expect(oldDr.driverRequestDeletedAt).toBeTruthy(); // soft-deleted
         console.log("✅ Old DR:", oldDr.driverRequestUniqueId,
-          "→ status:", oldDr.journeyStatusId,
+          "→ status:", oldDr.journeyStatusId, "(replacedByCompanyAssignment)",
           "| deletedAt:", oldDr.driverRequestDeletedAt);
 
         // Row 2: new company DR — active
@@ -457,10 +457,10 @@ describe("Company Auto-Assign cancels individual connection (Option B)", () => {
           j => j.journeyDecisionUniqueId === individualJourneyDecisionUniqueId,
         );
         expect(cancelledJd).toBeTruthy();
-        expect(cancelledJd.journeyStatusId).toBe(12);  // cancelled_by_system
+        expect(cancelledJd.journeyStatusId).toBe(16);  // replacedByCompanyAssignment
         expect(cancelledJd.requestMode).toBe("individual_target");
         console.log("✅ Old JD:", cancelledJd.journeyDecisionUniqueId,
-          "→ status:", cancelledJd.journeyStatusId,
+          "→ status:", cancelledJd.journeyStatusId, "(replacedByCompanyAssignment)",
           "| mode:", cancelledJd.requestMode);
 
         // Row 2: new JD — active, linked to company SR
@@ -468,7 +468,7 @@ describe("Company Auto-Assign cancels individual connection (Option B)", () => {
           j => j.journeyDecisionUniqueId !== individualJourneyDecisionUniqueId,
         );
         expect(companyJd).toBeTruthy();
-        expect(companyJd.journeyStatusId).not.toBe(12);
+        expect(companyJd.journeyStatusId).not.toBe(16);
         expect(companyJd.requestMode).toBe("company_target");
         // Must be linked to the NEW DriverRequest (not the old one)
         expect(companyJd.driverRequestId).not.toBe(cancelledJd.driverRequestId);
