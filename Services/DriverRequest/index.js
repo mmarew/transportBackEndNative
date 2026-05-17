@@ -36,6 +36,7 @@ module.exports = {
   acceptShipperRequest: requestActions.acceptShipperRequest,
   noAnswerFromDriver: requestActions.noAnswerFromDriver,
   cancelDriverRequest: requestActions.cancelDriverRequest,
+  releaseConflictingOffers: requestActions.releaseConflictingOffers,
 
   // Journey Management
   startJourney: journeyManagement.startJourney,

@@ -959,6 +959,16 @@ exports.updateAssignmentStatus = async (
       }),
     );
 
+    // ── Phase 1: Auto-release conflicting offers ──────────────────────────
+    // Driver confirmed a company assignment → release any pending individual
+    // offers so the driver isn't double-booked.
+    const { releaseConflictingOffers } = require("./DriverRequest");
+    await releaseConflictingOffers(
+      assignment.driverUserUniqueId,
+      "company",
+      assignment.driverRequestUniqueId,
+    );
+
     setParts.push("journeyDecisionUniqueId = ?");
     vals.push(journeyDecisionUniqueId);
   }
