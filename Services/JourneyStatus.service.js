@@ -497,7 +497,7 @@ const updateJourneyStatus = async (body) => {
         tableName: "Journey",
         conditions: journeyConditions,
         updateValues,
-        connection: null, // updateData will automatically use context if available
+        connection: transactionStorage.getStore() ?? null,
       }).then((result) => {
         logger.info("Journey table update result", {
           journeyUniqueId,
@@ -547,7 +547,7 @@ const updateJourneyStatus = async (body) => {
           tableName: "ShipperRequest",
           conditions: shipperConditions,
           updateValues: { journeyStatusId },
-          connection: null, // Pass connection for transaction support
+          connection: transactionStorage.getStore() ?? null,
         }),
       );
     }
@@ -583,7 +583,7 @@ const updateJourneyStatus = async (body) => {
           tableName: "JourneyDecisions",
           conditions: journeyDecisionConditions,
           updateValues,
-          connection: null, // Pass connection for transaction support
+          connection: transactionStorage.getStore() ?? null,
         }).then((result) => {}),
       );
     }
@@ -608,34 +608,36 @@ const updateJourneyStatus = async (body) => {
           tableName: "DriverRequest",
           conditions: driverConditions,
           updateValues: driverUpdateValues,
-          connection: null, // Pass connection for transaction support
+          connection: transactionStorage.getStore() ?? null,
         }),
       );
     }
 
     // ── NEW: Propagate Status to Company Bidding Tables (Fleet Capacity Release) ──
     if (shipperRequestUniqueId || driverRequestUniqueId) {
-      const executor = transactionStorage.getStore() || pool;
+      // Always use the ambient transaction connection — never grab a raw pool
+      // connection here, as that would deadlock against the outer transaction.
+      const txConn = transactionStorage.getStore() ?? null;
+      const execRaw = (sql, params) => txConn
+        ? txConn.query(sql, params)
+        : pool.query(sql, params);
 
       // 1. Update CompanyBidVehicleAssignment status if journey completed
       if (journeyStatusId === journeyStatusMap.journeyCompleted) {
         updatePromises.push(
-          executor
-            .query(
-              "UPDATE CompanyBidVehicleAssignment SET assignmentStatus = 'completed', assignmentUpdatedAt = ? WHERE shipperRequestUniqueId = ? OR driverRequestUniqueId = ?",
-              [currentDate(), shipperRequestUniqueId, driverRequestUniqueId],
-            )
-            .catch((e) =>
-              logger.error(
-                "Propagate Status to CompanyBidVehicleAssignment failed",
-                { error: e.message },
-              ),
+          execRaw(
+            "UPDATE CompanyBidVehicleAssignment SET assignmentStatus = 'completed', assignmentUpdatedAt = ? WHERE shipperRequestUniqueId = ? OR driverRequestUniqueId = ?",
+            [currentDate(), shipperRequestUniqueId, driverRequestUniqueId],
+          ).catch((e) =>
+            logger.error(
+              "Propagate Status to CompanyBidVehicleAssignment failed",
+              { error: e.message },
             ),
+          ),
         );
       }
 
       // 2. Propagate journeyStatusId to CompanyBidRequest
-      // This is what allows validateFleetCapacity to release the reserved trucks.
       const bidPropSql = `
         UPDATE CompanyBidRequest 
         SET journeyStatusId = ?, companyBidRequestUpdatedAt = ? 
@@ -645,19 +647,17 @@ const updateJourneyStatus = async (body) => {
         )
       `;
       updatePromises.push(
-        executor
-          .query(bidPropSql, [
-            journeyStatusId,
-            currentDate(),
-            shipperRequestUniqueId,
-            driverRequestUniqueId,
-          ])
-          .catch((e) =>
-            logger.error(
-              "Propagate journeyStatusId to CompanyBidRequest failed",
-              { error: e.message },
-            ),
+        execRaw(bidPropSql, [
+          journeyStatusId,
+          currentDate(),
+          shipperRequestUniqueId,
+          driverRequestUniqueId,
+        ]).catch((e) =>
+          logger.error(
+            "Propagate journeyStatusId to CompanyBidRequest failed",
+            { error: e.message },
           ),
+        ),
       );
     }
 
