@@ -343,6 +343,7 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     -- Polymorphic owner — mirrors AttachedDocuments.ownerType / ownerUniqueId.
     -- Stored here so history rows are self-contained: no join to parent needed
     -- to know whether this snapshot belonged to a user, company, or vehicle.
+
     ownerType    ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
     ownerUniqueId VARCHAR(36) NOT NULL,
 

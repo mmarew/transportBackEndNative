@@ -295,7 +295,7 @@ const upsertDriverRequest = async ({
   // Fetch up to 2 rows — no status filter so offline drivers (0 rows) fall through
   // to the INSERT path, and drivers with exactly 1 row are updated in-place.
   const [existingRows] = await db().query(
-    `SELECT driverRequestUniqueId
+    `SELECT driverRequestUniqueId, journeyStatusId
      FROM DriverRequest
      WHERE userUniqueId = ?
        AND driverRequestDeletedAt IS NULL
@@ -304,8 +304,79 @@ const upsertDriverRequest = async ({
   );
 
   if (existingRows && existingRows.length === 1) {
-    // Exactly one row — update it in-place regardless of its current status.
     const existingUniqueId = existingRows[0].driverRequestUniqueId;
+    const existingStatus   = existingRows[0].journeyStatusId;
+
+    // ── Option B: Cancel individual connection before company assignment ──────
+    // If the driver is currently active in an individual journey (status 1–3),
+    // cancel their existing JourneyDecision(s) with 'cancelled_by_system' and
+    // return the ShipperRequest to 'waiting' so another driver can pick it up.
+    // Status 4+ means the shipper already accepted — those are left untouched
+    // (company should not steal a driver mid-confirmed journey).
+    const activeIndividualStatuses = [
+      journeyStatusMap.waiting,    // 1
+      journeyStatusMap.requested,  // 2
+      journeyStatusMap.acceptedByDriver, // 3
+    ];
+
+    if (activeIndividualStatuses.includes(existingStatus)) {
+      // Find all active JourneyDecisions for this DriverRequest
+      const [activeDecisions] = await db().query(
+        `SELECT jd.journeyDecisionUniqueId, jd.shipperRequestId,
+                sr.shipperRequestUniqueId
+         FROM JourneyDecisions jd
+         INNER JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
+         LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
+         WHERE dr.driverRequestUniqueId = ?
+           AND jd.journeyStatusId IN (?, ?, ?)
+           AND jd.journeyDecisionDeletedAt IS NULL`,
+        [
+          existingUniqueId,
+          journeyStatusMap.waiting,
+          journeyStatusMap.requested,
+          journeyStatusMap.acceptedByDriver,
+        ],
+      );
+
+      if (activeDecisions.length > 0) {
+        logger.info("Company assignment: cancelling individual JourneyDecisions for driver", {
+          driverUserUniqueId,
+          driverRequestUniqueId: existingUniqueId,
+          count: activeDecisions.length,
+        });
+
+        for (const decision of activeDecisions) {
+          // Cancel the individual JourneyDecision
+          await updateData({
+            tableName: "JourneyDecisions",
+            conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
+            updateValues: {
+              journeyStatusId: journeyStatusMap.cancelledBySystem,
+              journeyDecisionUpdatedAt: currentDate(),
+            },
+          });
+
+          // Return the individual ShipperRequest back to waiting
+          // so another driver can pick it up
+          if (decision.shipperRequestUniqueId) {
+            await updateData({
+              tableName: "ShipperRequest",
+              conditions: { shipperRequestUniqueId: decision.shipperRequestUniqueId },
+              updateValues: {
+                journeyStatusId: journeyStatusMap.waiting,
+                shipperRequestUpdatedAt: currentDate(),
+              },
+            });
+
+            logger.info("Individual ShipperRequest returned to waiting", {
+              shipperRequestUniqueId: decision.shipperRequestUniqueId,
+            });
+          }
+        }
+      }
+    }
+
+    // Overwrite the DriverRequest in-place for the company assignment
     await updateData({
       tableName: "DriverRequest",
       conditions: { driverRequestUniqueId: existingUniqueId },
