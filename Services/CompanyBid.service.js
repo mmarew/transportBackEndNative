@@ -326,7 +326,7 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
   const { page, limit, offset } = paginate(filters);
 
   // ── 1. Build the batch WHERE clause ──────────────────────────────────────
-  const batchClauses = ["b.batchDeletedAt IS NULL"];
+  const batchClauses = ["b.batchDeletedAt IS NULL", "b.requestMode = 'company_target'"];
   const batchParams = [];
 
   if (shipperUserUniqueId) {
