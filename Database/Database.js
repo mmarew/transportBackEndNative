@@ -369,8 +369,6 @@ CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 )  ;
 
-
- 
 -- Create the ShipperRequest table
 
 CREATE TABLE IF NOT EXISTS ShipperRequest (
