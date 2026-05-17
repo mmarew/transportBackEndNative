@@ -55,9 +55,11 @@ const acceptShipperRequest = async (req, res, next) => {
     const { userUniqueId } = req?.user;
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.acceptedByDriver;
-    const result = await executeInTransaction(async () => {
-      return await services.acceptShipperRequest(req.body);
-    });
+    // NOTE: No outer executeInTransaction here — acceptShipperRequest calls
+    // updateJourneyStatus internally which opens its own transaction when
+    // updating multiple tables. Wrapping again would create a nested
+    // transaction (second connection) that deadlocks against the inner one.
+    const result = await services.acceptShipperRequest(req.body);
     ServerResponder(res, result, 200);
   } catch (error) {
     next(error);
@@ -179,10 +181,8 @@ const startJourney = async (req, res, next) => {
     req.body.journeyStatusId = journeyStatusMap.journeyStarted;
     req.body.previousStatusId = journeyStatusMap.acceptedByShipper;
     req.body.userUniqueId = userUniqueId;
-
-    const result = await executeInTransaction(async () => {
-      return await services.startJourney(req.body);
-    });
+    // Service calls updateJourneyStatus internally (self-transacting)
+    const result = await services.startJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -194,9 +194,8 @@ const noAnswerFromDriver = async (req, res, next) => {
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.noAnswerFromDriver;
     req.body.previousStatusId = journeyStatusMap.requested;
-    const result = await executeInTransaction(async () => {
-      return await services.noAnswerFromDriver(req.body);
-    });
+    // Service has its own executeInTransaction internally
+    const result = await services.noAnswerFromDriver(req.body);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -209,11 +208,8 @@ const completeJourney = async (req, res, next) => {
     req.body.roleId = roleId;
     req.body.journeyStatusId = journeyStatusMap.journeyCompleted;
     req.body.previousStatusId = journeyStatusMap.journeyStarted;
-
-    const result = await executeInTransaction(async () => {
-      return await services.completeJourney(req.body);
-    });
-
+    // Service calls updateJourneyStatus internally (self-transacting)
+    const result = await services.completeJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
