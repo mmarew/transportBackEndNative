@@ -389,33 +389,23 @@ const checkActiveShipperRequest = async ({
 
 const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   // ── Part 1: Individual-level counts from ShipperRequest ────────────────
+  // Only count INDIVIDUAL (non-company_target) requests here.
+  // Company counts come entirely from the ShipperRequestBatch query (Part 2).
   const prQuery = `
     SELECT 
       COUNT(DISTINCT pr.shipperRequestId) as totalCount,
-
-      COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId IN (?, ?)
-          AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
-        THEN pr.shipperRequestId
-      END) as individualWaitingVehicles,
-
+      COUNT(DISTINCT CASE WHEN pr.journeyStatusId IN (?, ?) THEN pr.shipperRequestId END) as waitingCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as requestedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByDriverCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByShipperCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as journeyStartedCount,
       COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.shipperRequestId END) as notSeenCompletedCount,
-      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount,
-
-      COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId IN (?, ?)
-          AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
-        THEN pr.shipperRequestId
-      END) as individualWaitingCount
-
+      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount
     FROM ShipperRequest pr
     LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
     WHERE pr.userUniqueId = ?
     AND pr.shipperRequestDeletedAt IS NULL
+    AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
     AND (
       pr.journeyStatusId IN (?,?,?,?,?)
       OR (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?)
@@ -424,18 +414,21 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   `;
 
   const prValues = [
+    // waitingCount
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
+    // requestedCount, acceptedByDriverCount, acceptedByShipperCount, journeyStartedCount
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
     journeyStatusMap.acceptedByShipper,
     journeyStatusMap.journeyStarted,
+    // notSeenCompletedCount
     journeyStatusMap.journeyCompleted,
     false,
+    // notSeenCancelledByDriverCount
     journeyStatusMap.cancelledByDriver,
     "not seen by shipper yet",
-    journeyStatusMap.waiting,
-    journeyStatusMap.requested,
+    // WHERE clause
     userUniqueId,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
@@ -527,15 +520,20 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
 
   const n = (v) => Number(v) || 0;
 
-  const waitingIndividual = n(pr.individualWaitingVehicles);
+  const individualTotal = n(pr.totalCount);
+  const waitingIndividual = n(pr.waitingCount);
   const companyWaitingBatches = n(batch.companyBatchWaitingCount);
   const companyWaitingVehicles = n(batch.companyBatchWaitingVehicles);
   const companyAuctionBatches = n(batch.companyAuctionCount);
   const companyOngoingBatches = n(batch.companyOngoingCount);
   const companyOngoingVehicles = n(batch.companyOngoingVehicles);
 
+  // totalCount = individual active requests + company waiting vehicles + company ongoing vehicles
+  // No double-counting: PR query excludes company_target, batch query handles all company counts.
+  const totalCount = individualTotal + companyWaitingVehicles + companyOngoingVehicles;
+
   return {
-    totalCount: n(pr.totalCount) + companyWaitingVehicles,
+    totalCount,
     waiting: {
       individual: waitingIndividual,
       companyBatches: companyWaitingBatches,
