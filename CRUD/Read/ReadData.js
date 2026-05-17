@@ -525,26 +525,33 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   const pr = prResult[0][0];
   const batch = batchResult[0][0];
 
-  const prTotal = Number(pr.totalCount) || 0;
-  const batchWaitingVehicles = Number(batch.companyBatchWaitingVehicles) || 0;
+  const n = (v) => Number(v) || 0;
+
+  const waitingIndividual = n(pr.individualWaitingVehicles);
+  const companyWaitingBatches = n(batch.companyBatchWaitingCount);
+  const companyWaitingVehicles = n(batch.companyBatchWaitingVehicles);
+  const companyAuctionBatches = n(batch.companyAuctionCount);
+  const companyOngoingBatches = n(batch.companyOngoingCount);
+  const companyOngoingVehicles = n(batch.companyOngoingVehicles);
 
   return {
-    totalCount: prTotal + batchWaitingVehicles,
-    companyBatchWaitingVehicles: batchWaitingVehicles,
-    individualWaitingVehicles: Number(pr.individualWaitingVehicles) || 0,
-    requestedCount: Number(pr.requestedCount) || 0,
-    acceptedByDriverCount: Number(pr.acceptedByDriverCount) || 0,
-    acceptedByShipperCount: Number(pr.acceptedByShipperCount) || 0,
-    journeyStartedCount: Number(pr.journeyStartedCount) || 0,
-    notSeenCompletedCount: Number(pr.notSeenCompletedCount) || 0,
-    notSeenCancelledByDriverCount: Number(pr.notSeenCancelledByDriverCount) || 0,
-    individualWaitingCount: Number(pr.individualWaitingCount) || 0,
-    companyBatchWaitingCount: Number(batch.companyBatchWaitingCount) || 0,
-    companyAuctionCount: Number(batch.companyAuctionCount) || 0,
-    companyOngoingCount: Number(batch.companyOngoingCount) || 0,
-    companyOngoingVehicles: Number(batch.companyOngoingVehicles) || 0,
+    totalCount: n(pr.totalCount) + companyWaitingVehicles,
+    waiting: {
+      individual: waitingIndividual,
+      companyBatches: companyWaitingBatches,
+      companyVehicles: companyWaitingVehicles,
+    },
+    requested: { individual: n(pr.requestedCount) },
+    acceptedByDriver: { individual: n(pr.acceptedByDriverCount) },
+    acceptedByShipper: { individual: n(pr.acceptedByShipperCount) },
+    journeyStarted: { individual: n(pr.journeyStartedCount) },
+    notSeenCompleted: { individual: n(pr.notSeenCompletedCount) },
+    notSeenCancelledByDriver: { individual: n(pr.notSeenCancelledByDriverCount) },
+    companyAuction: { batches: companyAuctionBatches },
+    companyOngoing: { batches: companyOngoingBatches, vehicles: companyOngoingVehicles },
   };
 };
+
 
 
 const checkActiveDriverRequest = async (userUniqueId) => {
