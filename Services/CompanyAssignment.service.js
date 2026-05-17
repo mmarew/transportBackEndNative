@@ -52,7 +52,12 @@ const {
   paginate,
   paginatedQuery,
 } = require("./CompanyHelper.service");
-const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
+const {
+  journeyStatusMap,
+  usersRoles,
+  CANCELED_JOURNEY_CONTEXTS,
+} = require("../Utils/ListOfSeedData");
+const { createCanceledJourney } = require("./CanceledJourneys.service");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const { sendSocketIONotificationToDriver } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
@@ -110,7 +115,9 @@ async function createJourneyDecisionForAssignment(
     );
   }
 
-  // Idempotency: if a decision already exists for this driverRequestId, return it
+  // Idempotency: if a JD already exists for this driverRequestId, return it.
+  // Option B creates a NEW DriverRequest (old one is soft-deleted), so the new
+  // DR will never collide with the cancelled individual JD's old DR.
   const [[existing]] = await db().query(
     "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
     [drRow.driverRequestId],
@@ -346,7 +353,7 @@ const upsertDriverRequest = async ({
         });
 
         for (const decision of activeDecisions) {
-          // Cancel the individual JourneyDecision
+          // 1. Cancel the individual JourneyDecision (status → 12 = cancelledBySystem)
           await updateData({
             tableName: "JourneyDecisions",
             conditions: { journeyDecisionUniqueId: decision.journeyDecisionUniqueId },
@@ -356,8 +363,8 @@ const upsertDriverRequest = async ({
             },
           });
 
-          // Return the individual ShipperRequest back to waiting
-          // so another driver can pick it up
+          // 2. Return the individual ShipperRequest back to waiting
+          //    so another driver can pick it up
           if (decision.shipperRequestUniqueId) {
             await updateData({
               tableName: "ShipperRequest",
@@ -372,23 +379,83 @@ const upsertDriverRequest = async ({
               shipperRequestUniqueId: decision.shipperRequestUniqueId,
             });
           }
+
+          // 3. Register the cancellation in CanceledJourneys for audit/analytics.
+          //    This matches the pattern used by every other cancellation path.
+          //    contextType = JourneyDecisions (journey has not started yet)
+          //    contextId   = journeyDecisionId (numeric PK, same as requestActions.service.js)
+          try {
+            const [jdPkRow] = await db().query(
+              `SELECT journeyDecisionId, userUniqueId AS shipperUserUniqueId
+               FROM JourneyDecisions jd
+               INNER JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
+               WHERE jd.journeyDecisionUniqueId = ? LIMIT 1`,
+              [decision.journeyDecisionUniqueId],
+            );
+            const journeyDecisionId       = jdPkRow?.[0]?.journeyDecisionId;
+            const shipperUserUniqueId     = jdPkRow?.[0]?.shipperUserUniqueId;
+
+            if (journeyDecisionId) {
+              await createCanceledJourney({
+                contextId:                 journeyDecisionId,
+                contextType:               CANCELED_JOURNEY_CONTEXTS.JOURNEY_DECISIONS,
+                canceledBy:                driverUserUniqueId, // driver whose slot is being taken over
+                cancellationReasonsTypeId: 19,                 // "App-related technical issue" (admin/system reason)
+                roleId:                    usersRoles.driverRoleId,
+                driverUserUniqueId,
+                shipperUserUniqueId:       shipperUserUniqueId ?? null,
+              });
+              logger.info("CanceledJourney audit row written for system-cancelled individual JD", {
+                journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
+                journeyDecisionId,
+                driverUserUniqueId,
+              });
+            }
+          } catch (auditErr) {
+            // Non-critical — log but do NOT fail the assignment
+            logger.warn("Failed to write CanceledJourney audit row (non-blocking)", {
+              journeyDecisionUniqueId: decision.journeyDecisionUniqueId,
+              error: auditErr.message,
+            });
+          }
         }
       }
     }
 
-    // Overwrite the DriverRequest in-place for the company assignment
-    await updateData({
-      tableName: "DriverRequest",
-      conditions: { driverRequestUniqueId: existingUniqueId },
-      updateValues: {
-        journeyStatusId: newStatusId,
-        originLatitude: originLat ?? 0,
-        originLongitude: originLng ?? 0,
-        originPlace: originPlace ?? "Assigned by dispatcher",
-        driverRequestUpdatedAt: currentDate(),
-      },
-    });
-    return existingUniqueId;
+    // ── Option B ran: soft-delete the old DriverRequest so a NEW one is created ──
+    // This preserves the cancelled DR + JD pair as historical records.
+    // The INSERT path below will create a fresh DR for the company assignment.
+    if (activeDecisions.length > 0) {
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestUniqueId: existingUniqueId },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.cancelledBySystem,
+          driverRequestDeletedAt: currentDate(),
+          driverRequestUpdatedAt: currentDate(),
+        },
+      });
+      logger.info("Old DriverRequest soft-deleted after Option B cancellation", {
+        driverRequestUniqueId: existingUniqueId,
+        driverUserUniqueId,
+      });
+      // Fall through to the INSERT path below →
+    } else {
+      // No active decisions found — no Option B needed.
+      // Just update the existing DR in-place for the company assignment.
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestUniqueId: existingUniqueId },
+        updateValues: {
+          journeyStatusId: newStatusId,
+          originLatitude: originLat ?? 0,
+          originLongitude: originLng ?? 0,
+          originPlace: originPlace ?? "Assigned by dispatcher",
+          driverRequestUpdatedAt: currentDate(),
+        },
+      });
+      return existingUniqueId;
+    }
   }
 
   // 0 rows (offline driver) or 2+ rows (stale test data) → INSERT fresh row.
