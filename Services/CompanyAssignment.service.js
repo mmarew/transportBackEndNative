@@ -419,30 +419,43 @@ const upsertDriverRequest = async ({
             });
           }
         }
-      }
-    }
 
-    // ── Option B ran: soft-delete the old DriverRequest so a NEW one is created ──
-    // This preserves the cancelled DR + JD pair as historical records.
-    // The INSERT path below will create a fresh DR for the company assignment.
-    if (activeDecisions.length > 0) {
-      await updateData({
-        tableName: "DriverRequest",
-        conditions: { driverRequestUniqueId: existingUniqueId },
-        updateValues: {
-          journeyStatusId: journeyStatusMap.cancelledBySystem,
-          driverRequestDeletedAt: currentDate(),
-          driverRequestUpdatedAt: currentDate(),
-        },
-      });
-      logger.info("Old DriverRequest soft-deleted after Option B cancellation", {
-        driverRequestUniqueId: existingUniqueId,
-        driverUserUniqueId,
-      });
-      // Fall through to the INSERT path below →
+        // ── Soft-delete the old DriverRequest so a NEW one is created ──────────
+        // This preserves the cancelled DR + JD pair as historical records.
+        // The INSERT path below will create a fresh DR for the company assignment.
+        await updateData({
+          tableName: "DriverRequest",
+          conditions: { driverRequestUniqueId: existingUniqueId },
+          updateValues: {
+            journeyStatusId: journeyStatusMap.cancelledBySystem,
+            driverRequestDeletedAt: currentDate(),
+            driverRequestUpdatedAt: currentDate(),
+          },
+        });
+        logger.info("Old DriverRequest soft-deleted after Option B cancellation", {
+          driverRequestUniqueId: existingUniqueId,
+          driverUserUniqueId,
+        });
+        // Fall through to the INSERT path below →
+      } else {
+        // Driver is in active individual status range but has no active JDs —
+        // just update the existing DR in-place for the company assignment.
+        await updateData({
+          tableName: "DriverRequest",
+          conditions: { driverRequestUniqueId: existingUniqueId },
+          updateValues: {
+            journeyStatusId: newStatusId,
+            originLatitude: originLat ?? 0,
+            originLongitude: originLng ?? 0,
+            originPlace: originPlace ?? "Assigned by dispatcher",
+            driverRequestUpdatedAt: currentDate(),
+          },
+        });
+        return existingUniqueId;
+      }
     } else {
-      // No active decisions found — no Option B needed.
-      // Just update the existing DR in-place for the company assignment.
+      // Status 4+ (shipper accepted, journey started, etc.) or non-individual status
+      // — just update the existing DR in-place for the company assignment.
       await updateData({
         tableName: "DriverRequest",
         conditions: { driverRequestUniqueId: existingUniqueId },
