@@ -124,6 +124,24 @@ exports.submitBid = async (data) => {
     throw new AppError("This batch is targeted at a different company", 403);
   }
 
+  // 2b. Reject new bids if a bid has already been accepted for this batch.
+  //     Once the shipper selects a winner, the bidding window closes.
+  const [acceptedBids] = await db().query(
+    `SELECT companyBidRequestUniqueId, companyUniqueId
+     FROM CompanyBidRequest
+     WHERE shipperRequestBatchId = ?
+       AND bidStatus = 'accepted_by_shipper'
+       AND companyBidRequestDeletedAt IS NULL
+     LIMIT 1`,
+    [shipperRequestBatchId],
+  );
+  if (acceptedBids.length > 0) {
+    throw new AppError(
+      "Bidding is closed for this batch — a bid has already been accepted by the shipper",
+      409,
+    );
+  }
+
   // 3. Verify the batch has actual requests — only relevant for individual_target batches.
   //    company_target batches intentionally have zero ShipperRequest rows at bid time;
   //    rows are bulk-created when the shipper accepts the winning bid.
@@ -163,6 +181,7 @@ exports.submitBid = async (data) => {
       409,
     );
   }
+
 
   // Note: Capacity validation removed per user request.
   // Companies can now bid even if requested vehicles exceed their current free fleet,
