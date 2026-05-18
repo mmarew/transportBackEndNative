@@ -1,4 +1,4 @@
-const { Server: socketServer } = require("socket.io");
+const { Server: SocketServer } = require("socket.io");
 const Config = require("../Utils/Config");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
@@ -15,7 +15,7 @@ const logger = require("../Utils/logger");
 const { getShipperRequestByRequestUniqueId } = require("../CRUD/Read/ReadData");
 
 async function initSocket({ httpServer }) {
-  const io = new socketServer(httpServer, {
+  const io = new SocketServer(httpServer, {
     cors: {
       origin: "*", // Set to your domain in production
     },
