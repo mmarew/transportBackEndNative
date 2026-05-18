@@ -436,6 +436,77 @@ const upsertDriverRequest = async ({
           driverRequestUniqueId: existingUniqueId,
           driverUserUniqueId,
         });
+
+        // ── Notify the driver that their individual job was replaced ───────────
+        // Fire-and-forget — don't block the assignment transaction.
+        // The driver will also receive a company_driver_assignment notification
+        // once the new assignment is fully created.
+        try {
+          const [userRows] = await db().query(
+            "SELECT phoneNumber FROM Users WHERE userUniqueId = ? LIMIT 1",
+            [driverUserUniqueId],
+          );
+          const phoneNumber = userRows?.[0]?.phoneNumber;
+
+          // Collect cancelled ShipperRequest details for the driver's UI
+          const cancelledShipperRequests = activeDecisions
+            .filter(d => d.shipperRequestUniqueId)
+            .map(d => d.shipperRequestUniqueId);
+
+          const replacementPayload = {
+            messageTypes: messageTypes.individual_replaced_by_company,
+            message: "success",
+            type: "individual_replaced_by_company",
+            cancelledDriverRequestUniqueId: existingUniqueId,
+            cancelledShipperRequests,
+            journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+          };
+
+          // 1. FCM — wakes app even in background
+          sendFCMNotificationToUser({
+            userUniqueId: driverUserUniqueId,
+            roleId: usersRoles.driverRoleId,
+            notification: {
+              title: "Job reassigned by your company",
+              body: "Your individual shipper match has been replaced by a company fleet assignment. Open the app to see your new job.",
+            },
+            data: {
+              type: "individual_replaced_by_company",
+              cancelledDriverRequestUniqueId: existingUniqueId,
+            },
+          }).catch(e =>
+            logger.warn("FCM failed for individual-replaced notification", {
+              error: e.message,
+              driverUserUniqueId,
+            }),
+          );
+
+          // 2. WebSocket — instant delivery when app is open
+          if (phoneNumber) {
+            sendSocketIONotificationToDriver({
+              phoneNumber,
+              message: replacementPayload,
+            }).catch(e =>
+              logger.warn("WebSocket failed for individual-replaced notification (driver may be offline)", {
+                error: e.message,
+                driverUserUniqueId,
+              }),
+            );
+          }
+
+          logger.info("Replacement notification sent to driver", {
+            driverUserUniqueId,
+            cancelledDriverRequestUniqueId: existingUniqueId,
+            cancelledShipperRequests,
+          });
+        } catch (notifyErr) {
+          // Non-critical — log but do NOT fail the assignment
+          logger.warn("Failed to send replacement notification to driver (non-blocking)", {
+            error: notifyErr.message,
+            driverUserUniqueId,
+          });
+        }
+
         // Fall through to the INSERT path below →
       } else {
         // Driver is in active individual status range but has no active JDs —

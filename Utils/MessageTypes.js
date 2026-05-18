@@ -179,5 +179,10 @@ const messageTypes = {
     details:
       "When a dispatcher assigns a driver to a freight job via company bid. Driver must confirm or reject.",
   },
+  individual_replaced_by_company: {
+    message: "Individual job replaced by company assignment",
+    details:
+      "Your company has assigned you to a fleet freight job. Your previous individual shipper match has been released back to the open pool and is available for other drivers.",
+  },
 };
 module.exports = messageTypes;
