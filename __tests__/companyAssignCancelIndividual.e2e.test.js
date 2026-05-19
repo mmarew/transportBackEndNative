@@ -106,16 +106,61 @@ beforeAll(async () => {
     companyUniqueId = company.companyUniqueId;
   }
 
-  // Resolve vehicle from fleet
+  // Resolve vehicle from fleet (with direct DB fallback if fleet API is broken)
   if (!vehicleUniqueId || !vehicleTypeUniqueId) {
     const fleetRes = await request(app)
       .get("/api/company/fleet")
       .set("Authorization", `Bearer ${companyToken}`)
       .query({ companyUniqueId, userUniqueId: "self" });
     const vehicle = fleetRes.body?.data?.[0];
-    if (!vehicle) throw new Error("No vehicle found in company fleet — assign one first");
-    vehicleUniqueId     = vehicleUniqueId     || vehicle.vehicleUniqueId;
-    vehicleTypeUniqueId = vehicleTypeUniqueId || vehicle.vehicleTypeUniqueId;
+    if (vehicle) {
+      vehicleUniqueId     = vehicleUniqueId     || vehicle.vehicleUniqueId;
+      vehicleTypeUniqueId = vehicleTypeUniqueId || vehicle.vehicleTypeUniqueId;
+    } else {
+      // Direct DB fallback — fleet API may be broken
+      const conn = await pool.getConnection();
+      try {
+        // Try company's own vehicles first
+        let [rows] = await conn.query(
+          `SELECT v.vehicleUniqueId, v.vehicleTypeUniqueId
+           FROM Vehicle v
+           JOIN CompanyVehicle cv ON v.vehicleUniqueId = cv.vehicleUniqueId
+           WHERE cv.companyUniqueId = ? AND cv.companyVehicleDeletedAt IS NULL
+           LIMIT 1`,
+          [companyUniqueId],
+        );
+
+        // If none found, link any available vehicle to this company for test purposes
+        if (!rows[0]) {
+          const [anyVehicle] = await conn.query(
+            `SELECT vehicleUniqueId, vehicleTypeUniqueId FROM Vehicle WHERE vehicleDeletedAt IS NULL LIMIT 1`,
+          );
+          if (!anyVehicle[0]) throw new Error("No vehicles in DB at all — seed first");
+          const { v4: linkUuid } = require("uuid");
+          // Get company admin's UUID for createdBy (driverUserUniqueId not resolved yet)
+          const [adminUser] = await conn.query(
+            `SELECT userUniqueId FROM CompanyMembership WHERE companyUniqueId = ? AND isActive = 1 LIMIT 1`,
+            [companyUniqueId],
+          );
+          const createdBy = adminUser[0]?.userUniqueId || "system-test";
+          await conn.query(
+            `INSERT IGNORE INTO CompanyVehicle
+              (companyVehicleUniqueId, companyUniqueId, vehicleUniqueId,
+               assignmentStatus, assignmentStartDate,
+               companyVehicleCreatedBy, companyVehicleCreatedAt)
+             VALUES (?, ?, ?, 'active', NOW(), ?, NOW())`,
+            [linkUuid(), companyUniqueId, anyVehicle[0].vehicleUniqueId, createdBy],
+          );
+          rows = anyVehicle;
+          console.log("✅ CompanyVehicle link created:", companyUniqueId, "→", anyVehicle[0].vehicleUniqueId);
+        }
+
+        vehicleUniqueId     = vehicleUniqueId     || rows[0].vehicleUniqueId;
+        vehicleTypeUniqueId = vehicleTypeUniqueId || rows[0].vehicleTypeUniqueId;
+      } finally {
+        conn.release();
+      }
+    }
   }
 
   // Fallback: fetch vehicleTypeUniqueId from admin endpoint
@@ -155,6 +200,22 @@ beforeAll(async () => {
   expect(vehicleUniqueId).toBeTruthy();
   expect(vehicleTypeUniqueId).toBeTruthy();
   expect(driverUserUniqueId).toBeTruthy();
+
+  // Ensure VehicleDriver link exists (auto-assign needs CompanyVehicle → VehicleDriver → driver)
+  const conn = await pool.getConnection();
+  try {
+    const { v4: vdUuid } = require("uuid");
+    await conn.query(
+      `INSERT IGNORE INTO VehicleDriver
+        (vehicleDriverUniqueId, vehicleUniqueId, driverUserUniqueId,
+         assignmentStatus, assignmentStartDate, vehicleDriverCreatedBy, vehicleDriverCreatedAt)
+       VALUES (?, ?, ?, 'active', NOW(), ?, NOW())`,
+      [vdUuid(), vehicleUniqueId, driverUserUniqueId, driverUserUniqueId],
+    );
+    console.log("✅ VehicleDriver link ensured:", vehicleUniqueId, "→", driverUserUniqueId);
+  } finally {
+    conn.release();
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

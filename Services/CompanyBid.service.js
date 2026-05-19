@@ -487,7 +487,12 @@ exports.getGroupedBids = async (scope = {}, filters = {}) => {
             cbr.companyBidRequestCreatedAt,
             tc.companyName, tc.companyPhone, tc.companyEmail,
             vt.vehicleTypeName AS offeredVehicleTypeName,
-            u.fullName AS submittedByName
+            u.fullName AS submittedByName,
+            (SELECT COUNT(*) FROM CompanyVehicle cv
+             WHERE cv.companyUniqueId = cbr.companyUniqueId
+               AND cv.assignmentStatus = 'active'
+               AND cv.companyVehicleDeletedAt IS NULL
+            ) AS companyFleetSize
      FROM CompanyBidRequest cbr
      LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
      LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
