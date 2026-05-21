@@ -751,6 +751,11 @@ CREATE TABLE IF NOT EXISTS CancellationReasonsType (
     cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
     cancellationReason VARCHAR(150) NOT NULL,  -- Type of cancellation reason
     roleId int NOT NULL,  -- Who canceled (could be driver, shipper, or admin)
+    -- requestMode controls which UI context this reason belongs to:
+    --   'individual'  → shown only when cancelling a single driver-to-shipper request
+    --   'company'     → shown only when cancelling a company freight/batch request
+    --   'both'        → valid in both individual and company contexts
+    requestMode ENUM('individual', 'company', 'both') NOT NULL DEFAULT 'both',
     cancellationReasonTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the cancellation reason
     cancellationReasonTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the cancellation reason
     cancellationReasonTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the cancellation reason

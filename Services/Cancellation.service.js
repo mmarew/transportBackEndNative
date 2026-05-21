@@ -11,6 +11,8 @@ const addCancellationReason = async (body, user) => {
     const cancellationReasonTypeUniqueId = uuidv4();
     const roleId = body.roleId;
     const cancellationReason = body.cancellationReason;
+    // requestMode: 'individual' | 'company' | 'both' — defaults to 'both' if not provided
+    const requestMode = body.requestMode || "both";
     const createdBy = user?.userUniqueId;
 
     // Check if the reason already exists
@@ -24,14 +26,15 @@ const addCancellationReason = async (body, user) => {
 
     const sqlToAddReason = `
       INSERT INTO CancellationReasonsType 
-      (cancellationReasonTypeUniqueId, cancellationReason, roleId, cancellationReasonTypeCreatedBy, cancellationReasonTypeCreatedAt) 
-      VALUES (?, ?, ?, ?, ?)
+      (cancellationReasonTypeUniqueId, cancellationReason, roleId, requestMode, cancellationReasonTypeCreatedBy, cancellationReasonTypeCreatedAt) 
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
 
     const reasonValues = [
       cancellationReasonTypeUniqueId,
       cancellationReason,
       roleId,
+      requestMode,
       createdBy,
       currentDate(),
     ];
@@ -117,6 +120,18 @@ const updateCancellationReason = async (req) => {
     values.push(req.body.roleId);
   }
 
+  if (req.body.requestMode !== undefined) {
+    const validModes = ["individual", "company", "both"];
+    if (!validModes.includes(req.body.requestMode)) {
+      throw new AppError(
+        `Invalid requestMode. Allowed values: ${validModes.join(", ")}`,
+        400,
+      );
+    }
+    setParts.push("requestMode = ?");
+    values.push(req.body.requestMode);
+  }
+
   if (setParts.length === 0) {
     throw new AppError("No fields provided to update", 400);
   }
@@ -160,6 +175,17 @@ const getAllCancellationReasons = async (filters = {}) => {
   if (filters.roleId !== undefined) {
     clauses.push("c.roleId = ?");
     params.push(Number(filters.roleId));
+  }
+
+  // Filter by requestMode: 'individual', 'company', or 'both'
+  // When filtering for 'individual' or 'company', also include reasons tagged 'both'
+  if (filters.requestMode) {
+    if (filters.requestMode === "individual" || filters.requestMode === "company") {
+      clauses.push("c.requestMode IN (?, 'both')");
+      params.push(filters.requestMode);
+    } else if (filters.requestMode === "both") {
+      clauses.push("c.requestMode = 'both'");
+    }
   }
 
   const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
