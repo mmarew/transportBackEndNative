@@ -105,3 +105,66 @@ exports.cancelBatch = async (req, res, next) => {
     next(e);
   }
 };
+
+/**
+ * GET /api/shipperRequestBatch/:batchUniqueId/slots
+ *
+ * Returns all slots in the batch with a `cancellable` flag on each row.
+ * Pass ?cancellable=true to return only cancellable slots.
+ *
+ * Used by the frontend to render the partial-cancel slot picker.
+ */
+exports.getCancellableSlots = async (req, res, next) => {
+  try {
+    const { batchUniqueId } = req.params;
+    const onlyCancellable = req.query.cancellable === true || req.query.cancellable === "true";
+    const result = await service.getCancellableSlots(batchUniqueId, onlyCancellable);
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+/**
+ * PUT /api/shipperRequestBatch/:batchUniqueId/partialCancel
+ *
+ * Cancels only the slots listed in req.body.slotIds.
+ * Validates that each slot is cancellable (status 1–4).
+ * Updates the batch status to partiallyCancelled (17) or cancelledByShipper (7)
+ * depending on how many active slots remain.
+ *
+ * Body: { slotIds: [uuid, ...], cancellationReasonsTypeId? }
+ */
+exports.partialCancelBatch = async (req, res, next) => {
+  try {
+    const { userUniqueId, roleId } = req.user;
+    const { batchUniqueId } = req.params;
+    const { slotIds, cancellationReasonsTypeId } = req.body;
+
+    const result = await executeInTransaction(() =>
+      service.partialCancelBatch({
+        batchUniqueId,
+        userUniqueId,
+        roleId,
+        slotIds,
+        cancellationReasonsTypeId: cancellationReasonsTypeId || null,
+      }),
+    );
+
+    const notificationTargets = result._notificationTargets;
+    delete result._notificationTargets;
+
+    ServerResponder(res, result, 200);
+
+    if (notificationTargets) {
+      service.sendBatchCancelNotifications(notificationTargets).catch((err) =>
+        logger.error("partialCancelBatch: notification dispatch failed", {
+          batchUniqueId,
+          error: err.message,
+        }),
+      );
+    }
+  } catch (e) {
+    next(e);
+  }
+};

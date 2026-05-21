@@ -75,4 +75,36 @@ router.put(
   controller.cancelBatch,
 );
 
+/**
+ * @route   GET /api/shipperRequestBatch/:batchUniqueId/slots
+ * @desc    Returns all slots in the batch with a `cancellable` boolean flag.
+ *          Pass ?cancellable=true to return only the cancellable ones.
+ * @access  Authenticated
+ */
+router.get(
+  "/api/shipperRequestBatch/:batchUniqueId/slots",
+  verifyTokenOfAxios,
+  validator(schema.batchParams, "params"),
+  validator(schema.batchSlotsQuery, "query"),
+  controller.getCancellableSlots,
+);
+
+/**
+ * @route   PUT /api/shipperRequestBatch/:batchUniqueId/partialCancel
+ * @desc    Cancel only specific slots (by shipperRequestUniqueId) in a batch.
+ *          Slots already in-transit or terminal are rejected.
+ *          Batch status becomes partiallyCancelled (17) if active slots remain,
+ *          or cancelledByShipper (7) if all slots are now done.
+ * @access  Authenticated (batch owner or admin)
+ *
+ * Body: { slotIds: [uuid, ...], cancellationReasonsTypeId? }
+ */
+router.put(
+  "/api/shipperRequestBatch/:batchUniqueId/partialCancel",
+  verifyTokenOfAxios,
+  validator(schema.batchParams, "params"),
+  validator(schema.partialCancelBatchBody),
+  controller.partialCancelBatch,
+);
+
 module.exports = router;

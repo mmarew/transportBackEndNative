@@ -66,3 +66,34 @@ exports.cancelBatchBody = Joi.object({
     .optional()
     .allow(null),
 }).unknown(false);
+
+/**
+ * PUT /api/shipperRequestBatch/:batchUniqueId/partialCancel
+ *
+ * slotIds  – array of shipperRequestUniqueId strings for the slots to cancel.
+ *            Must have at least 1 entry.
+ * cancellationReasonsTypeId – optional reason FK (same as full cancel).
+ */
+exports.partialCancelBatchBody = Joi.object({
+  slotIds: Joi.array()
+    .items(uuidSchema.required())
+    .min(1)
+    .required()
+    .messages({
+      "array.min": "At least one slotId must be provided",
+      "any.required": "slotIds is required",
+    }),
+  cancellationReasonsTypeId: Joi.number()
+    .integer()
+    .min(1)
+    .optional()
+    .allow(null),
+}).unknown(false);
+
+/**
+ * GET /api/shipperRequestBatch/:batchUniqueId/slots
+ * Optional: ?cancellable=true  – filter to only cancellable slots
+ */
+exports.batchSlotsQuery = Joi.object({
+  cancellable: Joi.boolean().optional(),
+}).unknown(true);

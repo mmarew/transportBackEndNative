@@ -670,6 +670,12 @@ const journeyStatus = [
     journeyStatusDescription:
       "The individual driver-shipper connection was automatically replaced because a transport company assigned this driver to a company-managed freight job. The individual ShipperRequest is returned to the waiting pool and the driver's new JourneyDecision is linked to the company assignment. This is a system-level status with clear intent — company assignments take priority over individual matches.",
   },
+  {
+    journeyStatusId: 17,
+    journeyStatusName: "partiallyCancelled",
+    journeyStatusDescription:
+      "A company freight batch was partially cancelled by the shipper. One or more vehicle slots were cancelled while others had already completed their journey or are still in transit. The batch remains open for the active/completed slots. This status applies only to ShipperRequestBatch records — individual ShipperRequest rows within the batch keep their own terminal status (journeyCompleted or cancelledByShipper).",
+  },
 ];
 const journeyStatusMap = {
   waiting: 1,
@@ -699,6 +705,8 @@ const journeyStatusMap = {
   rejectedByDriver: 15,
   // individual link replaced because company assigned this driver to a company freight job
   replacedByCompanyAssignment: 16,
+  // batch partially cancelled — some slots cancelled, others completed or still active
+  partiallyCancelled: 17,
 };
 // these are active because they can be used to check if it is active or not
 const activeJourneyStatuses = [
