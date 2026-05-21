@@ -720,56 +720,98 @@ const activeJourneyStatuses = [
 //   2 = Driver   (the one who accepts the trip)
 //   3 = Admin    (system / call-center override)
 const cancellationReasons = [
-  // ── SHIPPER reasons (roleId: 1) ────────────────────────────────────────
 
-  // Individual only — street-pickup concepts that don't apply to pre-planned freight
-  { cancellationReason: "Driver arrived too late", roleId: 1, requestMode: "individual" },
-  { cancellationReason: "Driver did not come to my location", roleId: 1, requestMode: "individual" },
-  { cancellationReason: "Found another driver on the street", roleId: 1, requestMode: "individual" },
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SHIPPER reasons (roleId: 1)
+  //  The shipper is cancelling a job they posted.
+  //  Individual reasons = about one driver. Company reasons = about the fleet.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── Individual only (requestMode: 'individual') ───────────────────────────
+  // Shown ONLY on individual_target jobs (one driver, one truck)
+  { cancellationReason: "Driver arrived too late to the pickup location", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver did not come to my location at all", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Found an available driver directly on the road", roleId: 1, requestMode: "individual" },
   { cancellationReason: "Driver's vehicle did not match the listed type", roleId: 1, requestMode: "individual" },
-  { cancellationReason: "Driver was rude or unprofessional", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver was rude or behaved unprofessionally", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver's vehicle appeared unsafe or in poor condition", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver demanded more money than the agreed price", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver was not answering calls or messages", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver refused to go to the agreed destination", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver did not have the proper loading equipment", roleId: 1, requestMode: "individual" },
+  { cancellationReason: "Driver's bid price was too high compared to other drivers", roleId: 1, requestMode: "individual" },
 
-  // Company only — fleet/freight contract concepts irrelevant to street pickups
-  { cancellationReason: "Company did not assign a vehicle in time", roleId: 1, requestMode: "company" },
-  { cancellationReason: "Assigned vehicle does not meet cargo requirements", roleId: 1, requestMode: "company" },
-  { cancellationReason: "Company provided fewer vehicles than agreed", roleId: 1, requestMode: "company" },
-  { cancellationReason: "Driver assigned by company was unqualified", roleId: 1, requestMode: "company" },
-  { cancellationReason: "Company did not respond to bid acceptance", roleId: 1, requestMode: "company" },
+  // ── Company only (requestMode: 'company') ─────────────────────────────────
+  // Shown ONLY on company_target jobs (bulk fleet, 10+ trucks)
+  { cancellationReason: "Company did not assign vehicles within the agreed time", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company provided fewer vehicles than agreed in the batch", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Assigned vehicles did not meet the cargo weight or type requirements", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Drivers assigned by the company were unqualified or unlicensed", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company did not respond after the bid was accepted", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company demanded changes to price or terms after acceptance", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company's fleet was unavailable on the agreed shipping date", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company representative was unreachable after bid acceptance", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company dispatched vehicles to the wrong pickup location", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company's vehicles were not clean or prepared for cargo", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company's insurance or documentation was found to be invalid", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Decided to split the cargo and use individual drivers instead", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company's bid price was too high for the full batch", roleId: 1, requestMode: "company" },
+  { cancellationReason: "Company did not have enough vehicles for the entire batch", roleId: 1, requestMode: "company" },
 
-  // Both — generic reasons valid in any context
-  { cancellationReason: "Change of plans, cargo no longer needs transport", roleId: 1, requestMode: "both" },
-  { cancellationReason: "Found a better price elsewhere", roleId: 1, requestMode: "both" },
-  { cancellationReason: "Incorrect pickup or drop-off location entered", roleId: 1, requestMode: "both" },
-  { cancellationReason: "Safety concerns about the driver or vehicle", roleId: 1, requestMode: "both" },
+  // ── Both (requestMode: 'both') ─────────────────────────────────────────────
+  // Shown in both individual and company modes
+  { cancellationReason: "Cargo no longer needs to be transported — plans changed", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Found a significantly better price elsewhere", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Entered incorrect pickup or destination location", roleId: 1, requestMode: "both" },
   { cancellationReason: "Shipping date or schedule changed", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Cargo details were entered incorrectly (wrong type, weight, or quantity)", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Cargo was sold or transferred to someone else before shipment", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Recipient at the destination is unavailable to receive the goods", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Government or customs clearance issue delayed the shipment", roleId: 1, requestMode: "both" },
+  { cancellationReason: "I posted this request by mistake", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Weather conditions are not suitable for transport", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Road or route to the destination is closed or blocked", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Safety concerns about the vehicle or route", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Cargo packaging was not ready in time", roleId: 1, requestMode: "both" },
+  { cancellationReason: "Financial or payment arrangement fell through", roleId: 1, requestMode: "both" },
 
-  // ── DRIVER reasons (roleId: 2) ─────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //  DRIVER reasons (roleId: 2)
+  //  Driver cancels after accepting a bid.
+  // ══════════════════════════════════════════════════════════════════════════
 
-  // Individual only — concepts specific to street-level driver-shipper interaction
-  { cancellationReason: "Shipper was not at the pickup location", roleId: 2, requestMode: "individual" },
-  { cancellationReason: "Shipper was unresponsive to calls", roleId: 2, requestMode: "individual" },
-  { cancellationReason: "Shipper requested a route I cannot take", roleId: 2, requestMode: "individual" },
-  { cancellationReason: "Cargo was too large for my vehicle", roleId: 2, requestMode: "individual" },
-  { cancellationReason: "Shipper was disrespectful or threatening", roleId: 2, requestMode: "individual" },
+  // ── Individual only ───────────────────────────────────────────────────────
+  { cancellationReason: "Shipper was not at the agreed pickup location", roleId: 2, requestMode: "individual" },
+  { cancellationReason: "Shipper was unresponsive to calls and messages", roleId: 2, requestMode: "individual" },
+  { cancellationReason: "Shipper requested a route or road I cannot take", roleId: 2, requestMode: "individual" },
+  { cancellationReason: "Cargo was heavier or larger than described in the request", roleId: 2, requestMode: "individual" },
+  { cancellationReason: "Shipper was disrespectful, rude, or threatening", roleId: 2, requestMode: "individual" },
+  { cancellationReason: "Shipper tried to change the destination after I accepted", roleId: 2, requestMode: "individual" },
+  { cancellationReason: "Shipper refused to pay the agreed amount", roleId: 2, requestMode: "individual" },
 
-  // Company only — dispatcher / fleet assignment context
-  { cancellationReason: "Dispatcher assigned me the wrong route", roleId: 2, requestMode: "company" },
-  { cancellationReason: "Loading dock or warehouse was not ready", roleId: 2, requestMode: "company" },
+  // ── Company only ───────────────────────────────────────────────────────────
+  { cancellationReason: "Company dispatcher assigned me the wrong route or location", roleId: 2, requestMode: "company" },
+  { cancellationReason: "Loading dock or warehouse was not ready when I arrived", roleId: 2, requestMode: "company" },
   { cancellationReason: "Cargo details did not match what was described in the contract", roleId: 2, requestMode: "company" },
-  { cancellationReason: "I was reassigned to a different batch by the company", roleId: 2, requestMode: "company" },
+  { cancellationReason: "I was reassigned to a different batch by my company", roleId: 2, requestMode: "company" },
+  { cancellationReason: "Company's loading staff were not available at the site", roleId: 2, requestMode: "company" },
 
-  // Both — general driver cancellation reasons
+  // ── Both ───────────────────────────────────────────────────────────────────
   { cancellationReason: "Vehicle breakdown or mechanical issue", roleId: 2, requestMode: "both" },
-  { cancellationReason: "Personal emergency", roleId: 2, requestMode: "both" },
+  { cancellationReason: "Personal or family emergency", roleId: 2, requestMode: "both" },
   { cancellationReason: "Safety concern at pickup or delivery location", roleId: 2, requestMode: "both" },
-  { cancellationReason: "Incorrect pickup location information", roleId: 2, requestMode: "both" },
+  { cancellationReason: "Incorrect pickup location was given in the request", roleId: 2, requestMode: "both" },
+  { cancellationReason: "Accepted this request by mistake", roleId: 2, requestMode: "both" },
 
-  // ── ADMIN / SYSTEM reasons (roleId: 3) ────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //  ADMIN / SYSTEM reasons (roleId: 3)
+  // ══════════════════════════════════════════════════════════════════════════
   { cancellationReason: "Cancelled due to app or system technical issue", roleId: 3, requestMode: "both" },
-  { cancellationReason: "Route or road is unavailable due to weather or closure", roleId: 3, requestMode: "both" },
-  { cancellationReason: "Driver account suspended during active request", roleId: 3, requestMode: "both" },
-  { cancellationReason: "Company account suspended during active batch", roleId: 3, requestMode: "company" },
-  { cancellationReason: "Fraud or policy violation detected", roleId: 3, requestMode: "both" },
+  { cancellationReason: "Route or road unavailable due to weather or official closure", roleId: 3, requestMode: "both" },
+  { cancellationReason: "Driver account suspended during an active request", roleId: 3, requestMode: "both" },
+  { cancellationReason: "Company account suspended during an active batch", roleId: 3, requestMode: "company" },
+  { cancellationReason: "Fraud or platform policy violation detected", roleId: 3, requestMode: "both" },
+  { cancellationReason: "Duplicate request detected by the system", roleId: 3, requestMode: "both" },
 ];
 const paymentStatus = [
   {
