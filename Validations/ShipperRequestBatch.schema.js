@@ -202,7 +202,13 @@ const VALID_JOURNEY_STATUS_NAMES = [
  */
 exports.batchSlotsQuery = Joi.object({
   cancellable: Joi.boolean().optional(),
-  journeyStatusId: Joi.number().integer().min(1).optional(),
+  // Accept a single integer OR an array of integers — same pattern as journeyStatusName.
+  journeyStatusId: Joi.alternatives()
+    .try(
+      Joi.number().integer().min(1),
+      Joi.array().items(Joi.number().integer().min(1)).min(1),
+    )
+    .optional(),
   // Accept a single string OR an array of strings — both validated against the same enum.
   journeyStatusName: Joi.alternatives()
     .try(

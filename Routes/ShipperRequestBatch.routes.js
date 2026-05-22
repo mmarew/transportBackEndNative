@@ -84,23 +84,28 @@ router.put(
  *
  * Only applied to the fields listed in ARRAY_FIELDS.
  */
-const ARRAY_FIELDS = ["journeyStatusName"];
+const ARRAY_FIELDS = ["journeyStatusName", "journeyStatusId"];
 const normalizeArrayQuery = (req, _res, next) => {
   for (const field of ARRAY_FIELDS) {
     const raw = req.query[field];
-    if (!raw || Array.isArray(raw)) {
-      next(); return; // already an array or missing — Joi handles it
-    }
-    // Format 2: "[acceptedByDriver,partiallyCancelled]"
+    if (!raw || Array.isArray(raw)) continue; // already an array or missing
+    // Format 2: "[1,4,6]" or "[acceptedByDriver,partiallyCancelled]"
     if (typeof raw === "string" && raw.startsWith("[") && raw.endsWith("]")) {
       const inner = raw.slice(1, -1);
       req.query[field] = inner.split(",").map((s) => s.trim()).filter(Boolean);
     }
-    // Format 3: "a,b,c" (no brackets)
+    // Format 3: "1,4,6" or "a,b,c" (no brackets)
     else if (typeof raw === "string" && raw.includes(",")) {
       req.query[field] = raw.split(",").map((s) => s.trim()).filter(Boolean);
     }
-    // Format 1 (single string): leave as-is — Joi alternatives handles string|array
+    // Format 1 (single value): leave as-is — schema handles string|number|array
+  }
+  // Coerce journeyStatusId values to integers (they arrive as strings from query)
+  if (req.query.journeyStatusId) {
+    const raw = req.query.journeyStatusId;
+    req.query.journeyStatusId = Array.isArray(raw)
+      ? raw.map(Number)
+      : Number(raw);
   }
   next();
 };
@@ -162,10 +167,18 @@ const normalizeArrayQuery = (req, _res, next) => {
  *  GET .../slots?journeyStatusName=[waiting,requested,acceptedByDriver]
  *    → Pre-acceptance pipeline. Equivalent to unconfirmed/pending slots.
  *
- *  ── 5. FILTER BY STATUS ID (numeric) ───────────────────────────
+ *  ── 5. FILTER BY STATUS ID (numeric) — single or array ───────
  *  GET .../slots?journeyStatusId=6
- *    → journeyCompleted. Same as journeyStatusName=journeyCompleted.
- *    → Useful when the client stores the numeric ID instead of the name.
+ *    → journeyCompleted (ID 6). Single status by ID.
+ *
+ *  GET .../slots?journeyStatusId=[4,5,6]
+ *  GET .../slots?journeyStatusId=4&journeyStatusId=5&journeyStatusId=6
+ *  GET .../slots?journeyStatusId=4,5,6
+ *    → acceptedByShipper(4) + journeyStarted(5) + journeyCompleted(6).
+ *    → Same result as using journeyStatusName but with numeric IDs.
+ *    → ID reference: 1=waiting 2=requested 3=acceptedByDriver 4=acceptedByShipper
+ *                    5=journeyStarted 6=journeyCompleted 7=cancelledByShipper
+ *                    9=cancelledByDriver 17=partiallyCancelled
  *
  *  ── 6. COMBINED: cancellable + pagination ──────────────────────
  *  GET .../slots?cancellable=true&page=2&limit=50

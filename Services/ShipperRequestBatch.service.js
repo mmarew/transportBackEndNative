@@ -885,10 +885,18 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
     clauses.push(`pr.journeyStatusId IN (${cancellableIn})`);
   }
 
-  // Filter by exact status ID: ?journeyStatusId=6 (completed only)
-  if (filters.journeyStatusId) {
-    clauses.push("pr.journeyStatusId = ?");
-    params.push(Number(filters.journeyStatusId));
+  // Filter by exact status ID — single integer OR array of integers.
+  if (filters.journeyStatusId !== undefined && filters.journeyStatusId !== null) {
+    const ids = Array.isArray(filters.journeyStatusId)
+      ? filters.journeyStatusId.map(Number)
+      : [Number(filters.journeyStatusId)];
+    if (ids.length === 1) {
+      clauses.push("pr.journeyStatusId = ?");
+      params.push(ids[0]);
+    } else {
+      clauses.push(`pr.journeyStatusId IN (${ids.map(() => "?").join(", ")})`);
+      params.push(...ids);
+    }
   }
 
   // Filter by status name — single string OR array of strings.
@@ -906,7 +914,93 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
     }
   }
 
-  const where = `WHERE ${clauses.join(" AND ")}`;
+  // ── slotState filter ────────────────────────────────────────────────────────
+  // Maps directly to the breakdown categories in verifyShipperStatus.company:
+  //
+  //   notAssigned       — status=4, no active assignment, never had a driver
+  //   needsReassignment — status=4, no active assignment, previous driver cancelled
+  //   assigned          — active assignment with assignmentStatus='assigned'
+  //   driverConfirmed   — active assignment confirmed or heading to loading
+  //
+  // Use ?slotState=notAssigned to get the list behind the notAssigned counter.
+  if (filters.slotState) {
+    switch (filters.slotState) {
+      case "notAssigned":
+        // Free slot: status=acceptedByShipper, no active assignment, no cancelled history
+        clauses.push(
+          `pr.journeyStatusId = ?
+           AND NOT EXISTS (
+             SELECT 1 FROM CompanyBidVehicleAssignment cba
+             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+               AND cba.assignmentDeletedAt IS NULL
+               AND cba.assignmentStatus NOT IN (
+                 'rejected_by_driver','cancelled_by_company',
+                 'cancelled_by_shipper','cancelled_by_driver'
+               )
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM CompanyBidVehicleAssignment cba2
+             WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+               AND cba2.assignmentDeletedAt IS NULL
+               AND cba2.assignmentStatus = 'cancelled_by_driver'
+           )`,
+        );
+        params.push(journeyStatusMap.acceptedByShipper);
+        break;
+
+      case "needsReassignment":
+        // Free slot: status=acceptedByShipper, no active assignment, prev driver cancelled
+        clauses.push(
+          `pr.journeyStatusId = ?
+           AND NOT EXISTS (
+             SELECT 1 FROM CompanyBidVehicleAssignment cba
+             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+               AND cba.assignmentDeletedAt IS NULL
+               AND cba.assignmentStatus NOT IN (
+                 'rejected_by_driver','cancelled_by_company',
+                 'cancelled_by_shipper','cancelled_by_driver'
+               )
+           )
+           AND EXISTS (
+             SELECT 1 FROM CompanyBidVehicleAssignment cba2
+             WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+               AND cba2.assignmentDeletedAt IS NULL
+               AND cba2.assignmentStatus = 'cancelled_by_driver'
+           )`,
+        );
+        params.push(journeyStatusMap.acceptedByShipper);
+        break;
+
+      case "assigned":
+        // Driver notified, waiting for confirmation
+        clauses.push(
+          `EXISTS (
+             SELECT 1 FROM CompanyBidVehicleAssignment cba
+             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+               AND cba.assignmentDeletedAt IS NULL
+               AND cba.assignmentStatus = 'assigned'
+           )`,
+        );
+        break;
+
+      case "driverConfirmed":
+        // Driver confirmed or heading to loading point
+        clauses.push(
+          `EXISTS (
+             SELECT 1 FROM CompanyBidVehicleAssignment cba
+             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+               AND cba.assignmentDeletedAt IS NULL
+               AND cba.assignmentStatus IN ('confirmed_by_driver','going_to_loading')
+           )`,
+        );
+        break;
+
+      default:
+        break;
+    }
+  }
+
+
 
   const dataSql = `
     SELECT
