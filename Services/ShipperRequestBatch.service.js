@@ -238,6 +238,56 @@ exports.getBatches = async (filters = {}) => {
     params.push(`%${filters.destinationPlace}%`);
   }
 
+  // Exact match / range filters for remaining batch columns
+  if (filters.totalVehicles) {
+    clauses.push("b.totalVehicles = ?");
+    params.push(Number(filters.totalVehicles));
+  }
+  if (filters.shippableItemName) {
+    clauses.push("b.shippableItemName LIKE ?");
+    params.push(`%${filters.shippableItemName}%`);
+  }
+
+  // shippingDate range: ?shippingDateFrom=2026-01-01&shippingDateTo=2026-12-31
+  if (filters.shippingDateFrom) {
+    clauses.push("b.shippingDate >= ?");
+    params.push(filters.shippingDateFrom);
+  }
+  if (filters.shippingDateTo) {
+    clauses.push("b.shippingDate <= ?");
+    params.push(filters.shippingDateTo);
+  }
+
+  // deliveryDate range: ?deliveryDateFrom=...&deliveryDateTo=...
+  if (filters.deliveryDateFrom) {
+    clauses.push("b.deliveryDate >= ?");
+    params.push(filters.deliveryDateFrom);
+  }
+  if (filters.deliveryDateTo) {
+    clauses.push("b.deliveryDate <= ?");
+    params.push(filters.deliveryDateTo);
+  }
+
+  // shippingCost range: ?shippingCostMin=100&shippingCostMax=5000
+  if (filters.shippingCostMin !== undefined) {
+    clauses.push("b.shippingCost >= ?");
+    params.push(Number(filters.shippingCostMin));
+  }
+  if (filters.shippingCostMax !== undefined) {
+    clauses.push("b.shippingCost <= ?");
+    params.push(Number(filters.shippingCostMax));
+  }
+
+  // batchCreatedAt range: ?createdFrom=2026-01-01&createdTo=2026-12-31
+  if (filters.createdFrom) {
+    clauses.push("b.batchCreatedAt >= ?");
+    params.push(filters.createdFrom);
+  }
+  if (filters.createdTo) {
+    clauses.push("b.batchCreatedAt <= ?");
+    params.push(filters.createdTo);
+  }
+
   const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
 
   const baseSql = `
@@ -259,7 +309,8 @@ exports.getBatches = async (filters = {}) => {
   const countSql = `
     SELECT COUNT(*) AS total
     FROM ShipperRequestBatch b
-    LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+    LEFT JOIN JourneyStatus    js ON b.journeyStatusId       = js.journeyStatusId
+    LEFT JOIN TransportCompany tc ON b.targetCompanyUniqueId = tc.companyUniqueId
     ${where}
   `;
 
@@ -820,12 +871,33 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   ];
   const cancellableIn = CANCELLABLE_STATUS_IDS.join(",");
 
+  // ── Build dynamic WHERE filters ───────────────────────────────────────────
+  const clauses = [
+    "pr.shipperRequestBatchId = ?",
+    "pr.shipperRequestDeletedAt IS NULL",
+  ];
+  const params = [batchUniqueId];
+
+  // Convenience shortcut: ?cancellable=true → only statuses 1-4
   const onlyCancellable =
     filters.cancellable === true || filters.cancellable === "true";
+  if (onlyCancellable) {
+    clauses.push(`pr.journeyStatusId IN (${cancellableIn})`);
+  }
 
-  const extraWhere = onlyCancellable
-    ? `AND pr.journeyStatusId IN (${cancellableIn})`
-    : "";
+  // Filter by exact status ID: ?journeyStatusId=6 (completed only)
+  if (filters.journeyStatusId) {
+    clauses.push("pr.journeyStatusId = ?");
+    params.push(Number(filters.journeyStatusId));
+  }
+
+  // Filter by status name: ?journeyStatusName=cancelledByShipper
+  if (filters.journeyStatusName) {
+    clauses.push("js.journeyStatusName = ?");
+    params.push(filters.journeyStatusName);
+  }
+
+  const where = `WHERE ${clauses.join(" AND ")}`;
 
   const dataSql = `
     SELECT
@@ -839,22 +911,19 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
       CASE WHEN pr.journeyStatusId IN (${cancellableIn}) THEN 1 ELSE 0 END AS cancellable
     FROM ShipperRequest pr
     LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
-    WHERE pr.shipperRequestBatchId = ?
-      AND pr.shipperRequestDeletedAt IS NULL
-      ${extraWhere}
+    ${where}
     ORDER BY pr.shipperRequestId ASC
     LIMIT ? OFFSET ?`;
 
   const countSql = `
     SELECT COUNT(*) AS total
     FROM ShipperRequest pr
-    WHERE pr.shipperRequestBatchId = ?
-      AND pr.shipperRequestDeletedAt IS NULL
-      ${extraWhere}`;
+    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
+    ${where}`;
 
   const [[rows], [[countRow]]] = await Promise.all([
-    db().query(dataSql, [batchUniqueId, limit, offset]),
-    db().query(countSql, [batchUniqueId]),
+    db().query(dataSql, [...params, limit, offset]),
+    db().query(countSql, params),
   ]);
 
   const total = Number(countRow?.total) || 0;
