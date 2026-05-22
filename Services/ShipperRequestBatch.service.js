@@ -37,6 +37,51 @@ const UPDATABLE_COLS = [
   "journeyStatusId",
 ];
 
+// ── Cancellation reason guard ────────────────────────────────────────────────
+/**
+ * Validates that the supplied cancellationReasonsTypeId is appropriate for
+ * a company/batch cancellation context.
+ *
+ * Rules:
+ *   - If no ID is provided → nothing to check, pass through.
+ *   - If the reason exists and its requestMode is 'individual' → reject.
+ *     Individual reasons (e.g. "Driver arrived too late", "Found another driver
+ *     on the street") are meaningless for a company freight batch.
+ *   - requestMode 'company' or 'both' → allowed.
+ *   - Reason not found in DB → reject with 404.
+ *
+ * @param {number|null|undefined} cancellationReasonsTypeId
+ * @throws {AppError} 400 if the reason is individual-only, 404 if not found.
+ */
+const assertCompanyCancellationReason = async (cancellationReasonsTypeId) => {
+  if (!cancellationReasonsTypeId) return; // optional field — nothing to validate
+
+  const [rows] = await db().query(
+    `SELECT cancellationReasonsTypeId, cancellationReason, requestMode
+       FROM CancellationReasonsType
+      WHERE cancellationReasonsTypeId = ?
+        AND cancellationReasonTypeDeletedAt IS NULL
+      LIMIT 1`,
+    [cancellationReasonsTypeId],
+  );
+
+  if (!rows || rows.length === 0) {
+    throw new AppError(
+      `Cancellation reason ID ${cancellationReasonsTypeId} not found`,
+      404,
+    );
+  }
+
+  const reason = rows[0];
+  if (reason.requestMode === "individual") {
+    throw new AppError(
+      `Cancellation reason "${reason.cancellationReason}" is only valid for individual requests, not company freight batches. ` +
+        `Please choose a reason with requestMode 'company' or 'both'.`,
+      400,
+    );
+  }
+};
+
 // ── CREATE / UPSERT ──────────────────────────────────────────────────────────
 
 /**
@@ -352,7 +397,10 @@ exports.cancelBatch = async ({
     throw new AppError("batchUniqueId and userUniqueId are required", 400);
   }
 
-  // 1. Verify batch exists + ownership
+  // 1a. Validate cancellation reason is appropriate for company context
+  await assertCompanyCancellationReason(cancellationReasonsTypeId);
+
+  // 1b. Verify batch exists + ownership
   const batch = await findOne(
     "ShipperRequestBatch",
     { batchUniqueId },
@@ -767,7 +815,10 @@ exports.partialCancelBatch = async ({
     throw new AppError("batchUniqueId, userUniqueId and slotIds are required", 400);
   }
 
-  // 1. Verify batch exists + ownership
+  // 1a. Validate cancellation reason is appropriate for company context
+  await assertCompanyCancellationReason(cancellationReasonsTypeId);
+
+  // 1b. Verify batch exists + ownership
   const batch = await findOne(
     "ShipperRequestBatch",
     { batchUniqueId },
