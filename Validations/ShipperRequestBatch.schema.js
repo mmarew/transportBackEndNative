@@ -216,6 +216,11 @@ exports.batchSlotsQuery = Joi.object({
       Joi.array().items(Joi.string().valid(...VALID_JOURNEY_STATUS_NAMES)).min(1),
     )
     .optional(),
+  // slotState maps to the assignment-pipeline sub-states shown in
+  // verifyShipperStatus.company — use this to get the list behind each counter.
+  slotState: Joi.string()
+    .valid("notAssigned", "needsReassignment", "assigned", "driverConfirmed")
+    .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(20).optional(),
 }).unknown(false);

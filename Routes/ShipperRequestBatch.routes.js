@@ -187,6 +187,27 @@ const normalizeArrayQuery = (req, _res, next) => {
  *  GET .../slots?journeyStatusName=acceptedByShipper&page=1&limit=20
  *    → First 20 unassigned company slots (post-bid, awaiting dispatcher).
  *
+ *  ── 7. SLOT STATE — drill into verifyShipperStatus.company counters ───
+ *
+ *  verifyShipperStatus returns a company breakdown like:
+ *    notAssigned: 3, needsReassignment: 0, assigned: 2, driverConfirmed: 1
+ *  Use ?slotState=<state> to get the actual list behind each counter.
+ *
+ *  GET .../slots?slotState=notAssigned
+ *    → Free slots: status=acceptedByShipper, never had a driver assigned.
+ *    → Dispatcher should assign a driver from the available fleet.
+ *
+ *  GET .../slots?slotState=needsReassignment
+ *    → Free slots where a driver previously cancelled. Needs a new assignment.
+ *    → Same status as notAssigned but flags historical driver cancellation.
+ *
+ *  GET .../slots?slotState=assigned
+ *    → Driver has been notified but has not confirmed yet (assignment='assigned').
+ *    → Dispatcher is waiting for driver response.
+ *
+ *  GET .../slots?slotState=driverConfirmed
+ *    → Driver confirmed or heading to loading point. Journey imminent.
+ *
  *  ── Valid journeyStatusName values ─────────────────────────────
  *  waiting | requested | acceptedByDriver | acceptedByShipper |
  *  journeyStarted | journeyCompleted | cancelledByShipper |

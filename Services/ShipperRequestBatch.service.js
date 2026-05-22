@@ -1000,7 +1000,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
     }
   }
 
-
+  const where = `WHERE ${clauses.join(" AND ")}`;
 
   const dataSql = `
     SELECT
