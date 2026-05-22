@@ -1380,13 +1380,17 @@ exports.autoAssignBatch = async (data) => {
 
   const { shipperRequestBatchId, companyUniqueId } = bid;
 
-  // 2. Find Unassigned Slots for this Batch (Priority Check)
-
+  // 2. Find Unassigned Slots for this Batch
+  // Only consider slots that are still FREE (acceptedByShipper = not yet driven,
+  // not cancelled). After a partial cancellation, cancelled slots have a
+  // terminal journeyStatusId — filtering by status excludes them cleanly
+  // without needing to inspect cancellation records separately.
   const [unassignedSlots] = await db().query(
     `SELECT pr.shipperRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
      FROM ShipperRequest pr
      WHERE pr.shipperRequestBatchId = ? 
        AND pr.shipperRequestDeletedAt IS NULL
+       AND pr.journeyStatusId = ?
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
          WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
@@ -1394,7 +1398,7 @@ exports.autoAssignBatch = async (data) => {
            AND cba.assignmentDeletedAt IS NULL
            AND cba.assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')
        )`,
-    [shipperRequestBatchId, companyBidRequestUniqueId],
+    [shipperRequestBatchId, journeyStatusMap.acceptedByShipper, companyBidRequestUniqueId],
   );
 
   if (unassignedSlots.length === 0) {

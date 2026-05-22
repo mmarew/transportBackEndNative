@@ -509,10 +509,9 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     userUniqueId,
   ];
 
-  // ── Part 3: Company slot-level counts from ShipperRequest ──────────────
-  // Once a bid is accepted_by_shipper, individual ShipperRequest rows are
-  // lazily created (one per vehicle slot).  journeyStarted / journeyCompleted
-  // / cancelledByDriver live on those rows — NOT on the batch header.
+  // ── Part 3: Company slot-level counts (flat — backward compat) ──────────
+  // Counts journeyStarted / notSeenCompleted / notSeenCancelledByDriver for
+  // company slots. Kept as-is; old consumers read these top-level keys.
   const companySlotQuery = `
     SELECT
       COUNT(DISTINCT CASE
@@ -536,30 +535,141 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   `;
 
   const companySlotValues = [
-    journeyStatusMap.journeyStarted,   // companyJourneyStarted
-    journeyStatusMap.journeyCompleted, // companyNotSeenCompleted status
-    false,                             // companyNotSeenCompleted isCompletionSeen
-    journeyStatusMap.cancelledByDriver,// companyNotSeenCancelledByDriver status
-    "not seen by shipper yet",         // companyNotSeenCancelledByDriver seen flag
+    journeyStatusMap.journeyStarted,    // companyJourneyStarted
+    journeyStatusMap.journeyCompleted,  // companyNotSeenCompleted status
+    false,                              // companyNotSeenCompleted isCompletionSeen
+    journeyStatusMap.cancelledByDriver, // companyNotSeenCancelledByDriver status
+    "not seen by shipper yet",          // companyNotSeenCancelledByDriver seen flag
+    userUniqueId,
+  ];
+
+  // ── Part 4: Detailed company slot breakdown (nested under acceptedByShipper) ──
+  // After bid acceptance each slot has its own sub-state driven by
+  // CompanyBidVehicleAssignment.assignmentStatus + ShipperRequest.journeyStatusId.
+  // This gives the shipper full visibility into the assignment pipeline.
+  //
+  // Sub-states (mutually exclusive priority order):
+  //   notAssigned      — free slot, never had a driver (ready to assign)
+  //   needsReassignment— free slot, previous driver cancelled (should reassign)
+  //   assigned         — driver notified, awaiting confirmation
+  //   driverConfirmed  — driver confirmed / heading to loading point
+  //   journeyStarted   — goods loaded, in transit
+  //   completed        — delivered (may not have been seen by shipper yet)
+  //   cancelledByShipper — shipper cancelled this slot
+  //   total            — total company slots created under this shipper
+  const companyBreakdownQuery = `
+    SELECT
+      -- notAssigned: free slot, never had a driver at all
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidVehicleAssignment cba
+            WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+              AND cba.assignmentDeletedAt IS NULL
+              AND cba.assignmentStatus NOT IN (
+                'rejected_by_driver','cancelled_by_company',
+                'cancelled_by_shipper','cancelled_by_driver'
+              )
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidVehicleAssignment cba2
+            WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+              AND cba2.assignmentDeletedAt IS NULL
+              AND cba2.assignmentStatus = 'cancelled_by_driver'
+          )
+        THEN pr.shipperRequestId END) AS notAssigned,
+
+      -- needsReassignment: driver cancelled, slot is free again
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM CompanyBidVehicleAssignment cba
+            WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+              AND cba.assignmentDeletedAt IS NULL
+              AND cba.assignmentStatus NOT IN (
+                'rejected_by_driver','cancelled_by_company',
+                'cancelled_by_shipper','cancelled_by_driver'
+              )
+          )
+          AND EXISTS (
+            SELECT 1 FROM CompanyBidVehicleAssignment cba2
+            WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+              AND cba2.assignmentDeletedAt IS NULL
+              AND cba2.assignmentStatus = 'cancelled_by_driver'
+          )
+        THEN pr.shipperRequestId END) AS needsReassignment,
+
+      -- assigned: driver notified, waiting for driver to confirm
+      COUNT(DISTINCT CASE
+        WHEN EXISTS (
+          SELECT 1 FROM CompanyBidVehicleAssignment cba
+          WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+            AND cba.assignmentDeletedAt IS NULL
+            AND cba.assignmentStatus = 'assigned'
+        )
+        THEN pr.shipperRequestId END) AS assigned,
+
+      -- driverConfirmed: driver confirmed or heading to loading point
+      COUNT(DISTINCT CASE
+        WHEN EXISTS (
+          SELECT 1 FROM CompanyBidVehicleAssignment cba
+          WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+            AND cba.assignmentDeletedAt IS NULL
+            AND cba.assignmentStatus IN ('confirmed_by_driver','going_to_loading')
+        )
+        THEN pr.shipperRequestId END) AS driverConfirmed,
+
+      -- journeyStarted: goods loaded, driver in transit
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ?
+        THEN pr.shipperRequestId END) AS journeyStarted,
+
+      -- completed: delivered (seen or unseen by shipper)
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ?
+        THEN pr.shipperRequestId END) AS completed,
+
+      -- cancelledByShipper: shipper cancelled this slot
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ?
+        THEN pr.shipperRequestId END) AS cancelledByShipper,
+
+      -- total: all non-deleted company slots for this shipper
+      COUNT(DISTINCT pr.shipperRequestId) AS total
+
+    FROM ShipperRequest pr
+    WHERE pr.userUniqueId = ?
+      AND pr.requestMode = 'company_target'
+      AND pr.shipperRequestDeletedAt IS NULL
+  `;
+
+  const companyBreakdownValues = [
+    journeyStatusMap.acceptedByShipper, // notAssigned: status check 1
+    journeyStatusMap.acceptedByShipper, // needsReassignment: status check 2
+    journeyStatusMap.journeyStarted,    // journeyStarted
+    journeyStatusMap.journeyCompleted,  // completed
+    journeyStatusMap.cancelledByShipper,// cancelledByShipper
     userUniqueId,
   ];
 
   const queryExecutor = transactionStorage.getStore() || connection || pool;
-  const [prResult, batchResult, companySlotResult] = await Promise.all([
+  const [prResult, batchResult, companySlotResult, companyBreakdownResult] = await Promise.all([
     queryExecutor.query(prQuery, prValues),
     queryExecutor.query(batchQuery, batchValues),
     queryExecutor.query(companySlotQuery, companySlotValues),
+    queryExecutor.query(companyBreakdownQuery, companyBreakdownValues),
   ]);
 
   const pr          = prResult[0][0];
   const batch       = batchResult[0][0];
   const companySlot = companySlotResult[0][0];
+  const bd          = companyBreakdownResult[0][0];   // breakdown
 
   const n = (v) => Number(v) || 0;
 
   const companyWaiting             = n(batch.companyBatchWaitingVehicles);
-  const companyBidding             = n(batch.companyAuctionCount);       // submitted bids
-  const companyActive              = n(batch.companyOngoingVehicles);    // accepted bids
+  const companyBidding             = n(batch.companyAuctionCount);
+  const companyActive              = n(batch.companyOngoingVehicles);
   const companyJourneyStarted      = n(companySlot.companyJourneyStarted);
   const companyNotSeenCompleted    = n(companySlot.companyNotSeenCompleted);
   const companyNotSeenCancelled    = n(companySlot.companyNotSeenCancelledByDriver);
@@ -578,7 +688,26 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     waiting:                  { individual: n(pr.waitingCount),                  company: companyWaiting },
     requested:                { individual: n(pr.requestedCount),                company: 0 },
     acceptedByDriver:         { individual: n(pr.acceptedByDriverCount),         company: companyBidding },
-    acceptedByShipper:        { individual: n(pr.acceptedByShipperCount),        company: companyActive },
+
+    // ── acceptedByShipper: individual stays a plain number;
+    //    company is a full pipeline breakdown of all slots under the won bid.
+    //    Old consumers that read company as a number will get an object now
+    //    (intentional — kept for migration period alongside old flat keys below).
+    acceptedByShipper: {
+      individual: n(pr.acceptedByShipperCount),
+      company: {
+        notAssigned:       n(bd.notAssigned),       // free slot, never touched
+        needsReassignment: n(bd.needsReassignment), // lost driver, needs new assign
+        assigned:          n(bd.assigned),           // driver notified, awaiting confirm
+        driverConfirmed:   n(bd.driverConfirmed),   // driver confirmed / loading
+        journeyStarted:    n(bd.journeyStarted),    // goods loaded, in transit
+        completed:         n(bd.completed),         // delivered
+        cancelledByShipper:n(bd.cancelledByShipper),// shipper cancelled slot
+        total:             n(bd.total),             // total slots created
+      },
+    },
+
+    // ── Flat keys kept for backward compatibility — will be removed later ──
     journeyStarted:           { individual: n(pr.journeyStartedCount),           company: companyJourneyStarted },
     notSeenCompleted:         { individual: n(pr.notSeenCompletedCount),         company: companyNotSeenCompleted },
     notSeenCancelledByDriver: { individual: n(pr.notSeenCancelledByDriverCount), company: companyNotSeenCancelled },
