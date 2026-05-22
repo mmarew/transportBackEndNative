@@ -891,10 +891,19 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
     params.push(Number(filters.journeyStatusId));
   }
 
-  // Filter by status name: ?journeyStatusName=cancelledByShipper
+  // Filter by status name — single string OR array of strings.
+  // Normalise to an array so the SQL always uses IN (?) consistently.
   if (filters.journeyStatusName) {
-    clauses.push("js.journeyStatusName = ?");
-    params.push(filters.journeyStatusName);
+    const names = Array.isArray(filters.journeyStatusName)
+      ? filters.journeyStatusName
+      : [filters.journeyStatusName];
+    if (names.length === 1) {
+      clauses.push("js.journeyStatusName = ?");
+      params.push(names[0]);
+    } else {
+      clauses.push(`js.journeyStatusName IN (${names.map(() => "?").join(", ")})`);
+      params.push(...names);
+    }
   }
 
   const where = `WHERE ${clauses.join(" AND ")}`;

@@ -159,13 +159,36 @@ exports.partialCancelBatchBody = Joi.object({
     .allow(null),
 }).unknown(false);
 
+// Valid status names (shared between single-value and array validation)
+const VALID_JOURNEY_STATUS_NAMES = [
+  "waiting",
+  "requested",
+  "acceptedByDriver",
+  "acceptedByShipper",
+  "journeyStarted",
+  "journeyCompleted",
+  "cancelledByShipper",
+  "rejectedByShipper",
+  "cancelledByDriver",
+  "cancelledByAdmin",
+  "completedByAdmin",
+  "cancelledBySystem",
+  "noAnswerFromDriver",
+  "notSelectedInBid",
+  "rejectedByDriver",
+  "replacedByCompanyAssignment",
+  "partiallyCancelled",
+];
+
 /**
  * GET /api/shipperRequestBatch/:batchUniqueId/slots
  *
  * All query params are optional and composable:
  *   cancellable=true          – only slots that can still be cancelled (status 1-4)
  *   journeyStatusId=6         – filter by exact status ID
- *   journeyStatusName=...     – filter by status name (see valid values below)
+ *   journeyStatusName=...     – single status name OR array of status names
+ *                               e.g. ?journeyStatusName=acceptedByShipper
+ *                                    ?journeyStatusName=acceptedByShipper&journeyStatusName=journeyStarted
  *   page=1                    – page number (default 1)
  *   limit=20                  – page size (default 20, max 100)
  *
@@ -180,25 +203,11 @@ exports.partialCancelBatchBody = Joi.object({
 exports.batchSlotsQuery = Joi.object({
   cancellable: Joi.boolean().optional(),
   journeyStatusId: Joi.number().integer().min(1).optional(),
-  journeyStatusName: Joi.string()
-    .valid(
-      "waiting",
-      "requested",
-      "acceptedByDriver",
-      "acceptedByShipper",
-      "journeyStarted",
-      "journeyCompleted",
-      "cancelledByShipper",
-      "rejectedByShipper",
-      "cancelledByDriver",
-      "cancelledByAdmin",
-      "completedByAdmin",
-      "cancelledBySystem",
-      "noAnswerFromDriver",
-      "notSelectedInBid",
-      "rejectedByDriver",
-      "replacedByCompanyAssignment",
-      "partiallyCancelled",
+  // Accept a single string OR an array of strings — both validated against the same enum.
+  journeyStatusName: Joi.alternatives()
+    .try(
+      Joi.string().valid(...VALID_JOURNEY_STATUS_NAMES),
+      Joi.array().items(Joi.string().valid(...VALID_JOURNEY_STATUS_NAMES)).min(1),
     )
     .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
