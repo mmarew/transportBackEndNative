@@ -76,7 +76,7 @@ const assertCompanyCancellationReason = async (cancellationReasonsTypeId) => {
   if (reason.requestMode === "individual") {
     throw new AppError(
       `Cancellation reason "${reason.cancellationReason}" is only valid for individual requests, not company freight batches. ` +
-        `Please choose a reason with requestMode 'company' or 'both'.`,
+      `Please choose a reason with requestMode 'company' or 'both'.`,
       400,
     );
   }
@@ -429,45 +429,96 @@ exports.cancelBatch = async ({
     : journeyStatusMap.cancelledByShipper; // 7
 
   const now = currentDate();
-  const inClause = terminalStatuses.join(","); // e.g. "7,9,10,12"
 
-  // ── Steps 2–7: All UPDATEs filter directly by batchUniqueId and have no
-  //    inter-dependencies, so they run in parallel.
-  //    If ANY query rejects, Promise.all rejects → executeInTransaction rolls
-  //    back the entire transaction automatically.
+  // ── PLAN B: Smart auto-filter ─────────────────────────────────────────────
+  // Slots in these statuses are LOCKED — they cannot be cancelled:
+  //   5 = journeyStarted  (driver is actively on the road)
+  //   6 = journeyCompleted (already delivered)
+  //   + the terminal cancel statuses (already cancelled by anyone)
+  const lockedStatuses = [
+    journeyStatusMap.journeyStarted,     // 5
+    journeyStatusMap.journeyCompleted,   // 6
+    ...terminalStatuses,                 // 7, 9, 10, 12
+  ].filter(Boolean);
+
+  const lockedClause = lockedStatuses.join(","); // e.g. "5,6,7,9,10,12"
+
+  // Count all slots, locked slots, and cancellable slots in one query
+  const [[slotSummary]] = await db().query(
+    `SELECT
+       COUNT(*)                                                          AS totalSlots,
+       SUM(journeyStatusId IN (${lockedClause}))                        AS lockedSlots,
+       SUM(journeyStatusId NOT IN (${lockedClause}))                    AS cancellableSlots,
+       SUM(journeyStatusId IN (?,?))                                    AS inProgressSlots
+     FROM ShipperRequest
+     WHERE shipperRequestBatchId = ?
+       AND shipperRequestDeletedAt IS NULL`,
+    [
+      journeyStatusMap.journeyStarted,   // 5
+      journeyStatusMap.journeyCompleted, // 6
+      batchUniqueId,
+    ],
+  );
+
+  const cancellableSlots = Number(slotSummary.cancellableSlots) || 0;
+  const lockedSlots = Number(slotSummary.lockedSlots) || 0;
+  const inProgressSlots = Number(slotSummary.inProgressSlots) || 0;
+
+  // If every slot is locked — nothing to cancel, reject cleanly
+  if (cancellableSlots === 0) {
+    throw new AppError(
+      `Cannot fully cancel this batch — all ${lockedSlots} slot(s) are either ` +
+      `in transit (journeyStarted) or already completed/cancelled. ` +
+      `No cancellable slots remain.`,
+      400,
+    );
+  }
+
+  // Determine the final batch-level status:
+  //   - Any locked slots exist → batch becomes partiallyCancelled (17)
+  //     because those slots remain alive (started/completed)
+  //   - All slots are cancellable → batch becomes fully cancelled
+  const finalBatchStatus =
+    lockedSlots > 0
+      ? journeyStatusMap.partiallyCancelled // 17
+      : cancelStatusId;
+
+  // ── Steps 2–7: All UPDATEs run in parallel inside the transaction.
+  //    Every ShipperRequest UPDATE now skips locked slots (started/completed).
+  //    If ANY query rejects → executeInTransaction rolls back automatically.
   await Promise.all([
-    // 2. Cancel the batch header row
+    // 2. Update the batch header with the correct final status
     db().query(
       `UPDATE ShipperRequestBatch
           SET journeyStatusId = ?,
               batchUpdatedAt  = ?
         WHERE batchUniqueId = ?`,
-      [cancelStatusId, now, batchUniqueId],
+      [finalBatchStatus, now, batchUniqueId],
     ),
 
-    // 3. Cancel every individual ShipperRequest row in the batch.
-    //    Guard: skip rows already in a terminal state.
+    // 3. Cancel only the cancellable ShipperRequest slots — skip locked ones
     db().query(
       `UPDATE ShipperRequest
           SET journeyStatusId = ?
         WHERE shipperRequestBatchId = ?
-          AND journeyStatusId NOT IN (${inClause})`,
+          AND journeyStatusId NOT IN (${lockedClause})`,
       [cancelStatusId, batchUniqueId],
     ),
 
-    // 4. Cancel all open JourneyDecisions linked to this batch.
+    // 4. Cancel open JourneyDecisions linked to cancellable slots only
     db().query(
       `UPDATE JourneyDecisions jd
          INNER JOIN ShipperRequest pr
                  ON jd.shipperRequestId = pr.shipperRequestId
           SET jd.journeyStatusId = ?
         WHERE pr.shipperRequestBatchId = ?
-          AND jd.journeyStatusId NOT IN (${inClause})`,
+          AND pr.journeyStatusId NOT IN (${lockedClause})
+          AND jd.journeyStatusId NOT IN (${lockedClause})`,
       [cancelStatusId, batchUniqueId],
     ),
 
-    // 5. Cancel matched DriverRequest rows with the same cancel status as the batch.
-    //    Driver must recreate their request from the frontend after seeing the cancellation.
+    // 5. Release DriverRequest rows linked to cancellable slots back to waiting.
+    //    Drivers on journeyStarted/journeyCompleted slots are NOT touched.
     db().query(
       `UPDATE DriverRequest dr
          INNER JOIN JourneyDecisions jd
@@ -476,15 +527,13 @@ exports.cancelBatch = async ({
                  ON jd.shipperRequestId = pr.shipperRequestId
           SET dr.journeyStatusId = ?
         WHERE pr.shipperRequestBatchId = ?
+          AND pr.journeyStatusId NOT IN (${lockedClause})
           AND dr.journeyStatusId IN (1,2,3,4)`,
       [cancelStatusId, batchUniqueId],
     ),
 
-    // 6. Cancel ALL CompanyBidRequest offers for this batch — batch is closed.
-    //    isCancellationSeenByCompany is set on every bid regardless of its
-    //    current status so companies are always notified (submitted, accepted,
-    //    rejected, etc.) and can detect the cancellation via REST polling even
-    //    if they missed the WebSocket event.
+    // 6. Expire CompanyBidRequest offers for this batch.
+    //    Always mark all bids regardless of slot status so companies are notified.
     db().query(
       `UPDATE CompanyBidRequest
           SET bidStatus = 'cancelled_by_company',
@@ -493,10 +542,7 @@ exports.cancelBatch = async ({
       [batchUniqueId],
     ),
 
-    // 7. Mark active vehicle assignments as cancelled by shipper.
-    //    Only touch rows still in an actionable state (assigned/reassigned).
-    //    IN ('assigned','reassigned') is the correct guard — the previous
-    //    OR != form was logically always TRUE.
+    // 7. Cancel vehicle assignments only for the cancellable slots
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
          INNER JOIN ShipperRequest pr
@@ -504,6 +550,7 @@ exports.cancelBatch = async ({
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
         WHERE pr.shipperRequestBatchId = ?
+          AND pr.journeyStatusId NOT IN (${lockedClause})
           AND cba.assignmentStatus IN ('assigned', 'reassigned')`,
       [now, batchUniqueId],
     ),
@@ -574,8 +621,19 @@ exports.cancelBatch = async ({
     message: "success",
     data: {
       batchUniqueId,
+      finalBatchStatus,
       cancelledStatus: cancelStatusId,
       cancellationReasonsTypeId: cancellationReasonsTypeId || null,
+      // Plan B summary — tells the client exactly what happened
+      slotSummary: {
+        total: Number(slotSummary.totalSlots) || 0,
+        cancelled: cancellableSlots,
+        skipped: lockedSlots,
+        skippedReason:
+          inProgressSlots > 0
+            ? "Some slots are in transit (journeyStarted) or already completed — they were left untouched."
+            : null,
+      },
     },
     // ── Internal use only — stripped before HTTP response ──────────────────
     _notificationTargets: {
@@ -871,7 +929,7 @@ exports.partialCancelBatch = async ({
   if (notCancellable.length > 0) {
     throw new AppError(
       `The following slots cannot be cancelled (already in transit or terminal): ` +
-        notCancellable.map((s) => s.shipperRequestUniqueId).join(", "),
+      notCancellable.map((s) => s.shipperRequestUniqueId).join(", "),
       400,
     );
   }
