@@ -92,8 +92,13 @@ exports.partialCancelBatchBody = Joi.object({
 
 /**
  * GET /api/shipperRequestBatch/:batchUniqueId/slots
- * Optional: ?cancellable=true  – filter to only cancellable slots
+ * Optional query params:
+ *   cancellable=true  – filter to only cancellable slots
+ *   page=1            – page number (default 1)
+ *   limit=20          – page size (default 20, max 100)
  */
 exports.batchSlotsQuery = Joi.object({
   cancellable: Joi.boolean().optional(),
-}).unknown(true);
+  page: Joi.number().integer().min(1).default(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).default(20).optional(),
+}).unknown(false);

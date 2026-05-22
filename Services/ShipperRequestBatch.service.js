@@ -791,53 +791,82 @@ exports.sendBatchCancelNotifications = async ({
 /**
  * ### List all ShipperRequest slots for a batch with cancellability flag.
  *
- * Returns every slot in the batch. Each slot has a `cancellable` boolean
- * so the frontend can show which rows the shipper is allowed to cancel.
+ * Supports pagination (page / limit) and optional filter by cancellable status.
+ * Each slot has a `cancellable` boolean so the frontend can show which rows
+ * the shipper is allowed to cancel.
  *
  * Cancellable states (can be cancelled):
  *   1=waiting, 2=requested, 3=acceptedByDriver, 4=acceptedByShipper
  *
- * Non-cancellable states (already terminal):
+ * Non-cancellable states (already terminal or in-transit):
  *   5=journeyStarted, 6=journeyCompleted, 7=cancelledByShipper,
  *   9=cancelledByDriver, 10=cancelledByAdmin, 12=cancelledBySystem
  *
- * @param {string} batchUniqueId
- * @param {boolean} onlyCancellable - If true, returns only cancellable slots.
+ * @param {string}  batchUniqueId
+ * @param {Object}  filters
+ * @param {boolean} filters.cancellable  - If true, returns only cancellable slots.
+ * @param {number}  filters.page         - Page number (default 1).
+ * @param {number}  filters.limit        - Page size (default 20, max 100).
  */
-exports.getCancellableSlots = async (batchUniqueId, onlyCancellable = false) => {
-  // Cancellable = not yet in a terminal or in-progress-locked state
-  const CANCELLABLE_STATUS_IDS = [
-    journeyStatusMap.waiting,          // 1
-    journeyStatusMap.requested,        // 2
-    journeyStatusMap.acceptedByDriver, // 3
-    journeyStatusMap.acceptedByShipper,// 4
-  ];
+exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
+  const { page, limit, offset } = paginate({ ...filters, defaultLimit: 20 });
 
+  // Cancellable = waiting / requested / acceptedByDriver / acceptedByShipper
+  const CANCELLABLE_STATUS_IDS = [
+    journeyStatusMap.waiting,           // 1
+    journeyStatusMap.requested,         // 2
+    journeyStatusMap.acceptedByDriver,  // 3
+    journeyStatusMap.acceptedByShipper, // 4
+  ];
   const cancellableIn = CANCELLABLE_STATUS_IDS.join(",");
+
+  const onlyCancellable =
+    filters.cancellable === true || filters.cancellable === "true";
 
   const extraWhere = onlyCancellable
     ? `AND pr.journeyStatusId IN (${cancellableIn})`
     : "";
 
-  const [rows] = await db().query(
-    `SELECT
-       pr.shipperRequestUniqueId,
-       pr.shipperRequestId,
-       pr.journeyStatusId,
-       js.journeyStatusName,
-       pr.shipperRequestCreatedAt,
-       CASE WHEN pr.journeyStatusId IN (${cancellableIn}) THEN 1 ELSE 0 END AS cancellable
-     FROM ShipperRequest pr
-     LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
-     WHERE pr.shipperRequestBatchId = ?
-       AND pr.shipperRequestDeletedAt IS NULL
-       ${extraWhere}
-     ORDER BY pr.shipperRequestId ASC`,
-    [batchUniqueId],
-  );
+  const dataSql = `
+    SELECT
+      pr.shipperRequestUniqueId,
+      pr.shipperRequestId,
+      pr.journeyStatusId,
+      js.journeyStatusName,
+      pr.originPlace,
+      pr.destinationPlace,
+      pr.shipperRequestCreatedAt,
+      CASE WHEN pr.journeyStatusId IN (${cancellableIn}) THEN 1 ELSE 0 END AS cancellable
+    FROM ShipperRequest pr
+    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
+    WHERE pr.shipperRequestBatchId = ?
+      AND pr.shipperRequestDeletedAt IS NULL
+      ${extraWhere}
+    ORDER BY pr.shipperRequestId ASC
+    LIMIT ? OFFSET ?`;
 
-  return { message: "success", data: rows };
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM ShipperRequest pr
+    WHERE pr.shipperRequestBatchId = ?
+      AND pr.shipperRequestDeletedAt IS NULL
+      ${extraWhere}`;
+
+  const [[rows], [[countRow]]] = await Promise.all([
+    db().query(dataSql, [batchUniqueId, limit, offset]),
+    db().query(countSql, [batchUniqueId]),
+  ]);
+
+  const total = Number(countRow?.total) || 0;
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return {
+    message: "success",
+    data: rows,
+    pagination: { page, limit, total, totalPages },
+  };
 };
+
 
 // ── PARTIAL CANCEL ────────────────────────────────────────────────────────────
 

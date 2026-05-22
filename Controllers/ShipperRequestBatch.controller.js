@@ -109,16 +109,18 @@ exports.cancelBatch = async (req, res, next) => {
 /**
  * GET /api/shipperRequestBatch/:batchUniqueId/slots
  *
- * Returns all slots in the batch with a `cancellable` flag on each row.
- * Pass ?cancellable=true to return only cancellable slots.
+ * Returns paginated slots in the batch with a `cancellable` flag on each row.
+ * Query params:
+ *   ?cancellable=true  – return only cancellable slots
+ *   ?page=1            – page number (default 1)
+ *   ?limit=20          – page size (default 20, max 100)
  *
  * Used by the frontend to render the partial-cancel slot picker.
  */
 exports.getCancellableSlots = async (req, res, next) => {
   try {
     const { batchUniqueId } = req.params;
-    const onlyCancellable = req.query.cancellable === true || req.query.cancellable === "true";
-    const result = await service.getCancellableSlots(batchUniqueId, onlyCancellable);
+    const result = await service.getCancellableSlots(batchUniqueId, req.query);
     ServerResponder(res, result);
   } catch (e) {
     next(e);
