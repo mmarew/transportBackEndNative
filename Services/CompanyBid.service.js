@@ -303,6 +303,7 @@ exports.getAvailableRequests = async (companyUniqueId, filters = {}) => {
     SELECT b.*, 
            b.batchUniqueId AS shipperRequestBatchId, -- backwards compatibility
            u.fullName AS shipperName,
+           u.phoneNumber AS shipperPhone,
            vt.vehicleTypeName, js.journeyStatusName
     FROM ShipperRequestBatch b
     LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId

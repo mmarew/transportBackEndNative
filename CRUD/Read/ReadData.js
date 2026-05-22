@@ -509,33 +509,79 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     userUniqueId,
   ];
 
+  // ── Part 3: Company slot-level counts from ShipperRequest ──────────────
+  // Once a bid is accepted_by_shipper, individual ShipperRequest rows are
+  // lazily created (one per vehicle slot).  journeyStarted / journeyCompleted
+  // / cancelledByDriver live on those rows — NOT on the batch header.
+  const companySlotQuery = `
+    SELECT
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ?
+        THEN pr.shipperRequestId END) AS companyJourneyStarted,
+
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ?
+        THEN pr.shipperRequestId END) AS companyNotSeenCompleted,
+
+      COUNT(DISTINCT CASE
+        WHEN jd.journeyStatusId = ?
+          AND jd.isCancellationByDriverSeenByShipper = ?
+        THEN pr.shipperRequestId END) AS companyNotSeenCancelledByDriver
+
+    FROM ShipperRequest pr
+    LEFT JOIN JourneyDecisions jd ON jd.shipperRequestId = pr.shipperRequestId
+    WHERE pr.userUniqueId = ?
+      AND pr.requestMode = 'company_target'
+      AND pr.shipperRequestDeletedAt IS NULL
+  `;
+
+  const companySlotValues = [
+    journeyStatusMap.journeyStarted,   // companyJourneyStarted
+    journeyStatusMap.journeyCompleted, // companyNotSeenCompleted status
+    false,                             // companyNotSeenCompleted isCompletionSeen
+    journeyStatusMap.cancelledByDriver,// companyNotSeenCancelledByDriver status
+    "not seen by shipper yet",         // companyNotSeenCancelledByDriver seen flag
+    userUniqueId,
+  ];
+
   const queryExecutor = transactionStorage.getStore() || connection || pool;
-  const [prResult, batchResult] = await Promise.all([
+  const [prResult, batchResult, companySlotResult] = await Promise.all([
     queryExecutor.query(prQuery, prValues),
     queryExecutor.query(batchQuery, batchValues),
+    queryExecutor.query(companySlotQuery, companySlotValues),
   ]);
 
-  const pr = prResult[0][0];
-  const batch = batchResult[0][0];
+  const pr          = prResult[0][0];
+  const batch       = batchResult[0][0];
+  const companySlot = companySlotResult[0][0];
 
   const n = (v) => Number(v) || 0;
 
-  const individualTotal = n(pr.totalCount);
-  const companyWaiting  = n(batch.companyBatchWaitingVehicles);
-  const companyBidding  = n(batch.companyAuctionCount);       // submitted bids = "driver accepted"
-  const companyActive   = n(batch.companyOngoingVehicles);    // accepted bids  = "shipper accepted"
+  const companyWaiting             = n(batch.companyBatchWaitingVehicles);
+  const companyBidding             = n(batch.companyAuctionCount);       // submitted bids
+  const companyActive              = n(batch.companyOngoingVehicles);    // accepted bids
+  const companyJourneyStarted      = n(companySlot.companyJourneyStarted);
+  const companyNotSeenCompleted    = n(companySlot.companyNotSeenCompleted);
+  const companyNotSeenCancelled    = n(companySlot.companyNotSeenCancelledByDriver);
 
-  const totalCount = individualTotal + companyWaiting + companyBidding + companyActive;
+  const individualTotal = n(pr.totalCount);
+  const totalCount = individualTotal
+    + companyWaiting
+    + companyBidding
+    + companyActive
+    + companyJourneyStarted
+    + companyNotSeenCompleted
+    + companyNotSeenCancelled;
 
   return {
     totalCount,
-    waiting:                  { individual: n(pr.waitingCount),                   company: companyWaiting },
-    requested:                { individual: n(pr.requestedCount),                 company: 0 },
-    acceptedByDriver:         { individual: n(pr.acceptedByDriverCount),          company: companyBidding },
-    acceptedByShipper:        { individual: n(pr.acceptedByShipperCount),         company: companyActive },
-    journeyStarted:           { individual: n(pr.journeyStartedCount),            company: 0 },
-    notSeenCompleted:         { individual: n(pr.notSeenCompletedCount),          company: 0 },
-    notSeenCancelledByDriver: { individual: n(pr.notSeenCancelledByDriverCount),  company: 0 },
+    waiting:                  { individual: n(pr.waitingCount),                  company: companyWaiting },
+    requested:                { individual: n(pr.requestedCount),                company: 0 },
+    acceptedByDriver:         { individual: n(pr.acceptedByDriverCount),         company: companyBidding },
+    acceptedByShipper:        { individual: n(pr.acceptedByShipperCount),        company: companyActive },
+    journeyStarted:           { individual: n(pr.journeyStartedCount),           company: companyJourneyStarted },
+    notSeenCompleted:         { individual: n(pr.notSeenCompletedCount),         company: companyNotSeenCompleted },
+    notSeenCancelledByDriver: { individual: n(pr.notSeenCancelledByDriverCount), company: companyNotSeenCancelled },
   };
 };
 
