@@ -703,6 +703,9 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         journeyStarted:    n(bd.journeyStarted),    // goods loaded, in transit
         completed:         n(bd.completed),         // delivered
         cancelledByShipper:n(bd.cancelledByShipper),// shipper cancelled slot
+        // batchCount: from Part 2 batchQuery — batches with bidStatus=accepted_by_shipper
+        // This is the exact count the Ongoing list fetches, so badges always match
+        batchCount:        n(batch.companyOngoingCount), // distinct accepted batches
         total:             n(bd.total),             // total slots created
       },
     },
