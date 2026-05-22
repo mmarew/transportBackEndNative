@@ -20,7 +20,8 @@ async function findOne(table, conditions, errorMsg, errorCode = 404) {
 
 function paginate(filters) {
   const page = Math.max(1, Number(filters.page) || 1);
-  const limit = Math.min(Math.max(1, Number(filters.limit) || 10), 100);
+  const defaultLimit = Number(filters.defaultLimit) || 10;
+  const limit = Math.min(Math.max(1, Number(filters.limit) || defaultLimit), 100);
   return { page, limit, offset: (page - 1) * limit };
 }
 
