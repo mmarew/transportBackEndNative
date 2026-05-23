@@ -836,3 +836,12 @@ const getJourneys = async (filters = {}) => {
     );
   }
 };
+
+module.exports = {
+  getAllJourneys,
+  getJourneyByJourneyUniqueId,
+  searchCompletedJourneyByUserData,
+  getOngoingJourney,
+  getAllCompletedJourneys,
+  getJourneys
+};
