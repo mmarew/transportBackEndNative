@@ -12,15 +12,14 @@ const { currentDate} = require("../../Utils/CurrentDate");
 
 
 // @param {Object} connection - Optional database connection for transaction support
-const = async (data, connection = null) => {
+const createJourney = async (data, connection = null) => {
   const {
     journeyDecisionUniqueId,
     startTime,
     endTime,
     fare,
     journeyStatusId,
-    journeyCreatedBy,
-  } = data;
+    journeyCreatedBy} = data;
 
   // Use transaction storage for transaction support, or fall back to provided connection or pool
   const queryExecutor = transactionStorage.getStore() || connection || pool;
@@ -64,8 +63,9 @@ const = async (data, connection = null) => {
         endTime,
         fare,
         journeyStatusId,
-        journeyId: result.insertId,
-      },
-    ],
-  };
+        journeyId: result.insertId},
+    ]};
+};
+module.exports = {
+  createJourney
 };

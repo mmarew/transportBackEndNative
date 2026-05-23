@@ -1,6 +1,6 @@
 "use strict";
 
-const { v4: } = require("uuid");
+
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 
@@ -45,9 +45,7 @@ const = async (page = 1, limit = 10) => {
       totalCount,
       hasNext: safePage < totalPages,
       hasPrev: safePage > 1,
-      limit: safeLimit,
-    },
-  };
+      limit: safeLimit}};
 };
 
 // Get a specific journey by ID
@@ -91,9 +89,7 @@ const = async (
           totalCount: 0,
           hasNext: false,
           hasPrev: false,
-          limit,
-        },
-      };
+          limit}};
     }
 
     const userIds = users.map((user) => user.userUniqueId);
@@ -101,8 +97,7 @@ const = async (
 
     const roleConfig = {
       1: { userField: "ShipperRequest.userUniqueId" },
-      2: { userField: "DriverRequest.userUniqueId" },
-    };
+      2: { userField: "DriverRequest.userUniqueId" }};
 
     if (!roleConfig[roleId]) {
       throw new Error("Invalid role ID");
@@ -154,8 +149,7 @@ const = async (
         return {
           shipper: shipperData.data,
           driver: driverData.data,
-          journey: item,
-        };
+          journey: item};
       }),
     );
 
@@ -168,9 +162,7 @@ const = async (
         totalCount,
         hasNext: safePage < totalPages,
         hasPrev: safePage > 1,
-        limit: safeLimit,
-      },
-    };
+        limit: safeLimit}};
   } catch (error) {
     throw new AppError(
       error.message || "Failed to search completed journeys",
@@ -191,15 +183,12 @@ const = async ({ page = 1, limit = 10, filters = {} }) => {
         joinTable: "ShipperRequest",
         joinCondition:
           "ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
-        userField: "ShipperRequest.userUniqueId",
-      },
+        userField: "ShipperRequest.userUniqueId"},
       2: {
         joinTable: "DriverRequest",
         joinCondition:
           "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
-        userField: "DriverRequest.userUniqueId",
-      },
-    };
+        userField: "DriverRequest.userUniqueId"}};
 
     if (!roleConfig[roleId]) {
       throw new Error("Invalid role ID");
@@ -315,14 +304,12 @@ const = async ({ page = 1, limit = 10, filters = {} }) => {
 
         const driver = driverData.data;
         const vehicle = await getVehicles({
-          ownerUserUniqueId: driver?.userUniqueId,
-        });
+          ownerUserUniqueId: driver?.userUniqueId});
 
         return {
           shipper: shipperData.data,
           driver: { driver: driverData.data, vehicle: vehicle?.data[0] },
-          journey: item,
-        };
+          journey: item};
       }),
     );
 
@@ -335,9 +322,7 @@ const = async ({ page = 1, limit = 10, filters = {} }) => {
         totalCount,
         hasNext: page < totalPages,
         hasPrev: page > 1,
-        limit,
-      },
-    };
+        limit}};
   } catch (error) {
     throw new AppError(
       error.message || "Failed to get ongoing journeys",
@@ -439,8 +424,7 @@ const = async ({ page = 1, limit = 10 }) => {
         decisionBy: row.decisionBy,
         shippingDateByDriver: row.shippingDateByDriver,
         deliveryDateByDriver: row.deliveryDateByDriver,
-        shippingCostByDriver: row.shippingCostByDriver,
-      },
+        shippingCostByDriver: row.shippingCostByDriver},
       journey: {
         journeyId: row.journeyId,
         journeyUniqueId: row.journeyUniqueId,
@@ -448,8 +432,7 @@ const = async ({ page = 1, limit = 10 }) => {
         startTime: row.startTime,
         endTime: row.endTime,
         fare: row.fare,
-        journeyStatusId: row.journeyStatusId,
-      },
+        journeyStatusId: row.journeyStatusId},
       shipper: {
         shipperRequestUniqueId: row.shipperRequestUniqueId,
         userUniqueId: row.shipperUserUniqueId,
@@ -468,8 +451,7 @@ const = async ({ page = 1, limit = 10 }) => {
         shippableItemQtyInQuintal: row.shippableItemQtyInQuintal,
         shippingDate: row.shippingDate,
         deliveryDate: row.deliveryDate,
-        shippingCost: row.shippingCost,
-      },
+        shippingCost: row.shippingCost},
       driver: {
         driverRequestUniqueId: row.driverRequestUniqueId,
         userUniqueId: row.driverUserUniqueId,
@@ -479,9 +461,7 @@ const = async ({ page = 1, limit = 10 }) => {
         originLatitude: row.driverOriginLat,
         originLongitude: row.driverOriginLng,
         originPlace: row.driverOriginPlace,
-        driverRequestCreatedAt: row.driverRequestCreatedAt,
-      },
-    }));
+        driverRequestCreatedAt: row.driverRequestCreatedAt}}));
 
     // Get total count of completed journeys
     const countSql = `
@@ -503,9 +483,7 @@ const = async ({ page = 1, limit = 10 }) => {
         totalCount,
         hasNext: safePage < totalPages,
         hasPrev: safePage > 1,
-        limit: safeLimit,
-      },
-    };
+        limit: safeLimit}};
   } catch (error) {
     throw new AppError(
       error.message || "Failed to get all completed journeys",
@@ -531,8 +509,7 @@ const = async (filters = {}) => {
       userFilters = {},
       dateFilters = {},
       page = 1,
-      limit = 10,
-    } = filters;
+      limit = 10} = filters;
 
     const { fullName, phone, email, search } = userFilters;
     const { fromDate, toDate } = dateFilters;
@@ -542,15 +519,12 @@ const = async (filters = {}) => {
         joinTable: "ShipperRequest",
         joinCondition:
           "ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId",
-        userField: "ShipperRequest.userUniqueId",
-      },
+        userField: "ShipperRequest.userUniqueId"},
       2: {
         joinTable: "DriverRequest",
         joinCondition:
           "DriverRequest.driverRequestId = JourneyDecisions.driverRequestId",
-        userField: "DriverRequest.userUniqueId",
-      },
-    };
+        userField: "DriverRequest.userUniqueId"}};
 
     if (!roleConfig[roleId]) {
       throw new Error("Invalid role ID. Use 1 for shipper or 2 for driver");
@@ -767,8 +741,7 @@ const = async (filters = {}) => {
         let vehicle = null;
         if (item.driverUserUniqueId) {
           const vehicleResult = await getVehicles({
-            ownerUserUniqueId: item.driverUserUniqueId,
-          });
+            ownerUserUniqueId: item.driverUserUniqueId});
           vehicle = vehicleResult?.data?.[0] || null;
         }
 
@@ -797,8 +770,7 @@ const = async (filters = {}) => {
           shippingCost: item.shippingCost,
           isCompletionSeen: item.isCompletionSeen,
           shipperRequestCreatedBy: item.shipperRequestCreatedBy,
-          shipperRequestCreatedByRoleId: item.shipperRequestCreatedByRoleId,
-        };
+          shipperRequestCreatedByRoleId: item.shipperRequestCreatedByRoleId};
 
         // Build driver object
         const driver = {
@@ -814,10 +786,8 @@ const = async (filters = {}) => {
             originLongitude: item.driverOriginLng,
             originPlace: item.driverOriginPlace,
             driverRequestCreatedAt: item.driverRequestCreatedAt,
-            journeyStatusId: item.driverJourneyStatusId,
-          },
-          vehicle: vehicle,
-        };
+            journeyStatusId: item.driverJourneyStatusId},
+          vehicle: vehicle};
 
         // Build journey object
         const journey = {
@@ -828,8 +798,7 @@ const = async (filters = {}) => {
           endTime: item.endTime,
           fare: item.fare,
           journeyStatusId: item.journeyStatusId,
-          journeyStatusName: item.journeyStatusName,
-        };
+          journeyStatusName: item.journeyStatusName};
 
         // Build decision object
         const decision = {
@@ -841,15 +810,13 @@ const = async (filters = {}) => {
           decisionBy: item.decisionBy,
           shippingDateByDriver: item.shippingDateByDriver,
           deliveryDateByDriver: item.deliveryDateByDriver,
-          shippingCostByDriver: item.shippingCostByDriver,
-        };
+          shippingCostByDriver: item.shippingCostByDriver};
         // Return exact structure you requested
         return {
           shipper: shipper,
           driver: driver,
           journey: journey,
-          decision: decision,
-        };
+          decision: decision};
       }),
     );
 
@@ -862,9 +829,7 @@ const = async (filters = {}) => {
         totalCount: totalCount,
         hasNext: safePage < totalPages,
         hasPrev: safePage > 1,
-        limit: safeLimit,
-      },
-    };
+        limit: safeLimit}};
   } catch (error) {
     throw new AppError(
       error.message || "Failed to get journeys",

@@ -1,6 +1,6 @@
 "use strict";
 
-const { v4: } = require("uuid");
+
 const { pool } = require("../../Middleware/Database.config");
 
 
@@ -23,6 +23,5 @@ const = async (journeyId, endTime, fare, journeyStatusId) => {
 
   return {
     message: "success",
-    data: { journeyId, endTime, fare, journeyStatusId },
-  };
+    data: { journeyId, endTime, fare, journeyStatusId }};
 };

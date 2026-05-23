@@ -1,6 +1,6 @@
 "use strict";
 
-const { v4: } = require("uuid");
+
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { performJoinSelect } = require("../../CRUD/Read/ReadData");
@@ -29,11 +29,9 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
       joins: [
         {
           table: "Users",
-          on: "DriverRequest.userUniqueId = Users.userUniqueId",
-        },
+          on: "DriverRequest.userUniqueId = Users.userUniqueId"},
       ],
-      conditions: { driverRequestId },
-    });
+      conditions: { driverRequestId }});
 
     if (result?.length === 0) {
       throw new AppError("Request not found", 404);
@@ -44,8 +42,7 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
     const logger = require("../../Utils/logger");
     logger.error("Unable to retrieve request", {
       error: error.message,
-      stack: error.stack,
-    });
+      stack: error.stack});
     throw new AppError(
       error.message || "Unable to retrieve request",
       error.statusCode || 500,
@@ -61,11 +58,9 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
       joins: [
         {
           table: "Users",
-          on: "ShipperRequest.userUniqueId = Users.userUniqueId",
-        },
+          on: "ShipperRequest.userUniqueId = Users.userUniqueId"},
       ],
-      conditions: { shipperRequestId },
-    });
+      conditions: { shipperRequestId }});
 
     if (result?.length === 0) {
       throw new AppError("Request not found", 404);
@@ -77,8 +72,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
     logger.error("Unable to retrieve shipper request", {
       shipperRequestId,
       error: error.message,
-      stack: error.stack,
-    });
+      stack: error.stack});
     throw new AppError(
       error.message || "Unable to retrieve request",
       error.statusCode || 500,
@@ -87,14 +81,13 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
 };
 // Normalize date to YYYY-MM-DD (handles both "2025-11-22" and "2025-11-22T00:00:00.000Z")
 
-const = async (filters = {}) => {
+const getCompletedJourneyCountsByDate = async (filters = {}) => {
   try {
     const {
       ownerUserUniqueId,
       toDate: toDateStr,
       fromDate: fromDateStr,
-      userFilters = {},
-    } = filters;
+      userFilters = {}} = filters;
     const fromDateOnly = toDateOnly(fromDateStr);
     const toDateOnlyVal = toDateOnly(toDateStr);
 
@@ -209,9 +202,7 @@ const = async (filters = {}) => {
       totalDates: countRows.length,
       dateRange: {
         fromDate: fromDateOnly || fromDateStr,
-        toDate: toDateOnlyVal || toDateStr,
-      },
-    };
+        toDate: toDateOnlyVal || toDateStr}};
   } catch (error) {
     throw new AppError(
       error.message || "Failed to get completed journey counts",
@@ -220,4 +211,4 @@ const = async (filters = {}) => {
   }
 };
 
-module.exports = { query, getDriverRequestByRequestId, getShipperRequestByShipperRequestId };
+module.exports = { query, getDriverRequestByRequestId, getShipperRequestByShipperRequestId, getCompletedJourneyCountsByDate };

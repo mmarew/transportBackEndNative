@@ -18,5 +18,4 @@ module.exports = {
   getAllCompletedJourneys: journeyRead.getAllCompletedJourneys,
   getJourneys: journeyRead.getJourneys,
   getDriverRequestByRequestId: journeyHelper.getDriverRequestByRequestId,
-  getShipperRequestByShipperRequestId: journeyHelper.getShipperRequestByShipperRequestId,
-};
+  getShipperRequestByShipperRequestId: journeyHelper.getShipperRequestByShipperRequestId};

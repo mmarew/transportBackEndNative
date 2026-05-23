@@ -9,5 +9,4 @@ module.exports = {
   ...bidCreate,
   ...bidRead,
   ...bidUpdate,
-  ...bidDelete,
-};
+  ...bidDelete};

@@ -5,9 +5,7 @@ const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const {
   db,
-  findOne,
-  
-  } = require("../CompanyHelper.service");
+  findOne} = require("../CompanyHelper.service");
 const logger = require("../../Utils/logger");
 
 
