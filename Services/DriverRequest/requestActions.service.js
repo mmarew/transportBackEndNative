@@ -19,7 +19,7 @@ const {
 } = require("../TariffRateForVehicleTypes.service");
 const { createJourneyDecision } = require("../JourneyDecisions.service");
 const { currentDate } = require("../../Utils/CurrentDate");
-const { createJourney } = require("../Journey.service");
+const { createJourney } = require("../Journey");
 const {
   createCanceledJourney,
   getJourneyDataByContextType,

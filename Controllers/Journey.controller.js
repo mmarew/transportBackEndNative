@@ -1,4 +1,4 @@
-const journeyService = require("../Services/Journey.service");
+const journeyService = require("../Services/Journey");
 const { validatePagination } = require("../Utils/paginationUtils");
 const ServerResponder = require("../Utils/ServerResponder");
 const AppError = require("../Utils/AppError");
