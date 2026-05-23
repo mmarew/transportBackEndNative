@@ -476,6 +476,17 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         THEN b.batchUniqueId
       END) as companyAuctionCount,
 
+      -- companyAuctionVehicles: total vehicles in batches receiving bids (bidStatus=submitted)
+      COALESCE(SUM(CASE
+        WHEN EXISTS (
+            SELECT 1 FROM CompanyBidRequest cbr
+            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+              AND cbr.bidStatus = 'submitted'
+          )
+        THEN b.totalVehicles
+        ELSE 0
+      END), 0) as companyAuctionVehicles,
+
       COUNT(DISTINCT CASE
         WHEN EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
@@ -667,9 +678,9 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
 
   const n = (v) => Number(v) || 0;
 
-  const companyWaiting             = n(batch.companyBatchWaitingVehicles);
-  const companyBidding             = n(batch.companyAuctionCount);
-  const companyActive              = n(batch.companyOngoingVehicles);
+  const companyWaiting             = n(batch.companyBatchWaitingVehicles); // SUM(totalVehicles) ✅
+  const companyBidding             = n(batch.companyAuctionVehicles);      // SUM(totalVehicles) ✅ (was batch count)
+  const companyActive              = n(batch.companyOngoingVehicles);      // SUM(totalVehicles) ✅
   const companyJourneyStarted      = n(companySlot.companyJourneyStarted);
   const companyNotSeenCompleted    = n(companySlot.companyNotSeenCompleted);
   const companyNotSeenCancelled    = n(companySlot.companyNotSeenCancelledByDriver);
@@ -696,17 +707,18 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     acceptedByShipper: {
       individual: n(pr.acceptedByShipperCount),
       company: {
-        notAssigned:       n(bd.notAssigned),       // free slot, never touched
-        needsReassignment: n(bd.needsReassignment), // lost driver, needs new assign
-        assigned:          n(bd.assigned),           // driver notified, awaiting confirm
-        driverConfirmed:   n(bd.driverConfirmed),   // driver confirmed / loading
-        journeyStarted:    n(bd.journeyStarted),    // goods loaded, in transit
-        completed:         n(bd.completed),         // delivered
-        cancelledByShipper:n(bd.cancelledByShipper),// shipper cancelled slot
-        // batchCount: from Part 2 batchQuery — batches with bidStatus=accepted_by_shipper
-        // This is the exact count the Ongoing list fetches, so badges always match
-        batchCount:        n(batch.companyOngoingCount), // distinct accepted batches
-        total:             n(bd.total),             // total slots created
+        notAssigned:       n(bd.notAssigned),       // free slot (vehicle), never touched
+        needsReassignment: n(bd.needsReassignment), // vehicle lost driver, needs new assign
+        assigned:          n(bd.assigned),           // vehicle: driver notified, awaiting confirm
+        driverConfirmed:   n(bd.driverConfirmed),   // vehicle: driver confirmed / loading
+        journeyStarted:    n(bd.journeyStarted),    // vehicle: goods loaded, in transit
+        completed:         n(bd.completed),         // vehicle: delivered
+        cancelledByShipper:n(bd.cancelledByShipper),// vehicle: shipper cancelled
+        // ongoingVehicles: total vehicles across all accepted batches (same unit as other fields)
+        ongoingVehicles:   n(batch.companyOngoingVehicles),
+        // batchCount: number of distinct accepted batches — used for frontend list badge
+        batchCount:        n(batch.companyOngoingCount),
+        total:             n(bd.total),             // total vehicle slots created
       },
     },
 
