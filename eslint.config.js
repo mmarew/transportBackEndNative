@@ -85,6 +85,7 @@ module.exports = [
       // "max-nested-callbacks": ["warn", { max: 5 }], // Common issue with callbacks (relaxed from 4)
       // "max-lines-per-function": ["warn", { max: 200, skipBlankLines: true, skipComments: true }], // Relaxed from 150
       // "max-params": ["warn", { max: 7 }], // Limit parameters in functions (relaxed from 6)
+      "max-lines": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
     },
   },
   {
