@@ -643,10 +643,11 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
           AND pr.isCompletionSeen = false
         THEN pr.shipperRequestId END) AS completed,
 
-      -- cancelledByShipper: shipper cancelled this slot
+      /* -- cancelledByShipper: commented out — will restore later
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId = ?
         THEN pr.shipperRequestId END) AS cancelledByShipper,
+      */
 
       -- total: all non-deleted company slots for this shipper
       COUNT(DISTINCT pr.shipperRequestId) AS total
@@ -662,7 +663,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.acceptedByShipper, // needsReassignment: status check 2
     journeyStatusMap.journeyStarted,    // journeyStarted
     journeyStatusMap.journeyCompleted,  // completed (unseen only)
-    journeyStatusMap.cancelledByShipper,// cancelledByShipper
+    // journeyStatusMap.cancelledByShipper, // cancelledByShipper — commented out
     userUniqueId,
   ];
 
@@ -716,7 +717,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         driverConfirmed:   n(bd.driverConfirmed),   // vehicle: driver confirmed / loading
         journeyStarted:    n(bd.journeyStarted),    // vehicle: goods loaded, in transit
         completed:         n(bd.completed),         // vehicle: delivered
-        cancelledByShipper:n(bd.cancelledByShipper),// vehicle: shipper cancelled
+        // cancelledByShipper:n(bd.cancelledByShipper), // commented out — will restore later
         // ongoingVehicles: total vehicles across all accepted batches (same unit as other fields)
         ongoingVehicles:   n(batch.companyOngoingVehicles),
         // batchCount: number of distinct accepted batches — used for frontend list badge
