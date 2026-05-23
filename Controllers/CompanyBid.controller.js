@@ -1,5 +1,5 @@
 "use strict";
-const service = require("../Services/CompanyBid.service");
+const service = require("../Services/CompanyBid");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 

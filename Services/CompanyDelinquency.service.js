@@ -16,7 +16,7 @@
  *  - CompanyBan is the SINGLE SOURCE OF TRUTH for ban history.
  *  - approvalStatus on TransportCompany is NEVER modified by this service.
  *    It is reserved exclusively for the admin registration/document-approval workflow.
- *  - The bid guard in CompanyBid.service.js queries CompanyBan directly,
+ *  - The bid guard in CompanyBid.js queries CompanyBan directly,
  *    giving a "suspended until [date]" message and keeping full ban history intact.
  */
 
