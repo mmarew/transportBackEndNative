@@ -12,7 +12,7 @@ const { getVehicles } = require("../Vehicle.service");
 const { query, getDriverRequestByRequestId, getShipperRequestByShipperRequestId } = require("./journeyHelper");
 
 // Get all journeys with pagination
-const = async (page = 1, limit = 10) => {
+const getAllJourneys = async (page = 1, limit = 10) => {
   const safePage = Math.max(1, parseInt(page) || 1);
   const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
   const offset = (safePage - 1) * safeLimit;
@@ -49,7 +49,7 @@ const = async (page = 1, limit = 10) => {
 };
 
 // Get a specific journey by ID
-const = async (journeyUniqueId) => {
+const getJourneyByJourneyUniqueId = async (journeyUniqueId) => {
   const result = await query(
     "SELECT * FROM Journey WHERE journeyUniqueId = ?",
     [journeyUniqueId],
@@ -65,8 +65,7 @@ const = async (journeyUniqueId) => {
 
 
 // Search completed journey by user data with pagination
-const = async (
-  phoneOrEmail,
+const searchCompletedJourneyByUserData = async (  phoneOrEmail,
   roleId,
   page = 1,
   limit = 10,
@@ -172,7 +171,7 @@ const = async (
 };
 
 // Get ongoing journey with pagination
-const = async ({ page = 1, limit = 10, filters = {} }) => {
+const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
   const executor = transactionStorage.getStore() || pool;
   try {
     const { fullName, phone, email, search, roleId, ownerUserUniqueId } =
@@ -334,7 +333,7 @@ const = async ({ page = 1, limit = 10, filters = {} }) => {
 // (removed) searchOngoingJourneyByUserData - functionality merged into getOngoingJourney
 
 // Get all completed journeys with pagination (OPTIMIZED)
-const = async ({ page = 1, limit = 10 }) => {
+const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
   const executor = transactionStorage.getStore() || pool;
   try {
     const safePage = Math.max(1, parseInt(page) || 1);
@@ -497,7 +496,7 @@ const = async ({ page = 1, limit = 10 }) => {
 // Unified method to get journeys with exact response structure
 
 // Unified method to get journeys with exact response structure
-const = async (filters = {}) => {
+const getJourneys = async (filters = {}) => {
   const executor = transactionStorage.getStore() || pool;
   try {
     const {

@@ -12,7 +12,7 @@ const AppError = require("../../Utils/AppError");
 const { query} = require("./journeyHelper");
 
 // Update a specific journey by ID
-const = async (journeyId, endTime, fare, journeyStatusId) => {
+const updateJourney = async (journeyId, endTime, fare, journeyStatusId) => {
   const sql = `UPDATE Journey SET endTime = ?, fare = ?, journeyStatusId = ? WHERE journeyId = ?`;
   const values = [endTime, fare, journeyStatusId, journeyId];
   const result = await query(sql, values);
@@ -24,4 +24,8 @@ const = async (journeyId, endTime, fare, journeyStatusId) => {
   return {
     message: "success",
     data: { journeyId, endTime, fare, journeyStatusId }};
+};
+
+module.exports = {
+  updateJourney
 };

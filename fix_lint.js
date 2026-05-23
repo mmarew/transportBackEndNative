@@ -1,17 +1,17 @@
-const fs = require('fs');
+const fs = require("fs");
 
-const lintResults = JSON.parse(fs.readFileSync('lint-results-2.json', 'utf8'));
+const lintResults = JSON.parse(fs.readFileSync("lint-results-2.json", "utf8"));
 
 lintResults.forEach(fileResult => {
-  if (fileResult.errorCount === 0) return;
+  if (fileResult.errorCount === 0) {return;}
   const filePath = fileResult.filePath;
-  if (!fs.existsSync(filePath)) return;
+  if (!fs.existsSync(filePath)) {return;}
   
-  let lines = fs.readFileSync(filePath, 'utf8').split('\n');
+  let lines = fs.readFileSync(filePath, "utf8").split("\n");
   let modified = false;
 
   fileResult.messages.forEach(msg => {
-    if (msg.ruleId === 'no-unused-vars') {
+    if (msg.ruleId === "no-unused-vars") {
       const match = msg.message.match(/'([^']+)' is assigned a value but never used/);
       if (match) {
         const varName = match[1];
@@ -21,30 +21,30 @@ lintResults.forEach(fileResult => {
         
         // Match `const varName = require(...)`
         if (new RegExp("const\\s+" + varName + "\\s*=\\s*require").test(line)) {
-            lines[lineIdx] = "";
-            modified = true;
+          lines[lineIdx] = "";
+          modified = true;
         }
         // Match `const { varName } = require(...)`
         else if (new RegExp("const\\s*\\{\\s*" + varName + "\\s*\\}\\s*=\\s*require").test(line)) {
-            lines[lineIdx] = "";
-            modified = true;
+          lines[lineIdx] = "";
+          modified = true;
         }
         // Match inside a block
         else {
-            let oldLine = lines[lineIdx];
-            lines[lineIdx] = lines[lineIdx].replace(new RegExp("\\b" + varName + "\\b\\s*,?"), "");
-            lines[lineIdx] = lines[lineIdx].replace(/\{\s*,/, "{");
-            lines[lineIdx] = lines[lineIdx].replace(/,\s*\}/, "}");
-            lines[lineIdx] = lines[lineIdx].replace(/,\s*,/, ",");
+          let oldLine = lines[lineIdx];
+          lines[lineIdx] = lines[lineIdx].replace(new RegExp("\\b" + varName + "\\b\\s*,?"), "");
+          lines[lineIdx] = lines[lineIdx].replace(/\{\s*,/, "{");
+          lines[lineIdx] = lines[lineIdx].replace(/,\s*\}/, "}");
+          lines[lineIdx] = lines[lineIdx].replace(/,\s*,/, ",");
             
-            if (oldLine !== lines[lineIdx]) modified = true;
+          if (oldLine !== lines[lineIdx]) {modified = true;}
         }
       }
     }
   });
 
   if (modified) {
-    let newContent = lines.join('\n');
+    let newContent = lines.join("\n");
     newContent = newContent.replace(/const\s*\{\s*\}\s*=\s*require\([^)]+\);/g, "");
     fs.writeFileSync(filePath, newContent);
   }

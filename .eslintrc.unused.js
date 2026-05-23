@@ -1,5 +1,5 @@
-const fs = require('fs');
-const base = JSON.parse(fs.readFileSync('./.eslintrc.json', 'utf8'));
+const fs = require("fs");
+const base = JSON.parse(fs.readFileSync("./.eslintrc.json", "utf8"));
 module.exports = {
   ...base,
   plugins: [...(base.plugins || []), "unused-imports"],
