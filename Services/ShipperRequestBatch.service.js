@@ -76,7 +76,7 @@ const assertCompanyCancellationReason = async (cancellationReasonsTypeId) => {
   if (reason.requestMode === "individual") {
     throw new AppError(
       `Cancellation reason "${reason.cancellationReason}" is only valid for individual requests, not company freight batches. ` +
-      `Please choose a reason with requestMode 'company' or 'both'.`,
+        `Please choose a reason with requestMode 'company' or 'both'.`,
       400,
     );
   }
@@ -487,9 +487,9 @@ exports.cancelBatch = async ({
   //   6 = journeyCompleted (already delivered)
   //   + the terminal cancel statuses (already cancelled by anyone)
   const lockedStatuses = [
-    journeyStatusMap.journeyStarted,     // 5
-    journeyStatusMap.journeyCompleted,   // 6
-    ...terminalStatuses,                 // 7, 9, 10, 12
+    journeyStatusMap.journeyStarted, // 5
+    journeyStatusMap.journeyCompleted, // 6
+    ...terminalStatuses, // 7, 9, 10, 12
   ].filter(Boolean);
 
   const lockedClause = lockedStatuses.join(","); // e.g. "5,6,7,9,10,12"
@@ -505,7 +505,7 @@ exports.cancelBatch = async ({
      WHERE shipperRequestBatchId = ?
        AND shipperRequestDeletedAt IS NULL`,
     [
-      journeyStatusMap.journeyStarted,   // 5
+      journeyStatusMap.journeyStarted, // 5
       journeyStatusMap.journeyCompleted, // 6
       batchUniqueId,
     ],
@@ -513,14 +513,38 @@ exports.cancelBatch = async ({
 
   const cancellableSlots = Number(slotSummary.cancellableSlots) || 0;
   const lockedSlots = Number(slotSummary.lockedSlots) || 0;
-  const inProgressSlots = Number(slotSummary.inProgressSlots) || 0;
+  const totalSlots = Number(slotSummary.totalSlots) || 0;
 
-  // If every slot is locked — nothing to cancel, reject cleanly
+  // ── Slot-free batch (waiting / requested stage) ─────----──────────────────────
+  // No ShipperRequest rows exist yet — bid hasn't been accepted.
+  // Cancel the batch header and expire any open bids; nothing else to do.
+  if (totalSlots === 0) {
+    await Promise.all([
+      db().query(
+        `UPDATE ShipperRequestBatch
+            SET journeyStatusId = ?,
+                batchUpdatedAt  = ?
+          WHERE batchUniqueId = ?`,
+        [cancelStatusId, now, batchUniqueId],
+      ),
+      db().query(
+        `UPDATE CompanyBidRequest
+            SET bidStatus = 'expired',
+                isCancellationSeenByCompany = 'not seen by company yet'
+          WHERE shipperRequestBatchId = ?
+            AND bidStatus NOT IN ('expired','rejected_by_shipper','cancelled_by_company')`,
+        [batchUniqueId],
+      ),
+    ]);
+    return { message: "Batch cancelled successfully", batchUniqueId };
+  }
+
+  // ── All existing slots are locked (started / completed / already cancelled) ─
   if (cancellableSlots === 0) {
     throw new AppError(
       `Cannot fully cancel this batch — all ${lockedSlots} slot(s) are either ` +
-      `in transit (journeyStarted) or already completed/cancelled. ` +
-      `No cancellable slots remain.`,
+        `in transit (journeyStarted) or already completed/cancelled. ` +
+        `No cancellable slots remain.`,
       400,
     );
   }
@@ -864,9 +888,9 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
 
   // Cancellable = waiting / requested / acceptedByDriver / acceptedByShipper
   const CANCELLABLE_STATUS_IDS = [
-    journeyStatusMap.waiting,           // 1
-    journeyStatusMap.requested,         // 2
-    journeyStatusMap.acceptedByDriver,  // 3
+    journeyStatusMap.waiting, // 1
+    journeyStatusMap.requested, // 2
+    journeyStatusMap.acceptedByDriver, // 3
     journeyStatusMap.acceptedByShipper, // 4
   ];
   const cancellableIn = CANCELLABLE_STATUS_IDS.join(",");
@@ -886,7 +910,10 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   }
 
   // Filter by exact status ID — single integer OR array of integers.
-  if (filters.journeyStatusId !== undefined && filters.journeyStatusId !== null) {
+  if (
+    filters.journeyStatusId !== undefined &&
+    filters.journeyStatusId !== null
+  ) {
     const ids = Array.isArray(filters.journeyStatusId)
       ? filters.journeyStatusId.map(Number)
       : [Number(filters.journeyStatusId)];
@@ -909,7 +936,9 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
       clauses.push("js.journeyStatusName = ?");
       params.push(names[0]);
     } else {
-      clauses.push(`js.journeyStatusName IN (${names.map(() => "?").join(", ")})`);
+      clauses.push(
+        `js.journeyStatusName IN (${names.map(() => "?").join(", ")})`,
+      );
       params.push(...names);
     }
   }
@@ -1039,7 +1068,6 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   };
 };
 
-
 // ── PARTIAL CANCEL ────────────────────────────────────────────────────────────
 
 /**
@@ -1071,7 +1099,10 @@ exports.partialCancelBatch = async ({
   cancellationReasonsTypeId,
 }) => {
   if (!batchUniqueId || !userUniqueId || !slotIds?.length) {
-    throw new AppError("batchUniqueId, userUniqueId and slotIds are required", 400);
+    throw new AppError(
+      "batchUniqueId, userUniqueId and slotIds are required",
+      400,
+    );
   }
 
   // 1a. Validate cancellation reason is appropriate for company context
@@ -1091,9 +1122,9 @@ exports.partialCancelBatch = async ({
 
   // 2. Batch-level terminal guard
   const batchTerminal = [
-    journeyStatusMap.cancelledByShipper,  // 7
-    journeyStatusMap.cancelledByAdmin,    // 10
-    journeyStatusMap.cancelledBySystem,   // 12
+    journeyStatusMap.cancelledByShipper, // 7
+    journeyStatusMap.cancelledByAdmin, // 10
+    journeyStatusMap.cancelledBySystem, // 12
   ].filter(Boolean);
 
   if (batchTerminal.includes(batch.journeyStatusId)) {
@@ -1120,17 +1151,19 @@ exports.partialCancelBatch = async ({
 
   // 4. Validate cancellability — reject if any slot is not cancellable
   const CANCELLABLE = new Set([
-    journeyStatusMap.waiting,           // 1
-    journeyStatusMap.requested,         // 2
-    journeyStatusMap.acceptedByDriver,  // 3
+    journeyStatusMap.waiting, // 1
+    journeyStatusMap.requested, // 2
+    journeyStatusMap.acceptedByDriver, // 3
     journeyStatusMap.acceptedByShipper, // 4
   ]);
 
-  const notCancellable = slots.filter((s) => !CANCELLABLE.has(s.journeyStatusId));
+  const notCancellable = slots.filter(
+    (s) => !CANCELLABLE.has(s.journeyStatusId),
+  );
   if (notCancellable.length > 0) {
     throw new AppError(
       `The following slots cannot be cancelled (already in transit or terminal): ` +
-      notCancellable.map((s) => s.shipperRequestUniqueId).join(", "),
+        notCancellable.map((s) => s.shipperRequestUniqueId).join(", "),
       400,
     );
   }
@@ -1209,8 +1242,8 @@ exports.partialCancelBatch = async ({
   const activeCount = remaining[0]?.activeCount ?? 0;
   const newBatchStatus =
     activeCount === 0
-      ? cancelStatusId                          // fully cancelled
-      : journeyStatusMap.partiallyCancelled;   // 17 — still has active slots
+      ? cancelStatusId // fully cancelled
+      : journeyStatusMap.partiallyCancelled; // 17 — still has active slots
 
   await db().query(
     `UPDATE ShipperRequestBatch
