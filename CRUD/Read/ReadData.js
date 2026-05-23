@@ -554,20 +554,36 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     userUniqueId,
   ];
 
-  // ── Part 4: Detailed company slot breakdown (nested under acceptedByShipper) ──
-  // After bid acceptance each slot has its own sub-state driven by
-  // CompanyBidVehicleAssignment.assignmentStatus + ShipperRequest.journeyStatusId.
-  // This gives the shipper full visibility into the assignment pipeline.
+  // ── Part 4: Active-only company slot breakdown (nested under acceptedByShipper) ──
   //
-  // Sub-states (mutually exclusive priority order):
-  //   notAssigned      — free slot, never had a driver (ready to assign)
-  //   needsReassignment— free slot, previous driver cancelled (should reassign)
-  //   assigned         — driver notified, awaiting confirmation
+  // PURPOSE
+  // -------
+  // This breakdown is used exclusively for live badge/status indicators on the
+  // shipper dashboard.  It answers: "how many vehicle slots need my attention
+  // right now?"  Only statuses that represent work-in-progress are included.
+  //
+  // INCLUDED (active pipeline — shows in dashboard badges)
+  // -------------------------------------------------------
+  //   notAssigned      — slot is free, never had a driver;  company must assign one
+  //   needsReassignment— slot is free again; previous driver cancelled; reassign needed
+  //   assigned         — driver notified, waiting for driver to confirm
   //   driverConfirmed  — driver confirmed / heading to loading point
-  //   journeyStarted   — goods loaded, in transit
-  //   completed        — delivered (may not have been seen by shipper yet)
-  //   cancelledByShipper — shipper cancelled this slot
-  //   total            — total company slots created under this shipper
+  //   journeyStarted   — goods loaded, driver in transit
+  //   completed        — delivered but NOT YET SEEN by shipper (unseen badge)
+  //                      → drops to 0 once shipper opens the record
+  //
+  // EXCLUDED (dead / terminal — intentionally omitted from this response)
+  // -----------------------------------------------------------------------
+  //   cancelledByShipper — terminal; shipper already acted, no further action needed
+  //                        (commented out — restore when a "cancelled history" view is built)
+  //   seen completions   — isCompletionSeen = true; shipper already acknowledged;
+  //                        no badge needed
+  //   total              — gross slot count includes all statuses above (active + dead);
+  //                        misleading in an active-only context; commented out.
+  //                        If you need a denominator, query it separately.
+  //
+  // TO RESTORE excluded fields: un-comment the matching SQL CASE, binding value,
+  // and response field.  All three are labelled "commented out — restore later".
   const companyBreakdownQuery = `
     SELECT
       -- notAssigned: free slot, never had a driver at all
@@ -641,7 +657,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId = ?
           AND pr.isCompletionSeen = false
-        THEN pr.shipperRequestId END) AS completed,
+        THEN pr.shipperRequestId END) AS completed
 
       /* -- cancelledByShipper: commented out — will restore later
       COUNT(DISTINCT CASE
@@ -649,8 +665,11 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         THEN pr.shipperRequestId END) AS cancelledByShipper,
       */
 
-      -- total: all non-deleted company slots for this shipper
+      /* -- total: commented out — gross count includes cancelled + seen-completed (dead statuses).
+           Misleading in an active-only dashboard context. Restore separately if a
+           "history/archive" view needs a denominator.
       COUNT(DISTINCT pr.shipperRequestId) AS total
+      */
 
     FROM ShipperRequest pr
     WHERE pr.userUniqueId = ?
@@ -717,12 +736,13 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         driverConfirmed:   n(bd.driverConfirmed),   // vehicle: driver confirmed / loading
         journeyStarted:    n(bd.journeyStarted),    // vehicle: goods loaded, in transit
         completed:         n(bd.completed),         // vehicle: delivered
-        // cancelledByShipper:n(bd.cancelledByShipper), // commented out — will restore later
-        // ongoingVehicles: total vehicles across all accepted batches (same unit as other fields)
+        // cancelledByShipper:n(bd.cancelledByShipper), // commented out — restore for history view
+        // ongoingVehicles: total vehicles across accepted batches (vehicle unit, from Part 2)
         ongoingVehicles:   n(batch.companyOngoingVehicles),
-        // batchCount: number of distinct accepted batches — used for frontend list badge
+        // batchCount: distinct accepted batches — used for frontend Ongoing list badge
         batchCount:        n(batch.companyOngoingCount),
-        total:             n(bd.total),             // total vehicle slots created
+        // total: commented out — gross count polluted by cancelled + seen-completed slots.
+        // total: n(bd.total),
       },
     },
 
