@@ -88,7 +88,7 @@ const ARRAY_FIELDS = ["journeyStatusName", "journeyStatusId"];
 const normalizeArrayQuery = (req, _res, next) => {
   for (const field of ARRAY_FIELDS) {
     const raw = req.query[field];
-    if (!raw || Array.isArray(raw)) continue; // already an array or missing
+    if (!raw || Array.isArray(raw)) {continue;} // already an array or missing
     // Format 2: "[1,4,6]" or "[acceptedByDriver,partiallyCancelled]"
     if (typeof raw === "string" && raw.startsWith("[") && raw.endsWith("]")) {
       const inner = raw.slice(1, -1);

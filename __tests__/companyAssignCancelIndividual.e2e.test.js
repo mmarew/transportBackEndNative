@@ -83,7 +83,7 @@ async function login({ phoneNumber, OTP, roleId }) {
     .send({ OTP, phoneNumber, roleId })
     .expect(200);
   const token = res.body?.token || res.body?.data?.token;
-  if (!token) throw new Error(`Login failed for role ${roleId}: ${JSON.stringify(res.body)}`);
+  if (!token) {throw new Error(`Login failed for role ${roleId}: ${JSON.stringify(res.body)}`);}
   return token;
 }
 
@@ -102,7 +102,7 @@ beforeAll(async () => {
       .set("Authorization", `Bearer ${companyToken}`)
       .query({ userUniqueId: "self" });
     const company = profileRes.body?.data?.[0];
-    if (!company) throw new Error("No company found for COMPANY_CREDS — create one first");
+    if (!company) {throw new Error("No company found for COMPANY_CREDS — create one first");}
     companyUniqueId = company.companyUniqueId;
   }
 
@@ -135,7 +135,7 @@ beforeAll(async () => {
           const [anyVehicle] = await conn.query(
             `SELECT vehicleUniqueId, vehicleTypeUniqueId FROM Vehicle WHERE vehicleDeletedAt IS NULL LIMIT 1`,
           );
-          if (!anyVehicle[0]) throw new Error("No vehicles in DB at all — seed first");
+          if (!anyVehicle[0]) {throw new Error("No vehicles in DB at all — seed first");}
           const { v4: linkUuid } = require("uuid");
           // Get company admin's UUID for createdBy (driverUserUniqueId not resolved yet)
           const [adminUser] = await conn.query(
@@ -169,7 +169,7 @@ beforeAll(async () => {
       .get("/api/admin/vehicleTypes")
       .set("Authorization", `Bearer ${companyToken}`);
     const vt = vtRes.body?.data?.[0] || vtRes.body?.[0];
-    if (!vt) throw new Error("No VehicleTypes found — seed the database first");
+    if (!vt) {throw new Error("No VehicleTypes found — seed the database first");}
     vehicleTypeUniqueId = vt.vehicleTypeUniqueId;
   }
 

@@ -427,7 +427,7 @@ const upsertDriverRequest = async ({
           tableName: "DriverRequest",
           conditions: { driverRequestUniqueId: existingUniqueId },
           updateValues: {
-          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+            journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
             driverRequestDeletedAt: currentDate(),
             driverRequestUpdatedAt: currentDate(),
           },

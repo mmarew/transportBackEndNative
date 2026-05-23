@@ -1,8 +1,8 @@
-const AppError = require('../../Utils/AppError');
-const { transactionStorage } = require('../../Utils/TransactionContext');
-const { pool } = require('../../Middleware/Database.config');
-const { journeyStatusMap } = require('../../Utils/ListOfSeedData');
-const { performJoinSelect } = require('./ReadData.core');
+const AppError = require("../../Utils/AppError");
+const { transactionStorage } = require("../../Utils/TransactionContext");
+const { pool } = require("../../Middleware/Database.config");
+const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
+const { performJoinSelect } = require("./ReadData.core");
 
 const checkActiveDriverRequest = async (userUniqueId) => {
   try {

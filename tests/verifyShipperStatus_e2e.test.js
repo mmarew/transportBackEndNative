@@ -51,7 +51,7 @@ function req(method, path, body = null, headers = {}) {
   return new Promise((resolve, reject) => {
     const bodyStr = body ? JSON.stringify(body) : null;
     const hdrs = { "Content-Type": "application/json", ...headers };
-    if (bodyStr) hdrs["Content-Length"] = Buffer.byteLength(bodyStr);
+    if (bodyStr) {hdrs["Content-Length"] = Buffer.byteLength(bodyStr);}
     const r = transport.request(
       { hostname: parsedBase.hostname, port: parsedBase.port || 80, path, method, headers: hdrs },
       (res) => {
@@ -64,7 +64,7 @@ function req(method, path, body = null, headers = {}) {
       },
     );
     r.on("error", reject);
-    if (bodyStr) r.write(bodyStr);
+    if (bodyStr) {r.write(bodyStr);}
     r.end();
   });
 }
@@ -77,7 +77,7 @@ async function login(phone, roleId) {
   const token  = r.body?.token || r.body?.data?.token;
   const userId = r.body?.userData?.userUniqueId || r.body?.data?.userUniqueId
               || loginRes.body?.data?.userUniqueId;
-  if (!token) throw new Error(`Login failed for ${phone}: ${JSON.stringify(r.body)}`);
+  if (!token) {throw new Error(`Login failed for ${phone}: ${JSON.stringify(r.body)}`);}
   return { token, userId };
 }
 
@@ -100,7 +100,7 @@ async function step(name, fn) {
   }
 }
 
-function assert(cond, msg) { if (!cond) throw new Error(msg); }
+function assert(cond, msg) { if (!cond) {throw new Error(msg);} }
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 const runId = String(Date.now()).slice(-6);
@@ -328,7 +328,7 @@ const s = {
     });
 
     await step("Slot B: Driver starts journey but does NOT complete (status→5)", async () => {
-      if (s.singleDriverOnly) return "skipped";
+      if (s.singleDriverOnly) {return "skipped";}
       const r = await req(
         "PATCH", `/api/company/assignments/${s.assignments[1].assignmentUniqueId}/status`,
         { assignmentStatus: "journey_started" },
@@ -339,7 +339,7 @@ const s = {
     });
 
     await step("Slot C: Driver confirms then CANCELS assignment (status→cancelledByDriver)", async () => {
-      if (s.singleDriverOnly || !s.assignments[2]?.assignmentUniqueId) return "skipped";
+      if (s.singleDriverOnly || !s.assignments[2]?.assignmentUniqueId) {return "skipped";}
       // Confirm first
       const confirmR = await req(
         "PATCH", `/api/company/assignments/${s.assignments[2].assignmentUniqueId}/status`,
@@ -501,7 +501,7 @@ const s = {
   for (const r of results) {
     const icon = r.pass ? "\x1b[32m✅\x1b[0m" : "\x1b[31m❌\x1b[0m";
     console.log(`  ${icon} [${r.num}] ${r.name}`);
-    if (!r.pass) console.log(`       → ${r.error}`);
+    if (!r.pass) {console.log(`       → ${r.error}`);}
   }
   console.log(`\n  Total: ${results.length}  \x1b[32mPassed: ${passed}\x1b[0m  \x1b[31mFailed: ${failed}\x1b[0m`);
 

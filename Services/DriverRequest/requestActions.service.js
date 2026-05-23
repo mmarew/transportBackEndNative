@@ -139,7 +139,7 @@ const releaseConflictingOffers = async (
           driverUserUniqueId,
           journeyStatusMap.waiting,
           journeyStatusMap.requested,
-          excludeId || '',
+          excludeId || "",
         ],
       );
 

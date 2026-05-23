@@ -18,13 +18,12 @@
 
 "use strict";
 
-const { setup, request, auth, test, assert, printResults, state, BASE_URL } =
-  require("./testHelper");
+const { setup, request, test, assert, printResults } = require("./testHelper");
 const Config = require("../Utils/Config");
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const SHIPPER_PHONE = "+251922112480";
-const DEFAULT_OTP   = Config.TEST?.OTP || "101010";
+const DEFAULT_OTP = Config.TEST?.OTP || "101010";
 
 // State shared across tests
 const ctx = {
@@ -36,7 +35,10 @@ const ctx = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function loginAs(phone, roleId = 1) {
-  const loginRes = await request("POST", "/api/user/loginUser", { phoneNumber: phone, roleId });
+  const loginRes = await request("POST", "/api/user/loginUser", {
+    phoneNumber: phone,
+    roleId,
+  });
   const verifyRes = await request("POST", "/api/user/verifyUserByOTP", {
     phoneNumber: phone,
     OTP: DEFAULT_OTP,
@@ -68,10 +70,10 @@ function authHeader(token) {
     if (!token) {
       throw new Error(
         `Could not login as ${SHIPPER_PHONE} — user may not exist. ` +
-        `Use POST /api/admin/dev/getUserOtp to check OTP, or seed the user first.`,
+          `Use POST /api/admin/dev/getUserOtp to check OTP, or seed the user first.`,
       );
     }
-    ctx.shipperToken      = token;
+    ctx.shipperToken = token;
     ctx.shipperUserUniqueId = userId;
     return `userUniqueId=${userId}`;
   });
@@ -85,9 +87,18 @@ function authHeader(token) {
       null,
       authHeader(ctx.shipperToken),
     );
-    assert(res.status === 200, `Expected 200, got ${res.status}: ${JSON.stringify(res.body)}`);
-    assert(res.body?.message === "success", `Expected message=success, got: ${JSON.stringify(res.body)}`);
-    assert(res.body?.totalRecords !== undefined, "Missing totalRecords in response");
+    assert(
+      res.status === 200,
+      `Expected 200, got ${res.status}: ${JSON.stringify(res.body)}`,
+    );
+    assert(
+      res.body?.message === "success",
+      `Expected message=success, got: ${JSON.stringify(res.body)}`,
+    );
+    assert(
+      res.body?.totalRecords !== undefined,
+      "Missing totalRecords in response",
+    );
     ctx.statusResult = res.body;
     return `totalCount=${res.body.totalRecords?.totalCount}`;
   });
@@ -103,14 +114,28 @@ function authHeader(token) {
     console.log(`     waiting.company:         ${t.waiting?.company}`);
     console.log(`     requested.individual:    ${t.requested?.individual}`);
     console.log(`     requested.company:       ${t.requested?.company}`);
-    console.log(`     acceptedByDriver.ind:    ${t.acceptedByDriver?.individual}`);
+    console.log(
+      `     acceptedByDriver.ind:    ${t.acceptedByDriver?.individual}`,
+    );
     console.log(`     acceptedByDriver.co:     ${t.acceptedByDriver?.company}`);
-    console.log(`     acceptedByShipper.ind:   ${t.acceptedByShipper?.individual}`);
-    console.log(`     acceptedByShipper.co:    ${t.acceptedByShipper?.company}`);
-    console.log(`     journeyStarted.ind:      ${t.journeyStarted?.individual}`);
-    console.log(`     journeyStarted.co:       ${t.journeyStarted?.company}  ← should match DB`);
-    console.log(`     notSeenCompleted.ind:    ${t.notSeenCompleted?.individual}`);
-    console.log(`     notSeenCompleted.co:     ${t.notSeenCompleted?.company} ← should match DB`);
+    console.log(
+      `     acceptedByShipper.ind:   ${t.acceptedByShipper?.individual}`,
+    );
+    console.log(
+      `     acceptedByShipper.co:    ${t.acceptedByShipper?.company}`,
+    );
+    console.log(
+      `     journeyStarted.ind:      ${t.journeyStarted?.individual}`,
+    );
+    console.log(
+      `     journeyStarted.co:       ${t.journeyStarted?.company}  ← should match DB`,
+    );
+    console.log(
+      `     notSeenCompleted.ind:    ${t.notSeenCompleted?.individual}`,
+    );
+    console.log(
+      `     notSeenCompleted.co:     ${t.notSeenCompleted?.company} ← should match DB`,
+    );
 
     return "breakdown printed above";
   });
@@ -124,7 +149,10 @@ function authHeader(token) {
       null,
       authHeader(ctx.shipperToken),
     );
-    assert(res.status === 200, `Expected 200, got ${res.status}: ${JSON.stringify(res.body)}`);
+    assert(
+      res.status === 200,
+      `Expected 200, got ${res.status}: ${JSON.stringify(res.body)}`,
+    );
     const batches = res.body?.data || [];
     console.log(`\n  📦 Found ${batches.length} company_target batch(es)`);
     batches.forEach((b, i) => {
@@ -164,17 +192,17 @@ function authHeader(token) {
     };
 
     const statusToKey = {
-      waiting:                  "waiting",
-      requested:                "requested",
-      acceptedByDriver:         "acceptedByDriver",
-      acceptedByShipper:        "acceptedByShipper",
-      journeyStarted:           "journeyStarted",
-      journeyCompleted:         "journeyCompleted",
-      cancelledByShipper:       "cancelled",
-      cancelledByDriver:        "cancelled",
-      cancelledByAdmin:         "cancelled",
-      cancelledBySystem:        "cancelled",
-      partiallyCancelled:       "cancelled",
+      waiting: "waiting",
+      requested: "requested",
+      acceptedByDriver: "acceptedByDriver",
+      acceptedByShipper: "acceptedByShipper",
+      journeyStarted: "journeyStarted",
+      journeyCompleted: "journeyCompleted",
+      cancelledByShipper: "cancelled",
+      cancelledByDriver: "cancelled",
+      cancelledByAdmin: "cancelled",
+      cancelledBySystem: "cancelled",
+      partiallyCancelled: "cancelled",
     };
 
     for (const batch of batches) {
@@ -184,10 +212,14 @@ function authHeader(token) {
         null,
         authHeader(ctx.shipperToken),
       );
-      if (slotsRes.status !== 200) continue;
+      if (slotsRes.status !== 200) {
+        continue;
+      }
 
       const slots = slotsRes.body?.data || [];
-      console.log(`\n  🗂  Batch ${batch.batchUniqueId} (${batch.journeyStatusName}) — ${slots.length} slot(s):`);
+      console.log(
+        `\n  🗂  Batch ${batch.batchUniqueId} (${batch.journeyStatusName}) — ${slots.length} slot(s):`,
+      );
 
       const batchBreakdown = {};
       for (const slot of slots) {
@@ -209,8 +241,8 @@ function authHeader(token) {
     console.log("\n  🆚 Comparison (API vs Ground Truth):");
 
     // journeyStarted — known potential gap
-    const apiStarted  = t?.journeyStarted?.company || 0;
-    const gtStarted   = groundTruth.journeyStarted;
+    const apiStarted = t?.journeyStarted?.company || 0;
+    const gtStarted = groundTruth.journeyStarted;
     const startedMatch = apiStarted === gtStarted;
     console.log(
       `     journeyStarted.company:   API=${apiStarted}  GT=${gtStarted}  ${startedMatch ? "✅ MATCH" : "❌ MISMATCH — bug confirmed in getActiveRequestsCount!"}`,
@@ -218,15 +250,15 @@ function authHeader(token) {
 
     // journeyCompleted — known potential gap
     const apiCompleted = t?.notSeenCompleted?.company || 0;
-    const gtCompleted  = groundTruth.journeyCompleted;
+    const gtCompleted = groundTruth.journeyCompleted;
     const completedMatch = apiCompleted === gtCompleted;
     console.log(
       `     notSeenCompleted.company: API=${apiCompleted}  GT=${gtCompleted}  ${completedMatch ? "✅ MATCH" : "❌ MISMATCH — completed company slots not tracked!"}`,
     );
 
     // waiting
-    const apiWaiting  = t?.waiting?.company || 0;
-    const gtWaiting   = groundTruth.waiting;
+    const apiWaiting = t?.waiting?.company || 0;
+    const gtWaiting = groundTruth.waiting;
     console.log(
       `     waiting.company:          API=${apiWaiting}  GT=${gtWaiting}  ${apiWaiting === gtWaiting ? "✅ MATCH" : "❌ MISMATCH"}`,
     );
@@ -235,7 +267,7 @@ function authHeader(token) {
     if (!startedMatch && gtStarted > 0) {
       throw new Error(
         `journeyStarted.company mismatch: API reports ${apiStarted} but DB has ${gtStarted} slots. ` +
-        `Fix: add journeyStarted/journeyCompleted to batchQuery in getActiveRequestsCount().`,
+          `Fix: add journeyStarted/journeyCompleted to batchQuery in getActiveRequestsCount().`,
       );
     }
 
@@ -266,8 +298,13 @@ function authHeader(token) {
 
     // Each status object must have both individual and company keys
     const statusKeys = [
-      "waiting", "requested", "acceptedByDriver", "acceptedByShipper",
-      "journeyStarted", "notSeenCompleted", "notSeenCancelledByDriver",
+      "waiting",
+      "requested",
+      "acceptedByDriver",
+      "acceptedByShipper",
+      "journeyStarted",
+      "notSeenCompleted",
+      "notSeenCancelledByDriver",
     ];
     for (const key of statusKeys) {
       assert(
