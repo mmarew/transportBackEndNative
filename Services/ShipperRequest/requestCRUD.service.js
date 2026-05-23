@@ -3,7 +3,7 @@ const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { deleteData } = require("../../CRUD/Delete/DeleteData");
 const { createNewShipperRequest } = require("../../CRUD/Create/CreateData");
-const batchService = require("../ShipperRequestBatch.service");
+const batchService = require("../ShipperRequestBatch");
 const { pool } = require("../../Middleware/Database.config");
 const {
   journeyStatusMap,

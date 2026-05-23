@@ -1,6 +1,6 @@
 "use strict";
 
-const service = require("../Services/ShipperRequestBatch.service");
+const service = require("../Services/ShipperRequestBatch");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
