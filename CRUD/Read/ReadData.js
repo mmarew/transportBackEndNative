@@ -635,9 +635,12 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         WHEN pr.journeyStatusId = ?
         THEN pr.shipperRequestId END) AS journeyStarted,
 
-      -- completed: delivered (seen or unseen by shipper)
+      -- completed: delivered but NOT YET SEEN by the shipper
+      -- Once the shipper opens it and marks it seen, this drops to 0.
+      -- Mirrors the same filter used in notSeenCompleted (Part 3).
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId = ?
+          AND pr.isCompletionSeen = false
         THEN pr.shipperRequestId END) AS completed,
 
       -- cancelledByShipper: shipper cancelled this slot
@@ -658,7 +661,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.acceptedByShipper, // notAssigned: status check 1
     journeyStatusMap.acceptedByShipper, // needsReassignment: status check 2
     journeyStatusMap.journeyStarted,    // journeyStarted
-    journeyStatusMap.journeyCompleted,  // completed
+    journeyStatusMap.journeyCompleted,  // completed (unseen only)
     journeyStatusMap.cancelledByShipper,// cancelledByShipper
     userUniqueId,
   ];
