@@ -657,7 +657,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE
         WHEN pr.journeyStatusId = ?
           AND pr.isCompletionSeen = false
-        THEN pr.shipperRequestId END) AS completed
+        THEN pr.shipperRequestId END) AS completed,
 
       /* -- cancelledByShipper: commented out — will restore later
       COUNT(DISTINCT CASE
@@ -665,11 +665,14 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         THEN pr.shipperRequestId END) AS cancelledByShipper,
       */
 
-      /* -- total: commented out — gross count includes cancelled + seen-completed (dead statuses).
-           Misleading in an active-only dashboard context. Restore separately if a
-           "history/archive" view needs a denominator.
-      COUNT(DISTINCT pr.shipperRequestId) AS total
-      */
+      -- total: active slots only — excludes cancelled (by anyone) and seen-completed.
+      -- This is the clean denominator for the active dashboard view:
+      --   total = notAssigned + needsReassignment + assigned + driverConfirmed
+      --         + journeyStarted + completed(unseen)
+      COUNT(DISTINCT CASE
+        WHEN pr.journeyStatusId NOT IN (?, ?, ?, ?)   -- skip all cancel terminals
+          AND NOT (pr.journeyStatusId = ? AND pr.isCompletionSeen = true) -- skip seen-completed
+        THEN pr.shipperRequestId END) AS total
 
     FROM ShipperRequest pr
     WHERE pr.userUniqueId = ?
@@ -683,6 +686,12 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.journeyStarted,    // journeyStarted
     journeyStatusMap.journeyCompleted,  // completed (unseen only)
     // journeyStatusMap.cancelledByShipper, // cancelledByShipper — commented out
+    // total: 4 cancel terminals + journeyCompleted for seen-completed exclusion
+    journeyStatusMap.cancelledByShipper, // total: exclude cancelledByShipper
+    journeyStatusMap.cancelledByDriver,  // total: exclude cancelledByDriver
+    journeyStatusMap.cancelledByAdmin,   // total: exclude cancelledByAdmin
+    journeyStatusMap.cancelledBySystem,  // total: exclude cancelledBySystem
+    journeyStatusMap.journeyCompleted,   // total: exclude seen-completed (paired with isCompletionSeen=true)
     userUniqueId,
   ];
 
@@ -741,8 +750,9 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         ongoingVehicles:   n(batch.companyOngoingVehicles),
         // batchCount: distinct accepted batches — used for frontend Ongoing list badge
         batchCount:        n(batch.companyOngoingCount),
-        // total: commented out — gross count polluted by cancelled + seen-completed slots.
-        // total: n(bd.total),
+        // active-only total: excludes cancelled (all types) + seen-completed
+        // = notAssigned + needsReassignment + assigned + driverConfirmed + journeyStarted + completed(unseen)
+        total:             n(bd.total),
       },
     },
 
