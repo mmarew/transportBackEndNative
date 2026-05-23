@@ -60,7 +60,7 @@ exports.updateAssignmentStatus = async (req, res, next) => {
         req.params.assignmentUniqueId,
         req.body.assignmentStatus,
         req.user.userUniqueId,
-        req.body
+        req.body,
       ),
     );
     ServerResponder(res, result);
