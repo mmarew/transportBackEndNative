@@ -1,41 +1,27 @@
-const {
-  getData,
-  performJoinSelect,
-  getDriverRequestByRequestUniqueId,
-  checkActiveDriverRequest,
-} = require("../../CRUD/Read/ReadData");
-const { updateData } = require("../../CRUD/Update/Data.update");
-const { createDriverRequest } = require("../../CRUD/Create/CreateData");
-const { getUserByUserUniqueId, createUser } = require("../User.service");
-const {
-  sendSocketIONotificationToShipper,
-  sendSocketIONotificationToAdmin,
-  sendNotificationToDriver,
-} = require("../../Utils/Notifications");
-const { sendSms } = require("../../Utils/smsSender");
-const { createJourneyRoutePoint } = require("../JourneyRoutePoints.service");
-const {
-  getTariffRateByVehicleTypeUniqueId,
-} = require("../TariffRateForVehicleTypes.service");
-const { createJourneyDecision } = require("../JourneyDecisions.service");
+
+
+
+
+
+
+
+
+
 const { currentDate } = require("../../Utils/CurrentDate");
-const { createJourney } = require("../Journey");
-const {
-  createCanceledJourney,
-  getJourneyDataByContextType,
-} = require("../CanceledJourneys.service");
-const messageTypes = require("../../Utils/MessageTypes");
+
+
+
 const {
   journeyStatusMap,
-  CANCELED_JOURNEY_CONTEXTS,
-  activeJourneyStatuses,
+  
+  
 } = require("../../Utils/ListOfSeedData");
-const { updateJourneyStatus } = require("../JourneyStatus.service");
-const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
+
+
 const logger = require("../../Utils/logger");
-const { sendFCMNotificationToUser } = require("../Firebase.service");
-const { fetchJourneyNotificationData } = require("./helpers");
-const AppError = require("../../Utils/AppError");
+
+
+
 
 /**
  * releaseConflictingOffers

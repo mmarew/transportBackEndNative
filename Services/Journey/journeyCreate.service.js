@@ -3,16 +3,16 @@
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
-const { performJoinSelect } = require("../../CRUD/Read/ReadData");
-const AppError = require("../../Utils/AppError");
-const { getUserByFilterDetailed } = require("../User.service");
-const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
-const { getVehicles } = require("../Vehicle.service");
-const { currentDate, toDateOnly } = require("../../Utils/CurrentDate");
-const { query, getDriverRequestByRequestId, getShipperRequestByShipperRequestId } = require("./journeyHelper");
+
+
+
+
+
+const { currentDate} = require("../../Utils/CurrentDate");
+
 
 // @param {Object} connection - Optional database connection for transaction support
-const createJourney = async (data, connection = null) => {
+const = async (data, connection = null) => {
   const {
     journeyDecisionUniqueId,
     startTime,

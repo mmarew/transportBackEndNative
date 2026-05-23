@@ -1,18 +1,18 @@
 "use strict";
 
-const { v4: uuidv4 } = require("uuid");
+const { v4: } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
-const { performJoinSelect } = require("../../CRUD/Read/ReadData");
+
 const AppError = require("../../Utils/AppError");
 const { getUserByFilterDetailed } = require("../User.service");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const { getVehicles } = require("../Vehicle.service");
-const { currentDate, toDateOnly } = require("../../Utils/CurrentDate");
+
 const { query, getDriverRequestByRequestId, getShipperRequestByShipperRequestId } = require("./journeyHelper");
 
 // Get all journeys with pagination
-const getAllJourneys = async (page = 1, limit = 10) => {
+const = async (page = 1, limit = 10) => {
   const safePage = Math.max(1, parseInt(page) || 1);
   const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
   const offset = (safePage - 1) * safeLimit;
@@ -51,7 +51,7 @@ const getAllJourneys = async (page = 1, limit = 10) => {
 };
 
 // Get a specific journey by ID
-const getJourneyByJourneyUniqueId = async (journeyUniqueId) => {
+const = async (journeyUniqueId) => {
   const result = await query(
     "SELECT * FROM Journey WHERE journeyUniqueId = ?",
     [journeyUniqueId],
@@ -67,7 +67,7 @@ const getJourneyByJourneyUniqueId = async (journeyUniqueId) => {
 
 
 // Search completed journey by user data with pagination
-const searchCompletedJourneyByUserData = async (
+const = async (
   phoneOrEmail,
   roleId,
   page = 1,
@@ -180,7 +180,7 @@ const searchCompletedJourneyByUserData = async (
 };
 
 // Get ongoing journey with pagination
-const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
+const = async ({ page = 1, limit = 10, filters = {} }) => {
   const executor = transactionStorage.getStore() || pool;
   try {
     const { fullName, phone, email, search, roleId, ownerUserUniqueId } =
@@ -349,7 +349,7 @@ const getOngoingJourney = async ({ page = 1, limit = 10, filters = {} }) => {
 // (removed) searchOngoingJourneyByUserData - functionality merged into getOngoingJourney
 
 // Get all completed journeys with pagination (OPTIMIZED)
-const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
+const = async ({ page = 1, limit = 10 }) => {
   const executor = transactionStorage.getStore() || pool;
   try {
     const safePage = Math.max(1, parseInt(page) || 1);
@@ -519,7 +519,7 @@ const getAllCompletedJourneys = async ({ page = 1, limit = 10 }) => {
 // Unified method to get journeys with exact response structure
 
 // Unified method to get journeys with exact response structure
-const getJourneys = async (filters = {}) => {
+const = async (filters = {}) => {
   const executor = transactionStorage.getStore() || pool;
   try {
     const {

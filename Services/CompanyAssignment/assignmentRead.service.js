@@ -11,23 +11,19 @@ const {
 } = require("../CompanyHelper.service");
 const {
   journeyStatusMap,
-  usersRoles,
-  CANCELED_JOURNEY_CONTEXTS,
+  
+  
 } = require("../../Utils/ListOfSeedData");
-const { createCanceledJourney } = require("../CanceledJourneys.service");
-const { sendFCMNotificationToUser } = require("../Firebase.service");
-const { sendSocketIONotificationToDriver } = require("../../Utils/Notifications");
-const messageTypes = require("../../Utils/MessageTypes");
-const logger = require("../../Utils/logger");
-const { createDriverRequest } = require("../../CRUD/Create/CreateData");
-const { updateData } = require("../../CRUD/Update/Data.update");
+
+
+
+
+
+
+
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
-const {
-  verifyDriverJourneyStatus,
-} = require("../DriverRequest/statusVerification.service");
-const {
-  reportDriverCommissionEvasion,
-} = require("../CommissionEvasion.service");
+
+
 const { createJourneyDecisionForAssignment, notifyAssignedDriver, upsertDriverRequest, findActiveAssignmentForSlot } = require("./assignmentHelper");
 
 /**

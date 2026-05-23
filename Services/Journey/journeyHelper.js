@@ -1,14 +1,14 @@
 "use strict";
 
-const { v4: uuidv4 } = require("uuid");
+const { v4: } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 const AppError = require("../../Utils/AppError");
-const { getUserByFilterDetailed } = require("../User.service");
-const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
-const { getVehicles } = require("../Vehicle.service");
-const { currentDate, toDateOnly } = require("../../Utils/CurrentDate");
+
+const { journeyStatusMap} = require("../../Utils/ListOfSeedData");
+
+const {  toDateOnly } = require("../../Utils/CurrentDate");
 
 
 // Helper function for database queries (uses pool by default, connection if provided)
@@ -87,7 +87,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
 };
 // Normalize date to YYYY-MM-DD (handles both "2025-11-22" and "2025-11-22T00:00:00.000Z")
 
-const getCompletedJourneyCountsByDate = async (filters = {}) => {
+const = async (filters = {}) => {
   try {
     const {
       ownerUserUniqueId,
