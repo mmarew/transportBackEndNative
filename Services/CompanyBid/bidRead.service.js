@@ -7,12 +7,10 @@ const {
   db,
   findOne,
   paginate,
-  paginatedQuery,
-} = require("../CompanyHelper.service");
+  paginatedQuery} = require("../CompanyHelper.service");
 const logger = require("../../Utils/logger");
 const {
-  reportCompanyCommissionEvasion,
-} = require("../CommissionEvasion.service");
+  reportCompanyCommissionEvasion} = require("../CommissionEvasion.service");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSocketIONotificationToCompany } = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -219,8 +217,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     return {
       message: "success",
       data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 },
-    };
+      pagination: { page, limit, total: 0, totalPages: 0 }};
   }
 
   // ── 2. Fetch all matching offers in ONE query (avoids N+1) ───────────────
@@ -290,8 +287,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   const grouped = batches.map((batch) => ({
     ...batch,
     offerCount: (offersByBatchId.get(batch.batchUniqueId) || []).length,
-    offers: offersByBatchId.get(batch.batchUniqueId) || [],
-  }));
+    offers: offersByBatchId.get(batch.batchUniqueId) || []}));
 
   return {
     message: "success",
@@ -300,9 +296,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
+      totalPages: Math.ceil(total / limit)}};
 };
 
 /**
@@ -389,9 +383,7 @@ const getBidsSummary = async (companyUniqueId) => {
       total:
         (availableRes[0]?.total || 0) +
         (submittedRes[0]?.total || 0) +
-        (acceptedRes[0]?.total || 0),
-    },
-  };
+        (acceptedRes[0]?.total || 0)}};
 };
 
 /**
@@ -497,8 +489,7 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   return getGroupedBids(
     {
       shipperUserUniqueId: resolvedShipperUserUniqueId,
-      companyUniqueId: resolvedCompanyUniqueId,
-    },
+      companyUniqueId: resolvedCompanyUniqueId},
     filters,
   );
 };

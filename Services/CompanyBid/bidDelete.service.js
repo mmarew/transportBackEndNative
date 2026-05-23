@@ -7,12 +7,10 @@ const {
   db,
   findOne,
   paginate,
-  paginatedQuery,
-} = require("../CompanyHelper.service");
+  paginatedQuery} = require("../CompanyHelper.service");
 const logger = require("../../Utils/logger");
 const {
-  reportCompanyCommissionEvasion,
-} = require("../CommissionEvasion.service");
+  reportCompanyCommissionEvasion} = require("../CommissionEvasion.service");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSocketIONotificationToCompany } = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");

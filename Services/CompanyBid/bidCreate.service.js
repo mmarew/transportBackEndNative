@@ -7,12 +7,10 @@ const {
   db,
   findOne,
   paginate,
-  paginatedQuery,
-} = require("../CompanyHelper.service");
+  paginatedQuery} = require("../CompanyHelper.service");
 const logger = require("../../Utils/logger");
 const {
-  reportCompanyCommissionEvasion,
-} = require("../CommissionEvasion.service");
+  reportCompanyCommissionEvasion} = require("../CommissionEvasion.service");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSocketIONotificationToCompany } = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -58,8 +56,7 @@ const submitBid = async (data) => {
     proposedTotalCost,
     proposedShippingDate,
     proposedDeliveryDate,
-    bidNotes,
-  } = data;
+    bidNotes} = data;
 
   // Company must be approved (registration-level check)
   const company = await findOne(
@@ -108,8 +105,7 @@ const submitBid = async (data) => {
     totalVehicles,
     requestMode,
     targetCompanyUniqueId,
-    shipperUserUniqueId,
-  } = batchRows[0];
+    shipperUserUniqueId} = batchRows[0];
 
   // --- SOURCE OF TRUTH: We prioritize the batch's required vehicle type ---
   const finalVehicleTypeUniqueId =
@@ -228,28 +224,22 @@ const submitBid = async (data) => {
 
     if (shipperRows?.[0]?.phoneNumber) {
       const {
-        sendSocketIONotificationToShipper,
-      } = require("../Utils/Notifications");
+        sendSocketIONotificationToShipper} = require("../Utils/Notifications");
       sendSocketIONotificationToShipper({
         phoneNumber: shipperRows[0].phoneNumber,
         message: {
           messageTypes: messageTypes.company_bid_submitted,
           notification: {
             title: "New Company Bid",
-            body: `${company.companyName} has submitted a bid for your freight.`,
-          },
+            body: `${company.companyName} has submitted a bid for your freight.`},
           data: {
             companyBidRequestUniqueId,
             companyName: company.companyName,
             shipperRequestBatchId,
-            proposedTotalCost: calculatedTotalCost,
-          },
-        },
-      }).catch((e) =>
+            proposedTotalCost: calculatedTotalCost}}}).catch((e) =>
         logger.error("WebSocket notification to shipper failed in submitBid", {
           error: e.message,
-          shipperUserUniqueId,
-        }),
+          shipperUserUniqueId}),
       );
     }
   }

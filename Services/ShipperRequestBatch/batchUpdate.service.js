@@ -1,25 +1,8 @@
 "use strict";
 
-const AppError = require("../../Utils/AppError");
-const { currentDate } = require("../../Utils/CurrentDate");
-const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
-const messageTypes = require("../../Utils/MessageTypes");
-const logger = require("../../Utils/logger");
-const {
-  sendSocketIONotificationToCompany,
-  sendSocketIONotificationToDriver,
-  sendSocketIONotificationToShipper,
-} = require("../../Utils/Notifications");
-const { sendFCMNotificationToUser } = require("../Firebase.service");
-const { createCanceledJourney } = require("../CanceledJourneys.service");
-const { getData } = require("../../CRUD/Read/ReadData");
 const {
   db,
-  findOne,
-  paginate,
-  paginatedQuery,
 } = require("../CompanyHelper.service");
-const { UPDATABLE_COLS, assertCompanyCancellationReason } = require("./batchHelper");
 
 /**
  * ### Partial Update — "Update only what I give you"

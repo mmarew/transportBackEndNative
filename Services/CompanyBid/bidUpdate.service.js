@@ -7,12 +7,10 @@ const {
   db,
   findOne,
   paginate,
-  paginatedQuery,
-} = require("../CompanyHelper.service");
+  paginatedQuery} = require("../CompanyHelper.service");
 const logger = require("../../Utils/logger");
 const {
-  reportCompanyCommissionEvasion,
-} = require("../CommissionEvasion.service");
+  reportCompanyCommissionEvasion} = require("../CommissionEvasion.service");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSocketIONotificationToCompany } = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -187,8 +185,7 @@ const updateBidStatus = async (
         {
           batchUniqueId: bid.shipperRequestBatchId,
           bidUniqueId: companyBidRequestUniqueId,
-          totalVehicles: totalSlots,
-        },
+          totalVehicles: totalSlots},
       );
     } else {
       // ── INDIVIDUAL-TARGET EAGER PATH: PRs already exist → verify state ──
@@ -238,17 +235,14 @@ const updateBidStatus = async (
             companyUniqueId: bid.companyUniqueId,
             reportedByUniqueId: updatedBy,
             journeyDecisionUniqueId: companyBidRequestUniqueId,
-            reason: `Company cancelled freight bid after shipper acceptance (bid: ${companyBidRequestUniqueId})`,
-          });
+            reason: `Company cancelled freight bid after shipper acceptance (bid: ${companyBidRequestUniqueId})`});
           logger.info("Commission evasion recorded for company", {
             companyUniqueId: bid.companyUniqueId,
-            automaticAction: result.automaticAction,
-          });
+            automaticAction: result.automaticAction});
         } catch (err) {
           logger.error("Failed to record commission evasion", {
             companyUniqueId: bid.companyUniqueId,
-            error: err.message,
-          });
+            error: err.message});
         }
       });
     }
@@ -266,21 +260,16 @@ const updateBidStatus = async (
   const notificationMap = {
     accepted_by_shipper: {
       title: "Bid accepted",
-      body: "The shipper has accepted your company's freight bid.",
-    },
+      body: "The shipper has accepted your company's freight bid."},
     rejected_by_shipper: {
       title: "Bid rejected",
-      body: "The shipper has rejected your company's freight bid.",
-    },
+      body: "The shipper has rejected your company's freight bid."},
     cancelled_by_company: {
       title: "Bid cancelled",
-      body: "Your company's bid has been cancelled.",
-    },
+      body: "Your company's bid has been cancelled."},
     expired: {
       title: "Bid expired",
-      body: "Your company's bid has expired without a response.",
-    },
-  };
+      body: "Your company's bid has expired without a response."}};
   const notif = notificationMap[bidStatus];
   if (notif && bid.bidSubmittedByUserUniqueId) {
     sendFCMNotificationToUser({
@@ -291,20 +280,16 @@ const updateBidStatus = async (
         type: "company_bid_status_update",
         bidStatus,
         companyBidRequestUniqueId,
-        shipperRequestBatchId: bid.shipperRequestBatchId,
-      },
-    }).catch((e) =>
+        shipperRequestBatchId: bid.shipperRequestBatchId}}).catch((e) =>
       logger.error("FCM notification failed for bid status update", {
-        error: e.message,
-      }),
+        error: e.message}),
     );
 
     // 🔔 Real-time WebSocket Notification
     const socketMessageTypeMap = {
       accepted_by_shipper: messageTypes.company_bid_accepted,
       rejected_by_shipper: messageTypes.company_bid_rejected,
-      cancelled_by_company: messageTypes.company_bid_cancelled,
-    };
+      cancelled_by_company: messageTypes.company_bid_cancelled};
 
     const socketMsgType = socketMessageTypeMap[bidStatus];
     if (socketMsgType) {
@@ -316,14 +301,10 @@ const updateBidStatus = async (
           data: {
             bidStatus,
             companyBidRequestUniqueId,
-            shipperRequestBatchId: bid.shipperRequestBatchId,
-          },
-        },
-      }).catch((e) =>
+            shipperRequestBatchId: bid.shipperRequestBatchId}}}).catch((e) =>
         logger.error("WebSocket notification failed for company bid status", {
           error: e.message,
-          companyUniqueId: bid.companyUniqueId,
-        }),
+          companyUniqueId: bid.companyUniqueId}),
       );
     }
   }
@@ -337,8 +318,7 @@ const updateBidStatus = async (
 // Mirrors DriverRequest.isCancellationByShipperSeenByDriver pattern.
 const markCancellationAsSeen = async ({
   companyBidRequestUniqueId,
-  userUniqueId,
-}) => {
+  userUniqueId}) => {
   // 1. Fetch the bid
   const [[bid]] = await db().query(
     `SELECT cbr.companyBidRequestId,
