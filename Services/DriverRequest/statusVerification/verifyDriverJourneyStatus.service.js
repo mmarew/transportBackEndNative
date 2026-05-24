@@ -9,7 +9,6 @@ const { handleExistingJourney } = require("./handleExistingJourney.service");
 
 const { checkActiveDriverRequest } = require("../../../CRUD/Read/ReadData");
 
-const { pool } = require("../../../Middleware/Database.config");
 const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
 
 const AppError = require("../../../Utils/AppError");
