@@ -1,4 +1,4 @@
-const userDelinquencyService = require("../Services/UserDelinquency.service");
+const userDelinquencyService = require("../Services/UserDelinquency");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");

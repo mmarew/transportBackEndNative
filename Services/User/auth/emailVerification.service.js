@@ -1,46 +1,38 @@
 "use strict";
 
-const Config = require("../../Utils/Config");
-const jwt = require("jsonwebtoken");
-const generateOTP = require("../../Utils/GenerateOTP");
-const createJWT = require("../../Utils/CreateJWT");
+
+
+
+const createJWT = require("../../../Utils/CreateJWT");
 const {
   currentDate,
-  addHours
-} = require("../../Utils/CurrentDate");
-const bcrypt = require("bcryptjs");
-const verifyPassword = require("../../Utils/VerifyPassword");
-const logger = require("../../Utils/logger");
+  
+} = require("../../../Utils/CurrentDate");
+
+
+const logger = require("../../../Utils/logger");
 const {
   usersRoles
-} = require("../../Utils/ListOfSeedData");
-const AppError = require("../../Utils/AppError");
-const {
-  sendSocketIONotificationToAdmin
-} = require("../../Utils/Notifications");
+} = require("../../../Utils/ListOfSeedData");
+const AppError = require("../../../Utils/AppError");
+
 const {
   getData,
-  performJoinSelect
-} = require("../../CRUD/Read/ReadData");
+  
+} = require("../../../CRUD/Read/ReadData");
 const {
   updateData
-} = require("../../CRUD/Update/Data.update");
-const {
-  insertData
-} = require("../../CRUD/Create/CreateData");
-const {
-  v4: uuidv4
-} = require("uuid");
+} = require("../../../CRUD/Update/Data.update");
+
+
 const {
   getSocket
-} = require("../../Utils/WsConnectionStore");
+} = require("../../../Utils/WsConnectionStore");
 const {
   emitMessage
-} = require("../../Utils/WsServerResponder");
-const messageTypes = require("../../Utils/MessageTypes");
-const {
-  driversDocumentVehicleRequirement
-} = require("../RoleDocumentRequirements");
+} = require("../../../Utils/WsServerResponder");
+const messageTypes = require("../../../Utils/MessageTypes");
+
 
 /**
  * Verifies a user's email using a unique UUID token.

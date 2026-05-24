@@ -19,7 +19,7 @@ const { createCommission } = require("../Commission.service");
 
 const {
   getUserSubscriptionsWithFilters,
-} = require("../UserSubscription.service");
+} = require("../UserSubscription");
 
 const startJourney = async (body) => {
   return await executeInTransaction(

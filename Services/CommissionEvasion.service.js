@@ -29,7 +29,7 @@ const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
-const { createUserDelinquency } = require("./UserDelinquency.service");
+const { createUserDelinquency } = require("./UserDelinquency");
 const { createCompanyDelinquency } = require("./CompanyDelinquency.service");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 

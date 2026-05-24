@@ -14,7 +14,7 @@ const {
   getUserSubscriptionsWithFilters,
   createUserSubscription,
   getSubscriptionData
-} = require("../UserSubscription.service");
+} = require("../UserSubscription");
 const AppError = require("../../Utils/AppError");
 
 

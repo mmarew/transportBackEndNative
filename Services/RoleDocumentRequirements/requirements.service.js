@@ -151,7 +151,7 @@ WHERE ad.ownerType = 'vehicle'
     try {
       const {
         getUserSubscriptionsWithFilters
-      } = require("../UserSubscription.service");
+      } = require("../UserSubscription");
       const activeSubscriptions = await getUserSubscriptionsWithFilters({
         driverUniqueId: ownerUserUniqueId,
         isActive: true

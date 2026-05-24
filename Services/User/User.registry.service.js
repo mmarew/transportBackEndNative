@@ -209,7 +209,7 @@ const registerNewUser = async ({
   await ensureCredentialForUser({ userUniqueId });
 
   if (!authService) {
-    authService = require("./User.auth.service");
+    authService = require("./auth");
   }
   return await authService.handleExistingUser({
     requestedFrom,
@@ -310,7 +310,7 @@ const createUser = async (body) => {
     }
     // User already has an account, handle OTP login
     if (!authService) {
-      authService = require("./User.auth.service");
+      authService = require("./auth");
     }
     const userData = {
       requestedFrom,

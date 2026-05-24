@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * AdminDecisionOnUserDelinquency.service.js
+ * AdminDecisionOnUserDelinquency.js
  * ──────────────────────────────────────────
  * Admin rulings on user delinquency disputes.
  * Mirrors AdminDecisionOnDelinquency.service.js (company version).

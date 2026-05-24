@@ -147,4 +147,4 @@ module.exports = {
 
 fs.writeFileSync(path.join(targetDir, "index.js"), indexCode);
 
-console.log("Successfully split the CompanyBid service.");
+console.warn("Successfully split the CompanyBid service.");

@@ -1,46 +1,36 @@
 "use strict";
 
-const Config = require("../../Utils/Config");
-const jwt = require("jsonwebtoken");
-const generateOTP = require("../../Utils/GenerateOTP");
-const createJWT = require("../../Utils/CreateJWT");
+
+
+const generateOTP = require("../../../Utils/GenerateOTP");
+
 const {
   currentDate,
   addHours
-} = require("../../Utils/CurrentDate");
+} = require("../../../Utils/CurrentDate");
 const bcrypt = require("bcryptjs");
-const verifyPassword = require("../../Utils/VerifyPassword");
-const logger = require("../../Utils/logger");
-const {
-  usersRoles
-} = require("../../Utils/ListOfSeedData");
-const AppError = require("../../Utils/AppError");
-const {
-  sendSocketIONotificationToAdmin
-} = require("../../Utils/Notifications");
+
+
+
+const AppError = require("../../../Utils/AppError");
+
 const {
   getData,
   performJoinSelect
-} = require("../../CRUD/Read/ReadData");
+} = require("../../../CRUD/Read/ReadData");
 const {
   updateData
-} = require("../../CRUD/Update/Data.update");
+} = require("../../../CRUD/Update/Data.update");
 const {
   insertData
-} = require("../../CRUD/Create/CreateData");
+} = require("../../../CRUD/Create/CreateData");
 const {
   v4: uuidv4
 } = require("uuid");
-const {
-  getSocket
-} = require("../../Utils/WsConnectionStore");
-const {
-  emitMessage
-} = require("../../Utils/WsServerResponder");
-const messageTypes = require("../../Utils/MessageTypes");
-const {
-  driversDocumentVehicleRequirement
-} = require("../RoleDocumentRequirements");
+
+
+
+
 
 const handleExistingUser = async ({
   requestedFrom,
@@ -50,7 +40,7 @@ const handleExistingUser = async ({
   userRoleStatusDescription = "no description"
 }) => {
   if (!registryService) {
-    registryService = require("./User.registry.service");
+    registryService = require("../User.registry.service");
   }
   const userUniqueId = user.userUniqueId;
   if (!userUniqueId) {
@@ -198,7 +188,7 @@ const handleExistingUser = async ({
 
 const loginUser = async (phoneNumber, roleId, email = null) => {
   if (!manageService) {
-    manageService = require("./User.manage.service");
+    manageService = require("../manage");
   }
   if (!roleId) {
     throw new AppError("Role ID is required.", 400);
@@ -278,6 +268,5 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
 
 module.exports = {
   handleExistingUser,
-  parseDate,
   loginUser
 };

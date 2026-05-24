@@ -1,10 +1,10 @@
-const { getUserDeposit } = require("../UserDeposit.service");
+const { getUserDeposit } = require("../UserDeposit");
 const { getTransferByUniqueId } = require("../UserBalanceTransfer.service");
 const AppError = require("../../Utils/AppError");
 
 const {
   getUserSubscriptionsWithFilters,
-} = require("../UserSubscription.service");
+} = require("../UserSubscription");
 const { getAllCommissions } = require("../Commission.service");
 
 const { pool } = require("../../Middleware/Database.config");
@@ -144,7 +144,7 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
 
   try {
     if (record.transactionType === "Deposit") {
-      const { getUserDeposit } = require("../UserDeposit.service");
+      const { getUserDeposit } = require("../UserDeposit");
       const result = await getUserDeposit({
         userDepositUniqueId: transactionUniqueId,
       });

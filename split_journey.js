@@ -134,4 +134,4 @@ const indexCode = "\"use strict\";\\n\\n" +
 
 fs.writeFileSync(path.join(targetDir, "index.js"), indexCode);
 
-console.log("Successfully split the Journey file into modular services.");
+console.warn("Successfully split the Journey file into modular services.");

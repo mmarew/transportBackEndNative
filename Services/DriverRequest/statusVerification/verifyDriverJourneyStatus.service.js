@@ -1,50 +1,36 @@
 "use strict";
-const { getNotificationStatuses, shouldHandleNotificationStatus, isTerminalStatus } = require("./helpers.service");
+const {
+  getNotificationStatuses,
+  shouldHandleNotificationStatus,
+  isTerminalStatus,
+} = require("./helpers.service");
 const { handleJourneyStatusOne } = require("./handleJourneyStatusOne.service");
 const { handleExistingJourney } = require("./handleExistingJourney.service");
 
-const {
-  
-  checkActiveDriverRequest,
-  
-  
-  
-} = require("../../../CRUD/Read/ReadData");
+const { checkActiveDriverRequest } = require("../../../CRUD/Read/ReadData");
 
-const {
-  pool
-} = require("../../../Middleware/Database.config");
-const {
-  journeyStatusMap,
-  
-} = require("../../../Utils/ListOfSeedData");
-
+const { pool } = require("../../../Middleware/Database.config");
+const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
 
 const AppError = require("../../../Utils/AppError");
 const logger = require("../../../Utils/logger");
 // Removed unused import: VerifyIfShipperRequestWasNotRejected
 // Removed unused import: VerifyIfShipperRequestWasNotRejected
-const {
-  getVehicleDrivers
-} = require("../../VehicleDriver.service");
+const { getVehicleDrivers } = require("../../VehicleDriver.service");
 
 // Removed unused import: executeInTransaction
 // Import helpers from helpers.js
 // Removed unused import: executeInTransaction
 // Import helpers from helpers.js
 
-
-const verifyDriverJourneyStatus = async ({
-  userUniqueId,
-  activeRequest
-}) => {
+const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
   try {
     // Step 1: Check if the driver has a vehicle via VehicleDriver relation
     const vdResult = await getVehicleDrivers({
       driverUserUniqueId: userUniqueId,
       assignmentStatus: "active",
       limit: 1,
-      page: 1
+      page: 1,
     });
     const vehicle = vdResult?.data?.[0];
     if (!vehicle) {
@@ -65,7 +51,7 @@ const verifyDriverJourneyStatus = async ({
         message: "success",
         data: "No active requests found for this driver",
         status: null,
-        vehicle
+        vehicle,
       };
     }
 
@@ -74,7 +60,10 @@ const verifyDriverJourneyStatus = async ({
     // Allow notSelectedInBid (14), cancellation statuses (7, 10), and rejectedByShipper (8) to go through to handleExistingJourney for proper notification
     // Other terminal statuses (> 6) are excluded, but these need to notify the driver
     const notificationStatuses = getNotificationStatuses();
-    const shouldHandleStatus = shouldHandleNotificationStatus(journeyStatusId, notificationStatuses);
+    const shouldHandleStatus = shouldHandleNotificationStatus(
+      journeyStatusId,
+      notificationStatuses,
+    );
     if (isTerminalStatus(journeyStatusId) && !shouldHandleStatus) {
       return {
         message: "success",
@@ -82,22 +71,29 @@ const verifyDriverJourneyStatus = async ({
         status: null,
         vehicle,
         driver: null,
-        shipper: null
+        shipper: null,
       };
     }
     if (journeyStatusId === journeyStatusMap.waiting) {
-      return await handleJourneyStatusOne(driverRequest, vehicle, vehicleTypeUniqueId);
+      return await handleJourneyStatusOne(
+        driverRequest,
+        vehicle,
+        vehicleTypeUniqueId,
+      );
     }
     return await handleExistingJourney(driverRequest, vehicle);
   } catch (error) {
     logger.error("Error in verifyDriverJourneyStatus", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
-    throw new AppError(error.message || "Unable to verify driver status", error.statusCode || 500);
+    throw new AppError(
+      error.message || "Unable to verify driver status",
+      error.statusCode || 500,
+    );
   }
 };
 
 module.exports = {
-  verifyDriverJourneyStatus
+  verifyDriverJourneyStatus,
 };

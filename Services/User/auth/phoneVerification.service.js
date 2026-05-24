@@ -1,46 +1,29 @@
 "use strict";
 
-const Config = require("../../Utils/Config");
+const Config = require("../../../Utils/Config");
 const jwt = require("jsonwebtoken");
-const generateOTP = require("../../Utils/GenerateOTP");
-const createJWT = require("../../Utils/CreateJWT");
+
+const createJWT = require("../../../Utils/CreateJWT");
+
+
+
+
+
+const AppError = require("../../../Utils/AppError");
+
 const {
-  currentDate,
-  addHours
-} = require("../../Utils/CurrentDate");
-const bcrypt = require("bcryptjs");
-const verifyPassword = require("../../Utils/VerifyPassword");
-const logger = require("../../Utils/logger");
-const {
-  usersRoles
-} = require("../../Utils/ListOfSeedData");
-const AppError = require("../../Utils/AppError");
-const {
-  sendSocketIONotificationToAdmin
-} = require("../../Utils/Notifications");
-const {
-  getData,
+  
   performJoinSelect
-} = require("../../CRUD/Read/ReadData");
+} = require("../../../CRUD/Read/ReadData");
 const {
   updateData
-} = require("../../CRUD/Update/Data.update");
-const {
-  insertData
-} = require("../../CRUD/Create/CreateData");
-const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  getSocket
-} = require("../../Utils/WsConnectionStore");
-const {
-  emitMessage
-} = require("../../Utils/WsServerResponder");
-const messageTypes = require("../../Utils/MessageTypes");
-const {
-  driversDocumentVehicleRequirement
-} = require("../RoleDocumentRequirements");
+} = require("../../../CRUD/Update/Data.update");
+
+
+
+
+
+
 
 /**
  * Generates a short-lived JWT for phone verification.
