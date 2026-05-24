@@ -1,4 +1,4 @@
-const adminServices = require("../Services/Admin.service");
+const adminServices = require("../Services/Admin");
 const ServerResponder = require("../Utils/ServerResponder");
 const fs = require("fs");
 const path = require("path");
