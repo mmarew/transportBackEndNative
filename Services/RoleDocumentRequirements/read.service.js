@@ -1,34 +1,19 @@
 "use strict";
 
-const {
-  getData
-} = require("../CRUD/Read/ReadData");
-const {
-  getVehicleDrivers
-} = require("./VehicleDriver.service");
+
+
 const {
   pool
-} = require("../Middleware/Database.config");
-const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  updateUserRoleStatus,
-  getUserRoleStatusCurrent
-} = require("./UserRoleStatus.service");
-const {
-  findStatusByVehicleAndDocuments
-} = require("../Utils/StatusOfUsersByVehiclesAndDocs");
-const AppError = require("../Utils/AppError");
-const {
-  currentDate
-} = require("../Utils/CurrentDate");
-const {
-  usersRoles
-} = require("../Utils/ListOfSeedData");
+} = require("../../Middleware/Database.config");
+
+
+
+
+
+
 const {
   transactionStorage
-} = require("../Utils/TransactionContext");
+} = require("../../Utils/TransactionContext");
 // Create a new mapping
 
 // Consolidated, secure, paginated GET with filters across columns

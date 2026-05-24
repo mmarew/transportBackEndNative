@@ -4,7 +4,7 @@ const batchCreate = require("./batchCreate.service");
 const batchRead = require("./batchRead.service");
 const batchUpdate = require("./batchUpdate.service");
 const batchDelete = require("./batchDelete.service");
-const batchCancel = require("./batchCancel.service");
+const batchCancel = require("./batchCancel");
 
 module.exports = {
   upsertBatch: batchCreate.upsertBatch,

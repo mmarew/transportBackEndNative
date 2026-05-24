@@ -1,34 +1,28 @@
 "use strict";
 
-const {
-  getData
-} = require("../CRUD/Read/ReadData");
+
 const {
   getVehicleDrivers
-} = require("./VehicleDriver.service");
+} = require("../VehicleDriver.service");
 const {
   pool
-} = require("../Middleware/Database.config");
-const {
-  v4: uuidv4
-} = require("uuid");
+} = require("../../Middleware/Database.config");
+
 const {
   updateUserRoleStatus,
   getUserRoleStatusCurrent
-} = require("./UserRoleStatus.service");
+} = require("../UserRoleStatus.service");
 const {
   findStatusByVehicleAndDocuments
-} = require("../Utils/StatusOfUsersByVehiclesAndDocs");
-const AppError = require("../Utils/AppError");
-const {
-  currentDate
-} = require("../Utils/CurrentDate");
+} = require("../../Utils/StatusOfUsersByVehiclesAndDocs");
+const AppError = require("../../Utils/AppError");
+
 const {
   usersRoles
-} = require("../Utils/ListOfSeedData");
+} = require("../../Utils/ListOfSeedData");
 const {
   transactionStorage
-} = require("../Utils/TransactionContext");
+} = require("../../Utils/TransactionContext");
 // Create a new mapping
 
 // Removed getAllMappings in favor of consolidated getter with pagination
@@ -157,14 +151,14 @@ WHERE ad.ownerType = 'vehicle'
     try {
       const {
         getUserSubscriptionsWithFilters
-      } = require("./UserSubscription.service");
+      } = require("../UserSubscription.service");
       const activeSubscriptions = await getUserSubscriptionsWithFilters({
         driverUniqueId: ownerUserUniqueId,
         isActive: true
       });
       hasActiveSubscription = activeSubscriptions?.data?.length > 0;
     } catch (e) {
-      const logger = require("../Utils/logger");
+      const logger = require("../../Utils/logger");
       logger.error("Error checking active subscription", {
         error: e.message,
         stack: e.stack
@@ -178,7 +172,7 @@ WHERE ad.ownerType = 'vehicle'
     try {
       const {
         getBannedUsers
-      } = require("./BannedUsers.service");
+      } = require("../BannedUsers.service");
       const banCheck = await getBannedUsers({
         check: true,
         phoneNumber,
@@ -186,7 +180,7 @@ WHERE ad.ownerType = 'vehicle'
       });
       isBanned = banCheck?.data?.isBanned === true;
     } catch (e) {
-      const logger = require("../Utils/logger");
+      const logger = require("../../Utils/logger");
       logger.error("Error checking ban status", {
         error: e.message,
         stack: e.stack
