@@ -5,7 +5,6 @@ const { journeyStatusMap, activeJourneyStatuses } = require("../../Utils/ListOfS
 const { performJoinSelect } = require("./ReadData.core");
 
 const checkActiveDriverRequest = async (userUniqueId) => {
-  try {
     // Build placeholders for IN clause
     const activeStatusPlaceholders = activeJourneyStatuses
       .map(() => "?")
@@ -60,9 +59,6 @@ const checkActiveDriverRequest = async (userUniqueId) => {
     ]);
 
     return results; // Returns an array of active requests (if any)
-  } catch (error) {
-    throw error;
-  }
 };
 
 

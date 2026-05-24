@@ -59,14 +59,10 @@ const getData = async ({
   }
 
   // Execute the query and return the result
-  try {
     // Use context connection first, then provided connection, or fall back to pool
     const queryExecutor = transactionStorage.getStore() || connection || pool;
     const [result] = await queryExecutor.query(sqlQuery, values);
     return result; // Return the result set
-  } catch (error) {
-    throw error;
-  }
 };
 
 const performJoinSelect = async ({
@@ -118,14 +114,10 @@ const performJoinSelect = async ({
   // Construct the final SQL query
   const sqlQuery = `SELECT ${selectColumns} FROM ${baseTable} ${joinClauses} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause} ${offsetClause}`;
 
-  try {
     // Use provided connection for transaction support, context store, or fall back to pool
     const queryExecutor = transactionStorage.getStore() || connection || pool;
     const [result] = await queryExecutor.query(sqlQuery, values);
     return result; // Return the result set
-  } catch (error) {
-    throw error;
-  }
 };
 
 module.exports = {

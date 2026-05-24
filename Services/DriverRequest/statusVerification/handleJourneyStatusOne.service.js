@@ -41,7 +41,6 @@ const {
 } = require("../helpers");
 
 const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueId) => {
-  try {
     const {
       originLatitude,
       originLongitude,
@@ -224,9 +223,6 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
       ...response,
       companyAssignment // always included — null for individual matches
     };
-  } catch (error) {
-    throw error;
-  }
 };
 
 // Helper functions

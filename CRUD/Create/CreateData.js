@@ -26,14 +26,10 @@ const insertData = async ({ tableName, colAndVal, connection = null }) => {
 
   const sqlQuery = `INSERT INTO ${tableName} (${columnsString}) VALUES (${placeholders})`;
 
-  try {
     // Use context connection first, then provided connection, or fall back to pool
     const queryExecutor = transactionStorage.getStore() || connection || pool;
     const [result] = await queryExecutor.query(sqlQuery, values);
     return result;
-  } catch (error) {
-    throw error;
-  }
 };
 
 const createNewShipperRequest = async (
@@ -119,7 +115,6 @@ const createNewShipperRequest = async (
   };
 
   // Insert the new request into the database
-  try {
     const result = await insertData({
       tableName: "ShipperRequest",
       colAndVal: requestPayload,
@@ -134,9 +129,6 @@ const createNewShipperRequest = async (
       message: "success",
       data: [{ ...requestPayload, shipperRequestId: result.insertId }],
     };
-  } catch (error) {
-    throw error;
-  }
 };
 const createDriverRequest = async (
   body,
@@ -144,7 +136,6 @@ const createDriverRequest = async (
   journeyStatusId,
   connection = null,
 ) => {
-  try {
     if (!body || !userUniqueId) {
       throw new Error("Invalid input parameters to create driver request");
     }
@@ -203,9 +194,6 @@ const createDriverRequest = async (
       message: "success",
       data: [{ ...requestPayload, driverRequestId: result.insertId }],
     };
-  } catch (error) {
-    throw error;
-  }
 };
 
 module.exports = {
