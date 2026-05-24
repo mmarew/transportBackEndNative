@@ -3,6 +3,8 @@
  * Enhanced for Node.js Backend with MySQL
  */
 
+const nodePlugin = require("eslint-plugin-n").default;
+
 module.exports = [
   {
     ignores: [
@@ -35,6 +37,9 @@ module.exports = [
         require: "readonly",
         exports: "readonly",
         global: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        crypto: "readonly",
         setTimeout: "readonly",
         setInterval: "readonly",
         clearTimeout: "readonly",
@@ -52,8 +57,13 @@ module.exports = [
         jest: "readonly",
       },
     },
+    plugins: {
+      n: nodePlugin,
+    },
     rules: {
       // Basic JavaScript rules
+      "no-undef": "error",
+      "n/no-missing-require": "error",
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-debugger": "error",
       "no-empty": ["error", { allowEmptyCatch: true }],

@@ -221,7 +221,7 @@ const submitBid = async (data) => {
 
     if (shipperRows?.[0]?.phoneNumber) {
       const {
-        sendSocketIONotificationToShipper} = require("../Utils/Notifications");
+        sendSocketIONotificationToShipper} = require("../../Utils/Notifications");
       sendSocketIONotificationToShipper({
         phoneNumber: shipperRows[0].phoneNumber,
         message: {
