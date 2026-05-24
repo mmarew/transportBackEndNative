@@ -179,7 +179,6 @@ async function getToken(phone, roleId) {
     shippingCost: 1000,
     shippableItemQtyInQuintal: 10,
     shippableItemName: "Conflict Item",
-    deliveryDate: new Date().toISOString(),
   };
 
   /* const br = */ await request(

@@ -17,7 +17,7 @@ exports.accountStatusParams = Joi.object({
     }),
 
   phoneNumber: Joi.string()
-    .pattern(/^\+?[0-9\s\-\(\)]+$/)
+    .pattern(/^\+?[0-9\s\-()]+$/)
     .optional()
     .messages({
       "string.pattern.base": "phoneNumber must be a valid phone number format",

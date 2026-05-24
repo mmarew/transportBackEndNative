@@ -384,7 +384,7 @@ describe("Company Auto-Assign cancels individual connection (Option B)", () => {
 
       expect([200, 201]).toContain(res.status);
 
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const verifyRes = await request(app)
         .get("/api/driver/verifyDriverJourneyStatus")
