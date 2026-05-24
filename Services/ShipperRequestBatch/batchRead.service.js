@@ -2,6 +2,8 @@
 
 const {
   db,
+  paginate,
+  paginatedQuery
 } = require("../CompanyHelper.service");
 
 /**

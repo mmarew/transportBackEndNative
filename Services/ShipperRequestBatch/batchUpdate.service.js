@@ -2,6 +2,7 @@
 
 const {
   db,
+  findOne
 } = require("../CompanyHelper.service");
 
 /**
@@ -67,5 +68,5 @@ exports.updateBatch = async (batchUniqueId, fields) => {
 
 
 const AppError = require("../../Utils/AppError");
-const { UPDATABLE_COLS } = require("./batchHelper.service");
+const { UPDATABLE_COLS } = require("./batchHelper");
 const { currentDate } = require("../../Utils/CurrentDate");
