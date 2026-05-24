@@ -6,7 +6,7 @@ const {
   findNearbyDrivers,
   checkActiveShipperRequest,
 } = require("../CRUD/Read/ReadData");
-const { createCanceledJourney } = require("./CanceledJourneys.service");
+const { createCanceledJourney } = require("./CanceledJourneys");
 const { updateData } = require("../CRUD/Update/Data.update");
 const { deleteData } = require("../CRUD/Delete/DeleteData");
 const {

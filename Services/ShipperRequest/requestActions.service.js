@@ -14,7 +14,7 @@ const {
   updateJourneyStatus,
   updateNegativeJourneyStatus,
 } = require("../JourneyStatus.service");
-const { createCanceledJourney } = require("../CanceledJourneys.service");
+const { createCanceledJourney } = require("../CanceledJourneys");
 const {
   journeyStatusMap,
   usersRoles,

@@ -21,7 +21,7 @@ const { currentDate } = require("../../Utils/CurrentDate");
 const {
   createCanceledJourney,
   getJourneyDataByContextType,
-} = require("../CanceledJourneys.service");
+} = require("../CanceledJourneys");
 const messageTypes = require("../../Utils/MessageTypes");
 const {
   journeyStatusMap,

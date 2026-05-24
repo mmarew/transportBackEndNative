@@ -14,7 +14,7 @@ const {
   usersRoles,
   CANCELED_JOURNEY_CONTEXTS,
 } = require("../../Utils/ListOfSeedData");
-const { createCanceledJourney } = require("../CanceledJourneys.service");
+const { createCanceledJourney } = require("../CanceledJourneys");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSocketIONotificationToDriver } = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");

@@ -1,4 +1,4 @@
-const canceledJourneyService = require("../Services/CanceledJourneys.service");
+const canceledJourneyService = require("../Services/CanceledJourneys");
 const { cancelShipperRequest } = require("../Services/ShipperRequest");
 const { sendSocketIONotificationToShipper } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
