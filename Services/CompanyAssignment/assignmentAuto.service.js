@@ -104,12 +104,13 @@ exports.autoAssignBatch = async (data) => {
   //                        the same job even after auto-reassign is triggered.
   //                        Note: only the driver is blocked, NOT the vehicle —
   //                        the vehicle can still be paired with a different driver.
-  const [availableFleet] = await db().query(
+    const [availableFleet] = await db().query(
     `SELECT cv.vehicleUniqueId, vd.driverUserUniqueId, v.vehicleTypeUniqueId
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
      JOIN VehicleDriver vd ON cv.vehicleUniqueId = vd.vehicleUniqueId
      WHERE cv.companyUniqueId = ?
+       AND v.vehicleTypeUniqueId = ?
        AND cv.assignmentStatus = 'active' AND cv.companyVehicleDeletedAt IS NULL
        AND vd.assignmentStatus = 'active'
        -- Layer 1: no active trip elsewhere
@@ -118,16 +119,8 @@ exports.autoAssignBatch = async (data) => {
          WHERE (cba.vehicleUniqueId = cv.vehicleUniqueId OR cba.driverUserUniqueId = vd.driverUserUniqueId)
            AND cba.assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
            AND cba.assignmentDeletedAt IS NULL
-       )
-       -- Layer 2: driver has not already rejected THIS batch
-        --  AND NOT EXISTS (
-        --  SELECT 1 FROM CompanyBidVehicleAssignment cba_rej
-        --  WHERE cba_rej.driverUserUniqueId = vd.driverUserUniqueId
-        --    AND cba_rej.companyBidRequestUniqueId = ?
-        --    AND cba_rej.assignmentStatus = 'rejected_by_driver'
-        --    AND cba_rej.assignmentDeletedAt IS NULL
-       -- )`,
-    [companyUniqueId, companyBidRequestUniqueId],
+       )`,
+    [companyUniqueId, bid.vehicleTypeUniqueId],
   );
 
   // 4. Handle Case: Fleet is busy but slots need assignment
