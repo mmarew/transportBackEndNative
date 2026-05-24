@@ -84,7 +84,7 @@ const getAllCommissionStatuses = async (filters = {}) => {
       conditions.push(
         "(effectiveFrom IS NULL OR effectiveFrom <= ?) AND (effectiveTo IS NULL OR effectiveTo >= ?)",
       );
-      params.push(currentDate(), currentDate());
+      values.push(currentDate(), currentDate());
     }
 
     const whereClause =

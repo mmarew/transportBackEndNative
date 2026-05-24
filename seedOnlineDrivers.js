@@ -1,3 +1,5 @@
+
+const { currentDate } = require("./Utils/CurrentDate");
 /**
  * Seed Online Drivers Script
  * Run: node seedOnlineDrivers.js

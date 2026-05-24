@@ -1,3 +1,5 @@
+
+const { pool } = require("../../Middleware/Database.config");
 const {
   getData,
   performJoinSelect,
@@ -409,7 +411,6 @@ const _handleNonWaitingRequest = async ({
     const documents = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(
       driver?.userUniqueId,
       listOfDocumentsTypeAndId.profilePhoto,
-      connection,
     );
 
     const data = documents?.data;

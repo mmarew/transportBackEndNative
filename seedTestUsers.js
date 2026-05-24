@@ -1,3 +1,5 @@
+
+const { currentDate } = require("./Utils/CurrentDate");
 /**
  * Seed Test Users Script
  * Run: node seedTestUsers.js

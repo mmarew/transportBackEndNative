@@ -129,3 +129,6 @@ module.exports = {
   fetchDepositData,
   getUpdateFields
 };
+
+
+const { getUserDeposit } = require("./read.service");

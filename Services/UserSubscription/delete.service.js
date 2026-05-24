@@ -47,3 +47,7 @@ const deleteUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, userUn
 module.exports = {
   deleteUserSubscriptionByUniqueId
 };
+
+
+const { getUserSubscriptionsWithFilters } = require("./read.service");
+const { updateUserSubscriptionByUniqueId } = require("./update.service");

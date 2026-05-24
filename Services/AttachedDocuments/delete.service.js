@@ -67,3 +67,6 @@ const deleteAttachedDocument = async attachedDocumentUniqueId => {
 module.exports = {
   deleteAttachedDocument
 };
+
+
+const { getAttachedDocumentByUniqueId } = require("./read.service");

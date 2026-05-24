@@ -1,3 +1,5 @@
+
+const { currentDate } = require("./Utils/CurrentDate");
 /* eslint-disable max-lines */
 /**
  * Seed Banned Users Script

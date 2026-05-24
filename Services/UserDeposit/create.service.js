@@ -147,3 +147,6 @@ const createUserDeposit = async data => {
 module.exports = {
   createUserDeposit
 };
+
+
+const { getUserDeposit } = require("./read.service");

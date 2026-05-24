@@ -83,3 +83,6 @@ const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) 
 module.exports = {
   updateUserSubscriptionByUniqueId
 };
+
+
+const { getUserSubscriptionsWithFilters } = require("./read.service");

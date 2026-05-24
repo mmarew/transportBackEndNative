@@ -138,3 +138,6 @@ const deleteUserDepositByUniqueId = async (userDepositUniqueId, userDepositDelet
 module.exports = {
   deleteUserDepositByUniqueId
 };
+
+
+const { fetchDepositData } = require("./read.service");

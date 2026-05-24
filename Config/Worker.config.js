@@ -1,7 +1,7 @@
 "use strict";
 
 const { createServer } = require("http");
-const app = require("./httpServer.config");
+const app = require("./Express.config");
 const { initSocket } = require("./SocketAdapter.config");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");

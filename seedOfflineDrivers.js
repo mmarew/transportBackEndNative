@@ -1,3 +1,5 @@
+
+const { currentDate } = require("./Utils/CurrentDate");
 /**
  * Seed Offline Drivers Script
  * Run: node seedOfflineDrivers.js

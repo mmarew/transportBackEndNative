@@ -1,3 +1,5 @@
+
+const { cancelDriverRequest } = require("./actionCancelDriverRequest.service");
 const {
   
   performJoinSelect,
@@ -228,7 +230,7 @@ const takeFromStreet = async (body, user) => {
 
         // Create journey route points (with connection for transaction support)
         const originLocation = body.originLocation;
-        JourneyPoints = await createJourneyRoutePoint(
+        const JourneyPoints = await createJourneyRoutePoint(
           {
             journeyDecisionUniqueId:
               journeyDecision.data[0].journeyDecisionUniqueId,

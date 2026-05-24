@@ -122,7 +122,7 @@ const updateBidStatus = async (
       }
 
       const { v4: uuidv4 } = require("uuid");
-      const formatDateToReadable = require("../Utils/FormatDateToReadable");
+      const formatDateToReadable = require("../../Utils/FormatDateToReadable");
       const totalSlots = bid.numberOfVehiclesOffered;
 
       // Build a multi-row INSERT for all N slots in one query

@@ -64,3 +64,8 @@ exports.updateBatch = async (batchUniqueId, fields) => {
 };
 
 // ── Soft DELETE ───────────────────────────────────────────────────────────────
+
+
+const AppError = require("../../Utils/AppError");
+const { UPDATABLE_COLS } = require("./batchHelper.service");
+const { currentDate } = require("../../Utils/CurrentDate");

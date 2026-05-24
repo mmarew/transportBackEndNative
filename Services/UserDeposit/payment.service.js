@@ -220,3 +220,7 @@ module.exports = {
   getSignedTokenService,
   handleSantimPayWebhookService
 };
+
+
+const { createUserDeposit } = require("./create.service");
+const { getUserDeposit } = require("./read.service");

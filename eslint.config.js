@@ -40,6 +40,7 @@ module.exports = [
         URL: "readonly",
         URLSearchParams: "readonly",
         crypto: "readonly",
+        randomUUID: "readonly",
         setTimeout: "readonly",
         setInterval: "readonly",
         clearTimeout: "readonly",

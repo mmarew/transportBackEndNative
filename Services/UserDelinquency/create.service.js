@@ -171,3 +171,7 @@ const createUserDelinquency = async data => {
 module.exports = {
   createUserDelinquency
 };
+
+
+const { getUserDelinquencies } = require("./read.service");
+const { checkAndApplyAutomaticBan } = require("./ban.service");

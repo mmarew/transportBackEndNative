@@ -1,5 +1,7 @@
 "use strict";
 
+const { inProgressSlots } = require("../batchHelper");
+
 const {
   db
 } = require("../../CompanyHelper.service");
@@ -258,3 +260,11 @@ const cancelBatch = async ({
 module.exports = {
   cancelBatch
 };
+
+
+const AppError = require("../../../Utils/AppError");
+const { assertCompanyCancellationReason } = require("../../CanceledJourneys/cancelHelper.service");
+const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
+const { currentDate } = require("../../../Utils/CurrentDate");
+const { getData } = require("../../../CRUD/Read/ReadData");
+const { createCanceledJourney } = require("../../CanceledJourneys/cancelCreate.service");
