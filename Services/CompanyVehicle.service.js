@@ -206,7 +206,10 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
      LEFT JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
      ${where}
      ORDER BY cv.companyVehicleCreatedAt DESC`,
-    `SELECT COUNT(*) AS total FROM CompanyVehicle cv ${where}`,
+    `SELECT COUNT(*) AS total FROM CompanyVehicle cv
+     JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId
+     JOIN VehicleTypes vt ON v.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+     ${where}`,
     params,
     page,
     limit,
