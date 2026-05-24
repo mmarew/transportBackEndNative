@@ -1,5 +1,4 @@
-const { releaseConflictingOffers, activeRequestId } = require("./helpers");
-
+const { releaseConflictingOffers } = require("./actionReleaseConflictingOffers.service");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { createDriverRequest } = require("../../CRUD/Create/CreateData");
 
@@ -159,7 +158,7 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
               // Cancel the existing request
               await updateData({
                 tableName: "DriverRequest",
-                conditions: { driverRequestId: activeRequestId },
+                conditions: { driverRequestId: activeRequest.driverRequestId },
                 updateValues: {
                   journeyStatusId: journeyStatusMap.cancelledByDriver,
                 },
