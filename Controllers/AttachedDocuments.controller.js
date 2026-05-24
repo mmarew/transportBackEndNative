@@ -1,7 +1,7 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const attachedDocumentsService = require("../Services/AttachedDocuments.service");
+const attachedDocumentsService = require("../Services/AttachedDocuments");
 const {
   driversDocumentVehicleRequirement,
   entityDocumentRequirement,

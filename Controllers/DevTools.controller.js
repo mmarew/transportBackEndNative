@@ -3,7 +3,7 @@
  * Dev-only endpoints for testing. Only active when NODE_ENV !== 'production'.
  */
 const { pool } = require("../Middleware/Database.config");
-const { createAttachedDocument } = require("../Services/AttachedDocuments.service");
+const { createAttachedDocument } = require("../Services/AttachedDocuments");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 /**

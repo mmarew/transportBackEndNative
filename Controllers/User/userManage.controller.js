@@ -10,7 +10,7 @@ const {
 const {
   updateAttachedDocument,
   createAttachedDocument
-} = require("../../Services/AttachedDocuments.service");
+} = require("../../Services/AttachedDocuments");
 const services = require("../../Services/User.service");
 const {
   uploadToFTP,
