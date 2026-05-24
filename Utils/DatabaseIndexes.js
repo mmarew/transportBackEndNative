@@ -363,7 +363,7 @@ const createCommonIndexes = async () => {
   return {
     success: errors.length === 0,
     created: results.length,
-    errors: errors.length,
+    errorCount: errors.length,
     results,
     errors,
   };

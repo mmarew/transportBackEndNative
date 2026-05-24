@@ -375,7 +375,7 @@ const _handleNonWaitingRequest = async ({
     data: { filters },
   });
 
-  for (let journeyDecision of decisionsData?.data) {
+  for (let journeyDecision of decisionsData?.data || []) {
     const journeyStatusId = journeyDecision.journeyStatusId;
 
     // Note: isCompletionSeen filter is now handled at database level (line 280)

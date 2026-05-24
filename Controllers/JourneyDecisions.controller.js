@@ -60,7 +60,7 @@ exports.getJourneyDecision4AllOrSingleUser = async (req, res, next) => {
       sortOrder,
     } = req.query;
 
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
 
     // Build filters object from query parameters
     const filters = {};

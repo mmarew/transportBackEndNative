@@ -196,7 +196,7 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
     let formattedData;
     let totalCanceled = 0;
     switch (groupBy) {
-    case "role":
+    case "role": {
       // Group by role: array of { role: "Driver", reasons: [{reason: "...", qty: 10}, ...] }
       const rolesMap = {};
       results.forEach(row => {
@@ -214,7 +214,8 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
       });
       formattedData = Object.values(rolesMap);
       break;
-    case "contextType":
+    }
+    case "contextType": {
       // Group by context type: array of { contextType: "JourneyDecisions", reasons: [{reason: "...", qty: 10}, ...] }
       const contextMap = {};
       results.forEach(row => {
@@ -232,6 +233,7 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
       });
       formattedData = Object.values(contextMap);
       break;
+    }
     case "reason":
     default:
       // Simple array of { reason: "...", qty: 10 }

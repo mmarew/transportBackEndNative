@@ -258,7 +258,7 @@ const handleExistingJourney = async (driverRequest, vehicle
           status: journeyStatusId,
           shipper: shipper ? [shipper] : null,
           drivers: [driver],
-          decisions: [journeyDecisionData] || null,
+          decisions: journeyDecisionData ? [journeyDecisionData] : null,
           journey: journey || null,
           uniqueIds
         },
@@ -298,7 +298,7 @@ const handleExistingJourney = async (driverRequest, vehicle
           status: journeyStatusId,
           shipper: shipper ? [shipper] : null,
           drivers: [driver],
-          decisions: [journeyDecisionData] || null,
+          decisions: journeyDecisionData ? [journeyDecisionData] : null,
           journey: journey || null,
           uniqueIds
         },

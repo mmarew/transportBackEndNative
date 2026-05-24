@@ -43,7 +43,7 @@ const createShipperRequest = async (req, res, next) => {
 
     const roleId = req.user.roleId;
     logger.debug("createShipperRequest roleId", { roleId });
-    const userUniqueId = req.user.userUniqueId;
+    let userUniqueId = req.user.userUniqueId;
     // return;
     if (roleId === 1) {
       req.body.userUniqueId = userUniqueId;
@@ -226,7 +226,7 @@ const deleteRequest = async (req, res, next) => {
 };
 const verifyShipperStatus = async (req, res, next) => {
   try {
-    const { pageSize, page } = req?.query;
+    const { pageSize, page } = req?.query || {};
     const { userUniqueId } = req?.user ?? {};
     const result = await ShipperService.verifyShipperStatus({
       userUniqueId,
@@ -242,8 +242,8 @@ const verifyShipperStatus = async (req, res, next) => {
 const cancelShipperRequest = async (req, res, next) => {
   try {
     let ownerUserUniqueId = req?.params?.userUniqueId;
-    const { userUniqueId, roleId } = req?.user;
-    const { shipperRequestUniqueId } = req?.body;
+    const { userUniqueId, roleId } = req?.user || {};
+    const { shipperRequestUniqueId } = req?.body || {};
 
     if (!shipperRequestUniqueId || !userUniqueId || !roleId) {
       throw new AppError(
@@ -315,7 +315,7 @@ const markJourneyCompletionAsSeenController = async (req, res, next) => {
 
 const getCancellationNotificationsController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const { seenStatus, page, limit } = req.query;
 
     if (!userUniqueId) {

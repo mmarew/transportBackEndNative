@@ -342,7 +342,7 @@ const updatePricingByUniqueId = async (
     if (updateData[field] !== undefined && updateData[field] !== null) {
       // Field-specific validation
       switch (field) {
-      case "price":
+      case "price": {
         const price = parseFloat(updateData[field]);
         if (isNaN(price)) {
           validationErrors.push("price must be a valid number");
@@ -353,8 +353,9 @@ const updatePricingByUniqueId = async (
           values.push(price.toFixed(2));
         }
         break;
+      }
 
-      case "durationInDays":
+      case "durationInDays": {
         const duration = parseInt(updateData[field]);
         if (isNaN(duration)) {
           validationErrors.push("durationInDays must be a valid integer");
@@ -365,9 +366,10 @@ const updatePricingByUniqueId = async (
           values.push(duration);
         }
         break;
+      }
 
       case "effectiveFrom":
-      case "effectiveTo":
+      case "effectiveTo": {
         const dateValue = validateAndFormatDate(updateData[field]);
         if (dateValue === false) {
           validationErrors.push(
@@ -378,13 +380,14 @@ const updatePricingByUniqueId = async (
           values.push(dateValue);
         }
         break;
+      }
 
       case "subscriptionPlanUniqueId":
         setClauses.push(`${field} = ?`);
         values.push(updateData[field]);
         break;
 
-      case "isFree":
+      case "isFree": {
         const isFree =
             updateData[field] === true ||
             updateData[field] === 1 ||
@@ -392,6 +395,7 @@ const updatePricingByUniqueId = async (
         setClauses.push("isFree = ?");
         values.push(isFree ? 1 : 0);
         break;
+      }
 
       default:
         setClauses.push(`${field} = ?`);

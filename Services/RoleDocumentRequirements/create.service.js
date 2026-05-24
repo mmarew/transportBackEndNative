@@ -52,7 +52,7 @@ const createMapping = async ({
 
   // Convert to integers to match database types
   const numericRoleId = parseInt(roleId, 10);
-  const numericDocumentTypeId = parseInt(resolvedDocumentTypeId, 10);
+  let numericDocumentTypeId = parseInt(resolvedDocumentTypeId, 10);
 
   // verify existence of roleid
   const roleExists = await getData({

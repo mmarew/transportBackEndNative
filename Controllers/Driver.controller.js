@@ -38,7 +38,7 @@ const takeFromStreet = async (req, res, next) => {
 };
 const createAndAcceptNewRequest = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
       return await services.createAndAcceptNewRequest(req.body);
@@ -52,7 +52,7 @@ const createAndAcceptNewRequest = async (req, res, next) => {
 
 const acceptShipperRequest = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.acceptedByDriver;
     // NOTE: No outer executeInTransaction here — acceptShipperRequest calls
@@ -69,7 +69,7 @@ const acceptShipperRequest = async (req, res, next) => {
 const deleteRequestController = async (req, res, next) => {
   try {
     const { driverRequestUniqueId } = req.params;
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
 
     if (!driverRequestUniqueId) {
       throw new AppError("Driver request unique ID is required", 400);
@@ -94,7 +94,7 @@ const deleteRequestController = async (req, res, next) => {
 
 const verifyDriverJourneyStatusController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const result = await services.verifyDriverJourneyStatus({
       userUniqueId,
     });
@@ -177,7 +177,7 @@ const getDriverRequestController = async (req, res, next) => {
 
 const startJourney = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.journeyStatusId = journeyStatusMap.journeyStarted;
     req.body.previousStatusId = journeyStatusMap.acceptedByShipper;
     req.body.userUniqueId = userUniqueId;
@@ -190,7 +190,7 @@ const startJourney = async (req, res, next) => {
 };
 const noAnswerFromDriver = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.noAnswerFromDriver;
     req.body.previousStatusId = journeyStatusMap.requested;
@@ -203,7 +203,7 @@ const noAnswerFromDriver = async (req, res, next) => {
 };
 const completeJourney = async (req, res, next) => {
   try {
-    const { userUniqueId, roleId } = req?.user;
+    const { userUniqueId, roleId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     req.body.roleId = roleId;
     req.body.journeyStatusId = journeyStatusMap.journeyCompleted;
@@ -254,7 +254,7 @@ const cancelDriverRequest = async (req, res, next) => {
 };
 const sendUpdatedLocationController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
       return await services.sendUpdatedLocation(req.body);
@@ -267,7 +267,7 @@ const sendUpdatedLocationController = async (req, res, next) => {
 
 const getCancellationNotificationsController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const { seenStatus } = req.query;
 
     if (!userUniqueId) {
@@ -291,7 +291,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
  */
 const markNegativeStatusAsSeenController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const { driverRequestUniqueId } = req.body;
 
     if (!userUniqueId || !driverRequestUniqueId) {
