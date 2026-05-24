@@ -177,6 +177,14 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
     clauses.push("cv.assignmentStatus = ?");
     params.push(filters.assignmentStatus);
   }
+  if (filters.carryingCapacity) {
+    clauses.push("vt.carryingCapacity = ?");
+    params.push(filters.carryingCapacity);
+  }
+  if (filters.vehicleTypeName) {
+    clauses.push("vt.vehicleTypeName LIKE ?");
+    params.push(`%${filters.vehicleTypeName}%`);
+  }
 
   const where = `WHERE ${clauses.join(" AND ")}`;
   return paginatedQuery(
