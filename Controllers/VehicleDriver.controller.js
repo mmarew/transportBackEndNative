@@ -5,7 +5,7 @@ const {
   updateVehicleDriverByUniqueId,
   deleteVehicleDriverByUniqueId,
 } = require("../Services/VehicleDriver.service");
-const { accountStatus } = require("../Services/Account.service");
+const { accountStatus } = require("../Services/Account");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");

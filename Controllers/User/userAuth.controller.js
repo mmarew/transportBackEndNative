@@ -1,14 +1,14 @@
 "use strict";
 
 
-const Config = require("../Utils/Config");
+const Config = require("../../Utils/Config");
 // import uuidv4
 // import uuidv4
 
 
-const services = require("../Services/User.service");
+const services = require("../../Services/User.service");
 
-const ServerResponder = require("../Utils/ServerResponder");
+const ServerResponder = require("../../Utils/ServerResponder");
 
 const {
   getOtpMessage,
@@ -17,12 +17,12 @@ const {
   getEmailVerificationLinkMessage,
   
   getSuccessEmailVerificationHtml
-} = require("../Utils/MessageTemplates");
+} = require("../../Utils/MessageTemplates");
 
 const {
   executeInTransaction
-} = require("../Utils/DatabaseTransaction");
-const logger = require("../Utils/logger");
+} = require("../../Utils/DatabaseTransaction");
+const logger = require("../../Utils/logger");
 
 
 
@@ -39,10 +39,10 @@ const loginUser = async (req, res, next) => {
     if (response?.deferredOTP) {
       const {
         sendSms
-      } = require("../Utils/smsSender");
+      } = require("../../Utils/smsSender");
       const {
         sendEmail
-      } = require("../Utils/emailSender");
+      } = require("../../Utils/emailSender");
       const {
         phoneNumber,
         email,

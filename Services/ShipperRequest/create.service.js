@@ -1,32 +1,18 @@
 "use strict";
 
-
-
-
-
-const {
-  createNewShipperRequest
-} = require("../../CRUD/Create/CreateData");
+const { createNewShipperRequest } = require("../../CRUD/Create/CreateData");
 const batchService = require("../ShipperRequestBatch");
-const {
-  pool
-} = require("../../Middleware/Database.config");
-const {
-  journeyStatusMap,
-  usersRoles,
-  
-} = require("../../Utils/ListOfSeedData");
+const { pool } = require("../../Middleware/Database.config");
+const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
-const {
-  transactionStorage
-} = require("../../Utils/TransactionContext");
+const { transactionStorage } = require("../../Utils/TransactionContext");
 
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 const {
   handleWaitingRequest,
-  verifyShipperStatus
+  verifyShipperStatus,
 } = require("./statusVerification.service");
 
 /**
@@ -112,9 +98,7 @@ const {
  */
 const createShipperRequest = async (body, journeyStatusId) => {
   try {
-    const {
-      shipperRequestCreatedByRoleId
-    } = body;
+    const { shipperRequestCreatedByRoleId } = body;
 
     // Admin user creation is handled in controller before calling this function
     // userUniqueId must be set by the caller (controller handles admin case)
@@ -132,10 +116,16 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // Use context-aware executor for raw query with locking
     const executor = transactionStorage.getStore() || pool;
     const batchCheckSql = `SELECT * FROM ShipperRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ? FOR UPDATE`;
-    const [dataByBatchId] = await executor.query(batchCheckSql, [shipperRequestBatchId, userUniqueId]);
+    const [dataByBatchId] = await executor.query(batchCheckSql, [
+      shipperRequestBatchId,
+      userUniqueId,
+    ]);
     if (dataByBatchId?.length >= numberOfVehicles) {
       // User has already created all required requests for this batch
-      throw new AppError(`All required requests have already been created for this batch.`, 400);
+      throw new AppError(
+        `All required requests have already been created for this batch.`,
+        400,
+      );
     }
     const newRequests = [];
     const noOfRecords = numberOfVehicles - dataByBatchId?.length;
@@ -168,7 +158,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
         shippingDate: body.shippingDate || null,
         deliveryDate: body.deliveryDate || null,
         shippingCost: body.shippingCost || null,
-        journeyStatusId
+        journeyStatusId,
       });
 
       // ── company_target mode: DEFER individual PR creation ──────────────────
@@ -179,27 +169,35 @@ const createShipperRequest = async (body, journeyStatusId) => {
       // Why?  1. Faster creation (1 insert vs N inserts)
       //       2. If deal fails → no orphaned PR rows to clean up
       //       3. No race conditions during bid acceptance
-      const isCompanyTarget = (body.requestMode || "individual_target") === "company_target";
+      const isCompanyTarget =
+        (body.requestMode || "individual_target") === "company_target";
       if (isCompanyTarget) {
-        logger.info("company_target batch created (PR rows deferred to bid acceptance)", {
-          shipperRequestBatchId,
-          totalVehicles: body.numberOfVehicles || 1,
-          userUniqueId
-        });
+        logger.info(
+          "company_target batch created (PR rows deferred to bid acceptance)",
+          {
+            shipperRequestBatchId,
+            totalVehicles: body.numberOfVehicles || 1,
+            userUniqueId,
+          },
+        );
         return await verifyShipperStatus({
-          userUniqueId
+          userUniqueId,
         });
       }
 
       // Step 1b: Now create individual ShipperRequest rows in parallel — safe because
       //          the batch header already exists and upsertBatch is no longer called inside.
-      const promises = Array(noOfRecords).fill().map(() => createNewShipperRequest(body, userUniqueId, journeyStatusId));
+      const promises = Array(noOfRecords)
+        .fill()
+        .map(() =>
+          createNewShipperRequest(body, userUniqueId, journeyStatusId),
+        );
 
       // Wait for all requests to be created in parallel
       const results = await Promise.all(promises);
 
       // Extract created requests from results
-      results.forEach(result => {
+      results.forEach((result) => {
         if (result?.data?.[0]) {
           newRequests.push(result.data[0]);
         }
@@ -215,7 +213,11 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // duplicate notifications to the same driver, but this is acceptable and non-critical
     // Only individual requests get auto-matched to nearby drivers.
     // company_target requests go through company bid → dispatcher assignment flow.
-    const waitingRequests = newRequests.filter(req => req?.journeyStatusId === journeyStatusMap.waiting && req?.requestMode !== "company_target");
+    const waitingRequests = newRequests.filter(
+      (req) =>
+        req?.journeyStatusId === journeyStatusMap.waiting &&
+        req?.requestMode !== "company_target",
+    );
     if (waitingRequests.length > 0) {
       // Shared Set for notification deduplication across parallel requests
       // Note: There's a small window where duplicate notifications could occur if
@@ -224,32 +226,34 @@ const createShipperRequest = async (body, journeyStatusId) => {
       const notifiedDrivers = new Set();
 
       // Process all waiting requests in parallel for better performance
-      await Promise.all(waitingRequests.map(async createdRequest => {
-        // Local arrays per request to avoid race conditions on shared arrays
-        const localDriversData = [];
-        const localDrivers = [];
-        const localDecisions = [];
-        await handleWaitingRequest({
-          shipperRequest: createdRequest,
-          shipperRequestId: createdRequest.shipperRequestId,
-          totalRecords: null,
-          // Not needed for create flow
-          pageSize: null,
-          page: null,
-          driversData: localDriversData,
-          drivers: localDrivers,
-          decisions: localDecisions,
-          notifiedDrivers,
-          // Shared Set for deduplication (minor race condition acceptable)
-          userUniqueId // Pass userUniqueId for audit columns
-        });
-      }));
+      await Promise.all(
+        waitingRequests.map(async (createdRequest) => {
+          // Local arrays per request to avoid race conditions on shared arrays
+          const localDriversData = [];
+          const localDrivers = [];
+          const localDecisions = [];
+          await handleWaitingRequest({
+            shipperRequest: createdRequest,
+            shipperRequestId: createdRequest.shipperRequestId,
+            totalRecords: null,
+            // Not needed for create flow
+            pageSize: null,
+            page: null,
+            driversData: localDriversData,
+            drivers: localDrivers,
+            decisions: localDecisions,
+            notifiedDrivers,
+            // Shared Set for deduplication (minor race condition acceptable)
+            userUniqueId, // Pass userUniqueId for audit columns
+          });
+        }),
+      );
     }
     if (shipperRequestCreatedByRoleId === usersRoles.driverRoleId) {
       return newRequests;
     }
     return await verifyShipperStatus({
-      userUniqueId
+      userUniqueId,
     });
   } catch (error) {
     logger.error("Error in createShipperRequest service", {
@@ -259,9 +263,12 @@ const createShipperRequest = async (body, journeyStatusId) => {
       userUniqueId: body?.userUniqueId,
       shipperRequestCreatedByRoleId: body?.shipperRequestCreatedByRoleId,
       shipperRequestBatchId: body?.shipperRequestBatchId,
-      vehicleTypeUniqueId: body?.vehicle?.vehicleTypeUniqueId
+      vehicleTypeUniqueId: body?.vehicle?.vehicleTypeUniqueId,
     });
-    throw new AppError(error.message || "Unable to create request", error.statusCode || 500);
+    throw new AppError(
+      error.message || "Unable to create request",
+      error.statusCode || 500,
+    );
   }
 };
 
@@ -272,5 +279,5 @@ const createShipperRequest = async (body, journeyStatusId) => {
  */
 
 module.exports = {
-  createShipperRequest
+  createShipperRequest,
 };

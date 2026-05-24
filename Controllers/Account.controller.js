@@ -1,5 +1,5 @@
 const ServerResponder = require("../Utils/ServerResponder");
-const AccountService = require("../Services/Account.service");
+const AccountService = require("../Services/Account");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 

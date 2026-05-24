@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const Config = require("../Utils/Config");
+const Config = require("../../Utils/Config");
 // import uuidv4
 // import uuidv4
 const {
@@ -10,16 +10,16 @@ const {
 const {
   updateAttachedDocument,
   createAttachedDocument
-} = require("../Services/AttachedDocuments.service");
-const services = require("../Services/User.service");
+} = require("../../Services/AttachedDocuments.service");
+const services = require("../../Services/User.service");
 const {
   uploadToFTP,
   deleteFromFTP
-} = require("../Utils/FTPHandler");
-const ServerResponder = require("../Utils/ServerResponder");
+} = require("../../Utils/FTPHandler");
+const ServerResponder = require("../../Utils/ServerResponder");
 const {
   usersRoles
-} = require("../Utils/ListOfSeedData");
+} = require("../../Utils/ListOfSeedData");
 const {
   getOtpMessage,
   getPhoneVerificationLinkMessage,
@@ -27,22 +27,22 @@ const {
   getEmailVerificationLinkMessage,
   getAdminAssignmentMessage,
   
-} = require("../Utils/MessageTemplates");
-const AppError = require("../Utils/AppError");
+} = require("../../Utils/MessageTemplates");
+const AppError = require("../../Utils/AppError");
 const {
   executeInTransaction
-} = require("../Utils/DatabaseTransaction");
-const logger = require("../Utils/logger");
+} = require("../../Utils/DatabaseTransaction");
+const logger = require("../../Utils/logger");
 const {
   getData
-} = require("../CRUD/Read/ReadData");
+} = require("../../CRUD/Read/ReadData");
 const {
   getSocket
-} = require("../Utils/WsConnectionStore");
+} = require("../../Utils/WsConnectionStore");
 const {
   emitMessage
-} = require("../Utils/WsServerResponder");
-const messageTypes = require("../Utils/MessageTypes");
+} = require("../../Utils/WsServerResponder");
+const messageTypes = require("../../Utils/MessageTypes");
 //in create user fullname must be existe for driver roles.
 
 
@@ -60,10 +60,10 @@ const createUser = async (req, res, next) => {
     if (response?.deferredOTP) {
       const {
         sendSms
-      } = require("../Utils/smsSender");
+      } = require("../../Utils/smsSender");
       const {
         sendEmail
-      } = require("../Utils/emailSender");
+      } = require("../../Utils/emailSender");
       const {
         phoneNumber,
         email,
@@ -78,7 +78,7 @@ const createUser = async (req, res, next) => {
       if (phoneNumber && phoneVerificationOTP) {
         const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
         sendSms(phoneNumber, null, phoneMsg.sms).catch(err => {
-          const logger = require("../Utils/logger");
+          const logger = require("../../Utils/logger");
           logger.warn("Deferred SMS sending failed", {
             phoneNumber,
             error: err.message
@@ -91,7 +91,7 @@ const createUser = async (req, res, next) => {
         if (isEmailVerified && emailVerificationOTP) {
           const emailMsg = getOtpMessage(emailVerificationOTP, "registration");
           sendEmail(email, emailMsg.emailSubject, emailMsg.sms, emailMsg.emailHtml).catch(err => {
-            const logger = require("../Utils/logger");
+            const logger = require("../../Utils/logger");
             logger.warn("Deferred Email OTP sending failed", {
               email,
               error: err.message
@@ -106,7 +106,7 @@ const createUser = async (req, res, next) => {
             subject: linkMsg.emailSubject
           });
           sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
-            const logger = require("../Utils/logger");
+            const logger = require("../../Utils/logger");
             logger.warn("Deferred Email Link sending failed", {
               email,
               error: err.message
@@ -260,10 +260,10 @@ const updateUser = async (req, res, next) => {
     if (response?.deferredOTP) {
       const {
         sendSms
-      } = require("../Utils/smsSender");
+      } = require("../../Utils/smsSender");
       const {
         sendEmail
-      } = require("../Utils/emailSender");
+      } = require("../../Utils/emailSender");
       const {
         phoneVerificationOTP,
         emailVerificationOTP,
@@ -388,10 +388,10 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
     if (response?.deferredOTP) {
       const {
         sendSms
-      } = require("../Utils/smsSender");
+      } = require("../../Utils/smsSender");
       const {
         sendEmail
-      } = require("../Utils/emailSender");
+      } = require("../../Utils/emailSender");
       const {
         phoneNumber,
         email,

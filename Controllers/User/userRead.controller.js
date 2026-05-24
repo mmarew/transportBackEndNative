@@ -6,9 +6,9 @@
 // import uuidv4
 
 
-const services = require("../Services/User.service");
+const services = require("../../Services/User.service");
 
-const ServerResponder = require("../Utils/ServerResponder");
+const ServerResponder = require("../../Utils/ServerResponder");
 
 
 
@@ -43,3 +43,23 @@ const getUserByFilterDetailed = async (req, res, next) => {
 module.exports = {
   getUserByFilterDetailed
 };
+
+const { getUserHistory } = require("../../Utils/UserProfileHistory");
+
+const getUserProfileHistory = async (req, res, next) => {
+  try {
+    const { userUniqueId } = req.params;
+    const { page, limit, fieldName, source } = req.query;
+    const result = await getUserHistory(userUniqueId, {
+      page,
+      limit,
+      fieldName,
+      source,
+    });
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+module.exports.getUserProfileHistory = getUserProfileHistory;
