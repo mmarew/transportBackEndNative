@@ -1,14 +1,11 @@
 "use strict";
 
-const {
-  pool
-} = require("../../Middleware/Database.config");
+const { pool } = require("../../Middleware/Database.config");
 
 const {
   getUnassignedFreePlans,
-  getUserSubscriptionsWithFilters
+  getUserSubscriptionsWithFilters,
 } = require("./read.service");
-
 
 function getDaysBetweenDates(date1, date2) {
   const d1 = new Date(date1);
@@ -27,9 +24,7 @@ const addDays = (date, days) => {
 // Create subscription
 
 const getSubscriptionData = async (filters = {}, connection) => {
-  const {
-    dataType = "userSubscriptions"
-  } = filters;
+  const { dataType = "userSubscriptions" } = filters;
   if (dataType === "freePlans") {
     return await getUnassignedFreePlans(filters, connection);
   } else {
@@ -40,5 +35,5 @@ const getSubscriptionData = async (filters = {}, connection) => {
 module.exports = {
   getDaysBetweenDates,
   addDays,
-  getSubscriptionData
+  getSubscriptionData,
 };

@@ -20,6 +20,13 @@ const logger = require("../../Utils/logger");
 const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
+const {
+  getUserSubscriptionsWithFilters
+} = require("./read.service");
+const {
+  getDaysBetweenDates,
+  addDays
+} = require("./helpers.service");
 
 // Create subscription
 const createUserSubscription = async ({
