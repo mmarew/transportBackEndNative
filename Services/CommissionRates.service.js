@@ -1,5 +1,5 @@
 
-const { getCommissionsByCommissionUniqueId } = require("./CommissionRates.service");
+const { getAllCommissions } = require("./Commission.service");
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
@@ -81,7 +81,7 @@ const createCommissionRate = async ({
 // Retrieve all commission rates with pagination and filtering
 const getAllCommissionRates = async (filters = {}) => {
   if (filters.commissionUniqueId) {
-    return await getCommissionsByCommissionUniqueId(filters.commissionUniqueId);
+    return await getAllCommissions({ commissionUniqueId: filters.commissionUniqueId });
   }
   const page = Number(filters.page) || 1;
   const limit = Math.min(Number(filters.limit) || 10, 100);

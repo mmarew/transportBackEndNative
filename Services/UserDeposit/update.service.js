@@ -236,4 +236,4 @@ module.exports = {
 
 const { getUserDeposit } = require("./read.service");
 const { fetchDepositData } = require("./read.service");
-const { getUpdateFields } = require("./update.service");
+const { getUpdateFields } = require("./helpers.service");

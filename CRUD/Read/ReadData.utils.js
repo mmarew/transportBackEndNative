@@ -1,5 +1,5 @@
 
-const { performJoinSelect } = require("./ReadData.utils");
+const { performJoinSelect } = require("./ReadData.core");
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { getData } = require("./ReadData.core");
