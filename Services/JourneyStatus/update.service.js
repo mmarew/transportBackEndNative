@@ -300,7 +300,7 @@ const updateJourneyStatus = async body => {
         tableName: "Journey",
         conditions: journeyConditions,
         updateValues,
-        connection: transactionStorage.getStore() ?? null
+        connection: transactionStorage.getStore() ?? connection ?? null
       }).then(result => {
         logger.info("Journey table update result", {
           journeyUniqueId,
@@ -345,7 +345,7 @@ const updateJourneyStatus = async body => {
         updateValues: {
           journeyStatusId
         },
-        connection: transactionStorage.getStore() ?? null
+        connection: transactionStorage.getStore() ?? connection ?? null
       }));
     }
 
@@ -381,7 +381,7 @@ const updateJourneyStatus = async body => {
         tableName: "JourneyDecisions",
         conditions: journeyDecisionConditions,
         updateValues,
-        connection: transactionStorage.getStore() ?? null
+        connection: transactionStorage.getStore() ?? connection ?? null
       }));
     }
 
@@ -402,7 +402,7 @@ const updateJourneyStatus = async body => {
         tableName: "DriverRequest",
         conditions: driverConditions,
         updateValues: driverUpdateValues,
-        connection: transactionStorage.getStore() ?? null
+        connection: transactionStorage.getStore() ?? connection ?? null
       }));
     }
 
@@ -410,7 +410,7 @@ const updateJourneyStatus = async body => {
     if (shipperRequestUniqueId || driverRequestUniqueId) {
       // Always use the ambient transaction connection — never grab a raw pool
       // connection here, as that would deadlock against the outer transaction.
-      const txConn = transactionStorage.getStore() ?? null;
+      const txConn = transactionStorage.getStore() ?? connection ?? null;
       const execRaw = (sql, params) => txConn ? txConn.query(sql, params) : pool.query(sql, params);
 
       // 1. Update CompanyBidVehicleAssignment status if journey completed

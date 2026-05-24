@@ -38,12 +38,15 @@ function validateCommissionData(data) {
   return true;
 }
 
-async function createCommission({
-  journeyDecisionUniqueId,
-  paymentAmount,
-  commissionCreatedBy,
-}) {
-  const executor = transactionStorage.getStore() || pool;
+async function createCommission(
+  {
+    journeyDecisionUniqueId,
+    paymentAmount,
+    commissionCreatedBy,
+  },
+  connection = null
+) {
+  const executor = transactionStorage.getStore() || connection || pool;
 
   validateCommissionData({ commissionAmount: paymentAmount }); // Basic validation on payment amount
 

@@ -95,6 +95,7 @@ const startJourney = async (body) => {
             journeyCreatedBy: userUniqueId,
             journeyCreatedAt: currentDate(),
           },
+          connection: conn,
         });
 
         await createJourneyRoutePoint({
@@ -102,7 +103,7 @@ const startJourney = async (body) => {
           latitude,
           longitude,
           userUniqueId,
-        });
+        }, conn);
       } else {
         finalJourneyUniqueId = existingJourneyCheck[0].journeyUniqueId;
       }
@@ -114,6 +115,7 @@ const startJourney = async (body) => {
         journeyStatusId: body.journeyStatusId,
         journeyUniqueId: finalJourneyUniqueId,
         shippingDateByDriver: currentDate(),
+        connection: conn,
       });
 
       return { combinedData, finalJourneyUniqueId };
@@ -282,6 +284,7 @@ const completeJourney = async (body) => {
         journeyUniqueId,
         journeyStatusId: body.journeyStatusId,
         deliveryDateByDriver: currentDate(),
+        connection: conn,
       });
 
       const paymentAmount = combinedData?.shippingCostByDriver;
@@ -297,7 +300,7 @@ const completeJourney = async (body) => {
           journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
           paymentAmount,
           commissionCreatedBy: userUniqueId,
-        });
+        }, conn);
       }
 
       await createJourneyRoutePoint({
@@ -305,7 +308,7 @@ const completeJourney = async (body) => {
         latitude: body?.latitude,
         longitude: body?.longitude,
         userUniqueId,
-      });
+      }, conn);
 
       return combinedData;
     },
