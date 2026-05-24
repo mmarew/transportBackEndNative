@@ -88,7 +88,7 @@ const enrichUserBalanceRecord = async (balance) => {
       ...balance,
       transactionDetails,
     };
-  } catch {
+  } catch (err) {
     // If details fail to load, we still want the balance record
     return {
       ...balance,

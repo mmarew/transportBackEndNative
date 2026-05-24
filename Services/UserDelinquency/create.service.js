@@ -135,7 +135,7 @@ const createUserDelinquency = async data => {
     VALUES (${placeholders})
   `;
   try {
-    await query(sql, values);
+    await (transactionStorage.getStore() || pool).query(sql, values);
 
     // Check for automatic ban
     const banResult = await checkAndApplyAutomaticBan(userUniqueId, roleId);

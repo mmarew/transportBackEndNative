@@ -98,7 +98,7 @@ const checkAndApplyAutomaticBan = async (userUniqueId, roleId) => {
     ) VALUES (?, ?, ?, 'system', ?, ?, ?, ?, TRUE)
   `;
   const banValues = [banUniqueId, userUniqueId, roleId, `Automatic ban: ${totalPoints} points reached ${applicableRule.severity} threshold`, applicableRule.duration, banAt, banExpiresAt];
-  await query(banSql, banValues);
+  await (transactionStorage.getStore() || pool).query(banSql, banValues);
   return {
     action: "banned",
     banDuration: applicableRule.duration,
