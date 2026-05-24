@@ -1,9 +1,6 @@
 "use strict";
 
-const {
-  db,
-  findOne
-} = require("../CompanyHelper.service");
+const { db, findOne } = require("../CompanyHelper.service");
 
 /**
  * ### Partial Update — "Update only what I give you"
@@ -65,7 +62,6 @@ exports.updateBatch = async (batchUniqueId, fields) => {
 };
 
 // ── Soft DELETE ───────────────────────────────────────────────────────────────
-
 
 const AppError = require("../../Utils/AppError");
 const { UPDATABLE_COLS } = require("./batchHelper");
