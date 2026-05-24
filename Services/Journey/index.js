@@ -1,7 +1,7 @@
 "use strict";
 
 const journeyCreate = require("./journeyCreate.service");
-const journeyRead = require("./journeyRead.service");
+const journeyRead = require("./journeyRead");
 const journeyUpdate = require("./journeyUpdate.service");
 const journeyDelete = require("./journeyDelete.service");
 const journeyHelper = require("./journeyHelper");
