@@ -177,9 +177,25 @@ const getBannedUsers = async (filters = {}) => {
     );
   }
 
+  const baseFromClause = `
+    FROM BannedUsers bu
+    INNER JOIN Users u ON bu.userUniqueId = u.userUniqueId
+    INNER JOIN Roles r ON bu.roleId = r.roleId
+    INNER JOIN UserRole ur ON bu.userUniqueId = ur.userUniqueId AND bu.roleId = ur.roleId
+    INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
+    LEFT JOIN BannedUserDelinquency bud ON bu.banUniqueId = bud.banUniqueId
+    LEFT JOIN UserDelinquency ud ON bud.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
+    LEFT JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
+    LEFT JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId
+    LEFT JOIN Statuses s ON ursc.statusId = s.statusId
+    WHERE ${whereConditions.join(" AND ")}
+  `;
+
   const baseQuery = `
     SELECT 
-      bu.*,  u.*,  r.*,
+      bu.*, 
+      u.fullName, u.phoneNumber, u.email, u.isPhoneVerified, u.isEmailVerified, 
+      r.roleName, r.roleDescription,
       ub.fullName as bannedByName,
       ud.delinquencyTypeUniqueId,
       dt.delinquencyTypeName,
@@ -195,20 +211,10 @@ const getBannedUsers = async (filters = {}) => {
       -- Status fields for current status
       s.statusName as currentStatusName,
       s.statusDescription as currentStatusDescription
-    FROM BannedUsers bu
-    INNER JOIN Users u ON bu.userUniqueId = u.userUniqueId
-    INNER JOIN Roles r ON bu.roleId = r.roleId
-    INNER JOIN UserRole ur ON bu.userUniqueId = ur.userUniqueId AND bu.roleId = ur.roleId
-    INNER JOIN Users ub ON bu.bannedBy = ub.userUniqueId
-    LEFT JOIN BannedUserDelinquency bud ON bu.banUniqueId = bud.banUniqueId
-    LEFT JOIN UserDelinquency ud ON bud.userDelinquencyUniqueId = ud.userDelinquencyUniqueId
-    LEFT JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
-    LEFT JOIN UserRoleStatusCurrent ursc ON ur.userRoleId = ursc.userRoleId
-    LEFT JOIN Statuses s ON ursc.statusId = s.statusId
-    WHERE ${whereConditions.join(" AND ")}
+    ${baseFromClause}
   `;
 
-  const countQuery = `SELECT COUNT(*) as total FROM (${baseQuery}) as count_table`;
+  const countQuery = `SELECT COUNT(*) as total ${baseFromClause}`;
   const dataQuery = `
     ${baseQuery}
     ORDER BY bu.${sortBy} ${sortOrder === "DESC" ? "DESC" : "ASC"}
