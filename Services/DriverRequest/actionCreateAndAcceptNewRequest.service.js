@@ -1,25 +1,20 @@
-const { releaseConflictingOffers } = require("./actionReleaseConflictingOffers.service");
+const {
+  releaseConflictingOffers,
+} = require("./actionReleaseConflictingOffers.service");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { createDriverRequest } = require("../../CRUD/Create/CreateData");
-
-
-
-
 
 const { createJourneyDecision } = require("../JourneyDecisions.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 
-
-
 const {
   journeyStatusMap,
-  
+
   activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const logger = require("../../Utils/logger");
-
 
 const AppError = require("../../Utils/AppError");
 
@@ -237,9 +232,7 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
     // Auto-release conflicting company assignments
     await releaseConflictingOffers(userUniqueId, "individual");
 
-    const {
-      verifyDriverJourneyStatus,
-    } = require("./statusVerification");
+    const { verifyDriverJourneyStatus } = require("./statusVerification");
     return await verifyDriverJourneyStatus({
       userUniqueId,
     });
