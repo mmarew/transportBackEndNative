@@ -23,6 +23,9 @@ const {
 const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
+const {
+  getRoleDocumentRequirements
+} = require("./read.service");
 // Create a new mapping
 
 // Removed getAllMappings in favor of consolidated getter with pagination
