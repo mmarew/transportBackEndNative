@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable max-lines */
 /**
  * delinquency_ban.test.js
  * ========================

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * Seed Banned Users Script
  * Run: node seedBannedUsers.js

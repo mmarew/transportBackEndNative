@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 const sqlQuery = `
 
 -- Ensure session defaults use InnoDB and utf8mb4 for all created tables
