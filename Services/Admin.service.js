@@ -1,5 +1,5 @@
 const { pool } = require("../Middleware/Database.config");
-const { accountStatus } = require("./Account.service");
+const { accountStatus } = require("./Account");
 const {} = require("./VehicleOwnership.service");
 const AppError = require("../Utils/AppError");
 const {

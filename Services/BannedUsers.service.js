@@ -1,7 +1,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { updateUserRoleStatus } = require("./UserRoleStatus.service");
-const { accountStatus } = require("./Account.service");
+const { accountStatus } = require("./Account");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");

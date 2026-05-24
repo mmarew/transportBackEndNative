@@ -5,17 +5,17 @@
 
 
 
-const logger = require("../Utils/logger");
+const logger = require("../../Utils/logger");
 const {
   pool
-} = require("../Middleware/Database.config");
+} = require("../../Middleware/Database.config");
 
 const {
   getUserSubscriptionsWithFilters,
   createUserSubscription,
   getSubscriptionData
-} = require("./UserSubscription.service");
-const AppError = require("../Utils/AppError");
+} = require("../UserSubscription.service");
+const AppError = require("../../Utils/AppError");
 
 
 

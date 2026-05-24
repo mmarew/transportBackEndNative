@@ -2,36 +2,36 @@
 
 const {
   getVehicleDrivers
-} = require("./VehicleDriver.service");
+} = require("../VehicleDriver.service");
 const {
   updateUserRoleStatus,
   getUserRoleStatusCurrent
-} = require("./UserRoleStatus.service");
+} = require("../UserRoleStatus.service");
 const {
   getRoleDocumentRequirements
-} = require("./RoleDocumentRequirements.service");
+} = require("../RoleDocumentRequirements.service");
 const {
   getUserByFilterDetailed
-} = require("./User.service");
+} = require("../User.service");
 const {
   getDriverCompanies
-} = require("./CompanyVehicle.service");
-const logger = require("../Utils/logger");
+} = require("../CompanyVehicle.service");
+const logger = require("../../Utils/logger");
 const {
   pool
-} = require("../Middleware/Database.config");
+} = require("../../Middleware/Database.config");
 const {
   usersRoles,
   USER_STATUS
-} = require("../Utils/ListOfSeedData");
+} = require("../../Utils/ListOfSeedData");
 
-const AppError = require("../Utils/AppError");
+const AppError = require("../../Utils/AppError");
 const {
   getUserBalanceByFilterServices
-} = require("./UserBalance.service/UserBalance.get.service");
+} = require("../UserBalance.service/UserBalance.get.service");
 const {
   transactionStorage
-} = require("../Utils/TransactionContext");
+} = require("../../Utils/TransactionContext");
 
 /**
  * @fileoverview Account Service
@@ -249,7 +249,7 @@ const accountStatus = async ({
     // 1. Ban Check
       (async () => {
         try {
-          const bannedUsersService = require("./BannedUsers.service");
+          const bannedUsersService = require("../BannedUsers.service");
           return await bannedUsersService.getBannedUsers({
             search: effectivePhoneNumber,
             roleId
