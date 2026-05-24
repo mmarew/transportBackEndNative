@@ -133,7 +133,7 @@ async function initSocket({ httpServer }) {
                 }
               }),
             ]),
-            new Promise((_, reject) =>
+            new Promise((resolve, reject) =>
               setTimeout(
                 () => reject(new Error("Redis connection timeout")),
                 5000,
@@ -142,13 +142,9 @@ async function initSocket({ httpServer }) {
           ]);
 
           // Both clients are ready, initialize adapter
-          try {
-            io.adapter(createAdapter(pubClient, subClient));
-            logger.info("Socket.IO Redis Adapter initialized");
-          } catch (createAdapterError) {
-            // This can happen if Redis disconnects between ready check and adapter creation
-            throw createAdapterError;
-          }
+          // This can happen if Redis disconnects between ready check and adapter creation
+          io.adapter(createAdapter(pubClient, subClient));
+          logger.info("Socket.IO Redis Adapter initialized");
         } catch (adapterError) {
           // Check if it's a timeout or connection error - these are expected when Redis is unavailable
           const isTimeoutOrConnectionError =

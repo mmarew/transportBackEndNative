@@ -1,3 +1,4 @@
+// eslint-disable-next-line n/no-unpublished-require
 const request = require("supertest");
 const Config = require("../../Utils/Config");
 const app = require("../../Config/Express.config");

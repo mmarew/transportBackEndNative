@@ -92,7 +92,9 @@ const sendSms = async (
     };
 
     //disable it when app is in development mode and enable it when app is in production mode
-    return { message: "success", data: "OTP sent successfully" };
+    if (process.env.NODE_ENV !== "production") {
+      return { message: "success", data: "OTP sent successfully" };
+    }
     const apiResponse = await axios.post(baseUrl, postfields, {
       headers,
       timeout: 30000,

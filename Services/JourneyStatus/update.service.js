@@ -382,7 +382,7 @@ const updateJourneyStatus = async body => {
         conditions: journeyDecisionConditions,
         updateValues,
         connection: transactionStorage.getStore() ?? null
-      }).then(result => {}));
+      }));
     }
 
     // Update DriverRequest if driverRequestUniqueId is provided

@@ -65,6 +65,7 @@ const loginUser = async (req, res, next) => {
             phoneNumber,
             response: res
           });
+          return res;
         }).catch(err => {
           logger.warn("Deferred Login SMS sending failed", {
             phoneNumber,
