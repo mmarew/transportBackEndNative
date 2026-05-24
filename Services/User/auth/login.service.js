@@ -28,6 +28,8 @@ const {
   v4: uuidv4
 } = require("uuid");
 
+let manageService;
+let registryService;
 
 
 
