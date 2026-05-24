@@ -230,7 +230,7 @@ const takeFromStreet = async (body, user) => {
 
         // Create journey route points (with connection for transaction support)
         const originLocation = body.originLocation;
-        const JourneyPoints = await createJourneyRoutePoint(
+        await createJourneyRoutePoint(
           {
             journeyDecisionUniqueId:
               journeyDecision.data[0].journeyDecisionUniqueId,

@@ -3,7 +3,8 @@
 const { inProgressSlots } = require("../batchHelper");
 
 const {
-  db
+  db,
+  findOne
 } = require("../../CompanyHelper.service");
 
 /**
@@ -263,7 +264,7 @@ module.exports = {
 
 
 const AppError = require("../../../Utils/AppError");
-const { assertCompanyCancellationReason } = require("../../CanceledJourneys/cancelHelper.service");
+const { assertCompanyCancellationReason } = require("../../CanceledJourneys/cancelHelper");
 const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
 const { currentDate } = require("../../../Utils/CurrentDate");
 const { getData } = require("../../../CRUD/Read/ReadData");
