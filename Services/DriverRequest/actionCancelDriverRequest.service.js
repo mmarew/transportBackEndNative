@@ -20,8 +20,10 @@ const { currentDate } = require("../../Utils/CurrentDate");
 
 const {
   createCanceledJourney,
-  getJourneyDataByContextType,
 } = require("../CanceledJourneys");
+const {
+  getJourneyDataByContextType,
+} = require("../CanceledJourneys/cancelHelper");
 const messageTypes = require("../../Utils/MessageTypes");
 const {
   journeyStatusMap,
