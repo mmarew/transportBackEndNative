@@ -239,7 +239,7 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
 
     const {
       verifyDriverJourneyStatus,
-    } = require("./statusVerification.service");
+    } = require("./statusVerification");
     return await verifyDriverJourneyStatus({
       userUniqueId,
     });

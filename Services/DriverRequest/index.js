@@ -17,7 +17,7 @@
 const requestCRUD = require("./requestCRUD.service");
 const requestActions = require("./requestActions.service");
 const journeyManagement = require("./journeyManagement.service");
-const statusVerification = require("./statusVerification.service");
+const statusVerification = require("./statusVerification");
 const cancellation = require("./cancellation.service");
 const helpers = require("./helpers");
 

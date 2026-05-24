@@ -24,7 +24,7 @@ const { updateData } = require("../../CRUD/Update/Data.update");
 
 const {
   verifyDriverJourneyStatus,
-} = require("../DriverRequest/statusVerification.service");
+} = require("../DriverRequest/statusVerification");
 
 
 

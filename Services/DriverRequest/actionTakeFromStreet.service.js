@@ -42,7 +42,7 @@ const takeFromStreet = async (body, user) => {
     // first verify if driver has active request
     const {
       verifyDriverJourneyStatus,
-    } = require("./statusVerification.service");
+    } = require("./statusVerification");
     const driverStatus = await verifyDriverJourneyStatus({
       userUniqueId: user?.userUniqueId,
     });

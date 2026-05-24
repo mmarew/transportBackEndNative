@@ -5,7 +5,7 @@ const { createDriverRequest } = require("../../CRUD/Create/CreateData");
 const { pool } = require("../../Middleware/Database.config");
 const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const { checkIfDriverIsHealthy } = require("./helpers");
-const { verifyDriverJourneyStatus } = require("./statusVerification.service");
+const { verifyDriverJourneyStatus } = require("./statusVerification");
 const AppError = require("../../Utils/AppError");
 
 /**
