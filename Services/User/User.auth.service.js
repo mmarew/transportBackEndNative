@@ -24,7 +24,7 @@ const messageTypes = require("../../Utils/MessageTypes");
 
 const {
   driversDocumentVehicleRequirement,
-} = require("../RoleDocumentRequirements.service");
+} = require("../RoleDocumentRequirements");
 
 let manageService;
 let registryService;

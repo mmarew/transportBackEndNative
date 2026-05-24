@@ -8,7 +8,7 @@ const { createJourneyRoutePoint } = require("../JourneyRoutePoints.service");
 const {
   getJourneyDecisionByJourneyDecisionUniqueId,
 } = require("../JourneyDecisions.service");
-const { updateJourneyStatus } = require("../JourneyStatus.service");
+const { updateJourneyStatus } = require("../JourneyStatus");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const messageTypes = require("../../Utils/MessageTypes");

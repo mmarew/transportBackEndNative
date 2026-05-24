@@ -21,7 +21,7 @@ const {
   
   
 } = require("../../Utils/ListOfSeedData");
-const { updateJourneyStatus } = require("../JourneyStatus.service");
+const { updateJourneyStatus } = require("../JourneyStatus");
 
 const logger = require("../../Utils/logger");
 const { sendFCMNotificationToUser } = require("../Firebase.service");

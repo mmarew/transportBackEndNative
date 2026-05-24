@@ -23,7 +23,7 @@ const {
 const {
   
   updateNegativeJourneyStatus
-} = require("../JourneyStatus.service");
+} = require("../JourneyStatus");
 const {
   createCanceledJourney
 } = require("../CanceledJourneys");

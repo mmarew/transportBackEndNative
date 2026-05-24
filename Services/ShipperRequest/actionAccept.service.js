@@ -19,7 +19,7 @@ const {
 const {
   updateJourneyStatus,
   
-} = require("../JourneyStatus.service");
+} = require("../JourneyStatus");
 
 const {
   journeyStatusMap,

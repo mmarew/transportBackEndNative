@@ -1,6 +1,6 @@
 "use strict";
 
-const verifyDriverJourneyStatus = require("./verifyDriverJourneyStatus.service");
+const verifyDriverJourneyStatus = require("./verifyDriverJourneyStatus");
 const handleJourneyStatusOne = require("./handleJourneyStatusOne.service");
 const handleExistingJourney = require("./handleExistingJourney.service");
 const helpers = require("./helpers.service");

@@ -55,7 +55,7 @@ const {
 } = require("../DocumentTypes.service");
 const {
   createJourneyStatus
-} = require("../JourneyStatus.service");
+} = require("../JourneyStatus");
 const {
   createPaymentMethod
 } = require("../PaymentMethod.service");
@@ -64,7 +64,7 @@ const {
 } = require("../PaymentStatus.service");
 const {
   createMapping
-} = require("../RoleDocumentRequirements.service");
+} = require("../RoleDocumentRequirements");
 const {
   createTariffRate
 } = require("../TariffRate.service");

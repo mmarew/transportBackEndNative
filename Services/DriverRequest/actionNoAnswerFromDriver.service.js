@@ -25,7 +25,7 @@ const {
   
   
 } = require("../../Utils/ListOfSeedData");
-const { updateJourneyStatus } = require("../JourneyStatus.service");
+const { updateJourneyStatus } = require("../JourneyStatus");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 
 

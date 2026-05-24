@@ -5,7 +5,7 @@ const attachedDocumentsService = require("../Services/AttachedDocuments");
 const {
   driversDocumentVehicleRequirement,
   entityDocumentRequirement,
-} = require("../Services/RoleDocumentRequirements.service");
+} = require("../Services/RoleDocumentRequirements");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const { uploadToFTP } = require("../Utils/FTPHandler");

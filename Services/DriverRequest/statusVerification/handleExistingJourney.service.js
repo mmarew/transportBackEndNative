@@ -29,7 +29,7 @@ const logger = require("../../../Utils/logger");
 
 const {
   updateJourneyStatus
-} = require("../../JourneyStatus.service");
+} = require("../../JourneyStatus");
 // Removed unused import: executeInTransaction
 // Import helpers from helpers.js
 // Removed unused import: executeInTransaction

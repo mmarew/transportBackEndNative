@@ -9,7 +9,7 @@ const {
 } = require("../UserRoleStatus.service");
 const {
   getRoleDocumentRequirements
-} = require("../RoleDocumentRequirements.service");
+} = require("../RoleDocumentRequirements");
 const {
   getUserByFilterDetailed
 } = require("../User.service");
