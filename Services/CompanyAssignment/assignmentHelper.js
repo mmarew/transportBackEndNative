@@ -233,15 +233,21 @@ const notifyAssignedDriver = async (opts) => {
  * ────────────────────
  * Creates or reuses a DriverRequest row for the given driver at assignment time.
  *
- * **Offline-first design:** A dispatcher can assign a driver even when the driver
- * is offline (no active DriverRequest). In that case a fresh row is inserted with
- * the origin coordinates from the ShipperRequest, so the driver wakes up to a
+ * **Design Rationale & Offline-First Flow:**
+ * Dispatchers can assign a driver even when the driver is completely offline
+ * (i.e. has 0 active DriverRequest rows). When this happens, a fresh row is inserted
+ * using the origin coordinates from the ShipperRequest so the driver wakes up to a
  * pre-populated job card.
  *
- * **Rules (in order):**
- * 1. Exactly ONE non-deleted DriverRequest exists → UPDATE it in-place and reuse
- *    its UUID. No status filter — works for waiting, offline, or any state.
- * 2. Zero rows (driver offline) or 2+ rows (test pollution) → INSERT a fresh row.
+ * **Logic (in order):**
+ * 1. Try to find the driver's *most recent* active DriverRequest (`ORDER BY driverRequestId DESC LIMIT 1`).
+ *    This successfully handles test drivers that might have stale/duplicate rows.
+ * 2. If exactly ONE active row is found, UPDATE it in-place and reuse its UUID.
+ *    (If it is an individual-target request, we first cancel their individual connections).
+ * 3. If ZERO active rows are found, we directly INSERT a fresh DriverRequest.
+ *    *Note: We explicitly bypass `createDriverRequest` here because that function contains
+ *    its own active-request redundancy checks, which would create confusing edge-cases
+ *    if the driver had multiple corrupted rows.*
  *
  * @param {Object} opts
  * @param {string} opts.driverUserUniqueId
@@ -258,18 +264,19 @@ const upsertDriverRequest = async ({
   originLng,
   originPlace,
 }) => {
-  // Fetch up to 2 rows — no status filter so offline drivers (0 rows) fall through
-  // to the INSERT path, and drivers with exactly 1 row are updated in-place.
+  // Fetch the most recent active row — no status filter so offline drivers (0 rows) fall through
+  // to the INSERT path, and drivers with 1+ rows are updated in-place.
   const [existingRows] = await db().query(
     `SELECT driverRequestUniqueId, journeyStatusId
      FROM DriverRequest
      WHERE userUniqueId = ?
        AND driverRequestDeletedAt IS NULL
-     LIMIT 2`,
+     ORDER BY driverRequestId DESC
+     LIMIT 1`,
     [driverUserUniqueId],
   );
 
-  if (existingRows && existingRows.length === 1) {
+  if (existingRows && existingRows.length > 0) {
     const existingUniqueId = existingRows[0].driverRequestUniqueId;
     const existingStatus   = existingRows[0].journeyStatusId;
 
@@ -501,26 +508,32 @@ const upsertDriverRequest = async ({
     }
   }
 
-  // 0 rows (offline driver) or 2+ rows (stale test data) → INSERT fresh row.
-  const result = await createDriverRequest(
-    {
-      currentLocation: {
-        latitude: originLat ?? 0,
-        longitude: originLng ?? 0,
-        description: originPlace ?? "Assigned by dispatcher",
-      },
-    },
-    driverUserUniqueId,
-    newStatusId,
+  // 0 rows (offline driver) → INSERT fresh row.
+  // We completely bypass createDriverRequest to avoid redundant database checks,
+  // since we already explicitly checked for existing rows above.
+  const driverRequestUniqueId = uuidv4();
+  await db().query(
+    `INSERT INTO DriverRequest
+      (driverRequestUniqueId, userUniqueId, journeyStatusId,
+       currentLatitude, currentLongitude, currentPlace,
+       originLatitude, originLongitude, originPlace,
+       driverRequestCreatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      driverRequestUniqueId,
+      driverUserUniqueId,
+      newStatusId,
+      originLat ?? 0,
+      originLng ?? 0,
+      originPlace ?? "Assigned by dispatcher",
+      originLat ?? 0,
+      originLng ?? 0,
+      originPlace ?? "Assigned by dispatcher",
+      currentDate(),
+    ]
   );
 
-  // createDriverRequest returns existing active rows without inserting when
-  // one already exists (activeJourneyStatuses check). Extract the UUID safely.
-  const row = result?.data?.[0];
-  if (!row?.driverRequestUniqueId) {
-    throw new AppError("Failed to create or reuse DriverRequest", 500);
-  }
-  return row.driverRequestUniqueId;
+  return driverRequestUniqueId;
 };
 
 /**
