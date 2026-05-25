@@ -231,9 +231,12 @@ const cancelDriverRequest = async (data) => {
         // If shipper has multiple drivers, leave status unchanged
         if (shipperRequestId && shouldUpdateShipperToWaiting) {
           // Update the ShipperRequest to reflect the cancellation.
-          // For company_target mode, the company still owns the bid, so slot returns to acceptedByShipper (5)
+          // For company_target mode, the company still owns the bid, so slot returns to acceptedByShipper (4)
           // For individual_target mode, the slot returns to waiting (1) for a new driver
-          const isCompanyTarget = shipper && shipper.length > 0 && shipper[0].requestMode === 'company_target';
+          // We check for requestMode === 'company_target' or if targetCompanyUniqueId is set.
+          const isCompanyTarget = shipper && shipper.length > 0 && 
+            (shipper[0].requestMode === 'company_target' || shipper[0].targetCompanyUniqueId != null);
+            
           const revertStatus = isCompanyTarget ? journeyStatusMap.acceptedByShipper : journeyStatusMap.waiting;
 
           await updateData({

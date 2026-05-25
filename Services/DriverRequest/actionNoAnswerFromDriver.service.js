@@ -139,14 +139,18 @@ const noAnswerFromDriver = async (body) => {
       // 3. Update ShipperRequest status (only if this is the only active driver)
       // If shipper has multiple active drivers, leave status unchanged
       if (shipperRequestId && shouldUpdateShipperToWaiting) {
-        // Update the ShipperRequest to reflect the no answer and set journeyStatusId to 1 (waiting)
-        // This happens when this driver is the only active one, so shipper request returns to waiting state
+        // Update the ShipperRequest to reflect the no answer.
+        // For company_target mode, the company still owns the bid, so slot returns to acceptedByShipper (4)
+        // For individual_target mode, the slot returns to waiting (1) for a new driver
+        const isCompanyTarget = shipperData && (shipperData.requestMode === 'company_target' || shipperData.targetCompanyUniqueId != null);
+        const revertStatus = isCompanyTarget ? journeyStatusMap.acceptedByShipper : journeyStatusMap.waiting;
+
         await updateData({
           tableName: "ShipperRequest",
           conditions: { shipperRequestId },
           updateValues: {
-            journeyStatusId: journeyStatusMap.waiting,
-          }, // Set journeyStatusId to 1 (return to waiting state)
+            journeyStatusId: revertStatus,
+          },
           connection, // Pass connection for transaction support
         });
       }
