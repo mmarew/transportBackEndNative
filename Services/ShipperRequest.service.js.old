@@ -270,7 +270,7 @@ const getAllActiveRequests = async (filters = {}) => {
       u.userCreatedAt as userCreatedAt,
       vt.vehicleTypeName,
       js.journeyStatusName  
-    FROM ShipperRequest pr
+    FROM ShipperRequest sr
     JOIN Users u ON u.userUniqueId = sr.userUniqueId 
     LEFT JOIN VehicleTypes vt ON sr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
@@ -281,7 +281,7 @@ const getAllActiveRequests = async (filters = {}) => {
   let values = [activeStatusIds];
 
   if (userUniqueId) {
-    whereConditions.push("pr.userUniqueId = ?");
+    whereConditions.push("sr.userUniqueId = ?");
     values.push(userUniqueId);
   }
   if (email) {
@@ -297,45 +297,45 @@ const getAllActiveRequests = async (filters = {}) => {
     values.push(`%${fullName}%`);
   }
   if (vehicleTypeUniqueId) {
-    whereConditions.push("pr.vehicleTypeUniqueId = ?");
+    whereConditions.push("sr.vehicleTypeUniqueId = ?");
     values.push(vehicleTypeUniqueId);
   }
   if (journeyStatusId) {
-    whereConditions.push("pr.journeyStatusId = ?");
+    whereConditions.push("sr.journeyStatusId = ?");
     values.push(journeyStatusId);
   }
   if (shippableItemName) {
-    whereConditions.push("pr.shippableItemName LIKE ?");
+    whereConditions.push("sr.shippableItemName LIKE ?");
     values.push(`%${shippableItemName}%`);
   }
   if (originPlace) {
-    whereConditions.push("pr.originPlace LIKE ?");
+    whereConditions.push("sr.originPlace LIKE ?");
     values.push(`%${originPlace}%`);
   }
   if (destinationPlace) {
-    whereConditions.push("pr.destinationPlace LIKE ?");
+    whereConditions.push("sr.destinationPlace LIKE ?");
     values.push(`%${destinationPlace}%`);
   }
   if (startDate && endDate) {
-    whereConditions.push("pr.shipperRequestCreatedAt BETWEEN ? AND ?");
+    whereConditions.push("sr.shipperRequestCreatedAt BETWEEN ? AND ?");
     values.push(startDate, endDate);
   } else if (startDate) {
-    whereConditions.push("pr.shipperRequestCreatedAt >= ?");
+    whereConditions.push("sr.shipperRequestCreatedAt >= ?");
     values.push(startDate);
   } else if (endDate) {
-    whereConditions.push("pr.shipperRequestCreatedAt <= ?");
+    whereConditions.push("sr.shipperRequestCreatedAt <= ?");
     values.push(endDate);
   }
   if (shippingDate) {
-    whereConditions.push("DATE(pr.shippingDate) = ?");
+    whereConditions.push("DATE(sr.shippingDate) = ?");
     values.push(shippingDate);
   }
   if (deliveryDate) {
-    whereConditions.push("DATE(pr.deliveryDate) = ?");
+    whereConditions.push("DATE(sr.deliveryDate) = ?");
     values.push(deliveryDate);
   }
   if (requestMode) {
-    whereConditions.push("pr.requestMode = ?");
+    whereConditions.push("sr.requestMode = ?");
     values.push(requestMode);
   }
 
@@ -1588,7 +1588,7 @@ const verifyShipperStatus = async ({
         driversData.push(driverInfo);
 
         const matchingShipperRequest = shipper.find(
-          (pr) => sr.shipperRequestId === journeyDecision.shipperRequestId,
+          (sr) => sr.shipperRequestId === journeyDecision.shipperRequestId,
         );
 
         const message = {

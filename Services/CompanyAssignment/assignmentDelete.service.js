@@ -59,7 +59,7 @@ exports.autoAssignBatch = async (data) => {
   // without needing to inspect cancellation records separately.
   const [unassignedSlots] = await db().query(
     `SELECT sr.shipperRequestUniqueId, sr.originLatitude, sr.originLongitude, sr.originPlace
-     FROM ShipperRequest pr
+     FROM ShipperRequest sr
      WHERE sr.shipperRequestBatchId = ? 
        AND sr.shipperRequestDeletedAt IS NULL
        AND sr.journeyStatusId = ?

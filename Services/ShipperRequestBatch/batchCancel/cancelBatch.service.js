@@ -183,7 +183,7 @@ const cancelBatch = async ({
     // 4. Cancel open JourneyDecisions linked to cancellable slots only
     db().query(
       `UPDATE JourneyDecisions jd
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
           SET jd.journeyStatusId = ?
         WHERE sr.shipperRequestBatchId = ?
@@ -197,7 +197,7 @@ const cancelBatch = async ({
       `UPDATE DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
           SET dr.journeyStatusId = ?
         WHERE sr.shipperRequestBatchId = ?
@@ -217,7 +217,7 @@ const cancelBatch = async ({
     // 7. Cancel vehicle assignments only for the cancellable slots
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
@@ -270,7 +270,7 @@ const cancelBatch = async ({
          FROM DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
          INNER JOIN Users u
                  ON dr.userUniqueId = u.userUniqueId

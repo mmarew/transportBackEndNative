@@ -55,7 +55,7 @@ exports.createAssignment = async (data) => {
   }
 
   let shipperRequestUniqueId = inputPRUniqueId;
-  let pr;
+  let sr;
 
   if (shipperRequestUniqueId) {
     // ── EAGER PATH: sr already exists (individual_target or pre-created) ───

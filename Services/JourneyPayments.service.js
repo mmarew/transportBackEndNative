@@ -126,7 +126,7 @@ exports.getAllJourneyPayments = async ({
   }
 
   if (shipperUniqueId) {
-    conditions.push("pr.userUniqueId = ?");
+    conditions.push("sr.userUniqueId = ?");
     values.push(shipperUniqueId);
   }
 

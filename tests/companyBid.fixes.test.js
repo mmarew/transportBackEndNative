@@ -401,7 +401,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
 
   await step("Fetch shipperRequestUniqueId", async () => {
     const sr = await fetchPRByBatchId(state.shipperRequestBatchId);
-    assert(pr, "ShipperRequest not found for batch");
+    assert(sr, "ShipperRequest not found for batch");
     state.shipperRequestUniqueId = sr.shipperRequestUniqueId;
     return state.shipperRequestUniqueId;
   });
@@ -529,18 +529,18 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
 
       // Secondary verification: use admin getAllActiveRequests which has no user-scope restriction
       // to check the sr status was actually updated to 4
-      const prRes = await request(
+      const srRes = await request(
         "GET",
         `/api/user/getAllActiveRequests?journeyStatusId=4&limit=20`,
         null,
         adminH(),
       );
-      const prRows = prRes.body?.data || [];
-      const sr = prRows.find(
+      const srRows = srRes.body?.data || [];
+      const sr = srRows.find(
         (r) => r.shipperRequestBatchId === state.shipperRequestBatchId,
       );
 
-      if (!pr) {
+      if (!sr) {
         // The sr sync may have been blocked by a column not existing in the live DB
         // (new column added after tables were created). The bid status update works
         // (proven above). This is an environment-specific issue, not a code bug.
@@ -550,9 +550,9 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
 
       assert(
         sr.journeyStatusId === 4,
-        `Expected journeyStatusId=4 (acceptedByShipper), got ${pr.journeyStatusId}`,
+        `Expected journeyStatusId=4 (acceptedByShipper), got ${sr.journeyStatusId}`,
       );
-      return `journeyStatusId = ${pr.journeyStatusId} ✓ (confirmed via admin endpoint)`;
+      return `journeyStatusId = ${sr.journeyStatusId} ✓ (confirmed via admin endpoint)`;
     },
   );
 
@@ -617,20 +617,20 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
       );
 
       // Now verify the sr went back to waiting (1)
-      const prRes = await request(
+      const srRes = await request(
         "GET",
         `/api/user/getShipperRequest4allOrSingleUser?limit=20`,
         null,
         shipperH(),
       );
-      const rows = (prRes.body?.formattedData || [])
+      const rows = (srRes.body?.formattedData || [])
         .map((f) => f.shipperRequest || f)
         .filter(Boolean);
-      const pr2 = rows.find((r) => r.shipperRequestBatchId === batchId2);
-      assert(pr2, "Second ShipperRequest not found");
+      const sr2 = rows.find((r) => r.shipperRequestBatchId === batchId2);
+      assert(sr2, "Second ShipperRequest not found");
       assert(
-        pr2.journeyStatusId === 1,
-        `Expected journeyStatusId=1 after rejection, got ${pr2.journeyStatusId}`,
+        sr2.journeyStatusId === 1,
+        `Expected journeyStatusId=1 after rejection, got ${sr2.journeyStatusId}`,
       );
 
       // cleanup
@@ -641,7 +641,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
         adminH(),
       );
 
-      return `journeyStatusId reset to ${pr2.journeyStatusId} (waiting) after rejection ✓`;
+      return `journeyStatusId reset to ${sr2.journeyStatusId} (waiting) after rejection ✓`;
     },
   );
 

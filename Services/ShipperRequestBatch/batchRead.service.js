@@ -187,8 +187,8 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
 
   // ── Build dynamic WHERE filters ───────────────────────────────────────────
   const clauses = [
-    "pr.shipperRequestBatchId = ?",
-    "pr.shipperRequestDeletedAt IS NULL",
+    "sr.shipperRequestBatchId = ?",
+    "sr.shipperRequestDeletedAt IS NULL",
   ];
   const params = [batchUniqueId];
 
@@ -196,7 +196,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   const onlyCancellable =
     filters.cancellable === true || filters.cancellable === "true";
   if (onlyCancellable) {
-    clauses.push(`pr.journeyStatusId IN (${cancellableIn})`);
+    clauses.push(`sr.journeyStatusId IN (${cancellableIn})`);
   }
 
   // Filter by exact status ID — single integer OR array of integers.
@@ -208,10 +208,10 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
       ? filters.journeyStatusId.map(Number)
       : [Number(filters.journeyStatusId)];
     if (ids.length === 1) {
-      clauses.push("pr.journeyStatusId = ?");
+      clauses.push("sr.journeyStatusId = ?");
       params.push(ids[0]);
     } else {
-      clauses.push(`pr.journeyStatusId IN (${ids.map(() => "?").join(", ")})`);
+      clauses.push(`sr.journeyStatusId IN (${ids.map(() => "?").join(", ")})`);
       params.push(...ids);
     }
   }
@@ -247,7 +247,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
       case "notAssigned":
         // Free slot: status=acceptedByShipper, no active assignment, no cancelled history
         clauses.push(
-          `pr.journeyStatusId = ?
+          `sr.journeyStatusId = ?
            AND NOT EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
              WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
@@ -270,7 +270,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
       case "needsReassignment":
         // Free slot: status=acceptedByShipper, no active assignment, prev driver cancelled
         clauses.push(
-          `pr.journeyStatusId = ?
+          `sr.journeyStatusId = ?
            AND NOT EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
              WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
@@ -331,7 +331,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
       sr.destinationPlace,
       sr.shipperRequestCreatedAt,
       CASE WHEN sr.journeyStatusId IN (${cancellableIn}) THEN 1 ELSE 0 END AS cancellable
-    FROM ShipperRequest pr
+    FROM ShipperRequest sr
     LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
     ${where}
     ORDER BY sr.shipperRequestId ASC
@@ -339,7 +339,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
 
   const countSql = `
     SELECT COUNT(*) AS total
-    FROM ShipperRequest pr
+    FROM ShipperRequest sr
     LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
     ${where}`;
 

@@ -57,9 +57,10 @@ exports.autoAssignBatch = async (data) => {
   // not cancelled). After a partial cancellation, cancelled slots have a
   // terminal journeyStatusId — filtering by status excludes them cleanly
   // without needing to inspect cancellation records separately.
+
   const [unassignedSlots] = await db().query(
     `SELECT sr.shipperRequestUniqueId, sr.originLatitude, sr.originLongitude, sr.originPlace
-     FROM ShipperRequest pr
+     FROM ShipperRequest sr
      WHERE sr.shipperRequestBatchId = ? 
        AND sr.shipperRequestDeletedAt IS NULL
        AND sr.journeyStatusId = ?

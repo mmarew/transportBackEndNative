@@ -134,7 +134,7 @@ const partialCancelBatch = async ({
     // Cancel open JourneyDecisions for those slots
     db().query(
       `UPDATE JourneyDecisions jd
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
           SET jd.journeyStatusId = ?
         WHERE sr.shipperRequestUniqueId IN (${placeholders})
@@ -146,7 +146,7 @@ const partialCancelBatch = async ({
       `UPDATE DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
           SET dr.journeyStatusId = ?
         WHERE sr.shipperRequestUniqueId IN (${placeholders})
@@ -156,7 +156,7 @@ const partialCancelBatch = async ({
     // Cancel vehicle assignments for those slots
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
-         INNER JOIN ShipperRequest pr
+         INNER JOIN ShipperRequest sr
                  ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?

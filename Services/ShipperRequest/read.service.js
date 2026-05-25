@@ -632,31 +632,31 @@ const getDetailedJourneyData = async (shipperRequests) => {
       return [];
     }
     const waitingResults = [];
-    const activePRs = [];
+    const activeSRs = [];
 
     // --- Step 1: Pre-filter non-active PRs (no DB hit) ---
     for (const sr of shipperRequests) {
       if (
-        pr.journeyStatusId === journeyStatusMap.waiting ||
+        sr.journeyStatusId === journeyStatusMap.waiting ||
         sr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
         sr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
         waitingResults.push({
-          shipperRequest: pr,
+          shipperRequest: sr,
           driverRequests: [],
           decisions: [],
           journey: {},
         });
       } else {
-        activePRs.push(pr);
+        activeSRs.push(sr);
       }
     }
-    if (activePRs.length === 0) {
+    if (activeSRs.length === 0) {
       return waitingResults;
     }
 
     // --- Step 2: Batch fetch all active/positive decisions for all active PRs (1 query) ---
-    const prIds = activePRs.map((pr) => sr.shipperRequestId);
+    const srIds = activeSRs.map((sr) => sr.shipperRequestId);
     const positiveStatuses = [
       journeyStatusMap.requested,
       journeyStatusMap.acceptedByDriver,
@@ -666,30 +666,30 @@ const getDetailedJourneyData = async (shipperRequests) => {
     ];
     const [allDecisionsRaw] = await executor.query(
       `SELECT * FROM JourneyDecisions WHERE shipperRequestId IN (?) AND journeyStatusId IN (?)`,
-      [prIds, positiveStatuses],
+      [srIds, positiveStatuses],
     );
     // Group decisions by shipperRequestId
-    const decisionsByPR = new Map();
+    const decisionsBySR = new Map();
     for (const d of allDecisionsRaw) {
-      // if decisionsByPR dont have the shipperRequestId as key, add it with an empty array
-      if (!decisionsByPR.has(d.shipperRequestId)) {
-        decisionsByPR.set(d.shipperRequestId, []);
+      // if decisionsBySR dont have the shipperRequestId as key, add it with an empty array
+      if (!decisionsBySR.has(d.shipperRequestId)) {
+        decisionsBySR.set(d.shipperRequestId, []);
       }
       // push the decision to the array of the shipperRequestId
-      decisionsByPR.get(d.shipperRequestId).push(d);
+      decisionsBySR.get(d.shipperRequestId).push(d);
     }
 
     // --- Step 3: Auto-correct stale PRs and handle status mismatches ---
-    const stalePRIds = []; // PRs to reset to waiting
-    const validPRs = []; // PRs with matching decisions
+    const staleSRIds = []; // PRs to reset to waiting
+    const validSRs = []; // PRs with matching decisions
     const allDecisions = []; // Decisions matching current/updated status
 
-    for (const sr of activePRs) {
-      const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
+    for (const sr of activeSRs) {
+      const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
       if (decisions.length === 0) {
         // No matching active decisions — auto-correct to waiting if not already
-        if (pr.journeyStatusId !== journeyStatusMap.waiting) {
-          stalePRIds.push(pr.shipperRequestId);
+        if (sr.journeyStatusId !== journeyStatusMap.waiting) {
+          staleSRIds.push(sr.shipperRequestId);
         }
       } else {
         // Check if sr status needs advancement (status mismatch where decisions are ahead)
@@ -715,22 +715,22 @@ const getDetailedJourneyData = async (shipperRequests) => {
         );
         if (finalMatches.length > 0) {
           allDecisions.push(...finalMatches);
-          validPRs.push(pr);
+          validSRs.push(sr);
         } else {
           // If no decisions match even after possible advancement, it's stale
-          stalePRIds.push(pr.shipperRequestId);
+          staleSRIds.push(sr.shipperRequestId);
         }
       }
     }
 
     // Batch update stale PRs to waiting
-    if (stalePRIds.length > 0) {
+    if (staleSRIds.length > 0) {
       await executor.query(
         `UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId IN (?)`,
-        [journeyStatusMap.waiting, stalePRIds],
+        [journeyStatusMap.waiting, staleSRIds],
       );
     }
-    if (validPRs.length === 0) {
+    if (validSRs.length === 0) {
       return waitingResults;
     }
 
@@ -809,17 +809,17 @@ const getDetailedJourneyData = async (shipperRequests) => {
       journeyStatusMap.journeyStarted,
       journeyStatusMap.journeyCompleted,
     ];
-    const prsNeedingJourney = validPRs.filter((pr) =>
-      journeyStatuses.includes(pr.journeyStatusId),
+    const srsNeedingJourney = validSRs.filter((sr) =>
+      journeyStatuses.includes(sr.journeyStatusId),
     );
-    // console.log("@prsNeedingJourney", prsNeedingJourney);
+    // console.log("@srsNeedingJourney", srsNeedingJourney);
     let journeyByDecisionUniqueId = new Map();
-    if (prsNeedingJourney.length > 0) {
+    if (srsNeedingJourney.length > 0) {
       // Collect ALL decision unique IDs for PRs needing journey data — not just decisions[0],
       // because a sr may have multiple decisions (e.g. one rejected, one accepted/completed).
       // We search across all of them so the correct journey record is always found.
-      const journeyDecisionUniqueIds = prsNeedingJourney.flatMap((pr) => {
-        const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
+      const journeyDecisionUniqueIds = srsNeedingJourney.flatMap((sr) => {
+        const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
         return decisions.map((d) => d.journeyDecisionUniqueId).filter(Boolean);
       });
       const uniqueJourneyDecisionIds = [...new Set(journeyDecisionUniqueIds)];
@@ -835,8 +835,8 @@ const getDetailedJourneyData = async (shipperRequests) => {
     }
 
     // --- Step 8: Assemble results (pure JS, no queries) ---
-    const activeResults = validPRs.map((pr) => {
-      const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
+    const activeResults = validSRs.map((sr) => {
+      const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
       const driverRequests = decisions
         .map((decision) => {
           const driver = driversByRequestId.get(decision.driverRequestId);
@@ -850,7 +850,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
           };
         })
         .filter(Boolean);
-      const useJourney = journeyStatuses.includes(pr.journeyStatusId);
+      const useJourney = journeyStatuses.includes(sr.journeyStatusId);
       let journey = {};
       if (useJourney) {
         // Find the specific decision that matches the PR's final status.
@@ -867,7 +867,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
         }
       }
       return {
-        shipperRequest: pr,
+        shipperRequest: sr,
         driverRequests,
         decisions,
         journey,
