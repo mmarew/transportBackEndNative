@@ -263,7 +263,7 @@ const getAllActiveRequests = async (filters = {}) => {
 
   let baseQuery = `
     SELECT 
-      pr.*, 
+      sr.*, 
       u.fullName,
       u.phoneNumber,
       u.email,
@@ -271,10 +271,10 @@ const getAllActiveRequests = async (filters = {}) => {
       vt.vehicleTypeName,
       js.journeyStatusName  
     FROM ShipperRequest pr
-    JOIN Users u ON u.userUniqueId = pr.userUniqueId 
-    LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
-    WHERE pr.journeyStatusId IN (?)
+    JOIN Users u ON u.userUniqueId = sr.userUniqueId 
+    LEFT JOIN VehicleTypes vt ON sr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
+    WHERE sr.journeyStatusId IN (?)
   `;
 
   let whereConditions = [];
@@ -346,7 +346,7 @@ const getAllActiveRequests = async (filters = {}) => {
   const countQuery = `SELECT COUNT(*) as totalCount FROM (${baseQuery}) as countTable`;
 
   const offset = (page - 1) * limit;
-  baseQuery += ` ORDER BY pr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+  baseQuery += ` ORDER BY sr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
   values.push(parseInt(limit), parseInt(offset));
 
   const executor = transactionStorage.getStore() || pool;
@@ -1588,7 +1588,7 @@ const verifyShipperStatus = async ({
         driversData.push(driverInfo);
 
         const matchingShipperRequest = shipper.find(
-          (pr) => pr.shipperRequestId === journeyDecision.shipperRequestId,
+          (pr) => sr.shipperRequestId === journeyDecision.shipperRequestId,
         );
 
         const message = {

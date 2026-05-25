@@ -607,7 +607,7 @@ async function findActiveAssignmentForSlot(
  * ─────────────────
  * Assigns a driver+vehicle to a freight slot within an accepted bid.
  *
- * **Just-In-Time PR Creation (company_target):**
+ * **Just-In-Time sr Creation (company_target):**
  * When `shipperRequestUniqueId` is omitted (company_target deferred flow),
  * a new ShipperRequest row is created automatically from the batch metadata.
  * This avoids bulk-creating N rows upfront — even 450,000 vehicles = 0 rows
@@ -643,8 +643,8 @@ exports.createAssignment = async (data) => {
   let pr;
 
   if (shipperRequestUniqueId) {
-    // ── EAGER PATH: PR already exists (individual_target or pre-created) ───
-    pr = await getShipperRequestByUniqueId(
+    // ── EAGER PATH: sr already exists (individual_target or pre-created) ───
+    sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -679,7 +679,7 @@ exports.createAssignment = async (data) => {
     }
 
     shipperRequestUniqueId = freeSlot.shipperRequestUniqueId;
-    pr = await getShipperRequestByUniqueId(
+    sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -710,9 +710,9 @@ exports.createAssignment = async (data) => {
   const driverRequestUniqueId = await upsertDriverRequest({
     driverUserUniqueId,
     newStatusId: requestedStatusId,
-    originLat: pr.originLatitude,
-    originLng: pr.originLongitude,
-    originPlace: pr.originPlace,
+    originLat: sr.originLatitude,
+    originLng: sr.originLongitude,
+    originPlace: sr.originPlace,
   });
 
   // ── Create JourneyDecision at assignment time (status 2) ─────────────────
@@ -800,7 +800,7 @@ exports.createBulkAssignments = async (data) => {
       item;
 
     // Check if slot belongs to the batch — uses the dedicated service function
-    const pr = await getShipperRequestByUniqueId(
+    const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -822,9 +822,9 @@ exports.createBulkAssignments = async (data) => {
     const driverRequestUniqueId = await upsertDriverRequest({
       driverUserUniqueId,
       newStatusId: journeyStatusMap.requested,
-      originLat: pr.originLatitude,
-      originLng: pr.originLongitude,
-      originPlace: pr.originPlace ?? "Bulk assigned",
+      originLat: sr.originLatitude,
+      originLng: sr.originLongitude,
+      originPlace: sr.originPlace ?? "Bulk assigned",
     });
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────
@@ -1386,14 +1386,14 @@ exports.autoAssignBatch = async (data) => {
   // terminal journeyStatusId — filtering by status excludes them cleanly
   // without needing to inspect cancellation records separately.
   const [unassignedSlots] = await db().query(
-    `SELECT pr.shipperRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
+    `SELECT sr.shipperRequestUniqueId, sr.originLatitude, sr.originLongitude, sr.originPlace
      FROM ShipperRequest pr
-     WHERE pr.shipperRequestBatchId = ? 
-       AND pr.shipperRequestDeletedAt IS NULL
-       AND pr.journeyStatusId = ?
+     WHERE sr.shipperRequestBatchId = ? 
+       AND sr.shipperRequestDeletedAt IS NULL
+       AND sr.journeyStatusId = ?
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
-         WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+         WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
            AND cba.companyBidRequestUniqueId = ?
            AND cba.assignmentDeletedAt IS NULL
            AND cba.assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')

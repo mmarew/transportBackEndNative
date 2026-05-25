@@ -2,10 +2,7 @@
 
 const { inProgressSlots } = require("../batchHelper");
 
-const {
-  db,
-  findOne
-} = require("../../CompanyHelper.service");
+const { db, findOne } = require("../../CompanyHelper.service");
 
 /**
  * ### Atomically cancel an entire company-targeted freight batch.
@@ -40,7 +37,7 @@ const cancelBatch = async ({
   batchUniqueId,
   userUniqueId,
   roleId,
-  cancellationReasonsTypeId
+  cancellationReasonsTypeId,
 }) => {
   if (!batchUniqueId || !userUniqueId) {
     throw new AppError("batchUniqueId and userUniqueId are required", 400);
@@ -50,27 +47,33 @@ const cancelBatch = async ({
   await assertCompanyCancellationReason(cancellationReasonsTypeId);
 
   // 1b. Verify batch exists + ownership
-  const batch = await findOne("ShipperRequestBatch", {
-    batchUniqueId
-  }, "Batch not found");
+  const batch = await findOne(
+    "ShipperRequestBatch",
+    {
+      batchUniqueId,
+    },
+    "Batch not found",
+  );
   const isAdmin = roleId === 3 || roleId === 6; // admin / super-admin
 
   if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
     throw new AppError("Unauthorized: batch does not belong to you", 403);
   }
-  const terminalStatuses = [journeyStatusMap.cancelledByShipper,
-  // 7
+  const terminalStatuses = [
+    journeyStatusMap.cancelledByShipper,
+    // 7
     journeyStatusMap.cancelledByDriver,
     // 9
     journeyStatusMap.cancelledByAdmin,
     // 10
-    journeyStatusMap.cancelledBySystem // 12
+    journeyStatusMap.cancelledBySystem, // 12
   ].filter(Boolean); // remove undefined if any key is missing
 
   if (terminalStatuses.includes(batch.journeyStatusId)) {
     throw new AppError("Batch is already cancelled", 400);
   }
-  const cancelStatusId = isAdmin ? journeyStatusMap.cancelledByAdmin // 10
+  const cancelStatusId = isAdmin
+    ? journeyStatusMap.cancelledByAdmin // 10
     : journeyStatusMap.cancelledByShipper; // 7
 
   const now = currentDate();
@@ -80,27 +83,33 @@ const cancelBatch = async ({
   //   5 = journeyStarted  (driver is actively on the road)
   //   6 = journeyCompleted (already delivered)
   //   + the terminal cancel statuses (already cancelled by anyone)
-  const lockedStatuses = [journeyStatusMap.journeyStarted,
-  // 5
+  const lockedStatuses = [
+    journeyStatusMap.journeyStarted,
+    // 5
     journeyStatusMap.journeyCompleted,
     // 6
-    ...terminalStatuses // 7, 9, 10, 12
+    ...terminalStatuses, // 7, 9, 10, 12
   ].filter(Boolean);
   const lockedClause = lockedStatuses.join(","); // e.g. "5,6,7,9,10,12"
 
   // Count all slots, locked slots, and cancellable slots in one query
-  const [[slotSummary]] = await db().query(`SELECT
+  const [[slotSummary]] = await db().query(
+    `SELECT
        COUNT(*)                                                          AS totalSlots,
        SUM(journeyStatusId IN (${lockedClause}))                        AS lockedSlots,
        SUM(journeyStatusId NOT IN (${lockedClause}))                    AS cancellableSlots,
        SUM(journeyStatusId IN (?,?))                                    AS inProgressSlots
      FROM ShipperRequest
      WHERE shipperRequestBatchId = ?
-       AND shipperRequestDeletedAt IS NULL`, [journeyStatusMap.journeyStarted,
-  // 5
-    journeyStatusMap.journeyCompleted,
-    // 6
-    batchUniqueId]);
+       AND shipperRequestDeletedAt IS NULL`,
+    [
+      journeyStatusMap.journeyStarted,
+      // 5
+      journeyStatusMap.journeyCompleted,
+      // 6
+      batchUniqueId,
+    ],
+  );
   const cancellableSlots = Number(slotSummary.cancellableSlots) || 0;
   const lockedSlots = Number(slotSummary.lockedSlots) || 0;
   const totalSlots = Number(slotSummary.totalSlots) || 0;
@@ -109,80 +118,115 @@ const cancelBatch = async ({
   // No ShipperRequest rows exist yet — bid hasn't been accepted.
   // Cancel the batch header and expire any open bids; nothing else to do.
   if (totalSlots === 0) {
-    await Promise.all([db().query(`UPDATE ShipperRequestBatch
+    await Promise.all([
+      db().query(
+        `UPDATE ShipperRequestBatch
             SET journeyStatusId = ?,
                 batchUpdatedAt  = ?
-          WHERE batchUniqueId = ?`, [cancelStatusId, now, batchUniqueId]), db().query(`UPDATE CompanyBidRequest
+          WHERE batchUniqueId = ?`,
+        [cancelStatusId, now, batchUniqueId],
+      ),
+      db().query(
+        `UPDATE CompanyBidRequest
             SET bidStatus = 'expired',
                 isCancellationSeenByCompany = 'not seen by company yet'
           WHERE shipperRequestBatchId = ?
-            AND bidStatus NOT IN ('expired','rejected_by_shipper','cancelled_by_company')`, [batchUniqueId])]);
+            AND bidStatus NOT IN ('expired','rejected_by_shipper','cancelled_by_company')`,
+        [batchUniqueId],
+      ),
+    ]);
     return {
       message: "Batch cancelled successfully",
-      batchUniqueId
+      batchUniqueId,
     };
   }
 
   // ── All existing slots are locked (started / completed / already cancelled) ─
   if (cancellableSlots === 0) {
-    throw new AppError(`Cannot fully cancel this batch — all ${lockedSlots} slot(s) are either ` + `in transit (journeyStarted) or already completed/cancelled. ` + `No cancellable slots remain.`, 400);
+    throw new AppError(
+      `Cannot fully cancel this batch — all ${lockedSlots} slot(s) are either ` +
+        `in transit (journeyStarted) or already completed/cancelled. ` +
+        `No cancellable slots remain.`,
+      400,
+    );
   }
 
   // Determine the final batch-level status:
   //   - Any locked slots exist → batch becomes partiallyCancelled (17)
   //     because those slots remain alive (started/completed)
   //   - All slots are cancellable → batch becomes fully cancelled
-  const finalBatchStatus = lockedSlots > 0 ? journeyStatusMap.partiallyCancelled // 17
-    : cancelStatusId;
+  const finalBatchStatus =
+    lockedSlots > 0
+      ? journeyStatusMap.partiallyCancelled // 17
+      : cancelStatusId;
 
   // ── Steps 2–7: All UPDATEs run in parallel inside the transaction.
   //    Every ShipperRequest UPDATE now skips locked slots (started/completed).
   //    If ANY query rejects → executeInTransaction rolls back automatically.
   await Promise.all([
-  // 2. Update the batch header with the correct final status
-    db().query(`UPDATE ShipperRequestBatch
+    // 2. Update the batch header with the correct final status
+    db().query(
+      `UPDATE ShipperRequestBatch
           SET journeyStatusId = ?,
               batchUpdatedAt  = ?
-        WHERE batchUniqueId = ?`, [finalBatchStatus, now, batchUniqueId]),
+        WHERE batchUniqueId = ?`,
+      [finalBatchStatus, now, batchUniqueId],
+    ),
     // 3. Cancel only the cancellable ShipperRequest slots — skip locked ones
-    db().query(`UPDATE ShipperRequest
+    db().query(
+      `UPDATE ShipperRequest
           SET journeyStatusId = ?
         WHERE shipperRequestBatchId = ?
-          AND journeyStatusId NOT IN (${lockedClause})`, [cancelStatusId, batchUniqueId]),
+          AND journeyStatusId NOT IN (${lockedClause})`,
+      [cancelStatusId, batchUniqueId],
+    ),
     // 4. Cancel open JourneyDecisions linked to cancellable slots only
-    db().query(`UPDATE JourneyDecisions jd
+    db().query(
+      `UPDATE JourneyDecisions jd
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
           SET jd.journeyStatusId = ?
-        WHERE pr.shipperRequestBatchId = ?
-          AND pr.journeyStatusId NOT IN (${lockedClause})
-          AND jd.journeyStatusId NOT IN (${lockedClause})`, [cancelStatusId, batchUniqueId]),
+        WHERE sr.shipperRequestBatchId = ?
+          AND sr.journeyStatusId NOT IN (${lockedClause})
+          AND jd.journeyStatusId NOT IN (${lockedClause})`,
+      [cancelStatusId, batchUniqueId],
+    ),
     // 5. Release DriverRequest rows linked to cancellable slots back to waiting.
     //    Drivers on journeyStarted/journeyCompleted slots are NOT touched.
-    db().query(`UPDATE DriverRequest dr
+    db().query(
+      `UPDATE DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
           SET dr.journeyStatusId = ?
-        WHERE pr.shipperRequestBatchId = ?
-          AND pr.journeyStatusId NOT IN (${lockedClause})
-          AND dr.journeyStatusId IN (1,2,3,4)`, [cancelStatusId, batchUniqueId]),
+        WHERE sr.shipperRequestBatchId = ?
+          AND sr.journeyStatusId NOT IN (${lockedClause})
+          AND dr.journeyStatusId IN (1,2,3,4)`,
+      [cancelStatusId, batchUniqueId],
+    ),
     // 6. Expire CompanyBidRequest offers for this batch.
     //    Always mark all bids regardless of slot status so companies are notified.
-    db().query(`UPDATE CompanyBidRequest
+    db().query(
+      `UPDATE CompanyBidRequest
           SET bidStatus = 'cancelled_by_company',
               isCancellationSeenByCompany = 'not seen by company yet'
-        WHERE shipperRequestBatchId = ?`, [batchUniqueId]),
+        WHERE shipperRequestBatchId = ?`,
+      [batchUniqueId],
+    ),
     // 7. Cancel vehicle assignments only for the cancellable slots
-    db().query(`UPDATE CompanyBidVehicleAssignment cba
+    db().query(
+      `UPDATE CompanyBidVehicleAssignment cba
          INNER JOIN ShipperRequest pr
-                 ON cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+                 ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
-        WHERE pr.shipperRequestBatchId = ?
-          AND pr.journeyStatusId NOT IN (${lockedClause})
-          AND cba.assignmentStatus IN ('assigned', 'reassigned')`, [now, batchUniqueId])]);
+        WHERE sr.shipperRequestBatchId = ?
+          AND sr.journeyStatusId NOT IN (${lockedClause})
+          AND cba.assignmentStatus IN ('assigned', 'reassigned')`,
+      [now, batchUniqueId],
+    ),
+  ]);
 
   // 8. Register one CanceledJourneys audit record for the batch.
   //    contextId must be the integer batchId — the contextId column is INT.
@@ -193,8 +237,8 @@ const cancelBatch = async ({
     tableName: "CanceledJourneys",
     conditions: {
       contextId: batch.batchId,
-      contextType: "ShipperRequestBatch"
-    }
+      contextType: "ShipperRequestBatch",
+    },
   });
   if (existingBatchCancel.length === 0) {
     await createCanceledJourney({
@@ -204,7 +248,7 @@ const cancelBatch = async ({
       contextType: "ShipperRequestBatch",
       cancellationReasonsTypeId: cancellationReasonsTypeId || null,
       roleId,
-      shipperUserUniqueId: batch.shipperUserUniqueId
+      shipperUserUniqueId: batch.shipperUserUniqueId,
     });
   }
 
@@ -213,25 +257,35 @@ const cancelBatch = async ({
   // see the committed state.  Notifications are sent by the controller AFTER
   // the transaction commits to avoid holding DB locks during I/O.
   const [[companyRows], [driverRows], [shipperRows]] = await Promise.all([
-  // Companies that had bids on this batch
-    db().query(`SELECT DISTINCT companyUniqueId
+    // Companies that had bids on this batch
+    db().query(
+      `SELECT DISTINCT companyUniqueId
          FROM CompanyBidRequest
-        WHERE shipperRequestBatchId = ?`, [batchUniqueId]),
+        WHERE shipperRequestBatchId = ?`,
+      [batchUniqueId],
+    ),
     // Drivers who had a JourneyDecision linked to this batch
-    db().query(`SELECT DISTINCT u.phoneNumber, u.userUniqueId, dr.driverRequestId
+    db().query(
+      `SELECT DISTINCT u.phoneNumber, u.userUniqueId, dr.driverRequestId
          FROM DriverRequest dr
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
          INNER JOIN Users u
                  ON dr.userUniqueId = u.userUniqueId
-        WHERE pr.shipperRequestBatchId = ?`, [batchUniqueId]),
+        WHERE sr.shipperRequestBatchId = ?`,
+      [batchUniqueId],
+    ),
     // Shipper who owns the batch — for real-time confirmation on other devices
-    db().query(`SELECT u.phoneNumber, u.userUniqueId
+    db().query(
+      `SELECT u.phoneNumber, u.userUniqueId
          FROM Users u
         WHERE u.userUniqueId = ?
-        LIMIT 1`, [batch.shipperUserUniqueId])]);
+        LIMIT 1`,
+      [batch.shipperUserUniqueId],
+    ),
+  ]);
   return {
     message: "success",
     data: {
@@ -244,28 +298,34 @@ const cancelBatch = async ({
         total: Number(slotSummary.totalSlots) || 0,
         cancelled: cancellableSlots,
         skipped: lockedSlots,
-        skippedReason: inProgressSlots > 0 ? "Some slots are in transit (journeyStarted) or already completed — they were left untouched." : null
-      }
+        skippedReason:
+          inProgressSlots > 0
+            ? "Some slots are in transit (journeyStarted) or already completed — they were left untouched."
+            : null,
+      },
     },
     // ── Internal use only — stripped before HTTP response ──────────────────
     _notificationTargets: {
-      companies: companyRows.map(r => r.companyUniqueId),
+      companies: companyRows.map((r) => r.companyUniqueId),
       drivers: driverRows,
       shipper: shipperRows[0] || null,
       cancelStatusId,
-      batchUniqueId
-    }
+      batchUniqueId,
+    },
   };
 };
 
 module.exports = {
-  cancelBatch
+  cancelBatch,
 };
 
-
 const AppError = require("../../../Utils/AppError");
-const { assertCompanyCancellationReason } = require("../../CanceledJourneys/cancelHelper");
+const {
+  assertCompanyCancellationReason,
+} = require("../../CanceledJourneys/cancelHelper");
 const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
 const { currentDate } = require("../../../Utils/CurrentDate");
 const { getData } = require("../../../CRUD/Read/ReadData");
-const { createCanceledJourney } = require("../../CanceledJourneys/cancelCreate.service");
+const {
+  createCanceledJourney,
+} = require("../../CanceledJourneys/cancelCreate.service");

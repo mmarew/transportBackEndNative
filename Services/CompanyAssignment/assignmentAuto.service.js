@@ -3,28 +3,14 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
+const { db, findOne } = require("../CompanyHelper.service");
+const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
+
 const {
-  db,
-  findOne,
-  
-  
-} = require("../CompanyHelper.service");
-const {
-  journeyStatusMap,
-  
-  
-} = require("../../Utils/ListOfSeedData");
-
-
-
-
-
-
-
-
-
-
-const { createJourneyDecisionForAssignment, notifyAssignedDriver, upsertDriverRequest} = require("./assignmentHelper");
+  createJourneyDecisionForAssignment,
+  notifyAssignedDriver,
+  upsertDriverRequest,
+} = require("./assignmentHelper");
 
 /**
  * autoAssignBatch
@@ -72,19 +58,23 @@ exports.autoAssignBatch = async (data) => {
   // terminal journeyStatusId — filtering by status excludes them cleanly
   // without needing to inspect cancellation records separately.
   const [unassignedSlots] = await db().query(
-    `SELECT pr.shipperRequestUniqueId, pr.originLatitude, pr.originLongitude, pr.originPlace
+    `SELECT sr.shipperRequestUniqueId, sr.originLatitude, sr.originLongitude, sr.originPlace
      FROM ShipperRequest pr
-     WHERE pr.shipperRequestBatchId = ? 
-       AND pr.shipperRequestDeletedAt IS NULL
-       AND pr.journeyStatusId = ?
+     WHERE sr.shipperRequestBatchId = ? 
+       AND sr.shipperRequestDeletedAt IS NULL
+       AND sr.journeyStatusId = ?
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidVehicleAssignment cba
-         WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+         WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
            AND cba.companyBidRequestUniqueId = ?
            AND cba.assignmentDeletedAt IS NULL
            AND cba.assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')
        )`,
-    [shipperRequestBatchId, journeyStatusMap.acceptedByShipper, companyBidRequestUniqueId],
+    [
+      shipperRequestBatchId,
+      journeyStatusMap.acceptedByShipper,
+      companyBidRequestUniqueId,
+    ],
   );
 
   if (unassignedSlots.length === 0) {
@@ -104,7 +94,7 @@ exports.autoAssignBatch = async (data) => {
   //                        the same job even after auto-reassign is triggered.
   //                        Note: only the driver is blocked, NOT the vehicle —
   //                        the vehicle can still be paired with a different driver.
-    const [availableFleet] = await db().query(
+  const [availableFleet] = await db().query(
     `SELECT cv.vehicleUniqueId, vd.driverUserUniqueId, v.vehicleTypeUniqueId
      FROM CompanyVehicle cv
      JOIN Vehicle v ON cv.vehicleUniqueId = v.vehicleUniqueId

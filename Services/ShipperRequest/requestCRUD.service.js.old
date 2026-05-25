@@ -128,13 +128,13 @@ const createShipperRequest = async (body, journeyStatusId) => {
         journeyStatusId,
       });
 
-      // ── company_target mode: DEFER individual PR creation ──────────────────
+      // ── company_target mode: DEFER individual sr creation ──────────────────
       // For company_target requests, we only create the batch header now.
       // Individual ShipperRequest rows will be created lazily when the shipper
       // accepts a company bid (in updateBidStatus → accepted_by_shipper).
       //
       // Why?  1. Faster creation (1 insert vs N inserts)
-      //       2. If deal fails → no orphaned PR rows to clean up
+      //       2. If deal fails → no orphaned sr rows to clean up
       //       3. No race conditions during bid acceptance
       const isCompanyTarget =
         (body.requestMode || "individual_target") === "company_target";
@@ -529,9 +529,9 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
  * Enriches shipper requests (PRs) with their related driver data, decisions, vehicles, and journey info.
  *
  * Abbreviations used in this function:
- *  - PR  = ShipperRequest (a shipper's shipping request)
+ *  - sr  = ShipperRequest (a shipper's shipping request)
  *  - DR  = DriverRequest (a driver's response/bid to a PR)
- *  - JD  = JourneyDecision (links a PR ↔ DR with a status: accepted, cancelled, etc.)
+ *  - JD  = JourneyDecision (links a sr ↔ DR with a status: accepted, cancelled, etc.)
  *  - VD  = VehicleDriver (links a driver user to a vehicle)
  *  - VT  = VehicleTypes (vehicle category: Isuzu FSR, Sino truck, etc.)
  *
@@ -542,12 +542,12 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a PR has no matching decisions (all drivers cancelled/rejected),
+ * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
  * it is reset to status 1 (waiting) and excluded from the response.
  *
- * @param {Array<Object>} shipperRequests - Array of PR rows from the database
+ * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
- *   - shipperRequest: the original PR row
+ *   - shipperRequest: the original sr row
  *   - driverRequests: array of DR rows with vehicleOfDriver and driverProfilePhoto
  *   - decisions: array of JD rows matching the PR's journeyStatusId
  *   - journey: Journey row (if started/completed) or empty object
@@ -564,11 +564,11 @@ const getDetailedJourneyData = async (shipperRequests) => {
     const activePRs = [];
 
     // --- Step 1: Pre-filter non-active PRs (no DB hit) ---
-    for (const pr of shipperRequests) {
+    for (const sr of shipperRequests) {
       if (
-        pr.journeyStatusId === journeyStatusMap.waiting ||
-        pr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
-        pr.journeyStatusId === journeyStatusMap.cancelledByDriver
+        sr.journeyStatusId === journeyStatusMap.waiting ||
+        sr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
+        sr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
         waitingResults.push({
           shipperRequest: pr,
@@ -586,7 +586,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     }
 
     // --- Step 2: Batch fetch all active/positive decisions for all active PRs (1 query) ---
-    const prIds = activePRs.map((pr) => pr.shipperRequestId);
+    const prIds = activePRs.map((pr) => sr.shipperRequestId);
     const positiveStatuses = [
       journeyStatusMap.requested,
       journeyStatusMap.acceptedByDriver,
@@ -615,7 +615,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     const validPRs = []; // PRs with matching decisions
     const allDecisions = []; // Decisions matching current/updated status
 
-    for (const pr of activePRs) {
+    for (const sr of activePRs) {
       const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
 
       if (decisions.length === 0) {
@@ -624,26 +624,26 @@ const getDetailedJourneyData = async (shipperRequests) => {
           stalePRIds.push(pr.shipperRequestId);
         }
       } else {
-        // Check if PR status needs advancement (status mismatch where decisions are ahead)
+        // Check if sr status needs advancement (status mismatch where decisions are ahead)
         const maxDecisionStatus = Math.max(
           ...decisions.map((d) => d.journeyStatusId),
         );
-        if (maxDecisionStatus > pr.journeyStatusId) {
-          logger.warn("@getDetailedJourneyData: auto-advancing PR status", {
-            shipperRequestId: pr.shipperRequestId,
-            oldStatus: pr.journeyStatusId,
+        if (maxDecisionStatus > sr.journeyStatusId) {
+          logger.warn("@getDetailedJourneyData: auto-advancing sr status", {
+            shipperRequestId: sr.shipperRequestId,
+            oldStatus: sr.journeyStatusId,
             newStatus: maxDecisionStatus,
           });
           await executor.query(
             "UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId = ?",
-            [maxDecisionStatus, pr.shipperRequestId],
+            [maxDecisionStatus, sr.shipperRequestId],
           );
-          pr.journeyStatusId = maxDecisionStatus; // Sync in-memory
+          sr.journeyStatusId = maxDecisionStatus; // Sync in-memory
         }
 
         // Collect decisions matching the final status
         const finalMatches = decisions.filter(
-          (d) => d.journeyStatusId === pr.journeyStatusId,
+          (d) => d.journeyStatusId === sr.journeyStatusId,
         );
         if (finalMatches.length > 0) {
           allDecisions.push(...finalMatches);
@@ -753,7 +753,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
     let journeyByDecisionUniqueId = new Map();
     if (prsNeedingJourney.length > 0) {
       // Collect ALL decision unique IDs for PRs needing journey data — not just decisions[0],
-      // because a PR may have multiple decisions (e.g. one rejected, one accepted/completed).
+      // because a sr may have multiple decisions (e.g. one rejected, one accepted/completed).
       // We search across all of them so the correct journey record is always found.
       const journeyDecisionUniqueIds = prsNeedingJourney.flatMap((pr) => {
         const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
@@ -795,10 +795,10 @@ const getDetailedJourneyData = async (shipperRequests) => {
       let journey = {};
       if (useJourney) {
         // Find the specific decision that matches the PR's final status.
-        // A PR can have multiple decisions (e.g. one rejected offer + one completed offer).
+        // A sr can have multiple decisions (e.g. one rejected offer + one completed offer).
         // Using decisions[0] would pick the wrong one if it's the older, non-journey decision.
         const journeyDecision =
-          decisions.find((d) => d.journeyStatusId === pr.journeyStatusId) ||
+          decisions.find((d) => d.journeyStatusId === sr.journeyStatusId) ||
           decisions[0];
         if (journeyDecision?.journeyDecisionUniqueId) {
           journey =
@@ -943,7 +943,7 @@ const getAllActiveRequests = async (filters = {}) => {
   // Base query
   let baseQuery = `
     SELECT 
-      pr.*, 
+      sr.*, 
       u.fullName,
       u.phoneNumber,
       u.email,
@@ -951,10 +951,10 @@ const getAllActiveRequests = async (filters = {}) => {
       vt.vehicleTypeName,
       js.journeyStatusName  
     FROM ShipperRequest pr
-    JOIN Users u ON u.userUniqueId = pr.userUniqueId 
-    LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
-    WHERE pr.journeyStatusId IN (?)
+    JOIN Users u ON u.userUniqueId = sr.userUniqueId 
+    LEFT JOIN VehicleTypes vt ON sr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
+    WHERE sr.journeyStatusId IN (?)
   `;
 
   let whereConditions = [];
@@ -1040,7 +1040,7 @@ const getAllActiveRequests = async (filters = {}) => {
 
   // Add sorting and pagination to main query
   const offset = (page - 1) * limit;
-  baseQuery += ` ORDER BY pr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+  baseQuery += ` ORDER BY sr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
   values.push(parseInt(limit), parseInt(offset));
 
   try {

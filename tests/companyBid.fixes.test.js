@@ -6,8 +6,8 @@
  * Validates the 5 fixes applied to the company bid flow:
  *
  *  Fix 1 — updateBidStatus syncs ShipperRequest.journeyStatusId
- *           accepted_by_shipper  → PR status becomes 4 (acceptedByShipper)
- *           rejected_by_shipper  → PR status resets to 1 (waiting)
+ *           accepted_by_shipper  → sr status becomes 4 (acceptedByShipper)
+ *           rejected_by_shipper  → sr status resets to 1 (waiting)
  *
  *  Fix 2 — createAssignment copies origin from ShipperRequest (not 0,0)
  *           Verify the auto-created DriverRequest has a real originPlace
@@ -159,7 +159,7 @@ function assert(cond, msg) {
   }
 }
 
-// ─── Utility: fetch a PR by batchId from shipper's list ───────────────────────
+// ─── Utility: fetch a sr by batchId from shipper's list ───────────────────────
 async function fetchPRByBatchId(batchId) {
   const res = await request(
     "GET",
@@ -400,9 +400,9 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
   );
 
   await step("Fetch shipperRequestUniqueId", async () => {
-    const pr = await fetchPRByBatchId(state.shipperRequestBatchId);
+    const sr = await fetchPRByBatchId(state.shipperRequestBatchId);
     assert(pr, "ShipperRequest not found for batch");
-    state.shipperRequestUniqueId = pr.shipperRequestUniqueId;
+    state.shipperRequestUniqueId = sr.shipperRequestUniqueId;
     return state.shipperRequestUniqueId;
   });
 
@@ -511,7 +511,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
   console.log("\n\x1b[1m━━ Fix 1: ShipperRequest Status Sync ━━━━━━━\x1b[0m");
 
   await step(
-    "FIX-1a: after bid accepted, PR journeyStatusId = 4 (acceptedByShipper)",
+    "FIX-1a: after bid accepted, sr journeyStatusId = 4 (acceptedByShipper)",
     async () => {
       // Primary verification: the bid status is 'accepted_by_shipper' (proves updateBidStatus ran)
       const bidRes = await request(
@@ -528,7 +528,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
       );
 
       // Secondary verification: use admin getAllActiveRequests which has no user-scope restriction
-      // to check the PR status was actually updated to 4
+      // to check the sr status was actually updated to 4
       const prRes = await request(
         "GET",
         `/api/user/getAllActiveRequests?journeyStatusId=4&limit=20`,
@@ -536,27 +536,27 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
         adminH(),
       );
       const prRows = prRes.body?.data || [];
-      const pr = prRows.find(
+      const sr = prRows.find(
         (r) => r.shipperRequestBatchId === state.shipperRequestBatchId,
       );
 
       if (!pr) {
-        // The PR sync may have been blocked by a column not existing in the live DB
+        // The sr sync may have been blocked by a column not existing in the live DB
         // (new column added after tables were created). The bid status update works
         // (proven above). This is an environment-specific issue, not a code bug.
         // We verify the UPDATE SQL is correct at code level.
-        return `Bid status=accepted_by_shipper ✓ | PR status sync verified at code level (live table may need ALTER)`;
+        return `Bid status=accepted_by_shipper ✓ | sr status sync verified at code level (live table may need ALTER)`;
       }
 
       assert(
-        pr.journeyStatusId === 4,
+        sr.journeyStatusId === 4,
         `Expected journeyStatusId=4 (acceptedByShipper), got ${pr.journeyStatusId}`,
       );
       return `journeyStatusId = ${pr.journeyStatusId} ✓ (confirmed via admin endpoint)`;
     },
   );
 
-  // Create a SECOND bid scenario to test the reset path (rejected → PR back to waiting)
+  // Create a SECOND bid scenario to test the reset path (rejected → sr back to waiting)
   await step(
     "FIX-1b setup: create fresh batch for rejection test",
     async () => {
@@ -616,7 +616,7 @@ async function fetchJourneyDecision(journeyDecisionUniqueId) {
         JSON.stringify(rejectRes.body),
       );
 
-      // Now verify the PR went back to waiting (1)
+      // Now verify the sr went back to waiting (1)
       const prRes = await request(
         "GET",
         `/api/user/getShipperRequest4allOrSingleUser?limit=20`,

@@ -3,35 +3,26 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const {
-  db,
-  findOne,
-  
-  
-} = require("../CompanyHelper.service");
-const {
-  journeyStatusMap,
-  
-  
-} = require("../../Utils/ListOfSeedData");
-
-
-
+const { db, findOne } = require("../CompanyHelper.service");
+const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 
 const logger = require("../../Utils/logger");
 
-
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
 
-
-const { createJourneyDecisionForAssignment, notifyAssignedDriver, upsertDriverRequest, findActiveAssignmentForSlot } = require("./assignmentHelper");
+const {
+  createJourneyDecisionForAssignment,
+  notifyAssignedDriver,
+  upsertDriverRequest,
+  findActiveAssignmentForSlot,
+} = require("./assignmentHelper");
 
 /**
  * createAssignment
  * ─────────────────
  * Assigns a driver+vehicle to a freight slot within an accepted bid.
  *
- * **Just-In-Time PR Creation (company_target):**
+ * **Just-In-Time sr Creation (company_target):**
  * When `shipperRequestUniqueId` is omitted (company_target deferred flow),
  * a new ShipperRequest row is created automatically from the batch metadata.
  * This avoids bulk-creating N rows upfront — even 450,000 vehicles = 0 rows
@@ -67,8 +58,8 @@ exports.createAssignment = async (data) => {
   let pr;
 
   if (shipperRequestUniqueId) {
-    // ── EAGER PATH: PR already exists (individual_target or pre-created) ───
-    pr = await getShipperRequestByUniqueId(
+    // ── EAGER PATH: sr already exists (individual_target or pre-created) ───
+    sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -103,7 +94,7 @@ exports.createAssignment = async (data) => {
     }
 
     shipperRequestUniqueId = freeSlot.shipperRequestUniqueId;
-    pr = await getShipperRequestByUniqueId(
+    sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -134,9 +125,9 @@ exports.createAssignment = async (data) => {
   const driverRequestUniqueId = await upsertDriverRequest({
     driverUserUniqueId,
     newStatusId: requestedStatusId,
-    originLat: pr.originLatitude,
-    originLng: pr.originLongitude,
-    originPlace: pr.originPlace,
+    originLat: sr.originLatitude,
+    originLng: sr.originLongitude,
+    originPlace: sr.originPlace,
   });
 
   // ── Create JourneyDecision at assignment time (status 2) ─────────────────
@@ -224,7 +215,7 @@ exports.createBulkAssignments = async (data) => {
       item;
 
     // Check if slot belongs to the batch — uses the dedicated service function
-    const pr = await getShipperRequestByUniqueId(
+    const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -246,9 +237,9 @@ exports.createBulkAssignments = async (data) => {
     const driverRequestUniqueId = await upsertDriverRequest({
       driverUserUniqueId,
       newStatusId: journeyStatusMap.requested,
-      originLat: pr.originLatitude,
-      originLng: pr.originLongitude,
-      originPlace: pr.originPlace ?? "Bulk assigned",
+      originLat: sr.originLatitude,
+      originLng: sr.originLongitude,
+      originPlace: sr.originPlace ?? "Bulk assigned",
     });
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────

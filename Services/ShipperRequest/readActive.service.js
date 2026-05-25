@@ -2,16 +2,9 @@
 
 const Config = require("../../Utils/Config");
 
-const {
-  pool
-} = require("../../Middleware/Database.config");
-const {
-  journeyStatusMap,
-  
-} = require("../../Utils/ListOfSeedData");
+const { pool } = require("../../Middleware/Database.config");
+const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
-
-
 
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
@@ -120,14 +113,18 @@ const getAllActiveRequests = async (filters = {}) => {
     limit = 2,
     // Sorting
     sortBy = "shipperRequestCreatedAt",
-    sortOrder = "DESC"
+    sortOrder = "DESC",
   } = filters;
-  const activeStatusIds = [journeyStatusMap.requested, journeyStatusMap.waiting, journeyStatusMap.acceptedByDriver];
+  const activeStatusIds = [
+    journeyStatusMap.requested,
+    journeyStatusMap.waiting,
+    journeyStatusMap.acceptedByDriver,
+  ];
 
   // Base query
   let baseQuery = `
     SELECT 
-      pr.*, 
+      sr.*, 
       u.fullName,
       u.phoneNumber,
       u.email,
@@ -135,10 +132,10 @@ const getAllActiveRequests = async (filters = {}) => {
       vt.vehicleTypeName,
       js.journeyStatusName  
     FROM ShipperRequest pr
-    JOIN Users u ON u.userUniqueId = pr.userUniqueId 
-    LEFT JOIN VehicleTypes vt ON pr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
-    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
-    WHERE pr.journeyStatusId IN (?)
+    JOIN Users u ON u.userUniqueId = sr.userUniqueId 
+    LEFT JOIN VehicleTypes vt ON sr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+    LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
+    WHERE sr.journeyStatusId IN (?)
   `;
   let whereConditions = [];
   let values = [activeStatusIds];
@@ -215,7 +212,7 @@ const getAllActiveRequests = async (filters = {}) => {
 
   // Add sorting and pagination to main query
   const offset = (page - 1) * limit;
-  baseQuery += ` ORDER BY pr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+  baseQuery += ` ORDER BY sr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
   values.push(parseInt(limit), parseInt(offset));
   try {
     // Execute both queries
@@ -232,22 +229,22 @@ const getAllActiveRequests = async (filters = {}) => {
         totalCount,
         hasNext: page < totalPages,
         hasPrevious: page > 1,
-        pageSize: parseInt(limit)
+        pageSize: parseInt(limit),
       },
       filters: {
         applied: whereConditions.length > 0 ? filters : {},
-        activeStatusIds
-      }
+        activeStatusIds,
+      },
     };
   } catch (error) {
     logger.error("Error in getAllActiveRequests", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     return {
       status: "error",
       error: "Unable to retrieve active ride requests",
-      details: Config.NODE_ENV === "development" ? error.message : undefined
+      details: Config.NODE_ENV === "development" ? error.message : undefined,
     };
   }
 };
@@ -281,5 +278,5 @@ const getAllActiveRequests = async (filters = {}) => {
  */
 
 module.exports = {
-  getAllActiveRequests
+  getAllActiveRequests,
 };

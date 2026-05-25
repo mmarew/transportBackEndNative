@@ -161,13 +161,13 @@ const createShipperRequest = async (body, journeyStatusId) => {
         journeyStatusId,
       });
 
-      // ── company_target mode: DEFER individual PR creation ──────────────────
+      // ── company_target mode: DEFER individual sr creation ──────────────────
       // For company_target requests, we only create the batch header now.
       // Individual ShipperRequest rows will be created lazily when the shipper
       // accepts a company bid (in updateBidStatus → accepted_by_shipper).
       //
       // Why?  1. Faster creation (1 insert vs N inserts)
-      //       2. If deal fails → no orphaned PR rows to clean up
+      //       2. If deal fails → no orphaned sr rows to clean up
       //       3. No race conditions during bid acceptance
       const isCompanyTarget =
         (body.requestMode || "individual_target") === "company_target";

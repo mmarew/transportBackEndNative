@@ -31,7 +31,7 @@ This workflow describes the complete end-to-end journey of a freight request, fr
 - **Action**: Shipper reviews and picks the "Winner".
 - **Endpoint**: `PATCH /api/company/bids/:id/status` (Body: `{ "bidStatus": "accepted_by_shipper" }`)
 - **Status**: `bidStatus` → `accepted_by_shipper`.
-- **Lazy PR Creation**: For `company_target` mode, this is when `ShipperRequest` rows
+- **Lazy sr Creation**: For `company_target` mode, this is when `ShipperRequest` rows
   are created from batch metadata (`numberOfVehiclesOffered` rows). Born with status
   `acceptedByShipper`. Coordinates and metadata are inherited from the batch header.
 

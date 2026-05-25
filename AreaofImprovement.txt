@@ -41,7 +41,7 @@ While the current system is functional and secure, it contains several "failurit
 
 ### A. The "Batch Representative" Performance Trap
 > [!WARNING]
-> **Performance Failurity**: The discovery query uses a `WHERE pr.shipperRequestId IN (SELECT MIN(...) ...)` pattern. 
+> **Performance Failurity**: The discovery query uses a `WHERE sr.shipperRequestId IN (SELECT MIN(...) ...)` pattern. 
 
 *   **Risk**: As the `ShipperRequest` table grows to hundreds of thousands of rows, this subquery becomes a bottleneck. Even with indexes, MySQL must perform a "Group By" scan on the batch IDs for every discovery call.
 *   **Solution**: Consider a separate `RequestBatch` summary table that stores metadata about the batch (total vehicles, target ID, status) so you don't have to scan individual request rows just to show a list.

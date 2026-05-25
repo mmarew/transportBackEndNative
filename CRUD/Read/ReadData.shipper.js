@@ -40,47 +40,47 @@ const checkActiveShipperRequest = async ({
 
   const query = `
     SELECT 
-        pr.shipperRequestId,
-        pr.shipperRequestUniqueId,
-        pr.userUniqueId,
-        pr.shipperRequestBatchId,
-        pr.vehicleTypeUniqueId,
-        pr.journeyStatusId,
-        pr.originLatitude,
-        pr.originLongitude,
-        pr.originPlace,
-        pr.destinationLatitude,
-        pr.destinationLongitude,
-        pr.destinationPlace,
-        pr.shipperRequestCreatedAt,
-        pr.shippableItemName,
-        pr.shippableItemQtyInQuintal,
-        pr.shippingDate,
-        pr.deliveryDate,
-        pr.shippingCost,
-        pr.requestMode,
+        sr.shipperRequestId,
+        sr.shipperRequestUniqueId,
+        sr.userUniqueId,
+        sr.shipperRequestBatchId,
+        sr.vehicleTypeUniqueId,
+        sr.journeyStatusId,
+        sr.originLatitude,
+        sr.originLongitude,
+        sr.originPlace,
+        sr.destinationLatitude,
+        sr.destinationLongitude,
+        sr.destinationPlace,
+        sr.shipperRequestCreatedAt,
+        sr.shippableItemName,
+        sr.shippableItemQtyInQuintal,
+        sr.shippingDate,
+        sr.deliveryDate,
+        sr.shippingCost,
+        sr.requestMode,
         u.fullName,
         u.phoneNumber,
         u.email,
         -- Priority calculation
         CASE 
-          WHEN pr.journeyStatusId = ? THEN 1 -- acceptedByDriver (highest)
-          WHEN (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?) THEN 2 -- not seen completed
+          WHEN sr.journeyStatusId = ? THEN 1 -- acceptedByDriver (highest)
+          WHEN (pr.isCompletionSeen = ? AND sr.journeyStatusId = ?) THEN 2 -- not seen completed
           WHEN (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?) THEN 2 -- not seen cancelled by driver
           ELSE 3 -- other statuses
         END as priority
     FROM ShipperRequest pr
-    INNER JOIN Users u ON pr.userUniqueId = u.userUniqueId
-    LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
-    WHERE pr.userUniqueId = ?
+    INNER JOIN Users u ON sr.userUniqueId = u.userUniqueId
+    LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
+    WHERE sr.userUniqueId = ?
     AND (
-      pr.journeyStatusId IN (?,?,?,?,?) 
-      OR (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?)
+      sr.journeyStatusId IN (?,?,?,?,?) 
+      OR (pr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
       OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?)
     )
     ORDER BY 
       priority ASC, -- Priority first
-      pr.shipperRequestId DESC -- Then by latest
+      sr.shipperRequestId DESC -- Then by latest
     LIMIT ? OFFSET ?
   `;
 
@@ -115,22 +115,22 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   // Company counts come entirely from the ShipperRequestBatch query (Part 2).
   const prQuery = `
     SELECT 
-      COUNT(DISTINCT pr.shipperRequestId) as totalCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId IN (?, ?) THEN pr.shipperRequestId END) as waitingCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as requestedCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByDriverCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as acceptedByShipperCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? THEN pr.shipperRequestId END) as journeyStartedCount,
-      COUNT(DISTINCT CASE WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ? THEN pr.shipperRequestId END) as notSeenCompletedCount,
-      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN pr.shipperRequestId END) as notSeenCancelledByDriverCount
+      COUNT(DISTINCT sr.shipperRequestId) as totalCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId IN (?, ?) THEN sr.shipperRequestId END) as waitingCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as requestedCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as acceptedByDriverCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as acceptedByShipperCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as journeyStartedCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? AND sr.isCompletionSeen = ? THEN sr.shipperRequestId END) as notSeenCompletedCount,
+      COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN sr.shipperRequestId END) as notSeenCancelledByDriverCount
     FROM ShipperRequest pr
-    LEFT JOIN JourneyDecisions jd ON pr.shipperRequestId = jd.shipperRequestId
-    WHERE pr.userUniqueId = ?
-    AND pr.shipperRequestDeletedAt IS NULL
-    AND (pr.requestMode IS NULL OR pr.requestMode != 'company_target')
+    LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
+    WHERE sr.userUniqueId = ?
+    AND sr.shipperRequestDeletedAt IS NULL
+    AND (pr.requestMode IS NULL OR sr.requestMode != 'company_target')
     AND (
-      pr.journeyStatusId IN (?,?,?,?,?)
-      OR (pr.isCompletionSeen = ? AND pr.journeyStatusId = ?)
+      sr.journeyStatusId IN (?,?,?,?,?)
+      OR (pr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
       OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?)
     )
   `;
@@ -248,31 +248,31 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
   const companySlotQuery = `
     SELECT
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ?
-        THEN pr.shipperRequestId END) AS companyJourneyStarted,
+        WHEN sr.journeyStatusId = ?
+        THEN sr.shipperRequestId END) AS companyJourneyStarted,
 
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ? AND pr.isCompletionSeen = ?
-        THEN pr.shipperRequestId END) AS companyNotSeenCompleted,
+        WHEN sr.journeyStatusId = ? AND sr.isCompletionSeen = ?
+        THEN sr.shipperRequestId END) AS companyNotSeenCompleted,
 
       COUNT(DISTINCT CASE
         WHEN jd.journeyStatusId = ?
           AND jd.isCancellationByDriverSeenByShipper = ?
-        THEN pr.shipperRequestId END) AS companyNotSeenCancelledByDriver
+        THEN sr.shipperRequestId END) AS companyNotSeenCancelledByDriver
 
     FROM ShipperRequest pr
-    LEFT JOIN JourneyDecisions jd ON jd.shipperRequestId = pr.shipperRequestId
-    WHERE pr.userUniqueId = ?
-      AND pr.requestMode = 'company_target'
-      AND pr.shipperRequestDeletedAt IS NULL
+    LEFT JOIN JourneyDecisions jd ON jd.shipperRequestId = sr.shipperRequestId
+    WHERE sr.userUniqueId = ?
+      AND sr.requestMode = 'company_target'
+      AND sr.shipperRequestDeletedAt IS NULL
   `;
 
   const companySlotValues = [
-    journeyStatusMap.journeyStarted,    // companyJourneyStarted
-    journeyStatusMap.journeyCompleted,  // companyNotSeenCompleted status
-    false,                              // companyNotSeenCompleted isCompletionSeen
+    journeyStatusMap.journeyStarted, // companyJourneyStarted
+    journeyStatusMap.journeyCompleted, // companyNotSeenCompleted status
+    false, // companyNotSeenCompleted isCompletionSeen
     journeyStatusMap.cancelledByDriver, // companyNotSeenCancelledByDriver status
-    "not seen by shipper yet",          // companyNotSeenCancelledByDriver seen flag
+    "not seen by shipper yet", // companyNotSeenCancelledByDriver seen flag
     userUniqueId,
   ];
 
@@ -310,10 +310,10 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     SELECT
       -- notAssigned: free slot, never had a driver at all
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ?
+        WHEN sr.journeyStatusId = ?
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidVehicleAssignment cba
-            WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+            WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
               AND cba.assignmentDeletedAt IS NULL
               AND cba.assignmentStatus NOT IN (
                 'rejected_by_driver','cancelled_by_company',
@@ -322,18 +322,18 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
           )
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidVehicleAssignment cba2
-            WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+            WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
               AND cba2.assignmentDeletedAt IS NULL
               AND cba2.assignmentStatus = 'cancelled_by_driver'
           )
-        THEN pr.shipperRequestId END) AS notAssigned,
+        THEN sr.shipperRequestId END) AS notAssigned,
 
       -- needsReassignment: driver cancelled, slot is free again
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ?
+        WHEN sr.journeyStatusId = ?
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidVehicleAssignment cba
-            WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+            WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
               AND cba.assignmentDeletedAt IS NULL
               AND cba.assignmentStatus NOT IN (
                 'rejected_by_driver','cancelled_by_company',
@@ -342,49 +342,49 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
           )
           AND EXISTS (
             SELECT 1 FROM CompanyBidVehicleAssignment cba2
-            WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+            WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
               AND cba2.assignmentDeletedAt IS NULL
               AND cba2.assignmentStatus = 'cancelled_by_driver'
           )
-        THEN pr.shipperRequestId END) AS needsReassignment,
+        THEN sr.shipperRequestId END) AS needsReassignment,
 
       -- assigned: driver notified, waiting for driver to confirm
       COUNT(DISTINCT CASE
         WHEN EXISTS (
           SELECT 1 FROM CompanyBidVehicleAssignment cba
-          WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+          WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
             AND cba.assignmentDeletedAt IS NULL
             AND cba.assignmentStatus = 'assigned'
         )
-        THEN pr.shipperRequestId END) AS assigned,
+        THEN sr.shipperRequestId END) AS assigned,
 
       -- driverConfirmed: driver confirmed or heading to loading point
       COUNT(DISTINCT CASE
         WHEN EXISTS (
           SELECT 1 FROM CompanyBidVehicleAssignment cba
-          WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+          WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
             AND cba.assignmentDeletedAt IS NULL
             AND cba.assignmentStatus IN ('confirmed_by_driver','going_to_loading')
         )
-        THEN pr.shipperRequestId END) AS driverConfirmed,
+        THEN sr.shipperRequestId END) AS driverConfirmed,
 
       -- journeyStarted: goods loaded, driver in transit
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ?
-        THEN pr.shipperRequestId END) AS journeyStarted,
+        WHEN sr.journeyStatusId = ?
+        THEN sr.shipperRequestId END) AS journeyStarted,
 
       -- completed: delivered but NOT YET SEEN by the shipper
       -- Once the shipper opens it and marks it seen, this drops to 0.
       -- Mirrors the same filter used in notSeenCompleted (Part 3).
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ?
-          AND pr.isCompletionSeen = false
-        THEN pr.shipperRequestId END) AS completed,
+        WHEN sr.journeyStatusId = ?
+          AND sr.isCompletionSeen = false
+        THEN sr.shipperRequestId END) AS completed,
 
       /* -- cancelledByShipper: commented out — will restore later
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId = ?
-        THEN pr.shipperRequestId END) AS cancelledByShipper,
+        WHEN sr.journeyStatusId = ?
+        THEN sr.shipperRequestId END) AS cancelledByShipper,
       */
 
       -- total: active slots only — excludes cancelled (by anyone) and seen-completed.
@@ -392,67 +392,74 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       --   total = notAssigned + needsReassignment + assigned + driverConfirmed
       --         + journeyStarted + completed(unseen)
       COUNT(DISTINCT CASE
-        WHEN pr.journeyStatusId NOT IN (?, ?, ?, ?)   -- skip all cancel terminals
-          AND NOT (pr.journeyStatusId = ? AND pr.isCompletionSeen = true) -- skip seen-completed
-        THEN pr.shipperRequestId END) AS total
+        WHEN sr.journeyStatusId NOT IN (?, ?, ?, ?)   -- skip all cancel terminals
+          AND NOT (pr.journeyStatusId = ? AND sr.isCompletionSeen = true) -- skip seen-completed
+        THEN sr.shipperRequestId END) AS total
 
     FROM ShipperRequest pr
-    WHERE pr.userUniqueId = ?
-      AND pr.requestMode = 'company_target'
-      AND pr.shipperRequestDeletedAt IS NULL
+    WHERE sr.userUniqueId = ?
+      AND sr.requestMode = 'company_target'
+      AND sr.shipperRequestDeletedAt IS NULL
   `;
 
   const companyBreakdownValues = [
     journeyStatusMap.acceptedByShipper, // notAssigned: status check 1
     journeyStatusMap.acceptedByShipper, // needsReassignment: status check 2
-    journeyStatusMap.journeyStarted,    // journeyStarted
-    journeyStatusMap.journeyCompleted,  // completed (unseen only)
+    journeyStatusMap.journeyStarted, // journeyStarted
+    journeyStatusMap.journeyCompleted, // completed (unseen only)
     // journeyStatusMap.cancelledByShipper, // cancelledByShipper — commented out
     // total: 4 cancel terminals + journeyCompleted for seen-completed exclusion
     journeyStatusMap.cancelledByShipper, // total: exclude cancelledByShipper
-    journeyStatusMap.cancelledByDriver,  // total: exclude cancelledByDriver
-    journeyStatusMap.cancelledByAdmin,   // total: exclude cancelledByAdmin
-    journeyStatusMap.cancelledBySystem,  // total: exclude cancelledBySystem
-    journeyStatusMap.journeyCompleted,   // total: exclude seen-completed (paired with isCompletionSeen=true)
+    journeyStatusMap.cancelledByDriver, // total: exclude cancelledByDriver
+    journeyStatusMap.cancelledByAdmin, // total: exclude cancelledByAdmin
+    journeyStatusMap.cancelledBySystem, // total: exclude cancelledBySystem
+    journeyStatusMap.journeyCompleted, // total: exclude seen-completed (paired with isCompletionSeen=true)
     userUniqueId,
   ];
 
   const queryExecutor = transactionStorage.getStore() || connection || pool;
-  const [prResult, batchResult, companySlotResult, companyBreakdownResult] = await Promise.all([
-    queryExecutor.query(prQuery, prValues),
-    queryExecutor.query(batchQuery, batchValues),
-    queryExecutor.query(companySlotQuery, companySlotValues),
-    queryExecutor.query(companyBreakdownQuery, companyBreakdownValues),
-  ]);
+  const [prResult, batchResult, companySlotResult, companyBreakdownResult] =
+    await Promise.all([
+      queryExecutor.query(prQuery, prValues),
+      queryExecutor.query(batchQuery, batchValues),
+      queryExecutor.query(companySlotQuery, companySlotValues),
+      queryExecutor.query(companyBreakdownQuery, companyBreakdownValues),
+    ]);
 
-  const pr          = prResult[0][0];
-  const batch       = batchResult[0][0];
+  const sr = prResult[0][0];
+  const batch = batchResult[0][0];
   const companySlot = companySlotResult[0][0];
-  const bd          = companyBreakdownResult[0][0];   // breakdown
+  const bd = companyBreakdownResult[0][0]; // breakdown
 
   const n = (v) => Number(v) || 0;
 
-  const companyWaiting             = n(batch.companyBatchWaitingVehicles); // SUM(totalVehicles) ✅
-  const companyBidding             = n(batch.companyAuctionVehicles);      // SUM(totalVehicles) ✅ (was batch count)
-  const companyActive              = n(batch.companyOngoingVehicles);      // SUM(totalVehicles) ✅
-  const companyJourneyStarted      = n(companySlot.companyJourneyStarted);
-  const companyNotSeenCompleted    = n(companySlot.companyNotSeenCompleted);
-  const companyNotSeenCancelled    = n(companySlot.companyNotSeenCancelledByDriver);
+  const companyWaiting = n(batch.companyBatchWaitingVehicles); // SUM(totalVehicles) ✅
+  const companyBidding = n(batch.companyAuctionVehicles); // SUM(totalVehicles) ✅ (was batch count)
+  const companyActive = n(batch.companyOngoingVehicles); // SUM(totalVehicles) ✅
+  const companyJourneyStarted = n(companySlot.companyJourneyStarted);
+  const companyNotSeenCompleted = n(companySlot.companyNotSeenCompleted);
+  const companyNotSeenCancelled = n(
+    companySlot.companyNotSeenCancelledByDriver,
+  );
 
   const individualTotal = n(pr.totalCount);
-  const totalCount = individualTotal
-    + companyWaiting
-    + companyBidding
-    + companyActive
-    + companyJourneyStarted
-    + companyNotSeenCompleted
-    + companyNotSeenCancelled;
+  const totalCount =
+    individualTotal +
+    companyWaiting +
+    companyBidding +
+    companyActive +
+    companyJourneyStarted +
+    companyNotSeenCompleted +
+    companyNotSeenCancelled;
 
   return {
     totalCount,
-    waiting:                  { individual: n(pr.waitingCount),                  company: companyWaiting },
-    requested:                { individual: n(pr.requestedCount),                company: 0 },
-    acceptedByDriver:         { individual: n(pr.acceptedByDriverCount),         company: companyBidding },
+    waiting: { individual: n(pr.waitingCount), company: companyWaiting },
+    requested: { individual: n(pr.requestedCount), company: 0 },
+    acceptedByDriver: {
+      individual: n(pr.acceptedByDriverCount),
+      company: companyBidding,
+    },
 
     // ── acceptedByShipper: individual stays a plain number;
     //    company is a full pipeline breakdown of all slots under the won bid.
@@ -461,35 +468,41 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     acceptedByShipper: {
       individual: n(pr.acceptedByShipperCount),
       company: {
-        notAssigned:       n(bd.notAssigned),       // free slot (vehicle), never touched
+        notAssigned: n(bd.notAssigned), // free slot (vehicle), never touched
         needsReassignment: n(bd.needsReassignment), // vehicle lost driver, needs new assign
-        assigned:          n(bd.assigned),           // vehicle: driver notified, awaiting confirm
-        driverConfirmed:   n(bd.driverConfirmed),   // vehicle: driver confirmed / loading
-        journeyStarted:    n(bd.journeyStarted),    // vehicle: goods loaded, in transit
-        completed:         n(bd.completed),         // vehicle: delivered
+        assigned: n(bd.assigned), // vehicle: driver notified, awaiting confirm
+        driverConfirmed: n(bd.driverConfirmed), // vehicle: driver confirmed / loading
+        journeyStarted: n(bd.journeyStarted), // vehicle: goods loaded, in transit
+        completed: n(bd.completed), // vehicle: delivered
         // cancelledByShipper:n(bd.cancelledByShipper), // commented out — restore for history view
         // ongoingVehicles: total vehicles across accepted batches (vehicle unit, from Part 2)
-        ongoingVehicles:   n(batch.companyOngoingVehicles),
+        ongoingVehicles: n(batch.companyOngoingVehicles),
         // batchCount: distinct accepted batches — used for frontend Ongoing list badge
-        batchCount:        n(batch.companyOngoingCount),
+        batchCount: n(batch.companyOngoingCount),
         // active-only total: excludes cancelled (all types) + seen-completed
         // = notAssigned + needsReassignment + assigned + driverConfirmed + journeyStarted + completed(unseen)
-        total:             n(bd.total),
+        total: n(bd.total),
       },
     },
 
     // ── Flat keys kept for backward compatibility — will be removed later ──
-    journeyStarted:           { individual: n(pr.journeyStartedCount),           company: companyJourneyStarted },
-    notSeenCompleted:         { individual: n(pr.notSeenCompletedCount),         company: companyNotSeenCompleted },
-    notSeenCancelledByDriver: { individual: n(pr.notSeenCancelledByDriverCount), company: companyNotSeenCancelled },
+    journeyStarted: {
+      individual: n(pr.journeyStartedCount),
+      company: companyJourneyStarted,
+    },
+    notSeenCompleted: {
+      individual: n(pr.notSeenCompletedCount),
+      company: companyNotSeenCompleted,
+    },
+    notSeenCancelledByDriver: {
+      individual: n(pr.notSeenCancelledByDriverCount),
+      company: companyNotSeenCancelled,
+    },
   };
 };
-
-
-
 
 module.exports = {
   getShipperRequestByRequestUniqueId,
   checkActiveShipperRequest,
-  getActiveRequestsCount
+  getActiveRequestsCount,
 };

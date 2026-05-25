@@ -1,12 +1,12 @@
 "use strict";
 
 /**
- * Integration Tests: Company-Target Lazy PR Creation (JIT at Assignment)
+ * Integration Tests: Company-Target Lazy sr Creation (JIT at Assignment)
  *
- * Tests the complete deferred PR lifecycle:
- *   1. company_target batch creates ONLY a batch header (no PR rows)
- *   2. Bid acceptance does NOT create PR rows (just updates batch status)
- *   3. Assignment creates 1 PR row just-in-time from batch metadata
+ * Tests the complete deferred sr lifecycle:
+ *   1. company_target batch creates ONLY a batch header (no sr rows)
+ *   2. Bid acceptance does NOT create sr rows (just updates batch status)
+ *   3. Assignment creates 1 sr row just-in-time from batch metadata
  *   4. Capacity guard prevents over-assignment
  *   5. individual_target still creates PRs eagerly
  */
@@ -17,7 +17,7 @@ const { journeyStatusMap } = require("../Utils/ListOfSeedData");
 const query = (...args) => pool.query(...args);
 const uuid = () => require("uuid").v4();
 
-describe("Company-Target Lazy PR Creation", () => {
+describe("Company-Target Lazy sr Creation", () => {
   let shipperUniqueId;
   let vehicleTypeUniqueId;
   const testBatchIds = [];
@@ -29,16 +29,18 @@ describe("Company-Target Lazy PR Creation", () => {
        JOIN UserRole ur ON u.userUniqueId = ur.userUniqueId
        WHERE ur.roleId = 1 LIMIT 1`,
     );
-    if (users.length === 0)
-    {throw new Error("No shipper user found — seed DB first");}
+    if (users.length === 0) {
+      throw new Error("No shipper user found — seed DB first");
+    }
     shipperUniqueId = users[0].userUniqueId;
 
     // Find an existing vehicle type
     const [vtypes] = await query(
       `SELECT vehicleTypeUniqueId FROM VehicleTypes LIMIT 1`,
     );
-    if (vtypes.length === 0)
-    {throw new Error("No VehicleTypes found — seed DB first");}
+    if (vtypes.length === 0) {
+      throw new Error("No VehicleTypes found — seed DB first");
+    }
     vehicleTypeUniqueId = vtypes[0].vehicleTypeUniqueId;
   });
 
@@ -55,7 +57,7 @@ describe("Company-Target Lazy PR Creation", () => {
   });
 
   // ── Test 1: company_target creates batch only ───────────────────────────
-  test("company_target batch creates batch header with lat/lng but zero PR rows", async () => {
+  test("company_target batch creates batch header with lat/lng but zero sr rows", async () => {
     const batchId = uuid();
     testBatchIds.push(batchId);
 
@@ -91,8 +93,8 @@ describe("Company-Target Lazy PR Creation", () => {
     expect(prs[0].cnt).toBe(0);
   });
 
-  // ── Test 2: Bid acceptance does NOT create PR rows ──────────────────────
-  test("accepting a bid only updates batch status, no PR rows created", async () => {
+  // ── Test 2: Bid acceptance does NOT create sr rows ──────────────────────
+  test("accepting a bid only updates batch status, no sr rows created", async () => {
     const batchId = testBatchIds[0];
 
     // Simulate bid acceptance: update batch status
@@ -110,7 +112,7 @@ describe("Company-Target Lazy PR Creation", () => {
     );
     expect(batch.journeyStatusId).toBe(journeyStatusMap.acceptedByShipper);
 
-    // Still ZERO PR rows
+    // Still ZERO sr rows
     const [prs] = await query(
       `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchId = ?`,
       [batchId],
@@ -118,8 +120,8 @@ describe("Company-Target Lazy PR Creation", () => {
     expect(prs[0].cnt).toBe(0);
   });
 
-  // ── Test 3: Just-in-time PR creation from batch metadata ────────────────
-  test("creating a PR just-in-time from batch metadata inherits all fields", async () => {
+  // ── Test 3: Just-in-time sr creation from batch metadata ────────────────
+  test("creating a sr just-in-time from batch metadata inherits all fields", async () => {
     const batchId = testBatchIds[0];
 
     // Read batch to simulate what createAssignment does
@@ -128,7 +130,7 @@ describe("Company-Target Lazy PR Creation", () => {
       [batchId],
     );
 
-    // Create 1 PR (simulating what createAssignment does)
+    // Create 1 sr (simulating what createAssignment does)
     const prId = uuid();
     await query(
       `INSERT INTO ShipperRequest
@@ -161,7 +163,7 @@ describe("Company-Target Lazy PR Creation", () => {
       ],
     );
 
-    // Verify the PR row
+    // Verify the sr row
     const [[pr]] = await query(
       `SELECT * FROM ShipperRequest WHERE shipperRequestUniqueId = ?`,
       [prId],
@@ -174,7 +176,7 @@ describe("Company-Target Lazy PR Creation", () => {
     expect(Number(pr.originLatitude)).toBeCloseTo(9.02497, 4);
     expect(Number(pr.destinationLongitude)).toBeCloseTo(38.49564, 4);
 
-    // Only 1 PR exists (not 450,000!)
+    // Only 1 sr exists (not 450,000!)
     const [allPrs] = await query(
       `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchId = ?`,
       [batchId],

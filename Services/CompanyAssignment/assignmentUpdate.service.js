@@ -9,24 +9,23 @@ const {
   paginate,
   paginatedQuery,
 } = require("../CompanyHelper.service");
-const {
-  journeyStatusMap,
-  usersRoles,
-  
-} = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 
-
 const logger = require("../../Utils/logger");
-
 
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
 
 const {
   reportDriverCommissionEvasion,
 } = require("../CommissionEvasion.service");
-const { createJourneyDecisionForAssignment, notifyAssignedDriver, upsertDriverRequest, findActiveAssignmentForSlot } = require("./assignmentHelper");
+const {
+  createJourneyDecisionForAssignment,
+  notifyAssignedDriver,
+  upsertDriverRequest,
+  findActiveAssignmentForSlot,
+} = require("./assignmentHelper");
 
 /**
  * createBulkAssignments
@@ -62,7 +61,7 @@ exports.createBulkAssignments = async (data) => {
       item;
 
     // Check if slot belongs to the batch — uses the dedicated service function
-    const pr = await getShipperRequestByUniqueId(
+    const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
       bid.shipperRequestBatchId,
     );
@@ -84,9 +83,9 @@ exports.createBulkAssignments = async (data) => {
     const driverRequestUniqueId = await upsertDriverRequest({
       driverUserUniqueId,
       newStatusId: journeyStatusMap.requested,
-      originLat: pr.originLatitude,
-      originLng: pr.originLongitude,
-      originPlace: pr.originPlace ?? "Bulk assigned",
+      originLat: sr.originLatitude,
+      originLng: sr.originLongitude,
+      originPlace: sr.originPlace ?? "Bulk assigned",
     });
 
     // ── Create JourneyDecision at assignment time (status 2) ───────────────

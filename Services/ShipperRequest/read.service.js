@@ -1,24 +1,15 @@
 "use strict";
 
-
-const {
-  performJoinSelect
-} = require("../../CRUD/Read/ReadData");
-const {
-  pool
-} = require("../../Middleware/Database.config");
+const { performJoinSelect } = require("../../CRUD/Read/ReadData");
+const { pool } = require("../../Middleware/Database.config");
 const {
   journeyStatusMap,
-  listOfDocumentsTypeAndId
+  listOfDocumentsTypeAndId,
 } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
-const {
-  transactionStorage
-} = require("../../Utils/TransactionContext");
-const {
-  executeInTransaction
-} = require("../../Utils/DatabaseTransaction");
+const { transactionStorage } = require("../../Utils/TransactionContext");
+const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 // verifyShipperStatus removed - only available via API endpoint to reduce heavy operations
 
@@ -118,27 +109,29 @@ const {
  * @param {number} shipperRequestId - Shipper request ID
  * @returns {Promise<Object>} Success or error response with request data
  */
-const getShipperRequestByShipperRequestId = async shipperRequestId => {
+const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
   try {
     const result = await performJoinSelect({
       baseTable: "ShipperRequest",
-      joins: [{
-        table: "Users",
-        on: "ShipperRequest.userUniqueId = Users.userUniqueId"
-      }],
+      joins: [
+        {
+          table: "Users",
+          on: "ShipperRequest.userUniqueId = Users.userUniqueId",
+        },
+      ],
       conditions: {
-        shipperRequestId
-      }
+        shipperRequestId,
+      },
     });
     return {
       message: "success",
-      data: result[0]
+      data: result[0],
     };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to get shipper request data", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     throw new AppError("unable to get data", 500);
   }
@@ -303,17 +296,9 @@ const getShipperRequestByShipperRequestId = async shipperRequestId => {
  * @param {Object} params.data - Filter and pagination data
  * @returns {Promise<Object>} Shipper requests with pagination
  */
-const getShipperRequest4allOrSingleUser = async ({
-  data
-}) => {
+const getShipperRequest4allOrSingleUser = async ({ data }) => {
   try {
-    const {
-      userUniqueId,
-      target,
-      page = 1,
-      limit = 10,
-      filters = {}
-    } = data;
+    const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
     const offset = (page - 1) * limit;
     let whereClause = "";
     let queryParams = [];
@@ -331,8 +316,9 @@ const getShipperRequest4allOrSingleUser = async ({
   )`;
       const searchPattern = `%${filters.search}%`;
       // Add the same pattern for all 6 conditions
-      queryParams?.push(searchPattern,
-      // phoneNumber
+      queryParams?.push(
+        searchPattern,
+        // phoneNumber
         searchPattern,
         // email
         searchPattern,
@@ -341,10 +327,11 @@ const getShipperRequest4allOrSingleUser = async ({
         // shippableItemName
         searchPattern,
         // originPlace
-        searchPattern // destinationPlace
+        searchPattern, // destinationPlace
       );
-      countParams?.push(searchPattern,
-      // phoneNumber
+      countParams?.push(
+        searchPattern,
+        // phoneNumber
         searchPattern,
         // email
         searchPattern,
@@ -353,7 +340,7 @@ const getShipperRequest4allOrSingleUser = async ({
         // shippableItemName
         searchPattern,
         // originPlace
-        searchPattern // destinationPlace
+        searchPattern, // destinationPlace
       );
     }
 
@@ -422,7 +409,8 @@ const getShipperRequest4allOrSingleUser = async ({
     // Needed because individual completed view must not show company batch completions.
     if (filters?.excludeRequestMode) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " (ShipperRequest.requestMode IS NULL OR ShipperRequest.requestMode != ?)";
+      whereClause +=
+        " (ShipperRequest.requestMode IS NULL OR ShipperRequest.requestMode != ?)";
       queryParams.push(filters.excludeRequestMode);
       countParams.push(filters.excludeRequestMode);
     }
@@ -448,9 +436,18 @@ const getShipperRequest4allOrSingleUser = async ({
     // Add sorting
     let orderBy = "ORDER BY ShipperRequest.shipperRequestId DESC";
     if (filters?.sortBy) {
-      const validSortColumns = ["shipperRequestCreatedAt", "shipperRequestId", "originPlace", "destinationPlace", "fullName"];
-      const sortColumn = validSortColumns.includes(filters.sortBy) ? filters.sortBy : "shipperRequestId";
-      const sortOrder = filters.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+      const validSortColumns = [
+        "shipperRequestCreatedAt",
+        "shipperRequestId",
+        "originPlace",
+        "destinationPlace",
+        "fullName",
+      ];
+      const sortColumn = validSortColumns.includes(filters.sortBy)
+        ? filters.sortBy
+        : "shipperRequestId";
+      const sortOrder =
+        filters.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
       if (sortColumn === "fullName") {
         orderBy = `ORDER BY Users.fullName ${sortOrder}`;
       } else {
@@ -499,18 +496,21 @@ const getShipperRequest4allOrSingleUser = async ({
         hasNext: page < totalPages,
         hasPrev: page > 1,
         ...(userUniqueId && {
-          userId: userUniqueId
-        })
+          userId: userUniqueId,
+        }),
       },
-      filters: Object.keys(filters).length > 0 ? filters : undefined
+      filters: Object.keys(filters).length > 0 ? filters : undefined,
     };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to update request", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
-    throw new AppError("Unable to get shipper requests", error.statusCode || 500);
+    throw new AppError(
+      "Unable to get shipper requests",
+      error.statusCode || 500,
+    );
   }
 };
 
@@ -518,9 +518,9 @@ const getShipperRequest4allOrSingleUser = async ({
  * Enriches shipper requests (PRs) with their related driver data, decisions, vehicles, and journey info.
  *
  * Abbreviations used in this function:
- *  - PR  = ShipperRequest (a shipper's shipping request)
+ *  - sr  = ShipperRequest (a shipper's shipping request)
  *  - DR  = DriverRequest (a driver's response/bid to a PR)
- *  - JD  = JourneyDecision (links a PR ↔ DR with a status: accepted, cancelled, etc.)
+ *  - JD  = JourneyDecision (links a sr ↔ DR with a status: accepted, cancelled, etc.)
  *  - VD  = VehicleDriver (links a driver user to a vehicle)
  *  - VT  = VehicleTypes (vehicle category: Isuzu FSR, Sino truck, etc.)
  *
@@ -531,12 +531,12 @@ const getShipperRequest4allOrSingleUser = async ({
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a PR has no matching decisions (all drivers cancelled/rejected),
+ * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
  * it is reset to status 1 (waiting) and excluded from the response.
  *
- * @param {Array<Object>} shipperRequests - Array of PR rows from the database
+ * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
- *   - shipperRequest: the original PR row
+ *   - shipperRequest: the original sr row
  *   - driverRequests: array of DR rows with vehicleOfDriver and driverProfilePhoto
  *   - decisions: array of JD rows matching the PR's journeyStatusId
  *   - journey: Journey row (if started/completed) or empty object
@@ -546,9 +546,9 @@ const getShipperRequest4allOrSingleUser = async ({
  * Enriches shipper requests (PRs) with their related driver data, decisions, vehicles, and journey info.
  *
  * Abbreviations used in this function:
- *  - PR  = ShipperRequest (a shipper's shipping request)
+ *  - sr  = ShipperRequest (a shipper's shipping request)
  *  - DR  = DriverRequest (a driver's response/bid to a PR)
- *  - JD  = JourneyDecision (links a PR ↔ DR with a status: accepted, cancelled, etc.)
+ *  - JD  = JourneyDecision (links a sr ↔ DR with a status: accepted, cancelled, etc.)
  *  - VD  = VehicleDriver (links a driver user to a vehicle)
  *  - VT  = VehicleTypes (vehicle category: Isuzu FSR, Sino truck, etc.)
  *
@@ -559,12 +559,12 @@ const getShipperRequest4allOrSingleUser = async ({
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a PR has no matching decisions (all drivers cancelled/rejected),
+ * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
  * it is reset to status 1 (waiting) and excluded from the response.
  *
- * @param {Array<Object>} shipperRequests - Array of PR rows from the database
+ * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
- *   - shipperRequest: the original PR row
+ *   - shipperRequest: the original sr row
  *   - driverRequests: array of DR rows with vehicleOfDriver and driverProfilePhoto
  *   - decisions: array of JD rows matching the PR's journeyStatusId
  *   - journey: Journey row (if started/completed) or empty object
@@ -574,9 +574,9 @@ const getShipperRequest4allOrSingleUser = async ({
  * Enriches shipper requests (PRs) with their related driver data, decisions, vehicles, and journey info.
  *
  * Abbreviations used in this function:
- *  - PR  = ShipperRequest (a shipper's shipping request)
+ *  - sr  = ShipperRequest (a shipper's shipping request)
  *  - DR  = DriverRequest (a driver's response/bid to a PR)
- *  - JD  = JourneyDecision (links a PR ↔ DR with a status: accepted, cancelled, etc.)
+ *  - JD  = JourneyDecision (links a sr ↔ DR with a status: accepted, cancelled, etc.)
  *  - VD  = VehicleDriver (links a driver user to a vehicle)
  *  - VT  = VehicleTypes (vehicle category: Isuzu FSR, Sino truck, etc.)
  *
@@ -587,12 +587,12 @@ const getShipperRequest4allOrSingleUser = async ({
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a PR has no matching decisions (all drivers cancelled/rejected),
+ * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
  * it is reset to status 1 (waiting) and excluded from the response.
  *
- * @param {Array<Object>} shipperRequests - Array of PR rows from the database
+ * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
- *   - shipperRequest: the original PR row
+ *   - shipperRequest: the original sr row
  *   - driverRequests: array of DR rows with vehicleOfDriver and driverProfilePhoto
  *   - decisions: array of JD rows matching the PR's journeyStatusId
  *   - journey: Journey row (if started/completed) or empty object
@@ -602,9 +602,9 @@ const getShipperRequest4allOrSingleUser = async ({
  * Enriches shipper requests (PRs) with their related driver data, decisions, vehicles, and journey info.
  *
  * Abbreviations used in this function:
- *  - PR  = ShipperRequest (a shipper's shipping request)
+ *  - sr  = ShipperRequest (a shipper's shipping request)
  *  - DR  = DriverRequest (a driver's response/bid to a PR)
- *  - JD  = JourneyDecision (links a PR ↔ DR with a status: accepted, cancelled, etc.)
+ *  - JD  = JourneyDecision (links a sr ↔ DR with a status: accepted, cancelled, etc.)
  *  - VD  = VehicleDriver (links a driver user to a vehicle)
  *  - VT  = VehicleTypes (vehicle category: Isuzu FSR, Sino truck, etc.)
  *
@@ -615,17 +615,17 @@ const getShipperRequest4allOrSingleUser = async ({
  *  4. All driver profile photos (AttachedDocuments)
  *  5. Journey data (only for started/completed statuses)
  *
- * Auto-correction: If a PR has no matching decisions (all drivers cancelled/rejected),
+ * Auto-correction: If a sr has no matching decisions (all drivers cancelled/rejected),
  * it is reset to status 1 (waiting) and excluded from the response.
  *
- * @param {Array<Object>} shipperRequests - Array of PR rows from the database
+ * @param {Array<Object>} shipperRequests - Array of sr rows from the database
  * @returns {Promise<Array<Object>>} Array of enriched objects, each containing:
- *   - shipperRequest: the original PR row
+ *   - shipperRequest: the original sr row
  *   - driverRequests: array of DR rows with vehicleOfDriver and driverProfilePhoto
  *   - decisions: array of JD rows matching the PR's journeyStatusId
  *   - journey: Journey row (if started/completed) or empty object
  */
-const getDetailedJourneyData = async shipperRequests => {
+const getDetailedJourneyData = async (shipperRequests) => {
   return await executeInTransaction(async () => {
     const executor = transactionStorage.getStore() || pool;
     if (!shipperRequests || shipperRequests.length === 0) {
@@ -635,13 +635,17 @@ const getDetailedJourneyData = async shipperRequests => {
     const activePRs = [];
 
     // --- Step 1: Pre-filter non-active PRs (no DB hit) ---
-    for (const pr of shipperRequests) {
-      if (pr.journeyStatusId === journeyStatusMap.waiting || pr.journeyStatusId === journeyStatusMap.cancelledByShipper || pr.journeyStatusId === journeyStatusMap.cancelledByDriver) {
+    for (const sr of shipperRequests) {
+      if (
+        pr.journeyStatusId === journeyStatusMap.waiting ||
+        sr.journeyStatusId === journeyStatusMap.cancelledByShipper ||
+        sr.journeyStatusId === journeyStatusMap.cancelledByDriver
+      ) {
         waitingResults.push({
           shipperRequest: pr,
           driverRequests: [],
           decisions: [],
-          journey: {}
+          journey: {},
         });
       } else {
         activePRs.push(pr);
@@ -652,9 +656,18 @@ const getDetailedJourneyData = async shipperRequests => {
     }
 
     // --- Step 2: Batch fetch all active/positive decisions for all active PRs (1 query) ---
-    const prIds = activePRs.map(pr => pr.shipperRequestId);
-    const positiveStatuses = [journeyStatusMap.requested, journeyStatusMap.acceptedByDriver, journeyStatusMap.acceptedByShipper, journeyStatusMap.journeyStarted, journeyStatusMap.journeyCompleted];
-    const [allDecisionsRaw] = await executor.query(`SELECT * FROM JourneyDecisions WHERE shipperRequestId IN (?) AND journeyStatusId IN (?)`, [prIds, positiveStatuses]);
+    const prIds = activePRs.map((pr) => sr.shipperRequestId);
+    const positiveStatuses = [
+      journeyStatusMap.requested,
+      journeyStatusMap.acceptedByDriver,
+      journeyStatusMap.acceptedByShipper,
+      journeyStatusMap.journeyStarted,
+      journeyStatusMap.journeyCompleted,
+    ];
+    const [allDecisionsRaw] = await executor.query(
+      `SELECT * FROM JourneyDecisions WHERE shipperRequestId IN (?) AND journeyStatusId IN (?)`,
+      [prIds, positiveStatuses],
+    );
     // Group decisions by shipperRequestId
     const decisionsByPR = new Map();
     for (const d of allDecisionsRaw) {
@@ -671,7 +684,7 @@ const getDetailedJourneyData = async shipperRequests => {
     const validPRs = []; // PRs with matching decisions
     const allDecisions = []; // Decisions matching current/updated status
 
-    for (const pr of activePRs) {
+    for (const sr of activePRs) {
       const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
       if (decisions.length === 0) {
         // No matching active decisions — auto-correct to waiting if not already
@@ -679,20 +692,27 @@ const getDetailedJourneyData = async shipperRequests => {
           stalePRIds.push(pr.shipperRequestId);
         }
       } else {
-        // Check if PR status needs advancement (status mismatch where decisions are ahead)
-        const maxDecisionStatus = Math.max(...decisions.map(d => d.journeyStatusId));
-        if (maxDecisionStatus > pr.journeyStatusId) {
-          logger.warn("@getDetailedJourneyData: auto-advancing PR status", {
-            shipperRequestId: pr.shipperRequestId,
-            oldStatus: pr.journeyStatusId,
-            newStatus: maxDecisionStatus
+        // Check if sr status needs advancement (status mismatch where decisions are ahead)
+        const maxDecisionStatus = Math.max(
+          ...decisions.map((d) => d.journeyStatusId),
+        );
+        if (maxDecisionStatus > sr.journeyStatusId) {
+          logger.warn("@getDetailedJourneyData: auto-advancing sr status", {
+            shipperRequestId: sr.shipperRequestId,
+            oldStatus: sr.journeyStatusId,
+            newStatus: maxDecisionStatus,
           });
-          await executor.query("UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId = ?", [maxDecisionStatus, pr.shipperRequestId]);
-          pr.journeyStatusId = maxDecisionStatus; // Sync in-memory
+          await executor.query(
+            "UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId = ?",
+            [maxDecisionStatus, sr.shipperRequestId],
+          );
+          sr.journeyStatusId = maxDecisionStatus; // Sync in-memory
         }
 
         // Collect decisions matching the final status
-        const finalMatches = decisions.filter(d => d.journeyStatusId === pr.journeyStatusId);
+        const finalMatches = decisions.filter(
+          (d) => d.journeyStatusId === sr.journeyStatusId,
+        );
         if (finalMatches.length > 0) {
           allDecisions.push(...finalMatches);
           validPRs.push(pr);
@@ -705,33 +725,42 @@ const getDetailedJourneyData = async shipperRequests => {
 
     // Batch update stale PRs to waiting
     if (stalePRIds.length > 0) {
-      await executor.query(`UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId IN (?)`, [journeyStatusMap.waiting, stalePRIds]);
+      await executor.query(
+        `UPDATE ShipperRequest SET journeyStatusId = ? WHERE shipperRequestId IN (?)`,
+        [journeyStatusMap.waiting, stalePRIds],
+      );
     }
     if (validPRs.length === 0) {
       return waitingResults;
     }
 
     // --- Step 4: Batch fetch all driver requests + user info (1 query) ---
-    const allDriverRequestIds = allDecisions.map(d => d.driverRequestId);
+    const allDriverRequestIds = allDecisions.map((d) => d.driverRequestId);
     const uniqueDriverRequestIds = [...new Set(allDriverRequestIds)];
     let driversByRequestId = new Map();
     if (uniqueDriverRequestIds.length > 0) {
-      const [allDrivers] = await executor.query(`SELECT DR.*, U.userId, U.fullName, U.phoneNumber, U.email,
+      const [allDrivers] = await executor.query(
+        `SELECT DR.*, U.userId, U.fullName, U.phoneNumber, U.email,
                 U.userCreatedAt, U.userCreatedBy, U.userDeletedAt, U.userDeletedBy,
                 U.isDeleted
          FROM DriverRequest DR
          JOIN Users U ON DR.userUniqueId = U.userUniqueId
-         WHERE DR.driverRequestId IN (?)`, [uniqueDriverRequestIds]);
+         WHERE DR.driverRequestId IN (?)`,
+        [uniqueDriverRequestIds],
+      );
       for (const dr of allDrivers) {
         driversByRequestId.set(dr.driverRequestId, dr);
       }
     }
 
     // --- Step 5: Batch fetch all vehicles (1 query) ---
-    const allDriverUserIds = [...new Set([...driversByRequestId.values()].map(dr => dr.userUniqueId))];
+    const allDriverUserIds = [
+      ...new Set([...driversByRequestId.values()].map((dr) => dr.userUniqueId)),
+    ];
     let vehiclesByDriver = new Map();
     if (allDriverUserIds.length > 0) {
-      const [allVehicles] = await executor.query(`SELECT V.*, VD.vehicleDriverId, VD.vehicleDriverUniqueId,
+      const [allVehicles] = await executor.query(
+        `SELECT V.*, VD.vehicleDriverId, VD.vehicleDriverUniqueId,
                 VD.driverUserUniqueId, VD.assignmentStatus, VD.assignmentStartDate,
                 VD.assignmentEndDate, VD.vehicleDriverCreatedBy, VD.vehicleDriverUpdatedBy,
                 VD.vehicleDriverDeletedBy, VD.vehicleDriverCreatedAt, VD.vehicleDriverUpdatedAt,
@@ -743,7 +772,9 @@ const getDetailedJourneyData = async shipperRequests => {
          FROM Vehicle V
          JOIN VehicleDriver VD ON V.vehicleUniqueId = VD.vehicleUniqueId
          JOIN VehicleTypes VT ON V.vehicleTypeUniqueId = VT.vehicleTypeUniqueId
-         WHERE VD.driverUserUniqueId IN (?) AND VD.assignmentStatus = 'active'`, [allDriverUserIds]);
+         WHERE VD.driverUserUniqueId IN (?) AND VD.assignmentStatus = 'active'`,
+        [allDriverUserIds],
+      );
       for (const v of allVehicles) {
         vehiclesByDriver.set(v.driverUserUniqueId, v);
       }
@@ -752,37 +783,51 @@ const getDetailedJourneyData = async shipperRequests => {
     // --- Step 6: Batch fetch all profile photos (1 query) ---
     let photosByDriver = new Map();
     if (allDriverUserIds.length > 0) {
-      const [allPhotos] = await executor.query(`SELECT attachedDocumentCreatedByUserId, attachedDocumentName
+      const [allPhotos] = await executor.query(
+        `SELECT attachedDocumentCreatedByUserId, attachedDocumentName
          FROM AttachedDocuments
          WHERE attachedDocumentCreatedByUserId IN (?)
            AND documentTypeId = ?
-         ORDER BY attachedDocumentId DESC`, [allDriverUserIds, listOfDocumentsTypeAndId.profilePhoto]);
+         ORDER BY attachedDocumentId DESC`,
+        [allDriverUserIds, listOfDocumentsTypeAndId.profilePhoto],
+      );
 
       // Take the latest photo per driver (first result due to DESC order)
       for (const photo of allPhotos) {
         if (!photosByDriver.has(photo.attachedDocumentCreatedByUserId)) {
-          photosByDriver.set(photo.attachedDocumentCreatedByUserId, photo.attachedDocumentName);
+          photosByDriver.set(
+            photo.attachedDocumentCreatedByUserId,
+            photo.attachedDocumentName,
+          );
         }
       }
     }
 
     // --- Step 7: Batch fetch journey data if needed (1 query) ---
     //if the journeyStatusId is journeyStarted or journeyCompleted, then fetch the journey data
-    const journeyStatuses = [journeyStatusMap.journeyStarted, journeyStatusMap.journeyCompleted];
-    const prsNeedingJourney = validPRs.filter(pr => journeyStatuses.includes(pr.journeyStatusId));
+    const journeyStatuses = [
+      journeyStatusMap.journeyStarted,
+      journeyStatusMap.journeyCompleted,
+    ];
+    const prsNeedingJourney = validPRs.filter((pr) =>
+      journeyStatuses.includes(pr.journeyStatusId),
+    );
     // console.log("@prsNeedingJourney", prsNeedingJourney);
     let journeyByDecisionUniqueId = new Map();
     if (prsNeedingJourney.length > 0) {
       // Collect ALL decision unique IDs for PRs needing journey data — not just decisions[0],
-      // because a PR may have multiple decisions (e.g. one rejected, one accepted/completed).
+      // because a sr may have multiple decisions (e.g. one rejected, one accepted/completed).
       // We search across all of them so the correct journey record is always found.
-      const journeyDecisionUniqueIds = prsNeedingJourney.flatMap(pr => {
+      const journeyDecisionUniqueIds = prsNeedingJourney.flatMap((pr) => {
         const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
-        return decisions.map(d => d.journeyDecisionUniqueId).filter(Boolean);
+        return decisions.map((d) => d.journeyDecisionUniqueId).filter(Boolean);
       });
       const uniqueJourneyDecisionIds = [...new Set(journeyDecisionUniqueIds)];
       if (uniqueJourneyDecisionIds.length > 0) {
-        const [allJourneys] = await executor.query(`SELECT * FROM Journey WHERE journeyDecisionUniqueId IN (?)`, [uniqueJourneyDecisionIds]);
+        const [allJourneys] = await executor.query(
+          `SELECT * FROM Journey WHERE journeyDecisionUniqueId IN (?)`,
+          [uniqueJourneyDecisionIds],
+        );
         for (const j of allJourneys) {
           journeyByDecisionUniqueId.set(j.journeyDecisionUniqueId, j);
         }
@@ -790,35 +835,42 @@ const getDetailedJourneyData = async shipperRequests => {
     }
 
     // --- Step 8: Assemble results (pure JS, no queries) ---
-    const activeResults = validPRs.map(pr => {
+    const activeResults = validPRs.map((pr) => {
       const decisions = decisionsByPR.get(pr.shipperRequestId) || [];
-      const driverRequests = decisions.map(decision => {
-        const driver = driversByRequestId.get(decision.driverRequestId);
-        if (!driver) {
-          return null;
-        }
-        return {
-          ...driver,
-          vehicleOfDriver: vehiclesByDriver.get(driver.userUniqueId) || null,
-          driverProfilePhoto: photosByDriver.get(driver.userUniqueId) || null
-        };
-      }).filter(Boolean);
+      const driverRequests = decisions
+        .map((decision) => {
+          const driver = driversByRequestId.get(decision.driverRequestId);
+          if (!driver) {
+            return null;
+          }
+          return {
+            ...driver,
+            vehicleOfDriver: vehiclesByDriver.get(driver.userUniqueId) || null,
+            driverProfilePhoto: photosByDriver.get(driver.userUniqueId) || null,
+          };
+        })
+        .filter(Boolean);
       const useJourney = journeyStatuses.includes(pr.journeyStatusId);
       let journey = {};
       if (useJourney) {
         // Find the specific decision that matches the PR's final status.
-        // A PR can have multiple decisions (e.g. one rejected offer + one completed offer).
+        // A sr can have multiple decisions (e.g. one rejected offer + one completed offer).
         // Using decisions[0] would pick the wrong one if it's the older, non-journey decision.
-        const journeyDecision = decisions.find(d => d.journeyStatusId === pr.journeyStatusId) || decisions[0];
+        const journeyDecision =
+          decisions.find((d) => d.journeyStatusId === sr.journeyStatusId) ||
+          decisions[0];
         if (journeyDecision?.journeyDecisionUniqueId) {
-          journey = journeyByDecisionUniqueId.get(journeyDecision.journeyDecisionUniqueId) || {};
+          journey =
+            journeyByDecisionUniqueId.get(
+              journeyDecision.journeyDecisionUniqueId,
+            ) || {};
         }
       }
       return {
         shipperRequest: pr,
         driverRequests,
         decisions,
-        journey
+        journey,
       };
     });
     return [...waitingResults, ...activeResults];
@@ -886,7 +938,10 @@ const getDetailedJourneyData = async shipperRequests => {
  * @returns {Promise<Object>}  The matched row or null if not found
  * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
  */
-const getShipperRequestByUniqueId = async (shipperRequestUniqueId, shipperRequestBatchId = null) => {
+const getShipperRequestByUniqueId = async (
+  shipperRequestUniqueId,
+  shipperRequestBatchId = null,
+) => {
   let sql = `SELECT shipperRequestId,
                     shipperRequestUniqueId,
                     shipperRequestBatchId,
@@ -908,7 +963,10 @@ const getShipperRequestByUniqueId = async (shipperRequestUniqueId, shipperReques
   const [rows] = await pool.query(sql, params);
   if (!rows || rows.length === 0) {
     if (shipperRequestBatchId) {
-      throw new AppError("Shipper request does not belong to this bid's batch", 400);
+      throw new AppError(
+        "Shipper request does not belong to this bid's batch",
+        400,
+      );
     }
     throw new AppError("Shipper request not found", 404);
   }
@@ -919,5 +977,5 @@ module.exports = {
   getShipperRequestByShipperRequestId,
   getShipperRequest4allOrSingleUser,
   getDetailedJourneyData,
-  getShipperRequestByUniqueId
+  getShipperRequestByUniqueId,
 };

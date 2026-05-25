@@ -774,7 +774,7 @@ exports.updateBidStatus = async (
     // ── COMPANY-TARGET vs INDIVIDUAL-TARGET handling ────────────────────────
     //
     // company_target (bulk-create on acceptance):
-    //   No PR rows exist yet. We NOW bulk-create all N ShipperRequest rows
+    //   No sr rows exist yet. We NOW bulk-create all N ShipperRequest rows
     //   at the moment the shipper accepts the winning company bid.
     //   Each row starts in `acceptedByShipper` status with no driver assigned.
     //   The dispatcher then calls createAssignment() to pair each row with a driver.

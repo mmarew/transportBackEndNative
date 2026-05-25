@@ -1,10 +1,6 @@
 "use strict";
 
-const {
-  db,
-  paginate,
-  paginatedQuery
-} = require("../CompanyHelper.service");
+const { db, paginate, paginatedQuery } = require("../CompanyHelper.service");
 
 /**
  * ### List ShipperRequestBatches
@@ -248,13 +244,13 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   // Use ?slotState=notAssigned to get the list behind the notAssigned counter.
   if (filters.slotState) {
     switch (filters.slotState) {
-    case "notAssigned":
-      // Free slot: status=acceptedByShipper, no active assignment, no cancelled history
-      clauses.push(
-        `pr.journeyStatusId = ?
+      case "notAssigned":
+        // Free slot: status=acceptedByShipper, no active assignment, no cancelled history
+        clauses.push(
+          `pr.journeyStatusId = ?
            AND NOT EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
-             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+             WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba.assignmentDeletedAt IS NULL
                AND cba.assignmentStatus NOT IN (
                  'rejected_by_driver','cancelled_by_company',
@@ -263,21 +259,21 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
            )
            AND NOT EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba2
-             WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+             WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba2.assignmentDeletedAt IS NULL
                AND cba2.assignmentStatus = 'cancelled_by_driver'
            )`,
-      );
-      params.push(journeyStatusMap.acceptedByShipper);
-      break;
+        );
+        params.push(journeyStatusMap.acceptedByShipper);
+        break;
 
-    case "needsReassignment":
-      // Free slot: status=acceptedByShipper, no active assignment, prev driver cancelled
-      clauses.push(
-        `pr.journeyStatusId = ?
+      case "needsReassignment":
+        // Free slot: status=acceptedByShipper, no active assignment, prev driver cancelled
+        clauses.push(
+          `pr.journeyStatusId = ?
            AND NOT EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
-             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+             WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba.assignmentDeletedAt IS NULL
                AND cba.assignmentStatus NOT IN (
                  'rejected_by_driver','cancelled_by_company',
@@ -286,40 +282,40 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
            )
            AND EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba2
-             WHERE cba2.shipperRequestUniqueId = pr.shipperRequestUniqueId
+             WHERE cba2.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba2.assignmentDeletedAt IS NULL
                AND cba2.assignmentStatus = 'cancelled_by_driver'
            )`,
-      );
-      params.push(journeyStatusMap.acceptedByShipper);
-      break;
+        );
+        params.push(journeyStatusMap.acceptedByShipper);
+        break;
 
-    case "assigned":
-      // Driver notified, waiting for confirmation
-      clauses.push(
-        `EXISTS (
+      case "assigned":
+        // Driver notified, waiting for confirmation
+        clauses.push(
+          `EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
-             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+             WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba.assignmentDeletedAt IS NULL
                AND cba.assignmentStatus = 'assigned'
            )`,
-      );
-      break;
+        );
+        break;
 
-    case "driverConfirmed":
-      // Driver confirmed or heading to loading point
-      clauses.push(
-        `EXISTS (
+      case "driverConfirmed":
+        // Driver confirmed or heading to loading point
+        clauses.push(
+          `EXISTS (
              SELECT 1 FROM CompanyBidVehicleAssignment cba
-             WHERE cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+             WHERE cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
                AND cba.assignmentDeletedAt IS NULL
                AND cba.assignmentStatus IN ('confirmed_by_driver','going_to_loading')
            )`,
-      );
-      break;
+        );
+        break;
 
-    default:
-      break;
+      default:
+        break;
     }
   }
 
@@ -327,24 +323,24 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
 
   const dataSql = `
     SELECT
-      pr.shipperRequestUniqueId,
-      pr.shipperRequestId,
-      pr.journeyStatusId,
+      sr.shipperRequestUniqueId,
+      sr.shipperRequestId,
+      sr.journeyStatusId,
       js.journeyStatusName,
-      pr.originPlace,
-      pr.destinationPlace,
-      pr.shipperRequestCreatedAt,
-      CASE WHEN pr.journeyStatusId IN (${cancellableIn}) THEN 1 ELSE 0 END AS cancellable
+      sr.originPlace,
+      sr.destinationPlace,
+      sr.shipperRequestCreatedAt,
+      CASE WHEN sr.journeyStatusId IN (${cancellableIn}) THEN 1 ELSE 0 END AS cancellable
     FROM ShipperRequest pr
-    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
+    LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
     ${where}
-    ORDER BY pr.shipperRequestId ASC
+    ORDER BY sr.shipperRequestId ASC
     LIMIT ? OFFSET ?`;
 
   const countSql = `
     SELECT COUNT(*) AS total
     FROM ShipperRequest pr
-    LEFT JOIN JourneyStatus js ON pr.journeyStatusId = js.journeyStatusId
+    LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
     ${where}`;
 
   const [[rows], [[countRow]]] = await Promise.all([
@@ -363,6 +359,5 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
 };
 
 // ── PARTIAL CANCEL ────────────────────────────────────────────────────────────
-
 
 const { journeyStatusMap } = require("../../Utils/ListOfSeedData");

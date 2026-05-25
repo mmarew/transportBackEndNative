@@ -178,10 +178,10 @@ exports.cancelBatch = async ({
     db().query(
       `UPDATE JourneyDecisions jd
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
           SET jd.journeyStatusId = ?
-        WHERE pr.shipperRequestBatchId = ?
-          AND pr.journeyStatusId NOT IN (${lockedClause})
+        WHERE sr.shipperRequestBatchId = ?
+          AND sr.journeyStatusId NOT IN (${lockedClause})
           AND jd.journeyStatusId NOT IN (${lockedClause})`,
       [cancelStatusId, batchUniqueId],
     ),
@@ -193,10 +193,10 @@ exports.cancelBatch = async ({
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
           SET dr.journeyStatusId = ?
-        WHERE pr.shipperRequestBatchId = ?
-          AND pr.journeyStatusId NOT IN (${lockedClause})
+        WHERE sr.shipperRequestBatchId = ?
+          AND sr.journeyStatusId NOT IN (${lockedClause})
           AND dr.journeyStatusId IN (1,2,3,4)`,
       [cancelStatusId, batchUniqueId],
     ),
@@ -215,11 +215,11 @@ exports.cancelBatch = async ({
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
          INNER JOIN ShipperRequest pr
-                 ON cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+                 ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
-        WHERE pr.shipperRequestBatchId = ?
-          AND pr.journeyStatusId NOT IN (${lockedClause})
+        WHERE sr.shipperRequestBatchId = ?
+          AND sr.journeyStatusId NOT IN (${lockedClause})
           AND cba.assignmentStatus IN ('assigned', 'reassigned')`,
       [now, batchUniqueId],
     ),
@@ -269,10 +269,10 @@ exports.cancelBatch = async ({
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
          INNER JOIN Users u
                  ON dr.userUniqueId = u.userUniqueId
-        WHERE pr.shipperRequestBatchId = ?`,
+        WHERE sr.shipperRequestBatchId = ?`,
       [batchUniqueId],
     ),
 
@@ -582,9 +582,9 @@ exports.partialCancelBatch = async ({
     db().query(
       `UPDATE JourneyDecisions jd
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
           SET jd.journeyStatusId = ?
-        WHERE pr.shipperRequestUniqueId IN (${placeholders})
+        WHERE sr.shipperRequestUniqueId IN (${placeholders})
           AND jd.journeyStatusId NOT IN (${inClause})`,
       [cancelStatusId, ...slotIds],
     ),
@@ -595,9 +595,9 @@ exports.partialCancelBatch = async ({
          INNER JOIN JourneyDecisions jd
                  ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN ShipperRequest pr
-                 ON jd.shipperRequestId = pr.shipperRequestId
+                 ON jd.shipperRequestId = sr.shipperRequestId
           SET dr.journeyStatusId = ?
-        WHERE pr.shipperRequestUniqueId IN (${placeholders})
+        WHERE sr.shipperRequestUniqueId IN (${placeholders})
           AND dr.journeyStatusId IN (1,2,3,4)`,
       [cancelStatusId, ...slotIds],
     ),
@@ -606,10 +606,10 @@ exports.partialCancelBatch = async ({
     db().query(
       `UPDATE CompanyBidVehicleAssignment cba
          INNER JOIN ShipperRequest pr
-                 ON cba.shipperRequestUniqueId = pr.shipperRequestUniqueId
+                 ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
-        WHERE pr.shipperRequestUniqueId IN (${placeholders})
+        WHERE sr.shipperRequestUniqueId IN (${placeholders})
           AND cba.assignmentStatus IN ('assigned', 'reassigned')`,
       [now, ...slotIds],
     ),
@@ -667,9 +667,9 @@ exports.partialCancelBatch = async ({
       `SELECT DISTINCT u.phoneNumber, u.userUniqueId
          FROM DriverRequest dr
          INNER JOIN JourneyDecisions jd ON dr.driverRequestId = jd.driverRequestId
-         INNER JOIN ShipperRequest pr   ON jd.shipperRequestId = pr.shipperRequestId
+         INNER JOIN ShipperRequest sr   ON jd.shipperRequestId = sr.shipperRequestId
          INNER JOIN Users u             ON dr.userUniqueId = u.userUniqueId
-        WHERE pr.shipperRequestUniqueId IN (${placeholders})`,
+        WHERE sr.shipperRequestUniqueId IN (${placeholders})`,
       [...slotIds],
     ),
     db().query(

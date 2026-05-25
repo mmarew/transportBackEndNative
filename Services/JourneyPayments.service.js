@@ -151,7 +151,7 @@ exports.getAllJourneyPayments = async ({
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
       ${whereClause}
     `;
   const executor = transactionStorage.getStore() || pool;
@@ -159,19 +159,19 @@ exports.getAllJourneyPayments = async ({
   const totalCount = countResult[0].total;
 
   // Get paginated data with driver/shipper info
-  // Actually, checking previous view_file, it was pr.shipperRequestId
+  // Actually, checking previous view_file, it was sr.shipperRequestId
   const correctedDataQuery = `
       SELECT 
         jp.*,
         dr.userUniqueId as driverUniqueId,
-        pr.userUniqueId as shipperUniqueId,
+        sr.userUniqueId as shipperUniqueId,
         jd.shippingCostByDriver,
         pm.paymentMethod,
         ps.paymentStatus
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       ${whereClause}
@@ -207,14 +207,14 @@ exports.getJourneyPaymentById = async (paymentUniqueId) => {
       SELECT 
         jp.*,
         dr.userUniqueId as driverUniqueId,
-        pr.userUniqueId as shipperUniqueId,
+        sr.userUniqueId as shipperUniqueId,
         jd.shippingCostByDriver,
         pm.paymentMethod,
         ps.paymentStatus
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN ShipperRequest pr ON jd.shipperRequestId = pr.shipperRequestId
+      LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       WHERE jp.paymentUniqueId = ?

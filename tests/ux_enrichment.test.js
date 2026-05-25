@@ -356,7 +356,7 @@ async function runUXTest() {
       sH,
     );
 
-    // Find PR ID
+    // Find sr ID
     const prs = await request("GET", "/api/shipper/shipperRequest", null, sH);
     const prID = prs.data.data[0].shipperRequestUniqueId;
 
