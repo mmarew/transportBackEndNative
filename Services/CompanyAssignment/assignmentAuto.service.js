@@ -53,10 +53,22 @@ exports.autoAssignBatch = async (data) => {
   const { shipperRequestBatchId, companyUniqueId } = bid;
 
   // 2. Find Unassigned Slots for this Batch
-  // Only consider slots that are still FREE (acceptedByShipper = not yet driven,
-  // not cancelled). After a partial cancellation, cancelled slots have a
-  // terminal journeyStatusId — filtering by status excludes them cleanly
-  // without needing to inspect cancellation records separately.
+  //
+  // --- SQL LOGIC EXPLANATION (The "Double Negative") ---
+  // We need to find jobs (slots) that DO NOT have an ACTIVE assignment.
+  //
+  // Part 1: The Inner Subquery (NOT IN)
+  // The subquery looks at all assignments for this slot, but the NOT IN
+  // filter tells it to completely IGNORE any assignment that was cancelled or
+  // rejected. It only looks for "healthy/active" assignments.
+  //
+  // Part 2: The Outer Bouncer (NOT EXISTS)
+  // If a driver cancelled, the inner subquery ignores that cancelled record
+  // and finds 0 active assignments.
+  // Because it found 0 active assignments, the outer NOT EXISTS becomes TRUE!
+  // The database says: "There are no active assignments here, so this must
+  // be an unassigned slot."
+  // -----------------------------------------------------
 
   const [unassignedSlots] = await db().query(
     `SELECT sr.shipperRequestUniqueId, sr.originLatitude, sr.originLongitude, sr.originPlace
