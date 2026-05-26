@@ -1,11 +1,3 @@
-node_modules/
-# One-time refactor/utility scripts — not part of app source
-refactor_endpoints.js
-refactor_routes_batch2.js
-refactor_routes_batch3.js
-industry_refactor.js
-fix_lint.js
-fix_requires.js
-split_company_bid.js
-# Manual integration test scripts — not subject to app lint rules
-tests/
+# This file is intentionally empty.
+# Ignored files are configured in eslint.config.js under the "ignores" property.
+# ESLint 9 does not support .eslintignore - see eslint.config.js instead.

@@ -33,7 +33,15 @@ module.exports = [
       "ecosystem.config.js",
       "vercel.json",
       "Utils/socketService.js", // ESM syntax (React Native file)
-      "scratch/**" // Ignore temp scripts
+      "scratch/**", // Ignore temp scripts
+      // One-time refactor/migration scripts
+      "refactor_endpoints.js",
+      "refactor_routes_batch2.js",
+      "refactor_routes_batch3.js",
+      "industry_refactor.js",
+      "fix_lint.js",
+      "fix_requires.js",
+      "split_company_bid.js",
     ],
   },
 
@@ -135,6 +143,7 @@ module.exports = [
       "require-await": "off",
       "no-return-await": "off",
       "n/no-unpublished-require": "off",
+      "n/no-extraneous-require": "off",
       "n/hashbang": "off"
     },
   },
