@@ -1,8 +1,8 @@
 const VEHICLE_OWNERSHIP_ENDPOINTS = {
-  CREATE_VEHICLE_OWNERSHIP: "/api/admin/vehicleOwnerships",
-  GET_ALL_VEHICLE_OWNERSHIPS: "/api/admin/vehicleOwnerships",
-  UPDATE_VEHICLE_OWNERSHIP: "/api/admin/vehicleOwnerships/:ownershipUniqueId",
-  DELETE_VEHICLE_OWNERSHIP: "/api/admin/vehicleOwnerships/:ownershipUniqueId",
+  CREATE_VEHICLE_OWNERSHIP: "/",
+  GET_ALL_VEHICLE_OWNERSHIPS: "/",
+  UPDATE_VEHICLE_OWNERSHIP: "/:ownershipUniqueId",
+  DELETE_VEHICLE_OWNERSHIP: "/:ownershipUniqueId",
 };
 
 module.exports = {

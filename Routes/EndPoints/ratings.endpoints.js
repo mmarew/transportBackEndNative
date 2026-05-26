@@ -1,8 +1,8 @@
 const RATINGS_ENDPOINTS = {
-  CREATE_RATING: "/api/ratings",
-  GET_ALL_RATINGS: "/api/ratings",
-  UPDATE_RATING: "/api/ratings/:id",
-  DELETE_RATING: "/api/ratings/:id",
+  CREATE_RATING: "/",
+  GET_ALL_RATINGS: "/",
+  UPDATE_RATING: "/:id",
+  DELETE_RATING: "/:id",
 };
 
 module.exports = {

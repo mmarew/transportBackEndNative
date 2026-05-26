@@ -1,5 +1,5 @@
 const ADMIN_DECISION_ON_USER_DELINQUENCY_ENDPOINTS = {
-  USER_DELINQUENCY_DECISIONS: "/api/admin/user-delinquency-decisions",
+  USER_DELINQUENCY_DECISIONS: "/",
 };
 
 module.exports = {

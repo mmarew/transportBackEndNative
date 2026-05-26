@@ -1,8 +1,8 @@
 const JOURNEY_STATUS_ENDPOINTS = {
-  CREATE_JOURNEY_STATUS: "/api/admin/journeyStatus",
-  GET_ALL_JOURNEY_STATUSES: "/api/admin/journeyStatus",
-  UPDATE_JOURNEY_STATUS: "/api/admin/journeyStatus/:journeyStatusUniqueId",
-  DELETE_JOURNEY_STATUS: "/api/admin/journeyStatus/:journeyStatusUniqueId",
+  CREATE_JOURNEY_STATUS: "/",
+  GET_ALL_JOURNEY_STATUSES: "/",
+  UPDATE_JOURNEY_STATUS: "/:journeyStatusUniqueId",
+  DELETE_JOURNEY_STATUS: "/:journeyStatusUniqueId",
 };
 
 module.exports = {

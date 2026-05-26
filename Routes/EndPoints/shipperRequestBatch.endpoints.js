@@ -1,12 +1,12 @@
 const SHIPPER_REQUEST_BATCH_ENDPOINTS = {
-  CREATE_BATCH: "/api/shipperRequestBatch",
-  GET_BATCHES: "/api/shipperRequestBatch",
-  GET_BATCH: "/api/shipperRequestBatch/:batchUniqueId",
-  UPDATE_BATCH: "/api/shipperRequestBatch/:batchUniqueId",
-  DELETE_BATCH: "/api/shipperRequestBatch/:batchUniqueId",
-  CANCEL_BATCH: "/api/shipperRequestBatch/:batchUniqueId/cancel",
-  GET_BATCH_SLOTS: "/api/shipperRequestBatch/:batchUniqueId/slots",
-  PARTIAL_CANCEL_BATCH: "/api/shipperRequestBatch/:batchUniqueId/partialCancel",
+  CREATE_BATCH: "/",
+  GET_BATCHES: "/",
+  GET_BATCH: "/:batchUniqueId",
+  UPDATE_BATCH: "/:batchUniqueId",
+  DELETE_BATCH: "/:batchUniqueId",
+  CANCEL_BATCH: "/:batchUniqueId/cancel",
+  GET_BATCH_SLOTS: "/:batchUniqueId/slots",
+  PARTIAL_CANCEL_BATCH: "/:batchUniqueId/partialCancel",
 };
 
 module.exports = {

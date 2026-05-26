@@ -1,8 +1,8 @@
 const USER_STATUS_ENDPOINTS = {
-  CREATE_USER_STATUS: "/userStatuses/create",
-  GET_USER_STATUS_BY_ID: "/userStatuses/:id",
-  UPDATE_USER_STATUS: "/userStatuses/:id",
-  DELETE_USER_STATUS: "/userStatuses/:id",
+  CREATE_USER_STATUS: "/",
+  GET_USER_STATUS_BY_ID: "/:id",
+  UPDATE_USER_STATUS: "/:id",
+  DELETE_USER_STATUS: "/:id",
 };
 
 module.exports = {

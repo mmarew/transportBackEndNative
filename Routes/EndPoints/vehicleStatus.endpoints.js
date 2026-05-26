@@ -1,8 +1,8 @@
 const VEHICLE_STATUS_ENDPOINTS = {
-  CREATE_VEHICLE_STATUS: "/vehicleStatus",
-  GET_VEHICLE_STATUSES: "/vehicleStatus",
-  UPDATE_VEHICLE_STATUS: "/vehicleStatus/:vehicleStatusUniqueId",
-  DELETE_VEHICLE_STATUS: "/vehicleStatus/:vehicleStatusUniqueId",
+  CREATE_VEHICLE_STATUS: "/",
+  GET_VEHICLE_STATUSES: "/",
+  UPDATE_VEHICLE_STATUS: "/:vehicleStatusUniqueId",
+  DELETE_VEHICLE_STATUS: "/:vehicleStatusUniqueId",
 };
 
 module.exports = {

@@ -1,8 +1,8 @@
 const JOURNEY_ROUTE_POINTS_ENDPOINTS = {
-  CREATE_JOURNEY_ROUTE_POINT: "/api/journeyRoutePoints",
-  GET_JOURNEY_ROUTE_POINTS: "/api/journeyRoutePoints",
-  UPDATE_JOURNEY_ROUTE_POINT: "/api/journeyRoutePoints/:pointId",
-  DELETE_JOURNEY_ROUTE_POINT: "/api/journeyRoutePoints/:pointId",
+  CREATE_JOURNEY_ROUTE_POINT: "/",
+  GET_JOURNEY_ROUTE_POINTS: "/",
+  UPDATE_JOURNEY_ROUTE_POINT: "/:pointId",
+  DELETE_JOURNEY_ROUTE_POINT: "/:pointId",
 };
 
 module.exports = {

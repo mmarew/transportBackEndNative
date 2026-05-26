@@ -1,8 +1,8 @@
 const VEHICLE_TYPE_ENDPOINTS = {
-  CREATE_VEHICLE_TYPE: "/api/admin/vehicleTypes",
-  GET_VEHICLE_TYPES: "/api/admin/vehicleTypes",
-  UPDATE_VEHICLE_TYPE: "/api/admin/vehicleTypes/:vehicleTypeUniqueId",
-  DELETE_VEHICLE_TYPE: "/api/admin/vehicleTypes/:vehicleTypeUniqueId",
+  CREATE_VEHICLE_TYPE: "/",
+  GET_VEHICLE_TYPES: "/",
+  UPDATE_VEHICLE_TYPE: "/:vehicleTypeUniqueId",
+  DELETE_VEHICLE_TYPE: "/:vehicleTypeUniqueId",
 };
 
 module.exports = {

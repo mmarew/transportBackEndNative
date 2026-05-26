@@ -1,9 +1,9 @@
 const BANNED_USERS_ENDPOINTS = {
-  BAN_USER: "/api/admin/banned-users",
-  GET_BANNED_USERS: "/api/admin/banned-users",
-  UPDATE_BANNED_USER: "/api/admin/banned-users/:banUniqueId",
-  UNBAN_USER: "/api/admin/banned-users",
-  DEACTIVATE_BAN: "/api/admin/banned-users/:banUniqueId/deactivate",
+  BAN_USER: "/",
+  GET_BANNED_USERS: "/",
+  UPDATE_BANNED_USER: "/:banUniqueId",
+  UNBAN_USER: "/",
+  DEACTIVATE_BAN: "/:banUniqueId/deactivate",
 };
 
 module.exports = {

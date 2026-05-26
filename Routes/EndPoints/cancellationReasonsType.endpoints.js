@@ -1,8 +1,8 @@
 const CANCELLATION_REASONS_TYPE_ENDPOINTS = {
-  ADD_CANCELLATION_REASONS: "/api/admin/cancellationReasons",
-  GET_ALL_CANCELLATION_REASONS: "/api/admin/cancellationReasons",
-  UPDATE_CANCELLATION_REASONS: "/api/admin/cancellationReasons/:cancellationReasonTypeUniqueId",
-  DELETE_CANCELLATION_REASONS: "/api/admin/cancellationReasons/:cancellationReasonTypeUniqueId",
+  ADD_CANCELLATION_REASONS: "/",
+  GET_ALL_CANCELLATION_REASONS: "/",
+  UPDATE_CANCELLATION_REASONS: "/:cancellationReasonTypeUniqueId",
+  DELETE_CANCELLATION_REASONS: "/:cancellationReasonTypeUniqueId",
 };
 
 module.exports = {

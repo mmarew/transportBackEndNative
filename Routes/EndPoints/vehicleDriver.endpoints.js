@@ -1,8 +1,8 @@
 const VEHICLE_DRIVER_ENDPOINTS = {
-  CREATE_VEHICLE_DRIVER: "/api/vehicleDriver",
-  GET_ALL_VEHICLE_DRIVERS: "/api/vehicleDriver",
-  UPDATE_VEHICLE_DRIVER: "/api/vehicleDriver/:vehicleDriverUniqueId",
-  DELETE_VEHICLE_DRIVER: "/api/vehicleDriver/:vehicleDriverUniqueId",
+  CREATE_VEHICLE_DRIVER: "/",
+  GET_ALL_VEHICLE_DRIVERS: "/",
+  UPDATE_VEHICLE_DRIVER: "/:vehicleDriverUniqueId",
+  DELETE_VEHICLE_DRIVER: "/:vehicleDriverUniqueId",
 };
 
 module.exports = {

@@ -1,8 +1,8 @@
 const ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS = {
-  CREATE_ROLE_DOCUMENT_REQUIREMENT: "/api/RoleDocumentRequirements",
-  GET_ROLE_DOCUMENT_REQUIREMENTS: "/api/RoleDocumentRequirements",
-  UPDATE_ROLE_DOCUMENT_REQUIREMENT: "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
-  DELETE_ROLE_DOCUMENT_REQUIREMENT: "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
+  CREATE_ROLE_DOCUMENT_REQUIREMENT: "/",
+  GET_ROLE_DOCUMENT_REQUIREMENTS: "/",
+  UPDATE_ROLE_DOCUMENT_REQUIREMENT: "/:roleDocumentRequirementUniqueId",
+  DELETE_ROLE_DOCUMENT_REQUIREMENT: "/:roleDocumentRequirementUniqueId",
 };
 
 module.exports = {
