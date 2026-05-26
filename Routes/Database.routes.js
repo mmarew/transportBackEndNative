@@ -17,22 +17,23 @@ const {
   tableParams,
   installDataQuery,
 } = require("../Validations/Database.schema");
+const { DATABASE_ENDPOINTS } = require("./utils/database.utils");
 
 // Route to create all tables (no body required - creates all tables from predefined SQL)
-router.post("/api/admin/createTable", createTableController);
+router.post(DATABASE_ENDPOINTS.CREATE_TABLE, createTableController);
 
 // Route to list all tables in the database
-router.get("/api/admin/tables", getAllTablesController);
+router.get(DATABASE_ENDPOINTS.GET_ALL_TABLES, getAllTablesController);
 
 // Route to drop a table by name
-router.delete("/api/admin/dropTables", dropTableController);
+router.delete(DATABASE_ENDPOINTS.DROP_TABLES, dropTableController);
 
 // Route to drop all tables
-router.delete("/api/admin/dropAllTables", dropAllTablesController);
+router.delete(DATABASE_ENDPOINTS.DROP_ALL_TABLES, dropAllTablesController);
 
 // Route to update a table by adding a column
 router.put(
-  "/api/admin/updateTable/:tableName",
+  DATABASE_ENDPOINTS.UPDATE_TABLE,
   validator(tableParams, "params"),
   // validator(updateTable), // optional body validation
   updateTableController,
@@ -40,25 +41,25 @@ router.put(
 
 // New: Route to change a column's properties
 router.put(
-  "/api/admin/alterColumn/:tableName",
+  DATABASE_ENDPOINTS.ALTER_COLUMN,
   validator(tableParams, "params"),
   changeColumnPropertyController,
 );
 
 // New: Route to drop a column
 router.delete(
-  "/api/admin/dropColumn/:tableName/:columnName",
+  DATABASE_ENDPOINTS.DROP_COLUMN,
   validator(tableParams, "params"),
   dropColumnController,
 );
 // New: Route to get table columns
 router.get(
-  "/tableColumns/:tableName",
+  DATABASE_ENDPOINTS.GET_TABLE_COLUMNS,
   validator(tableParams, "params"),
   getTableColumnsController,
 );
 router.get(
-  "/api/admin/installPreDefinedData",
+  DATABASE_ENDPOINTS.GET_INSTALL_PREDEFINED_DATA,
   verifyTokenOfAxios,
   validator(installDataQuery, "query"),
   installPreDefinedDataController,
@@ -66,7 +67,7 @@ router.get(
 
 // POST method for installing predefined data
 router.post(
-  "/api/admin/installPreDefinedData",
+  DATABASE_ENDPOINTS.POST_INSTALL_PREDEFINED_DATA,
   verifyTokenOfAxios,
   validator(installDataQuery, "query"),
   installPreDefinedDataController,
@@ -86,8 +87,8 @@ if (Config.NODE_ENV !== "production") {
     }
     next();
   };
-  router.get("/api/admin/dev/getUserOtp", devApiKeyMiddleware, getUserOtp);
-  router.post("/api/admin/dev/seedTestDocument", devApiKeyMiddleware, seedTestDocument);
+  router.get(DATABASE_ENDPOINTS.GET_USER_OTP, devApiKeyMiddleware, getUserOtp);
+  router.post(DATABASE_ENDPOINTS.SEED_TEST_DOCUMENT, devApiKeyMiddleware, seedTestDocument);
 }
 
 module.exports = router;

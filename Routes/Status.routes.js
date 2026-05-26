@@ -17,17 +17,18 @@ const {
   statusParams,
   getStatusesQuery,
 } = require("../Validations/Status.schema");
+const { STATUS_ENDPOINTS } = require("./utils/status.utils");
 
 // Define CRUD routes
 router.post(
-  "/api/admin/statuses",
+  STATUS_ENDPOINTS.CREATE_STATUS,
   verifyTokenOfAxios,
   validator(createStatus),
   createStatusController,
 ); // Create a new status
 
 router.put(
-  "/api/admin/statuses/:statusUniqueId",
+  STATUS_ENDPOINTS.UPDATE_STATUS,
   verifyTokenOfAxios,
   validator(statusParams, "params"),
   validator(updateStatus),
@@ -35,14 +36,14 @@ router.put(
 ); // Update a status by ID
 
 router.delete(
-  "/api/admin/statuses/:statusUniqueId",
+  STATUS_ENDPOINTS.DELETE_STATUS,
   verifyTokenOfAxios,
   validator(statusParams, "params"),
   deleteStatusController,
 ); // Delete a status by ID
 
 router.get(
-  "/api/admin/statuses",
+  STATUS_ENDPOINTS.GET_ALL_STATUSES,
   verifyTokenOfAxios,
   validator(getStatusesQuery, "query"),
   getAllStatusesController,

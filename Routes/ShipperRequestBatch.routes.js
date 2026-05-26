@@ -4,6 +4,7 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../Controllers/ShipperRequestBatch.controller");
 const schema = require("../Validations/ShipperRequestBatch.schema");
+const { SHIPPER_REQUEST_BATCH_ENDPOINTS } = require("../Utils/ShipperRequestBatch.utils");
 const { validator } = require("../Middleware/Validator");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
@@ -19,7 +20,7 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
  *   includeDeleted, page, limit
  */
 router.get(
-  "/api/shipperRequestBatch",
+  SHIPPER_REQUEST_BATCH_ENDPOINTS.GET_BATCHES,
   verifyTokenOfAxios,
   validator(schema.getBatchesQuery, "query"),
   controller.getBatches,
@@ -37,7 +38,7 @@ router.get(
  *   shippingCost, journeyStatusId
  */
 router.patch(
-  "/api/shipperRequestBatch/:batchUniqueId",
+  SHIPPER_REQUEST_BATCH_ENDPOINTS.UPDATE_BATCH,
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   validator(schema.updateBatch),
@@ -50,7 +51,7 @@ router.patch(
  * @access  Authenticated
  */
 router.delete(
-  "/api/shipperRequestBatch/:batchUniqueId",
+  SHIPPER_REQUEST_BATCH_ENDPOINTS.DELETE_BATCH,
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   controller.deleteBatch,
@@ -68,7 +69,7 @@ router.delete(
  * Body (optional): { cancellationReasonsTypeId }
  */
 router.put(
-  "/api/shipperRequestBatch/:batchUniqueId/cancel",
+  SHIPPER_REQUEST_BATCH_ENDPOINTS.CANCEL_BATCH,
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   validator(schema.cancelBatchBody),
@@ -217,7 +218,7 @@ const normalizeArrayQuery = (req, _res, next) => {
  *  partiallyCancelled
  */
 router.get(
-  "/api/shipperRequestBatch/:batchUniqueId/slots",
+  SHIPPER_REQUEST_BATCH_ENDPOINTS.GET_BATCH_SLOTS,
   verifyTokenOfAxios,
   normalizeArrayQuery,
   validator(schema.batchParams, "params"),
@@ -236,7 +237,7 @@ router.get(
  * Body: { slotIds: [uuid, ...], cancellationReasonsTypeId? }
  */
 router.put(
-  "/api/shipperRequestBatch/:batchUniqueId/partialCancel",
+  SHIPPER_REQUEST_BATCH_ENDPOINTS.PARTIAL_CANCEL_BATCH,
   verifyTokenOfAxios,
   validator(schema.batchParams, "params"),
   validator(schema.partialCancelBatchBody),

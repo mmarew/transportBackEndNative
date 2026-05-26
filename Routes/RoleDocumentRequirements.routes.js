@@ -6,27 +6,26 @@ const { validator } = require("../Middleware/Validator");
 const {
   createRoleDocumentRequirement,
   updateRoleDocumentRequirement,
-  roleDocumentRequirementParams,
-  getRoleDocumentRequirementsQuery,
 } = require("../Validations/RoleDocumentRequirements.schema");
+const { ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS } = require("./utils/roleDocumentRequirements.utils");
 
 // Create a new role-document mapping
 router.post(
-  "/api/RoleDocumentRequirements",
+  ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS.CREATE_ROLE_DOCUMENT_REQUIREMENT,
   verifyTokenOfAxios,
   validator(createRoleDocumentRequirement),
   RoleDocumentRequirementsController.createMapping,
 );
 // Consolidated filterable GET (paginated)
 router.get(
-  "/api/RoleDocumentRequirements",
+  ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS.GET_ROLE_DOCUMENT_REQUIREMENTS,
   verifyTokenOfAxios,
   validator(getRoleDocumentRequirementsQuery, "query"),
   RoleDocumentRequirementsController.getRoleDocumentRequirements,
 );
 // Update a mapping by ID
 router.put(
-  "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
+  ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS.UPDATE_ROLE_DOCUMENT_REQUIREMENT,
   verifyTokenOfAxios,
   validator(roleDocumentRequirementParams, "params"),
   validator(updateRoleDocumentRequirement),
@@ -34,7 +33,7 @@ router.put(
 );
 // Delete a mapping by ID
 router.delete(
-  "/api/RoleDocumentRequirements/:roleDocumentRequirementUniqueId",
+  ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS.DELETE_ROLE_DOCUMENT_REQUIREMENT,
   verifyTokenOfAxios,
   validator(roleDocumentRequirementParams, "params"),
   RoleDocumentRequirementsController.deleteMapping,

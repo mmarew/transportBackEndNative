@@ -6,6 +6,7 @@ const {
   verifyAdminsIdentity,
   verifyIfOperationIsAllowedByUserDriver,
 } = require("../Middleware/VerifyUsersIdentity");
+const { USER_ENDPOINTS } = require("./utils/user.utils");
 const upload = require("../Config/MulterConfig");
 
 const { validator } = require("../Middleware/Validator");
@@ -20,7 +21,7 @@ const {
 const router = express.Router();
 
 router.put(
-  "/api/user/updateUser/:ownerUserUniqueId",
+  USER_ENDPOINTS.UPDATE_USER,
   verifyTokenOfAxios,
   verifyIfOperationIsAllowedByUserDriver,
   upload.any(),
@@ -30,14 +31,14 @@ router.put(
 );
 
 router.delete(
-  "/api/user/users/:userUniqueId",
+  USER_ENDPOINTS.GET_USER_BY_ID,
   verifyTokenOfAxios,
   validator(userIdParams, "params"),
   controller.deleteUser,
 );
 
 router.get(
-  "/api/admin/getUserByFilterDetailed",
+  USER_ENDPOINTS.GET_USER_BY_FILTER_DETAILED,
   verifyTokenOfAxios,
   validator(getUserFilter, "query"),
   controller.getUserByFilterDetailed,
@@ -52,7 +53,7 @@ router.get(
  * @query   page?, limit?, fieldName? (e.g. 'phoneNumber'), source? (e.g. 'profile_update')
  */
 router.get(
-  "/api/user/users/:userUniqueId/profileHistory",
+  USER_ENDPOINTS.GET_USER_PROFILE_HISTORY,
   verifyTokenOfAxios,
   validator(userIdParams, "params"),
   controller.getUserProfileHistory,

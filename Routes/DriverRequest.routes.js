@@ -37,6 +37,7 @@ const {
   updateDriverRequest: updateDriverRequestSchema,
   requestIdParams: requestIdParamsSchema,
 } = require("../Validations/DriverRequest.schema");
+const { DRIVER_REQUEST_ENDPOINTS } = require("./utils/driverRequest.utils");
 
 const router = express.Router();
 /**
@@ -105,7 +106,7 @@ const router = express.Router();
  * acceptedByDriver (3) → acceptedByShipper (4) → journeyStarted (5).
  */
 router.post(
-  "/api/driver/takeFromStreet",
+  DRIVER_REQUEST_ENDPOINTS.TAKE_FROM_STREET,
   verifyTokenOfAxios,
   validator(takeFromStreetSchema),
   takeFromStreet,
@@ -216,7 +217,7 @@ router.post(
  *   - All operations are atomic - either all succeed or all fail
  */
 router.post(
-  "/api/driver/request",
+  DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(createRequestSchema),
@@ -316,7 +317,7 @@ router.post(
  *   - All operations are atomic - either all succeed or all fail
  */
 router.post(
-  "/api/driver/createAndAcceptNewRequest",
+  DRIVER_REQUEST_ENDPOINTS.CREATE_AND_ACCEPT_NEW_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(createAndAcceptNewRequestSchema),
@@ -454,7 +455,7 @@ router.post(
  * - ✅ Automatic rollback on any failure
  */
 router.put(
-  "/api/driver/acceptShipperRequest",
+  DRIVER_REQUEST_ENDPOINTS.ACCEPT_SHIPPER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(acceptShipperRequestSchema),
@@ -604,7 +605,7 @@ router.put(
  * state but not yet started.
  */
 router.put(
-  "/api/driver/startJourney",
+  DRIVER_REQUEST_ENDPOINTS.START_JOURNEY,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(startJourneySchema),
@@ -751,7 +752,7 @@ router.put(
  * - Shipper is the RECEIVER of the report, not the reporter - system detects and reports automatically
  */
 router.put(
-  "/api/shipper/noAnswerFromDriver",
+  DRIVER_REQUEST_ENDPOINTS.NO_ANSWER_FROM_DRIVER,
   verifyTokenOfAxios,
   verifyShippersIdentity,
   noAnswerFromDriver,
@@ -972,7 +973,7 @@ router.put(
  * - Audit logging (createCanceledJourney) executed after successful transaction commit (non-critical for consistency)
  */
 router.put(
-  "/api/driver/cancelDriverRequest",
+  DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   cancelDriverRequest,
@@ -1150,7 +1151,7 @@ router.put(
  * - Uses helper function fetchJourneyNotificationData to get comprehensive data for notifications
  */
 router.put(
-  "/api/driver/completeJourney",
+  DRIVER_REQUEST_ENDPOINTS.COMPLETE_JOURNEY,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(completeJourneySchema),
@@ -1338,7 +1339,7 @@ router.put(
  *   - Preserves audit trail
  */
 router.put(
-  "/api/driver/request/:driverRequestUniqueId",
+  DRIVER_REQUEST_ENDPOINTS.UPDATE_DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(requestIdParamsSchema, "params"),
@@ -1346,7 +1347,7 @@ router.put(
   updateDriverRequestController,
 );
 router.delete(
-  "/api/driver/request/:driverRequestUniqueId",
+  DRIVER_REQUEST_ENDPOINTS.DELETE_DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   deleteRequestController,
@@ -1676,7 +1677,7 @@ router.delete(
  * - Other endpoints are called for specific actions (accept, start, complete)
  */
 router.get(
-  "/api/driver/verifyDriverJourneyStatus",
+  DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
   verifyTokenOfAxios,
   validator(verifyDriverJourneyStatusSchema, "query"), // Validates query parameters (empty object - no params needed)
   // verifyDriversIdentity, // Commented out - uses token userUniqueId directly
@@ -1684,7 +1685,7 @@ router.get(
 );
 // api/user/getDriverRequest?driverUniqueId=uuidv4&target=allOrSingleDriverRequests
 router.get(
-  "/api/user/getDriverRequest",
+  DRIVER_REQUEST_ENDPOINTS.GET_DRIVER_REQUEST,
   verifyTokenOfAxios,
   getDriverRequestController,
 );
@@ -1965,7 +1966,7 @@ router.get(
  * - Other endpoints are called for specific journey actions (start, complete, accept)
  */
 router.put(
-  "/api/driver/sendUpdatedLocation",
+  DRIVER_REQUEST_ENDPOINTS.SEND_UPDATED_LOCATION,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(sendUpdatedLocationSchema), // Validates request body: journeyDecisionUniqueId, latitude, longitude
@@ -2293,7 +2294,7 @@ router.put(
  *   - Read operations don't require transaction isolation levels
  */
 router.get(
-  "/api/driver/getCancellationNotifications",
+  DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(getCancellationNotificationsQuerySchema, "query"), // Validates seenStatus query parameter
@@ -2656,7 +2657,7 @@ router.get(
  *   - Recommended: Add journeyStatusId to DriverRequest update conditions for atomic status check (alternative to transaction)
  */
 router.put(
-  "/api/driver/markNegativeStatusAsSeen",
+  DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(markNegativeStatusAsSeenSchema), // Validates driverRequestUniqueId (UUID format, required)

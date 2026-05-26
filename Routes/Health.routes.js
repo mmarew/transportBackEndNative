@@ -8,9 +8,10 @@ const {
 const { getQueryStats } = require("../Middleware/QueryPerformance");
 const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
+const { HEALTH_ENDPOINTS } = require("./utils/health.utils");
 
 // Simple health check with DB reachability indicator
-router.get("/api/health", async (req, res, next) => {
+router.get(HEALTH_ENDPOINTS.HEALTH_CHECK, async (req, res, next) => {
   try {
     const startedAt = currentDate();
     let db = "up";
@@ -35,7 +36,7 @@ router.get("/api/health", async (req, res, next) => {
 });
 
 // Enhanced database health check endpoint
-router.get("/api/health/database", async (req, res) => {
+router.get(HEALTH_ENDPOINTS.DATABASE_HEALTH, async (req, res) => {
   try {
     const health = await checkDatabaseHealth();
     const statusCode =
@@ -54,7 +55,7 @@ router.get("/api/health/database", async (req, res) => {
 });
 
 // Database statistics endpoint
-router.get("/api/admin/database/stats", async (req, res, next) => {
+router.get(HEALTH_ENDPOINTS.DATABASE_STATS, async (req, res, next) => {
   try {
     const stats = await getDatabaseStats();
     const queryStats = getQueryStats();

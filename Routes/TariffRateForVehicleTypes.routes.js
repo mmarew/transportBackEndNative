@@ -10,10 +10,11 @@ const {
   tariffRateForVehicleParams,
   getTariffRatesByFilterForVehicleTypesQuery,
 } = require("../Validations/TariffRateForVehicleTypes.schema");
+const { TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS } = require("../Utils/Constants");
 
 // Create a new tariff rate for vehicle type
 router.post(
-  "/api/admin/tariffRateForVehicleType",
+  TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS.CREATE_TARIFF_RATE,
   verifyTokenOfAxios,
   validator(createTariffRateForVehicle),
   tariffRateForVehicleTypesController.createTariffRateForVehicleType,
@@ -26,7 +27,7 @@ router.post(
 //   GET /?vehicleTypeUniqueId=uuid                                    → filter by vehicle type
 //   GET /?tariffRateUniqueId=uuid&page=1&limit=5                      → filter by tariff rate
 router.get(
-  "/api/admin/tariffRateForVehicleType",
+  TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS.GET_ALL_TARIFF_RATES,
   verifyTokenOfAxios,
   validator(getTariffRatesByFilterForVehicleTypesQuery, "query"),
   tariffRateForVehicleTypesController.getTariffRatesByFilterForVehicleTypes,
@@ -34,7 +35,7 @@ router.get(
 
 // Update a tariff rate for vehicle type by UUID
 router.put(
-  "/api/admin/tariffRateForVehicleType/:tariffRateForVehicleTypeUniqueId",
+  TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS.UPDATE_TARIFF_RATE,
   verifyTokenOfAxios,
   validator(tariffRateForVehicleParams, "params"),
   validator(updateTariffRateForVehicle),
@@ -43,7 +44,7 @@ router.put(
 
 // Soft delete a tariff rate for vehicle type by UUID
 router.delete(
-  "/api/admin/tariffRateForVehicleType/:tariffRateForVehicleTypeUniqueId",
+  TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS.DELETE_TARIFF_RATE,
   verifyTokenOfAxios,
   validator(tariffRateForVehicleParams, "params"),
   tariffRateForVehicleTypesController.deleteTariffRateForVehicleType,

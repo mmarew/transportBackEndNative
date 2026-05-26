@@ -24,6 +24,7 @@ const {
   rejectDriverOfferBody,
   getAllActiveRequestsQuery,
 } = require("../Validations/ShipperRequest.schema");
+const { SHIPPER_REQUEST_ENDPOINTS } = require("./utils/shipperRequest.utils");
 
 /**
  * Shipper Create Request Endpoint
@@ -526,7 +527,7 @@ const {
  *    - Minor optimization for multiple request creation
  */
 router.post(
-  "/api/shipperRequest/createRequest",
+  SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
   verifyTokenOfAxios,
   validator(createShipperRequest), // Validates request body: shipperRequestBatchId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional), requestType (optional)
   controller.createShipperRequest,
@@ -552,7 +553,7 @@ router.post(
  * - Other filters: vehicleTypeUniqueId, shipperRequestBatchId, etc.
  */
 router.get(
-  "/api/user/getShipperRequest4allOrSingleUser",
+  SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER,
   verifyTokenOfAxios,
   validator(getShipperRequestQuery, "query"),
   controller.getShipperRequest4allOrSingleUser,
@@ -579,7 +580,7 @@ router.get(
  * - Frontend can use this to update UI without additional API calls
  */
 router.put(
-  "/api/shipper/acceptDriverRequest",
+  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
   verifyTokenOfAxios,
   validator(acceptDriverRequestBody),
   controller.acceptDriverRequest,
@@ -611,7 +612,7 @@ router.put(
  * - Frontend should call verifyShipperStatus to get updated counts
  */
 router.put(
-  "/api/user/rejectDriverOffer",
+  SHIPPER_REQUEST_ENDPOINTS.REJECT_DRIVER_OFFER,
   verifyTokenOfAxios,
   validator(rejectDriverOfferBody),
   controller.rejectDriverOffer,
@@ -641,7 +642,7 @@ router.put(
  * - Returns error if request not found or no changes made
  */
 router.put(
-  "/api/shipperRequest/getById/:id",
+  SHIPPER_REQUEST_ENDPOINTS.GET_BY_ID_PUBLIC,
   verifyTokenOfAxios,
   validator(requestParams, "params"),
   controller.updateRequestById,
@@ -667,7 +668,7 @@ router.put(
  * - Frontend should refresh request list after deletion
  */
 router.delete(
-  "/api/shipperRequest/getById/:id",
+  SHIPPER_REQUEST_ENDPOINTS.GET_BY_ID_PRIVATE,
   verifyTokenOfAxios,
   validator(requestParams, "params"),
   controller.deleteRequest,
@@ -701,7 +702,7 @@ router.delete(
  * - Returns success with cancellation status, unique IDs, and updated totalRecords
  */
 router.put(
-  "/api/shipperRequest/cancelShipperRequest/:userUniqueId",
+  SHIPPER_REQUEST_ENDPOINTS.CANCEL_SHIPPER_REQUEST,
   verifyTokenOfAxios,
   validator(cancelRequestParams, "params"),
   validator(cancelShipperRequestBody),
@@ -735,7 +736,7 @@ router.put(
  * - Admin/Super Admin can cancel any batch
  */
 router.put(
-  "/api/shipperRequest/cancelBatch/:shipperRequestBatchId",
+  SHIPPER_REQUEST_ENDPOINTS.CANCEL_BATCH,
   verifyTokenOfAxios,
   controller.cancelShipperRequestBatch,
 );
@@ -761,7 +762,7 @@ router.put(
  * - Frontend can use this to hide "new completion" badges
  */
 router.put(
-  "/api/shipperRequest/markJourneyCompletionAsSeen",
+  SHIPPER_REQUEST_ENDPOINTS.MARK_JOURNEY_COMPLETION_AS_SEEN,
   verifyTokenOfAxios,
   validator(markJourneyCompletionAsSeen),
   controller.markJourneyCompletionAsSeenController,
@@ -791,7 +792,7 @@ router.put(
  * - Each notification includes cancellation reason, who cancelled, and timestamps
  */
 router.get(
-  "/api/shipperRequest/getCancellationNotifications",
+  SHIPPER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS,
   verifyTokenOfAxios,
   verifyShippersIdentity,
   validator(getCancellationNotificationsQuery, "query"),
@@ -823,7 +824,7 @@ router.get(
  * - Frontend can use this to hide "new cancellation" badges
  */
 router.put(
-  "/api/shipperRequest/markCancellationAsSeen",
+  SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN,
   verifyTokenOfAxios,
   // verifyShippersIdentity,
   validator(markCancellationAsSeen),
@@ -865,7 +866,7 @@ router.put(
  *    - PUT /api/user/rejectDriverOffer
  */
 router.get(
-  "/api/shipperRequest/verifyShipperStatus",
+  SHIPPER_REQUEST_ENDPOINTS.VERIFY_SHIPPER_STATUS,
   verifyTokenOfAxios,
   validator(verifyShipperStatusQuery, "query"),
   controller.verifyShipperStatus,
@@ -911,7 +912,7 @@ router.get(
  * - Includes pagination metadata (currentPage, totalPages, totalCount, etc.)
  */
 router.get(
-  "/api/shippingRequest/getAllActiveRequests",
+  SHIPPER_REQUEST_ENDPOINTS.GET_ALL_ACTIVE_REQUESTS,
   verifyTokenOfAxios,
   validator(getAllActiveRequestsQuery, "query"),
   controller.getAllActiveRequestsController,

@@ -31,10 +31,11 @@ const {
   vehicleTypeParams,
   getVehicleTypesQuery,
 } = require("../Validations/VehicleType.schema");
+const { VEHICLE_TYPE_ENDPOINTS } = require("./utils/vehicleType.utils");
 
 // using memory storage
 router.post(
-  "/api/admin/vehicleTypes",
+  VEHICLE_TYPE_ENDPOINTS.CREATE_VEHICLE_TYPE,
   verifyTokenOfAxios,
   upload.single("vehicleTypeIconName"), // field name from frontend form-data
   validator(createVehicleType),
@@ -44,7 +45,7 @@ router.post(
 
 // Route to get all vehicle types
 router.get(
-  "/api/admin/vehicleTypes",
+  VEHICLE_TYPE_ENDPOINTS.GET_VEHICLE_TYPES,
   verifyTokenOfAxios,
   validator(getVehicleTypesQuery, "query"),
   vehicleTypeController.getVehicleTypesByfilter,
@@ -52,7 +53,7 @@ router.get(
 
 // Route to update a vehicle type by unique ID
 router.put(
-  "/api/admin/vehicleTypes/:vehicleTypeUniqueId",
+  VEHICLE_TYPE_ENDPOINTS.UPDATE_VEHICLE_TYPE,
   verifyTokenOfAxios,
   upload.single("vehicleTypeIconName"),
   // verifyTokenOfAxios, // Duplicated in original
@@ -63,7 +64,7 @@ router.put(
 
 // Route to soft-delete a vehicle type by unique ID
 router.delete(
-  "/api/admin/vehicleTypes/:vehicleTypeUniqueId",
+  VEHICLE_TYPE_ENDPOINTS.DELETE_VEHICLE_TYPE,
   verifyTokenOfAxios,
   validator(vehicleTypeParams, "params"),
   vehicleTypeController.deleteVehicleType,

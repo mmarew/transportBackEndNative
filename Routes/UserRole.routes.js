@@ -14,10 +14,11 @@ const {
   userRoleParams,
   getUserRoleFilter,
 } = require("../Validations/UserRole.schema");
+const { USER_ROLE_ENDPOINTS } = require("./utils/userRole.utils");
 
 // Routes for CRUD operations
 router.post(
-  "/api/admin/userRole/create",
+  USER_ROLE_ENDPOINTS.CREATE_USER_ROLE,
   verifyTokenOfAxios,
   verifyIfUserIsSupperAdmin,
   validator(createUserRole),
@@ -25,7 +26,7 @@ router.post(
 );
 // Get user roles with pagination and filtering
 router.get(
-  "/api/admin/getUserRoleListByFilter",
+  USER_ROLE_ENDPOINTS.GET_USER_ROLE_LIST_BY_FILTER,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(getUserRoleFilter, "query"),
@@ -33,14 +34,14 @@ router.get(
 );
 
 router.put(
-  "/api/admin/userRole/:userRoleUniqueId",
+  USER_ROLE_ENDPOINTS.UPDATE_USER_ROLE,
   verifyTokenOfAxios,
   validator(userRoleParams, "params"),
   validator(updateUserRole),
   userRoleController.updateUserRole,
 );
 router.delete(
-  "/api/admin/userRole/:userRoleUniqueId",
+  USER_ROLE_ENDPOINTS.DELETE_USER_ROLE,
   verifyTokenOfAxios,
   validator(userRoleParams, "params"),
   userRoleController.deleteUserRole,

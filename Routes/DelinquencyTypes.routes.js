@@ -12,16 +12,17 @@ const {
   roleParams,
   getDelinquencyTypesQuery,
 } = require("../Validations/DelinquencyTypes.schema");
+const { DELINQUENCY_TYPES_ENDPOINTS } = require("./utils/delinquencyTypes.utils");
 
 const routes = [
   {
-    path: "/api/admin/delinquency-types",
+    path: DELINQUENCY_TYPES_ENDPOINTS.CREATE_DELINQUENCY_TYPE,
     method: "post",
     middleware: [verifyTokenOfAxios, validator(createDelinquencyType)],
     handler: delinquencyTypesController.createDelinquencyType,
   },
   {
-    path: "/api/admin/delinquency-types",
+    path: DELINQUENCY_TYPES_ENDPOINTS.GET_DELINQUENCY_TYPES,
     method: "get",
     middleware: [
       verifyTokenOfAxios,
@@ -30,7 +31,7 @@ const routes = [
     handler: delinquencyTypesController.getDelinquencyTypes,
   },
   {
-    path: "/api/admin/delinquency-types/:delinquencyTypeUniqueId",
+    path: DELINQUENCY_TYPES_ENDPOINTS.UPDATE_DELINQUENCY_TYPE,
     method: "put",
     middleware: [
       verifyTokenOfAxios,
@@ -40,7 +41,7 @@ const routes = [
     handler: delinquencyTypesController.updateDelinquencyType,
   },
   {
-    path: "/api/admin/delinquency-types/:delinquencyTypeUniqueId",
+    path: DELINQUENCY_TYPES_ENDPOINTS.DELETE_DELINQUENCY_TYPE,
     method: "delete",
     middleware: [
       verifyTokenOfAxios,
@@ -49,13 +50,13 @@ const routes = [
     handler: delinquencyTypesController.deleteDelinquencyType,
   },
   {
-    path: "/api/admin/delinquency-types/role/:roleUniqueId",
+    path: DELINQUENCY_TYPES_ENDPOINTS.GET_DELINQUENCY_TYPES_BY_ROLE,
     method: "get",
     middleware: [verifyTokenOfAxios, validator(roleParams, "params")],
     handler: delinquencyTypesController.getDelinquencyTypesByRole,
   },
   {
-    path: "/api/admin/delinquency-types/:delinquencyTypeUniqueId/toggle-active",
+    path: DELINQUENCY_TYPES_ENDPOINTS.TOGGLE_DELINQUENCY_TYPE_ACTIVE,
     method: "patch",
     middleware: [
       verifyTokenOfAxios,

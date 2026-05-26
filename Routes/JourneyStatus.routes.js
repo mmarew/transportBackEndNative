@@ -11,10 +11,11 @@ const {
   journeyStatusParams,
   getJourneyStatusQuery,
 } = require("../Validations/JourneyStatus.schema");
+const { JOURNEY_STATUS_ENDPOINTS } = require("./utils/journeyStatus.utils");
 
 // Create a new journey status
 router.post(
-  "/api/admin/journeyStatus",
+  JOURNEY_STATUS_ENDPOINTS.CREATE_JOURNEY_STATUS,
   verifyTokenOfAxios,
   validator(createJourneyStatus),
   journeyStatusController.createJourneyStatus,
@@ -22,7 +23,7 @@ router.post(
 
 // Get journey statuses (filterable + paginated)
 router.get(
-  "/api/admin/journeyStatus",
+  JOURNEY_STATUS_ENDPOINTS.GET_ALL_JOURNEY_STATUSES,
   verifyTokenOfAxios,
   validator(getJourneyStatusQuery, "query"),
   journeyStatusController.getAllJourneyStatuses,
@@ -30,7 +31,7 @@ router.get(
 
 // Update a journey status by ID
 router.put(
-  "/api/admin/journeyStatus/:journeyStatusUniqueId",
+  JOURNEY_STATUS_ENDPOINTS.UPDATE_JOURNEY_STATUS,
   verifyTokenOfAxios,
   validator(journeyStatusParams, "params"),
   validator(updateJourneyStatus),
@@ -39,7 +40,7 @@ router.put(
 
 // Delete a journey status by ID
 router.delete(
-  "/api/admin/journeyStatus/:journeyStatusUniqueId",
+  JOURNEY_STATUS_ENDPOINTS.DELETE_JOURNEY_STATUS,
   verifyTokenOfAxios,
   validator(journeyStatusParams, "params"),
   journeyStatusController.deleteJourneyStatus,

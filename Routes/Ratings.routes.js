@@ -11,10 +11,11 @@ const {
   ratingParams,
   getRatingsQuery,
 } = require("../Validations/Ratings.schema");
+const { RATINGS_ENDPOINTS } = require("./utils/ratings.utils");
 
 // Create a new rating
 router.post(
-  "/api/ratings",
+  RATINGS_ENDPOINTS.CREATE_RATING,
   verifyTokenOfAxios,
   validator(createRating),
   ratingsController.createRating,
@@ -22,7 +23,7 @@ router.post(
 
 // Get all ratings with pagination and filtering
 router.get(
-  "/api/ratings",
+  RATINGS_ENDPOINTS.GET_ALL_RATINGS,
   verifyTokenOfAxios,
   validator(getRatingsQuery, "query"),
   ratingsController.getAllRatings,
@@ -30,7 +31,7 @@ router.get(
 
 // Update a specific rating by ID
 router.put(
-  "/api/ratings/:id",
+  RATINGS_ENDPOINTS.UPDATE_RATING,
   verifyTokenOfAxios,
   validator(ratingParams, "params"),
   validator(updateRating),
@@ -39,7 +40,7 @@ router.put(
 
 // Delete a specific rating by ID
 router.delete(
-  "/api/ratings/:id",
+  RATINGS_ENDPOINTS.DELETE_RATING,
   verifyTokenOfAxios,
   validator(ratingParams, "params"),
   ratingsController.deleteRating,

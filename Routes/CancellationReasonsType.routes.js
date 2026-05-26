@@ -15,23 +15,24 @@ const {
   cancellationReasonParams,
   getCancellationReasonsQuery,
 } = require("../Validations/CancellationReasons.schema");
+const { CANCELLATION_REASONS_TYPE_ENDPOINTS } = require("./utils/cancellationReasonsType.utils");
 
 Router.post(
-  "/api/admin/cancellationReasons",
+  CANCELLATION_REASONS_TYPE_ENDPOINTS.ADD_CANCELLATION_REASONS,
   verifyTokenOfAxios,
   validator(createCancellationReason),
   addCancellationReasons,
 );
 
 Router.get(
-  "/api/admin/cancellationReasons",
+  CANCELLATION_REASONS_TYPE_ENDPOINTS.GET_ALL_CANCELLATION_REASONS,
   verifyTokenOfAxios,
   validator(getCancellationReasonsQuery, "query"),
   getAllCancellationReasons,
 );
 
 Router.put(
-  "/api/admin/cancellationReasons/:cancellationReasonTypeUniqueId",
+  CANCELLATION_REASONS_TYPE_ENDPOINTS.UPDATE_CANCELLATION_REASONS,
   verifyTokenOfAxios,
   validator(cancellationReasonParams, "params"),
   validator(updateCancellationReason),
@@ -39,7 +40,7 @@ Router.put(
 );
 
 Router.delete(
-  "/api/admin/cancellationReasons/:cancellationReasonTypeUniqueId",
+  CANCELLATION_REASONS_TYPE_ENDPOINTS.DELETE_CANCELLATION_REASONS,
   verifyTokenOfAxios,
   validator(cancellationReasonParams, "params"),
   deleteCancellationReasons,

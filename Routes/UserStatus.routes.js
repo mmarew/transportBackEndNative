@@ -7,32 +7,32 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const { validator } = require("../Middleware/Validator");
 const {
   createUserStatus,
-  updateUserStatus,
   userStatusParams,
 } = require("../Validations/UserStatus.schema");
+const { USER_STATUS_ENDPOINTS } = require("./utils/userStatus.utils");
 
 // Routes for CRUD operations
 router.post(
-  "/userStatuses/create",
+  USER_STATUS_ENDPOINTS.CREATE_USER_STATUS,
   verifyTokenOfAxios,
   validator(createUserStatus),
   userStatusesController.createUserStatus,
 );
 router.get(
-  "/userStatuses/:id",
+  USER_STATUS_ENDPOINTS.GET_USER_STATUS_BY_ID,
   verifyTokenOfAxios,
   validator(userStatusParams, "params"),
   userStatusesController.getUserStatusById,
 );
 router.put(
-  "/userStatuses/:id",
+  USER_STATUS_ENDPOINTS.UPDATE_USER_STATUS,
   verifyTokenOfAxios,
   validator(userStatusParams, "params"),
   validator(updateUserStatus),
   userStatusesController.updateUserStatus,
 );
 router.delete(
-  "/userStatuses/:id",
+  USER_STATUS_ENDPOINTS.DELETE_USER_STATUS,
   verifyTokenOfAxios,
   validator(userStatusParams, "params"),
   userStatusesController.deleteUserStatus,

@@ -17,24 +17,25 @@ const {
   getAllCompletedJourneysQuery,
   getOngoingJourneyQuery,
 } = require("../Validations/Journey.schema");
+const { JOURNEY_ENDPOINTS } = require("./utils/journey.utils");
 
 // Route configuration
 const routes = [
   {
     method: "post",
-    path: "/api/journey",
+    path: JOURNEY_ENDPOINTS.CREATE_JOURNEY,
     middleware: [verifyTokenOfAxios, validator(createJourney)],
     handler: journeyController.createJourney,
   },
   {
     method: "get",
-    path: "/api/journey/:journeyUniqueId",
+    path: JOURNEY_ENDPOINTS.GET_JOURNEY_BY_ID,
     middleware: [verifyTokenOfAxios, validator(journeyParams, "params")],
     handler: journeyController.getJourneyByJourneyUniqueId,
   },
   {
     method: "put",
-    path: "/api/journey/:journeyUniqueId",
+    path: JOURNEY_ENDPOINTS.UPDATE_JOURNEY,
     middleware: [
       verifyTokenOfAxios,
       validator(journeyParams, "params"),
@@ -44,13 +45,13 @@ const routes = [
   },
   {
     method: "delete",
-    path: "/api/journey/:journeyUniqueId",
+    path: JOURNEY_ENDPOINTS.DELETE_JOURNEY,
     middleware: [verifyTokenOfAxios, validator(journeyParams, "params")],
     handler: journeyController.deleteJourney,
   },
   {
     method: "get",
-    path: "/api/user/getCompletedJourneyCountsByDate",
+    path: JOURNEY_ENDPOINTS.GET_COMPLETED_JOURNEY_COUNTS_BY_DATE,
     middleware: [
       verifyTokenOfAxios,
       validator(completedJourneyCountsQuery, "query"),
@@ -59,7 +60,7 @@ const routes = [
   },
   {
     method: "get",
-    path: "/api/user/searchCompletedJourneyByUserData",
+    path: JOURNEY_ENDPOINTS.SEARCH_COMPLETED_JOURNEY_BY_USER_DATA,
     middleware: [
       verifyTokenOfAxios,
       validator(searchCompletedJourneyByUserDataQuery, "query"),
@@ -68,7 +69,7 @@ const routes = [
   },
   {
     method: "get",
-    path: "/api/driver/getAllCompletedJourney",
+    path: JOURNEY_ENDPOINTS.GET_ALL_COMPLETED_JOURNEY,
     middleware: [
       verifyTokenOfAxios,
       validator(getAllCompletedJourneysQuery, "query"),
@@ -78,7 +79,7 @@ const routes = [
 
   {
     method: "get",
-    path: "/api/user/getOngoingJourney",
+    path: JOURNEY_ENDPOINTS.GET_ONGOING_JOURNEY,
     middleware: [
       verifyTokenOfAxios,
       validator(getOngoingJourneyQuery, "query"),
@@ -88,7 +89,7 @@ const routes = [
 
   {
     method: "get",
-    path: "/api/journey",
+    path: JOURNEY_ENDPOINTS.GET_JOURNEYS,
     middleware: [verifyTokenOfAxios, validator(getJourneysQuery, "query")],
     handler: journeyController.getJourneys,
   },

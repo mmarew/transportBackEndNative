@@ -11,10 +11,11 @@ const {
   journeyRoutePointParams,
   getJourneyRoutePointsQuery,
 } = require("../Validations/JourneyRoutePoints.schema");
+const { JOURNEY_ROUTE_POINTS_ENDPOINTS } = require("./utils/journeyRoutePoints.utils");
 
 // Create a new route point
 router.post(
-  "/api/journeyRoutePoints",
+  JOURNEY_ROUTE_POINTS_ENDPOINTS.CREATE_JOURNEY_ROUTE_POINT,
   verifyTokenOfAxios,
   validator(createJourneyRoutePoint),
   journeyRoutePointsController.createJourneyRoutePoint,
@@ -22,7 +23,7 @@ router.post(
 
 // Get all route points for a specific journey
 router.get(
-  "/api/journeyRoutePoints",
+  JOURNEY_ROUTE_POINTS_ENDPOINTS.GET_JOURNEY_ROUTE_POINTS,
   verifyTokenOfAxios,
   validator(getJourneyRoutePointsQuery, "query"),
   journeyRoutePointsController.getJourneyRoutePoints,
@@ -30,7 +31,7 @@ router.get(
 
 // Update a specific route point by pointId
 router.put(
-  "/api/journeyRoutePoints/:pointId",
+  JOURNEY_ROUTE_POINTS_ENDPOINTS.UPDATE_JOURNEY_ROUTE_POINT,
   verifyTokenOfAxios,
   validator(journeyRoutePointParams, "params"),
   validator(updateJourneyRoutePoint),
@@ -39,7 +40,7 @@ router.put(
 
 // Delete a specific route point by pointId
 router.delete(
-  "/api/journeyRoutePoints/:pointId",
+  JOURNEY_ROUTE_POINTS_ENDPOINTS.DELETE_JOURNEY_ROUTE_POINT,
   verifyTokenOfAxios,
   validator(journeyRoutePointParams, "params"),
   journeyRoutePointsController.deleteJourneyRoutePoint,

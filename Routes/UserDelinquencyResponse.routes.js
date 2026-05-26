@@ -12,6 +12,7 @@ const {
   getUserDelinquencyResponsesQuery,
   pendingUserDelinquenciesQuery,
 } = require("../Validations/UserDelinquencyDispute.schema");
+const { USER_DELINQUENCY_RESPONSE_ENDPOINTS } = require("./utils/userDelinquencyResponse.utils");
 
 const routes = [
   // ── Pending delinquencies (user sees what needs attention) ─────────────
