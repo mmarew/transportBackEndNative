@@ -1,23 +1,34 @@
 //import auth files
 const usersData = {
-  full_name: "Test User",
+  fullName: "Test User", // Schema expects fullName, not full_name
   email: "mmarew@gmail.com",
   phoneNumber: "+251911111111",
-  otp: "1234",
+  roleId: 2, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
 };
 
 const axios = require("axios");
+const { AUTH_ENDPOINTS } = require("../Routes/auth/APIEndPoints");
+const { backendURL } = require("./constants");
 //create user
-
 const testCreateUser = async () => {
-  const res = await axios.post(
-    "http://localhost:3000/api/user/createUser",
-    usersData,
-  );
-  console.log(res.data);
+  try {
+    const res = await axios.post(
+      backendURL + AUTH_ENDPOINTS.CREATE_USER,
+      usersData,
+    );
+    console.log("✅ Success! User Created:");
+    console.log(res.data);
+  } catch (error) {
+    console.log("❌ Failed to create user.");
+    if (error.response) {
+      console.log(
+        "Server responded with:",
+        error.response.data.error?.details || error.response.data,
+      );
+    } else {
+      console.log("Error:", error.message);
+    }
+  }
 };
 
 testCreateUser();
-//create user, driver and shipper
-
-//verify user by otp

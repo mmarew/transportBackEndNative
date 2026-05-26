@@ -2,7 +2,9 @@
 const express = require("express");
 const controller = require("../../Controllers/Auth");
 const { verifyTokenOfAxios } = require("../../Middleware/VerifyToken");
-const { verifyAdminsIdentity } = require("../../Middleware/VerifyUsersIdentity");
+const {
+  verifyAdminsIdentity,
+} = require("../../Middleware/VerifyUsersIdentity");
 
 const { validator } = require("../../Middleware/Validator");
 
@@ -10,8 +12,9 @@ const {
   createUser,
   createUserByAdmin,
   loginUser,
-  verifyUserByOTP
+  verifyUserByOTP,
 } = require("../../Validations/User.schema");
+const { AUTH_ENDPOINTS } = require("./APIEndPoints");
 
 const router = express.Router();
 
@@ -35,36 +38,36 @@ const router = express.Router();
 
 // Registration
 router.post(
-  "/api/user/createUser",
+  AUTH_ENDPOINTS.CREATE_USER,
   validator(createUser),
-  controller.createUser
+  controller.createUser,
 );
 
 router.post(
-  "/api/admin/createUserByAdminOrSuperAdmin",
+  AUTH_ENDPOINTS.CREATE_USER_BY_ADMIN,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(createUserByAdmin),
-  controller.createUserByAdminOrSuperAdmin
+  controller.createUserByAdminOrSuperAdmin,
 );
 
 // Login
 router.post(
-  "/api/user/loginUser",
+  AUTH_ENDPOINTS.LOGIN_USER,
   validator(loginUser),
-  controller.loginUser
+  controller.loginUser,
 );
 
 // Verifications
 router.post(
-  "/api/user/verifyUserByOTP",
+  AUTH_ENDPOINTS.VERIFY_USER_BY_OTP,
   validator(verifyUserByOTP),
-  controller.verifyUserByOTP
+  controller.verifyUserByOTP,
 );
 
-router.get("/api/user/verify-email", controller.verifyEmail);
-router.get("/api/user/verify-phone", controller.verifyPhone);
-router.post("/api/user/verify-phone", controller.verifyPhone);
-router.get("/api/user/report-wrong-email", controller.reportWrongEmail);
+router.get(AUTH_ENDPOINTS.VERIFY_EMAIL, controller.verifyEmail);
+router.get(AUTH_ENDPOINTS.VERIFY_PHONE, controller.verifyPhone);
+router.post(AUTH_ENDPOINTS.VERIFY_PHONE, controller.verifyPhone);
+router.get(AUTH_ENDPOINTS.REPORT_WRONG_EMAIL, controller.reportWrongEmail);
 
 module.exports = router;
