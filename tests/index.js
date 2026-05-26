@@ -1,12 +1,12 @@
 const { backendURL, usersData } = require("./constants");
 const { AUTH_ENDPOINTS } = require("../Routes/auth/APIEndPoints");
 const axios = require("axios");
-
-const testLoginUser = async () => {
+const userToken = { driver: undefined, shipper: undefined, admin: undefined };
+const testLoginUser = async ({ userType = "admin" }) => {
   try {
     const res = await axios.post(
       backendURL + AUTH_ENDPOINTS.LOGIN_USER,
-      usersData,
+      usersData[userType],
     );
     console.log("✅ Success! User Logged In:");
     console.log(res.data);
@@ -23,14 +23,25 @@ const testLoginUser = async () => {
   }
 };
 
-const testVerifyUserByOTP = async () => {
+const testVerifyUserByOTP = async ({ userType = "admin" }) => {
   try {
     const res = await axios.post(
       backendURL + AUTH_ENDPOINTS.VERIFY_USER_BY_OTP,
-      usersData,
+      usersData[userType],
     );
     console.log("✅ Success! User Verified:");
     console.log(res.data);
+    const token = res.data.token;
+    userToken[userType] = token;
+
+    const documentAndVehicleOfDriver = res.data.documentAndVehicleOfDriver;
+    //store documentAndVehicleOfDriver in usersData[userType]
+    if (userType === "driver") {
+      usersData[userType].documentAndVehicleOfDriver =
+        documentAndVehicleOfDriver;
+    }
+
+    console.log("Token:", token);
   } catch (error) {
     console.log("❌ Failed to verify user.");
     if (error.response) {
@@ -44,16 +55,16 @@ const testVerifyUserByOTP = async () => {
   }
 };
 
-const testCreateUser = async () => {
+const testCreateUser = async ({ userType = "admin" }) => {
   try {
     const res = await axios.post(
       backendURL + AUTH_ENDPOINTS.CREATE_USER,
-      usersData,
+      usersData[userType],
     );
     console.log("✅ Success! User Created:");
     console.log(res.data);
-    await testVerifyUserByOTP();
-    await testLoginUser();
+    await testVerifyUserByOTP({ userType });
+    await testLoginUser({ userType });
   } catch (error) {
     console.log("❌ Failed to create user.");
     if (error.response) {
@@ -66,6 +77,6 @@ const testCreateUser = async () => {
     }
   }
 };
-testCreateUser();
+testCreateUser({ userType: "driver" });
 // testLoginUser();
 // testVerifyUserByOTP();
