@@ -24,7 +24,7 @@ const {
   rejectDriverOfferBody,
   getAllActiveRequestsQuery,
 } = require("../Validations/ShipperRequest.schema");
-const { SHIPPER_REQUEST_ENDPOINTS } = require("./utils/shipperRequest.utils");
+const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoints");
 
 /**
  * Shipper Create Request Endpoint

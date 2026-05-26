@@ -11,7 +11,7 @@ const {
   journeyRoutePointParams,
   getJourneyRoutePointsQuery,
 } = require("../Validations/JourneyRoutePoints.schema");
-const { JOURNEY_ROUTE_POINTS_ENDPOINTS } = require("./utils/journeyRoutePoints.utils");
+const { JOURNEY_ROUTE_POINTS_ENDPOINTS } = require("./EndPoints/journeyRoutePoints.endpoints");
 
 // Create a new route point
 router.post(

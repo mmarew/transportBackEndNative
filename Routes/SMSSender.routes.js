@@ -6,9 +6,10 @@ const smsSenderController = require("../Controllers/SmsSender.controller");
 const { validator } = require("../Middleware/Validator");
 const {
   createSMSSender,
+  updateSMSSender,
   smsSenderParams,
 } = require("../Validations/SMSSender.schema");
-const { SMS_SENDER_ENDPOINTS } = require("./utils/smsSender.utils");
+const { SMS_SENDER_ENDPOINTS } = require("./EndPoints/smsSender.endpoints");
 
 // Create a new SMS sender
 router.post(

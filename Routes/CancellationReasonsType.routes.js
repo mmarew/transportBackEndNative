@@ -15,7 +15,7 @@ const {
   cancellationReasonParams,
   getCancellationReasonsQuery,
 } = require("../Validations/CancellationReasons.schema");
-const { CANCELLATION_REASONS_TYPE_ENDPOINTS } = require("./utils/cancellationReasonsType.utils");
+const { CANCELLATION_REASONS_TYPE_ENDPOINTS } = require("./EndPoints/cancellationReasonsType.endpoints");
 
 Router.post(
   CANCELLATION_REASONS_TYPE_ENDPOINTS.ADD_CANCELLATION_REASONS,

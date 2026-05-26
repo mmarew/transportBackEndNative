@@ -14,7 +14,7 @@ const {
   roleParams,
   getAllRolesQuery,
 } = require("../Validations/Role.schema");
-const { ROLE_ENDPOINTS } = require("./utils/role.utils");
+const { ROLE_ENDPOINTS } = require("./EndPoints/role.endpoints");
 
 // Define CRUD routes
 router.post(

@@ -14,7 +14,7 @@ const {
   userRoleParams,
   getUserRoleFilter,
 } = require("../Validations/UserRole.schema");
-const { USER_ROLE_ENDPOINTS } = require("./utils/userRole.utils");
+const { USER_ROLE_ENDPOINTS } = require("./EndPoints/userRole.endpoints");
 
 // Routes for CRUD operations
 router.post(

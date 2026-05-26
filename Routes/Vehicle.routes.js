@@ -17,7 +17,7 @@ const {
   driverUserUniqueIdParam,
   getVehiclesQuery,
 } = require("../Validations/Vehicle.schema");
-const { VEHICLE_ENDPOINTS } = require("./utils/vehicle.utils");
+const { VEHICLE_ENDPOINTS } = require("./EndPoints/vehicle.endpoints");
 
 router.post(
   VEHICLE_ENDPOINTS.CREATE_VEHICLE,

@@ -10,7 +10,7 @@ const {
   userRoleStatusParams,
   getUserRoleStatusQuery,
 } = require("../Validations/UserRoleStatus.schema");
-const { USER_ROLE_STATUS_ENDPOINTS } = require("./utils/userRoleStatus.utils");
+const { USER_ROLE_STATUS_ENDPOINTS } = require("./EndPoints/userRoleStatus.endpoints");
 
 // Define routes for CRUD operations
 router.post(

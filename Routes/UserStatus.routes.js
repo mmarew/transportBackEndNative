@@ -7,9 +7,10 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const { validator } = require("../Middleware/Validator");
 const {
   createUserStatus,
+  updateUserStatus,
   userStatusParams,
 } = require("../Validations/UserStatus.schema");
-const { USER_STATUS_ENDPOINTS } = require("./utils/userStatus.utils");
+const { USER_STATUS_ENDPOINTS } = require("./EndPoints/userStatus.endpoints");
 
 // Routes for CRUD operations
 router.post(

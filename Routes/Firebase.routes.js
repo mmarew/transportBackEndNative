@@ -12,7 +12,7 @@ const {
   firebaseParams,
   sendNotification,
 } = require("../Validations/Firebase.schema");
-const { FIREBASE_ENDPOINTS } = require("./utils/firebase.utils");
+const { FIREBASE_ENDPOINTS } = require("./EndPoints/firebase.endpoints");
 
 // Define routes for CRUD operations
 router.post(

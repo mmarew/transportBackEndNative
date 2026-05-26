@@ -14,7 +14,7 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 const { validator } = require("../Middleware/Validator");
 const { adminDriverParams } = require("../Validations/Admin.schema");
-const { ADMIN_ENDPOINTS } = require("./utils/admin.utils");
+const { ADMIN_ENDPOINTS } = require("./EndPoints/admin.endpoints");
 
 Router.get(
   ADMIN_ENDPOINTS.GET_ONLINE_DRIVERS,

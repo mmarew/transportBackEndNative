@@ -31,7 +31,7 @@ const {
   vehicleTypeParams,
   getVehicleTypesQuery,
 } = require("../Validations/VehicleType.schema");
-const { VEHICLE_TYPE_ENDPOINTS } = require("./utils/vehicleType.utils");
+const { VEHICLE_TYPE_ENDPOINTS } = require("./EndPoints/vehicleType.endpoints");
 
 // using memory storage
 router.post(

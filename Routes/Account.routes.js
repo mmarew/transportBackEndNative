@@ -9,7 +9,7 @@ const {
 const AccountController = require("../Controllers/Account.controller");
 const { validator } = require("../Middleware/Validator");
 const { accountStatusParams } = require("../Validations/Account.schema");
-const { ACCOUNT_ENDPOINTS } = require("./utils/account.utils");
+const { ACCOUNT_ENDPOINTS } = require("./EndPoints/account.endpoints");
 
 // ───────────────────── Self account routes ─────────────────────────────────
 // Role and identity are resolved 100% from the JWT token.

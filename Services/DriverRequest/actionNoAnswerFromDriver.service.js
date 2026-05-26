@@ -142,7 +142,7 @@ const noAnswerFromDriver = async (body) => {
         // Update the ShipperRequest to reflect the no answer.
         // For company_target mode, the company still owns the bid, so slot returns to acceptedByShipper (4)
         // For individual_target mode, the slot returns to waiting (1) for a new driver
-        const isCompanyTarget = shipperData && (shipperData.requestMode === 'company_target' || shipperData.targetCompanyUniqueId != null);
+        const isCompanyTarget = shipperData && (shipperData.requestMode === 'company_target' || shipperData.targetCompanyUniqueId !== null);
         const revertStatus = isCompanyTarget ? journeyStatusMap.acceptedByShipper : journeyStatusMap.waiting;
 
         await updateData({

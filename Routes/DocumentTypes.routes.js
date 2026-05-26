@@ -13,7 +13,7 @@ const {
   documentTypeParams,
   getDocumentTypesQuery,
 } = require("../Validations/DocumentTypes.schema");
-const { DOCUMENT_TYPES_ENDPOINTS } = require("./utils/documentTypes.utils");
+const { DOCUMENT_TYPES_ENDPOINTS } = require("./EndPoints/documentTypes.endpoints");
 
 // Define routes for CRUD operations with camelCase
 router.post(

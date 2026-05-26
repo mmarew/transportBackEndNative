@@ -1,7 +1,7 @@
 "use strict";
 
 const Config = require("../../Utils/Config");
-const { v4: uuidv4 } = require("uuid");
+
 const services = require("../../Services/User.service");
 const ServerResponder = require("../../Utils/ServerResponder");
 const { usersRoles } = require("../../Utils/ListOfSeedData");
@@ -12,7 +12,7 @@ const {
   getSuccessEmailVerificationHtml,
   getAdminAssignmentMessage
 } = require("../../Utils/MessageTemplates");
-const AppError = require("../../Utils/AppError");
+
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const logger = require("../../Utils/logger");
 

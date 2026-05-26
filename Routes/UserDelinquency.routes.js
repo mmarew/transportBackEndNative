@@ -10,7 +10,7 @@ const {
   userDelinquencyParams,
   userRoleParams,
 } = require("../Validations/UserDelinquency.schema");
-const { USER_DELINQUENCY_ENDPOINTS } = require("./utils/userDelinquency.utils");
+const { USER_DELINQUENCY_ENDPOINTS } = require("./EndPoints/userDelinquency.endpoints");
 
 const routes = [
   {

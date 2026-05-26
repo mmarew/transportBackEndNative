@@ -6,7 +6,7 @@ const {
   verifyAdminsIdentity,
   verifyIfOperationIsAllowedByUserDriver,
 } = require("../Middleware/VerifyUsersIdentity");
-const { USER_ENDPOINTS } = require("./utils/user.utils");
+const { USER_ENDPOINTS } = require("./EndPoints/user.endpoints");
 const upload = require("../Config/MulterConfig");
 
 const { validator } = require("../Middleware/Validator");

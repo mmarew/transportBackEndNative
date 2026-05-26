@@ -12,12 +12,12 @@ const {
   getUserDelinquencyResponsesQuery,
   pendingUserDelinquenciesQuery,
 } = require("../Validations/UserDelinquencyDispute.schema");
-const { USER_DELINQUENCY_RESPONSE_ENDPOINTS } = require("./utils/userDelinquencyResponse.utils");
+const { USER_DELINQUENCY_RESPONSE_ENDPOINTS } = require("./EndPoints/userDelinquencyResponse.endpoints");
 
 const routes = [
   // ── Pending delinquencies (user sees what needs attention) ─────────────
   {
-    path: "/pending",
+    path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.GET_PENDING_DELINQUENCIES,
     method: "get",
     middleware: [
       verifyTokenOfAxios,
@@ -28,7 +28,7 @@ const routes = [
 
   // ── User submits a dispute response ───────────────────────────────────
   {
-    path: "/response",
+    path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.CREATE_RESPONSE,
     method: "post",
     middleware: [verifyTokenOfAxios, validator(createUserDelinquencyResponse)],
     handler: controller.createDelinquencyResponse,
@@ -36,7 +36,7 @@ const routes = [
 
   // ── Get responses ─────────────────────────────────────────────────────
   {
-    path: "/response",
+    path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.GET_RESPONSES,
     method: "get",
     middleware: [
       verifyTokenOfAxios,

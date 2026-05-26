@@ -8,7 +8,7 @@ const {
 const { getQueryStats } = require("../Middleware/QueryPerformance");
 const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
-const { HEALTH_ENDPOINTS } = require("./utils/health.utils");
+const { HEALTH_ENDPOINTS } = require("./EndPoints/health.endpoints");
 
 // Simple health check with DB reachability indicator
 router.get(HEALTH_ENDPOINTS.HEALTH_CHECK, async (req, res, next) => {

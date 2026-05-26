@@ -10,7 +10,7 @@ const {
   ownershipParams,
   ownershipQuery,
 } = require("../Validations/VehicleOwnership.schema");
-const { VEHICLE_OWNERSHIP_ENDPOINTS } = require("./utils/vehicleOwnership.utils");
+const { VEHICLE_OWNERSHIP_ENDPOINTS } = require("./EndPoints/vehicleOwnership.endpoints");
 
 router.post(
   VEHICLE_OWNERSHIP_ENDPOINTS.CREATE_VEHICLE_OWNERSHIP,

@@ -37,7 +37,7 @@ const {
   updateDriverRequest: updateDriverRequestSchema,
   requestIdParams: requestIdParamsSchema,
 } = require("../Validations/DriverRequest.schema");
-const { DRIVER_REQUEST_ENDPOINTS } = require("./utils/driverRequest.utils");
+const { DRIVER_REQUEST_ENDPOINTS } = require("./EndPoints/driverRequest.endpoints");
 
 const router = express.Router();
 /**

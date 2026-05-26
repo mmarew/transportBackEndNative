@@ -23,10 +23,7 @@ const {
 const {
   getOtpMessage,
   getPhoneVerificationLinkMessage,
-  
   getEmailVerificationLinkMessage,
-  getAdminAssignmentMessage,
-  
 } = require("../../Utils/MessageTemplates");
 const AppError = require("../../Utils/AppError");
 const {

@@ -11,7 +11,7 @@ const {
   banParams,
   getBannedUsersQuery,
 } = require("../Validations/BannedUsers.schema");
-const { BANNED_USERS_ENDPOINTS } = require("./utils/bannedUsers.utils");
+const { BANNED_USERS_ENDPOINTS } = require("./EndPoints/bannedUsers.endpoints");
 
 const routes = [
   {

@@ -11,7 +11,7 @@ const {
   journeyStatusParams,
   getJourneyStatusQuery,
 } = require("../Validations/JourneyStatus.schema");
-const { JOURNEY_STATUS_ENDPOINTS } = require("./utils/journeyStatus.utils");
+const { JOURNEY_STATUS_ENDPOINTS } = require("./EndPoints/journeyStatus.endpoints");
 
 // Create a new journey status
 router.post(

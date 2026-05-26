@@ -235,7 +235,7 @@ const cancelDriverRequest = async (data) => {
           // For individual_target mode, the slot returns to waiting (1) for a new driver
           // We check for requestMode === 'company_target' or if targetCompanyUniqueId is set.
           const isCompanyTarget = shipper && shipper.length > 0 && 
-            (shipper[0].requestMode === 'company_target' || shipper[0].targetCompanyUniqueId != null);
+            (shipper[0].requestMode === 'company_target' || shipper[0].targetCompanyUniqueId !== null);
             
           const revertStatus = isCompanyTarget ? journeyStatusMap.acceptedByShipper : journeyStatusMap.waiting;
 

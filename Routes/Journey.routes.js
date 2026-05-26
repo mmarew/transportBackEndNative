@@ -17,7 +17,7 @@ const {
   getAllCompletedJourneysQuery,
   getOngoingJourneyQuery,
 } = require("../Validations/Journey.schema");
-const { JOURNEY_ENDPOINTS } = require("./utils/journey.utils");
+const { JOURNEY_ENDPOINTS } = require("./EndPoints/journey.endpoints");
 
 // Route configuration
 const routes = [

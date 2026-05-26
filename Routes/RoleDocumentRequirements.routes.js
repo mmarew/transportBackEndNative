@@ -6,8 +6,10 @@ const { validator } = require("../Middleware/Validator");
 const {
   createRoleDocumentRequirement,
   updateRoleDocumentRequirement,
+  getRoleDocumentRequirementsQuery,
+  roleDocumentRequirementParams,
 } = require("../Validations/RoleDocumentRequirements.schema");
-const { ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS } = require("./utils/roleDocumentRequirements.utils");
+const { ROLE_DOCUMENT_REQUIREMENTS_ENDPOINTS } = require("./EndPoints/roleDocumentRequirements.endpoints");
 
 // Create a new role-document mapping
 router.post(

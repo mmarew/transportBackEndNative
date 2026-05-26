@@ -17,7 +17,7 @@ const {
   statusParams,
   getStatusesQuery,
 } = require("../Validations/Status.schema");
-const { STATUS_ENDPOINTS } = require("./utils/status.utils");
+const { STATUS_ENDPOINTS } = require("./EndPoints/status.endpoints");
 
 // Define CRUD routes
 router.post(

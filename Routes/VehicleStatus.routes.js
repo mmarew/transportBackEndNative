@@ -11,7 +11,7 @@ const {
   vehicleStatusParams,
   vehicleStatusQuery,
 } = require("../Validations/VehicleStatus.schema");
-const { VEHICLE_STATUS_ENDPOINTS } = require("./utils/vehicleStatus.utils");
+const { VEHICLE_STATUS_ENDPOINTS } = require("./EndPoints/vehicleStatus.endpoints");
 
 // Define routes for CRUD operations
 router.post(

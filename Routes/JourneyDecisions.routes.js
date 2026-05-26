@@ -11,7 +11,7 @@ const {
   journeyDecisionParams,
   getJourneyDecisionsQuery,
 } = require("../Validations/JourneyDecisions.schema");
-const { JOURNEY_DECISIONS_ENDPOINTS } = require("./utils/journeyDecisions.utils");
+const { JOURNEY_DECISIONS_ENDPOINTS } = require("./EndPoints/journeyDecisions.endpoints");
 
 // Create a new journey decision
 router.post(

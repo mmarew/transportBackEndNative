@@ -16,7 +16,7 @@ const {
 
 const {
   ADMIN_DECISION_ON_USER_DELINQUENCY_ENDPOINTS,
-} = require("./utils/adminDecisionOnUserDelinquency.utils");
+} = require("./EndPoints/adminDecisionOnUserDelinquency.endpoints");
 
 const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 

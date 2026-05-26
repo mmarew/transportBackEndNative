@@ -17,7 +17,7 @@ const {
   tableParams,
   installDataQuery,
 } = require("../Validations/Database.schema");
-const { DATABASE_ENDPOINTS } = require("./utils/database.utils");
+const { DATABASE_ENDPOINTS } = require("./EndPoints/database.endpoints");
 
 // Route to create all tables (no body required - creates all tables from predefined SQL)
 router.post(DATABASE_ENDPOINTS.CREATE_TABLE, createTableController);

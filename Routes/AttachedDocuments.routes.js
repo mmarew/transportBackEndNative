@@ -20,7 +20,7 @@ const {
   userParams,
   acceptRejectDocs,
 } = require("../Validations/AttachedDocuments.schema");
-const { ATTACHED_DOCUMENTS_ENDPOINTS } = require("./utils/attachedDocuments.utils");
+const { ATTACHED_DOCUMENTS_ENDPOINTS } = require("./EndPoints/attachedDocuments.endpoints");
 
 // ── User document upload ─────────────────────────────────────────────────────
 router.post(

@@ -10,7 +10,7 @@ const {
   vehicleDriverQuery,
   vehicleDriverParams,
 } = require("../Validations/VehicleDriver.schema");
-const { VEHICLE_DRIVER_ENDPOINTS } = require("./utils/vehicleDriver.utils");
+const { VEHICLE_DRIVER_ENDPOINTS } = require("./EndPoints/vehicleDriver.endpoints");
 
 // Create
 router.post(

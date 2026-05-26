@@ -12,7 +12,7 @@ const {
   roleParams,
   getDelinquencyTypesQuery,
 } = require("../Validations/DelinquencyTypes.schema");
-const { DELINQUENCY_TYPES_ENDPOINTS } = require("./utils/delinquencyTypes.utils");
+const { DELINQUENCY_TYPES_ENDPOINTS } = require("./EndPoints/delinquencyTypes.endpoints");
 
 const routes = [
   {

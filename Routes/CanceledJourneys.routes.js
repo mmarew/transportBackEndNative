@@ -101,7 +101,7 @@ const {
   canceledJourneyParams,
   getCanceledJourneyQuery,
 } = require("../Validations/CanceledJourneys.schema");
-const { CANCELED_JOURNEYS_ENDPOINTS } = require("./utils/canceledJourneys.utils");
+const { CANCELED_JOURNEYS_ENDPOINTS } = require("./EndPoints/canceledJourneys.endpoints");
 
 // Consolidated route configuration
 const routes = [
