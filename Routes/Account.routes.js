@@ -9,6 +9,7 @@ const {
 const AccountController = require("../Controllers/Account.controller");
 const { validator } = require("../Middleware/Validator");
 const { accountStatusParams } = require("../Validations/Account.schema");
+const { ACCOUNT_ENDPOINTS } = require("./utils/account.utils");
 
 // ───────────────────── Self account routes ─────────────────────────────────
 // Role and identity are resolved 100% from the JWT token.
@@ -20,7 +21,7 @@ const { accountStatusParams } = require("../Validations/Account.schema");
  * @access  Any authenticated user
  */
 router.get(
-  "/me/account",
+  ACCOUNT_ENDPOINTS.ME_ACCOUNT,
   verifyTokenOfAxios,
   AccountController.selfAccountStatus,
 );
@@ -31,7 +32,7 @@ router.get(
  * @access  Driver token
  */
 router.get(
-  "/api/driver/account",
+  ACCOUNT_ENDPOINTS.DRIVER_ACCOUNT,
   verifyTokenOfAxios,
   AccountController.selfAccountStatus,
 );
@@ -42,7 +43,7 @@ router.get(
  * @access  Shipper token
  */
 router.get(
-  "/api/shipper/account",
+  ACCOUNT_ENDPOINTS.SHIPPER_ACCOUNT,
   verifyTokenOfAxios,
   AccountController.selfAccountStatus,
 );
@@ -53,7 +54,7 @@ router.get(
  * @access  CompanyAdmin token
  */
 router.get(
-  "/api/companyAdmin/account",
+  ACCOUNT_ENDPOINTS.COMPANY_ADMIN_ACCOUNT,
   verifyTokenOfAxios,
   AccountController.selfAccountStatus,
 );
@@ -64,7 +65,7 @@ router.get(
  * @access  Dispatcher token
  */
 router.get(
-  "/api/dispatcher/account",
+  ACCOUNT_ENDPOINTS.DISPATCHER_ACCOUNT,
   verifyTokenOfAxios,
   AccountController.selfAccountStatus,
 );
@@ -81,7 +82,7 @@ router.get(
  * @example GET /api/account/status?ownerUserUniqueId=uuid-here&roleId=2
  */
 router.get(
-  "/api/account/status",
+  ACCOUNT_ENDPOINTS.ACCOUNT_STATUS,
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
   validator(accountStatusParams, "query"),

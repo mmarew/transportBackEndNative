@@ -14,17 +14,21 @@ const {
   getAdminDecisionsOnUserDelinquencyQuery,
 } = require("../Validations/AdminDecisionOnUserDelinquency.schema");
 
+const {
+  ADMIN_DECISION_ON_USER_DELINQUENCY_ENDPOINTS,
+} = require("./utils/adminDecisionOnUserDelinquency.utils");
+
 const adminOnly = [verifyTokenOfAxios, verifyIfUserIsAdminOrSupperAdmin];
 
 const routes = [
   {
-    path: "/api/admin/user-delinquency-decisions",
+    path: ADMIN_DECISION_ON_USER_DELINQUENCY_ENDPOINTS.USER_DELINQUENCY_DECISIONS,
     method: "post",
     middleware: [...adminOnly, validator(createAdminDecisionOnUserDelinquency)],
     handler: controller.createAdminDecision,
   },
   {
-    path: "/api/admin/user-delinquency-decisions",
+    path: ADMIN_DECISION_ON_USER_DELINQUENCY_ENDPOINTS.USER_DELINQUENCY_DECISIONS,
     method: "get",
     middleware: [
       ...adminOnly,

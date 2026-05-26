@@ -14,9 +14,10 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
 const { validator } = require("../Middleware/Validator");
 const { adminDriverParams } = require("../Validations/Admin.schema");
+const { ADMIN_ENDPOINTS } = require("./utils/admin.utils");
 
 Router.get(
-  "/api/admin/getOnlineDrivers",
+  ADMIN_ENDPOINTS.GET_ONLINE_DRIVERS,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(adminDriverParams, "query"),
@@ -25,7 +26,7 @@ Router.get(
 
 // route to get offline drivers.
 Router.get(
-  "/api/admin/getOfflineDrivers",
+  ADMIN_ENDPOINTS.GET_OFFLINE_DRIVERS,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(adminDriverParams, "query"),
@@ -34,7 +35,7 @@ Router.get(
 
 // route to get all active drivers
 Router.get(
-  "/api/admin/getAllActiveDrivers",
+  ADMIN_ENDPOINTS.GET_ALL_ACTIVE_DRIVERS,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(adminDriverParams, "query"),
@@ -43,7 +44,7 @@ Router.get(
 
 // Get unauthorized drivers
 Router.get(
-  "/api/admin/getUnAuthorizedDriver",
+  ADMIN_ENDPOINTS.GET_UNAUTHORIZED_DRIVER,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(adminDriverParams, "query"),
@@ -55,12 +56,12 @@ Router.get(
  * Note: This route is protected by a query-string SECRET_KEY check inside the controller
  * to allow for easy browser access without needing JWT headers.
  */
-Router.get("/api/admin/system/logs", AdminController.getSystemLogs);
+Router.get(ADMIN_ENDPOINTS.SYSTEM_LOGS, AdminController.getSystemLogs);
 
 /**
  * GET /api/admin/system/uploads?secret=YOUR_SECRET_KEY
  * Securely lists all user-uploaded files in the browser.
  */
-Router.get("/api/admin/system/uploads", AdminController.getUploadedFiles);
+Router.get(ADMIN_ENDPOINTS.SYSTEM_UPLOADS, AdminController.getUploadedFiles);
 
 module.exports = Router;

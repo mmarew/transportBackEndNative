@@ -20,10 +20,11 @@ const {
   userParams,
   acceptRejectDocs,
 } = require("../Validations/AttachedDocuments.schema");
+const { ATTACHED_DOCUMENTS_ENDPOINTS } = require("./utils/attachedDocuments.utils");
 
 // ── User document upload ─────────────────────────────────────────────────────
 router.post(
-  "/api/user/attachDocuments/:userUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.USER_ATTACH_DOCUMENTS,
   verifyTokenOfAxios,
   validator(userParams, "params"),
   (req, _res, next) => {
@@ -38,7 +39,7 @@ router.post(
 
 // ── Company document upload ───────────────────────────────────────────────────
 router.post(
-  "/api/company/attachDocuments/:companyUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.COMPANY_ATTACH_DOCUMENTS,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.params.userUniqueId = req.params.companyUniqueId;
@@ -54,7 +55,7 @@ router.post(
 
 // ── Vehicle document upload ───────────────────────────────────────────────────
 router.post(
-  "/api/vehicle/attachDocuments/:vehicleUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.VEHICLE_ATTACH_DOCUMENTS,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.params.userUniqueId = req.params.vehicleUniqueId;
@@ -70,7 +71,7 @@ router.post(
 
 // ── User documents GET ───────────────────────────────────────────────────────
 router.get(
-  "/api/user/attachedDocuments",
+  ATTACHED_DOCUMENTS_ENDPOINTS.USER_GET_DOCUMENTS,
   verifyTokenOfAxios,
   validator(getAttachedDocumentsQuery, "query"),
   (req, _res, next) => {
@@ -83,7 +84,7 @@ router.get(
 
 // ── Company documents GET ─────────────────────────────────────────────────────
 router.get(
-  "/api/company/attachedDocuments/:companyUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.COMPANY_GET_DOCUMENTS,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.ownerType = "company";
@@ -96,7 +97,7 @@ router.get(
 
 // ── Vehicle documents GET ─────────────────────────────────────────────────────
 router.get(
-  "/api/vehicle/attachedDocuments/:vehicleUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.VEHICLE_GET_DOCUMENTS,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.ownerType = "vehicle";
@@ -109,7 +110,7 @@ router.get(
 
 // ── Update a document ────────────────────────────────────────────────────────
 router.put(
-  "/api/user/attachedDocuments/:attachedDocumentUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.USER_UPDATE_DOCUMENT,
   verifyTokenOfAxios,
   validator(attachedDocumentParams, "params"),
   (req, _res, next) => {
@@ -123,7 +124,7 @@ router.put(
 
 // ── Delete a document (admin / superAdmin only) ─────────────────────────────
 router.delete(
-  "/api/user/attachedDocuments/:attachedDocumentUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.USER_DELETE_DOCUMENT,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(attachedDocumentParams, "params"),
@@ -132,7 +133,7 @@ router.delete(
 
 // ── Admin: accept / reject documents (admin-only) ────────────────────────────
 router.put(
-  "/api/admin/acceptRejectAttachedDocuments",
+  ATTACHED_DOCUMENTS_ENDPOINTS.ADMIN_ACCEPT_REJECT_DOCUMENTS,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(acceptRejectDocs),
@@ -145,7 +146,7 @@ router.put(
 
 // GET /api/user/documentHistory?userUniqueId=<uuid>&attachedDocumentUniqueId=<optional>
 router.get(
-  "/api/user/documentHistory",
+  ATTACHED_DOCUMENTS_ENDPOINTS.USER_DOCUMENT_HISTORY,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.ownerType = "user";
@@ -157,7 +158,7 @@ router.get(
 
 // GET /api/company/documentHistory/:companyUniqueId?attachedDocumentUniqueId=<optional>
 router.get(
-  "/api/company/documentHistory/:companyUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.COMPANY_DOCUMENT_HISTORY,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.ownerType = "company";
@@ -170,7 +171,7 @@ router.get(
 
 // GET /api/vehicle/documentHistory/:vehicleUniqueId?attachedDocumentUniqueId=<optional>
 router.get(
-  "/api/vehicle/documentHistory/:vehicleUniqueId",
+  ATTACHED_DOCUMENTS_ENDPOINTS.VEHICLE_DOCUMENT_HISTORY,
   verifyTokenOfAxios,
   (req, _res, next) => {
     req.ownerType = "vehicle";
