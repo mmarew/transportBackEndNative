@@ -13,7 +13,7 @@ const testLoginUser = async ({ userType = "admin" }) => {
       OTP: usersData[userType].OTP,
       roleId: usersData[userType].roleId,
     };
-    const res = await axios.post(
+    await axios.post(
       backendURL + AUTH_ENDPOINTS.LOGIN_USER,
       payload,
     );
@@ -74,7 +74,7 @@ const testVerifyUserByOTP = async ({ userType = "admin" }) => {
 
 const testCreateUser = async ({ userType = "admin" }) => {
   try {
-    const res = await axios.post(
+    await axios.post(
       backendURL + AUTH_ENDPOINTS.CREATE_USER,
       usersData[userType],
     );

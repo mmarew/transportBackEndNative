@@ -1,9 +1,8 @@
-const { usersData, backendURL } = require("../constants");
+const { backendURL } = require("../constants");
 const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
-let vehicleRequirements = null;
 
 const createVehicle = async (token) => {
   //get vehicle types first
@@ -60,7 +59,7 @@ const getRequirementOfVehicleDocument = async (token) => {
     );
     console.log("✅ Success! Requirement of Vehicle Document:");
     console.log(res.data);
-    vehicleRequirements = res?.data?.data;
+
   } catch (error) {
     console.log("❌ Failed to get requirement of vehicle document.");
     if (error.response) {

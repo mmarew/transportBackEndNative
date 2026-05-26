@@ -19,7 +19,6 @@ const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { sendSocketIONotificationToDriver } = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");
 const logger = require("../../Utils/logger");
-const { createDriverRequest } = require("../../CRUD/Create/CreateData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 
 const {

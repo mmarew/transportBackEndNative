@@ -3,7 +3,6 @@ const express = require("express");
 const controller = require("../Controllers/User");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
-  verifyAdminsIdentity,
   verifyIfOperationIsAllowedByUserDriver,
 } = require("../Middleware/VerifyUsersIdentity");
 const { USER_ENDPOINTS } = require("./EndPoints/user.endpoints");
