@@ -11,7 +11,7 @@ const {
   ratingParams,
   getRatingsQuery,
 } = require("../Validations/Ratings.schema");
-const { RATINGS_ENDPOINTS } = require("./utils/ratings.utils");
+const { RATINGS_ENDPOINTS } = require("./EndPoints/ratings.utils");
 
 // Create a new rating
 router.post(

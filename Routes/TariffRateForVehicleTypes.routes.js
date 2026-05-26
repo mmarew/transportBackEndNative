@@ -10,7 +10,9 @@ const {
   tariffRateForVehicleParams,
   getTariffRatesByFilterForVehicleTypesQuery,
 } = require("../Validations/TariffRateForVehicleTypes.schema");
-const { TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS } = require("../Utils/Constants");
+const {
+  TARIFF_RATE_FOR_VEHICLE_TYPES_ENDPOINTS,
+} = require("./EndPoints/tariffRateForVehicleTypes.utils");
 
 // Create a new tariff rate for vehicle type
 router.post(

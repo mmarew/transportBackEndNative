@@ -4,7 +4,7 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../Controllers/ShipperRequestBatch.controller");
 const schema = require("../Validations/ShipperRequestBatch.schema");
-const { SHIPPER_REQUEST_BATCH_ENDPOINTS } = require("../Utils/ShipperRequestBatch.utils");
+const { SHIPPER_REQUEST_BATCH_ENDPOINTS } = require("./utils/shipperRequestBatch.utils");
 const { validator } = require("../Middleware/Validator");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 
