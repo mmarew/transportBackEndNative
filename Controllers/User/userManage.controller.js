@@ -47,82 +47,7 @@ const messageTypes = require("../../Utils/MessageTypes");
 
 
 //in create user fullname must be existe for driver roles.
-const createUser = async (req, res, next) => {
-  try {
-    const response = await executeInTransaction(async () => {
-      // return req?.body
-      return await services.createUser({
-        ...req?.body,
-        requestedFrom: "user"
-      });
-    });
-    // Handle deferred SMS and Email after transaction commit
-    if (response?.deferredOTP) {
-      const {
-        sendSms
-      } = require("../../Utils/smsSender");
-      const {
-        sendEmail
-      } = require("../../Utils/emailSender");
-      const {
-        phoneNumber,
-        email,
-        isEmailVerified
-      } = response.data || {};
-      const {
-        phoneVerificationOTP,
-        emailVerificationOTP,
-        emailVerificationToken
-      } = response.deferredOTP;
-      // 1. Send SMS (Always OTP)
-      if (phoneNumber && phoneVerificationOTP) {
-        const phoneMsg = getOtpMessage(phoneVerificationOTP, "registration");
-        sendSms(phoneNumber, null, phoneMsg.sms).catch(err => {
-          const logger = require("../../Utils/logger");
-          logger.warn("Deferred SMS sending failed", {
-            phoneNumber,
-            error: err.message
-          });
-        });
-      }
 
-      // 2. Send Email (OTP or Link)
-      if (email) {
-        if (isEmailVerified && emailVerificationOTP) {
-          const emailMsg = getOtpMessage(emailVerificationOTP, "registration");
-          sendEmail(email, emailMsg.emailSubject, emailMsg.sms, emailMsg.emailHtml).catch(err => {
-            const logger = require("../../Utils/logger");
-            logger.warn("Deferred Email OTP sending failed", {
-              email,
-              error: err.message
-            });
-          });
-        } else if (emailVerificationToken) {
-          const baseUrl = Config.APP_API_URL;
-          const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
-          const linkMsg = getEmailVerificationLinkMessage(link);
-          logger.debug("Sending Deferred Email Verification Link", {
-            to: email,
-            subject: linkMsg.emailSubject
-          });
-          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
-            const logger = require("../../Utils/logger");
-            logger.warn("Deferred Email Link sending failed", {
-              email,
-              error: err.message
-            });
-          });
-        }
-      }
-
-      // Don't send the raw OTP or tokens back to the client
-      delete response.deferredOTP;
-    }
-    ServerResponder(res, response);
-  } catch (error) {
-    next(error);
-  }
-};
 
 const deleteUser = async (req, res, next) => {
   try {
@@ -375,96 +300,7 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-const createUserByAdminOrSuperAdmin = async (req, res, next) => {
-  try {
-    const response = await executeInTransaction(async () => {
-      return await services.createUserByAdminOrSuperAdmin({
-        body: req.body,
-        userUniqueId: req?.user?.userUniqueId
-      });
-    });
 
-    // Handle deferred SMS and Email after admin creation
-    if (response?.deferredOTP) {
-      const {
-        sendSms
-      } = require("../../Utils/smsSender");
-      const {
-        sendEmail
-      } = require("../../Utils/emailSender");
-      const {
-        phoneNumber,
-        email,
-        isEmailVerified
-      } = response.data || {};
-      const {
-        roleId
-      } = req.body;
-      const {
-        phoneVerificationOTP,
-        emailVerificationToken
-      } = response.deferredOTP;
-
-      // 1. Send SMS (Admin Assignment Message)
-      if (phoneNumber && phoneVerificationOTP) {
-        const roleNameMap = {
-          [usersRoles.shipperRoleId]: "Shipper",
-          [usersRoles.driverRoleId]: "Driver",
-          [usersRoles.adminRoleId]: "Admin",
-          [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
-          [usersRoles.systemRoleId]: "System",
-          [usersRoles.supperAdminRoleId]: "Supper Admin"
-        };
-        const roleName = roleNameMap[roleId] || "Admin";
-        const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
-        sendSms(phoneNumber, null, assignmentMsg.sms).catch(err => {
-          logger.warn("Deferred Admin-Created SMS failed", {
-            phoneNumber,
-            error: err.message
-          });
-        });
-      }
-
-      // 2. Send Email (Admin Assignment or Link)
-      if (email) {
-        if (isEmailVerified) {
-          const roleNameMap = {
-            [usersRoles.shipperRoleId]: "Shipper",
-            [usersRoles.driverRoleId]: "Driver",
-            [usersRoles.adminRoleId]: "Admin",
-            [usersRoles.vehicleOwnerRoleId]: "Vehicle Owner",
-            [usersRoles.systemRoleId]: "System",
-            [usersRoles.supperAdminRoleId]: "Supper Admin"
-          };
-          const roleName = roleNameMap[roleId] || "Admin";
-          const assignmentMsg = getAdminAssignmentMessage(phoneVerificationOTP, roleName);
-          sendEmail(email, assignmentMsg.emailSubject, assignmentMsg.sms, assignmentMsg.emailHtml).catch(err => {
-            logger.warn("Deferred Admin-Created Email OTP failed", {
-              email,
-              error: err.message
-            });
-          });
-        } else if (emailVerificationToken) {
-          const baseUrl = Config.APP_API_URL;
-          const link = `${baseUrl}/api/user/verify-email?token=${emailVerificationToken}`;
-          const linkMsg = getEmailVerificationLinkMessage(link);
-          sendEmail(email, linkMsg.emailSubject, "Verify your email", linkMsg.emailHtml).catch(err => {
-            logger.warn("Deferred Admin-Created Email Link failed", {
-              email,
-              error: err.message
-            });
-          });
-        }
-      }
-
-      // Don't send the raw OTP or tokens back to the client
-      delete response.deferredOTP;
-    }
-    ServerResponder(res, response);
-  } catch (error) {
-    next(error);
-  }
-};
 
 /**
  * Handles the GET request for email verification via a unique token link.
@@ -474,8 +310,6 @@ const createUserByAdminOrSuperAdmin = async (req, res, next) => {
  */
 
 module.exports = {
-  createUser,
   deleteUser,
-  updateUser,
-  createUserByAdminOrSuperAdmin
+  updateUser
 };

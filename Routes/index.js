@@ -60,6 +60,7 @@ const routesArray = [
   require("./Health.routes"),
   // Modular Company Routes
   { path: "/api/company", handler: require("./company") },
+  { path: "/", handler: require("./auth") },
 ];
 
 // Register all routes
