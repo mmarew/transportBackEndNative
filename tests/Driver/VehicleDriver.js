@@ -1,5 +1,8 @@
 const { usersData, backendURL } = require("../constants");
 const axios = require("axios");
+const FormData = require("form-data");
+const fs = require("fs");
+const path = require("path");
 let vehicleRequirements = null;
 
 const createVehicle = async (token) => {
@@ -70,30 +73,61 @@ const getRequirementOfVehicleDocument = async (token) => {
     }
   }
 };
-const attachVehiclesDocuments = async (token) => {
+const attachVehiclesDocuments = async (token, documentType, vehicleUniqueId) => {
+  const form = new FormData();
+  const dummyFilePath = path.join(__dirname, "../dummy.txt");
+
+  // 1. Attach the file
+  form.append(
+    documentType.uploadedDocumentName,
+    fs.createReadStream(dummyFilePath),
+  );
+
+  // 2. Attach Document Type ID
+  form.append(documentType.uploadedDocumentTypeId, documentType.documentTypeId);
+
+  // 3. Attach File Number if required
+  if (documentType.isFileNumberRequired === 1) {
+    form.append(documentType.uploadedDocumentFileNumber, "VEH-" + Date.now());
+  }
+
+  // 4. Attach Expiration Date if required
+  if (documentType.isExpirationDateRequired === 1) {
+    form.append(documentType.uploadedDocumentExpirationDate, "2030-12-31");
+  }
+
+  // 5. Attach Description if required
+  if (documentType.isDescriptionRequired === 1) {
+    form.append(
+      documentType.uploadedDocumentDescription,
+      "Vehicle document dummy description",
+    );
+  }
+
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...form.getHeaders(),
+    },
   };
-  const formData = new FormData();
-  formData.append();
 
   try {
     const res = await axios.post(
-      backendURL + "/api/vehicle/attachDocuments/:vehicleUniqueId",
-      {},
+      backendURL + `/api/vehicle/attachDocuments/${vehicleUniqueId}`,
+      form,
       config,
     );
-    console.log("✅ Success! Attached Vehicle Document:");
+    console.log(`✅ Success! Attached Vehicle Document (${documentType.documentTypeName}):`);
     console.log(res.data);
   } catch (error) {
-    console.log("❌ Failed to attach vehicle document.");
+    console.log(`❌ Failed to attach vehicle document (${documentType.documentTypeName}).`);
     if (error.response) {
       console.log(
         "Server responded with:",
         error.response.data.error?.details || error.response.data,
       );
     } else {
-      console.log("Raw Error:", error);
+      console.log("Raw Error:", error.message);
     }
   }
 };

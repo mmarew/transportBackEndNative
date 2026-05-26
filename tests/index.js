@@ -7,9 +7,15 @@ const {
 const userToken = { driver: undefined, shipper: undefined, admin: undefined };
 const testLoginUser = async ({ userType = "admin" }) => {
   try {
+    const payload = {
+      email: usersData[userType].email,
+      phoneNumber: usersData[userType].phoneNumber,
+      OTP: usersData[userType].OTP,
+      roleId: usersData[userType].roleId,
+    };
     const res = await axios.post(
       backendURL + AUTH_ENDPOINTS.LOGIN_USER,
-      usersData[userType],
+      payload,
     );
     // console.log("✅ Success! User Logged In:");
     // console.log(res.data);
@@ -28,9 +34,15 @@ const testLoginUser = async ({ userType = "admin" }) => {
 
 const testVerifyUserByOTP = async ({ userType = "admin" }) => {
   try {
+    const payload = {
+      email: usersData[userType].email,
+      phoneNumber: usersData[userType].phoneNumber,
+      OTP: usersData[userType].OTP,
+      roleId: usersData[userType].roleId,
+    };
     const res = await axios.post(
       backendURL + AUTH_ENDPOINTS.VERIFY_USER_BY_OTP,
-      usersData[userType],
+      payload,
     );
     // console.log("✅ Success! User Verified:");
     // console.log(res.data);
