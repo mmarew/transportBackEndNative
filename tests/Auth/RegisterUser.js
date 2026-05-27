@@ -3,7 +3,6 @@ const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 const { backendURL, usersData } = require("../constants");
 const { testVerifyUserByOTP } = require("./VerifyByOtp");
 const { testLoginUser } = require("./LoginUser");
-
 const testCreateUser = async ({ userType = "admin" }) => {
   try {
     await axios.post(
