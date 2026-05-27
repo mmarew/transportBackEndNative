@@ -16,8 +16,9 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   //get token from usersData[userType].token
   const token = usersData?.[userType]?.token;
 
-  const data = await getDriversAccountData(token);
-  const accountData = usersData["driver"]["accountData"];
+  await getDriversAccountData(token);
+  let accountData = usersData["driver"]["accountData"];
+  console.log("🚀 ~ testDriverOnboardingFlow ~ accountData:", accountData);
   //check if all documents are uploaded if not attach docs.
   const unAttachedDriverDocumentTypes = accountData?.unAttachedDocumentTypes;
   console.log(
@@ -29,23 +30,27 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   //check if vehicle is null if yes create one and then create vehicle documents
   if (!vehicle) {
     await createVehicle(token);
-    //toget latest data
-    const data = await getDriversAccountData(token);
+    //to get latest data
+    await getDriversAccountData(token);
+    //to get latest account data
+    accountData = usersData["driver"]["accountData"];
   }
 
   if (unAttachedDriverDocumentTypes?.length > 0) {
     unAttachedDriverDocumentTypes.map(async (doc) => {
       const roleId = doc?.roleId;
       if (roleId == usersRoles.driverRoleId)
+        await createDriverDocument(token, doc);
+      else if (roleId == usersRoles.vehicleRoleId)
         await attachVehiclesDocuments({
           token,
           documentType: doc,
           vehicleUniqueId,
         });
-      else if (roleId == usersRoles.vehicleRoleId)
-        await createDriverDocument(token, doc);
     });
   }
+
+  // if there are still unAttachedDriverDocumentTypes, it means  admin must approve it.
 };
 
 module.exports = {

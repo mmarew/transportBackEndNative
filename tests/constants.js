@@ -32,6 +32,13 @@ const usersData = {
     roleId: usersRoles.companyAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
   },
+  supperAdmin: {
+    fullName: "Test Supper Admin", // Schema expects fullName, not full_name
+    // email: "testemail55@test.com",
+    phoneNumber: "+251983222221",
+    roleId: usersRoles.supperAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
+    OTP: 101010, // Schema requires an OTP for verification}
+  },
 };
 const userToken = {
   driver: undefined,
