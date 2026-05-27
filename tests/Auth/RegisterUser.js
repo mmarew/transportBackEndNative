@@ -1,8 +1,7 @@
 const axios = require("axios");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 const { backendURL, usersData } = require("../constants");
-const { testVerifyUserByOTP } = require("./VerifyByOtp");
-const { testLoginUser } = require("./LoginUser");
+
 const testCreateUser = async ({ userType = "admin" }) => {
   try {
     await axios.post(
@@ -11,8 +10,6 @@ const testCreateUser = async ({ userType = "admin" }) => {
     );
     // console.log("✅ Success! User Created:");
     // console.log(res.data);
-    await testVerifyUserByOTP({ userType });
-    await testLoginUser({ userType });
   } catch (error) {
     console.log("❌ Failed to create user.");
     if (error.response) {
