@@ -8,9 +8,12 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   await testVerifyUserByOTP({ userType });
   await testLoginUser({ userType });
   //get token from usersData[userType].token
-  const token = usersData[userType].token;
-  console.log(token);
+  const token = usersData?.[userType]?.token;
+
+  console.log("$$$$$", token);
+
   const data = await getDriversAccountData(token);
+
   console.log("@@@@@@", data);
 };
 
