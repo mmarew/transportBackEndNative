@@ -20,7 +20,7 @@ const createVehicle = async (token) => {
     const vehicleTypeUniqueId = vehicleTypes.data.data[0].vehicleTypeUniqueId;
 
     const payload = {
-      licensePlate: "123456",
+      licensePlate: "123412",
       color: "white color",
       vehicleTypeUniqueId,
       isDriverOwnerOfVehicle: false,
@@ -59,7 +59,6 @@ const getRequirementOfVehicleDocument = async (token) => {
     );
     console.log("✅ Success! Requirement of Vehicle Document:");
     console.log(res.data);
-
   } catch (error) {
     console.log("❌ Failed to get requirement of vehicle document.");
     if (error.response) {
@@ -72,7 +71,11 @@ const getRequirementOfVehicleDocument = async (token) => {
     }
   }
 };
-const attachVehiclesDocuments = async (token, documentType, vehicleUniqueId) => {
+const attachVehiclesDocuments = async ({
+  token,
+  documentType,
+  vehicleUniqueId,
+}) => {
   const form = new FormData();
   const dummyFilePath = path.join(__dirname, "../dummy.txt");
 
@@ -116,10 +119,14 @@ const attachVehiclesDocuments = async (token, documentType, vehicleUniqueId) => 
       form,
       config,
     );
-    console.log(`✅ Success! Attached Vehicle Document (${documentType.documentTypeName}):`);
+    console.log(
+      `✅ Success! Attached Vehicle Document (${documentType.documentTypeName}):`,
+    );
     console.log(res.data);
   } catch (error) {
-    console.log(`❌ Failed to attach vehicle document (${documentType.documentTypeName}).`);
+    console.log(
+      `❌ Failed to attach vehicle document (${documentType.documentTypeName}).`,
+    );
     if (error.response) {
       console.log(
         "Server responded with:",

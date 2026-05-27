@@ -5,8 +5,8 @@ const backendURL = "http://127.0.0.1:3000";
 const usersData = {
   driver: {
     fullName: "Test User", // Schema expects fullName, not full_name
-    email: "testemail11@test.com",
-    phoneNumber: "+251991111111",
+    email: "testemail12@test.com",
+    phoneNumber: "+251991111112",
     roleId: usersRoles.driverRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
     documentAndVehicleOfDriver: null,
