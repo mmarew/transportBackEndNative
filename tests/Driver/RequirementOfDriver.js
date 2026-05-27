@@ -63,22 +63,24 @@ const evaluateDriversDocumentVehicleRequirement = async () => {
         await createDriverDocument(token, documentType);
         uploadedDocumentTypeIds.add(documentType.documentTypeId); // Mark as uploaded
       } else {
-        console.log(`⏩ Skipping Driver Document (Already uploaded): ${documentType.documentTypeName}`);
+        console.log(
+          `⏩ Skipping Driver Document (Already uploaded): ${documentType.documentTypeName}`,
+        );
       }
     }
   }
 
   // 4. Process Vehicle Documents
   const requiredDocs = accountData?.requiredDocuments || [];
-  
-  // Filter for docs that belong to Vehicle (roleId === 9) 
-  // AND lack an attachedDocumentId 
+
+  // Filter for docs that belong to Vehicle (roleId === 9)
+  // AND lack an attachedDocumentId
   // AND haven't been uploaded already
   const missingVehicleDocs = requiredDocs.filter(
-    (doc) => 
-      doc.roleId === 9 && 
-      !doc.attachedDocumentId && 
-      !uploadedDocumentTypeIds.has(doc.documentTypeId)
+    (doc) =>
+      doc.roleId === 9 &&
+      !doc.attachedDocumentId &&
+      !uploadedDocumentTypeIds.has(doc.documentTypeId),
   );
 
   if (vehicleUniqueId && missingVehicleDocs.length > 0) {

@@ -1,16 +1,19 @@
 const { testCreateUser } = require("./RegisterUser");
 const { testVerifyUserByOTP } = require("./VerifyByOtp");
 const { testLoginUser } = require("./LoginUser");
-const testDriverOnboardingFlow = async () => {
-  await testCreateUser({ userType: "driver" });
+const { getDriversAccountData } = require("../Driver/RequirementOfDriver");
+const { usersData } = require("../constants");
+const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
+  await testCreateUser({ userType });
   await testVerifyUserByOTP({ userType });
   await testLoginUser({ userType });
-
-  const documentAndVehicleOfDriver = res.data.documentAndVehicleOfDriver;
-  //store documentAndVehicleOfDriver in usersData[userType]
-  if (userType === "driver") {
-    usersData[userType].documentAndVehicleOfDriver = documentAndVehicleOfDriver;
-    evaluateDriversDocumentVehicleRequirement();
-  }
+  //get token from usersData[userType].token
+  const token = usersData[userType].token;
+  console.log(token);
+  const data = await getDriversAccountData(token);
+  console.log("@@@@@@", data);
 };
-testDriverOnboardingFlow();
+
+module.exports = {
+  testDriverOnboardingFlow,
+};

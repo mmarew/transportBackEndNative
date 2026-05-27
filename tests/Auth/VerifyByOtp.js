@@ -1,9 +1,6 @@
 const axios = require("axios");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
-const { usersData, backendURL, userToken } = require("../constants");
-const {
-  evaluateDriversDocumentVehicleRequirement,
-} = require("../Driver/RequirementOfDriver");
+const { usersData, backendURL } = require("../constants");
 
 const testVerifyUserByOTP = async ({ userType = "admin" }) => {
   try {
@@ -20,18 +17,7 @@ const testVerifyUserByOTP = async ({ userType = "admin" }) => {
     // console.log("✅ Success! User Verified:");
     // console.log(res.data);
     const token = res.data.token;
-    userToken[userType] = token;
     usersData[userType].token = token; // Store globally so VehicleDriver.js can read it!
-
-    const documentAndVehicleOfDriver = res.data.documentAndVehicleOfDriver;
-    //store documentAndVehicleOfDriver in usersData[userType]
-    if (userType === "driver") {
-      usersData[userType].documentAndVehicleOfDriver =
-        documentAndVehicleOfDriver;
-      evaluateDriversDocumentVehicleRequirement();
-    }
-
-    console.log("usersData[userType]:", usersData[userType]);
   } catch (error) {
     console.log("❌ Failed to verify user.");
     if (error.response) {
