@@ -322,7 +322,7 @@ module.exports = {
 const AppError = require("../../../Utils/AppError");
 const {
   assertCompanyCancellationReason,
-} = require("../../CanceledJourneys/cancelHelper");
+} = require("../../ShipperRequestBatch/batchHelper");
 const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
 const { currentDate } = require("../../../Utils/CurrentDate");
 const { getData } = require("../../../CRUD/Read/ReadData");
