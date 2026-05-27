@@ -1,4 +1,4 @@
-const backendURL = "http://localhost:3000";
+const backendURL = "http://127.0.0.1:3000";
 
 const usersData = {
   driver: {
@@ -24,8 +24,6 @@ const usersData = {
     OTP: 101010, // Schema requires an OTP for verification}
   },
 };
+const userToken = { driver: undefined, shipper: undefined, admin: undefined };
 
-module.exports = {
-  backendURL,
-  usersData,
-};
+module.exports = { userToken, backendURL, usersData };
