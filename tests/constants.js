@@ -23,6 +23,7 @@ const usersData = {
     email: "testemail33@test.com",
     phoneNumber: "+251993333333",
     roleId: usersRoles.adminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
+    statusId: 1, // USER_STATUS.ACTIVE
     OTP: 101010, // Schema requires an OTP for verification}
   },
   companyAdmin: {

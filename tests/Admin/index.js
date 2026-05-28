@@ -37,6 +37,22 @@ const testCreateAdminFlow = async () => {
     );
     console.log("✅ Success! Admin Created by Supper Admin:");
     console.log(res.data);
+
+    // 4. Verify Admin
+    console.log("🚀 ~ testCreateAdminFlow ~ Verifying the new Admin...");
+    await testVerifyUserByOTP({ userType: "admin" });
+
+    // 5. Login Admin
+    console.log("🚀 ~ testCreateAdminFlow ~ Logging in the new Admin...");
+    await testLoginUser({ userType: "admin" });
+
+    const adminToken = usersData?.admin?.token;
+    if (adminToken) {
+      console.log("✅ Successfully set Admin token in usersData!");
+    } else {
+      console.log("❌ Failed to get Admin token.");
+    }
+
   } catch (error) {
     console.log("❌ Failed to create admin.");
     if (error.response) {
