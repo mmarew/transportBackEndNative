@@ -61,9 +61,10 @@ const testCreateAdminFlow = async () => {
     //fetch unauthorized driver and approve there documents.
 
     // 1)fetch drivers
+    await fetchUnAuthorizedDrivers();
 
     // 2) approve unauthorized drivers documents
-    // 3)
+    await authorizeDriversDocuments();
   } catch (error) {
     console.log("❌ Failed to create admin.");
     if (error.response) {

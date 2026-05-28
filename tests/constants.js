@@ -42,6 +42,7 @@ const usersData = {
   },
 };
 const unAuthorizedDriver = { driver: null };
+const shipperRequestStatusData = { data: null };
 const userToken = {
   driver: undefined,
   shipper: undefined,
@@ -49,4 +50,4 @@ const userToken = {
   companyAdmin: undefined,
 };
 
-module.exports = { userToken, backendURL, usersData, unAuthorizedDriver };
+module.exports = { userToken, backendURL, usersData, unAuthorizedDriver, shipperRequestStatusData };
