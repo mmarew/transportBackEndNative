@@ -41,6 +41,7 @@ const usersData = {
     OTP: 101010, // Schema requires an OTP for verification}
   },
 };
+const unAuthorizedDriver = { driver: null };
 const userToken = {
   driver: undefined,
   shipper: undefined,
@@ -48,4 +49,4 @@ const userToken = {
   companyAdmin: undefined,
 };
 
-module.exports = { userToken, backendURL, usersData };
+module.exports = { userToken, backendURL, usersData, unAuthorizedDriver };
