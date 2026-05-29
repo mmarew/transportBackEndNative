@@ -14,7 +14,10 @@ const {
   attachCompanyDocuments,
   getAttachableDocuments,
   approveCompanyStatus,
-} = require("./CompanyManagement");
+  getAttachedDocumentsOfCompanies,
+  initiateCompanyProfileSetupWorkFlow,
+} = require("./CompanyProfileManagement");
+const { initiateCompanyBiddingWorkFlow } = require("./BidManagement");
 
 // TODO: implement assignDriversToBid when the endpoint is ready
 
@@ -26,27 +29,12 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
     await testCreateUser({ userType });
     //verify user company admin
     await testVerifyUserByOTP({ userType });
-    //login user company admin
-    // await testLoginUser({ userType });
-    await getCompanies({ userType });
-    //attach company documents//create companies
-    await createCompanies({ userType });
-    // //get companies
-    // await getCompanies({ userType });
-    // //attach company documents
-    // await attachCompanyDocuments({ userType });
-    // //approve company documents by system admin not by company admin
-    // await approveCompanyDocuments({ userType: "admin" });
-    // //approve company status by system admin not by company admin
-    // await approveCompanyStatus({ userType: "admin" });
-    // //get available bids
-    // await getAvailableBids({ userType });
-    // //participate in bid
-    // await participateInBid({ userType });
-    // //accept company offer
-    // await acceptCompanyOffer({ userType: "shipper" });
+    //setup companies profile
+    await initiateCompanyProfileSetupWorkFlow({ userType });
+    //set up bids
+    await initiateCompanyBiddingWorkFlow({ userType });
   } catch (error) {
-    console.log("❌ Failed to create driver request.");
+    console.log("❌ Failed to create correct company workflows.");
     if (error.response) {
       console.log(
         "Server responded with:",

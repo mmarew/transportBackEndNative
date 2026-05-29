@@ -1,3 +1,6 @@
+const axios = require("axios");
+const { backendURL, usersData } = require("../constants");
+
 const getAvailableBids = async ({ userType = "companyAdmin" }) => {
   //   {{url}}/api/company/bids?target=available&companyUniqueId=40dc4875-02e3-4b96-970b-916e2076656e;
   const token = usersData?.[userType]?.token;
@@ -114,8 +117,31 @@ const acceptCompanyOffer = async ({ userType = "shipper" }) => {
     return null;
   }
 };
+const initiateCompanyBiddingWorkFlow = async ({
+  userType = "companyAdmin",
+}) => {
+  try {
+    //get available bids
+    await getAvailableBids({ userType });
+    //participate in bid
+    await participateInBid({ userType });
+    //accept company offer
+    await acceptCompanyOffer({ userType: "shipper" });
+  } catch (error) {
+    console.log("❌ Error initiating company bidding workflow.");
+    if (error.response) {
+      console.log(
+        "Server responded with:",
+        error.response.data.error?.details || error.response.data,
+      );
+    } else {
+      console.log("Raw Error:", error.message);
+    }
+  }
+};
 module.exports = {
   getAvailableBids,
   participateInBid,
   acceptCompanyOffer,
+  initiateCompanyBiddingWorkFlow,
 };
