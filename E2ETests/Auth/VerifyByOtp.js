@@ -17,6 +17,7 @@ const testVerifyUserByOTP = async ({ userType = "admin" }) => {
     // console.log("✅ Success! User Verified:");
     // console.log(res.data);
     const token = res.data.token;
+    console.log(`🚀 ~ testVerifyUserByOTP ~ token of userType ${userType} is :`, token)
     usersData[userType].token = token; // Store globally so VehicleDriver.js can read it!
   } catch (error) {
     console.log("❌ Failed to verify user.");
