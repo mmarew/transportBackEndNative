@@ -69,7 +69,7 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   // Verify Shipper Status and store it in constants
   await verifyShipperStatus(token);
 };
-
+testShipperOnboardingFlow({ userType: "shipper" });
 module.exports = {
   testShipperOnboardingFlow,
   getShipperAccountData,

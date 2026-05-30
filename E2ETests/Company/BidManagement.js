@@ -1,5 +1,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
+const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
+const { testShipperOnboardingFlow } = require("../Shipper/Index");
 
 const getAvailableBids = async ({ userType = "companyAdmin" }) => {
   //   {{url}}/api/company/bids?target=available&companyUniqueId=40dc4875-02e3-4b96-970b-916e2076656e;
@@ -21,7 +23,10 @@ const getAvailableBids = async ({ userType = "companyAdmin" }) => {
   };
   try {
     const res = await axios.get(url, config);
-    console.log("✅ Success! Available bids fetched.");
+    console.log(
+      "✅ Success! Available bids fetched. res.data.data",
+      res.data.data,
+    );
     if (usersData[userType]) usersData[userType].availableBids = res.data.data;
     return res.data.data;
   } catch (error) {
@@ -83,13 +88,14 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
 
 const acceptCompanyOffer = async ({ userType = "shipper" }) => {
   // patch {{url}}/api/company/bids/:companyBidRequestUniqueId/status
-  const token = usersData?.[userType]?.token;
+  let token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ acceptCompanyOffer failed, no token found.");
-    return;
+    await testShipperOnboardingFlow({ userType: "shipper" });
+    // await testVerifyUserByOTP({ userType: "shipper" });
   }
-
-  const bid = usersData?.[userType]?.bids?.[0];
+  token = usersData?.[userType]?.token;
+  const bid = usersData?.["companyAdmin"]?.availableBids?.[0];
+  //   const bid = usersData?.[userType]?.bids?.[0];
   if (!bid) {
     console.log("❌ No bid found to accept.");
     return;

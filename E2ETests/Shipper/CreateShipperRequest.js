@@ -12,9 +12,10 @@ const createShipperRequestFlow = async (token) => {
     console.log("🚀 ~ createShipperRequestFlow ~ Fetching vehicle types...");
     const vehicleTypesRes = await axios.get(
       backendURL + "/api/admin/vehicleTypes",
-      config
+      config,
     );
-    const vehicleTypeUniqueId = vehicleTypesRes.data.data[0].vehicleTypeUniqueId;
+    const vehicleTypeUniqueId =
+      vehicleTypesRes.data.data[0].vehicleTypeUniqueId;
 
     // 2. Build the payload
     const shippingDate = new Date();
@@ -31,7 +32,8 @@ const createShipperRequestFlow = async (token) => {
       shippingCost: 5000,
       shippableItemQtyInQuintal: 100,
       shippableItemName: "Coffee Beans",
-      requestMode: "individual_target",
+      // requestMode: "individual_target",
+      requestMode: "company_target",
       originLocation: {
         latitude: 9.03,
         longitude: 38.74,
@@ -47,13 +49,15 @@ const createShipperRequestFlow = async (token) => {
       },
     };
 
-    console.log("🚀 ~ createShipperRequestFlow ~ Creating Shipper Request with Payload...");
+    console.log(
+      "🚀 ~ createShipperRequestFlow ~ Creating Shipper Request with Payload...",
+    );
 
     // 3. Post to create the request
     const res = await axios.post(
       backendURL + "/api/shipperRequest/createRequest",
       payload,
-      config
+      config,
     );
 
     console.log("✅ Success! Shipper Request Created:");
@@ -64,7 +68,7 @@ const createShipperRequestFlow = async (token) => {
     if (error.response) {
       console.log(
         "Server responded with:",
-        error.response.data.error?.details || error.response.data
+        error.response.data.error?.details || error.response.data,
       );
     } else {
       console.log("Raw Error:", error.message);
