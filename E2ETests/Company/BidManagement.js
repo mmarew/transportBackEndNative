@@ -2,6 +2,9 @@ const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testShipperOnboardingFlow } = require("../Shipper/Index");
+const {
+  COMPANY_BID_ENDPOINTS,
+} = require("../../Routes/EndPoints/companyBid.endpoints");
 
 const getAvailableBids = async ({ userType = "companyAdmin" }) => {
   //   {{url}}/api/company/bids?target=available&companyUniqueId=40dc4875-02e3-4b96-970b-916e2076656e;
@@ -17,7 +20,8 @@ const getAvailableBids = async ({ userType = "companyAdmin" }) => {
   }
   const url =
     backendURL +
-    `/api/company/bids?target=available&companyUniqueId=${company.companyUniqueId}`;
+    COMPANY_BID_ENDPOINTS.GET_BIDS +
+    `?target=available&companyUniqueId=${company.companyUniqueId}`;
   const config = {
     headers: { Authorization: `Bearer ${token}` },
   };
@@ -59,7 +63,7 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
     console.log("❌ No bid found to participate in.");
     return;
   }
-  const url = backendURL + `/api/company/bids`;
+  const url = backendURL + COMPANY_BID_ENDPOINTS.CREATE_BID;
   const payload = {
     shipperRequestBatchId: bid.shipperRequestBatchId,
     companyUniqueId: usersData?.[userType]?.companies?.[0]?.companyUniqueId,
@@ -102,7 +106,11 @@ const acceptCompanyOffer = async ({ userType = "shipper" }) => {
   }
 
   const url =
-    backendURL + `/api/company/bids/${bid.companyBidRequestUniqueId}/status`;
+    backendURL +
+    COMPANY_BID_ENDPOINTS.UPDATE_BID_STATUS.replace(
+      ":companyBidRequestUniqueId",
+      bid.companyBidRequestUniqueId,
+    );
   const config = {
     headers: { Authorization: `Bearer ${token}` },
   };
