@@ -7,25 +7,24 @@ const verifyShipperStatus = async (token) => {
   };
 
   try {
-    console.log("🚀 ~ verifyShipperStatus ~ Fetching Shipper Status...");
     const res = await axios.get(
       backendURL + "/api/shipperRequest/verifyShipperStatus?page=1&pageSize=10",
-      config
+      config,
     );
 
     console.log("✅ Success! Verified Shipper Status:");
     console.log(res.data);
-    
+
     // Store in constants for future steps
     shipperRequestStatusData.data = res.data;
-    
+
     return res.data;
   } catch (error) {
     console.log("❌ Failed to verify shipper status.");
     if (error.response) {
       console.log(
         "Server responded with:",
-        error.response.data.error?.details || error.response.data
+        error.response.data.error?.details || error.response.data,
       );
     } else {
       console.log("Raw Error:", error.message);

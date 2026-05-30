@@ -5,8 +5,32 @@ const { testShipperOnboardingFlow } = require("../Shipper/Index");
 const {
   COMPANY_BID_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyBid.endpoints");
+const getBids = async ({ userType = "companyAdmin" }) => {
+  // {{url}}/api/company/bids?companyUniqueId=31633dc9-9dd0-46fd-8d19-f273feed4a8e&bidStatus=accepted_by_shipper
 
-const getAvailableBids = async ({ userType = "companyAdmin" }) => {
+  const token = usersData?.[userType]?.token;
+  if (!token) {
+    console.log("❌ Company getBids failed, no token found.");
+    return;
+  }
+  const company = usersData?.[userType]?.companies?.[0];
+  if (!company) {
+    console.log("❌ No company found to get bids for.");
+    return;
+  }
+  const baseUrl =
+    backendURL +
+    COMPANY_BID_ENDPOINTS.GET_BIDS +
+    `?companyUniqueId=${company.companyUniqueId}`;
+  const resultsOfBids = await axios.get(baseUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  console.log("🚀 ~ getBids ~ resultsOfBids:", resultsOfBids);
+};
+const getAvailableBids = async ({
+  userType = "companyAdmin",
+  bidStatus = "submitted",
+}) => {
   //   {{url}}/api/company/bids?target=available&companyUniqueId=40dc4875-02e3-4b96-970b-916e2076656e;
   const token = usersData?.[userType]?.token;
   if (!token) {
@@ -135,12 +159,14 @@ const initiateCompanyBiddingWorkFlow = async ({
   userType = "companyAdmin",
 }) => {
   try {
+    await getBids({ userType: "companyAdmin" });
+
     //get available bids
-    await getAvailableBids({ userType });
-    //participate in bid
-    await participateInBid({ userType });
-    //accept company offer
-    await acceptCompanyOffer({ userType: "shipper" });
+    // await getAvailableBids({ userType });
+    // //participate in bid
+    // await participateInBid({ userType });
+    // //accept company offer
+    // await acceptCompanyOffer({ userType: "shipper" });
   } catch (error) {
     console.log("❌ Error initiating company bidding workflow.");
     if (error.response) {
@@ -154,6 +180,7 @@ const initiateCompanyBiddingWorkFlow = async ({
   }
 };
 module.exports = {
+  getBids,
   getAvailableBids,
   participateInBid,
   acceptCompanyOffer,

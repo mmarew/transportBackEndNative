@@ -6,7 +6,6 @@ const path = require("path");
 
 const createCompanies = async ({ userType = "companyAdmin" }) => {
   const token = usersData?.[userType]?.token;
-  //   console.log("🚀 ~ createCompanies ~ usersData:", usersData[userType]);
   if (!token) {
     console.log("❌ Company Admin login failed, no token found.");
     return;
@@ -15,8 +14,6 @@ const createCompanies = async ({ userType = "companyAdmin" }) => {
     headers: { Authorization: `Bearer ${token}` },
   };
   const url = backendURL + "/api/company/companies";
-  //   console.log("🚀 ~ createCompanies ~ url:", url);
-  //   console.log("🚀 ~ createCompanies ~ config:", config);
   const payload = {
     companyName: "company a",
     companyRegistrationNumber: `no-aa3a-${Date.now()}`,
@@ -73,10 +70,6 @@ const getCompanies = async ({ userType = "companyAdmin" }) => {
     const res = await axios.get(backendURL + "/api/company/companies", config);
     console.log("✅ Success! Companies fetched.");
     usersData["companyAdmin"]["companies"] = res.data.data;
-    console.log(
-      "🚀 ~ getCompanies ~ usersData:",
-      usersData?.companyAdmin.companies,
-    );
     return res.data.data;
   } catch (error) {
     console.log("❌ Failed to get companies.");
@@ -196,12 +189,7 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
     const url =
       backendURL + `/api/company/attachDocuments/${company.companyUniqueId}`;
     const attachableDocuments = await getAttachableDocuments({ userType });
-    console.log(
-      "🚀 ~ attachCompanyDocuments ~ attachableDocuments:",
-      attachableDocuments,
-    );
     for (const documentType of attachableDocuments) {
-      console.log("🚀 ~ attachCompanyDocuments ~ documentType:", documentType);
       const form = new FormData();
 
       // 1. Attach the file itself
@@ -279,7 +267,6 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
   try {
     // patch {{url}}/api/company/companies/:companyUniqueId/approve
     const token = usersData?.[userType]?.token;
-    console.log("🚀 ~ approveCompanyDocuments ~ token:", token);
     if (!token) {
       console.log("❌ admin can't approve documents, no token found.");
       return;
