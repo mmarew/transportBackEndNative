@@ -12,7 +12,7 @@ module.exports = {
   getJourneyByJourneyUniqueId: journeyRead.getJourneyByJourneyUniqueId,
   updateJourney: journeyUpdate.updateJourney,
   deleteJourney: journeyDelete.deleteJourney,
-  getCompletedJourneyCountsByDate: journeyRead.getCompletedJourneyCountsByDate,
+  getCompletedJourneyCountsByDate: journeyHelper.getCompletedJourneyCountsByDate,
   searchCompletedJourneyByUserData: journeyRead.searchCompletedJourneyByUserData,
   getOngoingJourney: journeyRead.getOngoingJourney,
   getAllCompletedJourneys: journeyRead.getAllCompletedJourneys,
