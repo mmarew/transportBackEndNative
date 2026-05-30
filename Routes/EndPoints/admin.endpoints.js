@@ -5,6 +5,7 @@ const ADMIN_ENDPOINTS = {
   GET_UNAUTHORIZED_DRIVER: "/api/admin/getUnAuthorizedDriver",
   SYSTEM_LOGS: "/api/admin/system/logs",
   SYSTEM_UPLOADS: "/api/admin/system/uploads",
+  GET_USER_ROLE_STATUS_CURRENT: "/api/admin/userRoleStatusCurrent",
 };
 
 module.exports = {

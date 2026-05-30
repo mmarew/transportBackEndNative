@@ -1,5 +1,6 @@
 const Router = require("express").Router();
 const AdminController = require("../Controllers/Admin.controller");
+const UserRoleStatusController = require("../Controllers/UserRoleStatus.controller");
 const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 // route to get online drivers
@@ -15,6 +16,9 @@ const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const { validator } = require("../Middleware/Validator");
 const { adminDriverParams } = require("../Validations/Admin.schema");
 const { ADMIN_ENDPOINTS } = require("./EndPoints/admin.endpoints");
+const {
+  getUserRoleStatusQuery,
+} = require("../Validations/UserRoleStatus.schema");
 
 Router.get(
   ADMIN_ENDPOINTS.GET_ONLINE_DRIVERS,
@@ -49,6 +53,14 @@ Router.get(
   verifyAdminsIdentity,
   validator(adminDriverParams, "query"),
   AdminController.getUnAuthorizedDriver,
+);
+
+// Get current user role status with filters
+Router.get(
+  ADMIN_ENDPOINTS.GET_USER_ROLE_STATUS_CURRENT,
+  verifyTokenOfAxios,
+  validator(getUserRoleStatusQuery, "query"),
+  UserRoleStatusController.getUserRoleStatusCurrent,
 );
 
 /**

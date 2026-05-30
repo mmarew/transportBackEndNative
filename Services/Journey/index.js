@@ -12,10 +12,14 @@ module.exports = {
   getJourneyByJourneyUniqueId: journeyRead.getJourneyByJourneyUniqueId,
   updateJourney: journeyUpdate.updateJourney,
   deleteJourney: journeyDelete.deleteJourney,
-  getCompletedJourneyCountsByDate: journeyHelper.getCompletedJourneyCountsByDate,
-  searchCompletedJourneyByUserData: journeyRead.searchCompletedJourneyByUserData,
+  getCompletedJourneyCountsByDate:
+    journeyHelper.getCompletedJourneyCountsByDate,
+  searchCompletedJourneyByUserData:
+    journeyRead.searchCompletedJourneyByUserData,
   getOngoingJourney: journeyRead.getOngoingJourney,
   getAllCompletedJourneys: journeyRead.getAllCompletedJourneys,
   getJourneys: journeyRead.getJourneys,
   getDriverRequestByRequestId: journeyHelper.getDriverRequestByRequestId,
-  getShipperRequestByShipperRequestId: journeyHelper.getShipperRequestByShipperRequestId};
+  getShipperRequestByShipperRequestId:
+    journeyHelper.getShipperRequestByShipperRequestId,
+};
