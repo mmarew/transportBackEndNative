@@ -15,13 +15,10 @@ const fetchUnAuthorizedDrivers = async () => {
         },
       },
     );
-    console.log(
-      "🚀 ~ fetchUnAuthorizedDrivers ~ resultsOfUnAuthorizedDriver:",
-      resultsOfUnAuthorizedDriver?.data,
-    );
+    console.log("✅ Unauthorized drivers fetched successfully");
     unAuthorizedDriver.driver = resultsOfUnAuthorizedDriver?.data;
   } catch (error) {
-    console.log(error);
+    console.log("❌ Failed to fetch unauthorized drivers:", error.response?.data?.error || error.message);
   }
 };
 module.exports = { fetchUnAuthorizedDrivers };

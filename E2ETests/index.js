@@ -9,7 +9,7 @@ const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 
 const initiateTest = async () => {
   // 1. Drop + recreate tables, verify+login superAdmin, install seed data
-  await resetDatabase();
+  // await resetDatabase();
 
   // 2. Create admin user (superAdmin token already set by resetDatabase)
   await testCreateAdminFlow({});

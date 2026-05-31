@@ -119,22 +119,10 @@ const attachVehiclesDocuments = async ({
       form,
       config,
     );
-    console.log(
-      `✅ Success! Attached Vehicle Document (${documentType.documentTypeName}):`,
-    );
-    console.log(res.data);
+    console.log(`✅ Uploaded Vehicle Document: ${documentType.documentTypeName}`);
   } catch (error) {
-    console.log(
-      `❌ Failed to attach vehicle document (${documentType.documentTypeName}).`,
-    );
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    console.log(`❌ Failed to upload vehicle document: ${documentType.documentTypeName}`);
+    console.log("Error:", error.response?.data?.error || error.message);
   }
 };
 module.exports = {

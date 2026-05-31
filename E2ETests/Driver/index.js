@@ -16,7 +16,7 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
     console.log("❌ Driver login failed, no token found.");
     return;
   }
-
+await getDriversAccountData({token})
   // Creates vehicle if missing, uploads all user docs + vehicle docs,
   // skips already-uploaded ones to prevent duplicates.
   await evaluateDriversDocumentVehicleRequirement();
