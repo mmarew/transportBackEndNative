@@ -11,6 +11,7 @@ const getDriversAccountData = async ({ token }) => {
     const res = await axios.get(backendURL + "/api/driver/account", config);
     console.log("✅ Driver Account Data fetched");
     usersData["driver"]["accountData"] = res.data;
+    console.log("🚀 ~ getDriversAccountData ~ res.data:", res.data)
     return res.data;
   } catch (error) {
     console.log("❌ Failed to get driver account data:", error.response?.data?.error || error.message);
