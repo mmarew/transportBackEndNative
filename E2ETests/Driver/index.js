@@ -2,9 +2,18 @@ const { testCreateUser } = require("../Auth/RegisterUser");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testLoginUser } = require("../Auth/LoginUser");
 
-const { getDriversAccountData, evaluateDriversDocumentVehicleRequirement } = require("./RequirementOfDriver");
+const {
+  getDriversAccountData,
+  evaluateDriversDocumentVehicleRequirement,
+} = require("./RequirementOfDriver");
 const { usersData } = require("../constants");
-const { getDriverJourneyStatus, acceptCompanyAssignment, acceptShipperRequest, startJourney, completeJourney } = require("./DriverJourneyStatus");
+const {
+  getDriverJourneyStatus,
+  acceptCompanyAssignment,
+  acceptShipperRequest,
+  startJourney,
+  completeJourney,
+} = require("./DriverJourneyStatus");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   await testCreateUser({ userType });
@@ -16,7 +25,7 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
     console.log("❌ Driver login failed, no token found.");
     return;
   }
-await getDriversAccountData({token})
+  await getDriversAccountData({ token });
   // Creates vehicle if missing, uploads all user docs + vehicle docs,
   // skips already-uploaded ones to prevent duplicates.
   await evaluateDriversDocumentVehicleRequirement();
@@ -26,13 +35,17 @@ await getDriversAccountData({token})
   // must run after this point (handled in the main index.js flow).
 
   const journeyStatus = await getDriverJourneyStatus({ userType });
+  console.log("🚀 ~ testDriverOnboardingFlow ~ journeyStatus:", journeyStatus);
   if (!journeyStatus) {
-    console.log("⚠️  No journey status returned — driver may have no active request yet.");
+    console.log(
+      "⚠️  No journey status returned — driver may have no active request yet.",
+    );
     return;
   }
 
   const isCompanyMode = !!journeyStatus?.companyAssignment?.assignmentUniqueId;
-  const isIndividualMode = !isCompanyMode && !!journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const isIndividualMode =
+    !isCompanyMode && !!journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
 
   if (isCompanyMode) {
     console.log("🏢 Company assignment detected — confirming...");
@@ -41,7 +54,11 @@ await getDriversAccountData({token})
     console.log("👤 Individual shipper match detected — accepting...");
     await acceptShipperRequest({ userType });
   } else {
-    console.log("⏳ Driver has no pending assignment or match yet (status:", journeyStatus?.status, ")");
+    console.log(
+      "⏳ Driver has no pending assignment or match yet (status:",
+      journeyStatus?.status,
+      ")",
+    );
     return;
   }
 
@@ -49,8 +66,6 @@ await getDriversAccountData({token})
   await startJourney({ userType });
   await completeJourney({ userType });
 };
-  
-
 
 module.exports = {
   testDriverOnboardingFlow,

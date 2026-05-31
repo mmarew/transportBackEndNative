@@ -187,9 +187,9 @@ const initiateCompanyBiddingWorkFlow = async ({
       return;
     }
 
-    await testDriverOnboardingFlow({});
     await assignVehicleToCompany({});
     await assignDrivers({ bid: first_accepted_bid });
+    await testDriverOnboardingFlow({});
   } catch (error) {
     logCompanyError("Company bidding workflow failed.", error);
   }

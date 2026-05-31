@@ -1,7 +1,11 @@
 const { usersData, backendURL } = require("../constants");
 const axios = require("axios");
-const { DRIVER_REQUEST_ENDPOINTS } = require("../../Routes/EndPoints/driverRequest.endpoints");
-const { COMPANY_ASSIGNMENT_ENDPOINTS } = require("../../Routes/EndPoints/companyAssignment.endpoints");
+const {
+  DRIVER_REQUEST_ENDPOINTS,
+} = require("../../Routes/EndPoints/driverRequest.endpoints");
+const {
+  COMPANY_ASSIGNMENT_ENDPOINTS,
+} = require("../../Routes/EndPoints/companyAssignment.endpoints");
 
 /**
  * GET /api/driver/verifyDriverJourneyStatus
@@ -16,7 +20,8 @@ const getDriverJourneyStatus = async ({ userType = "driver" } = {}) => {
     return null;
   }
 
-  const url = backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS;
+  const url =
+    backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS;
   const config = { headers: { Authorization: `Bearer ${token}` } };
 
   try {
@@ -60,16 +65,26 @@ const acceptShipperRequest = async ({
 
   const journeyStatus = usersData?.[userType]?.journeyStatus;
   if (!journeyStatus) {
-    console.log("❌ acceptShipperRequest failed, call getDriverJourneyStatus first.");
+    console.log(
+      "❌ acceptShipperRequest failed, call getDriverJourneyStatus first.",
+    );
     return null;
   }
 
   const driverRequestUniqueId = journeyStatus?.uniqueIds?.driverRequestUniqueId;
-  const shipperRequestUniqueId = journeyStatus?.uniqueIds?.shipperRequestUniqueId;
-  const journeyDecisionUniqueId = journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const shipperRequestUniqueId =
+    journeyStatus?.uniqueIds?.shipperRequestUniqueId;
+  const journeyDecisionUniqueId =
+    journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
 
-  if (!driverRequestUniqueId || !shipperRequestUniqueId || !journeyDecisionUniqueId) {
-    console.log("❌ acceptShipperRequest failed, missing required IDs from journey status.");
+  if (
+    !driverRequestUniqueId ||
+    !shipperRequestUniqueId ||
+    !journeyDecisionUniqueId
+  ) {
+    console.log(
+      "❌ acceptShipperRequest failed, missing required IDs from journey status.",
+    );
     console.log("   driverRequestUniqueId:", driverRequestUniqueId);
     console.log("   shipperRequestUniqueId:", shipperRequestUniqueId);
     console.log("   journeyDecisionUniqueId:", journeyDecisionUniqueId);
@@ -87,7 +102,10 @@ const acceptShipperRequest = async ({
 
   try {
     const res = await axios.put(url, payload, config);
-    console.log("✅ Driver accepted shipper request. Status:", res.data?.status);
+    console.log(
+      "✅ Driver accepted shipper request. Status:",
+      res.data?.status,
+    );
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;
   } catch (error) {
@@ -127,13 +145,18 @@ const acceptCompanyAssignment = async ({
 
   const journeyStatus = usersData?.[userType]?.journeyStatus;
   if (!journeyStatus) {
-    console.log("❌ acceptCompanyAssignment failed, call getDriverJourneyStatus first.");
+    console.log(
+      "❌ acceptCompanyAssignment failed, call getDriverJourneyStatus first.",
+    );
     return null;
   }
 
-  const assignmentUniqueId = journeyStatus?.companyAssignment?.assignmentUniqueId;
+  const assignmentUniqueId =
+    journeyStatus?.companyAssignment?.assignmentUniqueId;
   if (!assignmentUniqueId) {
-    console.log("❌ acceptCompanyAssignment failed, no assignmentUniqueId in journey status.");
+    console.log(
+      "❌ acceptCompanyAssignment failed, no assignmentUniqueId in journey status.",
+    );
     return null;
   }
 
@@ -157,7 +180,9 @@ const acceptCompanyAssignment = async ({
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;
   } catch (error) {
-    console.log(`❌ Failed to update company assignment status to "${assignmentStatus}".`);
+    console.log(
+      `❌ Failed to update company assignment status to "${assignmentStatus}".`,
+    );
     if (error.response) {
       console.log(
         "Server responded with:",
@@ -170,7 +195,7 @@ const acceptCompanyAssignment = async ({
   }
 };
 
-// after driver accept assignment driver can start journey and complete journey. 
+// after driver accept assignment driver can start journey and complete journey.
 // via put {{url}}/api/driver/startJourney and put {{url}}/api/driver/completeJourney
 
 /**
@@ -193,17 +218,27 @@ const startJourney = async ({
   }
 
   const journeyStatus = usersData?.[userType]?.journeyStatus;
+  console.log("🚀 ~ startJourney ~ journeyStatus:", journeyStatus);
+
   if (!journeyStatus) {
     console.log("❌ startJourney failed, call getDriverJourneyStatus first.");
     return null;
   }
 
   const driverRequestUniqueId = journeyStatus?.uniqueIds?.driverRequestUniqueId;
-  const shipperRequestUniqueId = journeyStatus?.uniqueIds?.shipperRequestUniqueId;
-  const journeyDecisionUniqueId = journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const shipperRequestUniqueId =
+    journeyStatus?.uniqueIds?.shipperRequestUniqueId;
+  const journeyDecisionUniqueId =
+    journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
 
-  if (!driverRequestUniqueId || !shipperRequestUniqueId || !journeyDecisionUniqueId) {
-    console.log("❌ startJourney failed, missing required IDs from journey status.");
+  if (
+    !driverRequestUniqueId ||
+    !shipperRequestUniqueId ||
+    !journeyDecisionUniqueId
+  ) {
+    console.log(
+      "❌ startJourney failed, missing required IDs from journey status.",
+    );
     console.log("   driverRequestUniqueId:", driverRequestUniqueId);
     console.log("   shipperRequestUniqueId:", shipperRequestUniqueId);
     console.log("   journeyDecisionUniqueId:", journeyDecisionUniqueId);
@@ -259,21 +294,36 @@ const completeJourney = async ({
 
   const journeyStatus = usersData?.[userType]?.journeyStatus;
   if (!journeyStatus) {
-    console.log("❌ completeJourney failed, call getDriverJourneyStatus first.");
+    console.log(
+      "❌ completeJourney failed, call getDriverJourneyStatus first.",
+    );
     return null;
   }
 
   const driverRequestUniqueId = journeyStatus?.uniqueIds?.driverRequestUniqueId;
-  const shipperRequestUniqueId = journeyStatus?.uniqueIds?.shipperRequestUniqueId;
-  const journeyDecisionUniqueId = journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const shipperRequestUniqueId =
+    journeyStatus?.uniqueIds?.shipperRequestUniqueId;
+  const journeyDecisionUniqueId =
+    journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
   const journeyUniqueId = journeyStatus?.uniqueIds?.journeyUniqueId;
 
-  if (!driverRequestUniqueId || !shipperRequestUniqueId || !journeyDecisionUniqueId || !journeyUniqueId) {
-    console.log("❌ completeJourney failed, missing required IDs from journey status.");
+  if (
+    !driverRequestUniqueId ||
+    !shipperRequestUniqueId ||
+    !journeyDecisionUniqueId ||
+    !journeyUniqueId
+  ) {
+    console.log(
+      "❌ completeJourney failed, missing required IDs from journey status.",
+    );
     console.log("   driverRequestUniqueId:", driverRequestUniqueId);
     console.log("   shipperRequestUniqueId:", shipperRequestUniqueId);
     console.log("   journeyDecisionUniqueId:", journeyDecisionUniqueId);
-    console.log("   journeyUniqueId:", journeyUniqueId, "(only available after startJourney)");
+    console.log(
+      "   journeyUniqueId:",
+      journeyUniqueId,
+      "(only available after startJourney)",
+    );
     return null;
   }
 
