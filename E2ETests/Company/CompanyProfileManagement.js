@@ -68,8 +68,7 @@ const getCompanies = async ({ userType = "companyAdmin" }) => {
   };
   try {
     const res = await axios.get(backendURL + "/api/company/companies", config);
-    console.log("✅ Success! Companies fetched.");
-    usersData["companyAdmin"]["companies"] = res.data.data;
+     usersData["companyAdmin"]["companies"] = res.data.data;
     return res.data.data;
   } catch (error) {
     console.log("❌ Failed to get companies.");
@@ -181,8 +180,7 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
 
     const notAttachedDocs = company.documentCompliance?.notAttached || [];
     if (notAttachedDocs.length === 0) {
-      console.log("✅ All Company Documents are already attached!");
-      return;
+       return;
     }
 
     const dummyFilePath = path.join(__dirname, "../dummy.txt");
@@ -342,10 +340,7 @@ const getAttachedDocumentsOfCompanies = async ({
         headers: { Authorization: `Bearer ${token}` },
       },
     );
-    console.log(
-      "✅ Success! Company attached documents fetched.",
-      getCompanyDocuments.data.data,
-    );
+  
     return getCompanyDocuments.data.data;
   } catch (error) {
     console.log("❌ Failed to get attached documents.");

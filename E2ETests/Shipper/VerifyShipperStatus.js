@@ -12,9 +12,7 @@ const verifyShipperStatus = async (token) => {
       config,
     );
 
-    console.log("✅ Success! Verified Shipper Status:");
-    console.log(res.data);
-
+ 
     // Store in constants for future steps
     shipperRequestStatusData.data = res.data;
 

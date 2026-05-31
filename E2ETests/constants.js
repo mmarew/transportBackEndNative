@@ -32,11 +32,11 @@ const usersData = {
     phoneNumber: "+251994444444",
     roleId: usersRoles.companyAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
-    availableBids: null,
+    bids:{availableBids: null,
     submittedBid: null,
     companies: null,
     acceptedByShipperBids: null,
-    acceptedByCompanyBids: null,
+    acceptedByCompanyBids: null,}
   },
   supperAdmin: {
     fullName: "Test Supper Admin", // Schema expects fullName, not full_name

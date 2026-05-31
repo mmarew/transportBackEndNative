@@ -9,7 +9,6 @@ const createShipperRequestFlow = async (token) => {
 
   try {
     // 1. Fetch available vehicle types to use in the request
-    console.log("🚀 ~ createShipperRequestFlow ~ Fetching vehicle types...");
     const vehicleTypesRes = await axios.get(
       backendURL + "/api/admin/vehicleTypes",
       config,
@@ -49,9 +48,6 @@ const createShipperRequestFlow = async (token) => {
       },
     };
 
-    console.log(
-      "🚀 ~ createShipperRequestFlow ~ Creating Shipper Request with Payload...",
-    );
 
     // 3. Post to create the request
     const res = await axios.post(
@@ -60,9 +56,7 @@ const createShipperRequestFlow = async (token) => {
       config,
     );
 
-    console.log("✅ Success! Shipper Request Created:");
-    console.log(res.data);
-    return res.data;
+     return res.data;
   } catch (error) {
     console.log("❌ Failed to create shipper request.");
     if (error.response) {

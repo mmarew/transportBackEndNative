@@ -5,9 +5,8 @@ const { testShipperOnboardingFlow } = require("../Shipper/Index");
 const {
   COMPANY_BID_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyBid.endpoints");
-const getBids = async ({ userType = "companyAdmin" }) => {
-  // {{url}}/api/company/bids?companyUniqueId=31633dc9-9dd0-46fd-8d19-f273feed4a8e&bidStatus=accepted_by_shipper
-
+const getBids = async ({ userType = "companyAdmin" ,bidStatus="submitted"}) => {
+ 
   const token = usersData?.[userType]?.token;
   if (!token) {
     console.log("❌ Company getBids failed, no token found.");
@@ -21,11 +20,13 @@ const getBids = async ({ userType = "companyAdmin" }) => {
   const baseUrl =
     backendURL +
     COMPANY_BID_ENDPOINTS.GET_BIDS +
-    `?companyUniqueId=${company.companyUniqueId}`;
+    `?companyUniqueId=${company.companyUniqueId}&bidStatus=${bidStatus}`;
   const resultsOfBids = await axios.get(baseUrl, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  console.log("🚀 ~ getBids ~ resultsOfBids:", resultsOfBids);
+  // console.log("🚀 ~ getBids ~ resultsOfBids:", resultsOfBids?.data);
+  //set bid data to usersData companyAdmin bid bid status
+  usersData.companyAdmin.bids[bidStatus]=resultsOfBids?.data?.data
 };
 const getAvailableBids = async ({
   userType = "companyAdmin",
@@ -114,7 +115,7 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
   }
 };
 
-const acceptCompanyOffer = async ({ userType = "shipper" }) => {
+const acceptCompanyOffer = async ({ userType = "shipper" ,bid}) => {
   // patch {{url}}/api/company/bids/:companyBidRequestUniqueId/status
   let token = usersData?.[userType]?.token;
   if (!token) {
@@ -122,7 +123,7 @@ const acceptCompanyOffer = async ({ userType = "shipper" }) => {
     // await testVerifyUserByOTP({ userType: "shipper" });
   }
   token = usersData?.[userType]?.token;
-  const bid = usersData?.["companyAdmin"]?.availableBids?.[0];
+  // const the_first_bid_offers = usersData?.["companyAdmin"]?.availableBids?.[0];
   //   const bid = usersData?.[userType]?.bids?.[0];
   if (!bid) {
     console.log("❌ No bid found to accept.");
@@ -139,7 +140,7 @@ const acceptCompanyOffer = async ({ userType = "shipper" }) => {
     headers: { Authorization: `Bearer ${token}` },
   };
   try {
-    const res = await axios.patch(url, { status: "accepted" }, config);
+    const res = await axios.patch(url, {  "bidStatus": "accepted_by_shipper"}, config);
     console.log("✅ Success! Company offer accepted.");
     return res.data.data;
   } catch (error) {
@@ -159,14 +160,22 @@ const initiateCompanyBiddingWorkFlow = async ({
   userType = "companyAdmin",
 }) => {
   try {
-    await getBids({ userType: "companyAdmin" });
+    const bidStatus="submitted"
+    await getBids({ userType,bidStatus});
+    const bids=usersData.companyAdmin.bids
+    const submittedBids= bids?.[bidStatus]
+    //  console.log("🚀 ~ initiateCompanyBiddingWorkFlow ~ usersData.companyAdmin.bids:", submittedBids);
+     const the_first_bid_offers=submittedBids?.[0]?.offers?.[0]
+     console.log("🚀 ~ initiateCompanyBiddingWorkFlow ~ the_first_bid_offers:", the_first_bid_offers)
+     
+
 
     //get available bids
     // await getAvailableBids({ userType });
     // //participate in bid
     // await participateInBid({ userType });
     // //accept company offer
-    // await acceptCompanyOffer({ userType: "shipper" });
+    await acceptCompanyOffer({ userType: "shipper" ,bid:the_first_bid_offers});
   } catch (error) {
     console.log("❌ Error initiating company bidding workflow.");
     if (error.response) {

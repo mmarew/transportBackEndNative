@@ -17,13 +17,8 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
 
   await getDriversAccountData(token);
   let accountData = usersData["driver"]["accountData"];
-  console.log("🚀 ~ testDriverOnboardingFlow ~ accountData:", accountData);
   //check if all documents are uploaded if not attach docs.
   const unAttachedDriverDocumentTypes = accountData?.unAttachedDocumentTypes;
-  console.log(
-    "🚀 ~ testDriverOnboardingFlow ~ unAttachedDriverDocumentTypes:",
-    unAttachedDriverDocumentTypes,
-  );
   const vehicle = accountData?.vehicle;
   const vehicleUniqueId = vehicle?.vehicleUniqueId;
   //check if vehicle is null if yes create one and then create vehicle documents

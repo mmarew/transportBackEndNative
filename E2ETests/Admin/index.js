@@ -6,14 +6,10 @@ const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 
 const testCreateAdminFlow = async () => {
   // 1. Verify Supper Admin
-  console.log("🚀 ~ testCreateAdminFlow ~ Verifying Supper Admin...");
   await testVerifyUserByOTP({ userType: "supperAdmin" });
-  console.log("🚀 ~ testCreateAdminFlow ~ Supper Admin Verified...");
 
   // 2. Login Supper Admin (Sets the token in usersData)
-  console.log("🚀 ~ testCreateAdminFlow ~ Logging in Supper Admin...");
   await testLoginUser({ userType: "supperAdmin" });
-  console.log("🚀 ~ testCreateAdminFlow ~ Supper Admin Logged in...");
 
   const supperAdminToken = usersData?.supperAdmin?.token;
 
@@ -27,7 +23,6 @@ const testCreateAdminFlow = async () => {
   console.log("✅ Successfully retrieved Supper Admin Token!");
 
   // 3. Create Admin using Supper Admin token
-  console.log("🚀 ~ testCreateAdminFlow ~ Creating Admin...");
 
   const config = {
     headers: { Authorization: `Bearer ${supperAdminToken}` },
@@ -43,14 +38,10 @@ const testCreateAdminFlow = async () => {
     console.log(res.data);
 
     // 4. Verify Admin
-    console.log("🚀 ~ testCreateAdminFlow ~ Verifying the new Admin...");
     await testVerifyUserByOTP({ userType: "admin" });
-    console.log("🚀 ~ testCreateAdminFlow ~ Admin Verified...");
 
     // 5. Login Admin
-    console.log("🚀 ~ testCreateAdminFlow ~ Logging in the new Admin...");
     await testLoginUser({ userType: "admin" });
-    console.log("🚀 ~ testCreateAdminFlow ~ Admin Logged in...");
 
     const adminToken = usersData?.admin?.token;
     if (adminToken) {

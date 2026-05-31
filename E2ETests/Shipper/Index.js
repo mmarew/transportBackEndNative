@@ -31,7 +31,6 @@ const getShipperAccountData = async (token) => {
 };
 
 const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
-  console.log("🚀 ~ testShipperOnboardingFlow ~ Starting Shipper flow...");
 
   await testCreateUser({ userType });
   await testVerifyUserByOTP({ userType });
@@ -47,10 +46,6 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   if (!accountData) return;
 
   const unAttachedDocumentTypes = accountData?.unAttachedDocumentTypes || [];
-  console.log(
-    "🚀 ~ testShipperOnboardingFlow ~ unAttachedDocumentTypes:",
-    unAttachedDocumentTypes.map((d) => d.documentTypeName),
-  );
 
   if (unAttachedDocumentTypes.length > 0) {
     for (const doc of unAttachedDocumentTypes) {

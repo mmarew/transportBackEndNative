@@ -14,11 +14,9 @@ const testVerifyUserByOTP = async ({ userType = "admin" }) => {
       backendURL + AUTH_ENDPOINTS.VERIFY_USER_BY_OTP,
       payload,
     );
-    // console.log("✅ Success! User Verified:");
-    // console.log(res.data);
+   
     const token = res.data.token;
-    console.log(`🚀 ~ testVerifyUserByOTP ~ token of userType ${userType} is :`, token)
-    usersData[userType].token = token; // Store globally so VehicleDriver.js can read it!
+     usersData[userType].token = token; // Store globally so VehicleDriver.js can read it!
   } catch (error) {
     console.log("❌ Failed to verify user.");
     if (error.response) {
