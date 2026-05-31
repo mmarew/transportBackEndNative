@@ -2,21 +2,29 @@ const { testDriverOnboardingFlow } = require("./Driver");
 const { testShipperOnboardingFlow } = require("./Shipper/Index");
 const { createDriverRequestFlow } = require("./Driver/CreateDriverRequest");
 const { usersData } = require("./constants");
+const { testCreateAdminFlow } = require("./Admin");
+const {  resetDatabase } = require("./DataBaseManagement");
+const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
+const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 
 const initiateTest = async () => {
-  // 1. Setup Driver (Login and get Token)
+  // 1. Drop + recreate tables, verify+login superAdmin, install seed data
+  await resetDatabase();
+
+  // 2. Create admin user (superAdmin token already set by resetDatabase)
+  await testCreateAdminFlow({});
+
+  // 3. Setup Driver — register, verify, login, attach docs
   await testDriverOnboardingFlow({ userType: "driver" });
 
-  // 2. Setup Admin and Approve Driver Docs (Optional depending on DB state,
-  // uncomment if the driver is not yet APPROVED in your local DB)
-  // await testCreateAdminFlow();
-  // await fetchUnAuthorizedDrivers();
-  // await authorizeDriversDocuments();
+  // 4. Fetch driver's pending documents and have admin approve them
+  await fetchUnAuthorizedDrivers({});
+  await authorizeDriversDocuments({});
 
-  // 3. Setup Shipper and Create Shipper Request
+  // 5. Setup Shipper and create a shipper request
   await testShipperOnboardingFlow({ userType: "shipper" });
 
-  // 4. Driver posts their location and system auto-matches them with the Shipper
+  // 6. Driver posts location — system auto-matches with the shipper
   const driverToken = usersData?.driver?.token;
   if (driverToken) {
     await createDriverRequestFlow(driverToken);

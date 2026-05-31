@@ -16,28 +16,30 @@ const authorizeDriversDocuments = async () => {
     const endpoints =
       ATTACHED_DOCUMENTS_ENDPOINTS.ADMIN_ACCEPT_REJECT_DOCUMENTS;
     //put {{url}}/api/admin/acceptRejectAttachedDocuments
-    pendingDocuments.map(async (pendingDocument) => {
-      const attachedDocumentUniqueId = pendingDocument.attachedDocumentUniqueId;
+    await Promise.all(
+      pendingDocuments.map(async (pendingDocument) => {
+        const attachedDocumentUniqueId = pendingDocument.attachedDocumentUniqueId;
 
-      const payload = {
-        roleId: "2",
-        attachedDocumentUniqueId: attachedDocumentUniqueId,
-        action: "ACCEPTED",
-        reason: "Document is valid and accepted.",
-      };
-      const approvalResult = await axios.put(backendURL + endpoints, payload, {
-        headers: {
-          Authorization: `Bearer ${usersData.admin.token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      });
+        const payload = {
+          roleId: pendingDocument.roleId,  // use the actual roleId from the document
+          attachedDocumentUniqueId: attachedDocumentUniqueId,
+          action: "ACCEPTED",
+          reason: "Document is valid and accepted.",
+        };
+        const approvalResult = await axios.put(backendURL + endpoints, payload, {
+          headers: {
+            Authorization: `Bearer ${usersData.admin.token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
 
-      console.log(
-        "🚀 ~ authorizeDriversDocuments ~ approvalResult:",
-        approvalResult.data,
-      );
-    });
+        console.log(
+          "🚀 ~ authorizeDriversDocuments ~ approvalResult:",
+          approvalResult.data,
+        );
+      }),
+    );
   } catch (error) {
     console.log(
       "❌ Error in authorizeDriversDocuments:",

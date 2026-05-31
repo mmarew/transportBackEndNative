@@ -1,8 +1,8 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { DATABASE_ENDPOINTS } = require("../../Routes/EndPoints/database.endpoints");
-const { error } = require("winston");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
+const { testLoginUser } = require("../Auth/LoginUser");
 
 // Dev-only API key — must match API_KEY in your .env
 const DEV_API_KEY = process.env.API_KEY || "dev-api-key";
@@ -190,27 +190,23 @@ const seedTestDocument = async ({
 // ── Full reset flow ───────────────────────────────────────────────────────────
 
 /**
- * Resets the entire database and reinstalls seed data.
- * Useful at the start of a full E2E test run to guarantee a clean state.
- *
- * Flow: dropTables → createTables → installPredefinedData
+ * Full reset + seed flow.
+ * Order matters:
+ *   1. drop + create tables (no auth needed)
+ *   2. verify superAdmin OTP → sets token in usersData
+ *   3. login superAdmin → sets token in usersData
+ *   4. install predefined data (needs superAdmin token)
  */
 const resetDatabase = async () => {
   console.log("🔄 Starting full database reset...");
   await dropTables();
   await createTables();
+  // superAdmin must be verified + logged in before seed data can be installed
+  await testVerifyUserByOTP({ userType: "supperAdmin" });
+  await testLoginUser({ userType: "supperAdmin" });
   await installPredefinedData();
   console.log("✅ Database reset complete.");
 };
-const executeDatabaseWorkflow = async () =>{
-
-await dropTables();
-await createTables();
-//verify supperAdmin to set token
-await testVerifyUserByOTP({ userType : "supperAdmin" })
-await installPredefinedData()
-}
-executeDatabaseWorkflow()
 module.exports = {
   createTables,
   getAllTables,

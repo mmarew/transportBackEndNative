@@ -5,22 +5,14 @@ const { usersData, backendURL } = require("../constants");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 
 const testCreateAdminFlow = async () => {
-  // 1. Verify Supper Admin
-  await testVerifyUserByOTP({ userType: "supperAdmin" });
-
-  // 2. Login Supper Admin (Sets the token in usersData)
-  await testLoginUser({ userType: "supperAdmin" });
-
+  // superAdmin is already verified + logged in by resetDatabase.
+  // Just confirm the token is present before proceeding.
   const supperAdminToken = usersData?.supperAdmin?.token;
-
   if (!supperAdminToken) {
-    console.log(
-      "❌ Failed to get supperAdmin token. Make sure supperAdmin exists and OTP is correct.",
-    );
+    console.log("❌ No supperAdmin token found. Make sure resetDatabase() ran first.");
     return;
   }
-
-  console.log("✅ Successfully retrieved Supper Admin Token!");
+  console.log("✅ SuperAdmin token confirmed.");
 
   // 3. Create Admin using Supper Admin token
 
@@ -51,11 +43,7 @@ const testCreateAdminFlow = async () => {
     }
     //fetch unauthorized driver and approve there documents.
 
-    // 1)fetch drivers
-    await fetchUnAuthorizedDrivers();
-
-    // 2) approve unauthorized drivers documents
-    await authorizeDriversDocuments();
+  
   } catch (error) {
     console.log("❌ Failed to create admin.");
     if (error.response) {
