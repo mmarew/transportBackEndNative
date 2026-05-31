@@ -6,6 +6,8 @@ const {
   COMPANY_BID_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyBid.endpoints");
 const { assignDrivers } = require("./AssignDrivers");
+const { assignVehicleToCompany } = require("./CompanyVehicle");
+const { testDriverOnboardingFlow } = require("../Driver");
 const getBids = async ({ userType = "companyAdmin" ,bidStatus="submitted"}) => {
  
   const token = usersData?.[userType]?.token;
@@ -207,6 +209,8 @@ const initiateCompanyBiddingWorkFlow = async ({
 
     const first_accepted_bid=bidsAcceptedByShipper?.[0]
     console.log("🚀 ~ initiateCompanyBiddingWorkFlow ~ first_accepted_bid:", first_accepted_bid);
+    await testDriverOnboardingFlow({})
+   await assignVehicleToCompany({})
    await assignDrivers({bid:first_accepted_bid})
   } catch (error) {
     console.log("❌ Error initiating company bidding workflow.");

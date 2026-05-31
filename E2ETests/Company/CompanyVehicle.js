@@ -19,7 +19,8 @@ const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
     return;
   }
 
-  const vehicleUniqueId = usersData?.driver?.documentAndVehicleOfDriver?.vehicle?.vehicleUniqueId;
+  const vehicleUniqueId = usersData?.driver?.accountData?.vehicle?.vehicleUniqueId;
+  console.log("🚀 ~ assignVehicleToCompany ~ usersData?.driver?.accountData:", usersData?.driver?.accountData.vehicle)
   if (!vehicleUniqueId) {
     console.log("❌ assignVehicleToCompany failed, no vehicleUniqueId found on driver.");
     return;

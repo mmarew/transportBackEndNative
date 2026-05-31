@@ -11,6 +11,8 @@ const usersData = {
     OTP: 101010, // Schema requires an OTP for verification}
     documentAndVehicleOfDriver: null,
     token:null,
+    //accountData contains vehicle data, user data and other data
+    accountData:null
   },
   shipper: {
     fullName: "Test Shipper", // Schema expects fullName, not full_name
