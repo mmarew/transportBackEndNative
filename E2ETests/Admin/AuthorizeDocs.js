@@ -5,6 +5,10 @@ const {
 const { unAuthorizedDriver, backendURL, usersData } = require("../constants");
 
 const authorizeDriversDocuments = async () => {
+  if (!usersData?.admin?.token) {
+    throw new Error("Admin token is missing. Cannot authorize documents.");
+  }
+
   try {
     const pendingDocuments =
       unAuthorizedDriver.driver?.data?.[0]?.attachedDocumentsByStatus?.PENDING;
@@ -30,7 +34,7 @@ const authorizeDriversDocuments = async () => {
           reason: "Document is valid and accepted.",
         };
         
-        const approvalResult = await axios.put(backendURL + endpoints, payload, {
+        await axios.put(backendURL + endpoints, payload, {
           headers: {
             Authorization: `Bearer ${usersData.admin.token}`,
             "Content-Type": "application/json",
@@ -44,10 +48,11 @@ const authorizeDriversDocuments = async () => {
     
     console.log("✅ All pending documents authorized");
   } catch (error) {
-    console.log(
+    console.error(
       "❌ Error in authorizeDriversDocuments:",
       error.response?.data?.error || error.message,
     );
+    throw error; // Re-throw to stop execution
   }
 };
 module.exports = { authorizeDriversDocuments };

@@ -4,6 +4,10 @@ const { createVehicle, attachVehiclesDocuments } = require("./VehicleDriver");
 const axios = require("axios");
 
 const getDriversAccountData = async ({ token }) => {
+  if (!token) {
+    throw new Error("Driver token is missing. Cannot fetch account data.");
+  }
+
   const config = {
     headers: { Authorization: `Bearer ${token}` },
   };
@@ -11,26 +15,35 @@ const getDriversAccountData = async ({ token }) => {
     const res = await axios.get(backendURL + "/api/driver/account", config);
     console.log("✅ Driver Account Data fetched");
     usersData["driver"]["accountData"] = res.data;
-    console.log("🚀 ~ getDriversAccountData ~ res.data:", res.data)
     return res.data;
   } catch (error) {
-    console.log("❌ Failed to get driver account data:", error.response?.data?.error || error.message);
-    return null;
+    console.error("❌ Failed to get driver account data:", error.response?.data?.error || error.message);
+    throw error; // Re-throw to stop execution
   }
 };
 
 const evaluateDriversDocumentVehicleRequirement = async () => {
   const userData = usersData["driver"];
-  const token = userData.token;
+  const token = userData?.token;
+
+  if (!token) {
+    throw new Error("Driver token is missing. Cannot evaluate document requirements.");
+  }
 
   // 1. Fetch current account data
   let accountData = await getDriversAccountData({ token });
-  if (!accountData) return;
+  if (!accountData) {
+    throw new Error("Failed to fetch driver account data");
+  }
 
   // 2. If no vehicle, create one and re-fetch account data
   if (!accountData.vehicle) {
     await createVehicle(token);
     accountData = await getDriversAccountData({ token });
+    
+    if (!accountData.vehicle) {
+      throw new Error("Failed to create vehicle for driver");
+    }
   }
 
   const vehicleUniqueId = accountData?.vehicle?.vehicleUniqueId;

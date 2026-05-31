@@ -3,6 +3,14 @@ const { backendURL, usersData, unAuthorizedDriver } = require("../constants");
 const { ADMIN_ENDPOINTS } = require("../../Routes/EndPoints/admin.endpoints");
 
 const fetchUnAuthorizedDrivers = async () => {
+  if (!usersData?.admin?.token) {
+    throw new Error("Admin token is missing. Cannot fetch unauthorized drivers.");
+  }
+  
+  if (!usersData?.driver?.phoneNumber) {
+    throw new Error("Driver phone number is missing. Cannot fetch unauthorized drivers.");
+  }
+
   try {
     const resultsOfUnAuthorizedDriver = await axios.get(
       backendURL +
@@ -18,7 +26,8 @@ const fetchUnAuthorizedDrivers = async () => {
     console.log("✅ Unauthorized drivers fetched successfully");
     unAuthorizedDriver.driver = resultsOfUnAuthorizedDriver?.data;
   } catch (error) {
-    console.log("❌ Failed to fetch unauthorized drivers:", error.response?.data?.error || error.message);
+    console.error("❌ Failed to fetch unauthorized drivers:", error.response?.data?.error || error.message);
+    throw error; // Re-throw to stop execution
   }
 };
 module.exports = { fetchUnAuthorizedDrivers };

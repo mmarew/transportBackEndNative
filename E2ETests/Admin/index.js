@@ -9,13 +9,11 @@ const testCreateAdminFlow = async () => {
   // Just confirm the token is present before proceeding.
   const supperAdminToken = usersData?.supperAdmin?.token;
   if (!supperAdminToken) {
-    console.log("❌ No supperAdmin token found. Make sure resetDatabase() ran first.");
-    return;
+    throw new Error("No supperAdmin token found. Make sure resetDatabase() ran first.");
   }
   console.log("✅ SuperAdmin token confirmed.");
 
   // 3. Create Admin using Supper Admin token
-
   const config = {
     headers: { Authorization: `Bearer ${supperAdminToken}` },
   };
@@ -26,8 +24,7 @@ const testCreateAdminFlow = async () => {
       usersData["admin"],
       config,
     );
-    console.log("✅ Success! Admin Created by Supper Admin:");
-    console.log(res.data);
+    console.log("✅ Admin Created by SuperAdmin");
 
     // 4. Verify Admin
     await testVerifyUserByOTP({ userType: "admin" });
@@ -36,24 +33,18 @@ const testCreateAdminFlow = async () => {
     await testLoginUser({ userType: "admin" });
 
     const adminToken = usersData?.admin?.token;
-    if (adminToken) {
-      console.log("✅ Successfully set Admin token in usersData!");
-    } else {
-      console.log("❌ Failed to get Admin token.");
+    if (!adminToken) {
+      throw new Error("Failed to get Admin token after login");
     }
-    //fetch unauthorized driver and approve there documents.
-
-  
+    console.log("✅ Admin token set successfully");
   } catch (error) {
-    console.log("❌ Failed to create admin.");
+    console.error("❌ Failed to create admin flow");
     if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
+      console.error("Server error:", error.response.data.error?.details || error.response.data);
     } else {
-      console.log("Raw Error:", error.message);
+      console.error("Error:", error.message);
     }
+    throw error; // Re-throw to stop execution
   }
 };
 
