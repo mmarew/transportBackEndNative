@@ -14,7 +14,7 @@ const createCompanies = async ({ userType = "companyAdmin" }) => {
     headers: { Authorization: `Bearer ${token}` },
   };
   const url = backendURL + "/api/company/companies";
-  const payload =usersData.company
+  const payload = usersData.company;
   //first check if there is a company before from saved values
   const companies = usersData["companyAdmin"]["companies"];
   if (companies && companies.length > 0) {
@@ -62,7 +62,7 @@ const getCompanies = async ({ userType = "companyAdmin" }) => {
   };
   try {
     const res = await axios.get(backendURL + "/api/company/companies", config);
-     usersData["companyAdmin"]["companies"] = res.data.data;
+    usersData["companyAdmin"]["companies"] = res.data.data;
     return res.data.data;
   } catch (error) {
     console.log("❌ Failed to get companies.");
@@ -174,7 +174,7 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
 
     const notAttachedDocs = company.documentCompliance?.notAttached || [];
     if (notAttachedDocs.length === 0) {
-       return;
+      return;
     }
 
     const dummyFilePath = path.join(__dirname, "../dummy.txt");
@@ -268,8 +268,16 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
     }
 
     // Fetch the latest attached documents directly
-    const attachedDocs = await getAttachedDocumentsOfCompanies({ userType: "companyAdmin" });
-    const pendingDocuments = (attachedDocs || []).filter(
+    const attachedDocsResponse = await getAttachedDocumentsOfCompanies({
+      userType: "companyAdmin",
+    });
+    const attachedDocs = Array.isArray(attachedDocsResponse)
+      ? attachedDocsResponse
+      : attachedDocsResponse?.data?.documents ||
+        attachedDocsResponse?.documents ||
+        [];
+
+    const pendingDocuments = attachedDocs.filter(
       (doc) => doc.attachedDocumentAcceptance === "PENDING",
     );
 
@@ -278,7 +286,9 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
       return;
     }
 
-    console.log(`📋 Found ${pendingDocuments.length} pending company documents to approve`);
+    console.log(
+      `📋 Found ${pendingDocuments.length} pending company documents to approve`,
+    );
 
     const url = backendURL + `/api/admin/acceptRejectAttachedDocuments`;
     const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -291,13 +301,17 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
           action: "ACCEPTED",
           reason: "Document is valid and accepted.",
         };
-        const res = await axios.put(url, payload, config);
-        console.log(`✅ Approved company doc: ${doc.documentTypeName || doc.attachedDocumentUniqueId}`);
-        return res.data.data;
+        await axios.put(url, payload, config);
+        console.log(
+          `✅ Approved company doc: ${doc.documentTypeName || doc.attachedDocumentUniqueId}`,
+        );
       }),
     );
   } catch (error) {
-    console.error("❌ Error approving company documents:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ Error approving company documents:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -311,7 +325,7 @@ const getAttachedDocumentsOfCompanies = async ({
       console.log(
         "❌ Company Admin get attached documents failed, no token found.",
       );
-      return;
+      return [];
     }
     const getCompanyDocuments = await axios.get(
       backendURL +
@@ -320,8 +334,11 @@ const getAttachedDocumentsOfCompanies = async ({
         headers: { Authorization: `Bearer ${token}` },
       },
     );
-  
-    return getCompanyDocuments.data.data;
+
+    const responseData = getCompanyDocuments.data?.data;
+    return Array.isArray(responseData)
+      ? responseData
+      : responseData?.documents || responseData?.data || [];
   } catch (error) {
     console.log("❌ Failed to get attached documents.");
     if (error.response) {
@@ -332,7 +349,7 @@ const getAttachedDocumentsOfCompanies = async ({
     } else {
       console.log("Raw Error:", error.message);
     }
-    return null;
+    return [];
   }
 };
 const initiateCompanyProfileSetupWorkFlow = async ({
