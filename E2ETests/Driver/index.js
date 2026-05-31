@@ -50,9 +50,14 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   if (isCompanyMode) {
     console.log("🏢 Company assignment detected — confirming...");
     await acceptCompanyAssignment({ userType });
+    //refetch data to get updated journey status with accepted company assignment before accepting shipper request
+    await getDriverJourneyStatus({ userType });
   } else if (isIndividualMode) {
     console.log("👤 Individual shipper match detected — accepting...");
     await acceptShipperRequest({ userType });
+
+    //refetch data to get updated journey status with accepted company assignment before accepting shipper request
+    await getDriverJourneyStatus({ userType });
   } else {
     console.log(
       "⏳ Driver has no pending assignment or match yet (status:",
@@ -64,7 +69,13 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
 
   // Only start/complete journey if driver has an active accepted assignment
   await startJourney({ userType });
+
+  //refetch data to get updated journey status with accepted company assignment before accepting shipper request
+  await getDriverJourneyStatus({ userType });
   await completeJourney({ userType });
+
+  //refetch data to get updated journey status with accepted company assignment before accepting shipper request
+  await getDriverJourneyStatus({ userType });
 };
 
 module.exports = {
