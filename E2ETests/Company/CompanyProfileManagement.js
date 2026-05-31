@@ -14,13 +14,7 @@ const createCompanies = async ({ userType = "companyAdmin" }) => {
     headers: { Authorization: `Bearer ${token}` },
   };
   const url = backendURL + "/api/company/companies";
-  const payload = {
-    companyName: "company a",
-    companyRegistrationNumber: `no-aa3a-${Date.now()}`,
-    companyPhone: "+251922111111",
-    companyEmail: `companya+${Date.now()}@gmail.com`,
-    companyAddress: "Addis Ababa",
-  };
+  const payload =usersData.company
   //first check if there is a company before from saved values
   const companies = usersData["companyAdmin"]["companies"];
   if (companies && companies.length > 0) {

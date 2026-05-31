@@ -514,17 +514,13 @@ const upsertDriverRequest = async ({
   await db().query(
     `INSERT INTO DriverRequest
       (driverRequestUniqueId, userUniqueId, journeyStatusId,
-       currentLatitude, currentLongitude, currentPlace,
        originLatitude, originLongitude, originPlace,
        driverRequestCreatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       driverRequestUniqueId,
       driverUserUniqueId,
       newStatusId,
-      originLat ?? 0,
-      originLng ?? 0,
-      originPlace ?? "Assigned by dispatcher",
       originLat ?? 0,
       originLng ?? 0,
       originPlace ?? "Assigned by dispatcher",

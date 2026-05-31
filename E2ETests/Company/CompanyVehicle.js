@@ -25,7 +25,17 @@ const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
     console.log("❌ assignVehicleToCompany failed, no vehicleUniqueId found on driver.");
     return;
   }
-
+  //check if vehicle is assigned to protect double assignments, 
+ const assignedVehicles=await getCompanyVehicles({})
+ console.log("🚀 ~ assignVehicleToCompany ~ assignedVehicles:", assignedVehicles)
+ 
+//find if vehicleUniqueId is in assignedVehicles
+for (let assignedVehicle of assignedVehicles){
+    if(assignedVehicle.vehicleUniqueId===vehicleUniqueId) 
+        console.log("🚀 ~ assignVehicleToCompany ~ vehicle already assigned before:")
+        return {
+    message :"success",data:"vehicle already assigned before"}
+}
   const url = backendURL + COMPANY_VEHICLE_ENDPOINTS.ASSIGN_VEHICLE;
   const payload = {
     companyUniqueId: company.companyUniqueId,

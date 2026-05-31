@@ -58,6 +58,13 @@ const usersData = {
     OTP: 101010, // Schema requires an OTP for verification}
   },
   token:null,
+  company:  {
+    companyName: "company a",
+    companyRegistrationNumber: `no-aa3a-${Date.now()}`,
+    companyPhone: "+251922111111",
+    companyEmail: `companya+${Date.now()}@gmail.com`,
+    companyAddress: "Addis Ababa",
+  }
 };
 const unAuthorizedDriver = { driver: null };
 const shipperRequestStatusData = { data: null };
