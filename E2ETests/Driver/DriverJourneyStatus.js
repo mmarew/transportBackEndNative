@@ -106,7 +106,6 @@ const acceptShipperRequest = async ({
       "✅ Driver accepted shipper request. Status:",
       res.data?.status,
     );
-    if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;
   } catch (error) {
     console.log("❌ Failed to accept shipper request.");
@@ -177,7 +176,6 @@ const acceptCompanyAssignment = async ({
   try {
     const res = await axios.patch(url, payload, config);
     console.log(`✅ Driver ${assignmentStatus} company assignment.`);
-    if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;
   } catch (error) {
     console.log(
