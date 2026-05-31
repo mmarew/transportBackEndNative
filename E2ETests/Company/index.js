@@ -45,7 +45,7 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
     }
   }
 };
-if (require.main === module) {
-  createCompanyAdminFlow({});
-}
+// if (require.main === module) {
+//   createCompanyAdminFlow({});
+// }
 module.exports = { createCompanyAdminFlow };

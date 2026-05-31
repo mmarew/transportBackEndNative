@@ -257,62 +257,48 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
 };
 const approveCompanyDocuments = async ({ userType = "admin" }) => {
   try {
-    // patch {{url}}/api/company/companies/:companyUniqueId/approve
     const token = usersData?.[userType]?.token;
     if (!token) {
-      console.log("❌ admin can't approve documents, no token found.");
-      return;
+      throw new Error("Admin token missing, cannot approve company documents.");
     }
 
     const company = usersData?.companyAdmin?.companies?.[0];
     if (!company) {
-      console.log("❌ No company found to approve documents.");
+      throw new Error("No company found to approve documents.");
+    }
+
+    // Fetch the latest attached documents directly
+    const attachedDocs = await getAttachedDocumentsOfCompanies({ userType: "companyAdmin" });
+    const pendingDocuments = (attachedDocs || []).filter(
+      (doc) => doc.attachedDocumentAcceptance === "PENDING",
+    );
+
+    if (pendingDocuments.length === 0) {
+      console.log("⏩ No pending company documents to approve.");
       return;
     }
 
-    const url = backendURL + `/api/admin/acceptRejectAttachedDocuments`;
-    const config = {
-      headers: { Authorization: `Bearer ${token}` },
-    };
+    console.log(`📋 Found ${pendingDocuments.length} pending company documents to approve`);
 
-    const pendingDocuments = company?.documentCompliance?.pending || [];
+    const url = backendURL + `/api/admin/acceptRejectAttachedDocuments`;
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+
     await Promise.all(
       pendingDocuments.map(async (doc) => {
-        const attachedDocumentUniqueId = doc?.attachedDocumentUniqueId;
         const payload = {
-          roleId: 7,
-          attachedDocumentUniqueId,
+          roleId: 8, // company role
+          attachedDocumentUniqueId: doc.attachedDocumentUniqueId,
           action: "ACCEPTED",
           reason: "Document is valid and accepted.",
         };
-        try {
-          const res = await axios.put(url, payload, config);
-          console.log("✅ Success! Company Documents approved.");
-          return res.data.data;
-        } catch (error) {
-          console.log("❌ Failed to approve Company Documents.");
-          if (error.response) {
-            console.log(
-              "Server responded with:",
-              error.response.data.error?.details || error.response.data,
-            );
-          } else {
-            console.log("Raw Error:", error.message);
-          }
-          return null;
-        }
+        const res = await axios.put(url, payload, config);
+        console.log(`✅ Approved company doc: ${doc.documentTypeName || doc.attachedDocumentUniqueId}`);
+        return res.data.data;
       }),
     );
   } catch (error) {
-    console.log("❌ Error approving company documents.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    console.error("❌ Error approving company documents:", error.response?.data?.error || error.message);
+    throw error;
   }
 };
 const getAttachedDocumentsOfCompanies = async ({

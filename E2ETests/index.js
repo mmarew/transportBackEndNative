@@ -6,6 +6,7 @@ const { testCreateAdminFlow } = require("./Admin");
 const { resetDatabase } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
+const { createCompanyAdminFlow } = require("./Company");
 
 const initiateTest = async () => {
   try {
@@ -44,6 +45,8 @@ const initiateTest = async () => {
     // 6. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
     await createDriverRequestFlow(driverToken);
+await createCompanyAdminFlow({})
+
     
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {
