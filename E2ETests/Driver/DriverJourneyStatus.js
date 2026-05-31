@@ -216,7 +216,6 @@ const startJourney = async ({
   }
 
   const journeyStatus = usersData?.[userType]?.journeyStatus;
-  console.log("🚀 ~ startJourney ~ journeyStatus:", journeyStatus);
 
   if (!journeyStatus) {
     console.log("❌ startJourney failed, call getDriverJourneyStatus first.");

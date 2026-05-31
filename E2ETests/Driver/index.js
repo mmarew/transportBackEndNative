@@ -35,7 +35,6 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   // must run after this point (handled in the main index.js flow).
 
   const journeyStatus = await getDriverJourneyStatus({ userType });
-  console.log("🚀 ~ testDriverOnboardingFlow ~ journeyStatus:", journeyStatus);
   if (!journeyStatus) {
     console.log(
       "⚠️  No journey status returned — driver may have no active request yet.",
