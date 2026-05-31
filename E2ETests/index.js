@@ -12,21 +12,21 @@ const initiateTest = async () => {
   try {
     // 1. Drop + recreate tables, verify+login superAdmin, install seed data
     await resetDatabase();
-    
+
     if (!usersData?.supperAdmin?.token) {
       throw new Error("SuperAdmin token not set after resetDatabase()");
     }
 
     // 2. Create admin user (superAdmin token already set by resetDatabase)
     await testCreateAdminFlow({});
-    
+
     if (!usersData?.admin?.token) {
       throw new Error("Admin token not set after testCreateAdminFlow()");
     }
 
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
-    
+
     if (!usersData?.driver?.token) {
       throw new Error("Driver token not set after testDriverOnboardingFlow()");
     }
@@ -37,17 +37,18 @@ const initiateTest = async () => {
 
     // 5. Setup Shipper and create a shipper request
     await testShipperOnboardingFlow({ userType: "shipper" });
-    
+
     if (!usersData?.shipper?.token) {
-      throw new Error("Shipper token not set after testShipperOnboardingFlow()");
+      throw new Error(
+        "Shipper token not set after testShipperOnboardingFlow()",
+      );
     }
 
     // 6. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
     await createDriverRequestFlow(driverToken);
-await createCompanyAdminFlow({})
+    await createCompanyAdminFlow({});
 
-    
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {
     console.error("\n❌ ========== E2E TEST FAILED ==========");
