@@ -63,15 +63,21 @@ const updateBidStatus = async (
     "CompanyBidRequest",
     { companyBidRequestUniqueId },
     "Bid not found",
-  );
+  ); 
+  console.log("🚀 ~ updateBidStatus ~ bid:", bid)
   if (bid.companyBidRequestDeletedAt) {
     throw new AppError("Bid has been deleted", 400);
-  }
+  } 
+    
+  //update bidStatus to accepted_by_shipper if it was submitted, to 
 
   const [res] = await db().query(
     `UPDATE CompanyBidRequest
-     SET bidStatus = ?, bidStatusUpdatedAt = ?, bidStatusUpdatedBy = ?,
-         companyBidRequestUpdatedBy = ?, companyBidRequestUpdatedAt = ?
+     SET bidStatus = ?, 
+     bidStatusUpdatedAt = ?, 
+     bidStatusUpdatedBy = ?,
+         companyBidRequestUpdatedBy = ?, 
+         companyBidRequestUpdatedAt = ?
      WHERE companyBidRequestUniqueId = ?`,
     [
       bidStatus,
@@ -81,7 +87,9 @@ const updateBidStatus = async (
       currentDate(),
       companyBidRequestUniqueId,
     ],
-  );
+  );  
+ 
+  console.log("🚀 ~ updateBidStatus ~ res.affectedRows:", res.affectedRows)
   if (res.affectedRows === 0) {
     throw new AppError("Bid update failed", 500);
   }
@@ -109,6 +117,7 @@ const updateBidStatus = async (
        FOR UPDATE`,
       [bid.shipperRequestBatchId],
     );
+     console.log("🚀 ~ updateBidStatus ~ existingPRs:", existingPRs)
 
     if (existingPRs.length === 0) {
       // ── COMPANY-TARGET PATH: Bulk-create all N ShipperRequest rows now ──
@@ -201,8 +210,25 @@ const updateBidStatus = async (
 
       if (freeRequests.length < bid.numberOfVehiclesOffered) {
         const alreadyClaimed = existingPRs.length - freeRequests.length;
+
+        // All ShipperRequest slots already have drivers matched — the company bid
+        // acceptance was already processed and all N driver assignments are in place.
+        // The requested outcome is fully achieved, so return success idempotently.
+        if (freeRequests.length === 0) {
+          return {
+            message: "success",
+            data: `Bid acceptance already completed. All ${bid.numberOfVehiclesOffered} vehicle slots have drivers assigned and are ready for dispatch.`,
+          };
+        }
+
+        // Partial conflict — some slots already have drivers matched, others don't.
+        // This is a genuine inconsistency: the bid cannot be cleanly accepted
+        // because ${alreadyClaimed} slot(s) are already committed to other drivers
+        // while ${freeRequests.length} slot(s) are still open.
         throw new AppError(
-          `Consistency Conflict: Only ${freeRequests.length} of ${bid.numberOfVehiclesOffered} requested vehicles are still available. ${alreadyClaimed} individual driver(s) have already been accepted for this freight.`,
+          `Partial conflict: ${alreadyClaimed} of ${bid.numberOfVehiclesOffered} vehicle slots already have drivers assigned. ` +
+          `Only ${freeRequests.length} slot(s) are still open. ` +
+          `The company bid cannot be accepted while the batch is partially committed.`,
           409,
         );
       }
@@ -213,7 +239,7 @@ const updateBidStatus = async (
          SET journeyStatusId = ?
          WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
         [journeyStatusMap.acceptedByShipper, bid.shipperRequestBatchId],
-      );
+      ); 
     }
 
     newPRStatus = null; // Already handled above — skip the generic UPDATE below

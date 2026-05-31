@@ -10,6 +10,7 @@ const usersData = {
     roleId: usersRoles.driverRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
     documentAndVehicleOfDriver: null,
+    token:null,
   },
   shipper: {
     fullName: "Test Shipper", // Schema expects fullName, not full_name
@@ -17,6 +18,7 @@ const usersData = {
     phoneNumber: "+251992222222",
     roleId: usersRoles.shipperRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
+    token:null,
   },
   admin: {
     fullName: "Test Admin", // Schema expects fullName, not full_name
@@ -24,7 +26,8 @@ const usersData = {
     phoneNumber: "+251993333333",
     roleId: usersRoles.adminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     statusId: 1, // USER_STATUS.ACTIVE
-    OTP: 101010, // Schema requires an OTP for verification}
+    OTP: 101010, // Schema requires an OTP for verification},
+    token:null,
   },
   companyAdmin: {
     fullName: "Test Company Admin", // Schema expects fullName, not full_name
@@ -32,11 +35,18 @@ const usersData = {
     phoneNumber: "+251994444444",
     roleId: usersRoles.companyAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
-    bids:{availableBids: null,
-    submittedBid: null,
+    token:null,
+    bids:{
+      availableBids: null,
+    submitted: null,
     companies: null,
-    acceptedByShipperBids: null,
-    acceptedByCompanyBids: null,}
+    accepted_by_shipper: null,
+    acceptedByCompanyBids: null,
+    rejected_by_shipper:null,
+    cancelled_by_company:null
+  
+  },
+  token:null,
   },
   supperAdmin: {
     fullName: "Test Supper Admin", // Schema expects fullName, not full_name
@@ -45,6 +55,7 @@ const usersData = {
     roleId: usersRoles.supperAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
   },
+  token:null,
 };
 const unAuthorizedDriver = { driver: null };
 const shipperRequestStatusData = { data: null };
