@@ -4,21 +4,26 @@ const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
 
+const logCompanyProfileError = (message, error) => {
+  console.error(
+    `CompanyProfileError: ${message}`,
+    error?.response?.data?.error || error?.message || error,
+  );
+};
+
 const createCompanies = async ({ userType = "companyAdmin" }) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ Company Admin login failed, no token found.");
-    return;
+    logCompanyProfileError("Company admin token missing for company creation.");
+    return null;
   }
   const config = {
     headers: { Authorization: `Bearer ${token}` },
   };
   const url = backendURL + "/api/company/companies";
   const payload = usersData.company;
-  //first check if there is a company before from saved values
   const companies = usersData["companyAdmin"]["companies"];
   if (companies && companies.length > 0) {
-    //map over companies and check if there is a company with the same registration number or email or phone or name
     const existingCompany = companies.find(
       (c) =>
         c.companyRegistrationNumber === payload.companyRegistrationNumber ||
@@ -27,35 +32,25 @@ const createCompanies = async ({ userType = "companyAdmin" }) => {
         c.companyName === payload.companyName,
     );
     if (existingCompany) {
-      console.log("✅ Company already exists, skipping creation.");
       return companies[0];
     }
   }
   try {
     const res = await axios.post(url, payload, config);
-    console.log("✅ Success! Companies created.");
-    //fetch fresh companies after creation
     await getCompanies({ userType: "companyAdmin" });
-
     return res.data;
   } catch (error) {
-    console.log("❌ Failed to create companies.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyProfileError("Failed to create companies.", error);
     return null;
   }
 };
 const getCompanies = async ({ userType = "companyAdmin" }) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌get companies failed, no token found.");
-    return;
+    logCompanyProfileError(
+      "Company admin token missing for fetching companies.",
+    );
+    return null;
   }
   const config = {
     headers: { Authorization: `Bearer ${token}` },
@@ -65,35 +60,25 @@ const getCompanies = async ({ userType = "companyAdmin" }) => {
     usersData["companyAdmin"]["companies"] = res.data.data;
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to get companies.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyProfileError("Failed to get companies.", error);
     return null;
   }
 };
 
 const approveCompanyStatus = async ({ userType = "admin" }) => {
-  // {{url}}/api/company/companies/:companyUniqueId/approve
   const token = usersData?.admin?.token;
   if (!token) {
-    console.log("❌ admin can't approve documents, no token found.");
-    return;
+    logCompanyProfileError("Admin token missing for company status approval.");
+    return null;
   }
 
   const company = usersData?.companyAdmin?.companies?.[0];
   if (!company) {
-    console.log("❌ No company found to approve documents.");
-    return;
+    logCompanyProfileError("Company record missing for status approval.");
+    return null;
   }
-  // check if company is already approved not to re-approve
+
   if (company.approvalStatus === "approved") {
-    console.log("✅ Company is already approved, skipping approval.");
     return company;
   }
   const url =
@@ -109,30 +94,20 @@ const approveCompanyStatus = async ({ userType = "admin" }) => {
       },
       config,
     );
-    console.log("✅ Success! Company Documents approved.");
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to approve Company Documents.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyProfileError("Failed to approve company status.", error);
     return null;
   }
 };
 
 const getAttachableDocuments = async ({ userType = "companyAdmin" }) => {
-  // {{url}}/api/RoleDocumentRequirements?roleId=8
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log(
-      "❌ get Company Admin document attachment failed, no token found.",
+    logCompanyProfileError(
+      "Company admin token missing for attachment requirements.",
     );
-    return;
+    return [];
   }
   const config = {
     headers: { Authorization: `Bearer ${token}` },
@@ -140,19 +115,10 @@ const getAttachableDocuments = async ({ userType = "companyAdmin" }) => {
   const url = backendURL + "/api/RoleDocumentRequirements?roleId=8";
   try {
     const res = await axios.get(url, config);
-    console.log("✅ Success! Attachments fetched.");
-    return res.data.data;
+    return res.data.data || [];
   } catch (error) {
-    console.log("❌ Failed to get attachments.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
-    return null;
+    logCompanyProfileError("Failed to fetch attachment requirements.", error);
+    return [];
   }
 };
 //note we can use only one endpoint source endpoints
@@ -160,15 +126,15 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
   try {
     const token = usersData?.[userType]?.token;
     if (!token) {
-      console.log(
-        "❌ Company Admin document attachment failed, no token found.",
+      logCompanyProfileError(
+        "Company admin token missing for document attachment.",
       );
       return;
     }
 
     const company = usersData?.[userType]?.companies?.[0];
     if (!company) {
-      console.log("❌ No company found to attach documents to.");
+      logCompanyProfileError("Company record missing for document attachment.");
       return;
     }
 
@@ -225,34 +191,16 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
       };
 
       try {
-        const res = await axios.post(url, form, config);
-        console.log(
-          `✅ Success! Attached Company Document: ${documentType.documentTypeName}`,
-        );
+        await axios.post(url, form, config);
       } catch (error) {
-        console.log(
-          `❌ Failed to attach Company Document: ${documentType.documentTypeName}`,
+        logCompanyProfileError(
+          `Failed to attach company document: ${documentType.documentTypeName}`,
+          error,
         );
-        if (error.response) {
-          console.log(
-            "Server responded with:",
-            error.response.data.error?.details || error.response.data,
-          );
-        } else {
-          console.log("Raw Error:", error.message);
-        }
       }
     }
   } catch (error) {
-    console.log("❌ Error attaching company documents.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyProfileError("Error attaching company documents.", error);
   }
 };
 const approveCompanyDocuments = async ({ userType = "admin" }) => {
@@ -282,13 +230,8 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
     );
 
     if (pendingDocuments.length === 0) {
-      console.log("⏩ No pending company documents to approve.");
       return;
     }
-
-    console.log(
-      `📋 Found ${pendingDocuments.length} pending company documents to approve`,
-    );
 
     const url = backendURL + `/api/admin/acceptRejectAttachedDocuments`;
     const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -301,17 +244,19 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
           action: "ACCEPTED",
           reason: "Document is valid and accepted.",
         };
-        await axios.put(url, payload, config);
-        console.log(
-          `✅ Approved company doc: ${doc.documentTypeName || doc.attachedDocumentUniqueId}`,
-        );
+        try {
+          await axios.put(url, payload, config);
+        } catch (error) {
+          logCompanyProfileError(
+            `Failed to approve attached document: ${doc.attachedDocumentUniqueId}`,
+            error,
+          );
+          throw error;
+        }
       }),
     );
   } catch (error) {
-    console.error(
-      "❌ Error approving company documents:",
-      error.response?.data?.error || error.message,
-    );
+    logCompanyProfileError("Error approving company documents.", error);
     throw error;
   }
 };
@@ -322,8 +267,8 @@ const getAttachedDocumentsOfCompanies = async ({
     // use {{url}}/api/company/attachedDocuments/:companyUniqueId to fetch company attached documents
     const token = usersData?.[userType]?.token;
     if (!token) {
-      console.log(
-        "❌ Company Admin get attached documents failed, no token found.",
+      logCompanyProfileError(
+        "Company admin token missing for fetching attached documents.",
       );
       return [];
     }
@@ -340,15 +285,7 @@ const getAttachedDocumentsOfCompanies = async ({
       ? responseData
       : responseData?.documents || responseData?.data || [];
   } catch (error) {
-    console.log("❌ Failed to get attached documents.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyProfileError("Failed to fetch attached documents.", error);
     return [];
   }
 };
@@ -356,27 +293,15 @@ const initiateCompanyProfileSetupWorkFlow = async ({
   userType = "companyAdmin",
 }) => {
   try {
-    // await testLoginUser({ userType });
     await getCompanies({ userType });
-    //attach company documents//create companies
     await createCompanies({ userType });
     await getAttachedDocumentsOfCompanies({ userType });
-    //attach company documents
     await attachCompanyDocuments({ userType });
-    //approve company documents by system admin not by company admin
     await approveCompanyDocuments({ userType: "admin" });
-    // //approve company status by system admin not by company admin
     await approveCompanyStatus({ userType: "admin" });
   } catch (error) {
-    console.log("❌ Error initiating company profile setup workflow.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyProfileError("Company profile setup workflow failed.", error);
+    throw error;
   }
 };
 //set admin token to make approval

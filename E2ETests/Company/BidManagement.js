@@ -8,19 +8,27 @@ const {
 const { assignDrivers } = require("./AssignDrivers");
 const { assignVehicleToCompany } = require("./CompanyVehicle");
 const { testDriverOnboardingFlow } = require("../Driver");
+
+const logCompanyError = (message, error) => {
+  console.error(
+    `CompanyFlowError: ${message}`,
+    error?.response?.data?.error || error?.message || error,
+  );
+};
+
 const getBids = async ({
   userType = "companyAdmin",
   bidStatus = "submitted",
 }) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ Company getBids failed, no token found.");
-    return;
+    logCompanyError("Company getBids failed, no token found.");
+    return null;
   }
   const company = usersData?.[userType]?.companies?.[0];
   if (!company) {
-    console.log("❌ No company found to get bids for.");
-    return;
+    logCompanyError("No company found to get bids for.");
+    return null;
   }
   const baseUrl =
     backendURL +
@@ -37,16 +45,15 @@ const getAvailableBids = async ({
   userType = "companyAdmin",
   bidStatus = "submitted",
 }) => {
-  //   {{url}}/api/company/bids?target=available&companyUniqueId=40dc4875-02e3-4b96-970b-916e2076656e;
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ Company getAvailableBids failed, no token found.");
-    return;
+    logCompanyError("Company admin token missing for available bids.");
+    return null;
   }
   const company = usersData?.[userType]?.companies?.[0];
   if (!company) {
-    console.log("❌ No company found to get available bids for.");
-    return;
+    logCompanyError("Company record missing for available bids.");
+    return null;
   }
   const url =
     backendURL +
@@ -57,41 +64,23 @@ const getAvailableBids = async ({
   };
   try {
     const res = await axios.get(url, config);
-    console.log(
-      "✅ Success! Available bids fetched. res.data.data",
-      res.data.data,
-    );
     if (usersData[userType]) usersData[userType].availableBids = res.data.data;
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to get available bids.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Failed to fetch available bids.", error);
     return null;
   }
 };
 const participateInBid = async ({ userType = "companyAdmin" }) => {
-  // post   {{url}}/api/company/bids
-  //   const payload = {
-  //     shipperRequestBatchId: "ef5bc758-b85f-4de6-a750-855c79643723",
-  //     companyUniqueId: "40dc4875-02e3-4b96-970b-916e2076656e",
-  //     proposedCostPerVehicle: "90000",
-  //   };
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ Company Admin login failed, no token found.");
-    return;
+    logCompanyError("Company admin token missing for bid participation.");
+    return null;
   }
   const bid = usersData?.[userType]?.availableBids?.[0];
   if (!bid) {
-    console.log("❌ No bid found to participate in.");
-    return;
+    logCompanyError("No available bid found for participation.");
+    return null;
   }
   const url = backendURL + COMPANY_BID_ENDPOINTS.CREATE_BID;
   const payload = {
@@ -104,36 +93,22 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
   };
   try {
     const res = await axios.post(url, payload, config);
-    console.log("✅ Success! Bid participated.");
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to participate in bid.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Failed to participate in bid.", error);
     return null;
   }
 };
 
 const acceptCompanyOffer = async ({ userType = "shipper", bid }) => {
-  console.log("🚀 ~ acceptCompanyOffer ~ bid:", bid);
-  // patch {{url}}/api/company/bids/:companyBidRequestUniqueId/status
   let token = usersData?.[userType]?.token;
   if (!token) {
     await testShipperOnboardingFlow({ userType: "shipper" });
-    // await testVerifyUserByOTP({ userType: "shipper" });
   }
   token = usersData?.[userType]?.token;
-  // const the_first_bid_offers = usersData?.["companyAdmin"]?.availableBids?.[0];
-  //   const bid = usersData?.[userType]?.bids?.[0];
   if (!bid) {
-    console.log("❌ No bid found to accept.");
-    return;
+    logCompanyError("No company bid passed to accept.");
+    return null;
   }
 
   const url =
@@ -151,18 +126,9 @@ const acceptCompanyOffer = async ({ userType = "shipper", bid }) => {
       { bidStatus: "accepted_by_shipper" },
       config,
     );
-    console.log("✅ Success! Company offer accepted.");
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to accept company offer.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Failed to accept company offer.", error);
     return null;
   }
 };
@@ -184,14 +150,13 @@ const initiateCompanyBiddingWorkFlow = async ({
     // get available bids to participate in
     const availableBids = await getAvailableBids({ userType });
     if (!availableBids || availableBids.length === 0) {
-      console.log("❌ No available bids found for company to participate in.");
+      logCompanyError("No available bids found for company participation.");
       return;
     }
 
-    // participate in the first available bid
     const bidResult = await participateInBid({ userType });
     if (!bidResult) {
-      console.log("❌ Company bid participation failed.");
+      logCompanyError("Company bid participation failed.");
       return;
     }
 
@@ -203,7 +168,7 @@ const initiateCompanyBiddingWorkFlow = async ({
     const bidToAccept = firstSubmittedBid?.offers?.[0] || firstSubmittedBid;
 
     if (!bidToAccept) {
-      console.log("❌ No submitted company bid found to accept.");
+      logCompanyError("No submitted company bid found to accept.");
       return;
     }
 
@@ -218,27 +183,15 @@ const initiateCompanyBiddingWorkFlow = async ({
 
     const first_accepted_bid = bidsAcceptedByShipper?.[0];
     if (!first_accepted_bid) {
-      console.log("❌ No accepted company bid found to assign drivers.");
+      logCompanyError("No accepted company bid found to assign drivers.");
       return;
     }
 
-    console.log(
-      "🚀 ~ initiateCompanyBiddingWorkFlow ~ first_accepted_bid:",
-      first_accepted_bid,
-    );
     await testDriverOnboardingFlow({});
     await assignVehicleToCompany({});
     await assignDrivers({ bid: first_accepted_bid });
   } catch (error) {
-    console.log("❌ Error initiating company bidding workflow.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Company bidding workflow failed.", error);
   }
 };
 module.exports = {

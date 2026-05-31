@@ -34,15 +34,10 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
     //set up bids
     await initiateCompanyBiddingWorkFlow({ userType });
   } catch (error) {
-    console.log("❌ Failed to create correct company workflows.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    console.error(
+      "CompanyWorkflowError: Failed to create correct company workflows.",
+      error?.response?.data?.error || error?.message || error,
+    );
   }
 };
 // if (require.main === module) {

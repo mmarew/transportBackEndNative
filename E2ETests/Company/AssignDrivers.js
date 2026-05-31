@@ -1,6 +1,15 @@
 const { usersData, backendURL } = require("../constants");
 const axios = require("axios");
-const { COMPANY_ASSIGNMENT_ENDPOINTS } = require("../../Routes/EndPoints/companyAssignment.endpoints");
+const {
+  COMPANY_ASSIGNMENT_ENDPOINTS,
+} = require("../../Routes/EndPoints/companyAssignment.endpoints");
+
+const logCompanyError = (message, error) => {
+  console.error(
+    `CompanyAssignmentError: ${message}`,
+    error?.response?.data?.error || error?.message || error,
+  );
+};
 
 /**
  * Auto-assigns available drivers and vehicles to all open slots
@@ -11,14 +20,15 @@ const { COMPANY_ASSIGNMENT_ENDPOINTS } = require("../../Routes/EndPoints/company
 const assignDrivers = async ({ bid }) => {
   const token = usersData?.companyAdmin?.token;
   if (!token) {
-    console.log("❌ assignDrivers failed, no token found.");
-    return;
+    logCompanyError("assignDrivers failed, no token found.");
+    return null;
   }
-const companyBidRequestUniqueId=bid.offers?.[0]?.companyBidRequestUniqueId
-  console.log("🚀 ~ assignDrivers ~ companyBidRequestUniqueId:", companyBidRequestUniqueId)
+  const companyBidRequestUniqueId = bid.offers?.[0]?.companyBidRequestUniqueId;
   if (!companyBidRequestUniqueId) {
-    console.log("❌ assignDrivers failed, no companyBidRequestUniqueId in bid.");
-    return;
+    logCompanyError(
+      "assignDrivers failed, no companyBidRequestUniqueId in bid.",
+    );
+    return null;
   }
 
   const url = backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.AUTO_ASSIGN;
@@ -31,22 +41,9 @@ const companyBidRequestUniqueId=bid.offers?.[0]?.companyBidRequestUniqueId
 
   try {
     const res = await axios.post(url, payload, config);
-    console.log("✅ Success! Drivers auto-assigned.");
-    console.log(
-      `   Assigned: ${res.data.data?.assignedCount ?? "?"}, ` +
-      `Unassigned: ${res.data.data?.unassignedCount ?? "?"}`,
-    );
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to auto-assign drivers.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Failed to auto-assign drivers.", error);
     return null;
   }
 };

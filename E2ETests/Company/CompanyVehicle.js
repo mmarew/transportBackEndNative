@@ -1,6 +1,15 @@
 const { usersData, backendURL } = require("../constants");
 const axios = require("axios");
-const { COMPANY_VEHICLE_ENDPOINTS } = require("../../Routes/EndPoints/companyVehicle.endpoints");
+const {
+  COMPANY_VEHICLE_ENDPOINTS,
+} = require("../../Routes/EndPoints/companyVehicle.endpoints");
+
+const logCompanyError = (message, error) => {
+  console.error(
+    `CompanyVehicleError: ${message}`,
+    error?.response?.data?.error || error?.message || error,
+  );
+};
 
 /**
  * Assigns a driver's vehicle to the company fleet.
@@ -9,32 +18,33 @@ const { COMPANY_VEHICLE_ENDPOINTS } = require("../../Routes/EndPoints/companyVeh
 const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ assignVehicleToCompany failed, no token found.");
-    return;
+    logCompanyError("assignVehicleToCompany failed, no token found.");
+    return null;
   }
 
   const company = usersData?.companyAdmin?.companies?.[0];
   if (!company) {
-    console.log("❌ assignVehicleToCompany failed, no company found.");
-    return;
+    logCompanyError("assignVehicleToCompany failed, no company found.");
+    return null;
   }
 
-  const vehicleUniqueId = usersData?.driver?.accountData?.vehicle?.vehicleUniqueId;
-  console.log("🚀 ~ assignVehicleToCompany ~ usersData?.driver?.accountData:", usersData?.driver?.accountData.vehicle)
+  const vehicleUniqueId =
+    usersData?.driver?.accountData?.vehicle?.vehicleUniqueId;
   if (!vehicleUniqueId) {
-    console.log("❌ assignVehicleToCompany failed, no vehicleUniqueId found on driver.");
-    return;
+    logCompanyError(
+      "assignVehicleToCompany failed, no vehicleUniqueId found on driver.",
+    );
+    return null;
   }
-  //check if vehicle is assigned to protect double assignments, 
- const assignedVehicles = await getCompanyVehicles({});
- 
- // find if vehicleUniqueId is already in assignedVehicles
- for (const assignedVehicle of assignedVehicles || []) {
+  //check if vehicle is assigned to protect double assignments,
+  const assignedVehicles = await getCompanyVehicles({});
+
+  // find if vehicleUniqueId is already in assignedVehicles
+  for (const assignedVehicle of assignedVehicles || []) {
     if (assignedVehicle.vehicleUniqueId === vehicleUniqueId) {
-      console.log("⏩ Vehicle already assigned to company fleet, skipping.");
       return { message: "success", data: "vehicle already assigned before" };
     }
- }
+  }
   const url = backendURL + COMPANY_VEHICLE_ENDPOINTS.ASSIGN_VEHICLE;
   const payload = {
     companyUniqueId: company.companyUniqueId,
@@ -46,21 +56,11 @@ const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
 
   try {
     const res = await axios.post(url, payload, config);
-    console.log("✅ Success! Vehicle assigned to company fleet.");
-    // Store the assigned vehicle record for use in later steps (e.g. auto-assign)
     if (!usersData.companyAdmin.fleet) usersData.companyAdmin.fleet = [];
     usersData.companyAdmin.fleet.push(res.data.data);
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to assign vehicle to company fleet.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Failed to assign vehicle to company fleet.", error);
     return null;
   }
 };
@@ -71,14 +71,14 @@ const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
 const getCompanyVehicles = async ({ userType = "companyAdmin" } = {}) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ getCompanyVehicles failed, no token found.");
-    return;
+    logCompanyError("getCompanyVehicles failed, no token found.");
+    return [];
   }
 
   const company = usersData?.companyAdmin?.companies?.[0];
   if (!company) {
-    console.log("❌ getCompanyVehicles failed, no company found.");
-    return;
+    logCompanyError("getCompanyVehicles failed, no company found.");
+    return [];
   }
 
   const url =
@@ -91,20 +91,11 @@ const getCompanyVehicles = async ({ userType = "companyAdmin" } = {}) => {
 
   try {
     const res = await axios.get(url, config);
-    console.log("✅ Success! Company vehicles fetched.");
     usersData.companyAdmin.fleet = res.data.data;
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to get company vehicles.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
-    return null;
+    logCompanyError("Failed to get company vehicles.", error);
+    return [];
   }
 };
 
@@ -117,13 +108,15 @@ const removeVehicleFromCompany = async ({
 } = {}) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
-    console.log("❌ removeVehicleFromCompany failed, no token found.");
-    return;
+    logCompanyError("removeVehicleFromCompany failed, no token found.");
+    return null;
   }
 
   if (!companyVehicleUniqueId) {
-    console.log("❌ removeVehicleFromCompany failed, no companyVehicleUniqueId provided.");
-    return;
+    logCompanyError(
+      "removeVehicleFromCompany failed, no companyVehicleUniqueId provided.",
+    );
+    return null;
   }
 
   const url =
@@ -138,18 +131,9 @@ const removeVehicleFromCompany = async ({
 
   try {
     const res = await axios.delete(url, config);
-    console.log("✅ Success! Vehicle removed from company fleet.");
     return res.data.data;
   } catch (error) {
-    console.log("❌ Failed to remove vehicle from company fleet.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
-    } else {
-      console.log("Raw Error:", error.message);
-    }
+    logCompanyError("Failed to remove vehicle from company fleet.", error);
     return null;
   }
 };
