@@ -1,5 +1,6 @@
 const { usersData, backendURL } = require("../constants");
 const axios = require("axios");
+const { COMPANY_ASSIGNMENT_ENDPOINTS } = require("../../Routes/EndPoints/companyAssignment.endpoints");
 
 /**
  * Auto-assigns available drivers and vehicles to all open slots
@@ -13,15 +14,16 @@ const assignDrivers = async ({ bid }) => {
     console.log("❌ assignDrivers failed, no token found.");
     return;
   }
-
-  if (!bid?.companyBidRequestUniqueId) {
+const companyBidRequestUniqueId=bid.offers?.[0]?.companyBidRequestUniqueId
+  console.log("🚀 ~ assignDrivers ~ companyBidRequestUniqueId:", companyBidRequestUniqueId)
+  if (!companyBidRequestUniqueId) {
     console.log("❌ assignDrivers failed, no companyBidRequestUniqueId in bid.");
     return;
   }
 
-  const url = backendURL + "/api/company/assignments/auto";
+  const url = backendURL + COMPANY_ASSIGNMENT_ENDPOINTS.AUTO_ASSIGN;
   const payload = {
-    companyBidRequestUniqueId: bid.companyBidRequestUniqueId,
+    companyBidRequestUniqueId,
   };
   const config = {
     headers: { Authorization: `Bearer ${token}` },
