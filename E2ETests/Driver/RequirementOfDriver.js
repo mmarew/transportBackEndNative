@@ -86,8 +86,8 @@ const evaluateDriversDocumentVehicleRequirement = async () => {
 
   if (vehicleUniqueId && missingVehicleDocs.length > 0) {
     for (const documentType of missingVehicleDocs) {
-      await attachVehiclesDocuments(token, documentType, vehicleUniqueId);
-      uploadedDocumentTypeIds.add(documentType.documentTypeId); // Mark as uploaded
+      await attachVehiclesDocuments({ token, documentType, vehicleUniqueId });
+      uploadedDocumentTypeIds.add(documentType.documentTypeId);
     }
   } else if (vehicleUniqueId) {
     console.log("✅ All Vehicle Documents are already uploaded!");
