@@ -3,8 +3,7 @@ const { backendURL, usersData } = require("../constants");
 const {
   DATABASE_ENDPOINTS,
 } = require("../../Routes/EndPoints/database.endpoints");
-const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
-const { testLoginUser } = require("../Auth/LoginUser");
+const { testVerifyAndLoginUser } = require("../Auth");
 
 // Dev-only API key — must match API_KEY in your .env
 const DEV_API_KEY = process.env.API_KEY || "dev-api-key";
@@ -218,8 +217,7 @@ const resetDatabase = async () => {
   await dropTables();
   await createTables();
   // superAdmin must be verified + logged in before seed data can be installed
-  await testVerifyUserByOTP({ userType: "supperAdmin" });
-  await testLoginUser({ userType: "supperAdmin" });
+  await testVerifyAndLoginUser({ userType: "supperAdmin" });
   await installPredefinedData();
   console.log("✅ Database reset complete.");
   console.log(

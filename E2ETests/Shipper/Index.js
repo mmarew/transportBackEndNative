@@ -1,6 +1,4 @@
-const { testCreateUser } = require("../Auth/RegisterUser");
-const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
-const { testLoginUser } = require("../Auth/LoginUser");
+const { testAuthWorkFlow } = require("../Auth");
 const { usersData, backendURL } = require("../constants");
 const { createDriverDocument } = require("../Driver/DriversDocuments");
 const { createShipperRequestFlow } = require("./CreateShipperRequest");
@@ -33,9 +31,7 @@ const getShipperAccountData = async (token) => {
 const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   console.log("\n✅ ========== SHIPPER ONBOARDING FLOW STARTED ==========\n");
 
-  await testCreateUser({ userType });
-  await testVerifyUserByOTP({ userType });
-  await testLoginUser({ userType });
+  await testAuthWorkFlow({ userType });
 
   const token = usersData?.[userType]?.token;
   if (!token) {

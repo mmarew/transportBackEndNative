@@ -10,9 +10,9 @@ const usersData = {
     roleId: usersRoles.driverRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
     documentAndVehicleOfDriver: null,
-    token:null,
+    token: null,
     //accountData contains vehicle data, user data and other data
-    accountData:null
+    accountData: null,
   },
   shipper: {
     fullName: "Test Shipper", // Schema expects fullName, not full_name
@@ -20,7 +20,7 @@ const usersData = {
     phoneNumber: "+251992222222",
     roleId: usersRoles.shipperRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
-    token:null,
+    token: null,
   },
   admin: {
     fullName: "Test Admin", // Schema expects fullName, not full_name
@@ -29,7 +29,7 @@ const usersData = {
     roleId: usersRoles.adminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     statusId: 1, // USER_STATUS.ACTIVE
     OTP: 101010, // Schema requires an OTP for verification},
-    token:null,
+    token: null,
   },
   companyAdmin: {
     fullName: "Test Company Admin", // Schema expects fullName, not full_name
@@ -37,34 +37,33 @@ const usersData = {
     phoneNumber: "+251994444444",
     roleId: usersRoles.companyAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
-    token:null,
-    bids:{
+    token: null,
+    bids: {
       availableBids: null,
-    submitted: null,
-    companies: null,
-    accepted_by_shipper: null,
-    acceptedByCompanyBids: null,
-    rejected_by_shipper:null,
-    cancelled_by_company:null
-  
-  },
-  token:null,
+      submitted: null,
+      companies: null,
+      accepted_by_shipper: null,
+      acceptedByCompanyBids: null,
+      rejected_by_shipper: null,
+      cancelled_by_company: null,
+    },
+    token: null,
   },
   supperAdmin: {
     fullName: "Test Supper Admin", // Schema expects fullName, not full_name
-    // email: "testemail55@test.com",
+    email: "supperAdmin@supperAdmin.com",
     phoneNumber: "+251983222221",
     roleId: usersRoles.supperAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
     OTP: 101010, // Schema requires an OTP for verification}
   },
-  token:null,
-  company:  {
+  token: null,
+  company: {
     companyName: "company a",
     companyRegistrationNumber: `no-aa3a-${Date.now()}`,
     companyPhone: "+251922111111",
     companyEmail: `companya+${Date.now()}@gmail.com`,
     companyAddress: "Addis Ababa",
-  }
+  },
 };
 const unAuthorizedDriver = { driver: null };
 const shipperRequestStatusData = { data: null };

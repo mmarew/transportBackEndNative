@@ -1,9 +1,7 @@
 const axios = require("axios");
-const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
-const { testLoginUser } = require("../Auth/LoginUser");
+const { testVerifyAndLoginUser } = require("../Auth");
 const { usersData, backendURL } = require("../constants");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
-const { testAuthWorkFlow } = require("../Auth");
 
 const testCreateAdminFlow = async () => {
   console.log("\n✅ ========== CREATE ADMIN FLOW STARTED ==========\n");
@@ -31,8 +29,7 @@ const testCreateAdminFlow = async () => {
     console.log("✅ Admin Created by SuperAdmin");
 
     // Admin already exists, just verify & login (don't create again)
-    await testVerifyUserByOTP({ userType: "admin" });
-    await testLoginUser({ userType: "admin" });
+    await testVerifyAndLoginUser({ userType: "admin" });
 
     const adminToken = usersData?.admin?.token;
     if (!adminToken) {

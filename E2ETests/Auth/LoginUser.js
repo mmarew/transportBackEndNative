@@ -23,6 +23,7 @@ const testLoginUser = async ({ userType = "admin" }) => {
     } else {
       console.log("Raw Error:", error);
     }
+    throw error;
   }
 };
 module.exports = { testLoginUser };

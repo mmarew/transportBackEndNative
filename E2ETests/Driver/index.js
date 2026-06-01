@@ -1,6 +1,4 @@
-const { testCreateUser } = require("../Auth/RegisterUser");
-const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
-const { testLoginUser } = require("../Auth/LoginUser");
+const { testAuthWorkFlow } = require("../Auth");
 
 const {
   getDriversAccountData,
@@ -17,9 +15,7 @@ const {
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
-  await testCreateUser({ userType });
-  await testVerifyUserByOTP({ userType });
-  await testLoginUser({ userType });
+  await testAuthWorkFlow({ userType });
 
   const token = usersData?.[userType]?.token;
   if (!token) {

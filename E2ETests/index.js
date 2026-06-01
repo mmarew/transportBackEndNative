@@ -7,9 +7,7 @@ const { resetDatabase } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { createCompanyAdminFlow } = require("./Company");
-const { testVerifyUserByOTP } = require("./Auth/VerifyByOtp");
-const { testLoginUser } = require("./Auth/LoginUser");
-const { testAuthWorkFlow } = require("./Auth");
+const { testVerifyAndLoginUser } = require("./Auth");
 
 const initiateTest = async () => {
   try {
@@ -17,10 +15,10 @@ const initiateTest = async () => {
     // await resetDatabase();
     // superAdmin must be verified + logged in before seed data can be installed
 
-    await testAuthWorkFlow({ userType: "supperAdmin" });
+    await testVerifyAndLoginUser({ userType: "supperAdmin" });
 
     if (!usersData?.supperAdmin?.token) {
-      throw new Error("SuperAdmin token not set after resetDatabase()");
+      throw new Error("SuperAdmin token not set after verify/login");
     }
 
     // 2. Create admin user (superAdmin token already set by resetDatabase)
@@ -63,4 +61,15 @@ const initiateTest = async () => {
     process.exit(1);
   }
 };
-initiateTest();
+
+const runIterations = async () => {
+  for (let i = 1; i < 3; i++) {
+    console.log(`\n🔄 Starting E2E Test Iteration ${i}...\n`);
+    await initiateTest();
+  }
+};
+
+runIterations().catch((error) => {
+  console.error("\n❌ E2E iteration runner failed:", error);
+  process.exit(1);
+});
