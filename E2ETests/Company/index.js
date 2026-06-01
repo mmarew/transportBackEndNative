@@ -18,6 +18,7 @@ const {
   initiateCompanyProfileSetupWorkFlow,
 } = require("./CompanyProfileManagement");
 const { initiateCompanyBiddingWorkFlow } = require("./BidManagement");
+const { testAuthWorkFlow } = require("../Auth");
 
 // TODO: implement assignDriversToBid when the endpoint is ready
 
@@ -25,11 +26,13 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
   console.log("\n✅ ========== CREATE COMPANY ADMIN FLOW STARTED ==========\n");
   try {
     //set admin token to make approval
-    await testVerifyUserByOTP({ userType: "admin" });
+    // await testVerifyUserByOTP({ userType: "admin" });
     //create user company admin
-    await testCreateUser({ userType });
-    //verify user company admin
-    await testVerifyUserByOTP({ userType });
+    // await testCreateUser({ userType });
+    // //verify user company admin
+    // await testVerifyUserByOTP({ userType });
+
+    await testAuthWorkFlow({ userType });
     //setup companies profile
     await initiateCompanyProfileSetupWorkFlow({ userType });
     //set up bids

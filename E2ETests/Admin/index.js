@@ -30,8 +30,9 @@ const testCreateAdminFlow = async () => {
     );
     console.log("✅ Admin Created by SuperAdmin");
 
-    //verify admin
-    await testAuthWorkFlow({ userType: "admin" });
+    // Admin already exists, just verify & login (don't create again)
+    await testVerifyUserByOTP({ userType: "admin" });
+    await testLoginUser({ userType: "admin" });
 
     const adminToken = usersData?.admin?.token;
     if (!adminToken) {
