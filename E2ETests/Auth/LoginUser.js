@@ -3,7 +3,6 @@ const { usersData, backendURL } = require("../constants");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 
 const testLoginUser = async ({ userType = "admin" }) => {
-  console.log(`\n✅ ========== LOGIN USER (${userType}) STARTED ==========\n`);
   try {
     const payload = {
       email: usersData[userType].email,
@@ -14,9 +13,6 @@ const testLoginUser = async ({ userType = "admin" }) => {
     await axios.post(backendURL + AUTH_ENDPOINTS.LOGIN_USER, payload);
     // console.log("✅ Success! User Logged In:");
     // console.log(res.data);
-    console.log(
-      `\n✅ ========== LOGIN USER (${userType}) COMPLETED SUCCESSFULLY ==========\n`,
-    );
   } catch (error) {
     console.log("❌ Failed to login user.");
     if (error.response) {

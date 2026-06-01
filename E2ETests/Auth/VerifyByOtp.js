@@ -3,9 +3,6 @@ const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 const { usersData, backendURL } = require("../constants");
 
 const testVerifyUserByOTP = async ({ userType = "admin" }) => {
-  console.log(
-    `\n✅ ========== VERIFY USER BY OTP (${userType}) STARTED ==========\n`,
-  );
   try {
     const userData = usersData[userType];
     if (!userData) {
@@ -24,9 +21,6 @@ const testVerifyUserByOTP = async ({ userType = "admin" }) => {
 
     const token = res.data.token;
     usersData[userType].token = token; // Store globally so VehicleDriver.js can read it!
-    console.log(
-      `\n✅ ========== VERIFY USER BY OTP (${userType}) COMPLETED SUCCESSFULLY ==========\n`,
-    );
   } catch (error) {
     console.log("❌ Failed to verify user.");
     if (error.response) {
