@@ -1,6 +1,8 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const { DATABASE_ENDPOINTS } = require("../../Routes/EndPoints/database.endpoints");
+const {
+  DATABASE_ENDPOINTS,
+} = require("../../Routes/EndPoints/database.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testLoginUser } = require("../Auth/LoginUser");
 
@@ -91,13 +93,17 @@ const dropTables = async () => {
  * Requires admin token.
  */
 const installPredefinedData = async ({ force = false } = {}) => {
-    const tokenOfSupperAdmin=usersData.supperAdmin?.token;
+  const tokenOfSupperAdmin = usersData.supperAdmin?.token;
 
-
-    if(!tokenOfSupperAdmin){
-        console.log("🚀 ~ installPredefinedData ~ supper admin token not found to install predefined data:")
-        return {error:'supper admin token not found to install predefined data',message:"error"}
-    }
+  if (!tokenOfSupperAdmin) {
+    console.log(
+      "🚀 ~ installPredefinedData ~ supper admin token not found to install predefined data:",
+    );
+    return {
+      error: "supper admin token not found to install predefined data",
+      message: "error",
+    };
+  }
   const url =
     backendURL +
     DATABASE_ENDPOINTS.GET_INSTALL_PREDEFINED_DATA +
@@ -167,14 +173,23 @@ const seedTestDocument = async ({
   documentExpirationDate = null,
 }) => {
   if (!userUniqueId || !documentTypeId || !roleId) {
-    console.log("❌ seedTestDocument failed, userUniqueId, documentTypeId and roleId are required.");
+    console.log(
+      "❌ seedTestDocument failed, userUniqueId, documentTypeId and roleId are required.",
+    );
     return null;
   }
   const url = backendURL + DATABASE_ENDPOINTS.SEED_TEST_DOCUMENT;
-  const payload = { userUniqueId, documentTypeId, roleId, documentExpirationDate };
+  const payload = {
+    userUniqueId,
+    documentTypeId,
+    roleId,
+    documentExpirationDate,
+  };
   try {
     const res = await axios.post(url, payload, devConfig());
-    console.log(`✅ Test document seeded for user ${userUniqueId}, documentTypeId ${documentTypeId}.`);
+    console.log(
+      `✅ Test document seeded for user ${userUniqueId}, documentTypeId ${documentTypeId}.`,
+    );
     return res.data;
   } catch (error) {
     console.log("❌ Failed to seed test document.");
@@ -198,6 +213,7 @@ const seedTestDocument = async ({
  *   4. install predefined data (needs superAdmin token)
  */
 const resetDatabase = async () => {
+  console.log("\n✅ ========== RESET DATABASE STARTED ==========\n");
   console.log("🔄 Starting full database reset...");
   await dropTables();
   await createTables();
@@ -206,6 +222,9 @@ const resetDatabase = async () => {
   await testLoginUser({ userType: "supperAdmin" });
   await installPredefinedData();
   console.log("✅ Database reset complete.");
+  console.log(
+    "\n✅ ========== RESET DATABASE COMPLETED SUCCESSFULLY ==========\n",
+  );
 };
 module.exports = {
   createTables,

@@ -5,11 +5,14 @@ const { usersData, backendURL } = require("../constants");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
 
 const testCreateAdminFlow = async () => {
+  console.log("\n✅ ========== CREATE ADMIN FLOW STARTED ==========\n");
   // superAdmin is already verified + logged in by resetDatabase.
   // Just confirm the token is present before proceeding.
   const supperAdminToken = usersData?.supperAdmin?.token;
   if (!supperAdminToken) {
-    throw new Error("No supperAdmin token found. Make sure resetDatabase() ran first.");
+    throw new Error(
+      "No supperAdmin token found. Make sure resetDatabase() ran first.",
+    );
   }
   console.log("✅ SuperAdmin token confirmed.");
 
@@ -37,10 +40,16 @@ const testCreateAdminFlow = async () => {
       throw new Error("Failed to get Admin token after login");
     }
     console.log("✅ Admin token set successfully");
+    console.log(
+      "\n✅ ========== CREATE ADMIN FLOW COMPLETED SUCCESSFULLY ==========\n",
+    );
   } catch (error) {
     console.error("❌ Failed to create admin flow");
     if (error.response) {
-      console.error("Server error:", error.response.data.error?.details || error.response.data);
+      console.error(
+        "Server error:",
+        error.response.data.error?.details || error.response.data,
+      );
     } else {
       console.error("Error:", error.message);
     }

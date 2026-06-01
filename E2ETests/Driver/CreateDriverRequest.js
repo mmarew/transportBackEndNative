@@ -2,6 +2,9 @@ const axios = require("axios");
 const { backendURL } = require("../constants");
 
 const createDriverRequestFlow = async (token) => {
+  console.log(
+    "\n✅ ========== CREATE DRIVER REQUEST FLOW STARTED ==========\n",
+  );
   const config = {
     headers: { Authorization: `Bearer ${token}` },
   };
@@ -20,7 +23,7 @@ const createDriverRequestFlow = async (token) => {
     const res = await axios.post(
       backendURL + "/api/driver/request",
       payload,
-      config
+      config,
     );
 
     console.log("✅ Success! Driver Request Created (Auto-matching):");
@@ -29,16 +32,22 @@ const createDriverRequestFlow = async (token) => {
       console.log("Status:", res.data.status);
       console.log("Message:", res.data.message);
       if (res.data.shipper) {
-        console.log("Matched Shipper Request ID:", res.data.shipper.shipperRequestUniqueId);
+        console.log(
+          "Matched Shipper Request ID:",
+          res.data.shipper.shipperRequestUniqueId,
+        );
       }
     }
+    console.log(
+      "\n✅ ========== CREATE DRIVER REQUEST FLOW COMPLETED SUCCESSFULLY ==========\n",
+    );
     return res.data;
   } catch (error) {
     console.log("❌ Failed to create driver request.");
     if (error.response) {
       console.log(
         "Server responded with:",
-        error.response.data.error?.details || error.response.data
+        error.response.data.error?.details || error.response.data,
       );
     } else {
       console.log("Raw Error:", error.message);

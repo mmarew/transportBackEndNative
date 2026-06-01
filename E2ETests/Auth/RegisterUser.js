@@ -21,11 +21,15 @@ const getCreateUserPayload = ({ userType }) => {
 };
 
 const testCreateUser = async ({ userType = "admin" }) => {
+  console.log(`\n✅ ========== CREATE USER (${userType}) STARTED ==========\n`);
   try {
     const payload = getCreateUserPayload({ userType });
     await axios.post(backendURL + AUTH_ENDPOINTS.CREATE_USER, payload);
     // console.log("✅ Success! User Created:");
     // console.log(res.data);
+    console.log(
+      `\n✅ ========== CREATE USER (${userType}) COMPLETED SUCCESSFULLY ==========\n`,
+    );
   } catch (error) {
     console.log("❌ Failed to create user", userType);
     if (error.response) {

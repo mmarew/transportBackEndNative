@@ -16,6 +16,7 @@ const {
 } = require("./DriverJourneyStatus");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
+  console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
   await testCreateUser({ userType });
   await testVerifyUserByOTP({ userType });
   await testLoginUser({ userType });
@@ -75,6 +76,9 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
 
   //refetch data to get updated journey status with accepted company assignment before accepting shipper request
   await getDriverJourneyStatus({ userType });
+  console.log(
+    "\n✅ ========== DRIVER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
+  );
 };
 
 module.exports = {

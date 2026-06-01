@@ -31,6 +31,7 @@ const getShipperAccountData = async (token) => {
 };
 
 const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
+  console.log("\n✅ ========== SHIPPER ONBOARDING FLOW STARTED ==========\n");
 
   await testCreateUser({ userType });
   await testVerifyUserByOTP({ userType });
@@ -63,6 +64,9 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
 
   // Verify Shipper Status and store it in constants
   await verifyShipperStatus(token);
+  console.log(
+    "\n✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
+  );
 };
 module.exports = {
   testShipperOnboardingFlow,
