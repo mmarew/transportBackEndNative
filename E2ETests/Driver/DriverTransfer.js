@@ -8,8 +8,8 @@ const authConfig = (token) => ({
 
 const resolveDriverUserUniqueId = async ({ userType = "driver" } = {}) => {
   const userData = usersData[userType];
-  if (userData?.accountData?.userUniqueId) {
-    return userData.accountData.userUniqueId;
+  if (userData?.accountData?.userData?.userUniqueId) {
+    return userData.accountData.userData.userUniqueId;
   }
 
   if (!userData?.token) {
@@ -17,11 +17,11 @@ const resolveDriverUserUniqueId = async ({ userType = "driver" } = {}) => {
   }
 
   const accountData = await getDriversAccountData({ token: userData.token });
-  if (!accountData?.userUniqueId) {
+  if (!accountData?.userData?.userUniqueId) {
     throw new Error("Unable to resolve driver userUniqueId from account data");
   }
 
-  return accountData.userUniqueId;
+  return accountData.userData.userUniqueId;
 };
 
 const createDriverTransfer = async ({

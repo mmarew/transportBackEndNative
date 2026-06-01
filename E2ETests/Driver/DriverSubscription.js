@@ -91,8 +91,8 @@ const resolveDriverUniqueId = async ({ userType = "driver" } = {}) => {
     throw new Error(`Missing usersData for ${userType}`);
   }
 
-  if (userData.accountData?.userUniqueId) {
-    return userData.accountData.userUniqueId;
+  if (userData.accountData?.userData?.userUniqueId) {
+    return userData.accountData.userData.userUniqueId;
   }
 
   if (!userData.token) {
@@ -100,11 +100,11 @@ const resolveDriverUniqueId = async ({ userType = "driver" } = {}) => {
   }
 
   const accountData = await getDriversAccountData({ token: userData.token });
-  if (!accountData?.userUniqueId) {
+  if (!accountData?.userData?.userUniqueId) {
     throw new Error("Unable to resolve driverUniqueId from account data");
   }
 
-  return accountData.userUniqueId;
+  return accountData.userData.userUniqueId;
 };
 
 const createDriverSubscription = async ({
