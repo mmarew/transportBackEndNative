@@ -77,19 +77,19 @@ const createDriverDeposit = async ({
   if (!token) {
     throw new Error("Driver token is required to create a deposit.");
   }
+  const depositSourcesData = await getDepositSources({ userType });
+  const depositSources = depositSourcesData?.data || [];
+  if (depositSources.length === 0) {
+    throw new Error("No deposit sources available for the driver.");
+  }
+  const depositSourceUniqueId = depositSources?.[0]?.depositSourceUniqueId;
 
   const payload = {
     depositAmount,
     accountUniqueId,
     depositURL,
-    depositSourceUniqueId: "DEP-SRC-12345", // This can be any string for testing purposes
+    depositSourceUniqueId,
   };
-  //   {
-  //     "accountUniqueId": "f885eaa5-1a4b-4ea2-b48f-62f40e4e43d4",
-  //     "depositAmount": "60000",
-  //     "depositSourceUniqueId": "e7069b88-1315-4b6e-aa82-071e10883ce8",
-  //     "depositURL": "www.http://deposit123.co/1123?klkrlg1rfk5x9"
-  // }
 
   const res = await axios.post(
     `${backendURL}/api/finance/userDeposit`,
