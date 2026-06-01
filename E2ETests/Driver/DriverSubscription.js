@@ -11,8 +11,8 @@ const fetchSubscriptionPlanPricing = async (token) => {
     `${backendURL}/api/finance/subscriptionPlanPricing`,
     { ...authConfig(token), params: { limit: 1 } },
   );
-  const pricing = res.data?.data?.[0];
-  return pricing?.subscriptionPlanPricingUniqueId ? pricing : null;
+  const pricing = res.data?.data;
+  return pricing?.[0]?.subscriptionPlanPricingUniqueId ? pricing : null;
 };
 
 const createSubscriptionPlan = async ({
@@ -67,6 +67,7 @@ const resolveSubscriptionPlanPricingUniqueId = async ({
   }
 
   let pricing = await fetchSubscriptionPlanPricing(token);
+  console.log("🚀 ~ resolveSubscriptionPlanPricingUniqueId ~ pricing:", pricing)
   if (pricing) {
     return pricing.subscriptionPlanPricingUniqueId;
   }

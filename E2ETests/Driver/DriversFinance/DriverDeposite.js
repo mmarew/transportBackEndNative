@@ -20,7 +20,7 @@ const getAdminToken = () => {
 
 const approveDriversDeposit = async ({
   userDepositUniqueId,
-  updateData = { depositStatus: "APPROVED" },
+  updateData = { depositStatus: "approved" },
 } = {}) => {
   if (!userDepositUniqueId) {
     throw new Error("userDepositUniqueId is required to approve a deposit.");
