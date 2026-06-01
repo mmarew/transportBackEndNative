@@ -12,6 +12,7 @@ const fetchSubscriptionPlanPricing = async (token) => {
     { ...authConfig(token), params: { limit: 1 } },
   );
   const pricing = res.data?.data;
+  console.log("🚀 ~ fetchSubscriptionPlanPricing ~ pricing:", pricing);
   return pricing?.[0]?.subscriptionPlanPricingUniqueId ? pricing : null;
 };
 
@@ -67,7 +68,10 @@ const resolveSubscriptionPlanPricingUniqueId = async ({
   }
 
   let pricing = await fetchSubscriptionPlanPricing(token);
-  console.log("🚀 ~ resolveSubscriptionPlanPricingUniqueId ~ pricing:", pricing)
+  console.log(
+    "🚀 ~ resolveSubscriptionPlanPricingUniqueId ~ pricing:",
+    pricing,
+  );
   if (pricing) {
     return pricing.subscriptionPlanPricingUniqueId;
   }
