@@ -12,6 +12,11 @@ const {
   startJourney,
   completeJourney,
 } = require("./DriverJourneyStatus");
+const { testDriverBalanceFlow } = require("./DriverBalance");
+const { testDriverDepositFlow } = require("./DriverDeposite");
+const { testDriverTransferFlow } = require("./DriverTransfer");
+const { testDriverWalletFlow } = require("./DriverWallet");
+const { testDriverSubscriptionFlow } = require("./DriverSubscription");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
@@ -76,7 +81,25 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
     "\n✅ ========== DRIVER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
   );
 };
+const driversFinancialFlows = async ({ userType = "driver" }) => {
+  console.log("\n✅ ========== DRIVER FINANCIAL FLOWS STARTED ==========\n");
+  await testDriverBalanceFlow({ userType });
+  await testDriverDepositFlow({ userType });
+  await testDriverSubscriptionFlow({ userType });
+  await testDriverTransferFlow({ userType });
+  await testDriverWalletFlow({ userType });
+  console.log(
+    "\n✅ ========== DRIVER FINANCIAL FLOWS COMPLETED SUCCESSFULLY ==========\n",
+  );
+};
 
 module.exports = {
+  driversFinancialFlows,
   testDriverOnboardingFlow,
+  testDriverBalanceFlow: require("./DriverBalance").testDriverBalanceFlow,
+  testDriverDepositFlow: require("./DriverDeposite").testDriverDepositFlow,
+  testDriverSubscriptionFlow: require("./DriverSubscription")
+    .testDriverSubscriptionFlow,
+  testDriverTransferFlow: require("./DriverTransfer").testDriverTransferFlow,
+  testDriverWalletFlow: require("./DriverWallet").testDriverWalletFlow,
 };

@@ -1,4 +1,4 @@
-const { testDriverOnboardingFlow } = require("./Driver");
+const { testDriverOnboardingFlow, driversFinancialFlows } = require("./Driver");
 const { testShipperOnboardingFlow } = require("./Shipper/Index");
 const { createDriverRequestFlow } = require("./Driver/CreateDriverRequest");
 const { usersData } = require("./constants");
@@ -30,7 +30,8 @@ const initiateTest = async () => {
 
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
-
+    await driversFinancialFlows({ userType: "driver" });
+    return;
     if (!usersData?.driver?.token) {
       throw new Error("Driver token not set after testDriverOnboardingFlow()");
     }

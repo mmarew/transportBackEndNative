@@ -1,0 +1,147 @@
+const axios = require("axios");
+const { usersData, backendURL } = require("../constants");
+
+const authConfig = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
+
+const createFinancialInstitutionAccount = async ({
+  institutionName = "Test Bank",
+  accountNumber = `DEP-${Date.now()}`,
+  accountHolderName = "Test Driver",
+  userType = "driver",
+} = {}) => {
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to create a financial account.");
+  }
+
+  const payload = {
+    institutionName,
+    accountNumber,
+    accountHolderName,
+  };
+
+  const res = await axios.post(
+    `${backendURL}/api/finance/financialInstitutionAccount`,
+    payload,
+    authConfig(token),
+  );
+  console.log("✅ Created financial institution account", res.data?.data?.accountUniqueId);
+  return res.data;
+};
+
+const createDriverDeposit = async ({
+  depositAmount = 150,
+  accountUniqueId,
+  depositURL = "https://example.com/deposit-callback",
+  userType = "driver",
+} = {}) => {
+  if (!accountUniqueId) {
+    throw new Error("accountUniqueId is required to create a deposit.");
+  }
+
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to create a deposit.");
+  }
+
+  const payload = {
+    depositAmount,
+    accountUniqueId,
+    depositURL,
+  };
+
+  const res = await axios.post(
+    `${backendURL}/api/finance/userDeposit`,
+    payload,
+    authConfig(token),
+  );
+  console.log("✅ Created driver deposit", res.data?.data?.userDepositUniqueId);
+  return res.data;
+};
+
+const getDriverDeposits = async ({ userType = "driver", query = { userUniqueId: "self" } } = {}) => {
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to fetch deposits.");
+  }
+
+  const res = await axios.get(
+    `${backendURL}/api/finance/userDeposit`,
+    { ...authConfig(token), params: query },
+  );
+  console.log("✅ Fetched driver deposits", res.data?.data?.length || 0);
+  return res.data;
+};
+
+const updateDriverDeposit = async ({ userDepositUniqueId, updateData, userType = "driver" } = {}) => {
+  if (!userDepositUniqueId) {
+    throw new Error("userDepositUniqueId is required to update a deposit.");
+  }
+
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to update a deposit.");
+  }
+
+  const res = await axios.put(
+    `${backendURL}/api/finance/userDeposit/${userDepositUniqueId}`,
+    updateData,
+    authConfig(token),
+  );
+  console.log("✅ Updated driver deposit", userDepositUniqueId);
+  return res.data;
+};
+
+const deleteDriverDeposit = async ({ userDepositUniqueId, userType = "driver" } = {}) => {
+  if (!userDepositUniqueId) {
+    throw new Error("userDepositUniqueId is required to delete a deposit.");
+  }
+
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to delete a deposit.");
+  }
+
+  const res = await axios.delete(
+    `${backendURL}/api/finance/userDeposit/${userDepositUniqueId}`,
+    authConfig(token),
+  );
+  console.log("✅ Deleted driver deposit", userDepositUniqueId);
+  return res.data;
+};
+
+const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
+  console.log("\n✅ ========== DRIVER DEPOSIT FLOW STARTED ==========");
+
+  const accountPayload = await createFinancialInstitutionAccount({ userType });
+  const accountUniqueId = accountPayload?.data?.accountUniqueId;
+  if (!accountUniqueId) {
+    throw new Error("Financial account creation did not return accountUniqueId.");
+  }
+
+  const depositPayload = await createDriverDeposit({ accountUniqueId, userType });
+  const userDepositUniqueId = depositPayload?.data?.userDepositUniqueId;
+  if (!userDepositUniqueId) {
+    throw new Error("Deposit creation did not return userDepositUniqueId.");
+  }
+
+  await getDriverDeposits({ userType, query: { userUniqueId: "self" } });
+  await updateDriverDeposit({
+    userDepositUniqueId,
+    updateData: { depositStatus: "PENDING", depositURL: "https://example.com/updated-deposit" },
+    userType,
+  });
+  await deleteDriverDeposit({ userDepositUniqueId, userType });
+
+  console.log("✅ ========== DRIVER DEPOSIT FLOW COMPLETED ==========");
+  return { userDepositUniqueId, accountUniqueId };
+};
+
+module.exports = {
+  createFinancialInstitutionAccount,
+  createDriverDeposit,
+  getDriverDeposits,
+  updateDriverDeposit,
+  deleteDriverDeposit,
+  testDriverDepositFlow,
+};
