@@ -23,6 +23,7 @@ const {
   getFinancialInstitutionAccounts,
   createFinancialInstitutionAccount,
 } = require("./DriversFinance/FinancialInstitutions");
+const { getSubscriptionPlans } = require("./DriversFinance/SubscriptionPlan");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
@@ -97,6 +98,8 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   const financialInstitutionAccounts = await getFinancialInstitutionAccounts({
     userType,
   });
+
+  const subscriptionPlan = await getSubscriptionPlans({});
 
   // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
 
