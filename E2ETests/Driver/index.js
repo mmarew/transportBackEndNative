@@ -16,7 +16,9 @@ const { testDriverBalanceFlow } = require("./DriversFinance/DriverBalance");
 const { testDriverDepositFlow } = require("./DriversFinance/DriverDeposite");
 const { testDriverTransferFlow } = require("./DriversFinance/DriverTransfer");
 const { testDriverWalletFlow } = require("./DriversFinance/DriverWallet");
-const { testDriverSubscriptionFlow } = require("./DriverSubscription");
+const {
+  testDriverSubscriptionFlow,
+} = require("./DriversFinance/DriverSubscription");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
@@ -100,7 +102,7 @@ module.exports = {
     .testDriverBalanceFlow,
   testDriverDepositFlow: require("./DriversFinance/DriverDeposite")
     .testDriverDepositFlow,
-  testDriverSubscriptionFlow: require("./DriverSubscription")
+  testDriverSubscriptionFlow: require("./DriversFinance/DriverSubscription")
     .testDriverSubscriptionFlow,
   testDriverTransferFlow: require("./DriversFinance/DriverTransfer")
     .testDriverTransferFlow,
