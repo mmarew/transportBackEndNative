@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { usersData, backendURL } = require("../constants");
+const { usersData, backendURL } = require("../../constants");
 
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
@@ -10,7 +10,9 @@ const getAdminToken = () => {
   const supperAdminToken = usersData.supperAdmin?.token;
   if (adminToken) return adminToken;
   if (supperAdminToken) return supperAdminToken;
-  throw new Error("Admin or supperAdmin token is required for deposit source operations.");
+  throw new Error(
+    "Admin or supperAdmin token is required for deposit source operations.",
+  );
 };
 
 const createDepositSource = async ({
@@ -41,7 +43,9 @@ const getDepositSources = async () => {
 
 const getDepositSourceByUniqueId = async ({ depositSourceUniqueId }) => {
   if (!depositSourceUniqueId) {
-    throw new Error("depositSourceUniqueId is required to fetch a deposit source.");
+    throw new Error(
+      "depositSourceUniqueId is required to fetch a deposit source.",
+    );
   }
   const token = getAdminToken();
   const res = await axios.get(
@@ -57,7 +61,9 @@ const updateDepositSource = async ({
   updates = {},
 } = {}) => {
   if (!depositSourceUniqueId) {
-    throw new Error("depositSourceUniqueId is required to update a deposit source.");
+    throw new Error(
+      "depositSourceUniqueId is required to update a deposit source.",
+    );
   }
   const token = getAdminToken();
   const res = await axios.put(
@@ -71,7 +77,9 @@ const updateDepositSource = async ({
 
 const deleteDepositSource = async ({ depositSourceUniqueId } = {}) => {
   if (!depositSourceUniqueId) {
-    throw new Error("depositSourceUniqueId is required to delete a deposit source.");
+    throw new Error(
+      "depositSourceUniqueId is required to delete a deposit source.",
+    );
   }
   const token = getAdminToken();
   const res = await axios.delete(
@@ -88,7 +96,9 @@ const testDepositSourceFlow = async () => {
   const created = await createDepositSource();
   const depositSourceUniqueId = created?.data?.depositSourceUniqueId;
   if (!depositSourceUniqueId) {
-    throw new Error("Deposit source creation did not return depositSourceUniqueId.");
+    throw new Error(
+      "Deposit source creation did not return depositSourceUniqueId.",
+    );
   }
 
   await getDepositSources();

@@ -1,41 +1,37 @@
 "use strict";
 
-const {
-  pool
-} = require("../../Middleware/Database.config");
+const { pool } = require("../../Middleware/Database.config");
 
+const { fetchDepositData } = require("./helpers.service");
+const { currentDate } = require("../../Utils/CurrentDate");
 const {
-  currentDate
-} = require("../../Utils/CurrentDate");
-const {
-  prepareAndCreateNewBalance
+  prepareAndCreateNewBalance,
 } = require("../UserBalance.service/UserBalance.post.service");
-
 
 const AppError = require("../../Utils/AppError");
 
-const {
-  transactionStorage
-} = require("../../Utils/TransactionContext");
-
+const { transactionStorage } = require("../../Utils/TransactionContext");
 
 // Create
 
-const deleteUserDepositByUniqueId = async (userDepositUniqueId, userDepositDeletedBy) => {
+const deleteUserDepositByUniqueId = async (
+  userDepositUniqueId,
+  userDepositDeletedBy,
+) => {
   if (!userDepositUniqueId || !userDepositDeletedBy) {
     throw new AppError("Missing deposit ID or deleted by", 400);
   }
   const depositData = await fetchDepositData(userDepositUniqueId);
-  const {
-    depositAmount,
-    driverUniqueId,
-    depositStatus
-  } = depositData;
+  const { depositAmount, driverUniqueId, depositStatus } = depositData;
   const oldDepositAmount = Number(depositAmount);
   //use soft delete to delete the deposit
   const sql = `update UserDeposit SET userDepositDeletedAt = ?, userDepositDeletedBy = ?  WHERE userDepositUniqueId = ?`;
   const executor = transactionStorage.getStore() || pool;
-  const [result] = await executor.query(sql, [currentDate(), userDepositDeletedBy, userDepositUniqueId]);
+  const [result] = await executor.query(sql, [
+    currentDate(),
+    userDepositDeletedBy,
+    userDepositUniqueId,
+  ]);
   if (result.affectedRows === 0) {
     throw new AppError("Delete failed or deposit not found", 404);
   }
@@ -48,12 +44,12 @@ const deleteUserDepositByUniqueId = async (userDepositUniqueId, userDepositDelet
       transactionType: "Deposit",
       transactionUniqueId: userDepositUniqueId,
       userBalanceAdjustmentType: "reversal",
-      userBalanceCreatedBy: userDepositDeletedBy
+      userBalanceCreatedBy: userDepositDeletedBy,
     });
   }
   return {
     message: "success",
-    data: `Deleted: ${userDepositUniqueId}`
+    data: `Deleted: ${userDepositUniqueId}`,
   };
 };
 
@@ -136,8 +132,5 @@ const deleteUserDepositByUniqueId = async (userDepositUniqueId, userDepositDelet
  */
 
 module.exports = {
-  deleteUserDepositByUniqueId
+  deleteUserDepositByUniqueId,
 };
-
-
-const { fetchDepositData } = require("./read.service");

@@ -1,68 +1,12 @@
 const axios = require("axios");
-const { usersData, backendURL } = require("../constants");
+const { usersData, backendURL } = require("../../constants");
+const { getDepositSources } = require("./DepositSources ");
+const { getFinancialInstitutionAccounts } = require("./FinancialInstituitions");
 
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
 });
-const getDepositSources = async ({ userType = "driver" } = {}) => {
-  const token = usersData[userType]?.token;
-  if (!token) {
-    throw new Error("Driver token is required to fetch deposit sources.");
-  }
 
-  const res = await axios.get(
-    `${backendURL}/api/finance/depositSource`,
-    authConfig(token),
-  );
-  console.log("✅ Fetched deposit sources", res.data?.data?.length || 0);
-  return res.data;
-};
-const createFinancialInstitutionAccount = async ({
-  institutionName = "Test Bank",
-  accountNumber = `DEP-${Date.now()}`,
-  accountHolderName = "Test Driver",
-  userType = "driver",
-} = {}) => {
-  const token = usersData[userType]?.token;
-  if (!token) {
-    throw new Error("Driver token is required to create a financial account.");
-  }
-
-  const payload = {
-    institutionName,
-    accountNumber,
-    accountHolderName,
-  };
-
-  const res = await axios.post(
-    `${backendURL}/api/finance/financialInstitutionAccount`,
-    payload,
-    authConfig(token),
-  );
-  console.log(
-    "✅ Created financial institution account",
-    res.data?.data?.accountUniqueId,
-  );
-  return res.data;
-};
-const getFinancialInstitutionAccounts = async ({
-  userType = "driver",
-} = {}) => {
-  const token = usersData[userType]?.token;
-  if (!token) {
-    throw new Error("Driver token is required to fetch financial accounts.");
-  }
-
-  const res = await axios.get(
-    `${backendURL}/api/finance/financialInstitutionAccount`,
-    authConfig(token),
-  );
-  console.log(
-    "✅ Fetched financial institution accounts",
-    res.data?.data?.length || 0,
-  );
-  return res.data;
-};
 const createDriverDeposit = async ({
   depositAmount = 150,
   accountUniqueId,
@@ -204,7 +148,6 @@ const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
 };
 
 module.exports = {
-  createFinancialInstitutionAccount,
   createDriverDeposit,
   getDriverDeposits,
   updateDriverDeposit,

@@ -1,6 +1,6 @@
 const axios = require("axios");
-const { usersData, backendURL } = require("../constants");
-const { getDriversAccountData } = require("./RequirementOfDriver");
+const { usersData, backendURL } = require("../../constants");
+const { getDriversAccountData } = require("../RequirementOfDriver");
 
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },

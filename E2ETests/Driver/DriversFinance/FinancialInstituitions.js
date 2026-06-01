@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { usersData, backendURL } = require("../constants");
+const { usersData, backendURL } = require("../../constants");
 
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },

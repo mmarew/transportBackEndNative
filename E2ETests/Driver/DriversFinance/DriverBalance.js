@@ -1,6 +1,6 @@
 const axios = require("axios");
-const { usersData, backendURL } = require("../constants");
-const { getDriversAccountData } = require("./RequirementOfDriver");
+const { usersData, backendURL } = require("../../constants");
+const { getDriversAccountData } = require("../RequirementOfDriver");
 const { v4: uuidv4 } = require("uuid");
 
 const authConfig = (token) => ({
