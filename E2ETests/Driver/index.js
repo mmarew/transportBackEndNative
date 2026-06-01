@@ -110,17 +110,64 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     usersData[userType]?.token,
   );
   console.log("🚀 ~ driversFinancialFlows ~ planPricing:", planPricing);
-  subscriptionPlan.map(async (plan) => {
-    const newPlanPricing = await createSubscriptionPlanPricing({
-      subscriptionPlanUniqueId: plan?.subscriptionPlanUniqueId,
-      price: 500,
-      currency: "ETB",
-      durationInDays: 30,
-      token: usersData["admin"]?.token,
-      effectiveFrom: "2026-06-01",
-    });
-    console.log("🚀 ~ driversFinancialFlows ~ newPlanPricing:", newPlanPricing);
-  });
+
+  const pricingArray = Array.isArray(planPricing)
+    ? planPricing
+    : planPricing
+      ? [planPricing]
+      : [];
+
+  // Use for...of instead of map() to properly await each iteration
+  for (const plan of subscriptionPlan) {
+    const planUniqueId = plan?.subscriptionPlanUniqueId;
+    const price = 500;
+    const effectiveFrom = "2026-06-01";
+
+    // Check if pricing already exists for this plan with same price and date
+    const pricingExists = pricingArray.some(
+      (pricing) =>
+        pricing?.subscriptionPlanUniqueId === planUniqueId &&
+        pricing?.price === price &&
+        pricing?.effectiveFrom?.split("T")[0] === effectiveFrom,
+    );
+
+    if (pricingExists) {
+      console.log(
+        `⏭️  Pricing already exists for plan ${planUniqueId} on ${effectiveFrom} — skipping.`,
+      );
+      continue;
+    }
+
+    try {
+      const newPlanPricing = await createSubscriptionPlanPricing({
+        subscriptionPlanUniqueId: planUniqueId,
+        price,
+        currency: "ETB",
+        durationInDays: 30,
+        token: usersData["admin"]?.token,
+        effectiveFrom,
+      });
+      console.log(
+        `✅ Created pricing for plan ${planUniqueId}:`,
+        newPlanPricing?.data,
+      );
+    } catch (error) {
+      if (
+        error?.response?.data?.message?.includes(
+          "pricing configuration already exists",
+        )
+      ) {
+        console.log(
+          `⏭️  Pricing already exists for plan ${planUniqueId} — skipping.`,
+        );
+      } else {
+        console.error(
+          `❌ Failed to create pricing for plan ${planUniqueId}:`,
+          error?.response?.data || error.message,
+        );
+      }
+    }
+  }
   // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
 
   // await testDriverTransferFlow({ userType });
