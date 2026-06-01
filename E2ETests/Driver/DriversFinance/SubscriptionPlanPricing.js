@@ -1,3 +1,7 @@
+const { default: axios } = require("axios");
+const { backendURL } = require("../../constants");
+const { authConfig } = require("./DriverSubscription");
+
 //this is get plan pricing
 const fetchSubscriptionPlanPricing = async (token) => {
   const res = await axios.get(
@@ -5,8 +9,7 @@ const fetchSubscriptionPlanPricing = async (token) => {
     { ...authConfig(token), params: { limit: 1 } },
   );
   const pricing = res.data?.data;
-  console.log("🚀 ~ fetchSubscriptionPlanPricing ~ pricing:", pricing);
-  return pricing?.[0]?.subscriptionPlanPricingUniqueId ? pricing : null;
+  return pricing;
 };
 //this is create plan pricing
 const createSubscriptionPlanPricing = async ({
@@ -15,6 +18,7 @@ const createSubscriptionPlanPricing = async ({
   currency = "ETB",
   durationInDays = 30,
   token,
+  effectiveFrom,
 } = {}) => {
   if (!token) {
     throw new Error("Token is required to create subscription plan pricing.");
@@ -25,7 +29,13 @@ const createSubscriptionPlanPricing = async ({
 
   const res = await axios.post(
     `${backendURL}/api/finance/subscriptionPlanPricing`,
-    { subscriptionPlanUniqueId, price, currency, durationInDays },
+    {
+      subscriptionPlanUniqueId,
+      price,
+      currency,
+      durationInDays,
+      effectiveFrom,
+    },
     authConfig(token),
   );
 

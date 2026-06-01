@@ -24,6 +24,10 @@ const {
   createFinancialInstitutionAccount,
 } = require("./DriversFinance/FinancialInstitutions");
 const { getSubscriptionPlans } = require("./DriversFinance/SubscriptionPlan");
+const {
+  fetchSubscriptionPlanPricing,
+  createSubscriptionPlanPricing,
+} = require("./DriversFinance/SubscriptionPlanPricing");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
@@ -102,7 +106,21 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   const subscriptionPlan = await getSubscriptionPlans({
     token: usersData[userType]?.token,
   });
-
+  const planPricing = await fetchSubscriptionPlanPricing(
+    usersData[userType]?.token,
+  );
+  console.log("🚀 ~ driversFinancialFlows ~ planPricing:", planPricing);
+  subscriptionPlan.map(async (plan) => {
+    const newPlanPricing = await createSubscriptionPlanPricing({
+      subscriptionPlanUniqueId: plan?.subscriptionPlanUniqueId,
+      price: 500,
+      currency: "ETB",
+      durationInDays: 30,
+      token: usersData["admin"]?.token,
+      effectiveFrom: "2026-06-01",
+    });
+    console.log("🚀 ~ driversFinancialFlows ~ newPlanPricing:", newPlanPricing);
+  });
   // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
 
   // await testDriverTransferFlow({ userType });

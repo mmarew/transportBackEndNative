@@ -33,6 +33,7 @@ const getSubscriptionPlans = async ({ token, query = {} } = {}) => {
     ...authConfig(token),
     params: query,
   });
+  return res.data.data;
 };
 
 const updateSubscriptionPlan = async ({
