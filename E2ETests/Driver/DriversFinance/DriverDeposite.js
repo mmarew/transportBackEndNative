@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
 const { usersData, backendURL } = require("../../constants");
 const { getDepositSources } = require("./DepositSources ");
 const { getFinancialInstitutionAccounts } = require("./FinancialInstituitions");
@@ -56,7 +57,7 @@ const getUnAuthorizedDriverDeposits = async () => {
 const createDriverDeposit = async ({
   depositAmount = 150,
   accountUniqueId,
-  depositURL = "https://example.com/deposit-callback",
+  depositURL,
   userType = "driver",
 } = {}) => {
   if (!accountUniqueId) {
@@ -67,6 +68,12 @@ const createDriverDeposit = async ({
   if (!token) {
     throw new Error("Driver token is required to create a deposit.");
   }
+
+  // Generate unique deposit URL if not provided
+  if (!depositURL) {
+    depositURL = `https://example.com/deposit-callback?txn=${uuidv4()}`;
+  }
+
   const depositSourcesData = await getDepositSources({ userType });
   const depositSources = depositSourcesData?.data || [];
   if (depositSources.length === 0) {
