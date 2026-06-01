@@ -6,7 +6,47 @@ const { getFinancialInstitutionAccounts } = require("./FinancialInstituitions");
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
 });
+const approveDriversDeposit = async ({
+  userDepositUniqueId,
+  updateData = { depositStatus: "APPROVED" },
+} = {}) => {
+  if (!userDepositUniqueId) {
+    throw new Error("userDepositUniqueId is required to approve a deposit.");
+  }
 
+  const token = usersData.admin?.token || usersData.supperAdmin?.token;
+  if (!token) {
+    throw new Error(
+      "Admin or supperAdmin token is required to approve deposits.",
+    );
+  }
+
+  const res = await axios.put(
+    `${backendURL}/api/finance/userDeposit/${userDepositUniqueId}`,
+    updateData,
+    authConfig(token),
+  );
+  console.log("✅ Approved driver deposit", userDepositUniqueId);
+  return res.data;
+};
+const getUnAuthorizedDriverDeposits = async () => {
+  const token = usersData.admin?.token || usersData.supperAdmin?.token;
+  if (!token) {
+    throw new Error(
+      "Admin or supperAdmin token is required to fetch unauthorized deposits.",
+    );
+  }
+
+  const res = await axios.get(`${backendURL}/api/finance/userDeposit`, {
+    ...authConfig(token),
+    params: { depositStatus: "PENDING" },
+  });
+  console.log(
+    "✅ Fetched unauthorized driver deposits",
+    res.data?.data?.length || 0,
+  );
+  return res.data;
+};
 const createDriverDeposit = async ({
   depositAmount = 150,
   accountUniqueId,

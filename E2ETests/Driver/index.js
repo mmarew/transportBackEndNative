@@ -102,7 +102,8 @@ module.exports = {
     .testDriverDepositFlow,
   testDriverSubscriptionFlow: require("./DriverSubscription")
     .testDriverSubscriptionFlow,
-  testDriverTransferFlow: require("./DriverTransfer").testDriverTransferFlow,
+  testDriverTransferFlow: require("./DriversFinance/DriverTransfer")
+    .testDriverTransferFlow,
   testDriverWalletFlow: require("./DriversFinance/DriverWallet")
     .testDriverWalletFlow,
 };
