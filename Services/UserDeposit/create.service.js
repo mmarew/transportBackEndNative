@@ -1,32 +1,22 @@
 "use strict";
 
-const {
-  pool
-} = require("../../Middleware/Database.config");
-const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  currentDate
-} = require("../../Utils/CurrentDate");
+const { pool } = require("../../Middleware/Database.config");
+const { v4: uuidv4 } = require("uuid");
+const { currentDate } = require("../../Utils/CurrentDate");
 
 const {
-  sendSocketIONotificationToAdmin
+  sendSocketIONotificationToAdmin,
 } = require("../../Utils/Notifications");
-const {
-  getData
-} = require("../../CRUD/Read/ReadData");
+const { getData } = require("../../CRUD/Read/ReadData");
 const AppError = require("../../Utils/AppError");
 
-const {
-  transactionStorage
-} = require("../../Utils/TransactionContext");
+const { transactionStorage } = require("../../Utils/TransactionContext");
 const messageTypes = require("../../Utils/MessageTypes");
 
 // Create
 
 // Create
-const createUserDeposit = async data => {
+const createUserDeposit = async (data) => {
   const {
     userDepositUniqueId: provideduserDepositUniqueId,
     driverUniqueId,
@@ -36,7 +26,7 @@ const createUserDeposit = async data => {
     depositTime,
     depositURL,
     depositStatus,
-    userDepositCreatedBy
+    userDepositCreatedBy,
   } = data;
 
   // Use provided userDepositUniqueId if available, otherwise generate a new one
@@ -51,7 +41,10 @@ const createUserDeposit = async data => {
   // For manual deposits: accountUniqueId and depositTime are REQUIRED
   if (!isAutomatic) {
     if (!accountUniqueId) {
-      throw new AppError("accountUniqueId is required for manual deposits", 400);
+      throw new AppError(
+        "accountUniqueId is required for manual deposits",
+        400,
+      );
     }
     if (!depositTime) {
       throw new AppError("depositTime is required for manual deposits", 400);
@@ -76,11 +69,17 @@ const createUserDeposit = async data => {
     throw new AppError("Invalid driver unique ID", 400);
   }
   // Validate depositSourceUniqueId
-  if (typeof depositSourceUniqueId !== "string" || depositSourceUniqueId.length === 0) {
+  if (
+    typeof depositSourceUniqueId !== "string" ||
+    depositSourceUniqueId.length === 0
+  ) {
     throw new AppError("Invalid deposit source unique ID", 400);
   }
   // Validate accountUniqueId
-  if (accountUniqueId && (typeof accountUniqueId !== "string" || accountUniqueId.length === 0)) {
+  if (
+    accountUniqueId &&
+    (typeof accountUniqueId !== "string" || accountUniqueId.length === 0)
+  ) {
     throw new AppError("Invalid account unique ID", 400);
   }
 
@@ -89,18 +88,23 @@ const createUserDeposit = async data => {
     const existedURL = await getData({
       tableName: "UserDeposit",
       conditions: {
-        depositURL: depositURL
-      }
+        depositURL: depositURL,
+      },
     });
     if (existedURL?.length > 0) {
-      throw new AppError("Deposit URL already exists", 400);
+      return { message: "success", data: "Deposit URL already exists" };
+      // throw new AppError("Deposit URL already exists", 400);
     }
   }
 
   // Default depositStatus to "requested" for manual cases
   const finalDepositStatus = depositStatus || "requested";
-  const finalAccountUniqueId = isAutomatic ? accountUniqueId || null : accountUniqueId;
-  const finalDepositTime = isAutomatic ? depositTime || currentDate() : depositTime;
+  const finalAccountUniqueId = isAutomatic
+    ? accountUniqueId || null
+    : accountUniqueId;
+  const finalDepositTime = isAutomatic
+    ? depositTime || currentDate()
+    : depositTime;
 
   // Prepare SQL query
   const sql = `
@@ -117,7 +121,17 @@ const createUserDeposit = async data => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const executor = transactionStorage.getStore() || pool;
-  const [insertResult] = await executor.query(sql, [userDepositUniqueId, driverUniqueId, depositAmount, depositSourceUniqueId, finalAccountUniqueId, finalDepositTime, depositURL, finalDepositStatus, userDepositCreatedBy || driverUniqueId]);
+  const [insertResult] = await executor.query(sql, [
+    userDepositUniqueId,
+    driverUniqueId,
+    depositAmount,
+    depositSourceUniqueId,
+    finalAccountUniqueId,
+    finalDepositTime,
+    depositURL,
+    finalDepositStatus,
+    userDepositCreatedBy || driverUniqueId,
+  ]);
   if (!insertResult.affectedRows) {
     throw new AppError("Failed to insert deposit data", 500);
   }
@@ -126,27 +140,28 @@ const createUserDeposit = async data => {
   const fullData = await getUserDeposit({
     userDepositUniqueId,
     driverUniqueId,
-    limit: 1
+    limit: 1,
   });
-  const result = Array.isArray(fullData?.data) ? fullData.data[0] : fullData?.data;
+  const result = Array.isArray(fullData?.data)
+    ? fullData.data[0]
+    : fullData?.data;
   sendSocketIONotificationToAdmin({
     message: {
       message: "success",
       messageType: messageTypes?.create_deposit_By_driver,
-      data: result
-    }
+      data: result,
+    },
   });
   return {
     message: "success",
-    data: result
+    data: result,
   };
 };
 
 // Removed specialized GET helpers in favor of consolidated getUserDeposit
 
 module.exports = {
-  createUserDeposit
+  createUserDeposit,
 };
-
 
 const { getUserDeposit } = require("./read.service");

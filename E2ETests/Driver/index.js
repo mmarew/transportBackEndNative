@@ -18,6 +18,7 @@ const { testDriverTransferFlow } = require("./DriversFinance/DriverTransfer");
 const { testDriverWalletFlow } = require("./DriversFinance/DriverWallet");
 const {
   testDriverSubscriptionFlow,
+  createDriverSubscription,
 } = require("./DriversFinance/DriverSubscription");
 const {
   getFinancialInstitutionAccounts,
@@ -29,6 +30,13 @@ const {
   fetchSubscriptionPlanPricingByPlanId,
   createSubscriptionPlanPricing,
 } = require("./DriversFinance/SubscriptionPlanPricing");
+const {
+  createDriverDeposit,
+  approveDriversDeposit,
+} = require("./DriversFinance/DriverDeposit");
+const {
+  getUnAuthorizedDriverDeposits,
+} = require("./DriversFinance/DriverDeposit");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
@@ -100,12 +108,27 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   //create financial institution account as some of the financial flows require an existing account to work, and we want to have at least one account in place before testing those flows
   // await createFinancialInstitutionAccount({ userType });
 
+  const token = usersData[userType]?.token;
+
+  // Fetch driver account data to get driverUniqueId
+  const driverAccountData = await getDriversAccountData({ token });
+  console.log(
+    "🚀 ~ driversFinancialFlows ~ driverAccountData:",
+    driverAccountData,
+  );
+  const driverUniqueId = driverAccountData?.userData?.userUniqueId;
+  console.log("🚀 ~ driversFinancialFlows ~ driverUniqueId:", driverUniqueId);
+
   const financialInstitutionAccounts = await getFinancialInstitutionAccounts({
     userType,
   });
+  console.log(
+    "🚀 ~ driversFinancialFlows ~ financialInstitutionAccounts:",
+    financialInstitutionAccounts,
+  );
 
   const subscriptionPlan = await getSubscriptionPlans({
-    token: usersData[userType]?.token,
+    token,
   });
 
   // Generate a unique future date (today + 30 days) to avoid conflicts
@@ -114,8 +137,15 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   const effectiveFrom = futureDate.toISOString().split("T")[0];
 
   const price = 500;
-
+  // unregisteredPlans is a plan which doesn't have an active price now
   const unregisteredPlans = [];
+  const listOfPlanPricing = await fetchSubscriptionPlanPricing({
+    token: usersData["admin"]?.token,
+  });
+  console.log(
+    "🚀 ~ driversFinancialFlows ~ listOfPlanPricing:",
+    listOfPlanPricing,
+  );
   for (const plan of subscriptionPlan) {
     const planUniqueId = plan?.subscriptionPlanUniqueId;
     if (!planUniqueId) {
@@ -142,8 +172,10 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     }
   }
 
-    console.log("🚀 ~ driversFinancialFlows ~ unregisteredPlans:", unregisteredPlans)
-  
+  console.log(
+    "🚀 ~ driversFinancialFlows ~ unregisteredPlans:",
+    unregisteredPlans,
+  );
 
   for (const plan of unregisteredPlans) {
     const planUniqueId = plan?.subscriptionPlanUniqueId;
@@ -177,6 +209,36 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
       }
     }
   }
+
+  const depositPayload = {
+    depositAmount: 150,
+    accountUniqueId: financialInstitutionAccounts.data?.[0]?.accountUniqueId,
+    depositURL: "https://1example.com/driver-deposit-proof1",
+    userType: "driver",
+  };
+
+  const newDriverDeposit = await createDriverDeposit({
+    ...depositPayload,
+  });
+  //after driver make deposit, now let admin approve the deposit to move the flow forward
+  //get unauthorized deposits to find the unique id of the newly created deposit, then approve it
+  const unauthorizedDeposits = await getUnAuthorizedDriverDeposits();
+  console.log(
+    "🚀 ~ driversFinancialFlows ~ unauthorizedDeposits:",
+    unauthorizedDeposits,
+  );
+  unauthorizedDeposits?.data?.forEach(async (deposit) => {
+    const userDepositUniqueId = deposit?.userDepositUniqueId;
+    await approveDriversDeposit({ userDepositUniqueId });
+  });
+  //create subscription for the driver after deposit approval
+
+  await createDriverSubscription({
+    userType,
+    driverUniqueId,
+    subscriptionPlanPricingUniqueId:
+      listOfPlanPricing?.[1]?.subscriptionPlanPricingUniqueId,
+  });
   // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
 
   // await testDriverTransferFlow({ userType });

@@ -3,7 +3,7 @@ const { backendURL } = require("../../constants");
 const { authConfig } = require("./DriverSubscription");
 
 // this fetches subscription pricing list
-const fetchSubscriptionPlanPricing = async (token) => {
+const fetchSubscriptionPlanPricing = async ({ token }) => {
   const res = await axios.get(
     `${backendURL}/api/finance/subscriptionPlanPricing`,
     { ...authConfig(token), params: { limit: 100 } },

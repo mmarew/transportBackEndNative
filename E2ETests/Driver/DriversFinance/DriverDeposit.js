@@ -206,9 +206,12 @@ const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
 };
 
 module.exports = {
+  approveDriversDeposit,
+  getAdminToken,
   createDriverDeposit,
   getDriverDeposits,
   updateDriverDeposit,
   deleteDriverDeposit,
   testDriverDepositFlow,
+  getUnAuthorizedDriverDeposits,
 };
