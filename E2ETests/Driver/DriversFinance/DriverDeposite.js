@@ -6,6 +6,17 @@ const { getFinancialInstitutionAccounts } = require("./FinancialInstituitions");
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
 });
+
+const getAdminToken = () => {
+  const token = usersData.admin?.token || usersData.supperAdmin?.token;
+  if (!token) {
+    throw new Error(
+      "Admin or supperAdmin token is required for admin deposit operations.",
+    );
+  }
+  return token;
+};
+
 const approveDriversDeposit = async ({
   userDepositUniqueId,
   updateData = { depositStatus: "APPROVED" },
@@ -30,12 +41,7 @@ const approveDriversDeposit = async ({
   return res.data;
 };
 const getUnAuthorizedDriverDeposits = async () => {
-  const token = usersData.admin?.token || usersData.supperAdmin?.token;
-  if (!token) {
-    throw new Error(
-      "Admin or supperAdmin token is required to fetch unauthorized deposits.",
-    );
-  }
+  const token = getAdminToken();
 
   const res = await axios.get(`${backendURL}/api/finance/userDeposit`, {
     ...authConfig(token),
@@ -86,18 +92,26 @@ const createDriverDeposit = async ({
 
 const getDriverDeposits = async ({
   userType = "driver",
-  query = { userUniqueId: "self" },
+  query = { userUniqueId: "self", depositStatus: "requested,approved" },
+  admin = false,
 } = {}) => {
-  const token = usersData[userType]?.token;
+  const token = admin ? getAdminToken() : usersData[userType]?.token;
   if (!token) {
-    throw new Error("Driver token is required to fetch deposits.");
+    throw new Error(
+      admin
+        ? "Admin or supperAdmin token is required to fetch admin deposits."
+        : "Driver token is required to fetch deposits.",
+    );
   }
 
   const res = await axios.get(`${backendURL}/api/finance/userDeposit`, {
     ...authConfig(token),
     params: query,
   });
-  console.log("✅ Fetched driver deposits", res.data?.data?.length || 0);
+  console.log(
+    `✅ Fetched driver deposits${admin ? " (admin)" : ""}`,
+    res.data?.data?.length || 0,
+  );
   return res.data;
 };
 
@@ -172,15 +186,12 @@ const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
     throw new Error("Deposit creation did not return userDepositUniqueId.");
   }
 
-  await getDriverDeposits({ userType, query: { userUniqueId: "self" } });
-  await updateDriverDeposit({
-    userDepositUniqueId,
-    updateData: {
-      depositStatus: "PENDING",
-      depositURL: "https://example.com/updated-deposit",
-    },
-    userType,
+  await getDriverDeposits({
+    admin: true,
+    query: { userUniqueId: "self", depositStatus: "requested,approved" },
   });
+
+  await approveDriversDeposit({ userDepositUniqueId });
   await deleteDriverDeposit({ userDepositUniqueId, userType });
 
   console.log("✅ ========== DRIVER DEPOSIT FLOW COMPLETED ==========");
