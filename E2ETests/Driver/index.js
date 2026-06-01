@@ -239,10 +239,9 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     subscriptionPlanPricingUniqueId:
       listOfPlanPricing?.[1]?.subscriptionPlanPricingUniqueId,
   });
-  // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
 
-  // await testDriverTransferFlow({ userType });
-  // await testDriverWalletFlow({ userType });
+  await testDriverTransferFlow({ userType });
+  await testDriverWalletFlow({ userType });
   console.log(
     "\n✅ ========== DRIVER FINANCIAL FLOWS COMPLETED SUCCESSFULLY ==========\n",
   );
