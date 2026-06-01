@@ -26,6 +26,7 @@ const {
 const { getSubscriptionPlans } = require("./DriversFinance/SubscriptionPlan");
 const {
   fetchSubscriptionPlanPricing,
+  fetchSubscriptionPlanPricingByPlanId,
   createSubscriptionPlanPricing,
 } = require("./DriversFinance/SubscriptionPlanPricing");
 
@@ -106,38 +107,46 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   const subscriptionPlan = await getSubscriptionPlans({
     token: usersData[userType]?.token,
   });
-  const planPricing = await fetchSubscriptionPlanPricing(
-    usersData[userType]?.token,
-  );
-  console.log("🚀 ~ driversFinancialFlows ~ planPricing:", planPricing);
 
-  const pricingArray = Array.isArray(planPricing)
-    ? planPricing
-    : planPricing
-      ? [planPricing]
-      : [];
+  // Generate a unique future date (today + 30 days) to avoid conflicts
+  const today = new Date();
+  const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const effectiveFrom = futureDate.toISOString().split("T")[0];
 
-  // Use for...of instead of map() to properly await each iteration
+  const price = 500;
+
+  const unregisteredPlans = [];
   for (const plan of subscriptionPlan) {
     const planUniqueId = plan?.subscriptionPlanUniqueId;
-    const price = 500;
-    const effectiveFrom = "2026-06-01";
+    if (!planUniqueId) {
+      continue;
+    }
 
-    // Check if pricing already exists for this plan with same price and date
-    const pricingExists = pricingArray.some(
-      (pricing) =>
-        pricing?.subscriptionPlanUniqueId === planUniqueId &&
-        pricing?.price === price &&
-        pricing?.effectiveFrom?.split("T")[0] === effectiveFrom,
-    );
+    const existingPricing = await fetchSubscriptionPlanPricingByPlanId({
+      token: usersData[userType]?.token,
+      subscriptionPlanUniqueId: planUniqueId,
+      isActive: true,
+      date: effectiveFrom,
+    });
+
+    const pricingExists = Array.isArray(existingPricing)
+      ? existingPricing.length > 0
+      : !!existingPricing;
 
     if (pricingExists) {
       console.log(
         `⏭️  Pricing already exists for plan ${planUniqueId} on ${effectiveFrom} — skipping.`,
       );
-      continue;
+    } else {
+      unregisteredPlans.push(plan);
     }
+  }
 
+    console.log("🚀 ~ driversFinancialFlows ~ unregisteredPlans:", unregisteredPlans)
+  
+
+  for (const plan of unregisteredPlans) {
+    const planUniqueId = plan?.subscriptionPlanUniqueId;
     try {
       const newPlanPricing = await createSubscriptionPlanPricing({
         subscriptionPlanUniqueId: planUniqueId,
@@ -152,10 +161,10 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
         newPlanPricing?.data,
       );
     } catch (error) {
+      const errorMsg = error?.response?.data?.message || error.message || "";
       if (
-        error?.response?.data?.message?.includes(
-          "pricing configuration already exists",
-        )
+        errorMsg.includes("pricing configuration already exists") ||
+        errorMsg.includes("already an active pricing")
       ) {
         console.log(
           `⏭️  Pricing already exists for plan ${planUniqueId} — skipping.`,

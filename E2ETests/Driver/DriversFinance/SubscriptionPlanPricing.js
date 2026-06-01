@@ -2,14 +2,49 @@ const { default: axios } = require("axios");
 const { backendURL } = require("../../constants");
 const { authConfig } = require("./DriverSubscription");
 
-//this is get plan pricing
+// this fetches subscription pricing list
 const fetchSubscriptionPlanPricing = async (token) => {
   const res = await axios.get(
     `${backendURL}/api/finance/subscriptionPlanPricing`,
     { ...authConfig(token), params: { limit: 100 } },
   );
-  const pricing = res.data?.data;
-  return pricing;
+  return res.data?.data;
+};
+
+// fetch pricing for a specific plan, optionally filtered by active date
+const fetchSubscriptionPlanPricingByPlanId = async ({
+  token,
+  subscriptionPlanUniqueId,
+  isActive,
+  date,
+  limit = 100,
+} = {}) => {
+  if (!token) {
+    throw new Error("Token is required to fetch subscription plan pricing.");
+  }
+  if (!subscriptionPlanUniqueId) {
+    throw new Error(
+      "subscriptionPlanUniqueId is required to fetch plan pricing.",
+    );
+  }
+
+  const params = {
+    subscriptionPlanUniqueId,
+    limit,
+  };
+
+  if (isActive !== undefined) {
+    params.isActive = isActive;
+  }
+  if (date) {
+    params.date = date;
+  }
+
+  const res = await axios.get(
+    `${backendURL}/api/finance/subscriptionPlanPricing`,
+    { ...authConfig(token), params },
+  );
+  return res.data?.data;
 };
 //this is create plan pricing
 const createSubscriptionPlanPricing = async ({
@@ -168,6 +203,7 @@ const testSubscriptionPlanPricingFlow = async ({
 };
 module.exports = {
   fetchSubscriptionPlanPricing,
+  fetchSubscriptionPlanPricingByPlanId,
   createSubscriptionPlanPricing,
   updateSubscriptionPlanPricing,
   deleteSubscriptionPlanPricing,
