@@ -3,6 +3,7 @@ const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testLoginUser } = require("../Auth/LoginUser");
 const { usersData, backendURL } = require("../constants");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
+const { testAuthWorkFlow } = require("../Auth");
 
 const testCreateAdminFlow = async () => {
   console.log("\n✅ ========== CREATE ADMIN FLOW STARTED ==========\n");
@@ -29,11 +30,8 @@ const testCreateAdminFlow = async () => {
     );
     console.log("✅ Admin Created by SuperAdmin");
 
-    // 4. Verify Admin
-    await testVerifyUserByOTP({ userType: "admin" });
-
-    // 5. Login Admin
-    await testLoginUser({ userType: "admin" });
+    //verify admin
+    await testAuthWorkFlow({ userType: "admin" });
 
     const adminToken = usersData?.admin?.token;
     if (!adminToken) {

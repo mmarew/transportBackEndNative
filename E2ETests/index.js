@@ -9,14 +9,15 @@ const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { createCompanyAdminFlow } = require("./Company");
 const { testVerifyUserByOTP } = require("./Auth/VerifyByOtp");
 const { testLoginUser } = require("./Auth/LoginUser");
+const { testAuthWorkFlow } = require("./Auth");
 
 const initiateTest = async () => {
   try {
     // 1. Drop + recreate tables, verify+login superAdmin, install seed data
     // await resetDatabase();
     // superAdmin must be verified + logged in before seed data can be installed
-    await testVerifyUserByOTP({ userType: "supperAdmin" });
-    await testLoginUser({ userType: "supperAdmin" });
+
+    await testAuthWorkFlow({ userType: "supperAdmin" });
 
     if (!usersData?.supperAdmin?.token) {
       throw new Error("SuperAdmin token not set after resetDatabase()");
