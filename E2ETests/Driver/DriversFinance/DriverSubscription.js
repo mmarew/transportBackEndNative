@@ -155,6 +155,7 @@ const testDriverSubscriptionFlow = async ({ userType = "driver" } = {}) => {
 };
 
 module.exports = {
+  authConfig,
   createDriverSubscription,
   getDriverSubscriptions,
   updateDriverSubscription,

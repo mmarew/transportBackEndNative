@@ -99,7 +99,9 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     userType,
   });
 
-  const subscriptionPlan = await getSubscriptionPlans({});
+  const subscriptionPlan = await getSubscriptionPlans({
+    token: usersData[userType]?.token,
+  });
 
   // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
 
