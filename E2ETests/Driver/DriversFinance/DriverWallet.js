@@ -4,7 +4,7 @@ const { createDriverBalance } = require("./DriverBalance");
 const {
   createFinancialInstitutionAccount,
   createDriverDeposit,
-} = require("./DriverDeposite");
+} = require("./DriverDeposit");
 const {
   createDriverTransfer,
   getDriverTransfers,

@@ -13,7 +13,7 @@ const {
   completeJourney,
 } = require("./DriverJourneyStatus");
 const { testDriverBalanceFlow } = require("./DriversFinance/DriverBalance");
-const { testDriverDepositFlow } = require("./DriversFinance/DriverDeposite");
+const { testDriverDepositFlow } = require("./DriversFinance/DriverDeposit");
 const { testDriverTransferFlow } = require("./DriversFinance/DriverTransfer");
 const { testDriverWalletFlow } = require("./DriversFinance/DriverWallet");
 const {
@@ -100,7 +100,7 @@ module.exports = {
   testDriverOnboardingFlow,
   testDriverBalanceFlow: require("./DriversFinance/DriverBalance")
     .testDriverBalanceFlow,
-  testDriverDepositFlow: require("./DriversFinance/DriverDeposite")
+  testDriverDepositFlow: require("./DriversFinance/DriverDeposit")
     .testDriverDepositFlow,
   testDriverSubscriptionFlow: require("./DriversFinance/DriverSubscription")
     .testDriverSubscriptionFlow,

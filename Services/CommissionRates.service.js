@@ -1,7 +1,6 @@
-
-const { getAllCommissions } = require("./Commission.service");
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
+
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 // Create a commission rate
@@ -81,7 +80,10 @@ const createCommissionRate = async ({
 // Retrieve all commission rates with pagination and filtering
 const getAllCommissionRates = async (filters = {}) => {
   if (filters.commissionUniqueId) {
-    return await getAllCommissions({ commissionUniqueId: filters.commissionUniqueId });
+    const { getAllCommissions } = require("./Commission.service");
+    return await getAllCommissions({
+      commissionUniqueId: filters.commissionUniqueId,
+    });
   }
   const page = Number(filters.page) || 1;
   const limit = Math.min(Number(filters.limit) || 10, 100);
@@ -307,7 +309,11 @@ const deleteCommissionRateByUniqueId = async ({
     WHERE commissionRateUniqueId = ? AND commissionRateDeletedAt IS NULL
   `;
 
-  const values = [currentDate(), commissionRateDeletedBy, commissionRateUniqueId];
+  const values = [
+    currentDate(),
+    commissionRateDeletedBy,
+    commissionRateUniqueId,
+  ];
 
   const [result] = await executor.query(sqlDelete, values);
   if (result.affectedRows === 0) {
