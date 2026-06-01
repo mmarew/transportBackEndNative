@@ -60,10 +60,6 @@ const getFinancialInstitutionAccounts = async ({
     },
   );
 
-  console.log(
-    "✅ Fetched financial institution accounts",
-    res.data?.data?.length || 0,
-  );
   return res.data;
 };
 

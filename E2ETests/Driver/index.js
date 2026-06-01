@@ -19,6 +19,10 @@ const { testDriverWalletFlow } = require("./DriversFinance/DriverWallet");
 const {
   testDriverSubscriptionFlow,
 } = require("./DriversFinance/DriverSubscription");
+const {
+  getFinancialInstitutionAccounts,
+  createFinancialInstitutionAccount,
+} = require("./DriversFinance/FinancialInstitutions");
 
 const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER ONBOARDING FLOW STARTED ==========\n");
@@ -87,7 +91,15 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER FINANCIAL FLOWS STARTED ==========\n");
   // await testDriverBalanceFlow({ userType });
   // await testDriverDepositFlow({ userType });
-  await testDriverSubscriptionFlow({ userType });
+  //create financial institution account as some of the financial flows require an existing account to work, and we want to have at least one account in place before testing those flows
+  // await createFinancialInstitutionAccount({ userType });
+
+  const financialInstitutionAccounts = await getFinancialInstitutionAccounts({
+    userType,
+  });
+
+  // await testDriverSubscriptionFlow({ userType, financialInstitutionAccounts:financialInstitutionAccounts.data?.[0]});
+
   // await testDriverTransferFlow({ userType });
   // await testDriverWalletFlow({ userType });
   console.log(
