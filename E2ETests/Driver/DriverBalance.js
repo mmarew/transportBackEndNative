@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { usersData, backendURL } = require("../constants");
 const { getDriversAccountData } = require("./RequirementOfDriver");
+const { v4: uuidv4 } = require("uuid");
 
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
@@ -8,10 +9,7 @@ const authConfig = (token) => ({
 
 const resolveDriverUniqueId = async ({ userType = "driver" } = {}) => {
   const userData = usersData[userType];
-  console.log(
-    "🚀 ~ resolveDriverUniqueId ~ userData:",
-    JSON.stringify(userData),
-  );
+
   if (!userData) {
     throw new Error(`Missing usersData for ${userType}`);
   }
@@ -42,7 +40,13 @@ const createDriverBalance = async ({
   }
 
   const driverUniqueId = await resolveDriverUniqueId({ userType });
-  const payload = { amount, driverUniqueId };
+  const payload = {
+    amount,
+    driverUniqueId,
+    addOrDeduct: "add",
+    transactionUniqueId: uuidv4(),
+    transactionType: "Deposit",
+  };
   const res = await axios.post(
     `${backendURL}/api/finance/userBalance`,
     payload,

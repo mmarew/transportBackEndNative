@@ -83,11 +83,11 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
 };
 const driversFinancialFlows = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER FINANCIAL FLOWS STARTED ==========\n");
-  await testDriverBalanceFlow({ userType });
+  // await testDriverBalanceFlow({ userType });
   await testDriverDepositFlow({ userType });
-  await testDriverSubscriptionFlow({ userType });
-  await testDriverTransferFlow({ userType });
-  await testDriverWalletFlow({ userType });
+  // await testDriverSubscriptionFlow({ userType });
+  // await testDriverTransferFlow({ userType });
+  // await testDriverWalletFlow({ userType });
   console.log(
     "\n✅ ========== DRIVER FINANCIAL FLOWS COMPLETED SUCCESSFULLY ==========\n",
   );

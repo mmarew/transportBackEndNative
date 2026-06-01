@@ -1,8 +1,22 @@
 const axios = require("axios");
 const { usersData, backendURL } = require("../constants");
 
-const authConfig = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
+const authConfig = (token) => ({
+  headers: { Authorization: `Bearer ${token}` },
+});
+const getDepositSources = async ({ userType = "driver" } = {}) => {
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to fetch deposit sources.");
+  }
 
+  const res = await axios.get(
+    `${backendURL}/api/finance/depositSource`,
+    authConfig(token),
+  );
+  console.log("✅ Fetched deposit sources", res.data?.data?.length || 0);
+  return res.data;
+};
 const createFinancialInstitutionAccount = async ({
   institutionName = "Test Bank",
   accountNumber = `DEP-${Date.now()}`,
@@ -25,10 +39,30 @@ const createFinancialInstitutionAccount = async ({
     payload,
     authConfig(token),
   );
-  console.log("✅ Created financial institution account", res.data?.data?.accountUniqueId);
+  console.log(
+    "✅ Created financial institution account",
+    res.data?.data?.accountUniqueId,
+  );
   return res.data;
 };
+const getFinancialInstitutionAccounts = async ({
+  userType = "driver",
+} = {}) => {
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to fetch financial accounts.");
+  }
 
+  const res = await axios.get(
+    `${backendURL}/api/finance/financialInstitutionAccount`,
+    authConfig(token),
+  );
+  console.log(
+    "✅ Fetched financial institution accounts",
+    res.data?.data?.length || 0,
+  );
+  return res.data;
+};
 const createDriverDeposit = async ({
   depositAmount = 150,
   accountUniqueId,
@@ -48,7 +82,14 @@ const createDriverDeposit = async ({
     depositAmount,
     accountUniqueId,
     depositURL,
+    depositSourceUniqueId: "DEP-SRC-12345", // This can be any string for testing purposes
   };
+  //   {
+  //     "accountUniqueId": "f885eaa5-1a4b-4ea2-b48f-62f40e4e43d4",
+  //     "depositAmount": "60000",
+  //     "depositSourceUniqueId": "e7069b88-1315-4b6e-aa82-071e10883ce8",
+  //     "depositURL": "www.http://deposit123.co/1123?klkrlg1rfk5x9"
+  // }
 
   const res = await axios.post(
     `${backendURL}/api/finance/userDeposit`,
@@ -59,21 +100,28 @@ const createDriverDeposit = async ({
   return res.data;
 };
 
-const getDriverDeposits = async ({ userType = "driver", query = { userUniqueId: "self" } } = {}) => {
+const getDriverDeposits = async ({
+  userType = "driver",
+  query = { userUniqueId: "self" },
+} = {}) => {
   const token = usersData[userType]?.token;
   if (!token) {
     throw new Error("Driver token is required to fetch deposits.");
   }
 
-  const res = await axios.get(
-    `${backendURL}/api/finance/userDeposit`,
-    { ...authConfig(token), params: query },
-  );
+  const res = await axios.get(`${backendURL}/api/finance/userDeposit`, {
+    ...authConfig(token),
+    params: query,
+  });
   console.log("✅ Fetched driver deposits", res.data?.data?.length || 0);
   return res.data;
 };
 
-const updateDriverDeposit = async ({ userDepositUniqueId, updateData, userType = "driver" } = {}) => {
+const updateDriverDeposit = async ({
+  userDepositUniqueId,
+  updateData,
+  userType = "driver",
+} = {}) => {
   if (!userDepositUniqueId) {
     throw new Error("userDepositUniqueId is required to update a deposit.");
   }
@@ -92,7 +140,10 @@ const updateDriverDeposit = async ({ userDepositUniqueId, updateData, userType =
   return res.data;
 };
 
-const deleteDriverDeposit = async ({ userDepositUniqueId, userType = "driver" } = {}) => {
+const deleteDriverDeposit = async ({
+  userDepositUniqueId,
+  userType = "driver",
+} = {}) => {
   if (!userDepositUniqueId) {
     throw new Error("userDepositUniqueId is required to delete a deposit.");
   }
@@ -113,13 +164,25 @@ const deleteDriverDeposit = async ({ userDepositUniqueId, userType = "driver" } 
 const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
   console.log("\n✅ ========== DRIVER DEPOSIT FLOW STARTED ==========");
 
-  const accountPayload = await createFinancialInstitutionAccount({ userType });
-  const accountUniqueId = accountPayload?.data?.accountUniqueId;
+  //   const accountPayload = await createFinancialInstitutionAccount({ userType });
+  //   console.log("🚀 ~ testDriverDepositFlow ~ accountPayload:", accountPayload);
+  //   const accountUniqueId = accountPayload?.data?.accountUniqueId;
+  const financialAccounts = await getFinancialInstitutionAccounts({ userType });
+  console.log(
+    "🚀 ~ testDriverDepositFlow ~ financialAccounts:",
+    financialAccounts,
+  );
+  const accountUniqueId = financialAccounts?.data?.[0]?.accountUniqueId;
   if (!accountUniqueId) {
-    throw new Error("Financial account creation did not return accountUniqueId.");
+    throw new Error(
+      "Financial account creation did not return accountUniqueId.",
+    );
   }
 
-  const depositPayload = await createDriverDeposit({ accountUniqueId, userType });
+  const depositPayload = await createDriverDeposit({
+    accountUniqueId,
+    userType,
+  });
   const userDepositUniqueId = depositPayload?.data?.userDepositUniqueId;
   if (!userDepositUniqueId) {
     throw new Error("Deposit creation did not return userDepositUniqueId.");
@@ -128,7 +191,10 @@ const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
   await getDriverDeposits({ userType, query: { userUniqueId: "self" } });
   await updateDriverDeposit({
     userDepositUniqueId,
-    updateData: { depositStatus: "PENDING", depositURL: "https://example.com/updated-deposit" },
+    updateData: {
+      depositStatus: "PENDING",
+      depositURL: "https://example.com/updated-deposit",
+    },
     userType,
   });
   await deleteDriverDeposit({ userDepositUniqueId, userType });

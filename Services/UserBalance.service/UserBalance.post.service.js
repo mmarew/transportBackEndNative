@@ -3,7 +3,7 @@ const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
- 
+
 const getDriverLastBalance = async (driverUniqueId, connection = null) => {
   const sql = `
     SELECT *
@@ -78,6 +78,7 @@ const prepareAndCreateNewBalance = async ({
 };
 
 const createUserBalance = async (data, connection = null) => {
+  console.log("🚀 ~ createUserBalance ~ data:", data);
   const executor = transactionStorage.getStore() || connection || pool;
   // Verify existence of data transactionUniqueId in userBalance
   const transactionTime = currentDate();
