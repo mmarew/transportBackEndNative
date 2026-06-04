@@ -5,7 +5,7 @@ const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
 });
 
-const createFinancialInstitutionAccount = async ({
+const testCreateFinancialInstitutionAccount = async ({
   institutionName = "Test Bank",
   accountNumber = `ACC-${Date.now()}`,
   accountHolderName = "Test Driver",
@@ -148,7 +148,7 @@ const testFinancialInstitutionAccountsFlow = async ({
 };
 
 module.exports = {
-  createFinancialInstitutionAccount,
+  testCreateFinancialInstitutionAccount,
   getFinancialInstitutionAccounts,
   updateFinancialInstitutionAccount,
   deleteFinancialInstitutionAccount,

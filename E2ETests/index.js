@@ -32,6 +32,8 @@ const initiateTest = async () => {
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
     await driversFinancialFlows({ userType: "driver" });
+    await testGetDelinquencyTypes();
+
     return;
     if (!usersData?.driver?.token) {
       throw new Error("Driver token not set after testDriverOnboardingFlow()");
@@ -54,7 +56,6 @@ const initiateTest = async () => {
     const driverToken = usersData?.driver?.token;
     await createDriverRequestFlow(driverToken);
     await createCompanyAdminFlow({});
-    await testGetDelinquencyTypes();
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {
     console.error("\n❌ ========== E2E TEST FAILED ==========");

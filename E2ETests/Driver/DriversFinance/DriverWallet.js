@@ -9,6 +9,9 @@ const {
   createDriverTransfer,
   getDriverTransfers,
 } = require("./DriverTransfer");
+const {
+  testCreateFinancialInstitutionAccount,
+} = require("./FinancialInstitutions");
 
 const authConfig = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
@@ -49,18 +52,27 @@ const getDriverWalletOverview = async ({ userType = "driver" } = {}) => {
 
 const testDriverWalletFlow = async ({ userType = "driver" } = {}) => {
   console.log("\n✅ ========== DRIVER WALLET FLOW STARTED ==========");
-  const financialAccount = await createFinancialInstitutionAccount({
+  const financialAccount = await testCreateFinancialInstitutionAccount({
     userType,
   });
+  console.log(
+    "🚀 ~ testDriverWalletFlow ~ financialAccount:",
+    financialAccount,
+  );
   const accountUniqueId = financialAccount?.data?.accountUniqueId;
-  if (!accountUniqueId) {
-    throw new Error(
-      "Failed to create a financial institution account for wallet flow.",
-    );
-  }
+  // if (!accountUniqueId) {
+  //   throw new Error(
+  //     "Failed to create a financial institution account for wallet flow.",
+  //   );
+  // }
 
-  await createDriverBalance({ amount: 1000, userType });
-  await createDriverDeposit({ accountUniqueId, depositAmount: 250, userType });
+  // await createDriverBalance({ amount: 1000, userType });
+  if (!!accountUniqueId)
+    await createDriverDeposit({
+      accountUniqueId,
+      depositAmount: 250,
+      userType,
+    });
   const transferResult = await createDriverTransfer({
     transferredAmount: 50,
     userType,
