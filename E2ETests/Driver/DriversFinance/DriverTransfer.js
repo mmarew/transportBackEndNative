@@ -30,28 +30,32 @@ const createDriverTransfer = async ({
   userType = "driver",
   reason = "E2E self-transfer",
 } = {}) => {
-  const token = usersData[userType]?.token;
-  if (!token) {
-    throw new Error("Driver token is required to create a transfer.");
+  try {
+    const token = usersData[userType]?.token;
+    if (!token) {
+      throw new Error("Driver token is required to create a transfer.");
+    }
+
+    const fromDriverUniqueId = await resolveDriverUserUniqueId({ userType });
+    const transferTarget = toDriverUniqueId || fromDriverUniqueId;
+    const res = await axios.post(
+      `${backendURL}/api/finance/userBalanceTransfer/self`,
+      {
+        toDriverUniqueId: transferTarget,
+        transferredAmount,
+        reason,
+      },
+      authConfig(token),
+    );
+
+    console.log(
+      "✅ Created driver transfer",
+      res.data?.data?.depositTransferUniqueId,
+    );
+    return res.data;
+  } catch (error) {
+    console.log("@error on  balance transfer");
   }
-
-  const fromDriverUniqueId = await resolveDriverUserUniqueId({ userType });
-  const transferTarget = toDriverUniqueId || fromDriverUniqueId;
-  const res = await axios.post(
-    `${backendURL}/api/finance/userBalanceTransfer/self`,
-    {
-      toDriverUniqueId: transferTarget,
-      transferredAmount,
-      reason,
-    },
-    authConfig(token),
-  );
-
-  console.log(
-    "✅ Created driver transfer",
-    res.data?.data?.depositTransferUniqueId,
-  );
-  return res.data;
 };
 
 const getDriverTransfers = async ({
@@ -147,10 +151,15 @@ const testDriverTransferFlow = async ({ userType = "driver" } = {}) => {
 
   const driverUniqueId = await resolveDriverUserUniqueId({ userType });
   const balanceAmount = 300;
-
+  const payload = {
+    fromDriverUniqueId: "16ea3d2f-a100-4659-8f4b-1f247d55225a",
+    toDriverUniqueId: "fa481402-cf14-4cee-9d52-dad91f48b84d",
+    transferredAmount: "10000",
+    reason: "help",
+  };
   await axios.post(
-    `${backendURL}/api/finance/userBalance`,
-    { amount: balanceAmount, driverUniqueId },
+    `${backendURL}/api/finance/userBalanceTransfer/self`,
+    payload,
     authConfig(usersData[userType]?.token),
   );
 

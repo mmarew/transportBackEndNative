@@ -33,29 +33,36 @@ const createDriverSubscription = async ({
   subscriptionPlanPricingUniqueId,
   userType = "driver",
 } = {}) => {
-  const token = usersData[userType]?.token;
-  if (!token) {
-    throw new Error("Driver token is required to create a subscription.");
-  }
-  if (!driverUniqueId) {
-    throw new Error("driverUniqueId is required to create a subscription.");
-  }
-  if (!subscriptionPlanPricingUniqueId) {
-    throw new Error(
-      "subscriptionPlanPricingUniqueId is required to create a subscription.",
-    );
-  }
+  try {
+    const token = usersData[userType]?.token;
+    if (!token) {
+      throw new Error("Driver token is required to create a subscription.");
+    }
+    if (!driverUniqueId) {
+      throw new Error("driverUniqueId is required to create a subscription.");
+    }
+    if (!subscriptionPlanPricingUniqueId) {
+      throw new Error(
+        "subscriptionPlanPricingUniqueId is required to create a subscription.",
+      );
+    }
 
-  const res = await axios.post(
-    `${backendURL}/api/finance/userSubscription/${driverUniqueId}`,
-    { subscriptionPlanPricingUniqueId },
-    authConfig(token),
-  );
-  console.log(
-    "✅ Created driver subscription",
-    res.data?.data?.userSubscriptionUniqueId,
-  );
-  return res.data;
+    const res = await axios.post(
+      `${backendURL}/api/finance/userSubscription/${driverUniqueId}`,
+      { subscriptionPlanPricingUniqueId },
+      authConfig(token),
+    );
+    console.log(
+      "✅ Created driver subscription",
+      res.data?.data?.userSubscriptionUniqueId,
+    );
+    return res.data;
+  } catch (error) {
+    return {
+      message: "error",
+      error: "@createDriverSubscription unable to create subscriptions.",
+    };
+  }
 };
 
 const getDriverSubscriptions = async ({

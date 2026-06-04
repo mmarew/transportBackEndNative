@@ -8,6 +8,7 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { createCompanyAdminFlow } = require("./Company");
 const { testVerifyAndLoginUser } = require("./Auth");
+const { testGetDelinquencyTypes } = require("./Delinquency/DelinquencyTypes");
 
 const initiateTest = async () => {
   try {
@@ -53,7 +54,7 @@ const initiateTest = async () => {
     const driverToken = usersData?.driver?.token;
     await createDriverRequestFlow(driverToken);
     await createCompanyAdminFlow({});
-
+    await testGetDelinquencyTypes();
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {
     console.error("\n❌ ========== E2E TEST FAILED ==========");
