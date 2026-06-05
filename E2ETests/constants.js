@@ -73,8 +73,11 @@ const userToken = {
   admin: undefined,
   companyAdmin: undefined,
 };
-
+const listOfDelinquencyTypes = { data: null };
+const listOfRoles = { data: null };
 module.exports = {
+  listOfRoles,
+  listOfDelinquencyTypes,
   userToken,
   backendURL,
   usersData,

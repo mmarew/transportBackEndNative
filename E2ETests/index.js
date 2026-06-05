@@ -8,7 +8,11 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { createCompanyAdminFlow } = require("./Company");
 const { testVerifyAndLoginUser } = require("./Auth");
-const { testGetDelinquencyTypes } = require("./Delinquency/DelinquencyTypes");
+const {
+  testGetDelinquencyTypes,
+  testDelinquencyTypesWorkflows,
+} = require("./Delinquency/DelinquencyTypes");
+const { testDelinquencyWorkflow } = require("./Delinquency/Delinquency");
 
 const initiateTest = async () => {
   try {
@@ -32,8 +36,8 @@ const initiateTest = async () => {
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
     await driversFinancialFlows({ userType: "driver" });
-    await testGetDelinquencyTypes();
-
+    await testDelinquencyTypesWorkflows({});
+    await testDelinquencyWorkflow({});
     return;
     if (!usersData?.driver?.token) {
       throw new Error("Driver token not set after testDriverOnboardingFlow()");
