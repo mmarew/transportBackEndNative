@@ -1248,12 +1248,15 @@ CREATE TABLE IF NOT EXISTS DelinquencyTypes (
     FOREIGN KEY (delinquencyTypeUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (delinquencyTypeDeletedBy) REFERENCES Users(userUniqueId)
 );
+
 -- User Delinquency table — tracks delinquency for specific user-role combinations.
 -- Lifecycle mirrors CompanyDelinquency:
 --   1. Delinquency created → user notified, responseDeadline set
 --   2. User MAY submit a defense (UserDelinquencyResponse)
 --   3. Admin issues a ruling (AdminDecisionOnUserDelinquency)
 --   4. UPHELD → graduated auto-ban check via BannedUsers
+
+
 CREATE TABLE IF NOT EXISTS UserDelinquency (
     userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,

@@ -1,15 +1,9 @@
 "use strict";
 
-const {
-  pool
-} = require("../../Middleware/Database.config");
-
-
+const { pool } = require("../../Middleware/Database.config");
 
 const AppError = require("../../Utils/AppError");
-const {
-  transactionStorage
-} = require("../../Utils/TransactionContext");
+const { transactionStorage } = require("../../Utils/TransactionContext");
 
 const getUserDelinquencies = async (filters = {}) => {
   const {
@@ -27,13 +21,25 @@ const getUserDelinquencies = async (filters = {}) => {
     sortBy: userSortBy = "delinquencyCreatedAt",
     sortOrder: userSortOrder = "DESC",
     summary = false,
-    stat = false
+    stat = false,
   } = filters;
 
   // Whitelist sortable columns and order to prevent SQL injection
-  const allowedSortBy = ["delinquencyCreatedAt", "delinquencyPoints", "delinquencySeverity", "fullName", "roleName", "delinquencyTypeName", "delinquencyDescription"];
-  const sortBy = allowedSortBy.includes(userSortBy) ? userSortBy : "delinquencyCreatedAt";
-  const sortOrder = ["ASC", "DESC"].includes(userSortOrder.toUpperCase()) ? userSortOrder.toUpperCase() : "DESC";
+  const allowedSortBy = [
+    "delinquencyCreatedAt",
+    "delinquencyPoints",
+    "delinquencySeverity",
+    "fullName",
+    "roleName",
+    "delinquencyTypeName",
+    "delinquencyDescription",
+  ];
+  const sortBy = allowedSortBy.includes(userSortBy)
+    ? userSortBy
+    : "delinquencyCreatedAt";
+  const sortOrder = ["ASC", "DESC"].includes(userSortOrder.toUpperCase())
+    ? userSortOrder.toUpperCase()
+    : "DESC";
   let whereConditions = ["1 = 1"];
   let queryParams = [];
   if (userUniqueId) {
@@ -59,7 +65,9 @@ const getUserDelinquencies = async (filters = {}) => {
   // Add journeyDecisionUniqueId filter
   if (journeyDecisionUniqueId !== undefined) {
     if (journeyDecisionUniqueId === null || journeyDecisionUniqueId === "") {
-      whereConditions.push("(ud.journeyDecisionUniqueId IS NULL OR ud.journeyDecisionUniqueId = '')");
+      whereConditions.push(
+        "(ud.journeyDecisionUniqueId IS NULL OR ud.journeyDecisionUniqueId = '')",
+      );
     } else {
       whereConditions.push("ud.journeyDecisionUniqueId = ?");
       queryParams.push(journeyDecisionUniqueId);
@@ -83,17 +91,23 @@ const getUserDelinquencies = async (filters = {}) => {
   const whereClause = whereConditions.join(" AND ");
   if (stat) {
     const countQuery = `SELECT COUNT(*) as total ${joins} WHERE ${whereClause}`;
-    const [countResult] = await (transactionStorage.getStore() || pool).query(countQuery, queryParams);
+    const [countResult] = await (transactionStorage.getStore() || pool).query(
+      countQuery,
+      queryParams,
+    );
     return {
       message: "success",
       data: {
-        totalUserDelinquencies: countResult[0].total
-      }
+        totalUserDelinquencies: countResult[0].total,
+      },
     };
   }
   if (summary) {
     if (!userUniqueId || !roleId) {
-      throw new AppError("userUniqueId and roleId are required for summary", 400);
+      throw new AppError(
+        "userUniqueId and roleId are required for summary",
+        400,
+      );
     }
     return await _getUserDelinquencySummary(userUniqueId, roleId);
   }
@@ -126,15 +140,24 @@ const getUserDelinquencies = async (filters = {}) => {
 
   // If limit is not provided (for duplicate check), don't add limit/offset
   if (limit === undefined) {
-    const [results] = await (transactionStorage.getStore() || pool).query(dataQuery.replace(/LIMIT \? OFFSET \?/, ""), queryParams);
+    const [results] = await (transactionStorage.getStore() || pool).query(
+      dataQuery.replace(/LIMIT \? OFFSET \?/, ""),
+      queryParams,
+    );
     return {
       message: "success",
-      data: results
+      data: results,
     };
   } else {
-    const [results] = await (transactionStorage.getStore() || pool).query(dataQuery, dataQueryParams);
+    const [results] = await (transactionStorage.getStore() || pool).query(
+      dataQuery,
+      dataQueryParams,
+    );
     const countQuery = `SELECT COUNT(*) as total ${joins} WHERE ${whereClause}`;
-    const [countResult] = await (transactionStorage.getStore() || pool).query(countQuery, queryParams);
+    const [countResult] = await (transactionStorage.getStore() || pool).query(
+      countQuery,
+      queryParams,
+    );
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
     return {
@@ -146,9 +169,9 @@ const getUserDelinquencies = async (filters = {}) => {
         totalItems: total,
         itemsPerPage: parseInt(limit),
         hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
+        hasPrevPage: page > 1,
       },
-      filters
+      filters,
     };
   }
 };
@@ -169,7 +192,10 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
     WHERE ud.userUniqueId = ? AND ud.roleId = ?
     GROUP BY ud.userUniqueId, ud.roleId, u.fullName, r.roleName
   `;
-  const [summary] = await (transactionStorage.getStore() || pool).query(summaryQuery, [userUniqueId, roleId]);
+  const [summary] = await (transactionStorage.getStore() || pool).query(
+    summaryQuery,
+    [userUniqueId, roleId],
+  );
 
   // Get recent delinquencies
   const recentQuery = `
@@ -177,10 +203,12 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
     FROM UserDelinquency ud
     INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
     WHERE ud.userUniqueId = ? AND ud.roleId = ?
-    ORDER BY ud.delinquencyCreatedAt DESC 
+    ORDER BY ud.userDelinquencyId DESC 
     LIMIT 5
   `;
-  const [recentDelinquencies] = await (transactionStorage.getStore() || pool).query(recentQuery, [userUniqueId, roleId]);
+  const [recentDelinquencies] = await (
+    transactionStorage.getStore() || pool
+  ).query(recentQuery, [userUniqueId, roleId]);
 
   // Check if banned for this user-role combination
   const banQuery = `
@@ -189,7 +217,10 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
     AND roleId = ?
     AND isActive = TRUE
   `;
-  const [banStatus] = await (transactionStorage.getStore() || pool).query(banQuery, [userUniqueId, roleId]);
+  const [banStatus] = await (transactionStorage.getStore() || pool).query(
+    banQuery,
+    [userUniqueId, roleId],
+  );
   return {
     message: "success",
     data: {
@@ -200,12 +231,12 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
         roleName: "",
         totalDelinquencies: 0,
         totalPoints: 0,
-        latestDelinquency: null
+        latestDelinquency: null,
       },
       recentDelinquencies,
       isBanned: banStatus.length > 0,
-      banInfo: banStatus[0] || null
-    }
+      banInfo: banStatus[0] || null,
+    },
   };
 };
 
@@ -213,12 +244,7 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
 // Get pending user delinquencies (no admin decision yet)
 // ─────────────────────────────────────────────────────────────────────────────
 const getPendingUserDelinquencies = async (filters = {}) => {
-  const {
-    userUniqueId,
-    roleId,
-    page = 1,
-    limit = 10
-  } = filters;
+  const { userUniqueId, roleId, page = 1, limit = 10 } = filters;
   if (!userUniqueId || !roleId) {
     throw new AppError("userUniqueId and roleId are required", 400);
   }
@@ -232,10 +258,12 @@ const getPendingUserDelinquencies = async (filters = {}) => {
         AND ad.adminDecisionOnUserDelinquencyDeletedAt IS NULL
     )
   `;
-  const [[{
-    total
-  }]] = await (transactionStorage.getStore() || pool).query(`SELECT COUNT(*) AS total FROM UserDelinquency ud WHERE ${whereClause}`, [userUniqueId, roleId]);
-  const [rows] = await (transactionStorage.getStore() || pool).query(`SELECT
+  const [[{ total }]] = await (transactionStorage.getStore() || pool).query(
+    `SELECT COUNT(*) AS total FROM UserDelinquency ud WHERE ${whereClause}`,
+    [userUniqueId, roleId],
+  );
+  const [rows] = await (transactionStorage.getStore() || pool).query(
+    `SELECT
        ud.userDelinquencyUniqueId,
        ud.delinquencyDescription,
        ud.delinquencySeverity,
@@ -258,8 +286,10 @@ const getPendingUserDelinquencies = async (filters = {}) => {
      INNER JOIN DelinquencyTypes dt ON ud.delinquencyTypeUniqueId = dt.delinquencyTypeUniqueId
      LEFT JOIN Users u ON ud.delinquencyCreatedBy = u.userUniqueId
      WHERE ${whereClause}
-     ORDER BY ud.delinquencyCreatedAt DESC
-     LIMIT ? OFFSET ?`, [userUniqueId, roleId, parseInt(limit), offset]);
+     ORDER BY ud.userDelinquencyId DESC
+     LIMIT ? OFFSET ?`,
+    [userUniqueId, roleId, parseInt(limit), offset],
+  );
   return {
     message: "success",
     data: rows,
@@ -269,13 +299,13 @@ const getPendingUserDelinquencies = async (filters = {}) => {
       totalItems: total,
       itemsPerPage: parseInt(limit),
       hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 };
 
 module.exports = {
   getUserDelinquencies,
   _getUserDelinquencySummary,
-  getPendingUserDelinquencies
+  getPendingUserDelinquencies,
 };

@@ -21,7 +21,10 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const exec = () => transactionStorage.getStore() || pool;
 
 const { checkAndApplyAutomaticCompanyBan } = require("./CompanyBan.service");
-const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.service");
+const {
+  sendNotificationToTokens,
+  getActiveTokensByUser,
+} = require("./Firebase.service");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE — Admin issues a formal ruling on a delinquency dispute
@@ -64,7 +67,10 @@ const createAdminDecision = async ({
       [companyDelinquencyResponseUniqueId, companyDelinquencyUniqueId],
     );
     if (!response) {
-      throw new AppError("Response not found or does not belong to this delinquency", 404);
+      throw new AppError(
+        "Response not found or does not belong to this delinquency",
+        404,
+      );
     }
   }
 
@@ -151,10 +157,13 @@ const createAdminDecision = async ({
   // ── Notify company owner about the admin decision ───────────────────────
   // Fire-and-forget: notification failure should never block the decision.
   const DECISION_MESSAGES = {
-    EXONERATED: "Your company has been cleared. The delinquency accusation has been dismissed.",
-    UPHELD:     "The accusation against your company has been upheld. A graduated review has been applied.",
-    REDUCED:    "The delinquency points against your company have been reduced after admin review.",
-    DISMISSED:  "The delinquency case has been closed with no further action.",
+    EXONERATED:
+      "Your company has been cleared. The delinquency accusation has been dismissed.",
+    UPHELD:
+      "The accusation against your company has been upheld. A graduated review has been applied.",
+    REDUCED:
+      "The delinquency points against your company have been reduced after admin review.",
+    DISMISSED: "The delinquency case has been closed with no further action.",
   };
 
   try {
@@ -175,7 +184,9 @@ const createAdminDecision = async ({
           tokens,
           notification: {
             title: `📜 Delinquency Decision: ${decisionOutcome}`,
-            body: DECISION_MESSAGES[decisionOutcome] || "An admin has ruled on your delinquency.",
+            body:
+              DECISION_MESSAGES[decisionOutcome] ||
+              "An admin has ruled on your delinquency.",
           },
           data: {
             type: "DELINQUENCY_DECISION",
@@ -257,7 +268,7 @@ const getAdminDecisions = async (filters = {}) => {
      LEFT JOIN CompanyDelinquency cd ON d.companyDelinquencyUniqueId = cd.companyDelinquencyUniqueId
      LEFT JOIN TransportCompany tc  ON cd.companyUniqueId = tc.companyUniqueId
      WHERE ${whereClause}
-     ORDER BY d.adminDecisionOnDelinquencyCreatedAt ${safeOrder}
+     ORDER BY d.adminDecisionOnDelinquencyId ${safeOrder}
      LIMIT ? OFFSET ?`,
     [...params, parseInt(limit), offset],
   );
@@ -312,10 +323,10 @@ const getAdminDecisionById = async (adminDecisionOnDelinquencyUniqueId) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // UPDATE — Admin amends the decision text (outcome cannot change)
 // ─────────────────────────────────────────────────────────────────────────────
-const updateAdminDecision = async (adminDecisionOnDelinquencyUniqueId, {
-  adminDecisionText,
-  updatedBy,
-}) => {
+const updateAdminDecision = async (
+  adminDecisionOnDelinquencyUniqueId,
+  { adminDecisionText, updatedBy },
+) => {
   // Verify the decision exists and is not soft-deleted
   const [[existing]] = await exec().query(
     `SELECT adminDecisionOnDelinquencyUniqueId, decisionOutcome
@@ -339,7 +350,10 @@ const updateAdminDecision = async (adminDecisionOnDelinquencyUniqueId, {
   );
 
   if (result.affectedRows === 0) {
-    throw new AppError("Update failed — decision not found or already deleted", 404);
+    throw new AppError(
+      "Update failed — decision not found or already deleted",
+      404,
+    );
   }
 
   logger.info("Admin decision text updated", {
@@ -357,7 +371,10 @@ const updateAdminDecision = async (adminDecisionOnDelinquencyUniqueId, {
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE (soft) — Soft-delete a decision record
 // ─────────────────────────────────────────────────────────────────────────────
-const deleteAdminDecision = async (adminDecisionOnDelinquencyUniqueId, deletedBy) => {
+const deleteAdminDecision = async (
+  adminDecisionOnDelinquencyUniqueId,
+  deletedBy,
+) => {
   const [[existing]] = await exec().query(
     `SELECT adminDecisionOnDelinquencyUniqueId
      FROM AdminDecisionOnDelinquency

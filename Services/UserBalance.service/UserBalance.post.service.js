@@ -9,7 +9,7 @@ const getDriverLastBalance = async (driverUniqueId, connection = null) => {
     SELECT *
     FROM UserBalance
     WHERE userUniqueId = ?
-    ORDER BY transactionTime DESC
+    ORDER BY userBalanceId DESC
     LIMIT 1
   `;
   const executor = transactionStorage.getStore() || connection || pool;
@@ -46,6 +46,10 @@ const prepareAndCreateNewBalance = async ({
   let netBalance = 0;
   try {
     const currentBalance = await getDriverLastBalance(driverUniqueId);
+    console.log(
+      "🚀 ~ prepareAndCreateNewBalance ~ currentBalance:",
+      currentBalance,
+    );
     netBalance = Number(currentBalance?.netBalance || 0);
   } catch {
     // If no previous balance, netBalance remains 0

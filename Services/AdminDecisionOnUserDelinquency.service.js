@@ -19,7 +19,10 @@ const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { checkAndApplyAutomaticUserBan } = require("./BannedUsers.service");
-const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.service");
+const {
+  sendNotificationToTokens,
+  getActiveTokensByUser,
+} = require("./Firebase.service");
 
 const exec = () => transactionStorage.getStore() || pool;
 
@@ -61,7 +64,10 @@ const createAdminDecision = async ({
       [userDelinquencyResponseUniqueId, userDelinquencyUniqueId],
     );
     if (!response) {
-      throw new AppError("Response not found or does not belong to this delinquency", 404);
+      throw new AppError(
+        "Response not found or does not belong to this delinquency",
+        404,
+      );
     }
   }
 
@@ -74,7 +80,10 @@ const createAdminDecision = async ({
     [userDelinquencyUniqueId],
   );
   if (existingDecision) {
-    throw new AppError("An admin decision already exists for this delinquency", 400);
+    throw new AppError(
+      "An admin decision already exists for this delinquency",
+      400,
+    );
   }
 
   const adminDecisionOnUserDelinquencyUniqueId = uuidv4();
@@ -133,10 +142,12 @@ const createAdminDecision = async ({
 
   // ── Notify the user ────────────────────────────────────────────────────────
   const DECISION_MESSAGES = {
-    EXONERATED: "You have been cleared. The delinquency accusation has been dismissed.",
-    UPHELD:     "The accusation has been upheld. A graduated review has been applied.",
-    REDUCED:    "Your delinquency points have been reduced after admin review.",
-    DISMISSED:  "The delinquency case has been closed with no further action.",
+    EXONERATED:
+      "You have been cleared. The delinquency accusation has been dismissed.",
+    UPHELD:
+      "The accusation has been upheld. A graduated review has been applied.",
+    REDUCED: "Your delinquency points have been reduced after admin review.",
+    DISMISSED: "The delinquency case has been closed with no further action.",
   };
 
   try {
@@ -148,7 +159,9 @@ const createAdminDecision = async ({
         tokens,
         notification: {
           title: `\uD83D\uDCDC Delinquency Decision: ${decisionOutcome}`,
-          body: DECISION_MESSAGES[decisionOutcome] || "An admin has ruled on your delinquency.",
+          body:
+            DECISION_MESSAGES[decisionOutcome] ||
+            "An admin has ruled on your delinquency.",
         },
         data: {
           type: "USER_DELINQUENCY_DECISION",
@@ -211,7 +224,7 @@ const getAdminDecisions = async (filters = {}) => {
      FROM AdminDecisionOnUserDelinquency d
      LEFT JOIN Users u ON d.adminDecisionOnUserDelinquencyCreatedBy = u.userUniqueId
      WHERE ${whereClause}
-     ORDER BY d.adminDecisionOnUserDelinquencyCreatedAt ${safeOrder}
+     ORDER BY d.adminDecisionOnDelinquencyId ${safeOrder}
      LIMIT ? OFFSET ?`,
     [...params, parseInt(limit), offset],
   );
