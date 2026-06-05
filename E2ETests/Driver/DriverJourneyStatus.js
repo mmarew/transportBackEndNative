@@ -6,6 +6,7 @@ const {
 const {
   COMPANY_ASSIGNMENT_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyAssignment.endpoints");
+const { authConfig } = require("../Utils");
 
 /**
  * GET /api/driver/verifyDriverJourneyStatus
@@ -22,7 +23,7 @@ const getDriverJourneyStatus = async ({ userType = "driver" } = {}) => {
 
   const url =
     backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS;
-  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const config = { ...authConfig(token) };
 
   try {
     const res = await axios.get(url, config);
@@ -98,7 +99,7 @@ const acceptShipperRequest = async ({
     journeyDecisionUniqueId,
     shippingCostByDriver,
   };
-  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const config = authConfig(token);
 
   try {
     const res = await axios.put(url, payload, config);
@@ -171,7 +172,7 @@ const acceptCompanyAssignment = async ({
     originLongitude,
     originPlace,
   };
-  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const config = authConfig(token);
 
   try {
     const res = await axios.patch(url, payload, config);
@@ -250,7 +251,7 @@ const startJourney = async ({
     latitude,
     longitude,
   };
-  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const config = authConfig(token);
 
   try {
     const res = await axios.put(url, payload, config);
@@ -333,7 +334,7 @@ const completeJourney = async ({
     latitude,
     longitude,
   };
-  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const config = authConfig(token);
 
   try {
     const res = await axios.put(url, payload, config);

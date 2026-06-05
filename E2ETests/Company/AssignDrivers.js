@@ -3,6 +3,7 @@ const axios = require("axios");
 const {
   COMPANY_ASSIGNMENT_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyAssignment.endpoints");
+const { authConfig } = require("../Utils");
 
 const logCompanyError = (message, error) => {
   console.error(
@@ -35,9 +36,7 @@ const assignDrivers = async ({ bid }) => {
   const payload = {
     companyBidRequestUniqueId,
   };
-  const config = {
-    headers: { Authorization: `Bearer ${token}` },
-  };
+  const config = authConfig(token);
 
   try {
     const res = await axios.post(url, payload, config);

@@ -2,6 +2,7 @@ const axios = require("axios");
 const { testVerifyAndLoginUser } = require("../Auth");
 const { usersData, backendURL } = require("../constants");
 const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
+const { authConfig } = require("../Utils");
 
 const testCreateAdminFlow = async () => {
   console.log("\n✅ ========== CREATE ADMIN FLOW STARTED ==========\n");
@@ -16,9 +17,7 @@ const testCreateAdminFlow = async () => {
   console.log("✅ SuperAdmin token confirmed.");
 
   // 3. Create Admin using Supper Admin token
-  const config = {
-    headers: { Authorization: `Bearer ${supperAdminToken}` },
-  };
+  const config = authConfig(supperAdminToken);
 
   try {
     const res = await axios.post(

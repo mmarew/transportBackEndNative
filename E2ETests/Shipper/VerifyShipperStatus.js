@@ -1,9 +1,10 @@
 const axios = require("axios");
 const { backendURL, shipperRequestStatusData } = require("../constants");
+const { authConfig } = require("../Utils");
 
 const verifyShipperStatus = async (token) => {
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
 
   try {
@@ -12,7 +13,6 @@ const verifyShipperStatus = async (token) => {
       config,
     );
 
- 
     // Store in constants for future steps
     shipperRequestStatusData.data = res.data;
 

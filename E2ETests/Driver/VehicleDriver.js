@@ -3,11 +3,12 @@ const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
+const { authConfig } = require("../Utils");
 
 const createVehicle = async (token) => {
   //get vehicle types first
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
 
   try {
@@ -49,7 +50,7 @@ const createVehicle = async (token) => {
 };
 const getRequirementOfVehicleDocument = async (token) => {
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
 
   try {
@@ -119,9 +120,13 @@ const attachVehiclesDocuments = async ({
       form,
       config,
     );
-    console.log(`✅ Uploaded Vehicle Document: ${documentType.documentTypeName}`);
+    console.log(
+      `✅ Uploaded Vehicle Document: ${documentType.documentTypeName}`,
+    );
   } catch (error) {
-    console.log(`❌ Failed to upload vehicle document: ${documentType.documentTypeName}`);
+    console.log(
+      `❌ Failed to upload vehicle document: ${documentType.documentTypeName}`,
+    );
     console.log("Error:", error.response?.data?.error || error.message);
   }
 };

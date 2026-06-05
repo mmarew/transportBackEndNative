@@ -1,10 +1,11 @@
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { backendURL } = require("../constants");
+const { authConfig } = require("../Utils");
 
 const createShipperRequestFlow = async (token) => {
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
 
   try {
@@ -48,7 +49,6 @@ const createShipperRequestFlow = async (token) => {
       },
     };
 
-
     // 3. Post to create the request
     const res = await axios.post(
       backendURL + "/api/shipperRequest/createRequest",
@@ -56,7 +56,7 @@ const createShipperRequestFlow = async (token) => {
       config,
     );
 
-     return res.data;
+    return res.data;
   } catch (error) {
     console.log("❌ Failed to create shipper request.");
     if (error.response) {

@@ -1,4 +1,5 @@
 const { usersData, backendURL } = require("../constants");
+const { authConfig } = require("../Utils");
 const { createDriverDocument } = require("./DriversDocuments");
 const { createVehicle, attachVehiclesDocuments } = require("./VehicleDriver");
 const axios = require("axios");
@@ -11,7 +12,7 @@ const getDriversAccountData = async ({ token, isFetchMandatory = true }) => {
   }
 
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.get(backendURL + "/api/driver/account", config);

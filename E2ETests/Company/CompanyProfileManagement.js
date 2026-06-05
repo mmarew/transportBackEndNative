@@ -3,6 +3,7 @@ const { backendURL, usersData } = require("../constants");
 const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
+const { authConfig } = require("../Utils");
 
 const logCompanyProfileError = (message, error) => {
   console.error(
@@ -18,7 +19,7 @@ const createCompanies = async ({ userType = "companyAdmin" }) => {
     return null;
   }
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   const url = backendURL + "/api/company/companies";
   const payload = usersData.company;
@@ -53,7 +54,7 @@ const getCompanies = async ({ userType = "companyAdmin" }) => {
     return null;
   }
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.get(backendURL + "/api/company/companies", config);
@@ -84,7 +85,7 @@ const approveCompanyStatus = async ({ userType = "admin" }) => {
   const url =
     backendURL + `/api/company/companies/${company.companyUniqueId}/approve`;
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.patch(
@@ -109,9 +110,7 @@ const getAttachableDocuments = async ({ userType = "companyAdmin" }) => {
     );
     return [];
   }
-  const config = {
-    headers: { Authorization: `Bearer ${token}` },
-  };
+  const config = { ...authConfig(token) };
   const url = backendURL + "/api/RoleDocumentRequirements?roleId=8";
   try {
     const res = await axios.get(url, config);
@@ -234,7 +233,7 @@ const approveCompanyDocuments = async ({ userType = "admin" }) => {
     }
 
     const url = backendURL + `/api/admin/acceptRejectAttachedDocuments`;
-    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const config = authConfig(token);
 
     await Promise.all(
       pendingDocuments.map(async (doc) => {
@@ -275,9 +274,7 @@ const getAttachedDocumentsOfCompanies = async ({
     const getCompanyDocuments = await axios.get(
       backendURL +
         `/api/company/attachedDocuments/${usersData?.[userType]?.companies?.[0]?.companyUniqueId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
+      authConfig(token),
     );
 
     const responseData = getCompanyDocuments.data?.data;

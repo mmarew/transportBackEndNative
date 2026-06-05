@@ -3,6 +3,7 @@ const axios = require("axios");
 const {
   COMPANY_VEHICLE_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyVehicle.endpoints");
+const { authConfig } = require("../Utils");
 
 const logCompanyError = (message, error) => {
   console.error(
@@ -51,7 +52,7 @@ const assignVehicleToCompany = async ({ userType = "companyAdmin" } = {}) => {
     vehicleUniqueId,
   };
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
 
   try {
@@ -85,9 +86,7 @@ const getCompanyVehicles = async ({ userType = "companyAdmin" } = {}) => {
     backendURL +
     COMPANY_VEHICLE_ENDPOINTS.GET_COMPANY_VEHICLES +
     `?companyUniqueId=${company.companyUniqueId}&assignmentStatus=active`;
-  const config = {
-    headers: { Authorization: `Bearer ${token}` },
-  };
+  const config = { ...authConfig(token) };
 
   try {
     const res = await axios.get(url, config);
@@ -126,7 +125,7 @@ const removeVehicleFromCompany = async ({
       companyVehicleUniqueId,
     );
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
 
   try {

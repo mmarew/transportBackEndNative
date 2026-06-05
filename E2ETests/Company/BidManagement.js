@@ -8,6 +8,7 @@ const {
 const { assignDrivers } = require("./AssignDrivers");
 const { assignVehicleToCompany } = require("./CompanyVehicle");
 const { testDriverOnboardingFlow } = require("../Driver");
+const { authConfig } = require("../Utils");
 
 const logCompanyError = (message, error) => {
   console.error(
@@ -35,7 +36,7 @@ const getBids = async ({
     COMPANY_BID_ENDPOINTS.GET_BIDS +
     `?companyUniqueId=${company.companyUniqueId}&bidStatus=${bidStatus}`;
   const resultsOfBids = await axios.get(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   });
   // console.log("🚀 ~ getBids ~ resultsOfBids:", resultsOfBids?.data);
   //set bid data to usersData companyAdmin bid bid status
@@ -60,7 +61,7 @@ const getAvailableBids = async ({
     COMPANY_BID_ENDPOINTS.GET_BIDS +
     `?target=available&companyUniqueId=${company.companyUniqueId}`;
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.get(url, config);
@@ -89,7 +90,7 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
     proposedCostPerVehicle: "90000",
   };
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.post(url, payload, config);
@@ -118,7 +119,7 @@ const acceptCompanyOffer = async ({ userType = "shipper", bid }) => {
       bid.companyBidRequestUniqueId,
     );
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.patch(

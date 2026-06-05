@@ -1,13 +1,12 @@
 const axios = require("axios");
 const { backendURL } = require("../constants");
+const { authConfig } = require("../Utils");
 
 const createDriverRequestFlow = async (token) => {
   console.log(
     "\n✅ ========== CREATE DRIVER REQUEST FLOW STARTED ==========\n",
   );
-  const config = {
-    headers: { Authorization: `Bearer ${token}` },
-  };
+  const config = { ...authConfig(token) };
 
   try {
     const payload = {

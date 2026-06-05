@@ -4,6 +4,7 @@ const {
   DATABASE_ENDPOINTS,
 } = require("../../Routes/EndPoints/database.endpoints");
 const { testVerifyAndLoginUser } = require("../Auth");
+const { authConfig } = require("../Utils");
 
 // Dev-only API key — must match API_KEY in your .env
 const DEV_API_KEY = process.env.API_KEY || "dev-api-key";
@@ -13,7 +14,7 @@ const DEV_API_KEY = process.env.API_KEY || "dev-api-key";
 const adminConfig = () => {
   const token = usersData?.supperAdmin?.token;
   if (!token) throw new Error("No admin token found. Run admin login first.");
-  return { headers: { Authorization: `Bearer ${token}` } };
+  return authConfig(token);
 };
 
 const devConfig = () => ({

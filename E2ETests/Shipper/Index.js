@@ -1,13 +1,14 @@
 const { testAuthWorkFlow } = require("../Auth");
 const { usersData, backendURL } = require("../constants");
 const { createDriverDocument } = require("../Driver/DriversDocuments");
+const { authConfig } = require("../Utils");
 const { createShipperRequestFlow } = require("./CreateShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
 const axios = require("axios");
 
 const getShipperAccountData = async (token) => {
   const config = {
-    headers: { Authorization: `Bearer ${token}` },
+    ...authConfig(token),
   };
   try {
     const res = await axios.get(backendURL + "/api/shipper/account", config);
