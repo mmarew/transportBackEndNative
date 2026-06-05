@@ -8,6 +8,7 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { createCompanyAdminFlow } = require("./Company");
 const { testVerifyAndLoginUser } = require("./Auth");
+const { testGetRoles } = require("./Roles");
 const {
   testGetDelinquencyTypes,
   testDelinquencyTypesWorkflows,
@@ -36,6 +37,7 @@ const initiateTest = async () => {
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
     await driversFinancialFlows({ userType: "driver" });
+    await testGetRoles();
     await testDelinquencyTypesWorkflows({});
     await testDelinquencyWorkflow({});
     return;

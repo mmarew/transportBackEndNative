@@ -5,10 +5,11 @@ const {
   backendURL,
   usersData,
   listOfDelinquencyTypes,
+  listOfRoles,
 } = require("../constants");
 const delinquencyTypeData = {
   delinquencyTypeName: "wrong behavior arrival",
-  applicableRoles: "uuidofrole",
+  applicableRoles: listOfRoles.data?.[1].roleUniqueId,
   delinquencyTypeDescription: "when drivers late extrimlly",
 };
 //check existance of delinquency type in the list before creating it

@@ -1,3 +1,6 @@
+const { default: axios } = require("axios");
+const { listOfRoles, usersData, backendURL } = require("../constants");
+
 //get list of roles
 const testGetRoles = async () => {
   const token = usersData?.admin?.token;
@@ -12,6 +15,9 @@ const testGetRoles = async () => {
     "🚀 ~ testGetDelinquencyTypes ~ resultOfTypes.data.data:",
     resultOfTypes.data.data,
   );
+  listOfRoles.data = resultOfTypes.data.data;
+  console.log("🚀 ~ testGetRoles ~ listOfRoles.data:", listOfRoles.data);
+
   return resultOfTypes.data.data;
 };
 module.exports = {
