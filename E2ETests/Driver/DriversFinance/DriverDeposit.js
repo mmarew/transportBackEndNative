@@ -3,10 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const { usersData, backendURL } = require("../../constants");
 const { getDepositSources } = require("./DepositSources ");
 const { getFinancialInstitutionAccounts } = require("./FinancialInstitutions");
-
-const authConfig = (token) => ({
-  headers: { Authorization: `Bearer ${token}` },
-});
+const { authConfig } = require("./DriverSubscription");
 
 const getAdminToken = () => {
   const token = usersData.admin?.token || usersData.supperAdmin?.token;

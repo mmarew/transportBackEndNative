@@ -1,10 +1,7 @@
 const axios = require("axios");
 const { usersData, backendURL } = require("../../constants");
 const { getDriversAccountData } = require("../RequirementOfDriver");
-
-const authConfig = (token) => ({
-  headers: { Authorization: `Bearer ${token}` },
-});
+const { authConfig } = require("./DriverSubscription");
 
 const resolveDriverUserUniqueId = async ({ userType = "driver" } = {}) => {
   const userData = usersData[userType];

@@ -12,10 +12,7 @@ const {
 const {
   testCreateFinancialInstitutionAccount,
 } = require("./FinancialInstitutions");
-
-const authConfig = (token) => ({
-  headers: { Authorization: `Bearer ${token}` },
-});
+const { authConfig } = require("./DriverSubscription");
 
 const getDriverWalletOverview = async ({ userType = "driver" } = {}) => {
   const token = usersData[userType]?.token;

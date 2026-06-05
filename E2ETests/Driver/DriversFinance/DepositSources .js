@@ -1,9 +1,6 @@
 const axios = require("axios");
 const { usersData, backendURL } = require("../../constants");
-
-const authConfig = (token) => ({
-  headers: { Authorization: `Bearer ${token}` },
-});
+const { authConfig } = require("./DriverSubscription");
 
 const getAdminToken = () => {
   const adminToken = usersData.admin?.token;

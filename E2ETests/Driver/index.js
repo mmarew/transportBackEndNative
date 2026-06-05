@@ -228,10 +228,12 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     "🚀 ~ driversFinancialFlows ~ unauthorizedDeposits:",
     unauthorizedDeposits,
   );
-  unauthorizedDeposits?.data?.forEach(async (deposit) => {
-    const userDepositUniqueId = deposit?.userDepositUniqueId;
-    await approveDriversDeposit({ userDepositUniqueId });
-  });
+  const promisedData = await Promise.all(
+    (unauthorizedDeposits?.data || [])?.map(async (deposit) => {
+      const userDepositUniqueId = deposit?.userDepositUniqueId;
+      await approveDriversDeposit({ userDepositUniqueId });
+    }),
+  );
   //create subscription for the driver after deposit approval
 
   await createDriverSubscription({
