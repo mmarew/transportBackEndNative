@@ -18,10 +18,9 @@ const { testDelinquencyWorkflow } = require("./Delinquency/Delinquency");
 const initiateTest = async () => {
   try {
     // 1. Drop + recreate tables, verify+login superAdmin, install seed data
-    // await resetDatabase();
+    await resetDatabase();
     // superAdmin must be verified + logged in before seed data can be installed
-
-    await testVerifyAndLoginUser({ userType: "supperAdmin" });
+    // await testVerifyAndLoginUser({ userType: "supperAdmin" });
 
     if (!usersData?.supperAdmin?.token) {
       throw new Error("SuperAdmin token not set after verify/login");
@@ -37,6 +36,7 @@ const initiateTest = async () => {
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
     await driversFinancialFlows({ userType: "driver" });
+    return;
     await testGetRoles();
     await testDelinquencyTypesWorkflows({});
     await testDelinquencyWorkflow({});

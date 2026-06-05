@@ -3,7 +3,9 @@ const { createDriverDocument } = require("./DriversDocuments");
 const { createVehicle, attachVehiclesDocuments } = require("./VehicleDriver");
 const axios = require("axios");
 
-const getDriversAccountData = async ({ token }) => {
+const getDriversAccountData = async ({ token, isFetchMandatory = true }) => {
+  if (!isFetchMandatory && usersData["driver"]["accountData"])
+    return usersData["driver"]["accountData"];
   if (!token) {
     throw new Error("Driver token is missing. Cannot fetch account data.");
   }
@@ -17,7 +19,10 @@ const getDriversAccountData = async ({ token }) => {
     usersData["driver"]["accountData"] = res.data;
     return res.data;
   } catch (error) {
-    console.error("❌ Failed to get driver account data:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ Failed to get driver account data:",
+      error.response?.data?.error || error.message,
+    );
     throw error; // Re-throw to stop execution
   }
 };
@@ -27,7 +32,9 @@ const evaluateDriversDocumentVehicleRequirement = async () => {
   const token = userData?.token;
 
   if (!token) {
-    throw new Error("Driver token is missing. Cannot evaluate document requirements.");
+    throw new Error(
+      "Driver token is missing. Cannot evaluate document requirements.",
+    );
   }
 
   // 1. Fetch current account data
@@ -40,7 +47,7 @@ const evaluateDriversDocumentVehicleRequirement = async () => {
   if (!accountData.vehicle) {
     await createVehicle(token);
     accountData = await getDriversAccountData({ token });
-    
+
     if (!accountData.vehicle) {
       throw new Error("Failed to create vehicle for driver");
     }
@@ -62,13 +69,17 @@ const evaluateDriversDocumentVehicleRequirement = async () => {
 
   // 3. Process unAttached documents (both user and vehicle docs)
   const unAttachedDocumentTypes = accountData?.unAttachedDocumentTypes || [];
-  
+
   if (unAttachedDocumentTypes.length > 0) {
     for (const documentType of unAttachedDocumentTypes) {
       if (!uploadedDocumentTypeIds.has(documentType.documentTypeId)) {
         // Vehicle documents (roleId === 9)
         if (documentType.roleId === 9 && vehicleUniqueId) {
-          await attachVehiclesDocuments({ token, documentType, vehicleUniqueId });
+          await attachVehiclesDocuments({
+            token,
+            documentType,
+            vehicleUniqueId,
+          });
         }
         // User documents (roleId === 2)
         else if (documentType.roleId === 2) {

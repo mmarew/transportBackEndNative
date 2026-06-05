@@ -104,7 +104,7 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
 const driversFinancialFlows = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER FINANCIAL FLOWS STARTED ==========\n");
   // await testDriverBalanceFlow({ userType });
-  // await testDriverDepositFlow({ userType });
+  await testDriverDepositFlow({ userType });
   //create financial institution account as some of the financial flows require an existing account to work, and we want to have at least one account in place before testing those flows
   // await createFinancialInstitutionAccount({ userType });
 
@@ -209,17 +209,18 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
       }
     }
   }
-
+  //this create driver deposit is used to create new one because the workflow testDriverDepositFlow has delete effect and can't be used to create subscriptions.
   const depositPayload = {
-    depositAmount: 150,
+    depositAmount: 1500000,
     accountUniqueId: financialInstitutionAccounts.data?.[0]?.accountUniqueId,
-    depositURL: "https://1example.com/driver-deposit-proof1",
+    // depositURL: "https://1example.com/driver-deposit-proof1",
     userType: "driver",
   };
 
   const newDriverDeposit = await createDriverDeposit({
     ...depositPayload,
   });
+
   //after driver make deposit, now let admin approve the deposit to move the flow forward
   //get unauthorized deposits to find the unique id of the newly created deposit, then approve it
   const unauthorizedDeposits = await getUnAuthorizedDriverDeposits();

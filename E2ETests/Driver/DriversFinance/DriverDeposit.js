@@ -46,7 +46,7 @@ const getUnAuthorizedDriverDeposits = async () => {
 
   const res = await axios.get(`${backendURL}/api/finance/userDeposit`, {
     ...authConfig(token),
-    params: { depositStatus: "PENDING" },
+    params: { depositStatus: "requested" },
   });
   console.log(
     "✅ Fetched unauthorized driver deposits",
@@ -54,10 +54,13 @@ const getUnAuthorizedDriverDeposits = async () => {
   );
   return res.data;
 };
+const createRandomURL = () => {
+  return "www.example.com?depositUUID=" + uuidv4();
+};
 const createDriverDeposit = async ({
   depositAmount = 150,
   accountUniqueId,
-  depositURL,
+  depositURL = createRandomURL(),
   userType = "driver",
 } = {}) => {
   if (!accountUniqueId) {
@@ -67,11 +70,6 @@ const createDriverDeposit = async ({
   const token = usersData[userType]?.token;
   if (!token) {
     throw new Error("Driver token is required to create a deposit.");
-  }
-
-  // Generate unique deposit URL if not provided
-  if (!depositURL) {
-    depositURL = `https://example.com/deposit-callback?txn=${uuidv4()}`;
   }
 
   const depositSourcesData = await getDepositSources({ userType });
@@ -199,6 +197,7 @@ const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
   });
 
   await approveDriversDeposit({ userDepositUniqueId });
+  //delete drivers deposit to test if delete works
   await deleteDriverDeposit({ userDepositUniqueId, userType });
 
   console.log("✅ ========== DRIVER DEPOSIT FLOW COMPLETED ==========");
