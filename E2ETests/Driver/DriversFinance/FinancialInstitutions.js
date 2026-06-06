@@ -114,14 +114,16 @@ const deleteFinancialInstitutionAccount = async ({
   return res.data;
 };
 
-const testFinancialInstitutionAccountsFlow = async ({
+const testFinancialInstitutionAccountsWorkFlow = async ({
   userType = "driver",
 } = {}) => {
   console.log(
     "\n✅ ========== FINANCIAL INSTITUTION ACCOUNT FLOW STARTED ==========",
   );
 
-  const createResult = await createFinancialInstitutionAccount({ userType });
+  const createResult = await testCreateFinancialInstitutionAccount({
+    userType,
+  });
   const accountUniqueId = createResult?.data?.accountUniqueId;
   if (!accountUniqueId) {
     throw new Error("Failed to create a financial institution account.");
@@ -149,5 +151,5 @@ module.exports = {
   getFinancialInstitutionAccounts,
   updateFinancialInstitutionAccount,
   deleteFinancialInstitutionAccount,
-  testFinancialInstitutionAccountsFlow,
+  testFinancialInstitutionAccountsWorkFlow,
 };

@@ -75,7 +75,9 @@ const userToken = {
 };
 const listOfDelinquencyTypes = { data: null };
 const listOfRoles = { data: null };
+const listOfPlanPricing = { data: null };
 module.exports = {
+  listOfPlanPricing,
   listOfRoles,
   listOfDelinquencyTypes,
   userToken,

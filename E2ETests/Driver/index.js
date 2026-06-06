@@ -4,7 +4,7 @@ const {
   getDriversAccountData,
   evaluateDriversDocumentVehicleRequirement,
 } = require("./RequirementOfDriver");
-const { usersData } = require("../constants");
+const { usersData, listOfPlanPricing } = require("../constants");
 const {
   getDriverJourneyStatus,
   acceptCompanyAssignment,
@@ -23,6 +23,7 @@ const {
 const {
   getFinancialInstitutionAccounts,
   createFinancialInstitutionAccount,
+  testFinancialInstitutionAccountsWorkFlow,
 } = require("./DriversFinance/FinancialInstitutions");
 const { getSubscriptionPlans } = require("./DriversFinance/SubscriptionPlan");
 const {
@@ -105,6 +106,7 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   console.log("\n✅ ========== DRIVER FINANCIAL FLOWS STARTED ==========\n");
   // await testDriverBalanceFlow({ userType });
   await testDriverDepositFlow({ userType });
+  await testFinancialInstitutionAccountsWorkFlow({});
   //create financial institution account as some of the financial flows require an existing account to work, and we want to have at least one account in place before testing those flows
   // await createFinancialInstitutionAccount({ userType });
 
@@ -126,89 +128,89 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     "🚀 ~ driversFinancialFlows ~ financialInstitutionAccounts:",
     financialInstitutionAccounts,
   );
+  await createSubscriptionPlanPricing({});
+  // const subscriptionPlan = await getSubscriptionPlans({
+  //   token,
+  // });
 
-  const subscriptionPlan = await getSubscriptionPlans({
-    token,
-  });
+  // // Generate a unique future date (today + 30 days) to avoid conflicts
+  // const today = new Date();
+  // const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  // const effectiveFrom = futureDate.toISOString().split("T")[0];
 
-  // Generate a unique future date (today + 30 days) to avoid conflicts
-  const today = new Date();
-  const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const effectiveFrom = futureDate.toISOString().split("T")[0];
+  // const price = 500;
+  // // unregisteredPlans is a plan which doesn't have an active price now
+  // const unregisteredPlans = [];
+  // const listOfPlanPricing = await fetchSubscriptionPlanPricing({
+  //   token: usersData["admin"]?.token,
+  // });
+  // console.log(
+  //   "🚀 ~ driversFinancialFlows ~ listOfPlanPricing:",
+  //   listOfPlanPricing,
+  // );
+  // for (const plan of subscriptionPlan) {
+  //   const planUniqueId = plan?.subscriptionPlanUniqueId;
+  //   if (!planUniqueId) {
+  //     continue;
+  //   }
 
-  const price = 500;
-  // unregisteredPlans is a plan which doesn't have an active price now
-  const unregisteredPlans = [];
-  const listOfPlanPricing = await fetchSubscriptionPlanPricing({
-    token: usersData["admin"]?.token,
-  });
-  console.log(
-    "🚀 ~ driversFinancialFlows ~ listOfPlanPricing:",
-    listOfPlanPricing,
-  );
-  for (const plan of subscriptionPlan) {
-    const planUniqueId = plan?.subscriptionPlanUniqueId;
-    if (!planUniqueId) {
-      continue;
-    }
+  //   const existingPricing = await fetchSubscriptionPlanPricingByPlanId({
+  //     token: usersData[userType]?.token,
+  //     subscriptionPlanUniqueId: planUniqueId,
+  //     isActive: true,
+  //     date: effectiveFrom,
+  //   });
 
-    const existingPricing = await fetchSubscriptionPlanPricingByPlanId({
-      token: usersData[userType]?.token,
-      subscriptionPlanUniqueId: planUniqueId,
-      isActive: true,
-      date: effectiveFrom,
-    });
+  //   const pricingExists = Array.isArray(existingPricing)
+  //     ? existingPricing.length > 0
+  //     : !!existingPricing;
 
-    const pricingExists = Array.isArray(existingPricing)
-      ? existingPricing.length > 0
-      : !!existingPricing;
+  //   if (pricingExists) {
+  //     console.log(
+  //       `⏭️  Pricing already exists for plan ${planUniqueId} on ${effectiveFrom} — skipping.`,
+  //     );
+  //   } else {
+  //     unregisteredPlans.push(plan);
+  //   }
+  // }
 
-    if (pricingExists) {
-      console.log(
-        `⏭️  Pricing already exists for plan ${planUniqueId} on ${effectiveFrom} — skipping.`,
-      );
-    } else {
-      unregisteredPlans.push(plan);
-    }
-  }
+  // console.log(
+  //   "🚀 ~ driversFinancialFlows ~ unregisteredPlans:",
+  //   unregisteredPlans,
+  // );
 
-  console.log(
-    "🚀 ~ driversFinancialFlows ~ unregisteredPlans:",
-    unregisteredPlans,
-  );
-
-  for (const plan of unregisteredPlans) {
-    const planUniqueId = plan?.subscriptionPlanUniqueId;
-    try {
-      const newPlanPricing = await createSubscriptionPlanPricing({
-        subscriptionPlanUniqueId: planUniqueId,
-        price,
-        currency: "ETB",
-        durationInDays: 30,
-        token: usersData["admin"]?.token,
-        effectiveFrom,
-      });
-      console.log(
-        `✅ Created pricing for plan ${planUniqueId}:`,
-        newPlanPricing?.data,
-      );
-    } catch (error) {
-      const errorMsg = error?.response?.data?.message || error.message || "";
-      if (
-        errorMsg.includes("pricing configuration already exists") ||
-        errorMsg.includes("already an active pricing")
-      ) {
-        console.log(
-          `⏭️  Pricing already exists for plan ${planUniqueId} — skipping.`,
-        );
-      } else {
-        console.error(
-          `❌ Failed to create pricing for plan ${planUniqueId}:`,
-          error?.response?.data || error.message,
-        );
-      }
-    }
-  }
+  // for (const plan of unregisteredPlans) {
+  //   const planUniqueId = plan?.subscriptionPlanUniqueId;
+  //   try {
+  //     const newPlanPricing = await createSubscriptionPlanPricing({
+  //       subscriptionPlanUniqueId: planUniqueId,
+  //       price,
+  //       currency: "ETB",
+  //       durationInDays: 30,
+  //       token: usersData["admin"]?.token,
+  //       effectiveFrom,
+  //     });
+  //     console.log(
+  //       `✅ Created pricing for plan ${planUniqueId}:`,
+  //       newPlanPricing?.data,
+  //     );
+  //   } catch (error) {
+  //     const errorMsg = error?.response?.data?.message || error.message || "";
+  //     if (
+  //       errorMsg.includes("pricing configuration already exists") ||
+  //       errorMsg.includes("already an active pricing")
+  //     ) {
+  //       console.log(
+  //         `⏭️  Pricing already exists for plan ${planUniqueId} — skipping.`,
+  //       );
+  //     } else {
+  //       console.error(
+  //         `❌ Failed to create pricing for plan ${planUniqueId}:`,
+  //         error?.response?.data || error.message,
+  //       );
+  //     }
+  //   }
+  // }
   //this create driver deposit is used to create new one because the workflow testDriverDepositFlow has delete effect and can't be used to create subscriptions.
   const depositPayload = {
     depositAmount: 1500000,
@@ -236,11 +238,15 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   );
   //create subscription for the driver after deposit approval
 
+  console.log(
+    "🚀 ~ driversFinancialFlows ~ listOfPlanPricing:",
+    listOfPlanPricing,
+  );
   await createDriverSubscription({
     userType,
     driverUniqueId,
     subscriptionPlanPricingUniqueId:
-      listOfPlanPricing?.[1]?.subscriptionPlanPricingUniqueId,
+      listOfPlanPricing?.data?.[1]?.subscriptionPlanPricingUniqueId,
   });
 
   await testDriverTransferFlow({ userType });

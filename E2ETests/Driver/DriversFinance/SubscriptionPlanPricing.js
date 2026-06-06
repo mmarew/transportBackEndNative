@@ -1,6 +1,7 @@
 const { default: axios } = require("axios");
-const { backendURL } = require("../../constants");
+const { backendURL, usersData, listOfPlanPricing } = require("../../constants");
 const { authConfig } = require("./DriverSubscription");
+const { getSubscriptionPlans } = require("./SubscriptionPlan");
 
 // this fetches subscription pricing list
 const fetchSubscriptionPlanPricing = async ({ token }) => {
@@ -48,33 +49,52 @@ const fetchSubscriptionPlanPricingByPlanId = async ({
 };
 //this is create plan pricing
 const createSubscriptionPlanPricing = async ({
-  subscriptionPlanUniqueId,
   price = 500,
   currency = "ETB",
   durationInDays = 30,
-  token,
   effectiveFrom,
+  userType = "admin",
 } = {}) => {
+  const token = usersData[userType]?.token;
+  const subscriptionPlan = await getSubscriptionPlans({
+    token,
+  });
+  // Generate a unique future date (today + 30 days) to avoid conflicts
+  const today = new Date();
+  const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  if (!effectiveFrom) effectiveFrom = futureDate.toISOString().split("T")[0];
+
+  if (price) price = 500;
+  // unregisteredPlans is a plan which doesn't have an active price now
+  const unregisteredPlans = [];
+  const pricingResults = await fetchSubscriptionPlanPricing({
+    token: usersData["admin"]?.token,
+  });
+
+  listOfPlanPricing.data = pricingResults;
   if (!token) {
     throw new Error("Token is required to create subscription plan pricing.");
   }
-  if (!subscriptionPlanUniqueId) {
-    throw new Error("subscriptionPlanUniqueId is required.");
+  // if (!subscriptionPlanUniqueId) {
+  //   throw new Error("subscriptionPlanUniqueId is required.");
+  // }
+  for (const plan of unregisteredPlans) {
+    const subscriptionPlanUniqueId = plan?.subscriptionPlanUniqueId;
+
+    const res = await axios.post(
+      `${backendURL}/api/finance/subscriptionPlanPricing`,
+      {
+        subscriptionPlanUniqueId,
+        price,
+        currency: "ETB",
+        durationInDays: 30,
+        effectiveFrom,
+      },
+      authConfig(token),
+    );
   }
 
-  const res = await axios.post(
-    `${backendURL}/api/finance/subscriptionPlanPricing`,
-    {
-      subscriptionPlanUniqueId,
-      price,
-      currency,
-      durationInDays,
-      effectiveFrom,
-    },
-    authConfig(token),
-  );
-
-  return res.data;
+  return "res.data";
 };
 const resolveSubscriptionPlanPricingUniqueId = async ({
   userType = "driver",
