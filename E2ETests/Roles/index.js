@@ -11,11 +11,8 @@ const testGetRoles = async () => {
   const resultOfTypes = await axios.get(backendURL + "/api/admin/roles", {
     headers: { Authorization: "Bearer " + token },
   });
-  console.log(
-    "🚀 ~ testGetDelinquencyTypes ~ resultOfTypes.data.data:",
-    resultOfTypes.data.data,
-  );
-  listOfRoles.data = resultOfTypes.data.data;
+
+  listOfRoles.data = resultOfTypes?.data?.data;
   console.log("🚀 ~ testGetRoles ~ listOfRoles.data:", listOfRoles.data);
 
   return resultOfTypes.data.data;

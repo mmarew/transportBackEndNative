@@ -36,7 +36,6 @@ const initiateTest = async () => {
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
     await driversFinancialFlows({ userType: "driver" });
-    return;
     await testGetRoles();
     await testDelinquencyTypesWorkflows({});
     await testDelinquencyWorkflow({});

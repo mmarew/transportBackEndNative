@@ -7,13 +7,15 @@ const {
   listOfDelinquencyTypes,
   listOfRoles,
 } = require("../constants");
-const delinquencyTypeData = {
-  delinquencyTypeName: "wrong behavior arrival",
-  applicableRoles: listOfRoles.data?.[1].roleUniqueId,
-  delinquencyTypeDescription: "when drivers late extrimlly",
-};
+
+console.log("🚀 ~  listOfRoles.data:", listOfRoles.data);
 //check existance of delinquency type in the list before creating it
 const checkExistanceOfDelinquenyIninTheList = () => {
+  const delinquencyTypeData = {
+    delinquencyTypeName: "wrong behavior arrival",
+    applicableRoles: listOfRoles.data?.[1].roleUniqueId,
+    delinquencyTypeDescription: "when drivers late extrimlly",
+  };
   listOfDelinquencyTypes.data.forEach((item) => {
     if (item.delinquencyTypeName === delinquencyTypeData.delinquencyTypeName) {
       return true;
@@ -24,7 +26,6 @@ const checkExistanceOfDelinquenyIninTheList = () => {
 // get delinquency types.
 const testGetDelinquencyTypes = async () => {
   const token = usersData?.admin?.token;
-  console.log("🚀 ~ testGetDelinquencyTypes ~ token:", token);
   if (!token) {
     return { message: "error", error: "token not found" };
   }
@@ -34,22 +35,22 @@ const testGetDelinquencyTypes = async () => {
       headers: { Authorization: "Bearer " + token },
     },
   );
-  console.log(
-    "🚀 ~ testGetDelinquencyTypes ~ resultOfTypes.data.data:",
-    resultOfTypes.data.data,
-  );
   listOfDelinquencyTypes.data = resultOfTypes.data.data;
   return resultOfTypes.data.data;
 };
 const testCreateDelinquencyTypes = async () => {
   const token = usersData?.admin?.token;
-  console.log("🚀 ~ testCreateDelinquencyTypes ~ token:", token);
   if (!token) {
     return { message: "error", error: "token not found" };
   }
   if (checkExistanceOfDelinquenyIninTheList()) {
     return { message: "error", error: "delinquency type already exists" };
   }
+  const delinquencyTypeData = {
+    delinquencyTypeName: "wrong behavior arrival",
+    applicableRoles: listOfRoles.data?.[1].roleUniqueId,
+    delinquencyTypeDescription: "when drivers late extrimlly",
+  };
   const resultOfTypes = await axios.post(
     backendURL + "/api/admin/delinquency-types",
     delinquencyTypeData,
@@ -57,16 +58,16 @@ const testCreateDelinquencyTypes = async () => {
       headers: { Authorization: "Bearer " + token },
     },
   );
-  console.log(
-    "🚀 ~ testCreateDelinquencyTypes ~ resultOfTypes.data.data:",
-    resultOfTypes.data.data,
-  );
   return resultOfTypes.data.data;
 };
 
 const testUpdateDelinquencyTypes = async () => {
+  const delinquencyTypeData = {
+    delinquencyTypeName: "wrong behavior arrival",
+    applicableRoles: listOfRoles.data?.[1].roleUniqueId,
+    delinquencyTypeDescription: "when drivers late extrimlly",
+  };
   const token = usersData?.admin?.token;
-  console.log("🚀 ~ testUpdateDelinquencyTypes ~ token:", token);
   if (!token) {
     return { message: "error", error: "token not found" };
   }
@@ -77,15 +78,10 @@ const testUpdateDelinquencyTypes = async () => {
       headers: { Authorization: "Bearer " + token },
     },
   );
-  console.log(
-    "🚀 ~ testUpdateDelinquencyTypes ~ resultOfTypes.data.data:",
-    resultOfTypes.data.data,
-  );
   return resultOfTypes.data.data;
 };
 const testDeleteDelinquencyTypes = async () => {
   const token = usersData?.admin?.token;
-  console.log("🚀 ~ testDeleteDelinquencyTypes ~ token:", token);
   if (!token) {
     return { message: "error", error: "token not found" };
   }
@@ -95,18 +91,10 @@ const testDeleteDelinquencyTypes = async () => {
       headers: { Authorization: "Bearer " + token },
     },
   );
-  console.log(
-    "🚀 ~ testDeleteDelinquencyTypes ~ resultOfTypes.data.data:",
-    resultOfTypes.data.data,
-  );
   return resultOfTypes.data.data;
 };
 const testDelinquencyTypesWorkflows = async () => {
   listOfDelinquencyTypes.data = await testGetDelinquencyTypes();
-  console.log(
-    "🚀 ~ testDelinquencyTypesWorkflows ~ listOfDelinquencyTypes:",
-    listOfDelinquencyTypes,
-  );
   //create one delinquency type
   const createOneType = await testCreateDelinquencyTypes();
   if (!createOneType) {
