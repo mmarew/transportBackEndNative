@@ -52,10 +52,6 @@ const testDriverWalletFlow = async ({ userType = "driver" } = {}) => {
   const financialAccount = await testCreateFinancialInstitutionAccount({
     userType,
   });
-  console.log(
-    "🚀 ~ testDriverWalletFlow ~ financialAccount:",
-    financialAccount,
-  );
   const accountUniqueId = financialAccount?.data?.accountUniqueId;
   // if (!accountUniqueId) {
   //   throw new Error(

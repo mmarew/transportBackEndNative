@@ -4,7 +4,6 @@ const { listOfRoles, usersData, backendURL } = require("../constants");
 //get list of roles
 const testGetRoles = async () => {
   const token = usersData?.admin?.token;
-  console.log("🚀 ~ testGetRoles ~ token:", token);
   if (!token) {
     return { message: "error", error: "token not found" };
   }
@@ -13,7 +12,6 @@ const testGetRoles = async () => {
   });
 
   listOfRoles.data = resultOfTypes?.data?.data;
-  console.log("🚀 ~ testGetRoles ~ listOfRoles.data:", listOfRoles.data);
 
   return resultOfTypes.data.data;
 };
