@@ -124,6 +124,10 @@ const testFinancialInstitutionAccountsWorkFlow = async ({
   const createResult = await testCreateFinancialInstitutionAccount({
     userType,
   });
+  console.log(
+    "🚀 ~ testFinancialInstitutionAccountsWorkFlow ~ createResult:",
+    createResult,
+  );
   const accountUniqueId = createResult?.data?.accountUniqueId;
   if (!accountUniqueId) {
     throw new Error("Failed to create a financial institution account.");

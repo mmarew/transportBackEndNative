@@ -22,3 +22,4 @@ logs/
 NotesWithQa.txt
 tests/test_image.jpg
 regression_test_19.log
+E2ETests/bisrat
