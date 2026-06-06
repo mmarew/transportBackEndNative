@@ -34,7 +34,7 @@ const createDelinquencyType = async (data) => {
   const uuidLike =
     /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
   const executor = transactionStorage.getStore() || pool;
-  
+
   if (!uuidLike.test(applicableRoles)) {
     const [roleRows] = await executor.query(
       "SELECT roleUniqueId FROM Roles WHERE LOWER(roleName) = LOWER(?) LIMIT 1",
@@ -210,107 +210,118 @@ const getDelinquencyTypes = async (filters = {}) => {
 };
 
 const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
-  const userUniqueId = data.user?.userUniqueId;
-  const { applicableRoles } = data;
-  let applicableRoleUniqueId = applicableRoles;
-  const executor = transactionStorage.getStore() || pool;
-  
-  const [existing] = await executor.query(
-    "SELECT delinquencyTypeUniqueId FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ?",
-    [delinquencyTypeUniqueId],
-  );
-  if (!existing || existing.length === 0) {
-    throw new AppError("Delinquency type not found", 404);
-  }
+  try {
+    const userUniqueId = data.user?.userUniqueId;
+    const { applicableRoles } = data;
+    console.log(
+      "🚀 ~ updateDelinquencyType ~ applicableRoles:",
+      applicableRoles,
+    );
 
-  // Resolve applicableRoles (if provided) before building SET clause
-  if (applicableRoles !== undefined) {
-    const uuidLike =
-      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
-    if (uuidLike.test(applicableRoles)) {
-      const [roleRows] = await executor.query(
-        "SELECT roleUniqueId FROM Roles WHERE roleUniqueId = ? LIMIT 1",
-        [applicableRoles],
-      );
-      if (roleRows.length === 0) {
-        throw new AppError(
-          "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
-          400,
-        );
-      }
-      applicableRoleUniqueId = roleRows[0].roleUniqueId;
-    } else {
-      const [roleRows] = await executor.query(
-        "SELECT roleUniqueId FROM Roles WHERE LOWER(roleName) = LOWER(?) LIMIT 1",
-        [applicableRoles],
-      );
-      if (roleRows.length === 0) {
-        throw new AppError(
-          "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
-          400,
-        );
-      }
-      applicableRoleUniqueId = roleRows?.[0].roleUniqueId;
+    let applicableRoleUniqueId = applicableRoles;
+    const executor = transactionStorage.getStore() || pool;
+
+    const [existing] = await executor.query(
+      "SELECT delinquencyTypeUniqueId FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ?",
+      [delinquencyTypeUniqueId],
+    );
+    if (!existing || existing.length === 0) {
+      throw new AppError("Delinquency type not found", 404);
     }
-  }
 
-  const setParts = [];
-  const values = [];
+    // Resolve applicableRoles (if provided) before building SET clause
+    if (applicableRoles !== undefined) {
+      const uuidLike =
+        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+      if (uuidLike.test(applicableRoles)) {
+        const [roleRows] = await executor.query(
+          "SELECT roleUniqueId FROM Roles WHERE roleUniqueId = ? LIMIT 1",
+          [applicableRoles],
+        );
+        if (roleRows.length === 0) {
+          throw new AppError(
+            "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
+            400,
+          );
+        }
+        applicableRoleUniqueId = roleRows[0].roleUniqueId;
+      } else {
+        const [roleRows] = await executor.query(
+          "SELECT roleUniqueId FROM Roles WHERE LOWER(roleName) = LOWER(?) LIMIT 1",
+          [applicableRoles],
+        );
+        if (roleRows.length === 0) {
+          throw new AppError(
+            "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
+            400,
+          );
+        }
+        applicableRoleUniqueId = roleRows?.[0].roleUniqueId;
+      }
+    }
 
-  if (data.delinquencyTypeName !== undefined) {
-    setParts.push("delinquencyTypeName = ?");
-    values.push(data.delinquencyTypeName);
-  }
+    const setParts = [];
+    const values = [];
 
-  if (data.delinquencyTypeDescription !== undefined) {
-    setParts.push("delinquencyTypeDescription = ?");
-    values.push(data.delinquencyTypeDescription);
-  }
+    if (data.delinquencyTypeName !== undefined) {
+      setParts.push("delinquencyTypeName = ?");
+      values.push(data.delinquencyTypeName);
+    }
 
-  if (data.defaultPoints !== undefined) {
-    setParts.push("defaultPoints = ?");
-    values.push(data.defaultPoints);
-  }
+    if (data.delinquencyTypeDescription !== undefined) {
+      setParts.push("delinquencyTypeDescription = ?");
+      values.push(data.delinquencyTypeDescription);
+    }
 
-  if (data.defaultSeverity !== undefined) {
-    setParts.push("defaultSeverity = ?");
-    values.push(data.defaultSeverity);
-  }
+    if (data.defaultPoints !== undefined) {
+      setParts.push("defaultPoints = ?");
+      values.push(data.defaultPoints);
+    }
 
-  if (applicableRoles !== undefined) {
-    setParts.push("applicableRoles = ?");
-    values.push(applicableRoleUniqueId);
-  }
+    if (data.defaultSeverity !== undefined) {
+      setParts.push("defaultSeverity = ?");
+      values.push(data.defaultSeverity);
+    }
 
-  if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
-  }
+    if (applicableRoles !== undefined) {
+      setParts.push("applicableRoles = ?");
+      values.push(applicableRoleUniqueId);
+    }
 
-  // Add audit columns
-  setParts.push("delinquencyTypeUpdatedBy = ?");
-  values.push(userUniqueId);
-  setParts.push("delinquencyTypeUpdatedAt = ?");
-  values.push(currentDate());
+    if (setParts.length === 0) {
+      throw new AppError("No fields provided to update", 400);
+    }
 
-  const sql = `UPDATE DelinquencyTypes SET ${setParts.join(", ")} WHERE delinquencyTypeUniqueId = ?`;
-  values.push(delinquencyTypeUniqueId);
+    // Add audit columns
+    setParts.push("delinquencyTypeUpdatedBy = ?");
+    values.push(userUniqueId);
+    setParts.push("delinquencyTypeUpdatedAt = ?");
+    values.push(currentDate());
 
-  const result = await query(sql, values);
+    const sql = `UPDATE DelinquencyTypes SET ${setParts.join(", ")} WHERE delinquencyTypeUniqueId = ?`;
+    values.push(delinquencyTypeUniqueId);
 
-  if (result.affectedRows > 0) {
-    return {
-      message: "success",
-      data: "Delinquency type updated successfully",
-    };
-  } else {
-    throw new AppError("Delinquency type update failed", 500);
+    const result = await query(sql, values);
+
+    if (result.affectedRows > 0) {
+      return {
+        message: "success",
+        data: "Delinquency type updated successfully",
+      };
+    } else {
+      throw new AppError("Delinquency type update failed", 500);
+    }
+  } catch (error) {
+    console.log("🚀 ~ updateDelinquencyType ~ error:", error);
+
+    console.error("error on update delinquency types error", error);
   }
 };
 
 const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
   const userUniqueId = user?.userUniqueId;
   const executor = transactionStorage.getStore() || pool;
-  
+
   const [existing] = await executor.query(
     "SELECT delinquencyTypeUniqueId FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ?",
     [delinquencyTypeUniqueId],
@@ -321,7 +332,9 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
 
   const checkSql =
     "SELECT COUNT(*) as count FROM UserDelinquency WHERE delinquencyTypeUniqueId = ?";
-  const [checkResult] = await executor.query(checkSql, [delinquencyTypeUniqueId]);
+  const [checkResult] = await executor.query(checkSql, [
+    delinquencyTypeUniqueId,
+  ]);
 
   if (checkResult[0].count > 0) {
     throw new AppError(
@@ -364,7 +377,9 @@ const getDelinquencyTypesByRole = async (roleUniqueId, pagination = {}) => {
 
   const executor = transactionStorage.getStore() || pool;
   const [results] = await executor.query(sql, [roleUniqueId, limit, offset]);
-  const [totalCountResult] = await executor.query("SELECT FOUND_ROWS() as total");
+  const [totalCountResult] = await executor.query(
+    "SELECT FOUND_ROWS() as total",
+  );
   const totalCount = totalCountResult[0].total;
   const totalPages = Math.ceil(totalCount / limit);
 

@@ -15,6 +15,20 @@ const testGetRoles = async () => {
 
   return resultOfTypes.data.data;
 };
+const testCreateRoles = async () => {};
+const testUpdateRoles = async () => {};
+const testDeleteRoles = async () => {};
+const testRolesWorkFlows = async () => {
+  await testGetRoles();
+  await testCreateRoles();
+
+  await testUpdateRoles();
+  await testDeleteRoles();
+};
 module.exports = {
+  testRolesWorkFlows,
+  testCreateRoles,
+  testDeleteRoles,
+  testUpdateRoles,
   testGetRoles,
 };

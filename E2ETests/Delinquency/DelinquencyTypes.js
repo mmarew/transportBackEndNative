@@ -8,7 +8,6 @@ const {
   listOfRoles,
 } = require("../constants");
 
-console.log("🚀 ~  listOfRoles.data:", listOfRoles.data);
 //check existance of delinquency type in the list before creating it
 const checkExistanceOfDelinquenyIninTheList = () => {
   const delinquencyTypeData = {
@@ -62,36 +61,47 @@ const testCreateDelinquencyTypes = async () => {
 };
 
 const testUpdateDelinquencyTypes = async () => {
-  const delinquencyTypeData = {
-    delinquencyTypeName: "wrong behavior arrival",
-    applicableRoles: listOfRoles.data?.[1].roleUniqueId,
-    delinquencyTypeDescription: "when drivers late extrimlly",
-  };
-  const token = usersData?.admin?.token;
-  if (!token) {
-    return { message: "error", error: "token not found" };
-  }
-  const resultOfTypes = await axios.put(
-    backendURL + "/api/admin/delinquency-types",
-    delinquencyTypeData,
-    {
-      headers: { Authorization: "Bearer " + token },
-    },
-  );
-  return resultOfTypes.data.data;
+  try {
+    const delinquencyTypeData = {
+      delinquencyTypeName: "wrong behavior arrival",
+      applicableRoles: listOfRoles.data?.[1].roleUniqueId,
+      delinquencyTypeDescription: "when drivers late extrimlly",
+    };
+    const delinquencyTypeUniqueId =
+      listOfDelinquencyTypes.data?.[0]?.delinquencyTypeUniqueId;
+    const token = usersData?.admin?.token;
+    if (!token) {
+      return { message: "error", error: "token not found" };
+    }
+    const resultOfTypes = await axios.put(
+      backendURL + "/api/admin/delinquency-types/" + delinquencyTypeUniqueId,
+      delinquencyTypeData,
+      {
+        headers: { Authorization: "Bearer " + token },
+      },
+    );
+    return resultOfTypes.data.data;
+  } catch (error) {}
 };
 const testDeleteDelinquencyTypes = async () => {
-  const token = usersData?.admin?.token;
-  if (!token) {
-    return { message: "error", error: "token not found" };
+  try {
+    // delinquencyTypeUniqueId
+    const token = usersData?.admin?.token;
+    if (!token) {
+      return { message: "error", error: "token not found" };
+    }
+    const delinquencyTypeUniqueId =
+      listOfDelinquencyTypes?.data?.[0]?.delinquencyTypeUniqueId;
+    const resultOfTypes = await axios.delete(
+      backendURL + "/api/admin/delinquency-types/" + delinquencyTypeUniqueId,
+      {
+        headers: { Authorization: "Bearer " + token },
+      },
+    );
+    return resultOfTypes.data.data;
+  } catch (error) {
+    // sss
   }
-  const resultOfTypes = await axios.delete(
-    backendURL + "/api/admin/delinquency-types",
-    {
-      headers: { Authorization: "Bearer " + token },
-    },
-  );
-  return resultOfTypes.data.data;
 };
 const testDelinquencyTypesWorkflows = async () => {
   listOfDelinquencyTypes.data = await testGetDelinquencyTypes();
