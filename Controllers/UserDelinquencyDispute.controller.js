@@ -25,7 +25,36 @@ const getDelinquencyResponses = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// PUT /:userDelinquencyResponseUniqueId
+const updateDelinquencyResponses = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(async () =>
+      disputeService.updateDelinquencyResponse({
+        userDelinquencyResponseUniqueId: req.params.userDelinquencyResponseUniqueId,
+        userDelinquencyResponse: req.body.userDelinquencyResponse,
+        updatedBy: req.user.userUniqueId,
+      }),
+    );
+    ServerResponder(res, result);
+  } catch (error) { next(error); }
+};
+
+// DELETE /:userDelinquencyResponseUniqueId
+const deleteDelinquencyResponses = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(async () =>
+      disputeService.deleteDelinquencyResponse({
+        userDelinquencyResponseUniqueId: req.params.userDelinquencyResponseUniqueId,
+        deletedBy: req.user.userUniqueId,
+      }),
+    );
+    ServerResponder(res, result);
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createDelinquencyResponse,
   getDelinquencyResponses,
+  updateDelinquencyResponses,
+  deleteDelinquencyResponses,
 };

@@ -9,6 +9,7 @@ const {
   createUserDelinquency,
   userDelinquencyParams,
   userRoleParams,
+  updateDelinquencyBody,
 } = require("../Validations/UserDelinquency.schema");
 const { USER_DELINQUENCY_ENDPOINTS } = require("./EndPoints/userDelinquency.endpoints");
 
@@ -31,6 +32,7 @@ const routes = [
     middleware: [
       verifyTokenOfAxios,
       validator(userDelinquencyParams, "params"),
+      validator(updateDelinquencyBody),
     ],
     handler: userDelinquencyController.updateUserDelinquency,
   },

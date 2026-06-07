@@ -23,5 +23,12 @@ exports.pendingUserDelinquenciesQuery = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 }).unknown(true);
-exports.updateDelinquencyResponses = Joi.object({});
+exports.updateDelinquencyResponses = Joi.object({
+  userDelinquencyResponse: Joi.string().min(10).required(),
+}).unknown(true);
+
 exports.deleteDelinquencyResponses = Joi.object({});
+
+exports.delinquencyResponseParams = Joi.object({
+  userDelinquencyResponseUniqueId: uuidSchema.required(),
+});

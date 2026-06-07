@@ -204,7 +204,103 @@ const getDelinquencyResponses = async (filters = {}) => {
   };
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Update a delinquency response (only if no admin decision yet)
+// ─────────────────────────────────────────────────────────────────────────────
+const updateDelinquencyResponse = async ({
+  userDelinquencyResponseUniqueId,
+  userDelinquencyResponse,
+  updatedBy,
+}) => {
+  // Verify the response exists and belongs to the caller
+  const [[existing]] = await exec().query(
+    `SELECT r.userDelinquencyResponseUniqueId, r.userDelinquencyUniqueId,
+            r.userDelinquencyResponseCreatedBy
+     FROM UserDelinquencyResponse r
+     WHERE r.userDelinquencyResponseUniqueId = ?
+       AND r.userDelinquencyResponseDeletedAt IS NULL
+     LIMIT 1`,
+    [userDelinquencyResponseUniqueId],
+  );
+  if (!existing) {
+    throw new AppError("Response not found", 404);
+  }
+  if (existing.userDelinquencyResponseCreatedBy !== updatedBy) {
+    throw new AppError("You can only edit your own response", 403);
+  }
+
+  // Block edit if admin has already issued a decision
+  const [[decision]] = await exec().query(
+    `SELECT adminDecisionOnUserDelinquencyUniqueId
+     FROM AdminDecisionOnUserDelinquency
+     WHERE userDelinquencyUniqueId = ?
+       AND adminDecisionOnUserDelinquencyDeletedAt IS NULL
+     LIMIT 1`,
+    [existing.userDelinquencyUniqueId],
+  );
+  if (decision) {
+    throw new AppError(
+      "Cannot edit response — an admin decision has already been issued",
+      409,
+    );
+  }
+
+  await exec().query(
+    `UPDATE UserDelinquencyResponse
+     SET userDelinquencyResponse = ?,
+         userDelinquencyResponseUpdatedAt = NOW(),
+         userDelinquencyResponseUpdatedBy = ?
+     WHERE userDelinquencyResponseUniqueId = ?`,
+    [userDelinquencyResponse, updatedBy, userDelinquencyResponseUniqueId],
+  );
+
+  return {
+    message: "success",
+    data: "Response updated successfully",
+    userDelinquencyResponseUniqueId,
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Soft-delete a delinquency response
+// ─────────────────────────────────────────────────────────────────────────────
+const deleteDelinquencyResponse = async ({
+  userDelinquencyResponseUniqueId,
+  deletedBy,
+}) => {
+  const [[existing]] = await exec().query(
+    `SELECT userDelinquencyResponseUniqueId, userDelinquencyResponseCreatedBy
+     FROM UserDelinquencyResponse
+     WHERE userDelinquencyResponseUniqueId = ?
+       AND userDelinquencyResponseDeletedAt IS NULL
+     LIMIT 1`,
+    [userDelinquencyResponseUniqueId],
+  );
+  if (!existing) {
+    throw new AppError("Response not found", 404);
+  }
+  if (existing.userDelinquencyResponseCreatedBy !== deletedBy) {
+    throw new AppError("You can only delete your own response", 403);
+  }
+
+  await exec().query(
+    `UPDATE UserDelinquencyResponse
+     SET userDelinquencyResponseDeletedAt = NOW(),
+         userDelinquencyResponseDeletedBy = ?
+     WHERE userDelinquencyResponseUniqueId = ?`,
+    [deletedBy, userDelinquencyResponseUniqueId],
+  );
+
+  return {
+    message: "success",
+    data: "Response deleted successfully",
+    userDelinquencyResponseUniqueId,
+  };
+};
+
 module.exports = {
   createDelinquencyResponse,
   getDelinquencyResponses,
+  updateDelinquencyResponse,
+  deleteDelinquencyResponse,
 };

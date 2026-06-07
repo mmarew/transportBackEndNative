@@ -11,6 +11,8 @@ const {
   createUserDelinquencyResponse,
   getUserDelinquencyResponsesQuery,
   pendingUserDelinquenciesQuery,
+  updateDelinquencyResponses,
+  delinquencyResponseParams,
 } = require("../Validations/UserDelinquencyDispute.schema");
 const {
   USER_DELINQUENCY_RESPONSE_ENDPOINTS,
@@ -47,19 +49,25 @@ const routes = [
     handler: controller.getDelinquencyResponses,
   },
   //--- DELETE RESPONSES ----------
-
   {
     path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.DELETE_RESPONSE,
     method: "delete",
-    middleware: [verifyTokenOfAxios, validator()],
+    middleware: [
+      verifyTokenOfAxios,
+      validator(delinquencyResponseParams, "params"),
+    ],
     handler: controller.deleteDelinquencyResponses,
   },
 
-  //--- update RESPONSES ----------
+  //--- UPDATE RESPONSES ----------
   {
     path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.UPDATE_RESPONSE,
     method: "put",
-    middleware: [verifyTokenOfAxios, validator()],
+    middleware: [
+      verifyTokenOfAxios,
+      validator(delinquencyResponseParams, "params"),
+      validator(updateDelinquencyResponses),
+    ],
     handler: controller.updateDelinquencyResponses,
   },
 ];
