@@ -50,9 +50,10 @@ const deleteUserDelinquency = async (req, res, next) => {
   try {
     const { userDelinquencyUniqueId } = req.params;
     const result = await executeInTransaction(async () => {
-      return await userDelinquencyService.deleteUserDelinquency(
+      return await userDelinquencyService.deleteUserDelinquency({
         userDelinquencyUniqueId,
-      );
+        delinquencyDeletedBy: req.user.userUniqueId,
+      });
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -73,9 +74,13 @@ const checkAutomaticBan = async (req, res, next) => {
 
 const getPendingUserDelinquencies = async (req, res, next) => {
   try {
-    const result = await userDelinquencyService.getPendingUserDelinquencies(req.query);
+    const result = await userDelinquencyService.getPendingUserDelinquencies(
+      req.query,
+    );
     ServerResponder(res, result);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {

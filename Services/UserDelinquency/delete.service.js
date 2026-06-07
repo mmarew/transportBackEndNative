@@ -3,9 +3,13 @@
 const { pool } = require("../../Middleware/Database.config");
 
 const AppError = require("../../Utils/AppError");
+const { currentDate } = require("../../Utils/CurrentDate");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 
-const deleteUserDelinquency = async (userDelinquencyUniqueId) => {
+const deleteUserDelinquency = async ({
+  userDelinquencyUniqueId,
+  delinquencyDeletedBy,
+}) => {
   // // Check if this delinquency is linked to any banned users
   // const checkSql =
   //   "SELECT COUNT(*) as count FROM BannedUsers WHERE userDelinquencyUniqueId = ?";
@@ -20,9 +24,14 @@ const deleteUserDelinquency = async (userDelinquencyUniqueId) => {
   //     400,
   //   );
   // }
-
-  const sql = "DELETE FROM UserDelinquency WHERE userDelinquencyUniqueId = ?";
+  //
+  const delinquencyDeletedAt = currentDate();
+  // const delinquencyDeletedBy = "delinquencyDeletedBy";
+  const sql =
+    "update  UserDelinquency set delinquencyDeletedAt=?,delinquencyDeletedBy=? WHERE userDelinquencyUniqueId = ?";
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [
+    delinquencyDeletedAt,
+    delinquencyDeletedBy,
     userDelinquencyUniqueId,
   ]);
   if (result.affectedRows > 0) {
