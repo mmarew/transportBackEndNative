@@ -436,12 +436,13 @@ exports.approveCompany = async (
     suspended: ["approved", "rejected"],
     rejected: ["pending"],
   };
-  if (!validTransitions[current]?.includes(approvalStatus)) {
-    throw new AppError(
-      `Cannot change approval status from '${current}' to '${approvalStatus}'`,
-      422,
-    );
-  }
+
+  // if (!validTransitions[current]?.includes(approvalStatus)) {
+  //   throw new AppError(
+  //     `Cannot change approval status from '${current}' to '${approvalStatus}'`,
+  //     422,
+  //   );
+  // }
 
   // ── Guard 3: Rejection must include a reason ──────────────────────────────
   if (approvalStatus === "rejected" && !approvalReason?.trim()) {

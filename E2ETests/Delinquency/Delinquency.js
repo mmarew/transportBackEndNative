@@ -6,6 +6,7 @@ const {
   usersData,
   listOfDelinquencyTypes,
 } = require("../constants");
+const delinquencies = { data: null };
 
 //get delinquency data from delinquency types
 const url = "/api/admin/userDelinquency/";
@@ -22,6 +23,7 @@ const testGetDelinquency = async ({ user }) => {
       "🚀 ~ testGetDelinquency ~ result.data.data:",
       result.data.data,
     );
+    delinquencies.data = result.data.data;
     return result.data.data;
   } catch (error) {
     console.log("🚀 ~ testGetDelinquency ~ error:", error);
@@ -59,14 +61,15 @@ const testCreateDelinquency = async ({ user }) => {
   }
 };
 
-const testUpdateDelinquency = async ({ user }) => {
+const testUpdateDelinquency = async ({ user = usersData.driver }) => {
   try {
     const token = user?.token;
     if (!token) {
       return { message: "error", error: "token not found" };
     }
-    const delinquencyType = listOfDelinquencyTypes.data?.[0];
-    const userDelinquencyUniqueId = delinquencyType.userDelinquencyUniqueId;
+    const delinquency = delinquencies.data?.[0];
+
+    const userDelinquencyUniqueId = delinquency?.userDelinquencyUniqueId;
 
     const result = await axios.put(backendURL + url + userDelinquencyUniqueId, {
       headers: { Authorization: "Bearer " + token },
@@ -87,7 +90,11 @@ const testDeleteDelinquency = async ({ user }) => {
     if (!token) {
       return { message: "error", error: "token not found" };
     }
-    const delinquencyType = listOfDelinquencyTypes.data?.[0];
+    const delinquency = delinquencies.data?.[0];
+    console.log(
+      "🚀 ~ testDeleteDelinquency ~ listOfDelinquencyTypes.data:",
+      listOfDelinquencyTypes.data?.[0],
+    );
     const userDelinquencyUniqueId = delinquencyType?.userDelinquencyUniqueId;
     const result = await axios.delete(
       backendURL + url + userDelinquencyUniqueId,
@@ -101,7 +108,7 @@ const testDeleteDelinquency = async ({ user }) => {
     );
     return result.data.data;
   } catch (error) {
-    console.log("🚀 ~ testDeleteDelinquency ~ error:", error);
+    console.log("🚀 ~ testDeleteDelinquency ~ error:", error?.data);
   }
 };
 
