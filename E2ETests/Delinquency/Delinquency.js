@@ -64,24 +64,26 @@ const testCreateDelinquency = async ({ user }) => {
 const testUpdateDelinquency = async ({ user = usersData.driver }) => {
   try {
     const token = user?.token;
-    console.log("🚀 ~ testUpdateDelinquency ~ token:", token);
-    if (!token) {
-      return { message: "error", error: "token not found" };
-    }
+    if (!token) throw new Error("token not found");
+
     const delinquency = delinquencies.data?.[0];
-
     const userDelinquencyUniqueId = delinquency?.userDelinquencyUniqueId;
+    if (!userDelinquencyUniqueId) throw new Error("No delinquency ID found to update");
 
-    const result = await axios.put(backendURL + url + userDelinquencyUniqueId, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    console.log(
-      "🚀 ~ testUpdateDelinquency ~ result.data.data:",
-      result.data.data,
+    const payload = {
+      delinquencyDescription: "Updated description — additional context provided.",
+    };
+
+    const result = await axios.put(
+      backendURL + url + userDelinquencyUniqueId,
+      payload,
+      { headers: { Authorization: "Bearer " + token } },
     );
+    console.log("✅ Delinquency updated:", result.data.data);
     return result.data.data;
   } catch (error) {
-    console.log("🚀 ~ testUpdateDelinquency ~ error:", error?.data);
+    console.error("❌ testUpdateDelinquency:", error.response?.data?.error || error.message);
+    throw error;
   }
 };
 
