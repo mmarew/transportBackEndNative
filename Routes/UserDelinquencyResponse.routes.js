@@ -12,7 +12,9 @@ const {
   getUserDelinquencyResponsesQuery,
   pendingUserDelinquenciesQuery,
 } = require("../Validations/UserDelinquencyDispute.schema");
-const { USER_DELINQUENCY_RESPONSE_ENDPOINTS } = require("./EndPoints/userDelinquencyResponse.endpoints");
+const {
+  USER_DELINQUENCY_RESPONSE_ENDPOINTS,
+} = require("./EndPoints/userDelinquencyResponse.endpoints");
 
 const routes = [
   // ── Pending delinquencies (user sees what needs attention) ─────────────
@@ -43,6 +45,22 @@ const routes = [
       validator(getUserDelinquencyResponsesQuery, "query"),
     ],
     handler: controller.getDelinquencyResponses,
+  },
+  //--- DELETE RESPONSES ----------
+
+  {
+    path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.DELETE_RESPONSE,
+    method: "delete",
+    middleware: [verifyTokenOfAxios, validator()],
+    handler: controller.deleteDelinquencyResponses,
+  },
+
+  //--- update RESPONSES ----------
+  {
+    path: USER_DELINQUENCY_RESPONSE_ENDPOINTS.UPDATE_RESPONSE,
+    method: "put",
+    middleware: [verifyTokenOfAxios, validator()],
+    handler: controller.updateDelinquencyResponses,
   },
 ];
 

@@ -11,7 +11,7 @@ exports.createUserDelinquencyResponse = Joi.object({
 exports.getUserDelinquencyResponsesQuery = Joi.object({
   userDelinquencyUniqueId: uuidSchema.optional(),
   userDelinquencyResponseUniqueId: uuidSchema.optional(),
-  page:  Joi.number().integer().min(1).optional(),
+  page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
   sortOrder: Joi.string().valid("ASC", "DESC").optional(),
 }).unknown(true);
@@ -20,6 +20,8 @@ exports.getUserDelinquencyResponsesQuery = Joi.object({
 exports.pendingUserDelinquenciesQuery = Joi.object({
   userUniqueId: uuidSchema.required(),
   roleId: Joi.number().integer().required(),
-  page:  Joi.number().integer().min(1).optional(),
+  page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 }).unknown(true);
+exports.updateDelinquencyResponses = Joi.object({});
+exports.deleteDelinquencyResponses = Joi.object({});

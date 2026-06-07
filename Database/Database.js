@@ -1258,8 +1258,10 @@ CREATE TABLE IF NOT EXISTS DelinquencyTypes (
 
 
 CREATE TABLE IF NOT EXISTS UserDelinquency (
+
     userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
     userUniqueId VARCHAR(36) NOT NULL,
     roleId INT NOT NULL,
     delinquencyTypeUniqueId VARCHAR(36) NOT NULL,
