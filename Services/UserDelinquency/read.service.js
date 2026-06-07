@@ -124,7 +124,7 @@ const getUserDelinquencies = async (filters = {}) => {
       ud.delinquencyCreatedAt,
       ud.delinquencyCreatedBy,
       ud.journeyDecisionUniqueId,
-      ud.isDeliquencySeenByAdmin,
+      ud.isDelinquencySeenByAdmin,
       u.fullName,
       u.email,
       r.roleName,

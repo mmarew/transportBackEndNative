@@ -45,16 +45,16 @@ const routesArray = [
     handler: require("./JourneyStatus.routes"),
   },
   {
-    path: "/api/admin/delinquency-types",
+    path: "/api/admin/delinquencyTypes",
     handler: require("./DelinquencyTypes.routes"),
   },
-  { path: "/api/admin/banned-users", handler: require("./BannedUsers.routes") },
+  { path: "/api/admin/bannedUsers", handler: require("./BannedUsers.routes") },
   {
     path: "/api/admin/userDelinquency",
     handler: require("./UserDelinquency.routes"),
   },
   {
-    path: "/api/admin/user-delinquency-decisions",
+    path: "/api/admin/userDelinquencyDecisions",
     handler: require("./AdminDecisionOnUserDelinquency.routes"),
   },
   // ── Multi-prefix routes (kept with absolute paths + bare mount) ──
@@ -89,7 +89,7 @@ const routesArray = [
   require("./User.routes"),
   require("./Admin.routes"),
   {
-    path: "/api/user/delinquency-response",
+    path: "/api/user/delinquencyResponse",
     handler: require("./UserDelinquencyResponse.routes"),
   },
   require("./Account.routes"),

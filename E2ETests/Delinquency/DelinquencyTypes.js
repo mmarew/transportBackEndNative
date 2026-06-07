@@ -29,7 +29,7 @@ const testGetDelinquencyTypes = async () => {
     return { message: "error", error: "token not found" };
   }
   const resultOfTypes = await axios.get(
-    backendURL + "/api/admin/delinquency-types",
+    backendURL + "/api/admin/delinquencyTypes",
     {
       headers: { Authorization: "Bearer " + token },
     },
@@ -51,7 +51,7 @@ const testCreateDelinquencyTypes = async () => {
     delinquencyTypeDescription: "when drivers late extrimlly",
   };
   const resultOfTypes = await axios.post(
-    backendURL + "/api/admin/delinquency-types",
+    backendURL + "/api/admin/delinquencyTypes",
     delinquencyTypeData,
     {
       headers: { Authorization: "Bearer " + token },

@@ -39,7 +39,6 @@ const initiateTest = async () => {
     await testGetRoles();
 
     await testDelinquencyTypesWorkflows({});
-    return;
     await testDelinquencyWorkflow({});
     return;
     if (!usersData?.driver?.token) {
