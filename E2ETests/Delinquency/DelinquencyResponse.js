@@ -3,6 +3,7 @@
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
+const { testCreateDelinquency, testGetDelinquency } = require("./Delinquency");
 
 const BASE_URL = "/api/user/delinquencyResponse";
 const responses = { data: null };
@@ -100,15 +101,21 @@ const testDeleteDelinquencyResponse = async ({ user, userDelinquencyResponseUniq
 // ── Full workflow ─────────────────────────────────────────────────────────────
 const testDelinquencyResponseWorkflow = async ({
   user = usersData.driver,
-  userDelinquencyUniqueId,
-}) => {
+ }) => {
   console.log("\n── Delinquency Response Workflow ──");
-
+  //first create new delinquency
+await testCreateDelinquency({user:usersData.driver,delinquencyTypeIndex:1});
+ const delinquencyResult=await testGetDelinquency({})
+  console.log("🚀 ~ testDelinquencyResponseWorkflow ~ delinquencyResult:", delinquencyResult);
+  const userDelinquencyUniqueId=delinquencyResult?.data?.[0]?.userDelinquencyUniqueId
+  console.log("🚀 ~ testDelinquencyResponseWorkflow ~ userDelinquencyUniqueId:", userDelinquencyUniqueId)
   // GET (empty initially)
-  await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
+ const resultOfDelinquencyResponses= await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
+ console.log("🚀 ~ testDelinquencyResponseWorkflow ~ resultOfDelinquencyResponses:", resultOfDelinquencyResponses)
 
   // CREATE
   const created = await testCreateDelinquencyResponse({ user, userDelinquencyUniqueId });
+  console.log("🚀 ~ testDelinquencyResponseWorkflow ~ created:", created)
   const responseUniqueId = created?.userDelinquencyResponseUniqueId;
 
   // UPDATE

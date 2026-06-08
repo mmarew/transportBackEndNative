@@ -14,6 +14,7 @@ const {
   testDelinquencyTypesWorkflows,
 } = require("./Delinquency/DelinquencyTypes");
 const { testDelinquencyWorkflow } = require("./Delinquency/Delinquency");
+const { testDelinquencyResponseWorkflow } = require("./Delinquency/DelinquencyResponse");
 
 const initiateTest = async () => {
   try {
@@ -40,6 +41,7 @@ const initiateTest = async () => {
 
     await testDelinquencyTypesWorkflows({});
     await testDelinquencyWorkflow({});
+    await testDelinquencyResponseWorkflow({})
     return;
     if (!usersData?.driver?.token) {
       throw new Error("Driver token not set after testDriverOnboardingFlow()");

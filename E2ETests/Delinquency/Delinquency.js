@@ -10,7 +10,7 @@ const delinquencies = { data: null };
 
 //get delinquency data from delinquency types
 const url = "/api/admin/userDelinquency/";
-const testGetDelinquency = async ({ user }) => {
+const testGetDelinquency = async ({ user=usersData.driver }) => {
   try {
     const token = user?.token;
     if (!token) {
@@ -29,10 +29,10 @@ const testGetDelinquency = async ({ user }) => {
     console.log("🚀 ~ testGetDelinquency ~ error:", error);
   }
 };
-const testCreateDelinquency = async ({ user }) => {
+const testCreateDelinquency = async ({ user=usersData.driver,delinquencyTypeIndex =0}) => {
   try {
     const userDriver = usersData.driver.accountData;
-    const delinquencyType = listOfDelinquencyTypes.data?.[0];
+    const delinquencyType = listOfDelinquencyTypes.data?.[delinquencyTypeIndex];
     console.log(
       "🚀 ~ testCreateDelinquency ~ userDriver:",
       userDriver.userData.userUniqueId,

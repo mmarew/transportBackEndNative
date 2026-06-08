@@ -14,25 +14,23 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const selfAccountStatus = async (req, res, next) => {
   try {
     const user = req.user;
-    // Allow override only for admins/superAdmins (e.g., inspecting a specific role)
     const { usersRoles } = require("../Utils/ListOfSeedData");
     const isAdmin =
       user.roleId === usersRoles.adminRoleId ||
       user.roleId === usersRoles.supperAdminRoleId;
 
-    // Non-admins: role is always what's in the token — ignore any query params
     const resolvedRoleId = isAdmin
       ? (req.query.roleId ?? user.roleId)
       : user.roleId;
 
-    const result = await executeInTransaction(async () =>
-      AccountService.accountStatus({
-        ownerUserUniqueId: user.userUniqueId,
-        body: { roleId: resolvedRoleId },
-        user,
-        enableDocumentChecks: true,
-      }),
-    );
+    // No transaction needed — accountStatus is primarily a read operation.
+    // The one conditional write (updateUserRoleStatus) is self-contained in the service.
+    const result = await AccountService.accountStatus({
+      ownerUserUniqueId: user.userUniqueId,
+      body: { roleId: resolvedRoleId },
+      user,
+      enableDocumentChecks: true,
+    });
     ServerResponder(res, result);
   } catch (error) {
     next(error);
