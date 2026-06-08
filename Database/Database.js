@@ -1295,7 +1295,10 @@ CREATE TABLE IF NOT EXISTS UserDelinquencyResponse (
     userDelinquencyResponse TEXT NOT NULL,
     isLateResponse BOOLEAN NOT NULL DEFAULT FALSE,
     userDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
     userDelinquencyResponseDeletedAt DATETIME NULL,
+    userDelinquencyResponseDeletedBy varchar(36) default null,
+
     userDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
 
      userDelinquencyResponseUpdatedAt varchar(36) default null,

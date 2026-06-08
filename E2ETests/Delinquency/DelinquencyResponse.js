@@ -104,26 +104,30 @@ const testDelinquencyResponseWorkflow = async ({
 }) => {
   console.log("\n── Delinquency Response Workflow ──");
 
-  // Create fresh delinquency for this test (previous ones may be deleted or decided)
-  await testCreateDelinquency({ user: usersData.admin, delinquencyTypeIndex: 0 });
-  const delinquencyResult = await testGetDelinquency({ user: usersData.admin });
+  // Always create a fresh delinquency for this workflow to ensure it's not deleted
+  console.log("📝 Creating fresh delinquency for response workflow");
+  const createResult = await testCreateDelinquency({ 
+    user: usersData.admin, 
+    delinquencyTypeIndex: 0,
+    skipDuplicateCheck: true // Skip duplicate check for E2E tests
+  });
   
-  // Use the most recent non-decided delinquency
-  const userDelinquencyUniqueId = delinquencyResult?.data?.[0]?.userDelinquencyUniqueId;
+  const userDelinquencyUniqueId = createResult?.userDelinquencyUniqueId;
   if (!userDelinquencyUniqueId) {
-    throw new Error("No delinquency found after create");
+    throw new Error("Failed to create delinquency - no ID returned");
   }
-  console.log("✅ Using delinquency:", userDelinquencyUniqueId);
+  console.log("✅ Created delinquency:", userDelinquencyUniqueId);
 
-  // GET (empty initially)
+  // GET (should be empty initially for this new delinquency)
   await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
 
-  // CREATE
+  // CREATE response
   const created = await testCreateDelinquencyResponse({ user, userDelinquencyUniqueId });
   const responseUniqueId = created?.userDelinquencyResponseUniqueId;
   if (!responseUniqueId) {
     throw new Error("Failed to get responseUniqueId after create");
   }
+  console.log("✅ Created response:", responseUniqueId);
 
   // UPDATE
   await testUpdateDelinquencyResponse({ user, userDelinquencyResponseUniqueId: responseUniqueId });
@@ -138,7 +142,7 @@ const testDelinquencyResponseWorkflow = async ({
   await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
 
   console.log("── Delinquency Response Workflow complete ──\n");
-  return { responseUniqueId };
+  return { responseUniqueId, userDelinquencyUniqueId };
 };
 
 module.exports = {

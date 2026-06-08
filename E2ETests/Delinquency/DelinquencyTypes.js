@@ -74,7 +74,7 @@ const testUpdateDelinquencyTypes = async () => {
       return { message: "error", error: "token not found" };
     }
     const resultOfTypes = await axios.put(
-      backendURL + "/api/admin/delinquency-types/" + delinquencyTypeUniqueId,
+      backendURL + "/api/admin/delinquencyTypes/" + delinquencyTypeUniqueId,
       delinquencyTypeData,
       {
         headers: { Authorization: "Bearer " + token },
@@ -96,7 +96,7 @@ const testDeleteDelinquencyTypes = async () => {
     const delinquencyTypeUniqueId =
       listOfDelinquencyTypes?.data?.[0]?.delinquencyTypeUniqueId;
     const resultOfTypes = await axios.delete(
-      backendURL + "/api/admin/delinquency-types/" + delinquencyTypeUniqueId,
+      backendURL + "/api/admin/delinquencyTypes/" + delinquencyTypeUniqueId,
       {
         headers: { Authorization: "Bearer " + token },
       },

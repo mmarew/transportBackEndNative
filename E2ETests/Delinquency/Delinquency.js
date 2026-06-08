@@ -30,7 +30,7 @@ const testGetDelinquency = async ({ user=usersData.driver }) => {
     throw error;
   }
 };
-const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIndex = 0 }) => {
+const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIndex = 0, skipDuplicateCheck = false }) => {
   try {
     const userDriver = usersData.driver.accountData;
     const delinquencyType = listOfDelinquencyTypes.data?.[delinquencyTypeIndex];
@@ -39,11 +39,11 @@ const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIn
       userDriver.userData.userUniqueId,
     );
     const payload = {
-      userUniqueId: userDriver.userData.userUniqueId, // "16ea3d2f-a100-4659-8f4b-1f247d55225a",
-      delinquencyTypeUniqueId: delinquencyType?.delinquencyTypeUniqueId, // "0e9776c9-f18d-4cc4-afea-0378ff5182f8",
+      userUniqueId: userDriver.userData.userUniqueId,
+      delinquencyTypeUniqueId: delinquencyType?.delinquencyTypeUniqueId,
       delinquencyDescription: "user has made some mistakes mistakes",
-      // "journeyDecisionUniqueId": "16287c18-2711-4850-8c00-c05346641369",
       roleId: 2,
+      skipDuplicateCheck, // Allow bypassing duplicate check for E2E tests
     };
     const token = user?.token;
     if (!token) {
@@ -53,10 +53,10 @@ const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIn
       headers: { Authorization: "Bearer " + token },
     });
     console.log(
-      "🚀 ~ testCreateDelinquency ~ result.data.data:",
-      result.data.data,
+      "✅ testCreateDelinquency success:",
+      result.data.userDelinquencyUniqueId,
     );
-    return result.data.data;
+    return result.data;
   } catch (error) {
     console.error("❌ testCreateDelinquency:", error.response?.data?.error || error.message);
     throw error;
