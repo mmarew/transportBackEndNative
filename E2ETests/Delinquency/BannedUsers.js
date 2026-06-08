@@ -26,28 +26,33 @@ const testGetBannedUsers = async ({ user } = {}) => {
 };
 
 // ── CREATE ban (manual) ───────────────────────────────────────────────────────
-const testBanUser = async ({ user, targetUserRoleUniqueId }) => {
+const testBanUser = async ({ user, userUniqueId, roleId }) => {
   try {
     const token = user?.token;
     if (!token) throw new Error("token not found");
 
-    // Resolve userRoleUniqueId from accountData if not provided
-    const userRoleUniqueId =
-      targetUserRoleUniqueId ||
-      usersData?.driver?.accountData?.userData?.userRoleUniqueId;
+    // Resolve userUniqueId and roleId from driver's accountData if not provided
+    const targetUserUniqueId = 
+      userUniqueId || 
+      usersData?.driver?.accountData?.userData?.userUniqueId;
+    
+    const targetRoleId = 
+      roleId || 
+      2; // Default to driver roleId
 
-    if (!userRoleUniqueId) throw new Error("userRoleUniqueId not found");
+    if (!targetUserUniqueId) throw new Error("userUniqueId not found");
 
     const payload = {
-      userRoleUniqueId,
-      reason: "Manual ban issued during E2E test — repeated policy violations.",
-      banDuration: 7, // days
+      userUniqueId: targetUserUniqueId,
+      roleId: targetRoleId,
+      banReason: "Manual ban issued during E2E test — repeated policy violations.",
+      banDurationDays: 7,
     };
 
     const result = await axios.post(backendURL + BASE_URL, payload, {
       headers: { Authorization: "Bearer " + token },
     });
-    console.log("✅ User banned:", result.data.data?.banUniqueId || result.data.data);
+    console.log("✅ User banned:", result.data.data?.banUniqueId || result.data.banUniqueId);
     return result.data;
   } catch (error) {
     console.error("❌ testBanUser:", error.response?.data?.error || error.message);
@@ -65,7 +70,7 @@ const testUpdateBan = async ({ user, banUniqueId }) => {
     if (!id) throw new Error("No banUniqueId found to update");
 
     const payload = {
-      reason: "Updated ban reason — additional violations discovered during review.",
+      banReason: "Updated ban reason — additional violations discovered during review.",
     };
 
     const result = await axios.put(backendURL + BASE_URL + "/" + id, payload, {
@@ -125,7 +130,8 @@ const testUnbanUser = async ({ user, banUniqueId }) => {
 // ── Full workflow ─────────────────────────────────────────────────────────────
 const testBanWorkflow = async ({
   user = usersData.admin,
-  targetUserRoleUniqueId = undefined,
+  userUniqueId = undefined,
+  roleId = undefined,
 } = {}) => {
   console.log("\n── Ban Workflow ──");
 
@@ -133,8 +139,8 @@ const testBanWorkflow = async ({
   await testGetBannedUsers({ user });
 
   // CREATE
-  const banResult = await testBanUser({ user, targetUserRoleUniqueId });
-  const banUniqueId = banResult?.data?.banUniqueId || bans.data?.[0]?.banUniqueId;
+  const banResult = await testBanUser({ user, userUniqueId, roleId });
+  const banUniqueId = banResult?.banUniqueId || banResult?.data?.banUniqueId;
 
   // UPDATE
   await testUpdateBan({ user, banUniqueId });

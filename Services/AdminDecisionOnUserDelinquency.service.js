@@ -224,7 +224,7 @@ const getAdminDecisions = async (filters = {}) => {
      FROM AdminDecisionOnUserDelinquency d
      LEFT JOIN Users u ON d.adminDecisionOnUserDelinquencyCreatedBy = u.userUniqueId
      WHERE ${whereClause}
-     ORDER BY d.adminDecisionOnDelinquencyId ${safeOrder}
+     ORDER BY d.adminDecisionOnUserDelinquencyId ${safeOrder}
      LIMIT ? OFFSET ?`,
     [...params, parseInt(limit), offset],
   );

@@ -3,6 +3,7 @@
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
+const { testCreateDelinquency, testGetDelinquency } = require("./Delinquency");
 
 const BASE_URL = "/api/admin/userDelinquencyDecisions";
 const decisions = { data: null };
@@ -84,16 +85,32 @@ const testAdminDecisionWorkflow = async ({
   userDelinquencyUniqueId,
   userDelinquencyResponseUniqueId = undefined,
   decisionOutcome = "UPHELD",
-}) => {
+} = {}) => {
   console.log("\n── Admin Decision Workflow ──");
 
-  // GET (empty initially)
-  await testGetAdminDecisions({ user, userDelinquencyUniqueId });
+  // If no delinquency ID provided, create a fresh one for testing
+  let delinquencyId = userDelinquencyUniqueId;
+  if (!delinquencyId) {
+    console.log("📝 No delinquency provided — creating fresh one for decision workflow");
+    const createResult = await testCreateDelinquency({
+      user,
+      delinquencyTypeIndex: 0,
+      skipDuplicateCheck: true,
+    });
+    delinquencyId = createResult?.userDelinquencyUniqueId;
+    if (!delinquencyId) {
+      throw new Error("Failed to create delinquency for admin decision test");
+    }
+    console.log("✅ Created delinquency:", delinquencyId);
+  }
+
+  // GET (check existing decisions)
+  await testGetAdminDecisions({ user, userDelinquencyUniqueId: delinquencyId });
 
   // CREATE
   const created = await testCreateAdminDecision({
     user,
-    userDelinquencyUniqueId,
+    userDelinquencyUniqueId: delinquencyId,
     userDelinquencyResponseUniqueId,
     decisionOutcome,
   });
@@ -106,10 +123,10 @@ const testAdminDecisionWorkflow = async ({
   await testDeleteAdminDecision({ user, adminDecisionUniqueId });
 
   // GET (after decision)
-  await testGetAdminDecisions({ user, userDelinquencyUniqueId });
+  await testGetAdminDecisions({ user, userDelinquencyUniqueId: delinquencyId });
 
   console.log("── Admin Decision Workflow complete ──\n");
-  return { adminDecisionUniqueId };
+  return { adminDecisionUniqueId, userDelinquencyUniqueId: delinquencyId };
 };
 
 module.exports = {
