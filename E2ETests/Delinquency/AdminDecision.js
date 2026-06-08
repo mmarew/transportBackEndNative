@@ -64,6 +64,20 @@ const testCreateAdminDecision = async ({
   }
 };
 
+// ── UPDATE decision (unsupported — decisions are immutable) ───────────────────
+const testUpdateAdminDecision = async ({ user, adminDecisionUniqueId }) => {
+  console.log("⏩ Update admin decision: not supported (decisions are immutable)");
+  // If backend adds PATCH endpoint in future, implement here
+  return { message: "unsupported" };
+};
+
+// ── DELETE decision (soft-delete for corrections) ─────────────────────────────
+const testDeleteAdminDecision = async ({ user, adminDecisionUniqueId }) => {
+  console.log("⏩ Delete admin decision: not supported (use new decision to override)");
+  // If backend adds DELETE endpoint in future, implement here
+  return { message: "unsupported" };
+};
+
 // ── Full workflow ─────────────────────────────────────────────────────────────
 const testAdminDecisionWorkflow = async ({
   user = usersData.admin,
@@ -83,16 +97,25 @@ const testAdminDecisionWorkflow = async ({
     userDelinquencyResponseUniqueId,
     decisionOutcome,
   });
+  const adminDecisionUniqueId = created?.adminDecisionOnUserDelinquencyUniqueId;
+
+  // UPDATE (not supported)
+  await testUpdateAdminDecision({ user, adminDecisionUniqueId });
+
+  // DELETE (not supported)
+  await testDeleteAdminDecision({ user, adminDecisionUniqueId });
 
   // GET (after decision)
   await testGetAdminDecisions({ user, userDelinquencyUniqueId });
 
   console.log("── Admin Decision Workflow complete ──\n");
-  return { adminDecisionUniqueId: created?.adminDecisionOnUserDelinquencyUniqueId };
+  return { adminDecisionUniqueId };
 };
 
 module.exports = {
   testAdminDecisionWorkflow,
   testGetAdminDecisions,
   testCreateAdminDecision,
+  testUpdateAdminDecision,
+  testDeleteAdminDecision,
 };

@@ -81,7 +81,10 @@ const testUpdateDelinquencyTypes = async () => {
       },
     );
     return resultOfTypes.data.data;
-  } catch (error) {}
+  } catch (error) {
+    console.error("❌ testUpdateDelinquencyTypes:", error.response?.data?.error || error.message);
+    throw error;
+  }
 };
 const testDeleteDelinquencyTypes = async () => {
   try {
@@ -100,7 +103,8 @@ const testDeleteDelinquencyTypes = async () => {
     );
     return resultOfTypes.data.data;
   } catch (error) {
-    // sss
+    console.error("❌ testDeleteDelinquencyTypes:", error.response?.data?.error || error.message);
+    throw error;
   }
 };
 const testDelinquencyTypesWorkflows = async () => {

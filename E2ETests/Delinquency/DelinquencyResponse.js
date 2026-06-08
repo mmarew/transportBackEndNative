@@ -101,27 +101,40 @@ const testDeleteDelinquencyResponse = async ({ user, userDelinquencyResponseUniq
 // ── Full workflow ─────────────────────────────────────────────────────────────
 const testDelinquencyResponseWorkflow = async ({
   user = usersData.driver,
- }) => {
+}) => {
   console.log("\n── Delinquency Response Workflow ──");
-  //first create new delinquency
-await testCreateDelinquency({user:usersData.driver,delinquencyTypeIndex:1});
- const delinquencyResult=await testGetDelinquency({})
-  console.log("🚀 ~ testDelinquencyResponseWorkflow ~ delinquencyResult:", delinquencyResult);
-  const userDelinquencyUniqueId=delinquencyResult?.data?.[1]?.userDelinquencyUniqueId
-  console.log("🚀 ~ testDelinquencyResponseWorkflow ~ userDelinquencyUniqueId:", userDelinquencyUniqueId)
+
+  // Create fresh delinquency for this test (previous ones may be deleted or decided)
+  await testCreateDelinquency({ user: usersData.admin, delinquencyTypeIndex: 0 });
+  const delinquencyResult = await testGetDelinquency({ user: usersData.admin });
+  
+  // Use the most recent non-decided delinquency
+  const userDelinquencyUniqueId = delinquencyResult?.data?.[0]?.userDelinquencyUniqueId;
+  if (!userDelinquencyUniqueId) {
+    throw new Error("No delinquency found after create");
+  }
+  console.log("✅ Using delinquency:", userDelinquencyUniqueId);
+
   // GET (empty initially)
- const resultOfDelinquencyResponses= await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
- console.log("🚀 ~ testDelinquencyResponseWorkflow ~ resultOfDelinquencyResponses:", resultOfDelinquencyResponses)
+  await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
 
   // CREATE
   const created = await testCreateDelinquencyResponse({ user, userDelinquencyUniqueId });
-  console.log("🚀 ~ testDelinquencyResponseWorkflow ~ created:", created)
   const responseUniqueId = created?.userDelinquencyResponseUniqueId;
+  if (!responseUniqueId) {
+    throw new Error("Failed to get responseUniqueId after create");
+  }
 
   // UPDATE
   await testUpdateDelinquencyResponse({ user, userDelinquencyResponseUniqueId: responseUniqueId });
 
   // GET (after update)
+  await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
+
+  // DELETE
+  await testDeleteDelinquencyResponse({ user, userDelinquencyResponseUniqueId: responseUniqueId });
+
+  // GET (after delete — should be empty or show soft-deleted)
   await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });
 
   console.log("── Delinquency Response Workflow complete ──\n");

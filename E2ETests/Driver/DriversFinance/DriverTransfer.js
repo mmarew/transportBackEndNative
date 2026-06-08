@@ -157,8 +157,6 @@ const deleteDriverTransfer = async ({
 };
 
 const testDriverTransferFlow = async ({ userType = "driver" } = {}) => {
-  try {
-  } catch (error) {}
   console.log("\n✅ ========== DRIVER TRANSFER FLOW STARTED ==========");
 
   const driverUniqueId = await resolveDriverUserUniqueId({ userType });

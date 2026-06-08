@@ -26,10 +26,11 @@ const testGetDelinquency = async ({ user=usersData.driver }) => {
     delinquencies.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.log("🚀 ~ testGetDelinquency ~ error:", error);
+    console.error("❌ testGetDelinquency:", error.response?.data?.error || error.message);
+    throw error;
   }
 };
-const testCreateDelinquency = async ({ user=usersData.driver,delinquencyTypeIndex =0}) => {
+const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIndex = 0 }) => {
   try {
     const userDriver = usersData.driver.accountData;
     const delinquencyType = listOfDelinquencyTypes.data?.[delinquencyTypeIndex];
@@ -57,7 +58,8 @@ const testCreateDelinquency = async ({ user=usersData.driver,delinquencyTypeInde
     );
     return result.data.data;
   } catch (error) {
-    console.log("🚀 ~ testCreateDelinquency ~ error:", error);
+    console.error("❌ testCreateDelinquency:", error.response?.data?.error || error.message);
+    throw error;
   }
 };
 
@@ -111,7 +113,8 @@ const testDeleteDelinquency = async ({ user }) => {
     );
     return result.data.data;
   } catch (error) {
-    console.log("🚀 ~ testDeleteDelinquency ~ error:", error);
+    console.error("❌ testDeleteDelinquency:", error.response?.data?.error || error.message);
+    throw error;
   }
 };
 
