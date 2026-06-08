@@ -107,7 +107,7 @@ const testDelinquencyResponseWorkflow = async ({
 await testCreateDelinquency({user:usersData.driver,delinquencyTypeIndex:1});
  const delinquencyResult=await testGetDelinquency({})
   console.log("🚀 ~ testDelinquencyResponseWorkflow ~ delinquencyResult:", delinquencyResult);
-  const userDelinquencyUniqueId=delinquencyResult?.data?.[0]?.userDelinquencyUniqueId
+  const userDelinquencyUniqueId=delinquencyResult?.data?.[1]?.userDelinquencyUniqueId
   console.log("🚀 ~ testDelinquencyResponseWorkflow ~ userDelinquencyUniqueId:", userDelinquencyUniqueId)
   // GET (empty initially)
  const resultOfDelinquencyResponses= await testGetDelinquencyResponses({ user, userDelinquencyUniqueId });

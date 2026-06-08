@@ -1297,6 +1297,10 @@ CREATE TABLE IF NOT EXISTS UserDelinquencyResponse (
     userDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     userDelinquencyResponseDeletedAt DATETIME NULL,
     userDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
+
+     userDelinquencyResponseUpdatedAt varchar(36) default null,
+         userDelinquencyResponseUpdatedBy varchar(36) default null,
+
     FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId),
     FOREIGN KEY (userDelinquencyResponseCreatedBy) REFERENCES Users(userUniqueId),
     INDEX idx_user_delinquency_response (userDelinquencyUniqueId)

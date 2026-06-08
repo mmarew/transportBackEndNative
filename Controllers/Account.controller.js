@@ -1,6 +1,5 @@
 const ServerResponder = require("../Utils/ServerResponder");
 const AccountService = require("../Services/Account");
-const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 
 /**
@@ -72,15 +71,15 @@ const accountStatus = async (req, res, next) => {
       user = null;
     }
 
-    const result = await executeInTransaction(async () => {
-      return await AccountService?.accountStatus({
-        ownerUserUniqueId,
-        phoneNumber,
-        email,
-        user,
-        body: query || {},
-        enableDocumentChecks,
-      });
+    // No transaction needed — accountStatus is primarily a read operation.
+    // The one conditional write (updateUserRoleStatus) is self-contained in the service.
+    const result = await AccountService?.accountStatus({
+      ownerUserUniqueId,
+      phoneNumber,
+      email,
+      user,
+      body: query || {},
+      enableDocumentChecks,
     });
 
     ServerResponder(res, result);
