@@ -15,7 +15,9 @@ const {
   testDelinquencyTypesWorkflows,
 } = require("./Delinquency/DelinquencyTypes");
 const { testDelinquencyWorkflow } = require("./Delinquency/Delinquency");
-const { testDelinquencyResponseWorkflow } = require("./Delinquency/DelinquencyResponse");
+const {
+  testDelinquencyResponseWorkflow,
+} = require("./Delinquency/DelinquencyResponse");
 const { testAdminDecisionWorkflow } = require("./Delinquency/AdminDecision");
 const { testBanWorkflow } = require("./Delinquency/BannedUsers");
 
@@ -36,7 +38,6 @@ const initiateTest = async () => {
     if (!usersData?.admin?.token) {
       throw new Error("Admin token not set after testCreateAdminFlow()");
     }
-
     // 3. Setup Driver — register, verify, login, attach docs
     await testDriverOnboardingFlow({ userType: "driver" });
     // await driversFinancialFlows({ userType: "driver" });
@@ -66,18 +67,16 @@ const initiateTest = async () => {
     // 7. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
     await createDriverRequestFlow(driverToken);
-    
+
     // 8. Create company admin flow
     await createCompanyAdminFlow({});
-
-
 
     await testDelinquencyTypesWorkflows({});
     await testDelinquencyWorkflow({});
     await testDelinquencyResponseWorkflow({});
     await testAdminDecisionWorkflow({});
     await testBanWorkflow({});
-    
+
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {
     console.error("\n❌ ========== E2E TEST FAILED ==========");
