@@ -53,11 +53,6 @@ const initiateTest = async () => {
     }
 
     // 5. Run delinquency workflow tests
-    await testDelinquencyTypesWorkflows({});
-    await testDelinquencyWorkflow({});
-    await testDelinquencyResponseWorkflow({});
-    await testAdminDecisionWorkflow({});
-    await testBanWorkflow({});
 
     // 6. Setup Shipper and create a shipper request
     await testShipperOnboardingFlow({ userType: "shipper" });
@@ -74,6 +69,14 @@ const initiateTest = async () => {
     
     // 8. Create company admin flow
     await createCompanyAdminFlow({});
+
+
+
+    await testDelinquencyTypesWorkflows({});
+    await testDelinquencyWorkflow({});
+    await testDelinquencyResponseWorkflow({});
+    await testAdminDecisionWorkflow({});
+    await testBanWorkflow({});
     
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {

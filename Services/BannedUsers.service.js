@@ -284,31 +284,39 @@ const getBannedUsers = async (filters = {}) => {
 };
 
 const updateBannedUser = async (banUniqueId, data) => {
-  const { banReason, banDurationDays, banExpiresAt } = data;
+  const { banReason, reason, banDurationDays, banExpiresAt } = data;
+
+  // Build dynamic SET clause based on provided fields
+  const setFields = [];
+  const values = [];
+
+  // Handle both 'reason' (from API) and 'banReason' (internal)
+  const finalReason = banReason || reason;
+  if (finalReason !== undefined) {
+    setFields.push("banReason = ?");
+    values.push(finalReason);
+  }
+  if (banDurationDays !== undefined) {
+    setFields.push("banDurationDays = ?");
+    values.push(banDurationDays);
+  }
+  if (banExpiresAt !== undefined) {
+    setFields.push("banExpiresAt = ?");
+    values.push(banExpiresAt);
+  }
+
+  if (setFields.length === 0) {
+    throw new AppError("No fields provided to update", 400);
+  }
+
+  // Add banUniqueId at the end for WHERE clause
+  values.push(banUniqueId);
 
   const sql = `
     UPDATE BannedUsers 
-    SET banReason = ?, banDurationDays = ?, banExpiresAt = ?
+    SET ${setFields.join(", ")}
     WHERE banUniqueId = ?
   `;
-  const params= [];
-  const values=[];
-  if(banReason){
-    values.push(banReason);
-    params.push("banReason");
-  }
-  if(banDurationDays){
-    values.push(banDurationDays);
-    params.push("banDurationDays");      
-  }
-  if(banExpiresAt){
-    values.push(banExpiresAt);
-    params.push("banExpiresAt");
-  }
-  if(banUniqueId){
-    values.push(banUniqueId);
-    params.push("banUniqueId");
-  }
 
   const result = await query(sql, values);
 
