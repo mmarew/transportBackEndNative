@@ -13,17 +13,54 @@ const query = async (sql, values = []) => {
 };
 
 const banUser = async (data) => {
-  const { userUniqueId, roleId, bannedBy, banReason, banDurationDays } =
+  const { userUniqueId, roleId, bannedBy, banReason, banDurationDays, userRoleUniqueId, reason, banDuration } =
     data;
 
   const executor = transactionStorage.getStore() || pool;
+
+  // Handle different parameter formats (API sends userRoleUniqueId, reason, banDuration)
+  let targetUserUniqueId = userUniqueId;
+  let targetRoleId = roleId;
+  let finalBanReason = banReason || reason;
+  let finalBanDuration = banDurationDays || banDuration;
+
+  // If userRoleUniqueId is provided, look up userUniqueId and roleId
+  if (userRoleUniqueId && (!targetUserUniqueId || !targetRoleId)) {
+    const [userRoleRows] = await executor.query(
+      `SELECT userUniqueId, roleId 
+       FROM UserRole 
+       WHERE userRoleUniqueId = ?`,
+      [userRoleUniqueId],
+    );
+    
+    if (userRoleRows.length === 0) {
+      throw new AppError("Invalid userRoleUniqueId - user role not found", 400);
+    }
+    
+    targetUserUniqueId = userRoleRows[0].userUniqueId;
+    targetRoleId = userRoleRows[0].roleId;
+  }
+
+  // Validate we have required fields
+  if (!targetUserUniqueId) {
+    throw new AppError("userUniqueId or userRoleUniqueId is required", 400);
+  }
+  if (!targetRoleId) {
+    throw new AppError("roleId is required or must be derived from userRoleUniqueId", 400);
+  }
+  if (!finalBanReason) {
+    throw new AppError("banReason or reason is required", 400);
+  }
+  if (!finalBanDuration) {
+    throw new AppError("banDurationDays or banDuration is required", 400);
+  }
 
   // Validate user exists
   const [userInfoRows] = await executor.query(
     `SELECT u.phoneNumber
      FROM Users u
      WHERE u.userUniqueId = ?`,
-    [userUniqueId],
+    [targetUserUniqueId],
   );
   if (userInfoRows.length === 0) {
     throw new AppError("Invalid userUniqueId", 400);
@@ -37,16 +74,17 @@ const banUser = async (data) => {
        AND b.isActive = TRUE 
        AND (b.banExpiresAt IS NULL OR b.banExpiresAt > ?) 
      LIMIT 1`,
-    [userUniqueId, roleId, currentDate()],
+    [targetUserUniqueId, targetRoleId, currentDate()],
   );
   if (existingActiveBanRows.length > 0) {
     throw new AppError("User already has an active ban", 409);
   }
 
   const banUniqueId = uuidv4();
-  const banAt = currentDate();
+  const banAtDate = currentDate(); // Get timezone-aware date string
+  const banAtTimestamp = new Date(banAtDate); // Convert to Date for calculation
   const banExpiresAt = new Date(
-    banAt.getTime() + banDurationDays * 24 * 60 * 60 * 1000,
+    banAtTimestamp.getTime() + finalBanDuration * 24 * 60 * 60 * 1000,
   );
 
   const sql = `
@@ -58,11 +96,11 @@ const banUser = async (data) => {
 
   const values = [
     banUniqueId,
-    userUniqueId,
-    roleId,
+    targetUserUniqueId,
+    targetRoleId,
     bannedBy,
-    banReason,
-    banDurationDays,
+    finalBanReason,
+    finalBanDuration,
     banExpiresAt,
   ];
 
@@ -70,7 +108,7 @@ const banUser = async (data) => {
   // change user role status to banned which is 6
   await updateUserRoleStatus({
     user: { userUniqueId: bannedBy },
-    roleId,
+    roleId: targetRoleId,
     newStatusId: 6,
     phoneNumber,
   });

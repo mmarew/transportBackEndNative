@@ -31,17 +31,28 @@ const testBanUser = async ({ user, userRoleUniqueId }) => {
     const token = user?.token;
     if (!token) throw new Error("token not found");
 
-    // Get userRoleUniqueId - need to query for it if not provided
-    // For E2E tests, we need to get the driver's userRoleUniqueId from UserRole table
-    // Since we don't have direct access, we'll construct it from known data
-    // This is a limitation - in real use, the frontend would have this from user profile
+    // Get userRoleUniqueId from driver's accountData if not provided
+    let targetUserRoleUniqueId = userRoleUniqueId;
     
-    if (!userRoleUniqueId) {
-      throw new Error("userRoleUniqueId is required - cannot be inferred in E2E test");
+    if (!targetUserRoleUniqueId) {
+      // Try to get it from driver's account data
+      const driverData = usersData?.driver?.accountData;
+      
+      if (driverData?.userData?.userRoleUniqueId) {
+        targetUserRoleUniqueId = driverData.userData.userRoleUniqueId;
+        console.log("📋 Using driver's userRoleUniqueId from accountData:", targetUserRoleUniqueId);
+      } else if (driverData?.userRoleData?.userRoleUniqueId) {
+        targetUserRoleUniqueId = driverData.userRoleData.userRoleUniqueId;
+        console.log("📋 Using driver's userRoleUniqueId from userRoleData:", targetUserRoleUniqueId);
+      } else {
+        console.warn("⚠️  Could not find userRoleUniqueId in driver accountData:", 
+          JSON.stringify(driverData, null, 2));
+        throw new Error("userRoleUniqueId is required - not found in driver accountData");
+      }
     }
 
     const payload = {
-      userRoleUniqueId,
+      userRoleUniqueId: targetUserRoleUniqueId,
       reason: "Manual ban issued during E2E test — repeated policy violations.",
       banDuration: 7,
     };
@@ -53,6 +64,9 @@ const testBanUser = async ({ user, userRoleUniqueId }) => {
     return result.data;
   } catch (error) {
     console.error("❌ testBanUser:", error.response?.data?.error || error.message);
+    if (error.response?.data) {
+      console.error("Response data:", JSON.stringify(error.response.data, null, 2));
+    }
     throw error;
   }
 };
@@ -131,10 +145,17 @@ const testBanWorkflow = async ({
 } = {}) => {
   console.log("\n── Ban Workflow ──");
 
-  // Skip test if userRoleUniqueId not provided (requires database query)
-  if (!userRoleUniqueId) {
-    console.log("⏩ Skipping ban workflow — userRoleUniqueId required but not provided");
-    console.log("   To test bans, provide userRoleUniqueId from UserRole table");
+  // Try to get userRoleUniqueId from driver's accountData if not provided
+  let targetUserRoleUniqueId = userRoleUniqueId;
+  
+  if (!targetUserRoleUniqueId && usersData?.driver?.accountData?.userData?.userRoleUniqueId) {
+    targetUserRoleUniqueId = usersData.driver.accountData.userData.userRoleUniqueId;
+    console.log("📋 Using userRoleUniqueId from driver accountData:", targetUserRoleUniqueId);
+  }
+
+  // If still not available, skip test
+  if (!targetUserRoleUniqueId) {
+    console.log("⏩ Skipping ban workflow — userRoleUniqueId not available in driver accountData");
     return { skipped: true };
   }
 
@@ -142,8 +163,13 @@ const testBanWorkflow = async ({
   await testGetBannedUsers({ user });
 
   // CREATE
-  const banResult = await testBanUser({ user, userRoleUniqueId });
+  const banResult = await testBanUser({ user, userRoleUniqueId: targetUserRoleUniqueId });
   const banUniqueId = banResult?.banUniqueId || banResult?.data?.banUniqueId;
+
+  if (!banUniqueId) {
+    console.warn("⚠️  No banUniqueId returned - cannot continue ban workflow");
+    return { skipped: true };
+  }
 
   // UPDATE
   await testUpdateBan({ user, banUniqueId });

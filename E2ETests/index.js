@@ -2,6 +2,7 @@ const { testDriverOnboardingFlow, driversFinancialFlows } = require("./Driver");
 const { testShipperOnboardingFlow } = require("./Shipper/Index");
 const { createDriverRequestFlow } = require("./Driver/CreateDriverRequest");
 const { usersData } = require("./constants");
+
 const { testCreateAdminFlow } = require("./Admin");
 const { resetDatabase } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
@@ -41,21 +42,24 @@ const initiateTest = async () => {
     // await driversFinancialFlows({ userType: "driver" });
     await testGetRoles();
 
-    await testDelinquencyTypesWorkflows({});
-    await testDelinquencyWorkflow({});
-    await testDelinquencyResponseWorkflow({})
-    await testAdminDecisionWorkflow({})
-    await testBanWorkflow({})
-    return;
+    // 4. Fetch driver's pending documents and have admin approve them
+    console.log("\n── Authorizing Driver Documents ──");
+    await fetchUnAuthorizedDrivers({});
+    await authorizeDriversDocuments({});
+    console.log("✅ Driver documents authorized\n");
+
     if (!usersData?.driver?.token) {
       throw new Error("Driver token not set after testDriverOnboardingFlow()");
     }
 
-    // 4. Fetch driver's pending documents and have admin approve them
-    await fetchUnAuthorizedDrivers({});
-    await authorizeDriversDocuments({});
+    // 5. Run delinquency workflow tests
+    await testDelinquencyTypesWorkflows({});
+    await testDelinquencyWorkflow({});
+    await testDelinquencyResponseWorkflow({});
+    await testAdminDecisionWorkflow({});
+    await testBanWorkflow({});
 
-    // 5. Setup Shipper and create a shipper request
+    // 6. Setup Shipper and create a shipper request
     await testShipperOnboardingFlow({ userType: "shipper" });
 
     if (!usersData?.shipper?.token) {
@@ -64,10 +68,13 @@ const initiateTest = async () => {
       );
     }
 
-    // 6. Driver posts location — system auto-matches with the shipper
+    // 7. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
     await createDriverRequestFlow(driverToken);
+    
+    // 8. Create company admin flow
     await createCompanyAdminFlow({});
+    
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {
     console.error("\n❌ ========== E2E TEST FAILED ==========");
