@@ -398,6 +398,8 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     resolvedShipperUserUniqueId = filters.shipperUserUniqueId || null;
   } else if (isShipper) {
     // Shippers can only see bids for their own batches
+    resolvedCompanyUniqueId = filters.companyUniqueId || null;
+
     resolvedShipperUserUniqueId = userUniqueId;
   } else if (isCompanyAdmin) {
     // Standard users (Dispatchers) MUST resolve to their own company
