@@ -1,17 +1,12 @@
 "use strict";
 
-
-
 const AppError = require("../../Utils/AppError");
 const {
   db,
-  
+
   paginate,
-  paginatedQuery} = require("../CompanyHelper.service");
-
-
-
-
+  paginatedQuery,
+} = require("../CompanyHelper.service");
 
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
@@ -87,30 +82,16 @@ const getAvailableRequests = async (companyUniqueId, filters = {}) => {
 };
 
 /**
- * ### UNIFIED GROUPED VIEW - Batches with Nested Offers
- * Works for both Shippers and Company Dispatchers.
+ * UNIFIED GROUPED VIEW – Batches with Nested Offers
+ * Works for both Shippers and Company Dispatchers, and **supports both filters together**.
  *
- * - **Shipper**: Shows their freight batches, each with ALL company offers inside `offers[]`.
- * - **Company**: Shows batches they bid on, each with their own offer inside `offers[]`.
+ * - Shipper only: see all their batches with all offers.
+ * - Company only: see batches they bid on, with their own offer.
+ * - Shipper + Company: see batches created by that shipper that have at least one bid from that company,
+ *   and only that company's offers are shown.
  *
- * Offers are sorted cheapest first so shippers can compare prices at a glance.
- *
- * @param {Object} scope - { shipperUserUniqueId } or { companyUniqueId }
- * @param {Object} filters - Pagination and optional bidStatus/shipperRequestBatchId.
- * @returns {Promise<Object>} Paginated list of batches with nested offers.
- */
-
-/**
- * ### UNIFIED GROUPED VIEW - Batches with Nested Offers
- * Works for both Shippers and Company Dispatchers.
- *
- * - **Shipper**: Shows their freight batches, each with ALL company offers inside `offers[]`.
- * - **Company**: Shows batches they bid on, each with their own offer inside `offers[]`.
- *
- * Offers are sorted cheapest first so shippers can compare prices at a glance.
- *
- * @param {Object} scope - { shipperUserUniqueId } or { companyUniqueId }
- * @param {Object} filters - Pagination and optional bidStatus/shipperRequestBatchId.
+ * @param {Object} scope - { shipperUserUniqueId, companyUniqueId } (both optional)
+ * @param {Object} filters - Pagination and optional bidStatus/shipperRequestBatchId/isCancellationSeenByCompany
  * @returns {Promise<Object>} Paginated list of batches with nested offers.
  */
 const getGroupedBids = async (scope = {}, filters = {}) => {
@@ -118,43 +99,21 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   const { page, limit, offset } = paginate(filters);
 
   // ── 1. Build the batch WHERE clause ──────────────────────────────────────
-  const batchClauses = ["b.batchDeletedAt IS NULL", "b.requestMode = 'company_target'"];
+  const batchClauses = [
+    "b.batchDeletedAt IS NULL",
+    "b.requestMode = 'company_target'",
+  ];
   const batchParams = [];
 
+  // Filter batches by shipper (if provided)
   if (shipperUserUniqueId) {
-    // Shippers see their own batches.
-    // When offer-level filters are provided, we add an EXISTS guard so that
-    // batches with 0 matching offers are never returned — same pattern as
-    // the company path below.
     batchClauses.push("b.shipperUserUniqueId = ?");
     batchParams.push(shipperUserUniqueId);
+  }
 
-    if (filters.bidStatus || filters.isCancellationSeenByCompany) {
-      const existsClauses = [
-        "cbr.shipperRequestBatchId = b.batchUniqueId",
-        "cbr.companyBidRequestDeletedAt IS NULL",
-      ];
-
-      if (filters.bidStatus) {
-        existsClauses.push("cbr.bidStatus = ?");
-        batchParams.push(filters.bidStatus);
-      }
-      if (filters.isCancellationSeenByCompany) {
-        existsClauses.push("cbr.isCancellationSeenByCompany = ?");
-        batchParams.push(filters.isCancellationSeenByCompany);
-      }
-
-      batchClauses.push(
-        `EXISTS (
-          SELECT 1 FROM CompanyBidRequest cbr
-          WHERE ${existsClauses.join(" AND ")}
-        )`,
-      );
-    }
-  } else if (companyUniqueId) {
-    // Companies see only batches they have a matching bid on.
-    // The EXISTS subquery mirrors the same filters applied to offers (Step 2)
-    // so that batches with 0 matching offers are never returned.
+  // If company is specified, we must only return batches that have at least one bid from that company.
+  // The EXISTS subquery also respects any offer-level filters (bidStatus, isCancellationSeenByCompany).
+  if (companyUniqueId) {
     const existsClauses = [
       "cbr.shipperRequestBatchId = b.batchUniqueId",
       "cbr.companyUniqueId = ?",
@@ -216,7 +175,8 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     return {
       message: "success",
       data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 }};
+      pagination: { page, limit, total: 0, totalPages: 0 },
+    };
   }
 
   // ── 2. Fetch all matching offers in ONE query (avoids N+1) ───────────────
@@ -228,11 +188,14 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   ];
   const offerParams = [batchIds];
 
-  // Companies only see their own offer; shippers see everyone's
+  // If company is specified, show only offers from that company.
+  // (For a shipper+company combination, this filters offers to just that company.)
   if (companyUniqueId) {
     offerClauses.push("cbr.companyUniqueId = ?");
     offerParams.push(companyUniqueId);
   }
+
+  // Apply same offer-level filters as in the EXISTS clause (if any)
   if (filters.bidStatus) {
     offerClauses.push("cbr.bidStatus = ?");
     offerParams.push(filters.bidStatus);
@@ -274,7 +237,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     offerParams,
   );
 
-  // ── 3. Group offers under each batch using a Map (O(N)) ──────────────────
+  // ── 3. Group offers under each batch ─────────────────────────────────────
   const offersByBatchId = new Map();
   for (const offer of offers) {
     if (!offersByBatchId.has(offer.shipperRequestBatchId)) {
@@ -286,7 +249,8 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   const grouped = batches.map((batch) => ({
     ...batch,
     offerCount: (offersByBatchId.get(batch.batchUniqueId) || []).length,
-    offers: offersByBatchId.get(batch.batchUniqueId) || []}));
+    offers: offersByBatchId.get(batch.batchUniqueId) || [],
+  }));
 
   return {
     message: "success",
@@ -295,7 +259,9 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit)}};
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 /**
@@ -382,7 +348,9 @@ const getBidsSummary = async (companyUniqueId) => {
       total:
         (availableRes[0]?.total || 0) +
         (submittedRes[0]?.total || 0) +
-        (acceptedRes[0]?.total || 0)}};
+        (acceptedRes[0]?.total || 0),
+    },
+  };
 };
 
 /**
@@ -488,7 +456,8 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   return getGroupedBids(
     {
       shipperUserUniqueId: resolvedShipperUserUniqueId,
-      companyUniqueId: resolvedCompanyUniqueId},
+      companyUniqueId: resolvedCompanyUniqueId,
+    },
     filters,
   );
 };
@@ -537,5 +506,5 @@ module.exports = {
   getAvailableRequests,
   getGroupedBids,
   getBidsSummary,
-  getBids
+  getBids,
 };
