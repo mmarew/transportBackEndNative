@@ -2,7 +2,7 @@ const { testAuthWorkFlow } = require("../Auth");
 const { usersData, backendURL } = require("../constants");
 const { createDriverDocument } = require("../Driver/DriversDocuments");
 const { authConfig } = require("../Utils");
-const { createShipperRequestFlow } = require("./CreateShipperRequest");
+const { createShipperRequestFlow } = require("./ShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
 const axios = require("axios");
 
@@ -28,6 +28,7 @@ const getShipperAccountData = async (token) => {
     return null;
   }
 };
+const testShipperAcceptDriversOffer = async (token) => {};
 
 const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   console.log("\n✅ ========== SHIPPER ONBOARDING FLOW STARTED ==========\n");
@@ -66,6 +67,7 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   );
 };
 module.exports = {
+  testShipperAcceptDriversOffer,
   testShipperOnboardingFlow,
   getShipperAccountData,
 };

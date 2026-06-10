@@ -6,6 +6,7 @@ const {
 } = require("../../Routes/EndPoints/driverRequest.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testShipperOnboardingFlow } = require("../Shipper/Index");
+const { testAcceptDriverRequest } = require("../Shipper/ShipperRequest");
 
 // DRIVER_REQUEST: string;
 const testCreateDriverRequestFlow = async (token) => {
@@ -227,6 +228,7 @@ const testDriverRequestWorkFlows = async () => {
   //first get current status of driver journey status
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
   const status = driverStatus?.status;
+  const uniqueIds = driverStatus?.uniqueIds;
   console.log(
     "🚀 ~ testDriverRequestWorkFlows ~ status:",
     status,
@@ -251,9 +253,11 @@ const testDriverRequestWorkFlows = async () => {
     );
   } else if (status == 2) {
     // accept shipper request
-    const uniqueIds = driverStatus.uniqueIds;
 
     await testAcceptShipperRequest({ token, uniqueIds });
+  } else if (status == 3) {
+    //shipper accept drivers offer
+    await testAcceptDriverRequest({ token, uniqueIds });
   }
 };
 testDriverRequestWorkFlows();

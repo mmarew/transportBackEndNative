@@ -2,6 +2,9 @@ const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { backendURL } = require("../constants");
 const { authConfig } = require("../Utils");
+const {
+  SHIPPER_REQUEST_ENDPOINTS,
+} = require("../../Routes/EndPoints/shipperRequest.endpoints");
 
 const createShipperRequestFlow = async (token) => {
   const config = {
@@ -69,7 +72,24 @@ const createShipperRequestFlow = async (token) => {
     }
   }
 };
+//  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST
+const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
+  console.log("🚀 ~ testAcceptDriverRequest ~ uniqueIds:", uniqueIds);
+  const config = { ...authConfig(token) };
+  const payload = { ...uniqueIds };
+  const resultOfAcceptDriverRequests = await axios.put(
+    backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
+    payload,
+    config,
+  );
+  console.log(
+    "🚀 ~ testAcceptDriverRequest ~ resultOfAcceptDriverRequests:",
+    resultOfAcceptDriverRequests,
+  );
+  return resultOfAcceptDriverRequests.data;
+};
 
 module.exports = {
+  testAcceptDriverRequest,
   createShipperRequestFlow,
 };
