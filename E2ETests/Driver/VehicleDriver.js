@@ -7,6 +7,12 @@ const { authConfig } = require("../Utils");
 
 const createVehicle = async (token) => {
   //get vehicle types first
+  if (!token) {
+    token = usersData?.driver?.token;
+    if (!token) {
+      throw new Error("Token is required to create vehicle");
+    }
+  }
   const config = {
     ...authConfig(token),
   };

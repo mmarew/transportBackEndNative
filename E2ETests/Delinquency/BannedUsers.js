@@ -8,7 +8,7 @@ const BASE_URL = "/api/admin/bannedUsers";
 const bans = { data: null };
 
 // ── GET banned users ──────────────────────────────────────────────────────────
-const testGetBannedUsers = async ({ user } = {}) => {
+const testGetBannedUsers = async ({ user, actionsAfter } = {}) => {
   try {
     const token = user?.token;
     if (!token) throw new Error("token not found");
@@ -16,11 +16,20 @@ const testGetBannedUsers = async ({ user } = {}) => {
     const result = await axios.get(backendURL + BASE_URL, {
       headers: { Authorization: "Bearer " + token },
     });
-    console.log("✅ Banned users fetched:", result.data.data?.length ?? 0);
+    console.log(
+      " actionsAfter:",
+      actionsAfter,
+      "✅ Banned users fetched:",
+      result.data.data,
+    );
+    //save bans data to variable for use in other tests
     bans.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.error("❌ testGetBannedUsers:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetBannedUsers:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -33,21 +42,31 @@ const testBanUser = async ({ user, userRoleUniqueId }) => {
 
     // Get userRoleUniqueId from driver's accountData if not provided
     let targetUserRoleUniqueId = userRoleUniqueId;
-    
+
     if (!targetUserRoleUniqueId) {
       // Try to get it from driver's account data
       const driverData = usersData?.driver?.accountData;
-      
+
       if (driverData?.userData?.userRoleUniqueId) {
         targetUserRoleUniqueId = driverData.userData.userRoleUniqueId;
-        console.log("📋 Using driver's userRoleUniqueId from accountData:", targetUserRoleUniqueId);
+        console.log(
+          "📋 Using driver's userRoleUniqueId from accountData:",
+          targetUserRoleUniqueId,
+        );
       } else if (driverData?.userRoleData?.userRoleUniqueId) {
         targetUserRoleUniqueId = driverData.userRoleData.userRoleUniqueId;
-        console.log("📋 Using driver's userRoleUniqueId from userRoleData:", targetUserRoleUniqueId);
+        console.log(
+          "📋 Using driver's userRoleUniqueId from userRoleData:",
+          targetUserRoleUniqueId,
+        );
       } else {
-        console.warn("⚠️  Could not find userRoleUniqueId in driver accountData:", 
-          JSON.stringify(driverData, null, 2));
-        throw new Error("userRoleUniqueId is required - not found in driver accountData");
+        console.warn(
+          "⚠️  Could not find userRoleUniqueId in driver accountData:",
+          JSON.stringify(driverData, null, 2),
+        );
+        throw new Error(
+          "userRoleUniqueId is required - not found in driver accountData",
+        );
       }
     }
 
@@ -60,12 +79,21 @@ const testBanUser = async ({ user, userRoleUniqueId }) => {
     const result = await axios.post(backendURL + BASE_URL, payload, {
       headers: { Authorization: "Bearer " + token },
     });
-    console.log("✅ User banned:", result.data.data?.banUniqueId || result.data.banUniqueId);
+    console.log(
+      "✅ User banned:",
+      result.data.data?.banUniqueId || result.data.banUniqueId,
+    );
     return result.data;
   } catch (error) {
-    console.error("❌ testBanUser:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testBanUser:",
+      error.response?.data?.error || error.message,
+    );
     if (error.response?.data) {
-      console.error("Response data:", JSON.stringify(error.response.data, null, 2));
+      console.error(
+        "Response data:",
+        JSON.stringify(error.response.data, null, 2),
+      );
     }
     throw error;
   }
@@ -81,7 +109,8 @@ const testUpdateBan = async ({ user, banUniqueId }) => {
     if (!id) throw new Error("No banUniqueId found to update");
 
     const payload = {
-      reason: "Updated ban reason — additional violations discovered during review.",
+      reason:
+        "Updated ban reason — additional violations discovered during review.",
     };
 
     const result = await axios.put(backendURL + BASE_URL + "/" + id, payload, {
@@ -90,7 +119,10 @@ const testUpdateBan = async ({ user, banUniqueId }) => {
     console.log("✅ Ban updated:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testUpdateBan:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testUpdateBan:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -112,7 +144,10 @@ const testDeactivateBan = async ({ user, banUniqueId }) => {
     console.log("✅ Ban deactivated:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testDeactivateBan:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testDeactivateBan:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -133,7 +168,10 @@ const testUnbanUser = async ({ user, banUniqueId }) => {
     console.log("✅ User unbanned:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testUnbanUser:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testUnbanUser:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -147,35 +185,49 @@ const testBanWorkflow = async ({
 
   // Try to get userRoleUniqueId from driver's accountData if not provided
   let targetUserRoleUniqueId = userRoleUniqueId;
-  
-  if (!targetUserRoleUniqueId && usersData?.driver?.accountData?.userData?.userRoleUniqueId) {
-    targetUserRoleUniqueId = usersData.driver.accountData.userData.userRoleUniqueId;
-    console.log("📋 Using userRoleUniqueId from driver accountData:", targetUserRoleUniqueId);
+
+  if (
+    !targetUserRoleUniqueId &&
+    usersData?.driver?.accountData?.userData?.userRoleUniqueId
+  ) {
+    targetUserRoleUniqueId =
+      usersData.driver.accountData.userData.userRoleUniqueId;
+    console.log(
+      "📋 Using userRoleUniqueId from driver accountData:",
+      targetUserRoleUniqueId,
+    );
   }
 
-  // If still not available, skip test
+  // If targetUserRoleUniqueId is still not available in driver accountData, skip test
   if (!targetUserRoleUniqueId) {
-    console.log("⏩ Skipping ban workflow — userRoleUniqueId not available in driver accountData");
+    console.log(
+      "⏩ Skipping ban workflow — userRoleUniqueId not available in driver accountData",
+    );
     return { skipped: true };
   }
 
   // GET (existing bans)
-  await testGetBannedUsers({ user });
+  await testGetBannedUsers({ user, actionsAfter: "initial fetch" });
 
   // CREATE
-  const banResult = await testBanUser({ user, userRoleUniqueId: targetUserRoleUniqueId });
+  const banResult = await testBanUser({
+    user,
+    userRoleUniqueId: targetUserRoleUniqueId,
+  });
+  console.log("🚀 ~ testBanWorkflow ~ banResult:", banResult);
   const banUniqueId = banResult?.banUniqueId || banResult?.data?.banUniqueId;
 
   if (!banUniqueId) {
     console.warn("⚠️  No banUniqueId returned - cannot continue ban workflow");
     return { skipped: true };
   }
-
+  //get banned user after ban
+  await testGetBannedUsers({ user, actionsAfter: "after ban" });
   // UPDATE
   await testUpdateBan({ user, banUniqueId });
 
-  // GET (after ban)
-  await testGetBannedUsers({ user });
+  // GET banned user (after update of ban)
+  await testGetBannedUsers({ user, actionsAfter: "after update" });
 
   // DEACTIVATE (lift ban at end of test)
   await testDeactivateBan({ user, banUniqueId });
