@@ -32,8 +32,8 @@ const createShipperRequestFlow = async (token) => {
       shippingCost: 5000,
       shippableItemQtyInQuintal: 100,
       shippableItemName: "Coffee Beans",
-      // requestMode: "individual_target",
-      requestMode: "company_target",
+      requestMode: "individual_target",
+      // requestMode: "company_target",
       originLocation: {
         latitude: 9.03,
         longitude: 38.74,

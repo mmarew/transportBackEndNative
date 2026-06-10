@@ -1,6 +1,5 @@
 const { testDriverOnboardingFlow, driversFinancialFlows } = require("./Driver");
 const { testShipperOnboardingFlow } = require("./Shipper/Index");
-const { createDriverRequestFlow } = require("./Driver/CreateDriverRequest");
 const { usersData } = require("./constants");
 
 const { testCreateAdminFlow } = require("./Admin");
@@ -20,6 +19,10 @@ const {
 } = require("./Delinquency/DelinquencyResponse");
 const { testAdminDecisionWorkflow } = require("./Delinquency/AdminDecision");
 const { testBanWorkflow } = require("./Delinquency/BannedUsers");
+const {
+  testCreateDriverRequestFlow,
+  testDriverRequestWorkFlows,
+} = require("./Driver/DriverRequest");
 
 const initiateTest = async () => {
   try {
@@ -66,8 +69,9 @@ const initiateTest = async () => {
 
     // 7. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
-    await createDriverRequestFlow(driverToken);
-
+    await testDriverRequestWorkFlows();
+    // await testCreateDriverRequestFlow(driverToken);
+    return;
     // 8. Create company admin flow
     await createCompanyAdminFlow({});
 

@@ -1,34 +1,16 @@
-
-const { releaseConflictingOffers } = require("./helpers");
-const {
-  getData,
-  performJoinSelect,
-  
-  
-} = require("../../CRUD/Read/ReadData");
-
-
-
-
-
-
-
-
-
-
+const { getData, performJoinSelect } = require("../../CRUD/Read/ReadData");
 
 const messageTypes = require("../../Utils/MessageTypes");
-const {
-  journeyStatusMap,
-  
-  
-} = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const { updateJourneyStatus } = require("../JourneyStatus");
 
 const logger = require("../../Utils/logger");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { fetchJourneyNotificationData } = require("./helpers");
 const AppError = require("../../Utils/AppError");
+const {
+  releaseConflictingOffers,
+} = require("./actionReleaseConflictingOffers.service");
 
 /**
  * Accepts a shipper request that was previously matched to the driver
