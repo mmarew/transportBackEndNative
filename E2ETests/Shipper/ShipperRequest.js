@@ -1,10 +1,11 @@
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
-const { backendURL } = require("../constants");
+const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const {
   SHIPPER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
+const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 
 const createShipperRequestFlow = async (token) => {
   const config = {
@@ -74,22 +75,61 @@ const createShipperRequestFlow = async (token) => {
 };
 //  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST
 const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
-  console.log("🚀 ~ testAcceptDriverRequest ~ uniqueIds:", uniqueIds);
-  const config = { ...authConfig(token) };
-  const payload = { ...uniqueIds };
-  const resultOfAcceptDriverRequests = await axios.put(
-    backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
-    payload,
-    config,
-  );
-  console.log(
-    "🚀 ~ testAcceptDriverRequest ~ resultOfAcceptDriverRequests:",
-    resultOfAcceptDriverRequests,
-  );
-  return resultOfAcceptDriverRequests.data;
+  try {
+    console.log("🚀 ~ testAcceptDriverRequest ~ uniqueIds:", uniqueIds);
+    // return;
+    let shipperToken = usersData.shipper.token;
+    if (!shipperToken) {
+      await testVerifyUserByOTP({ userType: "shipper" });
+    }
+    shipperToken = usersData.shipper.token;
+    console.log("🚀 ~ testAcceptDriverRequest ~ shipperToken:", shipperToken);
+    if (!shipperToken) {
+      throw new Error("Shipper token is not available after OTP verification");
+    }
+    const config = { ...authConfig(shipperToken) };
+    const payload = { ...uniqueIds };
+    const resultOfAcceptDriverRequests = await axios.put(
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST,
+      payload,
+      config,
+    );
+    console.log(
+      "🚀 ~ testAcceptDriverRequest ~ resultOfAcceptDriverRequests:",
+      resultOfAcceptDriverRequests?.data,
+    );
+    return resultOfAcceptDriverRequests.data;
+  } catch (error) {
+    console.log("🚀 ~ testAcceptDriverRequest ~ error:", error);
+  }
 };
-
+const testGetShipperRequests = async (token) => {
+  const config = { ...authConfig(token) };
+  try {
+    const resultOfGetShipperRequests = await axios.get(
+      backendURL +
+        SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER,
+      config,
+    );
+    console.log(
+      "🚀 ~ testGetShipperRequests ~ resultOfGetShipperRequests:",
+      resultOfGetShipperRequests,
+    );
+    return resultOfGetShipperRequests.data;
+  } catch (error) {
+    console.log("❌ Failed to get shipper requests.");
+    if (error.response) {
+      console.log(
+        "Server responded with:",
+        error.response.data.error?.details || error.response.data,
+      );
+    } else {
+      console.log("Raw Error:", error.message);
+    }
+  }
+};
 module.exports = {
+  testGetShipperRequests,
   testAcceptDriverRequest,
   createShipperRequestFlow,
 };

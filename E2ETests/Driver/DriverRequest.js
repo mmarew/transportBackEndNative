@@ -6,7 +6,10 @@ const {
 } = require("../../Routes/EndPoints/driverRequest.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 const { testShipperOnboardingFlow } = require("../Shipper/Index");
-const { testAcceptDriverRequest } = require("../Shipper/ShipperRequest");
+const {
+  testAcceptDriverRequest,
+  testGetShipperRequests,
+} = require("../Shipper/ShipperRequest");
 
 // DRIVER_REQUEST: string;
 const testCreateDriverRequestFlow = async (token) => {
@@ -70,12 +73,41 @@ const testTakeFromStreet = async (token) => {
     payload,
     config,
   );
+  return resultOfTakeFromStreet.data;
 };
 
 // CREATE_AND_ACCEPT_NEW_REQUEST: string;
-const testCreateAndAcceptNewRequest = async (token) => {
-  const config = { ...authConfig(token) };
-  const payload = {};
+const testCreateAndAcceptNewRequest = async ({
+  tokenOfShipper,
+  shipperRequestUniqueId,
+}) => {
+  const shipperData = usersData?.shipper;
+  tokenOfShipper = shipperData?.token;
+  if (!tokenOfShipper) {
+    await testVerifyUserByOTP({ userType: "shipper" });
+  }
+  tokenOfShipper = usersData?.shipper?.token;
+  if (!tokenOfShipper) {
+    throw new Error(
+      "Shipper token is not available after OTP verification for CREATE_AND_ACCEPT_NEW_REQUEST",
+    );
+  }
+  const activeShipperRequest = await testGetShipperRequests(tokenOfShipper);
+  console.log(
+    "🚀 ~ testCreateAndAcceptNewRequest ~ activeShipperRequest:",
+    activeShipperRequest,
+  );
+
+  const config = { ...authConfig(tokenOfShipper) };
+  const payload = {
+    shipperRequestUniqueId: shipperRequestUniqueId,
+    shippingCostByDriver: "58000.00",
+    currentLocation: {
+      latitude: 9.007053,
+      longitude: 38.868049,
+      description: "in eth addis ",
+    },
+  };
   const resultOfTakeFromStreet = await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.CREATE_AND_ACCEPT_NEW_REQUEST,
     payload,
@@ -95,16 +127,22 @@ const testAcceptShipperRequest = async ({ token, uniqueIds }) => {
     "🚀 ~ testAcceptShipperRequest ~ resultOfAcceptShipperRequest:",
     resultOfAcceptShipperRequest,
   );
+  return resultOfAcceptShipperRequest.data;
 };
 // START_JOURNEY: string;
-const testStartJourney = async (token) => {
+const testStartJourney = async ({ token, uniqueIds }) => {
   const config = { ...authConfig(token) };
-  const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  const payload = {
+    ...uniqueIds,
+    latitude: "11.12260400",
+    longitude: "39.63498200",
+  };
+  const resultOfStartJourney = await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.START_JOURNEY,
     payload,
     config,
   );
+  return resultOfStartJourney.data;
 };
 // NO_ANSWER_FROM_DRIVER: string;
 const testNoAnswerFromDriver = async (token) => {
@@ -127,13 +165,21 @@ const testCancelDriverRequest = async (token) => {
   );
 };
 // COMPLETE_JOURNEY: string;
-const testCompleteJourney = async (token) => {
+const testCompleteJourney = async ({ token, uniqueIds }) => {
   const config = { ...authConfig(token) };
-  const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  const payload = {
+    ...uniqueIds,
+    latitude: "11.12260400",
+    longitude: "39.63498200",
+  };
+  const resultOfCompleteJourney = await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.COMPLETE_JOURNEY,
     payload,
     config,
+  );
+  console.log(
+    "🚀 ~ testCompleteJourney ~ resultOfCompleteJourney:",
+    resultOfCompleteJourney.data,
   );
 };
 // UPDATE_DRIVER_REQUEST: string;
@@ -244,7 +290,10 @@ const testDriverRequestWorkFlows = async () => {
       "🚀 ~ testDriverRequestWorkFlows ~ driverStatus after creating request:",
       driverStatus,
     );
-  } else if (status == 1) {
+  }
+  return testCreateAndAcceptNewRequest({});
+
+  if (status == 1) {
     // create shipper request
     const newShipperRequest = await testShipperOnboardingFlow({});
     console.log(
@@ -257,7 +306,13 @@ const testDriverRequestWorkFlows = async () => {
     await testAcceptShipperRequest({ token, uniqueIds });
   } else if (status == 3) {
     //shipper accept drivers offer
-    await testAcceptDriverRequest({ token, uniqueIds });
+    await testAcceptDriverRequest({ token: null, uniqueIds });
+  } else if (status == 4) {
+    //start journey
+    await testStartJourney({ token, uniqueIds });
+  } else if (status == 5) {
+    //complete journey
+    await testCompleteJourney({ token, uniqueIds });
   }
 };
 testDriverRequestWorkFlows();
