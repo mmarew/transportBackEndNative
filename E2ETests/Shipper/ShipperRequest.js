@@ -103,14 +103,15 @@ const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
     console.log("🚀 ~ testAcceptDriverRequest ~ error:", error);
   }
 };
-const testGetShipperRequests = async (token) => {
+const testGetShipperRequests = async (token, journeyStatusId) => {
   const config = { ...authConfig(token) };
   try {
-    const resultOfGetShipperRequests = await axios.get(
+    const url =
       backendURL +
-        SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER,
-      config,
-    );
+      SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER +
+      "?journeyStatusId=" +
+      journeyStatusId;
+    const resultOfGetShipperRequests = await axios.get(url, config);
     console.log(
       "🚀 ~ testGetShipperRequests ~ resultOfGetShipperRequests:",
       resultOfGetShipperRequests,

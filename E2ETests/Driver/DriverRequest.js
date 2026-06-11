@@ -78,11 +78,14 @@ const testTakeFromStreet = async (token) => {
 
 // CREATE_AND_ACCEPT_NEW_REQUEST: string;
 const testCreateAndAcceptNewRequest = async ({
-  tokenOfShipper,
+  tokenOfDriver,
   shipperRequestUniqueId,
 }) => {
   const shipperData = usersData?.shipper;
-  tokenOfShipper = shipperData?.token;
+  if (!tokenOfDriver) tokenOfDriver = usersData.driver.token;
+
+  let tokenOfShipper = shipperData?.token;
+
   if (!tokenOfShipper) {
     await testVerifyUserByOTP({ userType: "shipper" });
   }
@@ -92,13 +95,32 @@ const testCreateAndAcceptNewRequest = async ({
       "Shipper token is not available after OTP verification for CREATE_AND_ACCEPT_NEW_REQUEST",
     );
   }
-  const activeShipperRequest = await testGetShipperRequests(tokenOfShipper);
+  let journeyStatusId = "1,2";
+  const activeShipperRequest = await testGetShipperRequests(
+    tokenOfShipper,
+    journeyStatusId,
+  );
   console.log(
     "🚀 ~ testCreateAndAcceptNewRequest ~ activeShipperRequest:",
     activeShipperRequest,
   );
-
-  const config = { ...authConfig(tokenOfShipper) };
+  const formattedData = activeShipperRequest?.formattedData || [];
+  console.log(
+    "🚀 ~ testCreateAndAcceptNewRequest ~ formattedData:",
+    formattedData,
+  );
+  const requestToAccept = formattedData?.[0] || [];
+  console.log(
+    "🚀 ~ testCreateAndAcceptNewRequest ~ requestToAccept:",
+    requestToAccept,
+  );
+  shipperRequestUniqueId = requestToAccept?.shipperRequest?.shipperRequestUniqueId;
+  console.log(
+    "🚀 ~ testCreateAndAcceptNewRequest ~ shipperRequestUniqueId to accept:",
+    shipperRequestUniqueId,
+  );
+  return;
+  const config = { ...authConfig(tokenOfDriver) };
   const payload = {
     shipperRequestUniqueId: shipperRequestUniqueId,
     shippingCostByDriver: "58000.00",
@@ -255,10 +277,13 @@ const testMarkNegativeStatusAsSeen = async (token) => {
   );
 };
 //test all flows
-const testDriverRequestWorkFlows = async () => {
+const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   console.log("it is test driver request workflow");
   let token = usersData?.driver?.token;
   console.log("🚀 ~ testDriverRequestWorkFlows ~ token:", token);
+  if (jobStyle == "createAndAcceptNewRequest") {
+    const newShipperRequest = await testShipperOnboardingFlow({});
+  }
   if (!token) {
     await testVerifyUserByOTP({ userType: "driver" });
     token = usersData?.driver?.token;
@@ -275,12 +300,14 @@ const testDriverRequestWorkFlows = async () => {
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
   const status = driverStatus?.status;
   const uniqueIds = driverStatus?.uniqueIds;
+  console.log("🚀 ~ testDriverRequestWorkFlows ~ uniqueIds:", uniqueIds);
   console.log(
     "🚀 ~ testDriverRequestWorkFlows ~ status:",
     status,
     "driverStatus",
     driverStatus,
   );
+  // return;
   if (!status) {
     // create new driver request
     const newRequest = await testCreateDriverRequestFlow(token);
@@ -291,7 +318,11 @@ const testDriverRequestWorkFlows = async () => {
       driverStatus,
     );
   }
-  return testCreateAndAcceptNewRequest({});
+  if (jobStyle == "createAndAcceptNewRequest") {
+    await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
+    // await testCompleteJourney({ token, uniqueIds });
+    return;
+  }
 
   if (status == 1) {
     // create shipper request
@@ -315,7 +346,7 @@ const testDriverRequestWorkFlows = async () => {
     await testCompleteJourney({ token, uniqueIds });
   }
 };
-testDriverRequestWorkFlows();
+testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
 module.exports = {
   testDriverRequestWorkFlows,
   testCreateDriverRequestFlow,
