@@ -114,12 +114,13 @@ const testCreateAndAcceptNewRequest = async ({
     "🚀 ~ testCreateAndAcceptNewRequest ~ requestToAccept:",
     requestToAccept,
   );
-  shipperRequestUniqueId = requestToAccept?.shipperRequest?.shipperRequestUniqueId;
+  shipperRequestUniqueId =
+    requestToAccept?.shipperRequest?.shipperRequestUniqueId;
   console.log(
     "🚀 ~ testCreateAndAcceptNewRequest ~ shipperRequestUniqueId to accept:",
     shipperRequestUniqueId,
   );
-  return;
+  // return;
   const config = { ...authConfig(tokenOfDriver) };
   const payload = {
     shipperRequestUniqueId: shipperRequestUniqueId,
@@ -298,14 +299,16 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   }
   //first get current status of driver journey status
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
+  console.log("🚀 ~ testDriverRequestWorkFlows ~ driverStatus:", driverStatus);
   const status = driverStatus?.status;
   const uniqueIds = driverStatus?.uniqueIds;
   console.log("🚀 ~ testDriverRequestWorkFlows ~ uniqueIds:", uniqueIds);
   console.log(
     "🚀 ~ testDriverRequestWorkFlows ~ status:",
     status,
-    "driverStatus",
-    driverStatus,
+
+    "\njobStyle",
+    jobStyle,
   );
   // return;
   if (!status) {
@@ -319,9 +322,17 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     );
   }
   if (jobStyle == "createAndAcceptNewRequest") {
-    await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
-    // await testCompleteJourney({ token, uniqueIds });
-    return;
+    if (status == 1 || status == 2) {
+      await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
+      // await testCompleteJourney({ token, uniqueIds });
+      return;
+    } else if (status == 3) {
+      await testAcceptDriverRequest({ token: null, uniqueIds });
+    } else if (status == 4) {
+      await testStartJourney({ token, uniqueIds });
+    } else if (status == 5) {
+      await testCompleteJourney({ token, uniqueIds });
+    }
   }
 
   if (status == 1) {
