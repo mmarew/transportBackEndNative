@@ -403,6 +403,7 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     await testCompleteJourney({ token, uniqueIds });
   }
 };
+testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
 module.exports = {
   testDriverRequestWorkFlows,
   testCreateDriverRequestFlow,
