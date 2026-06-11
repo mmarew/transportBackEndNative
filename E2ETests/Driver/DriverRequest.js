@@ -268,23 +268,31 @@ const testGetCancellationNotifications = async (token) => {
   );
 };
 // MARK_NEGATIVE_STATUS_AS_SEEN: string;
-const testMarkNegativeStatusAsSeen = async (token) => {
+const testMarkNegativeStatusAsSeen = async ({ token, uniqueIds }) => {
+  console.log(
+    "🚀 ~ testMarkNegativeStatusAsSeen ~ token, uniqueIds :",
+    token,
+    uniqueIds,
+  );
   const config = { ...authConfig(token) };
-  const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  const payload = { driverRequestUniqueId: uniqueIds.driverRequestUniqueId };
+  const resultOfMarkNegativeStatusAsSeen = await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
     payload,
     config,
   );
+  console.log(
+    "🚀 ~ testMarkNegativeStatusAsSeen ~ resultOfMarkNegativeStatusAsSeen:",
+    resultOfMarkNegativeStatusAsSeen.data,
+  );
+  return resultOfMarkNegativeStatusAsSeen.data;
 };
 //test all flows
 const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   console.log("it is test driver request workflow");
   let token = usersData?.driver?.token;
   console.log("🚀 ~ testDriverRequestWorkFlows ~ token:", token);
-  if (jobStyle == "createAndAcceptNewRequest") {
-    const newShipperRequest = await testShipperOnboardingFlow({});
-  }
+
   if (!token) {
     await testVerifyUserByOTP({ userType: "driver" });
     token = usersData?.driver?.token;
@@ -300,8 +308,8 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   //first get current status of driver journey status
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
   console.log("🚀 ~ testDriverRequestWorkFlows ~ driverStatus:", driverStatus);
-  const status = driverStatus?.status;
-  const uniqueIds = driverStatus?.uniqueIds;
+  let status = driverStatus?.status;
+  let uniqueIds = driverStatus?.uniqueIds;
   console.log("🚀 ~ testDriverRequestWorkFlows ~ uniqueIds:", uniqueIds);
   console.log(
     "🚀 ~ testDriverRequestWorkFlows ~ status:",
@@ -321,9 +329,45 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       driverStatus,
     );
   }
+  //protect recreation of shipper requests
+  if (jobStyle == "createAndAcceptNewRequest" && status == 1) {
+    const newShipperRequest = await testShipperOnboardingFlow({});
+  }
   if (jobStyle == "createAndAcceptNewRequest") {
     if (status == 1 || status == 2) {
       await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
+      driverStatus = await testVerifyDriverJourneyStatus({ token });
+      status = driverStatus?.status;
+      console.log(
+        "🚀 ~ testDriverRequestWorkFlows ~ status after create and accept:",
+        status,
+      );
+      uniqueIds = driverStatus?.uniqueIds;
+      await testAcceptDriverRequest({ token: null, uniqueIds });
+      driverStatus = await testVerifyDriverJourneyStatus({ token });
+      status = driverStatus?.status;
+      console.log(
+        "🚀 ~ testDriverRequestWorkFlows ~ status after driver request accepted:",
+        status,
+      );
+      uniqueIds = driverStatus?.uniqueIds;
+      await testStartJourney({ token, uniqueIds });
+      driverStatus = await testVerifyDriverJourneyStatus({ token });
+      status = driverStatus?.status;
+      console.log(
+        "🚀 ~ testDriverRequestWorkFlows ~ status after journey started:",
+        status,
+      );
+      uniqueIds = driverStatus?.uniqueIds;
+      await testCompleteJourney({ token, uniqueIds });
+      driverStatus = await testVerifyDriverJourneyStatus({ token });
+      status = driverStatus?.status;
+      console.log(
+        "🚀 ~ testDriverRequestWorkFlows ~ status after journey completed:",
+        status,
+      );
+      uniqueIds = driverStatus?.uniqueIds;
+
       // await testCompleteJourney({ token, uniqueIds });
       return;
     } else if (status == 3) {
@@ -332,6 +376,8 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       await testStartJourney({ token, uniqueIds });
     } else if (status == 5) {
       await testCompleteJourney({ token, uniqueIds });
+    } else if (status == 14) {
+      await testMarkNegativeStatusAsSeen({ token, uniqueIds });
     }
   }
 
@@ -357,7 +403,6 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     await testCompleteJourney({ token, uniqueIds });
   }
 };
-testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
 module.exports = {
   testDriverRequestWorkFlows,
   testCreateDriverRequestFlow,

@@ -69,7 +69,7 @@ const initiateTest = async () => {
 
     // 7. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
-    await testDriverRequestWorkFlows();
+    await testDriverRequestWorkFlows({});
     // await testCreateDriverRequestFlow(driverToken);
     return;
     // 8. Create company admin flow
@@ -89,15 +89,16 @@ const initiateTest = async () => {
     process.exit(1);
   }
 };
+initiateTest();
 
-const runIterations = async () => {
-  for (let i = 1; i < 3; i++) {
-    console.log(`\n🔄 Starting E2E Test Iteration ${i}...\n`);
-    await initiateTest();
-  }
-};
+// const runIterations = async () => {
+//   for (let i = 1; i < 3; i++) {
+//     console.log(`\n🔄 Starting E2E Test Iteration ${i}...\n`);
+//     await initiateTest();
+//   }
+// };
 
-runIterations().catch((error) => {
-  console.error("\n❌ E2E iteration runner failed:", error);
-  process.exit(1);
-});
+// runIterations().catch((error) => {
+//   console.error("\n❌ E2E iteration runner failed:", error);
+//   process.exit(1);
+// });

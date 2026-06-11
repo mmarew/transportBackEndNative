@@ -215,8 +215,8 @@ const seedTestDocument = async ({
 const resetDatabase = async () => {
   console.log("\n✅ ========== RESET DATABASE STARTED ==========\n");
   console.log("🔄 Starting full database reset...");
-  await dropTables();
-  await createTables();
+  await dropTables({});
+  await createTables({});
   // superAdmin must be verified + logged in before seed data can be installed
   await testVerifyAndLoginUser({ userType: "supperAdmin" });
   await installPredefinedData();

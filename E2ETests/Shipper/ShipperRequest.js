@@ -114,7 +114,7 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
     const resultOfGetShipperRequests = await axios.get(url, config);
     console.log(
       "🚀 ~ testGetShipperRequests ~ resultOfGetShipperRequests:",
-      resultOfGetShipperRequests,
+      resultOfGetShipperRequests.data,
     );
     return resultOfGetShipperRequests.data;
   } catch (error) {
