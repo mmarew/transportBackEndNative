@@ -226,6 +226,8 @@ const testNoAnswerFromDriver = async (token) => {
 };
 // CANCEL_DRIVER_REQUEST: string;
 const testCancelDriverRequest = async (token) => {
+  if (!token) token = usersData.driver.token;
+  if (!token) throw new Error("no token found to testCancelDriverRequest");
   const config = { ...authConfig(token) };
   const payload = {};
   const resultOfTakeFromStreet = await axios.put(

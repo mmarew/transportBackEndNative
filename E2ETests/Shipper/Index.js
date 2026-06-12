@@ -11,6 +11,7 @@ const {
   testCreateShipperRequest,
   testRejectDriverOffer,
   testCancelShipperRequest,
+  testMarkJourneyCancellationAsSeen,
 } = require("./ShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
 const axios = require("axios");
@@ -79,11 +80,12 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
 
   //to remove circular dependency
   const {
-    //   testCreateDriverRequest,
+    testCreateDriverRequest,
     testVerifyDriverJourneyStatus,
+    testCancelDriverRequest,
   } = require("../Driver/DriverRequest");
 
-  // await testCreateDriverRequest();
+  await testCreateDriverRequest();
   await verifyShipperStatus(token);
 
   console.log(
@@ -92,14 +94,22 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   );
   const data = await testVerifyDriverJourneyStatus({});
   const uniqueIds = data?.uniqueIds;
+  console.log("🚀 ~ testShipperOnboardingFlow ~ uniqueIds:", uniqueIds);
+
   // const resultOfRejectedOffer = await testRejectDriverOffer({ uniqueIds });
-  const resultOfCancelShipperRequest = await testCancelShipperRequest({
-    uniqueIds,
-  });
-  console.log(
-    "🚀 ~ testShipperOnboardingFlow ~ resultOfCancelShipperRequest:",
-    resultOfCancelShipperRequest,
-  );
+  // const resultOfCancelShipperRequest = await testCancelShipperRequest({
+  //   uniqueIds,
+  // });
+  // console.log(
+  //   "🚀 ~ testShipperOnboardingFlow ~ resultOfCancelShipperRequest:",
+  //   resultOfCancelShipperRequest,
+  // );
+  if (uniqueIds?.journeyDecisionUniqueId) await testCancelDriverRequest();
+  if (uniqueIds?.journeyDecisionUniqueId)
+    await testMarkJourneyCancellationAsSeen({
+      ...uniqueIds,
+      rating: 4,
+    });
 };
 testShipperOnboardingFlow({});
 module.exports = {

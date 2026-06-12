@@ -239,7 +239,7 @@ const testMarkJourneyCancellationAsSeen = async (payload = {}) => {
     const url =
       backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_JOURNEY_COMPLETION_AS_SEEN;
     const result = await axios.put(url, payload, auth);
-    console.log("Mark journey completion as seen success:", result.data);
+    console.log("Mark journey cancellation as seen success:", result.data);
     return result.data;
   } catch (error) {
     console.error(
