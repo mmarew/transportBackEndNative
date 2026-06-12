@@ -1,8 +1,17 @@
 const { testAuthWorkFlow } = require("../Auth");
-const { usersData, backendURL } = require("../constants");
+const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
+const {
+  usersData,
+  backendURL,
+  shipperRequestStatusData,
+} = require("../constants");
 const { createDriverDocument } = require("../Driver/DriversDocuments");
 const { authConfig } = require("../Utils");
-const { createShipperRequestFlow } = require("./ShipperRequest");
+const {
+  testCreateShipperRequest,
+  testRejectDriverOffer,
+  testCancelShipperRequest,
+} = require("./ShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
 const axios = require("axios");
 
@@ -42,6 +51,7 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   }
 
   let accountData = await getShipperAccountData(token);
+  // console.log("🚀 ~ testShipperOnboardingFlow ~ accountData:", accountData);
   if (!accountData) return;
 
   const unAttachedDocumentTypes = accountData?.unAttachedDocumentTypes || [];
@@ -58,14 +68,40 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   console.log("✅ Shipper onboarding flow completed!");
 
   // Now create a Shipper Request using the authenticated Shipper's token!
-  await createShipperRequestFlow(token);
+  await testCreateShipperRequest(token);
 
   // Verify Shipper Status and store it in constants
   await verifyShipperStatus(token);
   console.log(
     "\n✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
   );
+  await testVerifyUserByOTP({ userType: "driver" });
+
+  //to remove circular dependency
+  const {
+    //   testCreateDriverRequest,
+    testVerifyDriverJourneyStatus,
+  } = require("../Driver/DriverRequest");
+
+  // await testCreateDriverRequest();
+  await verifyShipperStatus(token);
+
+  console.log(
+    "🚀 ~ testShipperOnboardingFlow ~ shipperRequestStatusData:",
+    shipperRequestStatusData.data,
+  );
+  const data = await testVerifyDriverJourneyStatus({});
+  const uniqueIds = data?.uniqueIds;
+  // const resultOfRejectedOffer = await testRejectDriverOffer({ uniqueIds });
+  const resultOfCancelShipperRequest = await testCancelShipperRequest({
+    uniqueIds,
+  });
+  console.log(
+    "🚀 ~ testShipperOnboardingFlow ~ resultOfCancelShipperRequest:",
+    resultOfCancelShipperRequest,
+  );
 };
+testShipperOnboardingFlow({});
 module.exports = {
   testShipperAcceptDriversOffer,
   testShipperOnboardingFlow,

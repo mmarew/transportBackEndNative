@@ -7,7 +7,7 @@ const {
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 
-const createShipperRequestFlow = async (token) => {
+const testCreateShipperRequest = async (token) => {
   const config = {
     ...authConfig(token),
   };
@@ -36,7 +36,7 @@ const createShipperRequestFlow = async (token) => {
       shippingCost: 5000,
       shippableItemQtyInQuintal: 100,
       shippableItemName: "Coffee Beans",
-      requestMode: "individual_target",
+      // requestMode: "individual_target",
       // requestMode: "company_target",
       originLocation: {
         latitude: 9.03,
@@ -54,13 +54,17 @@ const createShipperRequestFlow = async (token) => {
     };
 
     // 3. Post to create the request
-    const res = await axios.post(
-      backendURL + "/api/shipperRequest/createRequest",
+    const resultOfCreateShipperRequest = await axios.post(
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
       payload,
       config,
     );
+    console.log(
+      "🚀 ~ testCreateShipperRequest ~ resultOfCreateShipperRequest:",
+      resultOfCreateShipperRequest.data,
+    );
 
-    return res.data;
+    return resultOfCreateShipperRequest.data;
   } catch (error) {
     console.log("❌ Failed to create shipper request.");
     if (error.response) {
@@ -129,8 +133,202 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
     }
   }
 };
+
+// const SHIPPER_REQUEST_ENDPOINTS = {
+//   CREATE_REQUEST: "/api/shipperRequest/createRequest", done via createShipperRequestFlow
+//   GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER:
+//     "/api/user/getShipperRequest4allOrSingleUser", done via testGetShipperRequests
+//   ACCEPT_DRIVER_REQUEST: "/api/shipper/acceptDriverRequest",done via testAcceptDriverRequest
+//   REJECT_DRIVER_OFFER: "/api/user/rejectDriverOffer",
+//   GET_BY_ID_PUBLIC: "/api/shipperRequest/getById/:id",
+//   GET_BY_ID_PRIVATE: "/api/shipperRequest/getById/:id",
+//   CANCEL_SHIPPER_REQUEST:
+//     "/api/shipperRequest/cancelShipperRequest/:userUniqueId",
+//   CANCEL_BATCH: "/api/shipperRequest/cancelBatch/:shipperRequestBatchId",
+//   MARK_JOURNEY_COMPLETION_AS_SEEN:
+//     "/api/shipperRequest/markJourneyCompletionAsSeen",
+//   GET_CANCELLATION_NOTIFICATIONS:
+//     "/api/shipperRequest/getCancellationNotifications",
+//   MARK_CANCELLATION_AS_SEEN: "/api/shipperRequest/markCancellationAsSeen",
+//   VERIFY_SHIPPER_STATUS: "/api/shipperRequest/verifyShipperStatus",
+//   GET_ALL_ACTIVE_REQUESTS: "/api/shippingRequest/getAllActiveRequests",
+// };
+// ==================== UPDATED TEST FUNCTIONS ====================
+
+const testRejectDriverOffer = async (
+  { uniqueIds },
+  shipperRequestId,
+  driverOfferId,
+) => {
+  try {
+    const payload = { ...uniqueIds }; // adjust fields as needed
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url = backendURL + SHIPPER_REQUEST_ENDPOINTS.REJECT_DRIVER_OFFER;
+    const result = await axios.put(url, payload, auth);
+    console.log("Reject driver offer success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Reject driver offer failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testCancelShipperRequest = async ({ uniqueIds }) => {
+  try {
+    //validate uniqueIds
+    if (!uniqueIds?.shipperRequestUniqueId) {
+      throw new Error("shipperRequestUniqueId is mandatory");
+    }
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url =
+      backendURL +
+      SHIPPER_REQUEST_ENDPOINTS.CANCEL_SHIPPER_REQUEST.replace(
+        ":userUniqueId",
+        "self",
+      );
+    const result = await axios.put(
+      url,
+      {
+        shipperRequestUniqueId: uniqueIds.shipperRequestUniqueId,
+        cancellationReasonsTypeId: 10,
+      },
+      auth,
+    ); // or axios.delete if backend expects DELETE
+    console.log("Cancel shipper request success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Cancel shipper request failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testCancelBatch = async (shipperRequestBatchId) => {
+  try {
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url =
+      backendURL +
+      SHIPPER_REQUEST_ENDPOINTS.CANCEL_BATCH.replace(
+        ":shipperRequestBatchId",
+        shipperRequestBatchId,
+      );
+    const result = await axios.put(url, {}, auth);
+    console.log("Cancel batch success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Cancel batch failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testMarkJourneyCancellationAsSeen = async (payload = {}) => {
+  try {
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url =
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_JOURNEY_COMPLETION_AS_SEEN;
+    const result = await axios.put(url, payload, auth);
+    console.log("Mark journey completion as seen success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Mark journey completion as seen failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testGetCancellationNotification = async () => {
+  try {
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url =
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS;
+    const result = await axios.get(url, auth);
+    console.log("Get cancellation notifications success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Get cancellation notifications failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testMarkCancellationAsSeen = async (payload = {}) => {
+  try {
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url =
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN;
+    const result = await axios.put(url, payload, auth);
+    console.log("Mark cancellation as seen success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Mark cancellation as seen failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testVerifyShipperStatus = async () => {
+  try {
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url = backendURL + SHIPPER_REQUEST_ENDPOINTS.VERIFY_SHIPPER_STATUS;
+    const result = await axios.get(url, auth);
+    console.log("Verify shipper status success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Verify shipper status failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+const testGetAllActiveRequest = async () => {
+  try {
+    const token = usersData.shipper.token;
+    const auth = authConfig(token);
+    const url = backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_ALL_ACTIVE_REQUESTS;
+    const result = await axios.get(url, auth);
+    console.log("Get all active requests success:", result.data);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "Get all active requests failed:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
 module.exports = {
+  testRejectDriverOffer,
+  testCancelShipperRequest,
+  testCancelBatch,
+  testMarkJourneyCancellationAsSeen,
+  testGetCancellationNotification,
+  testMarkCancellationAsSeen,
+  testVerifyShipperStatus,
+  testGetAllActiveRequest,
   testGetShipperRequests,
   testAcceptDriverRequest,
-  createShipperRequestFlow,
+  testCreateShipperRequest,
 };

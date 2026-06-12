@@ -18,7 +18,16 @@ const testCreateDriverRequest = async (token) => {
   console.log(
     "\n✅ ========== CREATE DRIVER REQUEST FLOW STARTED ==========\n",
   );
+  if (!token) {
+    token = usersData.driver.token;
+  }
+  console.log("🚀 ~ testCreateDriverRequest ~ token:", token);
+
+  if (!token) {
+    throw new Error("no driver token found to create driver request");
+  }
   const config = { ...authConfig(token) };
+  console.log("🚀 ~ testCreateDriverRequest ~ config:", config);
 
   try {
     const payload = {
@@ -267,12 +276,18 @@ const testDeleteDriverRequest = async (token) => {
 };
 // VERIFY_DRIVER_JOURNEY_STATUS: string;
 const testVerifyDriverJourneyStatus = async ({ token }) => {
+  if (!token) token = usersData.driver.token;
+  if (!token) throw new Error("no token to get drivers data");
   const config = { ...authConfig(token) };
   const payload = {};
   const resultOfDriverJourneyStatus = await axios.get(
     backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
     // payload,
     config,
+  );
+  console.log(
+    "🚀 ~ testVerifyDriverJourneyStatus ~ resultOfDriverJourneyStatus.data:",
+    resultOfDriverJourneyStatus.data,
   );
 
   return resultOfDriverJourneyStatus.data;
@@ -472,7 +487,7 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
 // testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
 // take from street can be used to load good from street
 // testDriverRequestWorkFlows({ jobStyle: "take from street" });
-testDriverRequestWorkFlows({ jobStyle: "cancel driver request" });
+// testDriverRequestWorkFlows({ jobStyle: "cancel driver request" });
 module.exports = {
   testDriverRequestWorkFlows,
   testCreateDriverRequest,
