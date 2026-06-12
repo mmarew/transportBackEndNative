@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
+const { v4: uuidv4 } = require("uuid");
 const {
   DRIVER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/driverRequest.endpoints");
@@ -10,9 +11,10 @@ const {
   testAcceptDriverRequest,
   testGetShipperRequests,
 } = require("../Shipper/ShipperRequest");
+const { getDriversAccountData } = require("./RequirementOfDriver");
 
 // DRIVER_REQUEST: string;
-const testCreateDriverRequestFlow = async (token) => {
+const testCreateDriverRequest = async (token) => {
   console.log(
     "\n✅ ========== CREATE DRIVER REQUEST FLOW STARTED ==========\n",
   );
@@ -65,13 +67,49 @@ const testCreateDriverRequestFlow = async (token) => {
 };
 
 // TAKE_FROM_STREET: string;
-const testTakeFromStreet = async (token) => {
+const testTakeFromStreet = async ({ token }) => {
   const config = { ...authConfig(token) };
-  const payload = {};
+  const driver = usersData.driver;
+
+  console.log("🚀 ~ testTakeFromStreet ~ driver:", driver);
+  const accountData = driver.accountData;
+  const vehicle = accountData.vehicle;
+  const vehicleTypeUniqueId = vehicle.vehicleTypeUniqueId;
+  const payload = {
+    phoneNumber: "+251922112480",
+    destination: {
+      latitude: "9.8",
+      longitude: "38.9",
+      description: "Addis Ababa, Ethiopia",
+    },
+    vehicle: {
+      vehicleTypeUniqueId,
+    },
+    originLocation: {
+      latitude: 9.0042278,
+      longitude: 38.8661227,
+      description: "Diredawa, Ethiopia",
+    },
+    currentLocation: {
+      latitude: 9.0042278,
+      longitude: 38.8661227,
+      description: "Diredawa, Ethiopia",
+    },
+    shipperRequestBatchId: uuidv4(),
+    shippableItemName: "cement",
+    shippableItemQtyInQuintal: 450,
+    shippingDate: "2025-10-10:21:19:21",
+    deliveryDate: "2025-10-10:21:19:21",
+    shippingCost: 40000,
+  };
   const resultOfTakeFromStreet = await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.TAKE_FROM_STREET,
     payload,
     config,
+  );
+  console.log(
+    "🚀 ~ testTakeFromStreet ~ resultOfTakeFromStreet:",
+    resultOfTakeFromStreet,
   );
   return resultOfTakeFromStreet.data;
 };
@@ -181,8 +219,10 @@ const testNoAnswerFromDriver = async (token) => {
 const testCancelDriverRequest = async (token) => {
   const config = { ...authConfig(token) };
   const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
-    backendURL + DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST,
+  const resultOfTakeFromStreet = await axios.put(
+    backendURL +
+      DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
+      "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
     payload,
     config,
   );
@@ -251,10 +291,14 @@ const testGetDriverRequest = async (token) => {
 const testSendUpdatedLocation = async (token) => {
   const config = { ...authConfig(token) };
   const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  const resultOfSendUpdatedLocation = await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.SEND_UPDATED_LOCATION,
     payload,
     config,
+  );
+  console.log(
+    "🚀 ~ testSendUpdatedLocation ~ resultOfSendUpdatedLocation:",
+    resultOfSendUpdatedLocation.data,
   );
 };
 // GET_CANCELLATION_NOTIFICATIONS: string;
@@ -292,7 +336,6 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   console.log("it is test driver request workflow");
   let token = usersData?.driver?.token;
   console.log("🚀 ~ testDriverRequestWorkFlows ~ token:", token);
-
   if (!token) {
     await testVerifyUserByOTP({ userType: "driver" });
     token = usersData?.driver?.token;
@@ -305,6 +348,8 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       console.log("🚀 ~ testDriverRequestWorkFlows ~ token:", token);
     }
   }
+  await getDriversAccountData({ token });
+
   //first get current status of driver journey status
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
   console.log("🚀 ~ testDriverRequestWorkFlows ~ driverStatus:", driverStatus);
@@ -318,10 +363,14 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     "\njobStyle",
     jobStyle,
   );
+  if (jobStyle == "take from street" && !status) {
+    testTakeFromStreet({ token });
+    return;
+  }
   // return;
   if (!status) {
     // create new driver request
-    const newRequest = await testCreateDriverRequestFlow(token);
+    const newRequest = await testCreateDriverRequest(token);
     //recheck driver journey status
     driverStatus = await testVerifyDriverJourneyStatus({ token });
     console.log(
@@ -333,6 +382,9 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   if (jobStyle == "createAndAcceptNewRequest" && status == 1) {
     const newShipperRequest = await testShipperOnboardingFlow({});
   }
+  if ((jobStyle = "cancel driver request")) {
+    return testCancelDriverRequest(token);
+  }
   if (jobStyle == "createAndAcceptNewRequest") {
     if (status == 1 || status == 2) {
       await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
@@ -343,6 +395,7 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
         status,
       );
       uniqueIds = driverStatus?.uniqueIds;
+      return;
       await testAcceptDriverRequest({ token: null, uniqueIds });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
@@ -380,7 +433,7 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       await testMarkNegativeStatusAsSeen({ token, uniqueIds });
     }
   }
-
+  await testSendUpdatedLocation(token);
   if (status == 1) {
     // create shipper request
     const newShipperRequest = await testShipperOnboardingFlow({});
@@ -403,10 +456,13 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     await testCompleteJourney({ token, uniqueIds });
   }
 };
-testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
+//createAndAcceptNewRequest is used to select and accept jobs posted from shipper.
+// testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
+// testDriverRequestWorkFlows({ jobStyle: "take from street" });
+testDriverRequestWorkFlows({ jobStyle: "cancel driver request" });
 module.exports = {
   testDriverRequestWorkFlows,
-  testCreateDriverRequestFlow,
+  testCreateDriverRequest,
   testTakeFromStreet,
   testCreateAndAcceptNewRequest,
   testAcceptShipperRequest,

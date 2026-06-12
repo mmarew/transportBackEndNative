@@ -20,7 +20,7 @@ const {
 const { testAdminDecisionWorkflow } = require("./Delinquency/AdminDecision");
 const { testBanWorkflow } = require("./Delinquency/BannedUsers");
 const {
-  testCreateDriverRequestFlow,
+  testCreateDriverRequest,
   testDriverRequestWorkFlows,
 } = require("./Driver/DriverRequest");
 
@@ -70,7 +70,7 @@ const initiateTest = async () => {
     // 7. Driver posts location — system auto-matches with the shipper
     const driverToken = usersData?.driver?.token;
     await testDriverRequestWorkFlows({});
-    // await testCreateDriverRequestFlow(driverToken);
+    // await testCreateDriverRequest(driverToken);
     return;
     // 8. Create company admin flow
     await createCompanyAdminFlow({});
