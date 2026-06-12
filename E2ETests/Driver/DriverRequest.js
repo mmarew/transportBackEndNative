@@ -21,13 +21,11 @@ const testCreateDriverRequest = async (token) => {
   if (!token) {
     token = usersData.driver.token;
   }
-  console.log("🚀 ~ testCreateDriverRequest ~ token:", token);
 
   if (!token) {
     throw new Error("no driver token found to create driver request");
   }
   const config = { ...authConfig(token) };
-  console.log("🚀 ~ testCreateDriverRequest ~ config:", config);
 
   try {
     const payload = {
@@ -37,8 +35,6 @@ const testCreateDriverRequest = async (token) => {
         description: "Addis Ababa, Ethiopia",
       },
     };
-
-    console.log("🚀 ~ createDriverRequestFlow ~ Sending payload:", payload);
 
     const res = await axios.post(
       backendURL + DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
@@ -80,7 +76,6 @@ const testTakeFromStreet = async ({ token }) => {
   const config = { ...authConfig(token) };
   const driver = usersData.driver;
 
-  console.log("🚀 ~ testTakeFromStreet ~ driver:", driver);
   const accountData = driver.accountData;
   const vehicle = accountData.vehicle;
   const vehicleTypeUniqueId = vehicle.vehicleTypeUniqueId;
@@ -116,10 +111,6 @@ const testTakeFromStreet = async ({ token }) => {
     payload,
     config,
   );
-  console.log(
-    "🚀 ~ testTakeFromStreet ~ resultOfTakeFromStreet:",
-    resultOfTakeFromStreet,
-  );
   return resultOfTakeFromStreet.data;
 };
 
@@ -147,26 +138,10 @@ const testCreateAndAcceptNewRequest = async ({
     tokenOfShipper,
     journeyStatusId,
   );
-  console.log(
-    "🚀 ~ testCreateAndAcceptNewRequest ~ activeShipperRequest:",
-    activeShipperRequest,
-  );
   const formattedData = activeShipperRequest?.formattedData || [];
-  console.log(
-    "🚀 ~ testCreateAndAcceptNewRequest ~ formattedData:",
-    formattedData,
-  );
   const requestToAccept = formattedData?.[0] || [];
-  console.log(
-    "🚀 ~ testCreateAndAcceptNewRequest ~ requestToAccept:",
-    requestToAccept,
-  );
   shipperRequestUniqueId =
     requestToAccept?.shipperRequest?.shipperRequestUniqueId;
-  console.log(
-    "🚀 ~ testCreateAndAcceptNewRequest ~ shipperRequestUniqueId to accept:",
-    shipperRequestUniqueId,
-  );
   // return;
   const config = { ...authConfig(tokenOfDriver) };
   const payload = {
@@ -192,10 +167,6 @@ const testAcceptShipperRequest = async ({ token, uniqueIds }) => {
     backendURL + DRIVER_REQUEST_ENDPOINTS.ACCEPT_SHIPPER_REQUEST,
     payload,
     config,
-  );
-  console.log(
-    "🚀 ~ testAcceptShipperRequest ~ resultOfAcceptShipperRequest:",
-    resultOfAcceptShipperRequest,
   );
   return resultOfAcceptShipperRequest.data;
 };
@@ -251,10 +222,6 @@ const testCompleteJourney = async ({ token, uniqueIds }) => {
     payload,
     config,
   );
-  console.log(
-    "🚀 ~ testCompleteJourney ~ resultOfCompleteJourney:",
-    resultOfCompleteJourney.data,
-  );
 };
 // UPDATE_DRIVER_REQUEST: string;
 const testUpdateDriverRequest = async (token) => {
@@ -286,10 +253,6 @@ const testVerifyDriverJourneyStatus = async ({ token }) => {
     backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
     // payload,
     config,
-  );
-  console.log(
-    "🚀 ~ testVerifyDriverJourneyStatus ~ resultOfDriverJourneyStatus.data:",
-    resultOfDriverJourneyStatus.data,
   );
 
   return resultOfDriverJourneyStatus.data;
@@ -323,10 +286,6 @@ const testSendUpdatedLocation = async ({ token, uniqueIds }) => {
     payload,
     config,
   );
-  console.log(
-    "🚀 ~ testSendUpdatedLocation ~ resultOfSendUpdatedLocation:",
-    resultOfSendUpdatedLocation.data,
-  );
 };
 // GET_CANCELLATION_NOTIFICATIONS: string;
 const testGetCancellationNotifications = async (token) => {
@@ -340,11 +299,6 @@ const testGetCancellationNotifications = async (token) => {
 };
 // MARK_NEGATIVE_STATUS_AS_SEEN: string;
 const testMarkNegativeStatusAsSeen = async ({ token, uniqueIds }) => {
-  console.log(
-    "🚀 ~ testMarkNegativeStatusAsSeen ~ token, uniqueIds :",
-    token,
-    uniqueIds,
-  );
   const config = { ...authConfig(token) };
   const payload = { driverRequestUniqueId: uniqueIds.driverRequestUniqueId };
   const resultOfMarkNegativeStatusAsSeen = await axios.put(
@@ -352,17 +306,12 @@ const testMarkNegativeStatusAsSeen = async ({ token, uniqueIds }) => {
     payload,
     config,
   );
-  console.log(
-    "🚀 ~ testMarkNegativeStatusAsSeen ~ resultOfMarkNegativeStatusAsSeen:",
-    resultOfMarkNegativeStatusAsSeen.data,
-  );
   return resultOfMarkNegativeStatusAsSeen.data;
 };
 //test all flows
 const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   console.log("it is test driver request workflow");
   let token = usersData?.driver?.token;
-  console.log("🚀 ~ testDriverRequestWorkFlows ~ token:", token);
   if (!token) {
     await testVerifyUserByOTP({ userType: "driver" });
     token = usersData?.driver?.token;
@@ -372,24 +321,14 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       );
       return "token is required";
     } else {
-      console.log("🚀 ~ testDriverRequestWorkFlows ~ token:", token);
     }
   }
   await getDriversAccountData({ token });
 
   //first get current status of driver journey status
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
-  console.log("🚀 ~ testDriverRequestWorkFlows ~ driverStatus:", driverStatus);
   let status = driverStatus?.status;
   let uniqueIds = driverStatus?.uniqueIds;
-  console.log("🚀 ~ testDriverRequestWorkFlows ~ uniqueIds:", uniqueIds);
-  console.log(
-    "🚀 ~ testDriverRequestWorkFlows ~ status:",
-    status,
-
-    "\njobStyle",
-    jobStyle,
-  );
   if (jobStyle == "take from street" && !status) {
     testTakeFromStreet({ token });
     return;
@@ -405,10 +344,6 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   if (jobStyle == "createAndAcceptNewRequest" && status == 1) {
     const newShipperRequest = await testShipperOnboardingFlow({});
   }
-  console.log(
-    "🚀 ~ testDriverRequestWorkFlows ~ driverStatus after creating request:",
-    driverStatus,
-  );
   // if ((jobStyle = "cancel driver request")) {
   //   return testCancelDriverRequest(token);
   // }
@@ -417,35 +352,19 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
-      console.log(
-        "🚀 ~ testDriverRequestWorkFlows ~ status after create and accept:",
-        status,
-      );
       uniqueIds = driverStatus?.uniqueIds;
       return;
       await testAcceptDriverRequest({ token: null, uniqueIds });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
-      console.log(
-        "🚀 ~ testDriverRequestWorkFlows ~ status after driver request accepted:",
-        status,
-      );
       uniqueIds = driverStatus?.uniqueIds;
       await testStartJourney({ token, uniqueIds });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
-      console.log(
-        "🚀 ~ testDriverRequestWorkFlows ~ status after journey started:",
-        status,
-      );
       uniqueIds = driverStatus?.uniqueIds;
       await testCompleteJourney({ token, uniqueIds });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
-      console.log(
-        "🚀 ~ testDriverRequestWorkFlows ~ status after journey completed:",
-        status,
-      );
       uniqueIds = driverStatus?.uniqueIds;
 
       // await testCompleteJourney({ token, uniqueIds });
@@ -465,10 +384,6 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   if (status == 1) {
     // create shipper request
     const newShipperRequest = await testShipperOnboardingFlow({});
-    console.log(
-      "🚀 ~ testDriverRequestWorkFlows ~ newShipperRequest:",
-      newShipperRequest,
-    );
   } else if (status == 2) {
     // accept shipper request
 

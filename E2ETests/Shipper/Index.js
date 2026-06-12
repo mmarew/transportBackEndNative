@@ -12,6 +12,7 @@ const {
   testRejectDriverOffer,
   testCancelShipperRequest,
   testMarkJourneyCancellationAsSeen,
+  testGetCancellationNotification,
 } = require("./ShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
 const axios = require("axios");
@@ -52,7 +53,6 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   }
 
   let accountData = await getShipperAccountData(token);
-  // console.log("🚀 ~ testShipperOnboardingFlow ~ accountData:", accountData);
   if (!accountData) return;
 
   const unAttachedDocumentTypes = accountData?.unAttachedDocumentTypes || [];
@@ -71,7 +71,7 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   // Now create a Shipper Request using the authenticated Shipper's token!
   await testCreateShipperRequest(token);
 
-  // Verify Shipper Status and store it in constants
+  // Verify Shipper Status after new request is created and store it in constants
   await verifyShipperStatus(token);
   console.log(
     "\n✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
@@ -86,30 +86,33 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   } = require("../Driver/DriverRequest");
 
   await testCreateDriverRequest();
+  //to get latest data after driver request is created and matched to shipper request
   await verifyShipperStatus(token);
 
-  console.log(
-    "🚀 ~ testShipperOnboardingFlow ~ shipperRequestStatusData:",
-    shipperRequestStatusData.data,
-  );
   const data = await testVerifyDriverJourneyStatus({});
   const uniqueIds = data?.uniqueIds;
-  console.log("🚀 ~ testShipperOnboardingFlow ~ uniqueIds:", uniqueIds);
 
+  const dataOfCancelledNotifications = await testGetCancellationNotification(
+    {},
+  );
   // const resultOfRejectedOffer = await testRejectDriverOffer({ uniqueIds });
   // const resultOfCancelShipperRequest = await testCancelShipperRequest({
   //   uniqueIds,
   // });
-  // console.log(
-  //   "🚀 ~ testShipperOnboardingFlow ~ resultOfCancelShipperRequest:",
-  //   resultOfCancelShipperRequest,
-  // );
-  if (uniqueIds?.journeyDecisionUniqueId) await testCancelDriverRequest();
-  if (uniqueIds?.journeyDecisionUniqueId)
-    await testMarkJourneyCancellationAsSeen({
-      ...uniqueIds,
+  // if (uniqueIds?.journeyDecisionUniqueId) await testCancelDriverRequest();
+  if (
+    dataOfCancelledNotifications?.[0]?.journeyDecision?.journeyDecisionUniqueId
+  ) {
+    const { journeyDecision, driver, shipper } =
+      dataOfCancelledNotifications?.[0];
+    const payLoad = {
+      journeyDecisionUniqueId: journeyDecision.journeyDecisionUniqueId,
+
+      shipperRequestUniqueId: shipper.shipperRequestUniqueId,
       rating: 4,
-    });
+    };
+    await testMarkJourneyCancellationAsSeen(payLoad);
+  }
 };
 testShipperOnboardingFlow({});
 module.exports = {

@@ -59,10 +59,6 @@ const testCreateShipperRequest = async (token) => {
       payload,
       config,
     );
-    console.log(
-      "🚀 ~ testCreateShipperRequest ~ resultOfCreateShipperRequest:",
-      resultOfCreateShipperRequest.data,
-    );
 
     return resultOfCreateShipperRequest.data;
   } catch (error) {
@@ -80,14 +76,12 @@ const testCreateShipperRequest = async (token) => {
 //  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST
 const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
   try {
-    console.log("🚀 ~ testAcceptDriverRequest ~ uniqueIds:", uniqueIds);
     // return;
     let shipperToken = usersData.shipper.token;
     if (!shipperToken) {
       await testVerifyUserByOTP({ userType: "shipper" });
     }
     shipperToken = usersData.shipper.token;
-    console.log("🚀 ~ testAcceptDriverRequest ~ shipperToken:", shipperToken);
     if (!shipperToken) {
       throw new Error("Shipper token is not available after OTP verification");
     }
@@ -98,14 +92,8 @@ const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
       payload,
       config,
     );
-    console.log(
-      "🚀 ~ testAcceptDriverRequest ~ resultOfAcceptDriverRequests:",
-      resultOfAcceptDriverRequests?.data,
-    );
     return resultOfAcceptDriverRequests.data;
-  } catch (error) {
-    console.log("🚀 ~ testAcceptDriverRequest ~ error:", error);
-  }
+  } catch (error) {}
 };
 const testGetShipperRequests = async (token, journeyStatusId) => {
   const config = { ...authConfig(token) };
@@ -116,10 +104,6 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
       "?journeyStatusId=" +
       journeyStatusId;
     const resultOfGetShipperRequests = await axios.get(url, config);
-    console.log(
-      "🚀 ~ testGetShipperRequests ~ resultOfGetShipperRequests:",
-      resultOfGetShipperRequests.data,
-    );
     return resultOfGetShipperRequests.data;
   } catch (error) {
     console.log("❌ Failed to get shipper requests.");
@@ -257,8 +241,7 @@ const testGetCancellationNotification = async () => {
     const url =
       backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS;
     const result = await axios.get(url, auth);
-    console.log("Get cancellation notifications success:", result.data);
-    return result.data;
+    return result.data.data;
   } catch (error) {
     console.error(
       "Get cancellation notifications failed:",
