@@ -288,10 +288,20 @@ const testGetDriverRequest = async (token) => {
   );
 };
 // SEND_UPDATED_LOCATION: string;
-const testSendUpdatedLocation = async (token) => {
+const testSendUpdatedLocation = async ({ token, uniqueIds }) => {
   const config = { ...authConfig(token) };
-  const payload = {};
-  const resultOfSendUpdatedLocation = await axios.post(
+  if (!uniqueIds?.journeyDecisionUniqueId) {
+    return { message: "No data found " };
+  }
+  const payload = {
+    journeyDecisionUniqueId: uniqueIds?.journeyDecisionUniqueId,
+    latitude: 10.2,
+    longitude: 10.2,
+    // shipperPhone: "",
+    additionalData: {},
+  };
+  // return;
+  const resultOfSendUpdatedLocation = await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.SEND_UPDATED_LOCATION,
     payload,
     config,
@@ -373,18 +383,18 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     const newRequest = await testCreateDriverRequest(token);
     //recheck driver journey status
     driverStatus = await testVerifyDriverJourneyStatus({ token });
-    console.log(
-      "🚀 ~ testDriverRequestWorkFlows ~ driverStatus after creating request:",
-      driverStatus,
-    );
   }
   //protect recreation of shipper requests
   if (jobStyle == "createAndAcceptNewRequest" && status == 1) {
     const newShipperRequest = await testShipperOnboardingFlow({});
   }
-  if ((jobStyle = "cancel driver request")) {
-    return testCancelDriverRequest(token);
-  }
+  console.log(
+    "🚀 ~ testDriverRequestWorkFlows ~ driverStatus after creating request:",
+    driverStatus,
+  );
+  // if ((jobStyle = "cancel driver request")) {
+  //   return testCancelDriverRequest(token);
+  // }
   if (jobStyle == "createAndAcceptNewRequest") {
     if (status == 1 || status == 2) {
       await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
@@ -433,7 +443,8 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
       await testMarkNegativeStatusAsSeen({ token, uniqueIds });
     }
   }
-  await testSendUpdatedLocation(token);
+  if (status == 4 || status == 5)
+    await testSendUpdatedLocation({ token, uniqueIds });
   if (status == 1) {
     // create shipper request
     const newShipperRequest = await testShipperOnboardingFlow({});
@@ -456,8 +467,10 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     await testCompleteJourney({ token, uniqueIds });
   }
 };
+//there are 3 way of jobs 1 is turn on app and let system find best match. 2 let driver choose one from posted jobs. 3 pick from street, let driver load goods while he is moving in the ways
 //createAndAcceptNewRequest is used to select and accept jobs posted from shipper.
 // testDriverRequestWorkFlows({ jobStyle: "createAndAcceptNewRequest" });
+// take from street can be used to load good from street
 // testDriverRequestWorkFlows({ jobStyle: "take from street" });
 testDriverRequestWorkFlows({ jobStyle: "cancel driver request" });
 module.exports = {
