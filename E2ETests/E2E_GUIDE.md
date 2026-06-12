@@ -493,230 +493,111 @@ await createCompanyAdminFlow({});
 
 ---
 
-### Phase 4 — Shipper Creates a Request
+### Phase 4 — The Two Target Flows
 
-**File:** `Shipper/ShipperRequest.js` → `testCreateShipperRequest(token)`
+A shipper can create a request with one of two `requestMode` targets:
+- **`individual_target`**: The system auto-matches the request with an individual driver.
+- **`company_target`**: The request goes to the company bidding pool, a company wins the bid, and the company assigns its own driver/vehicle.
 
-```
-1. GET /api/admin/vehicleTypes        → get vehicleTypeUniqueId
-2. POST /api/shipperRequest/createRequest  → create the request
-```
-
-**Payload structure:**
-
-```js
-{
-  shipperRequestBatchId: uuidv4(),      // unique batch ID
-  numberOfVehicles: 1,
-  shippingDate: "2026-06-13T...",       // tomorrow
-  deliveryDate: "2026-06-15T...",       // 3 days from now
-  shippingCost: 5000,
-  shippableItemQtyInQuintal: 100,
-  shippableItemName: "Coffee Beans",
-  originLocation: {
-    latitude: 9.03,
-    longitude: 38.74,
-    description: "Addis Ababa, Ethiopia"
-  },
-  destination: {
-    latitude: 8.54,
-    longitude: 39.27,
-    description: "Adama, Ethiopia"
-  },
-  vehicle: {
-    vehicleTypeUniqueId: "..."
-  }
-}
-```
-
-> **Optional `requestMode`:**  
-> - `"individual_target"` — match with an individual driver  
-> - `"company_target"` — match with a company
-
-After creation, the shipper's status is tracked via:
-
-```js
-await verifyShipperStatus(token);
-// GET /api/shipperRequest/verifyShipperStatus
-```
+The main `index.js` orchestrator runs both flows sequentially.
 
 ---
 
-### Phase 5 — Driver Posts Location & System Matches
+#### Flow A: Individual Target (`requestMode: "individual_target"`)
 
-**File:** `Driver/DriverRequest.js` → `testCreateDriverRequest(token)`
-
-When the driver posts their current GPS location, the backend's auto-matching engine finds the nearest unmatched shipper request.
-
-```
-POST /api/driverRequest/createDriverRequest
-{
-  currentLocation: {
-    latitude: 9.03,
-    longitude: 38.74,
-    description: "Addis Ababa, Ethiopia"
-  }
-}
-```
-
-**Response includes:**
-- `status` — current driver journey status code
-- `shipper.shipperRequestUniqueId` — matched shipper (if found)
-
-After posting, the driver's current state is read back:
-
+**1. Shipper Creates Request** (`Shipper/ShipperRequest.js`)
 ```js
-const driverStatus = await testVerifyDriverJourneyStatus({ token });
-// GET /api/driver/verifyDriverJourneyStatus
-// Returns: { status, uniqueIds: { driverRequestUniqueId, shipperRequestUniqueId, journeyDecisionUniqueId } }
+await testCreateShipperRequest(token, "individual_target");
 ```
 
-**Status codes after matching:**
-
-| Code | Meaning |
-|------|---------|
-| `null` / no status | Driver has no active request yet |
-| `1` | Request created, awaiting match with shipper |
-| `2` | Match found — driver must accept the shipper offer |
-
----
-
-### Phase 6 — Shipper Accepts Driver's Offer
-
-**File:** `Shipper/ShipperRequest.js` → `testAcceptDriverRequest({ token, uniqueIds })`
-
-After the driver accepts the shipper (status `2` → driver submits bid), the **shipper** confirms the driver's offer:
-
-```
-PUT /api/shipper/acceptDriverRequest
-{
-  driverRequestUniqueId: "...",
-  shipperRequestUniqueId: "...",
-  journeyDecisionUniqueId: "..."
-}
-```
-
-**Driver side first (accept the match):**
-
+**2. Driver Posts Location & Matches** (`Driver/DriverRequest.js`)
 ```js
-// Driver accepts the shipper offer and submits a bid price
-await acceptShipperRequest({ userType: "driver", shippingCostByDriver: 500 });
-// PUT /api/driver/acceptShipperRequest
-// Payload: { driverRequestUniqueId, shipperRequestUniqueId, journeyDecisionUniqueId, shippingCostByDriver }
+// Driver posts GPS; backend auto-matches them to the individual_target request.
+await testCreateDriverRequest(driverToken);
 ```
 
-**Shipper side (confirm the driver):**
-
+**3. Driver Submits Bid** (`Driver/DriverJourneyStatus.js`)
 ```js
-// Shipper sees the driver's offer and accepts it
-await testAcceptDriverRequest({ token: null, uniqueIds });
-// token is auto-fetched from usersData.shipper.token
+// Driver (Status 2) submits their bid price to the shipper.
+await acceptShipperRequest({ userType: "driver", shippingCostByDriver: 5000 });
 ```
 
-After both parties confirm, status progresses to `4` (accepted by shipper = ready to start).
-
----
-
-### Phase 7 — Driver Starts Journey
-
-**File:** `Driver/DriverJourneyStatus.js` → `startJourney({ userType })`
-
-```
-PUT /api/driver/startJourney
-{
-  driverRequestUniqueId: "...",
-  shipperRequestUniqueId: "...",
-  journeyDecisionUniqueId: "...",
-  latitude: 9.0205,
-  longitude: 38.8025
-}
-```
-
-**Prerequisites:**
-- `getDriverJourneyStatus()` must have been called immediately before — `startJourney` reads all IDs from `usersData.driver.journeyStatus`
-- Status must be `4` (acceptedByShipper)
-
-After this call:
-- Status moves to `5` (in progress / journey active)
-- `journeyUniqueId` becomes available in the response (required for `completeJourney`)
-
+**4. Shipper Accepts Driver's Offer** (`Shipper/ShipperRequest.js`)
 ```js
-await getDriverJourneyStatus({ userType: "driver" });
-await startJourney({ userType: "driver", latitude: 9.0205, longitude: 38.8025 });
-await getDriverJourneyStatus({ userType: "driver" }); // refresh to get journeyUniqueId
+// Shipper sees the driver's bid (Status 3) and accepts it.
+await testAcceptDriverRequest({ uniqueIds: driverStatus.uniqueIds });
 ```
 
----
-
-### Phase 8 — Journey Completes
-
-**File:** `Driver/DriverJourneyStatus.js` → `completeJourney({ userType })`
-
-```
-PUT /api/driver/completeJourney
-{
-  driverRequestUniqueId: "...",
-  shipperRequestUniqueId: "...",
-  journeyDecisionUniqueId: "...",
-  journeyUniqueId: "...",           ← only available after startJourney
-  latitude: 9.0205,
-  longitude: 38.8025
-}
-```
-
+**5. Driver Starts & Completes Journey** (`Driver/DriverJourneyStatus.js`)
 ```js
-await getDriverJourneyStatus({ userType: "driver" });
+// Driver starts journey (Status 4 -> 5)
+await startJourney({ userType: "driver" });
+// Driver completes journey (Status 5 -> DONE)
 await completeJourney({ userType: "driver" });
-await getDriverJourneyStatus({ userType: "driver" }); // should show status = completed
 ```
 
 ---
 
-### Phase 9 — Mid-Journey Cancellation by Driver
+#### Flow B: Company Target (`requestMode: "company_target"`)
 
-**File:** `Driver/DriverRequest.js` → `testCancelDriverRequest(token)`
-
-A driver can cancel an active request/journey at any point before completion:
-
+**1. Shipper Creates Request** (`Shipper/ShipperRequest.js`)
+```js
+await testCreateShipperRequest(token, "company_target");
 ```
+
+**2. Company Setup & Participation** (`Company/index.js`, `Company/BidManagement.js`)
+```js
+// Company Admin registers, creates company, and gets docs approved
+await createCompanyAdminFlow({});
+
+// Company fetches available "company_target" bids and participates
+await getAvailableBids({ userType: "companyAdmin" });
+await participateInBid({ userType: "companyAdmin" });
+```
+
+**3. Shipper Accepts Company's Bid** (`Company/BidManagement.js`)
+```js
+// Shipper accepts the company's offer
+await acceptCompanyOffer({ userType: "shipper", bid: bidToAccept });
+```
+
+**4. Company Assigns Vehicle & Driver** (`Company/CompanyVehicle.js`, `Company/AssignDrivers.js`)
+```js
+// Company adds an existing driver's vehicle to its fleet
+await assignVehicleToCompany({});
+// Company assigns the driver to the specific shipper request
+await assignDrivers({ bid: acceptedBid });
+```
+
+**5. Driver Accepts Company Assignment** (`Driver/DriverJourneyStatus.js`)
+```js
+// Driver sees they were assigned by a company and accepts it
+await acceptCompanyAssignment({ userType: "driver" });
+```
+
+**6. Driver Starts & Completes Journey** (`Driver/DriverJourneyStatus.js`)
+```js
+await startJourney({ userType: "driver" });
+await completeJourney({ userType: "driver" });
+```
+
+---
+
+### Phase 5 — Mid-Journey Cancellation (Optional)
+
+At any point during an active request (in either flow), a driver or shipper can cancel.
+
+**Driver cancels:**
+```js
 PUT /api/driverRequest/cancelDriverRequest?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2
-{}
 ```
 
-**Shipper sees the cancellation:**
-
+**Shipper handles cancellation:**
 ```js
-// Shipper polls cancellation notifications
+// Poll notifications
 await testGetCancellationNotification({});
-// GET /api/shipperRequest/getCancellationNotifications
-
-// Shipper marks it as seen (with optional rating)
-await testMarkJourneyCancellationAsSeen({
-  journeyDecisionUniqueId: "...",
-  shipperRequestUniqueId: "...",
-  rating: 4
-});
-// PUT /api/shipperRequest/markJourneyCompletionAsSeen
-```
-
-**Shipper can also:**
-
-```js
-// Reject a driver's offer
-await testRejectDriverOffer({ uniqueIds });
-// PUT /api/user/rejectDriverOffer
-
-// Cancel a shipper request entirely
-await testCancelShipperRequest({ uniqueIds });
-// PUT /api/shipperRequest/cancelShipperRequest/self
-```
-
-**Driver marks the negative status as seen:**
-
-```js
-await testMarkNegativeStatusAsSeen({ token, uniqueIds });
-// PUT /api/driverRequest/markNegativeStatusAsSeen
-// Payload: { driverRequestUniqueId }
+// Mark as seen
+await testMarkJourneyCancellationAsSeen({ ... });
 ```
 
 ---
