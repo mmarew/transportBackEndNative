@@ -7,7 +7,7 @@ const {
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 
-const testCreateShipperRequest = async (token) => {
+const testCreateShipperRequest = async (token, requestMode = "individual_target") => {
   const config = {
     ...authConfig(token),
   };
@@ -36,8 +36,7 @@ const testCreateShipperRequest = async (token) => {
       shippingCost: 5000,
       shippableItemQtyInQuintal: 100,
       shippableItemName: "Coffee Beans",
-      // requestMode: "individual_target",
-      // requestMode: "company_target",
+      requestMode: requestMode,
       originLocation: {
         latitude: 9.03,
         longitude: 38.74,

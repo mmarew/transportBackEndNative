@@ -39,8 +39,8 @@ const testShipperAcceptDriversOffer = async (token) => {};
 
 // ── Shipper onboarding: auth → upload docs → create request → verify status ──
 // NOTE: Driver request creation and journey lifecycle are handled in index.js.
-const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
-  console.log("\n✅ ========== SHIPPER ONBOARDING FLOW STARTED ==========\n");
+const testShipperOnboardingFlow = async ({ userType = "shipper", requestMode = "individual_target" }) => {
+  console.log(`\n✅ ========== SHIPPER ONBOARDING FLOW STARTED (${requestMode}) ==========\n`);
 
   await testAuthWorkFlow({ userType });
 
@@ -65,7 +65,7 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   }
 
   // Create a Shipper Request
-  await testCreateShipperRequest(token);
+  await testCreateShipperRequest(token, requestMode);
 
   // Verify Shipper Status and store in constants
   await verifyShipperStatus(token);

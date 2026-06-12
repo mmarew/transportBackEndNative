@@ -102,11 +102,11 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
 };
 
 const acceptCompanyOffer = async ({ userType = "shipper", bid }) => {
-  let token = usersData?.[userType]?.token;
+  const token = usersData?.[userType]?.token;
   if (!token) {
-    await testShipperOnboardingFlow({ userType: "shipper" });
+    logCompanyError("Shipper token missing for accepting company offer.");
+    return null;
   }
-  token = usersData?.[userType]?.token;
   if (!bid) {
     logCompanyError("No company bid passed to accept.");
     return null;
@@ -140,9 +140,6 @@ const bidStatus = {
   CANCELLED_BY_COMPANY: "cancelled_by_company",
   EXPIRED: "expired",
 };
-// shipper created bids =======> company get this bids then company participate in bid ==========>
-// then  company accepted it ===========> then company assign drivers====>
-// driver accepted placement ======> load goods and start journey=====> journey completed.
 
 const initiateCompanyBiddingWorkFlow = async ({
   userType = "companyAdmin",
@@ -152,16 +149,16 @@ const initiateCompanyBiddingWorkFlow = async ({
     const availableBids = await getAvailableBids({ userType });
     if (!availableBids || availableBids.length === 0) {
       logCompanyError("No available bids found for company participation.");
-      return;
+      return null;
     }
 
     const bidResult = await participateInBid({ userType });
     if (!bidResult) {
       logCompanyError("Company bid participation failed.");
-      return;
+      return null;
     }
 
-    // fetch submitted bids to accept by shipper
+    // fetch submitted bids to be accepted by shipper
     await getBids({ userType, bidStatus: bidStatus.SUBMITTED });
     const bids = usersData.companyAdmin.bids;
     const submittedBids = bids?.[bidStatus.SUBMITTED];
@@ -170,29 +167,13 @@ const initiateCompanyBiddingWorkFlow = async ({
 
     if (!bidToAccept) {
       logCompanyError("No submitted company bid found to accept.");
-      return;
+      return null;
     }
 
-    await acceptCompanyOffer({ userType: "shipper", bid: bidToAccept });
-
-    // assign drivers to the bid
-
-    await getBids({ userType, bidStatus: bidStatus.ACCEPTED_BY_SHIPPER });
-    const bidsAcceptedByShipper =
-      usersData.companyAdmin.bids[bidStatus.ACCEPTED_BY_SHIPPER];
-    // console.log("🚀 ~ initiateCompanyBiddingWorkFlow ~ bidsAcceptedByShipper:", bidsAcceptedByShipper)
-
-    const first_accepted_bid = bidsAcceptedByShipper?.[0];
-    if (!first_accepted_bid) {
-      logCompanyError("No accepted company bid found to assign drivers.");
-      return;
-    }
-
-    await assignVehicleToCompany({});
-    await assignDrivers({ bid: first_accepted_bid });
-    await testDriverOnboardingFlow({});
+    return bidToAccept;
   } catch (error) {
     logCompanyError("Company bidding workflow failed.", error);
+    return null;
   }
 };
 module.exports = {
