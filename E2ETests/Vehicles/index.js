@@ -4,6 +4,7 @@ const { testVehicleTypeWorkflow, testGetVehicleTypes } = require("./VehicleType"
 const { testVehicleStatusTypeWorkflow, testGetVehicleStatusTypes } = require("./VehicleStatusType");
 const { testVehicleOwnershipWorkflow, testGetVehicleOwnerships } = require("./VehicleOwnership");
 const { testVehicleDriverWorkflow, testGetVehicleDrivers } = require("./VehicleDriver");
+const { testVehicleProfileWorkflow, testGetVehicles } = require("./VehiclesProfile");
 
 module.exports = {
   testVehicleTypeWorkflow,
@@ -14,4 +15,6 @@ module.exports = {
   testGetVehicleOwnerships,
   testVehicleDriverWorkflow,
   testGetVehicleDrivers,
+  testVehicleProfileWorkflow,
+  testGetVehicles,
 };
