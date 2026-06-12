@@ -1,10 +1,5 @@
 const { testAuthWorkFlow } = require("../Auth");
-const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
-const {
-  usersData,
-  backendURL,
-  shipperRequestStatusData,
-} = require("../constants");
+const { usersData, backendURL } = require("../constants");
 const { createDriverDocument } = require("../Driver/DriversDocuments");
 const { authConfig } = require("../Utils");
 const {
@@ -13,14 +8,14 @@ const {
   testCancelShipperRequest,
   testMarkJourneyCancellationAsSeen,
   testGetCancellationNotification,
+  testGetShipperRequests,
 } = require("./ShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
 const axios = require("axios");
 
+// ── Account data ──────────────────────────────────────────────────────────────
 const getShipperAccountData = async (token) => {
-  const config = {
-    ...authConfig(token),
-  };
+  const config = { ...authConfig(token) };
   try {
     const res = await axios.get(backendURL + "/api/shipper/account", config);
     console.log("✅ Success! Shipper Account Data fetched.");
@@ -39,8 +34,11 @@ const getShipperAccountData = async (token) => {
     return null;
   }
 };
+
 const testShipperAcceptDriversOffer = async (token) => {};
 
+// ── Shipper onboarding: auth → upload docs → create request → verify status ──
+// NOTE: Driver request creation and journey lifecycle are handled in index.js.
 const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
   console.log("\n✅ ========== SHIPPER ONBOARDING FLOW STARTED ==========\n");
 
@@ -59,64 +57,30 @@ const testShipperOnboardingFlow = async ({ userType = "shipper" }) => {
 
   if (unAttachedDocumentTypes.length > 0) {
     for (const doc of unAttachedDocumentTypes) {
-      // createDriverDocument uses /api/user/attachDocuments/self so it works perfectly for shippers too
+      // createDriverDocument uses /api/user/attachDocuments/self — works for shippers too
       await createDriverDocument(token, doc);
     }
   } else {
     console.log("✅ All Shipper Documents are already uploaded!");
   }
 
-  console.log("✅ Shipper onboarding flow completed!");
-
-  // Now create a Shipper Request using the authenticated Shipper's token!
+  // Create a Shipper Request
   await testCreateShipperRequest(token);
 
-  // Verify Shipper Status after new request is created and store it in constants
+  // Verify Shipper Status and store in constants
   await verifyShipperStatus(token);
+
   console.log(
     "\n✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
   );
-  await testVerifyUserByOTP({ userType: "driver" });
-
-  //to remove circular dependency
-  const {
-    testCreateDriverRequest,
-    testVerifyDriverJourneyStatus,
-    testCancelDriverRequest,
-  } = require("../Driver/DriverRequest");
-
-  await testCreateDriverRequest();
-  //to get latest data after driver request is created and matched to shipper request
-  await verifyShipperStatus(token);
-
-  const data = await testVerifyDriverJourneyStatus({});
-  const uniqueIds = data?.uniqueIds;
-
-  const dataOfCancelledNotifications = await testGetCancellationNotification(
-    {},
-  );
-  // const resultOfRejectedOffer = await testRejectDriverOffer({ uniqueIds });
-  // const resultOfCancelShipperRequest = await testCancelShipperRequest({
-  //   uniqueIds,
-  // });
-  // if (uniqueIds?.journeyDecisionUniqueId) await testCancelDriverRequest();
-  if (
-    dataOfCancelledNotifications?.[0]?.journeyDecision?.journeyDecisionUniqueId
-  ) {
-    const { journeyDecision, driver, shipper } =
-      dataOfCancelledNotifications?.[0];
-    const payLoad = {
-      journeyDecisionUniqueId: journeyDecision.journeyDecisionUniqueId,
-
-      shipperRequestUniqueId: shipper.shipperRequestUniqueId,
-      rating: 4,
-    };
-    await testMarkJourneyCancellationAsSeen(payLoad);
-  }
 };
-testShipperOnboardingFlow({});
+
 module.exports = {
   testShipperAcceptDriversOffer,
   testShipperOnboardingFlow,
   getShipperAccountData,
+  // Expose individual helpers so index.js can call cancellation flows directly
+  testGetCancellationNotification,
+  testMarkJourneyCancellationAsSeen,
+  testGetShipperRequests,
 };

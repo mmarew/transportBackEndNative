@@ -56,48 +56,6 @@ const testDriverOnboardingFlow = async ({ userType = "driver" }) => {
   // Documents are now uploaded but need admin approval before the driver
   // can be activated. fetchUnAuthorizedDrivers + authorizeDriversDocuments
   // must run after this point (handled in the main index.js flow).
-
-  const journeyStatus = await getDriverJourneyStatus({ userType });
-  if (!journeyStatus) {
-    console.log(
-      "⚠️  No journey status returned — driver may have no active request yet.",
-    );
-    return;
-  }
-
-  const isCompanyMode = !!journeyStatus?.companyAssignment?.assignmentUniqueId;
-  const isIndividualMode =
-    !isCompanyMode && !!journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
-
-  if (isCompanyMode) {
-    console.log("🏢 Company assignment detected — confirming...");
-    await acceptCompanyAssignment({ userType });
-    //refetch data to get updated journey status with accepted company assignment before accepting shipper request
-    await getDriverJourneyStatus({ userType });
-  } else if (isIndividualMode) {
-    console.log("👤 Individual shipper match detected — accepting...");
-    await acceptShipperRequest({ userType });
-
-    //refetch data to get updated journey status with accepted company assignment before accepting shipper request
-    await getDriverJourneyStatus({ userType });
-  } else {
-    console.log(
-      "⏳ Driver has no pending assignment or match yet (status:",
-      journeyStatus?.status,
-      ")",
-    );
-    return;
-  }
-
-  // Only start/complete journey if driver has an active accepted assignment
-  await startJourney({ userType });
-
-  //refetch data to get updated journey status with accepted company assignment before accepting shipper request
-  await getDriverJourneyStatus({ userType });
-  await completeJourney({ userType });
-
-  //refetch data to get updated journey status with accepted company assignment before accepting shipper request
-  await getDriverJourneyStatus({ userType });
   console.log(
     "\n✅ ========== DRIVER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n",
   );
