@@ -33,6 +33,8 @@ const createCanceledJourney = async data => {
     shipperUserUniqueId
   } = data;
   const canceledJourneyUniqueId = uuidv4();
+  // cancellationReasonsTypeId is NOT NULL in DB — default to seeded reason 1 if omitted
+  const reasonId = cancellationReasonsTypeId || 1;
   const sql = `
     INSERT INTO CanceledJourneys (
       canceledJourneyUniqueId, contextId, contextType, canceledBy, 
@@ -41,7 +43,7 @@ const createCanceledJourney = async data => {
       canceledJourneyCreatedBy, canceledJourneyCreatedAt
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  const values = [canceledJourneyUniqueId, contextId, contextType, canceledBy, cancellationReasonsTypeId, canceledTime || currentDate(), roleId, driverUserUniqueId, shipperUserUniqueId, canceledBy, currentDate()];
+  const values = [canceledJourneyUniqueId, contextId, contextType, canceledBy, reasonId, canceledTime || currentDate(), roleId, driverUserUniqueId, shipperUserUniqueId, canceledBy, currentDate()];
   await query(sql, values);
   const cancellationDetails = await getCancellationDetails(contextId);
   return {
