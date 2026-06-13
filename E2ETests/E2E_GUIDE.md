@@ -1,7 +1,7 @@
 # E2E Testing Guide — Transport Backend
 
 > **Last updated:** June 2026  
-> **Runner:** `node E2ETests/index.js`  
+> **Runner:** `npm run test:e2e` (or `node E2ETests/index.js`)  
 > **Environment:** Local (`http://127.0.0.1:3000`) — never run against production
 
 ---
@@ -983,3 +983,14 @@ if (!journeyDecisionUniqueId) {
 - [ ] Export the workflow function and all CRUD functions
 - [ ] Import and call it in the correct phase in `index.js`
 - [ ] Update `E2E_GUIDE.md` directory structure section
+
+---
+
+## 15. Suggested Improvements / Future Enhancements
+
+As the test suite grows, consider adopting these improvements:
+
+1. **Selective Execution / Filtering**: Allow running specific phases or even single files by passing arguments (e.g. `npm run test:e2e -- --phase=delinquency`).
+2. **Environment Parameterization**: Extract hardcoded values (`101010` OTPs, `http://127.0.0.1:3000`) into configurable options or environment variables, making it easier to target a staging or CI/CD environment.
+3. **Structured Reporting**: Generate a JSON or HTML report at the end of the suite summarizing which modules passed, failed, or were skipped, rather than solely relying on console output.
+4. **Resilience / Retry Mechanics**: Introduce a utility to retry a flaky endpoint a set number of times before failing, particularly useful if external system boundaries (like sending an SMS or email) are occasionally delayed.

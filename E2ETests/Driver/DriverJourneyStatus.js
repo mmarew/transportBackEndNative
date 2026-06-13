@@ -28,6 +28,7 @@ const getDriverJourneyStatus = async ({ userType = "driver" } = {}) => {
   try {
     const res = await axios.get(url, config);
     console.log("✅ Driver journey status fetched. Status:", res.data?.status);
+    console.log("🔍 FULL JOURNEY STATUS PAYLOAD:", JSON.stringify(res.data, null, 2));
     // Store the full status response so accept functions can read IDs from it
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;

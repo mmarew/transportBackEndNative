@@ -159,6 +159,7 @@ const runCompanyFlow = async () => {
   await assignDrivers({ bid: acceptedBid });
 
   // 6. Driver confirms the company assignment
+  await getDriverJourneyStatus({ userType: "driver" });
   await acceptCompanyAssignment({ userType: "driver" });
 
   // 7. Driver starts and completes the journey

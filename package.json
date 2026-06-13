@@ -4,6 +4,7 @@
   "main": "App.js",
   "scripts": {
     "test": "jest",
+    "test:e2e": "node E2ETests/index.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
