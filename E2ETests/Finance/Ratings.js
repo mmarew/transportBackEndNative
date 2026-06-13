@@ -30,20 +30,29 @@ const testGetRatings = async ({ user, filters = {} } = {}) => {
 // ── CREATE ─────────────────────────────────────────────────────────────────────
 // NOTE: Ratings are normally created via markJourneyCompletionAsSeen.
 // This direct POST is for testing purposes only.
+// Requires the individual journey flow to have run first so that
+// usersData.driver.lastJourneyDecisionUniqueId has been persisted.
 const testCreateRating = async ({ user, payload } = {}) => {
   try {
     const token = user?.token || usersData.shipper?.token;
     if (!token) throw new Error("token not found");
 
-    const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId ||
+    // Prefer lastJourneyDecisionUniqueId (snapshotted before status cleared)
+    const journeyDecisionUniqueId =
+      payload?.journeyDecisionUniqueId ||
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
       usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+
     if (!journeyDecisionUniqueId) {
       console.warn("⏩ testCreateRating skipped — no journeyDecisionUniqueId available (run full journey flow first)");
       return { skipped: true };
     }
 
-    const ratedUserUniqueId = payload?.ratedUserUniqueId ||
-      usersData?.driver?.accountData?.userData?.userUniqueId;
+    const ratedUserUniqueId =
+      payload?.ratedUserUniqueId ||
+      usersData?.driver?.accountData?.userData?.userUniqueId ||
+      usersData?.driver?.accountData?.driver?.userUniqueId;
+
     if (!ratedUserUniqueId) {
       console.warn("⏩ testCreateRating skipped — no ratedUserUniqueId available");
       return { skipped: true };
@@ -57,7 +66,13 @@ const testCreateRating = async ({ user, payload } = {}) => {
       ...payload,
     };
     const result = await axios.post(backendURL + BASE_URL, defaultPayload, authConfig(token));
-    console.log("✅ Rating created:", result.data.ratingUniqueId || result.data.data?.ratingUniqueId || result.data.data?.id);
+    // API may return the ID at different nesting levels
+    const id =
+      result.data?.data?.ratingUniqueId ||
+      result.data?.ratingUniqueId ||
+      result.data?.data?.id ||
+      result.data?.id;
+    console.log("✅ Rating created:", id ?? "(no id in response)");
     return result.data;
   } catch (error) {
     console.error("❌ testCreateRating:", error.response?.data?.error || error.message);
@@ -121,13 +136,23 @@ const testRatingsWorkflow = async ({ user = usersData.shipper } = {}) => {
     return { skipped: true };
   }
 
-  const ratingId = created?.id || created?.ratingUniqueId || created?.data?.id || created?.data?.ratingUniqueId;
+  // Extract the created rating ID from all possible response shapes
+  const ratingId =
+    created?.data?.ratingUniqueId ||
+    created?.ratingUniqueId ||
+    created?.data?.id ||
+    created?.id ||
+    cache.data?.[0]?.ratingUniqueId ||
+    cache.data?.[0]?.id;
+
   if (ratingId) {
     await testGetRatings({ user });
     await testUpdateRating({ user, id: ratingId });
     await testGetRatings({ user });
     await testDeleteRating({ user, id: ratingId });
     await testGetRatings({ user });
+  } else {
+    console.warn("⚠️  Rating created but ID not extractable — skipping UPDATE/DELETE");
   }
 
   console.log("── Ratings Workflow complete ──\n");

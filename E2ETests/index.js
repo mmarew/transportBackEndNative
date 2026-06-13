@@ -12,9 +12,10 @@ const { resetDatabase } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { createCompanyAdminFlow, testCompanyDelinquencyWorkflow } = require("./Company");
+const { testSMSSenderWorkflow } = require("./Admin/SMSSender");
 
 // ── Reference data CRUD ───────────────────────────────────────────────────────
-const { testGetRoles } = require("./Roles");
+const { testGetRoles, testRolesWorkFlows } = require("./Roles");
 const { testDelinquencyTypesWorkflows } = require("./Delinquency/DelinquencyTypes");
 const { testDelinquencyWorkflow } = require("./Delinquency/Delinquency");
 const { testDelinquencyResponseWorkflow } = require("./Delinquency/DelinquencyResponse");
@@ -93,6 +94,8 @@ const runReferenceCRUD = async () => {
   await testFinancialInstitutionAccountWorkflow({});
   await testSubscriptionPlanWorkflow({});
   await testCommissionStatusWorkflow({});
+  await testRolesWorkFlows();
+  await testSMSSenderWorkflow({});
 
   console.log("\n✅ Reference data CRUD complete\n");
 };
@@ -122,6 +125,10 @@ const runIndividualFlow = async () => {
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
   if (driverStatus?.status == 5) {
+    // Snapshot the journeyDecisionUniqueId before completeJourney wipes the status
+    const jdId = usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+    if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;
+
     await completeJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
