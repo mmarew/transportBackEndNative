@@ -1,22 +1,20 @@
 // CRUD for JourneyStatus
-// Manages journey lifecycle statuses (PENDING, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED, etc.)
+// Admin-managed status list for the journey state machine (waiting, started, completed, etc.)
+// CREATE returns no ID — we GET after create to find the new entry by name.
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
+const { authConfig } = require("../Utils");
 
 const BASE_URL = "/api/admin/journeyStatus";
 const cache = { data: null };
 
-// ── GET all journey statuses ──────────────────────────────────────────────────
+// ── GET ────────────────────────────────────────────────────────────────────────
 const testGetJourneyStatuses = async ({ user } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-
-    const result = await axios.get(backendURL + BASE_URL, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    
+    const result = await axios.get(backendURL + BASE_URL, authConfig(token));
     console.log("✅ Journey statuses fetched:", result.data.data?.length ?? 0);
     cache.data = result.data.data;
     return result.data;
@@ -26,48 +24,51 @@ const testGetJourneyStatuses = async ({ user } = {}) => {
   }
 };
 
-// ── CREATE journey status ─────────────────────────────────────────────────────
-const testCreateJourneyStatus = async ({ user, payload }) => {
+// ── CREATE ─────────────────────────────────────────────────────────────────────
+// Service returns no ID — GET after create to find the new entry by name
+const testCreateJourneyStatus = async ({ user, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    
+
+    const journeyStatusName = payload?.journeyStatusName || "E2E_TEST_JOURNEY_STATUS_" + Date.now();
     const defaultPayload = {
-      journeyStatusName: "E2E_TEST_JOURNEY_STATUS_" + Date.now(),
+      journeyStatusName,
       journeyStatusDescription: "E2E test journey status — should be deleted",
       ...payload,
     };
-    
-    const result = await axios.post(backendURL + BASE_URL, defaultPayload, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    
-    console.log("✅ Journey status created:", result.data.journeyStatusUniqueId);
-    return result.data;
+
+    await axios.post(backendURL + BASE_URL, defaultPayload, authConfig(token));
+
+    // GET to find the newly created entry
+    const list = await testGetJourneyStatuses({ user });
+    const created = list?.data?.find(s => s.journeyStatusName === journeyStatusName);
+    const journeyStatusUniqueId = created?.journeyStatusUniqueId;
+    console.log("✅ Journey status created:", journeyStatusUniqueId);
+    return { journeyStatusUniqueId };
   } catch (error) {
     console.error("❌ testCreateJourneyStatus:", error.response?.data?.error || error.message);
     throw error;
   }
 };
 
-// ── UPDATE journey status ─────────────────────────────────────────────────────
-const testUpdateJourneyStatus = async ({ user, journeyStatusUniqueId, payload }) => {
+// ── UPDATE ─────────────────────────────────────────────────────────────────────
+// Service uses a fixed SQL that sets BOTH name and description — both must be provided
+const testUpdateJourneyStatus = async ({ user, journeyStatusUniqueId, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    
     const id = journeyStatusUniqueId || cache.data?.[0]?.journeyStatusUniqueId;
-    if (!id) throw new Error("No journey status ID found to update");
-    
+    if (!id) throw new Error("No journeyStatusUniqueId found to update");
+
+    // Find the existing name so we don't set it to NULL
+    const existing = cache.data?.find(s => s.journeyStatusUniqueId === id);
     const defaultPayload = {
-      statusDescription: "Updated E2E test status description",
+      journeyStatusName: existing?.journeyStatusName || "E2E_TEST_UPDATED",
+      journeyStatusDescription: "Updated by E2E test",
       ...payload,
     };
-    
-    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    
+    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ Journey status updated:", id);
     return result.data;
   } catch (error) {
@@ -76,19 +77,14 @@ const testUpdateJourneyStatus = async ({ user, journeyStatusUniqueId, payload })
   }
 };
 
-// ── DELETE journey status ─────────────────────────────────────────────────────
-const testDeleteJourneyStatus = async ({ user, journeyStatusUniqueId }) => {
+// ── DELETE ─────────────────────────────────────────────────────────────────────
+const testDeleteJourneyStatus = async ({ user, journeyStatusUniqueId } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    
     const id = journeyStatusUniqueId || cache.data?.[0]?.journeyStatusUniqueId;
-    if (!id) throw new Error("No journey status ID found to delete");
-    
-    const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    
+    if (!id) throw new Error("No journeyStatusUniqueId found to delete");
+    const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
     console.log("✅ Journey status deleted:", id);
     return result.data;
   } catch (error) {
@@ -97,44 +93,22 @@ const testDeleteJourneyStatus = async ({ user, journeyStatusUniqueId }) => {
   }
 };
 
-// ── Full workflow ─────────────────────────────────────────────────────────────
-const testJourneyStatusWorkflow = async ({
-  user = usersData.admin,
-} = {}) => {
+// ── Full workflow ──────────────────────────────────────────────────────────────
+const testJourneyStatusWorkflow = async ({ user = usersData.admin } = {}) => {
   console.log("\n── Journey Status Workflow ──");
 
-  // GET (initial state)
   await testGetJourneyStatuses({ user });
 
-  // CREATE
-  const created = await testCreateJourneyStatus({ 
-    user, 
-    payload: { statusName: "E2E_TEST_STATUS" } 
-  });
+  const created = await testCreateJourneyStatus({ user });
   const journeyStatusUniqueId = created?.journeyStatusUniqueId;
-  
   if (!journeyStatusUniqueId) {
-    console.warn("⚠️  No ID returned - cannot continue workflow");
+    console.warn("⚠️  No ID returned — cannot continue workflow");
     return { skipped: true };
   }
 
-  // GET (after create)
+  await testUpdateJourneyStatus({ user, journeyStatusUniqueId });
   await testGetJourneyStatuses({ user });
-
-  // UPDATE
-  await testUpdateJourneyStatus({ 
-    user, 
-    journeyStatusUniqueId,
-    payload: { statusDescription: "Updated by E2E test" }
-  });
-
-  // GET (after update)
-  await testGetJourneyStatuses({ user });
-
-  // DELETE
   await testDeleteJourneyStatus({ user, journeyStatusUniqueId });
-
-  // GET (after delete)
   await testGetJourneyStatuses({ user });
 
   console.log("── Journey Status Workflow complete ──\n");

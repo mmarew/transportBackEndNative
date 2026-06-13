@@ -4,7 +4,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 
-const BASE_URL = "/api/document-types";
+const BASE_URL = "/api/documentTypes";
 const cache = { data: null };
 
 // ── GET all document types ────────────────────────────────────────────────────
@@ -27,24 +27,30 @@ const testGetDocumentTypes = async ({ user } = {}) => {
 };
 
 // ── CREATE document type ──────────────────────────────────────────────────────
+// Service returns no ID — GET after create to find the entry by name
 const testCreateDocumentType = async ({ user, payload }) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    
+
+    const documentTypeName = payload?.documentTypeName || "E2E_TEST_DOC_" + Date.now();
     const defaultPayload = {
-      documentTypeName: "E2E_TEST_DOCUMENT",
+      documentTypeName,
       documentTypeDescription: "E2E test document type",
       isRequired: false,
       ...payload,
     };
-    
-    const result = await axios.post(backendURL + BASE_URL, defaultPayload, {
+
+    await axios.post(backendURL + BASE_URL, defaultPayload, {
       headers: { Authorization: "Bearer " + token },
     });
-    
-    console.log("✅ Document type created:", result.data.documentTypeUniqueId);
-    return result.data;
+
+    // GET to find the newly created entry by name
+    const list = await testGetDocumentTypes({ user });
+    const created = list?.data?.find(d => d.documentTypeName === documentTypeName);
+    const documentTypeUniqueId = created?.documentTypeUniqueId;
+    console.log("✅ Document type created:", documentTypeUniqueId);
+    return { documentTypeUniqueId };
   } catch (error) {
     console.error("❌ testCreateDocumentType:", error.response?.data?.error || error.message);
     throw error;
