@@ -52,9 +52,11 @@ const testUpdateVehicleOwnership = async ({ user, ownershipUniqueId, payload } =
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = ownershipUniqueId || cache.data?.[0]?.ownershipUniqueId;
+    const id = ownershipUniqueId || cache.data?.[0]?.ownership?.ownershipUniqueId;
     if (!id) throw new Error("No ownershipUniqueId found to update");
-    const defaultPayload = { status: 1, ...payload };
+    // Service reads ownershipUniqueId from params (merged by controller).
+    // Must supply at least one of: vehicleUniqueId, userUniqueId, roleId, ownershipStartDate, ownershipEndDate
+    const defaultPayload = { ownershipEndDate: null, ...payload };
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ VehicleOwnership updated:", id);
     return result.data;
@@ -69,7 +71,7 @@ const testDeleteVehicleOwnership = async ({ user, ownershipUniqueId } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = ownershipUniqueId || cache.data?.[0]?.ownershipUniqueId;
+    const id = ownershipUniqueId || cache.data?.[0]?.ownership?.ownershipUniqueId;
     if (!id) throw new Error("No ownershipUniqueId found to delete");
     const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
     console.log("✅ VehicleOwnership deleted:", id);
@@ -88,7 +90,7 @@ const testVehicleOwnershipWorkflow = async ({ user = usersData.admin } = {}) => 
 
   // If ownerships already exist from driver onboarding, use them
   if (cache.data?.length > 0) {
-    const ownershipUniqueId = cache.data[0].ownershipUniqueId;
+    const ownershipUniqueId = cache.data[0].ownership?.ownershipUniqueId;
     console.log("📋 Using existing ownership:", ownershipUniqueId);
     await testUpdateVehicleOwnership({ user, ownershipUniqueId, payload: {} });
     await testGetVehicleOwnerships({ user });

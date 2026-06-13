@@ -62,7 +62,8 @@ const testCancelBatch = async ({ user, batchUniqueId } = {}) => {
       return { skipped: true };
     }
     const url = BASE_URL + `/${id}/cancel`;
-    const result = await axios.put(backendURL + url, {}, authConfig(token));
+    // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — use seeded reason ID 1
+    const result = await axios.put(backendURL + url, { cancellationReasonsTypeId: 1 }, authConfig(token));
     console.log("✅ Batch canceled:", id);
     return result.data;
   } catch (error) {
