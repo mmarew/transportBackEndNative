@@ -30,10 +30,6 @@ const fetchUnAuthorizedDrivers = async () => {
         },
       },
     );
-    console.log(
-      "🚀 ~ fetchUnAuthorizedDrivers ~ resultsOfUnAuthorizedDriver:",
-      resultsOfUnAuthorizedDriver.data,
-    );
     console.log("✅ Unauthorized drivers fetched successfully");
     unAuthorizedDriver.driver = resultsOfUnAuthorizedDriver?.data;
     console.log(

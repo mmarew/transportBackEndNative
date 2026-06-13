@@ -994,3 +994,39 @@ As the test suite grows, consider adopting these improvements:
 2. **Environment Parameterization**: Extract hardcoded values (`101010` OTPs, `http://127.0.0.1:3000`) into configurable options or environment variables, making it easier to target a staging or CI/CD environment.
 3. **Structured Reporting**: Generate a JSON or HTML report at the end of the suite summarizing which modules passed, failed, or were skipped, rather than solely relying on console output.
 4. **Resilience / Retry Mechanics**: Introduce a utility to retry a flaky endpoint a set number of times before failing, particularly useful if external system boundaries (like sending an SMS or email) are occasionally delayed.
+
+---
+
+## 16. Postman Gap Analysis & Untested Endpoints Roadmap
+
+After cross-referencing the `TransportHttp-RESTAPI.postman_collection.json` against the current Axios calls in the `E2ETests` folder, we identified roughly **~130 endpoints** that are not currently covered in the E2E suite.
+
+The core flows (Onboarding, Journeys, Assignments, Delinquency) are fully robust and covered. The missing endpoints are predominantly edge cases, analytics queries, administrative toggles, or secondary status operations.
+
+To reach 100% test coverage without making the test runner brittle, we plan to implement the remaining endpoints in four phases:
+
+### Phase 1: Missing Core Reference Data (CRUDs)
+Create new standalone test files for secondary reference data:
+- **Ratings**: `POST /api/ratings`, `GET /api/ratings`, `PUT /api/ratings/ids`, `DELETE /api/ratings/ids`
+- **SMS Sender Config**: `POST /smsSender`, `GET /smsSender`, `PUT /smsSender/id`, `DELETE /smsSender/id`
+- **Roles Configuration**: `POST /api/admin/roles`, `GET /api/admin/roles`, `PUT /api/admin/roles/...`
+
+### Phase 2: Analytics, Counts, and Filter Endpoints
+Create an `AnalyticsAndFilters/` directory to test purely analytical `GET` queries:
+- `GET /api/user/getCanceledJourneyCountsByDate`
+- `GET /api/user/getCanceledJourneyCountsByReason`
+- `GET /api/admin/getCanceledJourneyByFilter`
+- `GET /api/admin/getUserByFilterDetailed`
+- `GET /api/vehicles` (by filter)
+
+### Phase 3: Secondary Status Operations (Mark As Seen)
+Update the existing `Driver/` and `Shipper/` flows to call these clearing endpoints after triggering specific events:
+- `PUT /api/driver/markNegativeStatusAsSeen`
+- `PUT /api/shipperRequest/markJourneyCompletionAsSeen`
+- `PUT /api/shipperRequest/markCancellationAsSeen`
+
+### Phase 4: Administrative Edge Cases & Utilities
+Add a `SystemAdmin/` test block for destructive or diagnostic admin operations:
+- `GET /api/admin/system/logs`
+- `GET /api/admin/database/stats`
+- `POST /api/admin/payments/uuidv4`
