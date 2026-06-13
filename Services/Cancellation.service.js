@@ -44,7 +44,10 @@ const addCancellationReason = async (body, user) => {
     if (registerResult.affectedRows > 0) {
       return {
         message: "success",
-        data: "Cancellation reason registered successfully",
+        data: {
+          cancellationReasonTypeUniqueId,
+          message: "Cancellation reason registered successfully",
+        },
       };
     } else {
       throw new AppError("Cancellation reason registration failed", 500);

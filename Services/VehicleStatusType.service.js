@@ -50,7 +50,13 @@ const createVehicleStatusType = async (data) => {
     tableName: "VehicleStatusTypes",
     colAndVal: payload,
   });
-  return { message: "success", data: result };
+  return { 
+    message: "success", 
+    data: { 
+      vehicleStatusTypeUniqueId,
+      result
+    } 
+  };
 };
 
 // Unified GET with filtering

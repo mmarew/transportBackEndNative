@@ -54,7 +54,8 @@ const testUpdateVehicleOwnership = async ({ user, ownershipUniqueId, payload } =
     if (!token) throw new Error("token not found");
     const id = ownershipUniqueId || cache.data?.[0]?.ownershipUniqueId;
     if (!id) throw new Error("No ownershipUniqueId found to update");
-    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, payload || {}, authConfig(token));
+    const defaultPayload = { status: 1, ...payload };
+    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ VehicleOwnership updated:", id);
     return result.data;
   } catch (error) {

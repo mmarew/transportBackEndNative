@@ -32,7 +32,13 @@ const createRole = async (body) => {
     const registeredRole = await insertData({ tableName, colAndVal });
 
     if (registeredRole.affectedRows > 0) {
-      return { message: "success", data: "Role created successfully" };
+      return { 
+        message: "success", 
+        data: {
+          roleUniqueId,
+          message: "Role created successfully" 
+        }
+      };
     }
     throw new AppError("Role creation failed", 500);
   } catch (error) {

@@ -56,7 +56,8 @@ const testUpdateVehicleDriver = async ({ user, vehicleDriverUniqueId, payload } 
     if (!token) throw new Error("token not found");
     const id = vehicleDriverUniqueId || cache.data?.[0]?.vehicleDriverUniqueId;
     if (!id) throw new Error("No vehicleDriverUniqueId found to update");
-    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, payload || {}, authConfig(token));
+    const defaultPayload = { assignmentStatus: "active", ...payload };
+    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ VehicleDriver updated:", id);
     return result.data;
   } catch (error) {

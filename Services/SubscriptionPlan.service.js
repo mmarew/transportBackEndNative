@@ -37,7 +37,10 @@ const createSubscriptionPlan = async ({
 
   return {
     message: "success",
-    data: "Subscription plan created successfully",
+    data: {
+      subscriptionPlanUniqueId,
+      message: "Subscription plan created successfully",
+    },
   };
 };
 

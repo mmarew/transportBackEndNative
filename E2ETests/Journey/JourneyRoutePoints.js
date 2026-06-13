@@ -13,8 +13,19 @@ const testGetJourneyRoutePoints = async ({ user, filters = {} } = {}) => {
   try {
     const token = user?.token || usersData.driver?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const query = new URLSearchParams(filters).toString();
+
+    const journeyDecisionUniqueId = filters?.journeyDecisionUniqueId ||
+      usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+
+    if (!journeyDecisionUniqueId) {
+      console.warn("⏩ testGetJourneyRoutePoints skipped — no journeyDecisionUniqueId available");
+      return { skipped: true };
+    }
+
+    const queryParams = { journeyDecisionUniqueId, ...filters };
+    const query = new URLSearchParams(queryParams).toString();
     const url = query ? `${BASE_URL}?${query}` : BASE_URL;
+    
     const result = await axios.get(backendURL + url, authConfig(token));
     console.log("✅ JourneyRoutePoints fetched:", result.data.data?.length ?? 0);
     cache.data = result.data.data;
