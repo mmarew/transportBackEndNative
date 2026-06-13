@@ -55,8 +55,8 @@ const testCreateSMSSender = async ({ user, payload } = {}) => {
       authConfig(token),
     );
     const id =
-      result.data?.data?.smsSenderUniqueId ||
-      result.data?.smsSenderUniqueId ||
+      result.data?.data?.SMSSenderId ||
+      result.data?.SMSSenderId ||
       result.data?.data?.id ||
       result.data?.id;
     console.log("✅ SMSSender created:", id ?? "(no id returned)");
@@ -76,7 +76,7 @@ const testGetSMSSenderById = async ({ user, id } = {}) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const senderId = id || cache.data?.[0]?.id || cache.data?.[0]?.smsSenderUniqueId;
+    const senderId = id || cache.data?.[0]?.SMSSenderId || cache.data?.[0]?.id;
     if (!senderId) throw new Error("No SMS sender ID available");
 
     const url = SMS_SENDER_ENDPOINTS.GET_SMS_SENDER_BY_ID.replace(":id", senderId);
@@ -98,7 +98,7 @@ const testUpdateSMSSender = async ({ user, id, payload } = {}) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const senderId = id || cache.data?.[0]?.id || cache.data?.[0]?.smsSenderUniqueId;
+    const senderId = id || cache.data?.[0]?.SMSSenderId || cache.data?.[0]?.id;
     if (!senderId) throw new Error("No SMS sender ID available");
 
     const url = SMS_SENDER_ENDPOINTS.UPDATE_SMS_SENDER.replace(":id", senderId);
@@ -127,7 +127,7 @@ const testDeleteSMSSender = async ({ user, id } = {}) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const senderId = id || cache.data?.[0]?.id || cache.data?.[0]?.smsSenderUniqueId;
+    const senderId = id || cache.data?.[0]?.SMSSenderId || cache.data?.[0]?.id;
     if (!senderId) throw new Error("No SMS sender ID available");
 
     const url = SMS_SENDER_ENDPOINTS.DELETE_SMS_SENDER.replace(":id", senderId);
@@ -153,16 +153,16 @@ const testSMSSenderWorkflow = async ({ user = usersData.admin } = {}) => {
 
   // Extract ID from creation response
   const senderId =
-    created?.data?.smsSenderUniqueId ||
-    created?.smsSenderUniqueId ||
+    created?.data?.SMSSenderId ||
+    created?.SMSSenderId ||
     created?.data?.id ||
     created?.id;
 
   if (!senderId) {
     // Try fetching by list comparison
     await testGetSMSSenders({ user });
-    const newId = cache.data?.[cache.data.length - 1]?.id ||
-      cache.data?.[cache.data.length - 1]?.smsSenderUniqueId;
+    const newId = cache.data?.[cache.data.length - 1]?.SMSSenderId ||
+      cache.data?.[cache.data.length - 1]?.id;
     if (!newId) {
       console.warn("⚠️  No ID returned — cannot continue workflow");
       return { skipped: true };
