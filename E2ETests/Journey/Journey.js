@@ -32,9 +32,12 @@ const testGetJourneys = async ({ user, filters = {} } = {}) => {
 // ── GET by ID ──────────────────────────────────────────────────────────────────
 const testGetJourneyById = async ({ user, journeyUniqueId } = {}) => {
   try {
-    const token = user?.token || usersData.admin?.token;
+    const token = user?.token || usersData.driver?.token;
     if (!token) throw new Error("token not found");
-    const id = journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    console.log("🚀 ~ testUpdateJourney ~ id:", id)
+    console.log("🚀 ~ testUpdateJourney ~ id:", id)
+    console.log("🚀 ~ testUpdateJourney ~ id:", id)
     if (!id) throw new Error("No journeyUniqueId found");
     const result = await axios.get(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
     console.log("✅ Journey fetched by ID:", id);
@@ -46,14 +49,16 @@ const testGetJourneyById = async ({ user, journeyUniqueId } = {}) => {
 };
 
 // ── UPDATE journey ─────────────────────────────────────────────────────────────
-// Used to update fare, endTime, or journeyStatusId (admin override)
 const testUpdateJourney = async ({ user, journeyUniqueId, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
     if (!id) throw new Error("No journeyUniqueId found to update");
+        console.log("🚀 ~ testUpdateJourney ~ id:", id)
+
     const defaultPayload = { fare: 5000, ...payload };
+    console.log("🚀 ~ testUpdateJourney ~ defaultPayload:", defaultPayload)
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ Journey updated:", id);
     return result.data;
@@ -68,7 +73,7 @@ const testDeleteJourney = async ({ user, journeyUniqueId } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
+    const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
     if (!id) throw new Error("No journeyUniqueId found to delete");
     const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
     console.log("✅ Journey deleted:", id);
@@ -122,11 +127,17 @@ const testJourneyWorkflow = async ({ user = usersData.driver } = {}) => {
 
   // If any journey exists from previous flows, test update
   if (cache.data?.length > 0) {
-    const journeyUniqueId = cache.data[0].journeyUniqueId;
+    // Response is nested: { journey: { journeyUniqueId }, driver: {...}, shipper: {...} }
+    const first = cache.data[0];
+    const journeyUniqueId = first?.journey?.journeyUniqueId || first?.journeyUniqueId;
     console.log("📋 Found journey to test with:", journeyUniqueId);
-    await testGetJourneyById({ user, journeyUniqueId });
-    await testUpdateJourney({ user, journeyUniqueId, payload: { fare: 9999 } });
-    await testGetJourneys({ user });
+    if (journeyUniqueId) {
+      await testGetJourneyById({ user, journeyUniqueId });
+      await testUpdateJourney({ user: usersData.admin, journeyUniqueId, payload: { fare: 9999 } });
+      await testGetJourneys({ user });
+    } else {
+      console.log("⚠️  journeyUniqueId not found in response structure:", JSON.stringify(first, null, 2).slice(0, 300));
+    }
   } else {
     console.log("⏩ No journeys found — GET-only workflow complete (run full flow first to create journeys)");
   }

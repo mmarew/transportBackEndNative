@@ -46,7 +46,7 @@ const testUpdateJourneyDecision = async ({ user, conditions, updateValues } = {}
 
     const payload = {
       conditions: { journeyDecisionUniqueId },
-      updateValues: updateValues || { isSeenByShipper: true },
+      updateValues: updateValues || { isRejectionByShipperSeenByDriver: 'not seen by driver yet' },
     };
 
     const result = await axios.put(backendURL + BASE_URL, payload, authConfig(token));

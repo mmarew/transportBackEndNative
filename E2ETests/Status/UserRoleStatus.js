@@ -56,7 +56,7 @@ const testUpdateUserRoleStatus = async ({ user, userUniqueId, payload } = {}) =>
       console.warn("⏩ testUpdateUserRoleStatus skipped — no userUniqueId available");
       return { skipped: true };
     }
-    const defaultPayload = { roleId: 2, newStatusId: 1, ...payload }; // activate driver
+    const defaultPayload = { ...payload, roleId: 2, newStatusId: 1, phoneNumber: usersData.driver.phoneNumber}; // activate driver
     const result = await axios.put(`${backendURL}${BASE_URL}/${targetUserUniqueId}`, defaultPayload, authConfig(token));
     console.log("✅ UserRoleStatus updated for user:", targetUserUniqueId);
     return result.data;
