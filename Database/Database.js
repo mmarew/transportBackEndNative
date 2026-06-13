@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleDescription VARCHAR(255) NULL,  -- Description of the role
     roleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the role
     roleUpdatedBy VARCHAR(36) NULL,  -- Who updated the role
+    roleUpdatedAt DATETIME NULL,  -- When the role was updated
     roleDeletedBy VARCHAR(36) NULL,  -- Who deleted the role
     roleCreatedAt DATETIME NOT NULL,  -- When the role was created
     roleDeletedAt DATETIME  -- When the role was deleted

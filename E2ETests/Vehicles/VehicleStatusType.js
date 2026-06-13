@@ -88,10 +88,7 @@ const testVehicleStatusTypeWorkflow = async ({ user = usersData.admin } = {}) =>
   };
 
   const created = await testCreateVehicleStatusType({ user, payload: createPayload });
-  // Service returns insertResult, not the UUID — GET to find the new entry by name
-  const list = await testGetVehicleStatusTypes({ user });
-  const newEntry = list?.data?.find(v => v.VehicleStatusTypeName === createPayload.typeName);
-  const uniqueId = newEntry?.vehicleStatusTypeUniqueId;
+  const uniqueId = created?.vehicleStatusTypeUniqueId;
   if (!uniqueId) {
     console.warn("⚠️  No ID returned — cannot continue workflow");
     return { skipped: true };

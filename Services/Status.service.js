@@ -40,7 +40,13 @@ const createStatus = async (body) => {
     throw new AppError("Status creation failed", 500);
   }
 
-  return { message: "success", data: "Status created successfully" };
+  return { 
+    message: "success", 
+    data: {
+      statusUniqueId,
+      message: "Status created successfully"
+    } 
+  };
 };
 
 const updateStatus = async (statusUniqueId, body) => {

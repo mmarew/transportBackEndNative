@@ -96,11 +96,15 @@ const createMapping = async ({
   }
 
   // Insert new mapping
-  const result = await executor.query("INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, isFileNumberRequired, isExpirationDateRequired, isDescriptionRequired, roleDocumentRequirementCreatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuidv4(), userUniqueId, numericRoleId, numericDocumentTypeId, isDocumentMandatory, isFileNumberRequired, isExpirationDateRequired, isDescriptionRequired, currentDate()]);
+  const roleDocumentRequirementUniqueId = uuidv4();
+  const result = await executor.query("INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, isFileNumberRequired, isExpirationDateRequired, isDescriptionRequired, roleDocumentRequirementCreatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [roleDocumentRequirementUniqueId, userUniqueId, numericRoleId, numericDocumentTypeId, isDocumentMandatory, isFileNumberRequired, isExpirationDateRequired, isDescriptionRequired, currentDate()]);
   if (result[0].affectedRows > 0) {
     return {
       message: "success",
-      data: "Mapping created successfully"
+      data: {
+        roleDocumentRequirementUniqueId,
+        message: "Mapping created successfully"
+      }
     };
   } else {
     throw new AppError("Failed to create mapping", 500);

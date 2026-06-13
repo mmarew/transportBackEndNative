@@ -206,10 +206,14 @@ const deleteCommissionStatus = async (id, deletedBy) => {
 
     const query = `
       UPDATE CommissionStatus 
-      SET deletedAt = ?, deletedBy = ? 
-      WHERE commissionStatusUniqueId = ? AND deletedAt IS NULL
+      SET commissionStatusDeletedAt = ?, commissionStatusDeletedBy = ? 
+      WHERE commissionStatusUniqueId = ? AND commissionStatusDeletedAt IS NULL
     `;
-    const [result] = await executor.query(query, [currentDate(), deletedBy, id]);
+    const [result] = await executor.query(query, [
+      currentDate(),
+      deletedBy,
+      id,
+    ]);
 
     if (result.affectedRows === 0) {
       throw new AppError("Commission status not found or already deleted", 404);

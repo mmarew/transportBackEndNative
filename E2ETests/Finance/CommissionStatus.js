@@ -28,7 +28,7 @@ const testCreateCommissionStatus = async ({ user, payload }) => {
     if (!token) throw new Error("token not found");
 
     const result = await axios.post(backendURL + BASE_URL, payload, authConfig(token));
-    console.log("✅ CommissionStatus created:", result.data.data?.id);
+    console.log("✅ CommissionStatus created:", result.data.data?.commissionStatusUniqueId);
     return result.data.data;
   } catch (error) {
     console.error("❌ testCreateCommissionStatus:", error.response?.data?.error || error.message);
@@ -42,7 +42,7 @@ const testUpdateCommissionStatus = async ({ user, uniqueId, payload }) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const id = uniqueId || cache.data?.[0]?.id;
+    const id = uniqueId || cache.data?.[0]?.commissionStatusUniqueId;
     if (!id) throw new Error("No ID found to update");
 
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, payload, authConfig(token));
@@ -60,7 +60,7 @@ const testDeleteCommissionStatus = async ({ user, uniqueId }) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const id = uniqueId || cache.data?.[0]?.id;
+    const id = uniqueId || cache.data?.[0]?.commissionStatusUniqueId;
     if (!id) throw new Error("No ID found to delete");
 
     const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
@@ -84,7 +84,7 @@ const testCommissionStatusWorkflow = async ({ user = usersData.admin } = {}) => 
   };
 
   const created = await testCreateCommissionStatus({ user, payload: createPayload });
-  const uniqueId = created?.id;
+  const uniqueId = created?.commissionStatusUniqueId;
   if (!uniqueId) {
     console.warn("⚠️  No ID returned — cannot continue workflow");
     return { skipped: true };
