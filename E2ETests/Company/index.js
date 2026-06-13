@@ -24,7 +24,9 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
   try {
     await testAuthWorkFlow({ userType });
     await initiateCompanyProfileSetupWorkFlow({ userType });
-    await initiateCompanyBiddingWorkFlow({ userType });
+    // Note: bidding workflow is NOT called here — it needs an active shipper
+    // company_target request to exist first. Call it separately in index.js
+    // after testShipperOnboardingFlow({ requestMode: "company_target" }).
     console.log(
       "\n✅ ========== CREATE COMPANY ADMIN FLOW COMPLETED SUCCESSFULLY ==========\n",
     );
@@ -33,6 +35,7 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
       "CompanyWorkflowError: Failed to create correct company workflows.",
       error?.response?.data?.error || error?.message || error,
     );
+    throw error;
   }
 };
 

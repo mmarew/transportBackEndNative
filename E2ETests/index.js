@@ -135,24 +135,33 @@ const runCompanyFlow = async () => {
   console.log("   🏢 STARTING COMPANY TARGET FLOW");
   console.log("=======================================================\n");
 
+  // 1. Shipper creates a company_target request FIRST — before company setup
+  //    so the request is visible in the available bids pool when company looks
   await testShipperOnboardingFlow({ userType: "shipper", requestMode: "company_target" });
   if (!usersData?.shipper?.token) throw new Error("Shipper token missing");
 
+  // 2. Set up company (auth + profile + docs + approval) — no bidding yet
   await createCompanyAdminFlow({});
 
+  // 3. NOW company can find the shipper's request in the available bids pool
   const bidToAccept = await initiateCompanyBiddingWorkFlow({ userType: "companyAdmin" });
   if (!bidToAccept) throw new Error("Company failed to find or participate in a bid.");
 
+  // 4. Shipper accepts the company's bid
   await acceptCompanyOffer({ userType: "shipper", bid: bidToAccept });
 
+  // 5. Company assigns vehicle and driver
   await getBids({ userType: "companyAdmin", bidStatus: "accepted_by_shipper" });
   const acceptedBid = usersData.companyAdmin.bids["accepted_by_shipper"]?.[0];
   if (!acceptedBid) throw new Error("No accepted company bid found to assign drivers.");
 
   await assignVehicleToCompany({});
   await assignDrivers({ bid: acceptedBid });
+
+  // 6. Driver confirms the company assignment
   await acceptCompanyAssignment({ userType: "driver" });
 
+  // 7. Driver starts and completes the journey
   let driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   if (driverStatus?.status == 4) {
     await startJourney({ userType: "driver" });
