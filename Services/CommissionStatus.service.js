@@ -78,13 +78,12 @@ const getAllCommissionStatuses = async (filters = {}) => {
     }
 
     // Default: Exclude deleted
-    conditions.push("deletedAt IS NULL");
+    conditions.push("commissionStatusDeletedAt IS NULL");
 
     if (active === "true" || active === true) {
       conditions.push(
-        "(effectiveFrom IS NULL OR effectiveFrom <= ?) AND (effectiveTo IS NULL OR effectiveTo >= ?)",
+        "(effectiveFrom IS NULL OR effectiveFrom <= NOW()) AND (effectiveTo IS NULL OR effectiveTo >= NOW())",
       );
-      values.push(currentDate(), currentDate());
     }
 
     const whereClause =
@@ -102,7 +101,7 @@ const getAllCommissionStatuses = async (filters = {}) => {
         description,
         effectiveFrom,
         effectiveTo,
-        createdAt
+        commissionStatusCreatedAt
       FROM CommissionStatus
       ${whereClause}
       ${orderBy}

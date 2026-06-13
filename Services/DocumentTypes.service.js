@@ -230,7 +230,7 @@ const updateDocumentType = async ({
   await insertDocumentTypeHistory({
     documentTypeId,
     changeType,
-    // changedByUserId: userUniqueId,
+    changedByUserId: userUniqueId,
   });
   const updateValues = {};
 
@@ -294,6 +294,7 @@ const updateDocumentType = async ({
 const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
   // Check if the document type exists
   const userUniqueId = user?.userUniqueId;
+  const changedByUserId=userUniqueId;
   const existingDocumentType = await getData({
     tableName: "DocumentTypes",
     conditions: { documentTypeUniqueId },
@@ -323,7 +324,7 @@ const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
 const insertDocumentTypeHistory = async ({
   documentTypeId,
   changeType,
-  // changedByUserId,
+  changedByUserId,
 }) => {
   // Get the current data of the DocumentType
   const documentType = await getData({
@@ -351,7 +352,7 @@ const insertDocumentTypeHistory = async ({
     documentTypeDeletedAt: currentDocumentType.documentTypeDeletedAt,
     documentTypeVersion: currentDocumentType.documentTypeVersion + 1 || 1, // Increment version
     changeType,
-    // changedByUserId,
+    changedByUserId: changedByUserId || currentDocumentType.documentTypeCreatedBy,
   };
 
   const result = await insertData({

@@ -29,19 +29,22 @@ const testCreateRoleDocumentRequirement = async ({ user, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
+    // Use a non-seeded combination to avoid "Mapping already exists" (seed only covers
+    // driver/vehicle/shipper/company/companyAdmin/dispatcher requirements).
+    // roleId 3 (admin) + documentTypeId 4 (Profile Photo) is not seeded.
     const defaultPayload = {
-      roleId: 2,       // driver
-      documentTypeId: 1, // driver's license
-      isDocumentMandatory: true,
-      isExpirationDateRequired: true,
-      isFileNumberRequired: true,
+      roleId: 3,
+      documentTypeId: 4,
+      isDocumentMandatory: false,
+      isExpirationDateRequired: false,
+      isFileNumberRequired: false,
       ...payload,
     };
     const result = await axios.post(backendURL + BASE_URL, defaultPayload, authConfig(token));
     console.log("✅ RoleDocumentRequirement created:", result.data.roleDocumentRequirementUniqueId || result.data.data?.roleDocumentRequirementUniqueId);
     return result.data;
   } catch (error) {
-    console.error("❌ testCreateRoleDocumentRequirement:", error.response?.data?.error || error.message);
+    console.error("❌ testCreateRoleDocumentRequirement:", error.response?.data?.error || error.response?.data || error.message);
     throw error;
   }
 };
