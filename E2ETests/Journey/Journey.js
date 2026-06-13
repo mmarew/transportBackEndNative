@@ -11,11 +11,13 @@ const BASE_URL = "/api/journey";
 const cache = { data: null };
 
 // ── GET all journeys ───────────────────────────────────────────────────────────
+// Requires roleId: 1 (shipper) or 2 (driver) — admin token alone is rejected
 const testGetJourneys = async ({ user, filters = {} } = {}) => {
   try {
-    const token = user?.token || usersData.admin?.token;
+    const token = user?.token || usersData.driver?.token;
     if (!token) throw new Error("token not found");
-    const query = new URLSearchParams(filters).toString();
+    const defaultFilters = { roleId: 2, ...filters };
+    const query = new URLSearchParams(defaultFilters).toString();
     const url = query ? `${BASE_URL}?${query}` : BASE_URL;
     const result = await axios.get(backendURL + url, authConfig(token));
     console.log("✅ Journeys fetched:", result.data.data?.length ?? 0);
@@ -109,7 +111,7 @@ const testGetOngoingJourney = async ({ user } = {}) => {
 // NOTE: Journeys are created by the system via startJourney.
 // This workflow only tests GET operations and admin update.
 // To test CREATE, run the full driver/shipper flow in index.js.
-const testJourneyWorkflow = async ({ user = usersData.admin } = {}) => {
+const testJourneyWorkflow = async ({ user = usersData.driver } = {}) => {
   console.log("\n── Journey Workflow ──");
 
   // GET all journeys
