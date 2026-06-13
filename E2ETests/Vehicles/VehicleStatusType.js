@@ -83,12 +83,15 @@ const testVehicleStatusTypeWorkflow = async ({ user = usersData.admin } = {}) =>
   await testGetVehicleStatusTypes({ user });
 
   const createPayload = {
-    VehicleStatusTypeName: "TestStatus" + Date.now(),
-    statusTypeDescription: "Test description for status type",
+    typeName: "E2ETestStatus" + Date.now(),
+    description: "E2E test status type description",
   };
 
   const created = await testCreateVehicleStatusType({ user, payload: createPayload });
-  const uniqueId = created?.vehicleStatusTypeUniqueId;
+  // Service returns insertResult, not the UUID — GET to find the new entry by name
+  const list = await testGetVehicleStatusTypes({ user });
+  const newEntry = list?.data?.find(v => v.VehicleStatusTypeName === createPayload.typeName);
+  const uniqueId = newEntry?.vehicleStatusTypeUniqueId;
   if (!uniqueId) {
     console.warn("⚠️  No ID returned — cannot continue workflow");
     return { skipped: true };
@@ -97,8 +100,8 @@ const testVehicleStatusTypeWorkflow = async ({ user = usersData.admin } = {}) =>
   await testGetVehicleStatusTypes({ user });
   
   const updatePayload = {
-    VehicleStatusTypeName: "UpdatedTestStatus",
-    statusTypeDescription: "Updated description",
+    typeName: "E2EUpdatedStatus",
+    description: "Updated E2E description",
   };
 
   await testUpdateVehicleStatusType({ user, uniqueId, payload: updatePayload });

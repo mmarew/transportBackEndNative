@@ -4,7 +4,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 
-const BASE_URL = "/api/journey/status";
+const BASE_URL = "/api/admin/journeyStatus";
 const cache = { data: null };
 
 // ── GET all journey statuses ──────────────────────────────────────────────────
@@ -33,8 +33,8 @@ const testCreateJourneyStatus = async ({ user, payload }) => {
     if (!token) throw new Error("token not found");
     
     const defaultPayload = {
-      statusName: "TEST_STATUS",
-      statusDescription: "E2E test status - should be deleted",
+      journeyStatusName: "E2E_TEST_JOURNEY_STATUS_" + Date.now(),
+      journeyStatusDescription: "E2E test journey status — should be deleted",
       ...payload,
     };
     
