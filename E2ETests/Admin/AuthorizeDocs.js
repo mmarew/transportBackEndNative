@@ -15,10 +15,6 @@ const authorizeDriversDocuments = async () => {
   try {
     const pendingDocuments =
       unAuthorizedDriver.driver?.data?.[0]?.attachedDocumentsByStatus?.PENDING;
-    console.log(
-      "🚀 ~ authorizeDriversDocuments ~ pendingDocuments:",
-      pendingDocuments,
-    );
 
     if (!pendingDocuments || pendingDocuments.length === 0) {
       console.log("⏩ No pending documents to authorize");

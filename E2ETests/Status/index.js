@@ -6,10 +6,25 @@ const { testUserRoleStatusWorkflow, testGetUserRoleStatusCurrent } = require("./
 // Re-export UserStatus from Roles folder (already exists there)
 const { testUserStatusWorkflow } = require("../Roles/UserStatus");
 
+const {
+  testMarkAsSeenWorkflow,
+  testMarkNegativeStatusAsSeen,
+  testMarkJourneyCompletionAsSeen,
+  testMarkCancellationAsSeen,
+  testGetDriverCancellationNotifications,
+  testGetShipperCancellationNotifications,
+} = require("./MarkAsSeen");
+
 module.exports = {
   testStatusWorkflow,
   testGetStatuses,
   testUserRoleStatusWorkflow,
   testGetUserRoleStatusCurrent,
   testUserStatusWorkflow,
+  testMarkAsSeenWorkflow,
+  testMarkNegativeStatusAsSeen,
+  testMarkJourneyCompletionAsSeen,
+  testMarkCancellationAsSeen,
+  testGetDriverCancellationNotifications,
+  testGetShipperCancellationNotifications,
 };

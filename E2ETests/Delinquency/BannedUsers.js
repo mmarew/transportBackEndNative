@@ -214,7 +214,6 @@ const testBanWorkflow = async ({
     user,
     userRoleUniqueId: targetUserRoleUniqueId,
   });
-  console.log("🚀 ~ testBanWorkflow ~ banResult:", banResult);
   const banUniqueId = banResult?.banUniqueId || banResult?.data?.banUniqueId;
 
   if (!banUniqueId) {

@@ -29,6 +29,7 @@ const {
   testJourneyWorkflow,
   testJourneyDecisionsWorkflow,
   testCanceledJourneysWorkflow,
+  testJourneyRoutePointsWorkflow,
 } = require("./Journey");
 
 // ── Vehicle CRUD ──────────────────────────────────────────────────────────────
@@ -36,13 +37,21 @@ const {
   testVehicleTypeWorkflow,
   testVehicleStatusTypeWorkflow,
   testVehicleProfileWorkflow,
+  testVehicleDriverWorkflow,
+  testVehicleOwnershipWorkflow,
 } = require("./Vehicles");
 
 // ── Document CRUD ─────────────────────────────────────────────────────────────
 const { testDocumentTypesWorkflow, testRoleDocumentRequirementsWorkflow } = require("./Documents");
 
 // ── Status CRUD ───────────────────────────────────────────────────────────────
-const { testStatusWorkflow, testUserRoleStatusWorkflow } = require("./Status");
+const { testStatusWorkflow, testUserRoleStatusWorkflow, testMarkAsSeenWorkflow } = require("./Status");
+
+// ── Analytics & System Admin ──────────────────────────────────────────────────
+const { testAnalyticsWorkflow, testSystemAdminWorkflow } = require("./Analytics");
+
+// ── Auth / Account ────────────────────────────────────────────────────────────
+const { testAccountWorkflow } = require("./Auth/Account");
 
 // ── Finance CRUD ──────────────────────────────────────────────────────────────
 const {
@@ -64,6 +73,7 @@ const {
   completeJourney,
 } = require("./Driver/DriverJourneyStatus");
 const { testCreateShipperRequest, testAcceptDriverRequest } = require("./Shipper/ShipperRequest");
+const { testShipperRequestBatchWorkflow } = require("./Shipper/ShipperRequestBatch");
 const {
   initiateCompanyBiddingWorkFlow,
   acceptCompanyOffer,
@@ -193,9 +203,15 @@ const runPostJourneyCRUD = async () => {
   await testJourneyWorkflow({});
   await testJourneyDecisionsWorkflow({});
   await testCanceledJourneysWorkflow({});
+  await testJourneyRoutePointsWorkflow({ user: usersData.driver });
   await testRatingsWorkflow({ user: usersData.shipper });
   await testVehicleProfileWorkflow({ user: usersData.driver });
+  await testVehicleDriverWorkflow({ user: usersData.admin });
+  await testVehicleOwnershipWorkflow({ user: usersData.admin });
   await testUserRoleStatusWorkflow({});
+  await testShipperRequestBatchWorkflow({ user: usersData.shipper });
+  await testAccountWorkflow();
+  await testMarkAsSeenWorkflow();
 
   console.log("\n✅ Post-journey CRUD complete\n");
 };
@@ -213,6 +229,18 @@ const runDelinquencyTests = async () => {
   await testCompanyDelinquencyWorkflow({});
 
   console.log("\n✅ Delinquency lifecycle tests complete\n");
+};
+
+// ── Phase F: Analytics & Admin Tests ──────────────────────────────────────────
+const runAnalyticsAndAdminTests = async () => {
+  console.log("\n=======================================================");
+  console.log("   📈 ANALYTICS & SYSTEM ADMIN TESTS");
+  console.log("=======================================================\n");
+
+  await testAnalyticsWorkflow({ user: usersData.admin });
+  await testSystemAdminWorkflow({ user: usersData.admin });
+
+  console.log("\n✅ Analytics & Admin tests complete\n");
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -252,6 +280,9 @@ const initiateTest = async () => {
 
     // ── Phase E: Delinquency lifecycle ────────────────────────────────────────
     await runDelinquencyTests();
+
+    // ── Phase F: Analytics & Admin Tests ──────────────────────────────────────
+    await runAnalyticsAndAdminTests();
 
     console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
   } catch (error) {

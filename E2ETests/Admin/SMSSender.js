@@ -44,10 +44,8 @@ const testCreateSMSSender = async ({ user, payload } = {}) => {
 
     const defaultPayload = {
       senderName: "E2ETestSender_" + Date.now(),
-      apiKey: "test-api-key-e2e-" + Date.now(),
-      apiSecret: "test-api-secret-e2e",
-      baseUrl: "https://api.smsprovider.test/send",
-      isActive: true,
+      phoneNumber: "+251" + Math.floor(Math.random() * 1000000000),
+      password: "TestPassword123!",
       ...payload,
     };
 
@@ -106,10 +104,8 @@ const testUpdateSMSSender = async ({ user, id, payload } = {}) => {
     const url = SMS_SENDER_ENDPOINTS.UPDATE_SMS_SENDER.replace(":id", senderId);
     const defaultPayload = {
       senderName: "E2EUpdatedSender_" + Date.now(),
-      apiKey: "updated-api-key-e2e",
-      apiSecret: "updated-api-secret-e2e",
-      baseUrl: "https://api.smsprovider.test/send/v2",
-      isActive: false,
+      phoneNumber: "+251" + Math.floor(Math.random() * 1000000000),
+      password: "UpdatedPassword123!",
       ...payload,
     };
 

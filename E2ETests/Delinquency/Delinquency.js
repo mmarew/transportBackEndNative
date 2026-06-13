@@ -10,7 +10,7 @@ const delinquencies = { data: null };
 
 //get delinquency data from delinquency types
 const url = "/api/admin/userDelinquency/";
-const testGetDelinquency = async ({ user=usersData.driver }) => {
+const testGetDelinquency = async ({ user = usersData.driver }) => {
   try {
     const token = user?.token;
     if (!token) {
@@ -19,18 +19,22 @@ const testGetDelinquency = async ({ user=usersData.driver }) => {
     const result = await axios.get(backendURL + url, {
       headers: { Authorization: "Bearer " + token },
     });
-    console.log(
-      "🚀 ~ testGetDelinquency ~ result.data.data:",
-      result.data.data,
-    );
+
     delinquencies.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.error("❌ testGetDelinquency:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetDelinquency:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
-const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIndex = 0, skipDuplicateCheck = false }) => {
+const testCreateDelinquency = async ({
+  user = usersData.admin,
+  delinquencyTypeIndex = 0,
+  skipDuplicateCheck = false,
+}) => {
   try {
     const userDriver = usersData.driver.accountData;
     const delinquencyType = listOfDelinquencyTypes.data?.[delinquencyTypeIndex];
@@ -58,7 +62,10 @@ const testCreateDelinquency = async ({ user = usersData.admin, delinquencyTypeIn
     );
     return result.data;
   } catch (error) {
-    console.error("❌ testCreateDelinquency:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testCreateDelinquency:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -70,10 +77,12 @@ const testUpdateDelinquency = async ({ user = usersData.driver }) => {
 
     const delinquency = delinquencies.data?.[0];
     const userDelinquencyUniqueId = delinquency?.userDelinquencyUniqueId;
-    if (!userDelinquencyUniqueId) throw new Error("No delinquency ID found to update");
+    if (!userDelinquencyUniqueId)
+      throw new Error("No delinquency ID found to update");
 
     const payload = {
-      delinquencyDescription: "Updated description — additional context provided.",
+      delinquencyDescription:
+        "Updated description — additional context provided.",
     };
 
     const result = await axios.put(
@@ -84,7 +93,10 @@ const testUpdateDelinquency = async ({ user = usersData.driver }) => {
     console.log("✅ Delinquency updated:", result.data.data);
     return result.data.data;
   } catch (error) {
-    console.error("❌ testUpdateDelinquency:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testUpdateDelinquency:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -113,7 +125,10 @@ const testDeleteDelinquency = async ({ user }) => {
     );
     return result.data.data;
   } catch (error) {
-    console.error("❌ testDeleteDelinquency:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testDeleteDelinquency:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };

@@ -3,6 +3,8 @@ const router = express.Router();
 const smsSenderController = require("../Controllers/SmsSender.controller");
 
 // Create a new SMS sender
+const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
 const { validator } = require("../Middleware/Validator");
 const {
   createSMSSender,
@@ -14,16 +16,25 @@ const { SMS_SENDER_ENDPOINTS } = require("./EndPoints/smsSender.endpoints");
 // Create a new SMS sender
 router.post(
   SMS_SENDER_ENDPOINTS.CREATE_SMS_SENDER,
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
   validator(createSMSSender),
   smsSenderController.createSMSSender,
 );
 
 // Get all SMS senders
-router.get(SMS_SENDER_ENDPOINTS.GET_ALL_SMS_SENDERS, smsSenderController.getAllSMSSenders);
+router.get(
+  SMS_SENDER_ENDPOINTS.GET_ALL_SMS_SENDERS,
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
+  smsSenderController.getAllSMSSenders
+);
 
 // Get a single SMS sender by ID
 router.get(
   SMS_SENDER_ENDPOINTS.GET_SMS_SENDER_BY_ID,
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
   validator(smsSenderParams, "params"),
   smsSenderController.getSMSSenderById,
 );
@@ -31,6 +42,8 @@ router.get(
 // Update an SMS sender by ID
 router.put(
   SMS_SENDER_ENDPOINTS.UPDATE_SMS_SENDER,
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
   validator(smsSenderParams, "params"),
   validator(updateSMSSender),
   smsSenderController.updateSMSSender,
@@ -39,6 +52,8 @@ router.put(
 // Delete an SMS sender by ID
 router.delete(
   SMS_SENDER_ENDPOINTS.DELETE_SMS_SENDER,
+  verifyTokenOfAxios,
+  verifyAdminsIdentity,
   validator(smsSenderParams, "params"),
   smsSenderController.deleteSMSSender,
 );

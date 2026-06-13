@@ -6,7 +6,7 @@ const verifyPassword = require("../Utils/VerifyPassword");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 // Create a new SMS sender
-const createSMSSender = async ({ phoneNumber, password }) => {
+const createSMSSender = async ({ phoneNumber, password, SMSSenderCreatedBy }) => {
   try {
     // Check if phone number already exists
     const existingUser = await getData({
@@ -47,9 +47,9 @@ const createSMSSender = async ({ phoneNumber, password }) => {
 
     // If user does not exist, hash the password and create a new record
     const hashedPassword = await bcrypt.hash(password, 10);
-    const sql = `INSERT INTO SMSSender (phoneNumber, password) VALUES (?, ?)`;
+    const sql = `INSERT INTO SMSSender (phoneNumber, password, SMSSenderCreatedBy) VALUES (?, ?, ?)`;
     const executor = transactionStorage.getStore() || pool;
-    const [result] = await executor.query(sql, [phoneNumber, hashedPassword]);
+    const [result] = await executor.query(sql, [phoneNumber, hashedPassword, SMSSenderCreatedBy]);
 
     if (result.affectedRows === 0) {
       throw new AppError("Failed to create SMSSender record", 500);
