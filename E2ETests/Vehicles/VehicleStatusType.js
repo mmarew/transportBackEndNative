@@ -2,7 +2,11 @@ const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 
-const BASE_URL = "/api/vehicleStatusType";
+// Bare-mounted routes (no /api/ prefix) — paths come directly from endpoints file
+const CREATE_URL = "/vehicleStatusType";
+const GET_URL    = "/vehicleStatusTypes";
+const UPDATE_URL = "/vehicleStatusType";
+const DELETE_URL = "/vehicleStatusType";
 const cache = { data: null };
 
 // ── GET all ────────────────────────────────────────────────────────────────────
@@ -11,7 +15,7 @@ const testGetVehicleStatusTypes = async ({ user } = {}) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const result = await axios.get(backendURL + "/api/vehicleStatusTypes", authConfig(token));
+    const result = await axios.get(backendURL + GET_URL, authConfig(token));
     console.log("✅ VehicleStatusTypes fetched:", result.data.data?.length ?? 0);
     cache.data = result.data.data;
     return result.data;
@@ -27,7 +31,7 @@ const testCreateVehicleStatusType = async ({ user, payload }) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const result = await axios.post(backendURL + BASE_URL, payload, authConfig(token));
+    const result = await axios.post(backendURL + CREATE_URL, payload, authConfig(token));
     console.log("✅ VehicleStatusType created:", result.data.data?.vehicleStatusTypeUniqueId);
     return result.data.data;
   } catch (error) {
@@ -45,7 +49,7 @@ const testUpdateVehicleStatusType = async ({ user, uniqueId, payload }) => {
     const id = uniqueId || cache.data?.[0]?.vehicleStatusTypeUniqueId;
     if (!id) throw new Error("No ID found to update");
 
-    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, payload, authConfig(token));
+    const result = await axios.put(`${backendURL}${UPDATE_URL}/${id}`, payload, authConfig(token));
     console.log("✅ VehicleStatusType updated:", id);
     return result.data;
   } catch (error) {
@@ -63,7 +67,7 @@ const testDeleteVehicleStatusType = async ({ user, uniqueId }) => {
     const id = uniqueId || cache.data?.[0]?.vehicleStatusTypeUniqueId;
     if (!id) throw new Error("No ID found to delete");
 
-    const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
+    const result = await axios.delete(`${backendURL}${DELETE_URL}/${id}`, authConfig(token));
     console.log("✅ VehicleStatusType deleted:", id);
     return result.data;
   } catch (error) {
