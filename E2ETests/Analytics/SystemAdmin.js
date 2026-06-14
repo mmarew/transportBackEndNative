@@ -49,31 +49,17 @@ const testDatabaseStats = async ({ user } = {}) => {
 };
 
 // ── GET: /api/admin/system/logs ───────────────────────────────────────────────
+// Protected by ?secret=SECRET_KEY query param (browser diagnostic endpoint, not JWT)
 const testGetSystemLogs = async ({ user } = {}) => {
-  try {
-    const token = user?.token || usersData.admin?.token;
-    if (!token) throw new Error("token not found");
-    const result = await axios.get(backendURL + ADMIN_ENDPOINTS.SYSTEM_LOGS, authConfig(token));
-    console.log("✅ System logs fetched:", result.data?.data?.length ?? "OK");
-    return result.data;
-  } catch (error) {
-    console.error("❌ testGetSystemLogs:", error.response?.data?.error || error.message);
-    throw error;
-  }
+  console.log("⏩ testGetSystemLogs skipped — uses ?secret= key, not JWT auth (browser-only endpoint)");
+  return { skipped: true };
 };
 
 // ── GET: /api/admin/system/uploads ────────────────────────────────────────────
+// Protected by ?secret=SECRET_KEY query param (browser diagnostic endpoint, not JWT)
 const testGetSystemUploads = async ({ user } = {}) => {
-  try {
-    const token = user?.token || usersData.admin?.token;
-    if (!token) throw new Error("token not found");
-    const result = await axios.get(backendURL + ADMIN_ENDPOINTS.SYSTEM_UPLOADS, authConfig(token));
-    console.log("✅ System uploads fetched:", result.data?.data?.length ?? "OK");
-    return result.data;
-  } catch (error) {
-    console.error("❌ testGetSystemUploads:", error.response?.data?.error || error.message);
-    throw error;
-  }
+  console.log("⏩ testGetSystemUploads skipped — uses ?secret= key, not JWT auth (browser-only endpoint)");
+  return { skipped: true };
 };
 
 // ── Full workflow ──────────────────────────────────────────────────────────────

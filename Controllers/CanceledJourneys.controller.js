@@ -215,9 +215,9 @@ const getCanceledJourneyCountsByReason = async (req, res, next) => {
     } = req.query;
 
     // Validate required parameters
-    if (!startDate || !endDate) {
-      return next(new AppError("startDate and endDate are required", 400));
-    }
+    // if (!startDate || !endDate) {
+    //   return next(new AppError("startDate and endDate are required", 400));
+    // }
 
     const filters = {
       startDate,

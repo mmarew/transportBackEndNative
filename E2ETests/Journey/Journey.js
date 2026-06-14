@@ -35,9 +35,6 @@ const testGetJourneyById = async ({ user, journeyUniqueId } = {}) => {
     const token = user?.token || usersData.driver?.token;
     if (!token) throw new Error("token not found");
     const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
-    console.log("🚀 ~ testUpdateJourney ~ id:", id)
-    console.log("🚀 ~ testUpdateJourney ~ id:", id)
-    console.log("🚀 ~ testUpdateJourney ~ id:", id)
     if (!id) throw new Error("No journeyUniqueId found");
     const result = await axios.get(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
     console.log("✅ Journey fetched by ID:", id);
@@ -55,10 +52,7 @@ const testUpdateJourney = async ({ user, journeyUniqueId, payload } = {}) => {
     if (!token) throw new Error("token not found");
     const id = journeyUniqueId || cache.data?.[0]?.journey?.journeyUniqueId || cache.data?.[0]?.journeyUniqueId;
     if (!id) throw new Error("No journeyUniqueId found to update");
-        console.log("🚀 ~ testUpdateJourney ~ id:", id)
-
     const defaultPayload = { fare: 5000, ...payload };
-    console.log("🚀 ~ testUpdateJourney ~ defaultPayload:", defaultPayload)
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ Journey updated:", id);
     return result.data;

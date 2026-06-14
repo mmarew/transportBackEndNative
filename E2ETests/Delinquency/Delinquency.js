@@ -1,35 +1,27 @@
-// make crud of delinquency and test workflow of delinquency
+// CRUD for UserDelinquency
 
 const { default: axios } = require("axios");
-const {
-  backendURL,
-  usersData,
-  listOfDelinquencyTypes,
-} = require("../constants");
+const { backendURL, usersData, listOfDelinquencyTypes } = require("../constants");
 const delinquencies = { data: null };
 
-//get delinquency data from delinquency types
 const url = "/api/admin/userDelinquency/";
-const testGetDelinquency = async ({ user = usersData.driver }) => {
+
+const testGetDelinquency = async ({ user = usersData.admin } = {}) => {
   try {
     const token = user?.token;
-    if (!token) {
-      return { message: "error", error: "token not found" };
-    }
+    if (!token) throw new Error("token not found");
     const result = await axios.get(backendURL + url, {
       headers: { Authorization: "Bearer " + token },
     });
-
+    console.log("✅ Delinquencies fetched:", result.data.data?.length ?? 0);
     delinquencies.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testGetDelinquency:",
-      error.response?.data?.error || error.message,
-    );
+    console.error("❌ testGetDelinquency:", error.response?.data?.error || error.message);
     throw error;
   }
 };
+
 const testCreateDelinquency = async ({
   user = usersData.admin,
   delinquencyTypeIndex = 0,
@@ -38,135 +30,79 @@ const testCreateDelinquency = async ({
   try {
     const userDriver = usersData.driver.accountData;
     const delinquencyType = listOfDelinquencyTypes.data?.[delinquencyTypeIndex];
-    console.log(
-      "🚀 ~ testCreateDelinquency ~ userDriver:",
-      userDriver.userData.userUniqueId,
-    );
+    const token = user?.token;
+    if (!token) throw new Error("token not found");
+
     const payload = {
       userUniqueId: userDriver.userData.userUniqueId,
       delinquencyTypeUniqueId: delinquencyType?.delinquencyTypeUniqueId,
       delinquencyDescription: "user has made some mistakes mistakes",
       roleId: 2,
-      skipDuplicateCheck, // Allow bypassing duplicate check for E2E tests
+      skipDuplicateCheck,
     };
-    const token = user?.token;
-    if (!token) {
-      return { message: "error", error: "token not found" };
-    }
     const result = await axios.post(backendURL + url, payload, {
       headers: { Authorization: "Bearer " + token },
     });
-    console.log(
-      "✅ testCreateDelinquency success:",
-      result.data.userDelinquencyUniqueId,
-    );
+    console.log("✅ Delinquency created:", result.data.userDelinquencyUniqueId);
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testCreateDelinquency:",
-      error.response?.data?.error || error.message,
-    );
+    console.error("❌ testCreateDelinquency:", error.response?.data?.error || error.message);
     throw error;
   }
 };
 
-const testUpdateDelinquency = async ({ user = usersData.driver }) => {
+const testUpdateDelinquency = async ({ user = usersData.admin } = {}) => {
   try {
     const token = user?.token;
     if (!token) throw new Error("token not found");
-
     const delinquency = delinquencies.data?.[0];
     const userDelinquencyUniqueId = delinquency?.userDelinquencyUniqueId;
-    if (!userDelinquencyUniqueId)
-      throw new Error("No delinquency ID found to update");
-
-    const payload = {
-      delinquencyDescription:
-        "Updated description — additional context provided.",
-    };
+    if (!userDelinquencyUniqueId) throw new Error("No delinquency ID found to update");
 
     const result = await axios.put(
       backendURL + url + userDelinquencyUniqueId,
-      payload,
+      { delinquencyDescription: "Updated description — additional context provided." },
       { headers: { Authorization: "Bearer " + token } },
     );
     console.log("✅ Delinquency updated:", result.data.data);
     return result.data.data;
   } catch (error) {
-    console.error(
-      "❌ testUpdateDelinquency:",
-      error.response?.data?.error || error.message,
-    );
+    console.error("❌ testUpdateDelinquency:", error.response?.data?.error || error.message);
     throw error;
   }
 };
 
-const testDeleteDelinquency = async ({ user }) => {
+const testDeleteDelinquency = async ({ user = usersData.admin } = {}) => {
   try {
     const token = user?.token;
-    if (!token) {
-      return { message: "error", error: "token not found" };
-    }
+    if (!token) throw new Error("token not found");
     const delinquency = delinquencies.data?.[0];
-    console.log(
-      "🚀 ~ testDeleteDelinquency ~ listOfDelinquencyTypes.data:",
-      listOfDelinquencyTypes.data?.[0],
-    );
     const userDelinquencyUniqueId = delinquency?.userDelinquencyUniqueId;
-    const result = await axios.delete(
-      backendURL + url + userDelinquencyUniqueId,
-      {
-        headers: { Authorization: "Bearer " + token },
-      },
-    );
-    console.log(
-      "🚀 ~ testDeleteDelinquency ~ result.data.data:",
-      result.data.data,
-    );
+    if (!userDelinquencyUniqueId) throw new Error("No delinquency ID found to delete");
+
+    const result = await axios.delete(backendURL + url + userDelinquencyUniqueId, {
+      headers: { Authorization: "Bearer " + token },
+    });
+    console.log("✅ Delinquency deleted:", result.data.data);
     return result.data.data;
   } catch (error) {
-    console.error(
-      "❌ testDeleteDelinquency:",
-      error.response?.data?.error || error.message,
-    );
+    console.error("❌ testDeleteDelinquency:", error.response?.data?.error || error.message);
     throw error;
   }
 };
 
-const testDelinquencyWorkflow = async ({ user = usersData.driver }) => {
-  let delinquencyList = await testGetDelinquency({ user });
-  console.log(
-    "🚀 ~ testDelinquencyWorkflow ~ delinquencyList.data.data initially :",
-    delinquencyList?.data?.data,
-  );
-  const delinquency = await testCreateDelinquency({ user });
-
-  delinquencyList = await testGetDelinquency({ user });
-  console.log(
-    "🚀 ~ testDelinquencyWorkflow ~ delinquencyList.data.data after creating :",
-    delinquencyList?.data,
-  );
-  const updatedDelinquency = await testUpdateDelinquency({ user });
-
-  delinquencyList = await testGetDelinquency({ user });
-  console.log(
-    "🚀 ~ testDelinquencyWorkflow ~ delinquencyList.data.data after update :",
-    delinquencyList,
-  );
-  const deletedDelinquency = await testDeleteDelinquency({ user });
-
-  delinquencyList = await testGetDelinquency({ user });
-  console.log(
-    "🚀 ~ testDelinquencyWorkflow ~ delinquencyList.data.data after delete :",
-    delinquencyList?.data,
-  );
-  return {
-    delinquencyList,
-    delinquency,
-    updatedDelinquency,
-    deletedDelinquency,
-  };
+const testDelinquencyWorkflow = async ({ user = usersData.admin } = {}) => {
+  console.log("\n── Delinquency Workflow ──");
+  await testGetDelinquency({ user });
+  await testCreateDelinquency({ user });
+  await testGetDelinquency({ user });
+  await testUpdateDelinquency({ user });
+  await testGetDelinquency({ user });
+  await testDeleteDelinquency({ user });
+  await testGetDelinquency({ user });
+  console.log("── Delinquency Workflow complete ──\n");
 };
+
 module.exports = {
   testDelinquencyWorkflow,
   testGetDelinquency,
