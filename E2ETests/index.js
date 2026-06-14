@@ -5,6 +5,7 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
 const { usersData } = require("./constants");
+const { report } = require("./Reporter");
 
 const { runReferenceCRUD } = require("./Phases/runReferenceCRUD");
 const { runIndividualFlow } = require("./Phases/runIndividualFlow");
@@ -42,11 +43,18 @@ const initiateTest = async () => {
     await runDelinquencyTests();
     await runAnalyticsAndAdminTests();
 
-    console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
+    const passed = report.summary();
+    if (passed) {
+      console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
+    } else {
+      console.error("\n❌ ========== E2E TEST FAILED ==========\n");
+      process.exit(1);
+    }
   } catch (error) {
     console.error("\n❌ ========== E2E TEST FAILED ==========");
     console.error("Error:", error.message);
     console.error("Stack:", error.stack);
+    report.summary();
     process.exit(1);
   }
 };

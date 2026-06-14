@@ -4,6 +4,7 @@
   "main": "App.js",
   "scripts": {
     "test": "jest",
+    "test:log": "rm -f test.log && npx jest --no-coverage --forceExit --verbose > test.log 2>&1; tail -20 test.log | grep -E '^(PASS|FAIL|Test Suites|Tests:|Suites:|Snapshot:)'; echo 'Full output in test.log'",
     "test:e2e": "node E2ETests/index.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

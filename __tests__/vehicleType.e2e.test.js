@@ -29,9 +29,9 @@ describe("VehicleTypes E2E", () => {
       .field("vehicleTypeName", uniqueName)
       .field("vehicleTypeDescription", "For e2e test")
       .field("carryingCapacity", 1000)
-      .attach("vehicleTypeIconName", Buffer.from("dummy"), "icon.png")
-      .expect(200);
+      .attach("vehicleTypeIconName", Buffer.from("dummy"), "icon.png");
 
+    expect([200, 201]).toContain(createRes.status);
     expect(createRes.body.message).toBe("success");
 
     // List

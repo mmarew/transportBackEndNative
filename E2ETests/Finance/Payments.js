@@ -5,6 +5,7 @@ const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { assert } = require("../Assert");
+const { report } = require("../Reporter");
 
 const BASE_URL = "/api/finance/payments";
 const cache = { data: null };
@@ -16,14 +17,9 @@ const testGetPayments = async ({ user } = {}) => {
     const result = await axios.get(backendURL + BASE_URL, authConfig(token));
     assert.StatusCode(result, 200, "GET payments should return 200");
     assert.Truthy(result.data, "GET payments should return data");
-    console.log("✅ Payments fetched:", result.data.data?.length ?? 0);
     cache.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testGetPayments:",
-      error.response?.data?.error || error.message,
-    );
     throw error;
   }
 };
@@ -42,13 +38,8 @@ const testGetPaymentById = async ({ user, id } = {}) => {
     assert.StatusCode(result, 200, "GET payment by ID should return 200");
     assert.Truthy(result.data?.data?.paymentUniqueId, "Payment should have paymentUniqueId");
     assert.Eq(result.data?.data?.paymentUniqueId, paymentId, "Returned payment ID should match requested");
-    console.log("✅ Payment fetched by ID:", paymentId);
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testGetPaymentById:",
-      error.response?.data?.error || error.message,
-    );
     throw error;
   }
 };
@@ -114,13 +105,8 @@ const testCreatePayment = async ({ user, payload } = {}) => {
     assert.StatusCode(result, 200, "POST payment should return 200");
     const paymentUniqueId = result.data?.data?.paymentUniqueId || result.data?.paymentUniqueId;
     assert.Truthy(paymentUniqueId, "Created payment should have a paymentUniqueId");
-    console.log("✅ Payment created:", paymentUniqueId);
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testCreatePayment:",
-      error.response?.data?.error || error.message,
-    );
     throw error;
   }
 };
@@ -140,13 +126,8 @@ const testUpdatePayment = async ({ user, id, payload } = {}) => {
     );
     assert.StatusCode(result, 200, "PUT payment should return 200");
     assert.Truthy(result.data?.data?.paymentId || result.data?.paymentId, "Updated payment should have paymentId");
-    console.log("✅ Payment updated:", paymentId);
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testUpdatePayment:",
-      error.response?.data?.error || error.message,
-    );
     throw error;
   }
 };
@@ -163,46 +144,53 @@ const testDeletePayment = async ({ user, id } = {}) => {
       authConfig(token),
     );
     assert.StatusCode(result, 200, "DELETE payment should return 200");
-    console.log("✅ Payment deleted:", paymentId);
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testDeletePayment:",
-      error.response?.data?.error || error.message,
-    );
     throw error;
   }
 };
 
 const testPaymentsWorkflow = async ({ user = usersData.admin } = {}) => {
   console.log("\n── Payments Workflow ──");
-  const before = await testGetPayments({ user });
-  const countBefore = before?.data?.length || 0;
+  try {
+    const before = await testGetPayments({ user });
+    report.pass("testGetPayments (before)");
+    const countBefore = before?.data?.length || 0;
 
-  const created = await testCreatePayment({ user });
-  if (created?.skipped) {
-    console.log("⏩ Payments workflow skipped — missing journeyId");
-    return { skipped: true };
+    const created = await testCreatePayment({ user });
+    if (created?.skipped) {
+      report.skip("Payments workflow", "missing journeyId");
+      return { skipped: true };
+    }
+    report.pass("testCreatePayment");
+    const paymentId = created?.data?.paymentUniqueId || created?.paymentUniqueId;
+    assert.Truthy(paymentId, "Payment workflow: paymentId must be returned after create");
+    assert.Truthy(created?.data?.amount || created?.amount, "Payment workflow: created payment should have amount");
+
+    const afterCreate = await testGetPayments({ user });
+    report.pass("testGetPayments (after create)");
+    assert.Eq(afterCreate?.data?.length, countBefore + 1, "Payment count should increase by 1 after create");
+
+    const byId = await testGetPaymentById({ user, id: paymentId });
+    report.pass("testGetPaymentById");
+    assert.Truthy(byId?.data?.paymentUniqueId, "Payment fetched by ID should have paymentUniqueId");
+
+    await testUpdatePayment({ user, id: paymentId });
+    report.pass("testUpdatePayment");
+
+    await testDeletePayment({ user, id: paymentId });
+    report.pass("testDeletePayment");
+
+    const afterDelete = await testGetPayments({ user });
+    report.pass("testGetPayments (after delete)");
+    assert.Eq(afterDelete?.data?.length, countBefore, "Payment count should return to original after delete");
+
+    console.log("── Payments Workflow complete ──\n");
+    return { paymentId };
+  } catch (error) {
+    report.fail("Payments workflow", error);
+    throw error;
   }
-  const paymentId = created?.data?.paymentUniqueId || created?.paymentUniqueId;
-  assert.Truthy(paymentId, "Payment workflow: paymentId must be returned after create");
-  assert.Truthy(created?.data?.amount || created?.amount, "Payment workflow: created payment should have amount");
-
-  const afterCreate = await testGetPayments({ user });
-  assert.Eq(afterCreate?.data?.length, countBefore + 1, "Payment count should increase by 1 after create");
-
-  const byId = await testGetPaymentById({ user, id: paymentId });
-  assert.Truthy(byId?.data?.paymentUniqueId, "Payment fetched by ID should have paymentUniqueId");
-
-  await testUpdatePayment({ user, id: paymentId });
-
-  await testDeletePayment({ user, id: paymentId });
-
-  const afterDelete = await testGetPayments({ user });
-  assert.Eq(afterDelete?.data?.length, countBefore, "Payment count should return to original after delete");
-
-  console.log("── Payments Workflow complete ──\n");
-  return { paymentId };
 };
 
 module.exports = {
