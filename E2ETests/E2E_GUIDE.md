@@ -39,15 +39,15 @@ These are **end-to-end integration tests** that call the live HTTP API. They run
 
 ### Design Principles
 
-| Principle | How it is applied |
-|-----------|------------------|
-| **Sequential execution** | Every `async/await` step must resolve before the next starts |
-| **Shared in-memory state** | `usersData` in `constants.js` stores tokens, IDs, and data across all test files |
-| **Fail-fast** | Critical failures `throw` immediately; the top-level runner catches and exits with code 1 |
-| **Graceful skips** | Non-critical steps that lack prerequisites log a `⏩ Skipped` message and `return { skipped: true }` |
-| **No silent failures** | Every `catch` block logs with `❌` prefix and re-throws; empty catch blocks are forbidden |
+| Principle                     | How it is applied                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Sequential execution**      | Every `async/await` step must resolve before the next starts                                                       |
+| **Shared in-memory state**    | `usersData` in `constants.js` stores tokens, IDs, and data across all test files                                   |
+| **Fail-fast**                 | Critical failures `throw` immediately; the top-level runner catches and exits with code 1                          |
+| **Graceful skips**            | Non-critical steps that lack prerequisites log a `⏩ Skipped` message and `return { skipped: true }`               |
+| **No silent failures**        | Every `catch` block logs with `❌` prefix and re-throws; empty catch blocks are forbidden                          |
 | **Idempotent where possible** | Duplicate-check guards (e.g., company already exists, document already uploaded) prevent data pollution on re-runs |
-| **Emoji log markers** | `✅ ❌ ⚠️ ⏩ 📋 🔄` give instant visual feedback in the terminal |
+| **Emoji log markers**         | `✅ ❌ ⚠️ ⏩ 📋 🔄` give instant visual feedback in the terminal                                                   |
 
 ---
 
@@ -75,7 +75,8 @@ E2ETests/
 ├── Admin/
 │   ├── index.js                  ← testCreateAdminFlow (SuperAdmin creates Admin)
 │   ├── fetchData.js              ← fetchUnAuthorizedDrivers
-│   └── AuthorizeDocs.js          ← authorizeDriversDocuments
+│   ├── AuthorizeDocs.js          ← authorizeDriversDocuments
+│   └── UserRole.js               ← testUserRoleWorkflow (CRUD for admin/userRole)
 │
 ├── Roles/
 │   ├── index.js                  ← testGetRoles, testCreateRoles, testRolesWorkFlows
@@ -119,7 +120,10 @@ E2ETests/
 │   ├── CompanyDelinquency.js     ← testCompanyDelinquencyWorkflow, testCreateCompanyDelinquency,
 │   │                                testCreateCompanyDelinquencyResponse
 │   ├── CompanyAdminDecision.js   ← testCompanyAdminDecisionWorkflow (full CRUD)
-│   └── CompanyBan.js             ← testCompanyBanWorkflow, testBanCompany, testUnbanCompany
+│   ├── CompanyBan.js             ← testCompanyBanWorkflow, testBanCompany, testUnbanCompany
+│   ├── CompanyMembership.js      ← testCompanyMembershipWorkflow (CRUD for membership)
+│   ├── CompanyRole.js            ← testCompanyRoleWorkflow (CRUD for company roles)
+│   └── CompanyRating.js          ← testCompanyRatingWorkflow (CRUD for company ratings)
 │
 ├── Journey/
 │   ├── Journey.js                ← testJourneyWorkflow, testGetJourneys, testGetOngoingJourney,
@@ -139,6 +143,7 @@ E2ETests/
 │   ├── VehicleOwnership.js       ← testVehicleOwnershipWorkflow (uses driver onboarding data)
 │   ├── VehicleDriver.js          ← testVehicleDriverWorkflow (uses driver onboarding data)
 │   ├── VehiclesProfile.js        ← testVehicleProfileWorkflow (vehicle GET/UPDATE, uses existing)
+│   ├── VehicleStatus.js          ← testVehicleStatusWorkflow (CRUD for vehicle status tracking)
 │   └── index.js                  ← exports all vehicle tests
 │
 ├── Documents/
@@ -158,6 +163,11 @@ E2ETests/
 │   ├── FinancialInstitutionAccount.js ← testFinancialInstitutionAccountWorkflow (full CRUD)
 │   ├── SubscriptionPlan.js       ← testSubscriptionPlanWorkflow (full CRUD)
 │   ├── Ratings.js                ← testRatingsWorkflow (GET/CRUD, skips if no journey data)
+│   ├── UserRefund.js             ← testUserRefundWorkflow (full CRUD for refunds)
+│   ├── Commission.js             ← testCommissionWorkflow (full CRUD for commissions)
+│   ├── DriverEarning.js          ← testDriverEarningWorkflow (GET earnings by filter)
+│   ├── Payments.js               ← testPaymentsWorkflow (full CRUD for payments)
+│   ├── JourneyPayments.js        ← testJourneyPaymentsWorkflow (full CRUD, future use)
 │   └── index.js                  ← exports all finance tests
 │
 └── Delinquency/
@@ -175,12 +185,12 @@ E2ETests/
 
 ### Environment
 
-| Requirement | Notes |
-|-------------|-------|
-| Node.js ≥ 18 | Run `npm install` first |
-| Local server running | `npm run dev` on port 3000 |
+| Requirement               | Notes                             |
+| ------------------------- | --------------------------------- |
+| Node.js ≥ 18              | Run `npm install` first           |
+| Local server running      | `npm run dev` on port 3000        |
 | `.env` contains `API_KEY` | Used by dev-only bypass endpoints |
-| MySQL database reachable | Connection string in `.env` |
+| MySQL database reachable  | Connection string in `.env`       |
 
 ### Environment Variables (`.env`)
 
@@ -204,15 +214,15 @@ All test functions read from and write back to this single object:
 const { usersData } = require("../constants");
 
 // Key fields populated during the test run:
-usersData.supperAdmin.token
-usersData.admin.token
-usersData.driver.token
-usersData.driver.accountData        // Full account: vehicle, userData, unAttachedDocumentTypes
-usersData.driver.journeyStatus      // Latest journey state: { status, uniqueIds, companyAssignment }
-usersData.shipper.token
-usersData.companyAdmin.token
-usersData.companyAdmin.companies    // Array of company objects
-usersData.companyAdmin.bids         // Bid lists keyed by bidStatus string
+usersData.supperAdmin.token;
+usersData.admin.token;
+usersData.driver.token;
+usersData.driver.accountData; // Full account: vehicle, userData, unAttachedDocumentTypes
+usersData.driver.journeyStatus; // Latest journey state: { status, uniqueIds, companyAssignment }
+usersData.shipper.token;
+usersData.companyAdmin.token;
+usersData.companyAdmin.companies; // Array of company objects
+usersData.companyAdmin.bids; // Bid lists keyed by bidStatus string
 ```
 
 Other shared caches:
@@ -349,14 +359,14 @@ module.exports = {
 
 ### 5.2 Naming Conventions
 
-| Item | Convention | Example |
-|------|------------|---------|
-| File | PascalCase | `CancellationReasonsType.js` |
-| Functions | `test[Action][Entity]` | `testCreateShipperRequest` |
-| Workflow | `test[Entity]Workflow` | `testJourneyStatusWorkflow` |
-| Log success | `✅ Entity action: id` | `✅ Journey status created: abc-123` |
-| Log failure | `❌ testFunctionName: message` | `❌ testGetJourneyStatuses: 404` |
-| Log skip | `⏩ Skipping — reason` | `⏩ Skipping — no journeyDecisionUniqueId` |
+| Item        | Convention                     | Example                                    |
+| ----------- | ------------------------------ | ------------------------------------------ |
+| File        | PascalCase                     | `CancellationReasonsType.js`               |
+| Functions   | `test[Action][Entity]`         | `testCreateShipperRequest`                 |
+| Workflow    | `test[Entity]Workflow`         | `testJourneyStatusWorkflow`                |
+| Log success | `✅ Entity action: id`         | `✅ Journey status created: abc-123`       |
+| Log failure | `❌ testFunctionName: message` | `❌ testGetJourneyStatuses: 404`           |
+| Log skip    | `⏩ Skipping — reason`         | `⏩ Skipping — no journeyDecisionUniqueId` |
 
 ### 5.3 Graceful Skips vs. Hard Failures
 
@@ -466,21 +476,26 @@ Phase 0 → Phase 1 → Phase 2 → Phase A → Phase B → Phase C → Phase D 
 
 Safe to run before journey flows. Tests full CRUD on all lookup/configuration tables.
 
-| Test | Table | Route |
-|------|-------|-------|
-| `testVehicleTypeWorkflow` | VehicleTypes | `GET/POST/PUT/DELETE /api/admin/vehicleTypes` |
-| `testVehicleStatusTypeWorkflow` | VehicleStatusTypes | `GET /api/vehicleStatusTypes`, `POST/PUT/DELETE /api/vehicleStatusType` |
-| `testJourneyStatusWorkflow` | JourneyStatus | `GET/POST/PUT/DELETE /api/admin/journeyStatus` |
-| `testCancellationReasonsTypeWorkflow` | CancellationReasonsType | `GET/POST/PUT/DELETE /api/admin/cancellationReasons` |
-| `testDocumentTypesWorkflow` | DocumentTypes | `GET/POST/PUT/DELETE /api/documentTypes` |
-| `testRoleDocumentRequirementsWorkflow` | RoleDocumentRequirements | `GET/POST/PUT/DELETE /api/RoleDocumentRequirements` |
-| `testStatusWorkflow` | Statuses | `GET/POST/PUT/DELETE /api/admin/statuses` |
-| `testDelinquencyTypesWorkflows` | DelinquencyTypes | `GET/POST/PUT/DELETE /api/admin/delinquencyTypes` |
-| `testTariffRateWorkflow` | TariffRate | `GET/POST/PUT/DELETE /api/finance/tariffRate` |
-| `testDepositSourceWorkflow` | DepositSource | `GET/POST/PUT/DELETE /api/finance/depositSource` |
-| `testFinancialInstitutionAccountWorkflow` | FinancialInstitutionAccount | `GET/POST/PUT/DELETE /api/finance/financialInstitutionAccount` |
-| `testSubscriptionPlanWorkflow` | SubscriptionPlan | `GET/POST/PUT/DELETE /api/finance/subscriptionPlan` |
-| `testCommissionStatusWorkflow` | CommissionStatus | `GET/POST/PUT/DELETE /api/finance/commissionStatus/admin/commission-statuses` |
+| Test                                      | Table                       | Route                                                                         |
+| ----------------------------------------- | --------------------------- | ----------------------------------------------------------------------------- |
+| `testVehicleTypeWorkflow`                 | VehicleTypes                | `GET/POST/PUT/DELETE /api/admin/vehicleTypes`                                 |
+| `testVehicleStatusTypeWorkflow`           | VehicleStatusTypes          | `GET /api/vehicleStatusTypes`, `POST/PUT/DELETE /api/vehicleStatusType`       |
+| `testJourneyStatusWorkflow`               | JourneyStatus               | `GET/POST/PUT/DELETE /api/admin/journeyStatus`                                |
+| `testCancellationReasonsTypeWorkflow`     | CancellationReasonsType     | `GET/POST/PUT/DELETE /api/admin/cancellationReasons`                          |
+| `testDocumentTypesWorkflow`               | DocumentTypes               | `GET/POST/PUT/DELETE /api/documentTypes`                                      |
+| `testRoleDocumentRequirementsWorkflow`    | RoleDocumentRequirements    | `GET/POST/PUT/DELETE /api/RoleDocumentRequirements`                           |
+| `testStatusWorkflow`                      | Statuses                    | `GET/POST/PUT/DELETE /api/admin/statuses`                                     |
+| `testDelinquencyTypesWorkflows`           | DelinquencyTypes            | `GET/POST/PUT/DELETE /api/admin/delinquencyTypes`                             |
+| `testTariffRateWorkflow`                  | TariffRate                  | `GET/POST/PUT/DELETE /api/finance/tariffRate`                                 |
+| `testDepositSourceWorkflow`               | DepositSource               | `GET/POST/PUT/DELETE /api/finance/depositSource`                              |
+| `testFinancialInstitutionAccountWorkflow` | FinancialInstitutionAccount | `GET/POST/PUT/DELETE /api/finance/financialInstitutionAccount`                |
+| `testSubscriptionPlanWorkflow`            | SubscriptionPlan            | `GET/POST/PUT/DELETE /api/finance/subscriptionPlan`                           |
+| `testCommissionStatusWorkflow`            | CommissionStatus            | `GET/POST/PUT/DELETE /api/finance/commissionStatus/admin/commission-statuses` |
+| `testCompanyRoleWorkflow`                 | CompanyRole                 | `GET/POST/PUT/DELETE /api/company/roles`                                      |
+| `testUserRoleWorkflow`                    | UserRole                    | `GET/POST/PUT/DELETE /api/admin/userRole`                                     |
+| `testVehicleStatusWorkflow`               | VehicleStatus               | `GET/POST/PUT/DELETE /api/vehicleStatus`                                      |
+| `testUserRefundWorkflow`                  | UserRefund                  | `GET/POST/PATCH/DELETE /api/finance/userRefund`                               |
+| `testDriverEarningWorkflow`               | DriverEarning               | `GET /api/finance/driverEarning`                                              |
 
 ---
 
@@ -565,14 +580,19 @@ Fleet freight request. Company wins bid, assigns its own driver.
 
 Tests entities that can only be meaningfully exercised after journey data exists.
 
-| Test | Description |
-|------|-------------|
-| `testJourneyWorkflow` | GET journeys, GET by ID, UPDATE fare, GET ongoing/completed |
-| `testJourneyDecisionsWorkflow` | GET decisions, UPDATE decision fields |
-| `testCanceledJourneysWorkflow` | GET canceled records, UPDATE, mark seen by admin |
-| `testRatingsWorkflow` | GET ratings; CREATE rating if journeyDecisionUniqueId available |
-| `testVehicleProfileWorkflow` | UPDATE vehicle color; uses existing vehicle from driver onboarding |
-| `testUserRoleStatusWorkflow` | GET current statuses, GET by phone, UPDATE (admin reactivate) |
+| Test                            | Description                                                        |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `testJourneyWorkflow`           | GET journeys, GET by ID, UPDATE fare, GET ongoing/completed        |
+| `testJourneyDecisionsWorkflow`  | GET decisions, UPDATE decision fields                              |
+| `testCanceledJourneysWorkflow`  | GET canceled records, UPDATE, mark seen by admin                   |
+| `testRatingsWorkflow`           | GET ratings; CREATE rating if journeyDecisionUniqueId available    |
+| `testVehicleProfileWorkflow`    | UPDATE vehicle color; uses existing vehicle from driver onboarding |
+| `testUserRoleStatusWorkflow`    | GET current statuses, GET by phone, UPDATE (admin reactivate)      |
+| `testCommissionWorkflow`        | GET/POST/PUT/DELETE commissions (needs journey data)               |
+| `testPaymentsWorkflow`          | GET/POST/PUT/DELETE payments (needs journey data)                  |
+| `testJourneyPaymentsWorkflow`   | GET/POST/PUT/DELETE journey payments (future use)                  |
+| `testCompanyMembershipWorkflow` | GET/POST/PATCH/DELETE company memberships (needs company data)     |
+| `testCompanyRatingWorkflow`     | GET/POST/PUT/DELETE company ratings (needs company bid data)       |
 
 ---
 
@@ -799,11 +819,14 @@ Both parties must acknowledge cancellations:
 ```js
 let driverStatus = await getDriverJourneyStatus({ userType: "driver" });
 
-if (driverStatus?.status == 2) await acceptShipperRequest({ shippingCostByDriver: 5000 });
-if (driverStatus?.status == 3) await testAcceptDriverRequest({ uniqueIds: driverStatus.uniqueIds });
+if (driverStatus?.status == 2)
+  await acceptShipperRequest({ shippingCostByDriver: 5000 });
+if (driverStatus?.status == 3)
+  await testAcceptDriverRequest({ uniqueIds: driverStatus.uniqueIds });
 if (driverStatus?.status == 4) await startJourney({ userType: "driver" });
 if (driverStatus?.status == 5) await completeJourney({ userType: "driver" });
-if (driverStatus?.status == 14) await testMarkNegativeStatusAsSeen({ token, uniqueIds });
+if (driverStatus?.status == 14)
+  await testMarkNegativeStatusAsSeen({ token, uniqueIds });
 ```
 
 ---
@@ -847,19 +870,19 @@ Comment/uncomment phases during development:
 
 ```js
 const initiateTest = async () => {
-  await resetDatabase();           // ← always required
-  await testCreateAdminFlow({});   // ← always required
+  await resetDatabase(); // ← always required
+  await testCreateAdminFlow({}); // ← always required
   await testGetRoles();
 
   await testDriverOnboardingFlow({ userType: "driver" });
   await fetchUnAuthorizedDrivers({});
   await authorizeDriversDocuments({});
 
-  await runReferenceCRUD();        // ← comment out to skip CRUD tests
-  await runIndividualFlow();       // ← comment out to skip individual journey
-  await runCompanyFlow();          // ← comment out to skip company journey
-  await runPostJourneyCRUD();      // ← comment out to skip post-journey CRUD
-  await runDelinquencyTests();     // ← comment out to skip delinquency tests
+  await runReferenceCRUD(); // ← comment out to skip CRUD tests
+  await runIndividualFlow(); // ← comment out to skip individual journey
+  await runCompanyFlow(); // ← comment out to skip company journey
+  await runPostJourneyCRUD(); // ← comment out to skip post-journey CRUD
+  await runDelinquencyTests(); // ← comment out to skip delinquency tests
 };
 ```
 
@@ -869,50 +892,50 @@ const initiateTest = async () => {
 
 ### Users (`constants.js`)
 
-| User | Phone | OTP | Role |
-|------|-------|-----|------|
-| `supperAdmin` | `+251983222221` | `101010` | SuperAdmin (roleId 6) |
-| `admin` | `+251993333333` | `101010` | Admin (roleId 3) |
-| `driver` | `+251991111112` | `101010` | Driver (roleId 2) |
-| `shipper` | `+251992222222` | `101010` | Shipper (roleId 1) |
+| User           | Phone           | OTP      | Role                    |
+| -------------- | --------------- | -------- | ----------------------- |
+| `supperAdmin`  | `+251983222221` | `101010` | SuperAdmin (roleId 6)   |
+| `admin`        | `+251993333333` | `101010` | Admin (roleId 3)        |
+| `driver`       | `+251991111112` | `101010` | Driver (roleId 2)       |
+| `shipper`      | `+251992222222` | `101010` | Shipper (roleId 1)      |
 | `companyAdmin` | `+251994444444` | `101010` | CompanyAdmin (roleId 7) |
 
 ### Role IDs (`usersRoles`)
 
-| Role | ID |
-|------|----|
-| Shipper | 1 |
-| Driver | 2 |
-| Admin | 3 |
-| VehicleOwner | 4 |
-| System | 5 |
-| SuperAdmin | 6 |
-| CompanyAdmin | 7 |
-| Company (entity) | 8 |
-| Vehicle (entity) | 9 |
-| Dispatcher | 10 |
+| Role             | ID  |
+| ---------------- | --- |
+| Shipper          | 1   |
+| Driver           | 2   |
+| Admin            | 3   |
+| VehicleOwner     | 4   |
+| System           | 5   |
+| SuperAdmin       | 6   |
+| CompanyAdmin     | 7   |
+| Company (entity) | 8   |
+| Vehicle (entity) | 9   |
+| Dispatcher       | 10  |
 
 ### Journey Status IDs
 
-| Status Name | ID |
-|-------------|----|
-| waiting | 1 |
-| requested | 2 |
-| acceptedByDriver | 3 |
-| acceptedByShipper | 4 |
-| journeyStarted | 5 |
-| journeyCompleted | 6 |
-| cancelledByShipper | 7 |
-| rejectedByShipper | 8 |
-| cancelledByDriver | 9 |
-| cancelledByAdmin | 10 |
-| completedByAdmin | 11 |
-| cancelledBySystem | 12 |
-| noAnswerFromDriver | 13 |
-| notSelectedInBid | 14 |
-| rejectedByDriver | 15 |
-| replacedByCompanyAssignment | 16 |
-| partiallyCancelled | 17 |
+| Status Name                 | ID  |
+| --------------------------- | --- |
+| waiting                     | 1   |
+| requested                   | 2   |
+| acceptedByDriver            | 3   |
+| acceptedByShipper           | 4   |
+| journeyStarted              | 5   |
+| journeyCompleted            | 6   |
+| cancelledByShipper          | 7   |
+| rejectedByShipper           | 8   |
+| cancelledByDriver           | 9   |
+| cancelledByAdmin            | 10  |
+| completedByAdmin            | 11  |
+| cancelledBySystem           | 12  |
+| noAnswerFromDriver          | 13  |
+| notSelectedInBid            | 14  |
+| rejectedByDriver            | 15  |
+| replacedByCompanyAssignment | 16  |
+| partiallyCancelled          | 17  |
 
 ---
 
@@ -948,7 +971,9 @@ Used when a prerequisite is missing but the test suite can continue:
 
 ```js
 if (!journeyDecisionUniqueId) {
-  console.warn("⏩ Skipped — no journeyDecisionUniqueId (run full journey flow first)");
+  console.warn(
+    "⏩ Skipped — no journeyDecisionUniqueId (run full journey flow first)",
+  );
   return { skipped: true };
 }
 ```
@@ -1006,13 +1031,17 @@ The core flows (Onboarding, Journeys, Assignments, Delinquency) are fully robust
 To reach 100% test coverage without making the test runner brittle, we plan to implement the remaining endpoints in four phases:
 
 ### Phase 1: Missing Core Reference Data (CRUDs)
+
 Create new standalone test files for secondary reference data:
+
 - **Ratings**: `POST /api/ratings`, `GET /api/ratings`, `PUT /api/ratings/ids`, `DELETE /api/ratings/ids`
 - **SMS Sender Config**: `POST /smsSender`, `GET /smsSender`, `PUT /smsSender/id`, `DELETE /smsSender/id`
 - **Roles Configuration**: `POST /api/admin/roles`, `GET /api/admin/roles`, `PUT /api/admin/roles/...`
 
 ### Phase 2: Analytics, Counts, and Filter Endpoints
+
 Create an `AnalyticsAndFilters/` directory to test purely analytical `GET` queries:
+
 - `GET /api/user/getCanceledJourneyCountsByDate`
 - `GET /api/user/getCanceledJourneyCountsByReason`
 - `GET /api/admin/getCanceledJourneyByFilter`
@@ -1020,13 +1049,17 @@ Create an `AnalyticsAndFilters/` directory to test purely analytical `GET` queri
 - `GET /api/vehicles` (by filter)
 
 ### Phase 3: Secondary Status Operations (Mark As Seen)
+
 Update the existing `Driver/` and `Shipper/` flows to call these clearing endpoints after triggering specific events:
+
 - `PUT /api/driver/markNegativeStatusAsSeen`
 - `PUT /api/shipperRequest/markJourneyCompletionAsSeen`
 - `PUT /api/shipperRequest/markCancellationAsSeen`
 
 ### Phase 4: Administrative Edge Cases & Utilities
+
 Add a `SystemAdmin/` test block for destructive or diagnostic admin operations:
+
 - `GET /api/admin/system/logs`
 - `GET /api/admin/database/stats`
 - `POST /api/admin/payments/uuidv4`

@@ -39,9 +39,28 @@ const createCompanyAdminFlow = async ({ userType = "companyAdmin" }) => {
   }
 };
 
+const {
+  testCompanyMembershipWorkflow,
+  testGetCompanyMemberships,
+} = require("./CompanyMembership");
+const {
+  testCompanyRoleWorkflow,
+  testGetCompanyRoles,
+} = require("./CompanyRole");
+const {
+  testCompanyRatingWorkflow,
+  testGetCompanyRatings,
+} = require("./CompanyRating");
+
 module.exports = {
   createCompanyAdminFlow,
   testCompanyDelinquencyWorkflow,
   testCompanyAdminDecisionWorkflow,
   testCompanyBanWorkflow,
+  testCompanyMembershipWorkflow,
+  testGetCompanyMemberships,
+  testCompanyRoleWorkflow,
+  testGetCompanyRoles,
+  testCompanyRatingWorkflow,
+  testGetCompanyRatings,
 };

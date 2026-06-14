@@ -7,18 +7,28 @@ const { testShipperOnboardingFlow } = require("./Shipper/Index");
 const { usersData } = require("./constants");
 
 // ── Core setup ────────────────────────────────────────────────────────────────
-const { testCreateAdminFlow } = require("./Admin");
+const { testCreateAdminFlow, testUserRoleWorkflow } = require("./Admin");
 const { resetDatabase } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
-const { createCompanyAdminFlow, testCompanyDelinquencyWorkflow } = require("./Company");
+const {
+  createCompanyAdminFlow,
+  testCompanyDelinquencyWorkflow,
+  testCompanyMembershipWorkflow,
+  testCompanyRoleWorkflow,
+  testCompanyRatingWorkflow,
+} = require("./Company");
 const { testSMSSenderWorkflow } = require("./Admin/SMSSender");
 
 // ── Reference data CRUD ───────────────────────────────────────────────────────
 const { testGetRoles, testRolesWorkFlows } = require("./Roles");
-const { testDelinquencyTypesWorkflows } = require("./Delinquency/DelinquencyTypes");
+const {
+  testDelinquencyTypesWorkflows,
+} = require("./Delinquency/DelinquencyTypes");
 const { testDelinquencyWorkflow } = require("./Delinquency/Delinquency");
-const { testDelinquencyResponseWorkflow } = require("./Delinquency/DelinquencyResponse");
+const {
+  testDelinquencyResponseWorkflow,
+} = require("./Delinquency/DelinquencyResponse");
 const { testAdminDecisionWorkflow } = require("./Delinquency/AdminDecision");
 const { testBanWorkflow } = require("./Delinquency/BannedUsers");
 
@@ -39,16 +49,27 @@ const {
   testVehicleProfileWorkflow,
   testVehicleDriverWorkflow,
   testVehicleOwnershipWorkflow,
+  testVehicleStatusWorkflow,
 } = require("./Vehicles");
 
 // ── Document CRUD ─────────────────────────────────────────────────────────────
-const { testDocumentTypesWorkflow, testRoleDocumentRequirementsWorkflow } = require("./Documents");
+const {
+  testDocumentTypesWorkflow,
+  testRoleDocumentRequirementsWorkflow,
+} = require("./Documents");
 
 // ── Status CRUD ───────────────────────────────────────────────────────────────
-const { testStatusWorkflow, testUserRoleStatusWorkflow, testMarkAsSeenWorkflow } = require("./Status");
+const {
+  testStatusWorkflow,
+  testUserRoleStatusWorkflow,
+  testMarkAsSeenWorkflow,
+} = require("./Status");
 
 // ── Analytics & System Admin ──────────────────────────────────────────────────
-const { testAnalyticsWorkflow, testSystemAdminWorkflow } = require("./Analytics");
+const {
+  testAnalyticsWorkflow,
+  testSystemAdminWorkflow,
+} = require("./Analytics");
 
 // ── Auth / Account ────────────────────────────────────────────────────────────
 const { testAccountWorkflow } = require("./Auth/Account");
@@ -66,6 +87,11 @@ const {
   testCommissionRatesWorkflow,
   testSubscriptionPlanPricingWorkflow,
   testTariffRateForVehicleTypeWorkflow,
+  testUserRefundWorkflow,
+  testCommissionWorkflow,
+  testDriverEarningWorkflow,
+  testPaymentsWorkflow,
+  testJourneyPaymentsWorkflow,
 } = require("./Finance");
 
 // ── Journey flow helpers ──────────────────────────────────────────────────────
@@ -77,8 +103,13 @@ const {
   startJourney,
   completeJourney,
 } = require("./Driver/DriverJourneyStatus");
-const { testCreateShipperRequest, testAcceptDriverRequest } = require("./Shipper/ShipperRequest");
-const { testShipperRequestBatchWorkflow } = require("./Shipper/ShipperRequestBatch");
+const {
+  testCreateShipperRequest,
+  testAcceptDriverRequest,
+} = require("./Shipper/ShipperRequest");
+const {
+  testShipperRequestBatchWorkflow,
+} = require("./Shipper/ShipperRequestBatch");
 const {
   initiateCompanyBiddingWorkFlow,
   acceptCompanyOffer,
@@ -116,6 +147,11 @@ const runReferenceCRUD = async () => {
   await testTariffRateForVehicleTypeWorkflow({});
   await testRolesWorkFlows();
   await testSMSSenderWorkflow({});
+  await testCompanyRoleWorkflow({});
+  await testVehicleStatusWorkflow({});
+  await testUserRefundWorkflow({ user: usersData.admin });
+  await testDriverEarningWorkflow({ user: usersData.driver });
+  await testUserRoleWorkflow({ user: usersData.admin });
 
   console.log("\n✅ Reference data CRUD complete\n");
 };
@@ -126,14 +162,20 @@ const runIndividualFlow = async () => {
   console.log("   🚀 STARTING INDIVIDUAL TARGET FLOW");
   console.log("=======================================================\n");
 
-  await testShipperOnboardingFlow({ userType: "shipper", requestMode: "individual_target" });
+  await testShipperOnboardingFlow({
+    userType: "shipper",
+    requestMode: "individual_target",
+  });
   if (!usersData?.shipper?.token) throw new Error("Shipper token missing");
 
   await testCreateDriverRequest(usersData.driver.token);
   let driverStatus = await getDriverJourneyStatus({ userType: "driver" });
 
   if (driverStatus?.status == 2) {
-    await acceptShipperRequest({ userType: "driver", shippingCostByDriver: 5000 });
+    await acceptShipperRequest({
+      userType: "driver",
+      shippingCostByDriver: 5000,
+    });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
   if (driverStatus?.status == 3) {
@@ -146,7 +188,8 @@ const runIndividualFlow = async () => {
   }
   if (driverStatus?.status == 5) {
     // Snapshot the journeyDecisionUniqueId before completeJourney wipes the status
-    const jdId = usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+    const jdId =
+      usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;
 
     await completeJourney({ userType: "driver" });
@@ -164,15 +207,21 @@ const runCompanyFlow = async () => {
 
   // 1. Shipper creates a company_target request FIRST — before company setup
   //    so the request is visible in the available bids pool when company looks
-  await testShipperOnboardingFlow({ userType: "shipper", requestMode: "company_target" });
+  await testShipperOnboardingFlow({
+    userType: "shipper",
+    requestMode: "company_target",
+  });
   if (!usersData?.shipper?.token) throw new Error("Shipper token missing");
 
   // 2. Set up company (auth + profile + docs + approval) — no bidding yet
   await createCompanyAdminFlow({});
 
   // 3. NOW company can find the shipper's request in the available bids pool
-  const bidToAccept = await initiateCompanyBiddingWorkFlow({ userType: "companyAdmin" });
-  if (!bidToAccept) throw new Error("Company failed to find or participate in a bid.");
+  const bidToAccept = await initiateCompanyBiddingWorkFlow({
+    userType: "companyAdmin",
+  });
+  if (!bidToAccept)
+    throw new Error("Company failed to find or participate in a bid.");
 
   // 4. Shipper accepts the company's bid
   await acceptCompanyOffer({ userType: "shipper", bid: bidToAccept });
@@ -180,7 +229,8 @@ const runCompanyFlow = async () => {
   // 5. Company assigns vehicle and driver
   await getBids({ userType: "companyAdmin", bidStatus: "accepted_by_shipper" });
   const acceptedBid = usersData.companyAdmin.bids["accepted_by_shipper"]?.[0];
-  if (!acceptedBid) throw new Error("No accepted company bid found to assign drivers.");
+  if (!acceptedBid)
+    throw new Error("No accepted company bid found to assign drivers.");
 
   await assignVehicleToCompany({});
   await assignDrivers({ bid: acceptedBid });
@@ -222,6 +272,11 @@ const runPostJourneyCRUD = async () => {
   await testShipperRequestBatchWorkflow({ user: usersData.shipper });
   await testAccountWorkflow();
   await testMarkAsSeenWorkflow();
+  await testCommissionWorkflow({ user: usersData.admin });
+  await testPaymentsWorkflow({ user: usersData.admin });
+  await testJourneyPaymentsWorkflow({ user: usersData.admin });
+  await testCompanyMembershipWorkflow({ user: usersData.companyAdmin });
+  await testCompanyRatingWorkflow({ user: usersData.shipper });
 
   console.log("\n✅ Post-journey CRUD complete\n");
 };
@@ -259,7 +314,8 @@ const initiateTest = async () => {
   try {
     // ── Phase 0: Clean slate ──────────────────────────────────────────────────
     await resetDatabase();
-    if (!usersData?.supperAdmin?.token) throw new Error("SuperAdmin token not set");
+    if (!usersData?.supperAdmin?.token)
+      throw new Error("SuperAdmin token not set");
 
     // ── Phase 1: Core users ───────────────────────────────────────────────────
     await testCreateAdminFlow({});

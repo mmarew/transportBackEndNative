@@ -1,16 +1,54 @@
 // Finance E2E Tests Export
 
-const { testCommissionStatusWorkflow, testGetCommissionStatuses } = require("./CommissionStatus");
+const {
+  testCommissionStatusWorkflow,
+  testGetCommissionStatuses,
+} = require("./CommissionStatus");
 const { testTariffRateWorkflow, testGetTariffRates } = require("./TariffRate");
-const { testDepositSourceWorkflow, testGetDepositSources } = require("./DepositSource");
-const { testFinancialInstitutionAccountWorkflow, testGetFinancialInstitutionAccounts } = require("./FinancialInstitutionAccount");
-const { testSubscriptionPlanWorkflow, testGetSubscriptionPlans } = require("./SubscriptionPlan");
+const {
+  testDepositSourceWorkflow,
+  testGetDepositSources,
+} = require("./DepositSource");
+const {
+  testFinancialInstitutionAccountWorkflow,
+  testGetFinancialInstitutionAccounts,
+} = require("./FinancialInstitutionAccount");
+const {
+  testSubscriptionPlanWorkflow,
+  testGetSubscriptionPlans,
+} = require("./SubscriptionPlan");
 const { testRatingsWorkflow, testGetRatings } = require("./Ratings");
-const { testPaymentStatusWorkflow, testGetPaymentStatuses } = require("./PaymentStatus");
-const { testPaymentMethodWorkflow, testGetPaymentMethods } = require("./PaymentMethod");
-const { testCommissionRatesWorkflow, testGetCommissionRates } = require("./CommissionRates");
-const { testSubscriptionPlanPricingWorkflow, testGetSubscriptionPlanPricings } = require("./SubscriptionPlanPricing");
-const { testTariffRateForVehicleTypeWorkflow, testGetTariffRatesForVehicleTypes } = require("./TariffRateForVehicleType");
+const {
+  testPaymentStatusWorkflow,
+  testGetPaymentStatuses,
+} = require("./PaymentStatus");
+const {
+  testPaymentMethodWorkflow,
+  testGetPaymentMethods,
+} = require("./PaymentMethod");
+const {
+  testCommissionRatesWorkflow,
+  testGetCommissionRates,
+} = require("./CommissionRates");
+const {
+  testSubscriptionPlanPricingWorkflow,
+  testGetSubscriptionPlanPricings,
+} = require("./SubscriptionPlanPricing");
+const {
+  testTariffRateForVehicleTypeWorkflow,
+  testGetTariffRatesForVehicleTypes,
+} = require("./TariffRateForVehicleType");
+const { testUserRefundWorkflow, testGetUserRefunds } = require("./UserRefund");
+const { testCommissionWorkflow, testGetCommissions } = require("./Commission");
+const {
+  testDriverEarningWorkflow,
+  testGetDriverEarnings,
+} = require("./DriverEarning");
+const { testPaymentsWorkflow, testGetPayments } = require("./Payments");
+const {
+  testJourneyPaymentsWorkflow,
+  testGetJourneyPayments,
+} = require("./JourneyPayments");
 
 module.exports = {
   testCommissionStatusWorkflow,
@@ -35,4 +73,14 @@ module.exports = {
   testGetSubscriptionPlanPricings,
   testTariffRateForVehicleTypeWorkflow,
   testGetTariffRatesForVehicleTypes,
+  testUserRefundWorkflow,
+  testGetUserRefunds,
+  testCommissionWorkflow,
+  testGetCommissions,
+  testDriverEarningWorkflow,
+  testGetDriverEarnings,
+  testPaymentsWorkflow,
+  testGetPayments,
+  testJourneyPaymentsWorkflow,
+  testGetJourneyPayments,
 };
