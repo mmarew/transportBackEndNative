@@ -21,16 +21,20 @@ const {
   createDriverSubscription,
 } = require("./DriversFinance/DriverSubscription");
 const {
-  getFinancialInstitutionAccounts,
-  createFinancialInstitutionAccount,
-  testFinancialInstitutionAccountsWorkFlow,
-} = require("./DriversFinance/FinancialInstitutions");
-const { getSubscriptionPlans } = require("./DriversFinance/SubscriptionPlan");
+  testGetFinancialInstitutionAccounts,
+  testCreateFinancialInstitutionAccount,
+  testFinancialInstitutionAccountWorkflow:
+    testFinancialInstitutionAccountsWorkFlow,
+} = require("../Finance/FinancialInstitutionAccount");
 const {
-  fetchSubscriptionPlanPricing,
-  fetchSubscriptionPlanPricingByPlanId,
-  createSubscriptionPlanPricing,
-} = require("./DriversFinance/SubscriptionPlanPricing");
+  testGetSubscriptionPlans,
+} = require("../Finance/SubscriptionPlan");
+const {
+  testGetSubscriptionPlanPricings:
+    fetchSubscriptionPlanPricing,
+  testCreateSubscriptionPlanPricing:
+    createSubscriptionPlanPricing,
+} = require("../Finance/SubscriptionPlanPricing");
 const {
   createDriverDeposit,
   approveDriversDeposit,
@@ -79,14 +83,18 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
   const driverUniqueId = driverAccountData?.userData?.userUniqueId;
   console.log("🚀 ~ driversFinancialFlows ~ driverUniqueId:", driverUniqueId);
 
-  const financialInstitutionAccounts = await getFinancialInstitutionAccounts({
-    userType,
+  const financialInstitutionAccounts = await testGetFinancialInstitutionAccounts({
+    user: usersData[userType],
   });
   console.log(
     "🚀 ~ driversFinancialFlows ~ financialInstitutionAccounts:",
     financialInstitutionAccounts,
   );
   await createSubscriptionPlanPricing({});
+  const planPricingResult = await fetchSubscriptionPlanPricing({
+    user: usersData.admin,
+  });
+  listOfPlanPricing.data = planPricingResult?.data;
   // const subscriptionPlan = await getSubscriptionPlans({
   //   token,
   // });

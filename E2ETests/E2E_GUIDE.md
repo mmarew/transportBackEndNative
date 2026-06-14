@@ -21,7 +21,8 @@
    - [Phase B — Individual Journey Flow](#phase-b--individual-journey-flow)
    - [Phase C — Company Journey Flow](#phase-c--company-journey-flow)
    - [Phase D — Post-Journey CRUD](#phase-d--post-journey-crud)
-   - [Phase E — Delinquency Lifecycle](#phase-e--delinquency-lifecycle)
+    - [Phase E — Delinquency Lifecycle](#phase-e--delinquency-lifecycle)
+    - [Phase F — Analytics & System Admin Tests](#phase-f--analytics--system-admin-tests)
 7. [Individual Journey Flow — Step by Step](#7-individual-journey-flow--step-by-step)
 8. [Company Journey Flow — Step by Step](#8-company-journey-flow--step-by-step)
 9. [Delinquency Lifecycle — Step by Step](#9-delinquency-lifecycle--step-by-step)
@@ -56,7 +57,7 @@ These are **end-to-end integration tests** that call the live HTTP API. They run
 ```
 E2ETests/
 │
-├── index.js                      ← Main runner / orchestrator (5 phases)
+├── index.js                      ← Main runner / orchestrator (7 phases: 0, 1, 2, A, B, C, D, E, F)
 ├── constants.js                  ← Shared state: tokens, IDs, user data, caches
 ├── Utils.js                      ← authConfig(token) header helper
 ├── dummy.txt                     ← Fake file used for multipart document uploads
@@ -67,6 +68,8 @@ E2ETests/
 │   ├── RegisterUser.js           ← POST /api/user/createUser
 │   ├── VerifyByOtp.js            ← POST /api/user/verifyUserByOTP  → stores token
 │   ├── LoginUser.js              ← POST /api/user/loginUser
+│   ├── LoginUser.js              ← POST /api/user/loginUser
+│   ├── Account.js                ← testAccountWorkflow (GET account data, GET status)
 │   └── index.js                  ← testAuthWorkFlow, testVerifyAndLoginUser
 │
 ├── DataBaseManagement/
@@ -76,7 +79,8 @@ E2ETests/
 │   ├── index.js                  ← testCreateAdminFlow (SuperAdmin creates Admin)
 │   ├── fetchData.js              ← fetchUnAuthorizedDrivers
 │   ├── AuthorizeDocs.js          ← authorizeDriversDocuments
-│   └── UserRole.js               ← testUserRoleWorkflow (CRUD for admin/userRole)
+│   ├── UserRole.js               ← testUserRoleWorkflow (CRUD for admin/userRole)
+│   └── SMSSender.js              ← testSMSSenderWorkflow (CRUD for SMS sender config)
 │
 ├── Roles/
 │   ├── index.js                  ← testGetRoles, testCreateRoles, testRolesWorkFlows
@@ -107,7 +111,8 @@ E2ETests/
 │   │                                testRejectDriverOffer, testCancelShipperRequest,
 │   │                                testGetCancellationNotification, testMarkJourneyCancellationAsSeen
 │   ├── VerifyShipperStatus.js    ← verifyShipperStatus
-│   └── CreatedShipper.js         ← Shipper profile helpers
+│   ├── CreatedShipper.js         ← Shipper profile helpers
+│   └── ShipperRequestBatch.js    ← testShipperRequestBatchWorkflow (batch CRUD)
 │
 ├── Company/
 │   ├── index.js                  ← createCompanyAdminFlow (full setup), exports delinquency tests
@@ -154,6 +159,7 @@ E2ETests/
 ├── Status/
 │   ├── Status.js                 ← testStatusWorkflow (full CRUD for global status list)
 │   ├── UserRoleStatus.js         ← testUserRoleStatusWorkflow (GET current, GET by phone, UPDATE)
+│   ├── MarkAsSeen.js             ← testMarkAsSeenWorkflow (mark cancellation/completion as seen)
 │   └── index.js                  ← exports all status tests
 │
 ├── Finance/
@@ -163,6 +169,11 @@ E2ETests/
 │   ├── FinancialInstitutionAccount.js ← testFinancialInstitutionAccountWorkflow (full CRUD)
 │   ├── SubscriptionPlan.js       ← testSubscriptionPlanWorkflow (full CRUD)
 │   ├── Ratings.js                ← testRatingsWorkflow (GET/CRUD, skips if no journey data)
+│   ├── CommissionRates.js        ← testCommissionRatesWorkflow (CRUD for commission rate config)
+│   ├── PaymentStatus.js          ← testPaymentStatusWorkflow (CRUD for payment status lookup)
+│   ├── PaymentMethod.js          ← testPaymentMethodWorkflow (CRUD for payment method lookup)
+│   ├── SubscriptionPlanPricing.js← testSubscriptionPlanPricingWorkflow (CRUD for plan pricing)
+│   ├── TariffRateForVehicleType.js← testTariffRateForVehicleTypeWorkflow (CRUD for rate-vehicle link)
 │   ├── UserRefund.js             ← testUserRefundWorkflow (full CRUD for refunds)
 │   ├── Commission.js             ← testCommissionWorkflow (full CRUD for commissions)
 │   ├── DriverEarning.js          ← testDriverEarningWorkflow (GET earnings by filter)
@@ -177,6 +188,11 @@ E2ETests/
     ├── AdminDecision.js          ← testAdminDecisionWorkflow (admin ruling on user delinquency)
     ├── BannedUsers.js            ← testBanWorkflow (ban/update/deactivate)
     └── index.js                  ← testFullDelinquencyLifecycle (chained lifecycle test)
+
+├── Analytics/
+│   ├── Analytics.js              ← testAnalyticsWorkflow (GET canceled-journey counts, filters)
+│   ├── SystemAdmin.js            ← testSystemAdminWorkflow (GET system logs, DB stats, admin payments)
+│   └── index.js                  ← exports all analytics & system admin tests
 ```
 
 ---
@@ -219,6 +235,7 @@ usersData.admin.token;
 usersData.driver.token;
 usersData.driver.accountData; // Full account: vehicle, userData, unAttachedDocumentTypes
 usersData.driver.journeyStatus; // Latest journey state: { status, uniqueIds, companyAssignment }
+usersData.driver.lastJourneyDecisionUniqueId; // Snapshotted before completeJourney clears status
 usersData.shipper.token;
 usersData.companyAdmin.token;
 usersData.companyAdmin.companies; // Array of company objects
@@ -403,7 +420,7 @@ const runReferenceCRUD = async () => {
 The `index.js` runner executes these phases **in strict order**. Each phase depends on all previous phases having succeeded.
 
 ```
-Phase 0 → Phase 1 → Phase 2 → Phase A → Phase B → Phase C → Phase D → Phase E
+Phase 0 → Phase 1 → Phase 2 → Phase A → Phase B → Phase C → Phase D → Phase E → Phase F
 ```
 
 ### Phase 0 — Reset Database
@@ -496,6 +513,13 @@ Safe to run before journey flows. Tests full CRUD on all lookup/configuration ta
 | `testVehicleStatusWorkflow`               | VehicleStatus               | `GET/POST/PUT/DELETE /api/vehicleStatus`                                      |
 | `testUserRefundWorkflow`                  | UserRefund                  | `GET/POST/PATCH/DELETE /api/finance/userRefund`                               |
 | `testDriverEarningWorkflow`               | DriverEarning               | `GET /api/finance/driverEarning`                                              |
+| `testPaymentStatusWorkflow`               | PaymentStatus               | `GET/POST/PUT/DELETE /api/finance/paymentStatus`                              |
+| `testPaymentMethodWorkflow`               | PaymentMethod               | `GET/POST/PUT/DELETE /api/finance/paymentMethod`                              |
+| `testCommissionRatesWorkflow`             | CommissionRates             | `GET/POST/PUT/DELETE /api/finance/commissionRates`                            |
+| `testSubscriptionPlanPricingWorkflow`     | SubscriptionPlanPricing     | `GET/POST/PUT/DELETE /api/finance/subscriptionPlanPricing`                    |
+| `testTariffRateForVehicleTypeWorkflow`    | TariffRateForVehicleType    | `GET/POST/PUT/DELETE /api/finance/tariffRateForVehicleType`                   |
+| `testRolesWorkFlows`                      | Roles                       | `GET/POST/PUT/DELETE /api/admin/roles`                                        |
+| `testSMSSenderWorkflow`                   | SMSSender                   | `GET/POST/PUT/DELETE /smsSender`                                              |
 
 ---
 
@@ -593,6 +617,12 @@ Tests entities that can only be meaningfully exercised after journey data exists
 | `testJourneyPaymentsWorkflow`   | GET/POST/PUT/DELETE journey payments (future use)                  |
 | `testCompanyMembershipWorkflow` | GET/POST/PATCH/DELETE company memberships (needs company data)     |
 | `testCompanyRatingWorkflow`     | GET/POST/PUT/DELETE company ratings (needs company bid data)       |
+| `testJourneyRoutePointsWorkflow`| Full CRUD on route points (needs active/completed journey)         |
+| `testVehicleDriverWorkflow`     | CRUD for vehicle-driver assignments                               |
+| `testVehicleOwnershipWorkflow`  | CRUD for vehicle ownership records                                |
+| `testShipperRequestBatchWorkflow` | CRUD for shipper request batches                                |
+| `testAccountWorkflow`           | GET account data, GET account status                              |
+| `testMarkAsSeenWorkflow`        | Mark cancellations, negative status, completions as seen          |
 
 ---
 
@@ -651,9 +681,22 @@ testCompanyBanWorkflow()
   └─ Admin bans company:
      POST /api/company/admin/delinquency/bans
      { companyUniqueId, companyDelinquencyUniqueId, banReason, banDurationDays }
-  └─ Admin unbans:
+       └─ Admin unbans:
      PATCH /api/company/admin/delinquency/bans/:companyBanUniqueId/unban
 ```
+
+---
+
+### Phase F — Analytics & System Admin Tests
+
+Runs after all journey and delinquency data exists. Tests analytical queries and diagnostic admin endpoints.
+
+| Test | Description |
+|------|-------------|
+| `testAnalyticsWorkflow` | GET canceled journey counts by date/reason, GET users by filter, GET vehicles by filter |
+| `testSystemAdminWorkflow` | GET system logs, GET database stats, POST admin payments (edge case) |
+
+**File:** `Analytics/Analytics.js` → `testAnalyticsWorkflow()`, `Analytics/SystemAdmin.js` → `testSystemAdminWorkflow()`
 
 ---
 
@@ -862,6 +905,39 @@ node -e "require('./E2ETests/Company/CompanyDelinquency').testCompanyDelinquency
 
 # Database reset only
 node -e "require('./E2ETests/DataBaseManagement').resetDatabase()"
+
+# Company role CRUD only
+node -e "require('./E2ETests/Company/CompanyRole').testCompanyRoleWorkflow()"
+
+# Vehicle status CRUD only
+node -e "require('./E2ETests/Vehicles/VehicleStatus').testVehicleStatusWorkflow()"
+
+# User refund CRUD only
+node -e "require('./E2ETests/Finance/UserRefund').testUserRefundWorkflow()"
+
+# Driver earnings (GET only)
+node -e "require('./E2ETests/Finance/DriverEarning').testDriverEarningWorkflow()"
+
+# Admin user role CRUD only
+node -e "require('./E2ETests/Admin/UserRole').testUserRoleWorkflow()"
+
+# Commission CRUD only (needs journey data)
+node -e "require('./E2ETests/Finance/Commission').testCommissionWorkflow()"
+
+# Payments CRUD only (needs journey data)
+node -e "require('./E2ETests/Finance/Payments').testPaymentsWorkflow()"
+
+# Company membership CRUD only (needs company data)
+node -e "require('./E2ETests/Company/CompanyMembership').testCompanyMembershipWorkflow()"
+
+# Company rating CRUD only (needs company bid data)
+node -e "require('./E2ETests/Company/CompanyRating').testCompanyRatingWorkflow()"
+
+# Analytics queries only
+node -e "require('./E2ETests/Analytics').testAnalyticsWorkflow()"
+
+# System admin queries only
+node -e "require('./E2ETests/Analytics').testSystemAdminWorkflow()"
 ```
 
 ### Toggle phases in `index.js`

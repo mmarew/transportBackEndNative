@@ -11,7 +11,7 @@ const {
 } = require("./DriverTransfer");
 const {
   testCreateFinancialInstitutionAccount,
-} = require("./FinancialInstitutions");
+} = require("../../Finance/FinancialInstitutionAccount");
 const { authConfig } = require("./DriverSubscription");
 
 const getDriverWalletOverview = async ({ userType = "driver" } = {}) => {
@@ -50,7 +50,7 @@ const getDriverWalletOverview = async ({ userType = "driver" } = {}) => {
 const testDriverWalletFlow = async ({ userType = "driver" } = {}) => {
   console.log("\n✅ ========== DRIVER WALLET FLOW STARTED ==========");
   const financialAccount = await testCreateFinancialInstitutionAccount({
-    userType,
+    user: usersData[userType],
   });
   const accountUniqueId = financialAccount?.data?.accountUniqueId;
   // if (!accountUniqueId) {

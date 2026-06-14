@@ -1,8 +1,8 @@
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { usersData, backendURL } = require("../../constants");
-const { getDepositSources } = require("./DepositSources ");
-const { getFinancialInstitutionAccounts } = require("./FinancialInstitutions");
+const { testGetDepositSources } = require("../../Finance/DepositSource");
+const { testGetFinancialInstitutionAccounts } = require("../../Finance/FinancialInstitutionAccount");
 const { authConfig } = require("./DriverSubscription");
 
 const getAdminToken = () => {
@@ -69,7 +69,7 @@ const createDriverDeposit = async ({
     throw new Error("Driver token is required to create a deposit.");
   }
 
-  const depositSourcesData = await getDepositSources({ userType });
+  const depositSourcesData = await testGetDepositSources({});
   const depositSources = depositSourcesData?.data || [];
   if (depositSources.length === 0) {
     throw new Error("No deposit sources available for the driver.");
@@ -167,7 +167,7 @@ const testDriverDepositFlow = async ({ userType = "driver" } = {}) => {
   //   const accountPayload = await createFinancialInstitutionAccount({ userType });
   //   console.log("🚀 ~ testDriverDepositFlow ~ accountPayload:", accountPayload);
   //   const accountUniqueId = accountPayload?.data?.accountUniqueId;
-  const financialAccounts = await getFinancialInstitutionAccounts({ userType });
+  const financialAccounts = await testGetFinancialInstitutionAccounts({ user: usersData[userType] });
   console.log(
     "🚀 ~ testDriverDepositFlow ~ financialAccounts:",
     financialAccounts,
