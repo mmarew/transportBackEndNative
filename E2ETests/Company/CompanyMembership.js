@@ -8,6 +8,22 @@ const { authConfig } = require("../Utils");
 const BASE_URL = "/api/company/memberships";
 const cache = { data: null };
 
+const resolveCompanyRoleUniqueId = async (token) => {
+  try {
+    const res = await axios.get(
+      backendURL + "/api/company/roles",
+      authConfig(token),
+    );
+    const list = res.data.data || res.data;
+    if (!Array.isArray(list)) return null;
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const valid = list.find((r) => uuidPattern.test(r.companyRoleUniqueId));
+    return valid?.companyRoleUniqueId || null;
+  } catch {
+    return null;
+  }
+};
+
 const testGetCompanyMemberships = async ({ user, filters = {} } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
@@ -52,10 +68,11 @@ const testCreateCompanyMembership = async ({ user, payload } = {}) => {
       );
       return { skipped: true };
     }
+    const companyRoleUniqueId =
+      payload?.companyRoleUniqueId || (await resolveCompanyRoleUniqueId(token));
     const defaultPayload = {
       companyUniqueId,
-      companyRoleUniqueId:
-        payload?.companyRoleUniqueId || "00000000-0000-0000-0000-000000000001",
+      companyRoleUniqueId,
       membershipStartDate: "2026-01-01",
       ...payload,
     };

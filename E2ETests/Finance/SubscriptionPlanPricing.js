@@ -4,6 +4,7 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
+const { testCreateSubscriptionPlan } = require("./SubscriptionPlan");
 
 const BASE_URL = "/api/finance/subscriptionPlanPricing";
 const cache = { data: null };
@@ -34,18 +35,23 @@ const testCreateSubscriptionPlanPricing = async ({ user, subscriptionPlanUniqueI
       return { skipped: true };
     }
 
+    const tomorrow = new Date(Date.now() + 86400000);
+    const effectiveFrom = tomorrow.toISOString().split("T")[0];
+    const effectiveTo = new Date(tomorrow.getTime() + 30 * 86400000).toISOString().split("T")[0];
     const defaultPayload = {
       subscriptionPlanUniqueId: planId,
-      price: 750,
+      price: 750 + (Date.now() % 250),
       currency: "ETB",
       durationInDays: 30,
+      effectiveFrom,
+      effectiveTo,
       ...payload,
     };
     const result = await axios.post(backendURL + BASE_URL, defaultPayload, authConfig(token));
     console.log("✅ SubscriptionPlanPricing created:", result.data.subscriptionPlanPricingUniqueId || result.data.data?.subscriptionPlanPricingUniqueId);
     return result.data;
   } catch (error) {
-    console.error("❌ testCreateSubscriptionPlanPricing:", error.response?.data?.error || error.message);
+    console.error("❌ testCreateSubscriptionPlanPricing:", JSON.stringify(error.response?.data || error.message));
     throw error;
   }
 };
@@ -84,11 +90,13 @@ const testDeleteSubscriptionPlanPricing = async ({ user, subscriptionPlanPricing
 const testSubscriptionPlanPricingWorkflow = async ({ user = usersData.admin } = {}) => {
   console.log("\n── SubscriptionPlanPricing Workflow ──");
 
-  // Fetch existing pricings first to get a planId
-  await testGetSubscriptionPlanPricings({ user });
-
-  // Get a subscriptionPlanUniqueId from the first existing pricing record
-  const planId = cache.data?.[0]?.subscriptionPlanUniqueId;
+  // Create a fresh plan to avoid seed data date-range overlap conflicts
+  const planResult = await testCreateSubscriptionPlan({ user });
+  const planId = planResult?.subscriptionPlanUniqueId || planResult?.data?.subscriptionPlanUniqueId;
+  if (!planId) {
+    console.warn("⏩ Skipped — could not create a subscription plan for pricing");
+    return { skipped: true };
+  }
 
   const created = await testCreateSubscriptionPlanPricing({ user, subscriptionPlanUniqueId: planId });
   if (created?.skipped) {

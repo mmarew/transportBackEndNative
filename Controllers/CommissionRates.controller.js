@@ -8,7 +8,11 @@ const createCommissionRate = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async () => {
       const commissionRateUniqueId = uuidv4();
-      const { commissionRate, commissionRateEffectiveDate } = req.body;
+      const {
+        commissionRate,
+        commissionRateEffectiveDate,
+        commissionRateExpirationDate,
+      } = req.body;
       const user = req.user;
       const userUniqueId = user.userUniqueId;
 
@@ -16,6 +20,7 @@ const createCommissionRate = async (req, res, next) => {
         commissionRateUniqueId,
         commissionRate,
         commissionRateEffectiveDate,
+        commissionRateExpirationDate,
         commissionRateCreatedBy: userUniqueId,
       });
     });

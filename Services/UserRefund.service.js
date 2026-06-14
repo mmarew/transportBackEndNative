@@ -6,7 +6,7 @@ const messageTypes = require("../Utils/MessageTypes");
 const { v4: uuidv4 } = require("uuid");
 const { prepareAndCreateNewBalance } = require("./UserBalance.service/UserBalance.post.service");
 const { currentDate } = require("../Utils/CurrentDate");
-const { getUserByUserUniqueId } = require("../CRUD/Read/ReadData");
+const { getUserByUserUniqueId } = require("./User.service");
 const { sendSocketIONotificationToDriver } = require("../Utils/Notifications");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
@@ -56,7 +56,7 @@ const createUserRefund = async ({
     await getDriverLastBalanceByUserUniqueId(userUniqueId);
 
   // Assuming getDriverLastBalanceByUserUniqueId now throws AppError on failure
-  const currentBalance = balanceResult?.netBalance || 0;
+  const currentBalance = balanceResult?.data?.netBalance || 0;
 
   if (Number(currentBalance) < Number(refundAmount)) {
     throw new AppError(

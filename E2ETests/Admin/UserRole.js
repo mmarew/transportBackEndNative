@@ -35,7 +35,7 @@ const testCreateUserRole = async ({ user, payload } = {}) => {
       userUniqueId:
         payload?.userUniqueId ||
         usersData?.driver?.accountData?.userData?.userUniqueId,
-      roleId: 2,
+      roleId: 3,
       ...payload,
     };
     if (!defaultPayload.userUniqueId) {

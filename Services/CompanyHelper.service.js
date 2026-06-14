@@ -8,10 +8,19 @@ const db = () => transactionStorage.getStore() || pool;
 
 async function findOne(table, conditions, errorMsg, errorCode = 404) {
   const keys = Object.keys(conditions);
+  const clauses = [];
+  const vals = [];
 
-  const where = keys?.map((k) => `${k} = ?`)?.join(" AND ");
+  for (const k of keys) {
+    if (conditions[k] === null) {
+      clauses.push(`${k} IS NULL`);
+    } else {
+      clauses.push(`${k} = ?`);
+      vals.push(conditions[k]);
+    }
+  }
 
-  const vals = keys?.map((k) => conditions[k]) || [];
+  const where = clauses.join(" AND ");
 
   const [rows] = await db().query(
     `SELECT * FROM ${table} WHERE ${where} LIMIT 1`,

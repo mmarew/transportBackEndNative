@@ -67,7 +67,7 @@ const testUpdateUserRefund = async ({
     if (!token) throw new Error("token not found");
     const id = userRefundUniqueId || cache.data?.[0]?.userRefundUniqueId;
     if (!id) throw new Error("No userRefundUniqueId found to update");
-    const defaultPayload = { status: "APPROVED", ...payload };
+    const defaultPayload = { refundStatus: "approved", ...payload };
     const result = await axios.patch(
       `${backendURL}${BASE_URL}/${id}`,
       defaultPayload,

@@ -33,10 +33,11 @@ const resolveCommissionRateId = async (token) => {
       backendURL + "/api/finance/commissionRates",
       authConfig(token),
     );
-    return (
-      res.data.data?.[0]?.commissionRateUniqueId ||
-      res.data?.[0]?.commissionRateUniqueId
-    );
+    const list = res.data.data || res.data;
+    if (!Array.isArray(list)) return null;
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const valid = list.find((r) => uuidPattern.test(r.commissionRateUniqueId));
+    return valid?.commissionRateUniqueId || null;
   } catch {
     return null;
   }
