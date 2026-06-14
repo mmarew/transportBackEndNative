@@ -1,89 +1,51 @@
-const { usersData, backendURL } = require("../constants");
-const { authConfig } = require("../Utils");
+const { usersData } = require("../constants");
 const { createDriverDocument } = require("./DriversDocuments");
 const { createVehicle, attachVehiclesDocuments } = require("./VehicleDriver");
-const axios = require("axios");
+const { testGetAccountData } = require("../Auth/Account");
 
+// Thin wrapper kept for backward compatibility — delegates to testGetAccountData
 const getDriversAccountData = async ({ token, isFetchMandatory = true }) => {
-  if (!isFetchMandatory && usersData["driver"]["accountData"])
-    return usersData["driver"]["accountData"];
-  if (!token) {
+  if (!token && !usersData.driver?.token) {
     throw new Error("Driver token is missing. Cannot fetch account data.");
   }
-
-  const config = {
-    ...authConfig(token),
-  };
-  try {
-    const res = await axios.get(backendURL + "/api/driver/account", config);
-    console.log("✅ Driver Account Data fetched");
-    usersData["driver"]["accountData"] = res.data;
-    return res.data;
-  } catch (error) {
-    console.error(
-      "❌ Failed to get driver account data:",
-      error.response?.data?.error || error.message,
-    );
-    throw error; // Re-throw to stop execution
-  }
+  return testGetAccountData({ userType: "driver", isFetchMandatory });
 };
 
 const evaluateDriversDocumentVehicleRequirement = async () => {
-  const userData = usersData["driver"];
-  const token = userData?.token;
-
-  if (!token) {
-    throw new Error(
-      "Driver token is missing. Cannot evaluate document requirements.",
-    );
-  }
+  const token = usersData.driver?.token;
+  if (!token) throw new Error("Driver token is missing. Cannot evaluate document requirements.");
 
   // 1. Fetch current account data
-  let accountData = await getDriversAccountData({ token });
-  if (!accountData) {
-    throw new Error("Failed to fetch driver account data");
-  }
+  let accountData = await testGetAccountData({ userType: "driver" });
+  if (!accountData) throw new Error("Failed to fetch driver account data");
 
-  // 2. If no vehicle, create one and re-fetch account data
+  // 2. If no vehicle, create one and re-fetch
   if (!accountData.vehicle) {
     await createVehicle(token);
-    accountData = await getDriversAccountData({ token });
-
-    if (!accountData.vehicle) {
-      throw new Error("Failed to create vehicle for driver");
-    }
+    accountData = await testGetAccountData({ userType: "driver" });
+    if (!accountData.vehicle) throw new Error("Failed to create vehicle for driver");
   }
 
   const vehicleUniqueId = accountData?.vehicle?.vehicleUniqueId;
 
-  // --- Track already uploaded documents ---
+  // Track already uploaded documents to avoid duplicates
   const uploadedDocumentTypeIds = new Set();
   if (accountData?.attachedDocumentsByStatus) {
-    const statuses = ["PENDING", "ACCEPTED", "REJECTED"];
-    for (const status of statuses) {
-      const docsList = accountData.attachedDocumentsByStatus[status] || [];
-      docsList.forEach((doc) => {
+    for (const status of ["PENDING", "ACCEPTED", "REJECTED"]) {
+      (accountData.attachedDocumentsByStatus[status] || []).forEach((doc) => {
         uploadedDocumentTypeIds.add(doc.documentTypeId);
       });
     }
   }
 
-  // 3. Process unAttached documents (both user and vehicle docs)
+  // 3. Upload missing documents
   const unAttachedDocumentTypes = accountData?.unAttachedDocumentTypes || [];
-
   if (unAttachedDocumentTypes.length > 0) {
     for (const documentType of unAttachedDocumentTypes) {
       if (!uploadedDocumentTypeIds.has(documentType.documentTypeId)) {
-        // Vehicle documents (roleId === 9)
         if (documentType.roleId === 9 && vehicleUniqueId) {
-          await attachVehiclesDocuments({
-            token,
-            documentType,
-            vehicleUniqueId,
-          });
-        }
-        // User documents (roleId === 2)
-        else if (documentType.roleId === 2) {
+          await attachVehiclesDocuments({ token, documentType, vehicleUniqueId });
+        } else if (documentType.roleId === 2) {
           await createDriverDocument(token, documentType);
         }
         uploadedDocumentTypeIds.add(documentType.documentTypeId);

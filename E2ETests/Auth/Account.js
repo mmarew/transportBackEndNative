@@ -1,100 +1,73 @@
-// Account Status & Profile Endpoints
-// Tests the "account" endpoints used by all role types to get their own profile data.
-// Routes are: /api/account/status, /api/driver/account (via companyAdmin), etc.
+// Account endpoints — profile and status for all role types.
+// Use testGetAccountData(userType) as the single source for fetching any user's account.
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
-const {
-  ACCOUNT_ENDPOINTS,
-} = require("../../Routes/EndPoints/account.endpoints");
+const { ACCOUNT_ENDPOINTS } = require("../../Routes/EndPoints/account.endpoints");
 
-// ── GET: /api/account/status ──────────────────────────────────────────────────
-// Returns the current account status for the authenticated user.
-const testGetAccountStatus = async ({ userType = "driver" } = {}) => {
+// Role → account endpoint mapping
+const ROLE_ACCOUNT_ENDPOINTS = {
+  driver: ACCOUNT_ENDPOINTS.DRIVER_ACCOUNT,
+  shipper: ACCOUNT_ENDPOINTS.SHIPPER_ACCOUNT,
+  companyAdmin: ACCOUNT_ENDPOINTS.COMPANY_ADMIN_ACCOUNT,
+  dispatcher: ACCOUNT_ENDPOINTS.DISPATCHER_ACCOUNT,
+};
+
+// ── GET account data for any role ─────────────────────────────────────────────
+// Replaces getDriversAccountData, getShipperAccountData, etc.
+// Caches the result back into usersData[userType].accountData
+const testGetAccountData = async ({ userType = "driver", isFetchMandatory = true } = {}) => {
+  // Return cached data if available and fetch is not mandatory
+  if (!isFetchMandatory && usersData[userType]?.accountData) {
+    return usersData[userType].accountData;
+  }
+
+  const token = usersData[userType]?.token;
+  if (!token) {
+    console.warn(`⏩ testGetAccountData (${userType}) skipped — no token`);
+    return null;
+  }
+
+  const endpoint = ROLE_ACCOUNT_ENDPOINTS[userType];
+  if (!endpoint) {
+    console.warn(`⏩ testGetAccountData skipped — no account endpoint for role: ${userType}`);
+    return null;
+  }
+
   try {
-    const token = usersData?.[userType]?.token;
-    const adminToken = usersData.admin.token;
-    if (!token) {
-      console.log(`⏩ testGetAccountStatus (${userType}) skipped — no token`);
-      return { skipped: true };
-    }
-    console.log(
-      " users data ",
-      `?roleId=${usersData[userType].roleId}&phoneNumber=${usersData[userType].phoneNumber}`,
-    );
+    const result = await axios.get(backendURL + endpoint, authConfig(token));
+    console.log(`✅ Account data fetched (${userType})`);
+    usersData[userType].accountData = result.data;
+    return result.data;
+  } catch (error) {
+    console.error(`❌ testGetAccountData (${userType}):`, error.response?.data?.error || error.message);
+    throw error;
+  }
+};
+
+// ── GET account status (admin queries any user's status by phone + roleId) ────
+const testGetAccountStatus = async ({ userType = "driver" } = {}) => {
+  const token = usersData.admin?.token;
+  const userData = usersData[userType];
+
+  if (!token) throw new Error("admin token not found");
+  if (!userData?.token) {
+    console.warn(`⏩ testGetAccountStatus (${userType}) skipped — no token`);
+    return { skipped: true };
+  }
+
+  try {
     const result = await axios.get(
       backendURL +
         ACCOUNT_ENDPOINTS.ACCOUNT_STATUS +
-        `?roleId=${usersData[userType].roleId}&phoneNumber=${encodeURIComponent(usersData[userType].phoneNumber)}`,
-      authConfig(adminToken),
-    );
-    console.log(
-      `✅ Account status (${userType}):`,
-      result.data?.status ?? result.data?.data?.status ?? "OK",
-    );
-    return result.data;
-  } catch (error) {
-    console.error(
-      `❌ testGetAccountStatus (${userType}):`,
-      error.response?.data?.error || error.message,
-    );
-    throw error;
-  }
-};
-
-// ── GET: /api/driver/account ──────────────────────────────────────────────────
-const testGetDriverAccountMe = async ({ userType = "driver" } = {}) => {
-  try {
-    const token = usersData?.[userType]?.token;
-    if (!token) {
-      console.log(`⏩ testGetDriverAccountMe skipped — no ${userType} token`);
-      return { skipped: true };
-    }
-    const result = await axios.get(
-      backendURL + ACCOUNT_ENDPOINTS.DRIVER_ACCOUNT,
+        `?roleId=${userData.roleId}&phoneNumber=${encodeURIComponent(userData.phoneNumber)}`,
       authConfig(token),
     );
-    console.log(
-      "✅ Driver account (me) fetched:",
-      result.data?.data?.userUniqueId ?? "OK",
-    );
+    console.log(`✅ Account status (${userType}):`, result.data?.data?.currentStatusName ?? result.data?.status ?? "OK");
     return result.data;
   } catch (error) {
-    console.error(
-      "❌ testGetDriverAccountMe:",
-      error.response?.data?.error || error.message,
-    );
-    throw error;
-  }
-};
-
-// ── GET: /api/companyAdmin/account ────────────────────────────────────────────
-const testGetCompanyAdminAccountMe = async ({
-  userType = "companyAdmin",
-} = {}) => {
-  try {
-    const token = usersData?.[userType]?.token;
-    if (!token) {
-      console.log(
-        `⏩ testGetCompanyAdminAccountMe skipped — no ${userType} token`,
-      );
-      return { skipped: true };
-    }
-    const result = await axios.get(
-      backendURL + ACCOUNT_ENDPOINTS.COMPANY_ADMIN_ACCOUNT,
-      authConfig(token),
-    );
-    console.log(
-      "✅ CompanyAdmin account (me) fetched:",
-      result.data?.data?.userUniqueId ?? "OK",
-    );
-    return result.data;
-  } catch (error) {
-    console.error(
-      "❌ testGetCompanyAdminAccountMe:",
-      error.response?.data?.error || error.message,
-    );
+    console.error(`❌ testGetAccountStatus (${userType}):`, error.response?.data?.error || error.message);
     throw error;
   }
 };
@@ -103,17 +76,23 @@ const testGetCompanyAdminAccountMe = async ({
 const testAccountWorkflow = async () => {
   console.log("\n── Account Workflow ──");
 
+  // Fetch account data for all active users
+  await testGetAccountData({ userType: "driver" });
+  await testGetAccountData({ userType: "shipper" });
+  await testGetAccountData({ userType: "companyAdmin" });
+
+  // Check account status via admin
   await testGetAccountStatus({ userType: "driver" });
   await testGetAccountStatus({ userType: "shipper" });
-  await testGetDriverAccountMe({ userType: "driver" });
-  await testGetCompanyAdminAccountMe({ userType: "companyAdmin" });
 
   console.log("── Account Workflow complete ──\n");
 };
 
 module.exports = {
   testAccountWorkflow,
+  testGetAccountData,
   testGetAccountStatus,
-  testGetDriverAccountMe,
-  testGetCompanyAdminAccountMe,
+  // Keep old names as aliases so existing imports don't break
+  testGetDriverAccountMe: (opts) => testGetAccountData({ userType: "driver", ...opts }),
+  testGetCompanyAdminAccountMe: (opts) => testGetAccountData({ userType: "companyAdmin", ...opts }),
 };

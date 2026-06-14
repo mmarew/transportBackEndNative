@@ -1,7 +1,7 @@
 const { testAuthWorkFlow } = require("../Auth");
-const { usersData, backendURL } = require("../constants");
+const { usersData } = require("../constants");
 const { createDriverDocument } = require("../Driver/DriversDocuments");
-const { authConfig } = require("../Utils");
+const { testGetAccountData } = require("../Auth/Account");
 const {
   testCreateShipperRequest,
   testRejectDriverOffer,
@@ -11,23 +11,9 @@ const {
   testGetShipperRequests,
 } = require("./ShipperRequest");
 const { verifyShipperStatus } = require("./VerifyShipperStatus");
-const axios = require("axios");
 
-// ── Account data ──────────────────────────────────────────────────────────────
-const getShipperAccountData = async (token) => {
-  const config = { ...authConfig(token) };
-  try {
-    const res = await axios.get(backendURL + "/api/shipper/account", config);
-    console.log("✅ Success! Shipper Account Data fetched.");
-    usersData["shipper"]["accountData"] = res.data;
-    return res.data;
-  } catch (error) {
-    console.log("❌ Failed to get shipper account data.");
-    if (error.response) {
-      console.log(
-        "Server responded with:",
-        error.response.data.error?.details || error.response.data,
-      );
+// Backward-compat alias
+const getShipperAccountData = (token) => testGetAccountData({ userType: "shipper" });
     } else {
       console.log("Raw Error:", error.message);
     }
