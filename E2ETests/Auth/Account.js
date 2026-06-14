@@ -14,15 +14,31 @@ const {
 const testGetAccountStatus = async ({ userType = "driver" } = {}) => {
   try {
     const token = usersData?.[userType]?.token;
+    const adminToken = usersData.admin.token;
     if (!token) {
       console.log(`⏩ testGetAccountStatus (${userType}) skipped — no token`);
       return { skipped: true };
     }
-    const result = await axios.get(backendURL + ACCOUNT_ENDPOINTS.ACCOUNT_STATUS, authConfig(token));
-    console.log(`✅ Account status (${userType}):`, result.data?.status ?? result.data?.data?.status ?? "OK");
+    console.log(
+      " users data ",
+      `?roleId=${usersData[userType].roleId}&phoneNumber=${usersData[userType].phoneNumber}`,
+    );
+    const result = await axios.get(
+      backendURL +
+        ACCOUNT_ENDPOINTS.ACCOUNT_STATUS +
+        `?roleId=${usersData[userType].roleId}&phoneNumber=${encodeURIComponent(usersData[userType].phoneNumber)}`,
+      authConfig(adminToken),
+    );
+    console.log(
+      `✅ Account status (${userType}):`,
+      result.data?.status ?? result.data?.data?.status ?? "OK",
+    );
     return result.data;
   } catch (error) {
-    console.error(`❌ testGetAccountStatus (${userType}):`, error.response?.data?.error || error.message);
+    console.error(
+      `❌ testGetAccountStatus (${userType}):`,
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -35,28 +51,50 @@ const testGetDriverAccountMe = async ({ userType = "driver" } = {}) => {
       console.log(`⏩ testGetDriverAccountMe skipped — no ${userType} token`);
       return { skipped: true };
     }
-    const result = await axios.get(backendURL + ACCOUNT_ENDPOINTS.DRIVER_ACCOUNT, authConfig(token));
-    console.log("✅ Driver account (me) fetched:", result.data?.data?.userUniqueId ?? "OK");
+    const result = await axios.get(
+      backendURL + ACCOUNT_ENDPOINTS.DRIVER_ACCOUNT,
+      authConfig(token),
+    );
+    console.log(
+      "✅ Driver account (me) fetched:",
+      result.data?.data?.userUniqueId ?? "OK",
+    );
     return result.data;
   } catch (error) {
-    console.error("❌ testGetDriverAccountMe:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetDriverAccountMe:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
 
 // ── GET: /api/companyAdmin/account ────────────────────────────────────────────
-const testGetCompanyAdminAccountMe = async ({ userType = "companyAdmin" } = {}) => {
+const testGetCompanyAdminAccountMe = async ({
+  userType = "companyAdmin",
+} = {}) => {
   try {
     const token = usersData?.[userType]?.token;
     if (!token) {
-      console.log(`⏩ testGetCompanyAdminAccountMe skipped — no ${userType} token`);
+      console.log(
+        `⏩ testGetCompanyAdminAccountMe skipped — no ${userType} token`,
+      );
       return { skipped: true };
     }
-    const result = await axios.get(backendURL + ACCOUNT_ENDPOINTS.COMPANY_ADMIN_ACCOUNT, authConfig(token));
-    console.log("✅ CompanyAdmin account (me) fetched:", result.data?.data?.userUniqueId ?? "OK");
+    const result = await axios.get(
+      backendURL + ACCOUNT_ENDPOINTS.COMPANY_ADMIN_ACCOUNT,
+      authConfig(token),
+    );
+    console.log(
+      "✅ CompanyAdmin account (me) fetched:",
+      result.data?.data?.userUniqueId ?? "OK",
+    );
     return result.data;
   } catch (error) {
-    console.error("❌ testGetCompanyAdminAccountMe:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetCompanyAdminAccountMe:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };

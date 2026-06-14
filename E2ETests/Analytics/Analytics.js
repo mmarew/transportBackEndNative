@@ -16,9 +16,13 @@ const testGetCanceledJourneyCountsByDate = async ({ user } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
+    // fromDate and toDate are required — use a wide range to catch all test data
+    const fromDate = "2020-01-01";
+    const toDate = new Date().toISOString().split("T")[0]; // today
     const result = await axios.get(
       backendURL +
-        CANCELED_JOURNEYS_ENDPOINTS.GET_CANCELED_JOURNEY_COUNTS_BY_DATE,
+        CANCELED_JOURNEYS_ENDPOINTS.GET_CANCELED_JOURNEY_COUNTS_BY_DATE +
+        `?fromDate=${fromDate}&toDate=${toDate}`,
       authConfig(token),
     );
     console.log(
