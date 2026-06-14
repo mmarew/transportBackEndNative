@@ -80,22 +80,24 @@ try {
     socketPath: DB_SOCKET_PATH || null,
   });
 
-  // Verify connectivity on startup (fail fast)
-  (async () => {
-    try {
-      await pool.query("SELECT 1");
-      logger.info("MySQL connectivity check succeeded");
-    } catch (err) {
-      logger.error("MySQL connectivity check failed", {
-        code: err.code,
-        errno: err.errno,
-        sqlState: err.sqlState,
-        message: err.message,
-      });
-      // Do not crash the app; let requests surface DB errors while we log them
-      // throw err;
-    }
-  })();
+  // Verify connectivity on startup (fail fast) — skip in test mode to avoid
+  // "import after teardown" ReferenceErrors when skipped test suites finish
+  // before the async handshake completes.
+  if (process.env.NODE_ENV !== "test") {
+    (async () => {
+      try {
+        await pool.query("SELECT 1");
+        logger.info("MySQL connectivity check succeeded");
+      } catch (err) {
+        logger.error("MySQL connectivity check failed", {
+          code: err.code,
+          errno: err.errno,
+          sqlState: err.sqlState,
+          message: err.message,
+        });
+      }
+    })();
+  }
 
   // Attach connection-level error listener
   pool.on("connection", (connection) => {

@@ -36,6 +36,7 @@ const validator = (schema, source = "body") => {
     });
 
     if (error) {
+      const errMsg = error.details?.map((d) => d.message).join("; ");
       const details = error.details?.map((d) => ({
         field: d.path?.join(".") || d.context?.key,
         message: d.message,
@@ -55,7 +56,7 @@ const validator = (schema, source = "body") => {
       return next(
         new AppError(
           {
-            message: "Validation failed",
+            message: errMsg || "Validation failed",
             code: "VALIDATION_ERROR",
             details,
           },

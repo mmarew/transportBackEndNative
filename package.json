@@ -4,7 +4,7 @@
   "main": "App.js",
   "scripts": {
     "test": "jest",
-    "test:log": "rm -f test.log && npx jest --no-coverage --forceExit --verbose > test.log 2>&1; tail -20 test.log | grep -E '^(PASS|FAIL|Test Suites|Tests:|Suites:|Snapshot:)'; echo 'Full output in test.log'",
+    "test:log": "rm -f test.log && npx jest --no-coverage --verbose > test.log 2>&1; tail -20 test.log | grep -E '^(PASS|FAIL|Test Suites|Tests:|Suites:|Snapshot:)'; echo 'Full output in test.log'",
     "test:e2e": "node E2ETests/index.js",
     "test:e2e:log": "rm -f test-e2e.log && node E2ETests/index.js > test-e2e.log 2>&1; tail -10 test-e2e.log; echo 'Full output in test-e2e.log'",
     "test:watch": "jest --watch",

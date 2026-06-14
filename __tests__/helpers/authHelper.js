@@ -18,7 +18,9 @@ const createUserAndLogin = async (roleId) => {
       userRoleStatusDescription: "E2E Test Description",
     });
   if (createRes.status >= 500) {
-    throw new Error(`createUser failed: ${createRes.status} – ${JSON.stringify(createRes.body)}`);
+    throw new Error(
+      `createUser failed: ${createRes.status} – ${JSON.stringify(createRes.body)}`,
+    );
   }
 
   const verifyRes = await request(app)
