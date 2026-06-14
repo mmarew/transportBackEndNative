@@ -6,6 +6,11 @@ const { testDepositSourceWorkflow, testGetDepositSources } = require("./DepositS
 const { testFinancialInstitutionAccountWorkflow, testGetFinancialInstitutionAccounts } = require("./FinancialInstitutionAccount");
 const { testSubscriptionPlanWorkflow, testGetSubscriptionPlans } = require("./SubscriptionPlan");
 const { testRatingsWorkflow, testGetRatings } = require("./Ratings");
+const { testPaymentStatusWorkflow, testGetPaymentStatuses } = require("./PaymentStatus");
+const { testPaymentMethodWorkflow, testGetPaymentMethods } = require("./PaymentMethod");
+const { testCommissionRatesWorkflow, testGetCommissionRates } = require("./CommissionRates");
+const { testSubscriptionPlanPricingWorkflow, testGetSubscriptionPlanPricings } = require("./SubscriptionPlanPricing");
+const { testTariffRateForVehicleTypeWorkflow, testGetTariffRatesForVehicleTypes } = require("./TariffRateForVehicleType");
 
 module.exports = {
   testCommissionStatusWorkflow,
@@ -20,4 +25,14 @@ module.exports = {
   testGetSubscriptionPlans,
   testRatingsWorkflow,
   testGetRatings,
+  testPaymentStatusWorkflow,
+  testGetPaymentStatuses,
+  testPaymentMethodWorkflow,
+  testGetPaymentMethods,
+  testCommissionRatesWorkflow,
+  testGetCommissionRates,
+  testSubscriptionPlanPricingWorkflow,
+  testGetSubscriptionPlanPricings,
+  testTariffRateForVehicleTypeWorkflow,
+  testGetTariffRatesForVehicleTypes,
 };

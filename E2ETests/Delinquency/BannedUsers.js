@@ -16,12 +16,7 @@ const testGetBannedUsers = async ({ user, actionsAfter } = {}) => {
     const result = await axios.get(backendURL + BASE_URL, {
       headers: { Authorization: "Bearer " + token },
     });
-    console.log(
-      " actionsAfter:",
-      actionsAfter,
-      "✅ Banned users fetched:",
-      result.data.data,
-    );
+   
     //save bans data to variable for use in other tests
     bans.data = result.data.data;
     return result.data;

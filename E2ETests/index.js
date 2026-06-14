@@ -61,6 +61,11 @@ const {
   testSubscriptionPlanWorkflow,
   testRatingsWorkflow,
   testCommissionStatusWorkflow,
+  testPaymentStatusWorkflow,
+  testPaymentMethodWorkflow,
+  testCommissionRatesWorkflow,
+  testSubscriptionPlanPricingWorkflow,
+  testTariffRateForVehicleTypeWorkflow,
 } = require("./Finance");
 
 // ── Journey flow helpers ──────────────────────────────────────────────────────
@@ -102,8 +107,13 @@ const runReferenceCRUD = async () => {
   await testTariffRateWorkflow({});
   await testDepositSourceWorkflow({});
   await testFinancialInstitutionAccountWorkflow({});
-  await testSubscriptionPlanWorkflow({});
   await testCommissionStatusWorkflow({});
+  await testPaymentStatusWorkflow({});
+  await testPaymentMethodWorkflow({});
+  await testCommissionRatesWorkflow({});
+  await testSubscriptionPlanWorkflow({});
+  await testSubscriptionPlanPricingWorkflow({});
+  await testTariffRateForVehicleTypeWorkflow({});
   await testRolesWorkFlows();
   await testSMSSenderWorkflow({});
 
