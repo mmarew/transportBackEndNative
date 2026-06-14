@@ -47,6 +47,10 @@ const runIndividualFlow = async () => {
       usersData.driver.journeyStatus?.uniqueIds?.journeyUniqueId;
     if (jId) usersData.driver.lastJourneyUniqueId = jId;
 
+    const srId =
+      usersData.driver.journeyStatus?.uniqueIds?.shipperRequestUniqueId;
+    if (srId) usersData.driver.lastShipperRequestUniqueId = srId;
+
     await completeJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
@@ -55,3 +59,4 @@ const runIndividualFlow = async () => {
 };
 
 module.exports = { runIndividualFlow };
+

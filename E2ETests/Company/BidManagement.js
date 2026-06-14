@@ -176,10 +176,96 @@ const initiateCompanyBiddingWorkFlow = async ({
     return null;
   }
 };
+const updateBidStatus = async ({
+  userType = "companyAdmin",
+  companyBidRequestUniqueId,
+  bidStatus = "cancelled_by_company",
+} = {}) => {
+  const token = usersData?.[userType]?.token;
+  if (!token) { logCompanyError("No token for bid status update"); return null; }
+  if (!companyBidRequestUniqueId) { logCompanyError("No companyBidRequestUniqueId"); return null; }
+
+  const url = backendURL + COMPANY_BID_ENDPOINTS.UPDATE_BID_STATUS.replace(
+    ":companyBidRequestUniqueId", companyBidRequestUniqueId,
+  );
+
+  try {
+    const res = await axios.patch(url, { bidStatus }, authConfig(token));
+    console.log(`✅ Bid status updated to ${bidStatus}`);
+    return res.data.data;
+  } catch (error) {
+    logCompanyError("Failed to update bid status", error);
+    return null;
+  }
+};
+
+const deleteBid = async ({
+  userType = "companyAdmin",
+  companyBidRequestUniqueId,
+} = {}) => {
+  const token = usersData?.[userType]?.token;
+  if (!token) { logCompanyError("No token for bid deletion"); return null; }
+  if (!companyBidRequestUniqueId) { logCompanyError("No companyBidRequestUniqueId"); return null; }
+
+  const url = backendURL + COMPANY_BID_ENDPOINTS.DELETE_BID.replace(
+    ":companyBidRequestUniqueId", companyBidRequestUniqueId,
+  );
+
+  try {
+    const res = await axios.delete(url, authConfig(token));
+    console.log("✅ Bid deleted");
+    return res.data.data;
+  } catch (error) {
+    logCompanyError("Failed to delete bid", error);
+    return null;
+  }
+};
+
+const markBidAsSeen = async ({
+  userType = "companyAdmin",
+  companyBidRequestUniqueId,
+} = {}) => {
+  const token = usersData?.[userType]?.token;
+  if (!token) { logCompanyError("No token for markAsSeen"); return null; }
+  if (!companyBidRequestUniqueId) { logCompanyError("No companyBidRequestUniqueId"); return null; }
+
+  const url = backendURL + COMPANY_BID_ENDPOINTS.MARK_AS_SEEN.replace(
+    ":companyBidRequestUniqueId", companyBidRequestUniqueId,
+  );
+
+  try {
+    const res = await axios.patch(url, {}, authConfig(token));
+    console.log("✅ Bid marked as seen");
+    return res.data.data;
+  } catch (error) {
+    logCompanyError("Failed to mark bid as seen", error);
+    return null;
+  }
+};
+
+const testBidCRUDWorkflow = async ({ userType = "companyAdmin" } = {}) => {
+  console.log("\n── Bid CRUD Workflow ──");
+  const bid = usersData?.[userType]?.bids?.submitted?.[0]?.offers?.[0]
+    || usersData?.[userType]?.bids?.submitted?.[0];
+  if (!bid?.companyBidRequestUniqueId) {
+    console.log("⚠ No submitted bid available for CRUD tests");
+    return;
+  }
+  const { companyBidRequestUniqueId } = bid;
+  await updateBidStatus({ userType, companyBidRequestUniqueId, bidStatus: "cancelled_by_company" });
+  await markBidAsSeen({ userType, companyBidRequestUniqueId });
+  await getBids({ userType, bidStatus: "cancelled_by_company" });
+  console.log("── Bid CRUD Workflow complete ──\n");
+};
+
 module.exports = {
   getBids,
   getAvailableBids,
   participateInBid,
   acceptCompanyOffer,
   initiateCompanyBiddingWorkFlow,
+  updateBidStatus,
+  deleteBid,
+  markBidAsSeen,
+  testBidCRUDWorkflow,
 };

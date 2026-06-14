@@ -290,10 +290,8 @@ const testSendUpdatedLocation = async ({ token, uniqueIds }) => {
 // GET_CANCELLATION_NOTIFICATIONS: string;
 const testGetCancellationNotifications = async (token) => {
   const config = { ...authConfig(token) };
-  const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
-    backendURL + DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS,
-    payload,
+  const resultOfTakeFromStreet = await axios.get(
+    backendURL + DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS + "?seenStatus=not%20seen%20by%20driver%20yet",
     config,
   );
 };
