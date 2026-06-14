@@ -14,12 +14,12 @@ const { verifyShipperStatus } = require("./VerifyShipperStatus");
 
 // Backward-compat alias
 const getShipperAccountData = (token) => testGetAccountData({ userType: "shipper" });
-    } else {
-      console.log("Raw Error:", error.message);
-    }
-    return null;
-  }
-};
+//     } else {
+//       console.log("Raw Error:", error.message);
+//     }
+//     return null;
+//   }
+// };
 
 const testShipperAcceptDriversOffer = async (token) => {};
 
