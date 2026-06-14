@@ -44,8 +44,8 @@ exports.createShipperRequest = Joi.object({
 
     if (count > 9 && mode === "individual_target") {
       return helpers.message(
-        "Requests for more than 9 vehicles require company_target mode. " +
-          "Please set requestMode to 'company_target' to proceed.",
+        "Requests for more than 9 vehicles require company target mode. " +
+          "Please set requestMode to 'company target' to proceed.",
       );
     }
 

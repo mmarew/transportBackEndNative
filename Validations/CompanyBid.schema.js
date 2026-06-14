@@ -38,7 +38,9 @@ exports.getBidsQuery = Joi.object({
   bidSubmittedByUserUniqueId: uuidSchema.optional(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
-  journeyStatusId: Joi.number().integer().optional(),
+  journeyStatusId: Joi.alternatives()
+    .try(Joi.number().integer(), Joi.string())
+    .optional(),
   journeyStatusName: Joi.string().optional(),
   bidStatus: Joi.string()
     .valid(
@@ -50,6 +52,7 @@ exports.getBidsQuery = Joi.object({
       "completed", // auto-set when all assignments reach a terminal state
     )
     .optional(),
+  bidStatusExclude: Joi.string().optional(),
   isCancellationSeenByCompany: Joi.string()
     .valid("not seen by company yet", "seen by company")
     .optional(),

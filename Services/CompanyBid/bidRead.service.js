@@ -138,6 +138,30 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     );
   }
 
+  if (filters.journeyStatusId) {
+    const statusIds = String(filters.journeyStatusId)
+      .split(",")
+      .map(Number)
+      .filter((n) => !isNaN(n));
+    if (statusIds.length > 0) {
+      batchClauses.push("b.journeyStatusId IN (?)");
+      batchParams.push(statusIds);
+    }
+  }
+
+  if (filters.bidStatusExclude) {
+    const excludeStatuses = filters.bidStatusExclude.split(",");
+    batchClauses.push(
+      `NOT EXISTS (
+        SELECT 1 FROM CompanyBidRequest cbr_exclude
+        WHERE cbr_exclude.shipperRequestBatchId = b.batchUniqueId
+        AND cbr_exclude.bidStatus IN (?)
+        AND cbr_exclude.companyBidRequestDeletedAt IS NULL
+      )`,
+    );
+    batchParams.push(excludeStatuses);
+  }
+
   if (filters.shipperRequestBatchId) {
     batchClauses.push("b.batchUniqueId = ?");
     batchParams.push(filters.shipperRequestBatchId);
