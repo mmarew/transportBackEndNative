@@ -18,6 +18,7 @@ exports.createJourneyPayment = async (req, res, next) => {
         amount,
         paymentMethodUniqueId,
         paymentStatusUniqueId,
+        user: req.user,
       });
     });
 

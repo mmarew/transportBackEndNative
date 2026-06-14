@@ -43,6 +43,10 @@ const runIndividualFlow = async () => {
       usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;
 
+    const jId =
+      usersData.driver.journeyStatus?.uniqueIds?.journeyUniqueId;
+    if (jId) usersData.driver.lastJourneyUniqueId = jId;
+
     await completeJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }

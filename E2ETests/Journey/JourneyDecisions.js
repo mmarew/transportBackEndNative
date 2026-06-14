@@ -37,6 +37,7 @@ const testUpdateJourneyDecision = async ({ user, conditions, updateValues } = {}
 
     const journeyDecisionUniqueId =
       conditions?.journeyDecisionUniqueId ||
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
       usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
 
     if (!journeyDecisionUniqueId) {

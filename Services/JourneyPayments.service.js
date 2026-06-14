@@ -11,6 +11,7 @@ exports.createJourneyPayment = async ({
   amount,
   paymentMethodUniqueId,
   paymentStatusUniqueId,
+  user,
 }) => {
   // Check if payment already exists for this journey decision
   const existedPayment = await getData({
@@ -35,9 +36,10 @@ exports.createJourneyPayment = async ({
 
   // Create payment
   const paymentUniqueId = uuidv4();
+  const now = currentDate();
   const sql = `INSERT INTO JourneyPayments 
-      (paymentUniqueId, journeyDecisionUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) 
-      VALUES (?, ?, ?, ?, ?, ?)`;
+      (paymentUniqueId, journeyDecisionUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime, journeyPaymentCreatedBy, journeyPaymentCreatedAt) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
   const values = [
     paymentUniqueId,
@@ -45,7 +47,9 @@ exports.createJourneyPayment = async ({
     amount,
     paymentMethodUniqueId,
     paymentStatusUniqueId,
-    currentDate(),
+    now,
+    user?.userUniqueId || "system",
+    now,
   ];
 
   await executor.query(sql, values);

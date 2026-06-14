@@ -38,7 +38,7 @@ const createUserRole = async (body, user) => {
     },
   });
 
-  return { message: "success", data: "User role created successfully" };
+  return { message: "success", data: { userRoleUniqueId } };
 };
 const getUserRoleListByFilter = async ({
   page = 1,
@@ -165,11 +165,12 @@ const updateUserRole = async (userRoleUniqueId, updateValues) => {
   return { message: "success", data: "UserRole updated successfully" };
 };
 
-// Service to delete UserRole
+// Service to delete UserRole (soft delete)
 const deleteUserRole = async (userRoleUniqueId) => {
-  const result = await deleteData({
+  const result = await updateData({
     tableName: "UserRole",
     conditions: { userRoleUniqueId },
+    updateValues: { userRoleDeletedAt: currentDate() },
   });
 
   if (result.affectedRows === 0) {

@@ -83,6 +83,8 @@ const testCommissionRatesWorkflow = async ({ user = usersData.admin } = {}) => {
   await testGetCommissionRates({ user });
   await testDeleteCommissionRate({ user, commissionRateUniqueId: id });
   await testGetCommissionRates({ user });
+  // Create a fresh commission rate for downstream tests (Commission workflow)
+  await testCreateCommissionRate({ user });
   console.log("── CommissionRates Workflow complete ──\n");
   return { id };
 };

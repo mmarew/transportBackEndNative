@@ -53,20 +53,51 @@ const testCreatePayment = async ({ user, payload } = {}) => {
     if (!token) throw new Error("token not found");
     const journeyId =
       payload?.journeyId ||
-      usersData?.driver?.journeyStatus?.uniqueIds?.journeyUniqueId;
-    const paymentMethodUniqueId =
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
+      usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+    let paymentMethodUniqueId =
       payload?.paymentMethodUniqueId || cache.data?.[0]?.paymentMethodUniqueId;
+    let paymentStatusUniqueId =
+      payload?.paymentStatusUniqueId || cache.data?.[0]?.paymentStatusUniqueId;
     if (!journeyId) {
       console.warn(
         "⏩ testCreatePayment skipped — no journeyId (run full journey flow first)",
       );
       return { skipped: true };
     }
+    // Resolve paymentMethodUniqueId from existing data
+    if (!paymentMethodUniqueId) {
+      try {
+        const pmRes = await axios.get(backendURL + "/api/finance/paymentMethod", authConfig(token));
+        const methods = pmRes?.data?.data;
+        if (methods?.length) {
+          paymentMethodUniqueId = methods[0].paymentMethodUniqueId;
+        }
+      } catch (_) { /* ignore */ }
+    }
+    if (!paymentMethodUniqueId) {
+      console.warn("⏩ testCreatePayment skipped — no paymentMethodUniqueId available");
+      return { skipped: true };
+    }
+    // Resolve paymentStatusUniqueId from existing data
+    if (!paymentStatusUniqueId) {
+      try {
+        const psRes = await axios.get(backendURL + "/api/finance/paymentStatus", authConfig(token));
+        const statuses = psRes?.data?.data;
+        if (statuses?.length) {
+          paymentStatusUniqueId = statuses[0].paymentStatusUniqueId;
+        }
+      } catch (_) { /* ignore */ }
+    }
+    if (!paymentStatusUniqueId) {
+      console.warn("⏩ testCreatePayment skipped — no paymentStatusUniqueId available");
+      return { skipped: true };
+    }
     const defaultPayload = {
       journeyId,
       amount: 5000,
-      paymentMethodUniqueId:
-        paymentMethodUniqueId || "00000000-0000-0000-0000-000000000001",
+      paymentMethodUniqueId,
+      paymentStatusUniqueId,
       ...payload,
     };
     const result = await axios.post(

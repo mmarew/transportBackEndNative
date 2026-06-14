@@ -33,7 +33,7 @@ const testCreateVehicleStatus = async ({ user, payload } = {}) => {
     if (!token) throw new Error("token not found");
     const vehicleUniqueId =
       payload?.vehicleUniqueId ||
-      usersData?.driver?.accountData?.vehicleData?.vehicleUniqueId;
+      usersData?.driver?.accountData?.vehicle?.vehicleUniqueId;
     if (!vehicleUniqueId) {
       console.warn(
         "⏩ testCreateVehicleStatus skipped — no vehicleUniqueId (run driver onboarding first)",

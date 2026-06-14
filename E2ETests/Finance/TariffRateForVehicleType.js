@@ -32,7 +32,7 @@ const testCreateTariffRateForVehicleType = async ({ user, vehicleTypeUniqueId, t
       return { skipped: true };
     }
 
-    const defaultPayload = { vehicleTypeUniqueId, tariffRateUniqueId, status: 1, ...payload };
+    const defaultPayload = { vehicleTypeUniqueId, tariffRateUniqueId, ...payload };
     const result = await axios.post(backendURL + BASE_URL, defaultPayload, authConfig(token));
     console.log("✅ TariffRateForVehicleType created:", result.data.tariffRateForVehicleTypeUniqueId || result.data.data?.tariffRateForVehicleTypeUniqueId);
     return result.data;
@@ -85,6 +85,7 @@ const testTariffRateForVehicleTypeWorkflow = async ({ user = usersData.admin } =
 
   const vehicleTypeUniqueId = vehicleTypesResult?.data?.data?.[0]?.vehicleTypeUniqueId;
   const tariffRateUniqueId = tariffRatesResult?.data?.data?.[0]?.tariffRateUniqueId;
+  const anotherTariffRateUniqueId = tariffRatesResult?.data?.data?.[1]?.tariffRateUniqueId;
 
   if (!vehicleTypeUniqueId || !tariffRateUniqueId) {
     console.log("⏩ Skipped — vehicleTypeUniqueId or tariffRateUniqueId not available");
@@ -98,7 +99,7 @@ const testTariffRateForVehicleTypeWorkflow = async ({ user = usersData.admin } =
   if (!id) { console.warn("⚠️  No ID returned — cannot continue"); return { skipped: true }; }
 
   await testGetTariffRatesForVehicleTypes({ user });
-  await testUpdateTariffRateForVehicleType({ user, tariffRateForVehicleTypeUniqueId: id });
+  await testUpdateTariffRateForVehicleType({ user, tariffRateForVehicleTypeUniqueId: id, payload: { tariffRateUniqueId: anotherTariffRateUniqueId } });
   await testGetTariffRatesForVehicleTypes({ user });
   await testDeleteTariffRateForVehicleType({ user, tariffRateForVehicleTypeUniqueId: id });
   await testGetTariffRatesForVehicleTypes({ user });

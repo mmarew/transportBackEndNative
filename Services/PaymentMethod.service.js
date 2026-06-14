@@ -24,7 +24,7 @@ exports.createPaymentMethod = async ({ paymentMethod, user }) => {
 
   return {
     message: "success",
-    data: "Payment method created successfully",
+    data: { paymentMethodUniqueId },
   };
 };
 

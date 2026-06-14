@@ -24,7 +24,7 @@ exports.createPaymentStatus = async ({ paymentStatus }) => {
 
   return {
     message: "success",
-    data: "Payment status created successfully",
+    data: { paymentStatusUniqueId },
   };
 };
 

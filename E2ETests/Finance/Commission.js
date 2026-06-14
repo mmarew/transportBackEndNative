@@ -58,6 +58,32 @@ const resolveCommissionStatusId = async (token) => {
   }
 };
 
+const { v4: uuidv4 } = require("uuid");
+
+const seedDriverBalance = async () => {
+  try {
+    const token = usersData.driver?.token;
+    if (!token) return false;
+    const driverId = usersData?.driver?.accountData?.userData?.userUniqueId;
+    if (!driverId) return false;
+    const result = await axios.post(
+      backendURL + "/api/finance/userBalance",
+      {
+        amount: 50000,
+        driverUniqueId: driverId,
+        netBalance: 50000,
+        transactionType: "deposit",
+        transactionUniqueId: uuidv4(),
+      },
+      authConfig(token),
+    );
+    return result.data;
+  } catch (error) {
+    console.warn("⚠️  seedDriverBalance:", error.response?.data?.error || error.message);
+    return false;
+  }
+};
+
 const testCreateCommission = async ({ user, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
@@ -72,22 +98,15 @@ const testCreateCommission = async ({ user, payload } = {}) => {
       );
       return { skipped: true };
     }
-    const commissionRateUniqueId =
-      payload?.commissionRateUniqueId || (await resolveCommissionRateId(token));
-    if (!commissionRateUniqueId) {
-      console.warn(
-        "⏩ testCreateCommission skipped — no commissionRateUniqueId (run commissionRates CRUD first)",
-      );
-      return { skipped: true };
-    }
-    const commissionStatusUniqueId =
-      payload?.commissionStatusUniqueId ||
-      (await resolveCommissionStatusId(token));
+    // Seed driver balance so commission deduction can succeed
+    await seedDriverBalance();
+    // Clear FixedData cache so we get a valid active commission rate
+    try {
+      await axios.get(backendURL + "/api/utils/clear-cache");
+    } catch { /* ignore */ }
     const defaultPayload = {
       journeyDecisionUniqueId,
-      commissionRateUniqueId,
       commissionAmount: 250.0,
-      ...(commissionStatusUniqueId ? { commissionStatusUniqueId } : {}),
       ...payload,
     };
     const result = await axios.post(
@@ -103,7 +122,7 @@ const testCreateCommission = async ({ user, payload } = {}) => {
   } catch (error) {
     console.error(
       "❌ testCreateCommission:",
-      error.response?.data?.error || error.message,
+      JSON.stringify(error.response?.data || error.message),
     );
     throw error;
   }

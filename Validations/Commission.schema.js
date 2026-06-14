@@ -7,11 +7,6 @@ exports.createCommission = Joi.object({
     "any.required": "journeyDecisionUniqueId is required",
   }),
 
-  commissionRateUniqueId: uuidSchema.messages({
-    "string.guid": "commissionRateUniqueId must be a valid UUID",
-    "any.required": "commissionRateUniqueId is required",
-  }),
-
   commissionAmount: Joi.number()
     .positive()
     .precision(2)
@@ -23,10 +18,6 @@ exports.createCommission = Joi.object({
       "number.max": "commissionAmount cannot exceed 999,999.99",
       "any.required": "commissionAmount is required",
     }),
-
-  commissionStatusUniqueId: uuidSchema.optional().messages({
-    "string.guid": "commissionStatusUniqueId must be a valid UUID",
-  }),
 }).strict(); // Disallow unknown fields
 
 exports.updateCommission = Joi.object({

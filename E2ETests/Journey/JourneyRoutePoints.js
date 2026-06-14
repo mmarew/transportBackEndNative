@@ -15,6 +15,7 @@ const testGetJourneyRoutePoints = async ({ user, filters = {} } = {}) => {
     if (!token) throw new Error("token not found");
 
     const journeyDecisionUniqueId = filters?.journeyDecisionUniqueId ||
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
       usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
 
     if (!journeyDecisionUniqueId) {
@@ -44,6 +45,7 @@ const testCreateJourneyRoutePoint = async ({ user, payload } = {}) => {
 
     // Requires a real journeyDecisionUniqueId — skip if not available
     const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId ||
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
       usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (!journeyDecisionUniqueId) {
       console.warn("⏩ testCreateJourneyRoutePoint skipped — no journeyDecisionUniqueId available");
@@ -58,8 +60,8 @@ const testCreateJourneyRoutePoint = async ({ user, payload } = {}) => {
       timestamp: new Date().toISOString(),
       ...payload,
     };
-    const result = await axios.post(backendURL + BASE_URL, defaultPayload, authConfig(token));
-    console.log("✅ JourneyRoutePoint created:", result.data.pointId || result.data.data?.pointId);
+    const result = await axios.post(backendURL + BASE_URL + "?userUniqueId=self", defaultPayload, authConfig(token));
+    console.log("✅ JourneyRoutePoint created:", result.data.data?.journeyRoutePointsUniqueId || result.data.journeyRoutePointsUniqueId || result.data.data?.pointId || result.data.pointId);
     return result.data;
   } catch (error) {
     console.error("❌ testCreateJourneyRoutePoint:", error.response?.data?.error || error.message);
@@ -74,7 +76,7 @@ const testUpdateJourneyRoutePoint = async ({ user, pointId, payload } = {}) => {
     if (!token) throw new Error("token not found");
     const id = pointId || cache.data?.[0]?.pointId;
     if (!id) throw new Error("No pointId found to update");
-    const defaultPayload = { description: "Updated E2E test route point", ...payload };
+    const defaultPayload = { latitude: 9.04, longitude: 38.75, ...payload };
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ JourneyRoutePoint updated:", id);
     return result.data;
@@ -114,7 +116,7 @@ const testJourneyRoutePointsWorkflow = async ({ user = usersData.driver } = {}) 
     return { skipped: true };
   }
 
-  const pointId = created?.pointId || created?.data?.pointId;
+  const pointId = created?.data?.journeyRoutePointsUniqueId || created?.journeyRoutePointsUniqueId || created?.pointId || created?.data?.pointId;
   if (!pointId) {
     console.warn("⚠️  No pointId returned — cannot continue workflow");
     return { skipped: true };

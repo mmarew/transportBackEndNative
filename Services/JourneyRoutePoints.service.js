@@ -129,11 +129,27 @@ exports.getJourneyRoutePoints = async (journeyDecisionUniqueId) => {
   }
 };
 
-// Update a specific journey route point by pointId
+// Update a specific journey route point by pointId (partial update)
 exports.updateJourneyRoutePoint = async (pointId, latitude, longitude) => {
   try {
-    const sql = `UPDATE JourneyRoutePoints SET latitude = ?, longitude = ? WHERE pointId = ?`;
-    const values = [latitude, longitude, pointId];
+    const setParts = [];
+    const values = [];
+
+    if (latitude !== undefined) {
+      setParts.push("latitude = ?");
+      values.push(latitude);
+    }
+    if (longitude !== undefined) {
+      setParts.push("longitude = ?");
+      values.push(longitude);
+    }
+
+    if (setParts.length === 0) {
+      throw new AppError("No fields provided to update", 400);
+    }
+
+    values.push(pointId);
+    const sql = `UPDATE JourneyRoutePoints SET ${setParts.join(", ")} WHERE journeyRoutePointsUniqueId = ?`;
     const executor = transactionStorage.getStore() || pool;
     const [result] = await executor.query(sql, values);
 
@@ -150,11 +166,11 @@ exports.updateJourneyRoutePoint = async (pointId, latitude, longitude) => {
   }
 };
 
-// Delete a specific journey route point by pointId
+// Delete a specific journey route point by journeyRoutePointsUniqueId
 exports.deleteJourneyRoutePoint = async (pointId) => {
   try {
     const executor = transactionStorage.getStore() || pool;
-    const sql = `DELETE FROM JourneyRoutePoints WHERE pointId = ?`;
+    const sql = `DELETE FROM JourneyRoutePoints WHERE journeyRoutePointsUniqueId = ?`;
     const [result] = await executor.query(sql, [pointId]);
 
     if (result.affectedRows > 0) {

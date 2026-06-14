@@ -43,14 +43,13 @@ const createVehicleStatus = async (data) => {
     vehicleStatusCreatedBy,
     vehicleStatusCreatedAt: currentDate(),
   };
-  // Insert new status
   const result = await insertData({
     tableName: "VehicleStatus",
     colAndVal,
     connection,
   });
 
-  return { message: "success", data: result };
+  return { message: "success", data: { vehicleStatusUniqueId } };
 };
 
 const getVehicleStatuses = async (filters = {}) => {

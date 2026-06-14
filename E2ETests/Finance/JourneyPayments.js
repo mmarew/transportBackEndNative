@@ -55,22 +55,53 @@ const testCreateJourneyPayment = async ({ user, payload } = {}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const journeyUniqueId =
-      payload?.journeyUniqueId ||
-      usersData?.driver?.journeyStatus?.uniqueIds?.journeyUniqueId;
-    const paymentMethodUniqueId =
+    const journeyDecisionUniqueId =
+      payload?.journeyDecisionUniqueId ||
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
+      usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+    let paymentMethodUniqueId =
       payload?.paymentMethodUniqueId || cache.data?.[0]?.paymentMethodUniqueId;
-    if (!journeyUniqueId) {
+    let paymentStatusUniqueId =
+      payload?.paymentStatusUniqueId || cache.data?.[0]?.paymentStatusUniqueId;
+    if (!journeyDecisionUniqueId) {
       console.warn(
-        "⏩ testCreateJourneyPayment skipped — no journeyUniqueId (run full journey flow first)",
+        "⏩ testCreateJourneyPayment skipped — no journeyDecisionUniqueId (run full journey flow first)",
       );
       return { skipped: true };
     }
+    // Resolve paymentMethodUniqueId from existing data
+    if (!paymentMethodUniqueId) {
+      try {
+        const pmRes = await axios.get(backendURL + "/api/finance/paymentMethod", authConfig(token));
+        const methods = pmRes?.data?.data;
+        if (methods?.length) {
+          paymentMethodUniqueId = methods[0].paymentMethodUniqueId;
+        }
+      } catch (_) { /* ignore */ }
+    }
+    if (!paymentMethodUniqueId) {
+      console.warn("⏩ testCreateJourneyPayment skipped — no paymentMethodUniqueId available");
+      return { skipped: true };
+    }
+    // Resolve paymentStatusUniqueId from existing data
+    if (!paymentStatusUniqueId) {
+      try {
+        const psRes = await axios.get(backendURL + "/api/finance/paymentStatus", authConfig(token));
+        const statuses = psRes?.data?.data;
+        if (statuses?.length) {
+          paymentStatusUniqueId = statuses[0].paymentStatusUniqueId;
+        }
+      } catch (_) { /* ignore */ }
+    }
+    if (!paymentStatusUniqueId) {
+      console.warn("⏩ testCreateJourneyPayment skipped — no paymentStatusUniqueId available");
+      return { skipped: true };
+    }
     const defaultPayload = {
-      journeyUniqueId,
+      journeyDecisionUniqueId,
       amount: 4500.0,
-      paymentMethodUniqueId:
-        paymentMethodUniqueId || "00000000-0000-0000-0000-000000000001",
+      paymentMethodUniqueId,
+      paymentStatusUniqueId,
       ...payload,
     };
     const result = await axios.post(
@@ -152,7 +183,7 @@ const testJourneyPaymentsWorkflow = async ({ user = usersData.admin } = {}) => {
   const created = await testCreateJourneyPayment({ user });
   if (created?.skipped) {
     console.log(
-      "⏩ JourneyPayments workflow skipped — missing journeyUniqueId",
+      "⏩ JourneyPayments workflow skipped — missing journeyDecisionUniqueId",
     );
     return { skipped: true };
   }

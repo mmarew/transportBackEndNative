@@ -70,6 +70,8 @@ const testCreateRating = async ({ user, payload } = {}) => {
     const id =
       result.data?.data?.ratingUniqueId ||
       result.data?.ratingUniqueId ||
+      result.data?.data?.ratingId ||
+      result.data?.ratingId ||
       result.data?.data?.id ||
       result.data?.id;
     console.log("✅ Rating created:", id ?? "(no id in response)");
@@ -140,9 +142,12 @@ const testRatingsWorkflow = async ({ user = usersData.shipper } = {}) => {
   const ratingId =
     created?.data?.ratingUniqueId ||
     created?.ratingUniqueId ||
+    created?.data?.ratingId ||
+    created?.ratingId ||
     created?.data?.id ||
     created?.id ||
     cache.data?.[0]?.ratingUniqueId ||
+    cache.data?.[0]?.ratingId ||
     cache.data?.[0]?.id;
 
   if (ratingId) {
