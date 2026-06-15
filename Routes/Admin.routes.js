@@ -1,18 +1,11 @@
 const Router = require("express").Router();
 const AdminController = require("../Controllers/Admin.controller");
 const UserRoleStatusController = require("../Controllers/UserRoleStatus.controller");
+const {
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+} = require("../Middleware/VerifyToken");
 const { verifyAdminsIdentity } = require("../Middleware/VerifyUsersIdentity");
-const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
-// route to get online drivers
-
-// General search across all fields, GET /api/admin/getOnlineDrivers?search=john
-
-// Filter by specific fields, GET /api/admin/getOnlineDrivers?name=John&vehicleType=SUV
-
-// Filter by multiple journey statuses, GET /api/admin/getOnlineDrivers?journeyStatus=1&journeyStatus=2
-
-// Combined search and filters,GET /api/admin/getOnlineDrivers?search=john&vehicleType=Car&phone=1234567890
-
 const { validator } = require("../Middleware/Validator");
 const { adminDriverParams } = require("../Validations/Admin.schema");
 const { ADMIN_ENDPOINTS } = require("./EndPoints/admin.endpoints");
@@ -75,5 +68,17 @@ Router.get(ADMIN_ENDPOINTS.SYSTEM_LOGS, AdminController.getSystemLogs);
  * Securely lists all user-uploaded files in the browser.
  */
 Router.get(ADMIN_ENDPOINTS.SYSTEM_UPLOADS, AdminController.getUploadedFiles);
+
+/**
+ * GET /api/admin/dashboard
+ * @desc    Aggregate statistics for the admin dashboard cards
+ * @access  Private (Admin / SuperAdmin only)
+ */
+Router.get(
+  ADMIN_ENDPOINTS.DASHBOARD,
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+  AdminController.getDashboardStats,
+);
 
 module.exports = Router;

@@ -6,6 +6,7 @@ const ADMIN_ENDPOINTS = {
   SYSTEM_LOGS: "/api/admin/system/logs",
   SYSTEM_UPLOADS: "/api/admin/system/uploads",
   GET_USER_ROLE_STATUS_CURRENT: "/api/admin/userRoleStatusCurrent",
+  DASHBOARD: "/api/admin/dashboard",
 };
 
 module.exports = {

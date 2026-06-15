@@ -53,9 +53,11 @@ const testCreateAdminFlow = async () => {
 };
 
 const { testUserRoleWorkflow, testGetUserRoles } = require("./UserRole");
+const { testAdminDashboardFlow } = require("./Dashboard");
 
 module.exports = {
   testCreateAdminFlow,
   testUserRoleWorkflow,
   testGetUserRoles,
+  testAdminDashboardFlow,
 };

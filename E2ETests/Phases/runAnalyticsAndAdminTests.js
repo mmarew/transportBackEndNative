@@ -2,6 +2,7 @@ const {
   testAnalyticsWorkflow,
   testSystemAdminWorkflow,
 } = require("../Analytics");
+const { testAdminDashboardFlow } = require("../Admin");
 const { usersData } = require("../constants");
 
 const runAnalyticsAndAdminTests = async () => {
@@ -11,6 +12,7 @@ const runAnalyticsAndAdminTests = async () => {
 
   await testAnalyticsWorkflow({ user: usersData.admin });
   await testSystemAdminWorkflow({ user: usersData.admin });
+  await testAdminDashboardFlow();
 
   console.log("\n✅ Analytics & Admin tests complete\n");
 };

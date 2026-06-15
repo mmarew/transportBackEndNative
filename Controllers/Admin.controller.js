@@ -1,10 +1,20 @@
 const adminServices = require("../Services/Admin");
+const dashboardService = require("../Services/AdminDashboard.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const fs = require("fs");
 const path = require("path");
 const Config = require("../Utils/Config");
 
 const AdminController = {
+  getDashboardStats: async (req, res, next) => {
+    try {
+      ServerResponder(res, await dashboardService.getDashboardStats());
+    } catch (error) {
+      next(error);
+    }
+  },
+
+
   // Fetch online drivers
 
   getOfflineDrivers: async (req, res, next) => {
