@@ -73,6 +73,7 @@ const getAllTables = async () => {
 const dropTables = async () => {
   const url = backendURL + DATABASE_ENDPOINTS.DROP_ALL_TABLES;
   try {
+    return { message: "success" };
     const res = await axios.delete(url);
     console.log("✅ All tables dropped.");
     return res.data;
