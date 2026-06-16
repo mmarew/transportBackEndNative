@@ -43,7 +43,7 @@ const createVehicleStatus = async (data) => {
     vehicleStatusCreatedBy,
     vehicleStatusCreatedAt: currentDate(),
   };
-  const result = await insertData({
+  await insertData({
     tableName: "VehicleStatus",
     colAndVal,
     connection,

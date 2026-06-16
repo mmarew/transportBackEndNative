@@ -5,10 +5,10 @@ module.exports = async () => {
   try {
     const { pool } = require("../Middleware/Database.config");
     if (pool) {
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       await pool.end();
     }
-  } catch (_) {
+  } catch (_unused) {
     /* best-effort */
   }
 };

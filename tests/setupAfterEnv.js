@@ -34,7 +34,7 @@ try {
         } else if (c.stream) {
           c.stream.unref();
         }
-      } catch (_) {}
+      } catch (_unused) {}
     };
     for (let i = 0; i < bp._allConnections.length; i++) {
       unrefConn(bp._allConnections.get(i));
@@ -45,6 +45,6 @@ try {
     // Unref new connections as they're created
     pool.on("connection", unrefConn);
   }
-} catch (_) {
+} catch (_unused) {
   // pool not available
 }

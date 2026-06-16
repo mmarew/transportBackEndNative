@@ -70,7 +70,7 @@ const testCreatePayment = async ({ user, payload } = {}) => {
         if (methods?.length) {
           paymentMethodUniqueId = methods[0].paymentMethodUniqueId;
         }
-      } catch (_) { /* ignore */ }
+      } catch (_unused) { /* ignore */ }
     }
     if (!paymentMethodUniqueId) {
       console.warn("⏩ testCreatePayment skipped — no paymentMethodUniqueId available");
@@ -84,7 +84,7 @@ const testCreatePayment = async ({ user, payload } = {}) => {
         if (statuses?.length) {
           paymentStatusUniqueId = statuses[0].paymentStatusUniqueId;
         }
-      } catch (_) { /* ignore */ }
+      } catch (_unused) { /* ignore */ }
     }
     if (!paymentStatusUniqueId) {
       console.warn("⏩ testCreatePayment skipped — no paymentStatusUniqueId available");

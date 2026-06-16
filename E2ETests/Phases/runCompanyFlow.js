@@ -48,11 +48,11 @@ const runCompanyFlow = async () => {
   await acceptCompanyAssignment({ userType: "driver" });
 
   let driverStatus = await getDriverJourneyStatus({ userType: "driver" });
-  if (driverStatus?.status == 4) {
+  if (driverStatus?.status === 4) {
     await startJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
-  if (driverStatus?.status == 5) {
+  if (driverStatus?.status === 5) {
     const jdId =
       usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;

@@ -10,25 +10,20 @@ const {
   acceptCompanyAssignment,
   acceptShipperRequest,
   startJourney,
-  completeJourney,
 } = require("./DriverJourneyStatus");
 const { testDriverBalanceFlow } = require("./DriversFinance/DriverBalance");
 const { testDriverDepositFlow } = require("./DriversFinance/DriverDeposit");
 const { testDriverTransferFlow } = require("./DriversFinance/DriverTransfer");
 const { testDriverWalletFlow } = require("./DriversFinance/DriverWallet");
 const {
-  testDriverSubscriptionFlow,
   createDriverSubscription,
 } = require("./DriversFinance/DriverSubscription");
 const {
-  testGetFinancialInstitutionAccounts,
   testCreateFinancialInstitutionAccount,
   testFinancialInstitutionAccountWorkflow:
     testFinancialInstitutionAccountsWorkFlow,
 } = require("../Finance/FinancialInstitutionAccount");
-const {
-  testGetSubscriptionPlans,
-} = require("../Finance/SubscriptionPlan");
+// testGetSubscriptionPlans unused
 const {
   testGetSubscriptionPlanPricings:
     fetchSubscriptionPlanPricing,

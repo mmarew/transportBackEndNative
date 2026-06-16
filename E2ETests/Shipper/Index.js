@@ -4,8 +4,6 @@ const { createDriverDocument } = require("../Driver/DriversDocuments");
 const { testGetAccountData } = require("../Auth/Account");
 const {
   testCreateShipperRequest,
-  testRejectDriverOffer,
-  testCancelShipperRequest,
   testMarkJourneyCancellationAsSeen,
   testGetCancellationNotification,
   testGetShipperRequests,

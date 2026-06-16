@@ -430,12 +430,6 @@ exports.approveCompany = async (
   // suspended → approved | rejected
   // rejected  → pending (re-submission flow only)
   const current = company.approvalStatus;
-  const validTransitions = {
-    pending: ["approved", "rejected"],
-    approved: ["suspended", "rejected"],
-    suspended: ["approved", "rejected"],
-    rejected: ["pending"],
-  };
 
   // if (!validTransitions[current]?.includes(approvalStatus)) {
   //   throw new AppError(

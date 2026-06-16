@@ -60,7 +60,7 @@ const testDriverWalletFlow = async ({ userType = "driver" } = {}) => {
   // }
 
   // await createDriverBalance({ amount: 1000, userType });
-  if (!!accountUniqueId)
+  if (accountUniqueId)
     await createDriverDeposit({
       accountUniqueId,
       depositAmount: 250,

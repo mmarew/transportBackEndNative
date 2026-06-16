@@ -1,7 +1,6 @@
 "use strict";
 
 const AppError = require("../../Utils/AppError");
-const { currentDate } = require("../../Utils/CurrentDate");
 const { query } = require("./journeyHelper");
 
 /**

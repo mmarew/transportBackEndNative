@@ -97,7 +97,7 @@ const sendSms = async (
     // }
     //always return success response for OTP messages to avoid blocking user flow during development, but still log the intended message and recipient. remove this line when deploying to production.
     return { message: "success", data: "OTP sent successfully" };
-
+    /* unreachable: axios post below was dead code after early return
     const apiResponse = await axios.post(baseUrl, postFields, {
       headers,
       timeout: 30000,

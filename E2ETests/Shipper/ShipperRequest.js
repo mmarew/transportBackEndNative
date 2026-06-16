@@ -73,7 +73,7 @@ const testCreateShipperRequest = async (token, requestMode = "individual_target"
   }
 };
 //  SHIPPER_REQUEST_ENDPOINTS.ACCEPT_DRIVER_REQUEST
-const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
+const testAcceptDriverRequest = async ({ uniqueIds }) => {
   try {
     // return;
     let shipperToken = usersData.shipper.token;
@@ -92,7 +92,7 @@ const testAcceptDriverRequest = async ({ token, uniqueIds }) => {
       config,
     );
     return resultOfAcceptDriverRequests.data;
-  } catch (error) {}
+  } catch (_unused) {}
 };
 const testGetShipperRequests = async (token, journeyStatusId) => {
   const config = { ...authConfig(token) };
@@ -140,8 +140,6 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
 
 const testRejectDriverOffer = async (
   { uniqueIds },
-  shipperRequestId,
-  driverOfferId,
 ) => {
   try {
     const payload = { ...uniqueIds }; // adjust fields as needed

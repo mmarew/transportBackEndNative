@@ -15,9 +15,6 @@ beforeAll(async () => {
 });
 
 describe("Payments E2E", () => {
-  let paymentId;
-  let journeyDecisionUniqueId;
-
   test("GET /api/finance/payments returns list", async () => {
     const res = await request(app)
       .get("/api/finance/payments")

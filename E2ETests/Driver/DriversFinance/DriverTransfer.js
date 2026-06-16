@@ -177,7 +177,7 @@ const testDriverTransferFlow = async ({ userType = "driver" } = {}) => {
   // }
 
   await getDriverTransfers({ userType, query: { fromDriverUniqueId: "self" } });
-  if (!!depositTransferUniqueId) {
+  if (depositTransferUniqueId) {
     await getDriverTransferById({ depositTransferUniqueId, userType });
     await updateDriverTransfer({
       depositTransferUniqueId,

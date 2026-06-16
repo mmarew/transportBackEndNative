@@ -47,7 +47,6 @@ const usersData = {
       rejected_by_shipper: null,
       cancelled_by_company: null,
     },
-    token: null,
   },
   supperAdmin: {
     fullName: "Test Supper Admin", // Schema expects fullName, not full_name
@@ -76,7 +75,6 @@ const userToken = {
 const listOfDelinquencyTypes = { data: null };
 const listOfRoles = { data: null };
 const listOfPlanPricing = { data: null };
-const listOfFinancialInstitutionAccount = { data: null };
 module.exports = {
   listOfPlanPricing,
   listOfRoles,

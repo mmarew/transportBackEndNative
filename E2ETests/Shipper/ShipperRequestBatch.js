@@ -6,9 +6,6 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
-const {
-  SHIPPER_REQUEST_BATCH_ENDPOINTS,
-} = require("../../Routes/EndPoints/shipperRequestBatch.endpoints");
 
 const BASE_URL = "/api/shipperRequestBatch";
 const cache = { data: null };

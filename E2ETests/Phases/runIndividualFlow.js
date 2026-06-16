@@ -23,22 +23,22 @@ const runIndividualFlow = async () => {
   await testCreateDriverRequest(usersData.driver.token);
   let driverStatus = await getDriverJourneyStatus({ userType: "driver" });
 
-  if (driverStatus?.status == 2) {
+  if (driverStatus?.status === 2) {
     await acceptShipperRequest({
       userType: "driver",
       shippingCostByDriver: 5000,
     });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
-  if (driverStatus?.status == 3) {
+  if (driverStatus?.status === 3) {
     await testAcceptDriverRequest({ uniqueIds: driverStatus?.uniqueIds });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
-  if (driverStatus?.status == 4) {
+  if (driverStatus?.status === 4) {
     await startJourney({ userType: "driver" });
     driverStatus = await getDriverJourneyStatus({ userType: "driver" });
   }
-  if (driverStatus?.status == 5) {
+  if (driverStatus?.status === 5) {
     const jdId =
       usersData.driver.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (jdId) usersData.driver.lastJourneyDecisionUniqueId = jdId;

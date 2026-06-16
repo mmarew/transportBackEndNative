@@ -3,7 +3,6 @@ const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 
 const BASE_URL = "/api/admin/userStatuses";
-const cache = { data: null };
 
 // ── GET all ────────────────────────────────────────────────────────────────────
 // Note: Backend might not have GET_ALL for UserStatus in endpoints? Let's check routes.
