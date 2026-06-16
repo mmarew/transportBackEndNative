@@ -124,6 +124,7 @@ const sendSms = async (
     } else {
       throw new AppError(`SMS API HTTP Error: ${status}`, 502);
     }
+      */
   } catch (error) {
     logger.error("SMS API Request Error Details:", {
       message: error.message,
