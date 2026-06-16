@@ -90,7 +90,7 @@ const runPostJourneyCRUD = async () => {
         shipperRequestUniqueId: srId,
         rating: 5,
       });
-    } catch (_unused) {
+    } catch {
       console.log("⏩ markJourneyCompletionAsSeen: already rated or duplicate (expected)");
     }
   } else {

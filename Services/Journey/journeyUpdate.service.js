@@ -42,8 +42,7 @@ const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }
   const sql = `UPDATE Journey SET ${updates.join(", ")} WHERE journeyUniqueId = ?`;
   values.push(journeyUniqueId);
 
-  console.log("🚀 ~ updateJourney ~ SQL:", sql);
-  console.log("🚀 ~ updateJourney ~ values:", values);
+  // debug logs removed
 
   const result = await query(sql, values);
 

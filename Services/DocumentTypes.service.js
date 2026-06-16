@@ -292,6 +292,7 @@ const updateDocumentType = async ({
 };
 
 const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
+  const userUniqueId = user?.userUniqueId;
   // Check if the document type exists
   const existingDocumentType = await getData({
     tableName: "DocumentTypes",

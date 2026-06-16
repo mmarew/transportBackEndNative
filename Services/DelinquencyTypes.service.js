@@ -1,3 +1,4 @@
+const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
@@ -213,8 +214,8 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
   try {
     const userUniqueId = data.user?.userUniqueId;
     const { applicableRoles } = data;
-    console.log(
-      "🚀 ~ updateDelinquencyType ~ applicableRoles:",
+    logger.debug(
+      "updateDelinquencyType ~ applicableRoles:",
       applicableRoles,
     );
 
@@ -312,9 +313,8 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
       throw new AppError("Delinquency type update failed", 500);
     }
   } catch (error) {
-    console.log("🚀 ~ updateDelinquencyType ~ error:", error);
-
-    console.error("error on update delinquency types error", error);
+    logger.debug("updateDelinquencyType ~ error:", error);
+    logger.error("error on update delinquency types error", error);
   }
 };
 

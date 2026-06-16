@@ -47,7 +47,7 @@ const { verifyDriverJourneyStatus } = require("../DriverRequest");
  */
 const acceptDriverRequest = async (body) => {
   try {
-    console.log("🚀 ~ acceptDriverRequest ~ body:", body);
+    logger.debug("acceptDriverRequest ~ body:", body);
     const {
       shipperRequestUniqueId,
       driverRequestUniqueId,

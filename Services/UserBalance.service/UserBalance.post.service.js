@@ -1,3 +1,4 @@
+const logger = require("../../Utils/logger");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
@@ -46,8 +47,8 @@ const prepareAndCreateNewBalance = async ({
   let netBalance = 0;
   try {
     const currentBalance = await getDriverLastBalance(driverUniqueId);
-    console.log(
-      "🚀 ~ prepareAndCreateNewBalance ~ currentBalance:",
+    logger.debug(
+      "prepareAndCreateNewBalance ~ currentBalance:",
       currentBalance,
     );
     netBalance = Number(currentBalance?.netBalance || 0);
@@ -82,7 +83,7 @@ const prepareAndCreateNewBalance = async ({
 };
 
 const createUserBalance = async (data, connection = null) => {
-  console.log("🚀 ~ createUserBalance ~ data:", data);
+  logger.debug("createUserBalance ~ data:", data);
   const executor = transactionStorage.getStore() || connection || pool;
   // Verify existence of data transactionUniqueId in userBalance
   const transactionTime = currentDate();

@@ -64,7 +64,7 @@ const updateBidStatus = async (
     { companyBidRequestUniqueId },
     "Bid not found",
   ); 
-  console.log("🚀 ~ updateBidStatus ~ bid:", bid)
+  logger.debug("updateBidStatus ~ bid:", bid)
   if (bid.companyBidRequestDeletedAt) {
     throw new AppError("Bid has been deleted", 400);
   } 
@@ -89,7 +89,7 @@ const updateBidStatus = async (
     ],
   );  
  
-  console.log("🚀 ~ updateBidStatus ~ res.affectedRows:", res.affectedRows)
+  logger.debug("updateBidStatus ~ res.affectedRows:", res.affectedRows)
   if (res.affectedRows === 0) {
     throw new AppError("Bid update failed", 500);
   }
@@ -117,7 +117,7 @@ const updateBidStatus = async (
        FOR UPDATE`,
       [bid.shipperRequestBatchId],
     );
-     console.log("🚀 ~ updateBidStatus ~ existingPRs:", existingPRs)
+     logger.debug("updateBidStatus ~ existingPRs:", existingPRs)
 
     if (existingPRs.length === 0) {
       // ── COMPANY-TARGET PATH: Bulk-create all N ShipperRequest rows now ──

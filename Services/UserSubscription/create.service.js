@@ -89,8 +89,8 @@ const createUserSubscription = async ({
     isFree,
     userBalanceCreatedBy: driverUniqueId,
   };
-  console.log(
-    "🚀 ~ createUserSubscription ~ payLoadOfSubscription:",
+  logger.debug(
+    "createUserSubscription ~ payLoadOfSubscription:",
     payLoadOfSubscription,
   );
   // 1. Deduct/add balance for subscription

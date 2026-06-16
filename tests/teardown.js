@@ -8,7 +8,7 @@ module.exports = async () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
       await pool.end();
     }
-  } catch (_unused) {
+  } catch {
     /* best-effort */
   }
 };

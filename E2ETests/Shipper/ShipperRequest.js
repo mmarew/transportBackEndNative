@@ -92,7 +92,7 @@ const testAcceptDriverRequest = async ({ uniqueIds }) => {
       config,
     );
     return resultOfAcceptDriverRequests.data;
-  } catch (_unused) {}
+  } catch {}
 };
 const testGetShipperRequests = async (token, journeyStatusId) => {
   const config = { ...authConfig(token) };
