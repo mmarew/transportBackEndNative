@@ -178,7 +178,7 @@ const updateCommissionStatus = async (id, data) => {
     return { message: "Commission Status updated successfully", data: result };
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      throw new AppError("Commission status name already exists", 409);
+      return { message: "Commission status name already exists", data: null };
     }
     logger.application.databaseError(error, "updateCommissionStatus");
     throw error;
@@ -198,10 +198,7 @@ const deleteCommissionStatus = async (id, deletedBy) => {
       [id],
     );
     if (referencing.length > 0) {
-      throw new AppError(
-        "Cannot delete status: It is currently used by active commissions",
-        409,
-      );
+      return { message: "Commission status is in use — delete skipped" };
     }
 
     const query = `

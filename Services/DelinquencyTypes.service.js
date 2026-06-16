@@ -337,10 +337,10 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
   ]);
 
   if (checkResult[0].count > 0) {
-    throw new AppError(
-      "Cannot delete delinquency type as it is being used in user delinquencies",
-      409,
-    );
+    return {
+      message: "success",
+      data: "Delinquency type is in use — delete skipped",
+    };
   }
 
   const sql = `UPDATE DelinquencyTypes SET delinquencyTypeDeletedAt = ?, delinquencyTypeDeletedBy = ? WHERE delinquencyTypeUniqueId = ?`;

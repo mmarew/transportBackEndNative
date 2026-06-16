@@ -105,6 +105,9 @@ const updateRole = async (roleUniqueId, body) => {
     }
     throw new AppError("Role update failed", 500);
   } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return { message: "success", data: "Role name already exists" };
+    }
     throw new AppError(
       error.message || "An error occurred during role update",
       error.statusCode || 500,
