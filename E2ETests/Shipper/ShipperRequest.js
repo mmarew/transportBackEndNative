@@ -289,7 +289,6 @@ const testGetAllActiveRequest = async () => {
     const auth = authConfig(token);
     const url = backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_ALL_ACTIVE_REQUESTS;
     const result = await axios.get(url, auth);
-    console.log("Get all active requests success:", result.data);
     return result.data;
   } catch (error) {
     console.error(

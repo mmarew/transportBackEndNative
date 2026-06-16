@@ -95,16 +95,11 @@ const createUserDelinquency = async data => {
     const [duplicateCheckResult] = await Promise.all([getUserDelinquencies(duplicateFilters), (transactionStorage.getStore() || pool).query(typeQuery, [delinquencyTypeUniqueId])]);
     if (duplicateCheckResult.message === "success" && duplicateCheckResult.data && duplicateCheckResult.data.length > 0) {
       const duplicate = duplicateCheckResult.data[0];
-      const timeAgo = Math.round((now - new Date(duplicate.delinquencyCreatedAt)) / (1000 * 60 * 60));
-      const error = new AppError(`Duplicate delinquency detected. A similar delinquency was registered ${timeAgo} hours ago.`, 400);
-      error.duplicateId = duplicate.userDelinquencyUniqueId;
-      error.timeSinceDuplicate = `${timeAgo} hours`;
-      error.duplicateDetails = {
-        description: duplicate.delinquencyDescription,
-        createdAt: duplicate.delinquencyCreatedAt,
-        createdBy: duplicate.createdByName
+      return {
+        message: "success",
+        data: "User delinquency already exists",
+        userDelinquencyUniqueId: duplicate.userDelinquencyUniqueId,
       };
-      throw error;
     }
   }
 
@@ -146,9 +141,7 @@ const createUserDelinquency = async data => {
       automaticAction: banResult
     };
   } catch (error) {
-    // Check for MySQL duplicate entry error
     if (error.code === "ER_DUP_ENTRY") {
-      // Use existing method to find the duplicate
       const duplicateFilters = {
         userUniqueId,
         delinquencyTypeUniqueId,
@@ -159,10 +152,11 @@ const createUserDelinquency = async data => {
         duplicateFilters.journeyDecisionUniqueId = journeyDecisionUniqueId;
       }
       const duplicateCheckResult = await getUserDelinquencies(duplicateFilters);
-      const appError = new AppError("Duplicate entry detected. A similar delinquency already exists.", 400);
-      appError.duplicateId = duplicateCheckResult.data?.[0]?.userDelinquencyUniqueId;
-      appError.details = error.message;
-      throw appError;
+      return {
+        message: "success",
+        data: "User delinquency already exists",
+        userDelinquencyUniqueId: duplicateCheckResult.data?.[0]?.userDelinquencyUniqueId,
+      };
     }
     throw new AppError(error.message || "Failed to create user delinquency record", error.statusCode || 500);
   }
