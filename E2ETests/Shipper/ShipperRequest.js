@@ -7,7 +7,10 @@ const {
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
 const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
 
-const testCreateShipperRequest = async (token, requestMode = "individual_target") => {
+const testCreateShipperRequest = async (
+  token,
+  requestMode = "individual_target",
+) => {
   const config = {
     ...authConfig(token),
   };
@@ -138,9 +141,7 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
 // };
 // ==================== UPDATED TEST FUNCTIONS ====================
 
-const testRejectDriverOffer = async (
-  { uniqueIds },
-) => {
+const testRejectDriverOffer = async ({ uniqueIds }) => {
   try {
     const payload = { ...uniqueIds }; // adjust fields as needed
     const token = usersData.shipper.token;
@@ -272,7 +273,6 @@ const testVerifyShipperStatus = async () => {
     const auth = authConfig(token);
     const url = backendURL + SHIPPER_REQUEST_ENDPOINTS.VERIFY_SHIPPER_STATUS;
     const result = await axios.get(url, auth);
-    console.log("Verify shipper status success:", result.data);
     return result.data;
   } catch (error) {
     console.error(

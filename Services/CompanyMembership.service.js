@@ -47,13 +47,13 @@ exports.addMember = async (data) => {
     throw new AppError("Company is not approved yet", 400);
   }
 
-  // Duplicate membership check
-  const [dup] = await db().query(
-    "SELECT membershipId FROM CompanyMembership WHERE companyUniqueId = ? AND userUniqueId = ? AND membershipDeletedAt IS NULL",
+  const [existing] = await db().query(
+    "SELECT membershipUniqueId, membershipDeletedAt FROM CompanyMembership WHERE companyUniqueId = ? AND userUniqueId = ?",
     [companyUniqueId, userUniqueId],
   );
-  if (dup.length > 0)
-  {throw new AppError("User is already a member of this company", 409);}
+  if (existing.length > 0) {
+    return { message: "success", data: { membershipUniqueId: existing[0].membershipUniqueId } };
+  }
 
   const membershipUniqueId = uuidv4();
   await db().query(
@@ -139,24 +139,33 @@ exports.getMembers = async (filters = {}, user = {}) => {
 };
 
 exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
-  const [res] = await db().query(
+  const [existing] = await db().query(
+    "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
+    [membershipUniqueId],
+  );
+  if (existing.length === 0) {throw new AppError("Membership not found", 404);}
+
+  await db().query(
     `UPDATE CompanyMembership
      SET isActive = 0, membershipEndDate = ?, membershipUpdatedBy = ?, membershipUpdatedAt = ?
-     WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL`,
+     WHERE membershipUniqueId = ?`,
     [currentDate(), updatedBy, currentDate(), membershipUniqueId],
   );
-  if (res.affectedRows === 0) {throw new AppError("Membership not found", 404);}
   return { message: "success", data: "Membership deactivated" };
 };
 
 exports.deleteMember = async (membershipUniqueId, deletedBy) => {
-  const [res] = await db().query(
+  const [existing] = await db().query(
+    "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
+    [membershipUniqueId],
+  );
+  if (existing.length === 0) {throw new AppError("Membership not found", 404);}
+
+  await db().query(
     `UPDATE CompanyMembership
      SET membershipDeletedAt = ?, membershipDeletedBy = ?
-     WHERE membershipUniqueId = ? AND membershipDeletedAt IS NULL`,
+     WHERE membershipUniqueId = ?`,
     [currentDate(), deletedBy, membershipUniqueId],
   );
-  if (res.affectedRows === 0)
-  {throw new AppError("Membership not found or already deleted", 404);}
   return { message: "success", data: "Membership deleted" };
 };

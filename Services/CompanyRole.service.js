@@ -21,7 +21,7 @@ exports.createRole = async (body) => {
     [companyRoleName]
   );
   if (existing && existing.length > 0) {
-    throw new AppError("Company role with this name already exists", 400);
+    return { message: "success", data: "Company role already exists", companyRoleUniqueId: existing[0].companyRoleUniqueId };
   }
 
   const [result] = await db().query(
@@ -112,15 +112,21 @@ exports.updateRole = async (uniqueId, body) => {
   params.push(currentDate());
 
   params.push(uniqueId);
-  const [result] = await db().query(
-    `UPDATE CompanyRoles SET ${setParts.join(", ")} WHERE companyRoleUniqueId = ? AND companyRoleDeletedAt IS NULL`,
-    params
-  );
-
-  if (result.affectedRows > 0) {
-    return { message: "success", data: "Company role updated successfully" };
+  try {
+    const [result] = await db().query(
+      `UPDATE CompanyRoles SET ${setParts.join(", ")} WHERE companyRoleUniqueId = ? AND companyRoleDeletedAt IS NULL`,
+      params
+    );
+    if (result.affectedRows > 0) {
+      return { message: "success", data: "Company role updated successfully" };
+    }
+    throw new AppError("Failed to update company role or role not found", 404);
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return { message: "success", data: "Company role name already exists" };
+    }
+    throw error;
   }
-  throw new AppError("Failed to update company role or role not found", 404);
 };
 
 /**

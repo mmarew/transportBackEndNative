@@ -15,7 +15,7 @@ const createRole = async (body) => {
     conditions: { roleName },
   });
   if (existedData?.length > 0) {
-    throw new AppError("Role already exists", 400);
+    return { message: "success", data: { roleUniqueId: existedData[0].roleUniqueId, message: "Role already exists" } };
   }
   const colAndVal = {
     roleUniqueId,
