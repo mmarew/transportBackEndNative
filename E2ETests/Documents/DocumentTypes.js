@@ -16,12 +16,15 @@ const testGetDocumentTypes = async ({ user } = {}) => {
     const result = await axios.get(backendURL + BASE_URL, {
       headers: { Authorization: "Bearer " + token },
     });
-    
+
     console.log("✅ Document types fetched:", result.data.data?.length ?? 0);
     cache.data = result.data.data;
     return result.data;
   } catch (error) {
-    console.error("❌ testGetDocumentTypes:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testGetDocumentTypes:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -33,7 +36,8 @@ const testCreateDocumentType = async ({ user, payload }) => {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
 
-    const documentTypeName = payload?.documentTypeName || "E2E_TEST_DOC_" + Date.now();
+    const documentTypeName =
+      payload?.documentTypeName || "E2E_TEST_DOC_" + Date.now();
     const defaultPayload = {
       documentTypeName,
       documentTypeDescription: "E2E test document type",
@@ -45,40 +49,68 @@ const testCreateDocumentType = async ({ user, payload }) => {
       headers: { Authorization: "Bearer " + token },
     });
 
-    // GET to find the newly created entry by name
     const list = await testGetDocumentTypes({ user });
-    const created = list?.data?.find(d => d.documentTypeName === documentTypeName);
+    const created = list?.data?.find(
+      (d) => d.documentTypeName === documentTypeName,
+    );
     const documentTypeUniqueId = created?.documentTypeUniqueId;
     console.log("✅ Document type created:", documentTypeUniqueId);
-    return { documentTypeUniqueId };
+    return { documentTypeUniqueId, message: "success" };
   } catch (error) {
-    console.error("❌ testCreateDocumentType:", error.response?.data?.error || error.message);
+    if (error.response?.data?.code === "DOCUMENT_TYPE_ALREADY_EXISTS") {
+      console.log("⚠️  Document type already exists, reusing existing entry");
+      const list = await testGetDocumentTypes({ user });
+      const existing = list?.data?.find(
+        (d) =>
+          d.documentTypeName ===
+          (payload?.documentTypeName || documentTypeName),
+      );
+      const documentTypeUniqueId = existing?.documentTypeUniqueId;
+      if (documentTypeUniqueId) {
+        return { documentTypeUniqueId };
+      }
+    }
+    console.error(
+      "❌ testCreateDocumentType:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
 
 // ── UPDATE document type ──────────────────────────────────────────────────────
-const testUpdateDocumentType = async ({ user, documentTypeUniqueId, payload }) => {
+const testUpdateDocumentType = async ({
+  user,
+  documentTypeUniqueId,
+  payload,
+}) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    
+
     const id = documentTypeUniqueId || cache.data?.[0]?.documentTypeUniqueId;
     if (!id) throw new Error("No document type ID found to update");
-    
+
     const defaultPayload = {
       documentTypeDescription: "Updated E2E test document type",
       ...payload,
     };
-    
-    const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    
+
+    const result = await axios.put(
+      `${backendURL}${BASE_URL}/${id}`,
+      defaultPayload,
+      {
+        headers: { Authorization: "Bearer " + token },
+      },
+    );
+
     console.log("✅ Document type updated:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testUpdateDocumentType:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testUpdateDocumentType:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -88,38 +120,39 @@ const testDeleteDocumentType = async ({ user, documentTypeUniqueId }) => {
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    
+
     const id = documentTypeUniqueId || cache.data?.[0]?.documentTypeUniqueId;
     if (!id) throw new Error("No document type ID found to delete");
-    
+
     const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, {
       headers: { Authorization: "Bearer " + token },
     });
-    
+
     console.log("✅ Document type deleted:", id);
     return result.data;
   } catch (error) {
-    console.error("❌ testDeleteDocumentType:", error.response?.data?.error || error.message);
+    console.error(
+      "❌ testDeleteDocumentType:",
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
 
 // ── Full workflow ─────────────────────────────────────────────────────────────
-const testDocumentTypesWorkflow = async ({
-  user = usersData.admin,
-} = {}) => {
+const testDocumentTypesWorkflow = async ({ user = usersData.admin } = {}) => {
   console.log("\n── Document Types Workflow ──");
 
   // GET (initial state)
   await testGetDocumentTypes({ user });
 
   // CREATE
-  const created = await testCreateDocumentType({ 
-    user, 
-    payload: { documentTypeName: "E2E_TEST_DOC_" + Date.now() } 
+  const created = await testCreateDocumentType({
+    user,
+    payload: { documentTypeName: "E2E_TEST_DOC_" + Date.now() },
   });
   const documentTypeUniqueId = created?.documentTypeUniqueId;
-  
+
   if (!documentTypeUniqueId) {
     console.warn("⚠️  No ID returned - cannot continue workflow");
     return { skipped: true };
@@ -129,10 +162,10 @@ const testDocumentTypesWorkflow = async ({
   await testGetDocumentTypes({ user });
 
   // UPDATE
-  await testUpdateDocumentType({ 
-    user, 
+  await testUpdateDocumentType({
+    user,
     documentTypeUniqueId,
-    payload: { documentTypeDescription: "Updated by E2E test" }
+    payload: { documentTypeDescription: "Updated by E2E test" },
   });
 
   // GET (after update)

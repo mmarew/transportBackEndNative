@@ -48,16 +48,11 @@ const testCreateVehicleType = async ({ user, payload } = {}) => {
     form.append("carryingCapacity", String(payload?.carryingCapacity || 50));
     form.append("cargoType", payload?.cargoType || "bulk_only");
     form.append("vehicleTypeDescription", payload?.vehicleTypeDescription || "E2E test vehicle type — should be deleted");
-    // Attach a minimal valid PNG buffer — passes the JPEG/PNG/PDF/SVG filter
-    form.append("vehicleTypeIconName", DUMMY_PNG, {
-      filename: "vehicle_icon_e2e.png",
-      contentType: "image/png",
-    });
+    form.append("vehicleTypeIconName", new Blob([DUMMY_PNG], { type: "image/png" }), "vehicle_icon_e2e.png");
 
     await axios.post(backendURL + BASE_URL, form, {
       headers: {
         Authorization: "Bearer " + token,
-        ...form.getHeaders(),
       },
     });
 
@@ -89,7 +84,6 @@ const testUpdateVehicleType = async ({ user, vehicleTypeUniqueId, payload } = {}
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, form, {
       headers: {
         Authorization: "Bearer " + token,
-        ...form.getHeaders(),
       },
     });
     console.log("✅ VehicleType updated:", id);

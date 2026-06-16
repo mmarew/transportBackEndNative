@@ -6,27 +6,24 @@ const path = require("path");
 const createDriverDocument = async (token, documentType) => {
   const form = new FormData();
 
-  // 1. Attach the file itself (using the dynamic key name from documentType)
   const dummyFilePath = path.join(__dirname, "../dummy.txt");
+  const fileBuffer = fs.readFileSync(dummyFilePath);
   form.append(
     documentType.uploadedDocumentName,
-    fs.createReadStream(dummyFilePath),
+    new Blob([fileBuffer]),
+    "dummy.txt",
   );
 
-  // 2. Attach the Document Type ID (using the dynamic key name)
   form.append(documentType.uploadedDocumentTypeId, documentType.documentTypeId);
 
-  // 3. Attach File Number if required
   if (documentType.isFileNumberRequired === 1) {
     form.append(documentType.uploadedDocumentFileNumber, "FILE-" + Date.now());
   }
 
-  // 4. Attach Expiration Date if required
   if (documentType.isExpirationDateRequired === 1) {
     form.append(documentType.uploadedDocumentExpirationDate, "2030-12-31");
   }
 
-  // 5. Attach Description if required
   if (documentType.isDescriptionRequired === 1) {
     form.append(
       documentType.uploadedDocumentDescription,
@@ -37,7 +34,6 @@ const createDriverDocument = async (token, documentType) => {
   const config = {
     headers: {
       Authorization: `Bearer ${token}`,
-      ...form.getHeaders(), // Crucial for multipart/form-data with Node.js Axios
     },
   };
 

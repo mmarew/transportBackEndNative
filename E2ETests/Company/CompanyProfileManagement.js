@@ -142,25 +142,24 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
     }
 
     const dummyFilePath = path.join(__dirname, "../dummy.txt");
+    const fileBuffer = fs.readFileSync(dummyFilePath);
     const url =
       backendURL + `/api/company/attachDocuments/${company.companyUniqueId}`;
     const attachableDocuments = await getAttachableDocuments({ userType });
     for (const documentType of attachableDocuments) {
       const form = new FormData();
 
-      // 1. Attach the file itself
       form.append(
         documentType.uploadedDocumentName,
-        fs.createReadStream(dummyFilePath),
+        new Blob([fileBuffer]),
+        "dummy.txt",
       );
 
-      // 2. Attach the Document Type ID
       form.append(
         documentType.uploadedDocumentTypeId,
         documentType.documentTypeId,
       );
 
-      // 3. Attach File Number if required
       if (documentType.isFileNumberRequired === 1) {
         form.append(
           documentType.uploadedDocumentFileNumber,
@@ -168,12 +167,10 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
         );
       }
 
-      // 4. Attach Expiration Date if required
       if (documentType.isExpirationDateRequired === 1) {
         form.append(documentType.uploadedDocumentExpirationDate, "2030-12-31");
       }
 
-      // 5. Attach Description if required
       if (documentType.isDescriptionRequired === 1) {
         form.append(
           documentType.uploadedDocumentDescription,
@@ -184,7 +181,6 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
-          ...form.getHeaders(),
         },
       };
 
