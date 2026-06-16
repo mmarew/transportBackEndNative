@@ -27,37 +27,6 @@ const testGetCommissions = async ({ user, filters = {} } = {}) => {
   }
 };
 
-const resolveCommissionRateId = async (token) => {
-  try {
-    const res = await axios.get(
-      backendURL + "/api/finance/commissionRates",
-      authConfig(token),
-    );
-    const list = res.data.data || res.data;
-    if (!Array.isArray(list)) return null;
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const valid = list.find((r) => uuidPattern.test(r.commissionRateUniqueId));
-    return valid?.commissionRateUniqueId || null;
-  } catch {
-    return null;
-  }
-};
-
-const resolveCommissionStatusId = async (token) => {
-  try {
-    const res = await axios.get(
-      backendURL + "/api/finance/commissionStatus/admin/commission-statuses",
-      authConfig(token),
-    );
-    return (
-      res.data.data?.[0]?.commissionStatusUniqueId ||
-      res.data?.[0]?.commissionStatusUniqueId
-    );
-  } catch {
-    return null;
-  }
-};
-
 const { v4: uuidv4 } = require("uuid");
 
 const seedDriverBalance = async () => {

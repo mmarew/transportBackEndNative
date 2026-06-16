@@ -6,7 +6,6 @@ const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { HEALTH_ENDPOINTS } = require("../../Routes/EndPoints/health.endpoints");
-const { ADMIN_ENDPOINTS } = require("../../Routes/EndPoints/admin.endpoints");
 
 // ── GET: /api/health ──────────────────────────────────────────────────────────
 const testHealthCheck = async () => {
@@ -50,14 +49,14 @@ const testDatabaseStats = async ({ user } = {}) => {
 
 // ── GET: /api/admin/system/logs ───────────────────────────────────────────────
 // Protected by ?secret=SECRET_KEY query param (browser diagnostic endpoint, not JWT)
-const testGetSystemLogs = async ({ user } = {}) => {
+const testGetSystemLogs = async () => {
   console.log("⏩ testGetSystemLogs skipped — uses ?secret= key, not JWT auth (browser-only endpoint)");
   return { skipped: true };
 };
 
 // ── GET: /api/admin/system/uploads ────────────────────────────────────────────
 // Protected by ?secret=SECRET_KEY query param (browser diagnostic endpoint, not JWT)
-const testGetSystemUploads = async ({ user } = {}) => {
+const testGetSystemUploads = async () => {
   console.log("⏩ testGetSystemUploads skipped — uses ?secret= key, not JWT auth (browser-only endpoint)");
   return { skipped: true };
 };

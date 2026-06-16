@@ -3,7 +3,7 @@
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const { testCreateDelinquency, testGetDelinquency } = require("./Delinquency");
+const { testCreateDelinquency } = require("./Delinquency");
 
 const BASE_URL = "/api/user/delinquencyResponse";
 const responses = { data: null };

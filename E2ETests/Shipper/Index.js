@@ -13,7 +13,7 @@ const { verifyShipperStatus } = require("./VerifyShipperStatus");
 // Backward-compat alias
 const getShipperAccountData = () => testGetAccountData({ userType: "shipper" });
 
-const testShipperAcceptDriversOffer = async (token) => {};
+const testShipperAcceptDriversOffer = async () => {};
 
 // ── Shipper onboarding: auth → upload docs → create request → verify status ──
 const testShipperOnboardingFlow = async ({ userType = "shipper", requestMode = "individual_target" }) => {

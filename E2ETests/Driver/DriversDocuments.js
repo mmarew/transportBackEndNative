@@ -1,6 +1,5 @@
 const { backendURL } = require("../constants");
 const axios = require("axios");
-const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
 
@@ -43,7 +42,7 @@ const createDriverDocument = async (token, documentType) => {
   };
 
   try {
-    const res = await axios.post(
+    await axios.post(
       backendURL + "/api/user/attachDocuments/self",
       form,
       config,

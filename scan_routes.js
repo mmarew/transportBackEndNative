@@ -11,7 +11,7 @@ const endpointFiles = fs.readdirSync(endPointsDir).filter(f => f.endsWith('.js')
 for (const file of endpointFiles) {
   const content = fs.readFileSync(path.join(endPointsDir, file), 'utf8');
   // Simple regex to find string values that look like routes
-  const routeRegex = /['"\`](\/[a-zA-Z0-9\-\_\/\:]+)['"\`]/g;
+  const routeRegex = /['"`](\/[a-zA-Z0-9\-_/:]+)['"`]/g;
   let match;
   while ((match = routeRegex.exec(content)) !== null) {
     if (match[1].length > 1) { // ignore just '/'
@@ -32,7 +32,7 @@ function scanDir(dir) {
       scanDir(fullPath);
     } else if (file.endsWith('.js')) {
       const content = fs.readFileSync(fullPath, 'utf8');
-      const routeRegex = /['"\`](\/[a-zA-Z0-9\-\_\/\:]+)['"\`]/g;
+      const routeRegex = /['"`](\/[a-zA-Z0-9\-_/:]+)['"`]/g;
       let match;
       while ((match = routeRegex.exec(content)) !== null) {
          testedEndpoints.add(match[1]);

@@ -3,7 +3,7 @@
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const { testCreateDelinquency, testGetDelinquency } = require("./Delinquency");
+const { testCreateDelinquency } = require("./Delinquency");
 
 const BASE_URL = "/api/admin/userDelinquencyDecisions";
 const decisions = { data: null };
@@ -66,14 +66,14 @@ const testCreateAdminDecision = async ({
 };
 
 // ── UPDATE decision (unsupported — decisions are immutable) ───────────────────
-const testUpdateAdminDecision = async ({ user, adminDecisionUniqueId }) => {
+const testUpdateAdminDecision = async () => {
   console.log("⏩ Update admin decision: not supported (decisions are immutable)");
   // If backend adds PATCH endpoint in future, implement here
   return { message: "unsupported" };
 };
 
 // ── DELETE decision (soft-delete for corrections) ─────────────────────────────
-const testDeleteAdminDecision = async ({ user, adminDecisionUniqueId }) => {
+const testDeleteAdminDecision = async () => {
   console.log("⏩ Delete admin decision: not supported (use new decision to override)");
   // If backend adds DELETE endpoint in future, implement here
   return { message: "unsupported" };

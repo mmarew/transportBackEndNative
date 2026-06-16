@@ -4,7 +4,6 @@
 // Multer only accepts: JPEG, PNG, PDF, SVG
 
 const axios = require("axios");
-const FormData = require("form-data");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 

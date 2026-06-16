@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { usersData, backendURL } = require("../../constants");
+const { usersData, backendURL, listOfPlanPricing } = require("../../constants");
 const { getDriversAccountData } = require("../RequirementOfDriver");
 const { authConfig } = require("../../Utils");
 
@@ -54,7 +54,7 @@ const createDriverSubscription = async ({
       res.data?.data?.userSubscriptionUniqueId,
     );
     return res.data;
-  } catch (error) {
+  } catch {
     return {
       message: "error",
       error: "@createDriverSubscription unable to create subscriptions.",
@@ -132,7 +132,7 @@ const testDriverSubscriptionFlow = async ({ userType = "driver" } = {}) => {
 
   const driverUniqueId = await resolveDriverUniqueId({ userType });
   const subscriptionPlanPricingUniqueId =
-    await resolveSubscriptionPlanPricingUniqueId({ userType });
+    (listOfPlanPricing?.data?.[0]?.subscriptionPlanPricingUniqueId) || (() => { throw new Error("No subscription plan pricing available"); })();
   const subscriptionPayload = await createDriverSubscription({
     driverUniqueId,
     subscriptionPlanPricingUniqueId,

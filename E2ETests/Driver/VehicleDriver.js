@@ -1,6 +1,5 @@
-const { backendURL } = require("../constants");
+const { backendURL, usersData } = require("../constants");
 const axios = require("axios");
-const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
 const { authConfig } = require("../Utils");
@@ -121,7 +120,7 @@ const attachVehiclesDocuments = async ({
   };
 
   try {
-    const res = await axios.post(
+    await axios.post(
       backendURL + `/api/vehicle/attachDocuments/${vehicleUniqueId}`,
       form,
       config,

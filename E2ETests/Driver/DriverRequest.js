@@ -153,7 +153,7 @@ const testCreateAndAcceptNewRequest = async ({
       description: "in eth addis ",
     },
   };
-  const resultOfTakeFromStreet = await axios.post(
+  await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.CREATE_AND_ACCEPT_NEW_REQUEST,
     payload,
     config,
@@ -189,7 +189,7 @@ const testStartJourney = async ({ token, uniqueIds }) => {
 const testNoAnswerFromDriver = async (token) => {
   const config = { ...authConfig(token) };
   const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.NO_ANSWER_FROM_DRIVER,
     payload,
     config,
@@ -201,7 +201,7 @@ const testCancelDriverRequest = async (token) => {
   if (!token) throw new Error("no token found to testCancelDriverRequest");
   const config = { ...authConfig(token) };
   const payload = {};
-  const resultOfTakeFromStreet = await axios.put(
+  await axios.put(
     backendURL +
       DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
       "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
@@ -217,7 +217,7 @@ const testCompleteJourney = async ({ token, uniqueIds }) => {
     latitude: "11.12260400",
     longitude: "39.63498200",
   };
-  const resultOfCompleteJourney = await axios.put(
+  await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.COMPLETE_JOURNEY,
     payload,
     config,
@@ -227,7 +227,7 @@ const testCompleteJourney = async ({ token, uniqueIds }) => {
 const testUpdateDriverRequest = async (token) => {
   const config = { ...authConfig(token) };
   const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.UPDATE_DRIVER_REQUEST,
     payload,
     config,
@@ -237,7 +237,7 @@ const testUpdateDriverRequest = async (token) => {
 const testDeleteDriverRequest = async (token) => {
   const config = { ...authConfig(token) };
   const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.DELETE_DRIVER_REQUEST,
     payload,
     config,
@@ -248,7 +248,6 @@ const testVerifyDriverJourneyStatus = async ({ token }) => {
   if (!token) token = usersData.driver.token;
   if (!token) throw new Error("no token to get drivers data");
   const config = { ...authConfig(token) };
-  const payload = {};
   const resultOfDriverJourneyStatus = await axios.get(
     backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
     // payload,
@@ -260,10 +259,9 @@ const testVerifyDriverJourneyStatus = async ({ token }) => {
 // GET_DRIVER_REQUEST: string;
 const testGetDriverRequest = async (token) => {
   const config = { ...authConfig(token) };
-  const payload = {};
-  const resultOfTakeFromStreet = await axios.post(
+  await axios.post(
     backendURL + DRIVER_REQUEST_ENDPOINTS.GET_DRIVER_REQUEST,
-    payload,
+    {},
     config,
   );
 };
@@ -281,7 +279,7 @@ const testSendUpdatedLocation = async ({ token, uniqueIds }) => {
     additionalData: {},
   };
   // return;
-  const resultOfSendUpdatedLocation = await axios.put(
+  await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.SEND_UPDATED_LOCATION,
     payload,
     config,
@@ -290,7 +288,7 @@ const testSendUpdatedLocation = async ({ token, uniqueIds }) => {
 // GET_CANCELLATION_NOTIFICATIONS: string;
 const testGetCancellationNotifications = async (token) => {
   const config = { ...authConfig(token) };
-  const resultOfTakeFromStreet = await axios.get(
+  await axios.get(
     backendURL + DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS + "?seenStatus=not%20seen%20by%20driver%20yet",
     config,
   );
@@ -318,7 +316,6 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
         "❌ Driver token is not available. Cannot run driver request workflows.",
       );
       return "token is required";
-    } else {
     }
   }
   await getDriversAccountData({ token });
@@ -327,72 +324,57 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
   let driverStatus = await testVerifyDriverJourneyStatus({ token });
   let status = driverStatus?.status;
   let uniqueIds = driverStatus?.uniqueIds;
-  if (jobStyle == "take from street" && !status) {
+  if (jobStyle === "take from street" && !status) {
     testTakeFromStreet({ token });
     return;
   }
   // return;
   if (!status) {
     // create new driver request
-    const newRequest = await testCreateDriverRequest(token);
+    await testCreateDriverRequest(token);
     //recheck driver journey status
     driverStatus = await testVerifyDriverJourneyStatus({ token });
   }
   //protect recreation of shipper requests
-  if (jobStyle == "createAndAcceptNewRequest" && status == 1) {
-    const newShipperRequest = await testShipperOnboardingFlow({});
+  if (jobStyle === "createAndAcceptNewRequest" && status === 1) {
+    await testShipperOnboardingFlow({});
   }
   // if ((jobStyle = "cancel driver request")) {
   //   return testCancelDriverRequest(token);
   // }
-  if (jobStyle == "createAndAcceptNewRequest") {
-    if (status == 1 || status == 2) {
+  if (jobStyle === "createAndAcceptNewRequest") {
+    if (status === 1 || status === 2) {
       await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
       uniqueIds = driverStatus?.uniqueIds;
       return;
+    } else if (status === 3) {
       await testAcceptDriverRequest({ token: null, uniqueIds });
-      driverStatus = await testVerifyDriverJourneyStatus({ token });
-      status = driverStatus?.status;
-      uniqueIds = driverStatus?.uniqueIds;
+    } else if (status === 4) {
       await testStartJourney({ token, uniqueIds });
-      driverStatus = await testVerifyDriverJourneyStatus({ token });
-      status = driverStatus?.status;
-      uniqueIds = driverStatus?.uniqueIds;
+    } else if (status === 5) {
       await testCompleteJourney({ token, uniqueIds });
-      driverStatus = await testVerifyDriverJourneyStatus({ token });
-      status = driverStatus?.status;
-      uniqueIds = driverStatus?.uniqueIds;
-
-      // await testCompleteJourney({ token, uniqueIds });
-      return;
-    } else if (status == 3) {
-      await testAcceptDriverRequest({ token: null, uniqueIds });
-    } else if (status == 4) {
-      await testStartJourney({ token, uniqueIds });
-    } else if (status == 5) {
-      await testCompleteJourney({ token, uniqueIds });
-    } else if (status == 14) {
+    } else if (status === 14) {
       await testMarkNegativeStatusAsSeen({ token, uniqueIds });
     }
   }
-  if (status == 4 || status == 5)
+  if (status === 4 || status === 5)
     await testSendUpdatedLocation({ token, uniqueIds });
-  if (status == 1) {
+  if (status === 1) {
     // create shipper request
-    const newShipperRequest = await testShipperOnboardingFlow({});
-  } else if (status == 2) {
+    await testShipperOnboardingFlow({});
+  } else if (status === 2) {
     // accept shipper request
 
     await testAcceptShipperRequest({ token, uniqueIds });
-  } else if (status == 3) {
+  } else if (status === 3) {
     //shipper accept drivers offer
     await testAcceptDriverRequest({ token: null, uniqueIds });
-  } else if (status == 4) {
+  } else if (status === 4) {
     //start journey
     await testStartJourney({ token, uniqueIds });
-  } else if (status == 5) {
+  } else if (status === 5) {
     //complete journey
     await testCompleteJourney({ token, uniqueIds });
   }

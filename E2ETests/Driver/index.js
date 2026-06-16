@@ -5,13 +5,7 @@ const {
   evaluateDriversDocumentVehicleRequirement,
 } = require("./RequirementOfDriver");
 const { usersData, listOfPlanPricing } = require("../constants");
-const {
-  getDriverJourneyStatus,
-  acceptCompanyAssignment,
-  acceptShipperRequest,
-  startJourney,
-} = require("./DriverJourneyStatus");
-const { testDriverBalanceFlow } = require("./DriversFinance/DriverBalance");
+
 const { testDriverDepositFlow } = require("./DriversFinance/DriverDeposit");
 const { testDriverTransferFlow } = require("./DriversFinance/DriverTransfer");
 const { testDriverWalletFlow } = require("./DriversFinance/DriverWallet");
@@ -19,7 +13,7 @@ const {
   createDriverSubscription,
 } = require("./DriversFinance/DriverSubscription");
 const {
-  testCreateFinancialInstitutionAccount,
+  testGetFinancialInstitutionAccounts,
   testFinancialInstitutionAccountWorkflow:
     testFinancialInstitutionAccountsWorkFlow,
 } = require("../Finance/FinancialInstitutionAccount");
@@ -180,7 +174,7 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     userType: "driver",
   };
 
-  const newDriverDeposit = await createDriverDeposit({
+  await createDriverDeposit({
     ...depositPayload,
   });
 
@@ -191,7 +185,7 @@ const driversFinancialFlows = async ({ userType = "driver" }) => {
     "🚀 ~ driversFinancialFlows ~ unauthorizedDeposits:",
     unauthorizedDeposits,
   );
-  const promisedData = await Promise.all(
+  await Promise.all(
     (unauthorizedDeposits?.data || [])?.map(async (deposit) => {
       const userDepositUniqueId = deposit?.userDepositUniqueId;
       await approveDriversDeposit({ userDepositUniqueId });

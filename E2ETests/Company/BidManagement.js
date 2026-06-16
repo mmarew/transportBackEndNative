@@ -1,13 +1,8 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const { testVerifyUserByOTP } = require("../Auth/VerifyByOtp");
-const { testShipperOnboardingFlow } = require("../Shipper/Index");
 const {
   COMPANY_BID_ENDPOINTS,
 } = require("../../Routes/EndPoints/companyBid.endpoints");
-const { assignDrivers } = require("./AssignDrivers");
-const { assignVehicleToCompany } = require("./CompanyVehicle");
-const { testDriverOnboardingFlow } = require("../Driver");
 const { authConfig } = require("../Utils");
 
 const logCompanyError = (message, error) => {
@@ -44,7 +39,6 @@ const getBids = async ({
 };
 const getAvailableBids = async ({
   userType = "companyAdmin",
-  bidStatus = "submitted",
 }) => {
   const token = usersData?.[userType]?.token;
   if (!token) {

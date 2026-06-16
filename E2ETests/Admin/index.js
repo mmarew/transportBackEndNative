@@ -20,7 +20,7 @@ const testCreateAdminFlow = async () => {
   const config = authConfig(supperAdminToken);
 
   try {
-    const res = await axios.post(
+    await axios.post(
       backendURL + AUTH_ENDPOINTS.CREATE_USER_BY_ADMIN,
       usersData["admin"],
       config,

@@ -22,10 +22,7 @@ const resolveDriverUserUniqueId = async ({ userType = "driver" } = {}) => {
 };
 
 const createDriverTransfer = async ({
-  transferredAmount = 100,
-  toDriverUniqueId,
   userType = "driver",
-  reason = "E2E self-transfer",
 } = {}) => {
   try {
     const token = usersData[userType]?.token;
@@ -45,8 +42,6 @@ const createDriverTransfer = async ({
     //   authConfig(usersData[userType]?.token),
     // );
 
-    const fromDriverUniqueId = await resolveDriverUserUniqueId({ userType });
-    const transferTarget = toDriverUniqueId || fromDriverUniqueId;
     const res = await axios.post(
       `${backendURL}/api/finance/userBalanceTransfer/self`,
       {
@@ -160,7 +155,6 @@ const testDriverTransferFlow = async ({ userType = "driver" } = {}) => {
   console.log("\n✅ ========== DRIVER TRANSFER FLOW STARTED ==========");
 
   const driverUniqueId = await resolveDriverUserUniqueId({ userType });
-  const balanceAmount = 300;
 
   const transferPayload = await createDriverTransfer({
     transferredAmount: 75,

@@ -1,13 +1,10 @@
 const axios = require("axios");
 const { usersData, backendURL } = require("../../constants");
-const { createDriverBalance } = require("./DriverBalance");
 const {
-  createFinancialInstitutionAccount,
   createDriverDeposit,
 } = require("./DriverDeposit");
 const {
   createDriverTransfer,
-  getDriverTransfers,
 } = require("./DriverTransfer");
 const {
   testCreateFinancialInstitutionAccount,

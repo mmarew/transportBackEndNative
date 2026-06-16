@@ -1,6 +1,5 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
 const { authConfig } = require("../Utils");
@@ -66,7 +65,7 @@ const getCompanies = async ({ userType = "companyAdmin" }) => {
   }
 };
 
-const approveCompanyStatus = async ({ userType = "admin" }) => {
+const approveCompanyStatus = async () => {
   const token = usersData?.admin?.token;
   if (!token) {
     logCompanyProfileError("Admin token missing for company status approval.");

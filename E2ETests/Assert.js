@@ -20,7 +20,7 @@ const assert = {
     }
   },
   Exists(value, msg) {
-    if (value == null) {
+    if (value === null || value === undefined) {
       throw new Error(msg || `Expected value to exist, got ${value}`);
     }
   },

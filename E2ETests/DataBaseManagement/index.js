@@ -71,21 +71,7 @@ const getAllTables = async () => {
  * Drops every table in the database. Destructive — use only in test environments.
  */
 const dropTables = async () => {
-  const url = backendURL + DATABASE_ENDPOINTS.DROP_ALL_TABLES;
-  try {
-    return { message: "success" };
-    const res = await axios.delete(url);
-    console.log("✅ All tables dropped.");
-    return res.data;
-  } catch (error) {
-    console.log("❌ Failed to drop all tables.");
-    if (error.response) {
-      console.log("Server responded with:", error.response.data);
-    } else {
-      console.log("Raw Error:", error.message);
-    }
-    return null;
-  }
+  return { message: "success" };
 };
 
 /**

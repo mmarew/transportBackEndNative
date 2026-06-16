@@ -8,17 +8,14 @@ const { usersData } = require("../constants");
 const {
   testDelinquencyWorkflow,
   testCreateDelinquency,
-  testGetDelinquency,
 } = require("./Delinquency");
 const {
   testDelinquencyResponseWorkflow,
-  testCreateDelinquencyResponse,
 } = require("./DelinquencyResponse");
 const {
   testAdminDecisionWorkflow,
-  testCreateAdminDecision,
 } = require("./AdminDecision");
-const { testBanWorkflow, testGetBannedUsers } = require("./BannedUsers");
+const { testGetBannedUsers } = require("./BannedUsers");
 
 const testFullDelinquencyLifecycle = async () => {
   const admin = usersData.admin;

@@ -8,7 +8,7 @@ const BASE_URL = "/api/admin/bannedUsers";
 const bans = { data: null };
 
 // ── GET banned users ──────────────────────────────────────────────────────────
-const testGetBannedUsers = async ({ user, actionsAfter } = {}) => {
+const testGetBannedUsers = async ({ user } = {}) => {
   try {
     const token = user?.token;
     if (!token) throw new Error("token not found");
