@@ -32,12 +32,11 @@ const testGetDocumentTypes = async ({ user } = {}) => {
 // ── CREATE document type ──────────────────────────────────────────────────────
 // Service returns no ID — GET after create to find the entry by name
 const testCreateDocumentType = async ({ user, payload }) => {
+  const documentTypeName =
+    payload?.documentTypeName || "E2E_TEST_DOC_" + Date.now();
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-
-    const documentTypeName =
-      payload?.documentTypeName || "E2E_TEST_DOC_" + Date.now();
     const defaultPayload = {
       documentTypeName,
       documentTypeDescription: "E2E test document type",
@@ -61,9 +60,7 @@ const testCreateDocumentType = async ({ user, payload }) => {
       console.log("⚠️  Document type already exists, reusing existing entry");
       const list = await testGetDocumentTypes({ user });
       const existing = list?.data?.find(
-        (d) =>
-          d.documentTypeName ===
-          (payload?.documentTypeName || documentTypeName),
+        (d) => d.documentTypeName === documentTypeName,
       );
       const documentTypeUniqueId = existing?.documentTypeUniqueId;
       if (documentTypeUniqueId) {

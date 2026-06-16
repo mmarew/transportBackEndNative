@@ -89,10 +89,16 @@ const createMapping = async ({
     throw new AppError(`Document type not found for ID: ${numericDocumentTypeId}${body.documentTypeName ? " or Name: " + body.documentTypeName : ""}. Please ensure DocumentTypes are seeded first.`, 404);
   }
   const executor = transactionStorage.getStore() || pool;
-  // Check if the mapping already exists
-  const existingMapping = await executor.query("SELECT * FROM RoleDocumentRequirements WHERE roleId = ? AND documentTypeId = ? AND roleDocumentRequirementDeletedAt IS NULL", [numericRoleId, numericDocumentTypeId]);
+  const existingMapping = await executor.query("SELECT * FROM RoleDocumentRequirements WHERE roleId = ? AND documentTypeId = ?", [numericRoleId, numericDocumentTypeId]);
   if (existingMapping[0].length > 0) {
-    throw new AppError("Mapping already exists", 400);
+    const existing = existingMapping[0][0];
+    return {
+      message: "success",
+      data: {
+        roleDocumentRequirementUniqueId: existing.roleDocumentRequirementUniqueId,
+        message: "Mapping already exists"
+      }
+    };
   }
 
   // Insert new mapping

@@ -38,7 +38,8 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
     throw new AppError("Mapping not found", 404);
   }
   if (currentRows[0]?.roleDocumentRequirementDeletedAt) {
-    throw new AppError("Mapping already deleted", 400);
+    const undeleteUpdatedBy = roleDocumentRequirementUpdatedBy || currentRows[0].roleDocumentRequirementCreatedBy;
+    await executor.query("UPDATE RoleDocumentRequirements SET roleDocumentRequirementDeletedAt = NULL, roleDocumentRequirementDeletedBy = NULL, roleDocumentRequirementUpdatedBy = ? WHERE roleDocumentRequirementUniqueId = ?", [undeleteUpdatedBy, roleDocumentRequirementUniqueId]);
   }
   let resolvedDocumentTypeId = documentTypeId;
   if (!resolvedDocumentTypeId && documentTypeUniqueId) {
