@@ -120,6 +120,31 @@ const testDeactivateCompanyMembership = async ({
   }
 };
 
+const testReactivateCompanyMembership = async ({
+  user,
+  membershipUniqueId,
+} = {}) => {
+  try {
+    const token = user?.token || usersData.admin?.token;
+    if (!token) throw new Error("token not found");
+    const id = membershipUniqueId || cache.data?.[0]?.membershipUniqueId;
+    if (!id) throw new Error("No membershipUniqueId found to reactivate");
+    const result = await axios.patch(
+      `${backendURL}${BASE_URL}/${id}/reactivate`,
+      {},
+      authConfig(token),
+    );
+    console.log("✅ CompanyMembership reactivated:", id);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "❌ testReactivateCompanyMembership:",
+      error.response?.data?.error || error.message,
+    );
+    throw error;
+  }
+};
+
 const testDeleteCompanyMembership = async ({
   user,
   membershipUniqueId,
@@ -171,6 +196,8 @@ const testCompanyMembershipWorkflow = async ({
   });
   await testDeactivateCompanyMembership({ user, membershipUniqueId });
   await testGetCompanyMemberships({ user });
+  await testReactivateCompanyMembership({ user, membershipUniqueId });
+  await testGetCompanyMemberships({ user });
   await testDeleteCompanyMembership({ user, membershipUniqueId });
   await testGetCompanyMemberships({ user });
   console.log("── CompanyMembership Workflow complete ──\n");
@@ -182,5 +209,6 @@ module.exports = {
   testGetCompanyMemberships,
   testCreateCompanyMembership,
   testDeactivateCompanyMembership,
+  testReactivateCompanyMembership,
   testDeleteCompanyMembership,
 };

@@ -29,6 +29,15 @@ router.get(
 );
 
 /**
+ * @route   PATCH /api/company/memberships/:membershipUniqueId/reactivate
+ */
+router.patch(
+  "/:membershipUniqueId/reactivate",
+  validator(schema.memberParams, "params"),
+  controller.activateMember,
+);
+
+/**
  * @route   PATCH /api/company/memberships/:membershipUniqueId/deactivate
  */
 router.patch(

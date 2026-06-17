@@ -35,6 +35,20 @@ exports.getMembers = async (req, res, next) => {
   }
 };
 
+exports.activateMember = async (req, res, next) => {
+  try {
+    const result = await executeInTransaction(() =>
+      service.activateMember(
+        req.params.membershipUniqueId,
+        req.user.userUniqueId,
+      ),
+    );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
 exports.deactivateMember = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>

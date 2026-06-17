@@ -138,6 +138,22 @@ exports.getMembers = async (filters = {}, user = {}) => {
   );
 };
 
+exports.activateMember = async (membershipUniqueId, updatedBy) => {
+  const [existing] = await db().query(
+    "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
+    [membershipUniqueId],
+  );
+  if (existing.length === 0) {throw new AppError("Membership not found", 404);}
+
+  await db().query(
+    `UPDATE CompanyMembership
+     SET isActive = 1, membershipEndDate = NULL, membershipUpdatedBy = ?, membershipUpdatedAt = ?
+     WHERE membershipUniqueId = ?`,
+    [updatedBy, currentDate(), membershipUniqueId],
+  );
+  return { message: "success", data: "Membership reactivated" };
+};
+
 exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
   const [existing] = await db().query(
     "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
