@@ -77,7 +77,11 @@ const banUser = async (data) => {
     [targetUserUniqueId, targetRoleId, currentDate()],
   );
   if (existingActiveBanRows.length > 0) {
-    throw new AppError("User already has an active ban", 409);
+    return {
+      message: "success",
+      data: "User already has an active ban",
+      banUniqueId: existingActiveBanRows[0].banUniqueId,
+    };
   }
 
   const banUniqueId = uuidv4();

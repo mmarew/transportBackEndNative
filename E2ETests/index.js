@@ -12,7 +12,9 @@ const { runIndividualFlow } = require("./Phases/runIndividualFlow");
 const { runCompanyFlow } = require("./Phases/runCompanyFlow");
 const { runPostJourneyCRUD } = require("./Phases/runPostJourneyCRUD");
 const { runDelinquencyTests } = require("./Phases/runDelinquencyTests");
-const { runAnalyticsAndAdminTests } = require("./Phases/runAnalyticsAndAdminTests");
+const {
+  runAnalyticsAndAdminTests,
+} = require("./Phases/runAnalyticsAndAdminTests");
 
 const initiateTest = async () => {
   try {
@@ -45,7 +47,9 @@ const initiateTest = async () => {
 
     const passed = report.summary();
     if (passed) {
-      console.log("\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n");
+      console.log(
+        "\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n",
+      );
     } else {
       console.error("\n❌ ========== E2E TEST FAILED ==========\n");
       process.exit(1);
