@@ -18,7 +18,7 @@ const adminDecisionOnDelinquency = require("./AdminDecisionOnDelinquency.routes"
 
 // Mount routes with appropriate sub-paths
 router.use("/admin/delinquency/bans", companyBan);
-router.use("/admin/delinquencyDecisions", adminDecisionOnDelinquency); // admin rulings (CRUD)
+router.use("/admin/delinquency-decisions", adminDecisionOnDelinquency); // admin rulings (CRUD)
 router.use("/admin/delinquency", companyDelinquency);
 router.use("/delinquency-response", companyDelinquencyDispute); // company dispute responses only
 router.use("/ratings", companyRatting);
