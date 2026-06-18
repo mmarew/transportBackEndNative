@@ -12,7 +12,18 @@ const logger = require("../Utils/logger");
  */
 exports.getBatches = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getBatches(req.query));
+    const filters = { ...req.query };
+    const { userUniqueId, roleId } = req.user;
+
+    if (roleId === 3 || roleId === 6) {
+      if (!filters.shipperUserUniqueId || filters.shipperUserUniqueId === "self") {
+        delete filters.shipperUserUniqueId;
+      }
+    } else {
+      filters.shipperUserUniqueId = userUniqueId;
+    }
+
+    ServerResponder(res, await service.getBatches(filters));
   } catch (e) {
     next(e);
   }
