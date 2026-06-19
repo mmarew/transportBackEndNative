@@ -16,7 +16,10 @@ exports.getBatches = async (req, res, next) => {
     const { userUniqueId, roleId } = req.user;
 
     if (roleId === 3 || roleId === 6) {
-      if (!filters.shipperUserUniqueId || filters.shipperUserUniqueId === "self") {
+      if (
+        !filters.shipperUserUniqueId ||
+        filters.shipperUserUniqueId === "self"
+      ) {
         delete filters.shipperUserUniqueId;
       }
     } else {

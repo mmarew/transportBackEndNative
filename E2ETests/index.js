@@ -5,6 +5,14 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
 const { testUpdateUserWithFileUpload } = require("./Auth/User");
+const {
+  testDeleteUser,
+  testUpdateCompany,
+  testDeleteCompany,
+  testUpdateBatch,
+  testDeleteBatch,
+  testVehicleDocumentUpload,
+} = require("./Untested");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -47,6 +55,18 @@ const initiateTest = async () => {
     await runPostJourneyCRUD();
     await runDelinquencyTests();
     await runAnalyticsAndAdminTests();
+
+    // ── Phase G: Previously untested endpoints ────────────────────────────
+    console.log("\n=======================================================");
+    console.log("   🧪 TESTING PREVIOUSLY UNTESTED ENDPOINTS");
+    console.log("=======================================================\n");
+
+    await testUpdateCompany();
+    await testDeleteCompany();
+    await testUpdateBatch();
+    await testDeleteBatch();
+    await testVehicleDocumentUpload();
+    await testDeleteUser();
 
     const passed = report.summary();
     if (passed) {
