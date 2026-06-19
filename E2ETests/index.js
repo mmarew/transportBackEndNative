@@ -4,6 +4,7 @@ const { resetDatabase } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
+const { testUpdateUserWithFileUpload } = require("./Auth/User");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -31,6 +32,8 @@ const initiateTest = async () => {
     // ── Phase 2: Driver onboarding + doc approval ─────────────────────────────
     await testDriverOnboardingFlow({ userType: "driver" });
     if (!usersData?.driver?.token) throw new Error("Driver token not set");
+
+    await testUpdateUserWithFileUpload();
 
     console.log("\n── Authorizing Driver Documents ──");
     await fetchUnAuthorizedDrivers({});
