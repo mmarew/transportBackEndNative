@@ -140,7 +140,8 @@ const updateUser = async (req, res, next) => {
         const existingDocs = await getData({
           tableName: "AttachedDocuments",
           conditions: {
-            userUniqueId: ownerUserUniqueId,
+            ownerType: "user",
+            ownerUniqueId: ownerUserUniqueId,
             documentTypeId: profilePhotoTypeId
           }
         });
@@ -152,7 +153,7 @@ const updateUser = async (req, res, next) => {
             documentTypeId: profilePhotoTypeId,
             documentExpirationDate: ProfilePhotoExpirationDate,
             roleId: targetRoleId,
-            userUniqueId: ownerUserUniqueId
+            ownerUniqueId: ownerUserUniqueId
           });
         } else {
           // Store the old file URL for cleanup after successful transaction
