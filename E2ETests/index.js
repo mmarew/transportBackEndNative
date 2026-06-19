@@ -41,8 +41,6 @@ const initiateTest = async () => {
     await testDriverOnboardingFlow({ userType: "driver" });
     if (!usersData?.driver?.token) throw new Error("Driver token not set");
 
-    await testUpdateUserWithFileUpload();
-
     console.log("\n── Authorizing Driver Documents ──");
     await fetchUnAuthorizedDrivers({});
     await authorizeDriversDocuments({});
@@ -51,6 +49,7 @@ const initiateTest = async () => {
     // ── Phase A-F ─────────────────────────────────────────────────────────────
     await runReferenceCRUD();
     await runIndividualFlow();
+    await testUpdateUserWithFileUpload();
     await runCompanyFlow();
     await runPostJourneyCRUD();
     await runDelinquencyTests();

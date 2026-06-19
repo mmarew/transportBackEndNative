@@ -93,7 +93,7 @@ const createAttachedDocument = async ({
       // No matching requirement anywhere → still allow upload (valid documentTypeId is enough)
     }
 
-    // Duplicate check: same owner + same document type
+    // Duplicate check: same owner + same document type → return existing data
     const existingDocument = await getData({
       tableName: "AttachedDocuments",
       conditions: {
@@ -103,7 +103,10 @@ const createAttachedDocument = async ({
       }
     });
     if (existingDocument.length > 0) {
-      throw new AppError(`Document already exists for this ${ownerType} and document type`, 409);
+      return {
+        message: "success",
+        data: existingDocument[0]
+      };
     }
 
     // Expiry check

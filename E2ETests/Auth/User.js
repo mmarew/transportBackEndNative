@@ -1,13 +1,11 @@
 const { backendURL, usersData } = require("../constants");
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
 const { authConfig } = require("../Utils");
 
 const testUpdateUserWithFileUpload = async () => {
-  const token = usersData?.driver?.token;
+  const token = usersData?.shipper?.token || usersData?.admin?.token;
   if (!token) {
-    console.log("⏩ updateUser/self: no driver token available");
+    console.log("⏩ updateUser/self: no shipper or admin token available");
     return;
   }
 
@@ -16,9 +14,16 @@ const testUpdateUserWithFileUpload = async () => {
   const form = new FormData();
   form.append("fullName", "Updated E2E Driver Name");
 
-  const dummyFilePath = path.join(__dirname, "../dummy.txt");
-  const fileBuffer = fs.readFileSync(dummyFilePath);
-  form.append("profilePhoto", new Blob([fileBuffer]), "dummy.txt");
+  // Minimal 1x1 PNG (valid PNG that passes multer's fileFilter)
+  const dummyPng = Buffer.from([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+    0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0x60, 0x60, 0x00, 0x00,
+    0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, 0x33, 0x00, 0x00, 0x00, 0x00,
+    0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+  ]);
+  form.append("profilePhoto", new Blob([dummyPng], { type: "image/png" }), "profile.png");
   form.append("profilePhotoTypeId", "4");
   form.append("ProfilePhotoDescription", "E2E test profile photo");
 

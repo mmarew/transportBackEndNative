@@ -1,13 +1,13 @@
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 
 // ── DELETE /api/user/users/:userUniqueId ──────────────────────────────────────
 const testDeleteUser = async () => {
   const token = usersData?.admin?.token;
-  const uid = usersData?.driver?.userUniqueId;
+  const uid =
+    usersData?.driver?.userUniqueId ||
+    usersData?.driver?.accountData?.userData?.userUniqueId;
   if (!token || !uid) {
     console.log("⏩ testDeleteUser: admin token or driver UUID not available");
     return;
@@ -184,16 +184,21 @@ const testVehicleDocumentUpload = async () => {
   }
 
   console.log("\n── POST /api/vehicle/attachDocuments/:vehicleUniqueId ──");
-  const dummyFilePath = path.join(__dirname, "../dummy.txt");
-  const fileBuffer = fs.readFileSync(dummyFilePath);
+  const dummyPng = Buffer.from([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+    0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0x60, 0x60, 0x00, 0x00,
+    0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, 0x33, 0x00, 0x00, 0x00, 0x00,
+    0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+  ]);
   const form = new FormData();
 
-  // Vehicle document type IDs from seed data — use first available
+  // File fieldname = "document" → controller looks for documentTypeId, documentDescription, etc.
   const docTypeId = 10; // Vehicle Insurance or similar
-
-  form.append("attachedDocumentName", new Blob([fileBuffer]), "dummy.txt");
+  form.append("document", new Blob([dummyPng], { type: "image/png" }), "doc.png");
   form.append("documentTypeId", String(docTypeId));
-  form.append("attachedDocumentDescription", "E2E test vehicle document");
+  form.append("documentDescription", "E2E test vehicle document");
 
   try {
     const res = await axios.post(
