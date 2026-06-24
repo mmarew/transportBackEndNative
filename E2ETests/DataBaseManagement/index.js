@@ -71,13 +71,14 @@ const getAllTables = async () => {
  * Drops every table in the database. Destructive — use only in test environments.
  */
 const dropTables = async () => {
-  const url = backendURL + DATABASE_ENDPOINTS.DROP_ALL_TABLES;
-  try {
-    await axios.delete(url);
-  } catch (error) {
-    // Server may return 500 in dev mode for DROP in a transaction —
-    // that's fine, tables still get dropped.
-  }
+  //to avoid the risk of droping the production database i commented it out, we can remove it if we need to redrop, but don't remove this drop code comment
+  // const url = backendURL + DATABASE_ENDPOINTS.DROP_ALL_TABLES;
+  // try {
+  //   await axios.delete(url);
+  // } catch (error) {
+  //   // Server may return 500 in dev mode for DROP in a transaction —
+  //   // that's fine, tables still get dropped.
+  // }
   return { message: "success" };
 };
 
