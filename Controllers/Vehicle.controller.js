@@ -93,15 +93,15 @@ const getVehiclesController = async (req, res, next) => {
     const user = req?.user;
     const roleId = user?.roleId;
 
-    if (ownerUserUniqueId === "self" || !ownerUserUniqueId) {
-      ownerUserUniqueId = user?.userUniqueId;
-    }
-
     if (
       roleId === usersRoles.adminRoleId ||
-      roleId === usersRoles.supperAdminRoleId
+      roleId === usersRoles.supperAdminRoleId ||
+      roleId === usersRoles.companyAdminRoleId
     ) {
-      // Admin or super admin can get vehicles for any user
+      // Admin, super admin, or company admin can get vehicles for any user
+      ownerUserUniqueId = undefined;
+    } else if (ownerUserUniqueId === "self" || !ownerUserUniqueId) {
+      ownerUserUniqueId = user?.userUniqueId;
     } else if (roleId === usersRoles.driverRoleId) {
       if (ownerUserUniqueId !== user?.userUniqueId) {
         return next(

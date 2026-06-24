@@ -104,6 +104,8 @@ const testVehicleProfileWorkflow = async ({ user = usersData.driver } = {}) => {
     console.log("📋 Using existing vehicle from driver onboarding:", existingVehicle.vehicleUniqueId);
     await testUpdateVehicle({ user, vehicleUniqueId: existingVehicle.vehicleUniqueId, payload: { color: "Silver" } });
     await testGetVehicles({ user });
+    // Test licensePlate filter with partial match
+    await testGetVehicles({ user, filters: { licensePlate: existingVehicle.licensePlate || "1234" } });
   } else {
     // No existing vehicle — try to create one
     const created = await testCreateVehicle({ user });
@@ -116,6 +118,11 @@ const testVehicleProfileWorkflow = async ({ user = usersData.driver } = {}) => {
       await testGetVehicles({ user });
       await testUpdateVehicle({ user, vehicleUniqueId, payload: { color: "Red" } });
       await testGetVehicles({ user });
+      // Test licensePlate filter — use the plate from cache or a partial match
+      const plate = cache.data?.[0]?.licensePlate;
+      if (plate) {
+        await testGetVehicles({ user, filters: { licensePlate: plate.slice(0, 4) } });
+      }
       // Note: deleting the vehicle used in the main flow will break other tests.
       // Only delete if this was a newly created test vehicle.
       await testDeleteVehicle({ user, vehicleUniqueId });
