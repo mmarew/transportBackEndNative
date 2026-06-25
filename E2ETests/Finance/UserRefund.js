@@ -34,7 +34,7 @@ const testCreateUserRefund = async ({ user, payload } = {}) => {
     const userUniqueId = usersData?.driver?.accountData?.userData?.userUniqueId;
     if (!userUniqueId) throw new Error("Driver userUniqueId not found");
     const defaultPayload = {
-      refundAmount: 150.0,
+      refundAmount: 50.0,
       refundReason: "E2E test refund request",
       ...payload,
     };

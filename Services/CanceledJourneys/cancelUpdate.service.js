@@ -57,7 +57,7 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
     values.push(canceledJourneyUniqueId);
     const sql = `
       UPDATE CanceledJourneys 
-      SET ${updates.join(", ")}, updatedAt = ?
+      SET ${updates.join(", ")}, canceledJourneyUpdatedAt = ?
       WHERE canceledJourneyUniqueId = ?
     `;
     const result = await query(sql, values);

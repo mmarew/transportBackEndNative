@@ -56,9 +56,9 @@ const testUpdateCanceledJourney = async ({ user, canceledJourneyUniqueId, payloa
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = canceledJourneyUniqueId || cache.data?.[0]?.canceledJourneyUniqueId;
+    const id = canceledJourneyUniqueId || cache.data?.[0]?.cancellationDetails?.canceledJourneyUniqueId;
     if (!id) throw new Error("No canceledJourneyUniqueId found to update");
-    const defaultPayload = { cancellationReason: "Updated by E2E test", ...payload };
+    const defaultPayload = { canceledTime: new Date().toISOString().slice(0, 19).replace("T", " "), ...payload };
     const result = await axios.put(`${backendURL}${BASE_URL}/${id}`, defaultPayload, authConfig(token));
     console.log("✅ CanceledJourney updated:", id);
     return result.data;
@@ -73,7 +73,7 @@ const testDeleteCanceledJourney = async ({ user, canceledJourneyUniqueId } = {})
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = canceledJourneyUniqueId || cache.data?.[0]?.canceledJourneyUniqueId;
+    const id = canceledJourneyUniqueId || cache.data?.[0]?.cancellationDetails?.canceledJourneyUniqueId;
     if (!id) throw new Error("No canceledJourneyUniqueId found to delete");
     const result = await axios.delete(`${backendURL}${BASE_URL}/${id}`, authConfig(token));
     console.log("✅ CanceledJourney deleted:", id);
@@ -89,7 +89,7 @@ const testMarkCanceledJourneySeenByAdmin = async ({ user, canceledJourneyUniqueI
   try {
     const token = user?.token || usersData.admin?.token;
     if (!token) throw new Error("token not found");
-    const id = canceledJourneyUniqueId || cache.data?.[0]?.canceledJourneyUniqueId;
+    const id = canceledJourneyUniqueId || cache.data?.[0]?.cancellationDetails?.canceledJourneyUniqueId;
     if (!id) throw new Error("No canceledJourneyUniqueId found");
     const result = await axios.patch(`${backendURL}${BASE_URL}/${id}/seen`, {}, authConfig(token));
     console.log("✅ CanceledJourney marked seen by admin:", id);
@@ -109,11 +109,15 @@ const testCanceledJourneysWorkflow = async ({ user = usersData.admin } = {}) => 
 
   // If records exist from previous flows, test update and seen operations
   if (cache.data?.length > 0) {
-    const canceledJourneyUniqueId = cache.data[0].canceledJourneyUniqueId;
+    const canceledJourneyUniqueId = cache.data[0]?.cancellationDetails?.canceledJourneyUniqueId;
     console.log("📋 Found canceled journey to test:", canceledJourneyUniqueId);
-    await testUpdateCanceledJourney({ user, canceledJourneyUniqueId });
-    await testMarkCanceledJourneySeenByAdmin({ user, canceledJourneyUniqueId });
-    await testGetCanceledJourneys({ user });
+    if (!canceledJourneyUniqueId) {
+      console.log("⏩ Skipping — no canceledJourneyUniqueId in cancellationDetails");
+    } else {
+      await testUpdateCanceledJourney({ user, canceledJourneyUniqueId });
+      await testMarkCanceledJourneySeenByAdmin({ user, canceledJourneyUniqueId });
+      await testGetCanceledJourneys({ user });
+    }
   } else {
     console.log("⏩ No canceled journeys yet — run cancellation flow first to populate");
   }

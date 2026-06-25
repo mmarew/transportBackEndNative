@@ -186,6 +186,11 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
     }, journeyDecisionPayload, journeyStatusMap?.requested);
 
     // 8. Send notification if shipper has phone number (non-blocking)
+    logger.debug("@handleJourneyStatusOne: check phone", {
+      hasPhone: !!nonRejectedShipper?.phoneNumber,
+      phone: nonRejectedShipper?.phoneNumber,
+      shipperRequestId: nonRejectedShipper?.shipperRequestId
+    });
     if (nonRejectedShipper?.phoneNumber) {
       // Get driver profile photo
       const driverDocuments = await getAttachedDocumentsByUserUniqueIdAndDocumentTypeId(driverRequest.userUniqueId, listOfDocumentsTypeAndId.profilePhoto);
@@ -202,7 +207,10 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
         journeyStatusId: journeyStatusMap?.requested,
         vehicleOfDriver: vehicle
       };
-      await sendSocketIONotificationToShipper({
+      logger.debug("@handleJourneyStatusOne: sending notification", {
+        phoneNumber: nonRejectedShipper.phoneNumber
+      });
+      const notifResult = await sendSocketIONotificationToShipper({
         message: {
           messageTypes: messageTypes.driver_found_shipper_request,
           message: "success",
@@ -216,6 +224,11 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
         },
         phoneNumber: nonRejectedShipper.phoneNumber
       });
+      logger.debug("@handleJourneyStatusOne: notification result", {
+        result: notifResult
+      });
+    } else {
+      logger.debug("@handleJourneyStatusOne: no phone, skipping notification");
     }
     return {
       message: "success",

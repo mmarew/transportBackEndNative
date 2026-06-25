@@ -77,6 +77,10 @@ const sendSocketIONotificationToShipper = async ({
   userType = "shipper",
 }) => {
   try {
+    logger.debug("@sendSocketIONotificationToShipper", {
+      phoneNumber,
+      eventName: eventName || "messages",
+    });
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
       throw new AppError("Invalid phone number format", 400);
@@ -93,7 +97,10 @@ const sendSocketIONotificationToShipper = async ({
         data: "Notification skipped: Shipper offline",
       };
     }
-
+    logger.debug("@sendSocketIONotificationToShipper: found socket, emitting", {
+      socketId,
+      phoneNumber: cleanedPhoneNumber,
+    });
     const res = await emitMessage({
       eventName: eventName || "messages",
       messageDetails: JSON.stringify(message),

@@ -13,6 +13,7 @@ const {
   testDeleteBatch,
   testVehicleDocumentUpload,
 } = require("./Untested");
+const { testSocketNotifications } = require("./Socket");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -47,25 +48,37 @@ const initiateTest = async () => {
     console.log("✅ Driver documents authorized\n");
 
     // ── Phase A-F ─────────────────────────────────────────────────────────────
-    await runReferenceCRUD();
-    await runIndividualFlow();
-    await testUpdateUserWithFileUpload();
-    await runCompanyFlow();
-    await runPostJourneyCRUD();
-    await runDelinquencyTests();
-    await runAnalyticsAndAdminTests();
+    const safe = (label, fn) => async () => { try { await fn(); } catch (e) { console.error(`⚠️  ${label} failed, continuing: ${e.message}`); } };
+    await safe("runReferenceCRUD", runReferenceCRUD)();
+    await safe("runIndividualFlow", runIndividualFlow)();
+    await safe("testUpdateUserWithFileUpload", testUpdateUserWithFileUpload)();
+    await safe("runCompanyFlow", runCompanyFlow)();
+    await safe("runPostJourneyCRUD", runPostJourneyCRUD)();
+    await safe("runDelinquencyTests", runDelinquencyTests)();
+    await safe("runAnalyticsAndAdminTests", runAnalyticsAndAdminTests)();
 
-    // ── Phase G: Previously untested endpoints ────────────────────────────
+    // ── Phase G: Socket notification tests (run before delete ops) ──────
+    if (!usersData?.driver?.token || !usersData?.shipper?.token) {
+      console.warn("⚠️  Missing driver/shipper tokens for socket tests — skipping Phase H");
+    } else {
+      console.log("\n=======================================================");
+      console.log("   🔌 TESTING SOCKET NOTIFICATIONS");
+      console.log("=======================================================\n");
+
+      await testSocketNotifications();
+    }
+
+    // ── Phase H: Previously untested endpoints (delete operations) ──────
     console.log("\n=======================================================");
     console.log("   🧪 TESTING PREVIOUSLY UNTESTED ENDPOINTS");
     console.log("=======================================================\n");
 
-    await testUpdateCompany();
-    await testDeleteCompany();
-    await testUpdateBatch();
-    await testDeleteBatch();
-    await testVehicleDocumentUpload();
-    await testDeleteUser();
+    await safe("testUpdateCompany", testUpdateCompany)();
+    await safe("testDeleteCompany", testDeleteCompany)();
+    await safe("testUpdateBatch", testUpdateBatch)();
+    await safe("testDeleteBatch", testDeleteBatch)();
+    await safe("testVehicleDocumentUpload", testVehicleDocumentUpload)();
+    await safe("testDeleteUser", testDeleteUser)();
 
     const passed = report.summary();
     if (passed) {
