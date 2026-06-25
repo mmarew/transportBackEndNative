@@ -1,15 +1,16 @@
+const logger = require("../../Utils/logger");
 const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../../Middleware/Database.config");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
- 
+
 const getDriverLastBalance = async (driverUniqueId, connection = null) => {
   const sql = `
     SELECT *
     FROM UserBalance
     WHERE userUniqueId = ?
-    ORDER BY transactionTime DESC
+    ORDER BY userBalanceId DESC
     LIMIT 1
   `;
   const executor = transactionStorage.getStore() || connection || pool;
@@ -46,6 +47,10 @@ const prepareAndCreateNewBalance = async ({
   let netBalance = 0;
   try {
     const currentBalance = await getDriverLastBalance(driverUniqueId);
+    logger.debug(
+      "prepareAndCreateNewBalance ~ currentBalance:",
+      currentBalance,
+    );
     netBalance = Number(currentBalance?.netBalance || 0);
   } catch {
     // If no previous balance, netBalance remains 0
@@ -78,6 +83,7 @@ const prepareAndCreateNewBalance = async ({
 };
 
 const createUserBalance = async (data, connection = null) => {
+  logger.debug("createUserBalance ~ data:", data);
   const executor = transactionStorage.getStore() || connection || pool;
   // Verify existence of data transactionUniqueId in userBalance
   const transactionTime = currentDate();

@@ -1,8 +1,8 @@
-const canceledJourneyService = require("../Services/CanceledJourneys.service");
-const { cancelPassengerRequest } = require("../Services/PassengerRequest");
-const {
-  sendSocketIONotificationToPassenger,
-} = require("../Utils/Notifications");
+
+const { currentDate } = require("../Utils/CurrentDate");
+const canceledJourneyService = require("../Services/CanceledJourneys");
+const { cancelShipperRequest } = require("../Services/ShipperRequest");
+const { sendSocketIONotificationToShipper } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const messageTypes = require("../Utils/MessageTypes");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
@@ -18,28 +18,28 @@ const cancelJourneyBySystem = async (req, res, next) => {
       const cutoffTime = new Date(now.getTime() - 5 * 60 * 1000);
 
       const sqlQuery = `
-        SELECT PassengerRequest.*, Users.phoneNumber
-        FROM PassengerRequest
-        JOIN Users ON Users.userUniqueId = PassengerRequest.userUniqueId
-        WHERE PassengerRequest.journeyStatusId = ${journeyStatusMap.waiting}
-          AND PassengerRequest.shipperRequestCreatedAt <= ?
+        SELECT ShipperRequest.*, Users.phoneNumber
+        FROM ShipperRequest
+        JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
+        WHERE ShipperRequest.journeyStatusId = ${journeyStatusMap.waiting}
+          AND ShipperRequest.shipperRequestCreatedAt <= ?
       `;
 
       const [activeRequests] = await connection.query(sqlQuery, [cutoffTime]);
 
       for (const request of activeRequests) {
-        await cancelPassengerRequest({
+        await cancelShipperRequest({
           ownerUserUniqueId: request.userUniqueId,
           cancellationReasonsTypeId: 1,
         });
 
-        await sendSocketIONotificationToPassenger({
+        await sendSocketIONotificationToShipper({
           phoneNumber: request.phoneNumber,
           message: {
             message: "success",
             status: null,
             driver: null,
-            passenger: null,
+            shipper: null,
             messageTypes: messageTypes.request_other_driver,
           },
         });
@@ -95,7 +95,8 @@ const getCanceledJourneyByFilter = async (req, res, next) => {
       filters.userUniqueId = user.userUniqueId;
     }
 
-    const result = await canceledJourneyService.getCanceledJourneyByFilter(filters);
+    const result =
+      await canceledJourneyService.getCanceledJourneyByFilter(filters);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -108,7 +109,9 @@ const updateSeenByAdmin = async (req, res, next) => {
     const { canceledJourneyUniqueId } = req.params;
 
     const result = await executeInTransaction(async () => {
-      return await canceledJourneyService.updateSeenByAdmin(canceledJourneyUniqueId);
+      return await canceledJourneyService.updateSeenByAdmin(
+        canceledJourneyUniqueId,
+      );
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -123,7 +126,10 @@ const updateCanceledJourney = async (req, res, next) => {
     const data = req.body;
 
     const result = await executeInTransaction(async () => {
-      return await canceledJourneyService.updateCanceledJourney(canceledJourneyUniqueId, data);
+      return await canceledJourneyService.updateCanceledJourney(
+        canceledJourneyUniqueId,
+        data,
+      );
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -137,7 +143,9 @@ const deleteCanceledJourney = async (req, res, next) => {
     const { canceledJourneyUniqueId } = req.params;
 
     const result = await executeInTransaction(async () => {
-      return await canceledJourneyService.deleteCanceledJourney(canceledJourneyUniqueId);
+      return await canceledJourneyService.deleteCanceledJourney(
+        canceledJourneyUniqueId,
+      );
     });
     ServerResponder(res, result);
   } catch (error) {
@@ -187,7 +195,8 @@ const getCanceledJourneyCountsByDate = async (req, res, next) => {
       },
     };
 
-    const result = await canceledJourneyService.getCanceledJourneyCountsByDate(filters);
+    const result =
+      await canceledJourneyService.getCanceledJourneyCountsByDate(filters);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -206,9 +215,9 @@ const getCanceledJourneyCountsByReason = async (req, res, next) => {
     } = req.query;
 
     // Validate required parameters
-    if (!startDate || !endDate) {
-      return next(new AppError("startDate and endDate are required", 400));
-    }
+    // if (!startDate || !endDate) {
+    //   return next(new AppError("startDate and endDate are required", 400));
+    // }
 
     const filters = {
       startDate,

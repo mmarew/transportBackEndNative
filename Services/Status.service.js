@@ -9,7 +9,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const createStatus = async (body) => {
   const { statusName, statusDescription, user } = body;
   const userUniqueId = user?.userUniqueId;
-  const statusUniqueId = uuidv4();
+  const statusUniqueId = body.statusUniqueId || uuidv4();
   const verifyResult = await getData({
     tableName: "Statuses",
     conditions: { statusName },
@@ -18,23 +18,35 @@ const createStatus = async (body) => {
     throw new AppError("Status already exists", 400);
   }
 
+  const colAndVal = {
+    statusUniqueId,
+    statusName,
+    statusDescription,
+    statusCreatedBy: userUniqueId,
+    statusCreatedAt: currentDate(),
+  };
+
+  if (body.statusId) {
+    colAndVal.statusId = body.statusId;
+  }
+
   // Insert the new status into the database
   const result = await insertData({
     tableName: "Statuses",
-    colAndVal: {
-      statusUniqueId,
-      statusName,
-      statusDescription,
-      statusCreatedBy: userUniqueId,
-      statusCreatedAt: currentDate(),
-    },
+    colAndVal,
   });
 
   if (result.affectedRows === 0) {
     throw new AppError("Status creation failed", 500);
   }
 
-  return { message: "success", data: "Status created successfully" };
+  return { 
+    message: "success", 
+    data: {
+      statusUniqueId,
+      message: "Status created successfully"
+    } 
+  };
 };
 
 const updateStatus = async (statusUniqueId, body) => {

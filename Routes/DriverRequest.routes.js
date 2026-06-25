@@ -3,7 +3,7 @@ const {
   deleteRequestController,
   verifyDriverJourneyStatusController,
   createRequest,
-  acceptPassengerRequest,
+  acceptShipperRequest,
   startJourney,
   noAnswerFromDriver,
   completeJourney,
@@ -19,7 +19,7 @@ const {
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
   verifyDriversIdentity,
-  verifyPassengersIdentity,
+  verifyShippersIdentity,
 } = require("../Middleware/VerifyUsersIdentity");
 
 const { validator } = require("../Middleware/Validator");
@@ -29,7 +29,7 @@ const {
   createAndAcceptNewRequest: createAndAcceptNewRequestSchema,
   getCancellationNotificationsQuery: getCancellationNotificationsQuerySchema,
   markNegativeStatusAsSeen: markNegativeStatusAsSeenSchema,
-  acceptPassengerRequest: acceptPassengerRequestSchema,
+  acceptShipperRequest: acceptShipperRequestSchema,
   verifyDriverJourneyStatus: verifyDriverJourneyStatusSchema,
   sendUpdatedLocation: sendUpdatedLocationSchema,
   completeJourney: completeJourneySchema,
@@ -37,40 +37,41 @@ const {
   updateDriverRequest: updateDriverRequestSchema,
   requestIdParams: requestIdParamsSchema,
 } = require("../Validations/DriverRequest.schema");
+const { DRIVER_REQUEST_ENDPOINTS } = require("./EndPoints/driverRequest.endpoints");
 
 const router = express.Router();
 /**
  * Take From Street Endpoint
  *
- * Purpose: Enables drivers to register a passenger pickup directly from the street,
+ * Purpose: Enables drivers to register a shipper pickup directly from the street,
  * bypassing the normal app-based matching system. This is used when a driver encounters
- * a passenger on the street and needs to immediately start tracking the journey.
+ * a shipper on the street and needs to immediately start tracking the journey.
  *
  * How it works:
- * - Driver encounters passenger on street and collects their information (phone, destination, item details)
- * - System creates passenger user account (if not exists) using phone number
- * - Creates PassengerRequest with journeyStatusId = 5 (journeyStarted), skipping normal flow (waiting → requested → accepted)
+ * - Driver encounters shipper on street and collects their information (phone, destination, item details)
+ * - System creates shipper user account (if not exists) using phone number
+ * - Creates ShipperRequest with journeyStatusId = 5 (journeyStarted), skipping normal flow (waiting → requested → accepted)
  * - Creates DriverRequest with journeyStatusId = 5 (journeyStarted)
- * - Creates JourneyDecision linking driver and passenger requests with status = 5
+ * - Creates JourneyDecision linking driver and shipper requests with status = 5
  * - Creates Journey record immediately with status = 5 (journeyStarted)
  * - Records origin location via JourneyRoutePoints table for GPS tracking
- * - Sends welcome SMS to passenger with driver name and item details
+ * - Sends welcome SMS to shipper with driver name and item details
  * - Returns complete journey data for real-time tracking
  *
  * Database Operations (Atomic):
  * 1. Checks driver status:
  *    - If driver has active request with status >= 3 (acceptedByDriver+): Returns current status
  *    - If driver has active request with status 1-2 (waiting/requested): Cancels it first
- * 2. Creates Users record: New passenger user with phone number, fake email, roleId=1 (passenger)
- * 3. Creates PassengerRequest: With journeyStatusId=5, stores origin/destination, item details, shipping costs/dates
+ * 2. Creates Users record: New shipper user with phone number, fake email, roleId=1 (shipper)
+ * 3. Creates ShipperRequest: With journeyStatusId=5, stores origin/destination, item details, shipping costs/dates
  * 4. Creates DriverRequest: With journeyStatusId=5, uses driver's current location as origin
- * 5. Creates JourneyDecisions: Links PassengerRequest and DriverRequest, stores driver-provided shipping dates/costs
+ * 5. Creates JourneyDecisions: Links ShipperRequest and DriverRequest, stores driver-provided shipping dates/costs
  * 6. Creates Journey: Sets status=5 (journeyStarted), records startTime, initializes fare=0
  * 7. Creates JourneyRoutePoints: Records origin location (driver's current GPS position) for tracking
  *
  * Request Body:
- * - phoneNumber: Passenger's phone number (required, used to create/find user)
- * - passengerRequestBatchId: Batch ID for grouping related requests (required)
+ * - phoneNumber: Shipper's phone number (required, used to create/find user)
+ * - shipperRequestBatchId: Batch ID for grouping related requests (required)
  * - originLocation: {latitude, longitude, description} - Driver's current location (required)
  * - destination: {latitude, longitude, place} - Delivery destination (required)
  * - vehicleTypeUniqueId: Type of vehicle being used (required)
@@ -83,29 +84,29 @@ const router = express.Router();
  *
  * Response:
  * - Returns complete journey data including:
- *   - passenger: Passenger user and request information
+ *   - shipper: Shipper user and request information
  *   - driver: Driver information with vehicle details and tariff rates
  *   - journey: Journey record with status, start time, fare
- *   - decision: JourneyDecision linking driver and passenger
+ *   - decision: JourneyDecision linking driver and shipper
  *   - status: journeyStatusId (5 = journeyStarted)
  *
  * Security:
  * - Requires valid authentication token (verifyTokenOfAxios)
  * - Driver identity verified through token (verified national ID, driving license, insurance in system)
- * - Passenger can track goods via app using phone number to ensure driver authenticity
+ * - Shipper can track goods via app using phone number to ensure driver authenticity
  *
  * Use Case:
- * Driver picks up passenger on street → Registers via this endpoint → Journey immediately starts
- * → Passenger receives SMS with tracking details → Both can monitor journey progress in real-time
+ * Driver picks up shipper on street → Registers via this endpoint → Journey immediately starts
+ * → Shipper receives SMS with tracking details → Both can monitor journey progress in real-time
  * → System tracks location via JourneyRoutePoints for route visualization
  *
  * Special Note:
  * This endpoint bypasses the normal bid/matching workflow. The journey starts immediately
  * at status 5 (journeyStarted) instead of going through waiting (1) → requested (2) →
- * acceptedByDriver (3) → acceptedByPassenger (4) → journeyStarted (5).
+ * acceptedByDriver (3) → acceptedByShipper (4) → journeyStarted (5).
  */
 router.post(
-  "/api/driver/takeFromStreet",
+  DRIVER_REQUEST_ENDPOINTS.TAKE_FROM_STREET,
   verifyTokenOfAxios,
   validator(takeFromStreetSchema),
   takeFromStreet,
@@ -113,7 +114,7 @@ router.post(
 /**
  * Create Driver Request Endpoint
  *
- * Purpose: Registers a driver to search for nearby passenger requests and participate in the
+ * Purpose: Registers a driver to search for nearby shipper requests and participate in the
  * online bidding/matching system. This is the first step in the normal job matching workflow,
  * where drivers register their availability and location before goods are seen (unlike
  * takeFromStreet which happens after pickup).
@@ -121,17 +122,17 @@ router.post(
  * How it works:
  * - Driver provides current location (GPS coordinates)
  * - System creates DriverRequest with journeyStatusId = 1 (waiting) if driver has no active request
- * - System automatically searches for nearby passengers within ~1km radius
- * - If match found, creates JourneyDecision linking driver and passenger
+ * - System automatically searches for nearby shippers within ~1km radius
+ * - If match found, creates JourneyDecision linking driver and shipper
  * - Updates both requests to status = 2 (requested)
- * - Sends WebSocket notification to matched passenger
- * - Driver enters bid stage where passenger can accept/reject their offer
+ * - Sends WebSocket notification to matched shipper
+ * - Driver enters bid stage where shipper can accept/reject their offer
  *
  * Workflow:
  * 1. Driver Registration (this endpoint) → status: waiting (1)
- * 2. Auto-matching with nearby passengers → status: requested (2)
+ * 2. Auto-matching with nearby shippers → status: requested (2)
  * 3. Driver provides bid price → status: acceptedByDriver (3)
- * 4. Passenger accepts driver → status: acceptedByPassenger (4)
+ * 4. Shipper accepts driver → status: acceptedByShipper (4)
  * 5. Driver starts journey → status: journeyStarted (5)
  * 6. Journey completion → status: journeyCompleted (6)
  *
@@ -144,18 +145,18 @@ router.post(
  *    - Links to driver via userUniqueId
  * 4. If findNewRequest = true (default):
  *    - Verifies driver has active vehicle with matching vehicleTypeUniqueId
- *    - Searches PassengerRequest table for nearby passengers:
+ *    - Searches ShipperRequest table for nearby shippers:
  *      * Within ~1km radius (latitude/longitude range)
  *      * Matching vehicleTypeUniqueId
  *      * Status = waiting (1), requested (2), or acceptedByDriver (3)
- *      * Excludes passengers this driver previously rejected
+ *      * Excludes shippers this driver previously rejected
  *    - If match found:
- *      * ✅ Creates JourneyDecisions record linking driver and passenger (within transaction)
+ *      * ✅ Creates JourneyDecisions record linking driver and shipper (within transaction)
  *      * ✅ Updates DriverRequest: journeyStatusId 1 → 2 (requested) (within transaction)
- *      * ✅ Updates PassengerRequest: journeyStatusId 1 → 2 (requested) if it was waiting (within transaction)
+ *      * ✅ Updates ShipperRequest: journeyStatusId 1 → 2 (requested) if it was waiting (within transaction)
  *      * ✅ All three operations wrapped in transaction (15 second timeout) - atomic updates
- *      * Sends WebSocket notification to passenger with driver details (after DB updates)
- *      * Returns matched passenger data with vehicle information
+ *      * Sends WebSocket notification to shipper with driver details (after DB updates)
+ *      * Returns matched shipper data with vehicle information
  *    - If no match: Returns driver request with status = 1 (waiting)
  *
  * Request Body:
@@ -166,15 +167,15 @@ router.post(
  * - message: "success"
  * - status: 2 (requested)
  * - driver: Driver request data with vehicle information
- * - passenger: Matched passenger request data
- * - decision: JourneyDecision linking driver and passenger
+ * - shipper: Matched shipper request data
+ * - decision: JourneyDecision linking driver and shipper
  * - vehicle: Vehicle details with tariff rates
  *
  * Response (if no match):
  * - message: "success"
  * - status: 1 (waiting)
  * - driver: Driver request data
- * - passenger: null
+ * - shipper: null
  * - decision: null
  * - vehicle: Vehicle details
  *
@@ -193,8 +194,8 @@ router.post(
  * - Driver must have at least one active vehicle assignment
  *
  * Use Case:
- * Driver opens app → Registers availability with current location → System finds nearby passengers
- * → Driver receives passenger request → Driver provides bid price → Passenger accepts/rejects
+ * Driver opens app → Registers availability with current location → System finds nearby shippers
+ * → Driver receives shipper request → Driver provides bid price → Shipper accepts/rejects
  * → If accepted, journey starts
  *
  * Difference from takeFromStreet:
@@ -203,20 +204,20 @@ router.post(
  *
  * Performance Notes:
  * - Matching algorithm searches within ~1km radius (0.941 degrees ≈ 1km)
- * - Searches for passengers with status 1, 2, or 3 (waiting, requested, acceptedByDriver)
- * - Filters out passengers driver previously rejected to avoid duplicate matches
- * - Status updates (JourneyDecisions, DriverRequest, PassengerRequest) execute atomically
+ * - Searches for shippers with status 1, 2, or 3 (waiting, requested, acceptedByDriver)
+ * - Filters out shippers driver previously rejected to avoid duplicate matches
+ * - Status updates (JourneyDecisions, DriverRequest, ShipperRequest) execute atomically
  *   within a transaction (15 second timeout) - prevents data inconsistency if any operation fails
  *
  * Transaction Coverage:
  * - ✅ Auto-matching path: Fully wrapped in transaction (executeStatusUpdates function)
  *   - Creates JourneyDecisions (within transaction)
  *   - Updates DriverRequest status (within transaction)
- *   - Updates PassengerRequest status (within transaction)
+ *   - Updates ShipperRequest status (within transaction)
  *   - All operations are atomic - either all succeed or all fail
  */
 router.post(
-  "/api/driver/request",
+  DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(createRequestSchema),
@@ -225,32 +226,32 @@ router.post(
 /**
  * Create and Accept New Request Endpoint
  *
- * Purpose: Allows a driver to manually accept a specific passenger request from their device,
+ * Purpose: Allows a driver to manually accept a specific shipper request from their device,
  * even when they are NOT within the ~1km automatic matching radius. This is used when drivers
- * browse available job posts and manually select a passenger request to accept.
+ * browse available job posts and manually select a shipper request to accept.
  *
  * How it works:
- * - Driver views available passenger requests on their device (may be outside 1km radius)
- * - Driver manually selects a specific passenger request to accept
+ * - Driver views available shipper requests on their device (may be outside 1km radius)
+ * - Driver manually selects a specific shipper request to accept
  * - Driver provides bid price (shippingCostByDriver) and accepts the request
- * - System creates or updates DriverRequest, JourneyDecision, and PassengerRequest
+ * - System creates or updates DriverRequest, JourneyDecision, and ShipperRequest
  * - All three tables updated to status = 3 (acceptedByDriver) atomically
  * - Returns a completed journey data for driver to see the accepted request
  *
  * Difference from /api/driver/request:
- * - /api/driver/request: Auto-matches with nearby passengers (~1km radius) → status: requested (2)
- * - This endpoint: Driver manually selects specific passenger → status: acceptedByDriver (3)
+ * - /api/driver/request: Auto-matches with nearby shippers (~1km radius) → status: requested (2)
+ * - This endpoint: Driver manually selects specific shipper → status: acceptedByDriver (3)
  * - This endpoint: Bypasses automatic matching, driver chooses specific job post
  *
  * Database Operations:
- * 1. Fetches PassengerRequest by passengerRequestUniqueId to validate it exists
- * 2. Validates passenger request status (must be <= acceptedByDriver, i.e., not already accepted)
- * 3. Checks if JourneyDecision already exists linking this driver and passenger:
+ * 1. Fetches ShipperRequest by shipperRequestUniqueId to validate it exists
+ * 2. Validates shipper request status (must be <= acceptedByDriver, i.e., not already accepted)
+ * 3. Checks if JourneyDecision already exists linking this driver and shipper:
  *
- *    IF JourneyDecision EXISTS (driver previously matched with this passenger):
+ *    IF JourneyDecision EXISTS (driver previously matched with this shipper):
  *      ✅ Wrapped in TRANSACTION (lines 351-388):
  *      - Updates JourneyDecisions: journeyStatusId → 3 (acceptedByDriver), stores shippingCostByDriver
- *      - Updates PassengerRequest: journeyStatusId → 3 (acceptedByDriver)
+ *      - Updates ShipperRequest: journeyStatusId → 3 (acceptedByDriver)
  *      - Updates DriverRequest: journeyStatusId → 3 (acceptedByDriver)
  *      - All updates atomic (10 second timeout)
  *
@@ -258,46 +259,46 @@ router.post(
  *      ✅ Wrapped in TRANSACTION (lines 391-437):
  *      - Checks for existing active DriverRequest for driver (within transaction)
  *      - Creates new DriverRequest if none exists, or uses existing one
- *      - Creates new JourneyDecisions linking driver and passenger with status = 3
- *      - Updates PassengerRequest: journeyStatusId → 3 (acceptedByDriver)
+ *      - Creates new JourneyDecisions linking driver and shipper with status = 3
+ *      - Updates ShipperRequest: journeyStatusId → 3 (acceptedByDriver)
  *      - All operations atomic (15 second timeout)
  *
  * 4. Returns driver status via verifyDriverJourneyStatus() with complete journey data
  *
  * Request Body:
- * - passengerRequestUniqueId: Unique ID of the passenger request to accept (required)
+ * - shipperRequestUniqueId: Unique ID of the shipper request to accept (required)
  * - shippingCostByDriver: Bid price/transportation cost offered by driver (required)
  * - currentLocation: {latitude, longitude, description} - Driver's current location (required if no existing DriverRequest)
  *
  * Response:
  * - Returns driver status from verifyDriverJourneyStatus() including:
  *   - driver: Driver request data with vehicle information
- *   - passenger: Accepted passenger request data
- *   - decision: JourneyDecision linking driver and passenger
+ *   - shipper: Accepted shipper request data
+ *   - decision: JourneyDecision linking driver and shipper
  *   - journey: Journey data if exists, otherwise null
  *   - status: 3 (acceptedByDriver)
  *
  * Security:
  * - Requires valid authentication token (verifyTokenOfAxios)
  * - Requires driver identity verification (verifyDriversIdentity)
- * - Validates passenger request exists and is in acceptable status
- * - Verifies passenger request not already accepted (status > 3)
+ * - Validates shipper request exists and is in acceptable status
+ * - Verifies shipper request not already accepted (status > 3)
  *
  * Authorization:
- * - Only drivers can accept passenger requests
+ * - Only drivers can accept shipper requests
  * - Driver must be authenticated and verified
- * - Passenger request must exist and be in waiting (1), requested (2), or acceptedByDriver (3) status
+ * - Shipper request must exist and be in waiting (1), requested (2), or acceptedByDriver (3) status
  *
  * Use Case:
- * Driver browses job posts → Sees passenger request outside 1km radius → Selects specific request
- * → Provides bid price → Accepts request → Enters bid stage where passenger can accept/reject
- * → If passenger accepts, journey can start
+ * Driver browses job posts → Sees shipper request outside 1km radius → Selects specific request
+ * → Provides bid price → Accepts request → Enters bid stage where shipper can accept/reject
+ * → If shipper accepts, journey can start
  *
  * Status Flow:
- * 1. Passenger creates request → status: waiting (1)
+ * 1. Shipper creates request → status: waiting (1)
  * 2. Auto-matching finds nearby drivers → status: requested (2) (optional, if driver was nearby)
  * 3. Driver manually accepts (this endpoint) → status: acceptedByDriver (3)
- * 4. Passenger accepts driver → status: acceptedByPassenger (4)
+ * 4. Shipper accepts driver → status: acceptedByShipper (4)
  * 5. Driver starts journey → status: journeyStarted (5)
  *
  * Performance Notes:
@@ -312,11 +313,11 @@ router.post(
  *   - Checks for existing DriverRequest (within transaction)
  *   - Creates DriverRequest if needed (within transaction)
  *   - Creates JourneyDecisions (within transaction)
- *   - Updates PassengerRequest (within transaction)
+ *   - Updates ShipperRequest (within transaction)
  *   - All operations are atomic - either all succeed or all fail
  */
 router.post(
-  "/api/driver/createAndAcceptNewRequest",
+  DRIVER_REQUEST_ENDPOINTS.CREATE_AND_ACCEPT_NEW_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(createAndAcceptNewRequestSchema),
@@ -324,63 +325,63 @@ router.post(
 );
 
 /**
- * Driver Accept Passenger Request (Bid Participation) Endpoint
+ * Driver Accept Shipper Request (Bid Participation) Endpoint
  *
- * Purpose: Allows a driver to accept a passenger request they were automatically matched with
+ * Purpose: Allows a driver to accept a shipper request they were automatically matched with
  * and provide their bid price (shippingCostByDriver). This is the "bid participation step" where
  * the driver responds to the auto-match notification by accepting the request with their proposed cost.
  *
  * Context & Workflow:
  * 1. Driver registers availability via /api/driver/request → status: waiting (1)
- * 2. System auto-matches driver with nearby passenger (~1km radius) → status: requested (2)
- * 3. Driver receives notification (phone rings/notification) about matched passenger
+ * 2. System auto-matches driver with nearby shipper (~1km radius) → status: requested (2)
+ * 3. Driver receives notification (phone rings/notification) about matched shipper
  * 4. Driver calls this endpoint to accept and provide bid price → status: acceptedByDriver (3) [THIS STEP]
- * 5. Passenger receives notification with driver's bid and can accept/reject
- * 6. If passenger accepts → status: acceptedByPassenger (4)
+ * 5. Shipper receives notification with driver's bid and can accept/reject
+ * 6. If shipper accepts → status: acceptedByShipper (4)
  * 7. Driver starts journey → status: journeyStarted (5)
  *
  * How it works:
- * - Driver provides their bid price (shippingCostByDriver) and accepts the matched passenger request
+ * - Driver provides their bid price (shippingCostByDriver) and accepts the matched shipper request
  * - System validates the request exists and belongs to the authenticated driver
- * - System validates that JourneyDecision, PassengerRequest, and DriverRequest IDs all match
- * - All three tables updated atomically: JourneyDecisions, PassengerRequest, DriverRequest
+ * - System validates that JourneyDecision, ShipperRequest, and DriverRequest IDs all match
+ * - All three tables updated atomically: JourneyDecisions, ShipperRequest, DriverRequest
  * - Status changes from requested (2) to acceptedByDriver (3) across all tables
- * - Passenger receives WebSocket and FCM notifications with driver's bid details
+ * - Shipper receives WebSocket and FCM notifications with driver's bid details
  * - Driver receives confirmation with complete journey data
  *
  * Database Operations:
  * 1. Validates driver request exists via JOIN query:
- *    - Joins DriverRequest → JourneyDecisions → PassengerRequest → Users
+ *    - Joins DriverRequest → JourneyDecisions → ShipperRequest → Users
  *    - Verifies driverRequestUniqueId exists and matches authenticated userUniqueId
  * 2. Validates request linkage integrity:
  *    - Ensures journeyDecisionUniqueId matches JourneyDecisions record
- *    - Ensures passengerRequestUniqueId matches PassengerRequest record
+ *    - Ensures shipperRequestUniqueId matches ShipperRequest record
  *    - Ensures driverRequestUniqueId matches DriverRequest record
  *    - All three must be linked correctly or returns error
  * 3. ✅ Wrapped in TRANSACTION via updateJourneyStatus():
  *    - Updates JourneyDecisions:
  *      * journeyStatusId: 2 (requested) → 3 (acceptedByDriver)
  *      * shippingCostByDriver: Stores driver's bid price
- *    - Updates PassengerRequest:
+ *    - Updates ShipperRequest:
  *      * journeyStatusId: 2 (requested) → 3 (acceptedByDriver)
  *    - Updates DriverRequest:
  *      * journeyStatusId: 2 (requested) → 3 (acceptedByDriver)
  *    - All updates execute atomically (15 second timeout)
  *    - If any update fails, all changes are rolled back
  * 4. Fetches complete journey notification data:
- *    - Retrieves passenger request details
+ *    - Retrieves shipper request details
  *    - Retrieves journey decision with bid information
  *    - Retrieves driver information and vehicle details
  *    - Retrieves journey data if exists
- * 5. Sends notifications to passenger:
- *    - WebSocket notification via sendPassengerNotification()
- *    - FCM push notification to passenger's device
+ * 5. Sends notifications to shipper:
+ *    - WebSocket notification via sendShipperNotification()
+ *    - FCM push notification to shipper's device
  *    - Notification includes driver details and bid price
  *
  * Request Body:
  * - driverRequestUniqueId: Unique ID of the driver request (required)
- * - passengerRequestUniqueId: Unique ID of the passenger request being accepted (required)
- * - journeyDecisionUniqueId: Unique ID of the JourneyDecision linking driver and passenger (required)
+ * - shipperRequestUniqueId: Unique ID of the shipper request being accepted (required)
+ * - journeyDecisionUniqueId: Unique ID of the JourneyDecision linking driver and shipper (required)
  * - shippingCostByDriver: Driver's proposed bid price/transportation cost (required, min: 0)
  * - userUniqueId: Automatically set from authentication token (set by controller)
  * - journeyStatusId: Automatically set to 3 (acceptedByDriver) by controller
@@ -390,7 +391,7 @@ router.post(
  * - status: 3 (acceptedByDriver)
  * - uniqueIds: {
  *     driverRequestUniqueId: UUID,
- *     passengerRequestUniqueId: UUID,
+ *     shipperRequestUniqueId: UUID,
  *     journeyDecisionUniqueId: UUID,
  *     journeyUniqueId: UUID or null
  *   }
@@ -398,7 +399,7 @@ router.post(
  *     driver: Driver request data with vehicle type and location,
  *     vehicle: Vehicle details with tariff rates
  *   }
- * - passenger: Passenger request data with user information
+ * - shipper: Shipper request data with user information
  * - journey: Journey data if exists, otherwise null
  * - decision: JourneyDecision data with bid information
  *
@@ -410,13 +411,13 @@ router.post(
  * - Prevents drivers from accepting requests not assigned to them
  *
  * Authorization:
- * - Only drivers can accept passenger requests
+ * - Only drivers can accept shipper requests
  * - Driver must own the driverRequestUniqueId being updated
  * - Driver must be authenticated and verified
  * - Request must exist and be in requested (2) status (validated implicitly)
  *
  * Validation:
- * - Validates all three unique IDs (driver, passenger, decision) are provided
+ * - Validates all three unique IDs (driver, shipper, decision) are provided
  * - Validates shippingCostByDriver is a valid number >= 0
  * - Validates driver request exists in database
  * - Validates driver request belongs to authenticated user
@@ -428,16 +429,16 @@ router.post(
  * - "Driver user does not match driver request": Driver doesn't own the request
  * - "Request found is not valid to accept": IDs don't match database records
  * - "Unable to fetch journey data": Error retrieving notification data
- * - "Unable to accept passenger request": General error during acceptance
+ * - "Unable to accept shipper request": General error during acceptance
  *
  * Use Case:
- * Driver receives notification on phone → Opens app → Sees matched passenger request
- * → Reviews passenger details (origin, destination, item) → Provides bid price
- * → Clicks "Accept" → This endpoint called → Passenger notified → Passenger reviews bid
- * → Passenger accepts/rejects driver's offer
+ * Driver receives notification on phone → Opens app → Sees matched shipper request
+ * → Reviews shipper details (origin, destination, item) → Provides bid price
+ * → Clicks "Accept" → This endpoint called → Shipper notified → Shipper reviews bid
+ * → Shipper accepts/rejects driver's offer
  *
  * Difference from createAndAcceptNewRequest:
- * - acceptPassengerRequest: Driver accepts request from auto-match (within 1km) → already matched
+ * - acceptShipperRequest: Driver accepts request from auto-match (within 1km) → already matched
  * - createAndAcceptNewRequest: Driver manually selects request from job board (outside 1km) → creates new match
  *
  * Performance Notes:
@@ -449,40 +450,40 @@ router.post(
  *
  * Transaction Coverage:
  * - ✅ Fully wrapped in transaction via updateJourneyStatus()
- * - ✅ Updates JourneyDecisions, PassengerRequest, DriverRequest atomically
+ * - ✅ Updates JourneyDecisions, ShipperRequest, DriverRequest atomically
  * - ✅ 15 second timeout for multi-table updates
  * - ✅ Automatic rollback on any failure
  */
 router.put(
-  "/api/driver/acceptPassengerRequest",
+  DRIVER_REQUEST_ENDPOINTS.ACCEPT_SHIPPER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
-  validator(acceptPassengerRequestSchema),
-  acceptPassengerRequest,
+  validator(acceptShipperRequestSchema),
+  acceptShipperRequest,
 );
 /**
  * Start Journey Endpoint
  *
- * Purpose: Allows a driver to officially start a journey after the passenger has accepted their bid.
+ * Purpose: Allows a driver to officially start a journey after the shipper has accepted their bid.
  * This is the final step before the actual transportation begins. The journey is only considered
  * "active" and counted after this endpoint is called successfully.
  *
  * Context & Workflow:
  * 1. Driver registers availability → status: waiting (1)
- * 2. Auto-matching finds nearby passenger → status: requested (2)
+ * 2. Auto-matching finds nearby shipper → status: requested (2)
  * 3. Driver provides bid price → status: acceptedByDriver (3)
- * 4. Passenger accepts driver's bid → status: acceptedByPassenger (4)
+ * 4. Shipper accepts driver's bid → status: acceptedByShipper (4)
  * 5. Driver starts journey (THIS ENDPOINT) → status: journeyStarted (5)
  * 6. Journey completion → status: journeyCompleted (6)
  *
  * How it works:
  * - Driver provides their current GPS location (latitude, longitude) when starting the journey
  * - System validates the journey decision exists and belongs to the authenticated driver
- * - System validates the journey status is acceptedByPassenger (4) - cannot start unaccepted journeys
+ * - System validates the journey status is acceptedByShipper (4) - cannot start unaccepted journeys
  * - If no Journey record exists, creates one with startTime and initial JourneyRoutePoint
- * - Updates all related tables: JourneyDecisions, PassengerRequest, DriverRequest, Journey
+ * - Updates all related tables: JourneyDecisions, ShipperRequest, DriverRequest, Journey
  * - All tables updated to status = 5 (journeyStarted) atomically
- * - Sends WebSocket and FCM notifications to passenger that journey has started
+ * - Sends WebSocket and FCM notifications to shipper that journey has started
  * - Returns complete journey data with updated status
  *
  * Database Operations:
@@ -490,7 +491,7 @@ router.put(
  *    - Joins JourneyDecisions → DriverRequest → Users
  *    - Verifies journeyDecisionUniqueId exists and matches authenticated userUniqueId
  * 2. Validates journey status:
- *    - Ensures journeyStatusId is acceptedByPassenger (4) - cannot start if not accepted
+ *    - Ensures journeyStatusId is acceptedByShipper (4) - cannot start if not accepted
  *    - Ensures driver owns the journey decision (userUniqueId matches)
  * 3. ✅ Wrapped in TRANSACTION (all operations atomic):
  *    - Checks if Journey record exists (within transaction for consistency)
@@ -500,15 +501,15 @@ router.put(
  *      * Uses journeyDecisionUniqueId (not journeyUniqueId) for JourneyRoutePoint
  *    - IF Journey EXISTS (within transaction):
  *      * Uses existing journeyUniqueId for status update
- *    - Updates JourneyDecisions: journeyStatusId 4 (acceptedByPassenger) → 5 (journeyStarted)
- *    - Updates PassengerRequest: journeyStatusId 4 → 5
+ *    - Updates JourneyDecisions: journeyStatusId 4 (acceptedByShipper) → 5 (journeyStarted)
+ *    - Updates ShipperRequest: journeyStatusId 4 → 5
  *    - Updates DriverRequest: journeyStatusId 4 → 5
  *    - Updates Journey: journeyStatusId 4 → 5 (always updated if Journey exists)
  *    - All operations atomic (15 second timeout) - either all succeed or all fail
  * 6. Fetches complete journey notification data
- * 7. Sends notifications to passenger:
- *    - WebSocket notification via sendPassengerNotification()
- *    - FCM push notification to passenger's device
+ * 7. Sends notifications to shipper:
+ *    - WebSocket notification via sendShipperNotification()
+ *    - FCM push notification to shipper's device
  *    - Notification includes journey started message
  *
  * Request Body:
@@ -517,14 +518,14 @@ router.put(
  * - longitude: Driver's current GPS longitude when starting journey (required)
  * - userUniqueId: Automatically set from authentication token (set by controller)
  * - journeyStatusId: Automatically set to 5 (journeyStarted) by controller
- * - previousStatusId: Automatically set to 4 (acceptedByPassenger) by controller
+ * - previousStatusId: Automatically set to 4 (acceptedByShipper) by controller
  *
  * Response:
  * - message: "success"
  * - status: 5 (journeyStarted)
  * - uniqueIds: {
  *     driverRequestUniqueId: UUID,
- *     passengerRequestUniqueId: UUID,
+ *     shipperRequestUniqueId: UUID,
  *     journeyDecisionUniqueId: UUID,
  *     journeyUniqueId: UUID
  *   }
@@ -532,7 +533,7 @@ router.put(
  *     driver: Driver request data with updated status,
  *     vehicle: Vehicle details with tariff rates
  *   }
- * - passenger: Passenger request data with updated status
+ * - shipper: Shipper request data with updated status
  * - journey: Journey data with startTime and status
  * - decision: JourneyDecision data with updated status
  *
@@ -540,13 +541,13 @@ router.put(
  * - Requires valid authentication token (verifyTokenOfAxios)
  * - Requires driver identity verification (verifyDriversIdentity)
  * - Validates journey decision exists and belongs to authenticated driver
- * - Validates journey status is acceptedByPassenger (4) - cannot start unaccepted journeys
+ * - Validates journey status is acceptedByShipper (4) - cannot start unaccepted journeys
  * - Prevents drivers from starting journeys not assigned to them
  *
  * Authorization:
  * - Only drivers can start journeys
  * - Driver must own the journeyDecisionUniqueId being started
- * - Journey must be in acceptedByPassenger (4) status
+ * - Journey must be in acceptedByShipper (4) status
  * - Driver must be authenticated and verified
  *
  * Validation:
@@ -554,28 +555,28 @@ router.put(
  * - Validates latitude and longitude are provided
  * - Validates journey decision exists in database
  * - Validates journey decision belongs to authenticated user
- * - Validates journey status is acceptedByPassenger (4)
+ * - Validates journey status is acceptedByShipper (4)
  * - Validates driver owns the journey decision
  *
  * Error Cases:
  * - "User authentication required": userUniqueId missing from token
  * - "Journey decision not found": journeyDecisionUniqueId doesn't exist
- * - "This journey is not accepted by passenger": Journey status is not acceptedByPassenger (4)
+ * - "This journey is not accepted by shipper": Journey status is not acceptedByShipper (4)
  * - "Driver user does not match journey decision": Driver doesn't own the journey decision
  * - "Unable to start journey": General error during journey start
  *
  * Use Case:
- * Driver arrives at pickup location → Opens app → Reviews accepted passenger request
+ * Driver arrives at pickup location → Opens app → Reviews accepted shipper request
  * → Confirms they're ready to start → Provides current GPS location → Clicks "Start Journey"
- * → This endpoint called → Passenger notified → Journey officially begins
+ * → This endpoint called → Shipper notified → Journey officially begins
  *
  * Difference from other endpoints:
- * - acceptPassengerRequest: Driver accepts and provides bid → status: acceptedByDriver (3)
+ * - acceptShipperRequest: Driver accepts and provides bid → status: acceptedByDriver (3)
  * - createAndAcceptNewRequest: Driver manually accepts from job board → status: acceptedByDriver (3)
  * - startJourney: Driver officially begins transportation → status: journeyStarted (5) [THIS ENDPOINT]
  *
  * Status Flow:
- * 1. Passenger accepts driver → status: acceptedByPassenger (4)
+ * 1. Shipper accepts driver → status: acceptedByShipper (4)
  * 2. Driver arrives at pickup → Calls this endpoint → status: journeyStarted (5)
  * 3. Journey in progress...
  * 4. Driver completes journey → status: journeyCompleted (6)
@@ -592,7 +593,7 @@ router.put(
  *   - Journey existence check (within transaction for consistency)
  *   - Journey creation if needed (within transaction)
  *   - JourneyRoutePoint creation if needed (within transaction)
- *   - Status updates: JourneyDecisions, PassengerRequest, DriverRequest, Journey (within transaction)
+ *   - Status updates: JourneyDecisions, ShipperRequest, DriverRequest, Journey (within transaction)
  *   - All operations execute atomically (15 second timeout)
  *   - Automatic rollback on any failure - prevents partial updates
  *   - If any operation fails, all changes are rolled back (no orphaned Journey or JourneyRoutePoint)
@@ -604,50 +605,50 @@ router.put(
  * state but not yet started.
  */
 router.put(
-  "/api/driver/startJourney",
+  DRIVER_REQUEST_ENDPOINTS.START_JOURNEY,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(startJourneySchema),
   startJourney,
 );
 /**
- * Passenger "No Answer From Driver" Endpoint
+ * Shipper "No Answer From Driver" Endpoint
  *
- * Purpose: Allows a passenger to receive a report that a driver did not respond to their request.
+ * Purpose: Allows a shipper to receive a report that a driver did not respond to their request.
  * When a driver is matched but fails to respond within the expected time, the system automatically
- * detects the timeout and processes it. This endpoint allows passengers to manually trigger the same
+ * detects the timeout and processes it. This endpoint allows shippers to manually trigger the same
  * process if needed, or receive confirmation of the automatic system detection. The system updates
- * the status to noAnswerFromDriver and automatically creates a new passenger request to find another
+ * the status to noAnswerFromDriver and automatically creates a new shipper request to find another
  * available driver.
  *
  * Context & Workflow:
  * 1. Driver registers availability → status: waiting (1)
- * 2. Auto-matching finds nearby passenger → status: requested (2)
+ * 2. Auto-matching finds nearby shipper → status: requested (2)
  * 3. Driver receives notification but doesn't respond within expected time
- * 4. System automatically detects timeout (background job) OR passenger receives report via this endpoint
+ * 4. System automatically detects timeout (background job) OR shipper receives report via this endpoint
  * 5. System processes no answer → status: noAnswerFromDriver (13)
- * 6. System creates new passenger request to find another driver
+ * 6. System creates new shipper request to find another driver
  * 7. Original driver request marked as noAnswerFromDriver
- * 8. Passenger receives notification about driver not responding and new request creation
+ * 8. Shipper receives notification about driver not responding and new request creation
  *
  * How it works:
  * - System automatically detects when driver doesn't respond (via background job checking timeouts)
- * - Passenger can also manually trigger this endpoint to receive/process the no-answer report
- * - System validates the passenger request and driver request exist
- * - System checks if passenger status is already > 2 and < 5 (acceptedByDriver or acceptedByPassenger)
+ * - Shipper can also manually trigger this endpoint to receive/process the no-answer report
+ * - System validates the shipper request and driver request exist
+ * - System checks if shipper status is already > 2 and < 5 (acceptedByDriver or acceptedByShipper)
  *   - If yes, returns success with "driver answered calls" message (driver already responded)
  * - If driver hasn't responded:
  *   - Updates JourneyDecisions, DriverRequest, and Journey (if exists) to status = 13 (noAnswerFromDriver)
- *   - Creates a new passenger request with same origin, destination, and vehicle type
+ *   - Creates a new shipper request with same origin, destination, and vehicle type
  *   - Sends notification to driver about not answering
- *   - Sends notification to passenger about finding another driver (passenger receives the report)
- *   - Returns new passenger request status
+ *   - Sends notification to shipper about finding another driver (shipper receives the report)
+ *   - Returns new shipper request status
  *
  * Database Operations:
- * 1. Fetches PassengerRequest by passengerRequestUniqueId to validate it exists
+ * 1. Fetches ShipperRequest by shipperRequestUniqueId to validate it exists
  * 2. Fetches DriverRequest by driverRequestUniqueId to get driver information
- * 3. Validates passenger request status:
- *    - IF status > 2 AND < 5 (acceptedByDriver or acceptedByPassenger):
+ * 3. Validates shipper request status:
+ *    - IF status > 2 AND < 5 (acceptedByDriver or acceptedByShipper):
  *      * Returns early with "driver answered calls" message
  *      * No status updates performed
  *    - ELSE (status is waiting (1) or requested (2)):
@@ -657,17 +658,17 @@ router.put(
  *    - Updates JourneyDecisions: journeyStatusId 2 (requested) → 13 (noAnswerFromDriver)
  *    - Updates DriverRequest: journeyStatusId 2 → 13
  *    - Updates Journey: journeyStatusId 2 → 13 (if Journey record exists)
- *    - Creates new PassengerRequest with same origin, destination, vehicle type
+ *    - Creates new ShipperRequest with same origin, destination, vehicle type
  *    - New request created with status = waiting (1) to find another driver
  *    - All operations wrapped in single transaction (15 second timeout)
  *    - Either all operations succeed or all fail (atomic)
  * 5. Sends notifications (after successful transaction commit):
  *    - WebSocket notification to driver: "driver_not_answered" message
- *    - WebSocket notification to passenger: "request_other_driver" message with new request details
- *      (Passenger receives the report that driver didn't respond)
+ *    - WebSocket notification to shipper: "request_other_driver" message with new request details
+ *      (Shipper receives the report that driver didn't respond)
  *
  * Request Body:
- * - passengerRequestUniqueId: Unique ID of the passenger request (required)
+ * - shipperRequestUniqueId: Unique ID of the shipper request (required)
  * - driverRequestUniqueId: Unique ID of the driver request that didn't respond (required)
  * - vehicle: {vehicleTypeUniqueId} - Vehicle type for new request (required)
  * - userUniqueId: Automatically set from authentication token (set by controller)
@@ -680,60 +681,60 @@ router.put(
  *
  * Response (if driver didn't answer):
  * - message: "success"
- * - status: New passenger request journeyStatusId (typically 1 = waiting)
+ * - status: New shipper request journeyStatusId (typically 1 = waiting)
  * - data: "driver_not_answered" message type
  *
  * Security:
  * - Requires valid authentication token (verifyTokenOfAxios)
- * - Requires passenger identity verification (verifyPassengersIdentity)
- * - Validates passenger request exists
+ * - Requires shipper identity verification (verifyShippersIdentity)
+ * - Validates shipper request exists
  * - Validates driver request exists
- * - Only passenger who owns the request can receive/trigger the no-answer report
+ * - Only shipper who owns the request can receive/trigger the no-answer report
  *
  * Authorization:
- * - Only passengers can receive/trigger the no-answer report
- * - Passenger must own the passengerRequestUniqueId to receive the report
- * - Passenger must be authenticated and verified
+ * - Only shippers can receive/trigger the no-answer report
+ * - Shipper must own the shipperRequestUniqueId to receive the report
+ * - Shipper must be authenticated and verified
  * - Request must be in waiting (1) or requested (2) status (not already accepted)
  *
  * Validation:
- * - Validates passengerRequestUniqueId is provided
+ * - Validates shipperRequestUniqueId is provided
  * - Validates driverRequestUniqueId is provided
  * - Validates vehicle information is provided
- * - Validates passenger request exists in database
+ * - Validates shipper request exists in database
  * - Validates driver request exists in database
- * - Checks if passenger status indicates driver already responded
+ * - Checks if shipper status indicates driver already responded
  *
  * Error Cases:
  * - "User authentication required": userUniqueId missing from token
- * - "Passenger request not found": passengerRequestUniqueId doesn't exist
+ * - "Shipper request not found": shipperRequestUniqueId doesn't exist
  * - "Driver request not found": driverRequestUniqueId doesn't exist
  * - General errors if status update or new request creation fails
  *
  * Use Case:
- * Passenger creates request → System matches with nearby driver → Driver receives notification
+ * Shipper creates request → System matches with nearby driver → Driver receives notification
  * → Driver doesn't respond within timeout period → System automatically detects timeout
- * → System processes no answer and sends report to passenger → Passenger receives notification
+ * → System processes no answer and sends report to shipper → Shipper receives notification
  * → System marks driver as non-responsive → Creates new request → Finds another driver
  *
  * Status Flow:
  * 1. Auto-matching finds driver → status: requested (2)
  * 2. Driver doesn't respond within timeout → System automatically detects → status: noAnswerFromDriver (13)
- *    OR Passenger manually triggers endpoint to receive report → status: noAnswerFromDriver (13)
- * 3. New passenger request created → status: waiting (1)
+ *    OR Shipper manually triggers endpoint to receive report → status: noAnswerFromDriver (13)
+ * 3. New shipper request created → status: waiting (1)
  * 4. System finds another driver → status: requested (2)
  *
  * Performance Notes:
- * - Fetches passenger request and driver request separately (could be optimized)
+ * - Fetches shipper request and driver request separately (could be optimized)
  * - Status updates and new request creation wrapped in single transaction (atomic)
  * - Notifications sent after successful transaction commit (prevents notifications for failed operations)
- * - Returns new passenger request status for immediate feedback
+ * - Returns new shipper request status for immediate feedback
  *
  * Transaction Coverage:
  * - ✅ Fully wrapped in transaction (all operations atomic):
  *   - Batch check: Validates existing requests by batch ID (within transaction for consistency)
  *   - Status updates: Updates JourneyDecisions, DriverRequest, Journey (if exists) within transaction
- *   - New PassengerRequest creation: Creates new request within same transaction
+ *   - New ShipperRequest creation: Creates new request within same transaction
  *   - All operations execute atomically (15 second timeout)
  *   - Automatic rollback on any failure - prevents partial updates
  *   - If any operation fails, all changes are rolled back (no orphaned status updates or requests)
@@ -743,25 +744,25 @@ router.put(
  * - JourneyStatusId 13 is used for "noAnswerFromDriver" (according to seed data:
  *   journeyStatusId 13 = "noAnswerFromDriver", journeyStatusId 11 = "completedByAdmin")
  * - System automatically detects timeouts via background job (see automaticTimeout.service.js)
- * - This endpoint allows passengers to manually trigger/receive the no-answer report if needed
- * - When system automatically detects timeout, passenger receives notification automatically
- * - This endpoint creates a new passenger request automatically to continue finding drivers
+ * - This endpoint allows shippers to manually trigger/receive the no-answer report if needed
+ * - When system automatically detects timeout, shipper receives notification automatically
+ * - This endpoint creates a new shipper request automatically to continue finding drivers
  * - Original driver is marked as non-responsive but can still receive future requests
- * - Passenger can only receive/trigger no-answer report if request is in waiting (1) or requested (2) status
- * - Passenger is the RECEIVER of the report, not the reporter - system detects and reports automatically
+ * - Shipper can only receive/trigger no-answer report if request is in waiting (1) or requested (2) status
+ * - Shipper is the RECEIVER of the report, not the reporter - system detects and reports automatically
  */
 router.put(
-  "/api/passenger/noAnswerFromDriver",
+  DRIVER_REQUEST_ENDPOINTS.NO_ANSWER_FROM_DRIVER,
   verifyTokenOfAxios,
-  verifyPassengersIdentity,
+  verifyShippersIdentity,
   noAnswerFromDriver,
 );
 /**
  * Driver Cancel Request Endpoint
  *
- * Purpose: Allows a driver to cancel their participation in the bidding process for a passenger request.
+ * Purpose: Allows a driver to cancel their participation in the bidding process for a shipper request.
  * When a driver cancels their request, the system updates the driver's status, potentially updates the
- * passenger's status based on the number of active drivers, sends notifications, and registers the
+ * shipper's status based on the number of active drivers, sends notifications, and registers the
  * cancellation for audit purposes.
  *
  * Context & Workflow:
@@ -773,10 +774,10 @@ router.put(
  * 4. System updates DriverRequest status
  * 5. System updates JourneyDecisions status (if JourneyDecision exists)
  * 6. System updates Journey status (if Journey exists and was started)
- * 7. System checks number of active drivers for the passenger request:
- *    - IF only 1 driver (only 1 JourneyDecision): Update passenger status to waiting (1)
- *    - IF multiple drivers (multiple JourneyDecisions): Leave passenger status unchanged
- * 8. System sends notification to passenger (only for cancelledByDriver, NOT rejectedByDriver)
+ * 7. System checks number of active drivers for the shipper request:
+ *    - IF only 1 driver (only 1 JourneyDecision): Update shipper status to waiting (1)
+ *    - IF multiple drivers (multiple JourneyDecisions): Leave shipper status unchanged
+ * 8. System sends notification to shipper (only for cancelledByDriver, NOT rejectedByDriver)
  * 9. System registers cancellation in CanceledJourneys table
  * 10. System sends admin notification (if appropriate)
  *
@@ -787,12 +788,12 @@ router.put(
  *   - rejectedByDriver (15): Status < 3 (waiting or requested) - driver never committed
  *   - cancelledByDriver (9): Status >= 3 (acceptedByDriver or higher) - driver committed then withdrew
  * - Updates DriverRequest, JourneyDecisions (if exists), Journey (if exists)
- * - Checks number of JourneyDecisions for the passenger request:
- *   - Single driver scenario: Passenger status → waiting (1) (request is now unassigned)
- *   - Multiple drivers scenario: Passenger status unchanged (other drivers still active)
- * - Sends notification to passenger only for cancelledByDriver (9) - NOT for rejectedByDriver (15)
- *   - rejectedByDriver doesn't notify passenger since no expectation was set
- *   - cancelledByDriver notifies passenger since commitment was broken
+ * - Checks number of JourneyDecisions for the shipper request:
+ *   - Single driver scenario: Shipper status → waiting (1) (request is now unassigned)
+ *   - Multiple drivers scenario: Shipper status unchanged (other drivers still active)
+ * - Sends notification to shipper only for cancelledByDriver (9) - NOT for rejectedByDriver (15)
+ *   - rejectedByDriver doesn't notify shipper since no expectation was set
+ *   - cancelledByDriver notifies shipper since commitment was broken
  * - Registers cancellation in CanceledJourneys table for audit
  * - Sends admin notification if journey hadn't started yet
  *
@@ -804,22 +805,22 @@ router.put(
  *    - ELSE: rejectedByDriver (15)
  * 4. READ: Fetches JourneyDecisions by driverRequestId (if exists - outside transaction)
  * 5. READ: Fetches Journey data (if JourneyDecisionUniqueId exists - outside transaction)
- * 6. READ: Fetches PassengerRequest and associated data (outside transaction)
+ * 6. READ: Fetches ShipperRequest and associated data (outside transaction)
  * 7. ✅ WRAP IN TRANSACTION (all write operations atomic):
- *    a. Count JourneyDecisions: Counts journey decisions for passenger request WITHIN transaction
+ *    a. Count JourneyDecisions: Counts journey decisions for shipper request WITHIN transaction
  *       - This ensures consistent snapshot even if other transactions are modifying data
- *       - Count performed BEFORE status updates to determine passenger status change
- *       - IF count === 1: This is only driver, passenger will go back to waiting
- *       - IF count > 1: Multiple drivers, passenger status stays unchanged
+ *       - Count performed BEFORE status updates to determine shipper status change
+ *       - IF count === 1: This is only driver, shipper will go back to waiting
+ *       - IF count > 1: Multiple drivers, shipper status stays unchanged
  *    b. Update DriverRequest: Sets journeyStatusId to determined status (9 or 15)
  *    c. Update JourneyDecisions (if exists):
  *       - Sets journeyStatusId to determined status (9 or 15, or 10 if admin)
- *       - Sets isCancellationByDriverSeenByPassenger:
+ *       - Sets isCancellationByDriverSeenByShipper:
  *         * "no need to see it" for rejectedByDriver (15)
- *         * "not seen by passenger yet" for cancelledByDriver (9)
- *    d. Update PassengerRequest (conditional - only if count === 1):
+ *         * "not seen by shipper yet" for cancelledByDriver (9)
+ *    d. Update ShipperRequest (conditional - only if count === 1):
  *       - Sets journeyStatusId to waiting (1) if this is the only driver
- *       - No update if multiple drivers exist (passenger status unchanged)
+ *       - No update if multiple drivers exist (shipper status unchanged)
  *    e. Update Journey (conditional - only if journey started):
  *       - Sets journeyStatusId to cancelledByDriver (9)
  *    - All operations wrapped in single transaction (20 second timeout)
@@ -829,8 +830,8 @@ router.put(
  *       - Context: JOURNEY (if journey started) or JOURNEY_DECISIONS (if decision exists but journey not started)
  *       - Includes cancellation reason, user info, timestamps
  *    b. Sends notifications (only after successful commit):
- *       - Passenger WebSocket notification (only for cancelledByDriver (9), NOT rejectedByDriver (15))
- *       - Passenger FCM notification (only for cancelledByDriver (9))
+ *       - Shipper WebSocket notification (only for cancelledByDriver (9), NOT rejectedByDriver (15))
+ *       - Shipper FCM notification (only for cancelledByDriver (9))
  *       - Admin WebSocket notification (if journey hadn't started yet)
  *
  * Request Query Parameters:
@@ -848,12 +849,12 @@ router.put(
  * - status: journeyStatusId (9 for cancelledByDriver, 15 for rejectedByDriver, or 10 for cancelledByAdmin)
  * - uniqueIds: {
  *     driverRequestUniqueId: "...",
- *     passengerRequestUniqueId: "...",
+ *     shipperRequestUniqueId: "...",
  *     journeyDecisionUniqueId: "...",
  *     journeyUniqueId: "..." (or null)
  *   }
  * - driver: { driver: {...}, vehicle: {...} } (driver and vehicle info)
- * - passenger: {...} (passenger request info)
+ * - shipper: {...} (shipper request info)
  * - journey: {...} (journey info, or null)
  * - decision: {...} (journey decision info, or null)
  *
@@ -865,7 +866,7 @@ router.put(
  * Response (Error):
  * - message: "error"
  * - error: "No active driver requests found for this user" (if no active request)
- * - error: "Unable to fetch passenger details or phone number" (if passenger data unavailable)
+ * - error: "Unable to fetch shipper details or phone number" (if shipper data unavailable)
  * - error: "Unable to cancel driver request" (general error)
  *
  * Security:
@@ -882,66 +883,66 @@ router.put(
  *
  * Validation:
  * - Validates driver has active request
- * - Validates passenger request exists (if JourneyDecision exists)
- * - Validates passenger has phone number (for notifications)
+ * - Validates shipper request exists (if JourneyDecision exists)
+ * - Validates shipper has phone number (for notifications)
  * - Validates JourneyDecision exists (for certain operations)
  *
  * Error Cases:
  * - "No active driver requests found for this user": Driver has no active requests
- * - "Unable to fetch passenger details or phone number": Passenger data not found
+ * - "Unable to fetch shipper details or phone number": Shipper data not found
  * - "Unable to cancel driver request": General processing error
  *
  * Use Case:
- * Driver creates request → System matches with passenger → Driver accepts request (status: acceptedByDriver)
+ * Driver creates request → System matches with shipper → Driver accepts request (status: acceptedByDriver)
  * → Driver decides to cancel → Driver calls this endpoint → System determines cancellation type
- * → System updates driver status to cancelledByDriver (9) → System checks if passenger has other drivers
- * → IF only 1 driver: Passenger status → waiting (1) → Passenger receives notification
- * → IF multiple drivers: Passenger status unchanged → Passenger receives notification about this specific driver
+ * → System updates driver status to cancelledByDriver (9) → System checks if shipper has other drivers
+ * → IF only 1 driver: Shipper status → waiting (1) → Shipper receives notification
+ * → IF multiple drivers: Shipper status unchanged → Shipper receives notification about this specific driver
  *
  * Status Flow - Single Driver Scenario:
- * 1. Driver accepts request → DriverRequest: acceptedByDriver (3), PassengerRequest: acceptedByDriver (3)
+ * 1. Driver accepts request → DriverRequest: acceptedByDriver (3), ShipperRequest: acceptedByDriver (3)
  * 2. Driver cancels → DriverRequest: cancelledByDriver (9), JourneyDecisions: cancelledByDriver (9)
- * 3. System checks: Only 1 JourneyDecision for passenger → PassengerRequest: waiting (1)
- * 4. Passenger receives notification: "Driver cancelled your request"
- * 5. Passenger status returns to waiting (1) to find another driver
+ * 3. System checks: Only 1 JourneyDecision for shipper → ShipperRequest: waiting (1)
+ * 4. Shipper receives notification: "Driver cancelled your request"
+ * 5. Shipper status returns to waiting (1) to find another driver
  *
  * Status Flow - Multiple Drivers Scenario:
- * 1. Multiple drivers accept request → Each DriverRequest: acceptedByDriver (3), PassengerRequest: acceptedByDriver (3)
+ * 1. Multiple drivers accept request → Each DriverRequest: acceptedByDriver (3), ShipperRequest: acceptedByDriver (3)
  * 2. One driver cancels → That DriverRequest: cancelledByDriver (9), That JourneyDecisions: cancelledByDriver (9)
- * 3. System checks: Multiple JourneyDecisions for passenger → PassengerRequest: unchanged (still acceptedByDriver (3))
- * 4. Passenger receives notification: "Driver cancelled your request" (about specific driver)
- * 5. Passenger status remains acceptedByDriver (3) because other drivers are still active
+ * 3. System checks: Multiple JourneyDecisions for shipper → ShipperRequest: unchanged (still acceptedByDriver (3))
+ * 4. Shipper receives notification: "Driver cancelled your request" (about specific driver)
+ * 5. Shipper status remains acceptedByDriver (3) because other drivers are still active
  *
  * Status Types:
  * - rejectedByDriver (15): Driver cancels BEFORE accepting (status < 3) - no commitment made
- *   - No passenger notification (passenger never expected this driver)
- *   - isCancellationByDriverSeenByPassenger = "no need to see it"
- *   - Passenger status logic still applies (waiting if only driver, unchanged if multiple)
+ *   - No shipper notification (shipper never expected this driver)
+ *   - isCancellationByDriverSeenByShipper = "no need to see it"
+ *   - Shipper status logic still applies (waiting if only driver, unchanged if multiple)
  *
  * - cancelledByDriver (9): Driver cancels AFTER accepting (status >= 3) - commitment broken
- *   - Passenger notification sent (expectation was set and then broken)
- *   - isCancellationByDriverSeenByPassenger = "not seen by passenger yet"
- *   - Passenger can see this in cancellation notifications
- *   - Passenger status logic applies (waiting if only driver, unchanged if multiple)
+ *   - Shipper notification sent (expectation was set and then broken)
+ *   - isCancellationByDriverSeenByShipper = "not seen by shipper yet"
+ *   - Shipper can see this in cancellation notifications
+ *   - Shipper status logic applies (waiting if only driver, unchanged if multiple)
  *
  * - cancelledByAdmin (10): Admin cancels on behalf of driver
  *   - Same behavior as cancelledByDriver but with admin context
  *
- * Important Logic - Passenger Status Update:
- * - The system checks the number of JourneyDecisions for the passenger request
- * - If only 1 JourneyDecision exists: Passenger status → waiting (1)
- *   - This means the passenger has no other drivers, so request returns to waiting state
- *   - Passenger can be matched with other drivers again
+ * Important Logic - Shipper Status Update:
+ * - The system checks the number of JourneyDecisions for the shipper request
+ * - If only 1 JourneyDecision exists: Shipper status → waiting (1)
+ *   - This means the shipper has no other drivers, so request returns to waiting state
+ *   - Shipper can be matched with other drivers again
  *
- * - If multiple JourneyDecisions exist: Passenger status unchanged
- *   - This means the passenger still has other active drivers
+ * - If multiple JourneyDecisions exist: Shipper status unchanged
+ *   - This means the shipper still has other active drivers
  *   - Only this specific driver is cancelled, others remain active
- *   - Passenger can still select from remaining drivers
+ *   - Shipper can still select from remaining drivers
  *
  * Important Notes:
- * - This endpoint does NOT create a new passenger request (unlike noAnswerFromDriver)
- * - Passenger status is only updated to waiting (1) if this was the only driver
- * - If passenger has multiple drivers, status remains unchanged
+ * - This endpoint does NOT create a new shipper request (unlike noAnswerFromDriver)
+ * - Shipper status is only updated to waiting (1) if this was the only driver
+ * - If shipper has multiple drivers, status remains unchanged
  * - Notifications are only sent for cancelledByDriver (9), NOT for rejectedByDriver (15)
  * - Cancellation is registered in CanceledJourneys table for audit purposes
  * - Admin notifications are sent only if journey hadn't started yet
@@ -951,10 +952,10 @@ router.put(
  *
  * Transaction Coverage:
  * - ✅ Fully wrapped in transaction (all operations atomic):
- *   - Journey decision count: Counts journey decisions for passenger request WITHIN transaction for consistency
+ *   - Journey decision count: Counts journey decisions for shipper request WITHIN transaction for consistency
  *   - DriverRequest update: Updates driver status to cancelledByDriver (9) or rejectedByDriver (15)
  *   - JourneyDecisions update: Updates decision status and seen flag (if decision exists)
- *   - PassengerRequest update: Updates passenger status to waiting (1) if only 1 driver (conditional, within transaction)
+ *   - ShipperRequest update: Updates shipper status to waiting (1) if only 1 driver (conditional, within transaction)
  *   - Journey update: Updates journey status to cancelledByDriver (9) if journey started (conditional)
  *   - All operations wrapped in single transaction (20 second timeout)
  *   - Either all operations succeed or all fail (atomic)
@@ -965,14 +966,14 @@ router.put(
  *
  * Performance Notes:
  * - Read operations (fetches) executed before transaction to minimize transaction duration
- * - Multiple database queries to fetch driver, passenger, journey decision, journey data (outside transaction)
+ * - Multiple database queries to fetch driver, shipper, journey decision, journey data (outside transaction)
  * - Journey decision count check performed WITHIN transaction for consistency (ensures accurate snapshot)
  * - Status updates wrapped in transaction for atomicity (all succeed or all fail)
  * - Notification logic executed after successful transaction commit (prevents notifications for failed operations)
  * - Audit logging (createCanceledJourney) executed after successful transaction commit (non-critical for consistency)
  */
 router.put(
-  "/api/driver/cancelDriverRequest",
+  DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   cancelDriverRequest,
@@ -983,32 +984,32 @@ router.put(
  * Purpose: Allows a driver to mark a journey as completed when they arrive at the destination.
  * This is the final step of the journey lifecycle. When a driver completes a journey, the system
  * updates all related statuses to journeyCompleted (6), sets the journey endTime, and notifies
- * the passenger that the journey has been successfully completed. This is when the driver can
+ * the shipper that the journey has been successfully completed. This is when the driver can
  * collect payment for their services.
  *
  * Context & Workflow:
- * 1. Driver accepts passenger request → status: acceptedByDriver (3)
- * 2. Passenger selects driver → status: acceptedByPassenger (4)
+ * 1. Driver accepts shipper request → status: acceptedByDriver (3)
+ * 2. Shipper selects driver → status: acceptedByShipper (4)
  * 3. Driver starts journey → status: journeyStarted (5)
  * 4. Driver drives to destination → journey in progress
  * 5. Driver arrives at destination and completes journey (THIS ENDPOINT) → status: journeyCompleted (6)
  * 6. System updates all related tables to journeyCompleted (6)
  * 7. System sets journey endTime to current timestamp
- * 8. System sends notification to passenger about journey completion
+ * 8. System sends notification to shipper about journey completion
  * 9. Driver can now collect payment for their services
  *
  * How it works:
  * - Driver arrives at destination and marks journey as complete
  * - System validates journey decision exists and matches driver
- * - System validates passenger request exists and matches journey decision
+ * - System validates shipper request exists and matches journey decision
  * - System validates journey exists (if journeyUniqueId provided)
  * - System validates userUniqueId matches driver in journey decision
  * - System updates all related statuses to journeyCompleted (6) atomically:
  *   - Journey: journeyStatusId → journeyCompleted (6), endTime → current timestamp
- *   - PassengerRequest: journeyStatusId → journeyCompleted (6)
+ *   - ShipperRequest: journeyStatusId → journeyCompleted (6)
  *   - JourneyDecisions: journeyStatusId → journeyCompleted (6)
  *   - DriverRequest: journeyStatusId → journeyCompleted (6)
- * - System sends notification to passenger about journey completion
+ * - System sends notification to shipper about journey completion
  * - Returns updated journey data with completion status
  *
  * Database Operations:
@@ -1016,12 +1017,12 @@ router.put(
  *    - Validates journey decision exists
  *    - Validates driver userUniqueId matches
  *    - Validates journey exists and matches (if journeyUniqueId provided)
- * 2. READ: Fetches passenger request data (outside transaction)
- *    - Validates passenger request exists
- *    - Validates passengerRequestId matches journey decision
+ * 2. READ: Fetches shipper request data (outside transaction)
+ *    - Validates shipper request exists
+ *    - Validates shipperRequestId matches journey decision
  * 3. ✅ WRAP IN TRANSACTION (all status updates atomic):
  *    - Updates Journey: journeyStatusId → journeyCompleted (6), endTime → current timestamp
- *    - Updates PassengerRequest: journeyStatusId → journeyCompleted (6)
+ *    - Updates ShipperRequest: journeyStatusId → journeyCompleted (6)
  *    - Updates JourneyDecisions: journeyStatusId → journeyCompleted (6)
  *    - Updates DriverRequest: journeyStatusId → journeyCompleted (6)
  *    - All operations wrapped in single transaction (20 second timeout)
@@ -1030,13 +1031,13 @@ router.put(
  *    - If any operation fails, all changes are rolled back (no orphaned status updates)
  * 4. After successful transaction commit:
  *    - Fetches updated journey notification data (read operation)
- *    - Sends WebSocket notification to passenger: "driver_completed_journey" message
- *    - Sends FCM notification to passenger about journey completion
+ *    - Sends WebSocket notification to shipper: "driver_completed_journey" message
+ *    - Sends FCM notification to shipper about journey completion
  *    - Returns complete journey data with all related information
  *
  * Request Body:
  * - journeyDecisionUniqueId: Unique ID of the journey decision (required)
- * - passengerRequestUniqueId: Unique ID of the passenger request (required)
+ * - shipperRequestUniqueId: Unique ID of the shipper request (required)
  * - journeyUniqueId: Unique ID of the journey (optional, if journey exists)
  * - userUniqueId: Automatically set from authentication token (set by controller)
  * - journeyStatusId: Automatically set to 6 (journeyCompleted) by controller
@@ -1048,12 +1049,12 @@ router.put(
  * - status: journeyStatusId (6 = journeyCompleted)
  * - uniqueIds: {
  *     driverRequestUniqueId: "...",
- *     passengerRequestUniqueId: "...",
+ *     shipperRequestUniqueId: "...",
  *     journeyDecisionUniqueId: "...",
  *     journeyUniqueId: "..." (or null)
  *   }
  * - driver: { driver: {...}, vehicle: {...} } (driver and vehicle info)
- * - passenger: {...} (passenger request info)
+ * - shipper: {...} (shipper request info)
  * - journey: {...} (journey info with endTime set)
  * - decision: {...} (journey decision info)
  *
@@ -1062,9 +1063,9 @@ router.put(
  * - error: "Journey decision not found or data mismatch" (if journey decision not found)
  * - error: "Driver user does not match journey decision" (if userUniqueId mismatch)
  * - error: "Journey does not match journey decision" (if journeyUniqueId mismatch)
- * - error: "Passenger request not found" (if passenger request not found)
- * - error: "Passenger request data not found" (if passenger data unavailable)
- * - error: "Passenger request does not match journey decision" (if passengerRequestId mismatch)
+ * - error: "Shipper request not found" (if shipper request not found)
+ * - error: "Shipper request data not found" (if shipper data unavailable)
+ * - error: "Shipper request does not match journey decision" (if shipperRequestId mismatch)
  * - error: "Unable to complete journey" (general processing error)
  *
  * Security:
@@ -1072,7 +1073,7 @@ router.put(
  * - Requires driver identity verification (verifyDriversIdentity)
  * - Validates journey decision exists
  * - Validates driver owns the journey (userUniqueId matches)
- * - Validates passenger request matches journey decision
+ * - Validates shipper request matches journey decision
  * - Validates journey matches journey decision (if provided)
  *
  * Authorization:
@@ -1083,41 +1084,41 @@ router.put(
  *
  * Validation:
  * - Validates journeyDecisionUniqueId is provided
- * - Validates passengerRequestUniqueId is provided
+ * - Validates shipperRequestUniqueId is provided
  * - Validates journey decision exists in database
- * - Validates passenger request exists in database
+ * - Validates shipper request exists in database
  * - Validates driver userUniqueId matches journey decision driver
  * - Validates journey exists and matches (if journeyUniqueId provided)
- * - Validates passengerRequestId matches journey decision
+ * - Validates shipperRequestId matches journey decision
  *
  * Error Cases:
  * - "Journey decision not found or data mismatch": Journey decision doesn't exist or IDs don't match
  * - "Driver user does not match journey decision": Driver trying to complete someone else's journey
  * - "Journey does not match journey decision": journeyUniqueId doesn't match journey decision
- * - "Passenger request not found": Passenger request doesn't exist
- * - "Passenger request data not found": Passenger data structure invalid
- * - "Passenger request does not match journey decision": passengerRequestId doesn't match
+ * - "Shipper request not found": Shipper request doesn't exist
+ * - "Shipper request data not found": Shipper data structure invalid
+ * - "Shipper request does not match journey decision": shipperRequestId doesn't match
  * - "Unable to complete journey": General processing error
  *
  * Use Case:
- * Driver accepts request → Passenger selects driver → Driver starts journey → Driver drives to destination
+ * Driver accepts request → Shipper selects driver → Driver starts journey → Driver drives to destination
  * → Driver arrives at destination → Driver calls this endpoint → System updates all statuses to completed
- * → Passenger receives notification → Driver can collect payment → Journey lifecycle complete
+ * → Shipper receives notification → Driver can collect payment → Journey lifecycle complete
  *
  * Status Flow:
  * 1. Journey in progress → status: journeyStarted (5)
  * 2. Driver arrives at destination and completes journey → status: journeyCompleted (6)
  *    - Journey: journeyStatusId 5 → 6, endTime set
- *    - PassengerRequest: journeyStatusId 5 → 6
+ *    - ShipperRequest: journeyStatusId 5 → 6
  *    - JourneyDecisions: journeyStatusId 5 → 6
  *    - DriverRequest: journeyStatusId 5 → 6
  * 3. All related tables updated atomically to journeyCompleted (6)
- * 4. Passenger receives notification about journey completion
+ * 4. Shipper receives notification about journey completion
  *
  * Important Logic:
  * - Journey endTime is automatically set to current timestamp when status changes to journeyCompleted (6)
- * - All related tables (Journey, PassengerRequest, JourneyDecisions, DriverRequest) are updated atomically
- * - Passenger receives notification only after successful transaction commit
+ * - All related tables (Journey, ShipperRequest, JourneyDecisions, DriverRequest) are updated atomically
+ * - Shipper receives notification only after successful transaction commit
  * - This is the final step - journey cannot be reversed after completion
  * - Driver can collect payment after journey is marked as completed
  *
@@ -1125,14 +1126,14 @@ router.put(
  * - This is the final step of the journey lifecycle - cannot be undone
  * - Journey endTime is automatically set to current timestamp
  * - All status updates are atomic (all succeed or all fail)
- * - Passenger notification sent only after successful transaction commit
+ * - Shipper notification sent only after successful transaction commit
  * - Driver can collect payment for their services after journey completion
- * - Journey status updates: Journey, PassengerRequest, JourneyDecisions, DriverRequest all updated to journeyCompleted (6)
+ * - Journey status updates: Journey, ShipperRequest, JourneyDecisions, DriverRequest all updated to journeyCompleted (6)
  *
  * Transaction Coverage:
  * - ✅ Fully wrapped in transaction (all operations atomic):
  *   - Journey update: Updates journeyStatusId to journeyCompleted (6) and sets endTime
- *   - PassengerRequest update: Updates status to journeyCompleted (6)
+ *   - ShipperRequest update: Updates status to journeyCompleted (6)
  *   - JourneyDecisions update: Updates status to journeyCompleted (6)
  *   - DriverRequest update: Updates status to journeyCompleted (6)
  *   - All operations wrapped in single transaction (20 second timeout)
@@ -1143,14 +1144,14 @@ router.put(
  *
  * Performance Notes:
  * - Read operations (fetches) executed before transaction to minimize transaction duration
- * - Multiple database queries to fetch journey decision, driver, journey, passenger data (outside transaction)
+ * - Multiple database queries to fetch journey decision, driver, journey, shipper data (outside transaction)
  * - Status updates wrapped in transaction for atomicity (all succeed or all fail)
  * - Notification data fetched after successful transaction commit
  * - Notification logic executed after successful transaction commit (prevents notifications for failed operations)
  * - Uses helper function fetchJourneyNotificationData to get comprehensive data for notifications
  */
 router.put(
-  "/api/driver/completeJourney",
+  DRIVER_REQUEST_ENDPOINTS.COMPLETE_JOURNEY,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(completeJourneySchema),
@@ -1179,7 +1180,7 @@ router.put(
  * - System fetches driver request using driverRequestUniqueId
  * - System validates driver owns the request (userUniqueId matches authenticated user)
  * - System checks if request is already deleted (deletedAt IS NOT NULL)
- * - System validates request is not in active status (acceptedByDriver, acceptedByPassenger, journeyStarted, journeyCompleted)
+ * - System validates request is not in active status (acceptedByDriver, acceptedByShipper, journeyStarted, journeyCompleted)
  * - If all validations pass, system performs safe delete:
  *   - Updates deletedAt = current timestamp
  *   - Updates deletedBy = authenticated user's userUniqueId
@@ -1276,7 +1277,7 @@ router.put(
  * - Only allows deletion of requests that driver owns (userUniqueId must match)
  * - Prevents deletion of requests with active journey status:
  *   - acceptedByDriver (3)
- *   - acceptedByPassenger (4)
+ *   - acceptedByShipper (4)
  *   - journeyStarted (5)
  *   - journeyCompleted (6)
  * - If request is in active status, driver must cancel it first using /api/driver/cancelDriverRequest
@@ -1338,7 +1339,7 @@ router.put(
  *   - Preserves audit trail
  */
 router.put(
-  "/api/driver/request/:driverRequestUniqueId",
+  DRIVER_REQUEST_ENDPOINTS.UPDATE_DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(requestIdParamsSchema, "params"),
@@ -1346,7 +1347,7 @@ router.put(
   updateDriverRequestController,
 );
 router.delete(
-  "/api/driver/request/:driverRequestUniqueId",
+  DRIVER_REQUEST_ENDPOINTS.DELETE_DRIVER_REQUEST,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   deleteRequestController,
@@ -1358,28 +1359,28 @@ router.delete(
  * Purpose: Core endpoint that informs the driver about their current journey status and stage.
  * This is the central point for drivers to understand their current state in the journey lifecycle
  * and make decisions based on it. The driver can determine whether to:
- * - Continue waiting for a passenger match
- * - Move/start journey to pick up passenger
+ * - Continue waiting for a shipper match
+ * - Move/start journey to pick up shipper
  * - Close the app
  * - Receive payment (if journey completed)
- * - Ask questions to shipper/passenger
+ * - Ask questions to shipper/shipper
  * - Handle cancellation/rejection notifications
  *
  * Context & Journey Lifecycle:
  * This endpoint returns the driver's current status in the journey lifecycle, which can be:
  * 1. No Request: Driver has no active request (status: null)
- * 2. Waiting (1): Driver request created, waiting for nearby passengers
- * 3. Requested (2): Driver matched with passenger, both parties notified
- * 4. Accepted by Driver (3): Driver accepted passenger's request
- * 5. Accepted by Passenger (4): Passenger selected this driver from multiple options
- * 6. Journey Started (5): Driver has started the journey to pick up passenger
+ * 2. Waiting (1): Driver request created, waiting for nearby shippers
+ * 3. Requested (2): Driver matched with shipper, both parties notified
+ * 4. Accepted by Driver (3): Driver accepted shipper's request
+ * 5. Accepted by Shipper (4): Shipper selected this driver from multiple options
+ * 6. Journey Started (5): Driver has started the journey to pick up shipper
  * 7. Journey Completed (6): Driver completed the journey, can receive payment
- * 8. Cancelled by Passenger (7): Passenger cancelled the request
- * 9. Rejected by Passenger (8): Passenger rejected this driver's offer
+ * 8. Cancelled by Shipper (7): Shipper cancelled the request
+ * 9. Rejected by Shipper (8): Shipper rejected this driver's offer
  * 10. Cancelled by Driver (9): Driver cancelled their participation
  * 11. Cancelled by Admin (10): Admin cancelled the request
  * 12. Cancelled by System (12): System automatically cancelled
- * 13. Not Selected in Bid (14): Driver not selected by passenger in bidding process
+ * 13. Not Selected in Bid (14): Driver not selected by shipper in bidding process
  *
  * How it works:
  * 1. Validates driver has an active vehicle assigned (VehicleDriver relation)
@@ -1388,15 +1389,15 @@ router.delete(
  * 4. If active request found: Validates journey status
  * 5. Routes to appropriate handler based on status:
  *    a. Status = waiting (1): Routes to handleJourneyStatusOne
- *       - Searches for nearby passengers matching driver's vehicle type
- *       - Finds first non-rejected passenger
- *       - Auto-matches driver with passenger (creates JourneyDecision)
- *       - Updates DriverRequest and PassengerRequest statuses to "requested" (2)
- *       - Sends notification to passenger about driver match
- *       - Returns driver, passenger, decision data with status: requested (2)
+ *       - Searches for nearby shippers matching driver's vehicle type
+ *       - Finds first non-rejected shipper
+ *       - Auto-matches driver with shipper (creates JourneyDecision)
+ *       - Updates DriverRequest and ShipperRequest statuses to "requested" (2)
+ *       - Sends notification to shipper about driver match
+ *       - Returns driver, shipper, decision data with status: requested (2)
  *    b. Status = any other status: Routes to handleExistingJourney
  *       - Fetches JourneyDecision data
- *       - Fetches comprehensive journey data (passenger, journey, decision)
+ *       - Fetches comprehensive journey data (shipper, journey, decision)
  *       - Handles notifications for negative statuses (cancellation, rejection, not selected)
  *       - Returns complete journey data with current status
  *
@@ -1418,44 +1419,44 @@ router.delete(
  *                  ├─→ Step 4: Route by Status
  *                  │   ├─→ Status = waiting (1)
  *                  │   │   └─→ handleJourneyStatusOne()
- *                  │   │       ├─→ Find nearby passengers
- *                  │   │       ├─→ Find first non-rejected passenger
+ *                  │   │       ├─→ Find nearby shippers
+ *                  │   │       ├─→ Find first non-rejected shipper
  *                  │   │       ├─→ [TRANSACTION] Create JourneyDecision
  *                  │   │       ├─→ [TRANSACTION] Update DriverRequest → requested (2)
- *                  │   │       ├─→ [TRANSACTION] Update PassengerRequest → requested (2)
- *                  │   │       ├─→ Send notification to passenger
- *                  │   │       └─→ Return {status: 2, driver, passenger, decision}
+ *                  │   │       ├─→ [TRANSACTION] Update ShipperRequest → requested (2)
+ *                  │   │       ├─→ Send notification to shipper
+ *                  │   │       └─→ Return {status: 2, driver, shipper, decision}
  *                  │   │
  *                  │   └─→ Status = any other (2-14)
  *                  │       └─→ handleExistingJourney()
  *                  │           ├─→ Fetch JourneyDecision
  *                  │           ├─→ Fetch comprehensive journey data
  *                  │           ├─→ Handle cancellation/rejection notifications
- *                  │           └─→ Return {status, driver, passenger, journey, decision}
+ *                  │           └─→ Return {status, driver, shipper, journey, decision}
  *                  │
  *                  └─→ Response: Complete journey status data
  *
  * Database Operations:
  * 1. READ: Fetches active vehicle for driver (VehicleDriver relation)
  *    - Validates driver has active vehicle assignment
- *    - Gets vehicleTypeUniqueId for passenger matching
+ *    - Gets vehicleTypeUniqueId for shipper matching
  * 2. READ: Fetches active driver request (DriverRequest table)
  *    - Gets driver's current request with journeyStatusId
  *    - Includes request location, status, timestamps
- * 3. READ: (Status = waiting only) Finds nearby passengers (PassengerRequest table)
+ * 3. READ: (Status = waiting only) Finds nearby shippers (ShipperRequest table)
  *    - Searches within radius based on driver's location
  *    - Filters by vehicle type compatibility
- *    - Excludes already rejected passengers
- * 4. READ: (Status = waiting only) Validates passenger not previously rejected
- *    - Checks RejectedRequests table to ensure passenger hasn't rejected this driver
+ *    - Excludes already rejected shippers
+ * 4. READ: (Status = waiting only) Validates shipper not previously rejected
+ *    - Checks RejectedRequests table to ensure shipper hasn't rejected this driver
  * 5. ✅ WRITE (Status = waiting only - within transaction):
- *    - Creates JourneyDecision record (links driver and passenger)
+ *    - Creates JourneyDecision record (links driver and shipper)
  *    - Updates DriverRequest status: waiting (1) → requested (2)
- *    - Updates PassengerRequest status: waiting (1) → requested (2)
+ *    - Updates ShipperRequest status: waiting (1) → requested (2)
  *    - All wrapped in single transaction (15 second timeout) for atomicity
  * 6. READ: (Status = other) Fetches JourneyDecision by driverRequestId
  * 7. READ: (Status = other) Fetches comprehensive journey data:
- *    - PassengerRequest data with User details
+ *    - ShipperRequest data with User details
  *    - JourneyDecision data
  *    - Journey data (if journey started)
  *    - DriverRequest data with Vehicle details
@@ -1463,7 +1464,7 @@ router.delete(
  *    - Single table update (no transaction needed)
  *    - Only occurs when JourneyDecision is missing but status > 1 (data inconsistency)
  * 9. WRITE (Status = other, data inconsistency fix): Calls updateJourneyStatus to fix data inconsistency
- *    - May update multiple tables: JourneyDecisions, PassengerRequest, DriverRequest, Journey (if applicable)
+ *    - May update multiple tables: JourneyDecisions, ShipperRequest, DriverRequest, Journey (if applicable)
  *    - updateJourneyStatus automatically wraps in transaction if multiple tables are updated
  *    - Fix: Added await (was missing, causing potential race condition)
  *    - All operations atomic (15 second timeout) when multiple tables updated
@@ -1472,12 +1473,12 @@ router.delete(
  * - ✅ Auto-matching (Status = waiting): Fully wrapped in transaction (lines 2629-2658)
  *   - Creates JourneyDecision record
  *   - Updates DriverRequest status: waiting (1) → requested (2)
- *   - Updates PassengerRequest status: waiting (1) → requested (2)
+ *   - Updates ShipperRequest status: waiting (1) → requested (2)
  *   - All three operations wrapped in single transaction (15 second timeout)
  *   - Either all succeed or all fail (atomic)
- *   - Prevents partial matches (driver matched but passenger not, or vice versa)
+ *   - Prevents partial matches (driver matched but shipper not, or vice versa)
  *   - Automatic rollback on any failure
- *   - Prevents data inconsistency where driver thinks they're matched but passenger doesn't
+ *   - Prevents data inconsistency where driver thinks they're matched but shipper doesn't
  *
  * - ✅ Data consistency fixes (Status = other): Transaction coverage via updateJourneyStatus
  *   - Single table update (DriverRequest only): No transaction needed (line 2694)
@@ -1485,7 +1486,7 @@ router.delete(
  *     - Single table operation, atomic by default
  *   - Multi-table update (via updateJourneyStatus): Automatically wrapped in transaction (line 2737)
  *     - updateJourneyStatus function has built-in transaction logic
- *     - Automatically wraps in transaction if tableCount > 1 (JourneyDecisions, PassengerRequest, DriverRequest, Journey)
+ *     - Automatically wraps in transaction if tableCount > 1 (JourneyDecisions, ShipperRequest, DriverRequest, Journey)
  *     - All operations atomic (15 second timeout) when multiple tables updated
  *     - Either all succeed or all fail (atomic)
  *     - Fix: Added await - was missing, causing potential race condition
@@ -1510,29 +1511,29 @@ router.delete(
  * - status: null
  * - vehicle: { ...vehicle data... }
  *
- * Response (Success - Waiting Status, No Nearby Passengers):
+ * Response (Success - Waiting Status, No Nearby Shippers):
  * - message: "success"
  * - status: 1 (waiting)
  * - uniqueIds: {
  *     driverRequestUniqueId: "...",
- *     passengerRequestUniqueId: null,
+ *     shipperRequestUniqueId: null,
  *     journeyDecisionUniqueId: null
  *   }
  * - driver: { driver: {...}, vehicle: {...} }
- * - passenger: null
+ * - shipper: null
  * - journey: null
  * - decision: null
  *
- * Response (Success - Auto-matched with Passenger):
+ * Response (Success - Auto-matched with Shipper):
  * - message: "success"
  * - status: 2 (requested)
  * - uniqueIds: {
  *     driverRequestUniqueId: "...",
- *     passengerRequestUniqueId: "...",
+ *     shipperRequestUniqueId: "...",
  *     journeyDecisionUniqueId: "..."
  *   }
  * - driver: { driver: {...}, vehicle: {...} }
- * - passenger: { ...passenger request data... }
+ * - shipper: { ...shipper request data... }
  * - journey: null (journey not started yet)
  * - decision: { ...journey decision data... }
  *
@@ -1541,12 +1542,12 @@ router.delete(
  * - status: journeyStatusId (2-14 depending on current state)
  * - uniqueIds: {
  *     driverRequestUniqueId: "...",
- *     passengerRequestUniqueId: "...",
+ *     shipperRequestUniqueId: "...",
  *     journeyDecisionUniqueId: "...",
  *     journeyUniqueId: "..." (if journey started, otherwise null)
  *   }
  * - driver: { driver: {...}, vehicle: {...} }
- * - passenger: { ...passenger request data with user details... }
+ * - shipper: { ...shipper request data with user details... }
  * - journey: { ...journey data... } (if journey started) or null
  * - decision: { ...journey decision data... }
  *
@@ -1556,7 +1557,7 @@ router.delete(
  * - status: null
  * - vehicle: { ...vehicle data... }
  * - driver: null
- * - passenger: null
+ * - shipper: null
  *
  * Response (Error):
  * - message: "error"
@@ -1579,7 +1580,7 @@ router.delete(
  * - Validates driver has active vehicle assignment
  * - Validates driver request exists (if applicable)
  * - Validates journey status is valid
- * - Validates passenger data exists (for existing journeys)
+ * - Validates shipper data exists (for existing journeys)
  *
  * Error Cases:
  * - "No vehicle found for this driver": Driver has no active vehicle in VehicleDriver table
@@ -1588,55 +1589,55 @@ router.delete(
  *
  * Use Cases:
  * 1. Driver opens app → Calls this endpoint → Gets current status
- * 2. Driver waiting for match → Endpoint auto-matches with nearby passenger → Returns status: requested
+ * 2. Driver waiting for match → Endpoint auto-matches with nearby shipper → Returns status: requested
  * 3. Driver in journey → Endpoint returns current journey data with status: journeyStarted
  * 4. Driver completed journey → Endpoint returns completed journey data → Driver can receive payment
- * 5. Passenger cancelled → Endpoint returns cancellation status → Driver can see notification
- * 6. Driver rejected by passenger → Endpoint returns rejection status → Driver can mark as seen
+ * 5. Shipper cancelled → Endpoint returns cancellation status → Driver can see notification
+ * 6. Driver rejected by shipper → Endpoint returns rejection status → Driver can mark as seen
  *
  * Status Flow Examples:
  *
  * Example 1: New Driver Request (Auto-match)
  * 1. Driver creates request → status: waiting (1)
- * 2. Driver calls verifyDriverJourneyStatus → Finds nearby passenger
+ * 2. Driver calls verifyDriverJourneyStatus → Finds nearby shipper
  * 3. System auto-matches → Creates JourneyDecision → Updates statuses
- * 4. Response: status: requested (2), includes passenger and decision data
- * 5. Passenger receives notification about driver match
+ * 4. Response: status: requested (2), includes shipper and decision data
+ * 5. Shipper receives notification about driver match
  *
- * Example 2: Driver Accepted by Passenger
- * 1. Passenger selects driver → status: acceptedByPassenger (4)
- * 2. Driver calls verifyDriverJourneyStatus → Returns status: 4 with passenger data
- * 3. Driver can see passenger details and prepare to pick up
+ * Example 2: Driver Accepted by Shipper
+ * 1. Shipper selects driver → status: acceptedByShipper (4)
+ * 2. Driver calls verifyDriverJourneyStatus → Returns status: 4 with shipper data
+ * 3. Driver can see shipper details and prepare to pick up
  *
  * Example 3: Journey In Progress
  * 1. Driver starts journey → status: journeyStarted (5)
  * 2. Driver calls verifyDriverJourneyStatus → Returns status: 5 with journey data
- * 3. Driver can see journey route, passenger location, etc.
+ * 3. Driver can see journey route, shipper location, etc.
  *
  * Example 4: Journey Completed
  * 1. Driver completes journey → status: journeyCompleted (6)
  * 2. Driver calls verifyDriverJourneyStatus → Returns status: 6 with completed journey data
  * 3. Driver can see payment information and close request
  *
- * Example 5: Passenger Cancelled
- * 1. Passenger cancels request → status: cancelledByPassenger (7)
+ * Example 5: Shipper Cancelled
+ * 1. Shipper cancels request → status: cancelledByShipper (7)
  * 2. Driver calls verifyDriverJourneyStatus → Returns status: 7 with cancellation notification
  * 3. Driver can see cancellation reason and mark as seen
  *
  * Important Logic - Auto-matching (Status = waiting):
  * - Only runs when driver's status is waiting (1)
- * - Searches for nearby passengers within radius
+ * - Searches for nearby shippers within radius
  * - Filters by vehicle type compatibility
- * - Finds first passenger who hasn't rejected this driver
- * - Creates JourneyDecision to link driver and passenger
- * - Updates both DriverRequest and PassengerRequest statuses atomically
- * - Sends notification to passenger about driver match
+ * - Finds first shipper who hasn't rejected this driver
+ * - Creates JourneyDecision to link driver and shipper
+ * - Updates both DriverRequest and ShipperRequest statuses atomically
+ * - Sends notification to shipper about driver match
  * - All database operations wrapped in transaction for data consistency
  *
  * Important Logic - Notification Handling:
  * - Negative statuses (7, 8, 10, 12, 14) trigger notifications:
- *   - cancelledByPassenger (7): Passenger cancelled request
- *   - rejectedByPassenger (8): Passenger rejected driver's offer
+ *   - cancelledByShipper (7): Shipper cancelled request
+ *   - rejectedByShipper (8): Shipper rejected driver's offer
  *   - cancelledByAdmin (10): Admin cancelled request
  *   - cancelledBySystem (12): System automatically cancelled
  *   - notSelectedInBid (14): Driver not selected in bidding
@@ -1657,7 +1658,7 @@ router.delete(
  *
  * Performance Notes:
  * - Multiple database queries for comprehensive data fetching (read-heavy)
- * - Nearby passenger search can be expensive (geographic calculations)
+ * - Nearby shipper search can be expensive (geographic calculations)
  * - JourneyDecision and related data fetched via joins for efficiency
  * - Auto-matching wrapped in transaction but kept short (15 second timeout)
  * - Data consistency fixes use updateJourneyStatus which has optimized transaction logic
@@ -1668,15 +1669,15 @@ router.delete(
  * - Active request check uses indexed query on userUniqueId + journeyStatusId
  *
  * Differences from Other Endpoints:
- * - Unlike /api/driver/request: This endpoint actively searches for passengers and auto-matches
- * - Unlike /api/driver/acceptPassengerRequest: This endpoint handles auto-matching, not manual acceptance
+ * - Unlike /api/driver/request: This endpoint actively searches for shippers and auto-matches
+ * - Unlike /api/driver/acceptShipperRequest: This endpoint handles auto-matching, not manual acceptance
  * - Unlike /api/driver/startJourney: This endpoint doesn't create/start journey, only verifies status
  * - Unlike /api/driver/completeJourney: This endpoint doesn't complete journey, only returns status
  * - This endpoint is called frequently to check current state (polling pattern)
  * - Other endpoints are called for specific actions (accept, start, complete)
  */
 router.get(
-  "/api/driver/verifyDriverJourneyStatus",
+  DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
   verifyTokenOfAxios,
   validator(verifyDriverJourneyStatusSchema, "query"), // Validates query parameters (empty object - no params needed)
   // verifyDriversIdentity, // Commented out - uses token userUniqueId directly
@@ -1684,31 +1685,31 @@ router.get(
 );
 // api/user/getDriverRequest?driverUniqueId=uuidv4&target=allOrSingleDriverRequests
 router.get(
-  "/api/user/getDriverRequest",
+  DRIVER_REQUEST_ENDPOINTS.GET_DRIVER_REQUEST,
   verifyTokenOfAxios,
   getDriverRequestController,
 );
 /**
  * Driver Send Updated Location Endpoint
  *
- * Purpose: Allows a driver to send their current location to the passenger/shipper in real-time.
+ * Purpose: Allows a driver to send their current location to the shipper/shipper in real-time.
  * This endpoint stores the location in the database for historical tracking and sends a WebSocket
- * notification to the passenger. This enables real-time location tracking of goods delivery,
+ * notification to the shipper. This enables real-time location tracking of goods delivery,
  * allowing shippers to view where their goods are, where they are going, and estimate delivery time.
  * This builds trust between customers and shippers by providing transparency in the delivery process.
  *
  * Context & Use Case:
- * - Driver is actively transporting goods for a passenger/shipper
+ * - Driver is actively transporting goods for a shipper/shipper
  * - Driver's location changes as they move from origin to destination
- * - Location updates are sent periodically to keep passenger informed
+ * - Location updates are sent periodically to keep shipper informed
  * - Location is stored in JourneyRoutePoints table for historical tracking and audit
- * - Passenger can view real-time location updates via WebSocket connection
+ * - Shipper can view real-time location updates via WebSocket connection
  * - Historical location data can be used for route analysis, delivery time estimation, and trust building
  *
  * When to Use:
- * - Journey status: acceptedByDriver (3), acceptedByPassenger (4), or journeyStarted (5)
+ * - Journey status: acceptedByDriver (3), acceptedByShipper (4), or journeyStarted (5)
  * - Driver is actively moving with goods
- * - Driver wants to update passenger about current location
+ * - Driver wants to update shipper about current location
  * - For GPS tracking during active journey
  *
  * How it works:
@@ -1716,9 +1717,9 @@ router.get(
  * 2. System validates driver owns the journey (security check)
  * 3. System validates journey is in active status (can only send location for active journeys)
  * 4. System validates location coordinates are within valid ranges
- * 5. System fetches passenger phone number from journey data (if not provided)
+ * 5. System fetches shipper phone number from journey data (if not provided)
  * 6. System stores location in JourneyRoutePoints table (for historical tracking)
- * 7. System sends WebSocket notification to passenger with updated location
+ * 7. System sends WebSocket notification to shipper with updated location
  * 8. Returns success response with location data and timestamp
  *
  * Flow Diagram:
@@ -1738,9 +1739,9 @@ router.get(
  *                  │   └─→ If not owned: Return error
  *                  │
  *                  ├─→ Step 4: Validate Journey Status
- *                  │   └─→ Must be active status: acceptedByDriver (3), acceptedByPassenger (4), or journeyStarted (5)
+ *                  │   └─→ Must be active status: acceptedByDriver (3), acceptedByShipper (4), or journeyStarted (5)
  *                  │
- *                  ├─→ Step 5: Fetch Passenger Phone Number
+ *                  ├─→ Step 5: Fetch Shipper Phone Number
  *                  │   └─→ If not provided: Fetch from journey data via fetchJourneyNotificationData
  *                  │
  *                  ├─→ Step 6: Store Location (Single Table Insert)
@@ -1752,7 +1753,7 @@ router.get(
  *                  │       └─→ timestamp: Current timestamp (auto-set)
  *                  │
  *                  ├─→ Step 7: Send Notification
- *                  │   └─→ WebSocket notification to passenger (via createJourneyRoutePoint)
+ *                  │   └─→ WebSocket notification to shipper (via createJourneyRoutePoint)
  *                  │       └─→ Message type: update_drivers_location_to_shipper
  *                  │
  *                  └─→ Response: Success with location data
@@ -1764,9 +1765,9 @@ router.get(
  * 2. READ: Fetches DriverRequest by driverRequestId and userUniqueId
  *    - Validates driver owns this journey request (security check)
  *    - Gets journeyStatusId for status validation
- * 3. READ (if passengerPhone not provided): Fetches passenger phone number
- *    - Uses fetchJourneyNotificationData to get passenger data
- *    - Extracts phoneNumber from passenger request data
+ * 3. READ (if shipperPhone not provided): Fetches shipper phone number
+ *    - Uses fetchJourneyNotificationData to get shipper data
+ *    - Extracts phoneNumber from shipper request data
  * 4. ✅ WRITE: Stores location in JourneyRoutePoints table
  *    - Single table insert (no transaction needed - atomic operation)
  *    - Creates JourneyRoutePoint record with:
@@ -1777,7 +1778,7 @@ router.get(
  *      - timestamp (current timestamp, auto-set by database)
  *    - Foreign key constraint: journeyDecisionUniqueId references JourneyDecisions
  *    - ON DELETE CASCADE: Route points deleted if journey decision is deleted
- * 5. NOTIFICATION: Sends WebSocket notification to passenger
+ * 5. NOTIFICATION: Sends WebSocket notification to shipper
  *    - Executed by createJourneyRoutePoint function
  *    - Message type: update_drivers_location_to_shipper
  *    - Includes location data and timestamp
@@ -1793,7 +1794,7 @@ router.get(
  * - ⚠️ Notifications: Sent outside transaction (non-blocking)
  *   - WebSocket notification sent after successful location storage
  *   - Notification failure doesn't prevent location from being stored
- *   - Ensures location data is preserved even if passenger is offline
+ *   - Ensures location data is preserved even if shipper is offline
  *
  * Request Body:
  * - journeyDecisionUniqueId: Unique ID of the journey decision (required, UUID format)
@@ -1805,7 +1806,7 @@ router.get(
  *   - Must be valid geographic coordinate
  * - userUniqueId: Automatically set from authentication token (set by controller)
  *   - Used for ownership validation
- * - passengerPhone: Passenger's phone number (optional)
+ * - shipperPhone: Shipper's phone number (optional)
  *   - If not provided, fetched from journey data
  *   - Used for WebSocket notification delivery
  * - additionalData: Any additional data to include in notification (optional, object)
@@ -1819,7 +1820,7 @@ router.get(
  *
  * Response (Success):
  * - message: "success"
- * - data: "Location updated and sent to passenger successfully"
+ * - data: "Location updated and sent to shipper successfully"
  * - journeyRoutePointsUniqueId: UUID of the stored route point record
  * - latitude: Stored latitude value
  * - longitude: Stored longitude value
@@ -1837,8 +1838,8 @@ router.get(
  * - error: "Journey decision not found" (if journeyDecisionUniqueId invalid)
  * - error: "Driver request not found or you don't have permission to update location for this journey" (if driver doesn't own journey)
  * - error: "Location updates can only be sent for active journeys (accepted or started)" (if journey status invalid)
- * - error: "Unable to fetch passenger information for location update" (if passenger data unavailable)
- * - error: "Passenger phone number not found" (if passenger phone number unavailable)
+ * - error: "Unable to fetch shipper information for location update" (if shipper data unavailable)
+ * - error: "Shipper phone number not found" (if shipper phone number unavailable)
  * - error: "Failed to store location" (if database insert fails)
  * - error: "Unable to send updated location" (general processing error)
  *
@@ -1854,7 +1855,7 @@ router.get(
  * - Only drivers can send location updates
  * - Driver must own the journey being updated (userUniqueId must match)
  * - Driver must be authenticated and verified
- * - Journey must be in active status (acceptedByDriver, acceptedByPassenger, or journeyStarted)
+ * - Journey must be in active status (acceptedByDriver, acceptedByShipper, or journeyStarted)
  *
  * Validation:
  * - Validates journeyDecisionUniqueId is provided and valid UUID
@@ -1864,7 +1865,7 @@ router.get(
  * - Validates journey decision exists in database
  * - Validates driver owns the journey request
  * - Validates journey is in active status
- * - Validates passenger phone number is available (fetched if not provided)
+ * - Validates shipper phone number is available (fetched if not provided)
  * - Validates location coordinates are valid geographic coordinates
  *
  * Error Cases:
@@ -1876,15 +1877,15 @@ router.get(
  * - "Journey decision not found": journeyDecisionUniqueId doesn't exist in database
  * - "Driver request not found or you don't have permission": Driver doesn't own this journey
  * - "Location updates can only be sent for active journeys": Journey is not in active status
- * - "Unable to fetch passenger information": Passenger data fetch failed
- * - "Passenger phone number not found": Passenger phone number unavailable
+ * - "Unable to fetch shipper information": Shipper data fetch failed
+ * - "Shipper phone number not found": Shipper phone number unavailable
  * - "Failed to store location": Database insert failed
  * - "Unable to send updated location": General processing error
  *
  * Use Case:
  * Driver starts journey → Driver drives with goods → Driver periodically sends location updates
- * → System stores location in database → System sends WebSocket notification to passenger
- * → Passenger receives real-time location updates → Passenger can track goods delivery
+ * → System stores location in database → System sends WebSocket notification to shipper
+ * → Shipper receives real-time location updates → Shipper can track goods delivery
  * → Historical location data available for route analysis and trust building
  *
  * Real-World Example:
@@ -1892,17 +1893,17 @@ router.get(
  * 2. Driver drives to destination, GPS updates location every 30 seconds
  * 3. Driver app calls this endpoint with current coordinates
  * 4. System stores location in JourneyRoutePoints table
- * 5. System sends WebSocket notification to passenger's app
- * 6. Passenger sees driver's location on map in real-time
- * 7. Passenger can estimate delivery time based on current location and route
+ * 5. System sends WebSocket notification to shipper's app
+ * 6. Shipper sees driver's location on map in real-time
+ * 7. Shipper can estimate delivery time based on current location and route
  * 8. Historical route data stored for future analysis and trust verification
  *
  * Important Logic:
  * - Location is stored BEFORE notification is sent (data preservation)
- * - Notification is non-blocking (location stored even if passenger is offline)
+ * - Notification is non-blocking (location stored even if shipper is offline)
  * - Location updates can only be sent for active journeys (prevents updates for completed/cancelled journeys)
  * - Driver ownership is validated twice (in JourneyDecision and DriverRequest)
- * - Passenger phone number is fetched from journey data if not provided (ensures correct recipient)
+ * - Shipper phone number is fetched from journey data if not provided (ensures correct recipient)
  * - Coordinate validation prevents invalid GPS data from being stored
  *
  * Important Notes:
@@ -1919,7 +1920,7 @@ router.get(
  *
  * Performance Notes:
  * - Single database insert (JourneyRoutePoints table)
- * - Multiple read queries for validation (JourneyDecision, DriverRequest, Passenger data)
+ * - Multiple read queries for validation (JourneyDecision, DriverRequest, Shipper data)
  * - Geographic coordinate validation is lightweight (number comparison)
  * - WebSocket notification is non-blocking (doesn't delay response)
  * - Location storage is optimized with indexed journeyDecisionUniqueId
@@ -1936,7 +1937,7 @@ router.get(
  * - ⚠️ Notifications: Sent after successful storage (non-blocking)
  *   - WebSocket notification sent by createJourneyRoutePoint
  *   - Notification failure doesn't affect location storage
- *   - Location data is preserved even if passenger is offline
+ *   - Location data is preserved even if shipper is offline
  *   - Ensures data integrity over notification delivery
  *
  * Historical Tracking:
@@ -1965,7 +1966,7 @@ router.get(
  * - Other endpoints are called for specific journey actions (start, complete, accept)
  */
 router.put(
-  "/api/driver/sendUpdatedLocation",
+  DRIVER_REQUEST_ENDPOINTS.SEND_UPDATED_LOCATION,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(sendUpdatedLocationSchema), // Validates request body: journeyDecisionUniqueId, latitude, longitude
@@ -1976,14 +1977,14 @@ router.put(
  * Driver Get Cancellation Notifications Endpoint
  *
  * Purpose: Retrieves cancellation notifications for a driver. This endpoint fetches all journey requests
- * that were cancelled by passengers or admins, allowing drivers to view which requests were cancelled,
+ * that were cancelled by shippers or admins, allowing drivers to view which requests were cancelled,
  * when they were cancelled, and whether they have been seen by the driver. This helps drivers track
  * cancellations and manage their notification visibility.
  *
  * Context & Use Case:
  * - Driver has received cancellation notifications for their journey requests
  * - Cancellations can occur from two sources:
- *   - cancelledByPassenger (7): Passenger cancelled the request after driver was matched
+ *   - cancelledByShipper (7): Shipper cancelled the request after driver was matched
  *   - cancelledByAdmin (10): Admin cancelled the request (typically for policy violations or disputes)
  * - Driver wants to view these cancellations and filter by seen status
  * - Driver can mark cancellations as seen using separate endpoint (/api/driver/markNegativeStatusAsSeen)
@@ -1998,11 +1999,11 @@ router.put(
  * 1. Driver calls endpoint with optional seenStatus filter
  * 2. System extracts userUniqueId from authentication token
  * 3. System queries DriverRequest table for driver's requests
- * 4. System filters by journeyStatusId IN (cancelledByPassenger, cancelledByAdmin)
- * 5. System optionally filters by isCancellationByPassengerSeenByDriver if seenStatus provided
+ * 4. System filters by journeyStatusId IN (cancelledByShipper, cancelledByAdmin)
+ * 5. System optionally filters by isCancellationByShipperSeenByDriver if seenStatus provided
  * 6. System joins JourneyDecisions to get journey decision data
- * 7. System joins PassengerRequest to get passenger request details
- * 8. System joins Users (driver and passenger) to get user information
+ * 7. System joins ShipperRequest to get shipper request details
+ * 8. System joins Users (driver and shipper) to get user information
  * 9. System enriches data with Journey information if journey exists
  * 10. System formats and returns structured cancellation data
  *
@@ -2019,21 +2020,21 @@ router.put(
  *                  │
  *                  ├─→ Step 3: Build WHERE Conditions
  *                  │   ├─→ DriverRequest.userUniqueId = ? (driver's requests only)
- *                  │   ├─→ DriverRequest.journeyStatusId IN (cancelledByPassenger, cancelledByAdmin)
- *                  │   └─→ [Optional] DriverRequest.isCancellationByPassengerSeenByDriver = ?
+ *                  │   ├─→ DriverRequest.journeyStatusId IN (cancelledByShipper, cancelledByAdmin)
+ *                  │   └─→ [Optional] DriverRequest.isCancellationByShipperSeenByDriver = ?
  *                  │
  *                  ├─→ Step 4: Execute SQL Query with JOINs
  *                  │   ├─→ INNER JOIN Users (DriverUser) - Driver user data
  *                  │   ├─→ INNER JOIN JourneyDecisions - Journey decision data
- *                  │   ├─→ INNER JOIN PassengerRequest - Passenger request data
- *                  │   └─→ INNER JOIN Users (PassengerUser) - Passenger user data
+ *                  │   ├─→ INNER JOIN ShipperRequest - Shipper request data
+ *                  │   └─→ INNER JOIN Users (ShipperUser) - Shipper user data
  *                  │
  *                  ├─→ Step 5: Enrich Data with Journey Information
  *                  │   └─→ For each result, fetch Journey data if journeyDecisionUniqueId exists
  *                  │       └─→ LEFT JOIN Journey table (optional - journey may not exist)
  *                  │
  *                  ├─→ Step 6: Format Response Data
- *                  │   └─→ Structure data into driverRequest, driver, passenger, passengerRequest, journeyDecision, journey
+ *                  │   └─→ Structure data into driverRequest, driver, shipper, shipperRequest, journeyDecision, journey
  *                  │
  *                  └─→ Response: Formatted cancellation notifications array
  *
@@ -2043,13 +2044,13 @@ router.put(
  *    - INNER JOIN Users (DriverUser) - Get driver user information
  *    - INNER JOIN JourneyDecisions - Link to journey decisions
  *    - INNER JOIN JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
- *    - INNER JOIN PassengerRequest - Get passenger request details
- *    - INNER JOIN JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
- *    - INNER JOIN Users (PassengerUser) - Get passenger user information
+ *    - INNER JOIN ShipperRequest - Get shipper request details
+ *    - INNER JOIN JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+ *    - INNER JOIN Users (ShipperUser) - Get shipper user information
  *    - WHERE conditions:
  *      - DriverRequest.userUniqueId = ? (driver's requests only)
- *      - DriverRequest.journeyStatusId IN (cancelledByPassenger (7), cancelledByAdmin (10))
- *      - [Optional] DriverRequest.isCancellationByPassengerSeenByDriver = ? (filter by seen status)
+ *      - DriverRequest.journeyStatusId IN (cancelledByShipper (7), cancelledByAdmin (10))
+ *      - [Optional] DriverRequest.isCancellationByShipperSeenByDriver = ? (filter by seen status)
  *    - ORDER BY DriverRequest.driverRequestCreatedAt DESC (most recent first)
  *    - No LIMIT/OFFSET - Returns all matching records (consider pagination for performance)
  *
@@ -2076,9 +2077,9 @@ router.put(
  *   - Consider adding indexes on:
  *     - DriverRequest.userUniqueId
  *     - DriverRequest.journeyStatusId
- *     - DriverRequest.isCancellationByPassengerSeenByDriver
+ *     - DriverRequest.isCancellationByShipperSeenByDriver
  *     - JourneyDecisions.driverRequestId
- *     - JourneyDecisions.passengerRequestId
+ *     - JourneyDecisions.shipperRequestId
  *
  * Request Query Parameters:
  * - seenStatus (optional): Filter cancellation notifications by seen status
@@ -2087,7 +2088,7 @@ router.put(
  *     - "seen by driver": Only returns cancellations driver has already seen
  *     - "no need to see it": Only returns cancellations marked as "no need to see"
  *   - If not provided: Returns all cancellations regardless of seen status
- *   - Used to filter: DriverRequest.isCancellationByPassengerSeenByDriver = ?
+ *   - Used to filter: DriverRequest.isCancellationByShipperSeenByDriver = ?
  *
  * Request Headers:
  * - Authorization: Bearer token (required)
@@ -2112,7 +2113,7 @@ router.put(
  *         originLongitude: number,
  *         originPlace: string,
  *         driverRequestCreatedAt: datetime,
- *         isCancellationByPassengerSeenByDriver: string ("not seen by driver yet" | "seen by driver" | "no need to see it")
+ *         isCancellationByShipperSeenByDriver: string ("not seen by driver yet" | "seen by driver" | "no need to see it")
  *       },
  *       driver: {
  *         userUniqueId: string (UUID),
@@ -2120,15 +2121,15 @@ router.put(
  *         phoneNumber: string,
  *         email: string
  *       },
- *       passenger: {
+ *       shipper: {
  *         userUniqueId: string (UUID),
  *         fullName: string,
  *         phoneNumber: string,
  *         email: string
  *       },
- *       passengerRequest: {
- *         passengerRequestId: number,
- *         passengerRequestUniqueId: string (UUID),
+ *       shipperRequest: {
+ *         shipperRequestId: number,
+ *         shipperRequestUniqueId: string (UUID),
  *         vehicleTypeUniqueId: string (UUID),
  *         originLatitude: number,
  *         originLongitude: number,
@@ -2208,26 +2209,26 @@ router.put(
  *
  * Status Flow Examples:
  *
- * Example 1: Passenger Cancelled Request
- * 1. Driver matched with passenger → JourneyDecision created, status: requested (2)
- * 2. Passenger cancels request → Status updated to cancelledByPassenger (7)
- * 3. isCancellationByPassengerSeenByDriver set to "not seen by driver yet"
+ * Example 1: Shipper Cancelled Request
+ * 1. Driver matched with shipper → JourneyDecision created, status: requested (2)
+ * 2. Shipper cancels request → Status updated to cancelledByShipper (7)
+ * 3. isCancellationByShipperSeenByDriver set to "not seen by driver yet"
  * 4. Driver calls getCancellationNotifications → Returns cancellation notification
- * 5. Driver marks as seen → isCancellationByPassengerSeenByDriver updated to "seen by driver"
+ * 5. Driver marks as seen → isCancellationByShipperSeenByDriver updated to "seen by driver"
  * 6. Driver calls getCancellationNotifications with seenStatus="seen by driver" → Returns cancellation
  *
  * Example 2: Admin Cancelled Request
- * 1. Driver matched with passenger → JourneyDecision created, status: requested (2)
+ * 1. Driver matched with shipper → JourneyDecision created, status: requested (2)
  * 2. Admin cancels request (policy violation) → Status updated to cancelledByAdmin (10)
- * 3. isCancellationByPassengerSeenByDriver set to "not seen by driver yet"
+ * 3. isCancellationByShipperSeenByDriver set to "not seen by driver yet"
  * 4. Driver calls getCancellationNotifications → Returns cancellation notification
  * 5. Driver can see admin cancellation in results
  *
  * Important Logic - Filtering:
- * - Filters by journeyStatusId IN (cancelledByPassenger (7), cancelledByAdmin (10))
- *   - cancelledByPassenger: Passenger cancelled the request after driver was matched
+ * - Filters by journeyStatusId IN (cancelledByShipper (7), cancelledByAdmin (10))
+ *   - cancelledByShipper: Shipper cancelled the request after driver was matched
  *   - cancelledByAdmin: Admin cancelled the request (typically for policy violations)
- * - Filters by isCancellationByPassengerSeenByDriver if seenStatus provided
+ * - Filters by isCancellationByShipperSeenByDriver if seenStatus provided
  *   - "not seen by driver yet": Driver hasn't seen this cancellation yet
  *   - "seen by driver": Driver has already seen this cancellation
  *   - "no need to see it": Cancellation marked as "no need to see" (edge case)
@@ -2253,7 +2254,7 @@ router.put(
  * - Filters by driver's userUniqueId to ensure data isolation
  *
  * Performance Notes:
- * - Multiple INNER JOINs (4 tables): DriverRequest, Users (DriverUser), JourneyDecisions, PassengerRequest, Users (PassengerUser)
+ * - Multiple INNER JOINs (4 tables): DriverRequest, Users (DriverUser), JourneyDecisions, ShipperRequest, Users (ShipperUser)
  * - No pagination: Returns all matching records (could be many if driver has many cancellations)
  * - N+1 query pattern: For each result, additional query to fetch Journey data
  *   - Consider optimizing with LEFT JOIN Journey in main query
@@ -2262,16 +2263,16 @@ router.put(
  * - Query performance depends on indexes:
  *   - DriverRequest.userUniqueId (for filtering driver's requests)
  *   - DriverRequest.journeyStatusId (for filtering by cancellation status)
- *   - DriverRequest.isCancellationByPassengerSeenByDriver (for filtering by seen status)
+ *   - DriverRequest.isCancellationByShipperSeenByDriver (for filtering by seen status)
  *   - JourneyDecisions.driverRequestId (for JOIN)
- *   - JourneyDecisions.passengerRequestId (for JOIN)
- * - Consider adding composite index: (userUniqueId, journeyStatusId, isCancellationByPassengerSeenByDriver)
+ *   - JourneyDecisions.shipperRequestId (for JOIN)
+ * - Consider adding composite index: (userUniqueId, journeyStatusId, isCancellationByShipperSeenByDriver)
  * - Response size: Could be large if driver has many cancellations (consider pagination)
  * - Query execution time: Depends on number of cancellations and indexes
  *
  * Differences from Other Endpoints:
  * - Unlike /api/driver/verifyDriverJourneyStatus: This endpoint focuses on cancellations only, not all statuses
- * - Unlike /api/passenger/getCancellationNotifications: This endpoint is for drivers, filters by cancelledByPassenger/cancelledByAdmin
+ * - Unlike /api/shipper/getCancellationNotifications: This endpoint is for drivers, filters by cancelledByShipper/cancelledByAdmin
  * - Unlike /api/driver/markNegativeStatusAsSeen: This endpoint only reads data, doesn't update seen status
  * - This endpoint is specifically for cancellation notifications
  * - Other endpoints handle different notification types (rejection, not selected, etc.)
@@ -2293,7 +2294,7 @@ router.put(
  *   - Read operations don't require transaction isolation levels
  */
 router.get(
-  "/api/driver/getCancellationNotifications",
+  DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(getCancellationNotificationsQuerySchema, "query"), // Validates seenStatus query parameter
@@ -2316,16 +2317,16 @@ router.get(
  * - After marking as seen, the notification will no longer appear in "unseen" filters
  *
  * Supported Negative Statuses:
- * 1. notSelectedInBid (14): Driver was not selected by passenger in bidding process
+ * 1. notSelectedInBid (14): Driver was not selected by shipper in bidding process
  *    - Updates: JourneyDecisions.isNotSelectedSeenByDriver → "seen by driver"
- * 2. rejectedByPassenger (8): Passenger rejected driver's offer
- *    - Updates: JourneyDecisions.isRejectionByPassengerSeenByDriver → "seen by driver"
- * 3. cancelledByPassenger (7): Passenger cancelled the request after driver was matched
- *    - Updates: DriverRequest.isCancellationByPassengerSeenByDriver → "seen by driver"
+ * 2. rejectedByShipper (8): Shipper rejected driver's offer
+ *    - Updates: JourneyDecisions.isRejectionByShipperSeenByDriver → "seen by driver"
+ * 3. cancelledByShipper (7): Shipper cancelled the request after driver was matched
+ *    - Updates: DriverRequest.isCancellationByShipperSeenByDriver → "seen by driver"
  * 4. cancelledByAdmin (10): Admin cancelled the request (policy violation, dispute, etc.)
- *    - Updates: DriverRequest.isCancellationByPassengerSeenByDriver → "seen by driver"
+ *    - Updates: DriverRequest.isCancellationByShipperSeenByDriver → "seen by driver"
  * 5. cancelledBySystem (12): System automatically cancelled the request
- *    - Updates: DriverRequest.isCancellationByPassengerSeenByDriver → "seen by driver"
+ *    - Updates: DriverRequest.isCancellationByShipperSeenByDriver → "seen by driver"
  *
  * When to Use:
  * - Driver wants to clear notification badge for a negative status
@@ -2342,8 +2343,8 @@ router.get(
  * 6. System validates current status is a negative status (one of: 7, 8, 10, 12, 14)
  * 7. System determines which table and field to update based on status:
  *    - Status 14 (notSelectedInBid): JourneyDecisions.isNotSelectedSeenByDriver
- *    - Status 8 (rejectedByPassenger): JourneyDecisions.isRejectionByPassengerSeenByDriver
- *    - Status 7, 10, 12 (cancellations): DriverRequest.isCancellationByPassengerSeenByDriver
+ *    - Status 8 (rejectedByShipper): JourneyDecisions.isRejectionByShipperSeenByDriver
+ *    - Status 7, 10, 12 (cancellations): DriverRequest.isCancellationByShipperSeenByDriver
  * 8. For JourneyDecisions updates:
  *    - Fetches JourneyDecisions record by driverRequestId
  *    - Validates JourneyDecision exists
@@ -2377,8 +2378,8 @@ router.get(
  *                  │
  *                  ├─→ Step 5: Determine Update Target
  *                  │   ├─→ Status 14 (notSelectedInBid) → JourneyDecisions.isNotSelectedSeenByDriver
- *                  │   ├─→ Status 8 (rejectedByPassenger) → JourneyDecisions.isRejectionByPassengerSeenByDriver
- *                  │   └─→ Status 7, 10, 12 (cancellations) → DriverRequest.isCancellationByPassengerSeenByDriver
+ *                  │   ├─→ Status 8 (rejectedByShipper) → JourneyDecisions.isRejectionByShipperSeenByDriver
+ *                  │   └─→ Status 7, 10, 12 (cancellations) → DriverRequest.isCancellationByShipperSeenByDriver
  *                  │
  *                  ├─→ Step 6: Route to Update Path
  *                  │   ├─→ If JourneyDecisions update:
@@ -2413,19 +2414,19 @@ router.get(
  *    - Uses: updateJourneyDecision service function
  *    - Note: updateJourneyDecision validates status is notSelectedInBid before updating
  *
- * 4. ✅ WRITE (Status 8 - rejectedByPassenger): Updates JourneyDecisions table
+ * 4. ✅ WRITE (Status 8 - rejectedByShipper): Updates JourneyDecisions table
  *    - Table: JourneyDecisions
- *    - Field: isRejectionByPassengerSeenByDriver
+ *    - Field: isRejectionByShipperSeenByDriver
  *    - New Value: "seen by driver"
  *    - Conditions: journeyDecisionUniqueId (from JourneyDecisions record)
  *    - Uses: updateJourneyDecision service function
  *    - Note: Status validation performed in markNegativeStatusAsSeenByDriver (line 2580)
- *    - Note: updateJourneyDecision doesn't validate rejectedByPassenger status (only validates notSelectedInBid)
+ *    - Note: updateJourneyDecision doesn't validate rejectedByShipper status (only validates notSelectedInBid)
  *    - This is acceptable because status validation is done before calling updateJourneyDecision
  *
  * 5. ✅ WRITE (Status 7, 10, 12 - cancellations): Updates DriverRequest table
  *    - Table: DriverRequest
- *    - Field: isCancellationByPassengerSeenByDriver
+ *    - Field: isCancellationByShipperSeenByDriver
  *    - New Value: "seen by driver"
  *    - Conditions: driverRequestUniqueId AND userUniqueId (double safeguard)
  *    - Uses: updateData directly
@@ -2469,8 +2470,8 @@ router.get(
  * - data: "{statusName} notification marked as seen"
  *   - Examples:
  *     - "not selected in bid notification marked as seen"
- *     - "rejected by passenger notification marked as seen"
- *     - "cancelled by passenger notification marked as seen"
+ *     - "rejected by shipper notification marked as seen"
+ *     - "cancelled by shipper notification marked as seen"
  *     - "cancelled by admin notification marked as seen"
  *     - "cancelled by system notification marked as seen"
  *
@@ -2542,17 +2543,17 @@ router.get(
  * Status Flow Examples:
  *
  * Example 1: Mark Cancellation as Seen
- * 1. Passenger cancels request → Status: cancelledByPassenger (7)
- * 2. isCancellationByPassengerSeenByDriver set to "not seen by driver yet"
+ * 1. Shipper cancels request → Status: cancelledByShipper (7)
+ * 2. isCancellationByShipperSeenByDriver set to "not seen by driver yet"
  * 3. Driver receives notification → Badge shows "1 new cancellation"
  * 4. Driver views cancellation → Calls markNegativeStatusAsSeen
  * 5. System validates driver owns request and status is 7
- * 6. System updates DriverRequest.isCancellationByPassengerSeenByDriver → "seen by driver"
- * 7. Response: "cancelled by passenger notification marked as seen"
+ * 6. System updates DriverRequest.isCancellationByShipperSeenByDriver → "seen by driver"
+ * 7. Response: "cancelled by shipper notification marked as seen"
  * 8. Badge count decreases → Notification no longer appears in "unseen" filter
  *
  * Example 2: Mark Not Selected as Seen
- * 1. Passenger selects different driver → Status: notSelectedInBid (14)
+ * 1. Shipper selects different driver → Status: notSelectedInBid (14)
  * 2. JourneyDecisions.isNotSelectedSeenByDriver set to "not seen by driver yet"
  * 3. Driver receives notification → Badge shows "1 new notification"
  * 4. Driver views notification → Calls markNegativeStatusAsSeen
@@ -2563,14 +2564,14 @@ router.get(
  * 9. Notification no longer appears in "unseen" filter
  *
  * Example 3: Mark Rejection as Seen
- * 1. Passenger rejects driver's offer → Status: rejectedByPassenger (8)
- * 2. JourneyDecisions.isRejectionByPassengerSeenByDriver set to "not seen by driver yet"
+ * 1. Shipper rejects driver's offer → Status: rejectedByShipper (8)
+ * 2. JourneyDecisions.isRejectionByShipperSeenByDriver set to "not seen by driver yet"
  * 3. Driver receives notification → Badge shows "1 new rejection"
  * 4. Driver views rejection → Calls markNegativeStatusAsSeen
  * 5. System validates driver owns request and status is 8
  * 6. System fetches JourneyDecisions → Validates status matches
- * 7. System updates JourneyDecisions.isRejectionByPassengerSeenByDriver → "seen by driver"
- * 8. Response: "rejected by passenger notification marked as seen"
+ * 7. System updates JourneyDecisions.isRejectionByShipperSeenByDriver → "seen by driver"
+ * 8. Response: "rejected by shipper notification marked as seen"
  *
  * Important Logic - Status Detection:
  * - Automatically detects current negative status from DriverRequest.journeyStatusId
@@ -2579,12 +2580,12 @@ router.get(
  * - Validates status is negative before proceeding (prevents marking non-negative statuses)
  *
  * Important Logic - Table Selection:
- * - notSelectedInBid (14) and rejectedByPassenger (8) → JourneyDecisions table
- *   - These statuses are stored at the JourneyDecision level (multiple drivers per passenger request)
+ * - notSelectedInBid (14) and rejectedByShipper (8) → JourneyDecisions table
+ *   - These statuses are stored at the JourneyDecision level (multiple drivers per shipper request)
  *   - Each driver has their own JourneyDecision record
- * - cancelledByPassenger (7), cancelledByAdmin (10), cancelledBySystem (12) → DriverRequest table
- *   - These statuses are stored at the DriverRequest level (affects all drivers for that passenger request)
- *   - Single cancellation affects all drivers for that passenger request
+ * - cancelledByShipper (7), cancelledByAdmin (10), cancelledBySystem (12) → DriverRequest table
+ *   - These statuses are stored at the DriverRequest level (affects all drivers for that shipper request)
+ *   - Single cancellation affects all drivers for that shipper request
  *
  * Important Logic - Status Validation:
  * - For JourneyDecisions updates: Validates JourneyDecision status matches DriverRequest status
@@ -2640,9 +2641,9 @@ router.get(
  *    - Recommended: Add journeyStatusId to update conditions (e.g., journeyStatusId IN (7, 10, 12))
  *    - Impact: Low (initial validation + idempotent operation mitigate risk)
  *
- * 3. ⚠️ updateJourneyDecision Validation: Only validates notSelectedInBid, not rejectedByPassenger
+ * 3. ⚠️ updateJourneyDecision Validation: Only validates notSelectedInBid, not rejectedByShipper
  *    - Current: updateJourneyDecision validates isNotSelectedSeenByDriver → checks notSelectedInBid status
- *    - Current: updateJourneyDecision doesn't validate isRejectionByPassengerSeenByDriver
+ *    - Current: updateJourneyDecision doesn't validate isRejectionByShipperSeenByDriver
  *    - Mitigation: Status validation performed before calling updateJourneyDecision (line 2580)
  *    - Impact: Low (status validation in calling function is sufficient)
  *
@@ -2656,7 +2657,7 @@ router.get(
  *   - Recommended: Add journeyStatusId to DriverRequest update conditions for atomic status check (alternative to transaction)
  */
 router.put(
-  "/api/driver/markNegativeStatusAsSeen",
+  DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
   verifyTokenOfAxios,
   verifyDriversIdentity,
   validator(markNegativeStatusAsSeenSchema), // Validates driverRequestUniqueId (UUID format, required)

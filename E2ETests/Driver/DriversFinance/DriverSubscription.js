@@ -1,0 +1,168 @@
+const axios = require("axios");
+const { usersData, backendURL, listOfPlanPricing } = require("../../constants");
+const { getDriversAccountData } = require("../RequirementOfDriver");
+const { authConfig } = require("../../Utils");
+
+const resolveDriverUniqueId = async ({ userType = "driver" } = {}) => {
+  const userData = usersData[userType];
+  if (!userData) {
+    throw new Error(`Missing usersData for ${userType}`);
+  }
+
+  if (userData.accountData?.userData?.userUniqueId) {
+    return userData.accountData.userData.userUniqueId;
+  }
+
+  if (!userData.token) {
+    throw new Error(`Missing token for ${userType}`);
+  }
+
+  const accountData = await getDriversAccountData({ token: userData.token });
+  if (!accountData?.userData?.userUniqueId) {
+    throw new Error("Unable to resolve driverUniqueId from account data");
+  }
+
+  return accountData.userData.userUniqueId;
+};
+
+const createDriverSubscription = async ({
+  driverUniqueId,
+  subscriptionPlanPricingUniqueId,
+  userType = "driver",
+} = {}) => {
+  try {
+    const token = usersData[userType]?.token;
+    if (!token) {
+      throw new Error("Driver token is required to create a subscription.");
+    }
+    if (!driverUniqueId) {
+      throw new Error("driverUniqueId is required to create a subscription.");
+    }
+    if (!subscriptionPlanPricingUniqueId) {
+      throw new Error(
+        "subscriptionPlanPricingUniqueId is required to create a subscription.",
+      );
+    }
+
+    const res = await axios.post(
+      `${backendURL}/api/finance/userSubscription/${driverUniqueId}`,
+      { subscriptionPlanPricingUniqueId },
+      authConfig(token),
+    );
+    console.log(
+      "✅ Created driver subscription",
+      res.data?.data?.userSubscriptionUniqueId,
+    );
+    return res.data;
+  } catch {
+    return {
+      message: "error",
+      error: "@createDriverSubscription unable to create subscriptions.",
+    };
+  }
+};
+
+const getDriverSubscriptions = async ({
+  userType = "driver",
+  query = { driverUniqueId: "self" },
+} = {}) => {
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to fetch subscriptions.");
+  }
+
+  const res = await axios.get(`${backendURL}/api/finance/userSubscription`, {
+    ...authConfig(token),
+    params: query,
+  });
+  console.log("✅ Fetched driver subscriptions", res.data?.data?.length || 0);
+  return res.data;
+};
+
+const updateDriverSubscription = async ({
+  userSubscriptionUniqueId,
+  updateData,
+  userType = "driver",
+} = {}) => {
+  if (!userSubscriptionUniqueId) {
+    throw new Error(
+      "userSubscriptionUniqueId is required to update a subscription.",
+    );
+  }
+
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to update a subscription.");
+  }
+
+  const res = await axios.put(
+    `${backendURL}/api/finance/userSubscription/${userSubscriptionUniqueId}`,
+    updateData,
+    authConfig(token),
+  );
+  console.log("✅ Updated driver subscription", userSubscriptionUniqueId);
+  return res.data;
+};
+
+const deleteDriverSubscription = async ({
+  userSubscriptionUniqueId,
+  userType = "driver",
+} = {}) => {
+  if (!userSubscriptionUniqueId) {
+    throw new Error(
+      "userSubscriptionUniqueId is required to delete a subscription.",
+    );
+  }
+
+  const token = usersData[userType]?.token;
+  if (!token) {
+    throw new Error("Driver token is required to delete a subscription.");
+  }
+
+  const res = await axios.delete(
+    `${backendURL}/api/finance/userSubscription/${userSubscriptionUniqueId}`,
+    authConfig(token),
+  );
+  console.log("✅ Deleted driver subscription", userSubscriptionUniqueId);
+  return res.data;
+};
+
+const testDriverSubscriptionFlow = async ({ userType = "driver" } = {}) => {
+  console.log("\n✅ ========== DRIVER SUBSCRIPTION FLOW STARTED ==========");
+
+  const driverUniqueId = await resolveDriverUniqueId({ userType });
+  const subscriptionPlanPricingUniqueId =
+    (listOfPlanPricing?.data?.[0]?.subscriptionPlanPricingUniqueId) || (() => { throw new Error("No subscription plan pricing available"); })();
+  const subscriptionPayload = await createDriverSubscription({
+    driverUniqueId,
+    subscriptionPlanPricingUniqueId,
+    userType,
+  });
+  const userSubscriptionUniqueId =
+    subscriptionPayload?.data?.userSubscriptionUniqueId;
+  if (!userSubscriptionUniqueId) {
+    throw new Error(
+      "Subscription creation did not return a userSubscriptionUniqueId.",
+    );
+  }
+
+  await getDriverSubscriptions({ userType, query: { driverUniqueId: "self" } });
+  await updateDriverSubscription({
+    userSubscriptionUniqueId,
+    updateData: { status: "ACTIVE" },
+    userType,
+  });
+  await deleteDriverSubscription({ userSubscriptionUniqueId, userType });
+
+  console.log("✅ ========== DRIVER SUBSCRIPTION FLOW COMPLETED ==========");
+  return { userSubscriptionUniqueId };
+};
+
+module.exports = {
+  authConfig,
+  createDriverSubscription,
+  getDriverSubscriptions,
+  updateDriverSubscription,
+  deleteDriverSubscription,
+  testDriverSubscriptionFlow,
+};

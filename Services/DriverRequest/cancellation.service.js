@@ -14,14 +14,14 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
     ];
     let queryParams = [
       userUniqueId,
-      journeyStatusMap.cancelledByPassenger,
+      journeyStatusMap.cancelledByShipper,
       journeyStatusMap.cancelledByAdmin,
     ];
 
     // Add seen status filter if provided
     if (seenStatus) {
       whereConditions.push(
-        "DriverRequest.isCancellationByPassengerSeenByDriver = ?",
+        "DriverRequest.isCancellationByShipperSeenByDriver = ?",
       );
       queryParams.push(seenStatus);
     }
@@ -38,7 +38,7 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
         DriverRequest.originLongitude,
         DriverRequest.originPlace,
         DriverRequest.driverRequestCreatedAt,
-        DriverRequest.isCancellationByPassengerSeenByDriver,
+        DriverRequest.isCancellationByShipperSeenByDriver,
         
         -- Driver User data
         DriverUser.fullName as driverFullName,
@@ -51,34 +51,34 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
         JourneyDecisions.decisionTime,
         JourneyDecisions.decisionBy,
         
-        -- PassengerRequest data
-        PassengerRequest.passengerRequestId,
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.vehicleTypeUniqueId,
-        PassengerRequest.originLatitude as passengerOriginLatitude,
-        PassengerRequest.originLongitude as passengerOriginLongitude,
-        PassengerRequest.originPlace as passengerOriginPlace,
-        PassengerRequest.destinationLatitude,
-        PassengerRequest.destinationLongitude,
-        PassengerRequest.destinationPlace,
-        PassengerRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
-        PassengerRequest.shippableItemName,
-        PassengerRequest.shippableItemQtyInQuintal,
-        PassengerRequest.shippingDate,
-        PassengerRequest.deliveryDate,
-        PassengerRequest.shippingCost,
+        -- ShipperRequest data
+        ShipperRequest.shipperRequestId,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.vehicleTypeUniqueId,
+        ShipperRequest.originLatitude as shipperOriginLatitude,
+        ShipperRequest.originLongitude as shipperOriginLongitude,
+        ShipperRequest.originPlace as shipperOriginPlace,
+        ShipperRequest.destinationLatitude,
+        ShipperRequest.destinationLongitude,
+        ShipperRequest.destinationPlace,
+        ShipperRequest.shipperRequestCreatedAt as shipperRequestCreatedAt,
+        ShipperRequest.shippableItemName,
+        ShipperRequest.shippableItemQtyInQuintal,
+        ShipperRequest.shippingDate,
+        ShipperRequest.deliveryDate,
+        ShipperRequest.shippingCost,
         
-        -- Passenger User data
-        PassengerUser.userUniqueId as passengerUserUniqueId,
-        PassengerUser.fullName as passengerFullName,
-        PassengerUser.phoneNumber as passengerPhoneNumber,
-        PassengerUser.email as passengerEmail
+        -- Shipper User data
+        ShipperUser.userUniqueId as shipperUserUniqueId,
+        ShipperUser.fullName as shipperFullName,
+        ShipperUser.phoneNumber as shipperPhoneNumber,
+        ShipperUser.email as shipperEmail
         
       FROM DriverRequest
       INNER JOIN Users as DriverUser ON DriverRequest.userUniqueId = DriverUser.userUniqueId
       INNER JOIN JourneyDecisions ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      INNER JOIN PassengerRequest ON JourneyDecisions.passengerRequestId = PassengerRequest.passengerRequestId
-      INNER JOIN Users as PassengerUser ON PassengerRequest.userUniqueId = PassengerUser.userUniqueId
+      INNER JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+      INNER JOIN Users as ShipperUser ON ShipperRequest.userUniqueId = ShipperUser.userUniqueId
       WHERE ${whereConditions.join(" AND ")}
       ORDER BY DriverRequest.driverRequestCreatedAt DESC
     `;
@@ -127,8 +127,8 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
               originLongitude: request.originLongitude,
               originPlace: request.originPlace,
               driverRequestCreatedAt: request.driverRequestCreatedAt,
-              isCancellationByPassengerSeenByDriver:
-                request.isCancellationByPassengerSeenByDriver,
+              isCancellationByShipperSeenByDriver:
+                request.isCancellationByShipperSeenByDriver,
             },
             driver: {
               userUniqueId: request.driverUserUniqueId,
@@ -136,19 +136,19 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
               phoneNumber: request.driverPhoneNumber,
               email: request.driverEmail,
             },
-            passenger: {
-              userUniqueId: request.passengerUserUniqueId,
-              fullName: request.passengerFullName,
-              phoneNumber: request.passengerPhoneNumber,
-              email: request.passengerEmail,
+            shipper: {
+              userUniqueId: request.shipperUserUniqueId,
+              fullName: request.shipperFullName,
+              phoneNumber: request.shipperPhoneNumber,
+              email: request.shipperEmail,
             },
-            passengerRequest: {
-              passengerRequestId: request.passengerRequestId,
-              passengerRequestUniqueId: request.passengerRequestUniqueId,
+            shipperRequest: {
+              shipperRequestId: request.shipperRequestId,
+              shipperRequestUniqueId: request.shipperRequestUniqueId,
               vehicleTypeUniqueId: request.vehicleTypeUniqueId,
-              originLatitude: request.passengerOriginLatitude,
-              originLongitude: request.passengerOriginLongitude,
-              originPlace: request.passengerOriginPlace,
+              originLatitude: request.shipperOriginLatitude,
+              originLongitude: request.shipperOriginLongitude,
+              originPlace: request.shipperOriginPlace,
               destinationLatitude: request.destinationLatitude,
               destinationLongitude: request.destinationLongitude,
               destinationPlace: request.destinationPlace,
@@ -226,8 +226,8 @@ const markNegativeStatusAsSeenByDriver = async ({
     // Validate that the status is one of the negative statuses
     const negativeStatuses = [
       journeyStatusMap.notSelectedInBid, // 14
-      journeyStatusMap.rejectedByPassenger, // 8
-      journeyStatusMap.cancelledByPassenger, // 7
+      journeyStatusMap.rejectedByShipper, // 8
+      journeyStatusMap.cancelledByShipper, // 7
       journeyStatusMap.cancelledByAdmin, // 10
       journeyStatusMap.cancelledBySystem, // 12
     ];
@@ -249,21 +249,21 @@ const markNegativeStatusAsSeenByDriver = async ({
       updateTable = "JourneyDecisions";
       updateField = "isNotSelectedSeenByDriver";
       statusName = "not selected in bid";
-    } else if (currentStatusId === journeyStatusMap.rejectedByPassenger) {
-      // Status 8: Update JourneyDecisions.isRejectionByPassengerSeenByDriver
+    } else if (currentStatusId === journeyStatusMap.rejectedByShipper) {
+      // Status 8: Update JourneyDecisions.isRejectionByShipperSeenByDriver
       updateTable = "JourneyDecisions";
-      updateField = "isRejectionByPassengerSeenByDriver";
-      statusName = "rejected by passenger";
+      updateField = "isRejectionByShipperSeenByDriver";
+      statusName = "rejected by shipper";
     } else if (
-      currentStatusId === journeyStatusMap.cancelledByPassenger ||
+      currentStatusId === journeyStatusMap.cancelledByShipper ||
       currentStatusId === journeyStatusMap.cancelledByAdmin ||
       currentStatusId === journeyStatusMap.cancelledBySystem
     ) {
-      // Status 7, 10, 12: Update DriverRequest.isCancellationByPassengerSeenByDriver
+      // Status 7, 10, 12: Update DriverRequest.isCancellationByShipperSeenByDriver
       updateTable = "DriverRequest";
-      updateField = "isCancellationByPassengerSeenByDriver";
-      if (currentStatusId === journeyStatusMap.cancelledByPassenger) {
-        statusName = "cancelled by passenger";
+      updateField = "isCancellationByShipperSeenByDriver";
+      if (currentStatusId === journeyStatusMap.cancelledByShipper) {
+        statusName = "cancelled by shipper";
       } else if (currentStatusId === journeyStatusMap.cancelledByAdmin) {
         statusName = "cancelled by admin";
       } else {

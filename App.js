@@ -6,9 +6,10 @@ const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 const ipAddress = getLocalIpAddress();
 //import express server setup
 const app = require("./Config/Express.config.js");
-const { createServer: createHTTPServer } = require("http");
 // import socket adapter
 const { initSocket } = require("./Config/SocketAdapter.config.js");
+const { createServer: createHTTPServer } = require("http");
+
 // import process error handlers
 const { setupProcessErrorHandlers } = require("./Config/ProcessErrorHandlers");
 const { currentDate } = require("./Utils/CurrentDate.js");

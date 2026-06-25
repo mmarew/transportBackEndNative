@@ -6,6 +6,8 @@ exports.createVehicle = Joi.object({
   vehicleTypeUniqueId: uuidSchema.required(),
   licensePlate: Joi.string().required(),
   color: Joi.string().required(),
+  // Optional: Automatically assign this vehicle to a company fleet during creation
+  companyUniqueId: uuidSchema.optional(),
   isDriverOwnerOfVehicle: Joi.boolean().optional(),
   // keep unknown for any additional fields
 }).unknown(true);

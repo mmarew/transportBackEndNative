@@ -17,9 +17,10 @@ const {
   driverUserUniqueIdParam,
   getVehiclesQuery,
 } = require("../Validations/Vehicle.schema");
+const { VEHICLE_ENDPOINTS } = require("./EndPoints/vehicle.endpoints");
 
 router.post(
-  "/api/user/vehicles/driverUserUniqueId/:driverUserUniqueId",
+  VEHICLE_ENDPOINTS.CREATE_VEHICLE,
   verifyTokenOfAxios,
   validator(driverUserUniqueIdParam, "params"),
   validator(createVehicle),
@@ -28,7 +29,7 @@ router.post(
 
 // Consolidated GET with filters & pagination
 router.get(
-  "/api/vehicles",
+  VEHICLE_ENDPOINTS.GET_ALL_VEHICLES,
   verifyTokenOfAxios,
   validator(getVehiclesQuery, "query"),
   getVehiclesController,
@@ -36,7 +37,7 @@ router.get(
 
 // Update vehicle
 router.put(
-  "/api/user/vehicles/:vehicleUniqueId",
+  VEHICLE_ENDPOINTS.UPDATE_VEHICLE,
   verifyTokenOfAxios,
   validator(vehicleUniqueIdParam, "params"),
   validator(updateVehicle),
@@ -44,7 +45,7 @@ router.put(
 );
 
 router.delete(
-  "/api/user/vehicles/:vehicleUniqueId",
+  VEHICLE_ENDPOINTS.DELETE_VEHICLE,
   verifyTokenOfAxios,
   validator(vehicleUniqueIdParam, "params"),
   deleteVehicleController,

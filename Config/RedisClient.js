@@ -8,7 +8,7 @@ let redis = null;
 // Only create Redis client if UPSTASH_REDIS_URL is configured
 if (UPSTASH_REDIS_URL) {
   try {
-    redis = new Redis(UPSTASH_REDIS_URL, {
+    const redisOptions = {
       tls: {},
       connectTimeout: 10000, // 10s timeout
       retryStrategy: (times) => {
@@ -18,7 +18,13 @@ if (UPSTASH_REDIS_URL) {
       maxRetriesPerRequest: null, // Set to null to prevent MaxRetriesPerRequestError
       enableReadyCheck: true,
       enableOfflineQueue: false, // Don't queue commands when disconnected
-    });
+    };
+
+    if (process.env.REDIS_PASSWORD) {
+      redisOptions.password = process.env.REDIS_PASSWORD;
+    }
+
+    redis = new Redis(UPSTASH_REDIS_URL, redisOptions);
 
     // Handle Redis connection errors
     redis.on("error", (err) => {

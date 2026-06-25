@@ -1,5 +1,6 @@
 const AppError = require("../Utils/AppError");
 const { getData } = require("../CRUD/Read/ReadData");
+const ServerResponder = require("../Utils/ServerResponder");
 
 const toCamelCase = (str) => {
   return String(str)
@@ -29,16 +30,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
     });
 
     if (byName?.length > 0) {
-      return next(
-        new AppError(
-          {
-            message: "Document type already exists",
-            code: "DOCUMENT_TYPE_ALREADY_EXISTS",
-            details: [{ field: "documentTypeName", message: "Already exists" }],
-          },
-          400,
-        ),
-      );
+      return ServerResponder(res, byName[0], 200);
     }
 
     const byUploadedName = await getData({
@@ -47,18 +39,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
     });
 
     if (byUploadedName?.length > 0) {
-      return next(
-        new AppError(
-          {
-            message: "Document type already exists",
-            code: "DOCUMENT_TYPE_ALREADY_EXISTS",
-            details: [
-              { field: "uploadedDocumentName", message: "Already exists" },
-            ],
-          },
-          400,
-        ),
-      );
+      return ServerResponder(res, byUploadedName[0], 200);
     }
 
     const byUploadedTypeId = await getData({
@@ -67,18 +48,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
     });
 
     if (byUploadedTypeId?.length > 0) {
-      return next(
-        new AppError(
-          {
-            message: "Document type already exists",
-            code: "DOCUMENT_TYPE_ALREADY_EXISTS",
-            details: [
-              { field: "uploadedDocumentTypeId", message: "Already exists" },
-            ],
-          },
-          400,
-        ),
-      );
+      return ServerResponder(res, byUploadedTypeId[0], 200);
     }
 
     return next();

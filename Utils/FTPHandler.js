@@ -54,13 +54,16 @@ async function uploadToFTP(buffer, filename) {
 
   const filePath = path.join(UPLOADS_DIR, filename);
 
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   await fs.promises.writeFile(filePath, buffer);
 
-  const baseUrl = Config.APP_API_URL;
-  const publicUrl = `${baseUrl}/uploads/${filename}`;
+  // Store only the relative path — the full URL is resolved at read time
+  // via resolveDocumentUrl(). This means changing APP_API_URL automatically
+  // fixes all existing documents without a DB migration.
+  const relativePath = `/uploads/${filename}`;
 
-  logger.info("File saved locally", { filePath, publicUrl });
-  return publicUrl;
+  logger.info("File saved locally", { filePath, relativePath });
+  return relativePath;
 }
 
 /**
@@ -74,6 +77,7 @@ async function deleteFromFTP(filename) {
   const filePath = path.join(UPLOADS_DIR, basename);
 
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     await fs.promises.unlink(filePath);
     logger.info("File deleted locally", { filePath });
     return { success: true, message: "File deleted successfully" };
@@ -88,4 +92,36 @@ async function deleteFromFTP(filename) {
   }
 }
 
-module.exports = { uploadToFTP, deleteFromFTP };
+/**
+ * Resolves a stored document path/URL to the current full public URL.
+ *
+ * Handles both formats:
+ *   - New relative paths:  "/uploads/filename.png"
+ *   - Legacy full URLs:    "https://old-domain.com/uploads/filename.png"
+ *
+ * Always returns: "{APP_API_URL}/uploads/filename.png"
+ *
+ * @param {string|null} storedPath - The value from AttachedDocuments.attachedDocumentName
+ * @returns {string|null} The full public URL, or null if input is falsy.
+ */
+function resolveDocumentUrl(storedPath) {
+  if (!storedPath) {return null;}
+
+  const baseUrl = Config.APP_API_URL;
+
+  // Already a relative path → just prepend base URL
+  if (storedPath.startsWith("/uploads/")) {
+    return `${baseUrl}${storedPath}`;
+  }
+
+  // Legacy full URL → extract the /uploads/... part and re-attach current base
+  const uploadsIdx = storedPath.indexOf("/uploads/");
+  if (uploadsIdx !== -1) {
+    return `${baseUrl}${storedPath.slice(uploadsIdx)}`;
+  }
+
+  // Fallback: return as-is (external URL or unknown format)
+  return storedPath;
+}
+
+module.exports = { uploadToFTP, deleteFromFTP, resolveDocumentUrl };

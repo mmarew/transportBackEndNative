@@ -1,10 +1,10 @@
-const { getUserDeposit } = require("../UserDeposit.service");
+const { getUserDeposit } = require("../UserDeposit");
 const { getTransferByUniqueId } = require("../UserBalanceTransfer.service");
 const AppError = require("../../Utils/AppError");
 
 const {
   getUserSubscriptionsWithFilters,
-} = require("../UserSubscription.service");
+} = require("../UserSubscription");
 const { getAllCommissions } = require("../Commission.service");
 
 const { pool } = require("../../Middleware/Database.config");
@@ -88,7 +88,7 @@ const enrichUserBalanceRecord = async (balance) => {
       ...balance,
       transactionDetails,
     };
-  } catch {
+  } catch (err) {
     // If details fail to load, we still want the balance record
     return {
       ...balance,
@@ -144,7 +144,7 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
 
   try {
     if (record.transactionType === "Deposit") {
-      const { getUserDeposit } = require("../UserDeposit.service");
+      const { getUserDeposit } = require("../UserDeposit");
       const result = await getUserDeposit({
         userDepositUniqueId: transactionUniqueId,
       });

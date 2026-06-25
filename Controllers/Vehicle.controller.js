@@ -8,6 +8,8 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { assignVehicle } = require("../Services/CompanyVehicle.service");
+const { currentDate } = require("../Utils/CurrentDate");
 
 const createVehicleController = async (req, res, next) => {
   try {
@@ -32,7 +34,28 @@ const createVehicleController = async (req, res, next) => {
     }
 
     const response = await executeInTransaction(async () => {
-      return await createVehicle(req.body, user, driverUserUniqueId);
+      // 1. Create the primary vehicle record and its initial ownership/driver association
+      const vehicleResponse = await createVehicle(req.body, user, driverUserUniqueId);
+      
+      const { vehicleUniqueId } = vehicleResponse.data;
+      const companyUniqueId = req?.body?.companyUniqueId;
+
+      /**
+       * AUTOMATED FLEET ASSIGNMENT:
+       * If a companyUniqueId is provided in the request body, we automatically
+       * link this new vehicle to the specified transport company's fleet.
+       * This reduces the need for a second manual 'assign-to-fleet' call.
+       */
+      if (companyUniqueId) {
+        await assignVehicle({
+          companyUniqueId,
+          vehicleUniqueId,
+          assignmentStartDate: currentDate(),
+          createdByUserUniqueId: user?.userUniqueId,
+        });
+      }
+
+      return vehicleResponse;
     }, { timeout: 90000 }); // 90s — createVehicle chains 5+ DB calls on remote server
     ServerResponder(res, response, 201);
   } catch (error) {
@@ -70,15 +93,15 @@ const getVehiclesController = async (req, res, next) => {
     const user = req?.user;
     const roleId = user?.roleId;
 
-    if (ownerUserUniqueId === "self" || !ownerUserUniqueId) {
-      ownerUserUniqueId = user?.userUniqueId;
-    }
-
     if (
       roleId === usersRoles.adminRoleId ||
-      roleId === usersRoles.supperAdminRoleId
+      roleId === usersRoles.supperAdminRoleId ||
+      roleId === usersRoles.companyAdminRoleId
     ) {
-      // Admin or super admin can get vehicles for any user
+      // Admin, super admin, or company admin can get vehicles for any user
+      ownerUserUniqueId = undefined;
+    } else if (ownerUserUniqueId === "self" || !ownerUserUniqueId) {
+      ownerUserUniqueId = user?.userUniqueId;
     } else if (roleId === usersRoles.driverRoleId) {
       if (ownerUserUniqueId !== user?.userUniqueId) {
         return next(

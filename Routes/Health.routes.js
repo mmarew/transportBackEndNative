@@ -8,9 +8,11 @@ const {
 const { getQueryStats } = require("../Middleware/QueryPerformance");
 const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
+const { HEALTH_ENDPOINTS } = require("./EndPoints/health.endpoints");
+const { clearCache } = require("../Services/FixedData.service");
 
 // Simple health check with DB reachability indicator
-router.get("/api/health", async (req, res, next) => {
+router.get(HEALTH_ENDPOINTS.HEALTH_CHECK, async (req, res, next) => {
   try {
     const startedAt = currentDate();
     let db = "up";
@@ -35,7 +37,7 @@ router.get("/api/health", async (req, res, next) => {
 });
 
 // Enhanced database health check endpoint
-router.get("/api/health/database", async (req, res) => {
+router.get(HEALTH_ENDPOINTS.DATABASE_HEALTH, async (req, res) => {
   try {
     const health = await checkDatabaseHealth();
     const statusCode =
@@ -54,7 +56,7 @@ router.get("/api/health/database", async (req, res) => {
 });
 
 // Database statistics endpoint
-router.get("/api/admin/database/stats", async (req, res, next) => {
+router.get(HEALTH_ENDPOINTS.DATABASE_STATS, async (req, res, next) => {
   try {
     const stats = await getDatabaseStats();
     const queryStats = getQueryStats();
@@ -72,6 +74,12 @@ router.get("/api/admin/database/stats", async (req, res, next) => {
   } catch {
     next(new AppError("Failed to retrieve database statistics", 500));
   }
+});
+
+// Clear FixedData cache (useful for test suites)
+router.get("/api/utils/clear-cache", async (req, res) => {
+  clearCache();
+  res.json({ message: "success", data: "FixedData cache cleared" });
 });
 
 module.exports = router;

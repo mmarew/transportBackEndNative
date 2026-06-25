@@ -8,14 +8,14 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 
 const createRole = async (body) => {
   const { roleName, roleDescription, user } = body;
-  const roleUniqueId = uuidv4();
+  const roleUniqueId = body.roleUniqueId || uuidv4();
   const userUniqueId = user?.userUniqueId;
   const existedData = await getData({
     tableName: "Roles",
     conditions: { roleName },
   });
   if (existedData?.length > 0) {
-    throw new AppError("Role already exists", 400);
+    return { message: "success", data: { roleUniqueId: existedData[0].roleUniqueId, message: "Role already exists" } };
   }
   const colAndVal = {
     roleUniqueId,
@@ -24,12 +24,21 @@ const createRole = async (body) => {
     roleCreatedBy: userUniqueId,
     roleCreatedAt: currentDate(),
   };
+  if (body.roleId) {
+    colAndVal.roleId = body.roleId;
+  }
   const tableName = "Roles";
   try {
     const registeredRole = await insertData({ tableName, colAndVal });
 
     if (registeredRole.affectedRows > 0) {
-      return { message: "success", data: "Role created successfully" };
+      return { 
+        message: "success", 
+        data: {
+          roleUniqueId,
+          message: "Role created successfully" 
+        }
+      };
     }
     throw new AppError("Role creation failed", 500);
   } catch (error) {
@@ -96,6 +105,9 @@ const updateRole = async (roleUniqueId, body) => {
     }
     throw new AppError("Role update failed", 500);
   } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return { message: "success", data: "Role name already exists" };
+    }
     throw new AppError(
       error.message || "An error occurred during role update",
       error.statusCode || 500,

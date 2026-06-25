@@ -31,8 +31,9 @@ exports.createTariffRateForVehicleType = async (data) => {
     ) VALUES (?, ?, ?, ?, ?)
   `;
   const userUniqueId = data.user?.userUniqueId;
+  const tariffRateForVehicleTypeUniqueId = uuidv4();
   await executor.query(sql, [
-    uuidv4(),
+    tariffRateForVehicleTypeUniqueId,
     data.vehicleTypeUniqueId,
     data.tariffRateUniqueId,
     userUniqueId || null,
@@ -41,7 +42,7 @@ exports.createTariffRateForVehicleType = async (data) => {
 
   return {
     message: "success",
-    data: "Tariff rate for vehicle type created successfully",
+    data: { tariffRateForVehicleTypeUniqueId },
   };
 };
 

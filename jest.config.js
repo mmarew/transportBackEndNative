@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: "node",
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
+  setupFiles: ["<rootDir>/tests/setup.js"],
+  setupFilesAfterEnv: ["<rootDir>/tests/setupAfterEnv.js"],
   testMatch: ["**/tests/**/*.test.js", "**/__tests__/**/*.test.js"],
   collectCoverageFrom: [
     "controllers/**/*.js",
@@ -11,6 +12,7 @@ module.exports = {
   coverageDirectory: "coverage",
   verbose: true,
   forceExit: true,
+  maxWorkers: 1,
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,

@@ -10,7 +10,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 // Create a new journey decision
 exports.createJourneyDecision = async (data, connection = null) => {
   const {
-    passengerRequestId,
+    shipperRequestId,
     driverRequestId,
     journeyStatusId,
     decisionTime,
@@ -21,7 +21,7 @@ exports.createJourneyDecision = async (data, connection = null) => {
     journeyDecisionCreatedBy,
   } = data;
   if (
-    !passengerRequestId ||
+    !shipperRequestId ||
     !driverRequestId ||
     !journeyStatusId ||
     !decisionTime ||
@@ -36,9 +36,9 @@ exports.createJourneyDecision = async (data, connection = null) => {
   const queryExecutor = transactionStorage.getStore() || connection || pool;
 
   // first check if journey decision is already exists
-  const sqlToCheck = `SELECT * FROM JourneyDecisions WHERE passengerRequestId = ? and driverRequestId = ?`;
+  const sqlToCheck = `SELECT * FROM JourneyDecisions WHERE shipperRequestId = ? and driverRequestId = ?`;
   const [existedData] = await queryExecutor.query(sqlToCheck, [
-    passengerRequestId,
+    shipperRequestId,
     driverRequestId,
   ]);
   if (existedData.length > 0) {
@@ -49,12 +49,12 @@ exports.createJourneyDecision = async (data, connection = null) => {
     };
   }
   const journeyDecisionUniqueId = uuidv4();
-  const sql = `INSERT INTO JourneyDecisions (journeyDecisionUniqueId, passengerRequestId, driverRequestId, journeyStatusId, decisionTime, decisionBy,  shippingDateByDriver,
+  const sql = `INSERT INTO JourneyDecisions (journeyDecisionUniqueId, shipperRequestId, driverRequestId, journeyStatusId, decisionTime, decisionBy,  shippingDateByDriver,
       deliveryDateByDriver,
       shippingCostByDriver, journeyDecisionCreatedBy, journeyDecisionCreatedAt) VALUES (?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?)`;
   const values = [
     journeyDecisionUniqueId,
-    passengerRequestId,
+    shipperRequestId,
     driverRequestId,
     journeyStatusId,
     decisionTime,
@@ -76,7 +76,7 @@ exports.createJourneyDecision = async (data, connection = null) => {
           deliveryDateByDriver,
           shippingCostByDriver,
           journeyDecisionUniqueId,
-          passengerRequestId,
+          shipperRequestId,
           driverRequestId,
           journeyStatusId,
           decisionTime,
@@ -121,14 +121,14 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
 
     // Build base WHERE clause based on target and role
     if (target !== "all" && userUniqueId && roleId) {
-      // For single user, we need to join with PassengerRequest or DriverRequest
+      // For single user, we need to join with ShipperRequest or DriverRequest
       // to get the user's requests and then filter JourneyDecisions
       whereClause = `
         WHERE (
           EXISTS (
-            SELECT 1 FROM PassengerRequest 
-            WHERE PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId 
-            AND PassengerRequest.userUniqueId = ?
+            SELECT 1 FROM ShipperRequest 
+            WHERE ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId 
+            AND ShipperRequest.userUniqueId = ?
           ) 
           OR 
           EXISTS (
@@ -202,12 +202,12 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       countParams.push(filters.endDate);
     }
 
-    // Add filter by passengerRequestId
-    if (filters.passengerRequestId) {
+    // Add filter by shipperRequestId
+    if (filters.shipperRequestId) {
       whereClause += whereClause ? " AND " : "WHERE ";
-      whereClause += "JourneyDecisions.passengerRequestId = ?";
-      queryParams.push(filters.passengerRequestId);
-      countParams.push(filters.passengerRequestId);
+      whereClause += "JourneyDecisions.shipperRequestId = ?";
+      queryParams.push(filters.shipperRequestId);
+      countParams.push(filters.shipperRequestId);
     }
 
     // Add filter by driverRequestId
@@ -234,12 +234,12 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       countParams.push(filters.driverRequestUniqueId);
     }
 
-    // Add filter by passengerRequestUniqueId (requires join with PassengerRequest)
-    if (filters.passengerRequestUniqueId) {
+    // Add filter by shipperRequestUniqueId (requires join with ShipperRequest)
+    if (filters.shipperRequestUniqueId) {
       whereClause += whereClause ? " AND " : "WHERE ";
-      whereClause += "PassengerRequest.passengerRequestUniqueId = ?";
-      queryParams.push(filters.passengerRequestUniqueId);
-      countParams.push(filters.passengerRequestUniqueId);
+      whereClause += "ShipperRequest.shipperRequestUniqueId = ?";
+      queryParams.push(filters.shipperRequestUniqueId);
+      countParams.push(filters.shipperRequestUniqueId);
     }
 
     // Add filter by shipping cost range
@@ -273,10 +273,10 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       }
     }
 
-    // Add filter by isCompletionSeen (from PassengerRequest table)
+    // Add filter by isCompletionSeen (from ShipperRequest table)
     if (filters.isCompletionSeen !== undefined) {
       whereClause += whereClause ? " AND " : "WHERE ";
-      whereClause += "PassengerRequest.isCompletionSeen = ?";
+      whereClause += "ShipperRequest.isCompletionSeen = ?";
       queryParams.push(filters.isCompletionSeen);
       countParams.push(filters.isCompletionSeen);
     }
@@ -304,18 +304,18 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       SELECT 
         JourneyDecisions.*,
         JourneyStatus.journeyStatusId,
-        PassengerRequest.passengerRequestUniqueId,
-        PassengerRequest.userUniqueId as passengerUserUniqueId,
-        PassengerUser.fullName as passengerFullName,
-        PassengerUser.phoneNumber as passengerPhoneNumber,
+        ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperUser.fullName as shipperFullName,
+        ShipperUser.phoneNumber as shipperPhoneNumber,
         DriverRequest.driverRequestUniqueId,
         DriverRequest.userUniqueId as driverUserUniqueId,
         DriverUser.fullName as driverFullName,
         DriverUser.phoneNumber as driverPhoneNumber
       FROM JourneyDecisions 
       JOIN JourneyStatus ON JourneyStatus.journeyStatusId = JourneyDecisions.journeyStatusId
-      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
-      JOIN Users as PassengerUser ON PassengerUser.userUniqueId = PassengerRequest.userUniqueId
+      JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
+      JOIN Users as ShipperUser ON ShipperUser.userUniqueId = ShipperRequest.userUniqueId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       JOIN Users as DriverUser ON DriverUser.userUniqueId = DriverRequest.userUniqueId
       ${whereClause}
@@ -329,7 +329,7 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
     const sqlCount = `
       SELECT COUNT(*) as total 
       FROM JourneyDecisions 
-      JOIN PassengerRequest ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       JOIN DriverRequest ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
       ${whereClause}
     `;
@@ -393,19 +393,19 @@ exports.getJourneyDecisionByJDriverRequestUniqueId = async (
 };
 
 // Get a specific journey decision by ID
-exports.getJourneyDecisionByPassengerRequestUniqueId = async (
-  passengerRequestUniqueId,
+exports.getJourneyDecisionByShipperRequestUniqueId = async (
+  shipperRequestUniqueId,
 ) => {
   const executor = transactionStorage.getStore() || pool;
-  const sql = `SELECT * FROM JourneyDecisions, PassengerRequest WHERE passengerRequestUniqueId = ? and JourneyDecisions.passengerRequestId=PassengerRequest.passengerRequestId `;
-  const [result] = await executor.query(sql, [passengerRequestUniqueId]);
+  const sql = `SELECT * FROM JourneyDecisions, ShipperRequest WHERE shipperRequestUniqueId = ? and JourneyDecisions.shipperRequestId=ShipperRequest.shipperRequestId `;
+  const [result] = await executor.query(sql, [shipperRequestUniqueId]);
 
   if (result.length === 0) {
     throw new AppError("Journey decision not found", 404);
   }
   return { message: "success", data: result };
 };
-// getJourneyDecisionByPassengerRequestUniqueId,getJourneyDecisionByJDriverRequestUniqueId
+// getJourneyDecisionByShipperRequestUniqueId,getJourneyDecisionByJDriverRequestUniqueId
 
 // Update a specific journey decision by conditions and update values
 exports.updateJourneyDecision = async ({

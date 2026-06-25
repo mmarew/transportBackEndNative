@@ -18,3 +18,11 @@ exports.userDelinquencyParams = Joi.object({
 exports.userRoleParams = Joi.object({
   userRoleUniqueId: uuidSchema.required(),
 });
+
+exports.updateDelinquencyBody = Joi.object({
+  delinquencyDescription: Joi.string().optional(),
+  delinquencySeverity: Joi.string().valid("LOW", "MEDIUM", "HIGH", "CRITICAL").optional(),
+  delinquencyPoints: Joi.number().integer().min(0).optional(),
+  isDeliquencySeenByAdmin: Joi.boolean().optional(),
+  responseDeadline: Joi.date().iso().optional(),
+}).min(1); // at least one field required

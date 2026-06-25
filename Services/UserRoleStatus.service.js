@@ -205,7 +205,7 @@ const userRoleStatusByPhone = async (phoneNumber) => {
       },
     ],
     conditions: {
-      isUserRoleStatusActive: true,
+      // isUserRoleStatusActive: true,
       phoneNumber,
     },
   });

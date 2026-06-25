@@ -38,7 +38,7 @@ const takeFromStreet = async (req, res, next) => {
 };
 const createAndAcceptNewRequest = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
       return await services.createAndAcceptNewRequest(req.body);
@@ -50,14 +50,16 @@ const createAndAcceptNewRequest = async (req, res, next) => {
 };
 // Get a specific driver request by ID
 
-const acceptPassengerRequest = async (req, res, next) => {
+const acceptShipperRequest = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.acceptedByDriver;
-    const result = await executeInTransaction(async () => {
-      return await services.acceptPassengerRequest(req.body);
-    });
+    // NOTE: No outer executeInTransaction here — acceptShipperRequest calls
+    // updateJourneyStatus internally which opens its own transaction when
+    // updating multiple tables. Wrapping again would create a nested
+    // transaction (second connection) that deadlocks against the inner one.
+    const result = await services.acceptShipperRequest(req.body);
     ServerResponder(res, result, 200);
   } catch (error) {
     next(error);
@@ -67,7 +69,7 @@ const acceptPassengerRequest = async (req, res, next) => {
 const deleteRequestController = async (req, res, next) => {
   try {
     const { driverRequestUniqueId } = req.params;
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
 
     if (!driverRequestUniqueId) {
       throw new AppError("Driver request unique ID is required", 400);
@@ -92,7 +94,7 @@ const deleteRequestController = async (req, res, next) => {
 
 const verifyDriverJourneyStatusController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const result = await services.verifyDriverJourneyStatus({
       userUniqueId,
     });
@@ -175,14 +177,12 @@ const getDriverRequestController = async (req, res, next) => {
 
 const startJourney = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.journeyStatusId = journeyStatusMap.journeyStarted;
-    req.body.previousStatusId = journeyStatusMap.acceptedByPassenger;
+    req.body.previousStatusId = journeyStatusMap.acceptedByShipper;
     req.body.userUniqueId = userUniqueId;
-
-    const result = await executeInTransaction(async () => {
-      return await services.startJourney(req.body);
-    });
+    // Service calls updateJourneyStatus internally (self-transacting)
+    const result = await services.startJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -190,13 +190,12 @@ const startJourney = async (req, res, next) => {
 };
 const noAnswerFromDriver = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     req.body.journeyStatusId = journeyStatusMap.noAnswerFromDriver;
     req.body.previousStatusId = journeyStatusMap.requested;
-    const result = await executeInTransaction(async () => {
-      return await services.noAnswerFromDriver(req.body);
-    });
+    // Service has its own executeInTransaction internally
+    const result = await services.noAnswerFromDriver(req.body);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -204,16 +203,13 @@ const noAnswerFromDriver = async (req, res, next) => {
 };
 const completeJourney = async (req, res, next) => {
   try {
-    const { userUniqueId, roleId } = req?.user;
+    const { userUniqueId, roleId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     req.body.roleId = roleId;
     req.body.journeyStatusId = journeyStatusMap.journeyCompleted;
     req.body.previousStatusId = journeyStatusMap.journeyStarted;
-
-    const result = await executeInTransaction(async () => {
-      return await services.completeJourney(req.body);
-    });
-
+    // Service calls updateJourneyStatus internally (self-transacting)
+    const result = await services.completeJourney(req.body);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -258,7 +254,7 @@ const cancelDriverRequest = async (req, res, next) => {
 };
 const sendUpdatedLocationController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
       return await services.sendUpdatedLocation(req.body);
@@ -271,7 +267,7 @@ const sendUpdatedLocationController = async (req, res, next) => {
 
 const getCancellationNotificationsController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const { seenStatus } = req.query;
 
     if (!userUniqueId) {
@@ -291,11 +287,11 @@ const getCancellationNotificationsController = async (req, res, next) => {
 
 /**
  * Unified controller to mark any negative status as seen by driver
- * Handles: notSelectedInBid, rejectedByPassenger, cancelledByPassenger, cancelledByAdmin, cancelledBySystem
+ * Handles: notSelectedInBid, rejectedByShipper, cancelledByShipper, cancelledByAdmin, cancelledBySystem
  */
 const markNegativeStatusAsSeenController = async (req, res, next) => {
   try {
-    const { userUniqueId } = req?.user;
+    const { userUniqueId } = req?.user || {};
     const { driverRequestUniqueId } = req.body;
 
     if (!userUniqueId || !driverRequestUniqueId) {
@@ -348,7 +344,7 @@ module.exports = {
   noAnswerFromDriver,
   startJourney,
   createRequest,
-  acceptPassengerRequest,
+  acceptShipperRequest,
   deleteRequestController,
   takeFromStreet,
   verifyDriverJourneyStatusController,

@@ -12,29 +12,30 @@ const {
   firebaseParams,
   sendNotification,
 } = require("../Validations/Firebase.schema");
+const { FIREBASE_ENDPOINTS } = require("./EndPoints/firebase.endpoints");
 
 // Define routes for CRUD operations
 router.post(
-  "/api/user/upsertFCMToken",
+  FIREBASE_ENDPOINTS.UPSERT_FCM_TOKEN,
   verifyTokenOfAxios,
   validator(upsertFCMToken),
   firebaseController.createFirebase,
 );
 router.get(
-  "/api/user/getFCMToken/:deviceTokenUniqueId",
+  FIREBASE_ENDPOINTS.GET_FCM_TOKEN,
   verifyTokenOfAxios,
   validator(firebaseParams, "params"),
   firebaseController.getFirebaseById,
 );
 router.put(
-  "/api/user/updateFCMToken/:deviceTokenUniqueId",
+  FIREBASE_ENDPOINTS.UPDATE_FCM_TOKEN,
   verifyTokenOfAxios,
   validator(firebaseParams, "params"),
   validator(updateFCMToken),
   firebaseController.updateFirebase,
 );
 router.delete(
-  "/api/user/deleteFCMToken/:deviceTokenUniqueId",
+  FIREBASE_ENDPOINTS.DELETE_FCM_TOKEN,
   verifyTokenOfAxios,
   validator(firebaseParams, "params"),
   firebaseController.deleteFirebase,
@@ -42,13 +43,13 @@ router.delete(
 
 // Notification sending endpoints
 router.post(
-  "/api/notifications/send-to-user",
+  FIREBASE_ENDPOINTS.SEND_TO_USER,
   verifyTokenOfAxios,
   validator(sendNotification),
   firebaseController.sendFCMNotificationToUser,
 );
 router.post(
-  "/api/notifications/send-to-tokens",
+  FIREBASE_ENDPOINTS.SEND_TO_TOKENS,
   verifyTokenOfAxios,
   validator(sendNotification),
   firebaseController.sendNotificationToTokens,

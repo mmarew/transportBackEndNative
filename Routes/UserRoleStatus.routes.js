@@ -10,10 +10,11 @@ const {
   userRoleStatusParams,
   getUserRoleStatusQuery,
 } = require("../Validations/UserRoleStatus.schema");
+const { USER_ROLE_STATUS_ENDPOINTS } = require("./EndPoints/userRoleStatus.endpoints");
 
 // Define routes for CRUD operations
 router.post(
-  "/api/admin/userRoleStatus",
+  USER_ROLE_STATUS_ENDPOINTS.CREATE_USER_ROLE_STATUS,
   validator(createUserRoleStatus),
   userRoleStatusController.createUserRoleStatus,
 );
@@ -31,27 +32,27 @@ router.post(
 => 8) Custom sorting: GET /api/admin/userRoleStatusCurrent?sortBy=userRoleStatusCreatedAt&sortOrder=ASC */
 }
 router.get(
-  "/api/admin/userRoleStatusCurrent",
+  USER_ROLE_STATUS_ENDPOINTS.GET_CURRENT_USER_ROLE_STATUS,
   verifyTokenOfAxios,
   validator(getUserRoleStatusQuery, "query"),
   userRoleStatusController.getUserRoleStatusCurrent,
 );
 // Account status: driver documents & vehicle requirement check
 router.get(
-  "/api/admin/userRoleStatusByPhone",
+  USER_ROLE_STATUS_ENDPOINTS.GET_USER_ROLE_STATUS_BY_PHONE,
   verifyTokenOfAxios,
   // validator(getUserRoleStatusQuery, "query"), // Optional
   userRoleStatusController.userRoleStatusByPhone,
 );
 router.put(
-  "/api/admin/userRoleStatus/:userUniqueId",
+  USER_ROLE_STATUS_ENDPOINTS.UPDATE_USER_ROLE_STATUS,
   verifyTokenOfAxios,
   validator(userRoleStatusParams, "params"),
   validator(updateUserRoleStatus),
   userRoleStatusController.updateUserRoleStatus,
 );
 router.delete(
-  "/api/admin/userRoleStatus/:userRoleStatusUniqueId",
+  USER_ROLE_STATUS_ENDPOINTS.DELETE_USER_ROLE_STATUS,
   verifyTokenOfAxios,
   validator(userRoleStatusParams, "params"),
   userRoleStatusController.deleteUserRoleStatus,

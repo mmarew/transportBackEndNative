@@ -89,7 +89,7 @@ const executeInTransaction = async (callback, options = {}) => {
     await connection.beginTransaction();
 
     // JS-level timeout: reject if callback takes too long to avoid held locks
-    const timeoutPromise = new Promise((_, reject) => {
+    const timeoutPromise = new Promise((resolve, reject) => {
       timer = setTimeout(() => {
         reject(new Error("Transaction timed out (JS-level)"));
       }, timeout);

@@ -4,7 +4,7 @@ This JavaScript code defines an object called
 
 messageTypes
 
- that contains various message types related to passenger and driver requests. Each message type is represented as a key-value pair, where the key is the message type identifier and the value is an object containing a 
+ that contains various message types related to shipper and driver requests. Each message type is represented as a key-value pair, where the key is the message type identifier and the value is an object containing a 
 
 message
 
@@ -54,17 +54,17 @@ const messageTypes = {
   request_other_driver: {
     message: "Requesting other driver.",
     details:
-      "When driver is not giving answers to current passenger request, passengers request is being forwarded to other driver",
+      "When driver is not giving answers to current shipper request, shippers request is being forwarded to other driver",
   },
-  reCreate_new_passenger_request: {
-    message: "recreate new passenger request",
+  reCreate_new_shipper_request: {
+    message: "recreate new shipper request",
     details:
-      "When current passenger request is not fulfilled and recreating is necessary",
+      "When current shipper request is not fulfilled and recreating is necessary",
   },
-  request_other_passenger: {
-    message: "requesting other passenger",
+  request_other_shipper: {
+    message: "requesting other shipper",
     details:
-      "When passenger is not giving answers to current driver request, driver request is being forwarded to other passenger",
+      "When shipper is not giving answers to current driver request, driver request is being forwarded to other shipper",
   },
   reCreate_new_driver_request: {
     message: "recreate new driver request",
@@ -74,7 +74,7 @@ const messageTypes = {
   // 0983068308
   driver_not_answered: {
     message: "Driver is not responding",
-    details: "Driver don't respond to current passengers request ",
+    details: "Driver don't respond to current shippers request ",
   },
   driver_found_shipper_request: {
     message: "Driver found shipper request.",
@@ -106,15 +106,15 @@ const messageTypes = {
   },
   driver_not_selected_in_bid: {
     message: "Driver not selected in bid",
-    details: "Passenger selected another driver's offer during bid selection",
+    details: "Shipper selected another driver's offer during bid selection",
   },
-  passenger_accepted_driver_request: {
-    message: "Passenger accepted your request",
-    details: "Passenger selected your offer during bid selection",
+  shipper_accepted_driver_request: {
+    message: "Shipper accepted your request",
+    details: "Shipper selected your offer during bid selection",
   },
-  passenger_cancelled_request: {
-    message: "Passenger cancelled request",
-    details: "Passenger cancelled the transport request",
+  shipper_cancelled_request: {
+    message: "Shipper cancelled request",
+    details: "Shipper cancelled the transport request",
   },
   admin_cancelled_request: {
     message: "Request cancelled by admin",
@@ -124,33 +124,65 @@ const messageTypes = {
     message: "Driver cancelled request",
     details: "Driver cancelled the transport request",
   },
-  passenger_rejected_request: {
-    message: "Passenger rejected request",
-    details: "Passenger rejected the driver's offer",
+  shipper_rejected_request: {
+    message: "Shipper rejected request",
+    details: "Shipper rejected the driver's offer",
   },
   driver_rejected_request: {
     message: "Driver rejected request",
-    details: "Driver rejected the passenger's request",
+    details: "Driver rejected the shipper's request",
   },
   wrong_email_reported: {
     message: "Email reported as incorrect",
-    details: "The recipient reported that this email was sent to them by mistake. Please check for typos.",
+    details:
+      "The recipient reported that this email was sent to them by mistake. Please check for typos.",
   },
   email_verified_token_update: {
     message: "Email verified - Token updated",
-    details: "Your email has been verified. Here is your updated security token.",
+    details:
+      "Your email has been verified. Here is your updated security token.",
   },
   force_logout_phone_change: {
     message: "Phone number updated - Session Revoked",
-    details: "Your phone number has been changed. For security reasons, you have been logged out. Please verify your new number and log in again.",
+    details:
+      "Your phone number has been changed. For security reasons, you have been logged out. Please verify your new number and log in again.",
   },
   create_vehicle: {
     message: "New vehicle registered",
-    details: "When a driver registers a new vehicle and it needs to be attached with documents.",
+    details:
+      "When a driver registers a new vehicle and it needs to be attached with documents.",
   },
   accept_reject_driver_document: {
     message: "Driver document status updated",
     details: "When an admin accepts or rejects a driver's document.",
+  },
+  company_bid_accepted: {
+    message: "Company bid accepted",
+    details:
+      "When a shipper accepts a transport company's bid for a freight batch.",
+  },
+  company_bid_rejected: {
+    message: "Company bid rejected",
+    details: "When a shipper rejects a transport company's bid.",
+  },
+  company_bid_cancelled: {
+    message: "Company bid cancelled",
+    details: "When a transport company bid is cancelled.",
+  },
+  company_bid_submitted: {
+    message: "Company submitted a bid",
+    details:
+      "When a transport company submits a bid for a freight batch, the shipper is notified.",
+  },
+  company_driver_assignment: {
+    message: "New freight assignment",
+    details:
+      "When a dispatcher assigns a driver to a freight job via company bid. Driver must confirm or reject.",
+  },
+  individual_replaced_by_company: {
+    message: "Individual job replaced by company assignment",
+    details:
+      "Your company has assigned you to a fleet freight job. Your previous individual shipper match has been released back to the open pool and is available for other drivers.",
   },
 };
 module.exports = messageTypes;

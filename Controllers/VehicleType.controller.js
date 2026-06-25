@@ -22,7 +22,7 @@ exports.createVehicleType = async (req, res, next) => {
       // 🔎 Check DB for duplicate name or icon
       await vehicleTypeService.checkVehicleTypeDuplicate({
         vehicleTypeName: req.body.vehicleTypeName,
-        vehicleTypeIconName: fileUrl,
+        vehicleTypeIconName: uniqueFilename,
       });
 
       // 📤 Upload after confirming

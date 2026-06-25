@@ -18,6 +18,7 @@ exports.createJourneyPayment = async (req, res, next) => {
         amount,
         paymentMethodUniqueId,
         paymentStatusUniqueId,
+        user: req.user,
       });
     });
 
@@ -43,7 +44,7 @@ exports.getAllJourneyPayments = async (req, res, next) => {
       paymentTimeFrom,
       paymentTimeTo,
       driverUniqueId,
-      passengerUniqueId,
+      shipperUniqueId,
     } = req.query;
 
     const result = await journeyPaymentsService.getAllJourneyPayments({
@@ -59,7 +60,7 @@ exports.getAllJourneyPayments = async (req, res, next) => {
       paymentTimeFrom,
       paymentTimeTo,
       driverUniqueId,
-      passengerUniqueId,
+      shipperUniqueId,
     });
 
     ServerResponder(res, result);

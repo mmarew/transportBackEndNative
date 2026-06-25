@@ -5,14 +5,14 @@ exports.createPayment = Joi.object({
   journeyId: uuidSchema.required(), // using uuidSchema assuming journeyId is UUID
   amount: Joi.number().min(0).required(),
   paymentMethodUniqueId: uuidSchema.required(),
-  paymentStatusUniqueId: Joi.number().integer().optional(),
+  paymentStatusUniqueId: uuidSchema.optional(),
   paymentTime: Joi.date().optional(),
 }).unknown(true);
 
 exports.updatePayment = Joi.object({
   amount: Joi.number().min(0).optional(),
   paymentMethodUniqueId: uuidSchema.optional(),
-  paymentStatusUniqueId: Joi.number().integer().optional(),
+  paymentStatusUniqueId: uuidSchema.optional(),
   paymentTime: Joi.date().optional(),
 }).unknown(true);
 

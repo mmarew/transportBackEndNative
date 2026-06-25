@@ -97,7 +97,13 @@ const createVehicleOwnership = async (body) => {
     connection,
   });
 
-  return { message: "success", data: result };
+  return { 
+    message: "success", 
+    data: {
+      ownershipUniqueId,
+      result
+    } 
+  };
 };
 
 const updateVehicleOwnership = async (body) => {

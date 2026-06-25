@@ -56,7 +56,7 @@
           },
           "roleId": {
             "type": "integer",
-            "description": "Role ID (1=Passenger, 2=Driver, 3=Admin)"
+            "description": "Role ID (1=Shipper, 2=Driver, 3=Admin)"
           },
           "statusId": {
             "type": "integer",
@@ -146,7 +146,7 @@
     "/api/user/createUser": {
       "post": {
         "summary": "Create User",
-        "description": "Create a new user (passenger or driver)",
+        "description": "Create a new user (shipper or driver)",
         "security": [],
         "requestBody": {
           "required": true,
@@ -211,7 +211,7 @@
                 "properties": {
                   "roleId": {
                     "type": "integer",
-                    "description": "Role ID (1=Passenger, 2=Driver, 3=Admin)"
+                    "description": "Role ID (1=Shipper, 2=Driver, 3=Admin)"
                   },
                   "OTP": {
                     "type": "string",

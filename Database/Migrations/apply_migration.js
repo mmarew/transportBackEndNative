@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { pool } = require("../Middleware/Database.config");
+const { pool } = require("../../Middleware/Database.config");
 
 
 async function applyMigration() {

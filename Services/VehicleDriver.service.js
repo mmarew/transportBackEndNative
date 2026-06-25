@@ -3,7 +3,7 @@ const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const logger = require("../Utils/logger");
+
 const { transactionStorage } = require("../Utils/TransactionContext");
 
 // Create a new VehicleDriver assignment
@@ -76,35 +76,6 @@ const createVehicleDriver = async (data) => {
 
   if (!result.affectedRows) {
     throw new AppError("Insert failed", 500);
-  }
-
-  // Automatically update driver status after vehicle assignment (best-effort; vehicle is already assigned)
-  try {
-    const { accountStatus } = require("./Account.service");
-    const { usersRoles } = require("../Utils/ListOfSeedData");
-    await accountStatus({
-      ownerUserUniqueId: driverUserUniqueId,
-      body: { roleId: usersRoles.driverRoleId },
-    });
-  } catch (statusError) {
-    const isUserNotFound =
-      statusError?.message?.includes("User not found") ||
-      statusError?.message?.includes("role status not found");
-    if (isUserNotFound) {
-      logger.warn("Driver status not updated after vehicle assignment (user/role status not found)", {
-        driverUserUniqueId,
-        vehicleUniqueId,
-        hint: "Ensure driver has UserRole and UserRoleStatusCurrent for driver role",
-      });
-    } else {
-      logger.error("Failed to update driver status after vehicle assignment", {
-        error: statusError.message,
-        driverUserUniqueId,
-        vehicleUniqueId,
-        assignmentStatus,
-      });
-    }
-    // Don't fail the vehicle assignment if status update fails
   }
 
   return { message: "success", data: { vehicleDriverUniqueId } };
@@ -298,37 +269,17 @@ const updateVehicleDriverByUniqueId = async (
     throw new AppError("Update failed or assignment not found", 404);
   }
 
-  // Get the updated record to get driverUserUniqueId
-  const [updatedRecord] = await executor.query(
-    "SELECT driverUserUniqueId FROM VehicleDriver WHERE vehicleDriverUniqueId = ?",
+  // Fetch driverUserUniqueId so controller can refresh status post-commit.
+  // Single PK lookup — negligible cost even inside transaction.
+  const [[record]] = await executor.query(
+    "SELECT driverUserUniqueId FROM VehicleDriver WHERE vehicleDriverUniqueId = ? LIMIT 1",
     [vehicleDriverUniqueId],
   );
 
-  if (updatedRecord.length > 0) {
-    const driverUserUniqueId = updatedRecord[0].driverUserUniqueId;
-
-    // Automatically update driver status after vehicle assignment update
-    try {
-      const { accountStatus } = require("./Account.service");
-      const { usersRoles } = require("../Utils/ListOfSeedData");
-      await accountStatus({
-        ownerUserUniqueId: driverUserUniqueId,
-        body: { roleId: usersRoles.driverRoleId },
-      });
-    } catch (statusError) {
-      logger.error(
-        "Failed to update driver status after vehicle assignment update",
-        {
-          error: statusError.message,
-          driverUserUniqueId,
-          vehicleDriverUniqueId,
-        },
-      );
-      // Don't fail the vehicle update if status update fails
-    }
-  }
-
-  return { message: "success", data: { updated: true } };
+  return {
+    message: "success",
+    data: { updated: true, driverUserUniqueId: record?.driverUserUniqueId },
+  };
 };
 
 // Delete assignment
@@ -358,27 +309,7 @@ const deleteVehicleDriverByUniqueId = async (vehicleDriverUniqueId) => {
     throw new AppError("Delete failed or assignment not found", 404);
   }
 
-  // Automatically update driver status after vehicle assignment deletion
-  try {
-    const { accountStatus } = require("./Account.service");
-    const { usersRoles } = require("../Utils/ListOfSeedData");
-    await accountStatus({
-      ownerUserUniqueId: driverUserUniqueId,
-      body: { roleId: usersRoles.driverRoleId },
-    });
-  } catch (statusError) {
-    logger.error(
-      "Failed to update driver status after vehicle assignment deletion",
-      {
-        error: statusError.message,
-        driverUserUniqueId,
-        vehicleDriverUniqueId,
-      },
-    );
-    // Don't fail the vehicle deletion if status update fails
-  }
-
-  return { message: "success", data: { deleted: true } };
+  return { message: "success", data: { deleted: true, driverUserUniqueId } };
 };
 
 module.exports = {

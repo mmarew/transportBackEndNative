@@ -11,19 +11,26 @@ exports.createRating = async ({
   comment,
 }) => {
   try {
-    // before insert first check availability of Ratings before via journeyDecisionUniqueId,
-    const checkAvailability = await exports.getAllRatings({
-      journeyDecisionUniqueId,
-      limit: 1,
-    });
-    if (
-      checkAvailability &&
-      checkAvailability.data &&
-      checkAvailability.data.ratings.length > 0
-    ) {
-      throw new AppError("Rating already exists for this journey", 400);
+    const executor = transactionStorage.getStore() || pool;
+
+    const [existing] = await executor.query(
+      "SELECT ratingId, rating, comment FROM Ratings WHERE journeyDecisionUniqueId = ?",
+      [journeyDecisionUniqueId],
+    );
+    if (existing.length > 0) {
+      return {
+        message: "success",
+        data: {
+          journeyDecisionUniqueId,
+          ratedBy,
+          rating: existing[0].rating,
+          comment: existing[0].comment,
+          ratingId: existing[0].ratingId,
+        },
+      };
     }
-    const sql = `INSERT INTO Ratings (journeyDecisionUniqueId, ratedBy, rating, comment,ratingCreatedBy,ratingCreatedAt) VALUES (?, ?, ?, ?,?,?)`;
+
+    const sql = `INSERT INTO Ratings (journeyDecisionUniqueId, ratedBy, rating, comment, ratingCreatedBy, ratingCreatedAt) VALUES (?, ?, ?, ?, ?, ?)`;
     const values = [
       journeyDecisionUniqueId,
       ratedBy,
@@ -32,7 +39,6 @@ exports.createRating = async ({
       ratedBy,
       currentDate(),
     ];
-    const executor = transactionStorage.getStore() || pool;
     const [result] = await executor.query(sql, values);
 
     return {
@@ -46,6 +52,25 @@ exports.createRating = async ({
       },
     };
   } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      const executor = transactionStorage.getStore() || pool;
+      const [existing] = await executor.query(
+        "SELECT ratingId, rating, comment FROM Ratings WHERE journeyDecisionUniqueId = ?",
+        [journeyDecisionUniqueId],
+      );
+      if (existing.length > 0) {
+        return {
+          message: "success",
+          data: {
+            journeyDecisionUniqueId,
+            ratedBy,
+            rating: existing[0].rating,
+            comment: existing[0].comment,
+            ratingId: existing[0].ratingId,
+          },
+        };
+      }
+    }
     throw new AppError(
       error.message || "Unable to create rating",
       error.statusCode || 500,
@@ -162,21 +187,44 @@ exports.getRatingById = async (ratingId) => {
   throw new AppError("Rating not found", 404);
 };
 
-// Update a specific rating by ID
+// Update a specific rating by ID (partial update — only sets provided fields)
 exports.updateRating = async (ratingId, rating, comment, updatedBy) => {
-  const sql = `UPDATE Ratings SET rating = ?, comment = ?, ratingUpdatedBy = ?, ratingUpdatedAt = ? WHERE ratingId = ?`;
-  const values = [rating, comment, updatedBy, currentDate(), ratingId];
+  const setParts = [];
+  const values = [];
+
+  if (rating !== undefined) {
+    setParts.push("rating = ?");
+    values.push(rating);
+  }
+  if (comment !== undefined) {
+    setParts.push("comment = ?");
+    values.push(comment);
+  }
+  if (updatedBy !== undefined) {
+    setParts.push("ratingUpdatedBy = ?");
+    values.push(updatedBy);
+  }
+
+  if (setParts.length === 0) {
+    throw new AppError("No fields provided to update", 400);
+  }
+
+  setParts.push("ratingUpdatedAt = ?");
+  values.push(currentDate());
+  values.push(ratingId);
+
+  const sql = `UPDATE Ratings SET ${setParts.join(", ")} WHERE ratingId = ?`;
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
 
-  if (result.affectedRows > 0) {
-    return {
-      message: "success",
-      data: { ratingId, rating, comment, updatedBy },
-    };
-  } else {
+  if (result.affectedRows === 0) {
     throw new AppError("Failed to update rating", 500);
   }
+
+  return {
+    message: "success",
+    data: { ratingId, rating, comment },
+  };
 };
 
 // Delete a specific rating by ID (Soft Delete)

@@ -14,10 +14,11 @@ const {
   roleParams,
   getAllRolesQuery,
 } = require("../Validations/Role.schema");
+const { ROLE_ENDPOINTS } = require("./EndPoints/role.endpoints");
 
 // Define CRUD routes
 router.post(
-  "/api/admin/roles",
+  ROLE_ENDPOINTS.CREATE_ROLE,
   verifyTokenOfAxios,
   validator(createRole),
   controller.createRoleController,
@@ -31,7 +32,7 @@ router.post(
 //   controller.getRoleController
 // ); // Get a role by ID
 router.put(
-  "/api/admin/roles/:roleUniqueId",
+  ROLE_ENDPOINTS.UPDATE_ROLE,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(roleParams, "params"),
@@ -39,14 +40,14 @@ router.put(
   controller.updateRoleController,
 ); // Update a role by ID
 router.delete(
-  "/api/admin/roles/:roleUniqueId",
+  ROLE_ENDPOINTS.DELETE_ROLE,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(roleParams, "params"),
   controller.deleteRoleController,
 ); // Delete a role by ID
 router.get(
-  "/api/admin/roles",
+  ROLE_ENDPOINTS.GET_ALL_ROLES,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(getAllRolesQuery, "query"),

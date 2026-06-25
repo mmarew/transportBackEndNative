@@ -1,20 +1,16 @@
 // routes/userRoutes.js
 const express = require("express");
-const controller = require("../Controllers/User.controller");
+const controller = require("../Controllers/User");
 const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
 const {
-  verifyAdminsIdentity,
   verifyIfOperationIsAllowedByUserDriver,
 } = require("../Middleware/VerifyUsersIdentity");
+const { USER_ENDPOINTS } = require("./EndPoints/user.endpoints");
 const upload = require("../Config/MulterConfig");
 
 const { validator } = require("../Middleware/Validator");
-// const loginRateLimiter = require("../Middleware/LoginRateLimiter");
+
 const {
-  createUser,
-  createUserByAdmin,
-  loginUser,
-  verifyUserByOTP,
   updateUser,
   userIdParams,
   ownerUserIdParams,
@@ -23,83 +19,8 @@ const {
 
 const router = express.Router();
 
-/**
- * @file Identity Verification & Authentication Rules:
- *
- * 1. MANDATORY FIELDS:
- *    - Both 'phoneNumber' and 'email' are mandatory for user creation.
- *    - If 'email' is missing, the system generates a standard placeholder (see Utils/GetPlaceholderEmail.js).
- *    - 'phoneNumber' must be provided by the user (no placeholders allowed).
- *
- * 2. CHANNEL INTEGRITY (Hybrid Verification):
- *    - Phone and Email MUST be verified through their respective channels separately.
- *    - Phone: Verified ONLY via SMS ('phoneOTP').
- *    - Email: Verified ONLY via Email Link ('emailVerificationToken').
- *
- * 3. TOKEN GENERATION & ROTATION:
- *    - If 'phoneOTP' is missing/null, a 6-digit code is generated and stored.
- *    - If 'emailVerificationToken' is missing/null, a secure UUID link is generated and stored.
- *
- * 4. MESSAGE DELIVERY LOGIC:
- *    - UNVERIFIED:
- *        - Phone not verified? Send 'phoneOTP' via SMS.
- *        - Email not verified? Send 'emailVerificationToken' via LINK (NOT OTP).
- *    - VERIFIED:
- *        - Phone verified? Send OTP not 'phoneOTP' via SMS.
- *        - Email verified? Send OTP not 'emailOTP' via EMAIL.
- *    - UNIFIED MODE:
- *        - If BOTH are verified, the SAME 6-digit OTP is sent to both channels (Phone + Email).
- */
-
-router.post(
-  "/api/user/createUser",
-  validator(createUser),
-  controller.createUser,
-);
-
-router.post(
-  "/api/admin/createUserByAdminOrSuperAdmin",
-  verifyTokenOfAxios,
-  verifyAdminsIdentity,
-  validator(createUserByAdmin),
-  controller.createUserByAdminOrSuperAdmin,
-);
-
-// log in / register user by phone number
-router.post(
-  "/api/user/loginUser",
-  validator(loginUser),
-  // loginRateLimiter(),
-  controller.loginUser,
-);
-
-/**
- * @route POST /api/user/verifyUserByOTP
- * @description Verifies user identity using a 6-digit OTP. Supports hybrid identity verification.
- * Depending on the user's verification state, the system may require a channel-specific OTP
- * or accept a unified OTP.
- *
- * @body {string} [phoneNumber] - The user's registered phone number (required if email is absent).
- * @body {string} [email] - The user's registered email (required if phoneNumber is absent).
- * @body {string} OTP - The 6-digit verification code.
- * @body {number} roleId - The role ID the user is attempting to log in as.
- *
- * @access Public
- */
-router.post(
-  "/api/user/verifyUserByOTP",
-  // loginRateLimiter({ limit: 5 }), // Stricter limit for OTP attempts
-  validator(verifyUserByOTP),
-  controller.verifyUserByOTP,
-);
-
-router.get("/api/user/verify-email", controller.verifyEmail);
-router.get("/api/user/verify-phone", controller.verifyPhone);
-router.post("/api/user/verify-phone", controller.verifyPhone);
-router.get("/api/user/report-wrong-email", controller.reportWrongEmail);
-
 router.put(
-  "/api/user/updateUser/:ownerUserUniqueId",
+  USER_ENDPOINTS.UPDATE_USER,
   verifyTokenOfAxios,
   verifyIfOperationIsAllowedByUserDriver,
   upload.any(),
@@ -109,17 +30,32 @@ router.put(
 );
 
 router.delete(
-  "/api/user/users/:userUniqueId",
+  USER_ENDPOINTS.GET_USER_BY_ID,
   verifyTokenOfAxios,
   validator(userIdParams, "params"),
   controller.deleteUser,
 );
 
 router.get(
-  "/api/admin/getUserByFilterDetailed",
+  USER_ENDPOINTS.GET_USER_BY_FILTER_DETAILED,
   verifyTokenOfAxios,
   validator(getUserFilter, "query"),
   controller.getUserByFilterDetailed,
+);
+
+/**
+ * @route   GET /api/user/users/:userUniqueId/profileHistory
+ * @desc    Audit log of user PROFILE changes only (fullName, phone, email).
+ *          NOT journey/job history — separate concern.
+ *          One row per field per event, newest first.
+ * @access  Private (Admin or the user themselves)
+ * @query   page?, limit?, fieldName? (e.g. 'phoneNumber'), source? (e.g. 'profile_update')
+ */
+router.get(
+  USER_ENDPOINTS.GET_USER_PROFILE_HISTORY,
+  verifyTokenOfAxios,
+  validator(userIdParams, "params"),
+  controller.getUserProfileHistory,
 );
 
 module.exports = router;
