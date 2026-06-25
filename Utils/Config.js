@@ -112,6 +112,7 @@ const Config = {
   // Redis / Upstash
   REDIS: {
     URL: process.env.UPSTASH_REDIS_URL,
+    PASSWORD: process.env.REDIS_PASSWORD,
   },
 };
 

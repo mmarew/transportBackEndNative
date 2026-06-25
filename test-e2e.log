@@ -154,3 +154,118 @@ payload {
 ✅ Document types fetched: 10
 ✅ Document type created: b1bc5475-b2c8-4d71-b4dc-91936af21ceb
 ✅ Document types fetched: 10
+✅ Document type updated: b1bc5475-b2c8-4d71-b4dc-91936af21ceb
+✅ Document types fetched: 10
+✅ Document type deleted: b1bc5475-b2c8-4d71-b4dc-91936af21ceb
+✅ Document types fetched: 10
+── Document Types Workflow complete ──
+
+
+── RoleDocumentRequirements Workflow ──
+✅ RoleDocumentRequirements fetched: 10
+✅ RoleDocumentRequirements fetched: 2
+✅ RoleDocumentRequirement created: c8e7ee00-3ca0-4bda-b54c-82a0e9bc37ee
+✅ RoleDocumentRequirements fetched: 10
+✅ RoleDocumentRequirement updated: c8e7ee00-3ca0-4bda-b54c-82a0e9bc37ee
+✅ RoleDocumentRequirements fetched: 10
+✅ RoleDocumentRequirement deleted: c8e7ee00-3ca0-4bda-b54c-82a0e9bc37ee
+✅ RoleDocumentRequirements fetched: 10
+── RoleDocumentRequirements Workflow complete ──
+
+
+── Status Workflow ──
+✅ Statuses fetched: 8
+✅ Status created: b516aa39-2e70-4b48-b56f-2a64f2ba26ac
+✅ Statuses fetched: 9
+✅ Status updated: b516aa39-2e70-4b48-b56f-2a64f2ba26ac
+✅ Statuses fetched: 9
+✅ Status deleted: b516aa39-2e70-4b48-b56f-2a64f2ba26ac
+✅ Statuses fetched: 8
+── Status Workflow complete ──
+
+
+── TariffRate Workflow ──
+✅ TariffRates fetched: 2
+✅ TariffRate created: 4cd62f12-9b53-4c61-8b06-659921a16c13
+✅ TariffRates fetched: 3
+✅ TariffRate updated: 4cd62f12-9b53-4c61-8b06-659921a16c13
+✅ TariffRates fetched: 3
+✅ TariffRate deleted: 4cd62f12-9b53-4c61-8b06-659921a16c13
+✅ TariffRates fetched: 2
+── TariffRate Workflow complete ──
+
+
+── DepositSource Workflow ──
+✅ DepositSources fetched: 2
+✅ DepositSource created: b4920394-b12a-4d3b-afc8-1a933fe749eb
+✅ DepositSources fetched: 3
+✅ DepositSource fetched by ID: b4920394-b12a-4d3b-afc8-1a933fe749eb
+✅ DepositSource updated: b4920394-b12a-4d3b-afc8-1a933fe749eb
+✅ DepositSources fetched: 3
+✅ DepositSource deleted: b4920394-b12a-4d3b-afc8-1a933fe749eb
+✅ DepositSources fetched: 3
+── DepositSource Workflow complete ──
+
+
+── FinancialInstitutionAccount Workflow ──
+✅ FinancialInstitutionAccounts fetched: 2
+✅ FinancialInstitutionAccount created: f37980e7-c314-41f0-b628-d2df8e39a48b
+✅ FinancialInstitutionAccounts fetched: 3
+✅ FinancialInstitutionAccount updated: f37980e7-c314-41f0-b628-d2df8e39a48b
+✅ FinancialInstitutionAccounts fetched: 3
+✅ FinancialInstitutionAccount deleted: f37980e7-c314-41f0-b628-d2df8e39a48b
+✅ FinancialInstitutionAccounts fetched: 2
+── FinancialInstitutionAccount Workflow complete ──
+
+
+── CommissionStatus Workflow ──
+✅ CommissionStatuses fetched: 5
+✅ CommissionStatus created: 893da92b-f0a4-4006-8a24-767df10b01e7
+✅ CommissionStatuses fetched: 6
+✅ CommissionStatus updated: 893da92b-f0a4-4006-8a24-767df10b01e7
+✅ CommissionStatuses fetched: 6
+✅ CommissionStatus deleted: 893da92b-f0a4-4006-8a24-767df10b01e7
+✅ CommissionStatuses fetched: 5
+── CommissionStatus Workflow complete ──
+
+
+── PaymentStatus Workflow ──
+✅ PaymentStatuses fetched: 3
+✅ PaymentStatus created: c2b92257-3be2-4dc1-9b9f-eb16584d49be
+✅ PaymentStatuses fetched: 4
+✅ PaymentStatus updated: c2b92257-3be2-4dc1-9b9f-eb16584d49be
+✅ PaymentStatuses fetched: 4
+✅ PaymentStatus deleted: c2b92257-3be2-4dc1-9b9f-eb16584d49be
+✅ PaymentStatuses fetched: 3
+── PaymentStatus Workflow complete ──
+
+
+── PaymentMethod Workflow ──
+✅ PaymentMethods fetched: 3
+✅ PaymentMethod created: 970ad3e0-de6e-4c2f-bd7c-b46e2501bd12
+✅ PaymentMethods fetched: 4
+✅ PaymentMethod updated: 970ad3e0-de6e-4c2f-bd7c-b46e2501bd12
+✅ PaymentMethods fetched: 4
+✅ PaymentMethod deleted: 970ad3e0-de6e-4c2f-bd7c-b46e2501bd12
+✅ PaymentMethods fetched: 4
+── PaymentMethod Workflow complete ──
+
+
+── CommissionRates Workflow ──
+✅ CommissionRates fetched: 1
+✅ CommissionRate created: b0031650-a393-4355-a937-681b61df22cc
+✅ CommissionRates fetched: 2
+✅ CommissionRate updated: b0031650-a393-4355-a937-681b61df22cc
+✅ CommissionRates fetched: 2
+✅ CommissionRate deleted: b0031650-a393-4355-a937-681b61df22cc
+✅ CommissionRates fetched: 1
+✅ CommissionRate created: 55923867-402b-4f9c-9e43-70e77b6afb93
+── CommissionRates Workflow complete ──
+
+
+── SubscriptionPlan Workflow ──
+✅ SubscriptionPlans fetched: 4
+✅ SubscriptionPlan created: 896ca8ff-09c3-4c48-97fe-ab13056f9429
+✅ SubscriptionPlans fetched: 5
+✅ SubscriptionPlan updated: 896ca8ff-09c3-4c48-97fe-ab13056f9429
+✅ SubscriptionPlans fetched: 5

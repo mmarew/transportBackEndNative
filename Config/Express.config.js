@@ -18,6 +18,8 @@ try {
 
 const app = express();
 
+app.disable("x-powered-by");
+
 // Trust the reverse proxy (e.g., Vercel/NGINX/Heroku) so req.ip uses X-Forwarded-For
 // This must be set BEFORE using rate limiting or anything that relies on client IP
 // On Vercel, trusting the first proxy is sufficient
@@ -28,8 +30,14 @@ app.set("trust proxy", 1);
 // 1. Set security HTTP headers
 app.use(helmet());
 
-// 2. Enable CORS - In production, you should restrict this to your frontend's domain
-app.use(cors());
+// 2. Enable CORS - restrict to specific frontend domains
+const corsOptions = {
+  origin: ['https://company.dynamicsroute.tech', 'https://admin.dynamicsroute.tech', 'https://dynamicsroute.tech'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // 3. Rate Limiting - Protect against brute-force/DoS attacks
 const limiter = rateLimit({
@@ -40,6 +48,22 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(limiter); // Apply to all requests
+
+// Auth-specific rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/user', authLimiter);
+
+// HSTS header middleware
+app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
 
 // --- LOGGING ---
 const requestLogger = require("../Middleware/RequestLogger");

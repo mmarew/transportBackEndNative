@@ -41,76 +41,30 @@ const sendErrorDev = (err, req, res) => {
 };
 
 const sendErrorProd = (err, req, res) => {
-  if (err.isOperational) {
-    // Log client errors as warnings
-    if (err.statusCode >= 400 && err.statusCode < 500) {
-      logger.warn("Client Error", {
-        type: "CLIENT_ERROR",
-        message: err.message,
-        code: err.code,
-        statusCode: err.statusCode,
-        path: req.originalUrl,
-        method: req.method,
-        ip: req.ip,
-        userId: req.user?.userId,
-      });
-    } else {
-      // Log server errors appropriately
-      logger.application.apiError(err, req);
-    }
-
-    const errorResponse = {
-      status: "error",
-      message: "error",
-      error: err.message,
-      code: err.code,
-    };
-
-    if (err.details) {
-      errorResponse.details = err.details;
-    }
-
-    ServerResponder(res, errorResponse, err.statusCode);
-  } else {
-    // Programming or unknown errors - log as critical
-    logger.error("Critical Error", {
-      type: "CRITICAL_ERROR",
+  // Log all errors server-side for debugging
+  if (err.statusCode >= 400 && err.statusCode < 500) {
+    logger.warn("Client Error", {
+      type: "CLIENT_ERROR",
       message: err.message,
-      name: err.name,
-      stack: err.stack,
+      code: err.code,
+      statusCode: err.statusCode,
       path: req.originalUrl,
       method: req.method,
       ip: req.ip,
       userId: req.user?.userId,
-      timestamp: currentDate(),
     });
-
-    // In development, show full error details
-    if (Config.NODE_ENV === "development") {
-      ServerResponder(
-        res,
-        {
-          status: "error",
-          error: err.message,
-          name: err.name,
-          stack: err.stack,
-          code: "INTERNAL_SERVER_ERROR",
-        },
-        500,
-      );
-    } else {
-      ServerResponder(
-        res,
-        {
-          status: "error",
-          message: "error",
-          error: "Something went wrong!",
-          code: "INTERNAL_SERVER_ERROR",
-        },
-        500,
-      );
-    }
+  } else {
+    logger.application.apiError(err, req);
   }
+
+  ServerResponder(
+    res,
+    {
+      status: "error",
+      error: "Internal server error",
+    },
+    err.statusCode || 500,
+  );
 };
 
 // Express error handlers must have 4 parameters: (err, req, res, next)

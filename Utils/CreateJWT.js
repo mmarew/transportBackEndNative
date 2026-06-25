@@ -15,6 +15,7 @@ const createJWT = (userData) => {
       data: { ...userData },
     },
     secretKey,
+    { expiresIn: '24h' },
   );
 
   return { token, message: "success" };

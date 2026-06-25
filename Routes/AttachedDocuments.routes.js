@@ -11,7 +11,19 @@ const {
 } = require("../Middleware/AuthorizeDocumentAccess");
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = ["image/jpeg", "image/png", "application/pdf"];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only JPEG, PNG, and PDF files are allowed!"), false);
+  }
+};
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 const { validator } = require("../Middleware/Validator");
 const {

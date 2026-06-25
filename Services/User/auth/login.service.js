@@ -220,7 +220,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
     }
   });
   if (!userDataResult || userDataResult.length === 0) {
-    throw new AppError("User not found at this phone/email address. Please sign up first.", 404);
+    throw new AppError("Invalid credentials", 404);
   }
 
   // Group roles for the found user
@@ -232,7 +232,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   // Find the specific role the user is trying to log into
   const roleEntry = userDataResult.find(row => row.roleId === roleId);
   if (!roleEntry) {
-    throw new AppError("User not found at this role. Please sign up for this role first.", 404);
+    throw new AppError("Invalid credentials", 404);
   }
   return await handleExistingUser({
     requestedFrom: "user",
