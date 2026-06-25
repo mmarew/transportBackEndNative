@@ -6,12 +6,12 @@ const path = require("path");
 const createDriverDocument = async (token, documentType) => {
   const form = new FormData();
 
-  const dummyFilePath = path.join(__dirname, "../dummy.txt");
+  const dummyFilePath = path.join(__dirname, "../dummy.png");
   const fileBuffer = fs.readFileSync(dummyFilePath);
   form.append(
     documentType.uploadedDocumentName,
-    new Blob([fileBuffer]),
-    "dummy.txt",
+    new Blob([fileBuffer], { type: "image/png" }),
+    "dummy.png",
   );
 
   form.append(documentType.uploadedDocumentTypeId, documentType.documentTypeId);

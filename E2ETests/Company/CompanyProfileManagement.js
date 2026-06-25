@@ -141,7 +141,7 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
       return;
     }
 
-    const dummyFilePath = path.join(__dirname, "../dummy.txt");
+    const dummyFilePath = path.join(__dirname, "../dummy.png");
     const fileBuffer = fs.readFileSync(dummyFilePath);
     const url =
       backendURL + `/api/company/attachDocuments/${company.companyUniqueId}`;
@@ -151,8 +151,8 @@ const attachCompanyDocuments = async ({ userType = "companyAdmin" }) => {
 
       form.append(
         documentType.uploadedDocumentName,
-        new Blob([fileBuffer]),
-        "dummy.txt",
+        new Blob([fileBuffer], { type: "image/png" }),
+        "dummy.png",
       );
 
       form.append(

@@ -10,7 +10,7 @@ const { DRIVER_REQUEST_ENDPOINTS } = require("../../Routes/EndPoints/driverReque
 const { pool } = require("../../Middleware/Database.config");
 
 
-const waitForSocketMessage = (socket, eventName, timeoutMs = 10000) => {
+const waitForSocketMessage = (socket, eventName, timeoutMs = 10000, predicate) => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Timeout waiting for ${eventName} on socket`));
@@ -19,6 +19,7 @@ const waitForSocketMessage = (socket, eventName, timeoutMs = 10000) => {
     const handler = (rawData) => {
       try {
         const data = typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+        if (predicate && !predicate(data)) return; // not the message we want
         clearTimeout(timer);
         socket.off(eventName, handler);
         resolve(data);
@@ -134,6 +135,12 @@ const testSocketNotifications = async () => {
     report.pass("shipperSocketConnected");
     console.log("");
 
+    // Step 2.5: Start listening for driver_found_shipper_request BEFORE triggering it
+    // (Otherwise the notification sent during step 3 is delivered before we register the handler)
+    const shipperFoundPromise = waitForSocketMessage(shipperSocket, "messages", 10000,
+      (data) => data?.messageTypes?.message === "Driver found shipper request."
+    );
+
     // Step 3: Create driver matching request (auto-matches the shipper request)
     console.log("── Creating driver request (auto-match) ──");
     const drPayload = {
@@ -157,17 +164,15 @@ const testSocketNotifications = async () => {
     console.log("");
 
     // Step 5: Wait for driver_found_shipper_request on SHIPPER socket
-    // (sent by handleJourneyStatusOne.service.js when driver matches a shipper request)
     console.log("── Waiting for driver_found_shipper_request on SHIPPER socket ──");
-    const foundMsg = await waitForSocketMessage(shipperSocket, "messages", 10000);
-    const foundType = typeof foundMsg === "string" ? JSON.parse(foundMsg) : foundMsg;
-    if (foundType?.messageTypes?.message === "Driver found shipper request.") {
-      report.pass("shipperReceived_driver_found_shipper_request");
-    } else {
-      report.fail("shipperReceived_driver_found_shipper_request", `Unexpected: ${JSON.stringify(foundType?.messageTypes)}`);
-    }
+    await shipperFoundPromise;
+    report.pass("shipperReceived_driver_found_shipper_request");
 
     // Step 6: Driver accepts the shipper request
+    // Start listening BEFORE the accept to avoid race
+    const driverAcceptedPromise = waitForSocketMessage(shipperSocket, "messages", 10000,
+      (data) => data?.messageTypes?.message === "Driver accepted shipper request."
+    );
     console.log("── Driver accepting shipper request ──");
     const driverStatusRes = await axios.get(
       backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
@@ -186,15 +191,14 @@ const testSocketNotifications = async () => {
 
     // Step 7: Wait for driver_accepted_shipper_request on shipper socket
     console.log("── Waiting for driver_accepted_shipper_request on shipper socket ──");
-    const driverAcceptedMsg = await waitForSocketMessage(shipperSocket, "messages", 10000);
-    const daType = typeof driverAcceptedMsg === "string" ? JSON.parse(driverAcceptedMsg) : driverAcceptedMsg;
-    if (daType?.messageTypes?.message === "Driver accepted shipper request.") {
-      report.pass("shipperReceived_driver_accepted_shipper_request");
-    } else {
-      report.fail("shipperReceived_driver_accepted_shipper_request", `Unexpected: ${JSON.stringify(daType?.messageTypes)}`);
-    }
+    await driverAcceptedPromise;
+    report.pass("shipperReceived_driver_accepted_shipper_request");
 
     // Step 8: Shipper accepts the driver
+    // Start listening BEFORE the accept to avoid race
+    const shipperAcceptedPromise = waitForSocketMessage(driverSocket, "messages", 10000,
+      (data) => data?.messageTypes?.message === "Shipper accepted your request"
+    );
     console.log("── Shipper accepting driver ──");
     const activeRes = await axios.get(
       backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER + "?journeyStatusId=3",
@@ -223,13 +227,8 @@ const testSocketNotifications = async () => {
 
     // Step 9: Wait for shipper_accepted_driver_request on driver socket
     console.log("── Waiting for shipper_accepted_driver_request on driver socket ──");
-    const shipperAcceptedMsg = await waitForSocketMessage(driverSocket, "messages", 10000);
-    const saType = typeof shipperAcceptedMsg === "string" ? JSON.parse(shipperAcceptedMsg) : shipperAcceptedMsg;
-    if (saType?.messageTypes?.message === "Shipper accepted your request") {
-      report.pass("driverReceived_shipper_accepted_driver_request");
-    } else {
-      report.fail("driverReceived_shipper_accepted_driver_request", `Expected shipper_accepted_driver_request, got: ${JSON.stringify(saType?.messageTypes)}`);
-    }
+    await shipperAcceptedPromise;
+    report.pass("driverReceived_shipper_accepted_driver_request");
 
     console.log("\n✅ Socket notification tests complete\n");
 
