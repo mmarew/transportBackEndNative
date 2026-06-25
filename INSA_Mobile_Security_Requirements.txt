@@ -1,0 +1,185 @@
+Mobile Application Security Testing Requirements Document
+
+Prepared By:
+Information Network Security Administration (INSA)
+2025
+
+Submitted by:
+[Client's Name / Organization]
+
+Submitted to:
+Information Network Security Administration (INSA)
+Cyber Security Audit Division
+Wollo Sefer, Addis Ababa, Ethiopia
+
+Contact Person:
+Tilahun Ejigu (Ph.D.)
+Cyber Security Audit Division Head
+Email: tilahune@insa.gov.et
+Mobile: +251 937 456 374
+
+Submission Date: [Insert Date]
+Due Date for Response: Within Five (5) Working Days from the Date of Receipt
+
+
+1. Background of INSA
+The Information Network Security Administration (INSA) is Ethiopia's leading government body entrusted with safeguarding the country's digital infrastructure and cyber ecosystem. Established with a vision to ensure national cyber sovereignty and resilience, INSA performs critical functions such as conducting cyber security audits, providing policy direction, issuing compliance guidelines, and offering technical support across various governmental and private institutions.
+
+INSA's Cyber Security Audit Division assesses the security posture of digital platforms including web applications, APIs, mobile applications, internal portals, and IT infrastructures. Our assessments identify vulnerabilities and recommend mitigation strategies aligned with global best practices.
+
+2. Introduction
+This document outlines the key requirements and submission expectations for organizations undergoing mobile applications security testing with INSA. The aim is to ensure robustness, confidentiality, and integrity of digital assets by identifying and addressing vulnerabilities. INSA applies leading methodologies and standards including OWASP Top 10, NIST guidelines, and ISO/IEC 27001.
+
+3. Mobile Application Security Audit Requirements
+
+3.1 Business Architecture and Design / Ecosystem of Mobile Applications (Mandatory)
+To initiate a mobile application security audit, the requesting organization must provide the following information and documentation:
+
+1. Business Architecture and Design
+   You must submit a detailed description of the business architecture and design of the mobile application.
+
+2. Data Flow Diagram (Mandatory)
+   You must provide a comprehensive data flow diagram that shows how data moves within the application, including storage, processing, and transmission.
+
+3. System Architecture Diagram with Database Relations (Mandatory)
+   You must submit a system architecture diagram that illustrates the overall structure, including backend services, databases, and their relationships.
+
+4. Native Applications (Mandatory)
+   If the application is native, you must specify the platform (Android/iOS) and provide details about the development framework and tools used.
+
+5. Hybrid Applications (Mandatory)
+   If the application is hybrid, you must describe the framework used (e.g., React Native, Flutter, Ionic) and how web views are secured.
+
+6. Progressive Web Apps (PWA)
+   If the application is a PWA, you must describe its deployment method, supported browsers, and offline capabilities. You should indicate how caching, service workers, and push notifications are implemented.
+
+7. Threat Model Mapping
+   You must submit a threat model mapping that identifies possible attack vectors (e.g., injection, insecure storage, broken authentication). It should outline the applied security controls and risk mitigation measures.
+
+8. System Functionality
+   You must describe all key functionalities of the mobile application, including authentication, payments, notifications, and integrations. You should highlight security-critical features such as financial transactions, sensitive data handling, or third-party APIs.
+
+9. Role / System Actor Relationship
+   You must provide a role-based access control (RBAC) model that maps system actors (users, admins, merchants, agents, etc.) to their permissions. You should explain restrictions applied to enforce least privilege and separation of duties.
+
+10. Test Account
+    You must provide at least one functional test account (user and admin, if applicable) with all required credentials and permissions.
+
+11. Source Code & Build Files (If Required for Audit)
+    You must provide the mobile application's latest build file (.apk for Android, .ipa for iOS). You should provide the source code or selected modules if required for deeper code review.
+
+12. API Documentation & Access
+    You must submit updated API documentation including endpoints, authentication, and response structures. You should provide test API keys and tokens for integration testing.
+
+13. Third-Party Services & SDKs
+    You must list all third-party services, libraries, and SDKs integrated into the application. You should include details of security measures for each (e.g., payment gateways, analytics tools).
+
+14. Authentication & Authorization Details
+    You must provide documentation of authentication mechanisms (password, biometrics, OAuth, tokens). You should submit details of session management and authorization controls.
+
+15. Compliance & Regulatory Requirements
+    You must declare compliance obligations relevant to the app (e.g., PCI DSS, local laws). You should provide internal security policies or standards applied.
+
+16. Secure Communication Details
+    You must document encryption methods (SSL/TLS, certificate pinning, data-at-rest protection). You should specify key management practices and protocols in use.
+
+17. Logging & Monitoring Setup
+    You must explain how the application logs user activity and security events. You should include details of monitoring and alerting systems.
+
+Table 1: Summary of the Above Requirements
++----------------------------------+-------------+
+| Requirement                      | Mandatory   |
++----------------------------------+-------------+
+| Business Architecture and Design | Yes         |
+| Data Flow Diagram                | Yes         |
+| System Architecture Diagram      | Yes         |
+| Native Applications              | Yes         |
+| Hybrid Applications              | Yes         |
+| Progressive Web Apps (PWA)       | Yes         |
+| Threat Model Mapping             | Yes         |
+| System Functionality             | Yes         |
+| Role / System Actor Relationship | Yes         |
+| Test Account                     | Yes         |
++----------------------------------+-------------+
+
+4. Purpose and Functionality of the Mobile Application (Mandatory)
+
+The following specific questions must be answered:
+
+1. OS Supported by the Mobile Application
+   The customer must specify the operating systems supported (Android, iOS, or both). The customer should include the minimum and maximum OS versions supported.
+
+2. Source Code or Binary (APK/IPA)
+   The customer must provide the latest application binary (.apk for Android, .ipa for iOS). If required, the customer should provide access to the source code or selected modules for in-depth static analysis.
+
+3. Specific Functionalities or Components for Detailed Testing
+   The customer must identify application components or features that require detailed testing (e.g., login, payment, file upload). The customer should highlight security-critical workflows that handle sensitive or financial data.
+
+4. Compliance or Security Requirements
+   The customer must declare compliance obligations applicable to the application (e.g., PCI DSS, GDPR, PSD2, local data protection laws). The customer should provide internal security standards or policies followed in development.
+
+5. Authentication Mechanisms Used
+   The customer must provide details of authentication mechanisms (e.g., password-based, biometrics, OTP, OAuth2, token-based). The customer should include session management and account recovery methods.
+
+6. Sensitive Data Stored or Transmitted
+   The customer must disclose any sensitive data types stored or transmitted by the application (e.g., PII, financial details, location, health records).
+
+Table 2: Summary of Purpose and Functionality Questions
++----------------------------------------------------------------------+-------------------+
+| Specific Question                                                    | Provide Information |
++----------------------------------------------------------------------+-------------------+
+| OS Supported by the mobile Application                               | Yes               |
+| Source code or binary (APK)                                          | Yes               |
+| Specific functionalities or components to test in detail?            | Yes               |
+| Specific compliance or security requirements?                        | Yes               |
+| Authentication mechanisms used                                       | Yes               |
+| Sensitive data stored or transmitted?                                | Yes               |
+| How sensitive data is handled within the application?                | Yes               |
+| Integration with third-party services or APIs?                      | Yes               |
+| Restrictions or limitations on testing approach or techniques?       | Yes               |
+| Known vulnerabilities or security concerns to be addressed?          | Yes               |
++----------------------------------------------------------------------+-------------------+
+
+5. Define the Specific Scope Clearly and Precisely (Mandatory)
+
+Use the following table format to define the scope:
+
++--------------------------------+----------------+
+| Name of Assets to be Audited   | Include (Yes/No)|
++--------------------------------+----------------+
+| APK / official link            |                |
+| Test account as required       |                |
+| Static Analysis                |                |
+| Dynamic Analysis               |                |
+| Automated Source Code Analysis |                |
++--------------------------------+----------------+
+
+6. Your Contact Information and Communication Channel
+
+Provide the following details:
+
++----------+---------------------------+-------------------------------+
+| Name     | Role                      | Address (mail and mobile)     |
++----------+---------------------------+-------------------------------+
+|          |                           |                               |
++----------+---------------------------+-------------------------------+
+
+7. Submission Instructions
+Submit all materials via INSA's Audit Request Portal. For sensitive files (e.g., source code or APKs), deliver those on CD/DVD to INSA's office or mail them to:
+
+Information Network Security Administration (INSA)
+Cyber Security Audit Division
+Wollo Sefer, Addis Ababa, Ethiopia
+Contact: Tilahun Ejigu (Ph.D.), Division Head
+Email: tilahune@insa.gov.et
+Mobile: +251 937 456 374
+
+8. Conclusion
+INSA is committed to working collaboratively to improve your organization's digital security posture. By submitting the required documentation within the specified timeline, you enable a comprehensive and accurate audit that enhances compliance, strengthens service delivery, and reduces exposure to cyber threats.
+
+Note: This document contains:
+1. Cover page and correct company name
+2. Background of organization
+3. Introduction
+4. Objective of this certificate requested
+5. Conclusion
