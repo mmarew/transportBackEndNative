@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: transport
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -u root -proot --silent 2>/dev/null; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i)"
+            sleep 2
+          done
+
+      - name: Create database tables
+        run: |
+          echo "Waiting for app to create tables... running a quick setup"
+          mysql -h 127.0.0.1 -u root -proot transport -e "SHOW TABLES;"
+
+      - name: Create .env
+        run: |
+          cat > .env << 'EOF'
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=transport
+          DB_USER=root
+          DB_PASSWORD=root
+          DB_CONNECT_TIMEOUT=10000
+          NODE_ENV=test
+          SECRET_KEY=abcd75TrF3
+          SUPER_ADMIN_FULL_NAME=Supper Admin
+          SUPER_ADMIN_PHONE=+251983222221
+          SUPER_ADMIN_EMAIL=supperAdmin@supperAdmin.com
+          SMS_TOKEN=placeholder
+          AFRO_BASE_URL=https://api.afromessage.com/api/send
+          SMS_SENDER=Dynamics.T
+          OTP_TEMPLATE=Your OTP code is #OTP#
+          SMTP_HOST=mail.example.com
+          SMTP_PORT=465
+          SMTP_USER=test
+          SMTP_PASS=test
+          FTP_HOST=ftp.example.com
+          FTP_USER=test
+          FTP_PASSWORD=test
+          FTP_UPLOADS_PATH=/uploads
+          Auto_desk=placeholder
+          API_KEY=placeholder
+          EOF
+
+      - name: Run tests
+        run: npx jest --no-coverage --forceExit
+        timeout-minutes: 5

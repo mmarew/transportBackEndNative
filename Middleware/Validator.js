@@ -21,8 +21,12 @@ const validator = (schema, source = "body") => {
       req.method === "POST" &&
       (!data || Object.keys(data).length === 0)
     ) {
-      //Request body cannot be empty
-      return next(new AppError("Error happened", 400));
+      return next(
+        new AppError(
+          `Request body cannot be empty for ${req.method} requests to ${path}`,
+          400,
+        ),
+      );
     }
 
     const { error, value } = schema.validate(data, {
@@ -32,10 +36,16 @@ const validator = (schema, source = "body") => {
     });
 
     if (error) {
+      const errMsg = error.details?.map((d) => d.message).join("; ");
       const details = error.details?.map((d) => ({
         field: d.path?.join(".") || d.context?.key,
         message: d.message,
       }));
+      // Always print to terminal regardless of Winston log level
+      console.error(`\n❌ VALIDATION FAILED [${method} ${path}]`);
+      console.error('   source  :', source);
+      console.error('   details :', JSON.stringify(details, null, 4));
+      console.error('   body    :', JSON.stringify(data, null, 4));
       logger.warn("@validator schema.validate failed", {
         method,
         path,
@@ -46,7 +56,7 @@ const validator = (schema, source = "body") => {
       return next(
         new AppError(
           {
-            message: "Validation failed",
+            message: errMsg || "Validation failed",
             code: "VALIDATION_ERROR",
             details,
           },

@@ -1,0 +1,175 @@
+// CRUD for Commission
+// Records platform commission per journey decision — links journey, rate, and status
+
+const axios = require("axios");
+const { backendURL, usersData } = require("../constants");
+const { authConfig } = require("../Utils");
+
+const BASE_URL = "/api/finance/commission";
+const cache = { data: null };
+
+const testGetCommissions = async ({ user, filters = {} } = {}) => {
+  try {
+    const token = user?.token || usersData.admin?.token;
+    if (!token) throw new Error("token not found");
+    const query = new URLSearchParams(filters).toString();
+    const url = query ? `${BASE_URL}?${query}` : BASE_URL;
+    const result = await axios.get(backendURL + url, authConfig(token));
+    console.log("✅ Commissions fetched:", result.data.data?.length ?? 0);
+    cache.data = result.data.data;
+    return result.data;
+  } catch (error) {
+    console.error(
+      "❌ testGetCommissions:",
+      error.response?.data?.error || error.message,
+    );
+    throw error;
+  }
+};
+
+const { v4: uuidv4 } = require("uuid");
+
+const seedDriverBalance = async () => {
+  try {
+    const token = usersData.driver?.token;
+    if (!token) return false;
+    const driverId = usersData?.driver?.accountData?.userData?.userUniqueId;
+    if (!driverId) return false;
+    const result = await axios.post(
+      backendURL + "/api/finance/userBalance",
+      {
+        amount: 50000,
+        driverUniqueId: driverId,
+        netBalance: 50000,
+        transactionType: "deposit",
+        transactionUniqueId: uuidv4(),
+      },
+      authConfig(token),
+    );
+    return result.data;
+  } catch (error) {
+    console.warn("⚠️  seedDriverBalance:", error.response?.data?.error || error.message);
+    return false;
+  }
+};
+
+const testCreateCommission = async ({ user, payload } = {}) => {
+  try {
+    const token = user?.token || usersData.admin?.token;
+    if (!token) throw new Error("token not found");
+    const journeyDecisionUniqueId =
+      payload?.journeyDecisionUniqueId ||
+      usersData?.driver?.lastJourneyDecisionUniqueId ||
+      usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+    if (!journeyDecisionUniqueId) {
+      console.warn(
+        "⏩ testCreateCommission skipped — no journeyDecisionUniqueId (run full journey flow first)",
+      );
+      return { skipped: true };
+    }
+    // Seed driver balance so commission deduction can succeed
+    await seedDriverBalance();
+    // Clear FixedData cache so we get a valid active commission rate
+    try {
+      await axios.get(backendURL + "/api/utils/clear-cache");
+    } catch { /* ignore */ }
+    const defaultPayload = {
+      journeyDecisionUniqueId,
+      commissionAmount: 250.0,
+      ...payload,
+    };
+    const result = await axios.post(
+      backendURL + BASE_URL,
+      defaultPayload,
+      authConfig(token),
+    );
+    console.log(
+      "✅ Commission created:",
+      result.data.data?.commissionUniqueId || result.data.commissionUniqueId,
+    );
+    return result.data;
+  } catch (error) {
+    console.error(
+      "❌ testCreateCommission:",
+      JSON.stringify(error.response?.data || error.message),
+    );
+    throw error;
+  }
+};
+
+const testUpdateCommission = async ({ user, id, payload } = {}) => {
+  try {
+    const token = user?.token || usersData.admin?.token;
+    if (!token) throw new Error("token not found");
+    const commissionId =
+      id || cache.data?.[0]?.commissionUniqueId || cache.data?.[0]?.id;
+    if (!commissionId) throw new Error("No commission ID found to update");
+    const defaultPayload = { commissionAmount: 300.0, ...payload };
+    const result = await axios.put(
+      `${backendURL}${BASE_URL}/${commissionId}`,
+      defaultPayload,
+      authConfig(token),
+    );
+    console.log("✅ Commission updated:", commissionId);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "❌ testUpdateCommission:",
+      error.response?.data?.error || error.message,
+    );
+    throw error;
+  }
+};
+
+const testDeleteCommission = async ({ user, id } = {}) => {
+  try {
+    const token = user?.token || usersData.admin?.token;
+    if (!token) throw new Error("token not found");
+    const commissionId =
+      id || cache.data?.[0]?.commissionUniqueId || cache.data?.[0]?.id;
+    if (!commissionId) throw new Error("No commission ID found to delete");
+    const result = await axios.delete(
+      `${backendURL}${BASE_URL}/${commissionId}`,
+      authConfig(token),
+    );
+    console.log("✅ Commission deleted:", commissionId);
+    return result.data;
+  } catch (error) {
+    console.error(
+      "❌ testDeleteCommission:",
+      error.response?.data?.error || error.message,
+    );
+    throw error;
+  }
+};
+
+const testCommissionWorkflow = async ({ user = usersData.admin } = {}) => {
+  console.log("\n── Commission Workflow ──");
+  await testGetCommissions({ user });
+  const created = await testCreateCommission({ user });
+  if (created?.skipped) {
+    console.log("⏩ Commission workflow skipped — missing prerequisites");
+    return { skipped: true };
+  }
+  const commissionId =
+    created?.data?.commissionUniqueId || created?.commissionUniqueId;
+  if (!commissionId) {
+    console.warn("⚠️  No ID returned — cannot continue workflow");
+    return { skipped: true };
+  }
+  await testGetCommissions({ user });
+  await testUpdateCommission({ user, id: commissionId });
+  await testGetCommissions({ user });
+  await testDeleteCommission({ user, id: commissionId });
+  await testGetCommissions({ user });
+  console.log("── Commission Workflow complete ──\n");
+  return { commissionId };
+};
+
+module.exports = {
+  testCommissionWorkflow,
+  testGetCommissions,
+  testCreateCommission,
+  testUpdateCommission,
+  testDeleteCommission,
+};

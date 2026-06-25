@@ -11,24 +11,25 @@ const {
   vehicleStatusParams,
   vehicleStatusQuery,
 } = require("../Validations/VehicleStatus.schema");
+const { VEHICLE_STATUS_ENDPOINTS } = require("./EndPoints/vehicleStatus.endpoints");
 
 // Define routes for CRUD operations
 router.post(
-  "/vehicleStatus",
+  VEHICLE_STATUS_ENDPOINTS.CREATE_VEHICLE_STATUS,
   verifyTokenOfAxios,
   validator(createVehicleStatus),
   vehicleStatusController.createVehicleStatus,
 );
 
 router.get(
-  "/vehicleStatus",
+  VEHICLE_STATUS_ENDPOINTS.GET_VEHICLE_STATUSES,
   verifyTokenOfAxios,
   validator(vehicleStatusQuery, "query"),
   vehicleStatusController.getVehicleStatuses,
 );
 
 router.put(
-  "/vehicleStatus/:vehicleStatusUniqueId",
+  VEHICLE_STATUS_ENDPOINTS.UPDATE_VEHICLE_STATUS,
   verifyTokenOfAxios,
   validator(vehicleStatusParams, "params"),
   validator(updateVehicleStatus),
@@ -36,7 +37,7 @@ router.put(
 );
 
 router.delete(
-  "/vehicleStatus/:vehicleStatusUniqueId",
+  VEHICLE_STATUS_ENDPOINTS.DELETE_VEHICLE_STATUS,
   verifyTokenOfAxios,
   validator(vehicleStatusParams, "params"),
   vehicleStatusController.deleteVehicleStatus,

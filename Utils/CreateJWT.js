@@ -12,9 +12,10 @@ const createJWT = (userData) => {
   // Create the token
   const token = jwt.sign(
     {
-      data: { ...userData },
+      data: { userUniqueId, phoneNumber, roleId },
     },
     secretKey,
+    { expiresIn: '24h' },
   );
 
   return { token, message: "success" };

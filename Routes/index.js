@@ -2,20 +2,67 @@ const Routes = require("express").Router();
 
 const routesArray = [
   { path: "/api/finance", handler: require("./finance") }, // All financial routes consolidated
-  require("./TariffRateForVehicleTypes.routes"),
-  require("./Ratings.routes"),
+  // ── Single-prefix routes (industry-standard: mounted with base prefix) ──
+  {
+    path: "/api/admin/tariffRateForVehicleType",
+    handler: require("./TariffRateForVehicleTypes.routes"),
+  },
+  { path: "/api/ratings", handler: require("./Ratings.routes") },
+  {
+    path: "/api/journeyRoutePoints",
+    handler: require("./JourneyRoutePoints.routes"),
+  },
+  {
+    path: "/api/shipperRequestBatch",
+    handler: require("./ShipperRequestBatch.routes"),
+  },
+  {
+    path: "/api/RoleDocumentRequirements",
+    handler: require("./RoleDocumentRequirements.routes"),
+  },
+  { path: "/api/documentTypes", handler: require("./DocumentTypes.routes") },
+  {
+    path: "/api/admin/userRoleStatus",
+    handler: require("./UserRoleStatus.routes"),
+  },
+  { path: "/api/admin/userStatuses", handler: require("./UserStatus.routes") },
+  { path: "/api/admin/userRole", handler: require("./UserRole.routes") },
+  { path: "/api/admin/vehicleTypes", handler: require("./VehicleType.routes") },
+  { path: "/api/vehicleDriver", handler: require("./VehicleDriver.routes") },
+  {
+    path: "/api/admin/vehicleOwnerships",
+    handler: require("./VehicleOwnership.routes"),
+  },
+  { path: "/api/vehicleStatus", handler: require("./VehicleStatus.routes") },
+  { path: "/api/admin/statuses", handler: require("./Status.routes") },
+  { path: "/api/admin/roles", handler: require("./Role.routes") },
+  {
+    path: "/api/admin/cancellationReasons",
+    handler: require("./CancellationReasonsType.routes"),
+  },
+  {
+    path: "/api/admin/journeyStatus",
+    handler: require("./JourneyStatus.routes"),
+  },
+  {
+    path: "/api/admin/delinquencyTypes",
+    handler: require("./DelinquencyTypes.routes"),
+  },
+  { path: "/api/admin/bannedUsers", handler: require("./BannedUsers.routes") },
+  {
+    path: "/api/admin/userDelinquency",
+    handler: require("./UserDelinquency.routes"),
+  },
+  {
+    path: "/api/admin/userDelinquencyDecisions",
+    handler: require("./AdminDecisionOnUserDelinquency.routes"),
+  },
+  // ── Multi-prefix routes (kept with absolute paths + bare mount) ──
   require("./JourneyDecisions.routes"),
   require("./Journey.routes"),
-  require("./JourneyRoutePoints.routes"),
   require("./CanceledJourneys.routes"),
-  require("./JourneyStatus.routes"),
   require("./Database.routes"),
-  require("./RoleDocumentRequirements.routes"),
   require("./AttachedDocuments.routes"),
-  require("./DocumentTypes.routes"),
-  require("./UserRoleStatus.routes"),
-  require("./UserStatus.routes"),
-  require("./UserRole.routes"),
   require("./VehicleStatusType.routes"),
   (() => {
     try {
@@ -28,30 +75,27 @@ const routesArray = [
   })(),
   (() => {
     try {
-      return require("./PassengerRequest.routes");
+      return require("./ShipperRequest.routes");
     } catch (error) {
-      console.error("ERROR LOADING PassengerRequest.routes:", error.message);
+      console.error("ERROR LOADING ShipperRequest.routes:", error.message);
       console.error(error.stack);
       throw error;
     }
   })(),
-  require("./VehicleOwnership.routes"),
   require("./Vehicle.routes"),
-  require("./VehicleStatus.routes"),
-  require("./Status.routes"),
-  require("./Role.routes"),
+  require("./Firebase.routes"),
+  require("./Health.routes"),
+  require("./SMSSender.routes"),
   require("./User.routes"),
   require("./Admin.routes"),
-  require("./CancellationReasonsType.routes"),
-  require("./VehicleType.routes"),
-  require("./SMSSender.routes"),
-  require("./Firebase.routes"),
-  require("./UserDelinquency.routes"),
-  require("./BannedUsers.routes"),
-  require("./DelinquencyTypes.routes"),
-  require("./VehicleDriver.routes"),
+  {
+    path: "/api/user/delinquencyResponse",
+    handler: require("./UserDelinquencyResponse.routes"),
+  },
   require("./Account.routes"),
-  require("./Health.routes"),
+  // Modular Company Routes
+  { path: "/api/company", handler: require("./company") },
+  { path: "/", handler: require("./auth") },
 ];
 
 // Register all routes

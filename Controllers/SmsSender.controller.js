@@ -8,10 +8,13 @@ const createSMSSender = async (req, res, next) => {
   try {
     const { phoneNumber, password } = req.body;
 
+    const SMSSenderCreatedBy = req.user?.userUniqueId;
+
     const result = await executeInTransaction(async () => {
       return await smsSenderService.createSMSSender({
         phoneNumber,
         password,
+        SMSSenderCreatedBy,
       });
     });
 

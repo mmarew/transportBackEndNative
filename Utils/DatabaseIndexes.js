@@ -227,7 +227,7 @@ const analyzeTable = async (tableName) => {
  * - UserRole: userUniqueId+roleId composite, userRoleUniqueId
  * - AttachedDocuments: userUniqueId+documentTypeId composite
  * - VehicleDriver: driverUserUniqueId+assignmentStatus composite
- * - PassengerRequest: userUniqueId+journeyStatusId composite
+ * - ShipperRequest: userUniqueId+journeyStatusId composite
  * - And more...
  *
  * @returns {Promise<Object>} Result object with:
@@ -295,14 +295,14 @@ const createCommonIndexes = async () => {
     },
     { table: "VehicleOwnership", columns: "ownershipUniqueId", unique: true },
 
-    // PassengerRequest table
+    // ShipperRequest table
     {
-      table: "PassengerRequest",
-      columns: "passengerRequestUniqueId",
+      table: "ShipperRequest",
+      columns: "shipperRequestUniqueId",
       unique: true,
     },
     {
-      table: "PassengerRequest",
+      table: "ShipperRequest",
       columns: ["userUniqueId", "journeyStatusId"],
       unique: false,
     },
@@ -323,7 +323,7 @@ const createCommonIndexes = async () => {
     },
     {
       table: "JourneyDecisions",
-      columns: ["passengerRequestId", "driverRequestId"],
+      columns: ["shipperRequestId", "driverRequestId"],
       unique: false,
     },
 
@@ -363,7 +363,7 @@ const createCommonIndexes = async () => {
   return {
     success: errors.length === 0,
     created: results.length,
-    errors: errors.length,
+    errorCount: errors.length,
     results,
     errors,
   };

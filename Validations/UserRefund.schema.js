@@ -8,7 +8,7 @@ exports.createUserRefund = Joi.object({
 }).unknown(true);
 
 exports.updateUserRefund = Joi.object({
-  status: Joi.string().valid("PENDING", "APPROVED", "REJECTED").optional(),
+  refundStatus: Joi.string().valid("requested", "approved").optional(),
   refundUrl: Joi.string().uri().optional(),
 }).unknown(true);
 

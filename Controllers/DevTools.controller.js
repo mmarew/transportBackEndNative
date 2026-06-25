@@ -3,7 +3,7 @@
  * Dev-only endpoints for testing. Only active when NODE_ENV !== 'production'.
  */
 const { pool } = require("../Middleware/Database.config");
-const { createAttachedDocument } = require("../Services/AttachedDocuments.service");
+const { createAttachedDocument } = require("../Services/AttachedDocuments");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 
 /**
@@ -18,11 +18,11 @@ const getUserOtp = async (req, res, next) => {
     }
 
     const [rows] = await pool.query(
-      `SELECT uc.otp, uc.otpExpiry, u.userUniqueId, u.phoneNumber
+      `SELECT uc.otpPlain AS otp, u.userUniqueId, u.phoneNumber
        FROM usersCredential uc
        JOIN Users u ON u.userUniqueId = uc.userUniqueId
        WHERE u.phoneNumber = ?
-       ORDER BY uc.otpExpiry DESC
+       ORDER BY uc.usersCredentialCreatedAt DESC
        LIMIT 1`,
       [phoneNumber],
     );

@@ -5,20 +5,42 @@ const {
   updateVehicleDriverByUniqueId,
   deleteVehicleDriverByUniqueId,
 } = require("../Services/VehicleDriver.service");
+const { accountStatus } = require("../Services/Account");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+
+// Shared helper — recalculates driver status on pool AFTER transaction is done.
+// Must be called outside executeInTransaction to avoid holding write locks.
+const refreshDriverStatus = async (driverUserUniqueId) => {
+  if (!driverUserUniqueId) {return;}
+  try {
+    await accountStatus({
+      ownerUserUniqueId: driverUserUniqueId,
+      body: { roleId: usersRoles.driverRoleId },
+    });
+  } catch (err) {
+    logger.warn("Driver status refresh failed (non-critical)", {
+      driverUserUniqueId,
+      error: err.message,
+    });
+  }
+};
 
 // POST /api/vehicleDriver
 const createVehicleDriverController = async (req, res, next) => {
   try {
     const body = req.body || {};
     const vehicleDriverCreatedBy = req.user?.userUniqueId;
+
+    // ── 1. Write only: transaction commits and releases connection immediately
     const result = await executeInTransaction(async () => {
-      return await createVehicleDriver({
-        ...body,
-        vehicleDriverCreatedBy,
-      });
+      return await createVehicleDriver({ ...body, vehicleDriverCreatedBy });
     });
+
+    // ── 2. Status recalc AFTER commit — uses a fresh pool connection, no locks
+    await refreshDriverStatus(body.driverUserUniqueId);
+
     ServerResponder(res, result, 201);
   } catch (error) {
     next(error);
@@ -51,12 +73,15 @@ const updateVehicleDriverController = async (req, res, next) => {
   try {
     const { vehicleDriverUniqueId } = req.params;
     const body = req.body || {};
+
+    // ── 1. Write only transaction
     const result = await executeInTransaction(async () => {
-      return await updateVehicleDriverByUniqueId(
-        vehicleDriverUniqueId,
-        body,
-      );
+      return await updateVehicleDriverByUniqueId(vehicleDriverUniqueId, body);
     });
+
+    // ── 2. Status recalc after commit using driverUserUniqueId returned by service
+    await refreshDriverStatus(result?.data?.driverUserUniqueId);
+
     ServerResponder(res, result, 200);
   } catch (error) {
     next(error);
@@ -67,9 +92,15 @@ const updateVehicleDriverController = async (req, res, next) => {
 const deleteVehicleDriverController = async (req, res, next) => {
   try {
     const { vehicleDriverUniqueId } = req.params;
+
+    // ── 1. Write only transaction
     const result = await executeInTransaction(async () => {
       return await deleteVehicleDriverByUniqueId(vehicleDriverUniqueId);
     });
+
+    // ── 2. Status recalc after commit
+    await refreshDriverStatus(result?.data?.driverUserUniqueId);
+
     ServerResponder(res, result, 200);
   } catch (error) {
     next(error);

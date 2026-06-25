@@ -17,7 +17,7 @@
 const requestCRUD = require("./requestCRUD.service");
 const requestActions = require("./requestActions.service");
 const journeyManagement = require("./journeyManagement.service");
-const statusVerification = require("./statusVerification.service");
+const statusVerification = require("./statusVerification");
 const cancellation = require("./cancellation.service");
 const helpers = require("./helpers");
 
@@ -33,9 +33,10 @@ module.exports = {
   // Request Actions
   takeFromStreet: requestActions.takeFromStreet,
   createAndAcceptNewRequest: requestActions.createAndAcceptNewRequest,
-  acceptPassengerRequest: requestActions.acceptPassengerRequest,
+  acceptShipperRequest: requestActions.acceptShipperRequest,
   noAnswerFromDriver: requestActions.noAnswerFromDriver,
   cancelDriverRequest: requestActions.cancelDriverRequest,
+  releaseConflictingOffers: requestActions.releaseConflictingOffers,
 
   // Journey Management
   startJourney: journeyManagement.startJourney,

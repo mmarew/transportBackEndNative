@@ -48,12 +48,12 @@ exports.getDriverEarningsByFilter = async ({
       SELECT 
         JourneyDecisions.*, 
         DriverRequest.*, 
-        PassengerRequest.* 
+        ShipperRequest.* 
       FROM JourneyDecisions
       JOIN DriverRequest 
         ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      JOIN PassengerRequest 
-        ON PassengerRequest.passengerRequestId = JourneyDecisions.passengerRequestId
+      JOIN ShipperRequest 
+        ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
       WHERE ${whereConditions.join(" AND ")}
       ORDER BY JourneyDecisions.journeyDecisionId DESC
       LIMIT ? OFFSET ?

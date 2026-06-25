@@ -16,13 +16,9 @@ const deleteData = async ({ tableName, conditions, operator = "AND" }) => {
 
   const sqlQuery = `DELETE FROM ${tableName} WHERE ${whereClause}`;
 
-  try {
     const queryExecutor = transactionStorage.getStore() || pool;
     const [result] = await queryExecutor.query(sqlQuery, values);
     return result; // Return the result object containing affectedRows, etc.
-  } catch (error) {
-    throw error;
-  }
 };
 
 module.exports = deleteData;

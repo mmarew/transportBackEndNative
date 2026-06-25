@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-Dynamics Transport Commission (DTC) is a **Freight Transportation Marketplace Platform** — similar in concept to Uber Freight — that connects **shippers** (passengers) who need to transport goods with **truck drivers** who have available vehicles. The platform operates as a digital logistics marketplace facilitating the entire journey from request creation to delivery completion across **Ethiopia** and **Djibouti**. Revenue comes from **commission on completed journeys** and **driver subscription plans** (ETB). The system supports **online bidding**, **take-from-street** pickups, and **call center** booking.
+Dynamics Transport Commission (DTC) is a **Freight Transportation Marketplace Platform** — similar in concept to Uber Freight — that connects **shippers** (shippers) who need to transport goods with **truck drivers** who have available vehicles. The platform operates as a digital logistics marketplace facilitating the entire journey from request creation to delivery completion across **Ethiopia** and **Djibouti**. Revenue comes from **commission on completed journeys** and **driver subscription plans** (ETB). The system supports **online bidding**, **take-from-street** pickups, and **call center** booking.
 
 ---
 
@@ -30,8 +30,8 @@ To become the leading logistics technology platform across East Africa, enabling
 
 **Core Value Proposition**
 
-| For Shippers | For Drivers | For Platform |
-|--------------|-------------|--------------|
+| For Shippers                                                                    | For Drivers                                                   | For Platform                                                                            |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Easy access to verified drivers with appropriate vehicles for their cargo needs | Steady stream of transportation jobs and income opportunities | Commission-based revenue from completed journeys plus subscription revenue from drivers |
 
 **Target Market**
@@ -92,20 +92,20 @@ The platform manages 15 distinct journey states:
 1. **Waiting** — Shipper created request; waiting for driver match.
 2. **Requested** — Request sent to driver(s); driver has not yet responded.
 3. **Accepted by Driver** — Driver accepted and submitted bid.
-4. **Accepted by Passenger** — Shipper selected this driver.
+4. **Accepted by Shipper** — Shipper selected this driver.
 5. **Journey Started** — Driver started the trip; GPS tracking active.
 6. **Journey Completed** — Delivery done; payment and rating follow.
 
 **Terminal states (7–15):**
 
-7. Cancelled by Passenger  
-8. Rejected by Passenger (one driver’s offer rejected)  
-9. Cancelled by Driver  
-10. Cancelled by Admin  
-11. Completed by Admin (manual completion)  
-12. Cancelled by System (e.g. timeout)  
-13. No Answer from Driver (reassign to another driver)  
-14. Not Selected in Bid (driver bid but shipper chose another)  
+7. Cancelled by Shipper
+8. Rejected by Shipper (one driver’s offer rejected)
+9. Cancelled by Driver
+10. Cancelled by Admin
+11. Completed by Admin (manual completion)
+12. Cancelled by System (e.g. timeout)
+13. No Answer from Driver (reassign to another driver)
+14. Not Selected in Bid (driver bid but shipper chose another)
 15. Rejected by Driver (driver declined before accepting)
 
 ### 3.2 Take From Street (On-The-Spot Pickup)
@@ -136,40 +136,40 @@ The platform manages **15 distinct journey states**:
 
 **Active states (1–6):**
 
-| ID | Status | Description |
-|----|--------|-------------|
-| 1 | Waiting | Shipper created request; waiting for driver match. |
-| 2 | Requested | Request sent to driver(s); driver has not yet accepted. |
-| 3 | Accepted by Driver | Driver accepted and submitted bid; shipper has not selected. |
-| 4 | Accepted by Passenger | Shipper selected this driver; journey can start. |
-| 5 | Journey Started | Driver started the trip; GPS tracking active. |
-| 6 | Journey Completed | Delivery completed; payment and rating follow. |
+| ID  | Status              | Description                                                  |
+| --- | ------------------- | ------------------------------------------------------------ |
+| 1   | Waiting             | Shipper created request; waiting for driver match.           |
+| 2   | Requested           | Request sent to driver(s); driver has not yet accepted.      |
+| 3   | Accepted by Driver  | Driver accepted and submitted bid; shipper has not selected. |
+| 4   | Accepted by Shipper | Shipper selected this driver; journey can start.             |
+| 5   | Journey Started     | Driver started the trip; GPS tracking active.                |
+| 6   | Journey Completed   | Delivery completed; payment and rating follow.               |
 
 **Terminal states (7–15):**
 
-| ID | Status | Description |
-|----|--------|-------------|
-| 7 | Cancelled by Passenger | Shipper cancelled the request. |
-| 8 | Rejected by Passenger | Shipper rejected this driver's bid. |
-| 9 | Cancelled by Driver | Driver withdrew after accepting. |
-| 10 | Cancelled by Admin | Admin cancelled (e.g. fraud, safety). |
-| 11 | Completed by Admin | Admin marked journey completed manually. |
-| 12 | Cancelled by System | System auto-cancelled (e.g. timeout). |
-| 13 | No Answer from Driver | Driver did not respond; request reassigned. |
-| 14 | Not Selected in Bid | Driver bid but shipper chose another driver. |
-| 15 | Rejected by Driver | Driver declined the request before accepting. |
+| ID  | Status                | Description                                   |
+| --- | --------------------- | --------------------------------------------- |
+| 7   | Cancelled by Shipper  | Shipper cancelled the request.                |
+| 8   | Rejected by Shipper   | Shipper rejected this driver's bid.           |
+| 9   | Cancelled by Driver   | Driver withdrew after accepting.              |
+| 10  | Cancelled by Admin    | Admin cancelled (e.g. fraud, safety).         |
+| 11  | Completed by Admin    | Admin marked journey completed manually.      |
+| 12  | Cancelled by System   | System auto-cancelled (e.g. timeout).         |
+| 13  | No Answer from Driver | Driver did not respond; request reassigned.   |
+| 14  | Not Selected in Bid   | Driver bid but shipper chose another driver.  |
+| 15  | Rejected by Driver    | Driver declined the request before accepting. |
 
 ---
 
 ## 4. User Roles
 
-| Role                | Description                                                                                                                                                                |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shipper (Passenger) | A business or individual who needs goods transported. Creates shipping requests, reviews driver bids, selects drivers, tracks journeys, and rates service.                 |
-| Driver              | A verified truck driver who registers availability, receives shipping requests, places bids, picks up cargo, and completes deliveries. Must maintain a valid subscription. |
-| Vehicle Owner       | The person or company that owns the truck. Can assign vehicles to drivers. A driver may also be the vehicle owner.                                                         |
-| Admin               | DTC operations staff. Manages users, reviews documents, resolves disputes, handles cancellations, and monitors platform activity.                                          |
-| Super Admin         | Full system access. Manages admins, configures pricing, commission rates, subscription plans, and platform settings.                                                       |
+| Role              | Description                                                                                                                                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shipper (Shipper) | A business or individual who needs goods transported. Creates shipping requests, reviews driver bids, selects drivers, tracks journeys, and rates service.                 |
+| Driver            | A verified truck driver who registers availability, receives shipping requests, places bids, picks up cargo, and completes deliveries. Must maintain a valid subscription. |
+| Vehicle Owner     | The person or company that owns the truck. Can assign vehicles to drivers. A driver may also be the vehicle owner.                                                         |
+| Admin             | DTC operations staff. Manages users, reviews documents, resolves disputes, handles cancellations, and monitors platform activity.                                          |
+| Super Admin       | Full system access. Manages admins, configures pricing, commission rates, subscription plans, and platform settings.                                                       |
 
 ---
 
@@ -198,7 +198,7 @@ Each vehicle on the platform has:
 
 ## 6. Registration and Onboarding
 
-### For Shippers (Passengers)
+### For Shippers (Shippers)
 
 1. Download the DTC app
 2. Register with phone number
@@ -301,12 +301,12 @@ Drivers maintain a wallet balance on the platform:
 
 Drivers must hold an active subscription to receive shipment requests.
 
-| Plan Type  | Duration | Price (ETB) | Description                                                                 |
-| ---------- | -------- | ----------- | --------------------------------------------------------------------------- |
+| Plan Type  | Duration | Price (ETB)   | Description                                                               |
+| ---------- | -------- | ------------- | ------------------------------------------------------------------------- |
 | Free Trial | 1 month  | 700 ETB value | Available once per driver. Lets new drivers experience the platform free. |
-| Monthly    | 30 days  | 700 ETB     | Standard monthly plan.                                                      |
-| Quarterly  | 90 days  | 1,800 ETB   | 3-month plan.                                                               |
-| Annual     | 365 days | 6,000 ETB   | 12-month plan.                                                              |
+| Monthly    | 30 days  | 700 ETB       | Standard monthly plan.                                                    |
+| Quarterly  | 90 days  | 1,800 ETB     | 3-month plan.                                                             |
+| Annual     | 365 days | 6,000 ETB     | 12-month plan.                                                            |
 
 - Exact pricing is set by admin and can change over time (effective-from / effective-to date per pricing tier).
 - When a subscription expires, the driver's status changes to "Inactive - No Subscription" and they cannot receive new requests until they renew.
@@ -587,12 +587,12 @@ This section lists all pages the frontend designer should create for the company
 
 ## 19. Business Challenges & Solutions
 
-| Challenge | Solution |
-| --------- | -------- |
-| Driver supply | Free trial, competitive commission rates, steady job flow |
-| Trust and safety | Document verification, ratings, admin oversight, GPS tracking |
+| Challenge        | Solution                                                             |
+| ---------------- | -------------------------------------------------------------------- |
+| Driver supply    | Free trial, competitive commission rates, steady job flow            |
+| Trust and safety | Document verification, ratings, admin oversight, GPS tracking        |
 | Payment security | Balance-based system, admin approval for deposits, refund management |
-| Market liquidity | Automated matching, bidding, support for multiple vehicle types |
+| Market liquidity | Automated matching, bidding, support for multiple vehicle types      |
 
 ---
 
@@ -641,7 +641,7 @@ This section lists all pages the frontend designer should create for the company
 
 | Term             | Definition                                                                                   |
 | ---------------- | -------------------------------------------------------------------------------------------- |
-| Shipper          | The person or business sending cargo (also called "passenger" in the system)                 |
+| Shipper          | The person or business sending cargo (also called "shipper" in the system)                   |
 | Driver           | The truck driver who transports the cargo                                                    |
 | Vehicle Owner    | The person or entity that owns the truck                                                     |
 | Bid              | The driver's proposed cost for transporting a specific load                                  |
@@ -661,7 +661,7 @@ This section lists all pages the frontend designer should create for the company
 **Business model:** Commission + subscription  
 **Technology:** Node.js, Express, MySQL, Redis, Socket.IO  
 **Document version:** 1.0.0  
-**Author:** Marew Masresha Abate  
+**Author:** Marew Masresha Abate
 
 Document generated from the Dynamics Transport Commission platform codebase.  
 Last updated: February 2026

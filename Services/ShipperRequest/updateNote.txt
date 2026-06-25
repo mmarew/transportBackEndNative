@@ -1,0 +1,39 @@
+# Update Notes - Shipper Request Services Audit
+
+This file contains proposed logic restorations and fixes based on the audit of the ShipperRequest sub-services.
+
+## statusVerification.service.js Audit
+
+### 1. Commented-out Core Logic
+In `verifyShipperStatus` (lines 631-685), the loop that processes active requests and calls `handleWaitingRequest` or `handleNonWaitingRequest` is currently commented out. 
+- **Impact**: The status check API only returns counts/summary and no longer performs the automatic driver matching or detailed data retrieval (drivers, decisions, journeys) that the frontend likely expects.
+- **Proposed Fix**: Uncomment and restore this logic, ensuring it uses the new `transactionStorage` context for any database operations.
+
+### 2. ReferenceErrors in _handleNonWaitingRequest
+The helper function `_handleNonWaitingRequest` (line 325) is currently unused and contains a reference to an undefined `connection` variable (line 386).
+- **Proposed Fix**: Remove the underscore, fix the `connection` reference (use `transactionStorage.getStore() || pool`), and ensure it is properly called within `verifyShipperStatus`.
+
+### 3. Missing Detailed Data
+The current return of `verifyShipperStatus` only includes `totalRecords`, `pageSize`, and `page`. It is missing the `drivers`, `decisions`, and `journey` details required for a rich UI.
+- **Proposed Fix**: Restore the collection of these arrays during the audit loop.
+
+## cancellation.service.js Audit
+The logic in this file appears to be preserved and correctly integrated with the new transaction system. 
+- Alialiasing is used effectively to prevent column collisions.
+- Pagination and enrichment logic is intact.
+- No immediate fixes required.
+
+## User.controller.js Audit & Proposed Standardisation
+
+### 1. Atomic updateUser transaction
+The `updateUser` function (line 100) performs two separate service calls: `services.updateUser` and either `createAttachedDocument` or `updateAttachedDocument`. Currently, these are not atomic. If the file update fails after the text update succeeds, the system is in an inconsistent state.
+- **Proposed Fix**: Wrap the entire logic from line 113 to 181 inside an `executeInTransaction` block. This ensures that the user's text info and their profile photo are updated together or not at all.
+
+### 2. Removal of Manual Response Tracking
+With the transaction wrapper, we can simplify the logic by removing the `updateResponses` tracker and instead allowing the service calls to throw errors that naturally trigger a transaction rollback.
+
+### 3. Alignment with AsyncLocalStorage
+Ensure that the `User.service.js` functions called within `User.controller.js` are fully utilizing `transactionStorage.getStore()` instead of falling back to the pool prematurely. I have already verified `registerNewUser` and `updateOtpForUser` in `User.service.js` are context-aware, but I will ensure `updateUser` and `attachedDocument` services are also aligned.
+
+
+

@@ -36,7 +36,6 @@ const updateData = async ({
   const whereClause = conditionClauses.join(` ${operator} `);
   const sqlQuery = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`;
 
-  try {
     // Use context connection first, then provided connection, or fall back to pool
     const queryExecutor = transactionStorage.getStore() || connection || pool;
     const [result] = await queryExecutor.query(sqlQuery, [
@@ -44,9 +43,6 @@ const updateData = async ({
       ...conditionValues,
     ]);
     return result; // Return the result object containing affectedRows, etc.
-  } catch (error) {
-    throw error;
-  }
 };
 
 module.exports = {

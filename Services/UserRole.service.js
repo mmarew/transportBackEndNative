@@ -1,3 +1,8 @@
+const { v4: uuidv4 } = require("uuid");
+const { getData } = require("../CRUD/Read/ReadData");
+const { currentDate } = require("../Utils/CurrentDate");
+const { insertData } = require("../CRUD/Create/CreateData");
+const { updateData } = require("../CRUD/Update/Data.update");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { pool } = require("../Middleware/Database.config");
@@ -32,7 +37,7 @@ const createUserRole = async (body, user) => {
     },
   });
 
-  return { message: "success", data: "User role created successfully" };
+  return { message: "success", data: { userRoleUniqueId } };
 };
 const getUserRoleListByFilter = async ({
   page = 1,
@@ -159,11 +164,12 @@ const updateUserRole = async (userRoleUniqueId, updateValues) => {
   return { message: "success", data: "UserRole updated successfully" };
 };
 
-// Service to delete UserRole
+// Service to delete UserRole (soft delete)
 const deleteUserRole = async (userRoleUniqueId) => {
-  const result = await deleteData({
+  const result = await updateData({
     tableName: "UserRole",
     conditions: { userRoleUniqueId },
+    updateValues: { userRoleDeletedAt: currentDate() },
   });
 
   if (result.affectedRows === 0) {

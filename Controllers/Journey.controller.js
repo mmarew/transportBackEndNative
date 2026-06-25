@@ -1,4 +1,4 @@
-const journeyService = require("../Services/Journey.service");
+const journeyService = require("../Services/Journey");
 const { validatePagination } = require("../Utils/paginationUtils");
 const ServerResponder = require("../Utils/ServerResponder");
 const AppError = require("../Utils/AppError");
@@ -52,11 +52,11 @@ exports.getJourneyByJourneyUniqueId = async (req, res, next) => {
 
 // Update a specific journey by ID
 exports.updateJourney = async (req, res, next) => {
-  const { id } = req.params;
+  const { journeyUniqueId } = req.params;
   const { endTime, fare, journeyStatusId } = req.body;
   await handleServiceResponse(
     executeInTransaction(async () => {
-      return await journeyService.updateJourney(id, endTime, fare, journeyStatusId);
+      return await journeyService.updateJourney({journeyUniqueId, endTime, fare, journeyStatusId});
     }),
     res,
     next,

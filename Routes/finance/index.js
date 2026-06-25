@@ -2,10 +2,10 @@ const express = require("express");
 
 // Import all financial routes
 const userBalanceRoutes = require("./UserBalance.routes");
-const userBalanceTransferRoutes = require("./UserBalanceTransfer.route");
+const userBalanceTransferRoutes = require("./UserBalanceTransfer.routes");
 const userDepositRoutes = require("./UserDeposit.routes");
-const userRefundRoutes = require("./UserRefund.route");
-const userSubscriptionRoutes = require("./UserSubscription.route");
+const userRefundRoutes = require("./UserRefund.routes");
+const userSubscriptionRoutes = require("./UserSubscription.routes");
 
 // Commission and earnings
 const commissionRoutes = require("./Commission.routes");
@@ -20,12 +20,12 @@ const paymentsRoutes = require("./Payments.routes");
 const journeyPaymentsRoutes = require("./JourneyPayments.routes");
 
 // Subscription and pricing
-const subscriptionPlanRoutes = require("./SubscriptionPlan.route");
-const subscriptionPlanPricingRoutes = require("./SubscriptionPlanPricing.route");
+const subscriptionPlanRoutes = require("./SubscriptionPlan.routes");
+const subscriptionPlanPricingRoutes = require("./SubscriptionPlanPricing.routes");
 
 // Financial institutions and sources
-const depositSourceRoutes = require("./DepositSource.route");
-const financialInstitutionAccountRoutes = require("./FinancialInstitutionAccount.route");
+const depositSourceRoutes = require("./DepositSource.routes");
+const financialInstitutionAccountRoutes = require("./FinancialInstitutionAccount.routes");
 
 const router = express.Router();
 const tariffRateRoutes = require("./TariffRate.routes");

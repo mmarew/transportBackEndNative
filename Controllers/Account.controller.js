@@ -1,52 +1,45 @@
 const ServerResponder = require("../Utils/ServerResponder");
-const AccountService = require("../Services/Account.service");
-const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const AccountService = require("../Services/Account");
+
 
 /**
- * @fileoverview Account Controller
- *
- * Handles account-related HTTP requests including user status evaluation.
- * Acts as the interface between HTTP layer and business logic services.
+ * GET /api/me/account  (and role-scoped variants)
+ * ─────────────────────────────────────────────
+ * Self account status — resolves user and role entirely from the JWT token.
+ * No roleId or ownerUserUniqueId params are accepted or needed.
+ * Admins can optionally pass ?roleId= to inspect a specific role,
+ * but non-admins are always locked to their own token role.
  */
+const selfAccountStatus = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { usersRoles } = require("../Utils/ListOfSeedData");
+    const isAdmin =
+      user.roleId === usersRoles.adminRoleId ||
+      user.roleId === usersRoles.supperAdminRoleId;
+
+    const resolvedRoleId = isAdmin
+      ? (req.query.roleId ?? user.roleId)
+      : user.roleId;
+
+    // No transaction needed — accountStatus is primarily a read operation.
+    // The one conditional write (updateUserRoleStatus) is self-contained in the service.
+    const result = await AccountService.accountStatus({
+      ownerUserUniqueId: user.userUniqueId,
+      body: { roleId: resolvedRoleId },
+      user,
+      enableDocumentChecks: true,
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
- * GET /api/account/status - Account Status Controller
- * @description Controller for comprehensive account status evaluation
- *
- * Processes account status requests by resolving user identification,
- * delegating to the service layer for evaluation, and returning formatted responses.
- * Supports flexible user lookup by ID, phone, or email.
- *
- * User Resolution Priority:
- * 1. ownerUserUniqueId (if provided)
- * 2. phoneNumber + email (resolves user in service)
- * 3. authenticated user (fallback)
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user from JWT token
- * @param {Object} req.validatedQuery - Validated query parameters from middleware
- * @param {string} [req.validatedQuery.ownerUserUniqueId] - Direct user ID
- * @param {string} [req.validatedQuery.phoneNumber] - Phone number for user lookup
- * @param {string} [req.validatedQuery.email] - Email for user lookup
- * @param {number} req.validatedQuery.roleId - Required role ID
- * @param {boolean} [req.validatedQuery.enableDocumentChecks] - Document check flag
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- * @returns {Promise<void>} Sends JSON response with account status
- *
- * @throws {AppError} When user resolution fails or service errors occur
- *
- * @example
- * // Phone lookup for driver status
- * GET /api/account/status?phoneNumber=%2B251911234567&roleId=2
- *
- * @example
- * // Self status check
- * GET /api/account/status?roleId=1
- *
- * @example
- * // Direct user ID lookup
- * GET /api/account/status?ownerUserUniqueId=uuid-here&roleId=2
+ * GET /api/account/status  (admin cross-user lookup — kept for backward compat)
+ * Allows admin to look up any user by phoneNumber, email, or ownerUserUniqueId.
+ * Should only be called by admin/superAdmin — middleware enforces this in routes.
  */
 const accountStatus = async (req, res, next) => {
   try {
@@ -78,15 +71,15 @@ const accountStatus = async (req, res, next) => {
       user = null;
     }
 
-    const result = await executeInTransaction(async () => {
-      return await AccountService?.accountStatus({
-        ownerUserUniqueId,
-        phoneNumber,
-        email,
-        user,
-        body: query || {},
-        enableDocumentChecks,
-      });
+    // No transaction needed — accountStatus is primarily a read operation.
+    // The one conditional write (updateUserRoleStatus) is self-contained in the service.
+    const result = await AccountService?.accountStatus({
+      ownerUserUniqueId,
+      phoneNumber,
+      email,
+      user,
+      body: query || {},
+      enableDocumentChecks,
     });
 
     ServerResponder(res, result);
@@ -97,4 +90,5 @@ const accountStatus = async (req, res, next) => {
 
 module.exports = {
   accountStatus,
+  selfAccountStatus,
 };

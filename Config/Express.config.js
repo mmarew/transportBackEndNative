@@ -4,6 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const Config = require("../Utils/Config");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("../api-docs.json");
 
@@ -18,6 +19,8 @@ try {
 
 const app = express();
 
+app.disable("x-powered-by");
+
 // Trust the reverse proxy (e.g., Vercel/NGINX/Heroku) so req.ip uses X-Forwarded-For
 // This must be set BEFORE using rate limiting or anything that relies on client IP
 // On Vercel, trusting the first proxy is sufficient
@@ -28,8 +31,14 @@ app.set("trust proxy", 1);
 // 1. Set security HTTP headers
 app.use(helmet());
 
-// 2. Enable CORS - In production, you should restrict this to your frontend's domain
-app.use(cors());
+// 2. Enable CORS - restrict to specific frontend domains
+const corsOptions = {
+  origin: ['https://company.dynamicsroute.tech', 'https://admin.dynamicsroute.tech', 'https://dynamicsroute.tech'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // 3. Rate Limiting - Protect against brute-force/DoS attacks
 const limiter = rateLimit({
@@ -41,6 +50,22 @@ const limiter = rateLimit({
 });
 app.use(limiter); // Apply to all requests
 
+// Auth-specific rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Config.NODE_ENV === "production" ? 5 : 200,
+  message: { error: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/user', authLimiter);
+
+// HSTS header middleware
+app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
+
 // --- LOGGING ---
 const requestLogger = require("../Middleware/RequestLogger");
 app.use(requestLogger);
@@ -51,7 +76,6 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // 5. Data Sanitization - Handled by Joi and Helmet
 
-
 // --- ROUTES ---
 
 // Serve static files from the 'uploads' directory
@@ -59,14 +83,18 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/Assets", express.static(path.join(__dirname, "../Assets")));
 
 // API Documentation - Swagger UI
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  explorer: true,
-  swaggerOptions: {
-    docExpansion: "none",
-    filter: true,
-    showRequestDuration: true,
-  }
-}));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    explorer: true,
+    swaggerOptions: {
+      docExpansion: "none",
+      filter: true,
+      showRequestDuration: true,
+    },
+  }),
+);
 
 // API Routes - Protected by API Key
 // app.use("/", apiKeyAuth, Routes);

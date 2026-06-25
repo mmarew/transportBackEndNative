@@ -70,7 +70,7 @@
 //   },
 //   // get data by filter of columns
 //   //1) Basic pagination: GET /api/canceled-journeys?page=1&limit=20
-//   //2) Filter by context type and role: GET /api/canceled-journeys?contextType=PassengerRequest&roleId=2
+//   //2) Filter by context type and role: GET /api/canceled-journeys?contextType=ShipperRequest&roleId=2
 //   //3) Filter by date range: GET /api/canceled-journeys?startDate=2024-01-01&endDate=2024-01-31
 //   //4) Filter by specific user: GET /api/canceled-journeys?canceledBy=user-uuid-here
 //   //5) Custom sorting: GET /api/canceled-journeys?isSeenByAdmin=false
@@ -101,25 +101,26 @@ const {
   canceledJourneyParams,
   getCanceledJourneyQuery,
 } = require("../Validations/CanceledJourneys.schema");
+const { CANCELED_JOURNEYS_ENDPOINTS } = require("./EndPoints/canceledJourneys.endpoints");
 
 // Consolidated route configuration
 const routes = [
   // CREATE operations
   {
-    path: "/api/admin/canceledJourney",
+    path: CANCELED_JOURNEYS_ENDPOINTS.CREATE_CANCELED_JOURNEY,
     method: "post",
     middleware: [verifyTokenOfAxios, validator(createCanceledJourney)],
     handler: canceledJourneyController.createCanceledJourney,
   },
   {
-    path: "/api/admin/canceledJourneyBySystem",
+    path: CANCELED_JOURNEYS_ENDPOINTS.CANCEL_JOURNEY_BY_SYSTEM,
     method: "post",
     middleware: [verifyTokenOfAxios, validator(cancelJourneyBySystem)],
     handler: canceledJourneyController.cancelJourneyBySystem,
   },
   // SINGLE UNIFIED GET ENDPOINT - Replaces all other GET endpoints
   {
-    path: "/api/admin/getCanceledJourneyByFilter",
+    path: CANCELED_JOURNEYS_ENDPOINTS.GET_CANCELED_JOURNEY_BY_FILTER,
     method: "get",
     middleware: [
       verifyTokenOfAxios,
@@ -130,12 +131,12 @@ const routes = [
 
   {
     method: "get",
-    path: "/api/user/getCanceledJourneyCountsByDate",
+    path: CANCELED_JOURNEYS_ENDPOINTS.GET_CANCELED_JOURNEY_COUNTS_BY_DATE,
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.getCanceledJourneyCountsByDate,
   },
   {
-    path: "/api/admin/canceledJourney/:canceledJourneyUniqueId",
+    path: CANCELED_JOURNEYS_ENDPOINTS.UPDATE_CANCELED_JOURNEY,
     method: "put",
     middleware: [
       verifyTokenOfAxios,
@@ -145,7 +146,7 @@ const routes = [
     handler: canceledJourneyController.updateCanceledJourney,
   },
   {
-    path: "/api/admin/canceledJourney/:canceledJourneyUniqueId",
+    path: CANCELED_JOURNEYS_ENDPOINTS.DELETE_CANCELED_JOURNEY,
     method: "delete",
     middleware: [
       verifyTokenOfAxios,
@@ -154,7 +155,7 @@ const routes = [
     handler: canceledJourneyController.deleteCanceledJourney,
   },
   {
-    path: "/api/admin/canceledJourney/:canceledJourneyUniqueId/seen",
+    path: CANCELED_JOURNEYS_ENDPOINTS.UPDATE_SEEN_BY_ADMIN,
     method: "put",
     middleware: [
       verifyTokenOfAxios,
@@ -165,7 +166,7 @@ const routes = [
 
   {
     method: "get",
-    path: "/api/user/getCanceledJourneyCountsByReason",
+    path: CANCELED_JOURNEYS_ENDPOINTS.GET_CANCELED_JOURNEY_COUNTS_BY_REASON,
     middleware: [verifyTokenOfAxios],
     handler: canceledJourneyController.getCanceledJourneyCountsByReason,
   },

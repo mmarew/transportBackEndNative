@@ -4,7 +4,7 @@ const verifyToken = require("../Middleware/VerifyToken");
 const verifyPassword = require("./VerifyPassword");
 const { emitMessage, sendError } = require("./WsServerResponder");
 const { setSocket } = require("./WsConnectionStore");
-const { getPassengerJourneyStatus } = require("../Services/PassengerRequest");
+const { getShipperJourneyStatus } = require("../Services/ShipperRequest");
 const { getDriverJourneyStatus } = require("../Services/DriverRequest");
 const messageTypes = require("./MessageTypes");
 
@@ -48,7 +48,13 @@ async function WSPusher({ socket }) {
       );
     }
 
-    const validUserTypes = ["driver", "passenger", "SMSSender", "admin"];
+    const validUserTypes = [
+      "driver",
+      "shipper",
+      "SMSSender",
+      "admin",
+      "company",
+    ];
     if (!validUserTypes.includes(user)) {
       return sendError(socket, "Invalid user type", "BAD_REQUEST");
     }
@@ -92,10 +98,10 @@ async function WSPusher({ socket }) {
     await setSocket(user, cleanedPhoneNumber, socketId);
     socket.userType = user;
     socket.identifier = cleanedPhoneNumber;
-    // Get status if passenger or driver
+    // Get status if shipper or driver
     let status = null;
-    if (user === "passenger") {
-      status = await getPassengerJourneyStatus(userUniqueId);
+    if (user === "shipper") {
+      status = await getShipperJourneyStatus(userUniqueId);
     } else if (user === "driver") {
       status = await getDriverJourneyStatus(userUniqueId);
     }

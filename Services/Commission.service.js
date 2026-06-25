@@ -8,7 +8,10 @@ const { journeyStatusMap } = require("../Utils/ListOfSeedData");
 const {
   prepareAndCreateNewBalance,
 } = require("./UserBalance.service/UserBalance.post.service");
-const { getCommissionRateData, getCommissionStatusPaidId } = require("./FixedData.service");
+const {
+  getCommissionRateData,
+  getCommissionStatusPaidId,
+} = require("./FixedData.service");
 const { transactionStorage } = require("../Utils/TransactionContext");
 
 const allowedSortFields = {
@@ -16,11 +19,9 @@ const allowedSortFields = {
   commissionAmount: "c.commissionAmount",
   paymentTime: "jd.deliveryDateByDriver",
   driverName: "u.fullName",
-  passengerName: "u_pass.fullName",
+  shipperName: "u_pass.fullName",
   commissionStatus: "cs.statusName",
 };
-
-
 
 function validateCommissionData(data) {
   if (!data.commissionAmount) {
@@ -37,12 +38,11 @@ function validateCommissionData(data) {
   return true;
 }
 
-async function createCommission({
-  journeyDecisionUniqueId,
-  paymentAmount,
-  commissionCreatedBy,
-}) {
-  const executor = transactionStorage.getStore() || pool;
+async function createCommission(
+  { journeyDecisionUniqueId, paymentAmount, commissionCreatedBy },
+  connection = null,
+) {
+  const executor = transactionStorage.getStore() || connection || pool;
 
   validateCommissionData({ commissionAmount: paymentAmount }); // Basic validation on payment amount
 
@@ -247,7 +247,7 @@ async function getAllCommissions(filters = {}) {
     addCondition("c.journeyDecisionUniqueId", filters.journeyDecisionUniqueId);
     addCondition("c.commissionRateUniqueId", filters.commissionRateUniqueId);
     addCondition("u.userUniqueId", filters.driverUniqueId);
-    addCondition("u_pass.userUniqueId", filters.passengerUniqueId);
+    addCondition("u_pass.userUniqueId", filters.shipperUniqueId);
     addCondition(
       "c.commissionStatusUniqueId",
       filters.commissionStatusUniqueId,
@@ -256,9 +256,9 @@ async function getAllCommissions(filters = {}) {
     addLikeCondition("u.fullName", filters.driverName);
     addLikeCondition("u.phoneNumber", filters.driverPhone);
     addLikeCondition("u.email", filters.driverEmail);
-    addLikeCondition("u_pass.fullName", filters.passengerName);
-    addLikeCondition("u_pass.phoneNumber", filters.passengerPhone);
-    addLikeCondition("u_pass.email", filters.passengerEmail);
+    addLikeCondition("u_pass.fullName", filters.shipperName);
+    addLikeCondition("u_pass.phoneNumber", filters.shipperPhone);
+    addLikeCondition("u_pass.email", filters.shipperEmail);
 
     addRangeCondition(
       "c.commissionAmount",
@@ -296,10 +296,10 @@ async function getAllCommissions(filters = {}) {
         u.phoneNumber as driverPhone,
         u.email as driverEmail,
         u.userUniqueId as driverUniqueId,
-        u_pass.fullName as passengerName,
-        u_pass.phoneNumber as passengerPhone,
-        u_pass.email as passengerEmail,
-        u_pass.userUniqueId as passengerUniqueId,
+        u_pass.fullName as shipperName,
+        u_pass.phoneNumber as shipperPhone,
+        u_pass.email as shipperEmail,
+        u_pass.userUniqueId as shipperUniqueId,
         cr.commissionRate as commissionRateValue,
         NULL as commissionRateName
       FROM Commission c
@@ -307,8 +307,8 @@ async function getAllCommissions(filters = {}) {
       left JOIN JourneyDecisions jd ON c.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       left JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
       left JOIN Users u ON dr.userUniqueId = u.userUniqueId
-      left  JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
-      JOIN Users u_pass ON pr.userUniqueId = u_pass.userUniqueId
+      left  JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
+      JOIN Users u_pass ON sr.userUniqueId = u_pass.userUniqueId
       JOIN CommissionRates cr ON c.commissionRateUniqueId = cr.commissionRateUniqueId
       ${whereClause}
       ORDER BY ${sortField} ${sortOrder}
@@ -349,8 +349,7 @@ async function getAllCommissions(filters = {}) {
       {
         message: "Failed to retrieve commissions",
         code: "DATABASE_ERROR",
-        details:
-          Config.NODE_ENV === "development" ? error.message : undefined,
+        details: Config.NODE_ENV === "development" ? error.message : undefined,
       },
       500,
     );
@@ -428,8 +427,8 @@ async function updateCommission(id, data, updatedBy) {
     // Reconcile UserBalance when amount or driver changes: reverse old, deduct new
     if (
       amountOrDriverChanged &&
-        oldAmount !== null &&
-        oldDriverUniqueId !== null
+      oldAmount !== null &&
+      oldDriverUniqueId !== null
     ) {
       const [newRows] = await executor.query(
         `SELECT c.commissionAmount, dr.userUniqueId AS driverUniqueId
@@ -475,7 +474,9 @@ async function updateCommission(id, data, updatedBy) {
       data: updateResult,
     };
   } catch (error) {
-    if (error instanceof AppError) {throw error;}
+    if (error instanceof AppError) {
+      throw error;
+    }
     logger.application.databaseError(error, "Commission update failed", { id });
     throw error;
   }
@@ -506,7 +507,11 @@ async function deleteCommission(id, deletedBy) {
   `;
   try {
     const executor = transactionStorage.getStore() || pool;
-    const [result] = await executor.query(updateSql, [currentDate(), deletedBy, id]);
+    const [result] = await executor.query(updateSql, [
+      currentDate(),
+      deletedBy,
+      id,
+    ]);
 
     if (result.affectedRows === 0) {
       throw new AppError("Commission not found or already deleted", 404);
@@ -529,7 +534,9 @@ async function deleteCommission(id, deletedBy) {
       data: `Commission with ID ${id} deleted successfully`,
     };
   } catch (error) {
-    if (error instanceof AppError) {throw error;}
+    if (error instanceof AppError) {
+      throw error;
+    }
     logger.application.databaseError(error, updateSql, [deletedBy, id]);
     throw new AppError("Failed to delete commission", 500);
   }

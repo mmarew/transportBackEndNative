@@ -1,4 +1,4 @@
-const journeyStatusService = require("../Services/JourneyStatus.service");
+const journeyStatusService = require("../Services/JourneyStatus");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 

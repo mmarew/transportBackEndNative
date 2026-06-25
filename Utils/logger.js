@@ -315,13 +315,31 @@ class ApplicationLogger {
       "creditCard",
       "ssn",
       "cvv",
+      "authorization",
+      "apiKey",
+      "x-api-key",
+      "otp",
+      "phoneVerificationOTP",
+      "emailVerificationOTP",
+      "emailVerificationToken",
+      "phoneNumber",
+      "private_key",
+      "privateKey",
+      "SMS_TOKEN",
+      "TELEGRAM_BOT_TOKEN",
     ];
 
-    for (const field of sensitiveFields) {
-      if (sanitized[field]) {
-        sanitized[field] = "[REDACTED]";
+    const redactRecursive = (obj, depth = 0) => {
+      if (depth > 5 || !obj || typeof obj !== "object") return;
+      for (const key of Object.keys(obj)) {
+        if (sensitiveFields.some((f) => key.toLowerCase().includes(f.toLowerCase()))) {
+          obj[key] = "[REDACTED]";
+        } else if (typeof obj[key] === "object" && obj[key] !== null) {
+          redactRecursive(obj[key], depth + 1);
+        }
       }
-    }
+    };
+    redactRecursive(sanitized);
 
     return sanitized;
   }

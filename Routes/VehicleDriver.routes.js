@@ -10,10 +10,11 @@ const {
   vehicleDriverQuery,
   vehicleDriverParams,
 } = require("../Validations/VehicleDriver.schema");
+const { VEHICLE_DRIVER_ENDPOINTS } = require("./EndPoints/vehicleDriver.endpoints");
 
 // Create
 router.post(
-  "/api/vehicleDriver",
+  VEHICLE_DRIVER_ENDPOINTS.CREATE_VEHICLE_DRIVER,
   verifyTokenOfAxios,
   validator(createVehicleDriver),
   ctrl.createVehicleDriverController,
@@ -21,7 +22,7 @@ router.post(
 
 // Consolidated GET with filters + pagination
 router.get(
-  "/api/vehicleDriver",
+  VEHICLE_DRIVER_ENDPOINTS.GET_ALL_VEHICLE_DRIVERS,
   verifyTokenOfAxios,
   validator(vehicleDriverQuery, "query"),
   ctrl.getVehicleDriversController,
@@ -29,7 +30,7 @@ router.get(
 
 // Update
 router.put(
-  "/api/vehicleDriver/:vehicleDriverUniqueId",
+  VEHICLE_DRIVER_ENDPOINTS.UPDATE_VEHICLE_DRIVER,
   verifyTokenOfAxios,
   validator(vehicleDriverParams, "params"),
   validator(updateVehicleDriver),
@@ -38,7 +39,7 @@ router.put(
 
 // Delete
 router.delete(
-  "/api/vehicleDriver/:vehicleDriverUniqueId",
+  VEHICLE_DRIVER_ENDPOINTS.DELETE_VEHICLE_DRIVER,
   verifyTokenOfAxios,
   validator(vehicleDriverParams, "params"),
   ctrl.deleteVehicleDriverController,

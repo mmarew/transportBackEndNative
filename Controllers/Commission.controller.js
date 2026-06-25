@@ -6,17 +6,13 @@ exports.createCommission = async (req, res, next) => {
   try {
     const {
       journeyDecisionUniqueId,
-      commissionRateUniqueId,
       commissionAmount,
-      commissionStatusUniqueId,
     } = req.body;
 
     const result = await executeInTransaction(async () => {
       return await commissionService.createCommission({
         journeyDecisionUniqueId,
-        commissionRateUniqueId,
-        commissionAmount,
-        commissionStatusUniqueId,
+        paymentAmount: commissionAmount,
         commissionCreatedBy: req.user.userUniqueId,
       });
     });

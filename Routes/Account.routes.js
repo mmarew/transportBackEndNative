@@ -1,66 +1,92 @@
+"use strict";
+
 const express = require("express");
 const router = express.Router();
-const { verifyTokenOfAxios } = require("../Middleware/VerifyToken");
+const {
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+} = require("../Middleware/VerifyToken");
 const AccountController = require("../Controllers/Account.controller");
 const { validator } = require("../Middleware/Validator");
 const { accountStatusParams } = require("../Validations/Account.schema");
+const { ACCOUNT_ENDPOINTS } = require("./EndPoints/account.endpoints");
+
+// ───────────────────── Self account routes ─────────────────────────────────
+// Role and identity are resolved 100% from the JWT token.
+// No roleId or ownerUserUniqueId params needed or accepted for non-admins.
 
 /**
- * @fileoverview Account Management Routes
- *
- * This module defines routes for account-related operations including
- * comprehensive user status evaluation.
- */
-
-/**
- * GET /api/account/status
- * @description Comprehensive account status evaluation endpoint
- *
- * Evaluates a user's account status based on multiple criteria:
- * - Ban status
- * - Vehicle registration (for drivers/vehicle owners)
- * - Document verification status
- * - Subscription status (for drivers)
- *
- * The endpoint supports flexible user identification and returns
- * detailed status information with priority-based status determination.
- *
- * @route GET /api/account/status
- * @middleware verifyTokenOfAxios - Requires authentication token
- * @param {string} [query.ownerUserUniqueId] - Direct user ID lookup
- * @param {string} [query.phoneNumber] - User lookup by phone number (URL-encoded)
- * @param {string} [query.email] - User lookup by email address
- * @param {number} query.roleId - Required: Role ID (1=Passenger, 2=Driver, 3=Admin)
- * @param {boolean} [query.enableDocumentChecks=true] - Whether to check document requirements
- * @returns {Object} Account status with user data, vehicle info, documents, and final status
- * @example
- * GET /api/account/status?phoneNumber=%2B251911234567&roleId=2
- *
- * Response:
- * {
- *   "message": "success",
- *   "vehicle": {...},
- *   "userData": {...},
- *   "attachedDocumentsByStatus": {...},
- *   "subscription": {...},
- *   "status": 1,
- *   "reason": "All requirements satisfied"
- * }
- *
- * Status Codes:
- * - 1: Active (all requirements met)
- * - 2: Inactive - No vehicle registered
- * - 3: Inactive - Required documents missing
- * - 4: Inactive - Documents rejected
- * - 5: Inactive - Documents pending review
- * - 6: Inactive - User banned
- * - 7: Inactive - No active subscription (drivers only)
+ * @route   GET /api/me/account
+ * @desc    Authenticated user's own account status (role auto-resolved from token)
+ * @access  Any authenticated user
  */
 router.get(
-  "/api/account/status",
+  ACCOUNT_ENDPOINTS.ME_ACCOUNT,
   verifyTokenOfAxios,
+  AccountController.selfAccountStatus,
+);
+
+/**
+ * @route   GET /api/driver/account
+ * @desc    Driver self account status — role resolved from JWT, no params needed
+ * @access  Driver token
+ */
+router.get(
+  ACCOUNT_ENDPOINTS.DRIVER_ACCOUNT,
+  verifyTokenOfAxios,
+  AccountController.selfAccountStatus,
+);
+
+/**
+ * @route   GET /api/shipper/account
+ * @desc    Shipper/Shipper self account status
+ * @access  Shipper token
+ */
+router.get(
+  ACCOUNT_ENDPOINTS.SHIPPER_ACCOUNT,
+  verifyTokenOfAxios,
+  AccountController.selfAccountStatus,
+);
+
+/**
+ * @route   GET /api/companyAdmin/account
+ * @desc    Company admin self account status
+ * @access  CompanyAdmin token
+ */
+router.get(
+  ACCOUNT_ENDPOINTS.COMPANY_ADMIN_ACCOUNT,
+  verifyTokenOfAxios,
+  AccountController.selfAccountStatus,
+);
+
+/**
+ * @route   GET /api/dispatcher/account
+ * @desc    Dispatcher self account status
+ * @access  Dispatcher token
+ */
+router.get(
+  ACCOUNT_ENDPOINTS.DISPATCHER_ACCOUNT,
+  verifyTokenOfAxios,
+  AccountController.selfAccountStatus,
+);
+
+// ── Admin cross-user lookup (restricted to admin/superAdmin only) ─────────────
+// Allows admin to look up any user by phoneNumber, email, or ownerUserUniqueId.
+// Non-admins are blocked by verifyIfUserIsAdminOrSupperAdmin middleware.
+
+/**
+ * @route   GET /api/account/status
+ * @desc    Admin cross-user account status lookup
+ * @access  Admin / SuperAdmin only
+ * @example GET /api/account/status?phoneNumber=%2B251911234567&roleId=2
+ * @example GET /api/account/status?ownerUserUniqueId=uuid-here&roleId=2
+ */
+router.get(
+  ACCOUNT_ENDPOINTS.ACCOUNT_STATUS,
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
   validator(accountStatusParams, "query"),
-  AccountController?.accountStatus,
+  AccountController.accountStatus,
 );
 
 module.exports = router;

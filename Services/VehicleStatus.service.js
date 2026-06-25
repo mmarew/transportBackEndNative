@@ -34,23 +34,22 @@ const createVehicleStatus = async (data) => {
   }
 
   const vehicleStatusUniqueId = uuidv4();
-
-  // Insert new status
-  const result = await insertData({
+  const colAndVal = {
+    vehicleStatusUniqueId,
+    vehicleUniqueId,
+    VehicleStatusTypeId,
+    statusStartDate: currentDate(),
+    statusEndDate,
+    vehicleStatusCreatedBy,
+    vehicleStatusCreatedAt: currentDate(),
+  };
+  await insertData({
     tableName: "VehicleStatus",
-    colAndVal: {
-      vehicleStatusUniqueId,
-      vehicleUniqueId,
-      VehicleStatusTypeId,
-      statusStartDate: currentDate(),
-      statusEndDate,
-      vehicleStatusCreatedBy,
-      vehicleStatusCreatedAt: currentDate(),
-    },
+    colAndVal,
     connection,
   });
 
-  return { message: "success", data: result };
+  return { message: "success", data: { vehicleStatusUniqueId } };
 };
 
 const getVehicleStatuses = async (filters = {}) => {
@@ -111,7 +110,7 @@ const getVehicleStatuses = async (filters = {}) => {
 
   const executor = transactionStorage.getStore() || pool;
   const [[countRow]] = await executor.query(countSql, params);
-  
+
   params.push(limitNum, offset);
   const [rows] = await executor.query(sql, params);
 
@@ -154,14 +153,17 @@ const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
     throw new AppError("Delete failed or VehicleStatus not found", 404);
   }
 
-  return { message: "success", data: "VehicleStatus soft-deleted successfully" };
+  return {
+    message: "success",
+    data: "VehicleStatus soft-deleted successfully",
+  };
 };
 
 const getStatusOfVehicleByVehicleUniqueId = async (vehicleUniqueId) => {
   const result = await getVehicleStatuses({ vehicleUniqueId, limit: 1 });
   return {
     message: result.message,
-    data: result.data?.[0] || null
+    data: result.data?.[0] || null,
   };
 };
 

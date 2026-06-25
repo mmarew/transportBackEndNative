@@ -9,32 +9,35 @@ const {
   createUserDelinquency,
   userDelinquencyParams,
   userRoleParams,
+  updateDelinquencyBody,
 } = require("../Validations/UserDelinquency.schema");
+const { USER_DELINQUENCY_ENDPOINTS } = require("./EndPoints/userDelinquency.endpoints");
 
 const routes = [
   {
-    path: "/api/admin/user-delinquency",
+    path: USER_DELINQUENCY_ENDPOINTS.CREATE_DELINQUENCY,
     method: "post",
     middleware: [verifyTokenOfAxios, validator(createUserDelinquency)],
     handler: userDelinquencyController.createUserDelinquency,
   },
   {
-    path: "/api/admin/getDelinquencyByFilter",
+    path: USER_DELINQUENCY_ENDPOINTS.GET_ALL_DELINQUENCIES,
     method: "get",
     middleware: [verifyTokenOfAxios],
     handler: userDelinquencyController.getUserDelinquencies,
   },
   {
-    path: "/api/admin/user-delinquency/:userDelinquencyUniqueId",
+    path: USER_DELINQUENCY_ENDPOINTS.UPDATE_DELINQUENCY,
     method: "put",
     middleware: [
       verifyTokenOfAxios,
       validator(userDelinquencyParams, "params"),
+      validator(updateDelinquencyBody),
     ],
     handler: userDelinquencyController.updateUserDelinquency,
   },
   {
-    path: "/api/admin/user-delinquency/:userDelinquencyUniqueId",
+    path: USER_DELINQUENCY_ENDPOINTS.DELETE_DELINQUENCY,
     method: "delete",
     middleware: [
       verifyTokenOfAxios,

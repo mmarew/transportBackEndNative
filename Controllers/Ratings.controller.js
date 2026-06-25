@@ -5,13 +5,13 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 // Create a new rating
 exports.createRating = async (req, res, next) => {
   try {
-    const { journeyDecisionUniqueId, rating, comment } = req.body;
+    const { journeyDecisionUniqueId, ratingValue, comment } = req.body;
     const ratedBy = req.user.userUniqueId;
     const result = await executeInTransaction(async () => {
       return await ratingsService.createRating({
         journeyDecisionUniqueId,
         ratedBy,
-        rating,
+        rating:ratingValue,
         comment,
       });
     });

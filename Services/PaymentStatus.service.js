@@ -13,7 +13,10 @@ exports.createPaymentStatus = async ({ paymentStatus }) => {
     conditions: { paymentStatus: paymentStatus },
   });
   if (existedPaymentStatus.length > 0) {
-    throw new AppError("Payment status already exists", 400);
+    return {
+      message: "success",
+      data: { paymentStatusUniqueId: existedPaymentStatus[0].paymentStatusUniqueId },
+    };
   }
 
   const paymentStatusUniqueId = uuidv4();
@@ -24,7 +27,7 @@ exports.createPaymentStatus = async ({ paymentStatus }) => {
 
   return {
     message: "success",
-    data: "Payment status created successfully",
+    data: { paymentStatusUniqueId },
   };
 };
 
@@ -130,10 +133,16 @@ exports.updatePaymentStatus = async (
 
   values.push(paymentStatusUniqueId);
   const sql = `UPDATE PaymentStatus SET ${setParts.join(", ")} WHERE paymentStatusUniqueId = ? AND paymentStatusDeletedAt IS NULL`;
-  const [result] = await executor.query(sql, values);
-
-  if (result.affectedRows === 0) {
-    throw new AppError("Failed to update payment status", 500);
+  try {
+    const [result] = await executor.query(sql, values);
+    if (result.affectedRows === 0) {
+      throw new AppError("Failed to update payment status", 500);
+    }
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return { message: "Payment status name already exists", data: null };
+    }
+    throw error;
   }
 
   return {
@@ -156,7 +165,7 @@ exports.deletePaymentStatus = async (paymentStatusUniqueId, user) => {
   }
 
   if (existing[0]?.paymentStatusDeletedAt) {
-    throw new AppError("Payment status already deleted", 400);
+    return { message: "Payment status already deleted" };
   }
 
   const paymentStatusDeletedAt = currentDate();

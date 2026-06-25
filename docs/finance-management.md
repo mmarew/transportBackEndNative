@@ -853,7 +853,7 @@ The Finance Management module handles all financial transactions, deposits, subs
     {
       "commissionRateId": 2,
       "userRoleId": 1,
-      "roleName": "Passenger",
+      "roleName": "Shipper",
       "transactionType": "booking_fee",
       "ratePercentage": 5.0,
       "fixedFee": 10.0,
@@ -1348,7 +1348,7 @@ The Finance Management module handles all financial transactions, deposits, subs
     {
       "commissionRateId": 2,
       "userRoleId": 1,
-      "roleName": "Passenger",
+      "roleName": "Shipper",
       "transactionType": "booking_fee",
       "ratePercentage": 5.0,
       "fixedFee": 10.0,

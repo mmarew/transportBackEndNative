@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
+
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 // Create a commission rate
@@ -7,6 +8,7 @@ const createCommissionRate = async ({
   commissionRateUniqueId,
   commissionRate,
   commissionRateEffectiveDate,
+  commissionRateExpirationDate,
   commissionRateCreatedBy,
 }) => {
   const executor = transactionStorage.getStore() || pool;
@@ -20,10 +22,9 @@ const createCommissionRate = async ({
   ]);
 
   if (existingById.length > 0) {
-    throw new AppError("Commission rate with this ID already exists", 400);
+    return { message: "success", data: "Commission rate already exists" };
   }
 
-  // Check if there's an active rate with the same value and overlapping dates
   const sqlCheckDuplicate = `
     SELECT * FROM CommissionRates 
     WHERE commissionRate = ? 
@@ -36,10 +37,7 @@ const createCommissionRate = async ({
   ]);
 
   if (existingRate.length > 0) {
-    throw new AppError(
-      "An active commission rate with the same value and effective date already exists",
-      400,
-    );
+    return { message: "success", data: "Commission rate already exists" };
   }
 
   // Insert new commission rate
@@ -48,15 +46,17 @@ const createCommissionRate = async ({
       commissionRateUniqueId,
       commissionRate,
       commissionRateEffectiveDate,
+      commissionRateExpirationDate,
       commissionRateCreatedBy,
       commissionRateCreatedAt
-    ) VALUES (?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
     commissionRateUniqueId,
     commissionRate,
     commissionRateEffectiveDate,
+    commissionRateExpirationDate,
     commissionRateCreatedBy,
     currentDate(),
   ];
@@ -76,7 +76,10 @@ const createCommissionRate = async ({
 // Retrieve all commission rates with pagination and filtering
 const getAllCommissionRates = async (filters = {}) => {
   if (filters.commissionUniqueId) {
-    return await getCommissionsByCommissionUniqueId(filters.commissionUniqueId);
+    const { getAllCommissions } = require("./Commission.service");
+    return await getAllCommissions({
+      commissionUniqueId: filters.commissionUniqueId,
+    });
   }
   const page = Number(filters.page) || 1;
   const limit = Math.min(Number(filters.limit) || 10, 100);
@@ -235,7 +238,10 @@ const updateCommissionRateByUniqueId = async ({
     throw new AppError("Commission rate not found", 404);
   }
   if (existingRows[0]?.commissionRateDeletedAt) {
-    throw new AppError("Commission rate already deleted", 400);
+    await executor.query(
+      "UPDATE CommissionRates SET commissionRateDeletedAt = NULL, commissionRateDeletedBy = NULL WHERE commissionRateUniqueId = ?",
+      [commissionRateUniqueId],
+    );
   }
 
   const setParts = [];
@@ -266,7 +272,7 @@ const updateCommissionRateByUniqueId = async ({
   }
 
   setParts.push("commissionRateUpdatedAt = CURRENT_TIMESTAMP");
-  const sqlQuery = `UPDATE CommissionRates SET ${setParts.join(", ")} WHERE commissionRateUniqueId = ? AND commissionRateDeletedAt IS NULL`;
+  const sqlQuery = `UPDATE CommissionRates SET ${setParts.join(", ")} WHERE commissionRateUniqueId = ?`;
   values.push(commissionRateUniqueId);
 
   const [result] = await executor.query(sqlQuery, values);
@@ -291,7 +297,7 @@ const deleteCommissionRateByUniqueId = async ({
     throw new AppError("Commission rate not found", 404);
   }
   if (existingRows[0]?.commissionRateDeletedAt) {
-    throw new AppError("Commission rate already deleted", 400);
+    return { message: "success", data: "Commission rate already deleted" };
   }
 
   const sqlDelete = `
@@ -302,7 +308,11 @@ const deleteCommissionRateByUniqueId = async ({
     WHERE commissionRateUniqueId = ? AND commissionRateDeletedAt IS NULL
   `;
 
-  const values = [currentDate(), commissionRateDeletedBy, commissionRateUniqueId];
+  const values = [
+    currentDate(),
+    commissionRateDeletedBy,
+    commissionRateUniqueId,
+  ];
 
   const [result] = await executor.query(sqlDelete, values);
   if (result.affectedRows === 0) {
