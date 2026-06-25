@@ -49,7 +49,13 @@ const initiateTest = async () => {
     console.log("✅ Driver documents authorized\n");
 
     // ── Phase A-F ─────────────────────────────────────────────────────────────
-    const safe = (label, fn) => async () => { try { await fn(); } catch (e) { console.error(`⚠️  ${label} failed, continuing: ${e.message}`); } };
+    const safe = (label, fn) => async () => {
+      try {
+        await fn();
+      } catch (e) {
+        console.error(`⚠️  ${label} failed, continuing: ${e.message}`);
+      }
+    };
     await safe("runReferenceCRUD", runReferenceCRUD)();
     await safe("runIndividualFlow", runIndividualFlow)();
     await safe("testUpdateUserWithFileUpload", testUpdateUserWithFileUpload)();
@@ -60,7 +66,9 @@ const initiateTest = async () => {
 
     // ── Phase G: Socket notification tests (run before delete ops) ──────
     if (!usersData?.driver?.token || !usersData?.shipper?.token) {
-      console.warn("⚠️  Missing driver/shipper tokens for socket tests — skipping Phase H");
+      console.warn(
+        "⚠️  Missing driver/shipper tokens for socket tests — skipping Phase H",
+      );
     } else {
       console.log("\n=======================================================");
       console.log("   🔌 TESTING SOCKET NOTIFICATIONS");
