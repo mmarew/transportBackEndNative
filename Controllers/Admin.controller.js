@@ -56,27 +56,14 @@ const AdminController = {
   },
 
   /**
-   * GET /api/admin/system/logs?secret=YOUR_SECRET_KEY&type=error|combined
+   * GET /api/admin/system/logs?type=error|combined
    * Returns the last 500 lines of the system logs as HTML.
    */
   getSystemLogs: async (req, res, next) => {
     try {
-      const { secret, type = "error" } = req.query;
+      const { type = "error" } = req.query;
 
-      // 1. Security Check
-      // eslint-disable-next-line security/detect-possible-timing-attacks
-      if (secret !== Config.SECRET_KEY) {
-        return res.status(401).send(`
-          <html>
-            <body style="font-family: sans-serif; background: #f8d7da; padding: 20px; color: #721c24;">
-              <h1>Unauthorized</h1>
-              <p>Invalid or missing secret key. Access denied.</p>
-            </body>
-          </html>
-        `);
-      }
-
-      // 2. Resolve Log Path
+      // 1. Resolve Log Path
       const filename = type === "error" ? "error.log" : "combined.log";
       const logFilePath = path.join(__dirname, "../logs", filename);
 
@@ -118,9 +105,9 @@ const AdminController = {
             <div class="header">
               <span style="font-size: 18px;">📜 System Logs: <strong>${filename}</strong></span>
               <span>
-                <a href="?secret=${secret}&type=error">Errors</a>
-                <a href="?secret=${secret}&type=combined">Combined</a>
-                <a href="/api/admin/system/uploads?secret=${secret}">📁 View Uploads</a>
+                <a href="?type=error">Errors</a>
+                <a href="?type=combined">Combined</a>
+                <a href="/api/admin/system/uploads">📁 View Uploads</a>
               </span>
             </div>
             ${lastLines
@@ -143,20 +130,12 @@ const AdminController = {
   },
 
   /**
-   * GET /api/admin/system/uploads?secret=YOUR_SECRET_KEY
+   * GET /api/admin/system/uploads
    * Returns a list of uploaded files with links to view them.
    */
   getUploadedFiles: async (req, res, next) => {
     try {
-      const { secret } = req.query;
-
-      // 1. Security Check
-      // eslint-disable-next-line security/detect-possible-timing-attacks
-      if (secret !== Config.SECRET_KEY) {
-        return res.status(401).send("<h1>Unauthorized</h1>");
-      }
-
-      // 2. Resolve Uploads Path
+      // 1. Resolve Uploads Path
       const uploadsDir = path.join(__dirname, "../uploads");
 
       if (!fs.existsSync(uploadsDir)) {
@@ -201,7 +180,7 @@ const AdminController = {
               <div class="header">
                 <h2 style="margin:0;">📁 User Uploads</h2>
                 <div>
-                  <a href="/api/admin/system/logs?secret=${secret}" class="link">📜 Logs</a>
+                  <a href="/api/admin/system/logs" class="link">📜 Logs</a>
                 </div>
               </div>
               ${fileInfos

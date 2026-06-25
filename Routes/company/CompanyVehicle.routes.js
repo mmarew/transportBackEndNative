@@ -12,11 +12,7 @@ router.use(verifyTokenOfAxios);
 /**
  * @route   POST /api/company/fleet
  */
-router.post(
-  "/",
-  validator(schema.assignVehicle),
-  controller.assignVehicle,
-);
+router.post("/", validator(schema.assignVehicle), controller.assignVehicle);
 
 /**
  * @route   GET /api/company/fleet

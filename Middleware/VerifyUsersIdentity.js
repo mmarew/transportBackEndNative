@@ -9,7 +9,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
   try {
     const userUniqueId = req?.user?.userUniqueId;
 
-    const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND roleId = ? OR roleId = ?`;
+    const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND (roleId = ? OR roleId = ?)`;
     const [userRole] = await pool.query(sql, [
       userUniqueId,
       usersRolesList.admin.roleId,

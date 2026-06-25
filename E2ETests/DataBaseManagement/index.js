@@ -26,12 +26,12 @@ const devConfig = () => ({
 /**
  * POST /api/admin/createTable
  * Creates all tables from the predefined SQL schema.
- * No auth required — safe to call on a fresh empty database.
+ * Uses x-api-key for auth — safe to call on a fresh empty database.
  */
 const createTables = async () => {
   const url = backendURL + DATABASE_ENDPOINTS.CREATE_TABLE;
   try {
-    const res = await axios.post(url);
+    const res = await axios.post(url, {}, devConfig());
     console.log("✅ Tables created.");
     return res.data;
   } catch (error) {
@@ -73,7 +73,7 @@ const getAllTables = async () => {
 const dropTables = async () => {
   const url = backendURL + DATABASE_ENDPOINTS.DROP_ALL_TABLES;
   try {
-    await axios.delete(url);
+    await axios.delete(url, devConfig());
   } catch (error) {
     console.warn("dropTables warning:", error.response?.data?.error || error.message);
   }

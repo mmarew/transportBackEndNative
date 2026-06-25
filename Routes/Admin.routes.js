@@ -61,13 +61,23 @@ Router.get(
  * Note: This route is protected by a query-string SECRET_KEY check inside the controller
  * to allow for easy browser access without needing JWT headers.
  */
-Router.get(ADMIN_ENDPOINTS.SYSTEM_LOGS, AdminController.getSystemLogs);
+Router.get(
+  ADMIN_ENDPOINTS.SYSTEM_LOGS,
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+  AdminController.getSystemLogs,
+);
 
 /**
- * GET /api/admin/system/uploads?secret=YOUR_SECRET_KEY
- * Securely lists all user-uploaded files in the browser.
+ * GET /api/admin/system/uploads
+ * Lists all uploaded files (Admin/SuperAdmin only).
  */
-Router.get(ADMIN_ENDPOINTS.SYSTEM_UPLOADS, AdminController.getUploadedFiles);
+Router.get(
+  ADMIN_ENDPOINTS.SYSTEM_UPLOADS,
+  verifyTokenOfAxios,
+  verifyIfUserIsAdminOrSupperAdmin,
+  AdminController.getUploadedFiles,
+);
 
 /**
  * GET /api/admin/dashboard

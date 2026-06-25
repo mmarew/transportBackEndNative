@@ -1,7 +1,6 @@
 const AppError = require("../Utils/AppError");
 const ServerResponder = require("../Utils/ServerResponder");
 const logger = require("../Utils/logger");
-const { currentDate } = require("../Utils/CurrentDate");
 const Config = require("../Utils/Config");
 
 const handleCastErrorDB = (err) => {

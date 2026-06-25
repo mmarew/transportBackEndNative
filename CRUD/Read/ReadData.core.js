@@ -52,9 +52,15 @@ const getData = async ({
 
   // Add LIMIT clause if provided
   if (limit) {
-    sqlQuery += ` LIMIT ${limit}`;
+    const safeLimit = Number.parseInt(limit, 10);
+    if (Number.isFinite(safeLimit) && safeLimit >= 0) {
+      sqlQuery += ` LIMIT ${safeLimit}`;
+    }
     if (offset) {
-      sqlQuery += ` OFFSET ${offset}`;
+      const safeOffset = Number.parseInt(offset, 10);
+      if (Number.isFinite(safeOffset) && safeOffset >= 0) {
+        sqlQuery += ` OFFSET ${safeOffset}`;
+      }
     }
   }
 

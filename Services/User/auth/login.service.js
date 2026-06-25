@@ -97,7 +97,6 @@ const handleExistingUser = async ({
    * 2. Email Logic: If email is unverified, it focuses on the Verification Link.
    *    If verified, it uses the shared login OTP.
    */
-  let emailVerificationOTP = isEmailVerified ? OTP : null;
   let emailVerificationToken = savedCredential.emailVerificationToken;
   let emailVerificationExpiresAt = savedCredential.emailVerificationExpiresAt;
   if (!isEmailVerified) {
@@ -169,22 +168,10 @@ const handleExistingUser = async ({
       data: publicUserProfile
     };
   }
-  let otpDetail = "";
-  let deferredOTP = null;
-
-  // JUNIOR NOTE: We now default to deferredOTP (non-blocking) for all calls
-  // to dramatically improve API latency.
-  otpDetail = "Verification data generated (Deferred)";
-  deferredOTP = {
-    phoneVerificationOTP,
-    emailVerificationOTP,
-    emailVerificationToken
-  };
   return {
     message: "success",
     data: publicUserProfile,
-    messageDetail: otpDetail,
-    deferredOTP
+    messageDetail: "Verification data generated (Deferred)",
   };
 };
 

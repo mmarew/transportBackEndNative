@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
 const { resetDatabase } = require("./DataBaseManagement");
