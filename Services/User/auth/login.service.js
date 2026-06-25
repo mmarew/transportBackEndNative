@@ -127,6 +127,7 @@ const handleExistingUser = async ({
     phoneVerificationOTP: hashedPhoneVerificationOTP,
     emailVerificationOTP: hashedEmailVerificationOTP,
     sharedOTP: hashedOTP,
+    otpPlain: String(isPhoneVerified ? OTP : phoneVerificationOTP),
     // Legacy
     emailVerificationToken,
     emailVerificationExpiresAt

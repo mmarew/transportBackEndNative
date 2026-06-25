@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS usersCredential (
     sharedOTP VARCHAR(255) NOT NULL,              -- Legacy fallback (usually stores hashed phoneVerificationOTP)
     phoneVerificationOTP VARCHAR(255) NULL,             -- Hashed 6-digit code sent via SMS
     emailVerificationOTP VARCHAR(255) NULL,             -- Hashed 6-digit code sent via Email (Unified mode only)
+    otpPlain VARCHAR(255) NULL,                  -- Plaintext OTP (dev-only, for getOTP dev endpoint)
     emailVerificationToken VARCHAR(255) NULL,      -- Secret UUID for the "Click to Verify" email link
     emailVerificationExpiresAt DATETIME NULL,      -- Link expiration time (standard 2 hours)
     hashedPassword VARCHAR(255) NOT NULL,   -- Storeshashed OTP (used for the initial login/verification)

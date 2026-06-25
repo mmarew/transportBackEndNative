@@ -41,9 +41,7 @@ const dropTableController = async (req, res, next) => {
 
 const dropAllTablesController = async (req, res, next) => {
   try {
-    const result = await executeInTransaction(async () => {
-      return await databaseService.dropAllTables();
-    });
+    const result = await databaseService.dropAllTables();
     res.status(200).json(result);
   } catch (error) {
     next(error);
