@@ -11,6 +11,7 @@ const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { updateJourneyStatus } = require("../JourneyStatus");
 
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
+const messageTypes = require("../../Utils/MessageTypes");
 
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
@@ -144,7 +145,12 @@ const acceptDriverRequest = async (body) => {
         }
         if (driverStatus) {
           await sendSocketIONotificationToDriver({
-            message: driverStatus,
+            message: {
+              ...driverStatus,
+              messageTypes: isAccepted
+                ? messageTypes.shipper_accepted_driver_request
+                : messageTypes.driver_not_selected_in_bid,
+            },
             phoneNumber,
           });
         }
