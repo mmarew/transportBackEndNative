@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 const sqlQuery = `
 
 -- Ensure session defaults use InnoDB and utf8mb4 for all created tables
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS Roles (
     roleDescription VARCHAR(255) NULL,  -- Description of the role
     roleCreatedBy VARCHAR(36) NOT NULL,  -- Who created the role
     roleUpdatedBy VARCHAR(36) NULL,  -- Who updated the role
+    roleUpdatedAt DATETIME NULL,  -- When the role was updated
     roleDeletedBy VARCHAR(36) NULL,  -- Who deleted the role
     roleCreatedAt DATETIME NOT NULL,  -- When the role was created
     roleDeletedAt DATETIME  -- When the role was deleted
@@ -55,7 +57,12 @@ CREATE TABLE IF NOT EXISTS Roles (
     vehicleTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle type
     vehicleTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the vehicle type
     vehicleTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the vehicle type
-    carryingCapacity INT NULL,  -- Carrying capacity of the vehicle
+    carryingCapacity INT NULL,  -- Max carrying capacity in quintal
+    -- cargoType: what kind of cargo this vehicle class supports
+    --   'bulk_only'      → open flatbed / curtain-sider; cannot carry ISO containers
+    --   'container_only' → specialised rig (low-bed multi-axle); containers only
+    --   'both'           → can carry bulk cargo OR ISO containers interchangeably
+    cargoType ENUM('bulk_only', 'container_only', 'both') NOT NULL DEFAULT 'bulk_only',
     vehicleTypeUpdatedAt DATETIME NULL,  -- Vehicle type update date
     vehicleTypeCreatedAt DATETIME NOT NULL,  -- Vehicle type creation date
     vehicleTypeDeletedAt DATETIME NULL  -- Vehicle type deletion date
@@ -106,6 +113,7 @@ CREATE TABLE IF NOT EXISTS usersCredential (
     sharedOTP VARCHAR(255) NOT NULL,              -- Legacy fallback (usually stores hashed phoneVerificationOTP)
     phoneVerificationOTP VARCHAR(255) NULL,             -- Hashed 6-digit code sent via SMS
     emailVerificationOTP VARCHAR(255) NULL,             -- Hashed 6-digit code sent via Email (Unified mode only)
+    otpPlain VARCHAR(255) NULL,                  -- Plaintext OTP (dev-only, for getOTP dev endpoint)
     emailVerificationToken VARCHAR(255) NULL,      -- Secret UUID for the "Click to Verify" email link
     emailVerificationExpiresAt DATETIME NULL,      -- Link expiration time (standard 2 hours)
     hashedPassword VARCHAR(255) NOT NULL,   -- Storeshashed OTP (used for the initial login/verification)
@@ -296,65 +304,90 @@ CREATE TABLE IF NOT EXISTS DocumentTypesHistory (
 
 CREATE TABLE IF NOT EXISTS AttachedDocuments (
     attachedDocumentId INT AUTO_INCREMENT PRIMARY KEY,
-    attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the attached document
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users and is used to show owner of documents
-    attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
-    documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
-    attachedDocumentFileNumber VARCHAR(25) NULL,  -- File number associated with the attached document
-    documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
-    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',  -- Status of the attached document
-    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
-    documentVersion INT NOT NULL DEFAULT 1,  -- Document version number (to track changes)
-    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
-    attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
-    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
-    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
-    INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
-    INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
-    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
-)  ; 
+    attachedDocumentUniqueId VARCHAR(36) UNIQUE NOT NULL,    -- UUID for the attached document
+
+    -- Polymorphic owner (Option B): who/what this document belongs to.
+    -- ownerType  = 'user'    → ownerUniqueId is Users.userUniqueId
+    -- ownerType  = 'company' → ownerUniqueId is TransportCompany.companyUniqueId
+    -- ownerType  = 'vehicle' → ownerUniqueId is Vehicle.vehicleUniqueId
+    -- No DB-level FK here because ownerUniqueId points to different tables.
+    -- Application layer enforces referential integrity.
+
+
+    ownerType ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
+
+    ownerUniqueId VARCHAR(36) NOT NULL,
+
+    attachedDocumentDescription VARCHAR(255) NULL,           -- Description of the attached document
+    documentTypeId INT NOT NULL,                             -- Foreign key to DocumentTypes
+    attachedDocumentFileNumber VARCHAR(25) NULL,             -- File number associated with the document
+    documentExpirationDate DATETIME NULL,                    -- Expiration date for time-sensitive docs
+    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    attachedDocumentName VARCHAR(255) NOT NULL,              -- File path / URL stored on FTP
+    documentVersion INT NOT NULL DEFAULT 1,                  -- Version counter (incremented on update)
+    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,    -- Audit: which user uploaded this doc
+    attachedDocumentCreatedAt DATETIME NOT NULL,
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,
+    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,
+    attachedDocumentAcceptedRejectedAt DATETIME NULL,
+
+    INDEX idx_owner (ownerType, ownerUniqueId),              -- Fast owner lookup
+    INDEX idx_documentTypeId (documentTypeId),
+    FOREIGN KEY (attachedDocumentCreatedByUserId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
+)  ;
 -- Create the AttachedDocumentsHistory Table (for Historical Records)
 
 CREATE TABLE IF NOT EXISTS AttachedDocumentsHistory (
     attachedDocumentHistoryId INT AUTO_INCREMENT PRIMARY KEY,
-    attachedDocumentId INT NOT NULL,  -- Reference to the original AttachedDocuments
-    attachedDocumentUniqueId VARCHAR(36) NOT NULL,  -- UUID for the attached document (links to the current active document)
-    userUniqueId VARCHAR(36) NOT NULL,  -- Foreign key to Users
-    attachedDocumentDescription VARCHAR(255) NULL,  -- Description of the attached document
-    documentTypeId INT NOT NULL,  -- Foreign key to DocumentTypes
-    documentExpirationDate DATETIME NULL,  -- Expiration date for time-sensitive documents (e.g., licenses)
-    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,  -- Status of the attached document
-    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    attachedDocumentAcceptedRejectedAt DATETIME NULL,  -- When the attached document was last updated
-    attachedDocumentName VARCHAR(255) NOT NULL,  -- Name of the attached document
-    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,  -- Who created the attached document
-    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,  -- Who last updated the attached document
-    attachedDocumentDeletedByUserId VARCHAR(36) NULL,  -- Who deleted the attached document
-    attachedDocumentCreatedAt DATETIME NOT NULL,  -- When the attached document was created
-    attachedDocumentUpdatedAt DATETIME NULL,  -- When the attached document was updated
-    attachedDocumentDeletedAt DATETIME NULL,  -- When the attached document was deleted
-    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,  -- Was the attached document expired
-    attachedDocumentAcceptanceReason VARCHAR(255) NULL,  -- Reason for accepting or rejecting the attached document
-    documentVersion INT NOT NULL DEFAULT 1,  -- Document version number (to track changes)
-    INDEX idx_userUniqueId (userUniqueId),  -- Index for fast lookups
-    INDEX idx_documentTypeId (documentTypeId),  -- Index for fast lookups
-    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),  -- Link to the Users table
-    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)  -- Link to DocumentTypes
+    attachedDocumentId INT NOT NULL,                             -- Reference to the original AttachedDocuments row
+    attachedDocumentUniqueId VARCHAR(36) NOT NULL,               -- UUID of the document at snapshot time
+
+    -- Polymorphic owner — mirrors AttachedDocuments.ownerType / ownerUniqueId.
+    -- Stored here so history rows are self-contained: no join to parent needed
+    -- to know whether this snapshot belonged to a user, company, or vehicle.
+
+    ownerType    ENUM('user', 'company', 'vehicle') NOT NULL DEFAULT 'user',
+    ownerUniqueId VARCHAR(36) NOT NULL,
+
+    attachedDocumentDescription VARCHAR(255) NULL,
+    documentTypeId INT NOT NULL,
+    attachedDocumentFileNumber VARCHAR(25) NULL,                 -- Snapshot of file number at time of change
+    documentExpirationDate DATETIME NULL,
+    attachedDocumentAcceptance ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL,
+    attachedDocumentAcceptedRejectedByUserId VARCHAR(36) NULL,
+    attachedDocumentAcceptedRejectedAt DATETIME NULL,
+    attachedDocumentName VARCHAR(255) NOT NULL,
+    attachedDocumentCreatedByUserId VARCHAR(36) NOT NULL,        -- Audit: who originally uploaded
+    attachedDocumentUpdatedByUserId VARCHAR(36) NULL,            -- Audit: who triggered this snapshot
+    attachedDocumentDeletedByUserId VARCHAR(36) NULL,
+    attachedDocumentCreatedAt DATETIME NOT NULL,
+    attachedDocumentUpdatedAt DATETIME NULL,                     -- When this snapshot was taken
+    attachedDocumentDeletedAt DATETIME NULL,
+    attachedDocumentIsExpired BOOLEAN NOT NULL DEFAULT FALSE,    -- Was the doc expired at snapshot time?
+    attachedDocumentAcceptanceReason VARCHAR(255) NULL,
+    documentVersion INT NOT NULL DEFAULT 1,                      -- Version number at snapshot time
+
+    INDEX idx_history_owner (ownerType, ownerUniqueId),          -- Fast owner history lookup
+    INDEX idx_history_documentTypeId (documentTypeId),
+    FOREIGN KEY (documentTypeId) REFERENCES DocumentTypes(documentTypeId)
 )  ;
 
- 
--- Create the PassengerRequest table
+-- Create the ShipperRequest table
 
-CREATE TABLE IF NOT EXISTS PassengerRequest (
-    passengerRequestId INT AUTO_INCREMENT PRIMARY KEY,
-    passengerRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the passenger request
+CREATE TABLE IF NOT EXISTS ShipperRequest (
+    shipperRequestId INT AUTO_INCREMENT PRIMARY KEY,
+    shipperRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the shipper request
 
     userUniqueId VARCHAR(36) NOT NULL,                     -- Foreign key to Users
-    passengerRequestBatchId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
+    shipperRequestBatchId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
     journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
+
+    -- Request mode: controls whether this is open to individual drivers or targeted at one company
+    requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
+    -- Only set when requestMode = 'company_target'; the specific company the shipper is targeting
+    targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,
 
     originLatitude DECIMAL(10, 8) NOT NULL,                -- Latitude of origin
     originLongitude DECIMAL(11, 8) NOT NULL,               -- Longitude of origin
@@ -373,21 +406,63 @@ CREATE TABLE IF NOT EXISTS PassengerRequest (
     shippingDate DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDate DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
-    isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by passenger 
-    shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, passenger himself or driver take from street
+    isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by shipper 
+    shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, shipper himself or driver take from street
     shipperRequestCreatedByRoleId INT NOT NULL,          -- roleId of the creator when it create this request
-    passengerRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the passenger request
-    passengerRequestDeletedBy VARCHAR(36) NULL,  -- Who deleted the passenger request
-    passengerRequestUpdatedAt DATETIME NULL,  -- When the passenger request was updated
-    passengerRequestDeletedAt DATETIME NULL,  -- When the passenger request was deleted
+    shipperRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the shipper request
+    shipperRequestDeletedBy VARCHAR(36) NULL,  -- Who deleted the shipper request
+    shipperRequestUpdatedAt DATETIME NULL,  -- When the shipper request was updated
+    shipperRequestDeletedAt DATETIME NULL,  -- When the shipper request was deleted
 
     foreign key (shipperRequestCreatedByRoleId) references Roles(roleId),
     foreign key (shipperRequestCreatedBy) references Users(userUniqueId),
     FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
-    FOREIGN KEY (passengerRequestUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (passengerRequestDeletedBy) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (shipperRequestUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (shipperRequestDeletedBy) REFERENCES Users(userUniqueId)
+    -- NOTE: FK to TransportCompany(companyUniqueId) is defined after that table is created below
+    -- INDEX added after company tables: idx_shipperRequest_targetCompany (targetCompanyUniqueId)
+);
+
+-- ShipperRequestBatch: A metadata table that summarizes a group of requests.
+-- Junior Note: Performance Optimization!
+-- Instead of grouping 1000s of individual requests on every discovery call, 
+-- we query this single "Header" table. This turns an O(N*M) operation into O(N).
+CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
+    batchId INT AUTO_INCREMENT PRIMARY KEY,
+    batchUniqueId VARCHAR(36) UNIQUE NOT NULL,             -- The common ID for all requests in this batch
+    shipperUserUniqueId VARCHAR(36) NOT NULL,              -- FK → Users
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- FK → VehicleTypes
+    totalVehicles INT NOT NULL DEFAULT 1,                  -- Total number of vehicles requested
+
+    requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
+    targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,   -- FK → TransportCompany (null if open)
+
+    -- Descriptive metadata for the "Bid Board"
+    originLatitude DECIMAL(10, 8) NULL,                    -- Needed for lazy sr creation at bid approval
+    originLongitude DECIMAL(11, 8) NULL,
+    originPlace VARCHAR(255) NOT NULL,
+    destinationLatitude DECIMAL(10, 8) NULL,
+    destinationLongitude DECIMAL(11, 8) NULL,
+    destinationPlace VARCHAR(255) NOT NULL,
+    shippableItemName VARCHAR(100) NULL,
+    shippableItemQtyInQuintal DECIMAL(15,2) NULL,
+    shippingDate DATETIME NULL,
+    deliveryDate DATETIME NULL,
+    shippingCost DECIMAL(10,2) NULL,
+
+    journeyStatusId INT NOT NULL DEFAULT 1,                -- FK → JourneyStatus
+    batchCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    batchUpdatedAt DATETIME NULL,
+    batchDeletedAt DATETIME NULL,
+
+    INDEX idx_batch_target (targetCompanyUniqueId),
+    INDEX idx_batch_status (journeyStatusId),
+    INDEX idx_batch_mode (requestMode),
+    FOREIGN KEY (shipperUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId)
 );
 
 -- Create the DriverRequest table
@@ -401,7 +476,7 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
     originPlace VARCHAR(255) NOT NULL,  -- Origin place
    --   TIMESTAMP NOT NULL,  -- Time of the request
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
-    isCancellationByPassengerSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen cancellation notification
+    isCancellationByShipperSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen cancellation notification
    -- driverRequestCreatedBy VARCHAR(36) NOT NULL,  -- Who created the driver request
     driverRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the driver request
     driverRequestDeletedBy VARCHAR(36) NULL,  -- Who deleted the driver request
@@ -420,18 +495,18 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
 CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionId INT AUTO_INCREMENT PRIMARY KEY,
     journeyDecisionUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for journey decision
-    passengerRequestId INT NOT NULL,  -- Foreign key to PassengerRequest
+    shipperRequestId INT NOT NULL,  -- Foreign key to ShipperRequest
     driverRequestId INT UNIQUE NOT NULL,  -- Foreign key to DriverRequest
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
-    decisionBy ENUM('passenger', 'driver', 'admin') NOT NULL,  -- Who made the decision
+    decisionBy ENUM('shipper', 'driver', 'admin') NOT NULL,  -- Who made the decision
 
     shippingDateByDriver DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDateByDriver DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCostByDriver DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
     isNotSelectedSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen not selected notification
-    isCancellationByDriverSeenByPassenger ENUM('no need to see it', 'not seen by passenger yet', 'seen by passenger') DEFAULT 'no need to see it',  -- Track if passenger has seen driver cancellation notification
-    isRejectionByPassengerSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen passenger rejection notification (before bid completion)
+    isCancellationByDriverSeenByShipper ENUM('no need to see it', 'not seen by shipper yet', 'seen by shipper') DEFAULT 'no need to see it',  -- Track if shipper has seen driver cancellation notification
+    isRejectionByShipperSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen shipper rejection notification (before bid completion)
     journeyDecisionCreatedBy VARCHAR(36) NOT NULL,  -- Who created the journey decision
     journeyDecisionUpdatedBy VARCHAR(36) NULL,  -- Who updated the journey decision
     journeyDecisionDeletedBy VARCHAR(36) NULL,  -- Who deleted the journey decision
@@ -439,7 +514,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     journeyDecisionUpdatedAt DATETIME NULL,  -- When the journey decision was updated
     journeyDecisionDeletedAt DATETIME NULL,  -- When the journey decision was deleted
     
-    FOREIGN KEY (passengerRequestId) REFERENCES PassengerRequest(passengerRequestId),
+    FOREIGN KEY (shipperRequestId) REFERENCES ShipperRequest(shipperRequestId),
     FOREIGN KEY (driverRequestId) REFERENCES DriverRequest(driverRequestId),
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
     FOREIGN KEY (journeyDecisionCreatedBy) REFERENCES Users(userUniqueId),
@@ -513,6 +588,7 @@ CREATE TABLE IF NOT EXISTS JourneyRoutePoints (
 
 CREATE TABLE IF NOT EXISTS VehicleStatusTypes (
     VehicleStatusTypeId INT AUTO_INCREMENT PRIMARY KEY,
+    VehicleStatusTypeUniqueId VARCHAR(36) UNIQUE NOT NULL, -- UUID for the vehicle status type
     VehicleStatusTypeName VARCHAR(50) NOT NULL,  -- Name of the vehicle status type
     VehicleStatusTypeDescription VARCHAR(255) NULL,  -- Description of the vehicle status type
     VehicleStatusTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the vehicle status type
@@ -615,6 +691,45 @@ CREATE TABLE IF NOT EXISTS Ratings (
     FOREIGN KEY (ratingDeletedBy) REFERENCES Users(userUniqueId)
 ) ;
 
+-- CompanyRating is defined at the end of the schema (after CompanyBidRequest is created).
+
+
+-- CompanyProfileHistory is defined at the end of the schema (after TransportCompany is created).
+
+
+-- UserProfileHistory: Append-only audit log for user profile & status changes.
+-- Same pattern as CompanyHistory — one row per field per event.
+-- Clearly named to separate from job/journey history.
+-- fieldName examples:
+--   'fullName', 'phoneNumber', 'email'  → source: profile_update
+--   'userStatus', 'roleStatus'          → source: status_change (future use)
+--   'ban'                               → source: ban (referenceUniqueId = userDelinquencyUniqueId)
+CREATE TABLE IF NOT EXISTS UserProfileHistory (
+    historyId INT AUTO_INCREMENT PRIMARY KEY,
+    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    userUniqueId VARCHAR(36) NOT NULL,                  -- FK → Users
+    changedBy VARCHAR(36) NOT NULL,                     -- FK → Users (who made the change)
+    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fieldName VARCHAR(100) NOT NULL,                    -- which field changed
+    oldValue TEXT NULL,                                 -- value before the change
+    newValue TEXT NULL,                                 -- value after the change
+    reason TEXT NULL,
+    source ENUM(
+        'registration',    -- user first created
+        'profile_update',  -- fullName / phone / email change
+        'status_change',   -- admin changed user or role status
+        'ban',             -- compliance ban (referenceUniqueId = userDelinquencyUniqueId)
+        'unban',           -- admin lifted ban
+        'manual'           -- direct admin override
+    ) NOT NULL,
+    referenceUniqueId VARCHAR(36) NULL,
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (changedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_uph_user (userUniqueId),
+    INDEX idx_uph_field (fieldName),
+    INDEX idx_uph_changed_at (changedAt)
+) ;
+
 -- Create the SMSSender table
 
 CREATE TABLE IF NOT EXISTS SMSSender (
@@ -638,7 +753,12 @@ CREATE TABLE IF NOT EXISTS CancellationReasonsType (
     cancellationReasonsTypeId INT AUTO_INCREMENT PRIMARY KEY, 
     cancellationReasonTypeUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for cancellation reason
     cancellationReason VARCHAR(150) NOT NULL,  -- Type of cancellation reason
-    roleId int NOT NULL,  -- Who canceled (could be driver, passenger, or admin)
+    roleId int NOT NULL,  -- Who canceled (could be driver, shipper, or admin)
+    -- requestMode controls which UI context this reason belongs to:
+    --   'individual'  → shown only when cancelling a single driver-to-shipper request
+    --   'company'     → shown only when cancelling a company freight/batch request
+    --   'both'        → valid in both individual and company contexts
+    requestMode ENUM('individual', 'company', 'both') NOT NULL DEFAULT 'both',
     cancellationReasonTypeCreatedBy VARCHAR(36) NOT NULL,  -- Who created the cancellation reason
     cancellationReasonTypeUpdatedBy VARCHAR(36) NULL,  -- Who updated the cancellation reason
     cancellationReasonTypeDeletedBy VARCHAR(36) NULL,  -- Who deleted the cancellation reason
@@ -684,7 +804,7 @@ CREATE TABLE IF NOT EXISTS PaymentStatus (
 ) ;
 
 
--- Create the JourneyPayments table where passenger pays to driver for journey service
+-- Create the JourneyPayments table where shipper pays to driver for journey service
 
 CREATE TABLE IF NOT EXISTS JourneyPayments (
     paymentId INT AUTO_INCREMENT PRIMARY KEY,
@@ -718,15 +838,16 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
  CREATE TABLE IF NOT EXISTS CanceledJourneys (
     canceledJourneyId INT AUTO_INCREMENT PRIMARY KEY,
     canceledJourneyUniqueId VARCHAR(36) NOT NULL,  -- UUID for this cancellation record
-    contextId INT NOT NULL,  -- ID from the relevant table (passenger request, driver request, journey decision, or journey)
+    contextId INT NOT NULL,  -- ID from the relevant table (shipper request, driver request, journey decision, or journey)
     roleId INT NOT NULL,  -- ID from the Roles table
-    contextType ENUM('PassengerRequest', 'DriverRequest', 'JourneyDecisions', 'Journey') NOT NULL,  -- Type of context being referenced
+    contextType ENUM('ShipperRequest', 'DriverRequest', 'JourneyDecisions', 'Journey', 'ShipperRequestBatch') NOT NULL,  -- Type of context being referenced
     driverUserUniqueId VARCHAR(36) , 
-    passengerUserUniqueId VARCHAR(36),
+    shipperUserUniqueId VARCHAR(36),
     canceledBy VARCHAR(36) NOT NULL,  -- User who canceled (foreign key to Users)
     cancellationReasonsTypeId INT NOT NULL,  -- Reference to predefined cancellation reason
     canceledTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Time of cancellation
     isSeenByAdmin TINYINT(1) NOT NULL DEFAULT 0,
+    canceledJourneySeenByAdminAt DATETIME NULL,
     canceledJourneyCreatedBy VARCHAR(36) NOT NULL,  -- Who created the canceled journey record
     canceledJourneyUpdatedBy VARCHAR(36) NULL,  -- Who updated the canceled journey record
     canceledJourneyDeletedBy VARCHAR(36) NULL,  -- Who deleted the canceled journey record
@@ -746,9 +867,9 @@ CREATE TABLE IF NOT EXISTS JourneyPayments (
     tariffRateId INT AUTO_INCREMENT PRIMARY KEY,
     tariffRateUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for tariff rate
     tariffRateName VARCHAR(255) NOT NULL,  -- Name of the tariff rate
-    standingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate where driver comes to passengers pick up place
-    journeyTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a passengers up to destination place and can be calculated by km
-    timingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a passengers up to destination place and can be calculated by time
+    standingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate where driver comes to shippers pick up place
+    journeyTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a shippers up to destination place and can be calculated by km
+    timingTariffRate DECIMAL(10, 2) NOT NULL,  -- a tariff rate between a place where driver pick up a shippers up to destination place and can be calculated by time
     tariffRateEffectiveDate DATE NOT NULL,  -- The date from which this rate is effective
     tariffRateExpirationDate DATE NOT NULL,  -- The date after which this rate is no longer effective
     tariffRateDescription TEXT NOT NULL,  -- Description of tariff rate
@@ -1017,7 +1138,7 @@ CREATE TABLE IF NOT EXISTS UserBalanceTransfer (
 
  
 
--- UserRefund can be used to give back users money from ride hailing account (drivers, passengers, etc.)
+-- UserRefund can be used to give back users money from ride hailing account (drivers, shippers, etc.)
 CREATE TABLE IF NOT EXISTS UserRefund (
   userRefundId INT AUTO_INCREMENT PRIMARY KEY, -- Auto-incremented unique identifier for each refund record
 
@@ -1129,45 +1250,679 @@ CREATE TABLE IF NOT EXISTS DelinquencyTypes (
     FOREIGN KEY (delinquencyTypeUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (delinquencyTypeDeletedBy) REFERENCES Users(userUniqueId)
 );
--- User Delinquency table  is used to track delinquency for specific user-role combinations
+
+-- User Delinquency table — tracks delinquency for specific user-role combinations.
+-- Lifecycle mirrors CompanyDelinquency:
+--   1. Delinquency created → user notified, responseDeadline set
+--   2. User MAY submit a defense (UserDelinquencyResponse)
+--   3. Admin issues a ruling (AdminDecisionOnUserDelinquency)
+--   4. UPHELD → graduated auto-ban check via BannedUsers
+
+
 CREATE TABLE IF NOT EXISTS UserDelinquency (
+
     userDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
     userDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    userUniqueId VARCHAR(36) NOT NULL,  -- Specific user who committed the delinquency action
-    roleId INT NOT NULL,  -- Specific role-id of the user who committed the delinquency action
-    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,   -- e.g., 'late_arrival', 'cancellation', 'misbehavior'
+
+    userUniqueId VARCHAR(36) NOT NULL,
+    roleId INT NOT NULL,
+    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,
     delinquencyDescription TEXT NOT NULL,
     delinquencySeverity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
-    delinquencyPoints INT NOT NULL DEFAULT 1,  -- Points assigned for this delinquency
+    delinquencyPoints INT NOT NULL DEFAULT 1,
     delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     delinquencyUpdatedAt DATETIME NULL DEFAULT NULL,
-    delinquencyCreatedBy VARCHAR(36) NOT NULL DEFAULT 'system',  -- 'system' for automatic bans
-    journeyDecisionUniqueId VARCHAR(36) NULL, -- for which journey decision this delinquency is applied if it is from journey may be passenger complay againest driver
-    isDeliquencySeenByAdmin TINYINT(1) NOT NULL DEFAULT 0, -- 0 = Unseen, 1 = Seen
+    delinquencyCreatedBy VARCHAR(36) NOT NULL DEFAULT 'system',
+    journeyDecisionUniqueId VARCHAR(36) NULL,
+    responseDeadline DATETIME NULL,                     -- Auto-set: CRITICAL=1d, HIGH=3d, MEDIUM=5d, LOW=7d
+    delinquencyDeletedAt DATETIME NULL,                 -- Soft-delete (EXONERATED)
+    delinquencyDeletedBy VARCHAR(36) NULL,
+    isDelinquencySeenByAdmin TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
     FOREIGN KEY (roleId) REFERENCES Roles(roleId),
     FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
     FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
+    FOREIGN KEY (delinquencyDeletedBy) REFERENCES Users(userUniqueId),
     INDEX idx_userrole_severity (userUniqueId, roleId, delinquencySeverity),
     INDEX idx_created_severity (delinquencyCreatedAt, delinquencySeverity)
 );
 
--- Banned Users table - Automatic role-based banning
+-- UserDelinquencyResponse: user's formal defense against a delinquency accusation.
+-- One response per delinquency. Late responses are flagged.
+CREATE TABLE IF NOT EXISTS UserDelinquencyResponse (
+    userDelinquencyResponseId INT AUTO_INCREMENT PRIMARY KEY,
+    userDelinquencyResponseUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    userDelinquencyUniqueId VARCHAR(36) NOT NULL,
+    userDelinquencyResponse TEXT NOT NULL,
+    isLateResponse BOOLEAN NOT NULL DEFAULT FALSE,
+    userDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    userDelinquencyResponseDeletedAt DATETIME NULL,
+    userDelinquencyResponseDeletedBy varchar(36) default null,
+
+    userDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
+
+     userDelinquencyResponseUpdatedAt varchar(36) default null,
+         userDelinquencyResponseUpdatedBy varchar(36) default null,
+
+    FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId),
+    FOREIGN KEY (userDelinquencyResponseCreatedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_user_delinquency_response (userDelinquencyUniqueId)
+);
+
+-- AdminDecisionOnUserDelinquency: admin's formal ruling on a user dispute.
+-- Outcomes: EXONERATED (cleared), UPHELD (ban check), REDUCED (lower pts), DISMISSED (no action)
+CREATE TABLE IF NOT EXISTS AdminDecisionOnUserDelinquency (
+    adminDecisionOnUserDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    adminDecisionOnUserDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    userDelinquencyUniqueId VARCHAR(36) NOT NULL,
+    userDelinquencyResponseUniqueId VARCHAR(36) NULL,
+    decisionOutcome ENUM('EXONERATED','UPHELD','REDUCED','DISMISSED') NOT NULL,
+    adminDecisionText TEXT NOT NULL,
+    delinquencyPointsAfter INT NULL,
+    adminDecisionOnUserDelinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    adminDecisionOnUserDelinquencyCreatedBy VARCHAR(36) NOT NULL,
+    adminDecisionOnUserDelinquencyDeletedAt DATETIME NULL,
+    FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId),
+    FOREIGN KEY (userDelinquencyResponseUniqueId) REFERENCES UserDelinquencyResponse(userDelinquencyResponseUniqueId),
+    FOREIGN KEY (adminDecisionOnUserDelinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_admin_decision_user_del (userDelinquencyUniqueId)
+);
+
+-- Banned Users table — graduated ban system matching CompanyBan.
+-- Ban path: Delinquency → Response(optional) → AdminDecision(UPHELD) → auto-ban check
 CREATE TABLE IF NOT EXISTS BannedUsers (
     banId INT AUTO_INCREMENT PRIMARY KEY,
     banUniqueId VARCHAR(36) UNIQUE NOT NULL,
-    userDelinquencyUniqueId VARCHAR(36) NOT NULL,  -- The triggering delinquency
+    userUniqueId VARCHAR(36) NOT NULL,
+    roleId INT NOT NULL,
     banAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',  -- 'system' for automatic bans
+    bannedBy VARCHAR(36) NOT NULL DEFAULT 'system',
     banReason TEXT NOT NULL,
-    banDurationDays INT NOT NULL,  -- Duration in days (7, 30, 90, etc.)
-    banExpiresAt DATETIME NOT NULL,  -- Calculated: banAt + banDurationDays
+    banDurationDays INT NOT NULL,
+    banExpiresAt DATETIME NOT NULL,
     isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId),
+    INDEX idx_ban_expires (banExpiresAt, isActive),
+    INDEX idx_ban_user_role (userUniqueId, roleId)
+);
+
+-- BannedUserDelinquency: junction linking one ban to ALL contributing delinquencies.
+CREATE TABLE IF NOT EXISTS BannedUserDelinquency (
+    bannedUserDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    bannedUserDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    banUniqueId VARCHAR(36) NOT NULL,
+    userDelinquencyUniqueId VARCHAR(36) NOT NULL,
+    pointsAtTime INT NOT NULL DEFAULT 0,
+    FOREIGN KEY (banUniqueId) REFERENCES BannedUsers(banUniqueId),
     FOREIGN KEY (userDelinquencyUniqueId) REFERENCES UserDelinquency(userDelinquencyUniqueId),
-     INDEX idx_ban_expires (banExpiresAt, isActive)
+    INDEX idx_ban_delinquency (banUniqueId, userDelinquencyUniqueId)
 );
  
+
+-- ============================================================
+-- COMPANY TRANSPORT SCHEMA
+-- Added to support Ethiopian freight transport companies that
+-- own fleets (100-500+ vehicles) bidding on bulk shipper requests.
+-- ============================================================
+
+
+-- TransportCompany: Core entity representing a registered freight company.
+-- A company may have hundreds of vehicles and can bid on shipper requests
+-- as an organisation rather than as individual drivers.
+
+CREATE TABLE IF NOT EXISTS TransportCompany (
+    companyId INT AUTO_INCREMENT PRIMARY KEY,
+    companyUniqueId VARCHAR(36) UNIQUE NOT NULL,           -- UUID
+    companyName VARCHAR(255) NOT NULL,                     -- Official registered company name
+    companyRegistrationNumber VARCHAR(100) UNIQUE NULL,    -- Ethiopian trade/transport license number
+    companyPhone VARCHAR(20) NULL,                         -- Company contact phone
+    companyEmail VARCHAR(255) NULL,                        -- Company contact email
+    companyAddress VARCHAR(500) NULL,                      -- Physical address
+    approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
+    approvalReason VARCHAR(500) NULL,                      -- Admin note when approving or rejecting
+    approvedBy VARCHAR(36) NULL,                           -- Admin who approved/rejected
+    approvedAt DATETIME NULL,
+    companyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyCreatedBy VARCHAR(36) NOT NULL,
+    companyUpdatedAt DATETIME NULL,
+    companyUpdatedBy VARCHAR(36) NULL,
+    companyDeletedAt DATETIME NULL,
+    companyDeletedBy VARCHAR(36) NULL,
+    isDeleted BOOLEAN NOT NULL DEFAULT FALSE,
+    INDEX idx_company_approvalStatus (approvalStatus),
+    INDEX idx_company_isDeleted (isDeleted),
+    FOREIGN KEY (companyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyDeletedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
+);
+
+-- CompanyBan: active suspensions for transport companies.
+-- A ban records expiry, reason, and who triggered it.
+-- For auto-bans (accumulated points), all contributing delinquencies
+-- are linked via CompanyBanDelinquency junction table.
+
+-- CompanyBan: records a ban issued against a transport company.
+--
+-- Ban path (single):
+--   Delinquency → (optional company response) → AdminDecisionOnDelinquency
+--   → UPHELD → checkAndApplyAutomaticCompanyBan (graduated threshold check)
+--
+-- The graduated system sums all active delinquency points in a 30-day window:
+--   15+ pts → 3-day ban (MEDIUM)
+--   30+ pts → 7-day ban (HIGH)
+--   60+ pts → 90-day ban (CRITICAL)
+--   90+ pts → 365-day ban (PERMANENT)
+--   Below 15 → no ban issued (warning only)
+--
+-- CompanyBanDelinquency records WHICH delinquencies contributed to the ban.
+CREATE TABLE IF NOT EXISTS CompanyBan (
+
+    companyBanId       INT AUTO_INCREMENT PRIMARY KEY,
+    companyBanUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyUniqueId    VARCHAR(36) NOT NULL,  -- FK → TransportCompany
+    bannedBy           VARCHAR(36) NOT NULL DEFAULT 'system',
+    banReason          TEXT NOT NULL,
+    banDurationDays    INT NOT NULL,
+    banAt              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    banExpiresAt       DATETIME NOT NULL,
+    isActive           BOOLEAN NOT NULL DEFAULT TRUE,
+
+    -- Identifies whether the ban was triggered automatically (point threshold)
+    -- or manually by an admin decision after a dispute.
+    banSource ENUM('auto_threshold', 'admin_decision') NOT NULL DEFAULT 'auto_threshold',
+
+    -- Set only when banSource = 'admin_decision'.
+    -- Links to the AdminDecisionOnDelinquency record that triggered this ban.
+    -- NULL when banSource = 'auto_threshold'.
+    adminDecisionOnDelinquencyUniqueId VARCHAR(36) NULL,
+
+    INDEX idx_company_ban_company (companyUniqueId, isActive),
+    INDEX idx_company_ban_expires (banExpiresAt, isActive),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (bannedBy) REFERENCES Users(userUniqueId)
+    -- Note: FK to AdminDecisionOnDelinquency is NOT declared here because
+    -- AdminDecisionOnDelinquency is defined AFTER CompanyBan in this file.
+    -- Referential integrity for adminDecisionOnDelinquencyUniqueId is enforced
+    -- at the application layer (service validates before insert).
+);
+
+
+-- CompanyDelinquency: audit trail of rule violations by transport companies.
+-- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
+
+
+
+-- CompanyBanDelinquency is defined at the end of the schema (after CompanyDelinquency is created).
+
+
+
+
+
+CREATE TABLE IF NOT EXISTS CompanyRoles (
+    companyRoleId INT AUTO_INCREMENT PRIMARY KEY,
+    companyRoleUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyRoleName VARCHAR(50) UNIQUE NOT NULL, -- 'owner', 'manager', 'dispatcher', 'driver'
+    companyRoleDescription TEXT,
+    companyRoleCreatedBy VARCHAR(36) NOT NULL,
+    companyRoleUpdatedBy VARCHAR(36) NULL,
+    companyRoleDeletedBy VARCHAR(36) NULL,
+    companyRoleCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyRoleUpdatedAt DATETIME NULL,
+    companyRoleDeletedAt DATETIME NULL,
+    FOREIGN KEY (companyRoleCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRoleUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRoleDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyMembership: Links individual users (owner, manager, dispatcher, driver)
+-- to a TransportCompany. A driver can belong to a company AND still take
+-- individual shipper requests — membership does NOT lock the driver.
+-- One user can have one active membership per company.
+
+CREATE TABLE IF NOT EXISTS CompanyMembership (
+    membershipId INT AUTO_INCREMENT PRIMARY KEY,
+    membershipUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
+    userUniqueId VARCHAR(36) NOT NULL,                     -- FK → Users
+    companyRoleUniqueId VARCHAR(36) NOT NULL,             -- FK → CompanyRoles
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    membershipStartDate DATETIME NOT NULL,
+    membershipEndDate DATETIME NULL,
+    membershipCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    membershipCreatedBy VARCHAR(36) NOT NULL,
+    membershipUpdatedAt DATETIME NULL,
+    membershipUpdatedBy VARCHAR(36) NULL,
+    membershipDeletedAt DATETIME NULL,
+    membershipDeletedBy VARCHAR(36) NULL,
+    UNIQUE KEY uq_company_user (companyUniqueId, userUniqueId),  -- One active membership per user per company
+    INDEX idx_membership_companyUniqueId (companyUniqueId),
+    INDEX idx_membership_userUniqueId (userUniqueId),
+    INDEX idx_membership_role (companyRoleUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRoleUniqueId) REFERENCES CompanyRoles(companyRoleUniqueId),
+    FOREIGN KEY (membershipCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyVehicle: Assigns vehicles to a company fleet.
+-- Separate from VehicleOwnership (which links vehicles to individual users).
+-- A vehicle may be owned by an individual user AND assigned to a company.
+
+CREATE TABLE IF NOT EXISTS CompanyVehicle (
+    companyVehicleId INT AUTO_INCREMENT PRIMARY KEY,
+    companyVehicleUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
+    vehicleUniqueId VARCHAR(36) NOT NULL,                  -- FK → Vehicle
+    assignmentStatus ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    assignmentStartDate DATETIME NOT NULL,
+    assignmentEndDate DATETIME NULL,
+
+    companyVehicleCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyVehicleCreatedBy VARCHAR(36) NOT NULL,
+    companyVehicleUpdatedAt DATETIME NULL,
+    companyVehicleUpdatedBy VARCHAR(36) NULL,
+    companyVehicleDeletedAt DATETIME NULL,
+    companyVehicleDeletedBy VARCHAR(36) NULL,
+
+    UNIQUE KEY uq_company_vehicle (companyUniqueId, vehicleUniqueId),  -- One vehicle per company at a time
+    INDEX idx_companyVehicle_company (companyUniqueId),
+    INDEX idx_companyVehicle_vehicle (vehicleUniqueId),
+    INDEX idx_companyVehicle_status (assignmentStatus),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (companyVehicleCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyVehicleUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyVehicleDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyBidRequest: A company's bid on a shipper's batch request.
+-- When requestMode = 'company_target', only the targeted company can see and bid.
+-- No partial bids: numberOfVehiclesOffered MUST equal the shipper's batch size.
+-- One company submits one bid per batch (UNIQUE on companyUniqueId + shipperRequestBatchId).
+-- Commission for company bids is tracked in CompanyCommission (not the per-journey Commission table).
+
+CREATE TABLE IF NOT EXISTS CompanyBidRequest (
+    companyBidRequestId INT AUTO_INCREMENT PRIMARY KEY,
+    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    -- The shipper's batch being bid on (links to ShipperRequest.shipperRequestBatchId)
+    shipperRequestBatchId VARCHAR(36) NOT NULL,
+
+    -- Who is bidding
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
+    bidSubmittedByUserUniqueId VARCHAR(36) NOT NULL,       -- Manager or dispatcher who submitted
+
+    -- Bid terms — must match full batch (no partial bids)
+    numberOfVehiclesOffered INT NOT NULL,                  -- Must equal shipper's numberOfVehicles
+    vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Type of vehicles being offered
+    proposedCostPerVehicle DECIMAL(10,2) NULL,             -- Negotiated price per vehicle
+    proposedTotalCost DECIMAL(10,2) NULL,                  -- Total cost for all vehicles
+    proposedShippingDate DATETIME NULL,
+    proposedDeliveryDate DATETIME NULL,
+    bidNotes TEXT NULL,                                    -- Optional message from company to shipper
+
+    -- Bid lifecycle status which is relation between company and shipper
+    bidStatus ENUM(
+        'submitted',           -- Company submitted; waiting for shipper
+        'accepted_by_shipper', -- Shipper accepted; dispatcher must now assign vehicles
+        'rejected_by_shipper', -- Shipper rejected this bid
+        'cancelled_by_company',-- Company withdrew before shipper decided
+        'expired'              -- Bid expired without action
+    ) NOT NULL DEFAULT 'submitted',
+    bidStatusUpdatedAt DATETIME NULL,
+    bidStatusUpdatedBy VARCHAR(36) NULL,
+
+    -- Cancellation acknowledgement (mirrors DriverRequest.isCancellationByShipperSeenByDriver)
+    -- NULL  = no cancellation occurred
+    -- 'not seen by company yet' = batch was cancelled; company has not acknowledged
+    -- 'seen by company'         = company tapped/polled and acknowledged the cancellation
+    isCancellationSeenByCompany ENUM('not seen by company yet', 'seen by company') NULL DEFAULT NULL,
+
+    -- Journey linkage
+    journeyStatusId INT NOT NULL,                          -- FK → JourneyStatus (starts at 'waiting')
+
+    companyBidRequestCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyBidRequestCreatedBy VARCHAR(36) NOT NULL,
+    companyBidRequestUpdatedAt DATETIME NULL,
+    companyBidRequestUpdatedBy VARCHAR(36) NULL,
+    companyBidRequestDeletedAt DATETIME NULL,
+    companyBidRequestDeletedBy VARCHAR(36) NULL,
+
+    UNIQUE KEY uq_company_batch_bid (companyUniqueId, shipperRequestBatchId),  -- One bid per company per batch
+    INDEX idx_companyBid_batchId (shipperRequestBatchId),
+    INDEX idx_companyBid_company (companyUniqueId),
+    INDEX idx_companyBid_status (bidStatus),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (bidSubmittedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (vehicleTypeUniqueId) REFERENCES VehicleTypes(vehicleTypeUniqueId),
+    FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
+    FOREIGN KEY (companyBidRequestCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyBidVehicleAssignment: After shipper accepts a company bid, the dispatcher
+-- assigns specific vehicles and their drivers — one row per ShipperRequest slot.
+-- Each row maps: one ShipperRequest row ↔ one Vehicle ↔ one Driver.
+--
+-- DriverRequest creation sequence (IMPORTANT):
+--   JourneyDecisions.driverRequestId is NOT NULL, so a DriverRequest record MUST exist
+--   before a JourneyDecision can be created. In the company flow this works as follows:
+--
+--   Step 1 — Dispatcher assigns driver:
+--     → System auto-creates a DriverRequest row on behalf of the assigned driver
+--       (origin/status copied from the linked ShipperRequest; journeyStatusId = acceptedByDriver)
+--     → driverRequestUniqueId is stored in this table immediately
+--
+--   Step 2 — Driver confirms assignment (assignmentStatus → confirmed_by_driver):
+--     → System creates JourneyDecision using shipperRequestId + driverRequestId
+--     → journeyDecisionUniqueId is then stored in this table
+--
+--   Step 3 — If driver rejects (assignmentStatus → rejected_by_driver):
+--     → The DriverRequest status is updated to cancelledByDriver
+--     → Dispatcher must create a new assignment row (status = reassigned)
+--     → A fresh DriverRequest is created for the replacement driver
+
+CREATE TABLE IF NOT EXISTS CompanyBidVehicleAssignment (
+    assignmentId INT AUTO_INCREMENT PRIMARY KEY,
+    assignmentUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    -- Links back to the company bid and the specific ShipperRequest slot
+    companyBidRequestUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyBidRequest
+    shipperRequestUniqueId VARCHAR(36) NOT NULL,         -- FK → ShipperRequest (one row in the batch)
+
+    -- The assigned vehicle and driver
+    vehicleUniqueId VARCHAR(36) NOT NULL,                  -- FK → Vehicle
+    driverUserUniqueId VARCHAR(36) NOT NULL,               -- FK → Users (driver must be a company member)
+
+    -- Auto-created by the system when a driver is assigned (Step 1 above).
+    -- Stored here so JourneyDecisions can be created using it (Step 2 above).
+    -- NULL only briefly before the DriverRequest insert completes (same transaction).
+    driverRequestUniqueId VARCHAR(36) NULL,                -- FK → DriverRequest
+
+    -- Assignment lifecycle
+    assignmentStatus ENUM(
+        'assigned',            -- Dispatcher assigned; DriverRequest created; waiting for driver to confirm
+        'confirmed_by_driver', -- Driver confirmed; JourneyDecision advanced to status 4
+        'rejected_by_driver',  -- Driver refused BEFORE confirming; dispatcher must reassign
+        'cancelled_by_driver', -- Driver cancelled AFTER confirming (mid-job cancellation)
+        'reassigned',          -- Replacement row after a rejection
+        'cancelled_by_company',  -- Dispatcher/company cancelled the assignment
+        'cancelled_by_shipper',  -- Shipper cancelled the request
+        'completed'            -- Journey completed successfully
+    ) NOT NULL DEFAULT 'assigned',
+
+    -- Populated in Step 2 after driver confirms
+    journeyDecisionUniqueId VARCHAR(36) NULL,              -- FK → JourneyDecisions
+
+    assignmentCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    assignmentCreatedBy VARCHAR(36) NOT NULL,
+    assignmentUpdatedAt DATETIME NULL,
+    assignmentUpdatedBy VARCHAR(36) NULL,
+    assignmentDeletedAt DATETIME NULL,
+    assignmentDeletedBy VARCHAR(36) NULL,
+
+    INDEX idx_assignment_bid (companyBidRequestUniqueId),
+    INDEX idx_assignment_driver (driverUserUniqueId),
+    INDEX idx_assignment_vehicle (vehicleUniqueId),
+    INDEX idx_assignment_status (assignmentStatus),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (shipperRequestUniqueId) REFERENCES ShipperRequest(shipperRequestUniqueId),
+    FOREIGN KEY (vehicleUniqueId) REFERENCES Vehicle(vehicleUniqueId),
+    FOREIGN KEY (driverUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (driverRequestUniqueId) REFERENCES DriverRequest(driverRequestUniqueId),
+    FOREIGN KEY (journeyDecisionUniqueId) REFERENCES JourneyDecisions(journeyDecisionUniqueId),
+    FOREIGN KEY (assignmentCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (assignmentUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (assignmentDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyCommission: Commission charged to a TransportCompany per accepted bid.
+-- This is SEPARATE from the per-journey Commission table (which tracks individual driver commissions).
+-- Company commission is calculated at the bid level, not per individual journey.
+-- Applies when bidStatus = 'accepted_by_shipper' in CompanyBidRequest.
+
+CREATE TABLE IF NOT EXISTS CompanyCommission (
+    companyCommissionId INT AUTO_INCREMENT PRIMARY KEY,
+    companyCommissionUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyBidRequestUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyBidRequest (one commission per bid)
+    companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany (denormalized for easy query)
+    commissionRateUniqueId VARCHAR(36) NOT NULL,           -- FK → CommissionRates (rate used at time of bid)
+
+    -- Calculated amounts
+    baseTotalCost DECIMAL(10,2) NOT NULL,                  -- proposedTotalCost from the winning bid
+    commissionRate DECIMAL(5,2) NOT NULL,                  -- Rate snapshot (in %) at time of calculation
+    commissionAmount DECIMAL(10,2) NOT NULL,               -- baseTotalCost * commissionRate / 100
+
+    -- Payment status (reuses CommissionStatus table for consistency)
+    commissionStatusUniqueId VARCHAR(36) NOT NULL,         -- FK → CommissionStatus
+
+    -- Optional: reference to a company-level payment if paid via the system
+    paymentReference VARCHAR(255) NULL,                    -- External payment ref (bank transfer, Telebirr, etc.)
+    paidAt DATETIME NULL,                                  -- When commission was paid
+    paidBy VARCHAR(36) NULL,                               -- Admin who confirmed payment
+
+    companyCommissionCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyCommissionCreatedBy VARCHAR(36) NOT NULL,
+    companyCommissionUpdatedAt DATETIME NULL,
+    companyCommissionUpdatedBy VARCHAR(36) NULL,
+    companyCommissionDeletedAt DATETIME NULL,
+    companyCommissionDeletedBy VARCHAR(36) NULL,
+
+    UNIQUE KEY uq_company_commission_bid (companyBidRequestUniqueId),  -- One commission record per bid
+    INDEX idx_companyCommission_company (companyUniqueId),
+    INDEX idx_companyCommission_status (commissionStatusUniqueId),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (commissionRateUniqueId) REFERENCES CommissionRates(commissionRateUniqueId),
+    FOREIGN KEY (commissionStatusUniqueId) REFERENCES CommissionStatus(commissionStatusUniqueId),
+    FOREIGN KEY (paidBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyCommissionCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyCommissionUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyCommissionDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+
+-- CompanyDelinquency: audit trail of rule violations by transport companies.
+-- Mirrors UserDelinquency but uses companyUniqueId since companies are not users.
+-- Placed at end of schema because it references CompanyBidRequest (created above).
+
+CREATE TABLE IF NOT EXISTS CompanyDelinquency ( 
+
+    companyDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    companyDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyUniqueId VARCHAR(36) NOT NULL,                   -- FK → TransportCompany
+    delinquencyTypeUniqueId VARCHAR(36) NOT NULL,           -- FK → DelinquencyTypes
+    delinquencyDescription TEXT NOT NULL,
+    delinquencySeverity ENUM('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+
+    delinquencyPoints INT NOT NULL DEFAULT 1,
+    journeyDecisionUniqueId VARCHAR(36) NULL,               -- Optional: identifies the specific DRIVER's journey leg within a bid
+    companyBidRequestUniqueId VARCHAR(36) NULL,             -- Optional: links to the entire freight bid/contract
+    delinquencyCreatedBy VARCHAR(36) NOT NULL,              -- Admin or 'system' UUID
+    delinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    responseDeadline DATETIME NULL,                         -- Auto-set based on severity: CRITICAL=1d, HIGH=3d, MEDIUM=5d, LOW=7d
+    delinquencyDeletedAt DATETIME NULL,                     -- Soft-delete timestamp (set on EXONERATED)
+    delinquencyDeletedBy VARCHAR(36) NULL,                  -- Admin who cleared the delinquency
+
+    INDEX idx_company_delinquency_company (companyUniqueId),
+    INDEX idx_company_delinquency_type (delinquencyTypeUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (delinquencyTypeUniqueId) REFERENCES DelinquencyTypes(delinquencyTypeUniqueId),
+    FOREIGN KEY (delinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (delinquencyDeletedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId)
+);
+
+
+-- CompanyDelinquencyResponse: a company's formal defense against a delinquency accusation.
+--
+-- LIFECYCLE:
+--   1. A delinquency record is created against a company (CompanyDelinquency).
+--   2. The company MAY submit a written response to dispute the accusation.
+--      Submitting a response is optional — the admin can still issue a ruling
+--      even if the company does not respond.
+--   3. The admin reviews the delinquency (and the response, if one exists)
+--      and issues a formal decision via AdminDecisionOnDelinquency.
+--      Possible outcomes: EXONERATED, UPHELD, REDUCED, or DISMISSED.
+--   4. If the company fails to respond, the admin may proceed to ban
+--      or apply other penalties at their discretion.
+
+CREATE TABLE IF NOT EXISTS CompanyDelinquencyResponse ( 
+
+    companyDelinquencyResponseId INT AUTO_INCREMENT PRIMARY KEY,
+    companyDelinquencyResponseUniqueId VARCHAR(36) UNIQUE NOT NULL,
+
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,
+    companyDelinquencyResponse TEXT NOT NULL,
+    isLateResponse BOOLEAN NOT NULL DEFAULT FALSE,          -- TRUE if submitted after the responseDeadline
+
+    companyDelinquencyResponseCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyDelinquencyResponseUpdatedAt DATETIME NULL,
+    companyDelinquencyResponseDeletedAt DATETIME NULL,
+    
+    companyDelinquencyResponseCreatedBy VARCHAR(36) NOT NULL,
+    companyDelinquencyResponseUpdatedBy VARCHAR(36) NULL,
+    companyDelinquencyResponseDeletedBy VARCHAR(36) NULL,
+
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_company_delinquency_response_company (companyDelinquencyUniqueId)
+);   
+
+
+
+-- AdminDecisionOnDelinquency: admin's formal ruling on a company delinquency dispute.
+-- Created after the company submits a CompanyDelinquencyResponse (or admin acts without one).
+-- decisionOutcome determines what happens to the delinquency record:
+--   EXONERATED → company is cleared; accusation was wrong, delinquency removed
+--   UPHELD     → accusation stands; defense failed, ban may be issued
+--   REDUCED    → partial mitigation; admin reduces the delinquency points
+--   DISMISSED  → case closed; no further action needed
+
+
+CREATE TABLE IF NOT EXISTS AdminDecisionOnDelinquency (
+
+    adminDecisionOnDelinquencyId        INT AUTO_INCREMENT PRIMARY KEY,
+    adminDecisionOnDelinquencyUniqueId  VARCHAR(36) UNIQUE NOT NULL,
+
+    companyDelinquencyUniqueId          VARCHAR(36) NOT NULL,   -- FK → CompanyDelinquency (required)
+    companyDelinquencyResponseUniqueId  VARCHAR(36) NULL,       -- FK → CompanyDelinquencyResponse (NULL if admin decides without a response)
+
+    decisionOutcome ENUM('EXONERATED','UPHELD','REDUCED','DISMISSED') NOT NULL,
+    adminDecisionText TEXT NOT NULL,         -- written reason / notes from admin
+    delinquencyPointsAfter INT NULL,         -- only set when decisionOutcome = 'REDUCED'
+
+    adminDecisionOnDelinquencyCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    adminDecisionOnDelinquencyUpdatedAt DATETIME NULL,
+    adminDecisionOnDelinquencyDeletedAt DATETIME NULL,
+    adminDecisionOnDelinquencyCreatedBy VARCHAR(36) NOT NULL,   -- FK → Users (admin)
+    adminDecisionOnDelinquencyUpdatedBy VARCHAR(36) NULL,
+    adminDecisionOnDelinquencyDeletedBy VARCHAR(36) NULL,
+
+    FOREIGN KEY (companyDelinquencyUniqueId)         REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    FOREIGN KEY (companyDelinquencyResponseUniqueId) REFERENCES CompanyDelinquencyResponse(companyDelinquencyResponseUniqueId),
+    FOREIGN KEY (adminDecisionOnDelinquencyCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (adminDecisionOnDelinquencyUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (adminDecisionOnDelinquencyDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_admin_decision_delinquency (companyDelinquencyUniqueId),
+    INDEX idx_admin_decision_response (companyDelinquencyResponseUniqueId)
+);
+
+
+-- CompanyBanDelinquency: junction table linking a single ban to ALL delinquencies
+-- that contributed to its issuance.
+--
+-- PURPOSE:
+--   A company may commit more than one delinquency within the same period.
+--   The accumulated sum of delinquency points across those records is what
+--   triggers the ban. This table preserves the reference from the ban back
+--   to every delinquency that contributed, along with each delinquency's
+--   point value at the time the ban was issued (pointsAtTime).
+
+CREATE TABLE IF NOT EXISTS CompanyBanDelinquency (
+    CompanyBanDelinquencyId INT AUTO_INCREMENT PRIMARY KEY,
+    CompanyBanDelinquencyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBanUniqueId VARCHAR(36) NOT NULL,                -- FK → CompanyBan
+    companyDelinquencyUniqueId VARCHAR(36) NOT NULL,        -- FK → CompanyDelinquency
+    pointsAtTime INT NOT NULL,
+    UNIQUE KEY uq_ban_delinquency (companyBanUniqueId, companyDelinquencyUniqueId),
+    FOREIGN KEY (companyBanUniqueId) REFERENCES CompanyBan(companyBanUniqueId),
+    FOREIGN KEY (companyDelinquencyUniqueId) REFERENCES CompanyDelinquency(companyDelinquencyUniqueId),
+    INDEX idx_cbd_ban (companyBanUniqueId),
+    INDEX idx_cbd_delinquency (companyDelinquencyUniqueId)
+);
+
+
+-- CompanyProfileHistory: append-only audit log for company profile & status changes.
+-- Placed at end of schema because it references TransportCompany (created above).
+CREATE TABLE IF NOT EXISTS CompanyProfileHistory (
+    historyId INT AUTO_INCREMENT PRIMARY KEY,
+    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,
+    changedBy VARCHAR(36) NOT NULL,
+    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fieldName VARCHAR(100) NOT NULL,
+    oldValue TEXT NULL,
+    newValue TEXT NULL,
+    reason TEXT NULL,
+    source ENUM(
+        'registration',
+        'document_approval',
+        'ban',
+        'unban',
+        'profile_update',
+        'manual'
+    ) NOT NULL,
+    referenceUniqueId VARCHAR(36) NULL,
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    INDEX idx_cph2_company (companyUniqueId),
+    INDEX idx_cph2_field (fieldName),
+    INDEX idx_cph2_changed_at (changedAt)
+);
+
+
+-- CompanyRating: Shipper rates a Transport Company after a completed freight job.
+-- Placed at end of schema because it references CompanyBidRequest (created above).
+CREATE TABLE IF NOT EXISTS CompanyRating (
+    companyRatingId INT AUTO_INCREMENT PRIMARY KEY,
+    companyRatingUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    companyUniqueId VARCHAR(36) NOT NULL,
+    ratedByUserUniqueId VARCHAR(36) NOT NULL,
+    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT NULL,
+    companyRatingCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    companyRatingUpdatedAt DATETIME NULL,
+    companyRatingDeletedAt DATETIME NULL,
+    companyRatingCreatedBy VARCHAR(36) NOT NULL,
+    companyRatingUpdatedBy VARCHAR(36) NULL,
+    companyRatingDeletedBy VARCHAR(36) NULL,
+    FOREIGN KEY (companyBidRequestUniqueId) REFERENCES CompanyBidRequest(companyBidRequestUniqueId),
+    FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),
+    FOREIGN KEY (ratedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (companyRatingDeletedBy) REFERENCES Users(userUniqueId),
+    INDEX idx_company_rating_company (companyUniqueId),
+    INDEX idx_company_rating_job (companyBidRequestUniqueId)
+);
 `;
 
 module.exports = { sqlQuery };

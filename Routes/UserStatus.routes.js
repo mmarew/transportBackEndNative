@@ -10,29 +10,30 @@ const {
   updateUserStatus,
   userStatusParams,
 } = require("../Validations/UserStatus.schema");
+const { USER_STATUS_ENDPOINTS } = require("./EndPoints/userStatus.endpoints");
 
 // Routes for CRUD operations
 router.post(
-  "/userStatuses/create",
+  USER_STATUS_ENDPOINTS.CREATE_USER_STATUS,
   verifyTokenOfAxios,
   validator(createUserStatus),
   userStatusesController.createUserStatus,
 );
 router.get(
-  "/userStatuses/:id",
+  USER_STATUS_ENDPOINTS.GET_USER_STATUS_BY_ID,
   verifyTokenOfAxios,
   validator(userStatusParams, "params"),
   userStatusesController.getUserStatusById,
 );
 router.put(
-  "/userStatuses/:id",
+  USER_STATUS_ENDPOINTS.UPDATE_USER_STATUS,
   verifyTokenOfAxios,
   validator(userStatusParams, "params"),
   validator(updateUserStatus),
   userStatusesController.updateUserStatus,
 );
 router.delete(
-  "/userStatuses/:id",
+  USER_STATUS_ENDPOINTS.DELETE_USER_STATUS,
   verifyTokenOfAxios,
   validator(userStatusParams, "params"),
   userStatusesController.deleteUserStatus,

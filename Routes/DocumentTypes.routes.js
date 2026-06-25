@@ -13,24 +13,25 @@ const {
   documentTypeParams,
   getDocumentTypesQuery,
 } = require("../Validations/DocumentTypes.schema");
+const { DOCUMENT_TYPES_ENDPOINTS } = require("./EndPoints/documentTypes.endpoints");
 
 // Define routes for CRUD operations with camelCase
 router.post(
-  "/api/documentTypes",
+  DOCUMENT_TYPES_ENDPOINTS.CREATE_DOCUMENT_TYPE,
   verifyTokenOfAxios,
   validator(createDocumentType),
   checkDocumentTypeExists,
   documentTypesController.createDocumentType,
 );
 router.get(
-  "/api/documentTypes",
+  DOCUMENT_TYPES_ENDPOINTS.GET_DOCUMENT_TYPES,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(getDocumentTypesQuery, "query"),
   documentTypesController.getAllDocumentTypes,
 );
 router.put(
-  "/api/documentTypes/:documentTypeUniqueId",
+  DOCUMENT_TYPES_ENDPOINTS.UPDATE_DOCUMENT_TYPE,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(documentTypeParams, "params"),
@@ -38,7 +39,7 @@ router.put(
   documentTypesController.updateDocumentType,
 );
 router.delete(
-  "/api/documentTypes/:documentTypeUniqueId",
+  DOCUMENT_TYPES_ENDPOINTS.DELETE_DOCUMENT_TYPE,
   verifyTokenOfAxios,
   verifyAdminsIdentity,
   validator(documentTypeParams, "params"),

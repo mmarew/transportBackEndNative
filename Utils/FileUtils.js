@@ -13,10 +13,12 @@ const deleteFile = (attachedDocumentName) => {
       "..", // Navigate up one level (from services folder)
       "uploads/" + attachedDocumentName,
     );
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     if (!fs.existsSync(fullPath)) {
       return;
     }
 
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     fs.unlink(fullPath, (err) => {
       if (err) {
         const logger = require("./logger");

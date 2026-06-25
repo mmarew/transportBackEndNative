@@ -11,6 +11,7 @@ exports.createJourneyPayment = async ({
   amount,
   paymentMethodUniqueId,
   paymentStatusUniqueId,
+  user,
 }) => {
   // Check if payment already exists for this journey decision
   const existedPayment = await getData({
@@ -35,9 +36,10 @@ exports.createJourneyPayment = async ({
 
   // Create payment
   const paymentUniqueId = uuidv4();
+  const now = currentDate();
   const sql = `INSERT INTO JourneyPayments 
-      (paymentUniqueId, journeyDecisionUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) 
-      VALUES (?, ?, ?, ?, ?, ?)`;
+      (paymentUniqueId, journeyDecisionUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime, journeyPaymentCreatedBy, journeyPaymentCreatedAt) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
   const values = [
     paymentUniqueId,
@@ -45,7 +47,9 @@ exports.createJourneyPayment = async ({
     amount,
     paymentMethodUniqueId,
     paymentStatusUniqueId,
-    currentDate(),
+    now,
+    user?.userUniqueId || "system",
+    now,
   ];
 
   await executor.query(sql, values);
@@ -73,7 +77,7 @@ exports.getAllJourneyPayments = async ({
   paymentTimeFrom,
   paymentTimeTo,
   driverUniqueId,
-  passengerUniqueId,
+  shipperUniqueId,
 } = {}) => {
   // Validate pagination
   const validatedPage = Math.max(1, parseInt(page));
@@ -119,15 +123,15 @@ exports.getAllJourneyPayments = async ({
     values.push(paymentTimeTo);
   }
 
-  // Filter by driver or passenger (requires JOIN)
+  // Filter by driver or shipper (requires JOIN)
   if (driverUniqueId) {
     conditions.push("dr.userUniqueId = ?");
     values.push(driverUniqueId);
   }
 
-  if (passengerUniqueId) {
-    conditions.push("pr.userUniqueId = ?");
-    values.push(passengerUniqueId);
+  if (shipperUniqueId) {
+    conditions.push("sr.userUniqueId = ?");
+    values.push(shipperUniqueId);
   }
 
   const whereClause =
@@ -151,27 +155,27 @@ exports.getAllJourneyPayments = async ({
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
+      LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
       ${whereClause}
     `;
   const executor = transactionStorage.getStore() || pool;
   const [countResult] = await executor.query(countQuery, values);
   const totalCount = countResult[0].total;
 
-  // Get paginated data with driver/passenger info
-  // Actually, checking previous view_file, it was pr.passengerRequestId
+  // Get paginated data with driver/shipper info
+  // Actually, checking previous view_file, it was sr.shipperRequestId
   const correctedDataQuery = `
       SELECT 
         jp.*,
         dr.userUniqueId as driverUniqueId,
-        pr.userUniqueId as passengerUniqueId,
+        sr.userUniqueId as shipperUniqueId,
         jd.shippingCostByDriver,
         pm.paymentMethod,
         ps.paymentStatus
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
+      LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       ${whereClause}
@@ -207,14 +211,14 @@ exports.getJourneyPaymentById = async (paymentUniqueId) => {
       SELECT 
         jp.*,
         dr.userUniqueId as driverUniqueId,
-        pr.userUniqueId as passengerUniqueId,
+        sr.userUniqueId as shipperUniqueId,
         jd.shippingCostByDriver,
         pm.paymentMethod,
         ps.paymentStatus
       FROM JourneyPayments jp
       LEFT JOIN JourneyDecisions jd ON jp.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
       LEFT JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
-      LEFT JOIN PassengerRequest pr ON jd.passengerRequestId = pr.passengerRequestId
+      LEFT JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
       LEFT JOIN PaymentMethod pm ON jp.paymentMethodUniqueId = pm.paymentMethodUniqueId
       LEFT JOIN PaymentStatus ps ON jp.paymentStatusUniqueId = ps.paymentStatusUniqueId
       WHERE jp.paymentUniqueId = ?

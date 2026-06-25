@@ -1,30 +1,29 @@
-const { Server: socketServer } = require("socket.io");
+const { Server: SocketServer } = require("socket.io");
+const Config = require("../Utils/Config");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const Redis = require("ioredis");
 const WSPusher = require("../Utils/WSPusher");
 const { socketIO, sendError } = require("../Utils/WsServerResponder");
 const { removeSocket } = require("../Utils/WsConnectionStore");
 const {
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
   sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 
 const logger = require("../Utils/logger");
-const {
-  getPassengerRequestByRequestUniqueId,
-} = require("../CRUD/Read/ReadData");
+const { getShipperRequestByRequestUniqueId } = require("../CRUD/Read/ReadData");
 
 async function initSocket({ httpServer }) {
-  const io = new socketServer(httpServer, {
+  const io = new SocketServer(httpServer, {
     cors: {
-      origin: "*", // Set to your domain in production
+      origin: ["https://dynamicsroute.tech", "https://company.dynamicsroute.tech", "https://admin.dynamicsroute.tech"],
     },
     allowEIO3: true, // Allow Engine.IO v3 clients
     transports: ["websocket", "polling"], // Support both transports
   });
 
-  const UPSTASH_REDIS_URL = process.env.UPSTASH_REDIS_URL;
+  const UPSTASH_REDIS_URL = Config.REDIS.URL; // Changed this line
 
   // Only use Redis adapter if UPSTASH_REDIS_URL is configured
   if (UPSTASH_REDIS_URL) {
@@ -134,22 +133,18 @@ async function initSocket({ httpServer }) {
                 }
               }),
             ]),
-            new Promise((_, reject) =>
+            new Promise((resolve, reject) =>
               setTimeout(
                 () => reject(new Error("Redis connection timeout")),
-                5000
-              )
+                5000,
+              ),
             ),
           ]);
 
           // Both clients are ready, initialize adapter
-          try {
-            io.adapter(createAdapter(pubClient, subClient));
-            logger.info("Socket.IO Redis Adapter initialized");
-          } catch (createAdapterError) {
-            // This can happen if Redis disconnects between ready check and adapter creation
-            throw createAdapterError;
-          }
+          // This can happen if Redis disconnects between ready check and adapter creation
+          io.adapter(createAdapter(pubClient, subClient));
+          logger.info("Socket.IO Redis Adapter initialized");
         } catch (adapterError) {
           // Check if it's a timeout or connection error - these are expected when Redis is unavailable
           const isTimeoutOrConnectionError =
@@ -164,7 +159,7 @@ async function initSocket({ httpServer }) {
               {
                 error: adapterError.message,
                 name: adapterError.name,
-              }
+              },
             );
           } else {
             logger.error("Failed to initialize Redis adapter", {
@@ -197,7 +192,7 @@ async function initSocket({ httpServer }) {
     }
   } else {
     logger.warn(
-      "UPSTASH_REDIS_URL not configured - running in single server mode"
+      "UPSTASH_REDIS_URL not configured - running in single server mode",
     );
   }
 
@@ -245,28 +240,28 @@ async function initSocket({ httpServer }) {
 
     socket.on("locationUpdateToShipper", async (data) => {
       try {
-        let phoneNumberOfShipper = data?.passengerPhoneNumber;
+        let phoneNumberOfShipper = data?.shipperPhoneNumber;
 
         // If phone number is missing but we have request ID, fetch it
-        if (!phoneNumberOfShipper && data?.passengerRequestUniqueId) {
+        if (!phoneNumberOfShipper && data?.shipperRequestUniqueId) {
           try {
-            const passengerRequest = await getPassengerRequestByRequestUniqueId(
-              data.passengerRequestUniqueId,
+            const shipperRequest = await getShipperRequestByRequestUniqueId(
+              data.shipperRequestUniqueId,
             );
-            phoneNumberOfShipper = passengerRequest?.phoneNumber;
+            phoneNumberOfShipper = shipperRequest?.phoneNumber;
           } catch (lookupError) {
             logger.warn(
-              "Could not lookup passenger phone number for location update",
+              "Could not lookup shipper phone number for location update",
               {
                 error: lookupError.message,
-                passengerRequestUniqueId: data?.passengerRequestUniqueId,
+                shipperRequestUniqueId: data?.shipperRequestUniqueId,
               },
             );
           }
         }
 
         if (phoneNumberOfShipper) {
-          await sendSocketIONotificationToPassenger({
+          await sendSocketIONotificationToShipper({
             eventName: "locationUpdateToShipper",
             phoneNumber: phoneNumberOfShipper,
             message: {
@@ -275,7 +270,7 @@ async function initSocket({ httpServer }) {
               messageTypes: messageTypes.update_drivers_location_to_shipper,
             },
           });
-          logger.debug("Location update notification sent to passenger", {
+          logger.debug("Location update notification sent to shipper", {
             phoneNumber: phoneNumberOfShipper,
           });
         }

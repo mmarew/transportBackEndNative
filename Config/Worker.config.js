@@ -1,9 +1,10 @@
 "use strict";
 
 const { createServer } = require("http");
-const app = require("./httpServer.config");
+const app = require("./Express.config");
 const { initSocket } = require("./SocketAdapter.config");
 const logger = require("../Utils/logger");
+const Config = require("../Utils/Config");
 
 // Graceful shutdown and error handling
 process.on("uncaughtException", (err) => {
@@ -37,7 +38,7 @@ const startServer = async () => {
 
   initSocket(server); // Initialize Socket.IO
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = Config.PORT;
   server.listen(PORT, "0.0.0.0", () => {
 
   });

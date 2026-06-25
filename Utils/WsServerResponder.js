@@ -38,18 +38,13 @@ const emitMessage = ({ socketId, eventName, messageDetails }) => {
     const AppError = require("./AppError");
     throw new AppError("message can't be sent successfully", 500);
   }
-  const socketData = io.to(socketId).emit(eventName, messageDetails);
+  io.to(socketId).emit(eventName, messageDetails);
 
-  if (socketData === true) {
-    return {
-      status: "success",
-      message: "success",
-      data: "message sent successfully",
-    };
-  } else {
-    const AppError = require("./AppError");
-    throw new AppError("message can't be sent successfully", 500);
-  }
+  return {
+    status: "success",
+    message: "success",
+    data: "message sent successfully",
+  };
 };
 
 /**

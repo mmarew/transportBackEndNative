@@ -11,6 +11,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const messageTypes = require("../Utils/MessageTypes");
 // Create UserRoleStatus
 const createUserRoleStatus = async (body) => {
   const { statusId, userRoleId, userRoleStatusDescription, createdByUserId } =
@@ -111,6 +112,7 @@ const handleUpdateResponses = async ({ roleId, statusId, phoneNumber }) => {
       message: {
         message: "success",
         request: "approve or reject driver's document",
+        messageType: messageTypes?.accept_reject_driver_document,
         driver: driver?.data,
       },
       phoneNumber,
@@ -203,7 +205,7 @@ const userRoleStatusByPhone = async (phoneNumber) => {
       },
     ],
     conditions: {
-      isUserRoleStatusActive: true,
+      // isUserRoleStatusActive: true,
       phoneNumber,
     },
   });

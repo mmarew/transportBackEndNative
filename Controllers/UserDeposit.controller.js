@@ -1,6 +1,6 @@
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
-const service = require("../Services/UserDeposit.service");
+const service = require("../Services/UserDeposit");
 const { currentDate } = require("../Utils/CurrentDate");
 
 // Create

@@ -1,10 +1,11 @@
 const { performJoinSelect } = require("../CRUD/Read/ReadData");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const attachedDocumentsService = require("../Services/AttachedDocuments.service");
+const attachedDocumentsService = require("../Services/AttachedDocuments");
 const {
   driversDocumentVehicleRequirement,
-} = require("../Services/RoleDocumentRequirements.service");
+  entityDocumentRequirement,
+} = require("../Services/RoleDocumentRequirements");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const ServerResponder = require("../Utils/ServerResponder");
 const { uploadToFTP } = require("../Utils/FTPHandler");
@@ -38,18 +39,71 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
         await attachedDocumentsService.getAttachedDocumentByUniqueId(
           attachedDocumentUniqueId,
         );
+
+      // ── Ownership guard for single-doc fetch ──────────────────────────────
+      // Admins and SuperAdmins can see any document.
+      // Everyone else can only see a document if they are the owner:
+      //   ownerType='user'    → ownerUniqueId must match currentUser.userUniqueId
+      //   ownerType='company' → currentUser must have an active CompanyMembership
+      //   ownerType='vehicle' → currentUser must be actively assigned to the vehicle
+      // If the document doesn't exist, just return the (empty) service result.
+      const doc = result?.data;
+      const isAdminOrSuper =
+        currentUser.roleId === usersRolesList.admin.roleId ||
+        currentUser.roleId === usersRolesList.supperAdmin.roleId;
+
+      if (doc && !isAdminOrSuper) {
+        const { pool: dbPool } = require("../Middleware/Database.config");
+        let allowed = false;
+
+        if (doc.ownerType === "user") {
+          allowed = doc.ownerUniqueId === currentUser.userUniqueId;
+        } else if (doc.ownerType === "company") {
+          const [rows] = await dbPool.query(
+            `SELECT membershipId FROM CompanyMembership
+             WHERE userUniqueId = ? AND companyUniqueId = ?
+               AND isActive = 1 AND membershipDeletedAt IS NULL LIMIT 1`,
+            [currentUser.userUniqueId, doc.ownerUniqueId],
+          );
+          allowed = rows.length > 0;
+        } else if (doc.ownerType === "vehicle") {
+          const [rows] = await dbPool.query(
+            `SELECT vehicleDriverId FROM VehicleDriver
+             WHERE driverUserUniqueId = ? AND vehicleUniqueId = ?
+               AND assignmentStatus = 'active' AND vehicleDriverDeletedAt IS NULL LIMIT 1`,
+            [currentUser.userUniqueId, doc.ownerUniqueId],
+          );
+          allowed = rows.length > 0;
+        }
+
+        if (!allowed) {
+          return next(new AppError("Forbidden: you do not own this document.", 403));
+        }
+      }
+
       return ServerResponder(res, result);
     }
 
-    // Determine the target userUniqueId for filtering
-    let targetUserUniqueId = userUniqueId;
-    if (userUniqueId === "self" || !userUniqueId) {
-      targetUserUniqueId = currentUser.userUniqueId;
+
+    // ── Resolve owner context ────────────────────────────────────────────────
+    // ownerType is injected by the route middleware (company/vehicle routes).
+    // Falls back to 'user' for the legacy /api/user/attachedDocuments route.
+    const resolvedOwnerType = req.ownerType ?? "user";
+
+    // ownerUniqueId: route-injected param takes priority (company/vehicle routes),
+    // then explicit query param, then 'self' (logged-in user).
+    let resolvedOwnerUniqueId =
+      req.ownerUniqueIdParam ??   // set by route middleware
+      userUniqueId;               // from query string (legacy/admin usage)
+
+    if (!resolvedOwnerUniqueId || resolvedOwnerUniqueId === "self") {
+      resolvedOwnerUniqueId = currentUser.userUniqueId;
     }
 
     // Build filter object
     const filter = {
-      userUniqueId: targetUserUniqueId,
+      ownerType: resolvedOwnerType,
+      ownerUniqueId: resolvedOwnerUniqueId,
     };
 
     // Add additional filters if provided
@@ -133,10 +187,11 @@ const createAttachedDocuments = async (req, res, next) => {
         // Generate unique filename
         const fileExtension = path.extname(file?.originalname);
         const uniqueFilename = `${user?.userId}_${uuidv4()}${fileExtension}`;
-
-        // Upload to cPanel via FTP
-        const fileUrl = await uploadToFTP(file?.buffer, uniqueFilename);
-
+        const fileBuffer = file?.buffer;
+        // Upload to cPanel or other storage via FTP
+        const fileUrl = await uploadToFTP(fileBuffer, uniqueFilename);
+        // --- ADD THIS LINE TO CLEAR MEMORY FOR THIS FILE IMMEDIATELY ---
+        file.buffer = null;
         documentsToRegister.push({
           fieldname: file.fieldname,
           user,
@@ -159,14 +214,86 @@ const createAttachedDocuments = async (req, res, next) => {
     const fileErrors = [];
     const fileSuccesses = [];
 
+    // ── Auto-resolve company ownership ──────────────────────────────────────────
+    // When a company admin uploads via /self, the route sets ownerType='user'.
+    // But company-level documents (logo, TIN, business license) must be stored
+    // with ownerType='company' + companyUniqueId, not the user's UUID.
+    //
+    // Strategy: For each document, if the documentTypeId is mapped to the
+    // company entity role (roleId=8) in RoleDocumentRequirements, look up the
+    // user's active CompanyMembership and use the companyUniqueId.
+    // This avoids requiring the frontend to know/pass the companyUniqueId.
+
+    const { pool: dbPool } = require("../Middleware/Database.config");
+
+    // Preload company membership once (not per file) to avoid duplicate queries
+    let resolvedCompanyUniqueId = null;
+    let companyDocTypeIds = new Set();          // populated below if ownerType='user'
+    const routeOwnerType = req.ownerType ?? "user";
+
+    if (routeOwnerType === "user") {
+      // Fetch company document typeIds (roleId=8) in a single query
+      const [companyDocTypes] = await dbPool.query(
+        `SELECT documentTypeId FROM RoleDocumentRequirements WHERE roleId = 8 AND roleDocumentRequirementDeletedAt IS NULL`,
+      );
+      companyDocTypeIds = new Set(companyDocTypes.map((r) => String(r.documentTypeId)));
+
+      // Check if ANY of the documents being uploaded is a company document
+      const hasCompanyDoc = documentsToRegister.some((d) =>
+        companyDocTypeIds.has(String(d.documentTypeId)),
+      );
+
+      if (hasCompanyDoc) {
+        // Resolve the user's active company membership
+        const [membershipRows] = await dbPool.query(
+          `SELECT companyUniqueId FROM CompanyMembership
+           WHERE userUniqueId = ? AND isActive = 1 AND membershipDeletedAt IS NULL
+           LIMIT 1`,
+          [userUniqueId],
+        );
+        resolvedCompanyUniqueId = membershipRows[0]?.companyUniqueId ?? null;
+
+        if (!resolvedCompanyUniqueId) {
+          logger.warn("User is uploading a company document but has no active CompanyMembership", {
+            userUniqueId,
+          });
+        }
+      }
+    }
+
     // Save all documents to database within a transaction
     await executeInTransaction(async () => {
       for (const document of documentsToRegister) {
         try {
+          // Per-document: check if THIS specific documentTypeId is a company document
+          const isCompanyDoc =
+            routeOwnerType === "user" &&
+            companyDocTypeIds.has(String(document.documentTypeId));
+
+          let finalOwnerType = routeOwnerType;
+          let finalOwnerUniqueId = userUniqueId;
+
+          if (isCompanyDoc) {
+            if (resolvedCompanyUniqueId) {
+              // Company document + membership found → save as company
+              finalOwnerType = "company";
+              finalOwnerUniqueId = resolvedCompanyUniqueId;
+            } else {
+              // Company document but user has no active membership
+              // Log warning and fall back to user — admin must fix the membership
+              logger.warn("Company document uploaded but no active membership found", {
+                userUniqueId,
+                documentTypeId: document.documentTypeId,
+              });
+            }
+          }
+
           await attachedDocumentsService.createAttachedDocument({
             ...document,
             roleId,
-            userUniqueId,
+            ownerType: finalOwnerType,
+            ownerUniqueId: finalOwnerUniqueId,
+            uploadedByUserId: user?.userUniqueId,
           });
 
           fileSuccesses.push(document.originalFileName);
@@ -186,36 +313,61 @@ const createAttachedDocuments = async (req, res, next) => {
     });
 
     if (fileSuccesses.length > 0) {
-      const userData = await performJoinSelect({
-        baseTable: "Users",
-        joins: [
-          {
-            table: "UserRole",
-            on: "Users.userUniqueId = UserRole.userUniqueId",
-          },
-          {
-            table: "UserRoleStatusCurrent",
-            on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
-          },
-        ],
-        conditions: {
-          "Users.userUniqueId": userUniqueId,
-          "UserRole.roleId": roleId,
-        },
-      });
+      const resolvedOwnerType = req.ownerType ?? "user";
+      const isDriver = resolvedOwnerType === "user" && roleId === usersRolesList.driver.roleId;
 
-      await attachedDocumentsService.getAttachedDocumentsByFilter({
-        filter: { userUniqueId },
-      });
+      if (isDriver) {
+        // Driver: full doc + vehicle + subscription check → notify admin
+        try {
+          const userData = await performJoinSelect({
+            baseTable: "Users",
+            joins: [
+              { table: "UserRole", on: "Users.userUniqueId = UserRole.userUniqueId" },
+              { table: "UserRoleStatusCurrent", on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId" },
+            ],
+            conditions: {
+              "Users.userUniqueId": userUniqueId,
+              "UserRole.roleId": roleId,
+            },
+          });
 
-      const documentAndVehicleOfDriver =
-        await driversDocumentVehicleRequirement({
-          ownerUserUniqueId: userUniqueId,
-          user: userData[0],
-        });
+          const documentAndVehicleOfDriver = await driversDocumentVehicleRequirement({
+            ownerUserUniqueId: userUniqueId,
+            user: userData[0],
+          });
 
-      const message = documentAndVehicleOfDriver;
-      sendSocketIONotificationToAdmin({ message });
+          sendSocketIONotificationToAdmin({ message: documentAndVehicleOfDriver });
+        } catch (notificationError) {
+          logger.warn("Driver admin notification failed after document upload", {
+            reason: notificationError?.message,
+            userUniqueId,
+            roleId,
+          });
+        }
+      } else {
+        // Company, vehicle, or any non-driver entity:
+        // Run the general entity document compliance check and notify admin.
+        try {
+          const complianceResult = await entityDocumentRequirement({
+            ownerType: resolvedOwnerType,
+            ownerUniqueId: userUniqueId,
+          });
+
+          sendSocketIONotificationToAdmin({
+            message: {
+              type: "entity_document_uploaded",
+              ...complianceResult,
+              uploadedFiles: fileSuccesses,
+            },
+          });
+        } catch (notificationError) {
+          logger.warn("Entity admin notification failed after document upload", {
+            reason: notificationError?.message,
+            ownerType: resolvedOwnerType,
+            ownerUniqueId: userUniqueId,
+          });
+        }
+      }
     }
 
     // Check if there were duplicate files that were skipped
@@ -285,14 +437,18 @@ const updateAttachedDocument = async (req, res, next) => {
     const updatePayload = {
       attachedDocumentUniqueId,
       roleId,
+      updatedByUserId: user?.userUniqueId,   // audit: who triggered this update
       documentExpirationDate,
       attachedDocumentDescription,
       attachedDocumentFileNumber,
       attachedDocumentName: fileUrl,
     };
 
+
     const result = await executeInTransaction(async () => {
-      return await attachedDocumentsService.updateAttachedDocument(updatePayload);
+      return await attachedDocumentsService.updateAttachedDocument(
+        updatePayload,
+      );
     });
 
     if (result.message === "error") {
@@ -338,10 +494,69 @@ const acceptRejectAttachedDocuments = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/user/documentHistory
+ * GET /api/company/documentHistory/:companyUniqueId
+ * GET /api/vehicle/documentHistory/:vehicleUniqueId
+ *
+ * Optional query params:
+ *   attachedDocumentUniqueId  → narrow history to one specific document
+ *   page, limit, sortBy, sortOrder
+ */
+const getDocumentHistory = async (req, res, next) => {
+  try {
+    const {
+      attachedDocumentUniqueId, // optional — narrow to a single doc's history
+      page = 1,
+      limit = 10,
+      sortBy = "attachedDocumentUpdatedAt",
+      sortOrder = "DESC",
+    } = req.query;
+
+    const currentUser = req.user;
+
+    // ownerType is injected by the route inline middleware
+    const ownerType = req.ownerType ?? "user";
+
+    // ownerUniqueId: route param takes priority, then 'self' → current user
+    let ownerUniqueId =
+      req.ownerUniqueIdParam ??
+      req.query?.userUniqueId ??
+      currentUser.userUniqueId;
+
+    if (!ownerUniqueId || ownerUniqueId === "self") {
+      ownerUniqueId = currentUser.userUniqueId;
+    }
+
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const result = await attachedDocumentsService.getDocumentHistory({
+      ownerType,
+      ownerUniqueId,
+      attachedDocumentUniqueId: attachedDocumentUniqueId || null,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        offset,
+      },
+      sort: {
+        by: sortBy,
+        order: sortOrder,
+      },
+    });
+
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
-  getAttachedDocumentsByFilter, // Only this GET method
+  getAttachedDocumentsByFilter,
   acceptRejectAttachedDocuments,
   createAttachedDocuments,
   updateAttachedDocument,
   deleteAttachedDocument,
+  getDocumentHistory,
 };

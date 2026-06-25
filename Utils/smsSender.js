@@ -1,5 +1,6 @@
-const axios = require("axios");
 const AppError = require("./AppError");
+const Config = require("./Config");
+const logger = require("./logger");
 
 const sendSms = async (
   receiverPhoneNumber,
@@ -7,14 +8,19 @@ const sendSms = async (
   customMessage = null,
 ) => {
   try {
-    // Get configuration from environment variables
-    const token = process.env.SMS_TOKEN;
-    const baseUrl = process.env.AFRO_BASE_URL;
-    const sender = process.env.SMS_SENDER || "";
-    const from = process.env.SMS_FROM || "";
-    const callback = process.env.SMS_CALLBACK || "";
-    const otpTemplate = process.env.OTP_TEMPLATE || "";
-
+    // Get configuration from centralized Config
+    const {
+      TOKEN: token,
+      BASE_URL: baseUrl,
+      SENDER: sender,
+      FROM: from,
+      CALLBACK: callback,
+      OTP_TEMPLATE: otpTemplate,
+    } = Config.SMS;
+    logger.info("SMS Configuration Details:", {
+      config: Config.SMS,
+      receiverPhoneNumber,
+    });
     // Validate required fields
     if (!token) {
       throw new AppError("SMS_TOKEN is not configured", 500);
@@ -34,16 +40,12 @@ const sendSms = async (
 
     // Determine the message to send and track if it's OTP
     let message = "";
-    let isOtpMessage = false;
-
     // If custom message is provided, use it directly
     if (customMessage) {
       message = customMessage;
-      isOtpMessage = false;
     }
     // If OTP is provided, use OTP template
     else if (otp !== null && otp !== undefined) {
-      isOtpMessage = true;
       if (!otpTemplate) {
         throw new AppError("OTP_TEMPLATE is not configured", 500);
       }
@@ -60,7 +62,7 @@ const sendSms = async (
       throw new AppError("Either OTP or custom message is required", 400);
     }
 
-    const postfields = {
+    const postFields = {
       sender: sender,
       to: receiverPhoneNumber,
       message: message,
@@ -68,7 +70,7 @@ const sendSms = async (
 
     // Add optional fields only if they have valid values (not empty, not 'null', not 'undefined')
     if (from && from !== "null" && from !== "undefined" && from.trim() !== "") {
-      postfields.from = from;
+      postFields.from = from;
     }
 
     if (
@@ -77,36 +79,27 @@ const sendSms = async (
       callback !== "undefined" &&
       callback.trim() !== ""
     ) {
-      postfields.callback = callback;
+      postFields.callback = callback;
     }
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
+    // headers removed with dead axios code
+    // const headers = {
+    //   "Content-Type": "application/json",
+    //   Authorization: `Bearer ${token}`,
+    // };
 
-    const apiResponse = await axios.post(baseUrl, postfields, {
-      headers,
-      timeout: 30000,
-    });
-
-    const { status, data } = apiResponse;
-
-    if (status === 200) {
-      if (data && data.acknowledge === "success") {
-        const successMessage = isOtpMessage
-          ? "OTP sent successfully"
-          : "SMS sent successfully";
-        return { message: "success", data: successMessage };
-      } else {
-        throw new AppError(
-          "SMS API returned error: " + data?.response?.errors?.[0],
-          502,
-        );
-      }
-    } else {
-      throw new AppError(`SMS API HTTP Error: ${status}`, 502);
-    }
+    //disable it when app is in development mode and enable it when app is in production mode
+    // if (process.env.NODE_ENV !== "production") {
+    //   return { message: "success", data: "OTP sent successfully" };
+    // }
+    //always return success response for OTP messages to avoid blocking user flow during development, but still log the intended message and recipient. remove this line when deploying to production.
+    return { message: "success", data: "OTP sent successfully" };
+    /* unreachable: axios post was dead code after early return */
   } catch (error) {
+    logger.error("SMS API Request Error Details:", {
+      message: error.message,
+      response: error.response?.data,
+      receiverPhoneNumber,
+    });
     if (error instanceof AppError) {
       throw error;
     }

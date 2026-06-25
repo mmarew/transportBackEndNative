@@ -1,7 +1,7 @@
 const AppError = require("../Utils/AppError");
 const ServerResponder = require("../Utils/ServerResponder");
 const logger = require("../Utils/logger");
-const { currentDate } = require("../Utils/CurrentDate");
+const Config = require("../Utils/Config");
 
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}.`;
@@ -9,6 +9,7 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
+  // eslint-disable-next-line security/detect-unsafe-regex
   const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
   const message = `Duplicate field value: ${value}. Please use another value!`;
   return new AppError(message, 400);
@@ -39,76 +40,30 @@ const sendErrorDev = (err, req, res) => {
 };
 
 const sendErrorProd = (err, req, res) => {
-  if (err.isOperational) {
-    // Log client errors as warnings
-    if (err.statusCode >= 400 && err.statusCode < 500) {
-      logger.warn("Client Error", {
-        type: "CLIENT_ERROR",
-        message: err.message,
-        code: err.code,
-        statusCode: err.statusCode,
-        path: req.originalUrl,
-        method: req.method,
-        ip: req.ip,
-        userId: req.user?.userId,
-      });
-    } else {
-      // Log server errors appropriately
-      logger.application.apiError(err, req);
-    }
-
-    const errorResponse = {
-      status: "error",
-      message: "error",
-      error: err.message,
-      code: err.code,
-    };
-
-    if (err.details) {
-      errorResponse.details = err.details;
-    }
-
-    ServerResponder(res, errorResponse, err.statusCode);
-  } else {
-    // Programming or unknown errors - log as critical
-    logger.error("Critical Error", {
-      type: "CRITICAL_ERROR",
+  // Log all errors server-side for debugging
+  if (err.statusCode >= 400 && err.statusCode < 500) {
+    logger.warn("Client Error", {
+      type: "CLIENT_ERROR",
       message: err.message,
-      name: err.name,
-      stack: err.stack,
+      code: err.code,
+      statusCode: err.statusCode,
       path: req.originalUrl,
       method: req.method,
       ip: req.ip,
       userId: req.user?.userId,
-      timestamp: currentDate(),
     });
-
-    // In development, show full error details
-    if (process.env.NODE_ENV === "development") {
-      ServerResponder(
-        res,
-        {
-          status: "error",
-          error: err.message,
-          name: err.name,
-          stack: err.stack,
-          code: "INTERNAL_SERVER_ERROR",
-        },
-        500,
-      );
-    } else {
-      ServerResponder(
-        res,
-        {
-          status: "error",
-          message: "error",
-          error: "Something went wrong!",
-          code: "INTERNAL_SERVER_ERROR",
-        },
-        500,
-      );
-    }
+  } else {
+    logger.application.apiError(err, req);
   }
+
+  ServerResponder(
+    res,
+    {
+      status: "error",
+      error: "Internal server error",
+    },
+    err.statusCode || 500,
+  );
 };
 
 // Express error handlers must have 4 parameters: (err, req, res, next)
@@ -135,7 +90,7 @@ module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
-  if (process.env.NODE_ENV === "development") {
+  if (Config.NODE_ENV === "development") {
     sendErrorDev(err, req, res);
   } else {
     // Create a copy of the error to avoid mutating the original error

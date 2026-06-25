@@ -1,4 +1,4 @@
-const service = require("../Services/UserSubscription.service");
+const service = require("../Services/UserSubscription");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 

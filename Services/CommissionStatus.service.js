@@ -78,13 +78,12 @@ const getAllCommissionStatuses = async (filters = {}) => {
     }
 
     // Default: Exclude deleted
-    conditions.push("deletedAt IS NULL");
+    conditions.push("commissionStatusDeletedAt IS NULL");
 
     if (active === "true" || active === true) {
       conditions.push(
-        "(effectiveFrom IS NULL OR effectiveFrom <= ?) AND (effectiveTo IS NULL OR effectiveTo >= ?)",
+        "(effectiveFrom IS NULL OR effectiveFrom <= NOW()) AND (effectiveTo IS NULL OR effectiveTo >= NOW())",
       );
-      params.push(currentDate(), currentDate());
     }
 
     const whereClause =
@@ -102,7 +101,7 @@ const getAllCommissionStatuses = async (filters = {}) => {
         description,
         effectiveFrom,
         effectiveTo,
-        createdAt
+        commissionStatusCreatedAt
       FROM CommissionStatus
       ${whereClause}
       ${orderBy}
@@ -179,7 +178,7 @@ const updateCommissionStatus = async (id, data) => {
     return { message: "Commission Status updated successfully", data: result };
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      throw new AppError("Commission status name already exists", 409);
+      return { message: "Commission status name already exists", data: null };
     }
     logger.application.databaseError(error, "updateCommissionStatus");
     throw error;
@@ -199,18 +198,19 @@ const deleteCommissionStatus = async (id, deletedBy) => {
       [id],
     );
     if (referencing.length > 0) {
-      throw new AppError(
-        "Cannot delete status: It is currently used by active commissions",
-        409,
-      );
+      return { message: "Commission status is in use — delete skipped" };
     }
 
     const query = `
       UPDATE CommissionStatus 
-      SET deletedAt = ?, deletedBy = ? 
-      WHERE commissionStatusUniqueId = ? AND deletedAt IS NULL
+      SET commissionStatusDeletedAt = ?, commissionStatusDeletedBy = ? 
+      WHERE commissionStatusUniqueId = ? AND commissionStatusDeletedAt IS NULL
     `;
-    const [result] = await executor.query(query, [currentDate(), deletedBy, id]);
+    const [result] = await executor.query(query, [
+      currentDate(),
+      deletedBy,
+      id,
+    ]);
 
     if (result.affectedRows === 0) {
       throw new AppError("Commission status not found or already deleted", 404);

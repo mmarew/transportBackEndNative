@@ -2,10 +2,10 @@ const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
 
 exports.createJourneyPayment = Joi.object({
-  journeyUniqueId: uuidSchema.required(),
+  journeyDecisionUniqueId: uuidSchema.required(),
   amount: Joi.number().positive().required(),
   paymentMethodUniqueId: uuidSchema.required(),
-  // Add other payment details
+  paymentStatusUniqueId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.updateJourneyPayment = Joi.object({
@@ -22,5 +22,5 @@ exports.getJourneyPaymentsQuery = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(10),
   journeyUniqueId: uuidSchema.optional(),
   driverUniqueId: uuidSchema.optional(),
-  passengerUniqueId: uuidSchema.optional(),
+  shipperUniqueId: uuidSchema.optional(),
 }).unknown(true);

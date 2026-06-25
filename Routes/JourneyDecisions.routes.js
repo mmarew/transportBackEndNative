@@ -11,10 +11,11 @@ const {
   journeyDecisionParams,
   getJourneyDecisionsQuery,
 } = require("../Validations/JourneyDecisions.schema");
+const { JOURNEY_DECISIONS_ENDPOINTS } = require("./EndPoints/journeyDecisions.endpoints");
 
 // Create a new journey decision
 router.post(
-  "/api/journeyDecisions",
+  JOURNEY_DECISIONS_ENDPOINTS.CREATE_JOURNEY_DECISION,
   verifyTokenOfAxios,
   validator(createJourneyDecision),
   journeyDecisionsController.createJourneyDecision,
@@ -22,7 +23,7 @@ router.post(
 
 // Get journey decisions (supports all GET use cases with filters)
 router.get(
-  "/api/user/getJourneyDecision4AllOrSingleUser",
+  JOURNEY_DECISIONS_ENDPOINTS.GET_JOURNEY_DECISION_4_ALL_OR_SINGLE_USER,
   verifyTokenOfAxios,
   validator(getJourneyDecisionsQuery, "query"),
   journeyDecisionsController.getJourneyDecision4AllOrSingleUser,
@@ -30,7 +31,7 @@ router.get(
 
 // Update a specific journey decision by ID
 router.put(
-  "/api/journeyDecisions",
+  JOURNEY_DECISIONS_ENDPOINTS.UPDATE_JOURNEY_DECISION,
   verifyTokenOfAxios,
   validator(journeyDecisionParams, "params"),
   validator(updateJourneyDecision),
@@ -39,7 +40,7 @@ router.put(
 
 // Delete a specific journey decision by ID
 router.delete(
-  "/api/journeyDecisions/:id",
+  JOURNEY_DECISIONS_ENDPOINTS.DELETE_JOURNEY_DECISION,
   verifyTokenOfAxios,
   validator(journeyDecisionParams, "params"),
   journeyDecisionsController.deleteJourneyDecision,

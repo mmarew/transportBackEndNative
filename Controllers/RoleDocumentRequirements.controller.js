@@ -1,4 +1,4 @@
-const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements.service");
+const RoleDocumentRequirementsService = require("../Services/RoleDocumentRequirements");
 const { getUserByUserUniqueId } = require("../Services/User.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");

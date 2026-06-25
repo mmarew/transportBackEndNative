@@ -12,6 +12,7 @@ exports.createPayment = async (
   paymentMethodUniqueId,
   paymentStatusUniqueId,
   paymentTime,
+  user,
 ) => {
   const existedPayment = await getData({
     tableName: "JourneyPayments",
@@ -21,14 +22,18 @@ exports.createPayment = async (
     throw new AppError("Payment already exists for this journey", 400);
   }
   const paymentUniqueId = uuidv4();
-  const sql = `INSERT INTO JourneyPayments (paymentUniqueId, journeyDecisionUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime) VALUES (?, ?, ?, ?, ?, ?)`;
+  const journeyPaymentCreatedBy = user?.userUniqueId || "system";
+  const now = currentDate();
+  const sql = `INSERT INTO JourneyPayments (paymentUniqueId, journeyDecisionUniqueId, amount, paymentMethodUniqueId, paymentStatusUniqueId, paymentTime, journeyPaymentCreatedBy, journeyPaymentCreatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
   const values = [
     paymentUniqueId,
     journeyDecisionUniqueId,
     amount,
     paymentMethodUniqueId,
     paymentStatusUniqueId,
-    currentDate(),
+    now,
+    journeyPaymentCreatedBy,
+    now,
   ];
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
@@ -58,7 +63,7 @@ exports.getAllPayments = async () => {
 
 // Get a specific payment by ID (DEPRECATED - Use JourneyPayments.service.js instead)
 exports.getPaymentById = async (paymentId) => {
-  const sql = `SELECT * FROM JourneyPayments WHERE paymentId = ?`;
+  const sql = `SELECT * FROM JourneyPayments WHERE paymentUniqueId = ?`;
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, [paymentId]);
 
@@ -116,14 +121,32 @@ exports.updatePayment = async (
   paymentStatusUniqueId,
   paymentTime,
 ) => {
-  const sql = `UPDATE JourneyPayments SET amount = ?, paymentMethodUniqueId = ?, paymentStatusUniqueId = ?, paymentTime = ? WHERE paymentId = ?`;
-  const values = [
-    amount,
-    paymentMethodUniqueId,
-    paymentStatusUniqueId,
-    paymentTime,
-    paymentId,
-  ];
+  const setParts = [];
+  const values = [];
+
+  if (amount !== undefined) {
+    setParts.push("amount = ?");
+    values.push(amount);
+  }
+  if (paymentMethodUniqueId !== undefined) {
+    setParts.push("paymentMethodUniqueId = ?");
+    values.push(paymentMethodUniqueId);
+  }
+  if (paymentStatusUniqueId !== undefined) {
+    setParts.push("paymentStatusUniqueId = ?");
+    values.push(paymentStatusUniqueId);
+  }
+  if (paymentTime !== undefined) {
+    setParts.push("paymentTime = ?");
+    values.push(paymentTime);
+  }
+
+  if (setParts.length === 0) {
+    throw new AppError("No fields to update", 400);
+  }
+
+  values.push(paymentId);
+  const sql = `UPDATE JourneyPayments SET ${setParts.join(", ")} WHERE paymentUniqueId = ?`;
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
 
@@ -135,17 +158,17 @@ exports.updatePayment = async (
     message: "success",
     data: {
       paymentId,
-      amount,
-      paymentMethodUniqueId,
-      paymentStatusUniqueId,
-      paymentTime,
+      ...(amount !== undefined && { amount }),
+      ...(paymentMethodUniqueId !== undefined && { paymentMethodUniqueId }),
+      ...(paymentStatusUniqueId !== undefined && { paymentStatusUniqueId }),
+      ...(paymentTime !== undefined && { paymentTime }),
     },
   };
 };
 
 // Delete a specific payment by ID (DEPRECATED - Use JourneyPayments.service.js instead)
 exports.deletePayment = async (paymentId) => {
-  const sql = `DELETE FROM JourneyPayments WHERE paymentId = ?`;
+  const sql = `DELETE FROM JourneyPayments WHERE paymentUniqueId = ?`;
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, [paymentId]);
 

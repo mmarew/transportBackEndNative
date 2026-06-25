@@ -7,7 +7,7 @@ Complete guide to user registration, verification, and profile management.
 ### 1. Create User Account
 
 **Endpoint**: `POST /api/user/createUser`
-**Description**: Register a new user (passenger or driver)
+**Description**: Register a new user (shipper or driver)
 **Authentication**: None required
 
 **Request Body**:
@@ -110,7 +110,7 @@ Complete guide to user registration, verification, and profile management.
   "email": "birie@gmail.com",
   "roleId": 3,
   "statusId": 1,
-  "userRoleStatusDescription": "an admin can have a role of managing driver passenger etc."
+  "userRoleStatusDescription": "an admin can have a role of managing driver shipper etc."
 }
 ```
 
@@ -190,7 +190,7 @@ Complete guide to user registration, verification, and profile management.
       "statusId": 1,
       "userCreatedAt": "2026-01-31T12:00:00.000Z",
       "userCreatedBy": "admin-uuid-here",
-      "roleName": "Passenger",
+      "roleName": "Shipper",
       "statusName": "Active"
     },
     {
@@ -239,10 +239,10 @@ GET /api/admin/getUserByFilterDetailed?startDate=2026-01-01&endDate=2026-01-31
 
 ## Regular User Management
 
-### 3. Create Regular User passenger
+### 3. Create Regular User shipper
 
 **Endpoint**: `POST /api/user/createUser`
-**Description**: Creates a new passenger or driver user.
+**Description**: Creates a new shipper or driver user.
 **Request Body**:
 
 ```json
@@ -276,14 +276,14 @@ GET /api/admin/getUserByFilterDetailed?startDate=2026-01-01&endDate=2026-01-31
 
 ### Update Profile
 
-**Endpoint**: `PUT /api/user/profile`
+**Endpoint**: `POST /api/user/profile`
 **Description**: Update user profile information
 **Authentication**: User token required
 
 ### Update User Data
 
-**Endpoint**: `PUT /api/user/updateUser/{userUniqueId}`
-**Description**: Update specific user data by user unique ID
+**Endpoint**: `POST /api/user/updateUser/{userUniqueId}`
+**Description**: Updates user profile information. This endpoint includes automated security flows for contact information changes.
 **Authentication**: User token required
 
 **Request Body**:
@@ -298,20 +298,26 @@ GET /api/admin/getUserByFilterDetailed?startDate=2026-01-01&endDate=2026-01-31
 }
 ```
 
+#### Security & Verification Logic
+
+When contact information is updated, the system triggers a security lifecycle:
+
+1.  **Verification Reset**: Changing the `phoneNumber` or `email` automatically resets the corresponding verification flag (`isPhoneVerified` or `isEmailVerified`) to `false`.
+2.  **Credential Refresh**:
+    - **Phone Change**: A new `phoneVerificationOTP` is generated and hashed in the database.
+    - **Email Change**: A new `emailVerificationToken` is generated (valid for 2 hours).
+3.  **Automatic Dispatch**:
+    - **SMS**: The system immediately attempts to send an SMS OTP to the new phone number.
+    - **Email**: The system immediately attempts to send a Verification Link to the new email address (Base URL: `https://dynamicsroute.tech`).
+4.  **Token Synchronization**: The response includes a **new JWT token**. This token contains the updated (unverified) flags and the new contact values. The client MUST update its local storage with this new token.
+
 **Response**:
 
 ```json
 {
+  "token": "new-jwt-token-here",
   "message": "success",
-  "data": {
-    "userUniqueId": "e4174857-7242-46a4-a8d3-c640b7a10e70",
-    "fullName": "Updated User Name",
-    "phoneNumber": "+251983222222",
-    "email": "updated@example.com",
-    "roleId": 1,
-    "statusId": 1,
-    "userUpdatedAt": "2026-02-03T09:18:00.000Z"
-  }
+  "data": "User updated successfully"
 }
 ```
 
@@ -350,6 +356,25 @@ GET /api/admin/getUserByFilterDetailed?startDate=2026-01-01&endDate=2026-01-31
 - **404 Not Found**: User not found
 - **409 Conflict**: User cannot be deleted (active journeys, pending payments, etc.)
 - **500 Internal Server Error**: Server error during deletion
+
+### Email Verification Flows (Junior Developer Guide)
+
+#### **1. Successful Email Verification (Happy Path)**
+
+1.  **Trigger**: User clicks the button in the verification email.
+2.  **Logic**: The backend (`verifyEmailByToken`) checks if the UUID token is valid and hasn't expired (2-hour limit).
+3.  **Real-time Update**:
+    - The backend marks the email as verified.
+    - **WebSocket Broadcast**: It identifies all active roles for the user (Shipper, Driver, or Admin).
+    - **Fresh JWT**: It generates a brand-new security token (JWT) where `isEmailVerified` is true.
+    - **Pusher**: It sends this token to the app via WebSocket. The app then automatically unlocks "verified-only" features without the user having to re-login.
+
+#### **2. Reporting "Wrong Email" (Disavowal Flow)**
+
+1.  **Trigger**: Recipient B receives an email meant for User A and clicks "Not my account."
+2.  **Logic**: The backend (`reportMisdirectedEmail`) immediately revokes the token, ensuring no one can verify that account using that email.
+3.  **WebSocket Notification**: The backend notifies User A (the original sender) via WebSocket. The app should display: _"The email address you provided was reported as incorrect. Please check for typos and try again."_
+4.  **Security Benefit**: This prevents User A from waiting for an email that will never come and alerts them to the typo instantly.
 
 **Important Notes**:
 

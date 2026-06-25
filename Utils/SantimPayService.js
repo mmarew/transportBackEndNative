@@ -1,7 +1,8 @@
 const axios = require("axios");
- const jwt = require("jsonwebtoken");
- const crypto = require("crypto");
- const logger = require("./logger");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const logger = require("./logger");
+const Config = require("./Config");
 
 /**
  * Formats a phone number for SantimPay requirements (+2519...).
@@ -47,7 +48,7 @@ const formatPhoneNumberForSantim = (phoneNumber) => {
  */
 function signES256(payload, privateKey) {
   // SantimPay requires the payload to be a stringified JSON object before signing
-  const stringifiedPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
+  const stringifiedPayload = typeof payload === "string" ? payload : JSON.stringify(payload);
   return jwt.sign(stringifiedPayload, privateKey, { algorithm: "ES256" });
 }
 
@@ -55,9 +56,9 @@ function signES256(payload, privateKey) {
  * Initialize SantimPay SDK instance
  */
 function getSantimPayClient() {
-  const merchantId = process.env.SANTIMPAY_MERCHANT_ID;
-  const privateKey = process.env.SANTIMPAY_PRIVATE_KEY;
-  const baseUrl = process.env.SANTIMPAY_BASE_URL;
+  const merchantId = Config.SANTIMPAY.MERCHANT_ID;
+  const privateKey = Config.SANTIMPAY.PRIVATE_KEY;
+  const baseUrl = Config.SANTIMPAY.BASE_URL;
 
   if (!merchantId || !privateKey || !baseUrl) {
     throw new Error(
@@ -117,10 +118,10 @@ function generateSignedTokenForGetTransaction(id, client) {
 async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
   try {
     const client = getSantimPayClient();
-    const successRedirectUrl = process.env.SANTIMPAY_SUCCESS_REDIRECT_URL;
-    const failureRedirectUrl = process.env.SANTIMPAY_FAILURE_REDIRECT_URL;
-    const cancelRedirectUrl = process.env.SANTIMPAY_CANCEL_REDIRECT_URL;
-    const notifyUrl = process.env.SANTIMPAY_WEBHOOK_URL;
+    const successRedirectUrl = Config.SANTIMPAY.SUCCESS_REDIRECT_URL;
+    const failureRedirectUrl = Config.SANTIMPAY.FAILURE_REDIRECT_URL;
+    const cancelRedirectUrl = Config.SANTIMPAY.CANCEL_REDIRECT_URL;
+    const notifyUrl = Config.SANTIMPAY.WEBHOOK_URL;
 
     if (
       !successRedirectUrl ||
@@ -132,23 +133,24 @@ async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
         "SANTIMPAY_SUCCESS_REDIRECT_URL,SANTIMPAY_FAILURE_REDIRECT_URL,SANTIMPAY_CANCEL_REDIRECT_URL, and SANTIMPAY_WEBHOOK_URL are required",
       );
     }
-    console.log("@client above token ", client);
-    let token=null
-try {
-    token = generateSignedTokenForInitiatePayment(
-      amount,
-      paymentReason,
-      client,
-    );
+    logger.debug("@client above token ", client);
+    let token=null;
+    try {
+      token = generateSignedTokenForInitiatePayment(
+        amount,
+        paymentReason,
+        client,
+      );
 
-} catch (error) {
-  console.log("@Error generating token", {
-          message: error.message,
-            response: error?.response?.data,
-              code: error.code, })
+    } catch (error) {
+      logger.error("@Error generating token", {
+        message: error.message,
+        response: error?.response?.data,
+        code: error.code,
+      });
   
-}
-console.log("Generated Token:", token,"@client",client); 
+    }
+    logger.debug("Generated Token:", token, "@client", client);
     const payload = {
       id,
       amount: parseFloat(amount),
@@ -168,23 +170,23 @@ console.log("Generated Token:", token,"@client",client);
       }
     }
 
-try {
+    try {
 
-    const response = await axios.post(
-      `${client.baseUrl}/initiate-payment`,
-      payload,
-    );
+      const response = await axios.post(
+        `${client.baseUrl}/initiate-payment`,
+        payload,
+      );
 
 
-    if (response.status === 200 && response.data.url) {
-      return response.data.url;
-    } else {
-      throw new Error("Failed to initiate payment: Invalid response");
-    }
+      if (response.status === 200 && response.data.url) {
+        return response.data.url;
+      } else {
+        throw new Error("Failed to initiate payment: Invalid response");
+      }
   
-} catch (error) {
-  console.log("@payload", payload);
-  console.log("@Error generating payment url /initiate-payment", {
+    } catch (error) {
+      logger.debug("@payload", payload);
+      logger.error("@Error generating payment url /initiate-payment", {
         message: error.message,
         response: error?.response?.data,
         code: error.code,
@@ -194,9 +196,9 @@ try {
       }
       throw error;
   
-}
+    }
   } catch (error) {
-console.log("@Error generating payment url", {
+    logger.error("@Error generating payment url", {
       message: error.message,
       response: error?.response?.data,
       code: error.code,
@@ -254,7 +256,7 @@ function verifyWebhookToken(token, body) {
 
     // Ensure the payload matches the body (anti-forgery)
     // SantimPay token payload mirrors the body fields
-    const payload = typeof decoded === 'string' ? JSON.parse(decoded) : decoded;
+    const payload = typeof decoded === "string" ? JSON.parse(decoded) : decoded;
     
     // Check critical fields match
     const matches = 
@@ -263,7 +265,7 @@ function verifyWebhookToken(token, body) {
       payload.status === body.Status;
 
     if (!matches) {
-       logger.warn("Webhook token payload does not match body", { payload, body });
+      logger.warn("Webhook token payload does not match body", { payload, body });
     }
 
     return matches;

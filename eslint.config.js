@@ -1,9 +1,24 @@
 /**
  * ESLint Configuration (Flat Config Format for ESLint 9.x)
- * Enhanced for Node.js Backend with MySQL
+ * Industry Standard Setup for Node.js Backend with MySQL
  */
 
+const js = require("@eslint/js");
+const nodePlugin = require("eslint-plugin-n").default;
+const promisePlugin = require("eslint-plugin-promise");
+const securityPlugin = require("eslint-plugin-security");
+const eslintConfigPrettier = require("eslint-config-prettier");
+
 module.exports = [
+  // 1. Core Recommended Rules
+  js.configs.recommended,
+
+  // 2. Plugins Recommended Rules
+  promisePlugin.configs["flat/recommended"],
+  securityPlugin.configs.recommended,
+  nodePlugin.configs["flat/recommended"],
+
+  // 3. Global Ignores
   {
     ignores: [
       "node_modules/**",
@@ -18,8 +33,19 @@ module.exports = [
       "ecosystem.config.js",
       "vercel.json",
       "Utils/socketService.js", // ESM syntax (React Native file)
+      "scratch/**", // Ignore temp scripts
+      // One-time refactor/migration scripts
+      "refactor_endpoints.js",
+      "refactor_routes_batch2.js",
+      "refactor_routes_batch3.js",
+      "industry_refactor.js",
+      "fix_lint.js",
+      "fix_requires.js",
+      "split_company_bid.js",
     ],
   },
+
+  // 4. Base JS rules and globals
   {
     files: ["**/*.js"],
     languageOptions: {
@@ -35,6 +61,10 @@ module.exports = [
         require: "readonly",
         exports: "readonly",
         global: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        crypto: "readonly",
+        randomUUID: "readonly",
         setTimeout: "readonly",
         setInterval: "readonly",
         clearTimeout: "readonly",
@@ -54,41 +84,35 @@ module.exports = [
     },
     rules: {
       // Basic JavaScript rules
+      "no-undef": "error",
+      "n/no-missing-require": "error",
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-debugger": "error",
       "no-empty": ["error", { allowEmptyCatch: true }],
       eqeqeq: ["error", "always"],
       curly: ["error", "all"],
       "no-unused-vars": ["error"],
-      indent: ["error", 2],
-      quotes: [
-        "error",
-        "double",
-        { avoidEscape: true, allowTemplateLiterals: true },
-      ],
-      semi: ["error", "always"],
-
+      
       // Node.js specific rules
       "no-buffer-constructor": "error", // Use Buffer.from() instead
-      "no-new-require": "error",
-      "no-process-exit": "off", // Allow process.exit() in scripts and error handlers
+      "n/no-process-exit": "off", // Handled manually below
       "no-unused-expressions": "error",
 
       // Async/await patterns (important for database operations)
-      // Note: Some async functions may not need await (e.g., Express route handlers, event handlers)
       "require-await": "off", // Disabled - many async functions are used for consistency even without await
       "no-return-await": "off", // Disabled - return await can be intentional for proper error stack traces
 
-      // Code quality rules (relaxed for existing codebase)
-      // "complexity": ["warn", { max: 20 }], // Keep functions reasonably simple (relaxed from 15)
-      // "max-depth": ["warn", { max: 6 }], // Avoid deeply nested code (relaxed from 5)
-      // "max-nested-callbacks": ["warn", { max: 5 }], // Common issue with callbacks (relaxed from 4)
-      // "max-lines-per-function": ["warn", { max: 200, skipBlankLines: true, skipComments: true }], // Relaxed from 150
-      // "max-params": ["warn", { max: 7 }], // Limit parameters in functions (relaxed from 6)
+      // Code quality rules
+      "max-lines": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
+      
+      // Security overrides if needed
+      "security/detect-object-injection": "off", // Sometimes noisy in legacy backends
+      "security/detect-non-literal-fs-filename": "warn"
     },
   },
+  
+  // 5. Database-specific configuration
   {
-    // Database-specific configuration
     files: [
       "**/Database/**/*.js",
       "**/database/**/*.js",
@@ -97,12 +121,7 @@ module.exports = [
       "**/Services/**/*.service.js",
     ],
     rules: {
-      // More strict rules for database layer
       "no-console": ["error", { allow: ["warn", "error"] }], // No console in database layer
-      // "max-lines-per-function": ["warn", { max: 150, skipBlankLines: true, skipComments: true }], // Relaxed from 100
-      // "max-params": ["warn", { max: 6 }], // Limit parameters in database methods (relaxed from 5)
-      // "complexity": ["warn", { max: 18 }], // Keep database functions simpler (relaxed from 12)
-      // Allow common database variable names
       "no-unused-vars": [
         "error",
         {
@@ -112,8 +131,9 @@ module.exports = [
       ],
     },
   },
+
+  // 6. Test files configuration
   {
-    // Test files configuration
     files: ["**/*.test.js", "**/tests/**/*.js"],
     rules: {
       "no-console": "off",
@@ -122,10 +142,14 @@ module.exports = [
       "max-params": "off",
       "require-await": "off",
       "no-return-await": "off",
+      "n/no-unpublished-require": "off",
+      "n/no-extraneous-require": "off",
+      "n/hashbang": "off"
     },
   },
+
+  // 7. Configuration files
   {
-    // Configuration files
     files: [
       "*.config.js",
       "ecosystem.config.js",
@@ -135,10 +159,19 @@ module.exports = [
     rules: {
       "no-magic-numbers": "off",
       "max-lines-per-function": "off",
+      "n/no-unpublished-require": "off",
     },
   },
+
+  // 7.5 Disable node unsupported features globally (since async_hooks is fine in modern Node)
   {
-    // Seed scripts and error handlers - allow process.exit()
+    rules: {
+      "n/no-unsupported-features/node-builtins": "off"
+    }
+  },
+
+  // 8. Seed scripts and error handlers
+  {
     files: [
       "seed*.js",
       "**/ProcessErrorHandlers.js",
@@ -146,10 +179,14 @@ module.exports = [
       "App.js",
     ],
     rules: {
-      "no-process-exit": "off",
+      "n/no-process-exit": "off",
       "require-await": "off",
       "max-lines-per-function": "off",
       complexity: "off",
     },
   },
+
+  // 9. Prettier Config (MUST BE LAST)
+  // This turns off all formatting-related rules in ESLint so Prettier can handle them
+  eslintConfigPrettier,
 ];

@@ -17,12 +17,16 @@ const OTPSchema = Joi.alternatives()
 
 exports.createUser = Joi.object({
   phoneNumber: phoneNumberSchema.required(),
-  // register only 1 shipper/passengerDocumentRequirement and 2 driver
+  // register only 1 shipper/shipperDocumentRequirement and 2 driver
   roleId: Joi.number()
     .integer()
-    .valid(usersRoles.passengerRoleId, usersRoles.driverRoleId)
+    .valid(
+      usersRoles.shipperRoleId,
+      usersRoles.driverRoleId,
+      usersRoles.companyAdminRoleId,
+    )
     .required(),
-  statusId: Joi.number().integer().default(USER_STATUS.ACTIVE), // Default to 1 (active status) if not provided
+  statusId: Joi.number().integer().default(USER_STATUS.ACTIVE),
   fullName: Joi.string().when("roleId", {
     is: usersRoles.driverRoleId,
     then: Joi.required(),
@@ -41,10 +45,11 @@ exports.createUserByAdmin = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.adminRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .required(),
   // ... other fields
@@ -56,12 +61,13 @@ exports.loginUser = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.adminRoleId,
       usersRoles.supperAdminRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .required(),
 }).or("phoneNumber", "email"); // Login still allows either since they are in the DB
@@ -73,12 +79,13 @@ exports.verifyUserByOTP = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.adminRoleId,
       usersRoles.supperAdminRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .optional(),
 })
@@ -90,7 +97,16 @@ exports.updateUser = Joi.object({
   fullName: Joi.string().optional(),
   email: emailSchema,
   phoneNumber: phoneNumberSchema.optional(),
-  // ...
+  // Profile Photo related fields (used in UserController.updateUser)
+  profilePhotoTypeId: Joi.alternatives()
+    .try(Joi.number().integer(), Joi.string())
+    .optional(),
+  ProfilePhotoDescription: Joi.string().optional().allow("", null),
+  ProfilePhotoExpirationDate: Joi.alternatives()
+    .try(Joi.date(), Joi.string())
+    .optional()
+    .allow("", null),
+  attachedDocumentUniqueId: Joi.string().optional().allow("", null),
 }).unknown(true);
 
 exports.userIdParams = Joi.object({
@@ -112,12 +128,13 @@ exports.getUserFilter = Joi.object({
   roleId: Joi.number()
     .integer()
     .valid(
-      usersRoles.passengerRoleId,
+      usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.adminRoleId,
       usersRoles.supperAdminRoleId,
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
+      usersRoles.companyAdminRoleId,
     )
     .optional(),
   roleUniqueId: Joi.string().optional(),

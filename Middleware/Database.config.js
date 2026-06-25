@@ -1,5 +1,6 @@
 const mysql = require("mysql2/promise");
 const logger = require("../Utils/logger");
+const Config = require("../Utils/Config");
 
 /**
  * Database Connection Pool Configuration
@@ -24,12 +25,12 @@ const logger = require("../Utils/logger");
  */
 
 // MySQL connection configuration
-const HOST = process.env.DB_HOST;
-const USER = process.env.DB_USER;
-const PASSWORD = process.env.DB_PASSWORD;
-const DATABASE = process.env.DB_DATABASE;
-const DB_SOCKET_PATH = process.env.DB_SOCKET_PATH;
-const PORT = Number(process.env.DB_PORT) || 3306;
+const HOST = Config.DB.HOST;
+const USER = Config.DB.USER;
+const PASSWORD = Config.DB.PASSWORD;
+const DATABASE = Config.DB.DATABASE;
+const DB_SOCKET_PATH = Config.DB.SOCKET_PATH;
+const PORT = Config.DB.PORT;
 
 if (!HOST || !USER || !DATABASE) {
   logger.error("Database config missing required env vars", {
@@ -40,11 +41,8 @@ if (!HOST || !USER || !DATABASE) {
   throw new Error("Missing required DB environment variables");
 }
 
-// Optimize connection pool based on environment
-const isProduction = process.env.NODE_ENV === "production";
-const connectionLimit = isProduction
-  ? Number(process.env.DB_CONNECTION_LIMIT) || 20 // Higher limit for production
-  : Number(process.env.DB_CONNECTION_LIMIT) || 5; // Lower limit for development (shared hosting)
+// Pool limit is now managed centrally in Utils/Config.js
+const connectionLimit = Config.DB.CONNECTION_LIMIT;
 
 const config = {
   host: HOST,
@@ -82,22 +80,24 @@ try {
     socketPath: DB_SOCKET_PATH || null,
   });
 
-  // Verify connectivity on startup (fail fast)
-  (async () => {
-    try {
-      await pool.query("SELECT 1");
-      logger.info("MySQL connectivity check succeeded");
-    } catch (err) {
-      logger.error("MySQL connectivity check failed", {
-        code: err.code,
-        errno: err.errno,
-        sqlState: err.sqlState,
-        message: err.message,
-      });
-      // Do not crash the app; let requests surface DB errors while we log them
-      // throw err;
-    }
-  })();
+  // Verify connectivity on startup (fail fast) — skip in test mode to avoid
+  // "import after teardown" ReferenceErrors when skipped test suites finish
+  // before the async handshake completes.
+  if (process.env.NODE_ENV !== "test") {
+    (async () => {
+      try {
+        await pool.query("SELECT 1");
+        logger.info("MySQL connectivity check succeeded");
+      } catch (err) {
+        logger.error("MySQL connectivity check failed", {
+          code: err.code,
+          errno: err.errno,
+          sqlState: err.sqlState,
+          message: err.message,
+        });
+      }
+    })();
+  }
 
   // Attach connection-level error listener
   pool.on("connection", (connection) => {

@@ -2,11 +2,11 @@ const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
 
 exports.createJourneyDecision = Joi.object({
-  passengerRequestId: Joi.number().integer().required(),
+  shipperRequestId: Joi.number().integer().required(),
   driverRequestId: Joi.number().integer().required(),
   journeyStatusId: Joi.number().integer().required(),
   decisionTime: Joi.date().required(),
-  decisionBy: Joi.string().valid("passenger", "driver", "admin").required(),
+  decisionBy: Joi.string().valid("shipper", "driver", "admin").required(),
   shippingDateByDriver: Joi.date().optional().allow(null),
   deliveryDateByDriver: Joi.date().optional().allow(null),
   shippingCostByDriver: Joi.number().optional().allow(null),
@@ -20,7 +20,7 @@ exports.updateJourneyDecision = Joi.object({
   // Legacy fields for backward compatibility
   journeyStatusId: Joi.number().integer().optional(),
   decisionTime: Joi.date().optional(),
-  decisionBy: Joi.string().valid("passenger", "driver", "admin").optional(),
+  decisionBy: Joi.string().valid("shipper", "driver", "admin").optional(),
   shippingDateByDriver: Joi.date().optional(),
   deliveryDateByDriver: Joi.date().optional(),
   shippingCostByDriver: Joi.number().optional(),
@@ -37,7 +37,7 @@ exports.journeyDecisionParams = Joi.object({
   journeyDecisionUniqueId: uuidSchema.optional(),
   id: uuidSchema.optional(), // Route uses :id in some places
   driverRequestUniqueId: uuidSchema.optional(),
-  passengerRequestUniqueId: uuidSchema.optional(),
+  shipperRequestUniqueId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.getJourneyDecisionsQuery = Joi.object({
@@ -50,21 +50,21 @@ exports.getJourneyDecisionsQuery = Joi.object({
   // Filter options
   journeyDecisionUniqueId: uuidSchema.optional(),
   driverRequestUniqueId: uuidSchema.optional(),
-  passengerRequestUniqueId: uuidSchema.optional(),
+  shipperRequestUniqueId: uuidSchema.optional(),
   journeyStatusId: Joi.number().integer().optional(),
   journeyStatusIds: Joi.alternatives()
     .try(Joi.string(), Joi.array().items(Joi.number().integer()))
     .optional(),
-  decisionBy: Joi.string().valid("passenger", "driver", "admin").optional(),
+  decisionBy: Joi.string().valid("shipper", "driver", "admin").optional(),
   decisionBys: Joi.alternatives()
     .try(
       Joi.string(),
-      Joi.array().items(Joi.string().valid("passenger", "driver", "admin"))
+      Joi.array().items(Joi.string().valid("shipper", "driver", "admin")),
     )
     .optional(),
   startDate: Joi.date().optional(),
   endDate: Joi.date().optional(),
-  passengerRequestId: Joi.number().integer().optional(),
+  shipperRequestId: Joi.number().integer().optional(),
   driverRequestId: Joi.number().integer().optional(),
   minShippingCost: Joi.number().optional(),
   maxShippingCost: Joi.number().optional(),

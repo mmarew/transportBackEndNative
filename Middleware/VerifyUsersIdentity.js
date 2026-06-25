@@ -9,7 +9,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
   try {
     const userUniqueId = req?.user?.userUniqueId;
 
-    const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND roleId = ? OR roleId = ?`;
+    const sql = `SELECT * FROM UserRole WHERE userUniqueId = ? AND (roleId = ? OR roleId = ?)`;
     const [userRole] = await pool.query(sql, [
       userUniqueId,
       usersRolesList.admin.roleId,
@@ -89,6 +89,14 @@ const verifyDriversIdentity = async (req, res, next) => {
     }
     req.userRoleStatus = userRoleStatus[0];
     const statusId = userRoleStatus[0]?.statusId;
+    if (process.env.DEBUG_TEST) {
+      logger.debug(
+        "@verifyDriversIdentity statusId:",
+        statusId,
+        "data:",
+        userRoleStatus[0],
+      );
+    }
     if (statusId !== 1) {
       throw new AppError("Driver in inactive status", 403);
     }
@@ -129,24 +137,24 @@ const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
   }
 };
 
-// Verify if the user is a Passenger and is in an active status
-const verifyPassengersIdentity = async (req, res, next) => {
+// Verify if the user is a Shipper and is in an active status
+const verifyShippersIdentity = async (req, res, next) => {
   try {
     const userUniqueId = req?.user.userUniqueId;
 
-    // Step 2: Verify if the user has a Passenger role
+    // Step 2: Verify if the user has a Shipper role
     const userRole = await getData({
       tableName: "UserRole",
-      conditions: { userUniqueId, roleId: usersRolesList.passenger.roleId }, // 1 indicates the Passenger role
+      conditions: { userUniqueId, roleId: usersRolesList.shipper.roleId }, // 1 indicates the Shipper role
     });
 
     if (!userRole?.length) {
-      throw new AppError("User passenger role not found", 401);
+      throw new AppError("User shipper role not found", 401);
     }
     req.userRole = userRole;
 
-    // Step 3: Check if the Passenger is in an active status (join UserRole so we always use passenger role's status)
-    const passengerRole = userRole[0];
+    // Step 3: Check if the Shipper is in an active status (join UserRole so we always use shipper role's status)
+    const shipperRole = userRole[0];
     const userRoleStatus = await performJoinSelect({
       baseTable: "UserRoleStatusCurrent",
       joins: [
@@ -160,8 +168,8 @@ const verifyPassengersIdentity = async (req, res, next) => {
         },
       ],
       conditions: {
-        "UserRoleStatusCurrent.userRoleId": passengerRole.userRoleId,
-        "UserRole.roleId": usersRolesList.passenger.roleId, // ensure we use passenger role's status, not driver's
+        "UserRoleStatusCurrent.userRoleId": shipperRole.userRoleId,
+        "UserRole.roleId": usersRolesList.shipper.roleId, // ensure we use shipper role's status, not driver's
       },
       orderBy: "userRoleStatusCreatedAt",
       orderDirection: "DESC",
@@ -170,13 +178,13 @@ const verifyPassengersIdentity = async (req, res, next) => {
     logger.debug("@userRoleStatus", userRoleStatus);
 
     if (userRoleStatus.length === 0) {
-      throw new AppError("User passenger role status not found", 401);
+      throw new AppError("User shipper role status not found", 401);
     }
     req.userRoleStatus = userRoleStatus;
     const statusId = userRoleStatus[0]?.statusId;
     if (statusId !== 1) {
       throw new AppError(
-        `Passenger in inactive status (statusId: ${statusId}). Passengers should have statusId 1 (active).`,
+        `Shipper in inactive status (statusId: ${statusId}). Shippers should have statusId 1 (active).`,
         403,
       );
     }
@@ -188,7 +196,7 @@ const verifyPassengersIdentity = async (req, res, next) => {
 };
 
 // Verify if user is cancelling their own request OR is admin/super admin
-const verifyCancelPassengerRequestAuthorization = async (req, res, next) => {
+const verifyCancelShipperRequestAuthorization = async (req, res, next) => {
   try {
     const { userUniqueId: requestingUserUniqueId, roleId } = req?.user ?? {};
     let targetUserUniqueId = req?.params?.userUniqueId;
@@ -233,6 +241,6 @@ module.exports = {
   verifyIfOperationIsAllowedByUserDriver,
   verifyAdminsIdentity,
   verifyDriversIdentity,
-  verifyPassengersIdentity,
-  verifyCancelPassengerRequestAuthorization,
+  verifyShippersIdentity,
+  verifyCancelShipperRequestAuthorization,
 };

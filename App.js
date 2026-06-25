@@ -1,15 +1,15 @@
 require("express-async-errors");
-const dotenv = require("dotenv");
-dotenv.config();
+const Config = require("./Utils/Config");
 
 const logger = require("./Utils/logger");
 const getLocalIpAddress = require("./Utils/MyIpAddress.js");
 const ipAddress = getLocalIpAddress();
 //import express server setup
 const app = require("./Config/Express.config.js");
-const { createServer: createHTTPServer } = require("http");
 // import socket adapter
 const { initSocket } = require("./Config/SocketAdapter.config.js");
+const { createServer: createHTTPServer } = require("http");
+
 // import process error handlers
 const { setupProcessErrorHandlers } = require("./Config/ProcessErrorHandlers");
 const { currentDate } = require("./Utils/CurrentDate.js");
@@ -30,22 +30,13 @@ const onStartUp = async () => {
     } = require("./Services/DriverRequest/automaticTimeout.service");
 
     const timeoutServiceControl = startAutomaticTimeoutService({
-      intervalSeconds: parseInt(
-        process.env.DRIVER_TIMEOUT_CHECK_INTERVAL || "120",
-        10,
-      ), // Default: check every 2 minutes
+      intervalSeconds: parseInt(Config.DRIVER_TIMEOUT_CHECK_INTERVAL, 10), // Default: check every 2 minutes
       runImmediately: true, // Run check immediately on startup
     });
 
     logger.info("Automatic Timeout Detection Service started", {
-      intervalSeconds: parseInt(
-        process.env.DRIVER_TIMEOUT_CHECK_INTERVAL || "120",
-        10,
-      ),
-      timeoutMinutes: parseInt(
-        process.env.DRIVER_RESPONSE_TIMEOUT_MINUTES || "5",
-        10,
-      ),
+      intervalSeconds: parseInt(Config.DRIVER_TIMEOUT_CHECK_INTERVAL, 10),
+      timeoutMinutes: parseInt(Config.DRIVER_RESPONSE_TIMEOUT_MINUTES, 10),
       timestamp: currentDate(),
     });
 
@@ -67,11 +58,11 @@ const startServer = async () => {
 
     initSocket({ httpServer }); // Initialize Socket.IO
 
-    const PORT = process.env.PORT || 3000;
+    const PORT = Config.PORT;
     const server = httpServer?.listen(PORT, "0.0.0.0", () => {
       logger.info(`Server is running on http://${ipAddress}:${PORT}`, {
         port: PORT,
-        nodeEnv: process.env.NODE_ENV,
+        nodeEnv: Config.NODE_ENV,
         pid: process.pid,
       });
       onStartUp();

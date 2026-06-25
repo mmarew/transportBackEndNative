@@ -3,6 +3,7 @@ const { getSocket, getAllSockets } = require("./WsConnectionStore");
 const { redis } = require("../Config/redis.config");
 const logger = require("./logger");
 const AppError = require("./AppError");
+const { db } = require("../Services/CompanyHelper.service");
 
 // Regular expression to validate phone numbers (only digits, between 9 and 15 digits)
 const phoneNumberRegex = /^[0-9]{9,15}$/;
@@ -17,6 +18,7 @@ const sendSocketIONotificationToDriver = async ({
   message,
   phoneNumber,
   eventName,
+  userType = "driver",
 }) => {
   try {
     logger.debug("@sendSocketIONotificationToDriver", {
@@ -30,7 +32,7 @@ const sendSocketIONotificationToDriver = async ({
       throw new AppError("Invalid phone number format", 400);
     }
 
-    const socketId = await getSocket("driver", cleanedPhoneNumber);
+    const socketId = await getSocket(userType, cleanedPhoneNumber);
     getAllSockets();
     if (!socketId) {
       logger.warn("No active driver socket found for notification", {
@@ -67,30 +69,38 @@ const sendSocketIONotificationToDriver = async ({
   }
 };
 
-// 🔔 Notify a specific passenger by phone number
-const sendSocketIONotificationToPassenger = async ({
+// 🔔 Notify a specific shipper by phone number
+const sendSocketIONotificationToShipper = async ({
   message,
   phoneNumber,
   eventName,
+  userType = "shipper",
 }) => {
   try {
+    logger.debug("@sendSocketIONotificationToShipper", {
+      phoneNumber,
+      eventName: eventName || "messages",
+    });
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
       throw new AppError("Invalid phone number format", 400);
     }
 
-    const socketId = await getSocket("passenger", cleanedPhoneNumber);
+    const socketId = await getSocket(userType, cleanedPhoneNumber);
     if (!socketId) {
-      logger.warn("No active passenger socket found for notification", {
+      logger.warn("No active shipper socket found for notification", {
         phoneNumber: cleanedPhoneNumber,
       });
       return {
         status: "success",
         message: "success",
-        data: "Notification skipped: Passenger offline",
+        data: "Notification skipped: Shipper offline",
       };
     }
-
+    logger.debug("@sendSocketIONotificationToShipper: found socket, emitting", {
+      socketId,
+      phoneNumber: cleanedPhoneNumber,
+    });
     const res = await emitMessage({
       eventName: eventName || "messages",
       messageDetails: JSON.stringify(message),
@@ -98,19 +108,22 @@ const sendSocketIONotificationToPassenger = async ({
     });
 
     if (res.status === "success" || res.message === "success") {
-      return { status: "success", data: "Message sent to passenger" };
+      return { status: "success", data: "Message sent to shipper" };
     } else {
-      logger.error("Failed to send message to passenger", { res });
-      return { status: "error", message: "Failed to send message to passenger" };
+      logger.error("Failed to send message to shipper", { res });
+      return {
+        status: "error",
+        message: "Failed to send message to shipper",
+      };
     }
   } catch (error) {
-    logger.error("Error sending notification to passenger", {
+    logger.error("Error sending notification to shipper", {
       error: error.message,
       stack: error.stack,
     });
     return {
       status: "error",
-      message: "Message can't be sent to passenger",
+      message: "Message can't be sent to shipper",
     };
   }
 };
@@ -215,8 +228,55 @@ const sendSocketIONotificationToAdmin = async ({ message, eventName }) => {
   }
 };
 
+// 🔔 Notify all members of a company via WebSocket
+const sendSocketIONotificationToCompany = async ({
+  companyUniqueId,
+  message,
+  eventName,
+  userType = "company", // Company admins/dispatchers connect with user=company
+}) => {
+  try {
+    const [members] = await db().query(
+      `SELECT u.phoneNumber 
+       FROM CompanyMembership cm
+       JOIN Users u ON cm.userUniqueId = u.userUniqueId
+       WHERE cm.companyUniqueId = ? 
+         AND cm.isActive = 1 
+         AND cm.membershipDeletedAt IS NULL`,
+      [companyUniqueId],
+    );
+
+    if (!members || members.length === 0) {
+      logger.debug("No members found for company to notify via socket", {
+        companyUniqueId,
+      });
+      return { status: "success", data: "No members to notify" };
+    }
+
+    const results = await Promise.all(
+      members.map((member) =>
+        sendSocketIONotificationToDriver({
+          message,
+          phoneNumber: member.phoneNumber,
+          eventName,
+          userType,
+        }),
+      ),
+    );
+
+    return { status: "success", data: results };
+  } catch (error) {
+    logger.error("Error sending notification to company members", {
+      companyUniqueId,
+      error: error.message,
+    });
+    return { status: "error", message: error.message };
+  }
+};
+
 module.exports = {
   sendSocketIONotificationToAdmin,
   sendSocketIONotificationToDriver,
-  sendSocketIONotificationToPassenger,
+  sendSocketIONotificationToShipper,
+  sendSocketIONotificationToCompany,
 };

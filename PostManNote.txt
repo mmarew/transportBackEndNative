@@ -7,7 +7,7 @@ Note This document is used to the developers and testers to understand the flow 
 1. [Setup & Initialization](#setup--initialization)
 2. [Environment Configuration](#environment-configuration)
 3. [User Management](#user-management)
-4. [Passenger Operations](#passenger-operations)
+4. [Shipper Operations](#shipper-operations)
 5. [Driver Registration](#driver-registration)
 6. [Document Management](#document-management)
 7. [Admin Operations](#admin-operations)
@@ -139,7 +139,7 @@ Database Management
     "email": "birie@gmail.com",
     "roleId": 3,
     "statusId": 1,
-    "userRoleStatusDescription": "an admin can have a role of managing driver passenger etc."
+    "userRoleStatusDescription": "an admin can have a role of managing driver shipper etc."
 }
 ```
 **Response**:
@@ -242,7 +242,7 @@ After creating and verifying an admin user, they can perform the following opera
 **Authentication**: Admin token required  
 **Query Parameters** (all optional):
 - `phoneNumber`: Filter by phone number
-- `roleId`: Filter by role ID (1=Passenger, 2=Driver, 3=Admin)
+- `roleId`: Filter by role ID (1=Shipper, 2=Driver, 3=Admin)
 - `statusId`: Filter by status ID
 - `fullName`: Filter by full name
 
@@ -315,7 +315,7 @@ After creating and verifying an admin user, they can perform the following opera
 **Description**: Retrieves ongoing journeys that are currently in progress.  
 **Authentication**: User/Admin token required  
 **Query Parameters**:
-- `fullName`: Filter by passenger/driver name
+- `fullName`: Filter by shipper/driver name
 - `phoneNumber`: Filter by phone number
 
 **Response**:
@@ -325,7 +325,7 @@ After creating and verifying an admin user, they can perform the following opera
     "data": [
         {
             "journeyUniqueId": "journey-uuid-here",
-            "passengerName": "Passenger Name",
+            "shipperName": "Shipper Name",
             "driverName": "Driver Name",
             "pickupLocation": "Location A",
             "dropoffLocation": "Location B",
@@ -388,14 +388,14 @@ After creating and verifying an admin user, they can perform the following opera
 }
 ```
 
-### 1.12 Create Passenger Request (Admin)
-**Endpoint**: `POST /api/passengerRequest/createRequest`  
-**Description**: Admin can create passenger requests on behalf of users. Supports batch requests for multiple vehicles.  
+### 1.12 Create Shipper Request (Admin)
+**Endpoint**: `POST /api/shipperRequest/createRequest`  
+**Description**: Admin can create shipper requests on behalf of users. Supports batch requests for multiple vehicles.  
 **Authentication**: User/Admin token required  
 **Request Body**:
 ```json
 {
-    "passengerRequestBatchId": "batch-uuid-here",
+    "shipperRequestBatchId": "batch-uuid-here",
     "numberOfVehicles": 1,
     "shippingDate": "2026-01-31T10:00:00.000Z",
     "deliveryDate": "2026-02-01T10:00:00.000Z",
@@ -424,9 +424,9 @@ After creating and verifying an admin user, they can perform the following opera
 {
     "message": "success",
     "data": {
-        "passengerRequestUniqueId": "request-uuid-here",
+        "shipperRequestUniqueId": "request-uuid-here",
         "status": "waiting_for_driver",
-        "passengerRequestBatchId": "batch-uuid-here",
+        "shipperRequestBatchId": "batch-uuid-here",
         "userUniqueId": "user-uuid-here",
         "shippingCost": 150.00,
         "createdAt": "2026-01-31T13:00:00.000Z"
@@ -477,9 +477,9 @@ After creating and verifying an admin user, they can perform the following opera
     "data": [
         {
             "roleId": 1,
-            "roleUniqueId": "passenger-role-uuid",
-            "roleName": "Passenger",
-            "description": "Regular passenger user"
+            "roleUniqueId": "shipper-role-uuid",
+            "roleName": "Shipper",
+            "description": "Regular shipper user"
         },
         {
             "roleId": 2,
@@ -700,9 +700,9 @@ After creating and verifying an admin user, they can perform the following opera
 
 
 
-### 3. Create Regular User passenger
+### 3. Create Regular User shipper
 **Endpoint**: `POST /api/user/createUser`  
-**Description**: Creates a new passenger or driver user.  
+**Description**: Creates a new shipper or driver user.  
 **Request Body**:
 ```json
 {
@@ -730,17 +730,17 @@ After creating and verifying an admin user, they can perform the following opera
 }
 ```
 
-## Passenger Operations
+## Shipper Operations
 
-### 1. Create Passenger Request
-**Endpoint**: `POST /api/passengerRequest/createRequest`  
+### 1. Create Shipper Request
+**Endpoint**: `POST /api/shipperRequest/createRequest`  
 **Description**: Creates a new ride request for transporting goods.  
-**Authentication**: Passenger token required  
+**Authentication**: Shipper token required  
 **Request Body**:
 ```json
 {
     "shipperPhoneNumber": "+2519221124667",
-    "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+    "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
     "numberOfVehicles": 4,
     "deliveryDate": "2025-04-20T10:54:26.077Z",
     "requestType": "PASSENGER",
@@ -772,7 +772,7 @@ After creating and verifying an admin user, they can perform the following opera
         "waitingCount": 4,
         "requestedCount": 0,
         "acceptedByDriverCount": 0,
-        "acceptedByPassengerCount": 0,
+        "acceptedByShipperCount": 0,
         "journeyStartedCount": 0,
         "notSeenCompletedCount": 0,
         "notSeenCancelledByDriverCount": 0
@@ -780,8 +780,8 @@ After creating and verifying an admin user, they can perform the following opera
 }
 ```
 
-### 2. Get Passenger Requests
-**Endpoint**: `GET /api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=5,1,2`  
+### 2. Get Shipper Requests
+**Endpoint**: `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=5,1,2`  
 **Description**: Retrieves ride requests with optional filtering by journey status.  
 **Authentication**: User token required  
 **Query Parameters**:
@@ -793,11 +793,11 @@ After creating and verifying an admin user, they can perform the following opera
     "message": "success",
     "formattedData": [
         {
-            "passengerRequest": {
-                "passengerRequestId": 4,
-                "passengerRequestUniqueId": "a3ffa51c-a716-43a6-9b8f-d639bd5e5c30",
+            "shipperRequest": {
+                "shipperRequestId": 4,
+                "shipperRequestUniqueId": "a3ffa51c-a716-43a6-9b8f-d639bd5e5c30",
                 "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-                "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+                "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
                 "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
                 "journeyStatusId": 1,
                 "originLatitude": "9.02046830",
@@ -815,10 +815,10 @@ After creating and verifying an admin user, they can perform the following opera
                 "isCompletionSeen": 0,
                 "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
                 "shipperRequestCreatedByRoleId": 1,
-                "passengerRequestUpdatedBy": null,
-                "passengerRequestDeletedBy": null,
-                "passengerRequestUpdatedAt": null,
-                "passengerRequestDeletedAt": null,
+                "shipperRequestUpdatedBy": null,
+                "shipperRequestDeletedBy": null,
+                "shipperRequestUpdatedAt": null,
+                "shipperRequestDeletedAt": null,
                 "fullName": "user 81 ",
                 "email": null,
                 "phoneNumber": "+251922112481",
@@ -829,11 +829,11 @@ After creating and verifying an admin user, they can perform the following opera
             "journey": {}
         },
         {
-            "passengerRequest": {
-                "passengerRequestId": 3,
-                "passengerRequestUniqueId": "c5f6474e-083d-4b3e-ac0f-d60b3fe62897",
+            "shipperRequest": {
+                "shipperRequestId": 3,
+                "shipperRequestUniqueId": "c5f6474e-083d-4b3e-ac0f-d60b3fe62897",
                 "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-                "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+                "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
                 "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
                 "journeyStatusId": 1,
                 "originLatitude": "9.02046830",
@@ -851,10 +851,10 @@ After creating and verifying an admin user, they can perform the following opera
                 "isCompletionSeen": 0,
                 "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
                 "shipperRequestCreatedByRoleId": 1,
-                "passengerRequestUpdatedBy": null,
-                "passengerRequestDeletedBy": null,
-                "passengerRequestUpdatedAt": null,
-                "passengerRequestDeletedAt": null,
+                "shipperRequestUpdatedBy": null,
+                "shipperRequestDeletedBy": null,
+                "shipperRequestUpdatedAt": null,
+                "shipperRequestDeletedAt": null,
                 "fullName": "user 81 ",
                 "email": null,
                 "phoneNumber": "+251922112481",
@@ -865,11 +865,11 @@ After creating and verifying an admin user, they can perform the following opera
             "journey": {}
         },
         {
-            "passengerRequest": {
-                "passengerRequestId": 2,
-                "passengerRequestUniqueId": "26a4fd0d-e4d7-4f2c-a472-ea6b22d8f0ce",
+            "shipperRequest": {
+                "shipperRequestId": 2,
+                "shipperRequestUniqueId": "26a4fd0d-e4d7-4f2c-a472-ea6b22d8f0ce",
                 "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-                "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+                "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
                 "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
                 "journeyStatusId": 1,
                 "originLatitude": "9.02046830",
@@ -887,10 +887,10 @@ After creating and verifying an admin user, they can perform the following opera
                 "isCompletionSeen": 0,
                 "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
                 "shipperRequestCreatedByRoleId": 1,
-                "passengerRequestUpdatedBy": null,
-                "passengerRequestDeletedBy": null,
-                "passengerRequestUpdatedAt": null,
-                "passengerRequestDeletedAt": null,
+                "shipperRequestUpdatedBy": null,
+                "shipperRequestDeletedBy": null,
+                "shipperRequestUpdatedAt": null,
+                "shipperRequestDeletedAt": null,
                 "fullName": "user 81 ",
                 "email": null,
                 "phoneNumber": "+251922112481",
@@ -901,11 +901,11 @@ After creating and verifying an admin user, they can perform the following opera
             "journey": {}
         },
         {
-            "passengerRequest": {
-                "passengerRequestId": 1,
-                "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+            "shipperRequest": {
+                "shipperRequestId": 1,
+                "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
                 "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-                "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+                "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
                 "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
                 "journeyStatusId": 1,
                 "originLatitude": "9.02046830",
@@ -923,10 +923,10 @@ After creating and verifying an admin user, they can perform the following opera
                 "isCompletionSeen": 0,
                 "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
                 "shipperRequestCreatedByRoleId": 1,
-                "passengerRequestUpdatedBy": null,
-                "passengerRequestDeletedBy": null,
-                "passengerRequestUpdatedAt": null,
-                "passengerRequestDeletedAt": null,
+                "shipperRequestUpdatedBy": null,
+                "shipperRequestDeletedBy": null,
+                "shipperRequestUpdatedAt": null,
+                "shipperRequestDeletedAt": null,
                 "fullName": "user 81 ",
                 "email": null,
                 "phoneNumber": "+251922112481",
@@ -1002,7 +1002,7 @@ After creating and verifying an admin user, they can perform the following opera
         "phoneNumber": "+251918569809",
         "email": null,
         "roleName": "Driver",
-        "roleDescription": "a person who can recive order from passenger to load goods",
+        "roleDescription": "a person who can recive order from shipper to load goods",
         "statusName": "inactive - vehicle not registered",
         "statusDescription": "Driver has not registered a vehicle.",
         "createdByName": "user 80"
@@ -1381,7 +1381,7 @@ Once all driver documents are approved, the driver can create a request to searc
     "status": 2,
     "uniqueIds": {
         "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61"
     },
     "driver": {
@@ -1393,7 +1393,7 @@ Once all driver documents are approved, the driver can create a request to searc
             "originLongitude": "38.80246000",
             "originPlace": "Addis Ababa, Ethiopia",
             "journeyStatusId": 2,
-            "isCancellationByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByShipperSeenByDriver": "no need to see it",
             "driverRequestUpdatedBy": null,
             "driverRequestDeletedBy": null,
             "driverRequestCreatedAt": "2026-01-31T15:00:00.000Z",
@@ -1403,7 +1403,7 @@ Once all driver documents are approved, the driver can create a request to searc
             "phoneNumber": "+251918569809",
             "email": null,
             "isNotSelectedSeenByDriver": null,
-            "isRejectionByPassengerSeenByDriver": null
+            "isRejectionByShipperSeenByDriver": null
         },
         "vehicle": {
             "vehicleDriverId": 1,
@@ -1435,7 +1435,7 @@ Once all driver documents are approved, the driver can create a request to searc
             "vehicleTypeDeletedAt": null
         }
     },
-    "passenger": {
+    "shipper": {
         "userId": 4,
         "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
         "fullName": "user 81 ",
@@ -1446,9 +1446,9 @@ Once all driver documents are approved, the driver can create a request to searc
         "userDeletedAt": null,
         "userDeletedBy": null,
         "isDeleted": 0,
-        "passengerRequestId": 1,
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
-        "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+        "shipperRequestId": 1,
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+        "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
         "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
         "journeyStatusId": 2,
         "originLatitude": "9.02046830",
@@ -1466,15 +1466,15 @@ Once all driver documents are approved, the driver can create a request to searc
         "isCompletionSeen": 0,
         "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
         "shipperRequestCreatedByRoleId": 1,
-        "passengerRequestUpdatedBy": null,
-        "passengerRequestDeletedBy": null,
-        "passengerRequestUpdatedAt": null,
-        "passengerRequestDeletedAt": null
+        "shipperRequestUpdatedBy": null,
+        "shipperRequestDeletedBy": null,
+        "shipperRequestUpdatedAt": null,
+        "shipperRequestDeletedAt": null
     },
     "journey": null,
     "decision": {
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-        "passengerRequestId": 1,
+        "shipperRequestId": 1,
         "driverRequestId": 1,
         "journeyStatusId": 2,
         "decisionTime": "2026-01-31 18:00:02",
@@ -1484,17 +1484,17 @@ Once all driver documents are approved, the driver can create a request to searc
     }
 }
 
-If the response "status" is 1, no shipper/job is found. However, if the status is 2, the driver's phone rings immediately this shows job is found, and the driver can accept the request via `{{url}}/api/driver/acceptPassengerRequest`.
+If the response "status" is 1, no shipper/job is found. However, if the status is 2, the driver's phone rings immediately this shows job is found, and the driver can accept the request via `{{url}}/api/driver/acceptShipperRequest`.
 
-### 4. Accept Passenger Request (Driver)
-**Endpoint**: `POST /api/driver/acceptPassengerRequest`  
-**Description**: Driver accepts a passenger request and provides their shipping cost bid.  
+### 4. Accept Shipper Request (Driver)
+**Endpoint**: `POST /api/driver/acceptShipperRequest`  
+**Description**: Driver accepts a shipper request and provides their shipping cost bid.  
 **Authentication**: Driver token required  
 **Request Body**:
 ```json
 {
     "driverRequestUniqueId": "7917bbbc-a3bd-426e-a99f-bd55696cf492",
-    "passengerRequestUniqueId": "e325861b-439d-442d-9159-df4466343a82",
+    "shipperRequestUniqueId": "e325861b-439d-442d-9159-df4466343a82",
     "journeyDecisionUniqueId": "df02fe28-0f43-4c81-968d-dc4966b8b826",
     "shippingCostByDriver": 656565
 }
@@ -1506,7 +1506,7 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
     "status": 3,
     "uniqueIds": {
         "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
         "journeyUniqueId": null
     },
@@ -1519,7 +1519,7 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
             "originLongitude": "38.80246000",
             "originPlace": "Addis Ababa, Ethiopia",
             "journeyStatusId": 2,
-            "isCancellationByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByShipperSeenByDriver": "no need to see it",
             "driverRequestUpdatedBy": null,
             "driverRequestDeletedBy": null,
             "driverRequestCreatedAt": "2026-01-31T15:00:00.000Z",
@@ -1527,23 +1527,23 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
             "driverRequestDeletedAt": null,
             "journeyDecisionId": 1,
             "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-            "passengerRequestId": 1,
+            "shipperRequestId": 1,
             "decisionTime": "2026-01-31T15:00:02.000Z",
             "decisionBy": "driver",
             "shippingDateByDriver": null,
             "deliveryDateByDriver": null,
             "shippingCostByDriver": null,
             "isNotSelectedSeenByDriver": "no need to see it",
-            "isCancellationByDriverSeenByPassenger": "no need to see it",
-            "isRejectionByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByDriverSeenByShipper": "no need to see it",
+            "isRejectionByShipperSeenByDriver": "no need to see it",
             "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
             "journeyDecisionUpdatedBy": null,
             "journeyDecisionDeletedBy": null,
             "journeyDecisionCreatedAt": "2026-01-31T15:00:02.000Z",
             "journeyDecisionUpdatedAt": null,
             "journeyDecisionDeletedAt": null,
-            "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
-            "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+            "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+            "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
             "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
             "destinationLatitude": "9.02046930",
             "destinationLongitude": "38.80246000",
@@ -1557,10 +1557,10 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
             "isCompletionSeen": 0,
             "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
             "shipperRequestCreatedByRoleId": 1,
-            "passengerRequestUpdatedBy": null,
-            "passengerRequestDeletedBy": null,
-            "passengerRequestUpdatedAt": null,
-            "passengerRequestDeletedAt": null,
+            "shipperRequestUpdatedBy": null,
+            "shipperRequestDeletedBy": null,
+            "shipperRequestUpdatedAt": null,
+            "shipperRequestDeletedAt": null,
             "userId": 5,
             "fullName": "user 80",
             "phoneNumber": "+251918569809",
@@ -1602,11 +1602,11 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
             "vehicleTypeDeletedAt": null
         }
     },
-    "passenger": {
-        "passengerRequestId": 1,
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+    "shipper": {
+        "shipperRequestId": 1,
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-        "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+        "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
         "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
         "journeyStatusId": 3,
         "originLatitude": "9.02046830",
@@ -1624,10 +1624,10 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
         "isCompletionSeen": 0,
         "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
         "shipperRequestCreatedByRoleId": 1,
-        "passengerRequestUpdatedBy": null,
-        "passengerRequestDeletedBy": null,
-        "passengerRequestUpdatedAt": null,
-        "passengerRequestDeletedAt": null,
+        "shipperRequestUpdatedBy": null,
+        "shipperRequestDeletedBy": null,
+        "shipperRequestUpdatedAt": null,
+        "shipperRequestDeletedAt": null,
         "userId": 4,
         "fullName": "user 81 ",
         "phoneNumber": "+251922112481",
@@ -1642,7 +1642,7 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
     "decision": {
         "journeyDecisionId": 1,
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-        "passengerRequestId": 1,
+        "shipperRequestId": 1,
         "driverRequestId": 1,
         "journeyStatusId": 3,
         "decisionTime": "2026-01-31T15:00:02.000Z",
@@ -1651,8 +1651,8 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
         "deliveryDateByDriver": null,
         "shippingCostByDriver": "656565.00",
         "isNotSelectedSeenByDriver": "no need to see it",
-        "isCancellationByDriverSeenByPassenger": "no need to see it",
-        "isRejectionByPassengerSeenByDriver": "no need to see it",
+        "isCancellationByDriverSeenByShipper": "no need to see it",
+        "isRejectionByShipperSeenByDriver": "no need to see it",
         "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
         "journeyDecisionUpdatedBy": null,
         "journeyDecisionDeletedBy": null,
@@ -1662,17 +1662,17 @@ If the response "status" is 1, no shipper/job is found. However, if the status i
     }
 }
 
-Once a driver accepts the shipper request as shown above, the shipper must approve it because this is bid-based pricing. The shipper can accept the driver's request via `{{url}}/api/passenger/acceptDriverRequest`. Note: The shipper receives driver acceptance notifications through WebSocket or by checking `{{url}}/api/user/getPassengerRequest4allOrSingleUser?journeyStatusId=3`.
+Once a driver accepts the shipper request as shown above, the shipper must approve it because this is bid-based pricing. The shipper can accept the driver's request via `{{url}}/api/shipper/acceptDriverRequest`. Note: The shipper receives driver acceptance notifications through WebSocket or by checking `{{url}}/api/user/getShipperRequest4allOrSingleUser?journeyStatusId=3`.
 
-### 5. Accept Driver Request (Passenger/Shipper)
-**Endpoint**: `PUT /api/passenger/acceptDriverRequest`  
-**Description**: Passenger/Shipper accepts a driver's bid and confirms the transportation arrangement.  
-**Authentication**: Passenger token required  
+### 5. Accept Driver Request (Shipper/Shipper)
+**Endpoint**: `PUT /api/shipper/acceptDriverRequest`  
+**Description**: Shipper/Shipper accepts a driver's bid and confirms the transportation arrangement.  
+**Authentication**: Shipper token required  
 **Request Body**:
 ```json
 {
     "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-    "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+    "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
     "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61"
 }
 ```
@@ -1684,7 +1684,7 @@ Once a driver accepts the shipper request as shown above, the shipper must appro
     "data": "Driver request accepted successfully",
     "uniqueIds": {
         "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61"
     },
     "totalRecords": {
@@ -1692,7 +1692,7 @@ Once a driver accepts the shipper request as shown above, the shipper must appro
         "waitingCount": 3,
         "requestedCount": 0,
         "acceptedByDriverCount": 0,
-        "acceptedByPassengerCount": 1,
+        "acceptedByShipperCount": 1,
         "journeyStartedCount": 0,
         "notSeenCompletedCount": 0,
         "notSeenCancelledByDriverCount": 0
@@ -1706,8 +1706,8 @@ After the shipper approves the bid selection, the driver must go to the loading 
 **Description**: Driver starts the transportation journey after arriving at the loading location.  
 **Request Body Requirements**:
 - `driverRequestUniqueId`: Unique identifier for the driver's job request
-- `passengerRequestUniqueId`: Unique identifier for the passenger's shipping request  
-- `journeyDecisionUniqueId`: Unique identifier for the journey decision linking driver and passenger
+- `shipperRequestUniqueId`: Unique identifier for the shipper's shipping request  
+- `journeyDecisionUniqueId`: Unique identifier for the journey decision linking driver and shipper
 - `latitude`: Driver's current latitude coordinate when starting the journey
 - `longitude`: Driver's current longitude coordinate when starting the journey  
 **Authentication**: Driver token required  
@@ -1715,7 +1715,7 @@ After the shipper approves the bid selection, the driver must go to the loading 
 ```json
 {
     "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-    "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+    "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
     "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
     "latitude": "11.12260400",
     "longitude": "39.63498200"
@@ -1728,7 +1728,7 @@ After the shipper approves the bid selection, the driver must go to the loading 
     "status": 5,
     "uniqueIds": {
         "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
         "journeyUniqueId": "fcc13a2b-565c-4961-895e-bf9b383db3d5"
     },
@@ -1736,7 +1736,7 @@ After the shipper approves the bid selection, the driver must go to the loading 
         "driver": {
             "journeyDecisionId": 1,
             "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-            "passengerRequestId": 1,
+            "shipperRequestId": 1,
             "driverRequestId": 1,
             "journeyStatusId": 4,
             "decisionTime": "2026-01-31T15:00:02.000Z",
@@ -1745,8 +1745,8 @@ After the shipper approves the bid selection, the driver must go to the loading 
             "deliveryDateByDriver": null,
             "shippingCostByDriver": "656565.00",
             "isNotSelectedSeenByDriver": "no need to see it",
-            "isCancellationByDriverSeenByPassenger": "no need to see it",
-            "isRejectionByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByDriverSeenByShipper": "no need to see it",
+            "isRejectionByShipperSeenByDriver": "no need to see it",
             "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
             "journeyDecisionUpdatedBy": null,
             "journeyDecisionDeletedBy": null,
@@ -1787,11 +1787,11 @@ After the shipper approves the bid selection, the driver must go to the loading 
             "vehicleTypeDeletedAt": null
         }
     },
-    "passenger": {
-        "passengerRequestId": 1,
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+    "shipper": {
+        "shipperRequestId": 1,
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-        "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+        "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
         "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
         "journeyStatusId": 5,
         "originLatitude": "9.02046830",
@@ -1809,10 +1809,10 @@ After the shipper approves the bid selection, the driver must go to the loading 
         "isCompletionSeen": 0,
         "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
         "shipperRequestCreatedByRoleId": 1,
-        "passengerRequestUpdatedBy": null,
-        "passengerRequestDeletedBy": null,
-        "passengerRequestUpdatedAt": null,
-        "passengerRequestDeletedAt": null,
+        "shipperRequestUpdatedBy": null,
+        "shipperRequestDeletedBy": null,
+        "shipperRequestUpdatedAt": null,
+        "shipperRequestDeletedAt": null,
         "userId": 4,
         "fullName": "user 81 ",
         "phoneNumber": "+251922112481",
@@ -1840,7 +1840,7 @@ After the shipper approves the bid selection, the driver must go to the loading 
     },
     "decision": {
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-        "passengerRequestId": 1,
+        "shipperRequestId": 1,
         "driverRequestId": 1,
         "journeyStatusId": 5,
         "decisionTime": "2026-01-31T15:00:02.000Z",
@@ -1887,7 +1887,7 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
 ```json
 {
     "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-    "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+    "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
     "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
     "latitude": "11.12260400",
     "longitude": "39.63498200"
@@ -1900,7 +1900,7 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
     "status": 5,
     "uniqueIds": {
         "driverRequestUniqueId": "213c2644-1ef8-4d28-8583-128467ea0642",
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
         "journeyUniqueId": "fcc13a2b-565c-4961-895e-bf9b383db3d5"
     },
@@ -1908,7 +1908,7 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
         "driver": {
             "journeyDecisionId": 1,
             "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-            "passengerRequestId": 1,
+            "shipperRequestId": 1,
             "driverRequestId": 1,
             "journeyStatusId": 4,
             "decisionTime": "2026-01-31T15:00:02.000Z",
@@ -1917,8 +1917,8 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
             "deliveryDateByDriver": null,
             "shippingCostByDriver": "656565.00",
             "isNotSelectedSeenByDriver": "no need to see it",
-            "isCancellationByDriverSeenByPassenger": "no need to see it",
-            "isRejectionByPassengerSeenByDriver": "no need to see it",
+            "isCancellationByDriverSeenByShipper": "no need to see it",
+            "isRejectionByShipperSeenByDriver": "no need to see it",
             "journeyDecisionCreatedBy": "b269e36d-1ed1-469d-8d4a-042f53365329",
             "journeyDecisionUpdatedBy": null,
             "journeyDecisionDeletedBy": null,
@@ -1959,11 +1959,11 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
             "vehicleTypeDeletedAt": null
         }
     },
-    "passenger": {
-        "passengerRequestId": 1,
-        "passengerRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
+    "shipper": {
+        "shipperRequestId": 1,
+        "shipperRequestUniqueId": "9a9c66a3-ec66-42c7-be0a-837a8f7d8b83",
         "userUniqueId": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
-        "passengerRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
+        "shipperRequestBatchId": "ef5bc758-b85f-4de6-a750-855c79643790",
         "vehicleTypeUniqueId": "fddf2911-dfa5-4363-a04f-c82e59536fa4",
         "journeyStatusId": 5,
         "originLatitude": "9.02046830",
@@ -1981,10 +1981,10 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
         "isCompletionSeen": 0,
         "shipperRequestCreatedBy": "7cf1250c-6b07-422b-b3fe-84144f9e7055",
         "shipperRequestCreatedByRoleId": 1,
-        "passengerRequestUpdatedBy": null,
-        "passengerRequestDeletedBy": null,
-        "passengerRequestUpdatedAt": null,
-        "passengerRequestDeletedAt": null,
+        "shipperRequestUpdatedBy": null,
+        "shipperRequestDeletedBy": null,
+        "shipperRequestUpdatedAt": null,
+        "shipperRequestDeletedAt": null,
         "userId": 4,
         "fullName": "user 81 ",
         "phoneNumber": "+251922112481",
@@ -2012,7 +2012,7 @@ When the driver finishes the journey, they must complete it using the `{{url}}/a
     },
     "decision": {
         "journeyDecisionUniqueId": "7e65df9b-98df-4744-ae96-5145b94d4b61",
-        "passengerRequestId": 1,
+        "shipperRequestId": 1,
         "driverRequestId": 1,
         "journeyStatusId": 5,
         "decisionTime": "2026-01-31T15:00:02.000Z",
@@ -2810,7 +2810,7 @@ The Finance Management module handles all financial transactions, deposits, subs
         {
             "commissionRateId": 2,
             "userRoleId": 1,
-            "roleName": "Passenger",
+            "roleName": "Shipper",
             "transactionType": "booking_fee",
             "ratePercentage": 5.00,
             "fixedFee": 10.00,
@@ -3258,7 +3258,7 @@ The Finance Management module handles all financial transactions, deposits, subs
         {
             "commissionRateId": 2,
             "userRoleId": 1,
-            "roleName": "Passenger",
+            "roleName": "Shipper",
             "transactionType": "booking_fee",
             "ratePercentage": 5.00,
             "fixedFee": 10.00,

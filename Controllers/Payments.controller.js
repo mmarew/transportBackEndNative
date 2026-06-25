@@ -12,6 +12,7 @@ exports.createPayment = async (req, res, next) => {
       paymentStatusUniqueId,
       paymentTime,
     } = req.body;
+    const user = req.user;
     const result = await executeInTransaction(async () => {
       return await paymentsService.createPayment(
         journeyId,
@@ -19,6 +20,7 @@ exports.createPayment = async (req, res, next) => {
         paymentMethodUniqueId,
         paymentStatusUniqueId,
         paymentTime,
+        user,
       );
     });
     ServerResponder(res, result);

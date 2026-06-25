@@ -51,8 +51,9 @@ exports.createTariffRate = async (data) => {
   `;
   const user = data.user;
   const userUniqueId = user.userUniqueId;
+  const tariffRateUniqueId = uuidv4();
   const values = [
-    uuidv4(),
+    tariffRateUniqueId,
     tariffRateName,
     standingTariffRate,
     journeyTariffRate,
@@ -64,7 +65,13 @@ exports.createTariffRate = async (data) => {
     currentDate(),
   ];
   await (transactionStorage.getStore() || pool).query(sql, values);
-  return { message: "success", data: "Tariff rate created successfully" };
+  return { 
+    message: "success", 
+    data: {
+      tariffRateUniqueId,
+      message: "Tariff rate created successfully"
+    } 
+  };
 };
 
 /**

@@ -1,8 +1,8 @@
 "use strict";
 
-const authService = require("./User/User.auth.service");
+const authService = require("./User/auth");
 const registryService = require("./User/User.registry.service");
-const manageService = require("./User/User.manage.service");
+const manageService = require("./User/manage");
 
 module.exports = {
   // Auth
@@ -25,4 +25,7 @@ module.exports = {
   updateUser: manageService.updateUser,
   deleteUser: manageService.deleteUser,
   verifyEmailByToken: authService.verifyEmailByToken,
+  reportMisdirectedEmail: authService.reportMisdirectedEmail,
+  generatePhoneVerificationToken: authService.generatePhoneVerificationToken,
+  verifyPhoneByToken: authService.verifyPhoneByToken,
 };

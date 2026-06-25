@@ -1,76 +1,66 @@
+// eslint-disable-next-line n/no-unpublished-require
 const request = require("supertest");
+const Config = require("../../Utils/Config");
 const app = require("../../Config/Express.config");
 
-/**
- * Obtain an auth token for tests.
- * Priority: TEST_TOKEN env → createUser → verifyUserByOTP.
- * @param {object} options
- * @param {string} options.phoneNumber
- * @param {string} options.email
- * @param {number} options.roleId
- * @param {number} options.statusId
- * @param {string} options.fullName
- * @param {number|string} options.otp
- * @param {string} [options.subscriptionPlanPricingUniqueId]
- */
-async function getAuthToken(options = {}) {
-  if (process.env.TEST_TOKEN) {
-    return process.env.TEST_TOKEN;
-  }
-
-  const phoneNumber =
-    options.phoneNumber || process.env.TEST_PHONE || "+251910185606";
-  const otp = options.otp || process.env.TEST_OTP || 101010;
-  const roleId = Number(options.roleId || process.env.TEST_ROLE_ID || 1);
-  const statusId =
-    options.statusId !== undefined
-      ? options.statusId
-      : Number(process.env.TEST_STATUS_ID || 1);
-
-  const fullName = options.fullName || process.env.TEST_FULL_NAME || "E2E User";
-  const userRoleStatusDescription =
-    options.userRoleStatusDescription ||
-    process.env.TEST_USER_ROLE_STATUS_DESC ||
-    "E2E setup user";
-
-  const userPayload = {
-    fullName,
-    phoneNumber,
-    // email,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-  };
-
-  if (options.subscriptionPlanPricingUniqueId) {
-    userPayload.subscriptionPlanPricingUniqueId =
-      options.subscriptionPlanPricingUniqueId;
-  }
+const createUserAndLogin = async (roleId) => {
+  const ts = Date.now();
+  const phoneNumber = `+2519${String(ts).slice(-9)}`;
+  const otp = Config.TEST.OTP || 101010;
+  const role = Number(roleId || Config.TEST.ROLE_ID || 1);
 
   const createRes = await request(app)
     .post("/api/user/createUser")
-    .send(userPayload);
+    .send({
+      fullName: `E2E User ${ts}`,
+      phoneNumber,
+      roleId: role,
+      statusId: Number(Config.TEST.STATUS_ID || 1),
+      userRoleStatusDescription: "E2E Test Description",
+    });
   if (createRes.status >= 500) {
-    throw new Error(`createUser failed: ${createRes.status}`);
+    throw new Error(
+      `createUser failed: ${createRes.status} – ${JSON.stringify(createRes.body)}`,
+    );
   }
 
   const verifyRes = await request(app)
     .post("/api/user/verifyUserByOTP")
-    .send({
-      OTP: otp,
-      phoneNumber,
-      roleId,
-    })
+    .send({ OTP: otp, phoneNumber, roleId: role })
     .expect(200);
 
   const token = verifyRes.body?.token || verifyRes.body?.data?.token;
   if (!token) {
-    throw new Error(
-      "No auth token obtained from verifyUserByOTP or TEST_TOKEN",
-    );
+    throw new Error("No auth token obtained from verifyUserByOTP");
   }
-
   return token;
+};
+
+async function getAuthToken(options = {}) {
+  if (Config.TEST.TOKEN) {
+    return Config.TEST.TOKEN;
+  }
+  return createUserAndLogin(options.roleId || Config.TEST.ROLE_ID || 1);
 }
 
-module.exports = { getAuthToken };
+async function getAdminToken() {
+  if (Config.TEST.TOKEN) {
+    return Config.TEST.TOKEN;
+  }
+
+  const adminPhone = process.env.SUPER_ADMIN_PHONE || "+251983222221";
+  const otp = Config.TEST.OTP || 101010;
+
+  const verifyRes = await request(app)
+    .post("/api/user/verifyUserByOTP")
+    .send({ OTP: otp, phoneNumber: adminPhone, roleId: 6 });
+
+  const token = verifyRes.body?.token || verifyRes.body?.data?.token;
+  if (token) {
+    return token;
+  }
+
+  return null;
+}
+
+module.exports = { getAuthToken, getAdminToken };

@@ -67,7 +67,7 @@ const checkDatabaseHealth = async (options = {}) => {
       const pingStart = currentDate();
       await Promise.race([
         ping(),
-        new Promise((_, reject) =>
+        new Promise((resolve, reject) =>
           setTimeout(() => reject(new Error("Ping timeout")), timeout),
         ),
       ]);
@@ -130,7 +130,7 @@ const checkDatabaseHealth = async (options = {}) => {
       const queryStart = currentDate();
       await Promise.race([
         pool.query("SELECT 1 as health_check"),
-        new Promise((_, reject) =>
+        new Promise((resolve, reject) =>
           setTimeout(() => reject(new Error("Query timeout")), timeout),
         ),
       ]);

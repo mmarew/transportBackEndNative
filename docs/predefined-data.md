@@ -11,7 +11,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 3. Vehicle Types
 4. Document Types
 5. Driver Document Requirements
-6. Passenger Document Requirements
+6. Shipper Document Requirements
 7. Cancellation Reasons
 8. Payment Status
 9. Payment Methods
@@ -27,22 +27,23 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 1. User Roles
 
 ### Role List
+
 ```json
 [
   {
     "roleId": 1,
-    "roleName": "Passenger",
+    "roleName": "Shipper",
     "roleDescription": "a person who can make order to driver to load goods"
   },
   {
     "roleId": 2,
     "roleName": "Driver",
-    "roleDescription": "a person who can recive order from passenger to load goods"
+    "roleDescription": "a person who can recive order from shipper to load goods"
   },
   {
     "roleId": 3,
     "roleName": "Admin",
-    "roleDescription": "a person who can manage the system, driver and passenger"
+    "roleDescription": "a person who can manage the system, driver and shipper"
   },
   {
     "roleId": 4,
@@ -57,7 +58,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
   {
     "roleId": 6,
     "roleName": "Supper Admin",
-    "roleDescription": "a person who can manage drivers passengers and admins using api requests"
+    "roleDescription": "a person who can manage drivers shippers and admins using api requests"
   },
   {
     "roleId": 7,
@@ -70,6 +71,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 2. User Status
 
 ### Status List
+
 ```json
 [
   {
@@ -113,6 +115,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 3. Vehicle Status Types
 
 ### Vehicle Status Types
+
 ```json
 [
   {
@@ -145,6 +148,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 4. Document Types
 
 ### Document Types List
+
 ```json
 [
   {
@@ -159,7 +163,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "documentTypeName": "Insurance Document",
-    "documentTypeDescription": "Proof of insurance coverage, ensuring that the driver and passengers are protected in the event of an accident.",
+    "documentTypeDescription": "Proof of insurance coverage, ensuring that the driver and shippers are protected in the event of an accident.",
     "isExpirationDateRequired": true
   },
   {
@@ -188,6 +192,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 5. Document Requirements
 
 ### Driver Document Requirements
+
 ```json
 [
   {
@@ -214,7 +219,8 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ]
 ```
 
-### Passenger Document Requirements
+### Shipper Document Requirements
+
 ```json
 [
   {
@@ -235,6 +241,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 6. Vehicle Types
 
 ### Vehicle Types
+
 ```json
 [
   {
@@ -259,27 +266,28 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 7. Journey Status
 
 ### Journey Status List
+
 ```json
 [
   {
     "journeyStatusId": 1,
     "journeyStatusName": "waiting",
-    "journeyStatusDescription": "Initial state when a passenger creates a transport request, waiting for drivers to respond and accept."
+    "journeyStatusDescription": "Initial state when a shipper creates a transport request, waiting for drivers to respond and accept."
   },
   {
     "journeyStatusId": 2,
     "journeyStatusName": "requested",
-    "journeyStatusDescription": "A passenger request has been sent or forwarded to a driver. The driver has received the request but has not yet responded."
+    "journeyStatusDescription": "A shipper request has been sent or forwarded to a driver. The driver has received the request but has not yet responded."
   },
   {
     "journeyStatusId": 3,
     "journeyStatusName": "acceptedByDriver",
-    "journeyStatusDescription": "Driver has accepted the passenger request and provided their bidding price."
+    "journeyStatusDescription": "Driver has accepted the shipper request and provided their bidding price."
   },
   {
     "journeyStatusId": 4,
-    "journeyStatusName": "acceptedByPassenger",
-    "journeyStatusDescription": "Passenger has selected one driver from multiple drivers who accepted the request."
+    "journeyStatusName": "acceptedByShipper",
+    "journeyStatusDescription": "Shipper has selected one driver from multiple drivers who accepted the request."
   },
   {
     "journeyStatusId": 5,
@@ -293,13 +301,13 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "journeyStatusId": 7,
-    "journeyStatusName": "cancelledByPassenger",
-    "journeyStatusDescription": "Passenger has cancelled the entire transport request."
+    "journeyStatusName": "cancelledByShipper",
+    "journeyStatusDescription": "Shipper has cancelled the entire transport request."
   },
   {
     "journeyStatusId": 8,
-    "journeyStatusName": "rejectedByPassenger",
-    "journeyStatusDescription": "Passenger has rejected a specific driver's offer after the driver accepted the request."
+    "journeyStatusName": "rejectedByShipper",
+    "journeyStatusDescription": "Shipper has rejected a specific driver's offer after the driver accepted the request."
   },
   {
     "journeyStatusId": 9,
@@ -334,7 +342,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
   {
     "journeyStatusId": 15,
     "journeyStatusName": "rejectedByDriver",
-    "journeyStatusDescription": "Driver rejected the incoming passenger request before accepting it."
+    "journeyStatusDescription": "Driver rejected the incoming shipper request before accepting it."
   }
 ]
 ```
@@ -342,6 +350,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 8. Cancellation Reasons
 
 ### Cancellation Reasons
+
 ```json
 [
   { "cancellationReason": "Driver too late", "roleId": 1 },
@@ -363,20 +372,20 @@ The predefined data is installed through the `installPreDefinedData` service fun
     "cancellationReason": "Driver was rude or unprofessional",
     "roleId": 1
   },
-  { "cancellationReason": "Passenger didn't show up", "roleId": 2 },
-  { "cancellationReason": "Passenger was unresponsive", "roleId": 2 },
+  { "cancellationReason": "Shipper didn't show up", "roleId": 2 },
+  { "cancellationReason": "Shipper was unresponsive", "roleId": 2 },
   { "cancellationReason": "Safety concerns", "roleId": 2 },
   { "cancellationReason": "Incorrect pickup location", "roleId": 2 },
   {
-    "cancellationReason": "Passenger had too many people",
+    "cancellationReason": "Shipper had too many people",
     "roleId": 2
   },
   {
-    "cancellationReason": "Passenger was disrespectful",
+    "cancellationReason": "Shipper was disrespectful",
     "roleId": 2
   },
   {
-    "cancellationReason": "Passenger requested an illegal or unsafe route",
+    "cancellationReason": "Shipper requested an illegal or unsafe route",
     "roleId": 2
   },
   { "cancellationReason": "Vehicle issue", "roleId": 2 },
@@ -392,6 +401,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 9. Payment Status
 
 ### Payment Status List
+
 ```json
 [
   {
@@ -415,6 +425,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 10. Payment Methods
 
 ### Payment Methods
+
 ```json
 [
   {
@@ -438,6 +449,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 11. Tariff Rates
 
 ### Tariff Rate List
+
 ```json
 [
   {
@@ -466,6 +478,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 12. Commission Rates
 
 ### Commission Rates
+
 ```json
 [
   {
@@ -479,6 +492,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 13. Financial Institution Accounts
 
 ### Financial Institution Accounts
+
 ```json
 [
   {
@@ -501,6 +515,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 14. Subscription Plans
 
 ### Subscription Plan Lists
+
 ```json
 [
   {
@@ -526,6 +541,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 15. Deposit Sources
 
 ### Deposit Sources
+
 ```json
 [
   {
@@ -542,6 +558,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 16. Delinquency Types
 
 ### Delinquency Types
+
 ```json
 [
   {
@@ -572,21 +589,21 @@ The predefined data is installed through the `installPreDefinedData` service fun
     "isActive": true
   },
   {
-    "delinquencyTypeName": "rude behavior of passenger",
-    "delinquencyTypeDescription": "Passenger rude behavior",
+    "delinquencyTypeName": "rude behavior of shipper",
+    "delinquencyTypeDescription": "Shipper rude behavior",
     "delinquencyTypeId": 4,
     "defaultPoints": 1,
     "defaultSeverity": "MEDIUM",
-    "applicableRoles": "passenger",
+    "applicableRoles": "shipper",
     "isActive": true
   },
   {
-    "delinquencyTypeName": "late departure of passenger",
-    "delinquencyTypeDescription": "Passenger late departure",
+    "delinquencyTypeName": "late departure of shipper",
+    "delinquencyTypeDescription": "Shipper late departure",
     "delinquencyTypeId": 5,
     "defaultPoints": 1,
     "defaultSeverity": "MEDIUM",
-    "applicableRoles": "passenger",
+    "applicableRoles": "shipper",
     "isActive": true
   },
   {
@@ -600,11 +617,11 @@ The predefined data is installed through the `installPreDefinedData` service fun
   },
   {
     "delinquencyTypeName": "Payments not made",
-    "delinquencyTypeDescription": "Payments not made to driver by passenger",
+    "delinquencyTypeDescription": "Payments not made to driver by shipper",
     "delinquencyTypeId": 7,
     "defaultPoints": 1,
     "defaultSeverity": "MEDIUM",
-    "applicableRoles": "passenger",
+    "applicableRoles": "shipper",
     "isActive": true
   }
 ]
@@ -613,6 +630,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 17. Commission Status
 
 ### Commission Status List
+
 ```json
 [
   {
@@ -651,6 +669,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## 18. Subscription Plan Pricing
 
 ### Subscription Plan Pricing Lists
+
 ```json
 [
   {
@@ -695,6 +714,7 @@ The predefined data is installed through the `installPreDefinedData` service fun
 ## Dependencies
 
 The installation order ensures proper dependencies:
+
 1. Status and Roles (base data)
 2. Vehicle and Document types
 3. Document requirements (depend on types and roles)

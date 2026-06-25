@@ -11,8 +11,6 @@ const { usersRoles, USER_STATUS } = require("../../Utils/ListOfSeedData");
 const AppError = require("../../Utils/AppError");
 const { transactionStorage } = require("../../Utils/TransactionContext");
 const generateOTP = require("../../Utils/GenerateOTP");
-const { createUserSubscription } = require("../UserSubscription.service");
-const { getPricingWithFilters } = require("../SubscriptionPlanPricing.service");
 const {
   getPlaceholderEmail,
   isPlaceholderEmail,
@@ -26,22 +24,26 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
     throw new AppError("userUniqueId required", 400);
   }
   const OTP = rawPassword || generateOTP();
-  const hashedOTP = await bcrypt.hash(String(OTP), 10);
+  const phoneOTP = generateOTP();
+  const emailOTP = generateOTP();
+
+  // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
+  const [hashedOTP, hashedPhoneVerificationOTP, hashedEmailVerificationOTP] =
+    await Promise.all([
+      bcrypt.hash(String(OTP), 10),
+      bcrypt.hash(String(phoneOTP), 10),
+      bcrypt.hash(String(emailOTP), 10),
+    ]);
+
   const conditions = { userUniqueId };
   const existing = await getData({
     tableName: "usersCredential",
     conditions,
   });
-  const hashedPhoneVerificationOTP = await bcrypt.hash(
-    String(generateOTP()),
-    10,
-  );
-  const hashedEmailVerificationOTP = await bcrypt.hash(
-    String(generateOTP()),
-    10,
-  );
+
   const emailVerificationToken = uuidv4();
-  const emailVerificationExpiresAt = addHours(currentDate(), 24);
+  // SECURITY: Standardize expiry to 2 hours as per docs and auth service
+  const emailVerificationExpiresAt = addHours(currentDate(), 2);
 
   if (existing && existing.length > 0) {
     const credentialColAndValues = {
@@ -110,13 +112,14 @@ const handleUserRoleStatus = async (
   description = "",
 ) => {
   const executor = transactionStorage.getStore() || pool;
-
+  //get users role if it was already assigned
   const [existingRoles] = await executor.query(
     "SELECT userRoleId FROM UserRole WHERE userUniqueId = ? AND roleId = ?",
     [userUniqueId, roleId],
   );
 
   let userRoleId;
+  //if user role is not assigned, assign it
   if (existingRoles.length === 0) {
     const userRoleUniqueId = uuidv4();
     const [roleIns] = await executor.query(
@@ -127,12 +130,12 @@ const handleUserRoleStatus = async (
   } else {
     userRoleId = existingRoles[0].userRoleId;
   }
-
+  //get users role status if it was already assigned
   const [existingStatus] = await executor.query(
     "SELECT userRoleStatusId FROM UserRoleStatusCurrent WHERE userRoleId = ?",
     [userRoleId],
   );
-
+  //if user role status is not assigned, assign it
   if (existingStatus.length === 0) {
     await executor.query(
       "INSERT INTO UserRoleStatusCurrent (userRoleStatusUniqueId, userRoleId, statusId, userRoleStatusDescription, userRoleStatusCreatedAt, userRoleStatusCreatedBy) VALUES (?, ?, ?, ?, ?, ?)",
@@ -145,12 +148,14 @@ const handleUserRoleStatus = async (
         userUniqueId,
       ],
     );
-  } else {
-    await executor.query(
-      "UPDATE UserRoleStatusCurrent SET statusId = ?, userRoleStatusDescription = ?, userRoleStatusCreatedAt = ? WHERE userRoleId = ?",
-      [statusId, description, currentDate(), userRoleId],
-    );
   }
+  // //if user role status is already assigned, update it
+  // else {
+  //   await executor.query(
+  //     "UPDATE UserRoleStatusCurrent SET statusId = ?, userRoleStatusDescription = ?, userRoleStatusCreatedAt = ? WHERE userRoleId = ?",
+  //     [statusId, description, currentDate(), userRoleId],
+  //   );
+  // }
 };
 
 const registerNewUser = async ({
@@ -159,7 +164,6 @@ const registerNewUser = async ({
   email,
   roleId,
   statusId,
-  userRoleStatusDescription,
   requestedFrom,
   createdBy,
 }) => {
@@ -167,11 +171,8 @@ const registerNewUser = async ({
   const userCreatedAt = currentDate();
   const userCreatedByParam = createdBy || userUniqueId;
 
-  // Use provided email or generate a placeholder if none exists
-  const cleanEmail =
-    email && !isPlaceholderEmail(email)
-      ? email
-      : getPlaceholderEmail(phoneNumber);
+  // Use provided email if it exists (even if it's a placeholder we just carefully generated)
+  const cleanEmail = email ? email : getPlaceholderEmail(phoneNumber);
 
   const executor = transactionStorage.getStore() || pool;
   const [userIns] = await executor.query(
@@ -192,34 +193,23 @@ const registerNewUser = async ({
     throw new AppError("User registration failed", 500);
   }
 
-  const [insertedUserRows] = await executor.query(
-    "SELECT * FROM Users WHERE userUniqueId = ?",
-    [userUniqueId],
-  );
-  const userData = insertedUserRows[0];
+  // OPTIMIZATION: Construct userData locally using insertId to avoid a redundant SELECT query
+  const userData = {
+    userId: userIns.insertId,
+    userUniqueId,
+    fullName,
+    phoneNumber,
+    email: cleanEmail,
+    userCreatedAt,
+    userCreatedBy: userCreatedByParam,
+    isEmailVerified: false,
+    isPhoneVerified: false,
+  };
 
   await ensureCredentialForUser({ userUniqueId });
-  await handleUserRoleStatus(
-    userUniqueId,
-    roleId,
-    statusId,
-    userRoleStatusDescription,
-  );
-
-  if (roleId === usersRoles.driverRoleId) {
-    const pricing = await getPricingWithFilters({ isFree: true });
-    if (pricing?.data?.[0]) {
-      await createUserSubscription({
-        driverUniqueId: userUniqueId,
-        subscriptionPlanPricingUniqueId:
-          pricing.data[0].subscriptionPlanPricingUniqueId,
-        userSubscriptionCreatedBy: userUniqueId,
-      });
-    }
-  }
 
   if (!authService) {
-    authService = require("./User.auth.service");
+    authService = require("./auth");
   }
   return await authService.handleExistingUser({
     requestedFrom,
@@ -230,8 +220,14 @@ const registerNewUser = async ({
 };
 
 const createUser = async (body) => {
-  const { fullName, phoneNumber, roleId, statusId, userRoleStatusDescription } =
-    body;
+  const {
+    fullName,
+    phoneNumber,
+    roleId,
+    statusId,
+    userRoleStatusDescription,
+    requestedFrom,
+  } = body;
   let email = body?.email?.trim();
   //if there is no email, generate placeholder email
   if (!email) {
@@ -280,14 +276,14 @@ const createUser = async (body) => {
      * we block the request to prevent account takeover.
      *
      * SPECIAL CASE: "Street Hailing" (takeFromStreet)
-     * If a driver is registering a passenger from the street, we allow
+     * If a driver is registering a shipper from the street, we allow
      * using the existing phone record even if it has a different email.
-     * This ensures the driver isn't blocked by the passenger's app privacy
+     * This ensures the driver isn't blocked by the shipper's app privacy
      * settings while on the road.
      */
     const isSavedEmailPlaceholder = isPlaceholderEmail(user?.email);
     const isInputEmailPlaceholder = isPlaceholderEmail(cleanEmail);
-    const isStreetEntry = body?.requestedFrom === "street";
+    const isStreetEntry = requestedFrom === "street";
 
     if (
       !isStreetEntry &&
@@ -314,19 +310,15 @@ const createUser = async (body) => {
     }
     // User already has an account, handle OTP login
     if (!authService) {
-      authService = require("./User.auth.service");
+      authService = require("./auth");
     }
     const userData = {
-      requestedFrom: "user",
+      requestedFrom,
       user,
-      phoneNumber: cleanPhone,
-      fullName: fullName,
-      email: cleanEmail,
       roleId,
       statusId,
       userRoleStatusDescription,
     };
-    // return userData;
 
     return await authService.handleExistingUser(userData);
   }
@@ -350,11 +342,10 @@ const createUserByAdminOrSuperAdmin = async ({
   const { fullName, phoneNumber, roleId, statusId } = body;
   let email = body?.email?.trim();
 
-  // Placeholder email if none provided
+  //if email is not provided create placeholder email
   if (!email) {
     email = getPlaceholderEmail(phoneNumber);
   }
-
   const userDataByEmail = await getData({
     tableName: "Users",
     conditions: { email },
@@ -370,13 +361,36 @@ const createUserByAdminOrSuperAdmin = async ({
       statusId,
       "",
     );
-    if (phoneNumber && userDataByEmail[0].phoneNumber !== phoneNumber) {
+    //
+    if (
+      !isPlaceholderEmail(email) &&
+      phoneNumber &&
+      userDataByEmail[0].phoneNumber !== phoneNumber
+    ) {
       throw new AppError("There is a difference in phone number", 409);
     }
-    return {
-      message: "success",
-      data: "User already exists with this email address",
-    };
+    if (!isPlaceholderEmail(email)) {
+      return {
+        message: "success",
+        data: "User already exists with this email address",
+      };
+    }
+
+    if (isPlaceholderEmail(email)) {
+      // If we found a user by this placeholder email but their phone number doesn't match,
+      // we generate a unique one for the NEW user we are about to create.
+      if (userDataByEmail[0].phoneNumber !== phoneNumber) {
+        email = getPlaceholderEmail(
+          phoneNumber + Math.floor(Math.random() * 1000000),
+        );
+      } else {
+        // Same phone + Same placeholder = Same user. We're done.
+        return {
+          message: "success",
+          data: "User already exists with this placeholder email",
+        };
+      }
+    }
   }
 
   const userDataByPhoneNumber = await getData({
@@ -412,7 +426,13 @@ const createUserByAdminOrSuperAdmin = async ({
     // Generate/Update OTP for verification
     await ensureCredentialForUser({ userUniqueId: existingUserUniqueId });
 
-    if (email && existingUser.email && existingUser.email !== email) {
+    // Only check for email difference if the PROVIDED email is a real email (not a placeholder)
+    if (
+      email &&
+      !isPlaceholderEmail(email) &&
+      existingUser.email &&
+      existingUser.email !== email
+    ) {
       throw new AppError("There is a difference in email address", 409);
     }
 
@@ -462,7 +482,7 @@ const createUserSystem = async () => {
       roleId: usersRoles.supperAdminRoleId,
       statusId: USER_STATUS.ACTIVE,
       userRoleStatusDescription:
-        "Supper Admin can manage drivers passengers and admin using api requests",
+        "Supper Admin can manage drivers shippers and admin using api requests",
     },
     userUniqueId: "Supper Admin",
   });

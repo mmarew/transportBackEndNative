@@ -12,6 +12,9 @@ const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
+const messageTypes = require("../Utils/MessageTypes");
+const { performJoinSelect } = require("../CRUD/Read/ReadData");
 
 // create vehicle and create ownership based on status of vehicle.
 const createVehicle = async (data, user, driverUserUniqueId) => {
@@ -76,7 +79,13 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
   });
   logger.debug("@activeAssignments", activeAssignments);
   if (activeAssignments?.length > 0) {
-    throw new AppError("Driver already has an active vehicle", 400);
+    return {
+      message: "success",
+      data: {
+        message: "Driver already has an active vehicle",
+        vehicleUniqueId: activeAssignments[0].vehicleUniqueId,
+      },
+    };
   }
 
   const vehicleUniqueId = vehicle?.[0]?.vehicleUniqueId;
@@ -98,6 +107,42 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
     assignmentStatus: "active",
     vehicleDriverCreatedBy: user?.userUniqueId,
   });
+
+  // Fetch full driver and vehicle info for admin notification
+  const driverData = await performJoinSelect({
+    baseTable: "Users",
+    joins: [
+      {
+        table: "UserRole",
+        on: "Users.userUniqueId = UserRole.userUniqueId",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+      },
+      {
+        table: "Statuses",
+        on: "UserRoleStatusCurrent.statusId = Statuses.statusId",
+      },
+    ],
+    conditions: {
+      "Users.userUniqueId": driverUserUniqueId,
+      "UserRole.roleId": usersRoles.driverRoleId,
+    },
+    limit: 1,
+  });
+
+  if (driverData?.length > 0) {
+    sendSocketIONotificationToAdmin({
+      message: {
+        message: "success",
+        request: "New vehicle registered",
+        messageType: messageTypes.create_vehicle,
+        driver: driverData[0],
+      },
+      phoneNumber: driverData[0]?.phoneNumber,
+    });
+  }
 
   return { message: "success", data: { vehicleUniqueId } };
 };

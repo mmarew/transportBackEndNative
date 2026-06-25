@@ -1,6 +1,7 @@
 /**
  * Utility for generating standardized and professional messages for SMS and Email.
  */
+const Config = require("./Config");
 
 // Shared Icon Constants (CIDs for email, relative paths for browser view)
 const WHATSAPP_ICON = "cid:whatsapp_icon";
@@ -11,20 +12,23 @@ const BROWSER_WHATSAPP_ICON = "/Assets/whatsapp_icon.png";
 const BROWSER_TELEGRAM_ICON = "/Assets/telegram_icon.png";
 const BROWSER_PHONE_ICON = "/Assets/phone_icon.png";
 
-const COPY_ICON = "https://cdn-icons-png.flaticon.com/512/1621/1621635.png";
-
 const getOtpMessage = (otp, type = "login") => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const action = type === "registration" ? "account registration" : "secure login";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+  const brand = Config.BRAND_NAME;
+  const action =
+    type === "registration"
+      ? "account registration"
+      : type === "update"
+        ? "phone number update"
+        : "secure login";
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
   return {
-    sms: `Dear user, your ${brand} code is: ${otp}. For your security, please do not share this with anyone. Sharing this code could give others access to your account and data.`,
+    sms: `Dear user, your ${brand} ${action} code is: ${otp} . For your security, please do not share this with anyone. Sharing this code could give others access to your account and data.`,
     emailSubject: `${otp} is your ${brand} verification code`,
     emailHtml: `
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
@@ -71,21 +75,35 @@ const getOtpMessage = (otp, type = "login") => {
           <p>&copy; 2026 ${brand}. All rights reserved.</p>
         </div>
       </div>
-    `
+    `,
   };
 };
 
-const getEmailVerificationLinkMessage = (verificationLink) => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+const getEmailVerificationLinkMessage = (
+  verificationLink,
+  type = "registration",
+) => {
+  const brand = Config.BRAND_NAME;
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
+  const isUpdate = type === "update";
+  const subject = isUpdate
+    ? `Confirm your ${brand} Email Update`
+    : `Verify your ${brand} Email Address`;
+  const title = isUpdate
+    ? "Confirm your email update"
+    : "Verify your email address";
+  const bodyText = isUpdate
+    ? `You have updated your email address on ${brand}! To secure your account and complete this change, please verify your new email address by clicking the button below.`
+    : `Welcome to ${brand}! To complete your registration and secure your account, please verify your email address by clicking the button below.`;
+
   return {
-    emailSubject: `Verify your ${brand} Email Address`,
+    emailSubject: subject,
     emailHtml: `
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 25px;">
@@ -94,13 +112,19 @@ const getEmailVerificationLinkMessage = (verificationLink) => {
         </div>
         
         <div style="background-color: #f8fbff; padding: 30px 5%; border-radius: 12px; text-align: center; border: 1px solid #edf2f7;">
-          <p style="font-size: 18px; color: #2c3e50; margin-bottom: 10px; font-weight: 700;">Verify your email address </p>
-          <p style="font-size: 15px; color: #4a5568; margin-bottom: 25px; line-height: 1.6;">Welcome to ${brand}! To complete your registration and secure your account, please verify your email address by clicking the button below.</p>
+          <p style="font-size: 18px; color: #2c3e50; margin-bottom: 10px; font-weight: 700;">${title}</p>
+          <p style="font-size: 15px; color: #4a5568; margin-bottom: 25px; line-height: 1.6;">${bodyText}</p>
           
           <a href="${verificationLink}" style="display: inline-block; padding: 14px 30px; background-color: #2b6cb0; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 8px; font-size: 16px; box-shadow: 0 4px 6px rgba(43, 108, 176, 0.2);">Verify Email Address</a>
           
           <p style="font-size: 13px; color: #718096; margin-top: 25px;">This link will expire in 2 hours. If the button doesn't work, copy and paste this link into your browser:</p>
           <p style="font-size: 12px; color: #2b6cb0; word-break: break-all; margin-top: 5px;">${verificationLink}</p>
+        </div>
+
+        <div style="margin-top: 25px; padding: 15px; background-color: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; text-align: center;">
+          <p style="font-size: 14px; color: #c53030; margin: 0;">
+            <strong>Not your account?</strong> If you didn't request this email, please <a href="${verificationLink.replace("verify-email", "report-wrong-email")}" style="color: #c53030; font-weight: bold; text-decoration: underline;">click here to let us know</a>. We will stop further messages to this address.
+          </p>
         </div>
 
         <div style="margin-top: 35px; background-color: #f7fafc; padding: 25px; border-radius: 10px; text-align: center;">
@@ -123,41 +147,88 @@ const getEmailVerificationLinkMessage = (verificationLink) => {
           <p>&copy; 2026 ${brand}. All rights reserved.</p>
         </div>
       </div>
-    `
+    `,
   };
 };
 
-const getSuccessEmailVerificationHtml = (otp) => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
-  const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
-  const whatsappLink = `https://wa.me/${supportPhoneClean}`;
-  const telegramLink = `https://t.me/${supportPhone}`;
-  const phoneLink = `tel:${supportPhone}`;
-  
+/**
+ * Generates an SMS message with a clickable verification link AND a 6-digit OTP.
+ *
+ * JUNIOR NOTE: Providing BOTH a link and a manual OTP is best practice.
+ * If the user is already on the login/verification screen, they can just
+ * type the code instead of switching apps to click the link.
+ *
+ * @param {string} link - The verification URL.
+ * @param {string} otp - The 6-digit manual entry code.
+ * @param {string} [type='update'] - The context (registration or update).
+ * @returns {Object} Message object.
+ */
+const getPhoneVerificationLinkMessage = (link, otp) => {
+  const brandName = Config.BRAND_NAME;
+
+  return {
+    sms: `Welcome to ${brandName}! Please verify your phone number by clicking here: ${link} or use code: ${otp}`,
+  };
+};
+
+/**
+ * Generates recovery-friendly HTML for phone verification success.
+ *
+ * JUNIOR NOTE: Since we force a logout on phone change, this page
+ * must clearly instruct the user to log in again.
+ */
+const getSuccessPhoneVerificationHtml = () => {
+  const brand = Config.BRAND_NAME;
+
   return `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
       <div style="margin-bottom: 25px;">
         <h1 style="color: #2b6cb0; margin: 0; font-size: 28px;">${brand}</h1>
       </div>
       
-      <div style="background-color: #f0fff4; border: 1px solid #c6f6d5; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
-        <h2 style="color: #2f855a; margin: 0 0 10px 0; font-size: 20px;">✅ Email Verified!</h2>
-        <p style="color: #276749; margin: 0; font-size: 16px;">Your email has been successfully verified.</p>
-      </div>
-
-      <p style="font-size: 16px; color: #4a5568; margin-bottom: 20px;">Use the verification code below for your secure login in the app:</p>
-      
-      <div style="background: #f8fbff; border-radius: 8px; border: 2px dashed #cbd5e0; padding: 20px 10px; margin: 20px auto; max-width: 260px;">
-        <span style="font-size: 42px; font-weight: 800; letter-spacing: 8px; color: #2b6cb0;">${otp}</span>
-      </div>
-      
-      <div style="margin-top: 30px; padding: 20px; background-color: #fffaf0; border-left: 5px solid #ed8936; text-align: left;">
-        <p style="font-size: 14px; color: #7b341e; margin: 0; line-height: 1.6;">
-          <strong>Important Security Note:</strong> Please do not share this code with anyone, including ${brand} staff. Sharing your verification code puts your account at risk of unauthorized access and potential data theft.
+      <div style="background-color: #f0fff4; border: 1px solid #c6f6d5; padding: 30px; border-radius: 10px; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 10px;">📱✅</div>
+        <h2 style="color: #276749; margin: 0 0 10px 0; font-size: 24px;">Phone Verified!</h2>
+        <p style="color: #2f855a; margin: 0; font-size: 16px;">
+          Your new phone number has been successfully verified.
         </p>
       </div>
+
+      <p style="color: #4a5568; margin-bottom: 25px; line-height: 1.6; font-size: 16px;">
+        For security reasons, you have been logged out. Please <strong>log in again</strong> with your new phone number to continue using ${brand}.
+      </p>
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf2f7; font-size: 13px; color: #718096;">
+        &copy; 2026 ${brand}. All rights reserved.
+      </div>
+    </div>
+  `;
+};
+
+const getSuccessEmailVerificationHtml = () => {
+  const brand = Config.BRAND_NAME;
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
+  const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
+
+  const whatsappLink = `https://wa.me/${supportPhoneClean}`;
+  const telegramLink = `https://t.me/${supportPhone}`;
+  const phoneLink = `tel:${supportPhone}`;
+
+  return `
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #ffffff; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+      <div style="margin-bottom: 25px;">
+        <h1 style="color: #2b6cb0; margin: 0; font-size: 28px;">${brand}</h1>
+      </div>
+      
+      <div style="background-color: #f0fff4; border: 1px solid #c6f6d5; padding: 30px; border-radius: 10px; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+        <h2 style="color: #2f855a; margin: 0 0 10px 0; font-size: 24px;">Email Verified!</h2>
+        <p style="color: #276749; margin: 0; font-size: 16px;">Your email address has been successfully verified.</p>
+      </div>
+
+      <p style="font-size: 16px; color: #4a5568; margin-bottom: 30px; line-height: 1.6;">
+        Thank you for verifying your email. You can now return to the app and enjoy all the features of ${brand}.
+      </p>
 
       <div style="margin-top: 35px; background-color: #f7fafc; padding: 20px; border-radius: 10px; text-align: center;">
         <p style="font-size: 15px; color: #2d3748; margin-bottom: 15px; font-weight: 600;">Need help? Contact us directly:</p>
@@ -175,8 +246,7 @@ const getSuccessEmailVerificationHtml = (otp) => {
       </div>
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #edf2f7; font-size: 13px; color: #718096;">
-        <p>You can now return to the app and enter this code to complete your login.</p>
-        <div style="margin-top: 20px; font-size: 50px;">🌟</div>
+        <p>You can now close this window and proceed in the app.</p>
         <p style="margin-top: 20px;">&copy; 2026 ${brand}. All rights reserved.</p>
       </div>
     </div>
@@ -184,14 +254,14 @@ const getSuccessEmailVerificationHtml = (otp) => {
 };
 
 const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
-  const brand = process.env.BRAND_NAME || "Dynamics Transport";
-  const supportPhone = process.env.SUPPORT_PHONE_NUMBER || "+251983222221";
+  const brand = Config.BRAND_NAME;
+  const supportPhone = Config.SUPPORT_PHONE_NUMBER;
   const supportPhoneClean = supportPhone ? supportPhone.replace(/\+/g, "") : "";
-  
+
   const whatsappLink = `https://wa.me/${supportPhoneClean}`;
   const telegramLink = `https://t.me/${supportPhone}`;
   const phoneLink = `tel:${supportPhone}`;
-  
+
   return {
     sms: `Welcome! You have been officially assigned as a ${roleName} for ${brand}. Use this secure code to access your administrative dashboard: ${otp}. For your security, never share this code with anyone.`,
     emailSubject: `Welcome to the Team! You've been assigned as a ${roleName} at ${brand}`,
@@ -239,13 +309,76 @@ const getAdminAssignmentMessage = (otp, roleName = "Admin") => {
           <p>&copy; 2026 ${brand} Admin Services. This message contains confidential information.</p>
         </div>
       </div>
-    `
+    `,
+  };
+};
+
+/**
+ * --- Shipper Operational Templates ---
+ */
+
+const getBookingConfirmationMessage = (
+  bookingId,
+  shipperName,
+  pickupLocation,
+) => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `Dear ${shipperName}, your booking #${bookingId} with ${brand} is confirmed. Your driver will pick you up at ${pickupLocation}. Thank you for choosing us!`,
+    emailSubject: `Booking Confirmed #${bookingId} - ${brand}`,
+  };
+};
+
+const getTripReminderMessage = (shipperName, time = "15 minutes") => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `Hi ${shipperName}, just a reminder that your trip with ${brand} starts in ${time}. Your driver is on the way!`,
+    emailSubject: `Upcoming Trip Reminder - ${brand}`,
+  };
+};
+
+const getTripUpdateMessage = (type, tripId, reason = "operational issues") => {
+  const brand = Config.BRAND_NAME;
+  const isDelay = type === "delay";
+  const action = isDelay ? "delayed" : "cancelled";
+  const emoji = isDelay ? "⏳" : "❌";
+
+  return {
+    sms: `${emoji} Dear user, your trip #${tripId} has been ${action} due to ${reason}. We apologize for the inconvenience. Thank you for your patience with ${brand}.`,
+    emailSubject: `Important: Your trip #${tripId} has been ${action}`,
+  };
+};
+
+/**
+ * --- Marketing & Engagement Templates ---
+ */
+
+const getPromoMessage = (promoCode, discount = "20%") => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `🎁 Special Offer! Get ${discount} OFF your next ride! Use code ${promoCode} at checkout. Valid until this Friday. Ride more, pay less with ${brand}!`,
+    emailSubject: `Your Exclusive ${discount} Discount Code!`,
+  };
+};
+
+const getHolidayMessage = (holidayName) => {
+  const brand = Config.BRAND_NAME;
+  return {
+    sms: `✨ Happy ${holidayName} from the ${brand} family! May your day be filled with joy and safe travels. We are here if you need a ride today!`,
+    emailSubject: `Best Wishes for ${holidayName} from ${brand}`,
   };
 };
 
 module.exports = {
-  getOtpMessage,
-  getEmailVerificationLinkMessage,
+  getPhoneVerificationLinkMessage,
+  getSuccessPhoneVerificationHtml,
   getSuccessEmailVerificationHtml,
-  getAdminAssignmentMessage
+  getEmailVerificationLinkMessage,
+  getOtpMessage,
+  getAdminAssignmentMessage,
+  getBookingConfirmationMessage,
+  getTripReminderMessage,
+  getTripUpdateMessage,
+  getPromoMessage,
+  getHolidayMessage,
 };

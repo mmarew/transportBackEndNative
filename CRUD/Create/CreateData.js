@@ -8,6 +8,7 @@ const {
   activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 const { currentDate } = require("../../Utils/CurrentDate");
+// Single source of truth for ShipperRequestBatch writes
 
 // create afunction that can accept a table name and an array of values with coloumns names. it should return a promise and can insert any value to any table
 const insertData = async ({ tableName, colAndVal, connection = null }) => {
@@ -25,17 +26,13 @@ const insertData = async ({ tableName, colAndVal, connection = null }) => {
 
   const sqlQuery = `INSERT INTO ${tableName} (${columnsString}) VALUES (${placeholders})`;
 
-  try {
     // Use context connection first, then provided connection, or fall back to pool
     const queryExecutor = transactionStorage.getStore() || connection || pool;
     const [result] = await queryExecutor.query(sqlQuery, values);
     return result;
-  } catch (error) {
-    throw error;
-  }
 };
 
-const createNewPassengerRequest = async (
+const createNewShipperRequest = async (
   body,
   userUniqueId,
   journeyStatusId = journeyStatusMap.waiting, // 1
@@ -46,12 +43,12 @@ const createNewPassengerRequest = async (
     shippingDate = formatDateToReadable(body?.shippingDate),
     deliveryDate = formatDateToReadable(body?.deliveryDate),
     shippingCost = body?.shippingCost,
-    passengerRequestBatchId = body?.passengerRequestBatchId,
+    shipperRequestBatchId = body?.shipperRequestBatchId,
     shipperRequestCreatedBy = body?.shipperRequestCreatedBy,
     shipperRequestCreatedByRoleId = body?.shipperRequestCreatedByRoleId;
 
   if (!body || !userUniqueId || !journeyStatusId) {
-    throw new Error("Invalid input parameters to create passenger request");
+    throw new Error("Invalid input parameters to create shipper request");
   }
 
   const { vehicle, destination, originLocation } = body;
@@ -85,11 +82,11 @@ const createNewPassengerRequest = async (
     destinationLongitude = destination.longitude || null,
     destinationPlace = destination.description || null;
 
-  const passengerRequestUniqueId = uuidv4();
+  const shipperRequestUniqueId = uuidv4();
   const requestPayload = {
     userUniqueId,
 
-    passengerRequestUniqueId,
+    shipperRequestUniqueId,
     shipperRequestCreatedBy,
     shipperRequestCreatedByRoleId,
 
@@ -107,24 +104,31 @@ const createNewPassengerRequest = async (
     shippingDate,
     deliveryDate,
     shippingCost,
-    passengerRequestBatchId,
+    shipperRequestBatchId,
+    // Bidding mode: 'individual_target' (open to all drivers) or 'company_target'
+    // Falls back to schema default ('individual_target') if not provided.
+    ...(body?.requestMode && { requestMode: body.requestMode }),
+    // The specific company this batch is targeting (only set when requestMode = 'company_target')
+    ...(body?.targetCompanyUniqueId && {
+      targetCompanyUniqueId: body.targetCompanyUniqueId,
+    }),
   };
 
   // Insert the new request into the database
-  try {
     const result = await insertData({
-      tableName: "PassengerRequest",
+      tableName: "ShipperRequest",
       colAndVal: requestPayload,
-      connection, // Pass connection for transaction support
+      connection,
     });
+
+    // NOTE: upsertBatch is intentionally NOT called here.
+    // It must be called ONCE by the caller before spawning parallel requests,
+    // so that concurrent Promise.all calls don't race to INSERT the same batchUniqueId.
 
     return {
       message: "success",
-      data: [{ ...requestPayload, passengerRequestId: result.insertId }],
+      data: [{ ...requestPayload, shipperRequestId: result.insertId }],
     };
-  } catch (error) {
-    throw error;
-  }
 };
 const createDriverRequest = async (
   body,
@@ -132,7 +136,6 @@ const createDriverRequest = async (
   journeyStatusId,
   connection = null,
 ) => {
-  try {
     if (!body || !userUniqueId) {
       throw new Error("Invalid input parameters to create driver request");
     }
@@ -191,13 +194,10 @@ const createDriverRequest = async (
       message: "success",
       data: [{ ...requestPayload, driverRequestId: result.insertId }],
     };
-  } catch (error) {
-    throw error;
-  }
 };
 
 module.exports = {
   createDriverRequest,
-  createNewPassengerRequest,
+  createNewShipperRequest,
   insertData,
 };

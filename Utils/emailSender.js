@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const path = require("path");
 const logger = require("./logger");
+const Config = require("./Config");
 
 /**
  * Sends real emails using Nodemailer.
@@ -11,25 +12,36 @@ const logger = require("./logger");
  * @returns {Promise<Object>} Status of the operation
  */
 const sendEmail = async (to, subject, body, html = null) => {
+  // Support both positional arguments and a single options object
+  if (typeof to === "object" && to !== null) {
+    const options = to;
+    to = options.to;
+    subject = options.subject;
+    body = options.text || options.body;
+    html = options.html;
+  }
+
   try {
     if (!to) {
       logger.warn("Attempted to send email without recipient address");
       return { status: "error", message: "Recipient email is required" };
     }
 
-    // SMTP Configuration from environment variables
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT || 587;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || `"Dynamics Transport" <${user}>`;
+    // SMTP Configuration from centralized Config
+    const { HOST, PORT, USER, PASS, FROM } = Config.SMTP;
+    const from = FROM || `"${Config.BRAND_NAME}" <${USER}>`;
 
     // Fallback if not configured
-    if (!host || !user || !pass) {
+    if (!HOST || !USER || !PASS) {
+      const bodyPreview =
+        body && typeof body === "string"
+          ? body.substring(0, 50) + "..."
+          : "No body content provided";
+
       logger.warn("📧 [EMAIL LOGGED (NOT CONFIGURED)]", {
         to,
         subject,
-        bodyPreview: body.substring(0, 50) + "...",
+        bodyPreview,
       });
       return {
         status: "success",
@@ -39,12 +51,12 @@ const sendEmail = async (to, subject, body, html = null) => {
 
     // Create transporter
     const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port == 465, // true for 465, false for other ports
+      host: HOST,
+      port: PORT,
+      secure: parseInt(PORT) === 465, // true for 465, false for other ports
       auth: {
-        user,
-        pass,
+        user: USER,
+        pass: PASS,
       },
     });
 
