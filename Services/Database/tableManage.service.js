@@ -125,7 +125,7 @@ const createTable = async () => {
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
-        console.error(`Error seeding status ${status.statusName}:`, error);
+        logger.error(`Error seeding status ${status.statusName}:`, error);
       }
     }
   }
@@ -139,7 +139,7 @@ const createTable = async () => {
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
-        console.error(`Error seeding role ${role.roleName}:`, error);
+        logger.error(`Error seeding role ${role.roleName}:`, error);
       }
     }
   }
@@ -153,7 +153,7 @@ const createTable = async () => {
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
-        console.error(`Error seeding vehicle status type ${vehicleStatusType.VehicleStatusTypeName}:`, error);
+        logger.error(`Error seeding vehicle status type ${vehicleStatusType.VehicleStatusTypeName}:`, error);
       }
     }
   }
@@ -167,7 +167,7 @@ const createTable = async () => {
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
-        console.error(`Error seeding company role ${companyRole.companyRoleName}:`, error);
+        logger.error(`Error seeding company role ${companyRole.companyRoleName}:`, error);
       }
     }
   }

@@ -1,6 +1,7 @@
 "use strict";
 
 const { v4: uuidv4 } = require("uuid");
+const Config = require("../../Utils/Config");
 const { pool } = require("../../Middleware/Database.config");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
@@ -455,9 +456,9 @@ const createUserByAdminOrSuperAdmin = async ({
 };
 //some jobs can be done by system itself by written codes not by admin or supper admin or users
 const createUserSystem = async () => {
-  const fullName = "system";
-  const phoneNumber = "+251922112480";
-  const email = "system@system.com";
+  const fullName = Config.SUPER_ADMIN.SYSTEM_FULL_NAME || "system";
+  const phoneNumber = Config.SUPER_ADMIN.SYSTEM_PHONE || "+251922112480";
+  const email = Config.SUPER_ADMIN.SYSTEM_EMAIL || "system@system.com";
   const roleId = usersRoles.systemRoleId;
   const statusId = USER_STATUS.ACTIVE;
 
@@ -476,9 +477,9 @@ const createUserSystem = async () => {
 
   await createUserByAdminOrSuperAdmin({
     body: {
-      fullName: "Supper Admin",
-      phoneNumber: "+251983222221",
-      email: "supperAdmin@supperAdmin.com",
+      fullName: Config.SUPER_ADMIN.FULL_NAME || "Supper Admin",
+      phoneNumber: Config.SUPER_ADMIN.PHONE || "+251983222221",
+      email: Config.SUPER_ADMIN.EMAIL || "supperAdmin@supperAdmin.com",
       roleId: usersRoles.supperAdminRoleId,
       statusId: USER_STATUS.ACTIVE,
       userRoleStatusDescription:

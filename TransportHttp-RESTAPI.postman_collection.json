@@ -34256,15 +34256,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://31.97.179.144:8081/reverse?lat=9.0278&lon=38.7777&format=json",
-              "protocol": "http",
+              "raw": "https://nominatim.example.com/reverse?lat=9.0278&lon=38.7777&format=json",
+              "protocol": "https",
               "host": [
-                "31",
-                "97",
-                "179",
-                "144"
+                "nominatim",
+                "example",
+                "com"
               ],
-              "port": "8081",
+              "port": "443",
               "path": [
                 "reverse"
               ],

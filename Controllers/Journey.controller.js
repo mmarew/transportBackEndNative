@@ -227,7 +227,7 @@ exports.getAllCompletedJourneys = async (req, res, next) => {
 // # Filter by user details
 // GET /api/journey?fullName=John
 // GET /api/journey?phone=0912
-// GET /api/journey?email=john@gmail.com
+// GET /api/journey?email=user@example.com
 // GET /api/journey?search=john
 
 // # Filter by dates

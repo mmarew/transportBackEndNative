@@ -174,11 +174,7 @@ const rejectDriverOffer = async body => {
           phoneNumber: driver.phoneNumber
         });
       } catch (error) {
-        if (logger && typeof logger.error === "function") {
-          logger.error("Error sending WebSocket notification to driver:", error);
-        } else {
-          console.error("Error sending WebSocket notification to driver:", error);
-        }
+        logger.error("Error sending WebSocket notification to driver:", error);
       }
 
       // Send FCM push notification to driver
@@ -199,11 +195,7 @@ const rejectDriverOffer = async body => {
           }
         });
       } catch (error) {
-        if (logger && typeof logger.error === "function") {
-          logger.error("Error sending FCM notification to driver:", error);
-        } else {
-          console.error("Error sending FCM notification to driver:", error);
-        }
+        logger.error("Error sending FCM notification to driver:", error);
       }
     }
 

@@ -41,11 +41,6 @@ const validator = (schema, source = "body") => {
         field: d.path?.join(".") || d.context?.key,
         message: d.message,
       }));
-      // Always print to terminal regardless of Winston log level
-      console.error(`\n❌ VALIDATION FAILED [${method} ${path}]`);
-      console.error('   source  :', source);
-      console.error('   details :', JSON.stringify(details, null, 4));
-      console.error('   body    :', JSON.stringify(data, null, 4));
       logger.warn("@validator schema.validate failed", {
         method,
         path,

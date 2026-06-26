@@ -12,13 +12,17 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
  */
 const getUserOtp = async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({ message: "error", error: "Not available in production" });
+    }
+
     const { phoneNumber } = req.query;
     if (!phoneNumber) {
       return res.status(400).json({ message: "error", error: "phoneNumber query param is required" });
     }
 
     const [rows] = await pool.query(
-      `SELECT uc.otpPlain AS otp, u.userUniqueId, u.phoneNumber
+      `SELECT u.userUniqueId, u.phoneNumber
        FROM usersCredential uc
        JOIN Users u ON u.userUniqueId = uc.userUniqueId
        WHERE u.phoneNumber = ?

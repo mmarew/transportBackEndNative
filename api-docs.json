@@ -6,7 +6,7 @@
     "description": "Complete API for transport management system including user management, driver operations, admin functions, and finance operations",
     "contact": {
       "name": "API Support",
-      "email": "support@transportapp.com"
+      "email": "support@example.com"
     },
     "license": {
       "name": "MIT",
@@ -278,7 +278,7 @@
               "example": {
                 "fullName": "Admin User",
                 "phoneNumber": "+1234567890",
-                "email": "admin@example.com",
+                "email": "admin@company.example",
                 "roleId": 3,
                 "statusId": 1,
                 "userRoleStatusDescription": "System administrator"

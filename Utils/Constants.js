@@ -1,9 +1,8 @@
 const Config = require("./Config");
 //constants;
 
-const REDIS_SOCKET_PATH = "/home/masetawoshacom/tmp/redis.so";
+const REDIS_SOCKET_PATH = process.env.REDIS_SOCKET_PATH || "";
 const UPSTASH_REDIS_URL = Config.REDIS.URL;
-// ("rediss://default:ASiQAAIncDIyZTZjYmRlMTEyM2Y0YmNmYmE0ZjA3ODU0ZWM4NGU3OXAyMTAzODQ@sound-hornet-10384.upstash.io:6379");
 
 // HTTP Status Codes
 const HTTP_STATUS = {

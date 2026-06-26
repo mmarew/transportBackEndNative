@@ -541,7 +541,7 @@ const sendShipperNotification = async ({
   }
 
   if (!messageType || !status) {
-    console.error(
+    logger.error(
       "@sendShipperNotification: messageType and status are required",
     );
     return;

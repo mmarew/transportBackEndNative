@@ -15,6 +15,7 @@ const messageTypes = require("../../Utils/MessageTypes");
 const { fetchJourneyNotificationData } = require("./helpers");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
+const logger = require("../../Utils/logger");
 const { createCommission } = require("../Commission.service");
 
 const {
@@ -537,7 +538,7 @@ const sendUpdatedLocation = async (body) => {
       journeyDecisionUniqueId,
     };
   } catch (error) {
-    console.error("@sendUpdatedLocation error:", error);
+    logger.error("@sendUpdatedLocation error:", error);
     throw new AppError(
       error.message || "Unable to send updated location",
       error.statusCode || 500,

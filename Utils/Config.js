@@ -45,7 +45,7 @@ const Config = {
 
   // Brand & Support
   BRAND_NAME: process.env.BRAND_NAME || "Dynamics Transport",
-  SUPPORT_PHONE_NUMBER: process.env.SUPPORT_PHONE_NUMBER || "+251983222221",
+  SUPPORT_PHONE_NUMBER: process.env.SUPPORT_PHONE_NUMBER || "",
 
   // Driver Timeouts
   DRIVER_TIMEOUT_CHECK_INTERVAL:
@@ -55,10 +55,13 @@ const Config = {
 
   // System Admin (Initialization)
   SUPER_ADMIN: {
-    FULL_NAME: process.env.SUPER_ADMIN_FULL_NAME || "Supper Admin",
-    PHONE: process.env.SUPER_ADMIN_PHONE || "+251983222221",
-    EMAIL: process.env.SUPER_ADMIN_EMAIL || "supperAdmin@supperAdmin.com",
-    TEMP_PASSWORD: process.env.SUPER_ADMIN_TEMP_PASSWORD || "123456",
+    FULL_NAME: process.env.SUPER_ADMIN_FULL_NAME,
+    PHONE: process.env.SUPER_ADMIN_PHONE,
+    EMAIL: process.env.SUPER_ADMIN_EMAIL,
+    TEMP_PASSWORD: process.env.SUPER_ADMIN_TEMP_PASSWORD,
+    SYSTEM_FULL_NAME: process.env.SYSTEM_FULL_NAME,
+    SYSTEM_PHONE: process.env.SYSTEM_PHONE,
+    SYSTEM_EMAIL: process.env.SYSTEM_EMAIL,
   },
 
   // SMS Service (AfroMessage or similar)
@@ -83,13 +86,13 @@ const Config = {
   // Testing (CI/CD)
   TEST: {
     TOKEN: process.env.TEST_TOKEN,
-    PHONE: process.env.TEST_PHONE || "+251910185606",
-    OTP: process.env.TEST_OTP,
+    PHONE: process.env.TEST_PHONE || "",
+    OTP: process.env.TEST_OTP || "",
     ROLE_ID: Number(process.env.TEST_ROLE_ID || 1),
     STATUS_ID: Number(process.env.TEST_STATUS_ID || 1),
-    FULL_NAME: process.env.TEST_FULL_NAME || "E2E User",
+    FULL_NAME: process.env.TEST_FULL_NAME || "",
     USER_ROLE_STATUS_DESC:
-      process.env.TEST_USER_ROLE_STATUS_DESC || "E2E Test Description",
+      process.env.TEST_USER_ROLE_STATUS_DESC || "",
   },
 
   // Payment Gateway (SantimPay)

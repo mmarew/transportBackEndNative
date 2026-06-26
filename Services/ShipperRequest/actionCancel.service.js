@@ -346,22 +346,14 @@ const cancelShipperRequest = async body => {
             }
           });
         } catch (e) {
-          if (logger && typeof logger.error === "function") {
-            logger.error("Error sending FCM notification to driver:", e);
-          } else {
-            console.error("Error sending FCM notification to driver:", e);
-          }
+          logger.error("Error sending FCM notification to driver:", e);
         }
       });
 
       // Wait for all notifications to complete
       await Promise.all(notificationPromises).catch(error => {
         // Log notification errors but don't fail the cancellation
-        if (logger && typeof logger.error === "function") {
-          logger.error("Error sending notifications after cancellation:", error);
-        } else {
-          console.error("Error sending notifications after cancellation:", error);
-        }
+        logger.error("Error sending notifications after cancellation:", error);
       });
     }
 

@@ -361,7 +361,8 @@ const fetchJourneyNotificationData = async (
       journeyData,
     };
   } catch (error) {
-    console.error("Error in fetchJourneyNotificationData:", {
+    const logger = require("../../Utils/logger");
+    logger.error("Error in fetchJourneyNotificationData:", {
       error: error.message,
     });
     throw new AppError(

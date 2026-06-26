@@ -45,7 +45,7 @@ const testCreateSMSSender = async ({ user, payload } = {}) => {
     const defaultPayload = {
       senderName: "E2ETestSender_" + Date.now(),
       phoneNumber: "+251" + Math.floor(Math.random() * 1000000000),
-      password: "TestPassword123!",
+      password: process.env.E2E_TEST_PASSWORD || "E2E_TEST_PASSWORD_NOT_SET",
       ...payload,
     };
 
@@ -105,7 +105,7 @@ const testUpdateSMSSender = async ({ user, id, payload } = {}) => {
     const defaultPayload = {
       senderName: "E2EUpdatedSender_" + Date.now(),
       phoneNumber: "+251" + Math.floor(Math.random() * 1000000000),
-      password: "UpdatedPassword123!",
+      password: process.env.E2E_TEST_PASSWORD || "E2E_TEST_PASSWORD_NOT_SET",
       ...payload,
     };
 
