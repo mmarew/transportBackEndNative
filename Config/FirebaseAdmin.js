@@ -1,18 +1,12 @@
 const admin = require("firebase-admin");
-const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
 
 let initialized = false;
 
 function initFirebaseAdmin() {
-  if (initialized) {
-    return;
-  }
-  const {
-    SERVICE_ACCOUNT_JSON: FCM_SERVICE_ACCOUNT_JSON,
-    SERVICE_ACCOUNT_B64: FCM_SERVICE_ACCOUNT_B64,
-  } = Config.FIREBASE;
+  if (initialized) {return;}
+  const { SERVICE_ACCOUNT_JSON: FCM_SERVICE_ACCOUNT_JSON, SERVICE_ACCOUNT_B64: FCM_SERVICE_ACCOUNT_B64 } = Config.FIREBASE;
   let serviceAccountObject = null;
 
   try {
@@ -20,17 +14,16 @@ function initFirebaseAdmin() {
       serviceAccountObject = JSON.parse(FCM_SERVICE_ACCOUNT_JSON);
     } else if (FCM_SERVICE_ACCOUNT_B64) {
       const json = Buffer.from(FCM_SERVICE_ACCOUNT_B64, "base64").toString();
-
       serviceAccountObject = JSON.parse(json);
     }
   } catch (e) {
     logger.warn("Failed to parse FCM service account", { error: e.message });
   }
 
-  if (!admin.getApps().length) {
+  if (!admin.apps.length) {
     if (serviceAccountObject) {
       admin.initializeApp({
-        credential: admin.cert(serviceAccountObject),
+        credential: admin.credential.cert(serviceAccountObject),
       });
     } else {
       admin.initializeApp();
@@ -45,5 +38,5 @@ initFirebaseAdmin();
 
 module.exports = {
   admin,
-  messaging: getMessaging(),
+  messaging: admin.messaging(),
 };
