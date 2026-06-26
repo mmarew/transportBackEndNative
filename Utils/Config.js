@@ -87,7 +87,7 @@ const Config = {
   TEST: {
     TOKEN: process.env.TEST_TOKEN,
     PHONE: process.env.TEST_PHONE || "",
-    OTP: process.env.TEST_OTP || "",
+    OTP: process.env.TEST_OTP || "101010",
     ROLE_ID: Number(process.env.TEST_ROLE_ID || 1),
     STATUS_ID: Number(process.env.TEST_STATUS_ID || 1),
     FULL_NAME: process.env.TEST_FULL_NAME || "",
