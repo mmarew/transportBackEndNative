@@ -17,7 +17,13 @@ const { getShipperRequestByRequestUniqueId } = require("../CRUD/Read/ReadData");
 async function initSocket({ httpServer }) {
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: ["https://dynamicsroute.tech", "https://company.dynamicsroute.tech", "https://admin.dynamicsroute.tech"],
+      origin: [
+        "https://dynamicsroute.tech",
+        "https://company.dynamicsroute.tech",
+        "https://admin.dynamicsroute.tech",
+        "http://localhost:5173",
+        "http://localhost:3000",
+      ],
     },
     allowEIO3: true, // Allow Engine.IO v3 clients
     transports: ["websocket", "polling"], // Support both transports

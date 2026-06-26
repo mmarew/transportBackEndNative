@@ -32,8 +32,18 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // 2. Enable CORS - restrict to specific frontend domains
+const allowedOrigins = [
+  'https://company.dynamicsroute.tech',
+  'https://admin.dynamicsroute.tech',
+  'https://dynamicsroute.tech',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:5173', 'http://localhost:3000');
+}
 const corsOptions = {
-  origin: ['https://company.dynamicsroute.tech', 'https://admin.dynamicsroute.tech', 'https://dynamicsroute.tech'],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: true,
