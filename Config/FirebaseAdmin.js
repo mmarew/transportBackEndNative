@@ -5,8 +5,13 @@ const Config = require("../Utils/Config");
 let initialized = false;
 
 function initFirebaseAdmin() {
-  if (initialized) {return;}
-  const { SERVICE_ACCOUNT_JSON: FCM_SERVICE_ACCOUNT_JSON, SERVICE_ACCOUNT_B64: FCM_SERVICE_ACCOUNT_B64 } = Config.FIREBASE;
+  if (initialized) {
+    return;
+  }
+  const {
+    SERVICE_ACCOUNT_JSON: FCM_SERVICE_ACCOUNT_JSON,
+    SERVICE_ACCOUNT_B64: FCM_SERVICE_ACCOUNT_B64,
+  } = Config.FIREBASE;
   let serviceAccountObject = null;
 
   try {
