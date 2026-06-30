@@ -64,7 +64,7 @@ const consoleFormat = printf(
 
 // Create the logger
 const logger = winston.createLogger({
-  level: Config.NODE_ENV === "development" ? "debug" : "info",
+  level: "error",
   format: combine(
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     errors({ stack: true }), // Capture stack traces
@@ -187,7 +187,7 @@ if (!isServerless) {
       format: Config.NODE_ENV === "production" 
         ? combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), json())
         : combine(colorize(), timestamp({ format: "HH:mm:ss" }), consoleFormat),
-      level: Config.NODE_ENV === "production" ? "info" : "debug",
+      level: "error",
     }),
   );
 }

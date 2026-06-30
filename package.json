@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:watch": "eslint . --watch",
+    "spellcheck": "cspell --no-progress '**/*.js'",
+    "spellcheck:fix": "cspell --no-progress --words-only '**/*.js' | sort -u",
     "start": "node App.js",
     "start:pm2": "pm2 start ecosystem.config.js",
     "stop:pm2": "pm2 delete ecosystem.config.js",
@@ -83,6 +85,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@jest/globals": "^27.5.1",
+    "cspell": "^9.8.0",
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-n": "^18.0.1",
