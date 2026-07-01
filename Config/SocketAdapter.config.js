@@ -208,7 +208,7 @@ async function initSocket({ httpServer }) {
   io.on("connection", (socket) => {
     logger.info("Socket connection attempt", {
       socketId: socket.id,
-      handshake: socket.handshake.query,
+      handshake: socket.handshake.auth,
     });
 
     // Handle connection errors

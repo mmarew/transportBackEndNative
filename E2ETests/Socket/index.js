@@ -35,7 +35,7 @@ const waitForSocketMessage = (socket, eventName, timeoutMs = 10000, predicate) =
 const connectSocket = (userType, phoneNumber, token, timeoutMs = 15000) => {
   return new Promise((resolve, reject) => {
     const socket = io(backendURL, {
-      query: {
+      auth: {
         phoneNumber,
         user: userType,
         token,

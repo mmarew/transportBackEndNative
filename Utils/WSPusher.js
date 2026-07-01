@@ -15,11 +15,7 @@ const phoneNumberRegex = /^[0-9]{9,15}$/;
 async function WSPusher({ socket }) {
   const socketId = socket?.id;
   try {
-    const urlParams = new URLSearchParams(socket.handshake.query);
-
-    const phoneNumber = urlParams.get("phoneNumber");
-    const user = urlParams.get("user");
-    const token = urlParams.get("token");
+    const { token, phoneNumber, user } = socket.handshake.auth || {};
 
     if (!token) {
       return sendError(
@@ -61,7 +57,7 @@ async function WSPusher({ socket }) {
 
     // Special check for SMSSender
     if (user === "SMSSender") {
-      const password = urlParams.get("password");
+      const password = socket.handshake.auth.password;
       if (!password) {
         return sendError(
           socket,
@@ -123,7 +119,7 @@ async function WSPusher({ socket }) {
       socketId,
       error: error.message,
       stack: error.stack,
-      handshake: socket?.handshake?.query,
+      handshake: socket?.handshake?.auth,
     });
 
     return sendError(

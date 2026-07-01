@@ -6,20 +6,25 @@ import store from "../Redux/store/Store";
 import { setIsLoading } from "../Redux/Slices/driverSlice";
 
 let socket = null;
+let cachedToken = null;
+let cachedPhoneNumber = null;
 
-const getSocketUrl = async () => {
+const getCredentials = async () => {
+  if (cachedToken && cachedPhoneNumber) {
+    return { token: cachedToken, phoneNumber: cachedPhoneNumber };
+  }
   const token = await AsyncStorage.getItem("token");
   if (!token) {
     throw new Error("No token found");
   }
-
   const validateData = validateJWT(token);
   const phoneNumber = validateData?.phoneNumber;
-
   if (!phoneNumber) {
     throw new Error("Please add your phone number in your profile");
   }
-  return `${API_URL_AXIOS}?user=driver&phoneNumber=${phoneNumber}&token=Bearer%20${token}`;
+  cachedToken = token;
+  cachedPhoneNumber = phoneNumber;
+  return { token, phoneNumber };
 };
 
 export const initSocket = async () => {
@@ -27,11 +32,17 @@ export const initSocket = async () => {
     return;
   }
   store.dispatch(setIsLoading(true));
-  const SOCKET_URL = await getSocketUrl();
 
-  socket = io(SOCKET_URL, {
-    transports: ["websocket"], // Ensures reliable connection in React Native
-    autoConnect: true, // Allow auto connection when needed
+  const { token, phoneNumber } = await getCredentials();
+
+  socket = io(API_URL_AXIOS, {
+    transports: ["websocket"],
+    autoConnect: true,
+    auth: {
+      user: "driver",
+      phoneNumber,
+      token: `Bearer ${token}`,
+    },
   });
   store.dispatch(setIsLoading(false));
 
