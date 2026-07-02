@@ -1,34 +1,19 @@
 "use strict";
 
-
-
-
 const createJWT = require("../../../Utils/CreateJWT");
-
 
 const verifyPassword = require("../../../Utils/VerifyPassword");
 const logger = require("../../../Utils/logger");
-const {
-  usersRoles
-} = require("../../../Utils/ListOfSeedData");
+const { usersRoles } = require("../../../Utils/ListOfSeedData");
 const AppError = require("../../../Utils/AppError");
 const {
-  sendSocketIONotificationToAdmin
+  sendSocketIONotificationToAdmin,
 } = require("../../../Utils/Notifications");
-const {
-  getData,
-  performJoinSelect
-} = require("../../../CRUD/Read/ReadData");
-const {
-  updateData
-} = require("../../../CRUD/Update/Data.update");
-
-
-
-
+const { getData, performJoinSelect } = require("../../../CRUD/Read/ReadData");
+const { updateData } = require("../../../CRUD/Update/Data.update");
 
 const {
-  driversDocumentVehicleRequirement
+  driversDocumentVehicleRequirement,
 } = require("../../RoleDocumentRequirements");
 
 /**
@@ -54,14 +39,10 @@ const {
  * @returns {Promise<Object>} An object containing the JWT token, success message, and exact `verificationStatus` flags.
  * @throws {AppError} 401 Unauthorized if OTP doesn't match; 404 if user not found; 403 if deleted.
  */
-const verifyUserByOTP = async req => {
-  const {
-    phoneNumber,
-    email,
-    OTP,
-    roleId
-  } = req.body;
-  if (!OTP || !phoneNumber && !email) {
+const verifyUserByOTP = async (req) => {
+  console.log("🚀 ~ verifyUserByOTP ~ req.body:", req.body);
+  const { phoneNumber, email, OTP, roleId } = req.body;
+  if (!OTP || (!phoneNumber && !email)) {
     throw new AppError("OTP and identity (phone/email) are required", 400);
   }
   const conditions = {};
@@ -73,12 +54,14 @@ const verifyUserByOTP = async req => {
   }
   const verifyUserExistence = await performJoinSelect({
     baseTable: "Users",
-    joins: [{
-      table: "usersCredential",
-      on: "Users.userUniqueId = usersCredential.userUniqueId"
-    }],
+    joins: [
+      {
+        table: "usersCredential",
+        on: "Users.userUniqueId = usersCredential.userUniqueId",
+      },
+    ],
     conditions,
-    limit: 1
+    limit: 1,
   });
   if (!verifyUserExistence || verifyUserExistence.length === 0) {
     throw new AppError("user not found", 404);
@@ -121,7 +104,7 @@ const verifyUserByOTP = async req => {
       try {
         await verifyPassword({
           hashedPassword: hashToCheck,
-          notHashedPassword: String(OTP)
+          notHashedPassword: String(OTP),
         });
         phoneMatched = true;
       } catch {
@@ -138,7 +121,7 @@ const verifyUserByOTP = async req => {
       try {
         await verifyPassword({
           hashedPassword: hashToCheck,
-          notHashedPassword: String(OTP)
+          notHashedPassword: String(OTP),
         });
         emailMatched = true;
       } catch {
@@ -149,7 +132,10 @@ const verifyUserByOTP = async req => {
 
   // Final check: Throws 401 if neither channel matched
   if (!phoneMatched && !emailMatched) {
-    throw new AppError("Invalid OTP. Please check the code and try again.", 401);
+    throw new AppError(
+      "Invalid OTP. Please check the code and try again.",
+      401,
+    );
   }
 
   // 2. Update verification status in the database
@@ -165,16 +151,16 @@ const verifyUserByOTP = async req => {
       tableName: "Users",
       updateValues,
       conditions: {
-        userUniqueId: userRow.userUniqueId
-      }
+        userUniqueId: userRow.userUniqueId,
+      },
     });
   }
   const userInRoleId = await getData({
     tableName: "UserRole",
     conditions: {
       roleId,
-      userUniqueId: userRow.userUniqueId
-    }
+      userUniqueId: userRow.userUniqueId,
+    },
   });
   if (userInRoleId.length === 0) {
     throw new AppError("user not found in this role", 401);
@@ -186,7 +172,7 @@ const verifyUserByOTP = async req => {
     email: userRow.email,
     roleId,
     isPhoneVerified: phoneMatched || !!userRow.isPhoneVerified,
-    isEmailVerified: emailMatched || !!userRow.isEmailVerified
+    isEmailVerified: emailMatched || !!userRow.isEmailVerified,
   });
   const resData = {
     message: "success",
@@ -205,28 +191,29 @@ const verifyUserByOTP = async req => {
       isPhoneVerified: phoneMatched || !!userRow.isPhoneVerified,
       isEmailVerified: emailMatched || !!userRow.isEmailVerified,
       userCreatedAt: userRow.userCreatedAt,
-      roleId: Number(roleId)
+      roleId: Number(roleId),
       // SECURITY: Ensure credentials are NEVER leaked
-    }
+    },
   };
   //if user is driver send PENDING, REJECTED or NOT_SUBMITTED document and vehicle requirement to admin in web socket to communicate driver.
   if (Number(roleId) === usersRoles.driverRoleId) {
     const docReq = await driversDocumentVehicleRequirement({
       ownerUserUniqueId: userRow.userUniqueId,
-      user: userRow
+      user: userRow,
     });
     if (docReq?.message === "error") {
       throw new AppError(docReq.error || "Failed to check requirements", 500);
     }
-    const {
-      unAttachedDocumentTypes,
-      attachedDocumentsByStatus
-    } = docReq;
-    if (attachedDocumentsByStatus?.PENDING?.length > 0 || attachedDocumentsByStatus?.REJECTED?.length > 0 || unAttachedDocumentTypes?.length > 0) {
+    const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
+    if (
+      attachedDocumentsByStatus?.PENDING?.length > 0 ||
+      attachedDocumentsByStatus?.REJECTED?.length > 0 ||
+      unAttachedDocumentTypes?.length > 0
+    ) {
       sendSocketIONotificationToAdmin({
         message: {
-          ...docReq
-        }
+          ...docReq,
+        },
       });
     }
     resData.documentAndVehicleOfDriver = docReq;
@@ -247,5 +234,5 @@ const verifyUserByOTP = async req => {
  */
 
 module.exports = {
-  verifyUserByOTP
+  verifyUserByOTP,
 };

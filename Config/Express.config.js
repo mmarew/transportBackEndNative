@@ -33,19 +33,20 @@ app.use(helmet());
 
 // 2. Enable CORS - restrict to specific frontend domains
 const allowedOrigins = [
-  'https://company.dynamicsroute.tech',
-  'https://admin.dynamicsroute.tech',
-  'https://dynamicsroute.tech',
-  'http://localhost:5173',
-  'http://localhost:3000',
+  "https://company.dynamicsroute.tech",
+  "https://admin.dynamicsroute.tech",
+  "https://dynamicsroute.tech",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://account.dynamicsroute.tech",
 ];
-if (process.env.NODE_ENV !== 'production') {
-  allowedOrigins.push('http://localhost:5173', 'http://localhost:3000');
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.push("http://localhost:5173", "http://localhost:3000");
 }
 const corsOptions = {
   origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-API-Key"],
   credentials: true,
 };
 app.use(cors(corsOptions));
@@ -64,15 +65,18 @@ app.use(limiter); // Apply to all requests
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Config.NODE_ENV === "production" ? 5 : 200,
-  message: { error: 'Too many attempts, please try again later' },
+  message: { error: "Too many attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/user', authLimiter);
+app.use("/api/user", authLimiter);
 
 // HSTS header middleware
 app.use((req, res, next) => {
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains",
+  );
   next();
 });
 
