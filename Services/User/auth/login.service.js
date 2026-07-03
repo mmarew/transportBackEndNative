@@ -1,45 +1,26 @@
 "use strict";
 
-
-
 const generateOTP = require("../../../Utils/GenerateOTP");
 
-const {
-  currentDate,
-  addHours
-} = require("../../../Utils/CurrentDate");
+const { currentDate, addHours } = require("../../../Utils/CurrentDate");
 const bcrypt = require("bcryptjs");
-
-
 
 const AppError = require("../../../Utils/AppError");
 
-const {
-  getData,
-  performJoinSelect
-} = require("../../../CRUD/Read/ReadData");
-const {
-  updateData
-} = require("../../../CRUD/Update/Data.update");
-const {
-  insertData
-} = require("../../../CRUD/Create/CreateData");
-const {
-  v4: uuidv4
-} = require("uuid");
+const { getData, performJoinSelect } = require("../../../CRUD/Read/ReadData");
+const { updateData } = require("../../../CRUD/Update/Data.update");
+const { insertData } = require("../../../CRUD/Create/CreateData");
+const { v4: uuidv4 } = require("uuid");
 
 let manageService;
 let registryService;
-
-
-
 
 const handleExistingUser = async ({
   requestedFrom,
   user,
   roleId,
   statusId,
-  userRoleStatusDescription = "no description"
+  userRoleStatusDescription = "no description",
 }) => {
   if (!registryService) {
     registryService = require("../User.registry.service");
@@ -54,17 +35,26 @@ const handleExistingUser = async ({
   const isEmailVerified = !!user.isEmailVerified;
 
   // OPTIMIZATION: Skip redundant status updates if this is a standard login
-  const pendingOperations = [getData({
-    tableName: "usersCredential",
-    conditions: {
-      userUniqueId
-    }
-  })];
+  const pendingOperations = [
+    getData({
+      tableName: "usersCredential",
+      conditions: {
+        userUniqueId,
+      },
+    }),
+  ];
 
   // Manage User Role and Status initialization/updates
   // JUNIOR NOTE: We delegate this to a single point to ensure consistency.
   // handleUserRoleStatus performs its own existence checks to avoid redundant DB writes.
-  pendingOperations.push(registryService.handleUserRoleStatus(userUniqueId, roleId, statusId, userRoleStatusDescription));
+  pendingOperations.push(
+    registryService.handleUserRoleStatus(
+      userUniqueId,
+      roleId,
+      statusId,
+      userRoleStatusDescription,
+    ),
+  );
   const [savedCredentialRows] = await Promise.all(pendingOperations);
   const savedCredential = savedCredentialRows?.[0] || {};
 
@@ -101,13 +91,15 @@ const handleExistingUser = async ({
   let emailVerificationExpiresAt = savedCredential.emailVerificationExpiresAt;
   if (!isEmailVerified) {
     // If link is missing or expired, generate a new one
-    const parseDate = d => {
+    const parseDate = (d) => {
       if (d instanceof Date) {
         return d;
       }
       return new Date(String(d).replace(" ", "T") + "Z");
     };
-    const isExpired = emailVerificationExpiresAt && parseDate(emailVerificationExpiresAt) < parseDate(currentDate());
+    const isExpired =
+      emailVerificationExpiresAt &&
+      parseDate(emailVerificationExpiresAt) < parseDate(currentDate());
     if (!emailVerificationToken || isExpired) {
       emailVerificationToken = uuidv4();
       emailVerificationExpiresAt = addHours(currentDate(), 2);
@@ -121,7 +113,9 @@ const handleExistingUser = async ({
   }
   const hashedResults = await Promise.all(hashingPromises);
   const hashedOTP = hashedResults[0];
-  const hashedPhoneVerificationOTP = isPhoneVerified ? hashedOTP : hashedResults[1];
+  const hashedPhoneVerificationOTP = isPhoneVerified
+    ? hashedOTP
+    : hashedResults[1];
   const hashedEmailVerificationOTP = isEmailVerified ? hashedOTP : null;
   const credentialValues = {
     phoneVerificationOTP: hashedPhoneVerificationOTP,
@@ -129,7 +123,7 @@ const handleExistingUser = async ({
     sharedOTP: hashedOTP,
     // Legacy
     emailVerificationToken,
-    emailVerificationExpiresAt
+    emailVerificationExpiresAt,
   };
   if (!savedCredential.credentialUniqueId) {
     await insertData({
@@ -139,16 +133,16 @@ const handleExistingUser = async ({
         userUniqueId,
         ...credentialValues,
         hashedPassword: hashedPhoneVerificationOTP,
-        usersCredentialCreatedAt: currentDate()
-      }
+        usersCredentialCreatedAt: currentDate(),
+      },
     });
   } else {
     await updateData({
       tableName: "usersCredential",
       updateValues: credentialValues,
       conditions: {
-        userUniqueId
-      }
+        userUniqueId,
+      },
     });
   }
   const publicUserProfile = {
@@ -159,13 +153,13 @@ const handleExistingUser = async ({
     email: user.email,
     isPhoneVerified,
     isEmailVerified,
-    userCreatedAt: user.userCreatedAt
+    userCreatedAt: user.userCreatedAt,
   };
   if (requestedFrom === "street") {
     // SECURITY: Still use explicit extraction even for street entry
     return {
       message: "success",
-      data: publicUserProfile
+      data: publicUserProfile,
     };
   }
   return {
@@ -191,20 +185,25 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   // PERFORMANCE FIX: Use exact match on indexed columns instead of wildcard search
   const userDataResult = await performJoinSelect({
     baseTable: "Users",
-    joins: [{
-      table: "UserRole",
-      on: "Users.userUniqueId = UserRole.userUniqueId AND UserRole.userRoleDeletedAt IS NULL"
-    }, {
-      table: "UserRoleStatusCurrent",
-      on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId"
-    }],
-    conditions: phoneNumber ? {
-      "Users.phoneNumber": phoneNumber,
-      "UserRole.roleId": roleId
-    } : {
-      "Users.email": email,
-      "UserRole.roleId": roleId
-    }
+    joins: [
+      {
+        table: "UserRole",
+        on: "Users.userUniqueId = UserRole.userUniqueId AND UserRole.userRoleDeletedAt IS NULL",
+      },
+      {
+        table: "UserRoleStatusCurrent",
+        on: "UserRole.userRoleId = UserRoleStatusCurrent.userRoleId",
+      },
+    ],
+    conditions: phoneNumber
+      ? {
+          "Users.phoneNumber": phoneNumber,
+          "UserRole.roleId": roleId,
+        }
+      : {
+          "Users.email": email,
+          "UserRole.roleId": roleId,
+        },
   });
   if (!userDataResult || userDataResult.length === 0) {
     throw new AppError("Invalid credentials", 404);
@@ -217,7 +216,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   }
 
   // Find the specific role the user is trying to log into
-  const roleEntry = userDataResult.find(row => row.roleId === roleId);
+  const roleEntry = userDataResult.find((row) => row.roleId === roleId);
   if (!roleEntry) {
     throw new AppError("Invalid credentials", 404);
   }
@@ -227,7 +226,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
     email: email || userData.email,
     // Use provided email to potentially upgrade placeholder
     roleId,
-    statusId: roleEntry.statusId
+    statusId: roleEntry.statusId,
   });
 };
 
@@ -257,5 +256,5 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
 
 module.exports = {
   handleExistingUser,
-  loginUser
+  loginUser,
 };
