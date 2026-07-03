@@ -206,7 +206,14 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
         },
   });
   if (!userDataResult || userDataResult.length === 0) {
-    throw new AppError("Invalid credentials", 404);
+    throw new AppError(
+      phoneNumber
+        ? "Invalid phone number"
+        : email
+          ? "Invalid email address"
+          : "Invalid credentials",
+      404,
+    );
   }
 
   // Group roles for the found user
