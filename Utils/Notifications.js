@@ -33,7 +33,6 @@ const sendSocketIONotificationToDriver = async ({
     }
 
     const socketId = await getSocket(userType, cleanedPhoneNumber);
-    getAllSockets();
     if (!socketId) {
       logger.warn("No active driver socket found for notification", {
         phoneNumber: cleanedPhoneNumber,

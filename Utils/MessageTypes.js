@@ -156,6 +156,41 @@ const messageTypes = {
     message: "Driver document status updated",
     details: "When an admin accepts or rejects a driver's document.",
   },
+  company_batch_available: {
+    message: "New company-targeted batch available",
+    details:
+      "When a shipper posts a new company-targeted job, the targeted company receives this notification in real-time.",
+  },
+  company_driver_confirmed: {
+    message: "Driver confirmed assignment",
+    details:
+      "When a driver confirms a company freight assignment.",
+  },
+  company_driver_going_to_loading: {
+    message: "Driver going to loading point",
+    details:
+      "When a driver starts heading to the loading point for a company freight assignment.",
+  },
+  company_driver_journey_started: {
+    message: "Driver started journey",
+    details:
+      "When a driver starts the journey to destination for a company freight assignment.",
+  },
+  company_driver_completed: {
+    message: "Driver completed journey",
+    details:
+      "When a driver completes the journey for a company freight assignment.",
+  },
+  company_driver_rejected: {
+    message: "Driver rejected assignment",
+    details:
+      "When a driver rejects a company freight assignment.",
+  },
+  company_driver_cancelled: {
+    message: "Driver cancelled assignment",
+    details:
+      "When a driver cancels a company freight assignment.",
+  },
   company_bid_accepted: {
     message: "Company bid accepted",
     details:

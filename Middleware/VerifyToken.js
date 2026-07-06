@@ -30,7 +30,10 @@ const verifyTokenOfAxios = async (req, res, next) => {
     const userRow = user[0];
     if (userRow.isDeleted || userRow.userDeletedAt) {
       return next(
-        new AppError("Account has been deleted and can no longer access the service", 403),
+        new AppError(
+          "Account has been deleted and can no longer access the service",
+          403,
+        ),
       );
     }
 

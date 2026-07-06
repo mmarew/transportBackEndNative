@@ -14,8 +14,23 @@ const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 
 const logger = require("../../Utils/logger");
+const messageTypes = require("../../Utils/MessageTypes");
+const {
+  sendSocketIONotificationToCompany,
+} = require("../../Utils/Notifications");
 
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
+
+/**
+ * Resolve companyUniqueId from a CompanyBidVehicleAssignment record.
+ */
+const getCompanyUniqueId = async (companyBidRequestUniqueId) => {
+  const [[bid]] = await db().query(
+    "SELECT companyUniqueId FROM CompanyBidRequest WHERE companyBidRequestUniqueId = ? LIMIT 1",
+    [companyBidRequestUniqueId],
+  );
+  return bid?.companyUniqueId || null;
+};
 
 const {
   reportDriverCommissionEvasion,
@@ -282,6 +297,37 @@ exports.updateAssignmentStatus = async (
       }),
     );
 
+    // 🔔 Real-time WebSocket to company
+    getCompanyUniqueId(assignment.companyBidRequestUniqueId).then(
+      (companyUniqueId) => {
+        if (companyUniqueId) {
+          sendSocketIONotificationToCompany({
+            companyUniqueId,
+            message: {
+              messageTypes: isMidJobCancel
+                ? messageTypes.company_driver_cancelled
+                : messageTypes.company_driver_rejected,
+              message: "success",
+              type: isMidJobCancel
+                ? "assignment_cancelled_by_driver"
+                : "assignment_rejected",
+              assignmentStatus: isMidJobCancel
+                ? "cancelled_by_driver"
+                : "rejected_by_driver",
+              assignmentUniqueId,
+              shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+              companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+            },
+          }).catch((e) =>
+            logger.error("WebSocket to company failed on driver reject", {
+              error: e.message,
+              companyUniqueId,
+            }),
+          );
+        }
+      },
+    );
+
     // Normalise legacy 'cancelled' to the correct ENUM value
     if (assignmentStatus === "cancelled") {
       assignmentStatus = "cancelled_by_driver";
@@ -442,6 +488,32 @@ exports.updateAssignmentStatus = async (
       }),
     );
 
+    // 🔔 Real-time WebSocket to company: driver confirmed
+    getCompanyUniqueId(assignment.companyBidRequestUniqueId).then(
+      (companyUniqueId) => {
+        if (companyUniqueId) {
+          sendSocketIONotificationToCompany({
+            companyUniqueId,
+            message: {
+              messageTypes: messageTypes.company_driver_confirmed,
+              message: "success",
+              type: "company_driver_confirmed",
+              assignmentStatus: "confirmed_by_driver",
+              assignmentUniqueId,
+              journeyDecisionUniqueId,
+              shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+              companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+            },
+          }).catch((e) =>
+            logger.error("WebSocket to company failed on driver confirm", {
+              error: e.message,
+              companyUniqueId,
+            }),
+          );
+        }
+      },
+    );
+
     // ── Phase 1: Auto-release conflicting offers ──────────────────────────
     // Driver confirmed a company assignment → release any pending individual
     // offers so the driver isn't double-booked.
@@ -524,6 +596,42 @@ exports.updateAssignmentStatus = async (
         assignmentStatus,
       }),
     );
+
+    // 🔔 Real-time WebSocket to company: progress update
+    const socketMsgTypeMap = {
+      going_to_loading: messageTypes.company_driver_going_to_loading,
+      journey_started: messageTypes.company_driver_journey_started,
+      completed: messageTypes.company_driver_completed,
+    };
+    const socketMsgType = socketMsgTypeMap[assignmentStatus];
+    if (socketMsgType) {
+      getCompanyUniqueId(assignment.companyBidRequestUniqueId).then(
+        (companyUniqueId) => {
+          if (companyUniqueId) {
+            sendSocketIONotificationToCompany({
+              companyUniqueId,
+              message: {
+                messageTypes: socketMsgType,
+                message: "success",
+                type: "company_assignment_progress",
+                assignmentStatus,
+                assignmentUniqueId,
+                companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+                shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+              },
+            }).catch((e) =>
+              logger.error(
+                "WebSocket to company failed on progress update",
+                {
+                  error: e.message,
+                  companyUniqueId,
+                },
+              ),
+            );
+          }
+        },
+      );
+    }
   }
 
   vals.push(assignmentUniqueId);

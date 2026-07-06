@@ -25,8 +25,8 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
     throw new AppError("userUniqueId required", 400);
   }
   const OTP = rawPassword || generateOTP();
-  const phoneOTP = generateOTP();
-  const emailOTP = generateOTP();
+  const phoneOTP = rawPassword || generateOTP();
+  const emailOTP = rawPassword || generateOTP();
 
   // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
   const [hashedOTP, hashedPhoneVerificationOTP, hashedEmailVerificationOTP] =
@@ -167,6 +167,7 @@ const registerNewUser = async ({
   statusId,
   requestedFrom,
   createdBy,
+  rawPassword,
 }) => {
   const userUniqueId = uuidv4();
   const userCreatedAt = currentDate();
@@ -207,7 +208,7 @@ const registerNewUser = async ({
     isPhoneVerified: false,
   };
 
-  await ensureCredentialForUser({ userUniqueId });
+  await ensureCredentialForUser({ userUniqueId, rawPassword });
 
   if (!authService) {
     authService = require("./auth");
@@ -355,6 +356,7 @@ const createUserByAdminOrSuperAdmin = async ({
   if (userDataByEmail?.[0]) {
     await ensureCredentialForUser({
       userUniqueId: userDataByEmail[0].userUniqueId,
+      rawPassword: body?.rawPassword || body?.OTP,
     });
     await handleUserRoleStatus(
       userDataByEmail[0].userUniqueId,
@@ -425,7 +427,10 @@ const createUserByAdminOrSuperAdmin = async ({
     );
 
     // Generate/Update OTP for verification
-    await ensureCredentialForUser({ userUniqueId: existingUserUniqueId });
+    await ensureCredentialForUser({
+      userUniqueId: existingUserUniqueId,
+      rawPassword: body?.rawPassword || body?.OTP,
+    });
 
     // Only check for email difference if the PROVIDED email is a real email (not a placeholder)
     if (
@@ -452,6 +457,7 @@ const createUserByAdminOrSuperAdmin = async ({
     userRoleStatusDescription,
     requestedFrom: "Supper Admin/Admin",
     createdBy: userUniqueId,
+    rawPassword: body?.rawPassword || body?.OTP,
   });
 };
 //some jobs can be done by system itself by written codes not by admin or supper admin or users
@@ -484,6 +490,7 @@ const createUserSystem = async () => {
       statusId: USER_STATUS.ACTIVE,
       userRoleStatusDescription:
         "Supper Admin can manage drivers shippers and admin using api requests",
+      rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
     },
     userUniqueId: "Supper Admin",
   });

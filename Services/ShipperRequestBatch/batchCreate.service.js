@@ -4,6 +4,8 @@ const {
   db,
 } = require("../CompanyHelper.service");
 const { currentDate } = require("../../Utils/CurrentDate");
+const messageTypes = require("../../Utils/MessageTypes");
+const logger = require("../../Utils/logger");
 
 /**
  * ### Single Source of Truth — Create or sync a batch header
@@ -83,6 +85,64 @@ exports.upsertBatch = async ({
         currentDate(),
       ],
     );
+
+    // ── Real-time notification to company/companies ─────────────────────────
+    if (requestMode === "company_target") {
+      const {
+        sendSocketIONotificationToCompany,
+      } = require("../../Utils/Notifications");
+      let shipperName = "A shipper";
+      if (shipperUserUniqueId) {
+        const [[shipperRow]] = await db().query(
+          "SELECT fullName FROM Users WHERE userUniqueId = ? LIMIT 1",
+          [shipperUserUniqueId],
+        );
+        if (shipperRow) shipperName = shipperRow.fullName;
+      }
+
+      const message = {
+        messageTypes: messageTypes.company_batch_available,
+        message: "success",
+        batchUniqueId,
+        shipperName,
+        shipperUserUniqueId,
+        originPlace,
+        destinationPlace,
+        shippableItemName,
+        shippableItemQtyInQuintal,
+        totalVehicles: totalVehicles || 1,
+        shippingCost,
+        requestMode,
+      };
+
+      if (targetCompanyUniqueId) {
+        sendSocketIONotificationToCompany({
+          companyUniqueId: targetCompanyUniqueId,
+          message,
+        }).catch((e) =>
+          logger.error("WebSocket notification to company failed", {
+            error: e.message,
+            targetCompanyUniqueId,
+          }),
+        );
+      } else {
+        // No specific target — notify all active companies
+        const [companies] = await db().query(
+          "SELECT companyUniqueId FROM TransportCompany WHERE isDeleted = 0 AND companyDeletedAt IS NULL",
+        );
+        for (const company of companies) {
+          sendSocketIONotificationToCompany({
+            companyUniqueId: company.companyUniqueId,
+            message,
+          }).catch((e) =>
+            logger.error("WebSocket notification to company failed", {
+              error: e.message,
+              companyUniqueId: company.companyUniqueId,
+            }),
+          );
+        }
+      }
+    }
   } else {
     // Subsequent request in same batch → sync mutable counters only
     await db().query(

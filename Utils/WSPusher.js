@@ -15,7 +15,17 @@ const phoneNumberRegex = /^[0-9]{9,15}$/;
 async function WSPusher({ socket }) {
   const socketId = socket?.id;
   try {
-    const { token, phoneNumber, user } = socket.handshake.auth || {};
+    let { token, phoneNumber, user } = socket.handshake.auth || {};
+
+    // Fallback to headers (Postman Socket.IO client sends custom headers
+    // from the Headers tab into socket.handshake.headers)
+    // Note: Node.js lowercases all header names
+    if (!token || !phoneNumber || !user) {
+      const headers = socket.handshake.headers || {};
+      token = token || headers.token || headers.authorization;
+      phoneNumber = phoneNumber || headers.phoneNumber || headers.phonenumber;
+      user = user || headers.user;
+    }
 
     if (!token) {
       return sendError(

@@ -1577,7 +1577,8 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
         'accepted_by_shipper', -- Shipper accepted; dispatcher must now assign vehicles
         'rejected_by_shipper', -- Shipper rejected this bid
         'cancelled_by_company',-- Company withdrew before shipper decided
-        'expired'              -- Bid expired without action
+        'expired',             -- Bid expired without action
+        'completed'            -- Every slot in the batch has been delivered
     ) NOT NULL DEFAULT 'submitted',
     bidStatusUpdatedAt DATETIME NULL,
     bidStatusUpdatedBy VARCHAR(36) NULL,

@@ -15,7 +15,10 @@ const {
   testDeleteBatch,
   testVehicleDocumentUpload,
 } = require("./Untested");
-const { testSocketNotifications } = require("./Socket");
+const {
+  testSocketNotifications,
+  testCompanySocketNotifications,
+} = require("./Socket");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -68,7 +71,7 @@ const initiateTest = async () => {
     // ── Phase G: Socket notification tests (run before delete ops) ──────
     if (!usersData?.driver?.token || !usersData?.shipper?.token) {
       console.warn(
-        "⚠️  Missing driver/shipper tokens for socket tests — skipping Phase H",
+        "⚠️  Missing driver/shipper tokens for socket tests — skipping Phase G",
       );
     } else {
       console.log("\n=======================================================");
@@ -76,6 +79,19 @@ const initiateTest = async () => {
       console.log("=======================================================\n");
 
       await testSocketNotifications();
+    }
+
+    // ── Phase G2: Company socket notification tests ────────────────
+    if (!usersData?.companyAdmin?.token) {
+      console.warn(
+        "⚠️  Missing companyAdmin token for company socket tests — skipping Phase G2",
+      );
+    } else {
+      console.log("\n=======================================================");
+      console.log("   🔌 TESTING COMPANY SOCKET NOTIFICATIONS");
+      console.log("=======================================================\n");
+
+      await testCompanySocketNotifications();
     }
 
     // ── Phase H: Previously untested endpoints (delete operations) ──────

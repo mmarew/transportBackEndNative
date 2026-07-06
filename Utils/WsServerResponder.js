@@ -38,6 +38,8 @@ const emitMessage = ({ socketId, eventName, messageDetails }) => {
     const AppError = require("./AppError");
     throw new AppError("message can't be sent successfully", 500);
   }
+  const sock = io.sockets.sockets.get(socketId);
+  console.log("EMIT", { socketId, eventName, exists: !!sock, total: io.sockets.sockets.size });
   io.to(socketId).emit(eventName, messageDetails);
 
   return {
