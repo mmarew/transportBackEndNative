@@ -3,6 +3,7 @@
 const { db } = require("../CompanyHelper.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 const messageTypes = require("../../Utils/MessageTypes");
+const { usersRoles } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
 
 /**
@@ -138,6 +139,39 @@ exports.upsertBatch = async ({
             }
           }
         }
+
+        // Fire-and-forget FCM to all company admins as offline fallback
+        const { sendFCMNotificationToUser } = require("../Firebase.service");
+        db().query(
+          `SELECT u.userUniqueId
+           FROM TransportCompany tc
+           JOIN Users u ON tc.companyCreatedBy = u.userUniqueId
+           WHERE tc.isDeleted = 0 AND tc.companyDeletedAt IS NULL`,
+        ).then(([rows]) => {
+          for (const row of rows) {
+            sendFCMNotificationToUser({
+              userUniqueId: row.userUniqueId,
+              roleId: usersRoles.companyAdminRoleId,
+              notification: {
+                title: "New Freight Batch Available",
+                body: `${shipperName} has posted a new freight job for your company.`,
+              },
+              data: {
+                type: "company_batch_available",
+                batchUniqueId,
+              },
+            }).catch((e) =>
+              logger.warn("FCM fallback failed for company admin", {
+                error: e.message,
+                userUniqueId: row.userUniqueId,
+              }),
+            );
+          }
+        }).catch((e) =>
+          logger.warn("Failed to fetch companies for FCM fallback", {
+            error: e.message,
+          }),
+        );
       }
     }
   } else {

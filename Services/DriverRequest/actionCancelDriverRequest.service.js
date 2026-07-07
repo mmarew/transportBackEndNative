@@ -8,15 +8,11 @@ const { updateData } = require("../../CRUD/Update/Data.update");
 
 
 const {
-  
   sendSocketIONotificationToAdmin,
-  
 } = require("../../Utils/Notifications");
 
-
-
-
 const { currentDate } = require("../../Utils/CurrentDate");
+const { notifyCompanyOnDriverAction } = require("../CompanyAssignment/assignmentHelper");
 
 const {
   createCanceledJourney,
@@ -349,6 +345,17 @@ const cancelDriverRequest = async (data) => {
             });
           }
         }
+
+        // 🔔 Notify company + dispatcher if company-targeted assignment
+        const cancelAction =
+          finalStatus === journeyStatusMap.rejectedByDriver
+            ? "rejected_by_driver"
+            : "cancelled_by_driver";
+        notifyCompanyOnDriverAction({
+          shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+          driverName: notificationData?.driverInfo?.driver?.fullName || "",
+          action: cancelAction,
+        });
       }
     }
 

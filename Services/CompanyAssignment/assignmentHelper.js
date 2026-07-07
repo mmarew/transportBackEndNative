@@ -16,7 +16,10 @@ const {
 } = require("../../Utils/ListOfSeedData");
 const { createCanceledJourney } = require("../CanceledJourneys");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
-const { sendSocketIONotificationToDriver } = require("../../Utils/Notifications");
+const {
+  sendSocketIONotificationToDriver,
+  sendSocketIONotificationToCompany,
+} = require("../../Utils/Notifications");
 const messageTypes = require("../../Utils/MessageTypes");
 const logger = require("../../Utils/logger");
 const { updateData } = require("../../CRUD/Update/Data.update");
@@ -569,4 +572,127 @@ async function findActiveAssignmentForSlot(
   return rows.length > 0 ? rows[0] : null;
 }
 
-module.exports = { createJourneyDecisionForAssignment, notifyAssignedDriver, upsertDriverRequest, findActiveAssignmentForSlot };
+/**
+ * ### Notify company + dispatcher when a driver acts on a company assignment.
+ *
+ * Queries `CompanyBidVehicleAssignment` for the given `shipperRequestUniqueId`.
+ * If found (company-targeted), sends:
+ *   - FCM to the dispatcher who created the assignment
+ *   - WebSocket to all online company members
+ *
+ * If no company assignment exists (individual flow), returns silently — no-op.
+ *
+ * @param {Object} opts
+ * @param {string} opts.shipperRequestUniqueId
+ * @param {string} [opts.driverName=""]  — driver display name for notification body
+ * @param {string} opts.action           — one of:
+ *   'started_journey' | 'completed_journey' | 'cancelled_by_driver' | 'rejected_by_driver'
+ */
+const notifyCompanyOnDriverAction = async ({
+  shipperRequestUniqueId,
+  driverName = "",
+  action,
+}) => {
+  if (!shipperRequestUniqueId || !action) return;
+
+  try {
+    const [[companyAssignment]] = await db().query(
+      `SELECT cba.assignmentUniqueId, cba.companyBidRequestUniqueId,
+              cba.assignmentCreatedBy, cbr.companyUniqueId
+       FROM CompanyBidVehicleAssignment cba
+       JOIN CompanyBidRequest cbr ON cba.companyBidRequestUniqueId = cbr.companyBidRequestUniqueId
+       WHERE cba.shipperRequestUniqueId = ?
+         AND cba.assignmentDeletedAt IS NULL
+       LIMIT 1`,
+      [shipperRequestUniqueId],
+    );
+
+    if (!companyAssignment) return;
+
+    const actionConfig = {
+      started_journey: {
+        title: "Driver started journey",
+        body: `Driver ${driverName} has started the journey.`,
+        type: "driver_started_journey",
+        messageType: messageTypes.company_driver_journey_started,
+      },
+      completed_journey: {
+        title: "Driver completed journey",
+        body: `Driver ${driverName} has completed the journey.`,
+        type: "driver_completed_journey",
+        messageType: messageTypes.company_driver_completed,
+      },
+      cancelled_by_driver: {
+        title: "Driver cancelled journey",
+        body: `Driver ${driverName} cancelled the journey on your freight batch.`,
+        type: "driver_cancelled_journey",
+        messageType: messageTypes.company_driver_cancelled,
+      },
+      rejected_by_driver: {
+        title: "Driver rejected assignment",
+        body: `Driver ${driverName} rejected the freight assignment.`,
+        type: "driver_rejected_assignment",
+        messageType: messageTypes.company_driver_rejected,
+      },
+    };
+
+    const config = actionConfig[action];
+    if (!config) {
+      logger.warn("Unknown company notification action", { action });
+      return;
+    }
+
+    const companyNotif = { title: config.title, body: config.body };
+    const companyData = {
+      type: config.type,
+      assignmentUniqueId: companyAssignment.assignmentUniqueId,
+      shipperRequestUniqueId,
+      companyBidRequestUniqueId: companyAssignment.companyBidRequestUniqueId,
+    };
+
+    // FCM to the dispatcher / company admin who created the assignment
+    sendFCMNotificationToUser({
+      userUniqueId: companyAssignment.assignmentCreatedBy,
+      roleId: usersRoles.companyAdminRoleId,
+      notification: companyNotif,
+      data: companyData,
+    }).catch((e) =>
+      logger.error("FCM failed for company on driver action", {
+        error: e.message,
+        action,
+        shipperRequestUniqueId,
+      }),
+    );
+
+    // WebSocket to all online company members
+    sendSocketIONotificationToCompany({
+      companyUniqueId: companyAssignment.companyUniqueId,
+      message: {
+        messageTypes: config.messageType,
+        message: "success",
+        notification: companyNotif,
+        data: companyData,
+      },
+    }).catch((e) =>
+      logger.warn("WebSocket to company failed on driver action", {
+        error: e.message,
+        action,
+        companyUniqueId: companyAssignment.companyUniqueId,
+      }),
+    );
+  } catch (e) {
+    logger.error("Failed to notify company on driver action", {
+      error: e.message,
+      action,
+      shipperRequestUniqueId,
+    });
+  }
+};
+
+module.exports = {
+  createJourneyDecisionForAssignment,
+  notifyAssignedDriver,
+  upsertDriverRequest,
+  findActiveAssignmentForSlot,
+  notifyCompanyOnDriverAction,
+};

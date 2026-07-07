@@ -37,7 +37,7 @@ const getShipperContact = async (shipperRequestUniqueId) => {
   const [[row]] = await db().query(
     `SELECT u.userUniqueId, u.phoneNumber
      FROM ShipperRequest sr
-     JOIN Users u ON sr.shipperUserUniqueId = u.userUniqueId
+     JOIN Users u ON sr.userUniqueId = u.userUniqueId
      WHERE sr.shipperRequestUniqueId = ? LIMIT 1`,
     [shipperRequestUniqueId],
   );

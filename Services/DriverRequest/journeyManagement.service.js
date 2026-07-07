@@ -1,9 +1,9 @@
 const { v4: uuidv4 } = require("uuid");
-const { pool } = require("../../Middleware/Database.config");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { insertData } = require("../../CRUD/Create/CreateData");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
+const { notifyCompanyOnDriverAction } = require("../CompanyAssignment/assignmentHelper");
 const { createJourneyRoutePoint } = require("../JourneyRoutePoints.service");
 const {
   getJourneyDecisionByJourneyDecisionUniqueId,
@@ -182,6 +182,13 @@ const startJourney = async (body) => {
         });
       }
     }
+
+    // 🔔 Notify company + dispatcher if this is a company-targeted assignment
+    notifyCompanyOnDriverAction({
+      shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+      driverName: driverInfo?.driver?.fullName || "",
+      action: "started_journey",
+    });
 
     return {
       message: "success",
@@ -376,6 +383,13 @@ const completeJourney = async (body) => {
         });
       }
     }
+
+    // 🔔 Notify company + dispatcher if company-targeted assignment
+    notifyCompanyOnDriverAction({
+      shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+      driverName: driverInfo?.driver?.fullName || "",
+      action: "completed_journey",
+    });
 
     return {
       message: "success",
