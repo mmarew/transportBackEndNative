@@ -227,41 +227,67 @@ const sendSocketIONotificationToAdmin = async ({ message, eventName }) => {
   }
 };
 
-// 🔔 Notify all members of a company via WebSocket
+// 🔔 Notify company admin(s) via WebSocket
 const sendSocketIONotificationToCompany = async ({
   companyUniqueId,
+  phoneNumber,
   message,
   eventName,
-  userType = "company", // Company admins/dispatchers connect with user=company
+  userType = "company",
 }) => {
   try {
-    const [members] = await db().query(
-      `SELECT u.phoneNumber 
-       FROM CompanyMembership cm
-       JOIN Users u ON cm.userUniqueId = u.userUniqueId
-       WHERE cm.companyUniqueId = ? 
-         AND cm.isActive = 1 
-         AND cm.membershipDeletedAt IS NULL`,
-      [companyUniqueId],
-    );
+    const targets = [];
 
-    if (!members || members.length === 0) {
-      logger.debug("No members found for company to notify via socket", {
-        companyUniqueId,
-      });
-      return { status: "success", data: "No members to notify" };
+    if (phoneNumber) {
+      targets.push(phoneNumber);
+    } else if (companyUniqueId) {
+      const [members] = await db().query(
+        `SELECT u.phoneNumber
+         FROM CompanyMembership cm
+         JOIN Users u ON cm.userUniqueId = u.userUniqueId
+         WHERE cm.companyUniqueId = ?
+           AND cm.isActive = 1
+           AND cm.membershipDeletedAt IS NULL`,
+        [companyUniqueId],
+      );
+      if (members && members.length > 0) {
+        targets.push(...members.map((m) => m.phoneNumber));
+      }
     }
 
-    const results = await Promise.all(
-      members.map((member) =>
-        sendSocketIONotificationToDriver({
-          message,
-          phoneNumber: member.phoneNumber,
-          eventName,
-          userType,
-        }),
-      ),
-    );
+    if (targets.length === 0) {
+      logger.debug("No targets found for company notification", {
+        companyUniqueId,
+        phoneNumber,
+      });
+      return { status: "success", data: "No targets to notify" };
+    }
+
+    const results = [];
+    for (const targetPhone of targets) {
+      try {
+        const cleaned = cleanPhoneNumber(targetPhone);
+        if (!phoneNumberRegex.test(cleaned)) continue;
+
+        const socketId = await getSocket(userType, cleaned);
+        if (!socketId) continue;
+
+        const res = await emitMessage({
+          eventName: eventName || "messages",
+          messageDetails: JSON.stringify(message),
+          socketId,
+        });
+
+        if (res.status === "success" || res.message === "success") {
+          results.push({ status: "success", phoneNumber: cleaned });
+        }
+      } catch (err) {
+        logger.error("Error sending to company member", {
+          phoneNumber: targetPhone,
+          error: err.message,
+        });
+      }
+    }
 
     return { status: "success", data: results };
   } catch (error) {

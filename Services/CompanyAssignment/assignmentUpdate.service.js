@@ -308,15 +308,25 @@ exports.updateAssignmentStatus = async (
                 ? messageTypes.company_driver_cancelled
                 : messageTypes.company_driver_rejected,
               message: "success",
-              type: isMidJobCancel
-                ? "assignment_cancelled_by_driver"
-                : "assignment_rejected",
-              assignmentStatus: isMidJobCancel
-                ? "cancelled_by_driver"
-                : "rejected_by_driver",
-              assignmentUniqueId,
-              shipperRequestUniqueId: assignment.shipperRequestUniqueId,
-              companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+              notification: {
+                title: isMidJobCancel
+                  ? "Assignment Cancelled by Driver"
+                  : "Assignment Rejected",
+                body: isMidJobCancel
+                  ? `Driver ${driver?.fullName || ""} cancelled mid-job. Please reassign.`
+                  : `Driver ${driver?.fullName || ""} rejected the assignment. Please reassign.`,
+              },
+              data: {
+                type: isMidJobCancel
+                  ? "assignment_cancelled_by_driver"
+                  : "assignment_rejected",
+                assignmentStatus: isMidJobCancel
+                  ? "cancelled_by_driver"
+                  : "rejected_by_driver",
+                assignmentUniqueId,
+                shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+                companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+              },
             },
           }).catch((e) =>
             logger.error("WebSocket to company failed on driver reject", {
@@ -497,12 +507,18 @@ exports.updateAssignmentStatus = async (
             message: {
               messageTypes: messageTypes.company_driver_confirmed,
               message: "success",
-              type: "company_driver_confirmed",
-              assignmentStatus: "confirmed_by_driver",
-              assignmentUniqueId,
-              journeyDecisionUniqueId,
-              shipperRequestUniqueId: assignment.shipperRequestUniqueId,
-              companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+              notification: {
+                title: "Driver Confirmed",
+                body: `Driver ${driver?.fullName || ""} confirmed the freight assignment.`,
+              },
+              data: {
+                type: "company_driver_confirmed",
+                assignmentStatus: "confirmed_by_driver",
+                assignmentUniqueId,
+                journeyDecisionUniqueId,
+                shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+                companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+              },
             },
           }).catch((e) =>
             logger.error("WebSocket to company failed on driver confirm", {
@@ -613,11 +629,22 @@ exports.updateAssignmentStatus = async (
               message: {
                 messageTypes: socketMsgType,
                 message: "success",
-                type: "company_assignment_progress",
-                assignmentStatus,
-                assignmentUniqueId,
-                companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
-                shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+                notification: {
+                  title:
+                    assignmentStatus === "completed"
+                      ? "Delivery completed"
+                      : assignmentStatus === "journey_started"
+                        ? "Driver en route to destination"
+                        : "Driver heading to loading point",
+                  body: `Assignment ${assignmentUniqueId} status: ${assignmentStatus}.`,
+                },
+                data: {
+                  type: "company_assignment_progress",
+                  assignmentStatus,
+                  assignmentUniqueId,
+                  companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+                  shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+                },
               },
             }).catch((e) =>
               logger.error(

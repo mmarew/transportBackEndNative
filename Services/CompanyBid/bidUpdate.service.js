@@ -339,9 +339,12 @@ const updateBidStatus = async (
         message: {
           messageTypes: socketMsgType,
           message: "success",
-          bidStatus,
-          companyBidRequestUniqueId,
-          shipperRequestBatchId: bid.shipperRequestBatchId,
+          notification: notif,
+          data: {
+            bidStatus,
+            companyBidRequestUniqueId,
+            shipperRequestBatchId: bid.shipperRequestBatchId,
+          },
         },
       }).catch((e) =>
         logger.error("WebSocket notification failed for company bid status", {

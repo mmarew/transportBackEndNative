@@ -42,8 +42,14 @@ const sendBatchCancelNotifications = async ({
   const socketPayload = {
     messageTypes: messageTypes.company_bid_cancelled,
     message: "success",
-    status: cancelStatusId,
-    batchUniqueId
+    notification: {
+      title: "Bid Cancelled",
+      body: "The freight batch has been cancelled."
+    },
+    data: {
+      status: cancelStatusId,
+      batchUniqueId
+    }
   };
   const promises = [];
 
@@ -67,8 +73,14 @@ const sendBatchCancelNotifications = async ({
     const driverPayload = {
       messageTypes: cancelMsg,
       message: "success",
-      status: cancelStatusId,
-      batchUniqueId
+      notification: {
+        title: "Request cancelled",
+        body: "The freight batch has been cancelled."
+      },
+      data: {
+        status: cancelStatusId,
+        batchUniqueId
+      }
     };
 
     // WebSocket
@@ -105,8 +117,14 @@ const sendBatchCancelNotifications = async ({
     const shipperPayload = {
       messageTypes: cancelMsg,
       message: "success",
-      status: cancelStatusId,
-      batchUniqueId
+      notification: {
+        title: "Batch cancelled",
+        body: "Your freight batch has been cancelled."
+      },
+      data: {
+        status: cancelStatusId,
+        batchUniqueId
+      }
     };
 
     // WebSocket (catches the case where another device/tab is open)

@@ -1,8 +1,6 @@
 "use strict";
 
-const {
-  db,
-} = require("../CompanyHelper.service");
+const { db } = require("../CompanyHelper.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 const messageTypes = require("../../Utils/MessageTypes");
 const logger = require("../../Utils/logger");
@@ -91,28 +89,31 @@ exports.upsertBatch = async ({
       const {
         sendSocketIONotificationToCompany,
       } = require("../../Utils/Notifications");
-      let shipperName = "A shipper";
-      if (shipperUserUniqueId) {
-        const [[shipperRow]] = await db().query(
-          "SELECT fullName FROM Users WHERE userUniqueId = ? LIMIT 1",
-          [shipperUserUniqueId],
-        );
-        if (shipperRow) shipperName = shipperRow.fullName;
-      }
 
+      const [[batch]] = await db().query(
+        `SELECT b.*,
+                b.batchUniqueId AS shipperRequestBatchId,
+                u.fullName AS shipperName,
+                u.phoneNumber AS shipperPhone,
+                vt.vehicleTypeName,
+                js.journeyStatusName
+         FROM ShipperRequestBatch b
+         LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+         LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+         LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+         WHERE b.batchUniqueId = ?`,
+        [batchUniqueId],
+      );
+
+      const shipperName = batch?.shipperName || "A shipper";
       const message = {
         messageTypes: messageTypes.company_batch_available,
         message: "success",
-        batchUniqueId,
-        shipperName,
-        shipperUserUniqueId,
-        originPlace,
-        destinationPlace,
-        shippableItemName,
-        shippableItemQtyInQuintal,
-        totalVehicles: totalVehicles || 1,
-        shippingCost,
-        requestMode,
+        notification: {
+          title: "New Freight Batch Available",
+          body: `${shipperName} has posted a new freight job for your company.`,
+        },
+        data: batch || null,
       };
 
       if (targetCompanyUniqueId) {
@@ -126,20 +127,16 @@ exports.upsertBatch = async ({
           }),
         );
       } else {
-        // No specific target — notify all active companies
-        const [companies] = await db().query(
-          "SELECT companyUniqueId FROM TransportCompany WHERE isDeleted = 0 AND companyDeletedAt IS NULL",
-        );
-        for (const company of companies) {
-          sendSocketIONotificationToCompany({
-            companyUniqueId: company.companyUniqueId,
-            message,
-          }).catch((e) =>
-            logger.error("WebSocket notification to company failed", {
-              error: e.message,
-              companyUniqueId: company.companyUniqueId,
-            }),
-          );
+        // Broadcast to all connected company sockets directly
+        // (no DB query needed — WSPusher already stores sockets in memory)
+        const { socketIO } = require("../../Utils/WsServerResponder");
+        const io = socketIO.io;
+        if (io) {
+          for (const sock of io.sockets.sockets.values()) {
+            if (sock.userType === "company") {
+              sock.emit("messages", JSON.stringify(message));
+            }
+          }
         }
       }
     }
