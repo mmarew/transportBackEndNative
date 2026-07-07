@@ -17,6 +17,7 @@ const logger = require("../../Utils/logger");
 const messageTypes = require("../../Utils/MessageTypes");
 const {
   sendSocketIONotificationToCompany,
+  sendSocketIONotificationToShipper,
 } = require("../../Utils/Notifications");
 
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
@@ -30,6 +31,17 @@ const getCompanyUniqueId = async (companyBidRequestUniqueId) => {
     [companyBidRequestUniqueId],
   );
   return bid?.companyUniqueId || null;
+};
+
+const getShipperContact = async (shipperRequestUniqueId) => {
+  const [[row]] = await db().query(
+    `SELECT u.userUniqueId, u.phoneNumber
+     FROM ShipperRequest sr
+     JOIN Users u ON sr.shipperUserUniqueId = u.userUniqueId
+     WHERE sr.shipperRequestUniqueId = ? LIMIT 1`,
+    [shipperRequestUniqueId],
+  );
+  return row || null;
 };
 
 const {
@@ -338,6 +350,61 @@ exports.updateAssignmentStatus = async (
       },
     );
 
+    // 🔔 Notify shipper about driver rejection / cancellation
+    getShipperContact(assignment.shipperRequestUniqueId).then(
+      (shipper) => {
+        if (shipper) {
+          const shipperNotif = {
+            title: isMidJobCancel
+              ? "Driver Cancelled Assignment"
+              : "Driver Rejected Assignment",
+            body: isMidJobCancel
+              ? `Driver ${driver?.fullName || ""} cancelled mid-job on your freight batch.`
+              : `Driver ${driver?.fullName || ""} rejected the freight assignment.`,
+          };
+          const shipperData = {
+            type: isMidJobCancel
+              ? "assignment_cancelled_by_driver"
+              : "assignment_rejected",
+            assignmentStatus: isMidJobCancel
+              ? "cancelled_by_driver"
+              : "rejected_by_driver",
+            assignmentUniqueId,
+            companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+          };
+
+          sendFCMNotificationToUser({
+            userUniqueId: shipper.userUniqueId,
+            roleId: usersRoles.shipperRoleId,
+            notification: shipperNotif,
+            data: shipperData,
+          }).catch((e) =>
+            logger.error("FCM failed for shipper on driver reject", {
+              error: e.message,
+              assignmentUniqueId,
+            }),
+          );
+
+          sendSocketIONotificationToShipper({
+            phoneNumber: shipper.phoneNumber,
+            message: {
+              messageTypes: isMidJobCancel
+                ? messageTypes.company_driver_cancelled
+                : messageTypes.company_driver_rejected,
+              message: "success",
+              notification: shipperNotif,
+              data: shipperData,
+            },
+          }).catch((e) =>
+            logger.warn("WebSocket to shipper failed on driver reject", {
+              error: e.message,
+              assignmentUniqueId,
+            }),
+          );
+        }
+      },
+    );
+
     // Normalise legacy 'cancelled' to the correct ENUM value
     if (assignmentStatus === "cancelled") {
       assignmentStatus = "cancelled_by_driver";
@@ -478,6 +545,13 @@ exports.updateAssignmentStatus = async (
 
     await db().query(drUpdateQuery, drUpdateVals);
 
+    // Fetch driver name for notifications (not in scope in this block)
+    const [[driverRow]] = await db().query(
+      "SELECT fullName FROM Users WHERE userUniqueId = ? LIMIT 1",
+      [assignment.driverUserUniqueId],
+    );
+    const driverName = driverRow?.fullName || "";
+
     sendFCMNotificationToUser({
       userUniqueId: assignment.driverUserUniqueId,
       roleId: usersRoles.driverRoleId,
@@ -509,7 +583,7 @@ exports.updateAssignmentStatus = async (
               message: "success",
               notification: {
                 title: "Driver Confirmed",
-                body: `Driver ${driver?.fullName || ""} confirmed the freight assignment.`,
+                body: `Driver ${driverName} confirmed the freight assignment.`,
               },
               data: {
                 type: "company_driver_confirmed",
@@ -524,6 +598,51 @@ exports.updateAssignmentStatus = async (
             logger.error("WebSocket to company failed on driver confirm", {
               error: e.message,
               companyUniqueId,
+            }),
+          );
+        }
+      },
+    );
+
+    // 🔔 Notify shipper that driver confirmed
+    getShipperContact(assignment.shipperRequestUniqueId).then(
+      (shipper) => {
+        if (shipper) {
+          const shipperNotif = {
+            title: "Driver Confirmed",
+            body: `Driver ${driverName} confirmed the freight assignment for your batch.`,
+          };
+          const shipperData = {
+            type: "company_driver_confirmed",
+            assignmentStatus: "confirmed_by_driver",
+            assignmentUniqueId,
+            companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+          };
+
+          sendFCMNotificationToUser({
+            userUniqueId: shipper.userUniqueId,
+            roleId: usersRoles.shipperRoleId,
+            notification: shipperNotif,
+            data: shipperData,
+          }).catch((e) =>
+            logger.error("FCM failed for shipper on driver confirm", {
+              error: e.message,
+              assignmentUniqueId,
+            }),
+          );
+
+          sendSocketIONotificationToShipper({
+            phoneNumber: shipper.phoneNumber,
+            message: {
+              messageTypes: messageTypes.company_driver_confirmed,
+              message: "success",
+              notification: shipperNotif,
+              data: shipperData,
+            },
+          }).catch((e) =>
+            logger.warn("WebSocket to shipper failed on driver confirm", {
+              error: e.message,
+              assignmentUniqueId,
             }),
           );
         }
@@ -654,6 +773,56 @@ exports.updateAssignmentStatus = async (
                   companyUniqueId,
                 },
               ),
+            );
+          }
+        },
+      );
+
+      // 🔔 Notify shipper about driver progress
+      getShipperContact(assignment.shipperRequestUniqueId).then(
+        (shipper) => {
+          if (shipper) {
+            const shipperNotif = {
+              title:
+                assignmentStatus === "completed"
+                  ? "Delivery completed"
+                  : assignmentStatus === "journey_started"
+                    ? "Driver en route to destination"
+                    : "Driver heading to loading point",
+              body: `Assignment ${assignmentUniqueId} status: ${assignmentStatus}.`,
+            };
+            const shipperData = {
+              type: "company_assignment_progress",
+              assignmentStatus,
+              assignmentUniqueId,
+              companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
+            };
+
+            sendFCMNotificationToUser({
+              userUniqueId: shipper.userUniqueId,
+              roleId: usersRoles.shipperRoleId,
+              notification: shipperNotif,
+              data: shipperData,
+            }).catch((e) =>
+              logger.error("FCM failed for shipper on progress update", {
+                error: e.message,
+                assignmentUniqueId,
+              }),
+            );
+
+            sendSocketIONotificationToShipper({
+              phoneNumber: shipper.phoneNumber,
+              message: {
+                messageTypes: socketMsgType,
+                message: "success",
+                notification: shipperNotif,
+                data: shipperData,
+              },
+            }).catch((e) =>
+              logger.warn("WebSocket to shipper failed on progress update", {
+                error: e.message,
+                assignmentUniqueId,
+              }),
             );
           }
         },

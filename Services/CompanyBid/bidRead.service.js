@@ -111,25 +111,28 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     batchParams.push(shipperUserUniqueId);
   }
 
-  // If company is specified, we must only return batches that have at least one bid from that company.
-  // The EXISTS subquery also respects any offer-level filters (bidStatus, isCancellationSeenByCompany).
+  // We must only return batches that have at least one bid matching the
+  // offer-level filters (companyUniqueId / bidStatus / isCancellationSeenByCompany).
+  const existsClauses = [
+    "cbr.shipperRequestBatchId = b.batchUniqueId",
+    "cbr.companyBidRequestDeletedAt IS NULL",
+  ];
+
   if (companyUniqueId) {
-    const existsClauses = [
-      "cbr.shipperRequestBatchId = b.batchUniqueId",
-      "cbr.companyUniqueId = ?",
-      "cbr.companyBidRequestDeletedAt IS NULL",
-    ];
+    existsClauses.push("cbr.companyUniqueId = ?");
     batchParams.push(companyUniqueId);
+  }
+  if (filters.bidStatus) {
+    existsClauses.push("cbr.bidStatus = ?");
+    batchParams.push(filters.bidStatus);
+  }
+  if (filters.isCancellationSeenByCompany) {
+    existsClauses.push("cbr.isCancellationSeenByCompany = ?");
+    batchParams.push(filters.isCancellationSeenByCompany);
+  }
 
-    if (filters.bidStatus) {
-      existsClauses.push("cbr.bidStatus = ?");
-      batchParams.push(filters.bidStatus);
-    }
-    if (filters.isCancellationSeenByCompany) {
-      existsClauses.push("cbr.isCancellationSeenByCompany = ?");
-      batchParams.push(filters.isCancellationSeenByCompany);
-    }
-
+  // Only add the EXISTS clause when at least one offer-level filter is active
+  if (existsClauses.length > 2) {
     batchClauses.push(
       `EXISTS (
         SELECT 1 FROM CompanyBidRequest cbr

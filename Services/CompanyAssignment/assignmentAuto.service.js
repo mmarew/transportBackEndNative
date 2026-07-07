@@ -4,7 +4,13 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const { db, findOne } = require("../CompanyHelper.service");
-const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
+const messageTypes = require("../../Utils/MessageTypes");
+const { sendFCMNotificationToUser } = require("../Firebase.service");
+const {
+  sendSocketIONotificationToShipper,
+} = require("../../Utils/Notifications");
+const logger = require("../../Utils/logger");
 
 const {
   createJourneyDecisionForAssignment,
@@ -215,6 +221,66 @@ exports.autoAssignBatch = async (data) => {
       shipperRequestUniqueId: item.shipperRequestUniqueId,
       journeyDecisionUniqueId,
     });
+  }
+
+  // ── Notify the shipper that driver(s) have been assigned ────────────────
+  if (results.length > 0) {
+    try {
+      const [[shipperRow]] = await db().query(
+        `SELECT u.userUniqueId, u.phoneNumber
+         FROM ShipperRequestBatch b
+         JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+         WHERE b.batchUniqueId = ? LIMIT 1`,
+        [bid.shipperRequestBatchId],
+      );
+
+      if (shipperRow) {
+        const shipperNotif = {
+          title: "Driver Assigned",
+          body: `${results.length} driver(s) have been assigned to your freight batch.`,
+        };
+        const shipperData = {
+          type: "company_assignment_created",
+          companyBidRequestUniqueId,
+          assignments: results.map((r) => ({
+            assignmentUniqueId: r.assignmentUniqueId,
+            shipperRequestUniqueId: r.shipperRequestUniqueId,
+          })),
+        };
+
+        sendFCMNotificationToUser({
+          userUniqueId: shipperRow.userUniqueId,
+          roleId: usersRoles.shipperRoleId,
+          notification: shipperNotif,
+          data: shipperData,
+        }).catch((e) =>
+          logger.error("FCM failed for shipper assignment notification", {
+            error: e.message,
+            companyBidRequestUniqueId,
+          }),
+        );
+
+        sendSocketIONotificationToShipper({
+          phoneNumber: shipperRow.phoneNumber,
+          message: {
+            messageTypes: messageTypes.company_driver_assignment,
+            message: "success",
+            notification: shipperNotif,
+            data: shipperData,
+          },
+        }).catch((e) =>
+          logger.warn(
+            "WebSocket failed for shipper assignment notification",
+            { error: e.message, companyBidRequestUniqueId },
+          ),
+        );
+      }
+    } catch (e) {
+      logger.error("Failed to notify shipper about auto-assignment", {
+        error: e.message,
+        companyBidRequestUniqueId,
+      });
+    }
   }
 
   const unassignedCount = unassignedSlots.length - results.length;
