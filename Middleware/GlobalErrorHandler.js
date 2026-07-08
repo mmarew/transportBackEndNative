@@ -56,11 +56,13 @@ const sendErrorProd = (err, req, res) => {
     logger.application.apiError(err, req);
   }
 
+  // 4xx = client mistake (safe to expose), 5xx = server fault (mask internals)
+  const isClientError = err.statusCode >= 400 && err.statusCode < 500;
   ServerResponder(
     res,
     {
       status: "error",
-      error: "Internal server error",
+      error: isClientError ? err.message : "Internal server error",
     },
     err.statusCode || 500,
   );

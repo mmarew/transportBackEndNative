@@ -83,6 +83,9 @@ const Config = {
     FROM: process.env.SMTP_FROM,
   },
 
+  // Allow test OTP (101010) even in production
+  USE_TEST_OTP: process.env.USE_TEST_OTP === "true",
+
   // Testing (CI/CD)
   TEST: {
     TOKEN: process.env.TEST_TOKEN,

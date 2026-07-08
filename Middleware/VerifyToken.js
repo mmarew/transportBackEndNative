@@ -24,7 +24,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
     });
 
     if (user.length === 0) {
-      return next(new AppError("User not found in the token", 401));
+      return next(new AppError("Invalid token", 401));
     }
 
     const userRow = user[0];

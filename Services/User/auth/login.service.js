@@ -208,9 +208,9 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   if (!userDataResult || userDataResult.length === 0) {
     throw new AppError(
       phoneNumber
-        ? "Invalid phone number"
+        ? "User not found with this phone number. Please register first."
         : email
-          ? "Invalid email address"
+          ? "User not found with this email address. Please register first."
           : "Invalid credentials",
       404,
     );
@@ -225,7 +225,10 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   // Find the specific role the user is trying to log into
   const roleEntry = userDataResult.find((row) => row.roleId === roleId);
   if (!roleEntry) {
-    throw new AppError("Invalid credentials", 404);
+    throw new AppError(
+      `User exists but not registered as the requested role. Please register first.`,
+      404,
+    );
   }
   return await handleExistingUser({
     requestedFrom: "user",

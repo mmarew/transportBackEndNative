@@ -187,7 +187,7 @@ if (!isServerless) {
       format: Config.NODE_ENV === "production" 
         ? combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), json())
         : combine(colorize(), timestamp({ format: "HH:mm:ss" }), consoleFormat),
-      level: "error",
+      level: Config.NODE_ENV === "production" ? "error" : "info",
     }),
   );
 }
