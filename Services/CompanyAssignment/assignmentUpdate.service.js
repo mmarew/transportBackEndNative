@@ -20,6 +20,8 @@ const {
   sendSocketIONotificationToShipper,
 } = require("../../Utils/Notifications");
 
+
+
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
 
 /**
@@ -52,7 +54,10 @@ const {
   notifyAssignedDriver,
   upsertDriverRequest,
   findActiveAssignmentForSlot,
+  getFullAssignmentData,
 } = require("./assignmentHelper");
+
+const { notifyShipperOnAssignment } = require("./assignmentCreate.service");
 
 /**
  * createBulkAssignments
@@ -160,6 +165,16 @@ exports.createBulkAssignments = async (data) => {
     });
   }
 
+  // ── Notify shipper about all assigned drivers ─────────────────────────────
+  notifyShipperOnAssignment({
+    companyBidRequestUniqueId,
+    shipperRequestBatchId: bid.shipperRequestBatchId,
+    results: results.map((r) => ({
+      assignmentUniqueId: r.assignmentUniqueId,
+      shipperRequestUniqueId: r.shipperRequestUniqueId,
+    })),
+  });
+
   return { message: "success", data: results };
 };
 
@@ -251,6 +266,17 @@ exports.updateAssignmentStatus = async (
     throw new AppError("Assignment has been deleted", 400);
   }
 
+  // Fetch full assignment with joins — matches GET /api/company/assignments shape
+  let fullAssignment = null;
+  try {
+    fullAssignment = await getFullAssignmentData(assignmentUniqueId);
+  } catch (e) {
+    logger.warn("Failed to fetch full assignment data", {
+      error: e.message,
+      assignmentUniqueId,
+    });
+  }
+
   // ── REJECTION & CANCELLATION HANDLER (Clean up state + Notify Dispatcher) ──
   //
   // Three terminal-cancel statuses a driver can set:
@@ -328,7 +354,7 @@ exports.updateAssignmentStatus = async (
                   ? `Driver ${driver?.fullName || ""} cancelled mid-job. Please reassign.`
                   : `Driver ${driver?.fullName || ""} rejected the assignment. Please reassign.`,
               },
-              data: {
+              data: fullAssignment || {
                 type: isMidJobCancel
                   ? "assignment_cancelled_by_driver"
                   : "assignment_rejected",
@@ -585,7 +611,7 @@ exports.updateAssignmentStatus = async (
                 title: "Driver Confirmed",
                 body: `Driver ${driverName} confirmed the freight assignment.`,
               },
-              data: {
+              data: fullAssignment || {
                 type: "company_driver_confirmed",
                 assignmentStatus: "confirmed_by_driver",
                 assignmentUniqueId,
@@ -717,7 +743,7 @@ exports.updateAssignmentStatus = async (
               : "Driver heading to loading point",
         body: `Assignment ${assignmentUniqueId} status updated to: ${assignmentStatus}.`,
       },
-      data: {
+      data: fullAssignment || {
         type: "company_assignment_progress",
         assignmentStatus,
         assignmentUniqueId,
@@ -757,7 +783,7 @@ exports.updateAssignmentStatus = async (
                         : "Driver heading to loading point",
                   body: `Assignment ${assignmentUniqueId} status: ${assignmentStatus}.`,
                 },
-                data: {
+                data: fullAssignment || {
                   type: "company_assignment_progress",
                   assignmentStatus,
                   assignmentUniqueId,

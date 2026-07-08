@@ -39,6 +39,37 @@ const sendBatchCancelNotifications = async ({
   shipper
 }) => {
   const cancelMsg = cancelStatusId === journeyStatusMap.cancelledByAdmin ? messageTypes.admin_cancelled_request : messageTypes.shipper_cancelled_request;
+
+  // Fetch full batch record matching GET /api/company/bids batch shape
+  let fullBatch = null;
+  try {
+    const [[batch]] = await db().query(
+      `SELECT b.batchUniqueId,
+              b.batchUniqueId AS shipperRequestBatchId,
+              b.batchId,
+              b.originPlace, b.originLatitude, b.originLongitude,
+              b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
+              b.shippableItemName, b.shippableItemQtyInQuintal,
+              b.totalVehicles,
+              b.shippingCost AS batchShippingCost,
+              b.shippingDate AS batchShippingDate,
+              b.deliveryDate AS batchDeliveryDate,
+              b.journeyStatusId, b.requestMode, b.batchCreatedAt,
+              u.fullName AS shipperName,
+              vt.vehicleTypeName,
+              js.journeyStatusName
+       FROM ShipperRequestBatch b
+       LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+       LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+       LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+       WHERE b.batchUniqueId = ? LIMIT 1`,
+      [batchUniqueId],
+    );
+    fullBatch = batch;
+  } catch (e) {
+    logger.warn("Failed to fetch batch for cancel notification", { error: e.message, batchUniqueId });
+  }
+
   const socketPayload = {
     messageTypes: messageTypes.company_bid_cancelled,
     message: "success",
@@ -46,10 +77,10 @@ const sendBatchCancelNotifications = async ({
       title: "Bid Cancelled",
       body: "The freight batch has been cancelled."
     },
-    data: {
-      status: cancelStatusId,
-      batchUniqueId
-    }
+    data: fullBatch || {
+      batchUniqueId,
+      cancelStatusId,
+    },
   };
   const promises = [];
 
@@ -162,6 +193,7 @@ module.exports = {
 };
 
 
+const { db } = require("../../../Services/CompanyHelper.service");
 const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
 const messageTypes = require("../../../Utils/MessageTypes");
 const { sendSocketIONotificationToCompany } = require("../../../Utils/Notifications");

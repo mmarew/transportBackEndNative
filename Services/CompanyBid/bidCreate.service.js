@@ -11,7 +11,8 @@ const logger = require("../../Utils/logger");
 
 
 const messageTypes = require("../../Utils/MessageTypes");
-const { journeyStatusMap} = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
+const { sendFCMNotificationToUser } = require("../Firebase.service");
 
 /**
  * ### CORE LOGIC - Submit a Freight Bid
@@ -220,23 +221,46 @@ const submitBid = async (data) => {
     );
 
     if (shipperRows?.[0]?.phoneNumber) {
+      const shipperNotif = {
+        title: "New Company Bid",
+        body: `${company.companyName} has submitted a bid for your freight.`,
+      };
+      const shipperData = {
+        type: "company_bid_submitted",
+        companyBidRequestUniqueId,
+        companyName: company.companyName,
+        shipperRequestBatchId,
+        proposedTotalCost: calculatedTotalCost,
+      };
+
+      // FCM — wakes app if shipper is offline
+      sendFCMNotificationToUser({
+        userUniqueId: shipperUserUniqueId,
+        roleId: usersRoles.shipperRoleId,
+        notification: shipperNotif,
+        data: shipperData,
+      }).catch((e) =>
+        logger.error("FCM to shipper failed in submitBid", {
+          error: e.message,
+          shipperUserUniqueId,
+        }),
+      );
+
+      // WebSocket — instant delivery when app is open
       const {
         sendSocketIONotificationToShipper} = require("../../Utils/Notifications");
       sendSocketIONotificationToShipper({
         phoneNumber: shipperRows[0].phoneNumber,
         message: {
           messageTypes: messageTypes.company_bid_submitted,
-          notification: {
-            title: "New Company Bid",
-            body: `${company.companyName} has submitted a bid for your freight.`},
-          data: {
-            companyBidRequestUniqueId,
-            companyName: company.companyName,
-            shipperRequestBatchId,
-            proposedTotalCost: calculatedTotalCost}}}).catch((e) =>
+          notification: shipperNotif,
+          data: shipperData,
+        },
+      }).catch((e) =>
         logger.error("WebSocket notification to shipper failed in submitBid", {
           error: e.message,
-          shipperUserUniqueId}),
+          shipperUserUniqueId,
+        }),
       );
     }
   }

@@ -92,10 +92,18 @@ exports.upsertBatch = async ({
       } = require("../../Utils/Notifications");
 
       const [[batch]] = await db().query(
-        `SELECT b.*,
+        `SELECT b.batchUniqueId,
                 b.batchUniqueId AS shipperRequestBatchId,
+                b.batchId,
+                b.originPlace, b.originLatitude, b.originLongitude,
+                b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
+                b.shippableItemName, b.shippableItemQtyInQuintal,
+                b.totalVehicles,
+                b.shippingCost AS batchShippingCost,
+                b.shippingDate AS batchShippingDate,
+                b.deliveryDate AS batchDeliveryDate,
+                b.journeyStatusId, b.requestMode, b.batchCreatedAt,
                 u.fullName AS shipperName,
-                u.phoneNumber AS shipperPhone,
                 vt.vehicleTypeName,
                 js.journeyStatusName
          FROM ShipperRequestBatch b
@@ -142,36 +150,39 @@ exports.upsertBatch = async ({
 
         // Fire-and-forget FCM to all company admins as offline fallback
         const { sendFCMNotificationToUser } = require("../Firebase.service");
-        db().query(
-          `SELECT u.userUniqueId
+        db()
+          .query(
+            `SELECT u.userUniqueId
            FROM TransportCompany tc
            JOIN Users u ON tc.companyCreatedBy = u.userUniqueId
            WHERE tc.isDeleted = 0 AND tc.companyDeletedAt IS NULL`,
-        ).then(([rows]) => {
-          for (const row of rows) {
-            sendFCMNotificationToUser({
-              userUniqueId: row.userUniqueId,
-              roleId: usersRoles.companyAdminRoleId,
-              notification: {
-                title: "New Freight Batch Available",
-                body: `${shipperName} has posted a new freight job for your company.`,
-              },
-              data: {
-                type: "company_batch_available",
-                batchUniqueId,
-              },
-            }).catch((e) =>
-              logger.warn("FCM fallback failed for company admin", {
-                error: e.message,
+          )
+          .then(([rows]) => {
+            for (const row of rows) {
+              sendFCMNotificationToUser({
                 userUniqueId: row.userUniqueId,
-              }),
-            );
-          }
-        }).catch((e) =>
-          logger.warn("Failed to fetch companies for FCM fallback", {
-            error: e.message,
-          }),
-        );
+                roleId: usersRoles.companyAdminRoleId,
+                notification: {
+                  title: "New Freight Batch Available",
+                  body: `${shipperName} has posted a new freight job for your company.`,
+                },
+                data: {
+                  type: "company_batch_available",
+                  batchUniqueId,
+                },
+              }).catch((e) =>
+                logger.warn("FCM fallback failed for company admin", {
+                  error: e.message,
+                  userUniqueId: row.userUniqueId,
+                }),
+              );
+            }
+          })
+          .catch((e) =>
+            logger.warn("Failed to fetch companies for FCM fallback", {
+              error: e.message,
+            }),
+          );
       }
     }
   } else {

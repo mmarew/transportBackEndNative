@@ -4,9 +4,12 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const { db, findOne } = require("../CompanyHelper.service");
-const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
 const logger = require("../../Utils/logger");
+const messageTypes = require("../../Utils/MessageTypes");
+const { sendFCMNotificationToUser } = require("../Firebase.service");
+const { sendSocketIONotificationToShipper } = require("../../Utils/Notifications");
 
 const { getShipperRequestByUniqueId } = require("../ShipperRequest");
 
@@ -170,6 +173,16 @@ exports.createAssignment = async (data) => {
     companyBidRequestUniqueId,
   });
 
+  // ── Notify shipper that a driver was assigned ─────────────────────────
+  notifyShipperOnAssignment({
+    companyBidRequestUniqueId,
+    shipperRequestBatchId: bid.shipperRequestBatchId,
+    results: [{
+      assignmentUniqueId,
+      shipperRequestUniqueId,
+    }],
+  });
+
   return {
     message: "success",
     data: {
@@ -287,5 +300,85 @@ exports.createBulkAssignments = async (data) => {
     });
   }
 
+  // ── Notify shipper about all assigned drivers ─────────────────────────────
+  notifyShipperOnAssignment({
+    companyBidRequestUniqueId,
+    shipperRequestBatchId: bid.shipperRequestBatchId,
+    results: results.map((r) => ({
+      assignmentUniqueId: r.assignmentUniqueId,
+      shipperRequestUniqueId: r.shipperRequestUniqueId,
+    })),
+  });
+
   return { message: "success", data: results };
 };
+
+/**
+ * Notify shipper that driver(s) have been assigned to their batch.
+ * Shared by createAssignment and createBulkAssignments.
+ */
+async function notifyShipperOnAssignment({
+  companyBidRequestUniqueId,
+  shipperRequestBatchId,
+  results,
+}) {
+  if (!results || results.length === 0) return;
+  try {
+    const [[shipperRow]] = await db().query(
+      `SELECT u.userUniqueId, u.phoneNumber
+       FROM ShipperRequestBatch b
+       JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+       WHERE b.batchUniqueId = ? LIMIT 1`,
+      [shipperRequestBatchId],
+    );
+    if (!shipperRow) return;
+
+    const count = results.length;
+    const shipperNotif = {
+      title: "Driver Assigned",
+      body: `${count} driver(s) have been assigned to your freight batch.`,
+    };
+    const shipperData = {
+      type: "company_assignment_created",
+      companyBidRequestUniqueId,
+      assignments: results.map((r) => ({
+        assignmentUniqueId: r.assignmentUniqueId,
+        shipperRequestUniqueId: r.shipperRequestUniqueId,
+      })),
+    };
+
+    sendFCMNotificationToUser({
+      userUniqueId: shipperRow.userUniqueId,
+      roleId: usersRoles.shipperRoleId,
+      notification: shipperNotif,
+      data: shipperData,
+    }).catch((e) =>
+      logger.error("FCM failed for shipper assignment notification", {
+        error: e.message,
+        companyBidRequestUniqueId,
+      }),
+    );
+
+    sendSocketIONotificationToShipper({
+      phoneNumber: shipperRow.phoneNumber,
+      message: {
+        messageTypes: messageTypes.company_driver_assignment,
+        message: "success",
+        notification: shipperNotif,
+        data: shipperData,
+      },
+    }).catch((e) =>
+      logger.warn("WebSocket failed for shipper assignment notification", {
+        error: e.message,
+        companyBidRequestUniqueId,
+      }),
+    );
+  } catch (e) {
+    logger.error("Failed to notify shipper about assignment", {
+      error: e.message,
+      companyBidRequestUniqueId,
+    });
+  }
+}
+
+exports.notifyShipperOnAssignment = notifyShipperOnAssignment;

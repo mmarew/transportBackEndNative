@@ -573,6 +573,32 @@ async function findActiveAssignmentForSlot(
 }
 
 /**
+ * ### Full assignment data — matches GET /api/company/assignments response shape.
+ *
+ * Queries the assignment with all joined fields so WS notification `data`
+ * is identical to what the REST API returns.
+ */
+async function getFullAssignmentData(assignmentUniqueId) {
+  const [[row]] = await db().query(
+    `SELECT cba.*,
+            u.fullName        AS driverName,
+            u.phoneNumber     AS driverPhone,
+            v.licensePlate,
+            vt.vehicleTypeName,
+            dr.journeyStatusId
+     FROM CompanyBidVehicleAssignment cba
+     LEFT JOIN Users u        ON cba.driverUserUniqueId     = u.userUniqueId
+     LEFT JOIN Vehicle v      ON cba.vehicleUniqueId        = v.vehicleUniqueId
+     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId     = vt.vehicleTypeUniqueId
+     LEFT JOIN DriverRequest dr ON cba.driverRequestUniqueId = dr.driverRequestUniqueId
+     WHERE cba.assignmentUniqueId = ?
+     LIMIT 1`,
+    [assignmentUniqueId],
+  );
+  return row || null;
+}
+
+/**
  * ### Notify company + dispatcher when a driver acts on a company assignment.
  *
  * Queries `CompanyBidVehicleAssignment` for the given `shipperRequestUniqueId`.
@@ -596,7 +622,7 @@ const notifyCompanyOnDriverAction = async ({
   if (!shipperRequestUniqueId || !action) return;
 
   try {
-    const [[companyAssignment]] = await db().query(
+    const [[assignment]] = await db().query(
       `SELECT cba.assignmentUniqueId, cba.companyBidRequestUniqueId,
               cba.assignmentCreatedBy, cbr.companyUniqueId
        FROM CompanyBidVehicleAssignment cba
@@ -607,7 +633,10 @@ const notifyCompanyOnDriverAction = async ({
       [shipperRequestUniqueId],
     );
 
-    if (!companyAssignment) return;
+    if (!assignment) return;
+
+    // Fetch full record matching GET /api/company/assignments response shape
+    const fullAssignment = await getFullAssignmentData(assignment.assignmentUniqueId);
 
     const actionConfig = {
       started_journey: {
@@ -643,16 +672,16 @@ const notifyCompanyOnDriverAction = async ({
     }
 
     const companyNotif = { title: config.title, body: config.body };
-    const companyData = {
+    const companyData = fullAssignment || {
       type: config.type,
-      assignmentUniqueId: companyAssignment.assignmentUniqueId,
+      assignmentUniqueId: assignment.assignmentUniqueId,
       shipperRequestUniqueId,
-      companyBidRequestUniqueId: companyAssignment.companyBidRequestUniqueId,
+      companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
     };
 
     // FCM to the dispatcher / company admin who created the assignment
     sendFCMNotificationToUser({
-      userUniqueId: companyAssignment.assignmentCreatedBy,
+      userUniqueId: assignment.assignmentCreatedBy,
       roleId: usersRoles.companyAdminRoleId,
       notification: companyNotif,
       data: companyData,
@@ -666,7 +695,7 @@ const notifyCompanyOnDriverAction = async ({
 
     // WebSocket to all online company members
     sendSocketIONotificationToCompany({
-      companyUniqueId: companyAssignment.companyUniqueId,
+      companyUniqueId: assignment.companyUniqueId,
       message: {
         messageTypes: config.messageType,
         message: "success",
@@ -677,7 +706,7 @@ const notifyCompanyOnDriverAction = async ({
       logger.warn("WebSocket to company failed on driver action", {
         error: e.message,
         action,
-        companyUniqueId: companyAssignment.companyUniqueId,
+        companyUniqueId: assignment.companyUniqueId,
       }),
     );
   } catch (e) {
@@ -695,4 +724,5 @@ module.exports = {
   upsertDriverRequest,
   findActiveAssignmentForSlot,
   notifyCompanyOnDriverAction,
+  getFullAssignmentData,
 };
