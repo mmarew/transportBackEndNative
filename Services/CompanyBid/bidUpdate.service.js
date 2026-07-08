@@ -324,6 +324,43 @@ const updateBidStatus = async (
   );
   if (offerRow) fullBid = offerRow;
 
+  // Fetch the batch record and wrap offer inside it, matching GET /api/company/bids shape
+  let companyBidPayload = null;
+  if (fullBid) {
+    try {
+      const [[batchRow]] = await db().query(
+        `SELECT b.batchUniqueId,
+                b.batchUniqueId AS shipperRequestBatchId,
+                b.batchId,
+                b.originPlace, b.originLatitude, b.originLongitude,
+                b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
+                b.shippableItemName, b.shippableItemQtyInQuintal,
+                b.totalVehicles,
+                b.shippingCost AS batchShippingCost,
+                b.shippingDate AS batchShippingDate,
+                b.deliveryDate AS batchDeliveryDate,
+                b.journeyStatusId, b.requestMode, b.batchCreatedAt,
+                u.fullName AS shipperName,
+                vt.vehicleTypeName,
+                js.journeyStatusName
+         FROM ShipperRequestBatch b
+         LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+         LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+         LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+         WHERE b.batchUniqueId = ? LIMIT 1`,
+        [bid.shipperRequestBatchId],
+      );
+      if (batchRow) {
+        companyBidPayload = { ...batchRow, offerCount: 1, offers: [fullBid] };
+      }
+    } catch (e) {
+      logger.warn("Failed to fetch batch for bid notification wrapper", {
+        error: e.message,
+        companyBidRequestUniqueId,
+      });
+    }
+  }
+
   const notificationMap = {
     accepted_by_shipper: {
       title: "Bid accepted",
@@ -375,7 +412,7 @@ const updateBidStatus = async (
           messageTypes: socketMsgType,
           message: "success",
           notification: notif,
-          data: fullBid || {
+          data: companyBidPayload || fullBid || {
             bidStatus,
             companyBidRequestUniqueId,
             shipperRequestBatchId: bid.shipperRequestBatchId,

@@ -212,9 +212,79 @@ const submitBid = async (data) => {
       currentDate(),
     ],
   );
-  // 🔔 Notify Shipper via WebSocket
+  // ── Fetch full batch + offer data matching GET /api/company/bids shape ──
+  let shipperNotifPayload = null;
+  try {
+    const [[batchRecord]] = await db().query(
+      `SELECT b.batchUniqueId,
+              b.batchUniqueId AS shipperRequestBatchId,
+              b.batchId,
+              b.originPlace, b.originLatitude, b.originLongitude,
+              b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
+              b.shippableItemName, b.shippableItemQtyInQuintal,
+              b.totalVehicles,
+              b.shippingCost AS batchShippingCost,
+              b.shippingDate AS batchShippingDate,
+              b.deliveryDate AS batchDeliveryDate,
+              b.journeyStatusId, b.requestMode, b.batchCreatedAt,
+              u.fullName AS shipperName,
+              vt.vehicleTypeName,
+              js.journeyStatusName
+       FROM ShipperRequestBatch b
+       LEFT JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
+       LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+       LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
+       WHERE b.batchUniqueId = ? LIMIT 1`,
+      [shipperRequestBatchId],
+    );
+
+    const [[offerRecord]] = await db().query(
+      `SELECT cbr.companyBidRequestUniqueId,
+              cbr.shipperRequestBatchId,
+              cbr.companyUniqueId,
+              cbr.bidSubmittedByUserUniqueId,
+              cbr.numberOfVehiclesOffered,
+              cbr.proposedCostPerVehicle,
+              cbr.proposedTotalCost,
+              cbr.proposedShippingDate,
+              cbr.proposedDeliveryDate,
+              cbr.bidNotes,
+              cbr.bidStatus,
+              cbr.bidStatusUpdatedAt,
+              cbr.isCancellationSeenByCompany,
+              cbr.companyBidRequestCreatedAt,
+              tc.companyName, tc.companyPhone, tc.companyEmail,
+              vt.vehicleTypeName AS offeredVehicleTypeName,
+              u.fullName AS submittedByName,
+              (SELECT COUNT(*) FROM CompanyVehicle cv
+               WHERE cv.companyUniqueId = cbr.companyUniqueId
+                 AND cv.assignmentStatus = 'active'
+                 AND cv.companyVehicleDeletedAt IS NULL
+              ) AS companyFleetSize
+       FROM CompanyBidRequest cbr
+       LEFT JOIN TransportCompany tc ON cbr.companyUniqueId = tc.companyUniqueId
+       LEFT JOIN VehicleTypes vt ON cbr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
+       LEFT JOIN Users u ON cbr.bidSubmittedByUserUniqueId = u.userUniqueId
+       WHERE cbr.companyBidRequestUniqueId = ? LIMIT 1`,
+      [companyBidRequestUniqueId],
+    );
+
+    if (batchRecord && offerRecord) {
+      shipperNotifPayload = {
+        ...batchRecord,
+        offerCount: 1,
+        offers: [offerRecord],
+      };
+    }
+  } catch (e) {
+    logger.warn("Failed to fetch batch/offer for bid notification", {
+      error: e.message,
+      companyBidRequestUniqueId,
+    });
+  }
+
+  // 🔔 Notify Shipper
   if (shipperUserUniqueId) {
-    // Get shipper phone number for socket identifier
     const [shipperRows] = await db().query(
       "SELECT phoneNumber FROM Users WHERE userUniqueId = ?",
       [shipperUserUniqueId],
@@ -225,20 +295,18 @@ const submitBid = async (data) => {
         title: "New Company Bid",
         body: `${company.companyName} has submitted a bid for your freight.`,
       };
-      const shipperData = {
-        type: "company_bid_submitted",
-        companyBidRequestUniqueId,
-        companyName: company.companyName,
-        shipperRequestBatchId,
-        proposedTotalCost: calculatedTotalCost,
-      };
 
-      // FCM — wakes app if shipper is offline
+      // FCM — wear flat payload (key-value only, no nesting)
       sendFCMNotificationToUser({
         userUniqueId: shipperUserUniqueId,
         roleId: usersRoles.shipperRoleId,
         notification: shipperNotif,
-        data: shipperData,
+        data: {
+          type: "company_bid_submitted",
+          companyBidRequestUniqueId,
+          shipperRequestBatchId,
+          companyName: company.companyName,
+        },
       }).catch((e) =>
         logger.error("FCM to shipper failed in submitBid", {
           error: e.message,
@@ -246,15 +314,22 @@ const submitBid = async (data) => {
         }),
       );
 
-      // WebSocket — instant delivery when app is open
+      // WebSocket — full nested structure matching GET /api/company/bids
       const {
-        sendSocketIONotificationToShipper} = require("../../Utils/Notifications");
+        sendSocketIONotificationToShipper,
+      } = require("../../Utils/Notifications");
       sendSocketIONotificationToShipper({
         phoneNumber: shipperRows[0].phoneNumber,
         message: {
           messageTypes: messageTypes.company_bid_submitted,
+          message: "success",
           notification: shipperNotif,
-          data: shipperData,
+          data:
+            shipperNotifPayload || {
+              companyBidRequestUniqueId,
+              shipperRequestBatchId,
+              companyName: company.companyName,
+            },
         },
       }).catch((e) =>
         logger.error("WebSocket notification to shipper failed in submitBid", {
