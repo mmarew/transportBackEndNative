@@ -3866,10 +3866,10 @@
       ]
     },
     {
-      "name": "DeliquencyTypes",
+      "name": "DelinquencyTypes",
       "item": [
         {
-          "name": "DeliquencyTypes",
+          "name": "DelinquencyTypes",
           "request": {
             "method": "POST",
             "header": [
@@ -3903,7 +3903,7 @@
           "response": []
         },
         {
-          "name": "getDeliquencyTypes",
+          "name": "getDelinquencyTypes",
           "protocolProfileBehavior": {
             "disableBodyPruning": true
           },
