@@ -718,6 +718,37 @@ const notifyCompanyOnDriverAction = async ({
   }
 };
 
+/**
+ * ### Batch fetch full assignment records — matches GET /api/company/assignments.
+ *
+ * Accepts an array of assignmentUniqueId values and returns all matched records
+ * in a single query, keyed by assignmentUniqueId.
+ */
+async function getAssignmentsData(assignmentUniqueIds) {
+  if (!assignmentUniqueIds || assignmentUniqueIds.length === 0) return {};
+  const [rows] = await db().query(
+    `SELECT cba.*,
+            u.fullName        AS driverName,
+            u.phoneNumber     AS driverPhone,
+            v.licensePlate,
+            vt.vehicleTypeName,
+            dr.journeyStatusId
+     FROM CompanyBidVehicleAssignment cba
+     LEFT JOIN Users u        ON cba.driverUserUniqueId     = u.userUniqueId
+     LEFT JOIN Vehicle v      ON cba.vehicleUniqueId        = v.vehicleUniqueId
+     LEFT JOIN VehicleTypes vt ON v.vehicleTypeUniqueId     = vt.vehicleTypeUniqueId
+     LEFT JOIN DriverRequest dr ON cba.driverRequestUniqueId = dr.driverRequestUniqueId
+     WHERE cba.assignmentUniqueId IN (?)
+       AND cba.assignmentDeletedAt IS NULL`,
+    [assignmentUniqueIds],
+  );
+  const map = {};
+  for (const row of rows) {
+    map[row.assignmentUniqueId] = row;
+  }
+  return map;
+}
+
 module.exports = {
   createJourneyDecisionForAssignment,
   notifyAssignedDriver,
@@ -725,4 +756,5 @@ module.exports = {
   findActiveAssignmentForSlot,
   notifyCompanyOnDriverAction,
   getFullAssignmentData,
+  getAssignmentsData,
 };

@@ -118,7 +118,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT sr.shipperRequestId) as totalCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId IN (?, ?) THEN sr.shipperRequestId END) as waitingCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as requestedCount,
-      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as acceptedByDriverCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as biddingCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as acceptedByShipperCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as journeyStartedCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? AND sr.isCompletionSeen = ? THEN sr.shipperRequestId END) as notSeenCompletedCount,
@@ -139,7 +139,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     // waitingCount
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
-    // requestedCount, acceptedByDriverCount, acceptedByShipperCount, journeyStartedCount
+    // requestedCount, biddingCount, acceptedByShipperCount, journeyStartedCount
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
     journeyStatusMap.acceptedByShipper,
@@ -456,8 +456,8 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     totalCount,
     waiting: { individual: n(sr.waitingCount), company: companyWaiting },
     requested: { individual: n(sr.requestedCount), company: 0 },
-    acceptedByDriver: {
-      individual: n(sr.acceptedByDriverCount),
+    bidding: {
+      individual: n(sr.biddingCount),
       company: companyBidding,
     },
 

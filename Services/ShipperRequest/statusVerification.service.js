@@ -642,7 +642,7 @@ const verifyShipperStatus = async ({
         totalCount: 0,
         waitingCount: 0,
         requestedCount: 0,
-        acceptedByDriverCount: 0,
+        biddingCount: 0,
         acceptedByShipperCount: 0,
         journeyStartedCount: 0,
         notSeenCompletedCount: 0,

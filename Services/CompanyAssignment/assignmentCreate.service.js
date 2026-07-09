@@ -18,6 +18,7 @@ const {
   notifyAssignedDriver,
   upsertDriverRequest,
   findActiveAssignmentForSlot,
+  getAssignmentsData,
 } = require("./assignmentHelper");
 
 /**
@@ -338,20 +339,27 @@ async function notifyShipperOnAssignment({
       title: "Driver Assigned",
       body: `${count} driver(s) have been assigned to your freight batch.`,
     };
-    const shipperData = {
-      type: "company_assignment_created",
-      companyBidRequestUniqueId,
-      assignments: results.map((r) => ({
-        assignmentUniqueId: r.assignmentUniqueId,
-        shipperRequestUniqueId: r.shipperRequestUniqueId,
-      })),
-    };
 
+    // Fetch full assignment records matching GET /api/company/assignments shape
+    const assignmentUniqueIds = results.map((r) => r.assignmentUniqueId);
+    const assignmentMap = await getAssignmentsData(assignmentUniqueIds);
+    const fullAssignments = assignmentUniqueIds
+      .map((id) => assignmentMap[id])
+      .filter(Boolean);
+
+    // FCM stays flat (key-value only) due to platform limits
     sendFCMNotificationToUser({
       userUniqueId: shipperRow.userUniqueId,
       roleId: usersRoles.shipperRoleId,
       notification: shipperNotif,
-      data: shipperData,
+      data: {
+        type: "company_assignment_created",
+        companyBidRequestUniqueId,
+        assignments: results.map((r) => ({
+          assignmentUniqueId: r.assignmentUniqueId,
+          shipperRequestUniqueId: r.shipperRequestUniqueId,
+        })),
+      },
     }).catch((e) =>
       logger.error("FCM failed for shipper assignment notification", {
         error: e.message,
@@ -359,13 +367,18 @@ async function notifyShipperOnAssignment({
       }),
     );
 
+    // WebSocket — full assignment records matching REST API shape
     sendSocketIONotificationToShipper({
       phoneNumber: shipperRow.phoneNumber,
       message: {
         messageTypes: messageTypes.company_driver_assignment,
         message: "success",
         notification: shipperNotif,
-        data: shipperData,
+        data: {
+          type: "company_assignment_created",
+          companyBidRequestUniqueId,
+          assignments: fullAssignments,
+        },
       },
     }).catch((e) =>
       logger.warn("WebSocket failed for shipper assignment notification", {

@@ -663,7 +663,7 @@ exports.updateAssignmentStatus = async (
               messageTypes: messageTypes.company_driver_confirmed,
               message: "success",
               notification: shipperNotif,
-              data: shipperData,
+              data: fullAssignment || shipperData,
             },
           }).catch((e) =>
             logger.warn("WebSocket to shipper failed on driver confirm", {
