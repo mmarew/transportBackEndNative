@@ -61,9 +61,9 @@ exports.markNegativeStatusAsSeen = Joi.object({
 exports.verifyDriverJourneyStatus = Joi.object({}).unknown(true);
 
 exports.acceptShipperRequest = Joi.object({
-  driverRequestUniqueId: uuidSchema,
-  shipperRequestUniqueId: uuidSchema,
-  journeyDecisionUniqueId: uuidSchema,
+  driverRequestUniqueId: uuidSchema.required(),
+  shipperRequestUniqueId: uuidSchema.required(),
+  journeyDecisionUniqueId: uuidSchema.required(),
   shippingCostByDriver: Joi.number().min(0).required(),
 }).unknown(false);
 

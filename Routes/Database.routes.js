@@ -37,16 +37,32 @@ const jwtOrApiKey = (req, res, next) => {
 
 // Route to create all tables (no body required - creates all tables from predefined SQL)
 // Accepts JWT or x-api-key so E2E tests can bootstrap without any users in the DB.
-router.post(DATABASE_ENDPOINTS.CREATE_TABLE, jwtOrApiKey, createTableController);
+router.post(
+  DATABASE_ENDPOINTS.CREATE_TABLE,
+  jwtOrApiKey,
+  createTableController,
+);
 
 // Route to list all tables in the database
-router.get(DATABASE_ENDPOINTS.GET_ALL_TABLES, verifyTokenOfAxios, getAllTablesController);
+router.get(
+  DATABASE_ENDPOINTS.GET_ALL_TABLES,
+  verifyTokenOfAxios,
+  getAllTablesController,
+);
 
 // Route to drop a table by name
-router.delete(DATABASE_ENDPOINTS.DROP_TABLES, verifyTokenOfAxios, dropTableController);
+router.delete(
+  DATABASE_ENDPOINTS.DROP_TABLES,
+  verifyTokenOfAxios,
+  dropTableController,
+);
 
 // Route to drop all tables (also accepts x-api-key for E2E bootstrapping)
-router.delete(DATABASE_ENDPOINTS.DROP_ALL_TABLES, jwtOrApiKey, dropAllTablesController);
+router.delete(
+  DATABASE_ENDPOINTS.DROP_ALL_TABLES,
+  jwtOrApiKey,
+  dropAllTablesController,
+);
 
 // Route to update a table by adding a column
 router.put(
@@ -98,7 +114,10 @@ router.post(
 
 // DEV ONLY: Fetch OTP for a phone number (for automated testing without SMS)
 if (Config.NODE_ENV !== "production") {
-  const { getUserOtp, seedTestDocument } = require("../Controllers/DevTools.controller");
+  const {
+    getUserOtp,
+    seedTestDocument,
+  } = require("../Controllers/DevTools.controller");
   const devApiKeyMiddleware = (req, res, next) => {
     const key = req.headers["x-api-key"] || req.query.apiKey;
     if (!key || key !== Config.API_KEY) {
@@ -107,7 +126,11 @@ if (Config.NODE_ENV !== "production") {
     next();
   };
   router.get(DATABASE_ENDPOINTS.GET_USER_OTP, devApiKeyMiddleware, getUserOtp);
-  router.post(DATABASE_ENDPOINTS.SEED_TEST_DOCUMENT, devApiKeyMiddleware, seedTestDocument);
+  router.post(
+    DATABASE_ENDPOINTS.SEED_TEST_DOCUMENT,
+    devApiKeyMiddleware,
+    seedTestDocument,
+  );
 }
 
 module.exports = router;

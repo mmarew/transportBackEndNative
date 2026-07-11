@@ -92,6 +92,14 @@ const acceptShipperRequest = async (body) => {
       throw new AppError("Request found is not valid to accept", 400);
     }
 
+    // Block company_target requests — they must go through the company assignment flow
+    if (requestData.requestMode === "company_target") {
+      throw new AppError(
+        "This is a company batch request. Use PATCH /api/company/assignments/:assignmentUniqueId/status with assignmentStatus: 'confirmed_by_driver' instead.",
+        400,
+      );
+    }
+
     // Validate current status allows accepting
     // Driver can only accept when JourneyDecisions status is 2 (requested)
     // If status is already 3 (acceptedByDriver) or higher, driver has already accepted or shipper has accepted
