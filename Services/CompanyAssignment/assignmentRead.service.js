@@ -174,8 +174,11 @@ exports.getAssignments = async (filters = {}) => {
       u.fullName        AS driverName,
       u.phoneNumber     AS driverPhone,
       v.licensePlate,
-      vt.vehicleTypeName,
-      dr.journeyStatusId
+      vt.vehicleTypeUniqueId, vt.vehicleTypeName,
+      dr.journeyStatusId,
+      dr.originLatitude  AS driverOriginLatitude,
+      dr.originLongitude AS driverOriginLongitude,
+      dr.originPlace     AS driverOriginPlace
     FROM CompanyBidVehicleAssignment cba
     LEFT JOIN Users u        ON cba.driverUserUniqueId     = u.userUniqueId
     LEFT JOIN Vehicle v      ON cba.vehicleUniqueId        = v.vehicleUniqueId

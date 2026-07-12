@@ -182,7 +182,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
             b.totalVehicles, b.shippingCost AS batchShippingCost,
             b.shippingDate AS batchShippingDate, b.deliveryDate AS batchDeliveryDate,
             b.journeyStatusId, b.requestMode, b.batchCreatedAt,
-            js.journeyStatusName, vt.vehicleTypeName,
+            js.journeyStatusName, b.vehicleTypeUniqueId, vt.vehicleTypeName,
             u.fullName AS shipperName
      FROM ShipperRequestBatch b
      LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
@@ -274,11 +274,36 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     offersByBatchId.get(offer.shipperRequestBatchId).push(offer);
   }
 
-  const grouped = batches.map((batch) => ({
-    ...batch,
-    offerCount: (offersByBatchId.get(batch.batchUniqueId) || []).length,
-    offers: offersByBatchId.get(batch.batchUniqueId) || [],
-  }));
+  const grouped = batches.map((batch) => {
+    const batchOffers = offersByBatchId.get(batch.batchUniqueId) || [];
+    const acceptedOffer = batchOffers.find(o => o.bidStatus === 'accepted_by_shipper') || null;
+    return {
+      ...batch,
+      shipperRequest: {
+        shipperRequestId: batch.batchId,
+        shippableItemName: batch.shippableItemName,
+        shippingCost: batch.batchShippingCost,
+        shippingDate: batch.batchShippingDate,
+        deliveryDate: batch.batchDeliveryDate || batch.batchShippingDate,
+        requestMode: batch.requestMode,
+        journeyStatusId: batch.journeyStatusId,
+        originPlace: batch.originPlace,
+        originLatitude: batch.originLatitude,
+        originLongitude: batch.originLongitude,
+        destinationPlace: batch.destinationPlace,
+        destinationLatitude: batch.destinationLatitude,
+        destinationLongitude: batch.destinationLongitude,
+        vehicleTypeName: batch.vehicleTypeName,
+        vehicleTypeUniqueId: batch.vehicleTypeUniqueId,
+        totalVehicles: batch.totalVehicles,
+        shippableItemQtyInQuintal: batch.shippableItemQtyInQuintal,
+        offerCount: batchOffers.length,
+      },
+      acceptedOffer,
+      offerCount: batchOffers.length,
+      offers: batchOffers,
+    };
+  });
 
   return {
     message: "success",

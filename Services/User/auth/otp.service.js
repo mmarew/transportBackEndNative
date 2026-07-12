@@ -40,7 +40,6 @@ const {
  * @throws {AppError} 401 Unauthorized if OTP doesn't match; 404 if user not found; 403 if deleted.
  */
 const verifyUserByOTP = async (req) => {
-  console.log("🚀 ~ verifyUserByOTP ~ req.body:", req.body);
   const { phoneNumber, email, OTP, roleId } = req.body;
   if (!OTP || (!phoneNumber && !email)) {
     throw new AppError("OTP and identity (phone/email) are required", 400);

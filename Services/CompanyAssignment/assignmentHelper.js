@@ -585,7 +585,10 @@ async function getFullAssignmentData(assignmentUniqueId) {
             u.phoneNumber     AS driverPhone,
             v.licensePlate,
             vt.vehicleTypeName,
-            dr.journeyStatusId
+            dr.journeyStatusId,
+            dr.originLatitude  AS driverOriginLatitude,
+            dr.originLongitude AS driverOriginLongitude,
+            dr.originPlace     AS driverOriginPlace
      FROM CompanyBidVehicleAssignment cba
      LEFT JOIN Users u        ON cba.driverUserUniqueId     = u.userUniqueId
      LEFT JOIN Vehicle v      ON cba.vehicleUniqueId        = v.vehicleUniqueId
@@ -732,7 +735,10 @@ async function getAssignmentsData(assignmentUniqueIds) {
             u.phoneNumber     AS driverPhone,
             v.licensePlate,
             vt.vehicleTypeName,
-            dr.journeyStatusId
+            dr.journeyStatusId,
+            dr.originLatitude  AS driverOriginLatitude,
+            dr.originLongitude AS driverOriginLongitude,
+            dr.originPlace     AS driverOriginPlace
      FROM CompanyBidVehicleAssignment cba
      LEFT JOIN Users u        ON cba.driverUserUniqueId     = u.userUniqueId
      LEFT JOIN Vehicle v      ON cba.vehicleUniqueId        = v.vehicleUniqueId
