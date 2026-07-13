@@ -39,6 +39,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://account.dynamicsroute.tech",
+  "https://association.dynamicsroute.tech",
 ];
 if (process.env.NODE_ENV !== "production") {
   allowedOrigins.push("http://localhost:5173", "http://localhost:3000");
