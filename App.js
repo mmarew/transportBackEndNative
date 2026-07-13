@@ -1,4 +1,4 @@
-require("express-async-errors");
+// express@5 handles async errors natively — no need for express-async-errors
 const Config = require("./Utils/Config");
 
 const logger = require("./Utils/logger");

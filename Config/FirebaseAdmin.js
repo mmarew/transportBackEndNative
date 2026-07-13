@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
 
@@ -25,23 +26,22 @@ function initFirebaseAdmin() {
     logger.warn("Failed to parse FCM service account", { error: e.message });
   }
 
-  if (!admin.apps.length) {
+  const apps = admin.getApps();
+  if (!apps.length) {
     if (serviceAccountObject) {
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccountObject),
+        credential: admin.cert(serviceAccountObject),
       });
     } else {
       admin.initializeApp();
     }
-    initialized = true;
-  } else {
-    initialized = true;
   }
+  initialized = true;
 }
 
 initFirebaseAdmin();
 
 module.exports = {
   admin,
-  messaging: admin.messaging(),
+  messaging: getMessaging(),
 };
