@@ -3,6 +3,7 @@ const USER_ENDPOINTS = {
   GET_USER_BY_ID: "/api/user/users/:userUniqueId",
   GET_USER_BY_FILTER_DETAILED: "/api/admin/getUserByFilterDetailed",
   GET_USER_PROFILE_HISTORY: "/api/user/users/:userUniqueId/profileHistory",
+  GET_SELF: "/api/user/self",
 };
 
 module.exports = {

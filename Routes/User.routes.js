@@ -44,6 +44,21 @@ router.get(
 );
 
 /**
+ * @route   GET /api/user/self
+ * @desc    Get the authenticated user's own profile (rich: includes role, status, etc.)
+ * @access  Private
+ */
+router.get(
+  USER_ENDPOINTS.GET_SELF,
+  verifyTokenOfAxios,
+  validator(getUserFilter, "query"),
+  (req, res, next) => {
+    req.query.userUniqueId = "self";
+    controller.getUserByFilterDetailed(req, res, next);
+  },
+);
+
+/**
  * @route   GET /api/user/users/:userUniqueId/profileHistory
  * @desc    Audit log of user PROFILE changes only (fullName, phone, email).
  *          NOT journey/job history — separate concern.
