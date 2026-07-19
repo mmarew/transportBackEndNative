@@ -1,17 +1,19 @@
-13:17:08 [[32minfo[39m]: MySQL pool created
+◇ injected env (36) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+21:39:46 [[32minfo[39m]: MySQL pool created
 {
   "service": "ride-hailing-api",
   "environment": "development",
   "host": "31.97.179.144",
-  "database": "transportCompanyTest",
-  "port": 3307,
+  "database": "transport",
+  "port": 3306,
   "socketPath": null
 }
 
 ✅ ========== RESET DATABASE STARTED ==========
 
 🔄 Starting full database reset...
-13:17:09 [[32minfo[39m]: MySQL connectivity check succeeded
+21:39:46 [[32minfo[39m]: MySQL connectivity check succeeded
 {
   "service": "ride-hailing-api",
   "environment": "development"
@@ -55,23 +57,7 @@
 
 ✅ Account data fetched (driver)
 ✅ Account data fetched (driver)
-✅ Success! Vehicle Types:
-payload {
-  licensePlate: '123412',
-  color: 'white color',
-  vehicleTypeUniqueId: 'd6bb359f-a556-4199-a80c-c7d66bbd3a68',
-  isDriverOwnerOfVehicle: false
-}
-✅ Success! Vehicle Created:
-{
-  message: 'success',
-  data: { vehicleUniqueId: '20f53f96-603c-47bb-ba30-86d3a50166f3' }
-}
-✅ Account data fetched (driver)
-✅ Uploaded User Document: Driver’s License
-✅ Uploaded User Document: Profile Photo
-✅ Uploaded Vehicle Document:  Vehicle Registration (librea)
-✅ Uploaded Vehicle Document: Insurance Document
+✅ All required documents are already uploaded!
 
 ✅ ========== DRIVER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========
 
@@ -87,15 +73,7 @@ payload {
 
 ✅ ========== AUTHORIZE DRIVERS DOCUMENTS STARTED ==========
 
-📋 Found 4 pending documents to authorize
-✅ Approved:  Vehicle Registration (librea)
-✅ Approved: Profile Photo
-✅ Approved: Driver’s License
-✅ Approved: Insurance Document
-✅ All pending documents authorized
-
-✅ ========== AUTHORIZE DRIVERS DOCUMENTS COMPLETED SUCCESSFULLY ==========
-
+⏩ No pending documents to authorize
 ✅ Driver documents authorized
 
 
@@ -107,22 +85,22 @@ payload {
 ── VehicleType Workflow ──
 ✅ VehicleTypes fetched: 8
 ✅ VehicleTypes fetched: 9
-✅ VehicleType created: 2643bd74-cc5d-476b-b0df-8d523a823932
+✅ VehicleType created: 4eeaa650-8a51-4c45-bdf5-b0f5bb439d4b
 ✅ VehicleTypes fetched: 9
-✅ VehicleType updated: 2643bd74-cc5d-476b-b0df-8d523a823932
+✅ VehicleType updated: 4eeaa650-8a51-4c45-bdf5-b0f5bb439d4b
 ✅ VehicleTypes fetched: 9
-✅ VehicleType deleted: 2643bd74-cc5d-476b-b0df-8d523a823932
+✅ VehicleType deleted: 4eeaa650-8a51-4c45-bdf5-b0f5bb439d4b
 ✅ VehicleTypes fetched: 8
 ── VehicleType Workflow complete ──
 
 
 ── VehicleStatusType Workflow ──
 ✅ VehicleStatusTypes fetched: 6
-✅ VehicleStatusType created: 9eff9829-15cd-4f89-b8e6-7c70c3ba33b5
+✅ VehicleStatusType created: a928d02c-5681-4df4-b273-f1768aa35188
 ✅ VehicleStatusTypes fetched: 7
-✅ VehicleStatusType updated: 9eff9829-15cd-4f89-b8e6-7c70c3ba33b5
+✅ VehicleStatusType updated: a928d02c-5681-4df4-b273-f1768aa35188
 ✅ VehicleStatusTypes fetched: 7
-✅ VehicleStatusType deleted: 9eff9829-15cd-4f89-b8e6-7c70c3ba33b5
+✅ VehicleStatusType deleted: a928d02c-5681-4df4-b273-f1768aa35188
 ✅ VehicleStatusTypes fetched: 6
 ── VehicleStatusType Workflow complete ──
 
@@ -130,21 +108,21 @@ payload {
 ── Journey Status Workflow ──
 ✅ Journey statuses fetched: 17
 ✅ Journey statuses fetched: 18
-✅ Journey status created: 18704de5-c923-49bb-9ab1-708e9279d4e8
-✅ Journey status updated: 18704de5-c923-49bb-9ab1-708e9279d4e8
+✅ Journey status created: 39f5751a-d1a2-4078-9621-cafb55c2131a
+✅ Journey status updated: 39f5751a-d1a2-4078-9621-cafb55c2131a
 ✅ Journey statuses fetched: 18
-✅ Journey status deleted: 18704de5-c923-49bb-9ab1-708e9279d4e8
+✅ Journey status deleted: 39f5751a-d1a2-4078-9621-cafb55c2131a
 ✅ Journey statuses fetched: 17
 ── Journey Status Workflow complete ──
 
 
 ── CancellationReasonsType Workflow ──
 ✅ CancellationReasonTypes fetched: 10
-✅ CancellationReasonType created: 5d1d5939-7311-49e3-98da-1bb4215d35fd
+✅ CancellationReasonType created: dfd3cf16-41aa-452b-b115-f30df38888a1
 ✅ CancellationReasonTypes fetched: 10
-✅ CancellationReasonType updated: 5d1d5939-7311-49e3-98da-1bb4215d35fd
+✅ CancellationReasonType updated: dfd3cf16-41aa-452b-b115-f30df38888a1
 ✅ CancellationReasonTypes fetched: 10
-✅ CancellationReasonType deleted: 5d1d5939-7311-49e3-98da-1bb4215d35fd
+✅ CancellationReasonType deleted: dfd3cf16-41aa-452b-b115-f30df38888a1
 ✅ CancellationReasonTypes fetched: 10
 ── CancellationReasonsType Workflow complete ──
 
@@ -152,120 +130,286 @@ payload {
 ── Document Types Workflow ──
 ✅ Document types fetched: 10
 ✅ Document types fetched: 10
-✅ Document type created: b1bc5475-b2c8-4d71-b4dc-91936af21ceb
-✅ Document types fetched: 10
-✅ Document type updated: b1bc5475-b2c8-4d71-b4dc-91936af21ceb
-✅ Document types fetched: 10
-✅ Document type deleted: b1bc5475-b2c8-4d71-b4dc-91936af21ceb
-✅ Document types fetched: 10
-── Document Types Workflow complete ──
-
+✅ Document type created: undefined
+⚠️  No ID returned - cannot continue workflow
 
 ── RoleDocumentRequirements Workflow ──
 ✅ RoleDocumentRequirements fetched: 10
 ✅ RoleDocumentRequirements fetched: 2
-✅ RoleDocumentRequirement created: c8e7ee00-3ca0-4bda-b54c-82a0e9bc37ee
+✅ RoleDocumentRequirement created: 62b8971e-7423-44eb-8b7d-1d5ebee5949e
 ✅ RoleDocumentRequirements fetched: 10
-✅ RoleDocumentRequirement updated: c8e7ee00-3ca0-4bda-b54c-82a0e9bc37ee
+✅ RoleDocumentRequirement updated: 62b8971e-7423-44eb-8b7d-1d5ebee5949e
 ✅ RoleDocumentRequirements fetched: 10
-✅ RoleDocumentRequirement deleted: c8e7ee00-3ca0-4bda-b54c-82a0e9bc37ee
+✅ RoleDocumentRequirement deleted: 62b8971e-7423-44eb-8b7d-1d5ebee5949e
 ✅ RoleDocumentRequirements fetched: 10
 ── RoleDocumentRequirements Workflow complete ──
 
 
 ── Status Workflow ──
 ✅ Statuses fetched: 8
-✅ Status created: b516aa39-2e70-4b48-b56f-2a64f2ba26ac
+✅ Status created: 591b4894-e73a-48b6-b2bb-d967e725a14a
 ✅ Statuses fetched: 9
-✅ Status updated: b516aa39-2e70-4b48-b56f-2a64f2ba26ac
+✅ Status updated: 591b4894-e73a-48b6-b2bb-d967e725a14a
 ✅ Statuses fetched: 9
-✅ Status deleted: b516aa39-2e70-4b48-b56f-2a64f2ba26ac
+✅ Status deleted: 591b4894-e73a-48b6-b2bb-d967e725a14a
 ✅ Statuses fetched: 8
 ── Status Workflow complete ──
 
 
 ── TariffRate Workflow ──
 ✅ TariffRates fetched: 2
-✅ TariffRate created: 4cd62f12-9b53-4c61-8b06-659921a16c13
+✅ TariffRate created: da75ad3c-9c83-443c-92cd-cbd38ff9c7c4
 ✅ TariffRates fetched: 3
-✅ TariffRate updated: 4cd62f12-9b53-4c61-8b06-659921a16c13
+✅ TariffRate updated: da75ad3c-9c83-443c-92cd-cbd38ff9c7c4
 ✅ TariffRates fetched: 3
-✅ TariffRate deleted: 4cd62f12-9b53-4c61-8b06-659921a16c13
+✅ TariffRate deleted: da75ad3c-9c83-443c-92cd-cbd38ff9c7c4
 ✅ TariffRates fetched: 2
 ── TariffRate Workflow complete ──
 
 
 ── DepositSource Workflow ──
-✅ DepositSources fetched: 2
-✅ DepositSource created: b4920394-b12a-4d3b-afc8-1a933fe749eb
 ✅ DepositSources fetched: 3
-✅ DepositSource fetched by ID: b4920394-b12a-4d3b-afc8-1a933fe749eb
-✅ DepositSource updated: b4920394-b12a-4d3b-afc8-1a933fe749eb
-✅ DepositSources fetched: 3
-✅ DepositSource deleted: b4920394-b12a-4d3b-afc8-1a933fe749eb
-✅ DepositSources fetched: 3
+✅ DepositSource created: 49058337-4c72-4d01-8950-0277746257a4
+✅ DepositSources fetched: 4
+✅ DepositSource fetched by ID: 49058337-4c72-4d01-8950-0277746257a4
+✅ DepositSource updated: 49058337-4c72-4d01-8950-0277746257a4
+✅ DepositSources fetched: 4
+✅ DepositSource deleted: 49058337-4c72-4d01-8950-0277746257a4
+✅ DepositSources fetched: 4
 ── DepositSource Workflow complete ──
 
 
 ── FinancialInstitutionAccount Workflow ──
 ✅ FinancialInstitutionAccounts fetched: 2
-✅ FinancialInstitutionAccount created: f37980e7-c314-41f0-b628-d2df8e39a48b
+✅ FinancialInstitutionAccount created: d0721916-881c-4eb9-9671-bb1b0d728729
 ✅ FinancialInstitutionAccounts fetched: 3
-✅ FinancialInstitutionAccount updated: f37980e7-c314-41f0-b628-d2df8e39a48b
+✅ FinancialInstitutionAccount updated: d0721916-881c-4eb9-9671-bb1b0d728729
 ✅ FinancialInstitutionAccounts fetched: 3
-✅ FinancialInstitutionAccount deleted: f37980e7-c314-41f0-b628-d2df8e39a48b
+✅ FinancialInstitutionAccount deleted: d0721916-881c-4eb9-9671-bb1b0d728729
 ✅ FinancialInstitutionAccounts fetched: 2
 ── FinancialInstitutionAccount Workflow complete ──
 
 
 ── CommissionStatus Workflow ──
 ✅ CommissionStatuses fetched: 5
-✅ CommissionStatus created: 893da92b-f0a4-4006-8a24-767df10b01e7
+✅ CommissionStatus created: 56175ad1-e44f-4e69-a2af-0f9e799d36b6
 ✅ CommissionStatuses fetched: 6
-✅ CommissionStatus updated: 893da92b-f0a4-4006-8a24-767df10b01e7
+✅ CommissionStatus updated: 56175ad1-e44f-4e69-a2af-0f9e799d36b6
 ✅ CommissionStatuses fetched: 6
-✅ CommissionStatus deleted: 893da92b-f0a4-4006-8a24-767df10b01e7
+✅ CommissionStatus deleted: 56175ad1-e44f-4e69-a2af-0f9e799d36b6
 ✅ CommissionStatuses fetched: 5
 ── CommissionStatus Workflow complete ──
 
 
 ── PaymentStatus Workflow ──
 ✅ PaymentStatuses fetched: 3
-✅ PaymentStatus created: c2b92257-3be2-4dc1-9b9f-eb16584d49be
+✅ PaymentStatus created: 87b28f54-faca-4ffd-a500-b096ad3c994b
 ✅ PaymentStatuses fetched: 4
-✅ PaymentStatus updated: c2b92257-3be2-4dc1-9b9f-eb16584d49be
+✅ PaymentStatus updated: 87b28f54-faca-4ffd-a500-b096ad3c994b
 ✅ PaymentStatuses fetched: 4
-✅ PaymentStatus deleted: c2b92257-3be2-4dc1-9b9f-eb16584d49be
+✅ PaymentStatus deleted: 87b28f54-faca-4ffd-a500-b096ad3c994b
 ✅ PaymentStatuses fetched: 3
 ── PaymentStatus Workflow complete ──
 
 
 ── PaymentMethod Workflow ──
-✅ PaymentMethods fetched: 3
-✅ PaymentMethod created: 970ad3e0-de6e-4c2f-bd7c-b46e2501bd12
 ✅ PaymentMethods fetched: 4
-✅ PaymentMethod updated: 970ad3e0-de6e-4c2f-bd7c-b46e2501bd12
-✅ PaymentMethods fetched: 4
-✅ PaymentMethod deleted: 970ad3e0-de6e-4c2f-bd7c-b46e2501bd12
-✅ PaymentMethods fetched: 4
+✅ PaymentMethod created: dd52da7f-629b-4c29-b5ca-386d9b6f87b4
+✅ PaymentMethods fetched: 5
+✅ PaymentMethod updated: dd52da7f-629b-4c29-b5ca-386d9b6f87b4
+✅ PaymentMethods fetched: 5
+✅ PaymentMethod deleted: dd52da7f-629b-4c29-b5ca-386d9b6f87b4
+✅ PaymentMethods fetched: 5
 ── PaymentMethod Workflow complete ──
 
 
 ── CommissionRates Workflow ──
-✅ CommissionRates fetched: 1
-✅ CommissionRate created: b0031650-a393-4355-a937-681b61df22cc
 ✅ CommissionRates fetched: 2
-✅ CommissionRate updated: b0031650-a393-4355-a937-681b61df22cc
-✅ CommissionRates fetched: 2
-✅ CommissionRate deleted: b0031650-a393-4355-a937-681b61df22cc
-✅ CommissionRates fetched: 1
-✅ CommissionRate created: 55923867-402b-4f9c-9e43-70e77b6afb93
-── CommissionRates Workflow complete ──
-
+✅ CommissionRate created: undefined
+⚠️  No ID returned — cannot continue
 
 ── SubscriptionPlan Workflow ──
-✅ SubscriptionPlans fetched: 4
-✅ SubscriptionPlan created: 896ca8ff-09c3-4c48-97fe-ab13056f9429
 ✅ SubscriptionPlans fetched: 5
-✅ SubscriptionPlan updated: 896ca8ff-09c3-4c48-97fe-ab13056f9429
+✅ SubscriptionPlan created: 6cca0dc8-43ed-4886-836d-c06884087df8
+✅ SubscriptionPlans fetched: 6
+✅ SubscriptionPlan updated: 6cca0dc8-43ed-4886-836d-c06884087df8
+✅ SubscriptionPlans fetched: 6
+✅ SubscriptionPlan deleted: 6cca0dc8-43ed-4886-836d-c06884087df8
 ✅ SubscriptionPlans fetched: 5
+── SubscriptionPlan Workflow complete ──
+
+
+── SubscriptionPlanPricing Workflow ──
+✅ SubscriptionPlan created: 3a059a8e-0897-4676-91e6-2800153da35b
+✅ SubscriptionPlanPricing created: 62ce2952-5f99-44e3-8c49-b249517aa421
+✅ SubscriptionPlanPricings fetched: 5
+✅ SubscriptionPlanPricing updated: 62ce2952-5f99-44e3-8c49-b249517aa421
+✅ SubscriptionPlanPricings fetched: 5
+✅ SubscriptionPlanPricing deleted: 62ce2952-5f99-44e3-8c49-b249517aa421
+✅ SubscriptionPlanPricings fetched: 4
+── SubscriptionPlanPricing Workflow complete ──
+
+
+── TariffRateForVehicleType Workflow ──
+✅ TariffRateForVehicleTypes fetched: 0
+✅ TariffRateForVehicleType created: 48aee71d-712d-4fab-9f7d-355a0adad037
+✅ TariffRateForVehicleTypes fetched: 1
+✅ TariffRateForVehicleType updated: 48aee71d-712d-4fab-9f7d-355a0adad037
+✅ TariffRateForVehicleTypes fetched: 1
+✅ TariffRateForVehicleType deleted: 48aee71d-712d-4fab-9f7d-355a0adad037
+✅ TariffRateForVehicleTypes fetched: 0
+── TariffRateForVehicleType Workflow complete ──
+
+
+── Roles Workflow ──
+✅ Roles fetched: 10
+✅ Role created: b6661047-c785-40a4-81b9-8aef398bde2f
+✅ Role updated: b6661047-c785-40a4-81b9-8aef398bde2f
+✅ Role deleted: b6661047-c785-40a4-81b9-8aef398bde2f
+✅ Roles fetched: 10
+── Roles Workflow complete ──
+
+
+── SMSSender Workflow ──
+✅ SMSSenders fetched: 0
+✅ SMSSender created: (no id returned)
+✅ SMSSenders fetched: 1
+✅ SMSSender fetched by ID: 2
+✅ SMSSender updated: 2
+✅ SMSSenders fetched: 1
+✅ SMSSender deleted: 2
+✅ SMSSenders fetched: 0
+── SMSSender Workflow complete ──
+
+
+── CompanyRole Workflow ──
+✅ CompanyRoles fetched: 4
+✅ CompanyRole created: 80abc858-1a61-4926-b77b-b29db6c26036
+✅ CompanyRoles fetched: 5
+✅ CompanyRole fetched by ID: 80abc858-1a61-4926-b77b-b29db6c26036
+✅ CompanyRole updated: 80abc858-1a61-4926-b77b-b29db6c26036
+✅ CompanyRoles fetched: 5
+✅ CompanyRole deleted: 80abc858-1a61-4926-b77b-b29db6c26036
+✅ CompanyRoles fetched: 4
+── CompanyRole Workflow complete ──
+
+
+── VehicleStatus Workflow ──
+✅ VehicleStatuses fetched: 1
+✅ VehicleStatus created: 9720861e-4065-4ae7-bf2c-5e0d7d724211
+✅ VehicleStatuses fetched: 2
+✅ VehicleStatus updated: 9720861e-4065-4ae7-bf2c-5e0d7d724211
+✅ VehicleStatuses fetched: 2
+✅ VehicleStatus deleted: 9720861e-4065-4ae7-bf2c-5e0d7d724211
+✅ VehicleStatuses fetched: 1
+── VehicleStatus Workflow complete ──
+
+
+── UserRefund Workflow ──
+✅ UserRefunds fetched: 0
+✅ UserRefund created: 8184badc-e07e-4dc5-9ed3-3b8f634ae07b
+✅ UserRefunds fetched: 1
+✅ UserRefund updated: 8184badc-e07e-4dc5-9ed3-3b8f634ae07b
+✅ UserRefunds fetched: 1
+✅ UserRefund deleted: 8184badc-e07e-4dc5-9ed3-3b8f634ae07b
+✅ UserRefunds fetched: 0
+── UserRefund Workflow complete ──
+
+
+── DriverEarning Workflow ──
+✅ DriverEarnings fetched: 0
+✅ DriverEarnings fetched: 0
+── DriverEarning Workflow complete ──
+
+
+── UserRole Workflow ──
+✅ UserRoles fetched: 6
+✅ UserRole created: 267647e0-e735-460c-b68b-d44507dddbd6
+✅ UserRoles fetched: 7
+✅ UserRole updated: 267647e0-e735-460c-b68b-d44507dddbd6
+✅ UserRoles fetched: 7
+✅ UserRole deleted: 267647e0-e735-460c-b68b-d44507dddbd6
+✅ UserRoles fetched: 7
+── UserRole Workflow complete ──
+
+
+✅ Reference data CRUD complete
+
+
+=======================================================
+   🚀 STARTING INDIVIDUAL TARGET FLOW
+=======================================================
+
+
+✅ ========== SHIPPER ONBOARDING FLOW STARTED (individual_target) ==========
+
+
+✅ ========== AUTH WORKFLOW (shipper) STARTED ==========
+
+
+✅ ========== AUTH WORKFLOW (shipper) COMPLETED SUCCESSFULLY ==========
+
+✅ Account data fetched (shipper)
+✅ All Shipper Documents are already uploaded!
+
+✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========
+
+
+✅ ========== CREATE DRIVER REQUEST FLOW STARTED ==========
+
+✅ Success! Driver Request Created (Auto-matching):
+Status: 2
+Message: success
+Matched Shipper Request ID: 5e2034f4-908d-406d-a7d2-53959489fad6
+
+✅ ========== CREATE DRIVER REQUEST FLOW COMPLETED SUCCESSFULLY ==========
+
+✅ Driver journey status fetched. Status: 2
+✅ Driver accepted shipper request. Status: 3
+✅ Driver journey status fetched. Status: 3
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 5
+✅ Driver journey status fetched. Status: 5
+✅ Journey completed. Status: 6
+✅ Driver journey status fetched. Status: null
+
+✅ INDIVIDUAL TARGET FLOW COMPLETED
+
+
+── PUT /api/user/updateUser/self with file ──
+✅ updateUser/self: success
+
+=======================================================
+   🏢 STARTING COMPANY TARGET FLOW
+=======================================================
+
+
+✅ ========== SHIPPER ONBOARDING FLOW STARTED (company_target) ==========
+
+
+✅ ========== AUTH WORKFLOW (shipper) STARTED ==========
+
+
+✅ ========== AUTH WORKFLOW (shipper) COMPLETED SUCCESSFULLY ==========
+
+✅ Account data fetched (shipper)
+✅ All Shipper Documents are already uploaded!
+
+✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========
+
+
+✅ ========== CREATE COMPANY ADMIN FLOW STARTED ==========
+
+
+✅ ========== AUTH WORKFLOW (companyAdmin) STARTED ==========
+
+
+✅ ========== AUTH WORKFLOW (companyAdmin) COMPLETED SUCCESSFULLY ==========
+
+
+✅ ========== CREATE COMPANY ADMIN FLOW COMPLETED SUCCESSFULLY ==========
+
+✅ Driver journey status fetched. Status: 2
+✅ Driver confirmed_by_driver company assignment.
+✅ Driver journey status fetched. Status: 4
+✅ Journey started. Status: 5

@@ -140,11 +140,33 @@ const executeStatusUpdates = async (
   await executeInTransaction(
     async (conn) => {
       // Create JourneyDecision within transaction
-      await insertData({
-        tableName: "JourneyDecisions",
-        colAndVal: journeyDecisionPayload,
-        connection: conn, // Pass connection for transaction support
-      });
+      // Handle race condition where JourneyDecisions row already exists
+      // (status reset → re-poll scenario)
+      try {
+        await insertData({
+          tableName: "JourneyDecisions",
+          colAndVal: journeyDecisionPayload,
+          connection: conn,
+        });
+      } catch (insertErr) {
+        if (insertErr.code === "ER_DUP_ENTRY") {
+          // Row already exists — update it instead
+          await updateData({
+            tableName: "JourneyDecisions",
+            conditions: {
+              driverRequestId: journeyDecisionPayload.driverRequestId,
+            },
+            updateValues: {
+              journeyStatusId: journeyStatusMap.requested,
+              decisionTime: currentDate(),
+              journeyDecisionUpdatedAt: currentDate(),
+            },
+            connection: conn,
+          });
+        } else {
+          throw insertErr;
+        }
+      }
 
       // Update DriverRequest within transaction
       await updateData({

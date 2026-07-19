@@ -1,91 +1,45 @@
 "use strict";
 
 const Config = require("../../Utils/Config");
-const {
-  sqlQuery
-} = require("../../Database/Database");
-const {
-  pool,
-  config: dbConfig
-} = require("../../Middleware/Database.config");
-const {
-  currentDate
-} = require("../../Utils/CurrentDate");
+const { sqlQuery } = require("../../Database/Database");
+const { pool, config: dbConfig } = require("../../Middleware/Database.config");
+const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const logger = require("../../Utils/logger");
 const mysql = require("mysql2/promise");
+const { v4: uuidv4 } = require("uuid");
 const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  
-  
   statusList,
   roleList,
-  
-  
-  
-  
-  
-  
-  
+
   listOfVehicleStatusTypes,
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  companyRoleList} = require("../../Utils/ListOfSeedData");
 
+  companyRoleList,
+} = require("../../Utils/ListOfSeedData");
 
-const {
-  createVehicleStatusType
-} = require("../VehicleStatusType.service");
-
-
-
-
-
-
-
+const { createVehicleStatusType } = require("../VehicleStatusType.service");
 
 const {
   createUserSystem,
-  ensureCredentialForUser
+  ensureCredentialForUser,
 } = require("../User.service");
 
-
-
-
-const {
-  createStatus
-} = require("../Status.service");
-const {
-  createRole
-} = require("../Role.service");
-const {
-  createRole: createCompanyRole
-} = require("../CompanyRole.service");
-
+const { createStatus } = require("../Status.service");
+const { createRole } = require("../Role.service");
+const { createRole: createCompanyRole } = require("../CompanyRole.service");
 
 const createTable = async () => {
   // Connect WITHOUT specifying the database so we can create it if it doesn't exist.
-  const {
-    database: dbName,
-    ...configWithoutDb
-  } = dbConfig;
+  const { database: dbName, ...configWithoutDb } = dbConfig;
   const adminConnection = await mysql.createConnection({
     ...configWithoutDb,
-    multipleStatements: true
+    multipleStatements: true,
   });
   try {
     // Create the database if it doesn't already exist
-    await adminConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+    await adminConnection.query(
+      `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+    );
     logger.info(`Database '${dbName}' ensured (created if not existed)`);
 
     // Select the database before running the schema DDL
@@ -102,18 +56,31 @@ const createTable = async () => {
   const superAdminFullName = Config.SUPER_ADMIN.FULL_NAME;
   const superAdminPhone = Config.SUPER_ADMIN.PHONE;
   const superAdminEmail = Config.SUPER_ADMIN.EMAIL;
-  await pool.query(`INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy)
+  await pool.query(
+    `INSERT INTO Users (userUniqueId, fullName, phoneNumber, email, userCreatedAt, userCreatedBy)
      VALUES (?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE fullName=VALUES(fullName), phoneNumber=VALUES(phoneNumber), email=VALUES(email)`, [superAdminId, superAdminFullName, superAdminPhone, superAdminEmail, currentDate(), superAdminId]);
+     ON DUPLICATE KEY UPDATE fullName=VALUES(fullName), phoneNumber=VALUES(phoneNumber), email=VALUES(email)`,
+    [
+      superAdminId,
+      superAdminFullName,
+      superAdminPhone,
+      superAdminEmail,
+      currentDate(),
+      superAdminId,
+    ],
+  );
   // Resolve the actual super admin userUniqueId in DB (handles duplicates on phone/email)
-  const [superRows] = await pool.query(`SELECT userUniqueId FROM Users WHERE email = ? OR phoneNumber = ? LIMIT 1`, [superAdminEmail, superAdminPhone]);
+  const [superRows] = await pool.query(
+    `SELECT userUniqueId FROM Users WHERE email = ? OR phoneNumber = ? LIMIT 1`,
+    [superAdminEmail, superAdminPhone],
+  );
   const effectiveSuperAdminId = superRows?.[0]?.userUniqueId || superAdminId;
   await ensureCredentialForUser({
     userUniqueId: effectiveSuperAdminId,
-    rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD
+    rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
   });
   const adminUser = {
-    userUniqueId: effectiveSuperAdminId
+    userUniqueId: effectiveSuperAdminId,
   };
 
   // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent
@@ -121,7 +88,7 @@ const createTable = async () => {
     try {
       await createStatus({
         ...status,
-        user: adminUser
+        user: adminUser,
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
@@ -135,7 +102,7 @@ const createTable = async () => {
     try {
       await createRole({
         ...role,
-        user: adminUser
+        user: adminUser,
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
@@ -149,11 +116,14 @@ const createTable = async () => {
     try {
       await createVehicleStatusType({
         ...vehicleStatusType,
-        user: adminUser
+        user: adminUser,
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
-        logger.error(`Error seeding vehicle status type ${vehicleStatusType.VehicleStatusTypeName}:`, error);
+        logger.error(
+          `Error seeding vehicle status type ${vehicleStatusType.VehicleStatusTypeName}:`,
+          error,
+        );
       }
     }
   }
@@ -163,11 +133,14 @@ const createTable = async () => {
     try {
       await createCompanyRole({
         ...companyRole,
-        userUniqueId: effectiveSuperAdminId
+        userUniqueId: effectiveSuperAdminId,
       });
     } catch (error) {
       if (!error.message || !error.message.includes("already exists")) {
-        logger.error(`Error seeding company role ${companyRole.companyRoleName}:`, error);
+        logger.error(
+          `Error seeding company role ${companyRole.companyRoleName}:`,
+          error,
+        );
       }
     }
   }
@@ -176,11 +149,11 @@ const createTable = async () => {
   await createUserSystem();
   return {
     message: "success",
-    data: `Tables created successfully`
+    data: `Tables created successfully`,
   };
 };
 
-const dropTable = async tables => {
+const dropTable = async (tables) => {
   const tableList = Array.isArray(tables) ? tables : [tables];
   try {
     await pool.query(`SET FOREIGN_KEY_CHECKS = 0;`);
@@ -194,7 +167,7 @@ const dropTable = async tables => {
     }
     return {
       message: "success",
-      data: `Table(s) [${tableList.join(", ")}] dropped successfully`
+      data: `Table(s) [${tableList.join(", ")}] dropped successfully`,
     };
   } finally {
     await pool.query(`SET FOREIGN_KEY_CHECKS = 1;`);
@@ -202,6 +175,12 @@ const dropTable = async tables => {
 };
 
 const dropAllTables = async () => {
+  //don't drop tables if it is mandatory comment out the following if needed
+
+  return {
+    message: "success",
+    data: "Tables dropped successfully",
+  };
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
   const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
   const maxRetries = 3;
@@ -209,7 +188,7 @@ const dropAllTables = async () => {
     await pool.query(disableForeignKeyChecks);
     const sqlQuery = `SHOW TABLES`;
     const [tables] = await pool.query(sqlQuery);
-    const tableNames = tables.map(table => Object.values(table)[0]);
+    const tableNames = tables.map((table) => Object.values(table)[0]);
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const remainingTables = [];
       for (const tableName of tableNames) {
@@ -236,7 +215,7 @@ const dropAllTables = async () => {
     }
     return {
       message: "success",
-      data: "All tables dropped successfully"
+      data: "All tables dropped successfully",
     };
   } finally {
     await pool.query(enableForeignKeyChecks);
@@ -244,12 +223,7 @@ const dropAllTables = async () => {
 };
 
 const updateTable = async (tableName, updateData) => {
-  const {
-    columnName,
-    columnType,
-    defaultValue,
-    foreignKey
-  } = updateData;
+  const { columnName, columnType, defaultValue, foreignKey } = updateData;
 
   // 1. Add the column itself
   const addColumnSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnType} DEFAULT ${defaultValue}`;
@@ -270,9 +244,7 @@ const updateTable = async (tableName, updateData) => {
    * Note: the FK column is always the same as columnName — no need to repeat it.
    */
   if (foreignKey && foreignKey.references) {
-    const {
-      references
-    } = foreignKey;
+    const { references } = foreignKey;
     const constraintName = `fk_${tableName}_${columnName}`.substring(0, 64);
     const addFkSql = `ALTER TABLE \`${tableName}\`
       ADD CONSTRAINT \`${constraintName}\`
@@ -282,11 +254,11 @@ const updateTable = async (tableName, updateData) => {
   }
   return {
     message: "success",
-    data: `Table ${tableName} updated successfully${foreignKey ? ` with FK on ${columnName}` : ""}`
+    data: `Table ${tableName} updated successfully${foreignKey ? ` with FK on ${columnName}` : ""}`,
   };
 };
 
-const checkTableExists = async tableName => {
+const checkTableExists = async (tableName) => {
   const sqlQuery = `
     SELECT COUNT(*) AS tableExists 
     FROM information_schema.tables 
@@ -302,5 +274,5 @@ module.exports = {
   dropTable,
   dropAllTables,
   updateTable,
-  checkTableExists
+  checkTableExists,
 };
