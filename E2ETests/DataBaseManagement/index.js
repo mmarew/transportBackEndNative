@@ -205,16 +205,17 @@ const seedTestDocument = async ({
  *   4. install predefined data (needs superAdmin token)
  */
 const resetDatabase = async () => {
-  console.log("\n✅ ========== RESET DATABASE STARTED ==========\n");
-  console.log("🔄 Starting full database reset...");
-  await dropTables({});
+  console.log("\n✅ ========== DATABASE VERIFICATION STARTED ==========\n");
+  console.log("🔄 Ensuring tables exist and predefined data is installed...");
+  // Tables are created only if they don't exist (CREATE TABLE IF NOT EXISTS).
+  // Seed data is installed safely — items that already exist are gracefully skipped.
   await createTables({});
   // superAdmin must be verified + logged in before seed data can be installed
   await testVerifyAndLoginUser({ userType: "supperAdmin" });
   await installPredefinedData();
-  console.log("✅ Database reset complete.");
+  console.log("✅ Database verification complete.");
   console.log(
-    "\n✅ ========== RESET DATABASE COMPLETED SUCCESSFULLY ==========\n",
+    "\n✅ ========== DATABASE VERIFICATION COMPLETED SUCCESSFULLY ==========\n",
   );
 };
 module.exports = {

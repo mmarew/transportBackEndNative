@@ -26,7 +26,7 @@ const createVehicle = async (token) => {
     const vehicleTypeUniqueId = vehicleTypes.data.data[0].vehicleTypeUniqueId;
 
     const payload = {
-      licensePlate: "123412",
+      licensePlate: String(Date.now()).slice(-6),
       color: "white color",
       vehicleTypeUniqueId,
       isDriverOwnerOfVehicle: false,

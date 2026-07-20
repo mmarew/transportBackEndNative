@@ -80,7 +80,7 @@ const testTakeFromStreet = async ({ token }) => {
   const vehicle = accountData.vehicle;
   const vehicleTypeUniqueId = vehicle.vehicleTypeUniqueId;
   const payload = {
-    phoneNumber: "+251922112480",
+    phoneNumber: usersData.shipper.phoneNumber,
     destination: {
       latitude: "9.8",
       longitude: "38.9",

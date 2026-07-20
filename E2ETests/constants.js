@@ -2,41 +2,44 @@ const { usersRoles } = require("../Utils/ListOfSeedData");
 
 const backendURL = "http://127.0.0.1:3000";
 
+// Unique run identifier — makes phone numbers and emails unique per test run
+// so multiple runs can coexist in the same database without conflicts.
+const runId = String(Date.now()).slice(-6);
+
 const usersData = {
   driver: {
-    fullName: "Test User", // Schema expects fullName, not full_name
-    email: "testemail12@test.com",
-    phoneNumber: "+251991111112",
-    roleId: usersRoles.driverRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
-    OTP: 101010, // Schema requires an OTP for verification}
+    fullName: "Test User",
+    email: `testdriver+${runId}@test.com`,
+    phoneNumber: `+25199${runId}1`,
+    roleId: usersRoles.driverRoleId,
+    OTP: 101010,
     documentAndVehicleOfDriver: null,
     token: null,
-    //accountData contains vehicle data, user data and other data
     accountData: null,
   },
   shipper: {
-    fullName: "Test Shipper", // Schema expects fullName, not full_name
-    email: "testemail22@test.com",
-    phoneNumber: "+251992222222",
-    roleId: usersRoles.shipperRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
-    OTP: 101010, // Schema requires an OTP for verification}
+    fullName: "Test Shipper",
+    email: `testshipper+${runId}@test.com`,
+    phoneNumber: `+25198${runId}2`,
+    roleId: usersRoles.shipperRoleId,
+    OTP: 101010,
     token: null,
   },
   admin: {
-    fullName: "Test Admin", // Schema expects fullName, not full_name
-    email: "testemail33@test.com",
-    phoneNumber: "+251993333333",
-    roleId: usersRoles.adminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
-    statusId: 1, // USER_STATUS.ACTIVE
-    OTP: 101010, // Schema requires an OTP for verification},
+    fullName: "Test Admin",
+    email: `testadmin+${runId}@test.com`,
+    phoneNumber: `+25197${runId}3`,
+    roleId: usersRoles.adminRoleId,
+    statusId: 1,
+    OTP: 101010,
     token: null,
   },
   companyAdmin: {
-    fullName: "Test Company Admin", // Schema expects fullName, not full_name
-    email: "testemail44@test.com",
-    phoneNumber: "+251994444444",
-    roleId: usersRoles.companyAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
-    OTP: 101010, // Schema requires an OTP for verification}
+    fullName: "Test Company Admin",
+    email: `testcompanyadmin+${runId}@test.com`,
+    phoneNumber: `+25196${runId}4`,
+    roleId: usersRoles.companyAdminRoleId,
+    OTP: 101010,
     token: null,
     bids: {
       availableBids: null,
@@ -49,17 +52,17 @@ const usersData = {
     },
   },
   supperAdmin: {
-    fullName: "Test Supper Admin", // Schema expects fullName, not full_name
+    fullName: "Test Supper Admin",
     email: "supperAdmin@supperAdmin.com",
-    phoneNumber: "+251983222221",
-    roleId: usersRoles.supperAdminRoleId, // Schema requires roleId (e.g., 2 for Shipper, 3 for Driver)
-    OTP: 101010, // Schema requires an OTP for verification}
+    phoneNumber: "+251983222221", // Fixed — pre-seeded in the database
+    roleId: usersRoles.supperAdminRoleId,
+    OTP: 101010,
   },
   token: null,
   company: {
-    companyName: "company a",
+    companyName: `company-a-${runId}`,
     companyRegistrationNumber: `no-aa3a-${Date.now()}`,
-    companyPhone: "+251922111111",
+    companyPhone: `+25195${runId}5`,
     companyEmail: `companya+${Date.now()}@gmail.com`,
     companyAddress: "Addis Ababa",
   },

@@ -60,7 +60,7 @@ const testDeleteCompany = async () => {
   const tempPayload = {
     companyName: `TempDelete-${Date.now()}`,
     companyRegistrationNumber: `TEMP-${Date.now()}`,
-    companyPhone: "+251988877700",
+    companyPhone: `+251${String(Date.now()).slice(-9)}`,
     companyEmail: `tempdelete${Date.now()}@test.com`,
     companyAddress: "Temp Address",
   };
