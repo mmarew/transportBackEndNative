@@ -19,6 +19,7 @@ const {
   testSocketNotifications,
   testCompanySocketNotifications,
 } = require("./Socket");
+const { runDriverRejectionTests } = require("./testDriverRejectionFlow");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -94,7 +95,20 @@ const initiateTest = async () => {
       await testCompanySocketNotifications();
     }
 
-    // ── Phase H: Previously untested endpoints (delete operations) ──────
+    // ── Phase H2: Driver rejection flow tests ─────────────────────────
+    if (!usersData?.driver?.token || !usersData?.shipper?.token || !usersData?.companyAdmin?.token) {
+      console.warn(
+        "⚠️  Missing user tokens for rejection tests — skipping Phase H2",
+      );
+    } else {
+      console.log("\n=======================================================");
+      console.log("   🚫 TESTING DRIVER REJECTION FLOWS");
+      console.log("=======================================================\n");
+
+      await safe("runDriverRejectionTests", runDriverRejectionTests)();
+    }
+
+    // ── Phase I: Previously untested endpoints (delete operations) ──────
     console.log("\n=======================================================");
     console.log("   🧪 TESTING PREVIOUSLY UNTESTED ENDPOINTS");
     console.log("=======================================================\n");

@@ -87,13 +87,23 @@ const testSocketNotifications = async () => {
   let shipperSocket = null;
 
   try {
-    // Step 0: Reactivate driver (status may have changed after previous journeys)
+    // Step 0a: Reactivate driver (status may have changed after previous journeys)
     await pool.query(
       `UPDATE UserRoleStatusCurrent urs
        JOIN UserRole ur ON urs.userRoleId = ur.userRoleId
        SET urs.statusId = 1
        WHERE ur.userUniqueId = ? AND ur.roleId = ?`,
       [driver.accountData?.userData?.userUniqueId, 2],
+    );
+
+    // Step 0b: Close any stale shipper requests still in matching state so they
+    // don't interfere with this test's fresh request.
+    await pool.query(
+      `UPDATE ShipperRequest
+       SET journeyStatusId = ?
+       WHERE journeyStatusId IN (?, ?, ?)
+         AND shipperRequestDeletedAt IS NULL`,
+      [4, /* waiting */ 1, /* requested */ 2, /* acceptedByDriver */ 3],
     );
 
     // Step 1: Create a fresh shipper request
