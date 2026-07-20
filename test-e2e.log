@@ -413,3 +413,328 @@ Matched Shipper Request ID: 5e2034f4-908d-406d-a7d2-53959489fad6
 ✅ Driver confirmed_by_driver company assignment.
 ✅ Driver journey status fetched. Status: 4
 ✅ Journey started. Status: 5
+✅ Driver journey status fetched. Status: 5
+✅ Journey completed. Status: 6
+✅ Driver journey status fetched. Status: null
+
+✅ COMPANY TARGET FLOW COMPLETED
+
+
+=======================================================
+   📊 POST-JOURNEY CRUD TESTS
+=======================================================
+
+
+── Journey Workflow ──
+✅ Journeys fetched: 1
+✅ Ongoing journey fetched: 0
+📋 Found journey to test with: 698e9d88-b9b8-416a-8f32-25387f96c983
+✅ Journey fetched by ID: 698e9d88-b9b8-416a-8f32-25387f96c983
+✅ Journey updated: 698e9d88-b9b8-416a-8f32-25387f96c983
+✅ Journeys fetched: 1
+✅ Completed journeys fetched: 1
+── Journey Workflow complete ──
+
+
+── JourneyDecisions Workflow ──
+✅ JourneyDecisions fetched: 1
+✅ JourneyDecisions fetched: 1
+✅ JourneyDecision updated: 8eaa43e1-3462-47b6-be56-9fe2d5af0c63
+── JourneyDecisions Workflow complete ──
+
+
+── CanceledJourneys Workflow ──
+✅ CanceledJourneys fetched: 0
+⏩ No canceled journeys yet — run cancellation flow first to populate
+── CanceledJourneys Workflow complete ──
+
+
+── JourneyRoutePoints Workflow ──
+✅ JourneyRoutePoints fetched: 3
+✅ JourneyRoutePoint created: 779f20fa-00f1-4d9a-b447-79932edfd0b7
+✅ JourneyRoutePoints fetched: 4
+✅ JourneyRoutePoint updated: 779f20fa-00f1-4d9a-b447-79932edfd0b7
+✅ JourneyRoutePoints fetched: 4
+✅ JourneyRoutePoint deleted: 779f20fa-00f1-4d9a-b447-79932edfd0b7
+✅ JourneyRoutePoints fetched: 3
+── JourneyRoutePoints Workflow complete ──
+
+
+── Ratings Workflow ──
+✅ Ratings fetched: 0
+✅ Ratings fetched: 0
+✅ Rating created: 1
+✅ Ratings fetched: 0
+✅ Rating updated: 1
+✅ Ratings fetched: 0
+✅ Rating deleted: 1
+✅ Ratings fetched: 0
+── Ratings Workflow complete ──
+
+
+── VehicleProfile Workflow ──
+✅ Vehicles fetched: 1
+📋 Using existing vehicle from driver onboarding: 33f8934c-2513-471b-b82f-ecc98ac2a67e
+✅ Vehicle updated: 33f8934c-2513-471b-b82f-ecc98ac2a67e
+✅ Vehicles fetched: 1
+✅ Vehicles fetched: 1
+── VehicleProfile Workflow complete ──
+
+
+── VehicleDriver Workflow ──
+✅ VehicleDrivers fetched: 1
+📋 Using existing vehicle-driver link: 0ddbafc3-c32a-4751-81be-4b0b0e860b1e
+✅ VehicleDriver updated: 0ddbafc3-c32a-4751-81be-4b0b0e860b1e
+✅ VehicleDrivers fetched: 1
+── VehicleDriver Workflow complete ──
+
+
+── VehicleOwnership Workflow ──
+✅ VehicleOwnerships fetched: 1
+📋 Using existing ownership: 12eb7fbb-4711-45cc-a41d-f92a4250e9eb
+✅ VehicleOwnership updated: 12eb7fbb-4711-45cc-a41d-f92a4250e9eb
+✅ VehicleOwnerships fetched: 1
+── VehicleOwnership Workflow complete ──
+
+
+── UserRoleStatus Workflow ──
+✅ UserRoleStatus current fetched: 6
+❌ testGetUserRoleStatusByPhone: { statusCode: 500, status: 'error' }
+⚠️  runPostJourneyCRUD failed, continuing: Request failed with status code 500
+
+=======================================================
+   ⚠️  DELINQUENCY LIFECYCLE TESTS
+=======================================================
+
+
+── Delinquency Workflow ──
+✅ Delinquencies fetched: 0
+✅ Delinquency created: 73b23b4a-bb06-4cb0-b920-00d7aa375a4b
+✅ Delinquencies fetched: 1
+✅ Delinquency updated: User delinquency record updated successfully
+✅ Delinquencies fetched: 1
+✅ Delinquency deleted: User delinquency record deleted successfully
+✅ Delinquencies fetched: 1
+── Delinquency Workflow complete ──
+
+
+── Delinquency Response Workflow ──
+📝 Creating fresh delinquency for response workflow
+✅ Delinquency created: d7b6d678-410a-4183-8f39-76519261366e
+✅ Created delinquency: d7b6d678-410a-4183-8f39-76519261366e
+✅ Delinquency responses fetched: 0
+✅ Delinquency response created: 1b447c5f-7269-47f6-b362-ee7d94086c1f
+✅ Created response: 1b447c5f-7269-47f6-b362-ee7d94086c1f
+✅ Delinquency response updated: 1b447c5f-7269-47f6-b362-ee7d94086c1f
+✅ Delinquency responses fetched: 1
+✅ Delinquency response deleted: 1b447c5f-7269-47f6-b362-ee7d94086c1f
+✅ Delinquency responses fetched: 0
+── Delinquency Response Workflow complete ──
+
+
+── Admin Decision Workflow ──
+📝 No delinquency provided — creating fresh one for decision workflow
+✅ Delinquency created: 588c65c1-048b-43a8-99e5-c585965cd940
+✅ Created delinquency: 588c65c1-048b-43a8-99e5-c585965cd940
+✅ Admin decisions fetched: 0
+✅ Admin decision created [UPHELD]: 371f7298-97d2-4223-83e8-699cd5e56f18
+⏩ Update admin decision: not supported (decisions are immutable)
+⏩ Delete admin decision: not supported (use new decision to override)
+✅ Admin decisions fetched: 1
+── Admin Decision Workflow complete ──
+
+
+── Ban Workflow ──
+📋 Using userRoleUniqueId from driver accountData: c0f0e99a-c6f5-408c-991c-b5a53d09cd0f
+✅ User banned: 72ec5bb2-60c5-47e5-a082-bf6b99e3c38c
+✅ Ban updated: 72ec5bb2-60c5-47e5-a082-bf6b99e3c38c
+✅ Ban deactivated: 72ec5bb2-60c5-47e5-a082-bf6b99e3c38c
+── Ban Workflow complete ──
+
+
+── Company Delinquency Workflow ──
+✅ Company delinquencies fetched: 0
+✅ Pending company delinquencies fetched: 0
+✅ Company delinquency created: 49120ee1-2154-4883-819f-8dffba9312d7
+✅ Company delinquencies fetched: 1
+✅ Company delinquency response created
+✅ Company delinquency deleted: 49120ee1-2154-4883-819f-8dffba9312d7
+✅ Company delinquencies fetched: 0
+── Company Delinquency Workflow complete ──
+
+
+✅ Delinquency lifecycle tests complete
+
+
+=======================================================
+   📈 ANALYTICS & SYSTEM ADMIN TESTS
+=======================================================
+
+
+── Analytics & Filter Workflow ──
+✅ Canceled journey counts by date fetched: {}
+✅ Canceled journey counts by reason fetched: 0
+✅ Canceled journeys (admin filter) fetched: 0
+✅ Users (detailed filter) fetched: 6
+✅ Online drivers fetched: 0
+✅ Offline drivers fetched: 0
+✅ All active drivers fetched: 0
+── Analytics & Filter Workflow complete ──
+
+
+── System Admin Workflow ──
+✅ Health check OK: ok
+✅ Database health check OK: healthy
+✅ Database stats fetched: OK
+⏩ testGetSystemLogs skipped — uses ?secret= key, not JWT auth (browser-only endpoint)
+⏩ testGetSystemUploads skipped — uses ?secret= key, not JWT auth (browser-only endpoint)
+── System Admin Workflow complete ──
+
+
+✅ ========== ADMIN DASHBOARD TESTS ==========
+
+  ✅ PASS: Dashboard — rejects unauthenticated request (401)
+  ✅ PASS: Dashboard — returns 200 with admin token
+  ✅ PASS: Dashboard — response shape
+  ✅ PASS: Dashboard — averageRating
+
+✅ ========== ADMIN DASHBOARD TESTS COMPLETED ==========
+
+
+✅ Analytics & Admin tests complete
+
+
+=======================================================
+   🔌 TESTING SOCKET NOTIFICATIONS
+=======================================================
+
+
+=======================================================
+   🔌 SOCKET NOTIFICATION TESTS
+=======================================================
+
+── Creating shipper request ──
+  ✅ PASS: createShipperRequest (socket test)
+
+── Connecting shipper socket ──
+  ✅ PASS: shipperSocketConnected
+
+── Creating driver request (auto-match) ──
+  ✅ PASS: createDriverRequest (socket test)
+
+── Connecting driver socket ──
+  ✅ PASS: driverSocketConnected
+
+── Waiting for driver_found_shipper_request on SHIPPER socket ──
+  ✅ PASS: shipperReceived_driver_found_shipper_request
+── Driver accepting shipper request ──
+  ✅ PASS: driverAcceptedShipperRequest
+
+── Waiting for driver_accepted_shipper_request on shipper socket ──
+  ✅ PASS: shipperReceived_driver_accepted_shipper_request
+── Shipper accepting driver ──
+  ✅ PASS: shipperAcceptedDriverOffer
+
+── Waiting for shipper_accepted_driver_request on driver socket ──
+  ✅ PASS: driverReceived_shipper_accepted_driver_request
+
+✅ Socket notification tests complete
+
+
+=======================================================
+   🔌 TESTING COMPANY SOCKET NOTIFICATIONS
+=======================================================
+
+
+=======================================================
+   🔌 COMPANY TARGET SOCKET NOTIFICATION TESTS
+=======================================================
+
+── Connecting company socket ──
+  ✅ PASS: companySocketConnected
+
+── Setting up company_batch_available listener ──
+  ✅ PASS: companyTarget_createBatch
+
+── Waiting for company_batch_available on company socket ──
+  ✅ PASS: companyReceived_company_batch_available
+
+── Connecting shipper socket ──
+  ✅ PASS: shipperSocketConnected
+
+── Setting up company_bid_submitted listener on shipper socket ──
+── Company submitting bid ──
+  ✅ PASS: companySubmittedBid
+
+── Waiting for company_bid_submitted on shipper socket ──
+  ✅ PASS: shipperReceived_company_bid_submitted
+
+── Setting up company_bid_accepted listener on company socket ──
+── Shipper accepting bid ──
+  ✅ PASS: shipperAcceptedBid
+
+── Waiting for company_bid_accepted on company socket ──
+  ✅ PASS: companyReceived_company_bid_accepted
+
+── Connecting driver socket ──
+  ✅ PASS: driverSocketConnected
+
+── Setting up company_driver_assignment listener on driver socket ──
+── Auto-assigning driver ──
+  ✅ PASS: companyAutoAssignedDriver
+
+── Waiting for company_driver_assignment on driver socket ──
+  ✅ PASS: driverReceived_company_driver_assignment
+
+── Setting up company_driver_confirmed listener on company socket ──
+── Driver confirming assignment ──
+  ✅ PASS: driverConfirmedAssignment
+
+── Waiting for company_driver_confirmed on company socket ──
+  ✅ PASS: companyReceived_company_driver_confirmed
+
+── Driver starting journey ──
+  ✅ PASS: driverStartedJourney
+
+── Setting up company_driver_completed listener on company socket ──
+── Driver completing journey ──
+  ✅ PASS: driverCompletedJourney
+
+── Waiting for company_driver_completed ──
+  ✅ PASS: companyReceived_company_driver_completed
+
+
+✅ Company socket notification tests complete
+
+
+=======================================================
+   🧪 TESTING PREVIOUSLY UNTESTED ENDPOINTS
+=======================================================
+
+
+── PATCH /api/company/companies/:companyUniqueId ──
+✅ updateCompany: success
+
+── DELETE /api/company/companies/:companyUniqueId ──
+✅ deleteCompany: success
+
+── PATCH /api/shipperRequestBatch/:batchUniqueId ──
+✅ updateBatch: success
+
+── DELETE /api/shipperRequestBatch/:batchUniqueId ──
+✅ deleteBatch: success
+
+── POST /api/vehicle/attachDocuments/:vehicleUniqueId ──
+✅ vehicleDocumentUpload: success
+
+── DELETE /api/user/users/:userUniqueId ──
+✅ deleteUser: success
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Results:  ✅ 29 passed  |  ❌ 0 failed  |  ⏩ 0 skipped
+  Total:    29 tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========
+
