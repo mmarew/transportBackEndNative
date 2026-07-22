@@ -86,13 +86,19 @@ exports.assignVehicle = async (data) => {
 
   // A vehicle can only be in ONE company's active fleet
   const [dup] = await db().query(
-    `SELECT cv.companyVehicleId, tc.companyName
+    `SELECT cv.companyVehicleId, cv.companyUniqueId, tc.companyName
      FROM CompanyVehicle cv
      JOIN TransportCompany tc ON cv.companyUniqueId = tc.companyUniqueId
      WHERE cv.vehicleUniqueId = ? AND cv.assignmentStatus = 'active' AND cv.companyVehicleDeletedAt IS NULL`,
     [vehicleUniqueId],
   );
   if (dup.length > 0) {
+    if (dup[0].companyUniqueId === companyUniqueId) {
+      return {
+        message: "success",
+        data: { message: "Vehicle is already assigned to this company" },
+      };
+    }
     const existing = dup[0].companyName
       ? `"${dup[0].companyName}"`
       : "another company";

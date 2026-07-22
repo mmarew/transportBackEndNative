@@ -57,15 +57,13 @@ const createUserSubscription = async ({
   let savedEndDate = null,
     savedStartDate = null;
   if (isFree) {
-    const filters = {
-      driverUniqueId,
-      subscriptionPlanPricingUniqueId,
-    };
-    const checkGrantedBefore = await getUserSubscriptionsWithFilters(filters);
-    const dataGrantedBefore = checkGrantedBefore?.data?.[0];
-    if (dataGrantedBefore) {
+    const allSubs = await getUserSubscriptionsWithFilters({ driverUniqueId });
+    const hasFreeBefore = (allSubs?.data || []).some(
+      (s) => s.isFree === 1 || s.isFree === true,
+    );
+    if (hasFreeBefore) {
       throw new AppError(
-        "You have already registered for a free trial once.",
+        "You have already used your free trial.",
         400,
       );
     }

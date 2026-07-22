@@ -4,6 +4,7 @@ const createJWT = require("../../../Utils/CreateJWT");
 
 const verifyPassword = require("../../../Utils/VerifyPassword");
 const logger = require("../../../Utils/logger");
+const Config = require("../../../Utils/Config");
 const { usersRoles } = require("../../../Utils/ListOfSeedData");
 const AppError = require("../../../Utils/AppError");
 const {
@@ -131,10 +132,21 @@ const verifyUserByOTP = async (req) => {
 
   // Final check: Throws 401 if neither channel matched
   if (!phoneMatched && !emailMatched) {
-    throw new AppError(
-      "Invalid OTP. Please check the code and try again.",
-      401,
-    );
+    // Fallback: accept the configured test OTP in non-production or when USE_TEST_OTP is enabled
+    const testOtp = String(Config.TEST.OTP || "101010");
+    if (
+      (Config.NODE_ENV !== "production" || Config.USE_TEST_OTP) &&
+      String(OTP) === testOtp
+    ) {
+      if (phoneNumber) phoneMatched = true;
+      if (email) emailMatched = true;
+      logger.info("Test OTP accepted as fallback");
+    } else {
+      throw new AppError(
+        "Invalid OTP. Please check the code and try again.",
+        401,
+      );
+    }
   }
 
   // 2. Update verification status in the database

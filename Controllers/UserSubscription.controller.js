@@ -93,8 +93,8 @@ exports.getUserSubscriptions = async (req, res, next) => {
       sortOrder = "DESC",
     } = req.query;
 
-    // Handle 'self' pattern for driverUniqueId
-    let driverUniqueId = req.query.driverUniqueId;
+    // Handle 'self' pattern for driverUniqueId or userUniqueId
+    let driverUniqueId = req.query.driverUniqueId || req.query.userUniqueId;
     if (driverUniqueId === "self") {
       driverUniqueId = user?.userUniqueId;
     }
