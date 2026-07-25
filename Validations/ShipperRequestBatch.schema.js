@@ -49,38 +49,49 @@ const { uuidSchema } = require("../Middleware/Validator");
  */
 exports.getBatchesQuery = Joi.object({
   // ── Identity ──
-  batchUniqueId:          uuidSchema.optional(),
-  shipperUserUniqueId:    uuidSchema.optional(),
-  vehicleTypeUniqueId:    uuidSchema.optional(),
-  targetCompanyUniqueId:  uuidSchema.optional(),
+  batchUniqueId: uuidSchema.optional(),
+  shipperUserUniqueId: uuidSchema.optional(),
+  vehicleTypeUniqueId: uuidSchema.optional(),
+  targetCompanyUniqueId: uuidSchema.optional(),
   requestMode: Joi.string()
     .valid("individual_target", "company_target")
     .optional(),
-  journeyStatusId:   Joi.number().integer().min(1).optional(),
+  journeyStatusId: Joi.number().integer().min(1).optional(),
   journeyStatusName: Joi.string()
     .valid(
-      "waiting", "requested", "acceptedByDriver", "acceptedByShipper",
-      "journeyStarted", "journeyCompleted", "cancelledByShipper",
-      "rejectedByShipper", "cancelledByDriver", "cancelledByAdmin",
-      "completedByAdmin", "cancelledBySystem", "noAnswerFromDriver",
-      "notSelectedInBid", "rejectedByDriver", "replacedByCompanyAssignment",
+      "waiting",
+      "requested",
+      "acceptedByDriver",
+      "acceptedByShipper",
+      "journeyStarted",
+      "journeyCompleted",
+      "cancelledByShipper",
+      "rejectedByShipper",
+      "cancelledByDriver",
+      "cancelledByAdmin",
+      "completedByAdmin",
+      "cancelledBySystem",
+      "noAnswerFromDriver",
+      "notSelectedInBid",
+      "rejectedByDriver",
+      "replacedByCompanyAssignment",
       "partiallyCancelled",
     )
     .optional(),
   totalVehicles: Joi.number().integer().min(1).optional(),
 
   // ── Text search ──
-  originPlace:      Joi.string().max(255).optional(),
+  originPlace: Joi.string().max(255).optional(),
   destinationPlace: Joi.string().max(255).optional(),
   shippableItemName: Joi.string().max(100).optional(),
 
   // ── Date ranges ──
   shippingDateFrom: Joi.date().iso().optional(),
-  shippingDateTo:   Joi.date().iso().optional(),
+  shippingDateTo: Joi.date().iso().optional(),
   deliveryDateFrom: Joi.date().iso().optional(),
-  deliveryDateTo:   Joi.date().iso().optional(),
-  createdFrom:      Joi.date().iso().optional(),
-  createdTo:        Joi.date().iso().optional(),
+  deliveryDateTo: Joi.date().iso().optional(),
+  createdFrom: Joi.date().iso().optional(),
+  createdTo: Joi.date().iso().optional(),
 
   // ── Cost range ──
   shippingCostMin: Joi.number().min(0).optional(),
@@ -90,7 +101,7 @@ exports.getBatchesQuery = Joi.object({
   includeDeleted: Joi.boolean().optional(),
 
   // ── Pagination ──
-  page:  Joi.number().integer().min(1).default(1).optional(),
+  page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(10).optional(),
 }).unknown(false);
 
@@ -144,14 +155,10 @@ exports.cancelBatchBody = Joi.object({
  * cancellationReasonsTypeId – optional reason FK (same as full cancel).
  */
 exports.partialCancelBatchBody = Joi.object({
-  slotIds: Joi.array()
-    .items(uuidSchema.required())
-    .min(1)
-    .required()
-    .messages({
-      "array.min": "At least one slotId must be provided",
-      "any.required": "slotIds is required",
-    }),
+  slotIds: Joi.array().items(uuidSchema.required()).min(1).required().messages({
+    "array.min": "At least one slotId must be provided",
+    "any.required": "slotIds is required",
+  }),
   cancellationReasonsTypeId: Joi.number()
     .integer()
     .min(1)
@@ -213,7 +220,9 @@ exports.batchSlotsQuery = Joi.object({
   journeyStatusName: Joi.alternatives()
     .try(
       Joi.string().valid(...VALID_JOURNEY_STATUS_NAMES),
-      Joi.array().items(Joi.string().valid(...VALID_JOURNEY_STATUS_NAMES)).min(1),
+      Joi.array()
+        .items(Joi.string().valid(...VALID_JOURNEY_STATUS_NAMES))
+        .min(1),
     )
     .optional(),
   // slotState maps to the assignment-pipeline sub-states shown in
