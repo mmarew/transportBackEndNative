@@ -91,7 +91,7 @@ const testMarkCanceledJourneySeenByAdmin = async ({ user, canceledJourneyUniqueI
     if (!token) throw new Error("token not found");
     const id = canceledJourneyUniqueId || cache.data?.[0]?.cancellationDetails?.canceledJourneyUniqueId;
     if (!id) throw new Error("No canceledJourneyUniqueId found");
-    const result = await axios.patch(`${backendURL}${BASE_URL}/${id}/seen`, {}, authConfig(token));
+    const result = await axios.put(`${backendURL}${BASE_URL}/${id}/seen`, {}, authConfig(token));
     console.log("✅ CanceledJourney marked seen by admin:", id);
     return result.data;
   } catch (error) {

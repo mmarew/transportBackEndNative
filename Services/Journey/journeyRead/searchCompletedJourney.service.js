@@ -65,7 +65,16 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
     } = roleConfig[roleId];
     const placeholders = userIds.map(() => "?").join(",");
     const dataSql = `
-      SELECT Journey.*, JourneyDecisions.* 
+      SELECT
+        Journey.journeyId, Journey.journeyUniqueId, Journey.journeyDecisionUniqueId,
+        Journey.startTime, Journey.endTime, Journey.fare, Journey.journeyStatusId,
+        Journey.journeyCreatedBy, Journey.journeyUpdatedAt,
+        Journey.journeyCreatedAt,
+        JourneyDecisions.journeyDecisionId, JourneyDecisions.shipperRequestId,
+        JourneyDecisions.driverRequestId, JourneyDecisions.decisionTime,
+        JourneyDecisions.decisionBy, JourneyDecisions.shippingDateByDriver,
+        JourneyDecisions.deliveryDateByDriver, JourneyDecisions.shippingCostByDriver,
+        JourneyDecisions.journeyDecisionCreatedBy
       FROM Journey
       JOIN JourneyDecisions ON JourneyDecisions.journeyDecisionUniqueId = Journey.journeyDecisionUniqueId
       JOIN ShipperRequest ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
@@ -91,10 +100,31 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
     const totalPages = Math.ceil(totalCount / safeLimit);
     const data = await Promise.all(result.map(async item => {
       const [shipperData, driverData] = await Promise.all([getShipperRequestByShipperRequestId(item.shipperRequestId), getDriverRequestByRequestId(item.driverRequestId)]);
+      const journey = {
+        journeyUniqueId: item.journeyUniqueId,
+        journeyDecisionUniqueId: item.journeyDecisionUniqueId,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        fare: item.fare,
+        journeyStatusId: item.journeyStatusId,
+        journeyCreatedAt: item.journeyCreatedAt,
+      };
+      const decision = {
+        journeyDecisionUniqueId: item.journeyDecisionUniqueId,
+        shipperRequestId: item.shipperRequestId,
+        driverRequestId: item.driverRequestId,
+        decisionTime: item.decisionTime,
+        decisionBy: item.decisionBy,
+        shippingDateByDriver: item.shippingDateByDriver,
+        deliveryDateByDriver: item.deliveryDateByDriver,
+        shippingCostByDriver: item.shippingCostByDriver,
+        journeyDecisionCreatedBy: item.journeyDecisionCreatedBy,
+      };
       return {
         shipper: shipperData.data,
         driver: driverData.data,
-        journey: item
+        journey,
+        decision,
       };
     }));
     return {

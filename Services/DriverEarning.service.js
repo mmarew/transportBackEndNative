@@ -153,6 +153,10 @@ exports.getDriverEarningsByFilter = async ({
           proposedTotalCost: r.proposedTotalCost,
           numberOfVehiclesOffered: r.numberOfVehiclesOffered,
           bidStatus: r.bidStatus,
+          companyFee:
+            r.shipperShippingCost !== null && r.proposedCostPerVehicle !== null
+              ? r.shipperShippingCost - r.proposedCostPerVehicle
+              : null,
         }
       : null,
   }));
