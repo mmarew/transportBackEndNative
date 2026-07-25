@@ -175,11 +175,11 @@ const dropTable = async (tables) => {
 };
 
 const dropAllTables = async () => {
-  //don't drop tables. this is dangerous.  if deleteing  is mandatory comment out the following return statement
-  return {
-    message: "success",
-    data: "All tables dropped successfully",
-  };
+  // Safety guard: uncomment the code below if you truly need to drop all tables.
+  // return {
+  //   message: "success",
+  //   data: "All tables dropped successfully",
+  // };
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
   const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
   const maxRetries = 3;

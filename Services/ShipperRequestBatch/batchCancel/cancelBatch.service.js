@@ -135,9 +135,29 @@ const cancelBatch = async ({
         [batchUniqueId],
       ),
     ]);
+
+    // Collect notification targets before returning
+    const [[companyRows], [shipperRows]] = await Promise.all([
+      db().query(
+        `SELECT DISTINCT companyUniqueId FROM CompanyBidRequest WHERE shipperRequestBatchId = ?`,
+        [batchUniqueId],
+      ),
+      db().query(
+        `SELECT u.phoneNumber, u.userUniqueId FROM Users u WHERE u.userUniqueId = ? LIMIT 1`,
+        [batch.shipperUserUniqueId],
+      ),
+    ]);
+
     return {
       message: "Batch cancelled successfully",
       batchUniqueId,
+      _notificationTargets: {
+        batchUniqueId,
+        cancelStatusId,
+        companies: (companyRows || []).map((r) => r.companyUniqueId),
+        drivers: [],
+        shipper: shipperRows?.[0] || null,
+      },
     };
   }
 

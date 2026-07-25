@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable max-lines, promise/no-nesting */
 
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
@@ -459,14 +460,19 @@ exports.updateAssignmentStatus = async (
                 companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
               },
             },
-          }).catch((e) =>
+          }          ).catch((e) =>
             logger.error("WebSocket to company failed on driver reject", {
               error: e.message,
               companyUniqueId,
             }),
           );
         }
+        return undefined;
       },
+    ).catch((e) =>
+      logger.error("WebSocket to company failed on driver reject", {
+        error: e.message,
+      }),
     );
 
     // 🔔 Notify shipper about driver rejection / cancellation
@@ -514,14 +520,19 @@ exports.updateAssignmentStatus = async (
               notification: shipperNotif,
               data: shipperData,
             },
-          }).catch((e) =>
+          }          ).catch((e) =>
             logger.warn("WebSocket to shipper failed on driver reject", {
               error: e.message,
               assignmentUniqueId,
             }),
           );
         }
+        return undefined;
       },
+    ).catch((e) =>
+      logger.error("WebSocket to shipper failed on driver reject", {
+        error: e.message,
+      }),
     );
 
     // Normalise legacy 'cancelled' to the correct ENUM value
@@ -713,14 +724,19 @@ exports.updateAssignmentStatus = async (
                 companyBidRequestUniqueId: assignment.companyBidRequestUniqueId,
               },
             },
-          }).catch((e) =>
+          }          ).catch((e) =>
             logger.error("WebSocket to company failed on driver confirm", {
               error: e.message,
               companyUniqueId,
             }),
           );
         }
+        return undefined;
       },
+    ).catch((e) =>
+      logger.error("WebSocket to company failed on driver confirm", {
+        error: e.message,
+      }),
     );
 
     // 🔔 Notify shipper that driver confirmed
@@ -758,14 +774,19 @@ exports.updateAssignmentStatus = async (
               notification: shipperNotif,
               data: fullAssignment || shipperData,
             },
-          }).catch((e) =>
+          }          ).catch((e) =>
             logger.warn("WebSocket to shipper failed on driver confirm", {
               error: e.message,
               assignmentUniqueId,
             }),
           );
         }
+        return undefined;
       },
+    ).catch((e) =>
+      logger.error("WebSocket to shipper failed on driver confirm", {
+        error: e.message,
+      }),
     );
 
     // ── Phase 1: Auto-release conflicting offers ──────────────────────────
@@ -894,7 +915,12 @@ exports.updateAssignmentStatus = async (
               ),
             );
           }
+          return undefined;
         },
+      ).catch((e) =>
+        logger.error("WebSocket to company failed on progress update", {
+          error: e.message,
+        }),
       );
 
       // 🔔 Notify shipper about driver progress
@@ -944,7 +970,12 @@ exports.updateAssignmentStatus = async (
               }),
             );
           }
+          return undefined;
         },
+      ).catch((e) =>
+        logger.error("WebSocket to shipper failed on progress update", {
+          error: e.message,
+        }),
       );
     }
   }

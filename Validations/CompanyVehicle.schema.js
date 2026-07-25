@@ -33,3 +33,13 @@ exports.getCompanyVehiclesQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1).optional(),
   limit: Joi.number().integer().min(1).max(100).default(10).optional(),
 }).unknown(true);
+
+exports.moveVehicle = Joi.object({
+  companyUniqueId: uuidSchema.required(),
+  vehicleUniqueId: uuidSchema.required(),
+  assignmentStartDate: Joi.date()
+    .iso()
+    .default(() => currentDate())
+    .optional(),
+  assignmentEndDate: Joi.date().iso().optional().allow(null),
+}).unknown(true);

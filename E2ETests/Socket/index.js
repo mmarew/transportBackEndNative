@@ -264,13 +264,11 @@ const testCompanySocketNotifications = async () => {
   const driver = usersData.driver;
   const shipper = usersData.shipper;
   const companyAdmin = usersData.companyAdmin;
-  const company = usersData.company;
 
   let shipperSocket = null;
   let companySocket = null;
   let driverSocket = null;
   let companyBidRequestUniqueId = null;
-  let companyShipperBatchId = null;
 
   try {
     // Step 0: Reactivate driver
@@ -313,7 +311,6 @@ const testCompanySocketNotifications = async () => {
     );
 
     const batchId = require("uuid").v4();
-    companyShipperBatchId = batchId;
     const shippingDate = new Date();
     shippingDate.setDate(shippingDate.getDate() + 1);
     const deliveryDate = new Date();

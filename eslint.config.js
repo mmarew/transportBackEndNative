@@ -4,7 +4,7 @@
  */
 
 const js = require("@eslint/js");
-const nodePlugin = require("eslint-plugin-n").default;
+const nodePlugin = require("eslint-plugin-n");
 const promisePlugin = require("eslint-plugin-promise");
 const securityPlugin = require("eslint-plugin-security");
 const eslintConfigPrettier = require("eslint-config-prettier");
@@ -134,7 +134,7 @@ module.exports = [
 
   // 6. Test files configuration
   {
-    files: ["**/*.test.js", "**/tests/**/*.js"],
+    files: ["**/*.test.js", "**/tests/**/*.js", "E2ETests/**/*.js"],
     rules: {
       "no-console": "off",
       "max-lines-per-function": "off",
@@ -168,6 +168,16 @@ module.exports = [
     rules: {
       "n/no-unsupported-features/node-builtins": "off"
     }
+  },
+
+  // 7.6 Standalone utility scripts (not part of the server)
+  {
+    files: ["merge-pdfs.js", "parse_postman.js", "scan_routes.js"],
+    rules: {
+      "no-console": "off",
+      "security/detect-non-literal-fs-filename": "off",
+      "max-lines": "off",
+    },
   },
 
   // 8. Seed scripts and error handlers

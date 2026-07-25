@@ -24,6 +24,11 @@ router.get(
 );
 
 /**
+ * @route   PUT /api/company/fleet?userUniqueId=self
+ */
+router.put("/", validator(schema.moveVehicle), controller.moveVehicle);
+
+/**
  * @route   DELETE /api/company/fleet/:companyVehicleUniqueId
  */
 router.delete(

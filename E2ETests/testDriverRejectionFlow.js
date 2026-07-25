@@ -12,18 +12,11 @@ const {
   SHIPPER_REQUEST_ENDPOINTS,
 } = require("../Routes/EndPoints/shipperRequest.endpoints");
 const {
-  COMPANY_BID_ENDPOINTS,
-} = require("../Routes/EndPoints/companyBid.endpoints");
-const {
   COMPANY_ASSIGNMENT_ENDPOINTS,
 } = require("../Routes/EndPoints/companyAssignment.endpoints");
 const {
   pool,
 } = require("../Middleware/Database.config");
-const {
-  testShipperOnboardingFlow,
-} = require("./Shipper/Index");
-const { createCompanyAdminFlow } = require("./Company");
 const {
   initiateCompanyBiddingWorkFlow,
   acceptCompanyOffer,

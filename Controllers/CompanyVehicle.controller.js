@@ -25,6 +25,26 @@ exports.getCompanyVehicles = async (req, res, next) => {
   }
 };
 
+exports.moveVehicle = async (req, res, next) => {
+  try {
+    let userUniqueId = req?.query?.userUniqueId;
+    if (userUniqueId === "self") {
+      userUniqueId = req.user.userUniqueId;
+    }
+    const result = await executeInTransaction(() =>
+      service.moveVehicle({
+        ...req.body,
+        userUniqueId,
+        assignmentStartDate: req.body.assignmentStartDate || new Date(),
+        createdByUserUniqueId: req.user.userUniqueId,
+      }),
+    );
+    ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
 exports.removeVehicle = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>

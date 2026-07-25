@@ -120,6 +120,65 @@ exports.assignVehicle = async (data) => {
 };
 
 /**
+ * Moves a vehicle from its current company fleet to a new one.
+ * If the vehicle is already in the target company, returns success (no-op).
+ * If it's in a different company, the old assignment is soft-deleted first.
+ *
+ * @param {Object} data
+ * @param {string} data.companyUniqueId - Target company UUID
+ * @param {string} data.vehicleUniqueId  - Vehicle UUID to move
+ * @param {Date}   data.assignmentStartDate - Start date for new assignment
+ * @param {string} data.createdByUserUniqueId - User performing the move
+ */
+exports.moveVehicle = async (data) => {
+  const {
+    companyUniqueId,
+    vehicleUniqueId,
+    assignmentStartDate,
+    assignmentEndDate,
+    createdByUserUniqueId,
+  } = data;
+
+  await findOne("TransportCompany", { companyUniqueId, isDeleted: 0 }, "Company not found");
+
+  const [existing] = await db().query(
+    `SELECT cv.companyVehicleUniqueId, cv.companyUniqueId, tc.companyName
+     FROM CompanyVehicle cv
+     JOIN TransportCompany tc ON cv.companyUniqueId = tc.companyUniqueId
+     WHERE cv.vehicleUniqueId = ? AND cv.assignmentStatus = 'active' AND cv.companyVehicleDeletedAt IS NULL`,
+    [vehicleUniqueId],
+  );
+
+  if (existing.length > 0) {
+    if (existing[0].companyUniqueId === companyUniqueId) {
+      return {
+        message: "success",
+        data: { message: "Vehicle is already assigned to this company" },
+      };
+    }
+    await db().query(
+      `UPDATE CompanyVehicle
+       SET assignmentStatus = 'inactive', companyVehicleDeletedAt = ?, companyVehicleDeletedBy = ?
+       WHERE companyVehicleUniqueId = ?`,
+      [currentDate(), createdByUserUniqueId, existing[0].companyVehicleUniqueId],
+    );
+  }
+
+  const companyVehicleUniqueId = uuidv4();
+  await db().query(
+    `INSERT INTO CompanyVehicle
+      (companyVehicleUniqueId, companyUniqueId, vehicleUniqueId,
+       assignmentStatus, assignmentStartDate, assignmentEndDate,
+       companyVehicleCreatedBy, companyVehicleCreatedAt)
+     VALUES (?, ?, ?, 'active', ?, ?, ?, ?)`,
+    [companyVehicleUniqueId, companyUniqueId, vehicleUniqueId,
+      assignmentStartDate, assignmentEndDate || null,
+      createdByUserUniqueId, currentDate()],
+  );
+  return { message: "success", data: { companyVehicleUniqueId } };
+};
+
+/**
  * @param {Object} [filters={}] - Query filters (companyUniqueId, vehicleUniqueId, status)
  * @param {Object} [user={}] - Authenticated user object for data segregation
  * @returns {Promise<Object>} Paginated list of company vehicles

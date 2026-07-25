@@ -1,5 +1,5 @@
 const { emitMessage } = require("./WsServerResponder");
-const { getSocket, getAllSockets } = require("./WsConnectionStore");
+const { getSocket } = require("./WsConnectionStore");
 const { redis } = require("../Config/redis.config");
 const logger = require("./logger");
 const AppError = require("./AppError");

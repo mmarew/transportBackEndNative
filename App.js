@@ -60,10 +60,10 @@ const startServer = async () => {
 
     const PORT = Config.PORT;
     const server = httpServer?.listen(PORT, "0.0.0.0", () => {
-      console.log(`\n🚀 Server running at:`);
-      console.log(`   Local:   http://localhost:${PORT}`);
-      console.log(`   Network: http://${ipAddress}:${PORT}`);
-      console.log(`   Env:     ${Config.NODE_ENV}\n`);
+      logger.info(`Server running at:`);
+      logger.info(`   Local:   http://localhost:${PORT}`);
+      logger.info(`   Network: http://${ipAddress}:${PORT}`);
+      logger.info(`   Env:     ${Config.NODE_ENV}`);
       logger.info(`Server is running on http://${ipAddress}:${PORT}`, {
         port: PORT,
         nodeEnv: Config.NODE_ENV,

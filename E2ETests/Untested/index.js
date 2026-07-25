@@ -152,7 +152,7 @@ const testDeleteBatch = async () => {
     );
     const data = list.data?.data || list.data;
     batchId = Array.isArray(data) ? data[0]?.batchUniqueId : data?.[0]?.batchUniqueId;
-  } catch (err) {
+  } catch {
     console.log("⏩ testDeleteBatch: could not fetch batches");
     return;
   }

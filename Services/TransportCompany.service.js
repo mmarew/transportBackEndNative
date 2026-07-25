@@ -175,9 +175,16 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   const where = `WHERE ${clauses.join(" AND ")}`;
   const executor = db();
 
-  // ── 1. Paginated list of companies ────────────────────────────────────────
+  // ── 1. Paginated list of companies with creator profile ────────────────────
   const [companies] = await executor.query(
-    `SELECT * FROM TransportCompany ${where}
+    `SELECT TransportCompany.*,
+            owner.userUniqueId AS ownerUserUniqueId,
+            owner.fullName   AS ownerFullName,
+            owner.email      AS ownerEmail,
+            owner.phoneNumber AS ownerPhoneNumber
+     FROM TransportCompany
+     LEFT JOIN Users owner ON TransportCompany.companyCreatedBy = owner.userUniqueId
+     ${where}
      ORDER BY TransportCompany.companyCreatedAt DESC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset],
@@ -292,11 +299,18 @@ exports.getCompanies = async (filters = {}, user = {}) => {
     }
   }
 
-  // ── 3. Merge compliance into each company row ─────────────────────────────
-  const data = companies.map((c) => ({
-    ...c,
-    documentCompliance: complianceMap[c.companyUniqueId] ?? null,
-  }));
+  // ── 3. Merge compliance + owner profile into each company row ─────────────
+  const data = companies.map((c) => {
+    const { ownerUserUniqueId, ownerFullName, ownerEmail, ownerPhoneNumber, ...rest } = c;
+    const ownerProfile = ownerFullName
+      ? { userUniqueId: ownerUserUniqueId, fullName: ownerFullName, email: ownerEmail, phoneNumber: ownerPhoneNumber }
+      : null;
+    return {
+      ...rest,
+      documentCompliance: complianceMap[c.companyUniqueId] ?? null,
+      ownerProfile,
+    };
+  });
 
   return {
     message: "success",
