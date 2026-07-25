@@ -10,72 +10,152 @@ exports.getDriverEarningsByFilter = async ({
   offset = 0,
   limit = 10,
 }) => {
-  // ✅ Basic validation
   if (!driverUniqueId) {
     throw new AppError("Missing required parameters: driverUniqueId", 400);
   }
 
-  // Build WHERE conditions dynamically
-  let whereConditions = [
-    "DriverRequest.userUniqueId = ?",
-    "JourneyDecisions.journeyStatusId = ?",
+  const whereConditions = [
+    "DR.userUniqueId = ?",
+    "JD.journeyStatusId = ?",
   ];
 
-  let params = [
-    driverUniqueId,
-    journeyStatusMap?.journeyCompleted, // only completed journeys
-  ];
+  const params = [driverUniqueId, journeyStatusMap?.journeyCompleted];
 
-  // Add date filter only if both dates are provided
   if (fromDate && toDate) {
-    whereConditions.push("JourneyDecisions.decisionTime BETWEEN ? AND ?");
+    whereConditions.push("JD.decisionTime BETWEEN ? AND ?");
     params.push(fromDate, toDate);
   } else if (fromDate) {
-    // If only fromDate is provided, filter from that date onwards
-    whereConditions.push("JourneyDecisions.decisionTime >= ?");
+    whereConditions.push("JD.decisionTime >= ?");
     params.push(fromDate);
   } else if (toDate) {
-    // If only toDate is provided, filter up to that date
-    whereConditions.push("JourneyDecisions.decisionTime <= ?");
+    whereConditions.push("JD.decisionTime <= ?");
     params.push(toDate);
   }
 
-  // Add pagination parameters
+  const whereClause = whereConditions.join(" AND ");
+
+  const sql = `
+    SELECT
+      -- Journey
+      JD.journeyDecisionUniqueId,
+      JD.decisionTime,
+      JD.journeyStatusId,
+      JD.shippingCostByDriver,
+      JD.shippingDateByDriver,
+      JD.deliveryDateByDriver,
+
+      -- Shipper request
+      SR.shipperRequestUniqueId,
+      SR.requestMode,
+      SR.originPlace,
+      SR.destinationPlace,
+      SR.shippableItemName,
+      SR.shippableItemQtyInQuintal,
+      SR.shippingCost            AS shipperShippingCost,
+      SR.shippingDate,
+      SR.deliveryDate,
+
+      -- Shipper user
+      SU.fullName                AS shipperFullName,
+      SU.phoneNumber             AS shipperPhone,
+
+      -- Driver request
+      DR.driverRequestUniqueId,
+
+      -- Driver user
+      DU.fullName                AS driverFullName,
+      DU.phoneNumber             AS driverPhone,
+
+      -- Company bid (NULL for individual mode)
+      CBR.companyBidRequestUniqueId,
+      CBR.proposedCostPerVehicle,
+      CBR.proposedTotalCost,
+      CBR.numberOfVehiclesOffered,
+      CBR.bidStatus,
+
+      -- Company
+      TC.companyUniqueId,
+      TC.companyName
+
+    FROM JourneyDecisions JD
+    JOIN DriverRequest DR
+      ON DR.driverRequestId = JD.driverRequestId
+    JOIN ShipperRequest SR
+      ON SR.shipperRequestId = JD.shipperRequestId
+    LEFT JOIN Users SU
+      ON SU.userUniqueId = SR.userUniqueId
+    LEFT JOIN Users DU
+      ON DU.userUniqueId = DR.userUniqueId
+    LEFT JOIN CompanyBidVehicleAssignment CBVA
+      ON CBVA.shipperRequestUniqueId = SR.shipperRequestUniqueId
+    LEFT JOIN CompanyBidRequest CBR
+      ON CBR.companyBidRequestUniqueId = CBVA.companyBidRequestUniqueId
+    LEFT JOIN TransportCompany TC
+      ON TC.companyUniqueId = CBR.companyUniqueId
+    WHERE ${whereClause}
+    ORDER BY JD.journeyDecisionId DESC
+    LIMIT ? OFFSET ?
+  `;
+
   params.push(Number(limit), Number(offset));
 
-  // ✅ Main query (filter by driver, date range if provided, and completed journeys)
-  const sql = `
-      SELECT 
-        JourneyDecisions.*, 
-        DriverRequest.*, 
-        ShipperRequest.* 
-      FROM JourneyDecisions
-      JOIN DriverRequest 
-        ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      JOIN ShipperRequest 
-        ON ShipperRequest.shipperRequestId = JourneyDecisions.shipperRequestId
-      WHERE ${whereConditions.join(" AND ")}
-      ORDER BY JourneyDecisions.journeyDecisionId DESC
-      LIMIT ? OFFSET ?
-    `;
-
   const executor = transactionStorage.getStore() || pool;
-  const [data] = await executor.query(sql, params);
+  const [rows] = await executor.query(sql, params);
 
-  // ✅ Get total count for pagination (remove limit/offset from params)
-  const countParams = params.slice(0, -2); // Remove limit and offset
-
+  const countParams = params.slice(0, -2);
   const countSql = `
-      SELECT COUNT(*) AS total
-      FROM JourneyDecisions
-      JOIN DriverRequest 
-        ON DriverRequest.driverRequestId = JourneyDecisions.driverRequestId
-      WHERE ${whereConditions.join(" AND ")}
-    `;
-
+    SELECT COUNT(*) AS total
+    FROM JourneyDecisions JD
+    JOIN DriverRequest DR
+      ON DR.driverRequestId = JD.driverRequestId
+    WHERE ${whereClause}
+  `;
   const [countRows] = await executor.query(countSql, countParams);
-
   const total = countRows[0]?.total || 0;
+
+  const data = rows.map((r) => ({
+    journey: {
+      journeyDecisionUniqueId: r.journeyDecisionUniqueId,
+      decisionTime: r.decisionTime,
+      requestMode: r.requestMode,
+      effectiveEarning:
+        r.requestMode === "company_target"
+          ? r.proposedCostPerVehicle
+          : r.shippingCostByDriver,
+      shippingCostByDriver: r.shippingCostByDriver,
+      shippingDateByDriver: r.shippingDateByDriver,
+      deliveryDateByDriver: r.deliveryDateByDriver,
+      journeyStatusId: r.journeyStatusId,
+    },
+    shipper: {
+      shipperRequestUniqueId: r.shipperRequestUniqueId,
+      fullName: r.shipperFullName,
+      phoneNumber: r.shipperPhone,
+      originPlace: r.originPlace,
+      destinationPlace: r.destinationPlace,
+      shippableItemName: r.shippableItemName,
+      shippableItemQtyInQuintal: r.shippableItemQtyInQuintal,
+      shippingCost: r.shipperShippingCost,
+      shippingDate: r.shippingDate,
+      deliveryDate: r.deliveryDate,
+    },
+    driver: {
+      driverRequestUniqueId: r.driverRequestUniqueId,
+      fullName: r.driverFullName,
+      phoneNumber: r.driverPhone,
+    },
+    company: r.companyBidRequestUniqueId
+      ? {
+          companyBidRequestUniqueId: r.companyBidRequestUniqueId,
+          companyUniqueId: r.companyUniqueId,
+          companyName: r.companyName,
+          proposedCostPerVehicle: r.proposedCostPerVehicle,
+          proposedTotalCost: r.proposedTotalCost,
+          numberOfVehiclesOffered: r.numberOfVehiclesOffered,
+          bidStatus: r.bidStatus,
+        }
+      : null,
+  }));
 
   return {
     message: "success",

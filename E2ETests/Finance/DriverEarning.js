@@ -25,6 +25,17 @@ const testGetDriverEarnings = async ({ user, filters = {} } = {}) => {
     const url = `${BASE_URL}?${query}`;
     const result = await axios.get(backendURL + url, authConfig(token));
     console.log("✅ DriverEarnings fetched:", result.data.data?.length ?? 0);
+    if (result.data.data?.length) {
+      const sample = result.data.data[0];
+      console.log(
+        "   Sample — mode:",
+        sample.journey?.requestMode,
+        "| earning:",
+        sample.journey?.effectiveEarning,
+        "| company:",
+        sample.company?.companyName ?? "individual",
+      );
+    }
     cache.data = result.data.data;
     return result.data;
   } catch (error) {
