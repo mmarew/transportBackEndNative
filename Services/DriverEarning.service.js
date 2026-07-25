@@ -117,7 +117,6 @@ exports.getDriverEarningsByFilter = async ({
     journey: {
       journeyDecisionUniqueId: r.journeyDecisionUniqueId,
       decisionTime: r.decisionTime,
-      requestMode: r.requestMode,
       effectiveEarning:
         r.requestMode === "company_target"
           ? r.proposedCostPerVehicle
@@ -129,6 +128,7 @@ exports.getDriverEarningsByFilter = async ({
     },
     shipper: {
       shipperRequestUniqueId: r.shipperRequestUniqueId,
+      requestMode: r.requestMode,
       fullName: r.shipperFullName,
       phoneNumber: r.shipperPhone,
       originPlace: r.originPlace,
