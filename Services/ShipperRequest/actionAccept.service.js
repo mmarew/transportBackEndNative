@@ -160,9 +160,13 @@ const acceptDriverRequest = async (body) => {
       });
       return {
         message: "Driver request accepted successfully",
-        totalRecords: statusResult?.totalRecords || null,
-        pageSize: statusResult?.pageSize || 10,
-        page: statusResult?.page || 1,
+        data: {
+          totalRecords: statusResult?.data?.totalRecords || null,
+        },
+        pagination: {
+          currentPage: statusResult?.pagination?.currentPage || 1,
+          limit: statusResult?.pagination?.limit || 10,
+        },
       };
     });
   } catch (error) {

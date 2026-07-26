@@ -40,7 +40,7 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
     });
 
     const shipperRequest =
-      shipperRequestResult?.formattedData?.[0]?.shipperRequest || null;
+      shipperRequestResult?.data?.[0]?.shipperRequest || null;
     logger.debug("@shipperRequest", { shipperRequest });
     const shipperJourneyStatusId = shipperRequest?.journeyStatusId;
     const shipperRequestId = shipperRequest?.shipperRequestId;

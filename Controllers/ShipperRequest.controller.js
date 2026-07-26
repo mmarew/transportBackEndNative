@@ -152,7 +152,7 @@ const getShipperRequestByShipperRequestUniqueId = async (req, res, next) => {
         limit: 1,
       },
     });
-    const shipperRequest = result?.formattedData?.[0] || null;
+    const shipperRequest = result?.data?.[0] || null;
     if (shipperRequest) {
       ServerResponder(res, { message: "success", data: shipperRequest });
     } else {

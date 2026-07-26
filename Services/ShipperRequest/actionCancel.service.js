@@ -389,14 +389,14 @@ const cancelShipperRequest = async body => {
     return {
       message: "Shipper request cancelled successfully",
       status: cancellationJourneyStatusId,
-      data: cancellationJourneyStatusId === journeyStatusMap.cancelledByShipper ? "You have successfully cancelled your request." : "Request has been cancelled by admin.",
-      // Provide unique IDs so frontend knows what was cancelled
+      data: {
+        message: cancellationJourneyStatusId === journeyStatusMap.cancelledByShipper ? "You have successfully cancelled your request." : "Request has been cancelled by admin.",
+        totalRecords: statusResult?.data?.totalRecords || null,
+      },
       uniqueIds: {
         shipperRequestUniqueId,
         shipperRequestId
       },
-      // Include updated status counts (totalRecords) for frontend to update UI
-      totalRecords: statusResult?.totalRecords || null
     };
   } catch (error) {
     throw new AppError(error.message || "Unable to cancel shipper request", error.statusCode || 500);

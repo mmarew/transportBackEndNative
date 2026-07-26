@@ -585,14 +585,12 @@ const sendShipperNotification = async ({
     shipperMessage.data = data;
   }
 
-  // Add pagination info if provided
+  // Add totalRecords/pagination info if provided (keep data field intact)
   if (totalRecords !== undefined) {
     shipperMessage.totalRecords = totalRecords;
   }
-  if (pageSize !== undefined) {
+  if (pageSize !== undefined || page !== undefined) {
     shipperMessage.pageSize = pageSize;
-  }
-  if (page !== undefined) {
     shipperMessage.page = page;
   }
 
@@ -651,7 +649,9 @@ const verifyShipperStatus = async ({
 
       return {
         message: "Shipper request status verified",
-        totalRecords: totalRecords || defaultTotalRecords,
+        data: {
+          totalRecords: totalRecords || defaultTotalRecords,
+        },
       };
     }
 
@@ -714,9 +714,13 @@ const verifyShipperStatus = async ({
     // Final return after loop: only summary
     return {
       message: "Shipper request status verified",
-      totalRecords,
-      pageSize,
-      page,
+      data: {
+        totalRecords,
+      },
+      pagination: {
+        currentPage: page,
+        limit: pageSize,
+      },
     };
   } catch (error) {
     const logger = require("../../Utils/logger");

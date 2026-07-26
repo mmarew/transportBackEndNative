@@ -52,14 +52,14 @@ const noAnswerFromDriver = async (body) => {
     },
   });
   const shipperRequestFormatted =
-    shipperRequestResult?.formattedData?.[0] || null;
+    shipperRequestResult?.data?.[0] || null;
   const driverRequestUniqueId = body.driverRequestUniqueId;
   const driverRequest = await getDriverRequestByRequestUniqueId(
     driverRequestUniqueId,
   );
 
   // Extract shipper request data from formatted structure
-  // formattedData[0] has structure: {shipperRequest: {...}, driverRequests: [...], decisions: [...], journey: {...}}
+  // data[0] has structure: {shipperRequest: {...}, driverRequests: [...], decisions: [...], journey: {...}}
   const shipperData =
     shipperRequestFormatted?.shipperRequest ||
     shipperRequestFormatted?.data ||
