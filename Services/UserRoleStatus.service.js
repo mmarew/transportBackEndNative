@@ -8,10 +8,10 @@ const {
 const { insertData } = require("../CRUD/Create/CreateData");
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
+const messageTypes = require("../Utils/MessageTypes");
 const AppError = require("../Utils/AppError");
 const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
 const { transactionStorage } = require("../Utils/TransactionContext");
-const messageTypes = require("../Utils/MessageTypes");
 // Create UserRoleStatus
 const createUserRoleStatus = async (body) => {
   const { statusId, userRoleId, userRoleStatusDescription, createdByUserId } =
@@ -119,14 +119,20 @@ const handleUpdateResponses = async ({ roleId, statusId, phoneNumber }) => {
   } else if (roleId === usersRoles.adminRoleId) {
     if (statusId === USER_STATUS.ACTIVE) {
       await sendSocketIONotificationToDriver({
-        message: "User document approved by admin",
-        request: "User document approved by admin",
+        message: {
+          messageTypes: messageTypes.driver_document_approved,
+          message: "Your document has been approved",
+          status: statusId,
+        },
         phoneNumber,
       });
     } else if (statusId === USER_STATUS.INACTIVE_DOCUMENTS_REJECTED) {
       await sendSocketIONotificationToDriver({
-        message: "User document rejected by admin",
-        request: "User document rejected by admin",
+        message: {
+          messageTypes: messageTypes.driver_document_rejected,
+          message: "Your document has been rejected",
+          status: statusId,
+        },
         phoneNumber,
       });
     }

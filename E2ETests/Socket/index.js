@@ -177,8 +177,18 @@ const testSocketNotifications = async () => {
 
     // Step 5: Wait for driver_found_shipper_request on SHIPPER socket
     console.log("── Waiting for driver_found_shipper_request on SHIPPER socket ──");
-    await shipperFoundPromise;
+    const foundMsg = await shipperFoundPromise;
     report.pass("shipperReceived_driver_found_shipper_request");
+    if (foundMsg?.data) {
+      const keys = Object.keys(foundMsg.data);
+      const hasFormattedData = keys.includes("formattedData");
+      if (hasFormattedData) {
+        console.warn("⚠️  driver_found_shipper_request uses 'formattedData' — should be 'data'");
+        report.fail("structure_driver_found_uses_formattedData", new Error("formattedData should be data"));
+      } else {
+        report.pass("structure_driver_found_uses_data");
+      }
+    }
 
     // Step 6: Driver accepts the shipper request
     // Start listening BEFORE the accept to avoid race
@@ -203,8 +213,17 @@ const testSocketNotifications = async () => {
 
     // Step 7: Wait for driver_accepted_shipper_request on shipper socket
     console.log("── Waiting for driver_accepted_shipper_request on shipper socket ──");
-    await driverAcceptedPromise;
+    const acceptedMsg = await driverAcceptedPromise;
     report.pass("shipperReceived_driver_accepted_shipper_request");
+    if (acceptedMsg?.data) {
+      const hasFormattedData = Object.keys(acceptedMsg.data).includes("formattedData");
+      if (hasFormattedData) {
+        console.warn("⚠️  driver_accepted uses 'formattedData' — should be 'data'");
+        report.fail("structure_driver_accepted_uses_formattedData", new Error("formattedData should be data"));
+      } else {
+        report.pass("structure_driver_accepted_uses_data");
+      }
+    }
 
     // Step 8: Shipper accepts the driver
     // Start listening BEFORE the accept to avoid race
@@ -239,8 +258,17 @@ const testSocketNotifications = async () => {
 
     // Step 9: Wait for shipper_accepted_driver_request on driver socket
     console.log("── Waiting for shipper_accepted_driver_request on driver socket ──");
-    await shipperAcceptedPromise;
+    const shipperAcceptedMsg = await shipperAcceptedPromise;
     report.pass("driverReceived_shipper_accepted_driver_request");
+    if (shipperAcceptedMsg?.data) {
+      const hasFormattedData = Object.keys(shipperAcceptedMsg.data).includes("formattedData");
+      if (hasFormattedData) {
+        console.warn("⚠️  shipper_accepted uses 'formattedData' — should be 'data'");
+        report.fail("structure_shipper_accepted_uses_formattedData", new Error("formattedData should be data"));
+      } else {
+        report.pass("structure_shipper_accepted_uses_data");
+      }
+    }
 
     console.log("\n✅ Socket notification tests complete\n");
 
@@ -343,6 +371,15 @@ const testCompanySocketNotifications = async () => {
     const batchNotification = await batchNotificationPromise;
     if (batchNotification) {
       report.pass("companyReceived_company_batch_available");
+      if (batchNotification?.data) {
+        const hasFormattedData = Object.keys(batchNotification.data).includes("formattedData");
+        if (hasFormattedData) {
+          console.warn("⚠️  company_batch_available uses 'formattedData' — should be 'data'");
+          report.fail("structure_batch_available_uses_formattedData", new Error("formattedData should be data"));
+        } else {
+          report.pass("structure_batch_available_uses_data");
+        }
+      }
     }
     console.log("");
 
@@ -382,8 +419,17 @@ const testCompanySocketNotifications = async () => {
     console.log("");
 
     console.log("── Waiting for company_bid_submitted on shipper socket ──");
-    await bidSubmittedPromise;
+    const bidSubmittedMsg = await bidSubmittedPromise;
     report.pass("shipperReceived_company_bid_submitted");
+    if (bidSubmittedMsg?.data) {
+      const hasFormattedData = Object.keys(bidSubmittedMsg.data).includes("formattedData");
+      if (hasFormattedData) {
+        console.warn("⚠️  company_bid_submitted uses 'formattedData' — should be 'data'");
+        report.fail("structure_bid_submitted_uses_formattedData", new Error("formattedData should be data"));
+      } else {
+        report.pass("structure_bid_submitted_uses_data");
+      }
+    }
     console.log("");
 
     // Step 5: Set up listener on company socket BEFORE accepting bid
@@ -409,8 +455,17 @@ const testCompanySocketNotifications = async () => {
     console.log("");
 
     console.log("── Waiting for company_bid_accepted on company socket ──");
-    await bidAcceptedPromise;
+    const bidAcceptedMsg = await bidAcceptedPromise;
     report.pass("companyReceived_company_bid_accepted");
+    if (bidAcceptedMsg?.data) {
+      const hasFormattedData = Object.keys(bidAcceptedMsg.data).includes("formattedData");
+      if (hasFormattedData) {
+        console.warn("⚠️  company_bid_accepted uses 'formattedData' — should be 'data'");
+        report.fail("structure_bid_accepted_uses_formattedData", new Error("formattedData should be data"));
+      } else {
+        report.pass("structure_bid_accepted_uses_data");
+      }
+    }
     console.log("");
 
     // Step 6: Connect driver socket and set up listener BEFORE auto-assign
@@ -444,6 +499,15 @@ const testCompanySocketNotifications = async () => {
     const assignmentNotification = await assignmentPromise;
     if (assignmentNotification) {
       report.pass("driverReceived_company_driver_assignment");
+      if (assignmentNotification?.data) {
+        const hasFormattedData = Object.keys(assignmentNotification.data).includes("formattedData");
+        if (hasFormattedData) {
+          console.warn("⚠️  company_driver_assignment uses 'formattedData' — should be 'data'");
+          report.fail("structure_assignment_uses_formattedData", new Error("formattedData should be data"));
+        } else {
+          report.pass("structure_assignment_uses_data");
+        }
+      }
     }
     console.log("");
 
@@ -479,8 +543,17 @@ const testCompanySocketNotifications = async () => {
       console.log("");
 
       console.log("── Waiting for company_driver_confirmed on company socket ──");
-      await confirmedPromise;
+      const confirmedMsg = await confirmedPromise;
       report.pass("companyReceived_company_driver_confirmed");
+      if (confirmedMsg?.data) {
+        const hasFormattedData = Object.keys(confirmedMsg.data).includes("formattedData");
+        if (hasFormattedData) {
+          console.warn("⚠️  company_driver_confirmed uses 'formattedData' — should be 'data'");
+          report.fail("structure_confirmed_uses_formattedData", new Error("formattedData should be data"));
+        } else {
+          report.pass("structure_confirmed_uses_data");
+        }
+      }
       console.log("");
 
       // Step 8: Set up listener on company socket BEFORE journey start
@@ -541,8 +614,17 @@ const testCompanySocketNotifications = async () => {
           console.log("");
 
           console.log("── Waiting for company_driver_completed ──");
-          await completedPromise;
+          const completedMsg = await completedPromise;
           report.pass("companyReceived_company_driver_completed");
+          if (completedMsg?.data) {
+            const hasFormattedData = Object.keys(completedMsg.data).includes("formattedData");
+            if (hasFormattedData) {
+              console.warn("⚠️  company_driver_completed uses 'formattedData' — should be 'data'");
+              report.fail("structure_completed_uses_formattedData", new Error("formattedData should be data"));
+            } else {
+              report.pass("structure_completed_uses_data");
+            }
+          }
           console.log("");
         }
       }

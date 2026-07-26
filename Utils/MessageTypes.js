@@ -214,6 +214,14 @@ const messageTypes = {
     details:
       "When a dispatcher assigns a driver to a freight job via company bid. Driver must confirm or reject.",
   },
+  driver_document_approved: {
+    message: "Your document has been approved",
+    details: "When an admin approves a driver's uploaded document.",
+  },
+  driver_document_rejected: {
+    message: "Your document has been rejected",
+    details: "When an admin rejects a driver's uploaded document.",
+  },
   individual_replaced_by_company: {
     message: "Individual job replaced by company assignment",
     details:
