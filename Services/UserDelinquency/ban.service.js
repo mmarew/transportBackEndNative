@@ -119,13 +119,13 @@ const checkAutomaticBan = async (userUniqueId, roleId) => {
   const [results] = await (transactionStorage.getStore() || pool).query(sql, [userUniqueId, roleId, currentDate()]);
   if (results.length === 0) {
     return {
-      message: "success",
+      message: "User delinquency processed",
       data: null
     };
   }
   const totalPoints = results.reduce((acc, delinquency) => acc + delinquency.delinquencyPoints, 0);
   return {
-    message: "success",
+    message: "User delinquency processed",
     data: {
       totalPoints,
       delinquencies: results

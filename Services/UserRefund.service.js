@@ -96,7 +96,7 @@ const createUserRefund = async ({
   sendSocketIONotificationToAdmin({
     message: {
       messageType: messageTypes?.refund_requested_by_user,
-      message: "success",
+      message: "Refund requested by user",
       data: result,
     },
   });
@@ -285,7 +285,7 @@ const updateUserRefundByUniqueId = async (userRefundUniqueId, data) => {
     sendSocketIONotificationToDriver({
       phoneNumber,
       message: {
-        message: "success",
+        message: "Refund approved by admin",
         messageType: messageTypes?.refund_approved_by_admin,
       },
     });

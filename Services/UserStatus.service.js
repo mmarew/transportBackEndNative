@@ -25,7 +25,7 @@ const createUserStatus = async (body) => {
     colAndVal: { userStatusUniqueId, userUniqueId, statusId },
   });
 
-  return { message: "success", data: result };
+  return { message: "Statuses list fetched", data: result };
 };
 
 // Service to get UserStatuses by filter
@@ -34,7 +34,7 @@ const getUserStatuses = async (query) => {
     tableName: "UserStatuses",
     conditions: query,
   });
-  return { message: "success", data: results };
+  return { message: "Statuses list fetched", data: results };
 };
 
 // Service to get UserStatus by unique ID
@@ -48,7 +48,7 @@ const getUserStatusById = async (userStatusUniqueId) => {
     throw new AppError("UserStatus not found", 404);
   }
 
-  return { message: "success", data: results[0] };
+  return { message: "Statuses list fetched", data: results[0] };
 };
 
 // Service to update UserStatus
@@ -66,7 +66,7 @@ const updateUserStatus = async (userStatusUniqueId, updateValues) => {
     );
   }
 
-  return { message: "success", data: null };
+  return { message: "Statuses list fetched", data: null };
 };
 
 // Service to delete UserStatus
@@ -83,7 +83,7 @@ const deleteUserStatus = async (userStatusUniqueId) => {
     );
   }
 
-  return { message: "success", data: null };
+  return { message: "Statuses list fetched", data: null };
 };
 
 module.exports = {

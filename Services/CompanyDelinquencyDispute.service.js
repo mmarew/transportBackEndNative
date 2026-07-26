@@ -144,7 +144,7 @@ const createDelinquencyResponse = async ({
   }
 
   return {
-    message: "success",
+    message: "Dispute response submitted",
     data: responseMessage,
     companyDelinquencyResponseUniqueId,
     isLateResponse,
@@ -202,7 +202,7 @@ const getDelinquencyResponses = async (filters = {}) => {
   );
 
   return {
-    message: "success",
+    message: "Dispute responses list fetched",
     data: rows,
     pagination: {
       currentPage: parseInt(page),

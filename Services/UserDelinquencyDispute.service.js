@@ -133,7 +133,7 @@ const createDelinquencyResponse = async ({
   }
 
   return {
-    message: "success",
+    message: "Delinquency dispute operation completed",
     data: responseMessage,
     userDelinquencyResponseUniqueId,
     isLateResponse,
@@ -191,7 +191,7 @@ const getDelinquencyResponses = async (filters = {}) => {
   );
 
   return {
-    message: "success",
+    message: "Delinquency dispute operation completed",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
@@ -253,7 +253,7 @@ const updateDelinquencyResponse = async ({
   );
 
   return {
-    message: "success",
+    message: "Delinquency dispute operation completed",
     data: null,
     userDelinquencyResponseUniqueId,
   };
@@ -290,7 +290,7 @@ const deleteDelinquencyResponse = async ({
   );
 
   return {
-    message: "success",
+    message: "Delinquency dispute operation completed",
     data: null,
     userDelinquencyResponseUniqueId,
   };

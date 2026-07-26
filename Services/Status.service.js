@@ -41,7 +41,7 @@ const createStatus = async (body) => {
   }
 
   return { 
-    message: "success", 
+    message: "Statuses list fetched", 
     data: {
       statusUniqueId,
       message: "Status created successfully"
@@ -84,7 +84,7 @@ const updateStatus = async (statusUniqueId, body) => {
   if (result.affectedRows === 0) {
     throw new AppError("Status update failed or status not found", 404);
   }
-  return { message: "success", data: null };
+  return { message: "Status updated", data: null };
 };
 
 const deleteStatus = async (id, user) => {
@@ -96,7 +96,7 @@ const deleteStatus = async (id, user) => {
   if (result.affectedRows === 0) {
     throw new AppError("Status deletion failed or status not found", 404);
   }
-  return { message: "success", data: null };
+  return { message: "Status updated", data: null };
 };
 
 const getAllStatuses = async (filters = {}) => {
@@ -137,7 +137,7 @@ const getAllStatuses = async (filters = {}) => {
   const [countRows] = await executor.query(countSql, params);
   const total = countRows?.[0]?.total || 0;
   return {
-    message: "success",
+    message: "Status updated",
     data: dataRows || [],
     pagination: {
       currentPage: page,

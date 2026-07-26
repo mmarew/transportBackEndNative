@@ -88,7 +88,7 @@ const handleExistingJourney = async (driverRequest, vehicle
       if (activeCompanyAssignment && activeCompanyAssignment.length > 0) {
         // Company flow: no JourneyDecision yet is expected. Return current status as-is.
         return {
-          message: "success",
+          message: "Journey status fetched",
           status: driverRequest.journeyStatusId,
           driver: {
             driver: driverRequest,
@@ -114,7 +114,7 @@ const handleExistingJourney = async (driverRequest, vehicle
       });
     }
     return {
-      message: "success",
+      message: "Company assignment status fetched",
       status: journeyStatusMap?.waiting,
       driver: {
         driver: {
@@ -153,7 +153,7 @@ const handleExistingJourney = async (driverRequest, vehicle
     // Fix: Added await - was missing, causing potential race condition
     await updateJourneyStatus(journeyStatusUpdatePayload);
     return {
-      message: "success",
+      message: "Company assignment status fetched",
       status: journeyStatusMap?.cancelledByDriver,
       driver: {
         driver: {
@@ -199,7 +199,7 @@ const handleExistingJourney = async (driverRequest, vehicle
   // don't return the decision (filter it out) - return early without decision data
   if (journeyStatusId === journeyStatusMap?.notSelectedInBid && isNotSelectedSeenByDriver !== "not seen by driver yet") {
     return {
-      message: "success",
+      message: "Driver status reset to waiting",
       data: null,
       status: null,
       vehicle,
@@ -214,7 +214,7 @@ const handleExistingJourney = async (driverRequest, vehicle
   // don't return the decision (filter it out) - return early without decision data
   if ((journeyStatusId === journeyStatusMap?.cancelledByShipper || journeyStatusId === journeyStatusMap?.cancelledByAdmin) && isCancellationSeenByDriver !== "not seen by driver yet") {
     return {
-      message: "success",
+      message: "Journey cancelled",
       data: null,
       status: null,
       vehicle,
@@ -254,7 +254,7 @@ const handleExistingJourney = async (driverRequest, vehicle
       await sendSocketIONotificationToDriver({
         message: {
           messageTypes: messageTypes?.driver_not_selected_in_bid,
-          message: "success",
+          message: "Driver not selected in bid",
           status: journeyStatusId,
           shipper: shipper ? [shipper] : null,
           drivers: [driver],
@@ -294,7 +294,7 @@ const handleExistingJourney = async (driverRequest, vehicle
       await sendSocketIONotificationToDriver({
         message: {
           messageTypes: cancellationMessageType,
-          message: "success",
+          message: "Journey cancelled",
           status: journeyStatusId,
           shipper: shipper ? [shipper] : null,
           drivers: [driver],
@@ -413,7 +413,7 @@ const handleExistingJourney = async (driverRequest, vehicle
     });
   }
   return {
-    message: "success",
+    message: "Cancellation status fetched",
     status: shipper?.journeyStatusId || journeyStatusId,
     ...responseMessage,
     // null  → individual job  → use /api/driver/* endpoints

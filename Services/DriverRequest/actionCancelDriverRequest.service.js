@@ -417,7 +417,7 @@ const cancelDriverRequest = async (data) => {
 
           sendSocketIONotificationToAdmin({
             message: {
-              message: "success",
+              message: "Journey cancelled",
               messageType: "cancelledJourney",
               data: [
                 {
@@ -449,7 +449,7 @@ const cancelDriverRequest = async (data) => {
       };
 
       return {
-        message: "success",
+        message: "Driver request cancelled",
         status: finalStatus,
         uniqueIds,
         driver: {

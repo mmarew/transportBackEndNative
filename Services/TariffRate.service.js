@@ -66,7 +66,7 @@ exports.createTariffRate = async (data) => {
   ];
   await (transactionStorage.getStore() || pool).query(sql, values);
   return { 
-    message: "success", 
+    message: "Tariff rate created", 
     data: {
       tariffRateUniqueId,
       message: "Tariff rate created successfully"
@@ -137,7 +137,7 @@ exports.getTariffRatesByFilter = async (filters = {}) => {
   const totalPages = Math.ceil(total / parseInt(limit));
 
   return {
-    message: "success",
+    message: "Tariff rates list fetched",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
@@ -207,7 +207,7 @@ exports.updateTariffRate = async (tariffRateUniqueId, data) => {
   if (result.affectedRows === 0) {
     throw new AppError("Tariff rate not found or update failed", 404);
   }
-  return { message: "success", data: null };
+  return { message: "Tariff rate deleted", data: null };
 };
 
 // Soft delete a tariff rate by UUID
@@ -218,5 +218,5 @@ exports.deleteTariffRate = async (tariffRateUniqueId, user) => {
   if (result.affectedRows === 0) {
     throw new AppError("Tariff rate not found or delete failed", 404);
   }
-  return { message: "success", data: null };
+  return { message: "Tariff rate deleted", data: null };
 };

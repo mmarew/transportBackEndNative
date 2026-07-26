@@ -102,7 +102,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
     throw new AppError("Failed to update mapping", 500);
   }
   return {
-    message: "success",
+    message: "Document requirement updated",
     data: null
   };
 };

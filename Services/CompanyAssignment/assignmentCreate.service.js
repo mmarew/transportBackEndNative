@@ -185,7 +185,7 @@ exports.createAssignment = async (data) => {
   });
 
   return {
-    message: "success",
+    message: "Assignment created",
     data: {
       assignmentUniqueId,
       shipperRequestUniqueId,
@@ -311,7 +311,7 @@ exports.createBulkAssignments = async (data) => {
     })),
   });
 
-  return { message: "success", data: results };
+  return { message: "Assignment created", data: results };
 };
 
 /**
@@ -372,7 +372,7 @@ async function notifyShipperOnAssignment({
       phoneNumber: shipperRow.phoneNumber,
       message: {
         messageTypes: messageTypes.company_driver_assignment,
-        message: "success",
+        message: "Driver assigned to shipper",
         notification: shipperNotif,
         data: {
           type: "company_assignment_created",

@@ -96,7 +96,7 @@ const getUserDelinquencies = async (filters = {}) => {
       queryParams,
     );
     return {
-      message: "success",
+      message: "User delinquencies list fetched",
       data: {
         totalUserDelinquencies: countResult[0].total,
       },
@@ -145,7 +145,7 @@ const getUserDelinquencies = async (filters = {}) => {
       queryParams,
     );
     return {
-      message: "success",
+      message: "User delinquencies list fetched",
       data: results,
     };
   } else {
@@ -161,7 +161,7 @@ const getUserDelinquencies = async (filters = {}) => {
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
     return {
-      message: "success",
+      message: "User delinquencies list fetched",
       data: results,
       pagination: {
         currentPage: parseInt(page),
@@ -220,7 +220,7 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
     [userUniqueId, roleId],
   );
   return {
-    message: "success",
+    message: "User delinquencies list fetched",
     data: {
       summary: summary[0] || {
         userUniqueId,
@@ -289,7 +289,7 @@ const getPendingUserDelinquencies = async (filters = {}) => {
     [userUniqueId, roleId, parseInt(limit), offset],
   );
   return {
-    message: "success",
+    message: "User delinquencies list fetched",
     data: rows,
     pagination: {
       currentPage: parseInt(page),

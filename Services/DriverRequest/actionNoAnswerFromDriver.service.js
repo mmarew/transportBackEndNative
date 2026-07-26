@@ -80,7 +80,7 @@ const noAnswerFromDriver = async (body) => {
   // Check if driver already responded (status > 2 and < 5 means acceptedByDriver or acceptedByShipper)
   if (shipperData.journeyStatusId > 2 && shipperData.journeyStatusId < 5) {
     return {
-      message: "success",
+      message: "Driver timeout processed",
       data: messageTypes.driver_answered_calls,
     };
   }
@@ -172,7 +172,7 @@ const noAnswerFromDriver = async (body) => {
 
   const messageToShipper = {
     messageType: messageTypes.request_other_driver,
-    message: "success",
+    message: "Driver timeout processed",
     shipper: {
       ...shipperData,
       journeyStatusId: finalShipperStatus,
@@ -181,7 +181,7 @@ const noAnswerFromDriver = async (body) => {
   };
 
   const messageToDriver = {
-    message: "success",
+    message: "Driver timeout processed",
     shipper: null,
     driver: null,
     status: null,
@@ -200,7 +200,7 @@ const noAnswerFromDriver = async (body) => {
 
   return {
     status: finalShipperStatus,
-    message: "success",
+    message: "Driver timeout processed",
     data: messageTypes.driver_not_answered,
   };
 };

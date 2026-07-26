@@ -229,7 +229,7 @@ const accountStatus = async ({
     // Account deleted: do not recompute status or run checks
     if (Number(statusId) === USER_STATUS.ACCOUNT_DELETED) {
       return {
-        message: "success",
+        message: "Account deleted",
         messageType: "accountStatus",
         vehicle: null,
         userData: userRoleStatus.data[0] || null,
@@ -457,7 +457,7 @@ const accountStatus = async ({
     });
     const driverCompanies = companiesCheck.status === "fulfilled" ? companiesCheck.value || [] : [];
     return {
-      message: "success",
+      message: "Account status fetched",
       userBalance,
       messageType: "accountStatus",
       vehicle: userVehicle,

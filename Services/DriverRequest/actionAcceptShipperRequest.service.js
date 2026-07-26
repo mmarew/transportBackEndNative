@@ -176,7 +176,7 @@ const acceptShipperRequest = async (body) => {
     };
 
     const response = {
-      message: "success",
+      message: "Shipper request accepted",
       status: journeyStatusMap.acceptedByDriver,
       uniqueIds,
       driver: {

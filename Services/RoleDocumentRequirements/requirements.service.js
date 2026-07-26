@@ -57,7 +57,7 @@ const driversDocumentVehicleRequirement = async body => {
     if (!requiredDocuments || requiredDocuments.length === 0) {
       // Return structure matching the normal response format
       return {
-        message: "success",
+        message: "Document requirements list fetched",
         messageType: "driversDocumentVehicleRequirement",
         data: null,
         vehicle: null,
@@ -240,7 +240,7 @@ WHERE ad.ownerType = 'vehicle'
       }
     });
     return {
-      message: "success",
+      message: "Document requirements fetched",
       messageType: "driversDocumentVehicleRequirement",
       vehicle: userVehicle?.[0] || null,
       userData: userData?.data?.[0] || null,
@@ -324,7 +324,7 @@ const entityDocumentRequirement = async ({
   const requiredDocuments = requiredDocsResult?.data || [];
   if (requiredDocuments.length === 0) {
     return {
-      message: "success",
+      message: "Document requirements list fetched",
       messageType: "entityDocumentRequirement",
       ownerType,
       ownerUniqueId,
@@ -366,7 +366,7 @@ const entityDocumentRequirement = async ({
   const mandatoryRejected = attachedDocumentsByStatus.REJECTED.filter(d => Number(d.isDocumentMandatory) === 1);
   const isCompliant = mandatoryMissing.length === 0 && mandatoryRejected.length === 0;
   return {
-    message: "success",
+    message: "Document requirements list fetched",
     messageType: "entityDocumentRequirement",
     ownerType,
     ownerUniqueId,

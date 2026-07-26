@@ -229,7 +229,7 @@ const partialCancelBatch = async ({
     ),
   ]);
   return {
-    message: "success",
+    message: "Batch partially cancelled",
     data: {
       batchUniqueId,
       cancelledSlots: slotIds.length,

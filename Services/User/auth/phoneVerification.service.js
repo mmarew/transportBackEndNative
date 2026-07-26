@@ -121,7 +121,7 @@ const verifyPhoneByToken = async token => {
       token: loginToken
     } = createJWT(userData);
     return {
-      message: "success",
+      message: "Phone verified",
       data: {
         phoneNumber,
         isPhoneVerified: true,

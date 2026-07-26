@@ -94,7 +94,7 @@ const deleteUser = async ({
     }
   }
   return {
-    message: "success",
+    message: "User deleted",
     data: null
   };
 };

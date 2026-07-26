@@ -45,7 +45,7 @@ const createDocumentType = async ({ body }) => {
   });
 
   if (existingDocumentType.length > 0) {
-    return { message: "success", data: null };
+    return { message: "Document type created", data: null };
   }
 
   // Create a new document type
@@ -64,7 +64,7 @@ const createDocumentType = async ({ body }) => {
   };
 
   await insertData({ tableName: "DocumentTypes", colAndVal: newDocumentType });
-  return { message: "success", data: null };
+  return { message: "Document type created", data: null };
 };
 
 const getAllDocumentTypes = async (filters = {}) => {
@@ -192,7 +192,7 @@ const getAllDocumentTypes = async (filters = {}) => {
     }
 
     return {
-      message: "success",
+      message: "Document types list fetched",
       data: dataRows,
       pagination: {
         currentPage: page,
@@ -288,7 +288,7 @@ const updateDocumentType = async ({
     updateValues,
   });
 
-  return { message: "success", data: null };
+  return { message: "Document types list fetched", data: null };
 };
 
 const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
@@ -318,7 +318,7 @@ const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
     conditions: { documentTypeUniqueId },
   });
 
-  return { message: "success", data: null };
+  return { message: "Document types list fetched", data: null };
 };
 const insertDocumentTypeHistory = async ({
   documentTypeId,

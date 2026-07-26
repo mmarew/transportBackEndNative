@@ -87,7 +87,7 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
 
     if (results.length === 0) {
       return {
-        message: "success",
+        message: "No cancellation notifications found",
         data: [],
         count: 0,
       };
@@ -182,7 +182,7 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
     const validData = enrichedData.filter((item) => item !== null);
 
     return {
-      message: "success",
+      message: "Cancellation notifications fetched",
       data: validData,
       count: validData.length,
     };

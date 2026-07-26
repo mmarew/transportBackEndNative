@@ -410,7 +410,7 @@ const updateBidStatus = async (
         companyUniqueId: bid.companyUniqueId,
         message: {
           messageTypes: socketMsgType,
-          message: "success",
+          message: `Bid ${bidStatus.replace(/_/g, " ")}`,
           notification: notif,
           data: companyBidPayload || fullBid || {
             bidStatus,

@@ -213,7 +213,7 @@ const dropAllTables = async () => {
       }
     }
     return {
-      message: "success",
+      message: "All tables dropped",
       data: null,
     };
   } finally {

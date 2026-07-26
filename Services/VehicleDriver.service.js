@@ -78,7 +78,7 @@ const createVehicleDriver = async (data) => {
     throw new AppError("Insert failed", 500);
   }
 
-  return { message: "success", data: { vehicleDriverUniqueId } };
+  return { message: "Vehicle driver assigned", data: { vehicleDriverUniqueId } };
 };
 
 // Consolidated, secure, paginated GET
@@ -200,7 +200,7 @@ const getVehicleDrivers = async (filters = {}) => {
   const totalPages = Math.ceil(total / numLimit);
 
   return {
-    message: "success",
+    message: "Vehicle driver operation completed",
     data: rows,
     pagination: {
       currentPage: numPage,
@@ -275,7 +275,7 @@ const updateVehicleDriverByUniqueId = async (
   );
 
   return {
-    message: "success",
+    message: "Vehicle driver assigned",
     data: { updated: true, driverUserUniqueId: record?.driverUserUniqueId },
   };
 };
@@ -307,7 +307,7 @@ const deleteVehicleDriverByUniqueId = async (vehicleDriverUniqueId) => {
     throw new AppError("Delete failed or assignment not found", 404);
   }
 
-  return { message: "success", data: { deleted: true, driverUserUniqueId } };
+  return { message: "Vehicle driver assigned", data: { deleted: true, driverUserUniqueId } };
 };
 
 module.exports = {

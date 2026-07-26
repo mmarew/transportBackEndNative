@@ -96,7 +96,7 @@ const createUserDelinquency = async data => {
     if (duplicateCheckResult.message === "success" && duplicateCheckResult.data && duplicateCheckResult.data.length > 0) {
       const duplicate = duplicateCheckResult.data[0];
       return {
-        message: "success",
+        message: "User delinquency created",
         data: null,
         userDelinquencyUniqueId: duplicate.userDelinquencyUniqueId,
       };
@@ -135,7 +135,7 @@ const createUserDelinquency = async data => {
     // Check for automatic ban
     const banResult = await checkAndApplyAutomaticBan(userUniqueId, roleId);
     return {
-      message: "success",
+      message: "User delinquency created",
       data: null,
       userDelinquencyUniqueId,
       automaticAction: banResult
@@ -153,7 +153,7 @@ const createUserDelinquency = async data => {
       }
       const duplicateCheckResult = await getUserDelinquencies(duplicateFilters);
       return {
-        message: "success",
+        message: "User delinquency created",
         data: null,
         userDelinquencyUniqueId: duplicateCheckResult.data?.[0]?.userDelinquencyUniqueId,
       };

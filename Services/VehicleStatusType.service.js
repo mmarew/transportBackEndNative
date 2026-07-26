@@ -25,7 +25,7 @@ const createVehicleStatusType = async (data) => {
 
   if (registeredType?.length) {
     return {
-      message: "success",
+      message: "Vehicle status type operation completed",
       data: null,
     };
   }
@@ -51,7 +51,7 @@ const createVehicleStatusType = async (data) => {
     colAndVal: payload,
   });
   return { 
-    message: "success", 
+    message: "Vehicle status type operation completed", 
     data: { 
       vehicleStatusTypeUniqueId,
       result
@@ -89,7 +89,7 @@ const getAllVehicleStatusTypes = async (filters = {}) => {
   const [rows] = await executor.query(sql, params);
 
   return {
-    message: "success",
+    message: "Vehicle status type operation completed",
     data: rows,
     pagination: {
       currentPage: pageNum,
@@ -118,7 +118,7 @@ const updateVehicleStatusType = async (vehicleStatusTypeUniqueId, data) => {
   }
 
   return {
-    message: "success",
+    message: "Vehicle status type operation completed",
     data: null,
   };
 };
@@ -138,7 +138,7 @@ const deleteVehicleStatusType = async (vehicleStatusTypeUniqueId) => {
   }
 
   return {
-    message: "success",
+    message: "Vehicle status type operation completed",
     data: null,
   };
 };

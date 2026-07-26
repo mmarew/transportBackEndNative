@@ -47,7 +47,7 @@ const createCanceledJourney = async data => {
   await query(sql, values);
   const cancellationDetails = await getCancellationDetails(contextId);
   return {
-    message: "success",
+    message: "Canceled journey created",
     data: {
       canceledJourneyId: canceledJourneyUniqueId,
       cancellationDetails

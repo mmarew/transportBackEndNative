@@ -22,7 +22,7 @@ exports.deleteBatch = async (batchUniqueId) => {
     throw new AppError("Batch not found or already deleted", 404);
   }
 
-  return { message: "success", data: null };
+  return { message: "Batch deleted", data: null };
 };
 
 // ── CANCEL (company batch) ────────────────────────────────────────────────────────

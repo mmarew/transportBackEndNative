@@ -152,7 +152,7 @@ const getRoleDocumentRequirements = async (filters = {}) => {
   const total = countRows[0]?.total || 0;
   const totalPages = Math.ceil(total / numLimit);
   return {
-    message: "success",
+    message: "Document requirements list fetched",
     data: rows,
     pagination: {
       currentPage: numPage,

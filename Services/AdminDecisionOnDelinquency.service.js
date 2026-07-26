@@ -275,7 +275,11 @@ const getAdminDecisions = async (filters = {}) => {
 
   return {
     message: "Admin decisions fetched successfully",
-    data: rows, — get one decision by uniqueId
+    data: rows,
+  };
+};
+
+// get one decision by uniqueId
 // ─────────────────────────────────────────────────────────────────────────────
 const getAdminDecisionById = async (adminDecisionOnDelinquencyUniqueId) => {
   const [[row]] = await exec().query(

@@ -156,7 +156,7 @@ const rejectDriverOffer = async body => {
       const vehicle = vehicleData?.data?.[0];
       const message = {
         messageTypes: messageTypes.shipper_rejected_request,
-        message: "success",
+        message: "Shipper request rejected",
         status: journeyStatusMap.rejectedByShipper,
         shipper: shipper ? shipper : null,
         driver: {

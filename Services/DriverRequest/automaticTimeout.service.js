@@ -310,7 +310,7 @@ const checkAndProcessTimeouts = async () => {
         timestamp: currentDate(),
       });
       return {
-        message: "success",
+        message: "No timed-out requests found",
         checked: true,
         timedOutCount: 0,
         processedCount: 0,
@@ -375,7 +375,7 @@ const checkAndProcessTimeouts = async () => {
     });
 
     return {
-      message: "success",
+      message: "No timed-out requests found",
       checked: true,
       timedOutCount: timedOutRequests.length,
       processedCount,

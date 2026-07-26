@@ -43,7 +43,7 @@ const addCancellationReason = async (body, user) => {
     const [registerResult] = await executor.query(sqlToAddReason, reasonValues);
     if (registerResult.affectedRows > 0) {
       return {
-        message: "success",
+        message: "Cancellation reason created",
         data: {
           cancellationReasonTypeUniqueId,
           message: "Cancellation reason registered successfully",
@@ -88,7 +88,7 @@ const deleteCancellationReason = async (req) => {
 
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "Cancellation reason created",
       data: null,
     };
   }
@@ -151,7 +151,7 @@ const updateCancellationReason = async (req) => {
   const [result] = await executor.query(sqlToUpdateReason, values);
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "Cancellation reason deleted",
       data: null,
     };
   }
@@ -214,7 +214,7 @@ const getAllCancellationReasons = async (filters = {}) => {
 
   if (!rows || rows.length === 0) {
     return {
-      message: "success",
+      message: "Cancellation reason updated",
       data: [],
       pagination: {
         currentPage: page,
@@ -226,7 +226,7 @@ const getAllCancellationReasons = async (filters = {}) => {
   }
 
   return {
-    message: "success",
+    message: "Cancellation reasons list fetched",
     data: rows,
     pagination: {
       currentPage: page,

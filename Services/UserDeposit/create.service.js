@@ -147,7 +147,7 @@ const createUserDeposit = async (data) => {
     : fullData?.data;
   sendSocketIONotificationToAdmin({
     message: {
-      message: "success",
+      message: "Deposit created by driver",
       messageType: messageTypes?.create_deposit_By_driver,
       data: result,
     },

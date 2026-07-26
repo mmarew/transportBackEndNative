@@ -36,7 +36,7 @@ const deleteUserDelinquency = async ({
   ]);
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "User delinquency deleted",
       data: null,
     };
   }

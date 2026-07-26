@@ -26,7 +26,7 @@ const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
   const [result] = await (transactionStorage.getStore() || pool).query("UPDATE UserDelinquency SET ? WHERE userDelinquencyUniqueId = ?", [updateData, userDelinquencyUniqueId]);
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "User delinquency updated",
       data: null
     };
   }

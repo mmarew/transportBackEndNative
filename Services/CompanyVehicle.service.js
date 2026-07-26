@@ -95,7 +95,7 @@ exports.assignVehicle = async (data) => {
   if (dup.length > 0) {
     if (dup[0].companyUniqueId === companyUniqueId) {
       return {
-        message: "success",
+        message: "Company vehicle operation completed",
         data: { message: "Vehicle is already assigned to this company" },
       };
     }
@@ -116,7 +116,7 @@ exports.assignVehicle = async (data) => {
       assignmentStartDate, assignmentEndDate || null,
       createdByUserUniqueId, currentDate()],
   );
-  return { message: "success", data: { companyVehicleUniqueId } };
+  return { message: "Vehicle already assigned to this company", data: { companyVehicleUniqueId } };
 };
 
 /**
@@ -152,7 +152,7 @@ exports.moveVehicle = async (data) => {
   if (existing.length > 0) {
     if (existing[0].companyUniqueId === companyUniqueId) {
       return {
-        message: "success",
+        message: "Vehicle already assigned to this company",
         data: { message: "Vehicle is already assigned to this company" },
       };
     }
@@ -175,7 +175,7 @@ exports.moveVehicle = async (data) => {
       assignmentStartDate, assignmentEndDate || null,
       createdByUserUniqueId, currentDate()],
   );
-  return { message: "success", data: { companyVehicleUniqueId } };
+  return { message: "Vehicle already assigned to this company", data: { companyVehicleUniqueId } };
 };
 
 /**
@@ -297,5 +297,5 @@ exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
     [currentDate(), deletedBy, companyVehicleUniqueId],
   );
   if (res.affectedRows === 0) {throw new AppError("Fleet assignment not found or already removed", 404);}
-  return { message: "success", data: null };
+  return { message: "Company vehicles list fetched", data: null };
 };

@@ -116,7 +116,7 @@ const seenByShipper = async (body) => {
       });
     }
 
-    return { message: "success", data: null };
+    return { message: "No active shipper request", data: null };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to mark data as seen by shipper", {
@@ -307,7 +307,7 @@ async function handleWaitingRequest({
       await sendSocketIONotificationToDriver({
         message: {
           messageTypes: messageTypes.driver_found_shipper_request,
-          message: "success",
+          message: "Driver found for shipper request",
           status: journeyStatusMap.requested,
           shipper: shipperRequest,
           driver: {
@@ -436,7 +436,7 @@ const _handleNonWaitingRequest = async ({
     // Use shipperRequest directly - all journey decisions are already filtered by this shipperRequestId
     const message = {
       messageTypes: messageTypes.driver_found_shipper_request,
-      message: "success",
+      message: "Shipper request status verified",
       status: driver?.journeyStatusId,
       shipper: shipperRequest,
       driver: driverInfo,
@@ -568,7 +568,7 @@ const sendShipperNotification = async ({
   // Build structured message for shipper notification with formattedData
   const shipperMessage = {
     messageTypes: messageType,
-    message: "success",
+    message: "Shipper request status verified",
     status: status,
     formattedData: [
       {
@@ -650,7 +650,7 @@ const verifyShipperStatus = async ({
       };
 
       return {
-        message: "success",
+        message: "Shipper request status verified",
         totalRecords: totalRecords || defaultTotalRecords,
       };
     }
@@ -713,7 +713,7 @@ const verifyShipperStatus = async ({
 
     // Final return after loop: only summary
     return {
-      message: "success",
+      message: "Shipper request status verified",
       totalRecords,
       pageSize,
       page,

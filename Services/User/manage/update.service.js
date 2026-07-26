@@ -258,7 +258,7 @@ const updateUser = async body => {
   }
   return {
     token: tokenData.token,
-    message: "success",
+    message: "User updated",
     data: updatedUser,
     deferredOTP // Return OTP/Token for controller to send
   };

@@ -80,7 +80,7 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
   logger.debug("@activeAssignments", activeAssignments);
   if (activeAssignments?.length > 0) {
     return {
-      message: "success",
+      message: "Vehicles list fetched",
       data: {
         message: "Driver already has an active vehicle",
         vehicleUniqueId: activeAssignments[0].vehicleUniqueId,
@@ -135,7 +135,7 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
   if (driverData?.length > 0) {
     sendSocketIONotificationToAdmin({
       message: {
-        message: "success",
+        message: "New vehicle registered",
         request: "New vehicle registered",
         messageType: messageTypes.create_vehicle,
         driver: driverData[0],
@@ -144,7 +144,7 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
     });
   }
 
-  return { message: "success", data: { vehicleUniqueId } };
+  return { message: "Vehicle created successfully", data: { vehicleUniqueId } };
 };
 
 const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
@@ -181,7 +181,7 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
     throw new AppError("Failed to update vehicle or vehicle not found", 404);
   }
 
-  return { message: "success", data: null };
+  return { message: "Vehicles list fetched", data: null };
 };
 
 const deleteVehicle = async (vehicleUniqueId, user) => {
@@ -220,7 +220,7 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
     throw new AppError("Failed to delete vehicle or vehicle not found", 404);
   }
 
-  return { message: "success", data: null };
+  return { message: "Vehicles list fetched", data: null };
 };
 
 const getVehicles = async (query) => {
@@ -321,7 +321,7 @@ const getVehicles = async (query) => {
   const totalPages = Math.ceil(totalItems / limitNum) || 1;
 
   return {
-    message: "success",
+    message: "Vehicles list fetched",
     data: rows,
     pagination: {
       totalItems,

@@ -34,7 +34,7 @@ const deleteMapping = async (roleDocumentRequirementUniqueId, deletedBy) => {
     throw new AppError("Failed to delete mapping", 500);
   }
   return {
-    message: "success",
+    message: "Document requirement deleted",
     data: null
   };
 };

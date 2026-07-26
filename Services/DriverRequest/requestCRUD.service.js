@@ -81,7 +81,7 @@ const deleteDriverRequest = async (requestId) => {
       throw new AppError("Request not found", 404);
     }
 
-    return { message: "success", data: null };
+    return { message: "Driver request deleted", data: null };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to delete request", {
@@ -244,7 +244,7 @@ const getDriverRequest = async ({ data }, connection = null) => {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      message: "success",
+      message: "Driver request operation completed",
       data: requests,
       pagination: {
         currentPage: parseInt(page),
@@ -321,7 +321,7 @@ const updateDriverRequest = async ({ conditions, updateValues }) => {
       throw new AppError("Driver request not found or no changes made", 404);
     }
 
-    return { message: "success", data: null };
+    return { message: "Driver request updated", data: null };
   } catch (error) {
     throw new AppError(
       error.message || "Unable to update driver request",

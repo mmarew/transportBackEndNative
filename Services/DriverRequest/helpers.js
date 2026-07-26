@@ -66,7 +66,7 @@ const checkIfDriverIsHealthy = async (userUniqueId) => {
  * @returns {Object} Standardized response object
  */
 const createResponse = (driver, vehicle, shipper, decision, status) => ({
-  message: "success",
+  message: "Driver status fetched",
   status,
   uniqueIds: {
     driverRequestUniqueId: driver?.driverRequestUniqueId,
@@ -208,7 +208,7 @@ const sendShipperNotification = async (shipper) => {
       phoneNumber: shipper.phoneNumber,
     });
 
-    return { message: "success" };
+    return { message: "Notification sent successfully" };
   } catch (error) {
     throw new AppError(
       error.message || "Error in sendShipperNotification",
@@ -376,7 +376,7 @@ const fetchJourneyNotificationData = async (
     }
 
     return {
-      message: "success",
+      message: "Request data fetched",
       shipperRequest,
       journeyDecision: journeyDecisionDataNormalized,
       driverInfo,

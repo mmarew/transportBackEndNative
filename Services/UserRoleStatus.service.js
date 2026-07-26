@@ -49,6 +49,8 @@ const createUserRoleStatus = async (body) => {
     data: null,
     result,
   };
+};
+
 const updateUserRoleStatus = async (updateDataValues) => {
   const { user, roleId, newStatusId, phoneNumber } = updateDataValues;
   const updaterUserUniqueId = user?.userUniqueId;
@@ -107,7 +109,7 @@ const handleUpdateResponses = async ({ roleId, statusId, phoneNumber }) => {
     });
     await sendSocketIONotificationToAdmin({
       message: {
-        message: "success",
+        message: "Driver document submitted for review",
         request: "approve or reject driver's document",
         messageType: messageTypes?.accept_reject_driver_document,
         driver: driver?.data,
@@ -117,13 +119,13 @@ const handleUpdateResponses = async ({ roleId, statusId, phoneNumber }) => {
   } else if (roleId === usersRoles.adminRoleId) {
     if (statusId === USER_STATUS.ACTIVE) {
       await sendSocketIONotificationToDriver({
-        message: "success",
+        message: "User document approved by admin",
         request: "User document approved by admin",
         phoneNumber,
       });
     } else if (statusId === USER_STATUS.INACTIVE_DOCUMENTS_REJECTED) {
       await sendSocketIONotificationToDriver({
-        message: "success",
+        message: "User document rejected by admin",
         request: "User document rejected by admin",
         phoneNumber,
       });
@@ -186,7 +188,9 @@ const deleteUserRoleStatus = async (userRoleStatusUniqueId) => {
     data: null,
     result,
   };
-}; = async (phoneNumber) => {
+};
+
+const userRoleStatusByPhone = async (phoneNumber) => {
   const userData = await performJoinSelect({
     baseTable: "Users",
     joins: [

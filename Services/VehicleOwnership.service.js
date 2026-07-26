@@ -98,7 +98,7 @@ const createVehicleOwnership = async (body) => {
   });
 
   return { 
-    message: "success", 
+    message: "Vehicle ownership operation completed", 
     data: {
       ownershipUniqueId,
       result
@@ -153,7 +153,7 @@ const updateVehicleOwnership = async (body) => {
   }
 
   return {
-    message: "success",
+    message: "Vehicle ownership operation completed",
     data: null,
   };
 };
@@ -172,7 +172,7 @@ const deleteVehicleOwnership = async (ownershipUniqueId) => {
   }
 
   return {
-    message: "success",
+    message: "Vehicle ownership operation completed",
     data: null,
   };
 };
@@ -376,12 +376,12 @@ const getVehicleOwnershipsByFilter = async ({
 
   if (includePagination && limit) {
     return {
-      message: "success",
+      message: "Vehicle ownership operation completed",
       data: formattedData,
       pagination,
     };
   }
-  return { message: "success", data: formattedData };
+  return { message: "Vehicle ownership operation completed", data: formattedData };
 };
 
 module.exports = {

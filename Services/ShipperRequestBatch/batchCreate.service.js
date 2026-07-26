@@ -117,7 +117,7 @@ exports.upsertBatch = async ({
       const shipperName = batch?.shipperName || "A shipper";
       const message = {
         messageTypes: messageTypes.company_batch_available,
-        message: "success",
+        message: "New batch available",
         notification: {
           title: "New Freight Batch Available",
           body: `${shipperName} has posted a new freight job for your company.`,

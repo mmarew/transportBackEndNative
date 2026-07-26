@@ -126,7 +126,7 @@ exports.createBulkAssignments = async (data) => {
     });
   }
 
-  return { message: "success", data: results };
+  return { message: "Assignment data fetched", data: results };
 };
 
 exports.getAssignments = async (filters = {}) => {

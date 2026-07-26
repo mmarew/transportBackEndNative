@@ -82,7 +82,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
             journeyDecisionUniqueId,
             latitude,
             longitude,
-            message: "success",
+            message: "Driver location updated",
             messageTypes: messageTypes.update_drivers_location_to_shipper,
           },
         });

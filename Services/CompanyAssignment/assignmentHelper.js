@@ -180,7 +180,7 @@ const notifyAssignedDriver = async (opts) => {
         });
         wsPayload = {
           messageTypes: messageTypes.company_driver_assignment,
-          message: "success",
+          message: "Assignment helper operation completed",
           ...statusResult, // status, driver, shipper, decision, journey, companyAssignment
         };
       } catch (verifyErr) {
@@ -194,7 +194,7 @@ const notifyAssignedDriver = async (opts) => {
         );
         wsPayload = {
           messageTypes: messageTypes.company_driver_assignment,
-          message: "success",
+          message: "Assignment helper operation completed",
           status: journeyStatusMap.requested,
           companyAssignment: {
             assignmentUniqueId,
@@ -424,7 +424,7 @@ const upsertDriverRequest = async ({
 
           const replacementPayload = {
             messageTypes: messageTypes.individual_replaced_by_company,
-            message: "success",
+            message: "Assignment helper operation completed",
             type: "individual_replaced_by_company",
             cancelledDriverRequestUniqueId: existingUniqueId,
             cancelledShipperRequests,
@@ -786,7 +786,7 @@ const notifyCompanyOnDriverAction = async ({
       companyUniqueId: assignment.companyUniqueId,
       message: {
         messageTypes: config.messageType,
-        message: "success",
+        message: `Driver action: ${action}`,
         notification: companyNotif,
         data: companyData,
       },

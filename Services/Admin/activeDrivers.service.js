@@ -154,7 +154,7 @@ const getAllActiveDrivers = async req => {
   const dataParams = [...params, parseInt(limit), parseInt(offset)];
   const [data] = await executor.query(dataSql, dataParams);
   return {
-    message: "success",
+    message: "Active drivers list fetched",
     pagination: {
       total,
       page: parseInt(page),

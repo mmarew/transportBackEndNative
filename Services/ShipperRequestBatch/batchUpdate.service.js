@@ -58,7 +58,7 @@ exports.updateBatch = async (batchUniqueId, fields) => {
     throw new AppError("Batch update failed", 500);
   }
 
-  return { message: "success", data: { batchUniqueId, updated: fields } };
+  return { message: "Batch updated", data: { batchUniqueId, updated: fields } };
 };
 
 // ── Soft DELETE ───────────────────────────────────────────────────────────────

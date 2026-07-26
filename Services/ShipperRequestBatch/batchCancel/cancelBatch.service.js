@@ -307,7 +307,7 @@ const cancelBatch = async ({
     ),
   ]);
   return {
-    message: "success",
+    message: "Batch cancelled",
     data: {
       batchUniqueId,
       finalBatchStatus,

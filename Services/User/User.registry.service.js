@@ -78,7 +78,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
     if (upd?.affectedRows === 0) {
       throw new AppError("Unable to update credential", 500);
     }
-    return { message: "success" };
+    return { message: "User operation completed" };
   }
 
   const credentialColAndVal = {
@@ -103,7 +103,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   if (ins?.affectedRows === 0) {
     throw new AppError("Unable to create credential", 500);
   }
-  return { message: "success" };
+  return { message: "User operation completed" };
 };
 
 const handleUserRoleStatus = async (
@@ -374,7 +374,7 @@ const createUserByAdminOrSuperAdmin = async ({
     }
     if (!isPlaceholderEmail(email)) {
       return {
-        message: "success",
+        message: "User operation completed",
         data: null,
       };
     }
@@ -389,7 +389,7 @@ const createUserByAdminOrSuperAdmin = async ({
       } else {
         // Same phone + Same placeholder = Same user. We're done.
         return {
-          message: "success",
+          message: "User operation completed",
           data: null,
         };
       }
@@ -443,7 +443,7 @@ const createUserByAdminOrSuperAdmin = async ({
     }
 
     return {
-      message: "success",
+      message: "User operation completed",
       data: null,
     };
   }

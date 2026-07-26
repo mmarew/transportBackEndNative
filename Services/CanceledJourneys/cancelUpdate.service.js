@@ -21,12 +21,12 @@ const updateSeenByAdmin = async canceledJourneyUniqueId => {
     const sql = "UPDATE CanceledJourneys SET isSeenByAdmin = 1, canceledJourneySeenByAdminAt = ? WHERE canceledJourneyUniqueId = ?";
     const result = await query(sql, [currentDate(), canceledJourneyUniqueId]);
     return result.affectedRows > 0 ? {
-      message: "success",
+      message: "Seen status updated",
       data: {
         updated: true
       }
     } : {
-      message: "success",
+      message: "Seen status updated",
       data: {
         updated: false
       }
@@ -62,12 +62,12 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
     `;
     const result = await query(sql, values);
     return result.affectedRows > 0 ? {
-      message: "success",
+      message: "Seen status updated",
       data: {
         updated: true
       }
     } : {
-      message: "success",
+      message: "Seen status updated",
       data: {
         updated: false
       }

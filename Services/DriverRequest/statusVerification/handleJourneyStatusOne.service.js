@@ -213,7 +213,7 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
       const notifResult = await sendSocketIONotificationToShipper({
         message: {
           messageTypes: messageTypes.driver_found_shipper_request,
-          message: "success",
+          message: "Driver found for shipper request",
           status: journeyStatusMap.requested,
           formattedData: [{
             shipperRequest,
@@ -231,7 +231,7 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
       logger.debug("@handleJourneyStatusOne: no phone, skipping notification");
     }
     return {
-      message: "success",
+      message: "Journey status fetched",
       status: journeyStatusMap.requested,
       ...response,
       companyAssignment // always included — null for individual matches

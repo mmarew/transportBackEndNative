@@ -202,7 +202,7 @@ const createCompanyDelinquency = async (data) => {
   }
 
   return {
-    message: "success",
+    message: "Company delinquency created",
     data: null,
     companyDelinquencyUniqueId,
   };
@@ -303,7 +303,7 @@ const getCompanyDelinquencies = async (filters = {}) => {
   const [rows] = await exec().query(sql, [...params, parseInt(limit), offset]);
 
   return {
-    message: "success",
+    message: "Company delinquency deleted",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
@@ -342,7 +342,7 @@ const deleteCompanyDelinquency = async (
     throw new AppError("Delinquency not found or already deleted", 404);
   }
   return {
-    message: "success",
+    message: "Company delinquency deleted",
     data: null,
   };
 };
@@ -404,7 +404,7 @@ const getPendingDelinquencies = async (filters = {}) => {
   );
 
   return {
-    message: "success",
+    message: "Company delinquency deleted",
     data: rows,
     pagination: {
       currentPage: parseInt(page),

@@ -41,7 +41,7 @@ exports.createTariffRateForVehicleType = async (data) => {
   ]);
 
   return {
-    message: "success",
+    message: "Tariff rates for vehicle types fetched",
     data: { tariffRateForVehicleTypeUniqueId },
   };
 };
@@ -131,7 +131,7 @@ exports.getTariffRatesByFilterForVehicleTypes = async (filters = {}) => {
   const totalPages = Math.ceil(total / parseInt(limit));
 
   return {
-    message: "success",
+    message: "Tariff rates for vehicle types fetched",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
@@ -159,7 +159,7 @@ exports.getTariffRateByVehicleTypeUniqueId = async (vehicleTypeUniqueId) => {
   });
 
   return {
-    message: "success",
+    message: "Tariff rates for vehicle types fetched",
     data: result || [],
   };
 };
@@ -212,7 +212,7 @@ exports.updateTariffRateForVehicleType = async (
   }
 
   return {
-    message: "success",
+    message: "Tariff rates for vehicle types fetched",
     data: null,
   };
 };
@@ -241,7 +241,7 @@ exports.deleteTariffRateForVehicleType = async (
   }
 
   return {
-    message: "success",
+    message: "Tariff rates for vehicle types fetched",
     data: null,
   };
 };

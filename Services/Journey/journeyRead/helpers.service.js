@@ -41,7 +41,7 @@ const getAllJourneys = async (page = 1, limit = 10) => {
   const totalCount = countRows[0]?.total || 0;
   const totalPages = Math.ceil(totalCount / safeLimit);
   return {
-    message: "success",
+    message: "Request list fetched",
     data: result,
     pagination: {
       currentPage: safePage,
@@ -61,7 +61,7 @@ const getJourneyByJourneyUniqueId = async journeyUniqueId => {
     throw new AppError("Journey not found", 404);
   }
   return {
-    message: "success",
+    message: "Request list fetched",
     data: result[0]
   };
 };

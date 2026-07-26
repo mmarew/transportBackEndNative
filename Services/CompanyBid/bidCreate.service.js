@@ -322,7 +322,7 @@ const submitBid = async (data) => {
         phoneNumber: shipperRows[0].phoneNumber,
         message: {
           messageTypes: messageTypes.company_bid_submitted,
-          message: "success",
+          message: "Bid submitted by company",
           notification: shipperNotif,
           data:
             shipperNotifPayload || {

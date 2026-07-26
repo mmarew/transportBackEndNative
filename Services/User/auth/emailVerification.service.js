@@ -154,7 +154,7 @@ const verifyEmailByToken = async token => {
 
   //let users get the status immediately as they are verified
   return {
-    message: "success",
+    message: "Email verified",
     data: {
       phoneVerified: isPhoneVerified,
       emailVerified: true

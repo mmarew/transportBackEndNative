@@ -19,12 +19,12 @@ const deleteCanceledJourney = async canceledJourneyUniqueId => {
     const sql = "DELETE FROM CanceledJourneys WHERE canceledJourneyUniqueId = ?";
     const result = await query(sql, [canceledJourneyUniqueId]);
     return result.affectedRows > 0 ? {
-      message: "success",
+      message: "Canceled journey deleted",
       data: {
         deleted: true
       }
     } : {
-      message: "success",
+      message: "Canceled journey deleted",
       data: {
         deleted: false
       }

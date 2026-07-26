@@ -103,7 +103,7 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
       dateCounts[row.canceledDate] = row.totalCount;
     });
     return {
-      message: "success",
+      message: "Canceled journey stats fetched",
       data: dateCounts,
       totalDates: countRows.length,
       dateRange: {
@@ -270,7 +270,7 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
       formattedData.sort((a, b) => b.qty - a.qty);
     }
     return {
-      message: "success",
+      message: "Canceled journey stats fetched",
       data: formattedData,
       summary: {
         totalCanceled,

@@ -176,7 +176,7 @@ exports.createBulkAssignments = async (data) => {
     })),
   });
 
-  return { message: "success", data: results };
+  return { message: "Assignment status updated", data: results };
 };
 
 exports.getAssignments = async (filters = {}) => {
@@ -439,7 +439,9 @@ exports.updateAssignmentStatus = async (
               messageTypes: isMidJobCancel
                 ? messageTypes.company_driver_cancelled
                 : messageTypes.company_driver_rejected,
-              message: "success",
+              message: isMidJobCancel
+                ? "Assignment cancelled by driver"
+                : "Assignment rejected by driver",
               notification: {
                 title: isMidJobCancel
                   ? "Assignment Cancelled by Driver"
@@ -516,7 +518,9 @@ exports.updateAssignmentStatus = async (
               messageTypes: isMidJobCancel
                 ? messageTypes.company_driver_cancelled
                 : messageTypes.company_driver_rejected,
-              message: "success",
+              message: isMidJobCancel
+                ? "Assignment cancelled by driver"
+                : "Assignment rejected by driver",
               notification: shipperNotif,
               data: shipperData,
             },
@@ -587,7 +591,7 @@ exports.updateAssignmentStatus = async (
     }
     if (assignment.assignmentStatus === "confirmed_by_driver") {
       return {
-        message: "success",
+        message: "Assignment confirmed",
         data: {
           assignmentStatus,
           journeyDecisionUniqueId: assignment.journeyDecisionUniqueId,
@@ -710,7 +714,7 @@ exports.updateAssignmentStatus = async (
             companyUniqueId,
             message: {
               messageTypes: messageTypes.company_driver_confirmed,
-              message: "success",
+              message: "Driver confirmed assignment",
               notification: {
                 title: "Driver Confirmed",
                 body: `Driver ${driverName} confirmed the freight assignment.`,
@@ -770,7 +774,7 @@ exports.updateAssignmentStatus = async (
             phoneNumber: shipper.phoneNumber,
             message: {
               messageTypes: messageTypes.company_driver_confirmed,
-              message: "success",
+              message: "Driver confirmed assignment",
               notification: shipperNotif,
               data: fullAssignment || shipperData,
             },
@@ -887,7 +891,7 @@ exports.updateAssignmentStatus = async (
               companyUniqueId,
               message: {
                 messageTypes: socketMsgType,
-                message: "success",
+                message: `Assignment ${assignmentStatus}`,
                 notification: {
                   title:
                     assignmentStatus === "completed"
@@ -959,7 +963,7 @@ exports.updateAssignmentStatus = async (
               phoneNumber: shipper.phoneNumber,
               message: {
                 messageTypes: socketMsgType,
-                message: "success",
+                message: `Assignment ${assignmentStatus}`,
                 notification: shipperNotif,
                 data: shipperData,
               },
@@ -1046,7 +1050,7 @@ exports.updateAssignmentStatus = async (
   }
 
   return {
-    message: "success",
+    message: "Assignment status updated",
     data: {
       assignmentStatus,
       journeyDecisionUniqueId:

@@ -78,7 +78,7 @@ const banUser = async (data) => {
   );
   if (existingActiveBanRows.length > 0) {
     return {
-      message: "success",
+      message: "Banned users list fetched",
       data: null,
       banUniqueId: existingActiveBanRows[0].banUniqueId,
     };
@@ -118,7 +118,7 @@ const banUser = async (data) => {
   });
 
   return {
-    message: "success",
+    message: "User already banned",
     data: null,
     banUniqueId,
     banExpiresAt,
@@ -273,7 +273,7 @@ const getBannedUsers = async (filters = {}) => {
   const totalPages = Math.ceil(total / limit);
 
   return {
-    message: "success",
+    message: "User banned successfully",
     data: results,
     pagination: {
       currentPage: parseInt(page),
@@ -324,7 +324,7 @@ const updateBannedUser = async (banUniqueId, data) => {
 
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "User banned successfully",
       data: null,
     };
   } else {
@@ -351,7 +351,7 @@ const unbanUser = async (query) => {
     await accountStatus({ ownerUserUniqueId, body: { roleId } });
 
     if (updatedBanResult.affectedRows > 0) {
-      return { message: "success", data: null };
+      return { message: "User banned successfully", data: null };
     } else {
       throw new AppError("Failed to unBan user", 500);
     }
@@ -369,7 +369,7 @@ const deactivateBan = async (banUniqueId) => {
   const sql = "UPDATE BannedUsers SET isActive = FALSE WHERE banUniqueId = ?";
   const result = await query(sql, [banUniqueId]);
   if (result.affectedRows > 0) {
-    return { message: "success", data: null };
+    return { message: "User banned successfully", data: null };
   } else {
     throw new AppError("Failed to deactivate ban", 500);
   }

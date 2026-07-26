@@ -93,7 +93,7 @@ const createMapping = async ({
   if (existingMapping[0].length > 0) {
     const existing = existingMapping[0][0];
     return {
-      message: "success",
+      message: "Document requirement created",
       data: {
         roleDocumentRequirementUniqueId: existing.roleDocumentRequirementUniqueId,
         message: "Mapping already exists"
@@ -106,7 +106,7 @@ const createMapping = async ({
   const result = await executor.query("INSERT INTO RoleDocumentRequirements(roleDocumentRequirementUniqueId,roleDocumentRequirementCreatedBy, roleId, documentTypeId, isDocumentMandatory, isFileNumberRequired, isExpirationDateRequired, isDescriptionRequired, roleDocumentRequirementCreatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [roleDocumentRequirementUniqueId, userUniqueId, numericRoleId, numericDocumentTypeId, isDocumentMandatory, isFileNumberRequired, isExpirationDateRequired, isDescriptionRequired, currentDate()]);
   if (result[0].affectedRows > 0) {
     return {
-      message: "success",
+      message: "Document requirement created",
       data: {
         roleDocumentRequirementUniqueId,
         message: "Mapping created successfully"

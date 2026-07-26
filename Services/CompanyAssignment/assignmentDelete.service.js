@@ -79,7 +79,7 @@ exports.autoAssignBatch = async (data) => {
 
   if (unassignedSlots.length === 0) {
     return {
-      message: "success",
+      message: "No unassigned slots available",
       data: null,
     };
   }
@@ -123,7 +123,7 @@ exports.autoAssignBatch = async (data) => {
   // 4. Handle Case: Fleet is busy but slots need assignment
   if (availableFleet.length === 0) {
     return {
-      message: "success",
+      message: "No unassigned slots available",
       data: {
         summary: `Successfully auto-assigned 0 slots. ${unassignedSlots.length} slots remain unassigned due to limited fleet availability.`,
         assignedCount: 0,
@@ -218,7 +218,7 @@ exports.autoAssignBatch = async (data) => {
       : `Successfully auto-assigned all ${results.length} slots.`;
 
   return {
-    message: "success",
+    message: "Auto-assignment completed",
     data: {
       summary,
       assignedCount: results.length,
@@ -238,5 +238,5 @@ exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
   if (res.affectedRows === 0) {
     throw new AppError("Assignment not found or already deleted", 404);
   }
-  return { message: "success", data: null };
+  return { message: "Auto-assignment completed", data: null };
 };

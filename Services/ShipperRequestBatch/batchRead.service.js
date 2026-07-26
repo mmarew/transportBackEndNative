@@ -352,7 +352,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   const totalPages = Math.ceil(total / limit) || 1;
 
   return {
-    message: "success",
+    message: "Batches list fetched",
     data: rows,
     pagination: { currentPage: page, limit, totalItems: total, totalPages },
   };

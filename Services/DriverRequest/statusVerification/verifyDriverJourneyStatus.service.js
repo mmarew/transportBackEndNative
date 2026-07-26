@@ -47,7 +47,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     logger.debug("@driverRequest", driverRequest);
     if (!driverRequest) {
       return {
-        message: "success",
+        message: "Driver journey status verified",
         data: null,
         status: null,
         vehicle,
@@ -65,7 +65,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     );
     if (isTerminalStatus(journeyStatusId) && !shouldHandleStatus) {
       return {
-        message: "success",
+        message: "No active driver request",
         data: null,
         status: null,
         vehicle,

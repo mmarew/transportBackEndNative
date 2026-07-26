@@ -316,7 +316,7 @@ const cancelShipperRequest = async body => {
         await sendSocketIONotificationToDriver({
           message: {
             messageTypes: cancellationMessageType,
-            message: "success",
+            message: "Journey cancelled",
             status: cancellationJourneyStatusId,
             shipper: shipper ? shipper : null,
             driver: {

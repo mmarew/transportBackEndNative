@@ -77,7 +77,7 @@ const createVehicleType = async (data) => {
   const executor = transactionStorage.getStore() || pool;
   await executor.query(query, values);
   return {
-    message: "success",
+    message: "Vehicle type created",
     data: null,
   };
 };
@@ -183,7 +183,7 @@ const getVehicleTypesByfilter = async (filters = {}) => {
   }
 
   return {
-    message: "success",
+    message: "Vehicle types list fetched",
     data: dataRows,
     pagination: {
       currentPage: page,
@@ -258,7 +258,7 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
     throw new AppError("Vehicle type not found or update failed", 404);
   }
 
-  return { message: "success", data: null };
+  return { message: "Vehicle type deleted", data: null };
 };
 
 // Soft-delete a vehicle type by unique ID
@@ -280,7 +280,7 @@ const deleteVehicleType = async (vehicleTypeUniqueId, deletedBy) => {
   if (result.affectedRows === 0) {
     throw new AppError("Vehicle type not found or already deleted", 404);
   }
-  return { message: "success", data: null };
+  return { message: "Vehicle type deleted", data: null };
 };
 
 module.exports = {

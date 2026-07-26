@@ -37,7 +37,7 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
       throw new AppError("Request not found", 404);
     }
 
-    return { message: "success", data: result[0] };
+    return { message: "Journey data fetched", data: result[0] };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to retrieve request", {
@@ -66,7 +66,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
       throw new AppError("Request not found", 404);
     }
 
-    return { message: "success", data: result[0] };
+    return { message: "Journey data fetched", data: result[0] };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to retrieve shipper request", {
@@ -196,7 +196,7 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
     });
 
     return {
-      message: "success",
+      message: "Journey data fetched",
       data: countRows,
       dateCounts,
       totalDates: countRows.length,

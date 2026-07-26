@@ -219,7 +219,7 @@ const installPreDefinedData = async req => {
     } catch (error) {
       if (error.message && error.message.includes("already exists")) {
         return {
-          message: "success",
+          message: "Data already exists",
           data: null
         };
       }
@@ -235,7 +235,7 @@ const installPreDefinedData = async req => {
     } catch (error) {
       if (error.message && error.message.includes("already exists")) {
         return {
-          message: "success",
+          message: "Data already exists",
           data: null
         };
       }
@@ -251,7 +251,7 @@ const installPreDefinedData = async req => {
     } catch (error) {
       if (error.message && error.message.includes("already exists")) {
         return {
-          message: "success",
+          message: "Data already exists",
           data: null
         };
       }
@@ -342,7 +342,7 @@ const installPreDefinedData = async req => {
     user
   }), subscriptionPlanPricingSuccess, subscriptionPlanPricingErrors, "subscriptionPlanPricing");
   return {
-    message: "success",
+    message: "Seed data installed successfully",
     data: {
       subscriptionPlanPricing: {
         success: subscriptionPlanPricingSuccess,

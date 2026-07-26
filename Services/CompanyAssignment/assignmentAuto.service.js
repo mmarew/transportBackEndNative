@@ -99,7 +99,7 @@ exports.autoAssignBatch = async (data) => {
 
   if (unassignedSlots.length === 0) {
     return {
-      message: "success",
+      message: "No unassigned slots available",
       data: null,
     };
   }
@@ -136,7 +136,7 @@ exports.autoAssignBatch = async (data) => {
   // 4. Handle Case: Fleet is busy but slots need assignment
   if (availableFleet.length === 0) {
     return {
-      message: "success",
+      message: "No unassigned slots available",
       data: {
         summary: `Successfully auto-assigned 0 slots. ${unassignedSlots.length} slots remain unassigned due to limited fleet availability.`,
         assignedCount: 0,
@@ -273,7 +273,7 @@ exports.autoAssignBatch = async (data) => {
           phoneNumber: shipperRow.phoneNumber,
           message: {
             messageTypes: messageTypes.company_driver_assignment,
-            message: "success",
+            message: "Driver assigned to shipper",
             notification: shipperNotif,
             data: {
               type: "company_assignment_created",
@@ -303,7 +303,7 @@ exports.autoAssignBatch = async (data) => {
       : `Successfully auto-assigned all ${results.length} slots.`;
 
   return {
-    message: "success",
+    message: "Auto-assignment completed",
     data: {
       summary,
       assignedCount: results.length,

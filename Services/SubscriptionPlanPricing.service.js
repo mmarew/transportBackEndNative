@@ -153,7 +153,7 @@ const createPricing = async (
   await executor.query(sql, values);
 
   return {
-    message: "success",
+    message: "Subscription plan pricing fetched",
     data: { subscriptionPlanPricingUniqueId, effectiveFrom, effectiveTo: effectiveTo || null },
   };
 };

@@ -54,7 +54,7 @@ async function paginatedQuery(baseSql, countSql, params, page, limit, offset) {
   const dataRowsResult = dataRows || [];
   const total = countRows?.[0]?.total || 0;
   return {
-    message: "success",
+    message: "Query results fetched",
     data: dataRowsResult,
     pagination: {
       currentPage: page,

@@ -178,7 +178,7 @@ const getUnauthorizedDriver = async query => {
     };
   }));
   return {
-    message: "success",
+    message: "Unauthorized drivers list fetched",
     pagination: {
       totalItems: total,
       currentPage: currentPage,

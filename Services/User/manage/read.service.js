@@ -34,7 +34,7 @@ const getUserByUserUniqueId = async userUniqueId => {
     throw new AppError("User not found", 404);
   }
   return {
-    message: "success",
+    message: "Users list fetched",
     data: user[0]
   };
 };
@@ -84,7 +84,7 @@ const getUsersByRoleUniqueId = async (roleUniqueId, page = 1, limit = 10, search
   `;
   const [rows] = await executor.query(sql, search ? [roleUniqueId, wildcardQuery, wildcardQuery, wildcardQuery, limit, offset] : [roleUniqueId, limit, offset]);
   return {
-    message: "success",
+    message: "Users list fetched",
     pagination: {
       currentPage: page,
       limit,

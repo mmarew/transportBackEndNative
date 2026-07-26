@@ -35,7 +35,7 @@ const getAllTables = async () => {
   const sqlQuery = `SHOW TABLES`;
   const [tables] = await pool.query(sqlQuery);
   return {
-    message: "success",
+    message: "Tables list fetched",
     data: tables,
     numberOfTables: tables.length
   };
@@ -45,7 +45,7 @@ const getTableColumns = async tableName => {
   const sqlQuery = `SHOW COLUMNS FROM ${tableName}`;
   const [columns] = await pool.query(sqlQuery);
   return {
-    message: "success",
+    message: "Tables list fetched",
     data: columns
   };
 };

@@ -191,7 +191,7 @@ const startJourney = async (body) => {
     });
 
     return {
-      message: "success",
+      message: "Journey operation completed",
       status: journeyStatusMap.journeyStarted,
       uniqueIds: {
         driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
@@ -392,7 +392,7 @@ const completeJourney = async (body) => {
     });
 
     return {
-      message: "success",
+      message: "Journey operation completed",
       status: journeyStatusMap.journeyCompleted,
       uniqueIds: {
         driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
@@ -542,7 +542,7 @@ const sendUpdatedLocation = async (body) => {
     // No need to send duplicate notification here
 
     return {
-      message: "success",
+      message: "Journey operation completed",
       data: null,
       journeyRoutePointsUniqueId:
         routePointResult.data?.journeyRoutePointsUniqueId,
