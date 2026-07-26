@@ -210,11 +210,27 @@ const handleExistingJourney = async (driverRequest, vehicle
     };
   }
 
-  // If status is cancellation (7 or 10) and isCancellationSeenByDriver is not "not seen by driver yet",
+  // If status is cancellation (7, 10, or 12) and isCancellationSeenByDriver is not "not seen by driver yet",
   // don't return the decision (filter it out) - return early without decision data
-  if ((journeyStatusId === journeyStatusMap?.cancelledByShipper || journeyStatusId === journeyStatusMap?.cancelledByAdmin) && isCancellationSeenByDriver !== "not seen by driver yet") {
+  if ((journeyStatusId === journeyStatusMap?.cancelledByShipper || journeyStatusId === journeyStatusMap?.cancelledByAdmin || journeyStatusId === journeyStatusMap?.cancelledBySystem) && isCancellationSeenByDriver !== "not seen by driver yet") {
     return {
       message: "Journey cancelled",
+      data: null,
+      status: null,
+      vehicle,
+      driver: null,
+      shipper: null,
+      journey: null,
+      decision: null
+    };
+  }
+
+  // If status is rejectedByShipper (8) and already seen by driver,
+  // don't return the decision - return early without decision data
+  const isRejectionSeenByDriver = journeyDecisionData?.isRejectionByShipperSeenByDriver;
+  if (journeyStatusId === journeyStatusMap?.rejectedByShipper && isRejectionSeenByDriver !== "not seen by driver yet") {
+    return {
+      message: "Journey rejected by shipper",
       data: null,
       status: null,
       vehicle,

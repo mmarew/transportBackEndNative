@@ -232,11 +232,14 @@ const markNegativeStatusAsSeenByDriver = async ({
       journeyStatusMap.cancelledBySystem, // 12
     ];
 
+    // Idempotent: if status already moved on from a negative status (e.g. reset by
+    // handleExistingJourney or handled by another flow), the notification is no longer
+    // relevant — return success instead of failing.
     if (!negativeStatuses.includes(currentStatusId)) {
-      throw new AppError(
-        "This request is not in a negative status that requires marking as seen",
-        400,
-      );
+      return {
+        message: "Notification already handled or status no longer negative",
+        data: null,
+      };
     }
 
     // Determine which table and field to update based on status

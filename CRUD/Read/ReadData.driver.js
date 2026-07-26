@@ -32,9 +32,9 @@ const checkActiveDriverRequest = async (userUniqueId) => {
           AND JourneyDecisions.isNotSelectedSeenByDriver = 'not seen by driver yet'
         )
         OR
-        -- Cancellation statuses (7, 10) with not seen status
+        -- Cancellation statuses (7, 10, 12) with not seen status
         (
-          DriverRequest.journeyStatusId IN (?, ?)
+          DriverRequest.journeyStatusId IN (?, ?, ?)
           AND DriverRequest.isCancellationByShipperSeenByDriver = 'not seen by driver yet'
         )
         OR
@@ -55,6 +55,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
       journeyStatusMap.notSelectedInBid,
       journeyStatusMap.cancelledByShipper,
       journeyStatusMap.cancelledByAdmin,
+      journeyStatusMap.cancelledBySystem,
       journeyStatusMap.rejectedByShipper,
     ]);
 
