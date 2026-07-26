@@ -203,7 +203,7 @@ const createCompanyDelinquency = async (data) => {
 
   return {
     message: "success",
-    data: "Company delinquency recorded successfully",
+    data: null,
     companyDelinquencyUniqueId,
   };
 };
@@ -309,9 +309,7 @@ const getCompanyDelinquencies = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };
@@ -345,7 +343,7 @@ const deleteCompanyDelinquency = async (
   }
   return {
     message: "success",
-    data: "Company delinquency deleted successfully",
+    data: null,
   };
 };
 
@@ -412,9 +410,7 @@ const getPendingDelinquencies = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };

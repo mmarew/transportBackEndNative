@@ -35,14 +35,12 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
     const users = usersData?.data || [];
     if (users.length === 0) {
       return {
-        message: "success",
+        message: "No completed journeys found",
         data: [],
         pagination: {
           currentPage: page,
           totalPages: 0,
-          totalCount: 0,
-          hasNext: false,
-          hasPrev: false,
+          totalItems: 0,
           limit
         }
       };
@@ -128,14 +126,12 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
       };
     }));
     return {
-      message: "success",
+      message: "Completed journeys fetched successfully",
       data,
       pagination: {
         currentPage: safePage,
         totalPages,
-        totalCount,
-        hasNext: safePage < totalPages,
-        hasPrev: safePage > 1,
+        totalItems: totalCount,
         limit: safeLimit
       }
     };

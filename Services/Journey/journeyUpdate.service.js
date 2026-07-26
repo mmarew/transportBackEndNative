@@ -51,7 +51,7 @@ const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }
   }
 
   return {
-    message: "success",
+    message: "Journey updated successfully",
     data: { journeyUniqueId, endTime, fare, journeyStatusId }
   };
 };

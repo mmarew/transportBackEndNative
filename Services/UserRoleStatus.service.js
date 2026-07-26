@@ -45,13 +45,10 @@ const createUserRoleStatus = async (body) => {
   });
 
   return {
-    message: "success",
-    data: "UserRoleStatus created successfully",
+    message: "User role status created successfully",
+    data: null,
     result,
   };
-};
-
-// Update UserRoleStatus and move old status to history
 const updateUserRoleStatus = async (updateDataValues) => {
   const { user, roleId, newStatusId, phoneNumber } = updateDataValues;
   const updaterUserUniqueId = user?.userUniqueId;
@@ -153,7 +150,7 @@ const handleUpdateResponses = async ({ roleId, statusId, phoneNumber }) => {
       phoneNumber,
     },
   });
-  return { message: "success", userData: userData };
+  return { message: "User role status updated successfully", userData: userData };
 };
 
 // Delete UserRoleStatus (soft delete by moving to history)
@@ -185,13 +182,11 @@ const deleteUserRoleStatus = async (userRoleStatusUniqueId) => {
   });
 
   return {
-    message: "success",
-    data: "UserRoleStatus deleted successfully",
+    message: "User role status deleted successfully",
+    data: null,
     result,
   };
-};
-
-const userRoleStatusByPhone = async (phoneNumber) => {
+}; = async (phoneNumber) => {
   const userData = await performJoinSelect({
     baseTable: "Users",
     joins: [
@@ -366,15 +361,13 @@ const getUserRoleStatusCurrent = async ({ data }) => {
 
   // Prepare response
   const response = {
-    message: "success",
+    message: "User role statuses fetched successfully",
     data: results,
     pagination: {
       currentPage: parseInt(page),
       totalPages: totalPages,
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
     filters: {
       userRoleId,

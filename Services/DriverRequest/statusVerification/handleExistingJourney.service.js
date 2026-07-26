@@ -200,7 +200,7 @@ const handleExistingJourney = async (driverRequest, vehicle
   if (journeyStatusId === journeyStatusMap?.notSelectedInBid && isNotSelectedSeenByDriver !== "not seen by driver yet") {
     return {
       message: "success",
-      data: "No active requests found for this driver",
+      data: null,
       status: null,
       vehicle,
       driver: null,
@@ -215,7 +215,7 @@ const handleExistingJourney = async (driverRequest, vehicle
   if ((journeyStatusId === journeyStatusMap?.cancelledByShipper || journeyStatusId === journeyStatusMap?.cancelledByAdmin) && isCancellationSeenByDriver !== "not seen by driver yet") {
     return {
       message: "success",
-      data: "No active requests found for this driver",
+      data: null,
       status: null,
       vehicle,
       driver: null,

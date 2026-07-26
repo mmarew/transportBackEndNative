@@ -193,14 +193,13 @@ exports.getAllJourneyPayments = async ({
   const totalPages = Math.ceil(totalCount / validatedLimit);
 
   return {
-    payments: rows,
+    message: "Journey payments fetched successfully",
+    data: rows,
     pagination: {
       currentPage: validatedPage,
       totalPages,
-      totalCount,
+      totalItems: totalCount,
       limit: validatedLimit,
-      hasNext: validatedPage < totalPages,
-      hasPrev: validatedPage > 1,
     },
   };
 };

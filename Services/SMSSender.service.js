@@ -41,9 +41,8 @@ const createSMSSender = async ({
         });
 
         return {
+          message: "SMS sender login successful",
           token: token.token,
-          message: "success",
-          data: "This phone number is already registered",
         };
       } else {
         throw new AppError("Invalid password", 401);
@@ -78,8 +77,7 @@ const createSMSSender = async ({
     });
 
     return {
-      message: "success",
-      data: "OTP sender registered successfully.",
+      message: "SMS sender registered successfully",
       token: token.token,
     };
   } catch (error) {

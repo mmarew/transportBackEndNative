@@ -80,7 +80,7 @@ exports.autoAssignBatch = async (data) => {
   if (unassignedSlots.length === 0) {
     return {
       message: "success",
-      data: "All slots in this batch are already assigned.",
+      data: null,
     };
   }
 
@@ -238,5 +238,5 @@ exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
   if (res.affectedRows === 0) {
     throw new AppError("Assignment not found or already deleted", 404);
   }
-  return { message: "success", data: "Assignment deleted" };
+  return { message: "success", data: null };
 };

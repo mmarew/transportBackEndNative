@@ -221,15 +221,13 @@ const getAllActiveRequests = async (filters = {}) => {
     const totalCount = countResults[0]?.totalCount || 0;
     const totalPages = Math.ceil(totalCount / limit);
     return {
-      status: "success",
+      message: "Active shipper requests fetched successfully",
       data: results,
       pagination: {
         currentPage: parseInt(page),
         totalPages,
-        totalCount,
-        hasNext: page < totalPages,
-        hasPrevious: page > 1,
-        pageSize: parseInt(limit),
+        totalItems: totalCount,
+        limit: parseInt(limit),
       },
       filters: {
         applied: whereConditions.length > 0 ? filters : {},

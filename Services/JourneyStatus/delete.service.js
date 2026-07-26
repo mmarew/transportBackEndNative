@@ -51,7 +51,7 @@ const deleteJourneyStatusByUniqueId = async (journeyStatusUniqueId, user) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "Journey status deleted successfully"
+      data: null
     };
   }
   throw new AppError("Journey status delete failed", 500);
@@ -69,8 +69,8 @@ const deleteJourneyStatus = async journeyStatusUniqueId => {
   });
   if (result.affectedRows > 0) {
     return {
-      message: "success",
-      data: `Journey status with ID ${journeyStatusUniqueId} deleted successfully`
+      message: `Journey status with ID ${journeyStatusUniqueId} deleted successfully`,
+      data: null
     };
   } else {
     throw new AppError("Failed to delete journey status", 500);

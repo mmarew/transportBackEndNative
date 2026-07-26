@@ -201,8 +201,8 @@ const sendShipperNotification = async (shipper) => {
     // Send simple notification - shipper should call verifyShipperStatus endpoint for full status
     await sendSocketIONotificationToShipper({
       message: {
-        message: "success",
-        data: "Your request status has been updated. Please check your status.",
+        message: "Your request status has been updated. Please check your status.",
+        data: null,
         requiresStatusCheck: true,
       },
       phoneNumber: shipper.phoneNumber,

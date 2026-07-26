@@ -159,7 +159,7 @@ const acceptDriverRequest = async (body) => {
         userUniqueId,
       });
       return {
-        message: "success",
+        message: "Driver request accepted successfully",
         totalRecords: statusResult?.totalRecords || null,
         pageSize: statusResult?.pageSize || 10,
         page: statusResult?.page || 1,

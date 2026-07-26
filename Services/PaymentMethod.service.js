@@ -23,7 +23,7 @@ exports.createPaymentMethod = async ({ paymentMethod, user }) => {
   await executor.query(sql, values);
 
   return {
-    message: "success",
+    message: "Payment method created successfully",
     data: { paymentMethodUniqueId },
   };
 };
@@ -98,12 +98,12 @@ exports.getAllPaymentMethods = async (filters = {}) => {
   const total = countRows?.[0]?.total || 0;
 
   return {
-    message: "success",
+    message: "Payment methods fetched successfully",
     data: rows || [],
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };
@@ -152,7 +152,7 @@ exports.updatePaymentMethod = async (
   }
 
   return {
-    message: "success",
+    message: "Payment method updated successfully",
     data: { paymentMethodUniqueId, ...updateData },
   };
 };
@@ -182,7 +182,7 @@ exports.deletePaymentMethod = async (paymentMethodUniqueId, user) => {
   }
 
   return {
-    message: "success",
-    data: `Payment method deleted successfully`,
+    message: `Payment method deleted successfully`,
+    data: null,
   };
 };

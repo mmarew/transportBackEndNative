@@ -201,8 +201,8 @@ const rejectDriverOffer = async body => {
 
     // Return success message - client should call verifyShipperStatus endpoint for full status
     return {
-      message: "success",
-      data: "Driver offer rejected successfully"
+      message: "Driver offer rejected successfully",
+      data: null
     };
   } catch (error) {
     throw new AppError(error.message || "Unable to reject driver offer", error.statusCode || 500);

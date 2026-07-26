@@ -354,7 +354,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
   return {
     message: "success",
     data: rows,
-    pagination: { page, limit, total, totalPages },
+    pagination: { currentPage: page, limit, totalItems: total, totalPages },
   };
 };
 

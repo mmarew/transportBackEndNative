@@ -66,7 +66,7 @@ exports.createCompanyRating = async ({
 
   return {
     message: "success",
-    data: "Company rating recorded successfully",
+    data: null,
     companyRatingUniqueId,
     companyUniqueId: bid.companyUniqueId,
     rating,
@@ -133,7 +133,7 @@ exports.getCompanyRatings = async ({
       currentPage: Number(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: Number(limit),
+      limit: Number(limit),
     },
   };
 };
@@ -191,7 +191,7 @@ exports.updateCompanyRating = async (companyRatingUniqueId, { rating, comment, u
     `UPDATE CompanyRating SET ${fields.join(", ")} WHERE companyRatingUniqueId = ?`,
     values,
   );
-  return { message: "success", data: "Rating updated successfully" };
+  return { message: "success", data: null };
 };
 
 // ─── Soft Delete ──────────────────────────────────────────────────────────────
@@ -209,5 +209,5 @@ exports.deleteCompanyRating = async (companyRatingUniqueId, deletedBy) => {
      WHERE companyRatingUniqueId = ?`,
     [deletedBy, currentDate(), companyRatingUniqueId],
   );
-  return { message: "success", data: "Rating deleted successfully" };
+  return { message: "success", data: null };
 };

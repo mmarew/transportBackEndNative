@@ -60,8 +60,8 @@ const createDelinquencyType = async (data) => {
   );
   if (existing.length > 0) {
     return {
-      message: "success",
-      data: "Delinquency type already exists",
+      message: "Delinquency type already exists",
+      data: null,
       delinquencyTypeUniqueId: existing[0].delinquencyTypeUniqueId,
       existed: true,
     };
@@ -91,8 +91,8 @@ const createDelinquencyType = async (data) => {
   await query(sql, values);
 
   return {
-    message: "success",
-    data: "Delinquency type created successfully",
+    message: "Delinquency type created successfully",
+    data: null,
     delinquencyTypeUniqueId,
   };
 };
@@ -187,24 +187,24 @@ const getDelinquencyTypes = async (filters = {}) => {
 
   if (!rows || rows.length === 0) {
     return {
-      message: "success",
+      message: "No delinquency types found",
       data: [],
       pagination: {
-        page,
+        currentPage: page,
         limit,
-        total: 0,
+        totalItems: 0,
         totalPages: 0,
       },
     };
   }
 
   return {
-    message: "success",
+    message: "Delinquency types fetched successfully",
     data: rows,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };
@@ -306,8 +306,8 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
 
     if (result.affectedRows > 0) {
       return {
-        message: "success",
-        data: "Delinquency type updated successfully",
+        message: "Delinquency type updated successfully",
+        data: null,
       };
     } else {
       throw new AppError("Delinquency type update failed", 500);
@@ -338,8 +338,8 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
 
   if (checkResult[0].count > 0) {
     return {
-      message: "success",
-      data: "Delinquency type is in use — delete skipped",
+      message: "Delinquency type is in use — delete skipped",
+      data: null,
     };
   }
 
@@ -352,8 +352,8 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
 
   if (result.affectedRows > 0) {
     return {
-      message: "success",
-      data: "Delinquency type deleted successfully",
+      message: "Delinquency type deleted successfully",
+      data: null,
     };
   } else {
     throw new AppError("Delinquency type delete failed", 500);
@@ -384,14 +384,12 @@ const getDelinquencyTypesByRole = async (roleUniqueId, pagination = {}) => {
   const totalPages = Math.ceil(totalCount / limit);
 
   return {
-    message: "success",
+    message: "Delinquency types fetched successfully",
     data: results,
     pagination: {
       currentPage: parseInt(page),
       totalPages,
-      totalCount,
-      hasNext: page < totalPages,
-      hasPrev: page > 1,
+      totalItems: totalCount,
       limit: parseInt(limit),
     },
   };
@@ -413,10 +411,10 @@ const toggleDelinquencyTypeActive = async (delinquencyTypeUniqueId) => {
       [delinquencyTypeUniqueId],
     );
     return {
-      message: "success",
-      data: `Delinquency type ${
+      message: `Delinquency type ${
         updated[0].isActive ? "activated" : "deactivated"
       } successfully`,
+      data: null,
       isActive: updated[0].isActive,
     };
   }

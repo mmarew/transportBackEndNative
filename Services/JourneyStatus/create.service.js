@@ -61,7 +61,7 @@ const createJourneyStatus = async (body, user) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "New Journey Status created successfully"
+      data: null
     };
   } else {
     throw new AppError("Failed to create journey status", 500);

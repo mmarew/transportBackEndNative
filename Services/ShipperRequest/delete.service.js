@@ -78,8 +78,8 @@ const deleteRequest = async requestId => {
       throw new AppError("Request not found", 404);
     }
     return {
-      message: "success",
-      data: "Request deleted successfully"
+      message: "Shipper request deleted successfully",
+      data: null
     };
   } catch (error) {
     const logger = require("../../Utils/logger");

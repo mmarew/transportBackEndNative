@@ -387,7 +387,7 @@ const cancelShipperRequest = async body => {
 
     // Return success with cancellation status, unique IDs, and updated status counts
     return {
-      message: "success",
+      message: "Shipper request cancelled successfully",
       status: cancellationJourneyStatusId,
       data: cancellationJourneyStatusId === journeyStatusMap.cancelledByShipper ? "You have successfully cancelled your request." : "Request has been cancelled by admin.",
       // Provide unique IDs so frontend knows what was cancelled

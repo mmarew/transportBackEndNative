@@ -186,9 +186,8 @@ const verifyUserByOTP = async (req) => {
     isEmailVerified: emailMatched || !!userRow.isEmailVerified,
   });
   const resData = {
-    message: "success",
+    message: "OTP verified successfully",
     token: tokenData.token,
-    data: "OTP verified successfully",
     // verificationStatus: {
     //   phoneVerified: phoneMatched || !!userRow.isPhoneVerified,
     //   emailVerified: emailMatched || !!userRow.isEmailVerified,

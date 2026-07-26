@@ -162,14 +162,12 @@ exports.getDriverEarningsByFilter = async ({
   }));
 
   return {
-    message: "success",
+    message: "Driver earnings fetched successfully",
     pagination: {
-      total,
+      currentPage: Number(offset),
       limit: Number(limit),
-      offset: Number(offset),
+      totalItems: total,
       totalPages: Math.ceil(total / limit),
-      hasNext: offset + limit < total,
-      hasPrev: offset > 0,
     },
     data,
   };

@@ -97,7 +97,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
 
     return {
       success: true,
-      message: "success",
+      message: "Journey route point created successfully",
       data: {
         journeyRoutePointsUniqueId,
         journeyDecisionUniqueId,
@@ -120,7 +120,7 @@ exports.getJourneyRoutePoints = async (journeyDecisionUniqueId) => {
     const sql = `SELECT * FROM JourneyRoutePoints WHERE journeyDecisionUniqueId = ? ORDER BY timestamp`;
     const [result] = await executor.query(sql, [journeyDecisionUniqueId]);
 
-    return { message: "success", data: result };
+    return { message: "Journey route points fetched successfully", data: result };
   } catch (error) {
     throw new AppError(
       error.message || "Error getting Journey Route Points",
@@ -154,7 +154,7 @@ exports.updateJourneyRoutePoint = async (pointId, latitude, longitude) => {
     const [result] = await executor.query(sql, values);
 
     if (result.affectedRows > 0) {
-      return { message: "success", data: { pointId, latitude, longitude } };
+      return { message: "Journey route point updated successfully", data: { pointId, latitude, longitude } };
     } else {
       throw new AppError("Failed to update journey route point", 404);
     }
@@ -175,8 +175,8 @@ exports.deleteJourneyRoutePoint = async (pointId) => {
 
     if (result.affectedRows > 0) {
       return {
-        message: "success",
-        data: `Route point with ID ${pointId} deleted successfully`,
+        message: `Route point with ID ${pointId} deleted successfully`,
+        data: null,
       };
     } else {
       throw new AppError("Failed to delete journey route point", 404);

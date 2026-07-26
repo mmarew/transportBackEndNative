@@ -128,16 +128,13 @@ const createUserSubscription = async ({
     limit: 1,
   });
   return {
-    message: "success",
-    data: [newSubscription?.data?.[0] || result],
-    // Return as array to match GET
+    message: "Subscription created successfully",
+    data: newSubscription?.data?.[0] || result,
     pagination: {
       currentPage: 1,
-      itemsPerPage: 1,
+      limit: 1,
       totalItems: newSubscription?.pagination?.totalItems || 1,
       totalPages: 1,
-      hasNext: false,
-      hasPrev: false,
     },
     filters: {
       userSubscriptionUniqueId,

@@ -36,10 +36,9 @@ const createSubscriptionPlan = async ({
   ]);
 
   return {
-    message: "success",
+    message: "Subscription plan created successfully",
     data: {
       subscriptionPlanUniqueId,
-      message: "Subscription plan created successfully",
     },
   };
 };
@@ -97,7 +96,7 @@ const getSubscriptionPlans = async (filters = {}) => {
     }
 
     return {
-      message: "success",
+      message: "Subscription plan fetched successfully",
       data: result[0],
     };
   }
@@ -121,15 +120,13 @@ const getSubscriptionPlans = async (filters = {}) => {
   const [result] = await executor.query(sql, allParams);
 
   return {
-    message: "success",
+    message: "Subscription plans fetched successfully",
     data: result || [],
     pagination: {
-      total,
-      page,
+      currentPage: page,
       limit,
+      totalItems: total,
       totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
     },
   };
 };
@@ -220,7 +217,7 @@ const updateSubscriptionPlan = async (
     }
 
     return {
-      message: "success",
+      message: "Subscription plan updated successfully",
       data: {
         subscriptionPlanUniqueId: uniqueId,
         ...fieldsToUpdate,
@@ -249,8 +246,8 @@ const deleteSubscriptionPlan = async (uniqueId) => {
   }
 
   return {
-    message: "success",
-    data: `Subscription plan ${uniqueId} deleted successfully`,
+    message: `Subscription plan ${uniqueId} deleted successfully`,
+    data: null,
   };
 };
 

@@ -24,8 +24,8 @@ const createCommissionStatus = async ({
 
   if (existing.length > 0) {
     return {
-      message: "success",
-      data: "Commission status with this name already exists",
+      message: "Commission status already exists",
+      data: null,
     };
   }
 
@@ -46,7 +46,7 @@ const createCommissionStatus = async ({
   ]);
 
   return {
-    message: "success",
+    message: "Commission status created successfully",
     data: {
       commissionStatusUniqueId,
       statusName,
@@ -120,10 +120,9 @@ const getAllCommissionStatuses = async (filters = {}) => {
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalCount / limit),
-        totalCount,
+        totalItems: totalCount,
         limit: parseInt(limit),
       },
-      code: "COMMISSION_STATUSES_RETRIEVED",
     };
   } catch (error) {
     logger.application.databaseError(error, "getAllCommissionStatuses");

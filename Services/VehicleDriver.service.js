@@ -204,11 +204,9 @@ const getVehicleDrivers = async (filters = {}) => {
     data: rows,
     pagination: {
       currentPage: numPage,
-      itemsPerPage: numLimit,
+      limit: numLimit,
       totalItems: total,
       totalPages,
-      hasNext: numPage < totalPages,
-      hasPrev: numPage > 1,
     },
   };
 };

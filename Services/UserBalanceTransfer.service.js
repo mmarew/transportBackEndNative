@@ -120,10 +120,11 @@ const getAllTransfers = async ({
   ]);
 
   return {
+    message: "Balance transfers fetched successfully",
     data: dataResult,
     pagination: {
-      total,
-      page: Number(page),
+      totalItems: total,
+      currentPage: Number(page),
       limit: Number(limit),
       totalPages,
     },

@@ -86,9 +86,9 @@ const getUsersByRoleUniqueId = async (roleUniqueId, page = 1, limit = 10, search
   return {
     message: "success",
     pagination: {
-      total,
-      page,
+      currentPage: page,
       limit,
+      totalItems: total,
       totalPages: Math.ceil(total / limit)
     },
     data: rows || []
@@ -265,16 +265,9 @@ const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10, conne
   const totalPages = Math.ceil(totalCount / limit);
   const paginationInfo = {
     currentPage: page,
-    itemsPerPage: limit,
+    limit: limit,
     totalItems: totalCount,
     totalPages,
-    offset,
-    hasNext: page < totalPages,
-    hasPrevious: page > 1,
-    nextPage: page < totalPages ? page + 1 : null,
-    previousPage: page > 1 ? page - 1 : null,
-    startItem: totalCount > 0 ? offset + 1 : 0,
-    endItem: Math.min(offset + limit, totalCount)
   };
   return {
     message: transformedData.length > 0 ? "success" : "No users found",

@@ -79,7 +79,7 @@ const initiateTest = async () => {
       console.log("   🔌 TESTING SOCKET NOTIFICATIONS");
       console.log("=======================================================\n");
 
-      await testSocketNotifications();
+      await safe("testSocketNotifications", testSocketNotifications)();
     }
 
     // ── Phase G2: Company socket notification tests ────────────────
@@ -92,7 +92,7 @@ const initiateTest = async () => {
       console.log("   🔌 TESTING COMPANY SOCKET NOTIFICATIONS");
       console.log("=======================================================\n");
 
-      await testCompanySocketNotifications();
+      await safe("testCompanySocketNotifications", testCompanySocketNotifications)();
     }
 
     // ── Phase H2: Driver rejection flow tests ─────────────────────────

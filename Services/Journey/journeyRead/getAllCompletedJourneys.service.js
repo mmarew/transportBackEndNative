@@ -161,14 +161,12 @@ const getAllCompletedJourneys = async ({
     const totalCount = countResult[0]?.total || 0;
     const totalPages = Math.ceil(totalCount / safeLimit);
     return {
-      message: "success",
+      message: "Completed journeys fetched successfully",
       data: fullData,
       pagination: {
         currentPage: safePage,
         totalPages,
-        totalCount,
-        hasNext: safePage < totalPages,
-        hasPrev: safePage > 1,
+        totalItems: totalCount,
         limit: safeLimit
       }
     };

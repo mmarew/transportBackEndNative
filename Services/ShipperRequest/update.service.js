@@ -80,8 +80,8 @@ const updateRequestById = async (requestId, updates) => {
       throw new AppError("Request not found or no changes made", 404);
     }
     return {
-      message: "success",
-      data: "Request updated successfully"
+      message: "Shipper request updated successfully",
+      data: null
     };
   } catch (error) {
     const logger = require("../../Utils/logger");

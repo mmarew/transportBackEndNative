@@ -179,8 +179,8 @@ const createAdminDecision = async ({
   }
 
   return {
-    message: "success",
-    data: `Admin decision recorded: ${decisionOutcome}`,
+    message: `Admin decision recorded: ${decisionOutcome}`,
+    data: null,
     adminDecisionOnUserDelinquencyUniqueId,
     decisionOutcome,
   };
@@ -230,15 +230,13 @@ const getAdminDecisions = async (filters = {}) => {
   );
 
   return {
-    message: "success",
+    message: "Admin decisions fetched successfully",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };

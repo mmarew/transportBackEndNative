@@ -220,7 +220,7 @@ const installPreDefinedData = async req => {
       if (error.message && error.message.includes("already exists")) {
         return {
           message: "success",
-          data: "Status already exists, skipping"
+          data: null
         };
       }
       throw error;
@@ -236,7 +236,7 @@ const installPreDefinedData = async req => {
       if (error.message && error.message.includes("already exists")) {
         return {
           message: "success",
-          data: "Role already exists, skipping"
+          data: null
         };
       }
       throw error;
@@ -252,7 +252,7 @@ const installPreDefinedData = async req => {
       if (error.message && error.message.includes("already exists")) {
         return {
           message: "success",
-          data: "Company role already exists, skipping"
+          data: null
         };
       }
       throw error;

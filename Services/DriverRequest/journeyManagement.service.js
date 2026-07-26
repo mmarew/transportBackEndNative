@@ -369,7 +369,7 @@ const completeJourney = async (body) => {
         journeyData,
         messageType: messageTypes.driver_completed_journey,
         status: journeyStatusMap.journeyCompleted,
-        data: "Journey completed successfully",
+        data: null,
       });
 
       if (shipperRequest?.userUniqueId) {
@@ -543,7 +543,7 @@ const sendUpdatedLocation = async (body) => {
 
     return {
       message: "success",
-      data: "Location updated and sent to shipper successfully",
+      data: null,
       journeyRoutePointsUniqueId:
         routePointResult.data?.journeyRoutePointsUniqueId,
       latitude,

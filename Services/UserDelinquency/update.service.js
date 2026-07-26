@@ -27,7 +27,7 @@ const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "User delinquency record updated successfully"
+      data: null
     };
   }
   throw new AppError("Failed to update user delinquency record", 500);

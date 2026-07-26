@@ -35,7 +35,7 @@ const deleteMapping = async (roleDocumentRequirementUniqueId, deletedBy) => {
   }
   return {
     message: "success",
-    data: "Mapping deleted successfully"
+    data: null
   };
 };
 // Removed getAllMappings in favor of consolidated getter with pagination

@@ -141,10 +141,6 @@ const getUnauthorizedDriver = async query => {
   const totalPages = Math.ceil(total / limit);
   const currentPage = parseInt(page);
 
-  // Calculate pagination metadata
-  const hasNext = currentPage < totalPages;
-  const hasPrevious = currentPage > 1;
-
   // Main data query - Optimized to fetch only mandatory fields for filtering/sorting
   const dataSql = `
     SELECT 
@@ -184,14 +180,10 @@ const getUnauthorizedDriver = async query => {
   return {
     message: "success",
     pagination: {
-      total,
-      page: currentPage,
+      totalItems: total,
+      currentPage: currentPage,
       limit: parseInt(limit),
       totalPages,
-      hasNext,
-      hasPrevious,
-      nextPage: hasNext ? currentPage + 1 : null,
-      previousPage: hasPrevious ? currentPage - 1 : null
     },
     filters: {
       search,

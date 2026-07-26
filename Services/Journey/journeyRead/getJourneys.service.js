@@ -335,14 +335,12 @@ const getJourneys = async (filters = {}) => {
       };
     }));
     return {
-      message: "success",
+      message: "Journeys fetched successfully",
       data: data,
       pagination: {
         currentPage: safePage,
         totalPages: totalPages,
-        totalCount: totalCount,
-        hasNext: safePage < totalPages,
-        hasPrev: safePage > 1,
+        totalItems: totalCount,
         limit: safeLimit
       }
     };

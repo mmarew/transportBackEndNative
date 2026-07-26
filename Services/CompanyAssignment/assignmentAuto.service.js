@@ -100,7 +100,7 @@ exports.autoAssignBatch = async (data) => {
   if (unassignedSlots.length === 0) {
     return {
       message: "success",
-      data: "All slots in this batch are already assigned.",
+      data: null,
     };
   }
 

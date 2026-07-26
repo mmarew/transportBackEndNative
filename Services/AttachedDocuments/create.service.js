@@ -150,8 +150,8 @@ const createAttachedDocument = async ({
         }
       }
       return {
-        message: "success",
-        data: "Document created successfully"
+        message: "Document created successfully",
+        data: null,
       };
     } else {
       throw new AppError("Failed to create document", 500);

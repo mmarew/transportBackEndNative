@@ -13,7 +13,7 @@ const createDepositSource = async ({ sourceKey, sourceLabel, user }) => {
   const [existing] = await executor.query(checkSql, [sourceKey]);
 
   if (existing.length > 0) {
-    return { message: "success", data: { ...existing[0] } };
+    return { message: "Deposit source already exists", data: { ...existing[0] } };
   }
 
   const createdBy = user?.userUniqueId || depositSourceUniqueId;
@@ -30,7 +30,7 @@ const createDepositSource = async ({ sourceKey, sourceLabel, user }) => {
   ]);
 
   return {
-    message: "success",
+    message: "Deposit source created successfully",
     data: {
       depositSourceUniqueId,
       sourceKey,
@@ -44,7 +44,7 @@ const getAllDepositSources = async () => {
   const executor = transactionStorage.getStore() || pool;
   const sql = `SELECT * FROM DepositSource ORDER BY depositSourceCreatedAt DESC`;
   const [result] = await executor.query(sql);
-  return { message: "success", data: result };
+  return { message: "Deposit sources fetched successfully", data: result };
 };
 
 // Get by UUID
@@ -57,7 +57,7 @@ const getDepositSourceByUniqueId = async (depositSourceUniqueId) => {
     throw new AppError("Deposit source not found", 404);
   }
 
-  return { message: "success", data: result[0] };
+  return { message: "Deposit source fetched successfully", data: result[0] };
 };
 
 // Update by UUID
@@ -102,7 +102,7 @@ const updateDepositSourceByUniqueId = async (
   }
 
   return {
-    message: "success",
+    message: "Deposit source updated successfully",
     data: { depositSourceUniqueId, ...data },
   };
 };
@@ -134,7 +134,7 @@ const deleteDepositSourceByUniqueId = async (depositSourceUniqueId, user) => {
     throw new AppError("Failed to delete deposit source", 500);
   }
 
-  return { message: "success", data: `Deleted: ${depositSourceUniqueId}` };
+  return { message: `Deleted: ${depositSourceUniqueId}`, data: null };
 };
 
 module.exports = {

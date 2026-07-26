@@ -307,8 +307,8 @@ const markNegativeStatusAsSeenByDriver = async ({
       });
 
       return {
-        message: "success",
-        data: `${statusName} notification marked as seen`,
+        message: `${statusName} notification marked as seen`,
+        data: null,
       };
     } else {
       // Update DriverRequest table directly
@@ -328,8 +328,8 @@ const markNegativeStatusAsSeenByDriver = async ({
       }
 
       return {
-        message: "success",
-        data: `${statusName} notification marked as seen`,
+        message: `${statusName} notification marked as seen`,
+        data: null,
       };
     }
   } catch (error) {

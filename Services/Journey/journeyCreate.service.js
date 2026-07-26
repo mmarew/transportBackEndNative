@@ -31,7 +31,7 @@ const createJourney = async (data, connection = null) => {
   ]);
 
   if (existingData.length > 0) {
-    return { message: "success", data: existingData };
+    return { message: "Journey already exists", data: existingData };
   }
 
   const journeyUniqueId = uuidv4();
@@ -54,17 +54,17 @@ const createJourney = async (data, connection = null) => {
   const [result] = await queryExecutor.query(sql, values);
 
   return {
-    message: "success",
-    data: [
-      {
-        journeyUniqueId,
-        journeyDecisionUniqueId,
-        startTime,
-        endTime,
-        fare,
-        journeyStatusId,
-        journeyId: result.insertId},
-    ]};
+    message: "Journey created successfully",
+    data: {
+      journeyUniqueId,
+      journeyDecisionUniqueId,
+      startTime,
+      endTime,
+      fare,
+      journeyStatusId,
+      journeyId: result.insertId,
+    },
+  };
 };
 module.exports = {
   createJourney

@@ -9,8 +9,8 @@ const changeColumnProperty = async (
   const sqlQuery = `ALTER TABLE ${tableName} CHANGE ${oldColumnName} ${newColumnName} ${newColumnType}`;
   await pool.query(sqlQuery);
   return {
-    message: "success",
-    data: `Column ${oldColumnName} changed to ${newColumnName} with type ${newColumnType}`,
+    message: `Column ${oldColumnName} changed to ${newColumnName} with type ${newColumnType}`,
+    data: null,
   };
 };
 
@@ -18,8 +18,8 @@ const dropColumn = async (tableName, columnName) => {
   const sqlQuery = `ALTER TABLE ${tableName} DROP COLUMN ${columnName}`;
   await pool.query(sqlQuery);
   return {
-    message: "success",
-    data: `Column ${columnName} dropped from table ${tableName}`,
+    message: `Column ${columnName} dropped from table ${tableName}`,
+    data: null,
   };
 };
 

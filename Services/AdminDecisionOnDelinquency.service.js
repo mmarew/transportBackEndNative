@@ -210,8 +210,8 @@ const createAdminDecision = async ({
   }
 
   return {
-    message: "success",
-    data: `Admin decision recorded: ${decisionOutcome}`,
+    message: `Admin decision recorded: ${decisionOutcome}`,
+    data: null,
     adminDecisionOnDelinquencyUniqueId,
     decisionOutcome,
   };
@@ -274,21 +274,8 @@ const getAdminDecisions = async (filters = {}) => {
   );
 
   return {
-    message: "success",
-    data: rows,
-    pagination: {
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
-    },
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// READ (single) — get one decision by uniqueId
+    message: "Admin decisions fetched successfully",
+    data: rows, — get one decision by uniqueId
 // ─────────────────────────────────────────────────────────────────────────────
 const getAdminDecisionById = async (adminDecisionOnDelinquencyUniqueId) => {
   const [[row]] = await exec().query(
@@ -317,7 +304,7 @@ const getAdminDecisionById = async (adminDecisionOnDelinquencyUniqueId) => {
     throw new AppError("Admin decision not found", 404);
   }
 
-  return { message: "success", data: row };
+  return { message: "Admin decision fetched successfully", data: row };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -362,8 +349,8 @@ const updateAdminDecision = async (
   });
 
   return {
-    message: "success",
-    data: "Admin decision updated successfully",
+    message: "Admin decision updated successfully",
+    data: null,
     adminDecisionOnDelinquencyUniqueId,
   };
 };
@@ -404,8 +391,8 @@ const deleteAdminDecision = async (
   });
 
   return {
-    message: "success",
-    data: "Admin decision deleted successfully",
+    message: "Admin decision deleted successfully",
+    data: null,
   };
 };
 

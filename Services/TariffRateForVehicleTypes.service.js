@@ -137,9 +137,7 @@ exports.getTariffRatesByFilterForVehicleTypes = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages,
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNext: parseInt(page) < totalPages,
-      hasPrev: parseInt(page) > 1,
+      limit: parseInt(limit),
     },
   };
 };
@@ -215,7 +213,7 @@ exports.updateTariffRateForVehicleType = async (
 
   return {
     message: "success",
-    data: "Tariff rate for vehicle type updated successfully",
+    data: null,
   };
 };
 
@@ -244,6 +242,6 @@ exports.deleteTariffRateForVehicleType = async (
 
   return {
     message: "success",
-    data: "Tariff rate for vehicle type deleted successfully",
+    data: null,
   };
 };

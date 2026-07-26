@@ -242,15 +242,13 @@ const getCompanyBans = async (filters = {}) => {
   }
 
   return {
-    message: "success",
+    message: "Company bans fetched successfully",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };
@@ -341,8 +339,8 @@ const banCompany = async ({
   });
 
   return {
-    message: "success",
-    data: "Company banned successfully",
+    message: "Company banned successfully",
+    data: null,
     companyBanUniqueId,
     banExpiresAt,
   };
@@ -377,7 +375,7 @@ const unbanCompany = async ({ companyBanUniqueId, unbannedBy }) => {
     referenceUniqueId: companyBanUniqueId,
   });
 
-  return { message: "success", data: "Company ban deactivated successfully" };
+  return { message: "Company unbanned successfully", data: null };
 };
 
 module.exports = {

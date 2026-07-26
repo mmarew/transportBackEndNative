@@ -340,7 +340,7 @@ const submitBid = async (data) => {
     }
   }
 
-  return { message: "success", data: { companyBidRequestUniqueId } };
+  return { message: "Bid submitted successfully", data: { companyBidRequestUniqueId } };
 };
 
 /**

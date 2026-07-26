@@ -47,7 +47,7 @@ const upsertDeviceToken = async ({
         ]);
 
         return {
-          message: "success",
+          message: "Device token updated successfully",
           data: {
             affectedRows: result.affectedRows,
             token,
@@ -72,7 +72,7 @@ const upsertDeviceToken = async ({
       ]);
 
       return {
-        message: "success",
+        message: "Device token reassigned successfully",
         data: {
           affectedRows: result.affectedRows,
           token,
@@ -106,7 +106,7 @@ const upsertDeviceToken = async ({
         ]);
 
         return {
-          message: "success",
+          message: "Device token updated successfully",
           data: {
             affectedRows: result.affectedRows,
             token,
@@ -136,7 +136,7 @@ const upsertDeviceToken = async ({
         ]);
 
         return {
-          message: "success",
+          message: "Device token created successfully",
           data: {
             deviceTokenUniqueId,
             userUniqueId,
@@ -168,7 +168,7 @@ const upsertDeviceToken = async ({
       ]);
 
       return {
-        message: "success",
+        message: "Device token created successfully",
         data: {
           deviceTokenUniqueId,
           userUniqueId,
@@ -201,7 +201,7 @@ const getDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
   if (rows.length === 0) {
     throw new AppError("Device token not found", 404);
   }
-  return { message: "success", data: rows[0] };
+  return { message: "Device token fetched successfully", data: rows[0] };
 };
 
 const updateDeviceTokenByUniqueId = async (
@@ -246,7 +246,7 @@ const updateDeviceTokenByUniqueId = async (
     throw new AppError("Device token not found or not updated", 404);
   }
 
-  return { message: "success", data: { deviceTokenUniqueId } };
+  return { message: "Device token updated successfully", data: { deviceTokenUniqueId } };
 };
 
 const deleteDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
@@ -259,8 +259,8 @@ const deleteDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
     throw new AppError("Device token not found", 404);
   }
   return {
-    message: "success",
-    data: `Device token ${deviceTokenUniqueId} deleted`,
+    message: `Device token ${deviceTokenUniqueId} deleted`,
+    data: null,
   };
 };
 
@@ -270,7 +270,7 @@ const getActiveTokensByUser = async (userUniqueId, roleId) => {
     "SELECT token FROM DeviceTokens WHERE userUniqueId = ? AND revokedAt IS NULL and roleId = ?",
     [userUniqueId, roleId],
   );
-  return { message: "success", data: rows.map((r) => r.token) };
+  return { message: "Active tokens fetched successfully", data: rows.map((r) => r.token) };
 };
 
 // Send FCM notification to specific tokens
@@ -298,7 +298,7 @@ const sendNotificationToTokens = async ({
 
     const response = await messaging.sendEachForMulticast(message);
     return {
-      message: "success",
+      message: "Notifications sent successfully",
       data: {
         successCount: response.successCount,
         failureCount: response.failureCount,
@@ -345,7 +345,7 @@ const sendFCMNotificationToUser = async ({
     const tokens = tokensResult?.data?.filter(Boolean) || [];
     if (tokens?.length === 0) {
       return {
-        message: "success",
+        message: "No active tokens for user",
         data: {
           info: "No active tokens for user",
           successCount: 0,

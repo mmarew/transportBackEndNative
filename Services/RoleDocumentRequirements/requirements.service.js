@@ -59,7 +59,7 @@ const driversDocumentVehicleRequirement = async body => {
       return {
         message: "success",
         messageType: "driversDocumentVehicleRequirement",
-        data: "No documents required for this role",
+        data: null,
         vehicle: null,
         userData: null,
         unAttachedDocumentTypes: [],

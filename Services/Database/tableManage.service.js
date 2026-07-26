@@ -148,8 +148,8 @@ const createTable = async () => {
   // Now create system and super admin users (relies on Roles existing)
   await createUserSystem();
   return {
-    message: "success",
-    data: `Tables created successfully`,
+    message: `Tables created successfully`,
+    data: null,
   };
 };
 
@@ -166,8 +166,8 @@ const dropTable = async (tables) => {
       }
     }
     return {
-      message: "success",
-      data: `Table(s) [${tableList.join(", ")}] dropped successfully`,
+      message: `Table(s) [${tableList.join(", ")}] dropped successfully`,
+      data: null,
     };
   } finally {
     await pool.query(`SET FOREIGN_KEY_CHECKS = 1;`);
@@ -214,7 +214,7 @@ const dropAllTables = async () => {
     }
     return {
       message: "success",
-      data: "All tables dropped successfully",
+      data: null,
     };
   } finally {
     await pool.query(enableForeignKeyChecks);
@@ -252,8 +252,8 @@ const updateTable = async (tableName, updateData) => {
     await pool.query(addFkSql);
   }
   return {
-    message: "success",
-    data: `Table ${tableName} updated successfully${foreignKey ? ` with FK on ${columnName}` : ""}`,
+    message: `Table ${tableName} updated successfully${foreignKey ? ` with FK on ${columnName}` : ""}`,
+    data: null,
   };
 };
 

@@ -187,15 +187,12 @@ const getAttachedDocumentsByFilter = async ({
     }
     return {
       message: "success",
-      data: {
-        documents,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalCount,
-          hasNext: page < totalPages,
-          hasPrevious: page > 1
-        }
+      data: documents,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalCount,
+        limit,
       }
     };
   } catch (error) {
@@ -271,15 +268,12 @@ const getDocumentHistory = async ({
        LIMIT ? OFFSET ?`, [...params, Number(limit), Number(offset)]);
     return {
       message: "success",
-      data: {
-        history,
-        pagination: {
-          currentPage: Number(page),
-          totalPages,
-          totalCount,
-          hasNext: Number(page) < totalPages,
-          hasPrevious: Number(page) > 1
-        }
+      data: history,
+      pagination: {
+        currentPage: Number(page),
+        totalPages,
+        totalItems: totalCount,
+        limit: Number(limit),
       }
     };
   } catch (error) {

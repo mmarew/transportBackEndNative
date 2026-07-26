@@ -48,8 +48,8 @@ const deleteUserDepositByUniqueId = async (
     });
   }
   return {
-    message: "success",
-    data: `Deleted: ${userDepositUniqueId}`,
+    message: `Deleted: ${userDepositUniqueId}`,
+    data: null,
   };
 };
 

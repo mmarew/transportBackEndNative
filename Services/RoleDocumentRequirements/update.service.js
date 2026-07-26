@@ -103,7 +103,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
   }
   return {
     message: "success",
-    data: "Mapping updated successfully"
+    data: null
   };
 };
 // Removed individual GET by ID helper in favor of consolidated getter

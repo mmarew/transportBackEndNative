@@ -154,7 +154,7 @@ const updateVehicleOwnership = async (body) => {
 
   return {
     message: "success",
-    data: "Vehicle ownership updated successfully",
+    data: null,
   };
 };
 
@@ -173,7 +173,7 @@ const deleteVehicleOwnership = async (ownershipUniqueId) => {
 
   return {
     message: "success",
-    data: "Vehicle ownership soft-deleted successfully",
+    data: null,
   };
 };
 

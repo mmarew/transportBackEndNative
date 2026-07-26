@@ -180,9 +180,10 @@ const getUserRefunds = async ({
   ]);
 
   return {
+    message: "User refunds fetched successfully",
     pagination: {
-      total,
-      page: Number(page),
+      totalItems: total,
+      currentPage: Number(page),
       limit: Number(limit),
       totalPages,
     },

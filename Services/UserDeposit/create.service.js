@@ -92,7 +92,7 @@ const createUserDeposit = async (data) => {
       },
     });
     if (existedURL?.length > 0) {
-      return { message: "success", data: "Deposit URL already exists" };
+      return { message: "Deposit URL already exists", data: null };
       // throw new AppError("Deposit URL already exists", 400);
     }
   }
@@ -153,7 +153,7 @@ const createUserDeposit = async (data) => {
     },
   });
   return {
-    message: "success",
+    message: "Deposit created successfully",
     data: result,
   };
 };

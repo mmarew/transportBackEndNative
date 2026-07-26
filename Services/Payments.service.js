@@ -39,7 +39,7 @@ exports.createPayment = async (
   const [result] = await executor.query(sql, values);
 
   return {
-    message: "success",
+    message: "Payment created successfully",
     data: {
       paymentUniqueId,
       journeyDecisionUniqueId,
@@ -58,7 +58,7 @@ exports.getAllPayments = async () => {
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql);
 
-  return { message: "success", data: result };
+  return { message: "Payments fetched successfully", data: result };
 };
 
 // Get a specific payment by ID (DEPRECATED - Use JourneyPayments.service.js instead)
@@ -71,7 +71,7 @@ exports.getPaymentById = async (paymentId) => {
     throw new AppError("Payment not found", 404);
   }
 
-  return { message: "success", data: result[0] };
+  return { message: "Payment fetched successfully", data: result[0] };
 };
 
 // Get payments by user (DEPRECATED - Use JourneyPayments.service with filters instead)
@@ -110,7 +110,7 @@ exports.getPaymentsByUserUniqueId = async (params, userUniqueId) => {
     result = (await executor.query(sql, values))?.[0];
   }
 
-  return { message: "success", data: result || [] };
+  return { message: "Payments fetched successfully", data: result || [] };
 };
 
 // Update a specific payment by ID (DEPRECATED - Use JourneyPayments.service.js instead)
@@ -155,7 +155,7 @@ exports.updatePayment = async (
   }
 
   return {
-    message: "success",
+    message: "Payment updated successfully",
     data: {
       paymentId,
       ...(amount !== undefined && { amount }),
@@ -177,7 +177,7 @@ exports.deletePayment = async (paymentId) => {
   }
 
   return {
-    message: "success",
-    data: `Payment with ID ${paymentId} deleted successfully`,
+    message: `Payment with ID ${paymentId} deleted successfully`,
+    data: null,
   };
 };

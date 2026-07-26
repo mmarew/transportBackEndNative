@@ -164,7 +164,7 @@ const updateAttachedDocument = async ({
       }
       return {
         message: "success",
-        data: "Document updated successfully"
+        data: null
       };
     } else {
       throw new AppError("Failed to update document", 500);
@@ -283,8 +283,8 @@ const acceptRejectAttachedDocuments = async body => {
   }
   const message = {
     attachedDocument,
-    message: "success",
-    data: `Document has been ${action.toLowerCase()}`
+    message: `Document has been ${action.toLowerCase()}`,
+    data: null
   };
 
   // ── Post-commit: status recalc + socket notifications ─────────────────────

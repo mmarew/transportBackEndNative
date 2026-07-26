@@ -57,9 +57,9 @@ async function paginatedQuery(baseSql, countSql, params, page, limit, offset) {
     message: "success",
     data: dataRowsResult,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };

@@ -106,7 +106,7 @@ const getAlluserBalances = async () => {
     results.map(enrichUserBalanceRecord),
   );
 
-  return { message: "success", data: enrichedResults };
+  return { message: "User balances fetched successfully", data: enrichedResults };
 };
 
 // Get a driver balance record by ID
@@ -119,7 +119,7 @@ const getuserBalanceById = async (userBalanceUniqueId) => {
     throw new AppError("Driver balance not found", 404);
   }
 
-  return { message: "success", data: result[0] };
+  return { message: "User balance fetched successfully", data: result[0] };
 };
 
 // Get the last driver balance record by userUniqueId
@@ -204,7 +204,7 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
     // If enrichment fails, return base record
   }
 
-  return { message: "success", data: TransactionData };
+  return { message: "User balance fetched successfully", data: TransactionData };
 };
 
 const getuserBalanceByDateRange = async ({
@@ -285,7 +285,7 @@ const getuserBalanceByDateRange = async ({
     }),
   );
 
-  return { message: "success", data: fullData };
+  return { message: "User balance records fetched successfully", data: fullData };
 };
 
 const getUserBalanceByFilterServices = async (query, connection) => {
@@ -450,16 +450,14 @@ const getUserBalanceByFilterServices = async (query, connection) => {
   );
 
   return {
-    message: "success",
+    message: "User balances fetched successfully",
     data: enrichedData,
 
     pagination: {
-      total,
-      page: Number(page),
+      currentPage: Number(page),
       limit: Number(limit),
+      totalItems: total,
       totalPages: Math.ceil(total / limit),
-      hasNext: page < Math.ceil(total / limit),
-      hasPrev: page > 1,
     },
   };
 };

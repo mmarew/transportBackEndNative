@@ -112,7 +112,7 @@ exports.createCompany = async (data) => {
     });
   }
 
-  return { message: "success", data: { companyUniqueId } };
+  return { message: "Company created successfully", data: { companyUniqueId } };
 };
 
 /**
@@ -313,12 +313,12 @@ exports.getCompanies = async (filters = {}, user = {}) => {
   });
 
   return {
-    message: "success",
+    message: "Companies fetched successfully",
     data,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };
@@ -422,7 +422,7 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     changedBy: updatedBy,
   });
 
-  return { message: "success", data: "Company updated" };
+  return { message: "Company updated successfully", data: null };
 };
 
 exports.approveCompany = async (
@@ -555,7 +555,7 @@ exports.approveCompany = async (
     reason: approvalReason || null,
   });
 
-  return { message: "success", data: `Company ${approvalStatus}` };
+  return { message: `Company ${approvalStatus}`, data: null };
 };
 
 exports.deleteCompany = async (companyUniqueId, deletedBy) => {
@@ -568,5 +568,5 @@ exports.deleteCompany = async (companyUniqueId, deletedBy) => {
   if (res.affectedRows === 0) {
     throw new AppError("Company not found or already deleted", 404);
   }
-  return { message: "success", data: "Company deleted" };
+  return { message: "Company deleted successfully", data: null };
 };

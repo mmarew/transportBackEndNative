@@ -143,9 +143,7 @@ exports.getTariffRatesByFilter = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages,
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNext: parseInt(page) < totalPages,
-      hasPrev: parseInt(page) > 1,
+      limit: parseInt(limit),
     },
   };
 };
@@ -209,7 +207,7 @@ exports.updateTariffRate = async (tariffRateUniqueId, data) => {
   if (result.affectedRows === 0) {
     throw new AppError("Tariff rate not found or update failed", 404);
   }
-  return { message: "success", data: "Tariff rate updated successfully" };
+  return { message: "success", data: null };
 };
 
 // Soft delete a tariff rate by UUID
@@ -220,5 +218,5 @@ exports.deleteTariffRate = async (tariffRateUniqueId, user) => {
   if (result.affectedRows === 0) {
     throw new AppError("Tariff rate not found or delete failed", 404);
   }
-  return { message: "success", data: "Tariff rate deleted successfully" };
+  return { message: "success", data: null };
 };

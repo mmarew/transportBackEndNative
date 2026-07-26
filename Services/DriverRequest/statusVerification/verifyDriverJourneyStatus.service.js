@@ -48,7 +48,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     if (!driverRequest) {
       return {
         message: "success",
-        data: "No active requests found for this driver",
+        data: null,
         status: null,
         vehicle,
       };
@@ -66,7 +66,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     if (isTerminalStatus(journeyStatusId) && !shouldHandleStatus) {
       return {
         message: "success",
-        data: "This request is not active at the moment",
+        data: null,
         status: null,
         vehicle,
         driver: null,

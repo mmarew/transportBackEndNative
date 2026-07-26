@@ -76,9 +76,9 @@ const getAllJourneyStatuses = async (filters = {}) => {
     message: "success",
     data: rows,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1
     }
   };

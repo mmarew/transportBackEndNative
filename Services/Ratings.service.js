@@ -19,7 +19,7 @@ exports.createRating = async ({
     );
     if (existing.length > 0) {
       return {
-        message: "success",
+        message: "Rating already exists",
         data: {
           journeyDecisionUniqueId,
           ratedBy,
@@ -42,7 +42,7 @@ exports.createRating = async ({
     const [result] = await executor.query(sql, values);
 
     return {
-      message: "success",
+      message: "Rating created successfully",
       data: {
         journeyDecisionUniqueId,
         ratedBy,
@@ -60,7 +60,7 @@ exports.createRating = async ({
       );
       if (existing.length > 0) {
         return {
-          message: "success",
+          message: "Rating already exists",
           data: {
             journeyDecisionUniqueId,
             ratedBy,
@@ -149,15 +149,13 @@ exports.getAllRatings = async ({
   const [result] = await executor.query(dataSql, dataParams);
 
   return {
-    message: "success",
-    data: {
-      ratings: result,
-      pagination: {
-        currentPage: Number.parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: Number.parseInt(limit),
-      },
+    message: "Ratings fetched successfully",
+    data: result,
+    pagination: {
+      currentPage: Number.parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      limit: Number.parseInt(limit),
     },
   };
 };
@@ -182,7 +180,7 @@ exports.getRatingById = async (ratingId) => {
   const [result] = await executor.query(sql, [ratingId]);
 
   if (result.length > 0) {
-    return { message: "success", data: result[0] };
+    return { message: "Rating fetched successfully", data: result[0] };
   }
   throw new AppError("Rating not found", 404);
 };
@@ -222,7 +220,7 @@ exports.updateRating = async (ratingId, rating, comment, updatedBy) => {
   }
 
   return {
-    message: "success",
+    message: "Rating updated successfully",
     data: { ratingId, rating, comment },
   };
 };
@@ -236,8 +234,8 @@ exports.deleteRating = async (ratingId, deletedBy) => {
 
   if (result.affectedRows > 0) {
     return {
-      message: "success",
-      data: `Rating with ID ${ratingId} deleted successfully`,
+      message: `Rating with ID ${ratingId} deleted successfully`,
+      data: null,
     };
   } else {
     throw new AppError("Failed to delete rating", 500);

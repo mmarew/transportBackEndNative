@@ -29,6 +29,6 @@ const updateUserBalance = async (userBalanceUniqueId, data) => {
     throw new AppError("Driver balance not found", 404);
   }
 
-  return { message: "success", data: result };
+  return { message: "User balance updated successfully", data: result };
 };
 module.exports = { updateUserBalance };

@@ -203,15 +203,13 @@ const getUserSubscriptionsWithFilters = async (filters = {}, connection) => {
   const [countRes] = await executor.query(countSql, queryParams);
   const total = countRes[0]?.total || 0;
   return {
-    message: "success",
+    message: "User subscriptions fetched successfully",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
-      itemsPerPage: parseInt(limit),
+      limit: parseInt(limit),
       totalItems: total,
       totalPages: Math.ceil(total / parseInt(limit)),
-      hasNext: page < Math.ceil(total / parseInt(limit)),
-      hasPrev: page > 1
     },
     filters: Object.keys(filters).length > 0 ? filters : undefined
   };
@@ -227,7 +225,7 @@ const getUserSubscriptionsCount = async (filters = {}, connection) => {
     limit: 1
   }, connection);
   return {
-    message: "success",
+    message: "User subscriptions count fetched successfully",
     data: {
       totalCount: result.pagination?.totalItems || 0
     },
@@ -310,15 +308,13 @@ const getUnassignedFreePlans = async (filters = {}, connection) => {
   const [countRes] = await executor.query(countSql, params);
   const total = countRes[0]?.total || 0;
   return {
-    message: "success",
+    message: "Unassigned free plans fetched successfully",
     data: rows,
     pagination: {
       currentPage: parseInt(page),
-      itemsPerPage: safeLimit,
+      limit: safeLimit,
       totalItems: total,
       totalPages: Math.ceil(total / safeLimit),
-      hasNext: page < Math.ceil(total / safeLimit),
-      hasPrev: page > 1
     },
     filters
   };

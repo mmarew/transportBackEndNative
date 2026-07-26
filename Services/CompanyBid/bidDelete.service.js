@@ -22,7 +22,7 @@ const deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
   if (res.affectedRows === 0) {
     throw new AppError("Bid not found or already deleted", 404);
   }
-  return { message: "success", data: "Bid deleted" };
+  return { message: "Bid deleted successfully", data: null };
 };
 
 // ── Mark cancellation as seen by company ──────────────────────────────────────

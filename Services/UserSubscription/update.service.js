@@ -59,18 +59,15 @@ const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) 
     limit: 1
   });
   return {
-    message: "success",
-    data: [updatedSubscription?.data?.[0] || {
+    message: "User subscription updated successfully",
+    data: updatedSubscription?.data?.[0] || {
       userSubscriptionUniqueId
-    }],
-    // Return as array to match GET
+    },
     pagination: {
       currentPage: 1,
-      itemsPerPage: 1,
+      limit: 1,
       totalItems: updatedSubscription?.pagination?.totalItems || 1,
       totalPages: 1,
-      hasNext: false,
-      hasPrev: false
     },
     filters: {
       userSubscriptionUniqueId

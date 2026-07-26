@@ -26,7 +26,7 @@ const createVehicleStatusType = async (data) => {
   if (registeredType?.length) {
     return {
       message: "success",
-      data: "Vehicle Status Type already exists",
+      data: null,
     };
   }
 
@@ -92,9 +92,9 @@ const getAllVehicleStatusTypes = async (filters = {}) => {
     message: "success",
     data: rows,
     pagination: {
-      page: pageNum,
+      currentPage: pageNum,
       limit: limitNum,
-      total: countRow?.total || 0,
+      totalItems: countRow?.total || 0,
       totalPages: Math.ceil((countRow?.total || 0) / limitNum) || 1,
     },
   };
@@ -119,7 +119,7 @@ const updateVehicleStatusType = async (vehicleStatusTypeUniqueId, data) => {
 
   return {
     message: "success",
-    data: "Vehicle Status Type updated successfully",
+    data: null,
   };
 };
 
@@ -139,7 +139,7 @@ const deleteVehicleStatusType = async (vehicleStatusTypeUniqueId) => {
 
   return {
     message: "success",
-    data: "Vehicle Status Type soft-deleted successfully",
+    data: null,
   };
 };
 

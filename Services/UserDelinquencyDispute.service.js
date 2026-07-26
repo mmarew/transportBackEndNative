@@ -197,9 +197,7 @@ const getDelinquencyResponses = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };
@@ -256,7 +254,7 @@ const updateDelinquencyResponse = async ({
 
   return {
     message: "success",
-    data: "Response updated successfully",
+    data: null,
     userDelinquencyResponseUniqueId,
   };
 };
@@ -293,7 +291,7 @@ const deleteDelinquencyResponse = async ({
 
   return {
     message: "success",
-    data: "Response deleted successfully",
+    data: null,
     userDelinquencyResponseUniqueId,
   };
 };

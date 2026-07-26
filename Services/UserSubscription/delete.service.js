@@ -37,8 +37,8 @@ const deleteUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, userUn
   };
   await updateUserSubscriptionByUniqueId(userSubscriptionUniqueId, deleteData);
   return {
-    message: "success",
-    data: `Subscription ${userSubscriptionUniqueId} marked as deleted successfully`
+    message: `Subscription ${userSubscriptionUniqueId} marked as deleted successfully`,
+    data: null
   };
 };
 

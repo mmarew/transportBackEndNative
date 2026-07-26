@@ -297,5 +297,5 @@ exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
     [currentDate(), deletedBy, companyVehicleUniqueId],
   );
   if (res.affectedRows === 0) {throw new AppError("Fleet assignment not found or already removed", 404);}
-  return { message: "success", data: "Vehicle removed from fleet" };
+  return { message: "success", data: null };
 };

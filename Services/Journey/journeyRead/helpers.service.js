@@ -46,9 +46,7 @@ const getAllJourneys = async (page = 1, limit = 10) => {
     pagination: {
       currentPage: safePage,
       totalPages,
-      totalCount,
-      hasNext: safePage < totalPages,
-      hasPrev: safePage > 1,
+      totalItems: totalCount,
       limit: safeLimit
     }
   };

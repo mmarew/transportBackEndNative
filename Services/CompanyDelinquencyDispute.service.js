@@ -208,9 +208,7 @@ const getDelinquencyResponses = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };

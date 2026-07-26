@@ -465,8 +465,8 @@ const cancelDriverRequest = async (data) => {
     // Return simple response for rejectedByDriver or when notificationData is not available
     return {
       status: finalStatus || null,
-      message: "success",
-      data: "You have successfully cancelled your request.",
+      message: "You have successfully cancelled your request.",
+      data: null,
     };
   } catch (error) {
     logger.error("Unable to cancel driver request", {

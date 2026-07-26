@@ -116,7 +116,7 @@ const seenByShipper = async (body) => {
       });
     }
 
-    return { message: "success", data: "Data seen by shipper" };
+    return { message: "success", data: null };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to mark data as seen by shipper", {

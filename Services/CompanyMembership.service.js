@@ -52,7 +52,7 @@ exports.addMember = async (data) => {
     [companyUniqueId, userUniqueId],
   );
   if (existing.length > 0) {
-    return { message: "success", data: { membershipUniqueId: existing[0].membershipUniqueId } };
+    return { message: "Member already exists", data: { membershipUniqueId: existing[0].membershipUniqueId } };
   }
 
   const membershipUniqueId = uuidv4();
@@ -73,7 +73,7 @@ exports.addMember = async (data) => {
       currentDate(),
     ],
   );
-  return { message: "success", data: { membershipUniqueId } };
+  return { message: "Member added successfully", data: { membershipUniqueId } };
 };
 
 /**
@@ -151,7 +151,7 @@ exports.activateMember = async (membershipUniqueId, updatedBy) => {
      WHERE membershipUniqueId = ?`,
     [updatedBy, currentDate(), membershipUniqueId],
   );
-  return { message: "success", data: "Membership reactivated" };
+  return { message: "Member activated successfully", data: null };
 };
 
 exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
@@ -167,7 +167,7 @@ exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
      WHERE membershipUniqueId = ?`,
     [currentDate(), updatedBy, currentDate(), membershipUniqueId],
   );
-  return { message: "success", data: "Membership deactivated" };
+  return { message: "Member deactivated successfully", data: null };
 };
 
 exports.deleteMember = async (membershipUniqueId, deletedBy) => {
@@ -183,5 +183,5 @@ exports.deleteMember = async (membershipUniqueId, deletedBy) => {
      WHERE membershipUniqueId = ?`,
     [currentDate(), deletedBy, membershipUniqueId],
   );
-  return { message: "success", data: "Membership deleted" };
+  return { message: "Member deleted successfully", data: null };
 };

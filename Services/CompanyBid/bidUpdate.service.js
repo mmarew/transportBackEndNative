@@ -216,8 +216,8 @@ const updateBidStatus = async (
         // The requested outcome is fully achieved, so return success idempotently.
         if (freeRequests.length === 0) {
           return {
-            message: "success",
-            data: `Bid acceptance already completed. All ${bid.numberOfVehiclesOffered} vehicle slots have drivers assigned and are ready for dispatch.`,
+            message: `Bid acceptance already completed. All ${bid.numberOfVehiclesOffered} vehicle slots have drivers assigned and are ready for dispatch.`,
+            data: null,
           };
         }
 
@@ -427,7 +427,7 @@ const updateBidStatus = async (
     }
   }
 
-  return { message: "success", data: "Bid status updated" };
+  return { message: `Bid ${bidStatus.replace(/_/g, " ")}`, data: null };
 };
 
 // ── Mark cancellation as seen by company ──────────────────────────────────────
@@ -480,7 +480,7 @@ const markCancellationAsSeen = async ({
     );
   }
   if (bid.isCancellationSeenByCompany === "seen by company") {
-    return { message: "success", data: "Already marked as seen" };
+    return { message: "Cancellation already marked as seen", data: null };
   }
 
   // 4. Mark as seen
@@ -492,7 +492,7 @@ const markCancellationAsSeen = async ({
     [currentDate(), companyBidRequestUniqueId],
   );
 
-  return { message: "success", data: "Cancellation marked as seen" };
+  return { message: "Cancellation marked as seen successfully", data: null };
 };
 
 module.exports = {

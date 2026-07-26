@@ -158,12 +158,12 @@ const handleExistingUser = async ({
   if (requestedFrom === "street") {
     // SECURITY: Still use explicit extraction even for street entry
     return {
-      message: "success",
+      message: "Login successful",
       data: publicUserProfile,
     };
   }
   return {
-    message: "success",
+    message: "OTP sent successfully",
     data: publicUserProfile,
     messageDetail: "Verification data generated (Deferred)",
   };

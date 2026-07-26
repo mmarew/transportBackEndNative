@@ -37,7 +37,7 @@ const deleteUserDelinquency = async ({
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "User delinquency record deleted successfully",
+      data: null,
     };
   }
   throw new AppError("Failed to delete user delinquency record", 500);

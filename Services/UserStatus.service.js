@@ -66,7 +66,7 @@ const updateUserStatus = async (userStatusUniqueId, updateValues) => {
     );
   }
 
-  return { message: "success", data: "UserStatus updated successfully" };
+  return { message: "success", data: null };
 };
 
 // Service to delete UserStatus
@@ -83,7 +83,7 @@ const deleteUserStatus = async (userStatusUniqueId) => {
     );
   }
 
-  return { message: "success", data: "UserStatus deleted successfully" };
+  return { message: "success", data: null };
 };
 
 module.exports = {

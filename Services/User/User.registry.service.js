@@ -375,7 +375,7 @@ const createUserByAdminOrSuperAdmin = async ({
     if (!isPlaceholderEmail(email)) {
       return {
         message: "success",
-        data: "User already exists with this email address",
+        data: null,
       };
     }
 
@@ -390,7 +390,7 @@ const createUserByAdminOrSuperAdmin = async ({
         // Same phone + Same placeholder = Same user. We're done.
         return {
           message: "success",
-          data: "User already exists with this placeholder email",
+          data: null,
         };
       }
     }
@@ -444,7 +444,7 @@ const createUserByAdminOrSuperAdmin = async ({
 
     return {
       message: "success",
-      data: "User already exists with this phone number. Role and OTP have been updated.",
+      data: null,
     };
   }
 

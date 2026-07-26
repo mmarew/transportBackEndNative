@@ -22,7 +22,7 @@ const createCommissionRate = async ({
   ]);
 
   if (existingById.length > 0) {
-    return { message: "success", data: "Commission rate already exists" };
+    return { message: "success", data: null };
   }
 
   const sqlCheckDuplicate = `
@@ -37,7 +37,7 @@ const createCommissionRate = async ({
   ]);
 
   if (existingRate.length > 0) {
-    return { message: "success", data: "Commission rate already exists" };
+    return { message: "success", data: null };
   }
 
   // Insert new commission rate
@@ -213,9 +213,9 @@ const getAllCommissionRates = async (filters = {}) => {
     message: "success",
     data: rows,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };
@@ -280,7 +280,7 @@ const updateCommissionRateByUniqueId = async ({
     throw new AppError("Commission rate update failed", 500);
   }
 
-  return { message: "success", data: "Commission rate updated successfully" };
+  return { message: "success", data: null };
 };
 
 // Soft delete a commission rate by its unique ID
@@ -297,7 +297,7 @@ const deleteCommissionRateByUniqueId = async ({
     throw new AppError("Commission rate not found", 404);
   }
   if (existingRows[0]?.commissionRateDeletedAt) {
-    return { message: "success", data: "Commission rate already deleted" };
+    return { message: "success", data: null };
   }
 
   const sqlDelete = `
@@ -319,7 +319,7 @@ const deleteCommissionRateByUniqueId = async ({
     throw new AppError("Commission rate delete failed", 500);
   }
 
-  return { message: "success", data: "Commission rate deleted successfully" };
+  return { message: "success", data: null };
 };
 
 module.exports = {

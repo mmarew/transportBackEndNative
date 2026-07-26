@@ -54,7 +54,7 @@ const createFinancialInstitutionAccount = async (data) => {
   ]);
 
   return {
-    message: "success",
+    message: "Financial institution account created successfully",
     data: {
       accountUniqueId,
       institutionName,
@@ -118,12 +118,12 @@ const getFinancialInstitutionAccounts = async (filters = {}) => {
   const [result] = await executor.query(sql, params);
 
   return {
-    message: "success",
+    message: "Financial institution accounts fetched successfully",
     data: result,
     pagination: {
-      total,
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
+      totalItems: total,
+      currentPage: parseInt(page),
+      limit: parseInt(pageSize),
       totalPages: Math.ceil(total / pageSize),
     },
   };
@@ -184,7 +184,7 @@ const updateFinancialInstitutionAccountByUniqueId = async (
     throw new AppError("Update failed or account not found", 404);
   }
 
-  return { message: "success", data: { accountUniqueId, ...updates } };
+  return { message: "Financial institution account updated successfully", data: { accountUniqueId, ...updates } };
 };
 
 // Delete
@@ -197,7 +197,7 @@ const deleteFinancialInstitutionAccountByUniqueId = async (accountUniqueId) => {
     throw new AppError("Deletion failed or account not found", 404);
   }
 
-  return { message: "success", data: `Deleted: ${accountUniqueId}` };
+  return { message: `Deleted: ${accountUniqueId}`, data: null };
 };
 
 module.exports = {

@@ -436,9 +436,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
         currentPage: safePage,
         totalPages,
         totalItems: totalCount,
-        itemsPerPage: safeLimit,
-        hasNextPage: safePage < totalPages,
-        hasPrevPage: safePage > 1
+        limit: safeLimit,
       },
       filters: Object.keys(filters).length > 0 ? {
         contextType,

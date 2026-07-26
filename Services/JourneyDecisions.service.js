@@ -43,7 +43,7 @@ exports.createJourneyDecision = async (data, connection = null) => {
   ]);
   if (existedData.length > 0) {
     return {
-      message: "success",
+      message: "Journey decision already exists",
       data: existedData,
       existedData,
     };
@@ -69,21 +69,19 @@ exports.createJourneyDecision = async (data, connection = null) => {
     const [result] = await queryExecutor.query(sql, values);
 
     return {
-      message: "success",
-      data: [
-        {
-          shippingDateByDriver,
-          deliveryDateByDriver,
-          shippingCostByDriver,
-          journeyDecisionUniqueId,
-          shipperRequestId,
-          driverRequestId,
-          journeyStatusId,
-          decisionTime,
-          decisionBy,
-          journeyDecisionId: result.insertId,
-        },
-      ],
+      message: "Journey decision created successfully",
+      data: {
+        shippingDateByDriver,
+        deliveryDateByDriver,
+        shippingCostByDriver,
+        journeyDecisionUniqueId,
+        shipperRequestId,
+        driverRequestId,
+        journeyStatusId,
+        decisionTime,
+        decisionBy,
+        journeyDecisionId: result.insertId,
+      },
     };
   } catch (error) {
     throw new AppError(
@@ -99,7 +97,7 @@ exports.getAllJourneyDecisions = async () => {
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql);
 
-  return { message: "success", data: result };
+  return { message: "Journey decisions fetched successfully", data: result };
 };
 
 exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
@@ -339,15 +337,13 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      message: "success",
+      message: "Journey decisions fetched successfully",
       data: decisions,
       pagination: {
         currentPage: parseInt(page),
         totalPages: totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        limit: parseInt(limit),
         ...(userUniqueId && { userId: userUniqueId }),
       },
       filters: Object.keys(filters).length > 0 ? filters : undefined,
@@ -375,7 +371,7 @@ exports.getJourneyDecisionByJourneyDecisionUniqueId = async (
   if (result.length === 0) {
     throw new AppError("Journey decision not found", 404);
   }
-  return { message: "success", data: result };
+  return { message: "Journey decision fetched successfully", data: result };
 };
 
 // Get a specific journey decision by ID
@@ -389,7 +385,7 @@ exports.getJourneyDecisionByJDriverRequestUniqueId = async (
   if (result.length === 0) {
     throw new AppError("Journey decision not found", 404);
   }
-  return { message: "success", data: result };
+  return { message: "Journey decision fetched successfully", data: result };
 };
 
 // Get a specific journey decision by ID
@@ -403,7 +399,7 @@ exports.getJourneyDecisionByShipperRequestUniqueId = async (
   if (result.length === 0) {
     throw new AppError("Journey decision not found", 404);
   }
-  return { message: "success", data: result };
+  return { message: "Journey decision fetched successfully", data: result };
 };
 // getJourneyDecisionByShipperRequestUniqueId,getJourneyDecisionByJDriverRequestUniqueId
 
@@ -527,8 +523,8 @@ exports.updateJourneyDecision = async ({
 
     if (result.affectedRows > 0) {
       return {
-        message: "success",
-        data: "Journey decision updated successfully",
+        message: "Journey decision updated successfully",
+        data: null,
         affectedRows: result.affectedRows,
       };
     } else {
@@ -553,8 +549,8 @@ exports.deleteJourneyDecision = async (journeyDecisionId) => {
 
   if (result.affectedRows > 0) {
     return {
-      message: "success",
-      data: `Journey decision with ID ${journeyDecisionId} deleted successfully`,
+      message: `Journey decision with ID ${journeyDecisionId} deleted successfully`,
+      data: null,
     };
   } else {
     throw new AppError("Failed to delete journey decision", 500);

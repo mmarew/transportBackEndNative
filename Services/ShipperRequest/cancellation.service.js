@@ -125,7 +125,7 @@ const getCancellationNotifications = async ({
 
     if (results.length === 0) {
       return {
-        message: "success",
+        message: "No cancellation notifications found",
         data: [],
         count: 0,
       };
@@ -216,14 +216,13 @@ const getCancellationNotifications = async ({
     );
 
     return {
-      message: "success",
+      message: "Cancellation notifications fetched successfully",
       data: enrichedData,
-      count: total,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        limit: parseInt(limit),
       },
     };
   } catch (error) {
@@ -305,8 +304,8 @@ const markCancellationAsSeen = async ({
     }
 
     return {
-      message: "success",
-      data: "Cancellation notification marked as seen",
+      message: "Cancellation marked as seen successfully",
+      data: null,
     };
   } catch (error) {
     throw new AppError(

@@ -165,14 +165,12 @@ const getOngoingJourney = async ({
       };
     }));
     return {
-      message: "success",
+      message: "Ongoing journeys fetched successfully",
       data,
       pagination: {
         currentPage: page,
         totalPages,
-        totalCount,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        totalItems: totalCount,
         limit
       }
     };

@@ -37,7 +37,7 @@ const createUserRole = async (body, user) => {
     },
   });
 
-  return { message: "success", data: { userRoleUniqueId } };
+  return { message: "User role created successfully", data: { userRoleUniqueId } };
 };
 const getUserRoleListByFilter = async ({
   page = 1,
@@ -136,7 +136,7 @@ const getUserRoleListByFilter = async ({
   }
 
   return {
-    message: "success",
+    message: "User roles fetched successfully",
     data: rows,
     meta: {
       page: pageNum,
@@ -161,7 +161,7 @@ const updateUserRole = async (userRoleUniqueId, updateValues) => {
     throw new AppError("Failed to update UserRole or UserRole not found", 404);
   }
 
-  return { message: "success", data: "UserRole updated successfully" };
+  return { message: "User role updated successfully", data: null };
 };
 
 // Service to delete UserRole (soft delete)
@@ -176,7 +176,7 @@ const deleteUserRole = async (userRoleUniqueId) => {
     throw new AppError("Failed to delete UserRole or UserRole not found", 404);
   }
 
-  return { message: "success", data: "UserRole deleted successfully" };
+  return { message: "User role deleted successfully", data: null };
 };
 
 module.exports = {

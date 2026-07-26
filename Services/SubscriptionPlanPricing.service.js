@@ -154,10 +154,7 @@ const createPricing = async (
 
   return {
     message: "success",
-    data: "Subscription Plan Price Created Successfully",
-    subscriptionPlanPricingUniqueId,
-    effectiveFrom,
-    effectiveTo: effectiveTo || null,
+    data: { subscriptionPlanPricingUniqueId, effectiveFrom, effectiveTo: effectiveTo || null },
   };
 };
 
@@ -297,15 +294,13 @@ const getPricingWithFilters = async (filters = {}) => {
   const [result] = await executor.query(sql, allParams);
 
   return {
-    message: "success",
+    message: "Pricing fetched successfully",
     data: result || [],
     pagination: {
-      total,
-      page,
+      currentPage: page,
       limit,
+      totalItems: total,
       totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
     },
   };
 };
@@ -448,7 +443,7 @@ const updatePricingByUniqueId = async (
     );
 
     return {
-      message: "success",
+    message: "Pricing updated successfully",
       data: updated[0],
       updatedFields: setClauses.map((clause) => clause.split(" = ")[0]),
       affectedRows: result.affectedRows,
@@ -533,8 +528,8 @@ const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
   }
 
   return {
-    message: "success",
-    data: `Pricing ${subscriptionPlanPricingUniqueId} deleted successfully`,
+    message: `Pricing ${subscriptionPlanPricingUniqueId} deleted successfully`,
+    data: null,
   };
 };
 

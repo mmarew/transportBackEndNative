@@ -21,7 +21,7 @@ exports.createRole = async (body) => {
     [companyRoleName]
   );
   if (existing && existing.length > 0) {
-    return { message: "success", data: "Company role already exists", companyRoleUniqueId: existing[0].companyRoleUniqueId };
+    return { message: "Company role already exists", data: { companyRoleUniqueId: existing[0].companyRoleUniqueId } };
   }
 
   const [result] = await db().query(
@@ -42,7 +42,7 @@ exports.createRole = async (body) => {
   );
 
   if (result.affectedRows > 0) {
-    return { message: "success", data: "Company role created successfully", companyRoleUniqueId };
+    return { message: "Company role created successfully", data: { companyRoleUniqueId } };
   }
   throw new AppError("Failed to create company role", 500);
 };
@@ -78,7 +78,7 @@ exports.getRoles = async (filters = {}) => {
  */
 exports.getRoleByUniqueId = async (uniqueId) => {
   const role = await findOne("CompanyRoles", { companyRoleUniqueId: uniqueId, companyRoleDeletedAt: null }, "Company role not found");
-  return { message: "success", data: role };
+  return { message: "Company role fetched successfully", data: role };
 };
 
 /**
@@ -118,12 +118,12 @@ exports.updateRole = async (uniqueId, body) => {
       params
     );
     if (result.affectedRows > 0) {
-      return { message: "success", data: "Company role updated successfully" };
+      return { message: "Company role updated successfully", data: null };
     }
     throw new AppError("Failed to update company role or role not found", 404);
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      return { message: "success", data: "Company role name already exists" };
+      return { message: "Company role already exists", data: null };
     }
     throw error;
   }
@@ -146,7 +146,7 @@ exports.deleteRole = async (uniqueId, userUniqueId) => {
   );
 
   if (result.affectedRows > 0) {
-    return { message: "success", data: "Company role deleted successfully" };
+    return { message: "Company role deleted successfully", data: null };
   }
   throw new AppError("Failed to delete company role or role not found", 404);
 };

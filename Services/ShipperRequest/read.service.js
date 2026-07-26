@@ -124,7 +124,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
       },
     });
     return {
-      message: "success",
+      message: "Shipper request fetched successfully",
       data: result[0],
     };
   } catch (error) {
@@ -486,15 +486,13 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
     // Format data with detailed journey information
     const formattedData = await getDetailedJourneyData(shipperRequests);
     return {
-      message: "success",
-      formattedData,
+      message: "Shipper requests fetched successfully",
+      data: formattedData,
       pagination: {
         currentPage: parseInt(page),
         totalPages: totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        limit: parseInt(limit),
         ...(userUniqueId && {
           userId: userUniqueId,
         }),

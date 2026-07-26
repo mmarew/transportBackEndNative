@@ -14,7 +14,7 @@ exports.createPaymentStatus = async ({ paymentStatus }) => {
   });
   if (existedPaymentStatus.length > 0) {
     return {
-      message: "success",
+      message: "Payment status already exists",
       data: { paymentStatusUniqueId: existedPaymentStatus[0].paymentStatusUniqueId },
     };
   }
@@ -26,7 +26,7 @@ exports.createPaymentStatus = async ({ paymentStatus }) => {
   await executor.query(sql, values);
 
   return {
-    message: "success",
+    message: "Payment status created successfully",
     data: { paymentStatusUniqueId },
   };
 };
@@ -86,12 +86,12 @@ exports.getAllPaymentStatuses = async (filters = {}) => {
   const total = countRows?.[0]?.total || 0;
 
   return {
-    message: "success",
+    message: "Payment status fetched successfully",
     data: rows || [],
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };
@@ -146,7 +146,7 @@ exports.updatePaymentStatus = async (
   }
 
   return {
-    message: "success",
+    message: "Payment status updated successfully",
     data: { paymentStatusUniqueId, ...updateData },
   };
 };
@@ -181,7 +181,7 @@ exports.deletePaymentStatus = async (paymentStatusUniqueId, user) => {
   }
 
   return {
-    message: "success",
-    data: `Payment status deleted successfully`,
+    message: `Payment status deleted successfully`,
+    data: null,
   };
 };

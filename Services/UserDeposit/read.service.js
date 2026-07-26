@@ -182,14 +182,13 @@ const getUserDeposit = async (filters = {}) => {
   const total = countResult[0].total;
   const totalPages = Math.ceil(total / numLimit);
   return {
+    message: "Deposits fetched successfully",
     data,
     pagination: {
       currentPage: Number(numPage),
       totalPages,
       totalItems: total,
-      itemsPerPage: Number(numLimit),
-      hasNext: Number(numPage) < totalPages,
-      hasPrev: Number(numPage) > 1
+      limit: Number(numLimit),
     },
     filters: {
       search: search || null,

@@ -167,9 +167,7 @@ const getUserDelinquencies = async (filters = {}) => {
         currentPage: parseInt(page),
         totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
+        limit: parseInt(limit),
       },
       filters,
     };
@@ -297,9 +295,7 @@ const getPendingUserDelinquencies = async (filters = {}) => {
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
+      limit: parseInt(limit),
     },
   };
 };

@@ -84,7 +84,7 @@ const updateStatus = async (statusUniqueId, body) => {
   if (result.affectedRows === 0) {
     throw new AppError("Status update failed or status not found", 404);
   }
-  return { message: "success", data: "Status updated successfully" };
+  return { message: "success", data: null };
 };
 
 const deleteStatus = async (id, user) => {
@@ -96,7 +96,7 @@ const deleteStatus = async (id, user) => {
   if (result.affectedRows === 0) {
     throw new AppError("Status deletion failed or status not found", 404);
   }
-  return { message: "success", data: "Status deleted successfully" };
+  return { message: "success", data: null };
 };
 
 const getAllStatuses = async (filters = {}) => {
@@ -140,9 +140,9 @@ const getAllStatuses = async (filters = {}) => {
     message: "success",
     data: dataRows || [],
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };

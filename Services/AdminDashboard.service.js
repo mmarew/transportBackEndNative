@@ -54,7 +54,7 @@ exports.getDashboardStats = async () => {
     : null;
 
   return {
-    message: "success",
+    message: "Dashboard stats fetched successfully",
     data: {
       pendingCompanies: Number(pendingRow[0]?.total || 0),
       approvedCompanies: Number(approvedRow[0]?.total || 0),

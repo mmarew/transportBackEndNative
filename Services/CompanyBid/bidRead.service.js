@@ -201,9 +201,9 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
 
   if (!batches || batches.length === 0) {
     return {
-      message: "success",
+      message: "No bids found",
       data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 },
+      pagination: { currentPage: page, limit, totalItems: 0, totalPages: 0 },
     };
   }
 
@@ -306,12 +306,12 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   });
 
   return {
-    message: "success",
+    message: "Company bids fetched successfully",
     data: grouped,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit),
     },
   };
@@ -393,7 +393,7 @@ const getBidsSummary = async (companyUniqueId) => {
   );
 
   return {
-    message: "success",
+    message: "Bid summary fetched successfully",
     data: {
       available: availableRes[0]?.total || 0,
       submitted: submittedRes[0]?.total || 0,

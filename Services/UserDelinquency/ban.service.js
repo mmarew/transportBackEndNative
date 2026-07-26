@@ -120,7 +120,7 @@ const checkAutomaticBan = async (userUniqueId, roleId) => {
   if (results.length === 0) {
     return {
       message: "success",
-      data: "No delinquencies found for this user-role combination in the last 30 days"
+      data: null
     };
   }
   const totalPoints = results.reduce((acc, delinquency) => acc + delinquency.delinquencyPoints, 0);

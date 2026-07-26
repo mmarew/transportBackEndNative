@@ -49,7 +49,7 @@ const createVehicleStatus = async (data) => {
     connection,
   });
 
-  return { message: "success", data: { vehicleStatusUniqueId } };
+  return { message: "Vehicle status created successfully", data: { vehicleStatusUniqueId } };
 };
 
 const getVehicleStatuses = async (filters = {}) => {
@@ -115,12 +115,12 @@ const getVehicleStatuses = async (filters = {}) => {
   const [rows] = await executor.query(sql, params);
 
   return {
-    message: "success",
+    message: "Vehicle statuses fetched successfully",
     data: rows,
     pagination: {
-      page: pageNum,
+      currentPage: pageNum,
       limit: limitNum,
-      total: countRow?.total || 0,
+      totalItems: countRow?.total || 0,
       totalPages: Math.ceil((countRow?.total || 0) / limitNum) || 1,
     },
   };
@@ -137,7 +137,7 @@ const updateVehicleStatus = async (vehicleStatusUniqueId, data) => {
     throw new AppError("Update failed or VehicleStatus not found", 404);
   }
 
-  return { message: "success", data: result };
+  return { message: "Vehicle status updated successfully", data: result };
 };
 
 const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
@@ -154,8 +154,8 @@ const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
   }
 
   return {
-    message: "success",
-    data: "VehicleStatus soft-deleted successfully",
+    message: "Vehicle status deleted successfully",
+    data: null,
   };
 };
 

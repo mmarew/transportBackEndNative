@@ -331,17 +331,14 @@ async function getAllCommissions(filters = {}) {
     const totalPages = Math.ceil(totalCount / limit);
 
     return {
-      message: "success",
+      message: "Commissions fetched successfully",
       data: rows,
       pagination: {
         currentPage: page,
         totalPages,
-        totalCount,
+        totalItems: totalCount,
         limit,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
       },
-      code: "COMMISSIONS_RETRIEVED",
     };
   } catch (error) {
     logger.application.databaseError(error, "getAllCommissions", filters);
@@ -530,8 +527,8 @@ async function deleteCommission(id, deletedBy) {
     logger.info("Commission Deleted", { commissionId: id, deletedBy });
 
     return {
-      message: "success",
-      data: `Commission with ID ${id} deleted successfully`,
+      message: `Commission with ID ${id} deleted successfully`,
+      data: null,
     };
   } catch (error) {
     if (error instanceof AppError) {

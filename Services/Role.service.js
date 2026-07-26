@@ -15,7 +15,7 @@ const createRole = async (body) => {
     conditions: { roleName },
   });
   if (existedData?.length > 0) {
-    return { message: "success", data: { roleUniqueId: existedData[0].roleUniqueId, message: "Role already exists" } };
+    return { message: "Role already exists", data: { roleUniqueId: existedData[0].roleUniqueId } };
   }
   const colAndVal = {
     roleUniqueId,
@@ -33,10 +33,9 @@ const createRole = async (body) => {
 
     if (registeredRole.affectedRows > 0) {
       return { 
-        message: "success", 
+        message: "Role created successfully", 
         data: {
           roleUniqueId,
-          message: "Role created successfully" 
         }
       };
     }
@@ -56,7 +55,7 @@ const getRole = async (roleUniqueId) => {
     const executor = transactionStorage.getStore() || pool;
     const [rows] = await executor.query(sql, [roleUniqueId]);
     if (rows.length > 0) {
-      return { message: "success", data: rows[0] };
+      return { message: "Role fetched successfully", data: rows[0] };
     }
     throw new AppError("Role not found", 404);
   } catch (error) {
@@ -101,12 +100,12 @@ const updateRole = async (roleUniqueId, body) => {
   try {
     const [result] = await executor.query(sql, values);
     if (result.affectedRows > 0) {
-      return { message: "success", data: "Role updated successfully" };
+      return { message: "Role updated successfully", data: null };
     }
     throw new AppError("Role update failed", 500);
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      return { message: "success", data: "Role name already exists" };
+      return { message: "Role already exists", data: null };
     }
     throw new AppError(
       error.message || "An error occurred during role update",
@@ -127,7 +126,7 @@ const deleteRole = async (roleUniqueId, user) => {
       roleUniqueId,
     ]);
     if (result.affectedRows > 0) {
-      return { message: "success", data: "Role deleted successfully" };
+      return { message: "Role deleted successfully", data: null };
     }
     throw new AppError("Role deletion failed", 500);
   } catch (error) {
@@ -230,14 +229,14 @@ const getAllRoles = async (filters = {}) => {
     }
 
     return {
-      message: "success",
+      message: "Roles fetched successfully",
       data: dataRows,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit) || 1,
-      },
+    pagination: {
+      currentPage: page,
+      limit,
+      totalItems: total,
+      totalPages: Math.ceil(total / limit) || 1,
+    },
     };
   } catch (error) {
     throw new AppError(

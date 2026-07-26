@@ -181,7 +181,7 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
     throw new AppError("Failed to update vehicle or vehicle not found", 404);
   }
 
-  return { message: "success", data: "Vehicle updated successfully" };
+  return { message: "success", data: null };
 };
 
 const deleteVehicle = async (vehicleUniqueId, user) => {
@@ -220,7 +220,7 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
     throw new AppError("Failed to delete vehicle or vehicle not found", 404);
   }
 
-  return { message: "success", data: "Vehicle soft-deleted successfully" };
+  return { message: "success", data: null };
 };
 
 const getVehicles = async (query) => {
@@ -327,7 +327,7 @@ const getVehicles = async (query) => {
       totalItems,
       totalPages,
       currentPage: pageNum,
-      itemsPerPage: limitNum,
+      limit: limitNum,
     },
   };
 };

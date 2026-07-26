@@ -22,8 +22,8 @@ const deleteJourney = async (journeyId) => {
   }
 
   return {
-    message: "success",
-    data: `Journey with ID ${journeyId} deleted successfully`};
+    message: `Journey with ID ${journeyId} deleted successfully`,
+    data: null};
 };
 
 module.exports = {

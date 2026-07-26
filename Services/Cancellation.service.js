@@ -89,7 +89,7 @@ const deleteCancellationReason = async (req) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "Cancellation reason deleted successfully",
+      data: null,
     };
   }
   throw new AppError("Cancellation reason delete failed", 500);
@@ -152,7 +152,7 @@ const updateCancellationReason = async (req) => {
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "Cancellation reason updated successfully",
+      data: null,
     };
   }
   throw new AppError("Cancellation reason update failed", 500);
@@ -217,9 +217,9 @@ const getAllCancellationReasons = async (filters = {}) => {
       message: "success",
       data: [],
       pagination: {
-        page,
+        currentPage: page,
         limit,
-        total: 0,
+        totalItems: 0,
         totalPages: 0,
       },
     };
@@ -229,9 +229,9 @@ const getAllCancellationReasons = async (filters = {}) => {
     message: "success",
     data: rows,
     pagination: {
-      page,
+      currentPage: page,
       limit,
-      total,
+      totalItems: total,
       totalPages: Math.ceil(total / limit) || 1,
     },
   };

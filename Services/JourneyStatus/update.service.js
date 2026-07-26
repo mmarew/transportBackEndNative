@@ -70,7 +70,7 @@ const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayloa
   if (result.affectedRows > 0) {
     return {
       message: "success",
-      data: "Journey status updated successfully"
+      data: null
     };
   }
   throw new AppError("Journey status update failed", 500);
@@ -224,7 +224,7 @@ const updateNegativeJourneyStatus = async ({
     });
     return {
       message: "success",
-      data: "Negative journey status updated successfully",
+      data: null,
       results
     };
   } catch (error) {
@@ -451,7 +451,7 @@ const updateJourneyStatus = async body => {
     });
     return {
       message: "success",
-      data: "Request accepted successfully"
+      data: null
     };
   } catch (error) {
     throw new AppError(error.message || "Failed to update journey status", error.statusCode || 500);
