@@ -73,7 +73,7 @@ const getAllJourneyStatuses = async (filters = {}) => {
     throw new AppError("No journey statuses found", 404);
   }
   return {
-    message: "success",
+    message: "Journey statuses fetched successfully",
     data: rows,
     pagination: {
       currentPage: page,
@@ -96,7 +96,7 @@ const getJourneyStatusById = async journeyStatusUniqueId => {
   });
   if (result.length > 0) {
     return {
-      message: "success",
+      message: "Journey status fetched successfully",
       data: result[0]
     };
   } else {

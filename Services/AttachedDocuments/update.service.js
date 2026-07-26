@@ -163,7 +163,7 @@ const updateAttachedDocument = async ({
         });
       }
       return {
-        message: "success",
+        message: "Document updated successfully",
         data: null
       };
     } else {

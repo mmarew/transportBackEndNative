@@ -60,7 +60,7 @@ const createJourneyStatus = async (body, user) => {
   });
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "Journey status created successfully",
       data: null
     };
   } else {

@@ -69,7 +69,7 @@ const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayloa
   const [result] = await executor.query(sql, values);
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "Journey status updated successfully",
       data: null
     };
   }
@@ -223,7 +223,7 @@ const updateNegativeJourneyStatus = async ({
       resultsOfUpdates
     });
     return {
-      message: "success",
+      message: "Journey status updated successfully",
       data: null,
       results
     };
@@ -450,7 +450,7 @@ const updateJourneyStatus = async body => {
       totalUpdates: results.length
     });
     return {
-      message: "success",
+      message: "Journey status updated successfully",
       data: null
     };
   } catch (error) {

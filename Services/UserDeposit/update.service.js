@@ -92,7 +92,7 @@ const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
     });
     const updatedData = Array.isArray(updatedDepositFetch?.data) ? updatedDepositFetch.data[0] : updatedDepositFetch?.data;
     return {
-      message: "success",
+      message: "Deposit updated successfully",
       data: updatedData
     };
   }
@@ -131,7 +131,7 @@ const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
   });
   const updatedData = Array.isArray(updatedDepositFetch?.data) ? updatedDepositFetch.data[0] : updatedDepositFetch?.data;
   return {
-    message: "success",
+    message: "Deposit updated successfully",
     data: updatedData
   };
 };
@@ -207,7 +207,7 @@ const updateUserDepositStatusService = async (userDepositUniqueId, data) => {
   }
   const updatedData = await fetchDepositData(userDepositUniqueId);
   return {
-    message: "success",
+    message: "Deposit status updated successfully",
     data: updatedData
   };
 };

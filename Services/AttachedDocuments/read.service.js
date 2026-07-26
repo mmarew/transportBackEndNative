@@ -48,7 +48,7 @@ const getAttachedDocumentsByOwner = async (ownerUniqueId, ownerType = "user") =>
     doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
   }
   return {
-    message: "success",
+    message: "Documents fetched successfully",
     data: documents
   };
 };
@@ -118,7 +118,7 @@ const getAttachedDocumentsByFilter = async ({
       const doc = document[0];
       doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
       return {
-        message: "success",
+        message: "Document fetched successfully",
         data: doc
       };
     }
@@ -186,7 +186,7 @@ const getAttachedDocumentsByFilter = async ({
       doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
     }
     return {
-      message: "success",
+      message: "Documents fetched successfully",
       data: documents,
       pagination: {
         currentPage: page,
@@ -267,7 +267,7 @@ const getDocumentHistory = async ({
        ORDER BY h.${safeBy} ${safeOrder}
        LIMIT ? OFFSET ?`, [...params, Number(limit), Number(offset)]);
     return {
-      message: "success",
+      message: "Document history fetched successfully",
       data: history,
       pagination: {
         currentPage: Number(page),

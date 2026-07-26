@@ -40,7 +40,7 @@ const deleteAttachedDocument = async attachedDocumentUniqueId => {
     }
   });
   return {
-    message: "success",
+    message: "Document deleted successfully",
     data: null
   };
 };

@@ -104,7 +104,7 @@ const createAttachedDocument = async ({
     });
     if (existingDocument.length > 0) {
       return {
-        message: "success",
+        message: "Document already exists",
         data: existingDocument[0]
       };
     }

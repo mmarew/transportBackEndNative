@@ -50,7 +50,7 @@ const deleteJourneyStatusByUniqueId = async (journeyStatusUniqueId, user) => {
   const [result] = await executor.query(sql, values);
   if (result.affectedRows > 0) {
     return {
-      message: "success",
+      message: "Journey status deleted successfully",
       data: null
     };
   }
