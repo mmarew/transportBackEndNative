@@ -245,9 +245,14 @@ const notifyAssignedDriver = async (opts) => {
  * **Logic (in order):**
  * 1. Try to find the driver's *most recent* active DriverRequest (`ORDER BY driverRequestId DESC LIMIT 1`).
  *    This successfully handles test drivers that might have stale/duplicate rows.
- * 2. If exactly ONE active row is found, UPDATE it in-place and reuse its UUID.
- *    (If it is an individual-target request, we first cancel their individual connections).
- * 3. If ZERO active rows are found, we directly INSERT a fresh DriverRequest.
+ * 2. If the existing row has a **terminal individual status** (e.g. rejectedByDriver = 15),
+ *    soft-delete it so `createJourneyDecisionForAssignment` does not reuse the stale
+ *    JourneyDecision (the "re-ring" bug fix). Fall through to INSERT.
+ * 3. If the existing row has an **active individual status** (1–3) with active JourneyDecisions,
+ *    soft-delete it and cancel individual connections (Option B). Fall through to INSERT.
+ *    If there are no active JourneyDecisions, UPDATE in-place and return.
+ * 4. If the existing row has status 4+ (company flow or advanced state), UPDATE in-place and return.
+ * 5. If ZERO rows are found, INSERT a fresh DriverRequest.
  *    *Note: We explicitly bypass `createDriverRequest` here because that function contains
  *    its own active-request redundancy checks, which would create confusing edge-cases
  *    if the driver had multiple corrupted rows.*
@@ -283,19 +288,42 @@ const upsertDriverRequest = async ({
     const existingUniqueId = existingRows[0].driverRequestUniqueId;
     const existingStatus   = existingRows[0].journeyStatusId;
 
-    // ── Option B: Cancel individual connection before company assignment ──────
-    // If the driver is currently active in an individual journey (status 1–3),
-    // cancel their existing JourneyDecision(s) with 'cancelled_by_system' and
-    // return the ShipperRequest to 'waiting' so another driver can pick it up.
-    // Status 4+ means the shipper already accepted — those are left untouched
-    // (company should not steal a driver mid-confirmed journey).
+    // ── Terminal individual status → soft-delete & fresh INSERT ──────────────
+    // If the driver's existing DR has a terminal status from a previous
+    // individual flow (e.g. rejectedByDriver = 15), we must NOT reuse that
+    // row. The old JourneyDecision is still linked to it and
+    // `createJourneyDecisionForAssignment` would find and reuse the old JD,
+    // causing the driver to see the stale individual job instead of the new
+    // company assignment (the "re-ring" bug). Soft-deleting the old DR and
+    // inserting a fresh one breaks the link cleanly.
+    const terminalIndividualStatuses = [
+      journeyStatusMap.rejectedByDriver, // 15 — driver rejected individual job
+    ];
+
     const activeIndividualStatuses = [
       journeyStatusMap.waiting,    // 1
       journeyStatusMap.requested,  // 2
       journeyStatusMap.acceptedByDriver, // 3
     ];
 
-    if (activeIndividualStatuses.includes(existingStatus)) {
+    if (terminalIndividualStatuses.includes(existingStatus)) {
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: { driverRequestUniqueId: existingUniqueId },
+        updateValues: {
+          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+          driverRequestDeletedAt: currentDate(),
+          driverRequestUpdatedAt: currentDate(),
+        },
+      });
+      logger.info("Old DriverRequest soft-deleted (terminal individual status)", {
+        driverRequestUniqueId: existingUniqueId,
+        existingStatus,
+        driverUserUniqueId,
+      });
+      // Fall through to INSERT path below →
+
+    } else if (activeIndividualStatuses.includes(existingStatus)) {
       // Find all active JourneyDecisions for this DriverRequest
       const [activeDecisions] = await db().query(
         `SELECT jd.journeyDecisionUniqueId, jd.shipperRequestId,
