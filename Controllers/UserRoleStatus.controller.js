@@ -72,7 +72,7 @@ const deleteUserRoleStatus = async (req, res, next) => {
 };
 const userRoleStatusByPhone = async (req, res, next) => {
   try {
-    const { phoneNumber } = req.body;
+    const phoneNumber = req.query.phoneNumber || req.query.phone;
     const result =
       await userRoleStatusService.userRoleStatusByPhone(phoneNumber);
     ServerResponder(res, result, 200);
