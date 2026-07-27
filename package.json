@@ -55,7 +55,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.1.0",
-    "firebase-admin": "^10.3.0",
+    "firebase-admin": "^14.1.0",
     "helmet": "^8.3.0",
     "ioredis": "^5.6.1",
     "joi": "^18.0.2",
@@ -72,21 +72,20 @@
     "redis": "^6.1.0",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^14.0.1",
+    "uuid": "^9.0.1",
     "winston": "^3.19.0"
   },
   "overrides": {
     "node-forge": "1.4.0",
     "picomatch": "4.0.4",
     "@tootallnate/once": "^2.0.0",
-    "dicer": "0.3.1",
-    "form-data": "2.5.6"
+    "dicer": "0.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@jest/globals": "^27.5.1",
     "cspell": "^9.8.0",
-    "eslint": "^10.8.0",
+    "eslint": "^9.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-n": "^18.0.1",
     "eslint-plugin-promise": "^7.3.0",
