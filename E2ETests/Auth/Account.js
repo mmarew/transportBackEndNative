@@ -4,7 +4,9 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
-const { ACCOUNT_ENDPOINTS } = require("../../Routes/EndPoints/account.endpoints");
+const {
+  ACCOUNT_ENDPOINTS,
+} = require("../../Routes/EndPoints/account.endpoints");
 
 // Role → account endpoint mapping
 const ROLE_ACCOUNT_ENDPOINTS = {
@@ -17,7 +19,10 @@ const ROLE_ACCOUNT_ENDPOINTS = {
 // ── GET account data for any role ─────────────────────────────────────────────
 // Replaces getDriversAccountData, getShipperAccountData, etc.
 // Caches the result back into usersData[userType].accountData
-const testGetAccountData = async ({ userType = "driver", isFetchMandatory = true } = {}) => {
+const testGetAccountData = async ({
+  userType = "driver",
+  isFetchMandatory = true,
+} = {}) => {
   // Return cached data if available and fetch is not mandatory
   if (!isFetchMandatory && usersData[userType]?.accountData) {
     return usersData[userType].accountData;
@@ -31,7 +36,9 @@ const testGetAccountData = async ({ userType = "driver", isFetchMandatory = true
 
   const endpoint = ROLE_ACCOUNT_ENDPOINTS[userType];
   if (!endpoint) {
-    console.warn(`⏩ testGetAccountData skipped — no account endpoint for role: ${userType}`);
+    console.warn(
+      `⏩ testGetAccountData skipped — no account endpoint for role: ${userType}`,
+    );
     return null;
   }
 
@@ -41,7 +48,10 @@ const testGetAccountData = async ({ userType = "driver", isFetchMandatory = true
     usersData[userType].accountData = result.data;
     return result.data;
   } catch (error) {
-    console.error(`❌ testGetAccountData (${userType}):`, error.response?.data?.error || error.message);
+    console.error(
+      `❌ testGetAccountData (${userType}):`,
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -64,10 +74,16 @@ const testGetAccountStatus = async ({ userType = "driver" } = {}) => {
         `?roleId=${userData.roleId}&phoneNumber=${encodeURIComponent(userData.phoneNumber)}`,
       authConfig(token),
     );
-    console.log(`✅ Account status (${userType}):`, result.data?.data?.currentStatusName ?? result.data?.status ?? "OK");
+    console.log(
+      `✅ Account status (${userType}):`,
+      result.data?.data?.currentStatusName ?? result.data?.status ?? "OK",
+    );
     return result.data;
   } catch (error) {
-    console.error(`❌ testGetAccountStatus (${userType}):`, error.response?.data?.error || error.message);
+    console.error(
+      `❌ testGetAccountStatus (${userType}):`,
+      error.response?.data?.error || error.message,
+    );
     throw error;
   }
 };
@@ -93,6 +109,8 @@ module.exports = {
   testGetAccountData,
   testGetAccountStatus,
   // Keep old names as aliases so existing imports don't break
-  testGetDriverAccountMe: (opts) => testGetAccountData({ userType: "driver", ...opts }),
-  testGetCompanyAdminAccountMe: (opts) => testGetAccountData({ userType: "companyAdmin", ...opts }),
+  testGetDriverAccountMe: (opts) =>
+    testGetAccountData({ userType: "driver", ...opts }),
+  testGetCompanyAdminAccountMe: (opts) =>
+    testGetAccountData({ userType: "companyAdmin", ...opts }),
 };

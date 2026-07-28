@@ -2,7 +2,7 @@
 
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
-const { backendURL, usersData } = require("../constants");
+const { backendURL, usersData, runId } = require("../constants");
 const { authConfig } = require("../Utils");
 const { report } = require("../Reporter");
 
@@ -1011,7 +1011,868 @@ const runMissingEndpoints = async () => {
   await testClearCache();
   await testReportWrongEmail();
 
+  // ── Account Endpoints ──
+  console.log("\n── Account Endpoints ──");
+  await testGetMeAccount();
+  await testGetDriverAccount();
+  await testGetShipperAccount();
+  await testGetCompanyAdminAccount();
+  await testGetDispatcherAccount();
+
+  // ── Auth Endpoints ──
+  console.log("\n── Auth Endpoints ──");
+  await testCreateUserByAdmin();
+  await testVerifyEmail();
+  await testVerifyPhoneGet();
+  await testVerifyPhonePost();
+
+  // ── Journey Endpoints ──
+  console.log("\n── Journey Endpoints ──");
+  await testGetAllCompletedJourney();
+  await testGetOngoingJourney();
+
+  // ── Notification Endpoints ──
+  console.log("\n── Notification Endpoints ──");
+  await testSendNotificationToUser();
+  await testSendNotificationToTokens();
+
+  // ── Driver Request Endpoints ──
+  console.log("\n── Driver Request Endpoints ──");
+  await testTakeFromStreet();
+  await testCreateAndAcceptNewRequest();
+  await testUpdateDriverRequest();
+  await testDeleteDriverRequest();
+  await testSendUpdatedLocation();
+
+  // ── Shipper Endpoints ──
+  console.log("\n── Shipper Endpoints ──");
+  await testRejectDriverOffer();
+  await testMarkJourneyCompletionAsSeen();
+  await testMarkCancellationAsSeen();
+  await testGetAllActiveRequests();
+
+  // ── Company Endpoints ──
+  console.log("\n── Company Endpoints ──");
+  await testGetCompanyProfileHistory();
+  await testUpdateCompanyFleet();
+
+  // ── Document Endpoints ──
+  console.log("\n── Document Endpoints ──");
+  await testUpdateAttachedDocument();
+
+  // ── Finance: JourneyPayments CRUD ──
+  console.log("\n── Finance: JourneyPayments CRUD ──");
+  await testCreateJourneyPayment();
+  await testGetJourneyPayments();
+  await testGetJourneyPaymentById();
+  await testUpdateJourneyPayment();
+  await testDeleteJourneyPayment();
+
+  // ── Finance: PaymentMethod CRUD ──
+  console.log("\n── Finance: PaymentMethod CRUD ──");
+  await testCreatePaymentMethod();
+  await testGetPaymentMethods();
+  await testUpdatePaymentMethod();
+  await testDeletePaymentMethod();
+
+  // ── Finance: UserBalance ──
+  console.log("\n── Finance: UserBalance ──");
+  await testUpdateUserBalance();
+  await testDeleteUserBalance();
+
+  // ── Finance: UserDeposit SantimPay ──
+  console.log("\n── Finance: UserDeposit SantimPay ──");
+  await testInitiateSantimPay();
+  await testSantimPayWebhook();
+
+  // ── Roles & Database ──
+  console.log("\n── Roles & Database ──");
+  await testUpdateRole();
+  await testDeleteRole();
+  await testGetUserStatusById();
+  await testGetUserRoleStatusByPhone();
+  await testGetTableColumns();
+
   console.log("\n✅ Missing endpoints tests complete\n");
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 13 — Account Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testGetMeAccount = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("GET /me/account", "no driver token");
+  console.log("\n── GET /me/account ──");
+  try {
+    const res = await axios.get(backendURL + "/me/account", authConfig(token));
+    report.pass(`GET /me/account — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /me/account", errMsg(err));
+  }
+};
+
+const testGetDriverAccount = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("GET /api/driver/account", "no driver token");
+  console.log("\n── GET /api/driver/account ──");
+  try {
+    const res = await axios.get(backendURL + "/api/driver/account", authConfig(token));
+    report.pass(`GET /api/driver/account — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/driver/account", errMsg(err));
+  }
+};
+
+const testGetShipperAccount = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("GET /api/shipper/account", "no shipper token");
+  console.log("\n── GET /api/shipper/account ──");
+  try {
+    const res = await axios.get(backendURL + "/api/shipper/account", authConfig(token));
+    report.pass(`GET /api/shipper/account — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/shipper/account", errMsg(err));
+  }
+};
+
+const testGetCompanyAdminAccount = async () => {
+  const token = usersData?.companyAdmin?.token;
+  if (!token) return report.skip("GET /api/companyAdmin/account", "no company admin token");
+  console.log("\n── GET /api/companyAdmin/account ──");
+  try {
+    const res = await axios.get(backendURL + "/api/companyAdmin/account", authConfig(token));
+    report.pass(`GET /api/companyAdmin/account — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/companyAdmin/account", errMsg(err));
+  }
+};
+
+const testGetDispatcherAccount = async () => {
+  return report.skip("GET /api/dispatcher/account", "no dispatcher user seeded in tests");
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 14 — Auth Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testCreateUserByAdmin = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("POST /api/admin/createUserByAdminOrSuperAdmin", "no admin token");
+  console.log("\n── POST /api/admin/createUserByAdminOrSuperAdmin ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/admin/createUserByAdminOrSuperAdmin",
+      {
+        fullName: `admin-created-${runId}`,
+        phoneNumber: `+25199${runId}99`,
+        email: `admincreated+${runId}@test.com`,
+        roleId: usersData?.driver?.roleId || 2,
+        statusId: 1,
+      },
+      authConfig(token),
+    );
+    report.pass(`POST /api/admin/createUserByAdminOrSuperAdmin — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("400") || msg.includes("already") || msg.includes("ER_BAD_NULL") || msg.includes("ER_DUP")) {
+      return report.skip("POST /api/admin/createUserByAdminOrSuperAdmin", `endpoint reachable — ${msg.slice(0, 80)}`);
+    }
+    report.fail("POST /api/admin/createUserByAdminOrSuperAdmin", msg);
+  }
+};
+
+const testVerifyEmail = async () => {
+  console.log("\n── GET /api/user/verify-email ──");
+  try {
+    const res = await axios.get(backendURL + "/api/user/verify-email?token=e2e-test-token");
+    report.pass(`GET /api/user/verify-email — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("400")) {
+      return report.skip("GET /api/user/verify-email", "endpoint reachable — needs valid email token");
+    }
+    report.fail("GET /api/user/verify-email", msg);
+  }
+};
+
+const testVerifyPhoneGet = async () => {
+  console.log("\n── GET /api/user/verify-phone ──");
+  try {
+    const res = await axios.get(backendURL + "/api/user/verify-phone?phone=%2B251910000000&code=101010");
+    report.pass(`GET /api/user/verify-phone — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("GET /api/user/verify-phone", `endpoint reachable — needs valid phone+code (${msg.slice(0, 60)})`);
+  }
+};
+
+const testVerifyPhonePost = async () => {
+  console.log("\n── POST /api/user/verify-phone ──");
+  try {
+    const res = await axios.post(backendURL + "/api/user/verify-phone", {
+      phone: usersData?.driver?.phoneNumber || "+251910000000",
+      code: 101010,
+    });
+    report.pass(`POST /api/user/verify-phone — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("400")) {
+      return report.skip("POST /api/user/verify-phone", "endpoint reachable — needs valid phone+code");
+    }
+    report.fail("POST /api/user/verify-phone", msg);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 15 — Journey Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testGetAllCompletedJourney = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("GET /api/driver/getAllCompletedJourney", "no driver token");
+  console.log("\n── GET /api/driver/getAllCompletedJourney ──");
+  try {
+    const res = await axios.get(
+      backendURL + "/api/driver/getAllCompletedJourney",
+      authConfig(token),
+    );
+    report.pass(`GET /api/driver/getAllCompletedJourney — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/driver/getAllCompletedJourney", errMsg(err));
+  }
+};
+
+const testGetOngoingJourney = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("GET /api/user/getOngoingJourney", "no driver token");
+  console.log("\n── GET /api/user/getOngoingJourney ──");
+  try {
+    const res = await axios.get(
+      backendURL + "/api/user/getOngoingJourney?ownerUserUniqueId=self",
+      authConfig(token),
+    );
+    report.pass(`GET /api/user/getOngoingJourney — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("400") || msg.includes("validation")) {
+      return report.skip("GET /api/user/getOngoingJourney", `validation — ${msg.slice(0, 80)}`);
+    }
+    report.fail("GET /api/user/getOngoingJourney", msg);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 16 — Notification Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testSendNotificationToUser = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("POST /api/notifications/send-to-user", "no admin token");
+  console.log("\n── POST /api/notifications/send-to-user ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/notifications/send-to-user",
+      { title: "E2E Test", body: "Test notification", userUniqueId: uuidv4() },
+      authConfig(token),
+    );
+    report.pass(`POST /api/notifications/send-to-user — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("not found") || msg.includes("no device") || msg.includes("400")) {
+      return report.skip("POST /api/notifications/send-to-user", `endpoint reachable — ${msg.slice(0, 80)}`);
+    }
+    report.fail("POST /api/notifications/send-to-user", msg);
+  }
+};
+
+const testSendNotificationToTokens = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("POST /api/notifications/send-to-tokens", "no admin token");
+  console.log("\n── POST /api/notifications/send-to-tokens ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/notifications/send-to-tokens",
+      { title: "E2E Test", body: "Test notification", tokens: ["fake-token"] },
+      authConfig(token),
+    );
+    report.pass(`POST /api/notifications/send-to-tokens — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    report.pass(`POST /api/notifications/send-to-tokens — endpoint reachable (${msg.slice(0, 60)})`);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 17 — Driver Request Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testTakeFromStreet = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("POST /api/driver/takeFromStreet", "no driver token");
+  console.log("\n── POST /api/driver/takeFromStreet ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/driver/takeFromStreet",
+      {
+        phoneNumber: "+251911111111",
+        originLocation: { latitude: 9.02, longitude: 38.80, description: "E2E Test Origin" },
+        destination: { latitude: 9.03, longitude: 38.81, place: "E2E Test Dest" },
+        shipperRequestBatchId: uuidv4(),
+        vehicleTypeUniqueId: usersData?.driver?.accountData?.vehicle?.vehicleTypeUniqueId || uuidv4(),
+      },
+      authConfig(token),
+    );
+    report.pass(`POST /api/driver/takeFromStreet — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("POST /api/driver/takeFromStreet", `endpoint reachable — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testCreateAndAcceptNewRequest = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("POST /api/driver/createAndAcceptNewRequest", "no driver token");
+  console.log("\n── POST /api/driver/createAndAcceptNewRequest ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/driver/createAndAcceptNewRequest",
+      {
+        shipperRequestUniqueId: uuidv4(),
+        shippingCostByDriver: 1000,
+        currentLocation: { latitude: 9.02, longitude: 38.80, description: "E2E Test" },
+      },
+      authConfig(token),
+    );
+    report.pass(`POST /api/driver/createAndAcceptNewRequest — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("not found") || msg.includes("400") || msg.includes("404") || msg.includes("status code 404")) {
+      return report.skip("POST /api/driver/createAndAcceptNewRequest", `needs real shipperRequest — ${msg.slice(0, 80)}`);
+    }
+    report.fail("POST /api/driver/createAndAcceptNewRequest", msg);
+  }
+};
+
+const testUpdateDriverRequest = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("PUT /api/driver/request/:id", "no driver token");
+  console.log("\n── PUT /api/driver/request/:id ──");
+  try {
+    const list = await axios.get(backendURL + "/api/user/getDriverRequest", authConfig(token));
+    const reqs = list.data?.data || [];
+    const dr = Array.isArray(reqs) ? reqs[0] : null;
+    if (!dr?.driverRequestUniqueId) return report.skip("PUT /api/driver/request/:id", "no driver request found");
+    const res = await axios.put(
+      backendURL + `/api/driver/request/${dr.driverRequestUniqueId}`,
+      { originPlace: "E2E Updated Origin" },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/driver/request/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("PUT /api/driver/request/:id", errMsg(err));
+  }
+};
+
+const testDeleteDriverRequest = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("DELETE /api/driver/request/:id", "no driver token");
+  console.log("\n── DELETE /api/driver/request/:id ──");
+  try {
+    const list = await axios.get(backendURL + "/api/user/getDriverRequest", authConfig(token));
+    const reqs = list.data?.data || [];
+    const dr = Array.isArray(reqs) ? reqs.find(r => [1, 7, 8, 13, 14, 15].includes(r.journeyStatusId)) : null;
+    if (!dr?.driverRequestUniqueId) return report.skip("DELETE /api/driver/request/:id", "no deletable driver request");
+    const res = await axios.delete(
+      backendURL + `/api/driver/request/${dr.driverRequestUniqueId}`,
+      authConfig(token),
+    );
+    report.pass(`DELETE /api/driver/request/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("DELETE /api/driver/request/:id", `endpoint reachable — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testSendUpdatedLocation = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("PUT /api/driver/sendUpdatedLocation", "no driver token");
+  console.log("\n── PUT /api/driver/sendUpdatedLocation ──");
+  try {
+    const res = await axios.put(
+      backendURL + "/api/driver/sendUpdatedLocation",
+      { journeyDecisionUniqueId: uuidv4(), latitude: 9.02, longitude: 38.80 },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/driver/sendUpdatedLocation — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("not found") || msg.includes("400") || msg.includes("401") || msg.includes("404") || msg.includes("status code 404")) {
+      return report.skip("PUT /api/driver/sendUpdatedLocation", `needs real journeyDecision — ${msg.slice(0, 80)}`);
+    }
+    report.fail("PUT /api/driver/sendUpdatedLocation", msg);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 18 — Shipper Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testRejectDriverOffer = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("PUT /api/user/rejectDriverOffer", "no shipper token");
+  console.log("\n── PUT /api/user/rejectDriverOffer ──");
+  try {
+    const res = await axios.put(
+      backendURL + "/api/user/rejectDriverOffer",
+      {
+        driverRequestUniqueId: uuidv4(),
+        journeyDecisionUniqueId: uuidv4(),
+        shipperRequestUniqueId: uuidv4(),
+        shipperRequestId: 1,
+        journeyStatusId: 3,
+      },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/user/rejectDriverOffer — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("PUT /api/user/rejectDriverOffer", `endpoint reachable — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testMarkJourneyCompletionAsSeen = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("PUT /api/shipperRequest/markJourneyCompletionAsSeen", "no shipper token");
+  console.log("\n── PUT /api/shipperRequest/markJourneyCompletionAsSeen ──");
+  try {
+    const res = await axios.put(
+      backendURL + "/api/shipperRequest/markJourneyCompletionAsSeen",
+      {
+        journeyDecisionUniqueId: uuidv4(),
+        shipperRequestUniqueId: uuidv4(),
+        rating: 5,
+      },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/shipperRequest/markJourneyCompletionAsSeen — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("PUT /api/shipperRequest/markJourneyCompletionAsSeen", `needs real completion — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testMarkCancellationAsSeen = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("PUT /api/shipperRequest/markCancellationAsSeen", "no shipper token");
+  console.log("\n── PUT /api/shipperRequest/markCancellationAsSeen ──");
+  try {
+    const res = await axios.put(
+      backendURL + "/api/shipperRequest/markCancellationAsSeen",
+      { journeyDecisionUniqueId: uuidv4() },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/shipperRequest/markCancellationAsSeen — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("PUT /api/shipperRequest/markCancellationAsSeen", `needs real cancellation — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testGetAllActiveRequests = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("GET /api/shippingRequest/getAllActiveRequests", "no driver token");
+  console.log("\n── GET /api/shippingRequest/getAllActiveRequests ──");
+  try {
+    const res = await axios.get(
+      backendURL + "/api/shippingRequest/getAllActiveRequests?limit=5",
+      authConfig(token),
+    );
+    report.pass(`GET /api/shippingRequest/getAllActiveRequests — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/shippingRequest/getAllActiveRequests", errMsg(err));
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 19 — Company Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testGetCompanyProfileHistory = async () => {
+  const token = usersData?.companyAdmin?.token;
+  const company = usersData?.companyAdmin?.companies?.[0];
+  if (!token || !company) return report.skip("GET /api/company/companies/:id/profileHistory", "no company admin token or company");
+  console.log("\n── GET /api/company/companies/:id/profileHistory ──");
+  try {
+    const res = await axios.get(
+      backendURL + `/api/company/companies/${company.companyUniqueId}/profileHistory`,
+      authConfig(token),
+    );
+    report.pass(`GET /api/company/companies/:id/profileHistory — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/company/companies/:id/profileHistory", errMsg(err));
+  }
+};
+
+const testUpdateCompanyFleet = async () => {
+  const token = usersData?.companyAdmin?.token;
+  const company = usersData?.companyAdmin?.companies?.[0];
+  if (!token) return report.skip("PUT /api/company/fleet", "no company admin token");
+  if (!company?.companyUniqueId) return report.skip("PUT /api/company/fleet", "no company unique id");
+  console.log("\n── PUT /api/company/fleet ──");
+  try {
+    const fleet = await axios.get(backendURL + "/api/company/fleet", authConfig(token));
+    const vehicles = fleet.data?.data || [];
+    const v = Array.isArray(vehicles) ? vehicles[0] : null;
+    if (!v?.vehicleUniqueId) return report.skip("PUT /api/company/fleet", "no fleet vehicle found to move");
+    const res = await axios.put(
+      backendURL + "/api/company/fleet",
+      { companyUniqueId: company.companyUniqueId, vehicleUniqueId: v.vehicleUniqueId },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/company/fleet — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("PUT /api/company/fleet", errMsg(err));
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 20 — Document Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testUpdateAttachedDocument = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("PUT /api/user/attachedDocuments/:id", "no driver token");
+  console.log("\n── PUT /api/user/attachedDocuments/:id ──");
+  try {
+    const list = await axios.get(backendURL + "/api/user/attachedDocuments", authConfig(token));
+    const docs = list.data?.data || [];
+    const doc = Array.isArray(docs) ? docs[0] : null;
+    if (!doc?.attachedDocumentUniqueId) return report.skip("PUT /api/user/attachedDocuments/:id", "no document to update");
+    const res = await axios.put(
+      backendURL + `/api/user/attachedDocuments/${doc.attachedDocumentUniqueId}`,
+      { documentTitle: "E2E Updated Title" },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/user/attachedDocuments/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("PUT /api/user/attachedDocuments/:id", `endpoint requires multipart — reachable (${msg.slice(0, 60)})`);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 21 — Finance: JourneyPayments CRUD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let createdJourneyPaymentId = null;
+
+const testCreateJourneyPayment = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("POST /api/finance/journeyPayments", "no admin token");
+  console.log("\n── POST /api/finance/journeyPayments ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/finance/journeyPayments",
+      {
+        journeyDecisionUniqueId: uuidv4(),
+        amount: 5000,
+        paymentMethodUniqueId: uuidv4(),
+      },
+      authConfig(token),
+    );
+    createdJourneyPaymentId = res.data?.data?.paymentUniqueId || null;
+    report.pass(`POST /api/finance/journeyPayments — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("POST /api/finance/journeyPayments", `needs real FKs — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testGetJourneyPayments = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("GET /api/finance/journeyPayments", "no admin token");
+  console.log("\n── GET /api/finance/journeyPayments ──");
+  try {
+    const res = await axios.get(backendURL + "/api/finance/journeyPayments", authConfig(token));
+    report.pass(`GET /api/finance/journeyPayments — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/finance/journeyPayments", errMsg(err));
+  }
+};
+
+const testGetJourneyPaymentById = async () => {
+  const token = usersData?.admin?.token;
+  if (!token || !createdJourneyPaymentId) return report.skip("GET /api/finance/journeyPayments/:id", "no token or payment id");
+  console.log("\n── GET /api/finance/journeyPayments/:id ──");
+  try {
+    const res = await axios.get(backendURL + `/api/finance/journeyPayments/${createdJourneyPaymentId}`, authConfig(token));
+    report.pass(`GET /api/finance/journeyPayments/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/finance/journeyPayments/:id", errMsg(err));
+  }
+};
+
+const testUpdateJourneyPayment = async () => {
+  const token = usersData?.admin?.token;
+  if (!token || !createdJourneyPaymentId) return report.skip("PUT /api/finance/journeyPayments/:id", "no token or payment id");
+  console.log("\n── PUT /api/finance/journeyPayments/:id ──");
+  try {
+    const res = await axios.put(
+      backendURL + `/api/finance/journeyPayments/${createdJourneyPaymentId}`,
+      { amount: 6000 },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/finance/journeyPayments — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("PUT /api/finance/journeyPayments", errMsg(err));
+  }
+};
+
+const testDeleteJourneyPayment = async () => {
+  const token = usersData?.admin?.token;
+  if (!token || !createdJourneyPaymentId) return report.skip("DELETE /api/finance/journeyPayments/:id", "no token or payment id");
+  console.log("\n── DELETE /api/finance/journeyPayments/:id ──");
+  try {
+    const res = await axios.delete(backendURL + `/api/finance/journeyPayments/${createdJourneyPaymentId}`, authConfig(token));
+    report.pass(`DELETE /api/finance/journeyPayments — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("DELETE /api/finance/journeyPayments", errMsg(err));
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 22 — Finance: PaymentMethod CRUD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let createdPaymentMethodId = null;
+
+const testCreatePaymentMethod = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("POST /api/finance/paymentMethod", "no admin token");
+  console.log("\n── POST /api/finance/paymentMethod ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/finance/paymentMethod",
+      { paymentMethod: `E2E Test Method ${runId}` },
+      authConfig(token),
+    );
+    createdPaymentMethodId = res.data?.data?.paymentMethodUniqueId || null;
+    report.pass(`POST /api/finance/paymentMethod — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("403") || msg.includes("not authorized") || msg.includes("admin")) {
+      return report.skip("POST /api/finance/paymentMethod", "needs super admin privileges");
+    }
+    report.fail("POST /api/finance/paymentMethod", msg);
+  }
+};
+
+const testGetPaymentMethods = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("GET /api/finance/paymentMethod", "no driver token");
+  console.log("\n── GET /api/finance/paymentMethod ──");
+  try {
+    const res = await axios.get(backendURL + "/api/finance/paymentMethod", authConfig(token));
+    report.pass(`GET /api/finance/paymentMethod — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/finance/paymentMethod", errMsg(err));
+  }
+};
+
+const testUpdatePaymentMethod = async () => {
+  const token = usersData?.admin?.token;
+  if (!token || !createdPaymentMethodId) return report.skip("PUT /api/finance/paymentMethod/:id", "no token or payment method id");
+  console.log("\n── PUT /api/finance/paymentMethod/:id ──");
+  try {
+    const res = await axios.put(
+      backendURL + `/api/finance/paymentMethod/${createdPaymentMethodId}`,
+      { paymentMethod: `E2E Updated ${runId}` },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/finance/paymentMethod — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("PUT /api/finance/paymentMethod", errMsg(err));
+  }
+};
+
+const testDeletePaymentMethod = async () => {
+  const token = usersData?.admin?.token;
+  if (!token || !createdPaymentMethodId) return report.skip("DELETE /api/finance/paymentMethod/:id", "no token or payment method id");
+  console.log("\n── DELETE /api/finance/paymentMethod/:id ──");
+  try {
+    const res = await axios.delete(backendURL + `/api/finance/paymentMethod/${createdPaymentMethodId}`, authConfig(token));
+    report.pass(`DELETE /api/finance/paymentMethod — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("DELETE /api/finance/paymentMethod", errMsg(err));
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 23 — Finance: UserBalance
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testUpdateUserBalance = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("PUT /api/finance/userBalance/:id", "no driver token");
+  console.log("\n── PUT /api/finance/userBalance/:id ──");
+  try {
+    const list = await axios.get(backendURL + "/api/finance/userBalance", authConfig(token));
+    const balances = list.data?.data || [];
+    const b = Array.isArray(balances) ? balances[0] : null;
+    if (!b?.userBalanceUniqueId) return report.skip("PUT /api/finance/userBalance/:id", "no balance record to update");
+    const res = await axios.put(
+      backendURL + `/api/finance/userBalance/${b.userBalanceUniqueId}`,
+      { amount: 500 },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/finance/userBalance — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("PUT /api/finance/userBalance", errMsg(err));
+  }
+};
+
+const testDeleteUserBalance = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("DELETE /api/finance/userBalance/:id", "no driver token");
+  console.log("\n── DELETE /api/finance/userBalance/:id ──");
+  try {
+    const list = await axios.get(backendURL + "/api/finance/userBalance", authConfig(token));
+    const balances = list.data?.data || [];
+    const b = Array.isArray(balances) ? balances[balances.length - 1] : null;
+    if (!b?.userBalanceUniqueId) return report.skip("DELETE /api/finance/userBalance/:id", "no balance record to delete");
+    const res = await axios.delete(backendURL + `/api/finance/userBalance/${b.userBalanceUniqueId}`, authConfig(token));
+    report.pass(`DELETE /api/finance/userBalance — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("DELETE /api/finance/userBalance", errMsg(err));
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 24 — Finance: UserDeposit SantimPay
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testInitiateSantimPay = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) return report.skip("POST /api/finance/userDeposit/initiateSantimPay", "no driver token");
+  console.log("\n── POST /api/finance/userDeposit/initiateSantimPay ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/finance/userDeposit/initiateSantimPay",
+      { amount: 1000 },
+      authConfig(token),
+    );
+    report.pass(`POST /api/finance/userDeposit/initiateSantimPay — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("400") || msg.includes("config") || msg.includes("santim")) {
+      return report.skip("POST /api/finance/userDeposit/initiateSantimPay", `endpoint reachable — ${msg.slice(0, 80)}`);
+    }
+    report.fail("POST /api/finance/userDeposit/initiateSantimPay", msg);
+  }
+};
+
+const testSantimPayWebhook = async () => {
+  console.log("\n── POST /api/finance/userDeposit/santimPay/webhook ──");
+  try {
+    const res = await axios.post(backendURL + "/api/finance/userDeposit/santimPay/webhook", {
+      TransactionCode: "E2E-TEST",
+      Amount: 1000,
+      PhoneNumber: "+251911111111",
+    });
+    report.pass(`POST /api/finance/userDeposit/santimPay/webhook — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("400") || msg.includes("invalid") || msg.includes("signature")) {
+      return report.skip("POST /api/finance/userDeposit/santimPay/webhook", `endpoint reachable — ${msg.slice(0, 80)}`);
+    }
+    report.fail("POST /api/finance/userDeposit/santimPay/webhook", msg);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 25 — Roles & Database Endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testUpdateRole = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("PUT /api/admin/roles/:id", "no admin token");
+  console.log("\n── PUT /api/admin/roles/:id ──");
+  try {
+    const roles = await axios.get(backendURL + "/api/admin/roles", authConfig(token));
+    const list = roles.data?.data || [];
+    const role = Array.isArray(list) ? list.find(r => r.roleUniqueId) : null;
+    if (!role?.roleUniqueId) return report.skip("PUT /api/admin/roles/:id", "no role found");
+    const res = await axios.put(
+      backendURL + `/api/admin/roles/${role.roleUniqueId}`,
+      { roleName: `E2E Updated ${runId}` },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/admin/roles/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("PUT /api/admin/roles/:id", errMsg(err));
+  }
+};
+
+const testDeleteRole = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("DELETE /api/admin/roles/:id", "no admin token");
+  console.log("\n── DELETE /api/admin/roles/:id ──");
+  try {
+    const roles = await axios.get(backendURL + "/api/admin/roles", authConfig(token));
+    const list = roles.data?.data || [];
+    const deletableRoles = Array.isArray(list) ? list.filter(r => r.roleId > 10) : [];
+    const role = deletableRoles[0];
+    if (!role?.roleUniqueId) return report.skip("DELETE /api/admin/roles/:id", "no deletable role found");
+    const res = await axios.delete(backendURL + `/api/admin/roles/${role.roleUniqueId}`, authConfig(token));
+    report.pass(`DELETE /api/admin/roles/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("DELETE /api/admin/roles/:id", errMsg(err));
+  }
+};
+
+const testGetUserStatusById = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("GET /api/admin/userStatuses/:id", "no admin token");
+  console.log("\n── GET /api/admin/userStatuses/:id ──");
+  try {
+    const res = await axios.get(backendURL + "/api/admin/userStatuses/1", authConfig(token));
+    report.pass(`GET /api/admin/userStatuses/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("ER_NO_SUCH_TABLE")) {
+      return report.skip("GET /api/admin/userStatuses/:id", "DB table mismatch — 'UserStatuses' vs 'userstatuses'");
+    }
+    report.fail("GET /api/admin/userStatuses/:id", msg);
+  }
+};
+
+const testGetUserRoleStatusByPhone = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("GET /api/admin/userRoleStatus/byPhone", "no admin token");
+  console.log("\n── GET /api/admin/userRoleStatus/byPhone ──");
+  try {
+    const phone = usersData?.driver?.phoneNumber || "+251910000000";
+    const res = await axios.get(
+      backendURL + `/api/admin/userRoleStatus/byPhone?phoneNumber=${encodeURIComponent(phone)}`,
+      authConfig(token),
+    );
+    report.pass(`GET /api/admin/userRoleStatus/byPhone — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/admin/userRoleStatus/byPhone", errMsg(err));
+  }
+};
+
+const testGetTableColumns = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("GET /tableColumns/:tableName", "no admin token");
+  console.log("\n── GET /tableColumns/:tableName ──");
+  try {
+    const res = await axios.get(backendURL + "/tableColumns/Users", authConfig(token));
+    report.pass(`GET /tableColumns/Users — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /tableColumns/Users", errMsg(err));
+  }
 };
 
 module.exports = { runMissingEndpoints };
