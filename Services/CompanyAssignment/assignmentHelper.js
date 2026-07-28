@@ -14,8 +14,10 @@ const {
   journeyStatusMap,
   usersRoles,
   CANCELED_JOURNEY_CONTEXTS,
+  COMPANY_REPLACED_INDIVIDUAL_REASON,
 } = require("../../Utils/ListOfSeedData");
 const { createCanceledJourney } = require("../CanceledJourneys");
+const { getCancellationReasonIdByName } = require("../Cancellation.service");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const {
   sendSocketIONotificationToDriver,
@@ -393,11 +395,12 @@ const upsertDriverRequest = async ({
             const shipperUserUniqueId     = jdPkRow?.[0]?.shipperUserUniqueId;
 
             if (journeyDecisionId) {
+              const companyReasonId = await getCancellationReasonIdByName(COMPANY_REPLACED_INDIVIDUAL_REASON);
               await createCanceledJourney({
                 contextId:                 journeyDecisionId,
                 contextType:               CANCELED_JOURNEY_CONTEXTS.JOURNEY_DECISIONS,
-                canceledBy:                driverUserUniqueId, // driver whose slot is being taken over
-                cancellationReasonsTypeId: 19,                 // "App-related technical issue" (admin/system reason)
+                canceledBy:                driverUserUniqueId,
+                cancellationReasonsTypeId: companyReasonId || 1,
                 roleId:                    usersRoles.driverRoleId,
                 driverUserUniqueId,
                 shipperUserUniqueId:       shipperUserUniqueId ?? null,

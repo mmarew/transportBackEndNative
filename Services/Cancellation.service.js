@@ -237,9 +237,25 @@ const getAllCancellationReasons = async (filters = {}) => {
   };
 };
 
+/**
+ * Looks up a CancellationReasonsType row by its reason text.
+ * Returns the numeric cancellationReasonsTypeId, or null if not found.
+ *
+ * @param {string} cancellationReason — exact text match
+ * @returns {Promise<number|null>}
+ */
+const getCancellationReasonIdByName = async (cancellationReason) => {
+  const [rows] = await pool.query(
+    "SELECT cancellationReasonsTypeId FROM CancellationReasonsType WHERE cancellationReason = ? LIMIT 1",
+    [cancellationReason],
+  );
+  return rows.length > 0 ? rows[0].cancellationReasonsTypeId : null;
+};
+
 module.exports = {
   getAllCancellationReasons,
   addCancellationReason,
   deleteCancellationReason,
   updateCancellationReason,
+  getCancellationReasonIdByName,
 };

@@ -821,6 +821,8 @@ const cancellationReasons = [
   { cancellationReason: "Company account suspended during an active batch", roleId: 3, requestMode: "company" },
   { cancellationReason: "Fraud or platform policy violation detected", roleId: 3, requestMode: "both" },
   { cancellationReason: "Duplicate request detected by the system", roleId: 3, requestMode: "both" },
+  // ── System-initiated: company fleet assignment overrides individual match ──
+  { cancellationReason: "Individual request replaced by company fleet assignment — driver reassigned to company-managed freight job", roleId: 3, requestMode: "both" },
 ];
 const paymentStatus = [
   {
@@ -1114,6 +1116,7 @@ const CANCELED_JOURNEY_CONTEXTS = {
   JOURNEY: "Journey",
 };
 module.exports = {
+  COMPANY_REPLACED_INDIVIDUAL_REASON: "Individual request replaced by company fleet assignment — driver reassigned to company-managed freight job",
   CANCELED_JOURNEY_CONTEXTS,
   listOfDelinquenciesTypes,
   listOfVehicleStatusTypes,
