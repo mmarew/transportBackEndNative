@@ -54,10 +54,44 @@ const testCreateAdminFlow = async () => {
 
 const { testUserRoleWorkflow, testGetUserRoles } = require("./UserRole");
 const { testAdminDashboardFlow } = require("./Dashboard");
+const {
+  testGetDatabaseStats,
+  testGetSystemLogs,
+  testGetSystemUploads,
+  testGetOnlineDrivers,
+  testGetOfflineDrivers,
+  testGetAllActiveDrivers,
+  testGetUnAuthorizedDriver,
+  testGetUserByFilterDetailed,
+  testClearCache,
+  testCreateUserByAdmin,
+  testSendNotificationToUser,
+  testSendNotificationToTokens,
+  testGetUserStatusById,
+  testGetUserRoleStatusByPhone,
+  testGetTableColumns,
+  runSystemAdminTests,
+} = require("./SystemAdmin");
 
 module.exports = {
   testCreateAdminFlow,
   testUserRoleWorkflow,
   testGetUserRoles,
   testAdminDashboardFlow,
+  testGetDatabaseStats,
+  testGetSystemLogs,
+  testGetSystemUploads,
+  testGetOnlineDrivers,
+  testGetOfflineDrivers,
+  testGetAllActiveDrivers,
+  testGetUnAuthorizedDriver,
+  testGetUserByFilterDetailed,
+  testClearCache,
+  testCreateUserByAdmin,
+  testSendNotificationToUser,
+  testSendNotificationToTokens,
+  testGetUserStatusById,
+  testGetUserRoleStatusByPhone,
+  testGetTableColumns,
+  runSystemAdminTests,
 };

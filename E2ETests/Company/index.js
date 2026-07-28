@@ -38,6 +38,8 @@ const {
   testCompanyRatingWorkflow,
   testGetCompanyRatings,
 } = require("./CompanyRating");
+const { testGetCompanyAssignments } = require("./DriversAssignment");
+const { testGetCompanyBids } = require("./BidManagement");
 
 module.exports = {
   createCompanyAdminFlow,
@@ -50,4 +52,6 @@ module.exports = {
   testGetCompanyRoles,
   testCompanyRatingWorkflow,
   testGetCompanyRatings,
+  testGetCompanyAssignments,
+  testGetCompanyBids,
 };

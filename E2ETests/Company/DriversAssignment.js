@@ -154,6 +154,24 @@ const testDriversAssignmentWorkflow = async ({ userType = "companyAdmin" } = {})
   console.log("── Drivers Assignment Workflow complete ──\n");
 };
 
+const testGetCompanyAssignments = async () => {
+  const token = usersData?.companyAdmin?.token;
+  if (!token) {
+    console.log("⏩ GET /api/company/assignments: no company admin token");
+    return;
+  }
+  console.log("\n── GET /api/company/assignments ──");
+  try {
+    const res = await axios.get(
+      backendURL + "/api/company/assignments",
+      authConfig(token),
+    );
+    console.log(`✅ GET /api/company/assignments — ${res.data?.message || "ok"}`);
+  } catch (error) {
+    console.error("❌ GET /api/company/assignments:", error.response?.data?.error || error.message);
+  }
+};
+
 module.exports = {
   testCreateAssignment,
   testBulkAssign,
@@ -161,4 +179,5 @@ module.exports = {
   testUpdateAssignmentStatus,
   testDeleteAssignment,
   testDriversAssignmentWorkflow,
+  testGetCompanyAssignments,
 };

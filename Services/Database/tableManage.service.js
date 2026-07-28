@@ -175,11 +175,11 @@ const dropTable = async (tables) => {
 };
 
 const dropAllTables = async () => {
-  // Safety guard: uncomment the code below if you truly need to drop all tables.
-  // return {
-  //   message: "success",
-  //   data: "All tables dropped successfully",
-  // };
+  // Safety guard: dont comment this return block. it will distroy the whole database
+  return {
+    message: "success",
+    data: "All tables dropped successfully",
+  };
   const disableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 0;`;
   const enableForeignKeyChecks = `SET FOREIGN_KEY_CHECKS = 1;`;
   const maxRetries = 3;

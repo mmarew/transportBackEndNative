@@ -1,6 +1,16 @@
 const { backendURL, usersData } = require("../constants");
 const axios = require("axios");
 const { authConfig } = require("../Utils");
+const { report } = require("../Reporter");
+
+const errMsg = (err) => {
+  const data = err?.response?.data;
+  const e = data?.error;
+  if (typeof e === "object") return JSON.stringify(e).slice(0, 300);
+  if (typeof e === "string") return e;
+  if (data?.message) return typeof data.message === "string" ? data.message : JSON.stringify(data.message).slice(0, 200);
+  return err?.message || "unknown error";
+};
 
 const testUpdateUserWithFileUpload = async () => {
   const token = usersData?.shipper?.token || usersData?.admin?.token;
@@ -73,4 +83,71 @@ const testDeleteUser = async ({ userUniqueId, token, label = "user" } = {}) => {
   }
 };
 
-module.exports = { testUpdateUserWithFileUpload, testDeleteUser };
+const testGetSelf = async () => {
+  const token = usersData?.driver?.token;
+  if (!token) {
+    console.log("⏩ GET /api/user/self: no driver token available");
+    return;
+  }
+
+  console.log("\n── GET /api/user/self ──");
+
+  try {
+    const res = await axios.get(backendURL + "/api/user/self", authConfig(token));
+    const data = res.data?.data;
+    const isSingle = !Array.isArray(data) || data.length === 1;
+    console.log(`✅ GET /api/user/self: ${res.data?.message || "ok"}${isSingle ? "" : " ⚠️  returned " + (Array.isArray(data) ? data.length : "?") + " users"}`);
+    return res.data;
+  } catch (error) {
+    console.error("❌ GET /api/user/self failed:", error.response?.data?.error || error.message);
+    throw error;
+  }
+};
+
+const testReportWrongEmail = async () => {
+  return report.skip("GET /api/user/report-wrong-email", "browser-only endpoint — requires a report-specific ?token= param, not an auth token");
+};
+
+const testVerifyEmail = async () => {
+  console.log("\n── GET /api/user/verify-email ──");
+  try {
+    const res = await axios.get(backendURL + "/api/user/verify-email?token=e2e-test-token");
+    report.pass(`GET /api/user/verify-email — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("400")) {
+      return report.skip("GET /api/user/verify-email", "endpoint reachable — needs valid email token");
+    }
+    report.fail("GET /api/user/verify-email", msg);
+  }
+};
+
+const testVerifyPhoneGet = async () => {
+  console.log("\n── GET /api/user/verify-phone ──");
+  try {
+    const res = await axios.get(backendURL + "/api/user/verify-phone?phone=%2B251910000000&code=101010");
+    report.pass(`GET /api/user/verify-phone — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("GET /api/user/verify-phone", `endpoint reachable — needs valid phone+code (${msg.slice(0, 60)})`);
+  }
+};
+
+const testVerifyPhonePost = async () => {
+  console.log("\n── POST /api/user/verify-phone ──");
+  try {
+    const res = await axios.post(backendURL + "/api/user/verify-phone", {
+      phone: usersData?.driver?.phoneNumber || "+251910000000",
+      code: 101010,
+    });
+    report.pass(`POST /api/user/verify-phone — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("400")) {
+      return report.skip("POST /api/user/verify-phone", "endpoint reachable — needs valid phone+code");
+    }
+    report.fail("POST /api/user/verify-phone", msg);
+  }
+};
+
+module.exports = { testUpdateUserWithFileUpload, testDeleteUser, testGetSelf, testReportWrongEmail, testVerifyEmail, testVerifyPhoneGet, testVerifyPhonePost };

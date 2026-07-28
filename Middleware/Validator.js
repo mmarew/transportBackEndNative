@@ -61,7 +61,14 @@ const validator = (schema, source = "body") => {
     }
 
     // Replace validated data
-    req[source] = value;
+    // Express 5 uses defineGetter (no setter) for req.query, so direct
+    // assignment silently fails. Override the property descriptor instead.
+    Object.defineProperty(req, source, {
+      value,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
     next();
   };
 };

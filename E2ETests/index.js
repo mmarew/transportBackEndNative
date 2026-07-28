@@ -20,7 +20,49 @@ const {
   testCompanySocketNotifications,
 } = require("./Socket");
 const { runDriverRejectionTests } = require("./testDriverRejectionFlow");
-const { runMissingEndpoints } = require("./Expansion/missingEndpoints");
+const { runSystemAdminTests } = require("./Admin");
+const {
+  testGetAttachedDocuments,
+  testDeleteAttachedDocument,
+  testGetDocumentHistory,
+  testUpdateAttachedDocument,
+  testGetCompanyAttachedDocuments,
+  testGetCompanyDocumentHistory,
+  testGetVehicleAttachedDocuments,
+  testGetVehicleDocumentHistory,
+  testGetProfileHistory,
+} = require("./Documents");
+const {
+  testUpsertFCMToken,
+  testGetFCMToken,
+  testUpdateFCMToken,
+  testDeleteFCMToken,
+} = require("./FCMToken");
+const { runJourneyCountsTests } = require("./Journey");
+const { testGetCompanyAssignments, testGetCompanyBids } = require("./Company");
+const {
+  testCreateUserBalanceTransfer,
+  testGetUserBalanceTransfers,
+  testGetUserBalanceTransferById,
+  testUpdateUserBalanceTransfer,
+  testDeleteUserBalanceTransfer,
+  testCreateUserDeposit,
+  testGetUserDeposits,
+  testUpdateUserDeposit,
+  testDeleteUserDeposit,
+  testInitiateSantimPay,
+  testSantimPayWebhook,
+  testCreateUserSubscription,
+  testGetUserSubscriptions,
+  testUpdateUserSubscription,
+  testDeleteUserSubscription,
+} = require("./Finance");
+const {
+  testReportWrongEmail,
+  testVerifyEmail,
+  testVerifyPhoneGet,
+  testVerifyPhonePost,
+} = require("./Auth/User");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -54,6 +96,79 @@ const initiateTest = async () => {
     await authorizeDriversDocuments({});
     console.log("✅ Driver documents authorized\n");
 
+    // ── Document Endpoint Tests ────────────────────────────────────────────────
+    const runDocumentTests = async () => {
+      console.log("\n=======================================================");
+      console.log("   📄 TESTING DOCUMENT ENDPOINTS");
+      console.log("=======================================================\n");
+      await testGetAttachedDocuments();
+      await testDeleteAttachedDocument();
+      await testGetDocumentHistory();
+      await testUpdateAttachedDocument();
+      await testGetCompanyAttachedDocuments();
+      await testGetCompanyDocumentHistory();
+      await testGetVehicleAttachedDocuments();
+      await testGetVehicleDocumentHistory();
+      await testGetProfileHistory();
+      console.log("\n✅ Document endpoint tests complete\n");
+    };
+
+    // ── FCM Token Tests ───────────────────────────────────────────────────────
+    const runFCMTokenTests = async () => {
+      console.log("\n=======================================================");
+      console.log("   🔑 TESTING FCM TOKEN ENDPOINTS");
+      console.log("=======================================================\n");
+      await testUpsertFCMToken();
+      await testGetFCMToken();
+      await testUpdateFCMToken();
+      await testDeleteFCMToken();
+      console.log("\n✅ FCM token tests complete\n");
+    };
+
+    // ── Journey Counts Tests now uses runJourneyCountsTests from Journey/index.js
+
+    // ── Company Endpoint Tests ────────────────────────────────────────────────
+    const runCompanyEndpointTests = async () => {
+      console.log("\n── Company Endpoints ──");
+      await testGetCompanyAssignments();
+      await testGetCompanyBids();
+    };
+
+    // ── Finance: UserBalanceTransfer Tests ────────────────────────────────────
+    const runUserBalanceTransferTests = async () => {
+      console.log("\n── Finance: UserBalanceTransfer CRUD ──");
+      await testCreateUserBalanceTransfer();
+      await testGetUserBalanceTransfers();
+      await testGetUserBalanceTransferById();
+      await testUpdateUserBalanceTransfer();
+      await testDeleteUserBalanceTransfer();
+    };
+
+    // ── Finance: UserDeposit Tests ────────────────────────────────────────────
+    const runUserDepositTests = async () => {
+      console.log("\n── Finance: UserDeposit CRUD ──");
+      await testCreateUserDeposit();
+      await testGetUserDeposits();
+      await testUpdateUserDeposit();
+      await testDeleteUserDeposit();
+    };
+
+    // ── Finance: UserSubscription Tests ───────────────────────────────────────
+    const runUserSubscriptionTests = async () => {
+      console.log("\n── Finance: UserSubscription CRUD ──");
+      await testCreateUserSubscription();
+      await testGetUserSubscriptions();
+      await testUpdateUserSubscription();
+      await testDeleteUserSubscription();
+    };
+
+    // ── Finance: SantimPay Tests ──────────────────────────────────────────────
+    const runSantimPayTests = async () => {
+      console.log("\n── Finance: UserDeposit SantimPay ──");
+      await testInitiateSantimPay();
+      await testSantimPayWebhook();
+    };
+
     // ── Phase A-F ─────────────────────────────────────────────────────────────
     const safe = (label, fn) => async () => {
       try {
@@ -62,6 +177,13 @@ const initiateTest = async () => {
         console.error(`⚠️  ${label} failed, continuing: ${e.message}`);
       }
     };
+    await safe("runDocumentTests", runDocumentTests)();
+    await safe("runFCMTokenTests", runFCMTokenTests)();
+    await safe("runCompanyEndpointTests", runCompanyEndpointTests)();
+    await safe("runUserBalanceTransferTests", runUserBalanceTransferTests)();
+    await safe("runUserDepositTests", runUserDepositTests)();
+    await safe("runUserSubscriptionTests", runUserSubscriptionTests)();
+    await safe("runSantimPayTests", runSantimPayTests)();
     await safe("runReferenceCRUD", runReferenceCRUD)();
     await safe("runIndividualFlow", runIndividualFlow)();
     await safe("testUpdateUserWithFileUpload", testUpdateUserWithFileUpload)();
@@ -109,10 +231,15 @@ const initiateTest = async () => {
       await safe("runDriverRejectionTests", runDriverRejectionTests)();
     }
 
-    // ── Phase J: All missing endpoints coverage (BEFORE delete operations) ──
-    await safe("runMissingEndpoints", runMissingEndpoints)();
+    // ── Phase J: Journey counts, system admin & remaining coverage ─────
+    await safe("runJourneyCountsTests", runJourneyCountsTests)();
+    await safe("runSystemAdminTests", runSystemAdminTests)();
+    await safe("testReportWrongEmail", testReportWrongEmail)();
+    await safe("testVerifyEmail", testVerifyEmail)();
+    await safe("testVerifyPhoneGet", testVerifyPhoneGet)();
+    await safe("testVerifyPhonePost", testVerifyPhonePost)();
 
-    // ── Phase I: Previously untested endpoints (delete operations) ──────
+    // ── Phase K: Previously untested endpoints (delete operations) ──────
     console.log("\n=======================================================");
     console.log("   🧪 TESTING PREVIOUSLY UNTESTED ENDPOINTS");
     console.log("=======================================================\n");

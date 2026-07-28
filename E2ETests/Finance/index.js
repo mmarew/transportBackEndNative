@@ -49,6 +49,27 @@ const {
   testJourneyPaymentsWorkflow,
   testGetJourneyPayments,
 } = require("./JourneyPayments");
+const {
+  testCreateUserBalanceTransfer,
+  testGetUserBalanceTransfers,
+  testGetUserBalanceTransferById,
+  testUpdateUserBalanceTransfer,
+  testDeleteUserBalanceTransfer,
+} = require("./UserBalanceTransfer");
+const {
+  testCreateUserDeposit,
+  testGetUserDeposits,
+  testUpdateUserDeposit,
+  testDeleteUserDeposit,
+  testInitiateSantimPay,
+  testSantimPayWebhook,
+} = require("./UserDeposit");
+const {
+  testCreateUserSubscription,
+  testGetUserSubscriptions,
+  testUpdateUserSubscription,
+  testDeleteUserSubscription,
+} = require("./UserSubscription");
 
 module.exports = {
   testCommissionStatusWorkflow,
@@ -83,4 +104,19 @@ module.exports = {
   testGetPayments,
   testJourneyPaymentsWorkflow,
   testGetJourneyPayments,
+  testCreateUserBalanceTransfer,
+  testGetUserBalanceTransfers,
+  testGetUserBalanceTransferById,
+  testUpdateUserBalanceTransfer,
+  testDeleteUserBalanceTransfer,
+  testCreateUserDeposit,
+  testGetUserDeposits,
+  testUpdateUserDeposit,
+  testDeleteUserDeposit,
+  testInitiateSantimPay,
+  testSantimPayWebhook,
+  testCreateUserSubscription,
+  testGetUserSubscriptions,
+  testUpdateUserSubscription,
+  testDeleteUserSubscription,
 };

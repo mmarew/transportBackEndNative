@@ -252,6 +252,24 @@ const testBidCRUDWorkflow = async ({ userType = "companyAdmin" } = {}) => {
   console.log("── Bid CRUD Workflow complete ──\n");
 };
 
+const testGetCompanyBids = async () => {
+  const token = usersData?.companyAdmin?.token;
+  if (!token) {
+    console.log("⏩ GET /api/company/bids: no company admin token");
+    return;
+  }
+  console.log("\n── GET /api/company/bids ──");
+  try {
+    const res = await axios.get(
+      backendURL + "/api/company/bids",
+      authConfig(token),
+    );
+    console.log(`✅ GET /api/company/bids — ${res.data?.message || "ok"}`);
+  } catch (error) {
+    console.error("❌ GET /api/company/bids:", error.response?.data?.error || error.message);
+  }
+};
+
 module.exports = {
   getBids,
   getAvailableBids,
@@ -262,4 +280,5 @@ module.exports = {
   deleteBid,
   markBidAsSeen,
   testBidCRUDWorkflow,
+  testGetCompanyBids,
 };

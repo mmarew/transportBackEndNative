@@ -6,6 +6,14 @@ const { testCanceledJourneysWorkflow, testGetCanceledJourneys } = require("./Can
 const { testJourneyRoutePointsWorkflow, testGetJourneyRoutePoints } = require("./JourneyRoutePoints");
 const { testJourneyWorkflow, testGetJourneys, testGetOngoingJourney, testGetCompletedJourneys } = require("./Journey");
 const { testJourneyDecisionsWorkflow, testGetJourneyDecisions } = require("./JourneyDecisions");
+const {
+  testGetCompletedJourneyCountsByDate,
+  testGetCanceledJourneyCountsByDate,
+  testGetCanceledJourneyCountsByReason,
+  testGetCanceledJourneyByFilter,
+  testSearchCompletedJourneyByUserData,
+  runJourneyCountsTests,
+} = require("./JourneyCounts");
 
 module.exports = {
   testJourneyStatusWorkflow,
@@ -22,4 +30,10 @@ module.exports = {
   testGetCompletedJourneys,
   testJourneyDecisionsWorkflow,
   testGetJourneyDecisions,
+  testGetCompletedJourneyCountsByDate,
+  testGetCanceledJourneyCountsByDate,
+  testGetCanceledJourneyCountsByReason,
+  testGetCanceledJourneyByFilter,
+  testSearchCompletedJourneyByUserData,
+  runJourneyCountsTests,
 };
