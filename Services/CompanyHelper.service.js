@@ -5,7 +5,6 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const { pool } = require("../Middleware/Database.config");
 
 const db = () => transactionStorage.getStore() || pool;
-
 async function findOne(table, conditions, errorMsg, errorCode = 404) {
   const keys = Object.keys(conditions);
   const clauses = [];

@@ -282,10 +282,10 @@ exports.autoAssignBatch = async (data) => {
             },
           },
         }).catch((e) =>
-          logger.warn(
-            "WebSocket failed for shipper assignment notification",
-            { error: e.message, companyBidRequestUniqueId },
-          ),
+          logger.warn("WebSocket failed for shipper assignment notification", {
+            error: e.message,
+            companyBidRequestUniqueId,
+          }),
         );
       }
     } catch (e) {
