@@ -1,6 +1,7 @@
 "use strict";
 
-const { db, findOne } = require("../CompanyHelper.service");
+const { db } = require("../CompanyHelper.service");
+const { getData } = require("../../CRUD/Read/ReadData");
 
 /**
  * ### Partial Update — "Update only what I give you"
@@ -19,11 +20,11 @@ const { db, findOne } = require("../CompanyHelper.service");
  */
 exports.updateBatch = async (batchUniqueId, fields) => {
   // 1. Confirm it exists and is not deleted
-  const batch = await findOne(
-    "ShipperRequestBatch",
-    { batchUniqueId },
-    "Shipper request batch not found",
-  );
+  const [batch] = await getData({
+    tableName: "ShipperRequestBatch",
+    conditions: { batchUniqueId },
+  });
+  if (!batch) throw new AppError("Shipper request batch not found", 404);
   if (batch.batchDeletedAt) {
     throw new AppError("Batch has already been deleted", 400);
   }

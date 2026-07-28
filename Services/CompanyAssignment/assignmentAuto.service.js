@@ -3,7 +3,8 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const { db, findOne } = require("../CompanyHelper.service");
+const { db } = require("../CompanyHelper.service");
+const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const messageTypes = require("../../Utils/MessageTypes");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
@@ -45,14 +46,15 @@ exports.autoAssignBatch = async (data) => {
   const { companyBidRequestUniqueId, createdByUserUniqueId } = data;
 
   // 1. Fetch bid details to get batch and company
-  const bid = await findOne(
-    "CompanyBidRequest",
-    { companyBidRequestUniqueId },
-    "Bid not found",
-  );
+  const [bidRow] = await getData({
+    tableName: "CompanyBidRequest",
+    conditions: { companyBidRequestUniqueId },
+  });
+  if (!bidRow) throw new AppError("Bid not found", 404);
+  const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
-      "Auto-assignment can only be performed after a bid is accepted by the shipper",
+      "Bid must be accepted_by_shipper before creating assignments",
       400,
     );
   }

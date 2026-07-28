@@ -4,8 +4,8 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const {
-  db,
-  findOne} = require("../CompanyHelper.service");
+  db} = require("../CompanyHelper.service");
+const { getData } = require("../../CRUD/Read/ReadData");
 const logger = require("../../Utils/logger");
 
 
@@ -57,11 +57,12 @@ const submitBid = async (data) => {
     bidNotes} = data;
 
   // Company must be approved (registration-level check)
-  const company = await findOne(
-    "TransportCompany",
-    { companyUniqueId, isDeleted: 0 },
-    "Company not found",
-  );
+  const [companyRow] = await getData({
+    tableName: "TransportCompany",
+    conditions: { companyUniqueId, isDeleted: 0 },
+  });
+  if (!companyRow) throw new AppError("Company not found", 404);
+  const company = companyRow;
   if (company.approvalStatus !== "approved") {
     throw new AppError(
       `Company is not eligible to bid. Registration status: ${company.approvalStatus}`,

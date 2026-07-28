@@ -2,7 +2,7 @@
 
 const { inProgressSlots } = require("../batchHelper");
 
-const { db, findOne } = require("../../CompanyHelper.service");
+const { db } = require("../../CompanyHelper.service");
 
 /**
  * ### Atomically cancel an entire company-targeted freight batch.
@@ -47,13 +47,11 @@ const cancelBatch = async ({
   await assertCompanyCancellationReason(cancellationReasonsTypeId);
 
   // 1b. Verify batch exists + ownership
-  const batch = await findOne(
-    "ShipperRequestBatch",
-    {
-      batchUniqueId,
-    },
-    "Batch not found",
-  );
+  const [batch] = await getData({
+    tableName: "ShipperRequestBatch",
+    conditions: { batchUniqueId },
+  });
+  if (!batch) throw new AppError("Batch not found", 404);
   const isAdmin = roleId === 3 || roleId === 6; // admin / super-admin
 
   if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {

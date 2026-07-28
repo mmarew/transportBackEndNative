@@ -4,7 +4,8 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { usersRoles, companyRoles } = require("../Utils/ListOfSeedData");
-const { db, findOne, paginate } = require("./CompanyHelper.service");
+const { db, paginate } = require("./CompanyHelper.service");
+const { getData } = require("../CRUD/Read/ReadData");
 const { addMember } = require("./CompanyMembership.service");
 const {
   recordStatusChange,
@@ -432,11 +433,12 @@ exports.approveCompany = async (
   approvedBy,
 ) => {
   // ── Guard 1: Company must exist ───────────────────────────────────────────
-  const company = await findOne(
-    "TransportCompany",
-    { companyUniqueId, isDeleted: 0 },
-    "Company not found",
-  );
+  const [companyRow] = await getData({
+    tableName: "TransportCompany",
+    conditions: { companyUniqueId, isDeleted: 0 },
+  });
+  if (!companyRow) throw new AppError("Company not found", 404);
+  const company = companyRow;
 
   // ── Guard 2: Valid status transitions ─────────────────────────────────────
   // pending   → approved | rejected

@@ -1,7 +1,8 @@
 "use strict";
 
 const { v4: uuidv4 } = require("uuid");
-const { db, paginate, paginatedQuery, findOne } = require("./CompanyHelper.service");
+const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const { getData } = require("../CRUD/Read/ReadData");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 
@@ -77,7 +78,11 @@ exports.getRoles = async (filters = {}) => {
  * @returns {Promise<Object>} Role data
  */
 exports.getRoleByUniqueId = async (uniqueId) => {
-  const role = await findOne("CompanyRoles", { companyRoleUniqueId: uniqueId, companyRoleDeletedAt: null }, "Company role not found");
+  const [role] = await getData({
+    tableName: "CompanyRoles",
+    conditions: { companyRoleUniqueId: uniqueId, companyRoleDeletedAt: null },
+  });
+  if (!role) throw new AppError("Company role not found", 404);
   return { message: "Company role fetched successfully", data: role };
 };
 

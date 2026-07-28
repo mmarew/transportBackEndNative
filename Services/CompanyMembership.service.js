@@ -3,12 +3,8 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const {
-  db,
-  findOne,
-  paginate,
-  paginatedQuery,
-} = require("./CompanyHelper.service");
+const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const { getData } = require("../CRUD/Read/ReadData");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
@@ -36,11 +32,12 @@ exports.addMember = async (data) => {
   } = data;
 
   // Verify company exists
-  const company = await findOne(
-    "TransportCompany",
-    { companyUniqueId, isDeleted: 0 },
-    "Company not found",
-  );
+  const [companyRow] = await getData({
+    tableName: "TransportCompany",
+    conditions: { companyUniqueId, isDeleted: 0 },
+  });
+  if (!companyRow) throw new AppError("Company not found", 404);
+  const company = companyRow;
 
   // Status check (unless skipped for initial creation)
   if (!skipApprovalCheck && company.approvalStatus !== "approved") {

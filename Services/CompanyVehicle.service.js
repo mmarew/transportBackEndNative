@@ -3,7 +3,8 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
-const { db, findOne, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const { db, paginate, paginatedQuery } = require("./CompanyHelper.service");
+const { getData } = require("../CRUD/Read/ReadData");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
@@ -82,7 +83,11 @@ exports.assignVehicle = async (data) => {
     createdByUserUniqueId,
   } = data;
 
-  await findOne("TransportCompany", { companyUniqueId, isDeleted: 0 }, "Company not found");
+  const [companyCheck] = await getData({
+    tableName: "TransportCompany",
+    conditions: { companyUniqueId, isDeleted: 0 },
+  });
+  if (!companyCheck) throw new AppError("Company not found", 404);
 
   // A vehicle can only be in ONE company's active fleet
   const [dup] = await db().query(
@@ -139,7 +144,11 @@ exports.moveVehicle = async (data) => {
     createdByUserUniqueId,
   } = data;
 
-  await findOne("TransportCompany", { companyUniqueId, isDeleted: 0 }, "Company not found");
+  const [companyCheck] = await getData({
+    tableName: "TransportCompany",
+    conditions: { companyUniqueId, isDeleted: 0 },
+  });
+  if (!companyCheck) throw new AppError("Company not found", 404);
 
   const [existing] = await db().query(
     `SELECT cv.companyVehicleUniqueId, cv.companyUniqueId, tc.companyName

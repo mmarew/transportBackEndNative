@@ -2,7 +2,8 @@
 
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const { db, findOne } = require("../CompanyHelper.service");
+const { db } = require("../CompanyHelper.service");
+const { getData } = require("../../CRUD/Read/ReadData");
 const logger = require("../../Utils/logger");
 const {
   reportCompanyCommissionEvasion,
@@ -59,11 +60,12 @@ const updateBidStatus = async (
   bidStatus,
   updatedBy,
 ) => {
-  const bid = await findOne(
-    "CompanyBidRequest",
-    { companyBidRequestUniqueId },
-    "Bid not found",
-  ); 
+  const [bidRow] = await getData({
+    tableName: "CompanyBidRequest",
+    conditions: { companyBidRequestUniqueId },
+  });
+  if (!bidRow) throw new AppError("Bid not found", 404);
+  const bid = bidRow;
   logger.debug("updateBidStatus ~ bid:", bid)
   if (bid.companyBidRequestDeletedAt) {
     throw new AppError("Bid has been deleted", 400);

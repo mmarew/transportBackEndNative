@@ -6,10 +6,10 @@ const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const {
   db,
-  findOne,
   paginate,
   paginatedQuery,
 } = require("../CompanyHelper.service");
+const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
@@ -71,14 +71,15 @@ exports.createBulkAssignments = async (data) => {
     data;
 
   // 1. Validate the bid once
-  const bid = await findOne(
-    "CompanyBidRequest",
-    { companyBidRequestUniqueId },
-    "Bid not found",
-  );
+  const [bidRow] = await getData({
+    tableName: "CompanyBidRequest",
+    conditions: { companyBidRequestUniqueId },
+  });
+  if (!bidRow) throw new AppError("Bid not found", 404);
+  const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
-      "Vehicles can only be assigned after the shipper accepts the bid",
+      "Bid must be accepted_by_shipper before creating assignments",
       400,
     );
   }

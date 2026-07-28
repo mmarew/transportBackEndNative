@@ -3,7 +3,8 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
-const { db, findOne } = require("../CompanyHelper.service");
+const { db } = require("../CompanyHelper.service");
+const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
 const logger = require("../../Utils/logger");
@@ -46,11 +47,12 @@ exports.createAssignment = async (data) => {
   } = data;
 
   // Bid must be accepted by shipper
-  const bid = await findOne(
-    "CompanyBidRequest",
-    { companyBidRequestUniqueId },
-    "Bid not found",
-  );
+  const [bidRow] = await getData({
+    tableName: "CompanyBidRequest",
+    conditions: { companyBidRequestUniqueId },
+  });
+  if (!bidRow) throw new AppError("Bid not found", 404);
+  const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
       "Vehicles can only be assigned after the shipper accepts the bid",
@@ -206,11 +208,12 @@ exports.createBulkAssignments = async (data) => {
     data;
 
   // 1. Validate the bid once
-  const bid = await findOne(
-    "CompanyBidRequest",
-    { companyBidRequestUniqueId },
-    "Bid not found",
-  );
+  const [bidRow] = await getData({
+    tableName: "CompanyBidRequest",
+    conditions: { companyBidRequestUniqueId },
+  });
+  if (!bidRow) throw new AppError("Bid not found", 404);
+  const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
       "Vehicles can only be assigned after the shipper accepts the bid",
