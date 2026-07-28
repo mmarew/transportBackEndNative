@@ -323,6 +323,69 @@ const upsertDriverRequest = async ({
         existingStatus,
         driverUserUniqueId,
       });
+
+      // ── Notify the driver that their individual job was replaced ──────────
+      // Same notification as Option B — explains the transition so the driver
+      // isn't confused when the individual job disappears and a company job appears.
+      try {
+        const [userRows] = await db().query(
+          "SELECT phoneNumber FROM Users WHERE userUniqueId = ? LIMIT 1",
+          [driverUserUniqueId],
+        );
+        const phoneNumber = userRows?.[0]?.phoneNumber;
+
+        const replacementPayload = {
+          messageTypes: messageTypes.individual_replaced_by_company,
+          message: "Assignment helper operation completed",
+          type: "individual_replaced_by_company",
+          cancelledDriverRequestUniqueId: existingUniqueId,
+          cancelledShipperRequests: [],
+          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+        };
+
+        // 1. FCM — wakes app even in background
+        sendFCMNotificationToUser({
+          userUniqueId: driverUserUniqueId,
+          roleId: usersRoles.driverRoleId,
+          notification: {
+            title: "Job reassigned by your company",
+            body: "Your individual shipper match has been replaced by a company fleet assignment. Open the app to see your new job.",
+          },
+          data: {
+            type: "individual_replaced_by_company",
+            cancelledDriverRequestUniqueId: existingUniqueId,
+          },
+        }).catch(e =>
+          logger.warn("FCM failed for individual-replaced notification (terminal status)", {
+            error: e.message,
+            driverUserUniqueId,
+          }),
+        );
+
+        // 2. WebSocket — instant delivery when app is open
+        if (phoneNumber) {
+          sendSocketIONotificationToDriver({
+            phoneNumber,
+            message: replacementPayload,
+          }).catch(e =>
+            logger.warn("WebSocket failed for individual-replaced notification (terminal status, driver may be offline)", {
+              error: e.message,
+              driverUserUniqueId,
+            }),
+          );
+        }
+
+        logger.info("Replacement notification sent to driver (terminal status)", {
+          driverUserUniqueId,
+          cancelledDriverRequestUniqueId: existingUniqueId,
+        });
+      } catch (notifyErr) {
+        logger.warn("Failed to send replacement notification to driver (terminal status, non-blocking)", {
+          error: notifyErr.message,
+          driverUserUniqueId,
+        });
+      }
+
       // Fall through to INSERT path below →
 
     } else if (activeIndividualStatuses.includes(existingStatus)) {
