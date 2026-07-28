@@ -20,6 +20,7 @@ const {
   testCompanySocketNotifications,
 } = require("./Socket");
 const { runDriverRejectionTests } = require("./testDriverRejectionFlow");
+const { runMissingEndpoints } = require("./Expansion/missingEndpoints");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
 
@@ -107,6 +108,9 @@ const initiateTest = async () => {
 
       await safe("runDriverRejectionTests", runDriverRejectionTests)();
     }
+
+    // ── Phase J: All missing endpoints coverage (BEFORE delete operations) ──
+    await safe("runMissingEndpoints", runMissingEndpoints)();
 
     // ── Phase I: Previously untested endpoints (delete operations) ──────
     console.log("\n=======================================================");
