@@ -2,7 +2,7 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
-const { resetDatabase } = require("./DataBaseManagement");
+const { resetDatabase, testUpdateTable, testAlterColumn, testDropColumn, testDropSpecificTable } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
@@ -80,12 +80,27 @@ const {
   runAnalyticsAndAdminTests,
 } = require("./Phases/runAnalyticsAndAdminTests");
 
+const safe = (label, fn) => async () => {
+  try {
+    await fn();
+  } catch (e) {
+    console.error(`⚠️  ${label} failed, continuing: ${e.message}`);
+  }
+};
+
 const initiateTest = async () => {
   try {
     // ── Phase 0: Clean slate ──────────────────────────────────────────────────
     await resetDatabase();
     if (!usersData?.supperAdmin?.token)
       throw new Error("SuperAdmin token not set");
+
+    // ── Phase 0b: Database admin ops (schema mutations) ───────────────────────
+    console.log("\n── Database Admin Ops ──");
+    await safe("testUpdateTable", testUpdateTable)();
+    await safe("testAlterColumn", testAlterColumn)();
+    await safe("testDropColumn", testDropColumn)();
+    await safe("testDropSpecificTable", testDropSpecificTable)();
 
     // ── Phase 1: Core users ───────────────────────────────────────────────────
     await testCreateAdminFlow({});
@@ -175,13 +190,6 @@ const initiateTest = async () => {
     };
 
     // ── Phase A-F ─────────────────────────────────────────────────────────────
-    const safe = (label, fn) => async () => {
-      try {
-        await fn();
-      } catch (e) {
-        console.error(`⚠️  ${label} failed, continuing: ${e.message}`);
-      }
-    };
     await safe("runDocumentTests", runDocumentTests)();
     await safe("runFCMTokenTests", runFCMTokenTests)();
     await safe("runCompanyEndpointTests", runCompanyEndpointTests)();

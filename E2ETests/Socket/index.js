@@ -87,7 +87,8 @@ const testSocketNotifications = async () => {
   let shipperSocket = null;
 
   try {
-    // Step 0a: Reactivate driver (status may have changed after previous journeys)
+    // Step 0a: Reactivate driver and close stale driver requests
+    // Reset driver role status to active
     await pool.query(
       `UPDATE UserRoleStatusCurrent urs
        JOIN UserRole ur ON urs.userRoleId = ur.userRoleId
@@ -95,16 +96,49 @@ const testSocketNotifications = async () => {
        WHERE ur.userUniqueId = ? AND ur.roleId = ?`,
       [driver.accountData?.userData?.userUniqueId, 2],
     );
+    // Close any existing active driver requests so a fresh one is created
+    await pool.query(
+      `UPDATE DriverRequest
+       SET journeyStatusId = ?
+       WHERE userUniqueId = ?
+         AND journeyStatusId IN (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         AND driverRequestDeletedAt IS NULL`,
+      [
+        9, /* cancelledByDriver */
+        driver.accountData?.userData?.userUniqueId,
+        1, /* waiting */
+        2, /* requested */
+        3, /* acceptedByDriver */
+        4, /* acceptedByShipper */
+        5, /* journeyStarted */
+        13, /* noAnswerFromDriver */
+        14, /* notSelectedInBid */
+        15, /* rejectedByDriver */
+        16, /* replacedByCompanyAssignment */
+      ],
+    );
 
-    // Step 0b: Close any stale shipper requests still in matching state so they
-    // don't interfere with this test's fresh request.
+    // Step 0b: Close all stale shipper requests (acceptedByShipper=4, journeyStarted=5)
+    // statuses 1-3 also closed to ensure fresh matching for this test
     await pool.query(
       `UPDATE ShipperRequest
        SET journeyStatusId = ?
-       WHERE journeyStatusId IN (?, ?, ?)
+       WHERE journeyStatusId IN (?, ?, ?, ?, ?)
          AND shipperRequestDeletedAt IS NULL`,
-      [4, /* waiting */ 1, /* requested */ 2, /* acceptedByDriver */ 3],
+      [9, /* cancelledByDriver */ 1, /* waiting */ 2, /* requested */ 3, /* acceptedByDriver */ 4, /* acceptedByShipper */ 5, /* journeyStarted */],
     );
+
+    // Step 0c: Cancel any pending company assignment for this driver
+    await pool.query(
+      `UPDATE CompanyBidVehicleAssignment
+       SET assignmentStatus = 'completed'
+       WHERE driverUserUniqueId = ?
+         AND assignmentStatus NOT IN ('completed', 'cancelled_by_company', 'cancelled_by_shipper', 'cancelled_by_driver', 'rejected_by_driver')
+         AND assignmentDeletedAt IS NULL`,
+      [driver.accountData?.userData?.userUniqueId],
+    );
+
+
 
     // Step 1: Create a fresh shipper request
     console.log("── Creating shipper request ──");
@@ -196,16 +230,22 @@ const testSocketNotifications = async () => {
       (data) => data?.messageTypes?.message === "Driver accepted shipper request."
     );
     console.log("── Driver accepting shipper request ──");
-    const driverStatusRes = await axios.get(
-      backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
-      authConfig(driver.token),
-    );
-    const uniqueIds = driverStatusRes.data?.uniqueIds;
-    if (!uniqueIds) throw new Error("No uniqueIds from driver status");
+    // Use the auto-match response from Step 3 (fresh data, not stale company state)
+    const uniqueIds = drRes.data?.uniqueIds;
+    const shipperRequestMode = drRes.data?.shipper?.requestMode;
+    if (!uniqueIds) throw new Error("No uniqueIds from driver request auto-match response");
+    if (shipperRequestMode === "company_target") {
+      throw new Error(`Auto-match returned company_target request instead of individual_target`);
+    }
 
     await axios.put(
       backendURL + DRIVER_REQUEST_ENDPOINTS.ACCEPT_SHIPPER_REQUEST,
-      { ...uniqueIds, shippingCostByDriver: 5500 },
+      {
+        driverRequestUniqueId: uniqueIds.driverRequestUniqueId,
+        shipperRequestUniqueId: uniqueIds.shipperRequestUniqueId,
+        journeyDecisionUniqueId: uniqueIds.journeyDecisionUniqueId,
+        shippingCostByDriver: 5500,
+      },
       authConfig(driver.token),
     );
     report.pass("driverAcceptedShipperRequest");
@@ -306,6 +346,17 @@ const testCompanySocketNotifications = async () => {
        SET urs.statusId = 1
        WHERE ur.userUniqueId = ? AND ur.roleId = ?`,
       [driver.accountData?.userData?.userUniqueId, 2],
+    );
+
+    // Complete any active journey for this driver so startJourney works
+    await pool.query(
+      `UPDATE Journey j
+       JOIN JourneyDecisions jd ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+       JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+       JOIN UserRole ur ON ur.userUniqueId = dr.userUniqueId AND ur.roleId = 2
+       SET j.journeyStatusId = 6
+       WHERE ur.userUniqueId = ? AND j.journeyStatusId = 5`,
+      [driver.accountData?.userData?.userUniqueId],
     );
 
     // Fetch companyUniqueId from company admin's data
@@ -556,37 +607,53 @@ const testCompanySocketNotifications = async () => {
       }
       console.log("");
 
-      // Step 8: Set up listener on company socket BEFORE journey start
-      console.log("── Driver starting journey ──");
-      const journeyIds = driverStatusRes.data?.uniqueIds || {};
-      if (journeyIds.journeyDecisionUniqueId) {
-        await axios.put(
-          backendURL + DRIVER_REQUEST_ENDPOINTS.START_JOURNEY,
-          {
-            driverRequestUniqueId: journeyIds.driverRequestUniqueId,
-            shipperRequestUniqueId: journeyIds.shipperRequestUniqueId,
-            journeyDecisionUniqueId: journeyIds.journeyDecisionUniqueId,
-            latitude: 9.03,
-            longitude: 38.74,
-          },
-          authConfig(driver.token),
-        );
-        report.pass("driverStartedJourney");
-        console.log("");
+      // Step 8: Fetch latest driver status (may already have journey from prior flow)
+      const statusRes = await axios.get(
+        backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
+        authConfig(driver.token),
+      );
+      const journeyIds = statusRes.data?.uniqueIds || {};
+      const alreadyStarted = statusRes.data?.status === 5;
 
-        // Step 9: Set up listener on company socket BEFORE journey complete
+      if (journeyIds.journeyDecisionUniqueId) {
+        if (!alreadyStarted) {
+          console.log("── Driver starting journey ──");
+          await axios.put(
+            backendURL + DRIVER_REQUEST_ENDPOINTS.START_JOURNEY,
+            {
+              driverRequestUniqueId: journeyIds.driverRequestUniqueId,
+              shipperRequestUniqueId: journeyIds.shipperRequestUniqueId,
+              journeyDecisionUniqueId: journeyIds.journeyDecisionUniqueId,
+              latitude: 9.03,
+              longitude: 38.74,
+            },
+            authConfig(driver.token),
+          );
+          report.pass("driverStartedJourney");
+          console.log("");
+        } else {
+          console.log("⏩ Journey already started — skipping startJourney");
+        }
+
+        // Set up listener BEFORE completing (notification fires during API call)
         console.log("── Setting up company_driver_completed listener on company socket ──");
         const completedPromise = waitForSocketMessage(companySocket, "messages", 10000,
           (data) => data?.messageTypes?.message === "Driver completed journey"
         );
 
+        // Re-fetch status after start (or use existing if already started)
         console.log("── Driver completing journey ──");
-        const statusAfterStart = await axios.get(
+        const statusAfterStart = alreadyStarted ? statusRes : await axios.get(
           backendURL + DRIVER_REQUEST_ENDPOINTS.VERIFY_DRIVER_JOURNEY_STATUS,
           authConfig(driver.token),
         );
         const completedIds = statusAfterStart.data?.uniqueIds || {};
         if (completedIds.journeyUniqueId) {
+          // Company flow doesn't set shippingCostByDriver, so set it before completing
+          await pool.query(
+            `UPDATE JourneyDecisions SET shippingCostByDriver = ? WHERE journeyDecisionUniqueId = ?`,
+            [completedIds.shippingCostByDriver || 5000, completedIds.journeyDecisionUniqueId],
+          );
           await axios.put(
             backendURL + DRIVER_REQUEST_ENDPOINTS.COMPLETE_JOURNEY,
             {

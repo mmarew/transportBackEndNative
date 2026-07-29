@@ -116,6 +116,7 @@ const testCanceledJourneysWorkflow = async ({ user = usersData.admin } = {}) => 
     } else {
       await testUpdateCanceledJourney({ user, canceledJourneyUniqueId });
       await testMarkCanceledJourneySeenByAdmin({ user, canceledJourneyUniqueId });
+      await testDeleteCanceledJourney({ user, canceledJourneyUniqueId });
       await testGetCanceledJourneys({ user });
     }
   } else {

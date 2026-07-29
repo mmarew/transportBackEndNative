@@ -103,6 +103,18 @@ const testJourneyDecisionsWorkflow = async ({ user = usersData.admin } = {}) => 
     console.log("⏩ Update skipped — run the full journey flow first to populate decision IDs");
   }
 
+  // DELETE the last decision (cleanup) — non-fatal if backend rejects
+  try {
+    const deleted = await testDeleteJourneyDecision({ user });
+    if (deleted?.skipped) {
+      console.log("⏩ Delete skipped — no decision ID available");
+    } else {
+      console.log("🗑️  JourneyDecision deleted during workflow test");
+    }
+  } catch (e) {
+    console.warn("⚠️  JourneyDecision delete skipped:", e.response?.data?.message || e.message);
+  }
+
   console.log("── JourneyDecisions Workflow complete ──\n");
   return { cache };
 };

@@ -218,6 +218,77 @@ const resetDatabase = async () => {
     "\n✅ ========== DATABASE VERIFICATION COMPLETED SUCCESSFULLY ==========\n",
   );
 };
+// ── Table maintenance ───────────────────────────────────────────────────────
+
+/**
+ * PUT /api/admin/updateTable/:tableName
+ * Adds a column to an existing table.
+ */
+const testUpdateTable = async () => {
+  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
+  if (!token) { console.log("⏩ testUpdateTable skipped — no admin token"); return; }
+  const tableName = "User";
+  const url = backendURL + DATABASE_ENDPOINTS.UPDATE_TABLE.replace(":tableName", tableName);
+  try {
+    const res = await axios.put(url, { columnName: "e2e_test_column", columnDefinition: "VARCHAR(255) NULL" }, authConfig(token));
+    console.log("✅ Table updated (column added):", res.data?.message || "ok");
+  } catch (error) {
+    console.warn("⚠ testUpdateTable:", error.response?.data?.error || error.message);
+  }
+};
+
+/**
+ * PUT /api/admin/alterColumn/:tableName
+ * Changes a column's properties.
+ */
+const testAlterColumn = async () => {
+  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
+  if (!token) { console.log("⏩ testAlterColumn skipped — no admin token"); return; }
+  const tableName = "User";
+  const url = backendURL + DATABASE_ENDPOINTS.ALTER_COLUMN.replace(":tableName", tableName);
+  try {
+    const res = await axios.put(url, { columnName: "e2e_test_column", newDefinition: "VARCHAR(100) NULL" }, authConfig(token));
+    console.log("✅ Column altered:", res.data?.message || "ok");
+  } catch (error) {
+    console.warn("⚠ testAlterColumn:", error.response?.data?.error || error.message);
+  }
+};
+
+/**
+ * DELETE /api/admin/dropColumn/:tableName/:columnName
+ * Drops a column from a table.
+ */
+const testDropColumn = async () => {
+  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
+  if (!token) { console.log("⏩ testDropColumn skipped — no admin token"); return; }
+  const tableName = "User";
+  const columnName = "e2e_test_column";
+  const url = backendURL + DATABASE_ENDPOINTS.DROP_COLUMN.replace(":tableName", tableName).replace(":columnName", columnName);
+  try {
+    const res = await axios.delete(url, authConfig(token));
+    console.log("✅ Column dropped:", res.data?.message || "ok");
+  } catch (error) {
+    console.warn("⚠ testDropColumn:", error.response?.data?.error || error.message);
+  }
+};
+
+/**
+ * DELETE /api/admin/dropTables?tableName=xxx
+ * Drops a specific table by name (requires query param).
+ */
+const testDropSpecificTable = async () => {
+  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
+  if (!token) { console.log("⏩ testDropSpecificTable skipped — no admin token"); return; }
+  // Use a throwaway temp table name — endpoint validates JWT so this is safe
+  const url = backendURL + DATABASE_ENDPOINTS.DROP_TABLES + "?tableName=NonExistentTestTable";
+  try {
+    const res = await axios.delete(url, authConfig(token));
+    console.log("✅ Drop table responded:", res.data?.message || "ok");
+  } catch (error) {
+    console.warn("⚠ testDropSpecificTable:", error.response?.data?.error || error.message);
+  }
+};
+
 module.exports = {
   createTables,
   getAllTables,
@@ -226,4 +297,8 @@ module.exports = {
   getUserOtp,
   seedTestDocument,
   resetDatabase,
+  testUpdateTable,
+  testAlterColumn,
+  testDropColumn,
+  testDropSpecificTable,
 };

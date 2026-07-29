@@ -313,6 +313,7 @@ const runSystemAdminTests = async () => {
   console.log("\n── System Admin: Roles & DB ──");
   await testGetUserStatusById();
   await testGetUserRoleStatusByPhone();
+  await testGetUserRoleStatusCurrent();
   await testGetTableColumns();
 
   console.log("\n── System Admin: Document & Journey ──");
@@ -320,6 +321,18 @@ const runSystemAdminTests = async () => {
   await testCanceledJourneyBySystem();
   await testCheckAutomaticBan();
   await testAdminTables();
+};
+
+const testGetUserRoleStatusCurrent = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("GET /api/admin/userRoleStatusCurrent", "no admin token");
+  console.log("\n── GET /api/admin/userRoleStatusCurrent ──");
+  try {
+    const res = await axios.get(backendURL + "/api/admin/userRoleStatusCurrent", authConfig(token));
+    report.pass(`GET /api/admin/userRoleStatusCurrent — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/admin/userRoleStatusCurrent", errMsg(err));
+  }
 };
 
 module.exports = {
@@ -342,5 +355,6 @@ module.exports = {
   testCanceledJourneyBySystem,
   testCheckAutomaticBan,
   testAdminTables,
+  testGetUserRoleStatusCurrent,
   runSystemAdminTests,
 };

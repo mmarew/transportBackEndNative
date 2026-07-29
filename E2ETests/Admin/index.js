@@ -74,6 +74,7 @@ const {
   testCanceledJourneyBySystem,
   testCheckAutomaticBan,
   testAdminTables,
+  testGetUserRoleStatusCurrent,
   runSystemAdminTests,
 } = require("./SystemAdmin");
 
@@ -101,5 +102,6 @@ module.exports = {
   testCanceledJourneyBySystem,
   testCheckAutomaticBan,
   testAdminTables,
+  testGetUserRoleStatusCurrent,
   runSystemAdminTests,
 };

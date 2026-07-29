@@ -135,6 +135,13 @@ const testJourneyWorkflow = async ({ user = usersData.driver } = {}) => {
         console.warn("⚠️  Journey update skipped — journey may be in a terminal state");
       }
       await testGetJourneys({ user });
+      // DELETE the test journey (cleanup) — non-fatal if backend rejects due to state
+      try {
+        await testDeleteJourney({ user: usersData.admin, journeyUniqueId });
+        console.log("🗑️  Journey deleted during workflow test");
+      } catch (e) {
+        console.warn("⚠️  Journey delete skipped (state/FK constraint):", e.response?.data?.message || e.message);
+      }
     } else {
       console.log("⚠️  journeyUniqueId not found in response structure:", JSON.stringify(first, null, 2).slice(0, 300));
     }

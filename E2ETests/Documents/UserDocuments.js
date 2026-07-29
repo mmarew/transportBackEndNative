@@ -87,7 +87,8 @@ const testUpdateAttachedDocument = async () => {
     );
     console.log(`✅ PUT /api/user/attachedDocuments/:id — ${res.data?.message || "ok"}`);
   } catch (error) {
-    const msg = error.response?.data?.error || error.message;
+    const raw = error.response?.data?.error || error.message;
+    const msg = typeof raw === "string" ? raw : JSON.stringify(raw);
     console.log(`⏩ PUT /api/user/attachedDocuments/:id: endpoint requires multipart — reachable (${msg.slice(0, 60)})`);
   }
 };
