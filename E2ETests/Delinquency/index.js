@@ -58,7 +58,18 @@ const testFullDelinquencyLifecycle = async () => {
 // Run full CRUD on each entity separately (for isolated testing)
 const testDelinquencyCRUD = () => testDelinquencyWorkflow({ user: usersData.admin });
 
+const {
+  testToggleDelinquencyTypeActive,
+  testGetDelinquencyTypesByRole,
+  testGetPendingDelinquencyResponses,
+  runDelinquencySupplementaryTests,
+} = require("./DelinquencySupplementary");
+
 module.exports = {
   testFullDelinquencyLifecycle,
   testDelinquencyCRUD,
+  testToggleDelinquencyTypeActive,
+  testGetDelinquencyTypesByRole,
+  testGetPendingDelinquencyResponses,
+  runDelinquencySupplementaryTests,
 };

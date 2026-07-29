@@ -21,6 +21,11 @@ const {
 } = require("./Socket");
 const { runDriverRejectionTests } = require("./testDriverRejectionFlow");
 const { runSystemAdminTests } = require("./Admin");
+const { runShipperSupplementaryTests } = require("./Shipper");
+const { runCompanySupplementaryTests } = require("./Company");
+const { runUserBalanceTests } = require("./Finance");
+const { runStatusSupplementaryTests } = require("./Status");
+const { runDelinquencySupplementaryTests } = require("./Delinquency");
 const {
   testGetAttachedDocuments,
   testDeleteAttachedDocument,
@@ -234,6 +239,11 @@ const initiateTest = async () => {
     // ── Phase J: Journey counts, system admin & remaining coverage ─────
     await safe("runJourneyCountsTests", runJourneyCountsTests)();
     await safe("runSystemAdminTests", runSystemAdminTests)();
+    await safe("runShipperSupplementaryTests", runShipperSupplementaryTests)();
+    await safe("runCompanySupplementaryTests", runCompanySupplementaryTests)();
+    await safe("runUserBalanceTests", runUserBalanceTests)();
+    await safe("runStatusSupplementaryTests", runStatusSupplementaryTests)();
+    await safe("runDelinquencySupplementaryTests", runDelinquencySupplementaryTests)();
     await safe("testReportWrongEmail", testReportWrongEmail)();
     await safe("testVerifyEmail", testVerifyEmail)();
     await safe("testVerifyPhoneGet", testVerifyPhoneGet)();

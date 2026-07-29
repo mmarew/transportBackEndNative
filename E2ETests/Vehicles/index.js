@@ -1,42 +1,73 @@
-// Vehicles E2E Tests Export
+// Vehicles E2E Tests Export — consolidated in vehicle.js
 
 const {
+  createVehicle,
+  getRequirementOfVehicleDocument,
+  attachVehiclesDocuments,
   testVehicleTypeWorkflow,
   testGetVehicleTypes,
-} = require("./VehicleType");
-const {
+  testCreateVehicleType,
+  testUpdateVehicleType,
+  testDeleteVehicleType,
   testVehicleStatusTypeWorkflow,
   testGetVehicleStatusTypes,
-} = require("./VehicleStatusType");
-const {
+  testCreateVehicleStatusType,
+  testUpdateVehicleStatusType,
+  testDeleteVehicleStatusType,
   testVehicleOwnershipWorkflow,
   testGetVehicleOwnerships,
-} = require("./VehicleOwnership");
-const {
+  testCreateVehicleOwnership,
+  testUpdateVehicleOwnership,
+  testDeleteVehicleOwnership,
   testVehicleDriverWorkflow,
   testGetVehicleDrivers,
-} = require("./VehicleDriver");
-const {
+  testCreateVehicleDriver,
+  testUpdateVehicleDriver,
+  testDeleteVehicleDriver,
   testVehicleProfileWorkflow,
   testGetVehicles,
-} = require("./VehiclesProfile");
-
-const {
+  testCreateVehicle,
+  testUpdateVehicle,
+  testDeleteVehicle,
   testVehicleStatusWorkflow,
   testGetVehicleStatuses,
-} = require("./VehicleStatus");
+  testCreateVehicleStatus,
+  testUpdateVehicleStatus,
+  testDeleteVehicleStatus,
+} = require("./vehicle");
 
 module.exports = {
+  createVehicle,
+  getRequirementOfVehicleDocument,
+  attachVehiclesDocuments,
   testVehicleTypeWorkflow,
   testGetVehicleTypes,
+  testCreateVehicleType,
+  testUpdateVehicleType,
+  testDeleteVehicleType,
   testVehicleStatusTypeWorkflow,
   testGetVehicleStatusTypes,
+  testCreateVehicleStatusType,
+  testUpdateVehicleStatusType,
+  testDeleteVehicleStatusType,
   testVehicleOwnershipWorkflow,
   testGetVehicleOwnerships,
+  testCreateVehicleOwnership,
+  testUpdateVehicleOwnership,
+  testDeleteVehicleOwnership,
   testVehicleDriverWorkflow,
   testGetVehicleDrivers,
+  testCreateVehicleDriver,
+  testUpdateVehicleDriver,
+  testDeleteVehicleDriver,
   testVehicleProfileWorkflow,
   testGetVehicles,
+  testCreateVehicle,
+  testUpdateVehicle,
+  testDeleteVehicle,
   testVehicleStatusWorkflow,
   testGetVehicleStatuses,
+  testCreateVehicleStatus,
+  testUpdateVehicleStatus,
+  testDeleteVehicleStatus,
 };

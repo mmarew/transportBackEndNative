@@ -1,8 +1,8 @@
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { usersData, backendURL } = require("../../constants");
-const { testGetDepositSources } = require("../../Finance/DepositSource");
-const { testGetFinancialInstitutionAccounts } = require("../../Finance/FinancialInstitutionAccount");
+const { testGetDepositSources } = require("../../Finance/ReferenceData");
+const { testGetFinancialInstitutionAccounts } = require("../../Finance/ReferenceData");
 const { authConfig } = require("./DriverSubscription");
 
 const getAdminToken = () => {

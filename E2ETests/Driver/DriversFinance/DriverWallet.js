@@ -8,7 +8,7 @@ const {
 } = require("./DriverTransfer");
 const {
   testCreateFinancialInstitutionAccount,
-} = require("../../Finance/FinancialInstitutionAccount");
+} = require("../../Finance/ReferenceData");
 const { authConfig } = require("./DriverSubscription");
 
 const getDriverWalletOverview = async ({ userType = "driver" } = {}) => {

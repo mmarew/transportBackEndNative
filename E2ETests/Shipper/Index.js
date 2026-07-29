@@ -45,6 +45,13 @@ const testShipperOnboardingFlow = async ({ userType = "shipper", requestMode = "
   console.log("\n✅ ========== SHIPPER ONBOARDING FLOW COMPLETED SUCCESSFULLY ==========\n");
 };
 
+const {
+  testNoAnswerFromDriver,
+  testGetShipperRequestById,
+  testDeleteShipperRequestById,
+  runShipperSupplementaryTests,
+} = require("./ShipperSupplementary");
+
 module.exports = {
   testShipperAcceptDriversOffer,
   testShipperOnboardingFlow,
@@ -52,4 +59,8 @@ module.exports = {
   testGetCancellationNotification,
   testMarkJourneyCancellationAsSeen,
   testGetShipperRequests,
+  testNoAnswerFromDriver,
+  testGetShipperRequestById,
+  testDeleteShipperRequestById,
+  runShipperSupplementaryTests,
 };

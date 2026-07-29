@@ -1,4 +1,18 @@
-const { usersRoles } = require("../Utils/ListOfSeedData");
+// E2E test constants — role IDs are inlined here to avoid importing
+// Utils/ListOfSeedData.js which chains into Utils/CurrentDate.js and may
+// trigger macOS com.apple.provenance EPERM errors at test startup.
+const usersRoles = {
+  shipperRoleId: 1,
+  driverRoleId: 2,
+  adminRoleId: 3,
+  vehicleOwnerRoleId: 4,
+  systemRoleId: 5,
+  supperAdminRoleId: 6,
+  companyAdminRoleId: 7,
+  companyRoleId: 8,
+  vehicleRoleId: 9,
+  dispatcherRoleId: 10,
+};
 
 const backendURL = "http://127.0.0.1:3000";
 

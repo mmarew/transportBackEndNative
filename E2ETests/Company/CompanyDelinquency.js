@@ -94,6 +94,23 @@ const testDeleteCompanyDelinquency = async ({ user, companyDelinquencyUniqueId }
   }
 };
 
+// ── GET delinquency responses (company-side) ───────────────────────────────────
+const testGetCompanyDelinquencyResponses = async ({ user } = {}) => {
+  try {
+    const token = user?.token || usersData.companyAdmin?.token;
+    if (!token) throw new Error("token not found");
+    const result = await axios.get(
+      `${backendURL}/api/company/delinquency-response/response`,
+      authConfig(token)
+    );
+    console.log("✅ Company delinquency responses fetched:", result.data.data?.length ?? 0);
+    return result.data;
+  } catch (error) {
+    console.error("❌ testGetCompanyDelinquencyResponses:", error.response?.data?.error || error.message);
+    throw error;
+  }
+};
+
 // ── CREATE delinquency response (company-side dispute) ────────────────────────
 const testCreateCompanyDelinquencyResponse = async ({ user, companyDelinquencyUniqueId } = {}) => {
   try {
@@ -152,6 +169,9 @@ const testCompanyDelinquencyWorkflow = async ({ user = usersData.admin } = {}) =
   // Company submits dispute response
   await testCreateCompanyDelinquencyResponse({ user: usersData.companyAdmin, companyDelinquencyUniqueId });
 
+  // GET responses
+  await testGetCompanyDelinquencyResponses({ user: usersData.companyAdmin });
+
   // DELETE
   await testDeleteCompanyDelinquency({ user, companyDelinquencyUniqueId });
 
@@ -169,4 +189,5 @@ module.exports = {
   testCreateCompanyDelinquency,
   testDeleteCompanyDelinquency,
   testCreateCompanyDelinquencyResponse,
+  testGetCompanyDelinquencyResponses,
 };

@@ -16,14 +16,14 @@ const {
   testGetFinancialInstitutionAccounts,
   testFinancialInstitutionAccountWorkflow:
     testFinancialInstitutionAccountsWorkFlow,
-} = require("../Finance/FinancialInstitutionAccount");
+} = require("../Finance/ReferenceData");
 // testGetSubscriptionPlans unused
 const {
   testGetSubscriptionPlanPricings:
     fetchSubscriptionPlanPricing,
   testCreateSubscriptionPlanPricing:
     createSubscriptionPlanPricing,
-} = require("../Finance/SubscriptionPlanPricing");
+} = require("../Finance/Subscriptions");
 const {
   createDriverDeposit,
   approveDriversDeposit,

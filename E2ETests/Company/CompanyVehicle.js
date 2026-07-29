@@ -137,8 +137,21 @@ const removeVehicleFromCompany = async ({
   }
 };
 
+const testDeleteCompanyVehicle = async ({ userType = "companyAdmin" } = {}) => {
+  const token = usersData?.[userType]?.token;
+  if (!token) { console.log("⏩ testDeleteCompanyVehicle: no token"); return; }
+  const fleet = usersData?.companyAdmin?.fleet;
+  if (!fleet?.length) { console.log("⏩ testDeleteCompanyVehicle: no fleet to delete"); return; }
+  const companyVehicleUniqueId = fleet[0]?.companyVehicleUniqueId;
+  if (!companyVehicleUniqueId) { console.log("⏩ testDeleteCompanyVehicle: no companyVehicleUniqueId"); return; }
+  console.log("\n── DELETE /api/company/fleet/:companyVehicleUniqueId ──");
+  await removeVehicleFromCompany({ userType, companyVehicleUniqueId });
+  console.log("✅ Fleet vehicle deleted:", companyVehicleUniqueId);
+};
+
 module.exports = {
   assignVehicleToCompany,
   getCompanyVehicles,
   removeVehicleFromCompany,
+  testDeleteCompanyVehicle,
 };

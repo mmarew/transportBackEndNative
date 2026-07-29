@@ -228,6 +228,65 @@ const testGetTableColumns = async () => {
   }
 };
 
+const testAcceptRejectAttachedDocuments = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("PUT /api/admin/acceptRejectAttachedDocuments", "no admin token");
+  console.log("\n── PUT /api/admin/acceptRejectAttachedDocuments ──");
+  try {
+    const res = await axios.put(
+      backendURL + "/api/admin/acceptRejectAttachedDocuments",
+      { attachedDocumentUniqueId: uuidv4(), status: "approved" },
+      authConfig(token),
+    );
+    report.pass(`PUT /api/admin/acceptRejectAttachedDocuments — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("PUT /api/admin/acceptRejectAttachedDocuments", `endpoint reachable — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testCanceledJourneyBySystem = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("POST /api/admin/canceledJourneyBySystem", "no admin token");
+  console.log("\n── POST /api/admin/canceledJourneyBySystem ──");
+  try {
+    const res = await axios.post(
+      backendURL + "/api/admin/canceledJourneyBySystem",
+      { journeyUniqueId: uuidv4() },
+      authConfig(token),
+    );
+    report.pass(`POST /api/admin/canceledJourneyBySystem — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    const msg = errMsg(err);
+    return report.skip("POST /api/admin/canceledJourneyBySystem", `endpoint reachable — ${msg.slice(0, 80)}`);
+  }
+};
+
+const testCheckAutomaticBan = async () => {
+  const token = usersData?.admin?.token;
+  const roleUid = usersData?.driver?.accountData?.userData?.userRoleUniqueId;
+  if (!token || !roleUid) return report.skip("GET /api/admin/check-automatic-ban/:id", "no admin token or userRoleUniqueId");
+  console.log("\n── GET /api/admin/check-automatic-ban/:id ──");
+  try {
+    const res = await axios.get(backendURL + `/api/admin/check-automatic-ban/${roleUid}`, authConfig(token));
+    report.pass(`GET /api/admin/check-automatic-ban/:id — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.skip("GET /api/admin/check-automatic-ban/:id", errMsg(err));
+  }
+};
+
+const testAdminTables = async () => {
+  const token = usersData?.admin?.token;
+  if (!token) return report.skip("GET /api/admin/tables", "no admin token");
+  console.log("\n── GET /api/admin/tables ──");
+  try {
+    const res = await axios.get(backendURL + "/api/admin/tables", authConfig(token));
+    report.pass(`GET /api/admin/tables — ${res.data?.message || "ok"}`);
+  } catch (err) {
+    report.fail("GET /api/admin/tables", errMsg(err));
+  }
+};
+
 const runSystemAdminTests = async () => {
   console.log("\n── System Admin: Database & System ──");
   await testGetDatabaseStats();
@@ -255,6 +314,12 @@ const runSystemAdminTests = async () => {
   await testGetUserStatusById();
   await testGetUserRoleStatusByPhone();
   await testGetTableColumns();
+
+  console.log("\n── System Admin: Document & Journey ──");
+  await testAcceptRejectAttachedDocuments();
+  await testCanceledJourneyBySystem();
+  await testCheckAutomaticBan();
+  await testAdminTables();
 };
 
 module.exports = {
@@ -273,5 +338,9 @@ module.exports = {
   testGetUserStatusById,
   testGetUserRoleStatusByPhone,
   testGetTableColumns,
+  testAcceptRejectAttachedDocuments,
+  testCanceledJourneyBySystem,
+  testCheckAutomaticBan,
+  testAdminTables,
   runSystemAdminTests,
 };

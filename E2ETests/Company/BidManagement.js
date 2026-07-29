@@ -249,6 +249,7 @@ const testBidCRUDWorkflow = async ({ userType = "companyAdmin" } = {}) => {
   await updateBidStatus({ userType, companyBidRequestUniqueId, bidStatus: "cancelled_by_company" });
   await markBidAsSeen({ userType, companyBidRequestUniqueId });
   await getBids({ userType, bidStatus: "cancelled_by_company" });
+  await deleteBid({ userType, companyBidRequestUniqueId });
   console.log("── Bid CRUD Workflow complete ──\n");
 };
 

@@ -15,6 +15,11 @@ const {
   testGetShipperCancellationNotifications,
 } = require("./MarkAsSeen");
 
+const {
+  testCreateUserStatus,
+  runStatusSupplementaryTests,
+} = require("./StatusSupplementary");
+
 module.exports = {
   testStatusWorkflow,
   testGetStatuses,
@@ -27,4 +32,6 @@ module.exports = {
   testMarkCancellationAsSeen,
   testGetDriverCancellationNotifications,
   testGetShipperCancellationNotifications,
+  testCreateUserStatus,
+  runStatusSupplementaryTests,
 };

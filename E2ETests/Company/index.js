@@ -41,6 +41,11 @@ const {
 const { testGetCompanyAssignments } = require("./DriversAssignment");
 const { testGetCompanyBids } = require("./BidManagement");
 
+const {
+  testGetCompanyProfileHistory,
+  runCompanySupplementaryTests,
+} = require("./CompanySupplementary");
+
 module.exports = {
   createCompanyAdminFlow,
   testCompanyDelinquencyWorkflow,
@@ -54,4 +59,6 @@ module.exports = {
   testGetCompanyRatings,
   testGetCompanyAssignments,
   testGetCompanyBids,
+  testGetCompanyProfileHistory,
+  runCompanySupplementaryTests,
 };

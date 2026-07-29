@@ -70,6 +70,10 @@ const {
   testGetUserStatusById,
   testGetUserRoleStatusByPhone,
   testGetTableColumns,
+  testAcceptRejectAttachedDocuments,
+  testCanceledJourneyBySystem,
+  testCheckAutomaticBan,
+  testAdminTables,
   runSystemAdminTests,
 } = require("./SystemAdmin");
 
@@ -93,5 +97,9 @@ module.exports = {
   testGetUserStatusById,
   testGetUserRoleStatusByPhone,
   testGetTableColumns,
+  testAcceptRejectAttachedDocuments,
+  testCanceledJourneyBySystem,
+  testCheckAutomaticBan,
+  testAdminTables,
   runSystemAdminTests,
 };
