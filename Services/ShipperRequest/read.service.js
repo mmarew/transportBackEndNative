@@ -462,10 +462,12 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
         Users.fullName,
         Users.email,
         Users.phoneNumber,
-        VehicleTypes.vehicleTypeName
+        VehicleTypes.vehicleTypeName,
+        ShipperRequestBatch.batchId
       FROM ShipperRequest 
       JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = ShipperRequest.vehicleTypeUniqueId
+      LEFT JOIN ShipperRequestBatch ON ShipperRequestBatch.batchUniqueId = ShipperRequest.shipperRequestBatchId
       ${whereClause}
       ${orderBy}
       LIMIT ? OFFSET ?
@@ -640,7 +642,12 @@ const getDetailedJourneyData = async (shipperRequests) => {
         sr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
         waitingResults.push({
-          shipperRequest: sr,
+          shipperRequest: {
+            ...sr,
+            shipperRequestBatchUniqueId: sr.shipperRequestBatchId,
+            batchId: sr.batchId,
+            shipperRequestBatchId: undefined,
+          },
           driverRequests: [],
           decisions: [],
           journey: {},
@@ -865,7 +872,12 @@ const getDetailedJourneyData = async (shipperRequests) => {
         }
       }
       return {
-        shipperRequest: sr,
+        shipperRequest: {
+          ...sr,
+          shipperRequestBatchUniqueId: sr.shipperRequestBatchId,
+          batchId: sr.batchId,
+          shipperRequestBatchId: undefined,
+        },
         driverRequests,
         decisions,
         journey,
