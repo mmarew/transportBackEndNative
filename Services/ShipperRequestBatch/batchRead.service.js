@@ -187,7 +187,7 @@ exports.getCancellableSlots = async (batchUniqueId, filters = {}) => {
 
   // ── Build dynamic WHERE filters ───────────────────────────────────────────
   const clauses = [
-    "sr.shipperRequestBatchId = ?",
+    "sr.shipperRequestBatchUniqueId = ?",
     "sr.shipperRequestDeletedAt IS NULL",
   ];
   const params = [batchUniqueId];

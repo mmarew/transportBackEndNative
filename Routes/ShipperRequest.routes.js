@@ -32,12 +32,12 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * Purpose: Creates a new journey/shipping request for a shipper/shipper. This endpoint enables
  * shippers to request transportation services for their goods, allowing drivers to find and
  * bid on available journeys. The endpoint supports batch requests (multiple   Vehicle for one batch)
- * and prevents duplicate requests using shipperRequestBatchId grouping.
+ * and prevents duplicate requests using shipperRequestBatchUniqueId grouping.
  *
  * Context & Use Case:
  * - Shipper/shipper wants to transport goods from origin to destination
  * - Shipper may need multiple   Vehicle for a single batch of requests (e.g., large shipment)
- * - Request is grouped by shipperRequestBatchId to prevent duplicate creation
+ * - Request is grouped by shipperRequestBatchUniqueId to prevent duplicate creation
  * - After creation, request is available for drivers to find and bid on
  * - System automatically finds nearby drivers and sends notifications
  * - Admin can create requests on behalf of shippers (requires phone number)
@@ -51,11 +51,11 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - Request is for shipping cargo/goods (not shipper transport)
  *
  * How it works:
- * 1. Validates required fields (shipperRequestBatchId, destination, vehicle, originLocation, etc.)
+ * 1. Validates required fields (shipperRequestBatchUniqueId, destination, vehicle, originLocation, etc.)
  * 2. Extracts userUniqueId from authentication token (for shippers) or creates user (for admin)
  * 3. If admin: Creates shipper user account within same transaction as request creation (atomic)
  * 4. Wraps admin user creation (if needed) + batch check + request creation in transaction (atomic operation)
- * 5. Checks existing requests by shipperRequestBatchId + userUniqueId
+ * 5. Checks existing requests by shipperRequestBatchUniqueId + userUniqueId
  * 6. Validates not all requests already created (existingRequestsCount < numberOfVehicles)
  * 7. Creates remaining requests sequentially (numberOfVehicles - existingRequestsCount)
  * 8. Each request is created with journeyStatusId = waiting (1)
@@ -67,7 +67,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * └────────────────┬────────────────────────────────────────────┘
  *                  │
  *                  ├─→ Step 1: Validate Required Fields
- *                  │   └─→ shipperRequestBatchId, destination, vehicle, originLocation, etc.
+ *                  │   └─→ shipperRequestBatchUniqueId, destination, vehicle, originLocation, etc.
  *                  │
  *                  ├─→ Step 2: Extract User Info from Token
  *                  │   ├─→ If roleId ===1 (shipper): userUniqueId from token
@@ -83,7 +83,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *                  │   └─→ [TRANSACTION START]
  *                  │       ├─→ Step 4a: Batch Check (within transaction)
  *                  │       │   └─→ SELECT * FROM ShipperRequest
- *                  │       │       WHERE shipperRequestBatchId = ? AND userUniqueId = ?
+ *                  │       │       WHERE shipperRequestBatchUniqueId = ? AND userUniqueId = ?
  *                  │       │   └─→ Gets existing requests count for this batch
  *                  │       │
  *                  │       ├─→ Step 4b: Validate Batch Limit
@@ -104,7 +104,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *                  │               │   ├─→ journeyStatusId = waiting (1)
  *                  │               │   ├─→ shippableItemName, shippableItemQtyInQuintal
  *                  │               │   ├─→ shippingDate, deliveryDate, shippingCost
- *                  │               │   └─→ shipperRequestBatchId (groups related requests)
+ *                  │               │   └─→ shipperRequestBatchUniqueId (groups related requests)
  *                  │               └─→ Collect new request data
  *                  │
  *                  └─→ [TRANSACTION COMMIT] or [TRANSACTION ROLLBACK] on error
@@ -127,7 +127,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *
  * 2. ✅ READ (within transaction): Checks existing requests by batchId
  *    - Uses connection query if provided (transaction support)
- *    - SELECT * FROM ShipperRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ?
+ *    - SELECT * FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ? AND userUniqueId = ?
  *    - Counts existing requests for this batch
  *    - Used to prevent exceeding numberOfVehicles limit
  *
@@ -148,7 +148,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *      - journeyStatusId = waiting (1) - initial status
  *      - shippableItemName, shippableItemQtyInQuintal
  *      - shippingDate, deliveryDate, shippingCost
- *      - shipperRequestBatchId (groups related requests)
+ *      - shipperRequestBatchUniqueId (groups related requests)
  *      - shipperRequestCreatedBy, shipperRequestCreatedByRoleId (audit fields)
  *      - shipperRequestCreatedAt (current timestamp)
  *    - All inserts use same connection (within transaction)
@@ -186,7 +186,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *   - Database isolation level ensures consistent snapshot during transaction
  *
  * Request Body:
- * - shipperRequestBatchId: Unique ID for batch grouping (required, UUID format)
+ * - shipperRequestBatchUniqueId: Unique ID for batch grouping (required, UUID format)
  *   - Groups related requests (e.g., same shipment needing multiple vehicles)
  *   - Prevents duplicate requests by checking existing requests with same batchId
  * - numberOfVehicles: Number of   Vehicle needed for this batch (optional, default: 1, min: 1)
@@ -241,7 +241,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *       shippingDate: date,
  *       deliveryDate: date,
  *       shippingCost: number,
- *       shipperRequestBatchId: string (UUID),
+ *       shipperRequestBatchUniqueId: string (UUID),
  *       shipperRequestCreatedBy: string (UUID),
  *       shipperRequestCreatedByRoleId: number,
  *       shipperRequestCreatedAt: datetime
@@ -256,7 +256,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * Response (Error):
  * - message: "error"
  * - error: "Missing required fields to create shipper request" (if validation fails in controller)
- * - error: "Batch uniqueId Can't be null" (if shipperRequestBatchId missing)
+ * - error: "Batch uniqueId Can't be null" (if shipperRequestBatchUniqueId missing)
  * - error: "shipperPhoneNumber is required when admin creates request for shipper" (if admin but no phone)
  * - error: "Failed to create user for shipper" (if user creation fails for admin)
  * - error: "Failed to get userUniqueId from created user" (if user creation returns invalid data)
@@ -264,7 +264,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - error: "All required requests have already been created for this batch." (if existingRequestsCount >= numberOfVehicles)
  *   - existingRequestsCount: number (current count of requests for this batch)
  *   - requestedVehicles: number (number of   Vehicle requested)
- *   - shipperRequestBatchId: string (UUID of the batch)
+ *   - shipperRequestBatchUniqueId: string (UUID of the batch)
  * - error: "Invalid vehicle type" (if vehicleTypeUniqueId not found in VehicleTypes table)
  * - error: "Vehicle type not found" (if vehicleTypeUniqueId validation fails)
  * - error: "Unable to create request" (general processing error)
@@ -284,10 +284,10 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *
  * Validation:
  * - Validates required fields in controller (before service call):
- *   - shipperRequestBatchId, destination, vehicle, originLocation, numberOfVehicles,
+ *   - shipperRequestBatchUniqueId, destination, vehicle, originLocation, numberOfVehicles,
  *     shippingDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, deliveryDate
  * - Validates request body format via Joi schema (createShipperRequest)
- *   - shipperRequestBatchId: UUID format, required
+ *   - shipperRequestBatchUniqueId: UUID format, required
  *   - numberOfVehicles: integer, min: 1, default: 1
  *   - shippingDate, deliveryDate: ISO date format, required
  *   - shippingCost: number, required
@@ -298,7 +298,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *   - vehicle: object with vehicleTypeUniqueId (UUID, required)
  *   - shipperPhoneNumber: string, optional (required only for admin)
  *   - requestType: "PASSENGER" | "CARGO", optional
- * - Validates shipperRequestBatchId is not null (service level)
+ * - Validates shipperRequestBatchUniqueId is not null (service level)
  * - Validates userUniqueId is available (after admin user creation if applicable)
  * - Validates vehicle type exists in VehicleTypes table (for each request creation)
  * - Validates existing requests count < numberOfVehicles (batch limit check)
@@ -307,9 +307,9 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - "Missing required fields to create shipper request": Controller validation failed
  *   - Status: 400 Bad Request
  *   - Cause: One or more required fields missing from request body
- * - "Batch uniqueId Can't be null": shipperRequestBatchId missing
+ * - "Batch uniqueId Can't be null": shipperRequestBatchUniqueId missing
  *   - Status: 400 Bad Request
- *   - Cause: shipperRequestBatchId not provided or null
+ *   - Cause: shipperRequestBatchUniqueId not provided or null
  * - "shipperPhoneNumber is required when admin creates request for shipper": Admin creating but no phone
  *   - Status: 400 Bad Request
  *   - Cause: Admin role but shipperPhoneNumber not provided
@@ -322,7 +322,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - "All required requests have already been created for this batch": Batch limit exceeded
  *   - Status: 409 Conflict (should be, but currently returns error message)
  *   - Cause: Existing requests count >= numberOfVehicles
- *   - Includes: existingRequestsCount, requestedVehicles, shipperRequestBatchId for debugging
+ *   - Includes: existingRequestsCount, requestedVehicles, shipperRequestBatchUniqueId for debugging
  * - "Invalid vehicle type" or "Vehicle type not found": VehicleTypeUniqueId doesn't exist
  *   - Status: 500 Internal Server Error
  *   - Cause: VehicleTypeUniqueId not found in VehicleTypes table
@@ -355,11 +355,11 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * 6. Driver completes journey → Status: journeyCompleted (6)
  *
  * Important Logic - Batch Grouping:
- * - All requests with same shipperRequestBatchId are treated as related (same shipment)
+ * - All requests with same shipperRequestBatchUniqueId are treated as related (same shipment)
  * - Prevents creating more requests than numberOfVehicles for a batch
  * - Useful when shipper needs multiple   Vehicle for large shipment
- * - Each request in batch has unique shipperRequestUniqueId but same shipperRequestBatchId
- * - Batch check counts existing requests: WHERE shipperRequestBatchId = ? AND userUniqueId = ?
+ * - Each request in batch has unique shipperRequestUniqueId but same shipperRequestBatchUniqueId
+ * - Batch check counts existing requests: WHERE shipperRequestBatchUniqueId = ? AND userUniqueId = ?
  * - If existingRequestsCount >= numberOfVehicles: All requests already created, return error
  * - Otherwise: Create remaining requests (numberOfVehicles - existingRequestsCount)
  *
@@ -422,7 +422,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *
  * Important Notes:
  * - This endpoint supports batch requests (multiple   Vehicle for one shipment)
- * - Batch grouping prevents duplicate requests using shipperRequestBatchId
+ * - Batch grouping prevents duplicate requests using shipperRequestBatchUniqueId
  * - Admin can create requests on behalf of shippers (requires phone number)
  * - ✅ FIXED: Admin user creation now uses same transaction as request creation (full transaction support)
  * - Admin user creation + batch check + request creation are all atomic (wrapped in transaction)
@@ -432,11 +432,11 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *
  * Performance Notes:
  * - Admin user creation adds one database transaction (if admin)
- * - Batch check uses indexed query (shipperRequestBatchId + userUniqueId)
+ * - Batch check uses indexed query (shipperRequestBatchUniqueId + userUniqueId)
  * - Vehicle type validation happens before loop (efficient - fails early)
  * - Request creation is sequential (could be parallelized, but safer sequential)
  * - Transaction timeout: 20 seconds (enough for multiple request creations)
- * - Consider adding composite index: (shipperRequestBatchId, userUniqueId) for faster batch checks
+ * - Consider adding composite index: (shipperRequestBatchUniqueId, userUniqueId) for faster batch checks
  * - Consider caching vehicle type validation (validate once, reuse result)
  *
  * Differences from Other Endpoints:
@@ -517,7 +517,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *    - Requires proper error handling for partial failures
  *    - Current sequential approach is safer
  *
- * 4. Add composite index on (shipperRequestBatchId, userUniqueId)
+ * 4. Add composite index on (shipperRequestBatchUniqueId, userUniqueId)
  *    - Would improve batch check query performance
  *    - Recommended for high-frequency batch checks
  *
@@ -529,7 +529,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
 router.post(
   SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
   verifyTokenOfAxios,
-  validator(createShipperRequest), // Validates request body: shipperRequestBatchId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional), requestType (optional)
+  validator(createShipperRequest), // Validates request body: shipperRequestBatchUniqueId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional), requestType (optional)
   controller.createShipperRequest,
 );
 /**
@@ -550,7 +550,7 @@ router.post(
  * - page: page number (optional)
  * - shipperRequestUniqueId: filter by unique ID (optional)
  * - shipperUserUniqueId: filter by user ID, use "self" for current user (optional)
- * - Other filters: vehicleTypeUniqueId, shipperRequestBatchId, etc.
+ * - Other filters: vehicleTypeUniqueId, shipperRequestBatchUniqueId, etc.
  */
 router.get(
   SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER,
@@ -713,7 +713,7 @@ router.put(
 /**
  * Cancel Shipper Request Batch Endpoint
  *
- * Purpose: Cancels ALL ShipperRequest rows that share a shipperRequestBatchId
+ * Purpose: Cancels ALL ShipperRequest rows that share a shipperRequestBatchUniqueId
  *          in a single atomic database operation.
  *
  * How it works:
@@ -726,7 +726,7 @@ router.put(
  * partial failure. This endpoint is atomic via executeInTransaction.
  *
  * Params:
- * - shipperRequestBatchId: UUID of the batch to cancel
+ * - shipperRequestBatchUniqueId: UUID of the batch to cancel
  *
  * Body (optional):
  * - cancellationReasonsTypeId: Reason for cancellation

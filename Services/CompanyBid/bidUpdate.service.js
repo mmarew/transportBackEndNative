@@ -114,10 +114,10 @@ const updateBidStatus = async (
     const [existingPRs] = await db().query(
       `SELECT shipperRequestId, journeyStatusId
        FROM ShipperRequest
-       WHERE shipperRequestBatchId = ?
+       WHERE shipperRequestBatchUniqueId = ?
          AND shipperRequestDeletedAt IS NULL
        FOR UPDATE`,
-      [bid.shipperRequestBatchId],
+      [bid.shipperRequestBatchUniqueId],
     );
      logger.debug("updateBidStatus ~ existingPRs:", existingPRs)
 
@@ -126,7 +126,7 @@ const updateBidStatus = async (
       // Fetch full batch metadata needed to populate each row
       const [[batch]] = await db().query(
         `SELECT * FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
-        [bid.shipperRequestBatchId],
+        [bid.shipperRequestBatchUniqueId],
       );
       if (!batch) {
         throw new AppError("Batch not found during acceptance", 409);
@@ -146,7 +146,7 @@ const updateBidStatus = async (
         values.push(
           uuidv4(), // shipperRequestUniqueId
           batch.shipperUserUniqueId, // userUniqueId (shipper)
-          batch.batchUniqueId, // shipperRequestBatchId
+          batch.batchUniqueId, // shipperRequestBatchUniqueId
           batch.vehicleTypeUniqueId, // vehicleTypeUniqueId
           journeyStatusMap.acceptedByShipper, // journeyStatusId — born accepted, no driver yet
           batch.requestMode, // requestMode
@@ -170,7 +170,7 @@ const updateBidStatus = async (
 
       await db().query(
         `INSERT INTO ShipperRequest
-          (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
+          (shipperRequestUniqueId, userUniqueId, shipperRequestBatchUniqueId,
            vehicleTypeUniqueId, journeyStatusId, requestMode, targetCompanyUniqueId,
            originLatitude, originLongitude, originPlace,
            destinationLatitude, destinationLongitude, destinationPlace,
@@ -189,14 +189,14 @@ const updateBidStatus = async (
         [
           journeyStatusMap.acceptedByShipper,
           currentDate(),
-          bid.shipperRequestBatchId,
+          bid.shipperRequestBatchUniqueId,
         ],
       );
 
       logger.info(
         `company_target bid accepted — ${totalSlots} ShipperRequest rows created`,
         {
-          batchUniqueId: bid.shipperRequestBatchId,
+          batchUniqueId: bid.shipperRequestBatchUniqueId,
           bidUniqueId: companyBidRequestUniqueId,
           totalVehicles: totalSlots,
         },
@@ -239,8 +239,8 @@ const updateBidStatus = async (
       await db().query(
         `UPDATE ShipperRequest
          SET journeyStatusId = ?
-         WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
-        [journeyStatusMap.acceptedByShipper, bid.shipperRequestBatchId],
+         WHERE shipperRequestBatchUniqueId = ? AND shipperRequestDeletedAt IS NULL`,
+        [journeyStatusMap.acceptedByShipper, bid.shipperRequestBatchUniqueId],
       ); 
     }
 
@@ -286,8 +286,8 @@ const updateBidStatus = async (
     await db().query(
       `UPDATE ShipperRequest
        SET journeyStatusId = ?
-       WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
-      [newPRStatus, bid.shipperRequestBatchId],
+       WHERE shipperRequestBatchUniqueId = ? AND shipperRequestDeletedAt IS NULL`,
+      [newPRStatus, bid.shipperRequestBatchUniqueId],
     );
   }
 
@@ -295,7 +295,7 @@ const updateBidStatus = async (
   let fullBid = null;
   const [[offerRow]] = await db().query(
     `SELECT cbr.companyBidRequestUniqueId,
-            cbr.shipperRequestBatchId,
+            cbr.shipperRequestBatchUniqueId,
             cbr.companyUniqueId,
             cbr.bidSubmittedByUserUniqueId,
             cbr.numberOfVehiclesOffered,
@@ -332,7 +332,7 @@ const updateBidStatus = async (
     try {
       const [[batchRow]] = await db().query(
         `SELECT b.batchUniqueId,
-                b.batchUniqueId AS shipperRequestBatchId,
+                b.batchUniqueId AS shipperRequestBatchUniqueId,
                 b.batchId,
                 b.originPlace, b.originLatitude, b.originLongitude,
                 b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
@@ -350,7 +350,7 @@ const updateBidStatus = async (
          LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
          LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
          WHERE b.batchUniqueId = ? LIMIT 1`,
-        [bid.shipperRequestBatchId],
+        [bid.shipperRequestBatchUniqueId],
       );
       if (batchRow) {
         companyBidPayload = { ...batchRow, offerCount: 1, offers: [fullBid] };
@@ -391,7 +391,7 @@ const updateBidStatus = async (
         type: "company_bid_status_update",
         bidStatus,
         companyBidRequestUniqueId,
-        shipperRequestBatchId: bid.shipperRequestBatchId,
+        shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
       },
     }).catch((e) =>
       logger.error("FCM notification failed for bid status update", {
@@ -417,7 +417,7 @@ const updateBidStatus = async (
           data: companyBidPayload || fullBid || {
             bidStatus,
             companyBidRequestUniqueId,
-            shipperRequestBatchId: bid.shipperRequestBatchId,
+            shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
           },
         },
       }).catch((e) =>

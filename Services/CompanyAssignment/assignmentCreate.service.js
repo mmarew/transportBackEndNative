@@ -67,7 +67,7 @@ exports.createAssignment = async (data) => {
     // ── EAGER PATH: sr already exists (individual_target or pre-created) ───
     sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
-      bid.shipperRequestBatchId,
+      bid.shipperRequestBatchUniqueId,
     );
   } else {
     // ── COMPANY-TARGET PATH: Find a free, unassigned ShipperRequest slot ──
@@ -76,7 +76,7 @@ exports.createAssignment = async (data) => {
     const [[freeSlot]] = await db().query(
       `SELECT sr.shipperRequestUniqueId
        FROM ShipperRequest sr
-       WHERE sr.shipperRequestBatchId = ?
+       WHERE sr.shipperRequestBatchUniqueId = ?
          AND sr.shipperRequestDeletedAt IS NULL
          AND sr.journeyStatusId = ?
          AND NOT EXISTS (
@@ -89,7 +89,7 @@ exports.createAssignment = async (data) => {
              )
          )
        LIMIT 1`,
-      [bid.shipperRequestBatchId, journeyStatusMap.acceptedByShipper],
+      [bid.shipperRequestBatchUniqueId, journeyStatusMap.acceptedByShipper],
     );
 
     if (!freeSlot) {
@@ -102,12 +102,12 @@ exports.createAssignment = async (data) => {
     shipperRequestUniqueId = freeSlot.shipperRequestUniqueId;
     sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
-      bid.shipperRequestBatchId,
+      bid.shipperRequestBatchUniqueId,
     );
 
     logger.info("Free ShipperRequest slot claimed for assignment", {
       shipperRequestUniqueId,
-      batchUniqueId: bid.shipperRequestBatchId,
+      batchUniqueId: bid.shipperRequestBatchUniqueId,
     });
   }
 
@@ -179,7 +179,7 @@ exports.createAssignment = async (data) => {
   // ── Notify shipper that a driver was assigned ─────────────────────────
   notifyShipperOnAssignment({
     companyBidRequestUniqueId,
-    shipperRequestBatchId: bid.shipperRequestBatchId,
+    shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
     results: [{
       assignmentUniqueId,
       shipperRequestUniqueId,
@@ -234,7 +234,7 @@ exports.createBulkAssignments = async (data) => {
     // Check if slot belongs to the batch — uses the dedicated service function
     const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
-      bid.shipperRequestBatchId,
+      bid.shipperRequestBatchUniqueId,
     );
 
     // Prevent duplicate assignment
@@ -307,7 +307,7 @@ exports.createBulkAssignments = async (data) => {
   // ── Notify shipper about all assigned drivers ─────────────────────────────
   notifyShipperOnAssignment({
     companyBidRequestUniqueId,
-    shipperRequestBatchId: bid.shipperRequestBatchId,
+    shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
     results: results.map((r) => ({
       assignmentUniqueId: r.assignmentUniqueId,
       shipperRequestUniqueId: r.shipperRequestUniqueId,
@@ -323,7 +323,7 @@ exports.createBulkAssignments = async (data) => {
  */
 async function notifyShipperOnAssignment({
   companyBidRequestUniqueId,
-  shipperRequestBatchId,
+  shipperRequestBatchUniqueId,
   results,
 }) {
   if (!results || results.length === 0) return;
@@ -333,7 +333,7 @@ async function notifyShipperOnAssignment({
        FROM ShipperRequestBatch b
        JOIN Users u ON b.shipperUserUniqueId = u.userUniqueId
        WHERE b.batchUniqueId = ? LIMIT 1`,
-      [shipperRequestBatchId],
+      [shipperRequestBatchUniqueId],
     );
     if (!shipperRow) return;
 

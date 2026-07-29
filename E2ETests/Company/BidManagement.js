@@ -79,7 +79,7 @@ const participateInBid = async ({ userType = "companyAdmin" }) => {
   }
   const url = backendURL + COMPANY_BID_ENDPOINTS.CREATE_BID;
   const payload = {
-    shipperRequestBatchId: bid.shipperRequestBatchId,
+    shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
     companyUniqueId: usersData?.[userType]?.companies?.[0]?.companyUniqueId,
     proposedCostPerVehicle: "90000",
   };

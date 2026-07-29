@@ -52,7 +52,7 @@ exports.autoAssignBatch = async (data) => {
     );
   }
 
-  const { shipperRequestBatchId, companyUniqueId } = bid;
+  const { shipperRequestBatchUniqueId, companyUniqueId } = bid;
 
   // 2. Find Unassigned Slots for this Batch
   // Only consider slots that are still FREE (acceptedByShipper = not yet driven,
@@ -62,7 +62,7 @@ exports.autoAssignBatch = async (data) => {
   const [unassignedSlots] = await db().query(
     `SELECT sr.shipperRequestUniqueId, sr.originLatitude, sr.originLongitude, sr.originPlace
      FROM ShipperRequest sr
-     WHERE sr.shipperRequestBatchId = ? 
+     WHERE sr.shipperRequestBatchUniqueId = ? 
        AND sr.shipperRequestDeletedAt IS NULL
        AND sr.journeyStatusId = ?
        AND NOT EXISTS (
@@ -73,7 +73,7 @@ exports.autoAssignBatch = async (data) => {
            AND cba.assignmentStatus NOT IN ('rejected_by_driver','cancelled_by_company','cancelled_by_shipper','cancelled_by_driver')
        )`,
     [
-      shipperRequestBatchId,
+      shipperRequestBatchUniqueId,
       journeyStatusMap.acceptedByShipper,
       companyBidRequestUniqueId,
     ],

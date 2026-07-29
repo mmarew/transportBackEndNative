@@ -8,7 +8,7 @@ const SHIPPER_REQUEST_ENDPOINTS = {
   GET_BY_ID_PRIVATE: "/api/shipperRequest/getById/:id",
   CANCEL_SHIPPER_REQUEST:
     "/api/shipperRequest/cancelShipperRequest/:userUniqueId",
-  CANCEL_BATCH: "/api/shipperRequest/cancelBatch/:shipperRequestBatchId",
+  CANCEL_BATCH: "/api/shipperRequest/cancelBatch/:shipperRequestBatchUniqueId",
   MARK_JOURNEY_COMPLETION_AS_SEEN:
     "/api/shipperRequest/markJourneyCompletionAsSeen",
   GET_CANCELLATION_NOTIFICATIONS:

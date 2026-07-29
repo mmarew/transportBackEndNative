@@ -380,7 +380,7 @@ CREATE TABLE IF NOT EXISTS ShipperRequest (
     shipperRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the shipper request
 
     userUniqueId VARCHAR(36) NOT NULL,                     -- Foreign key to Users
-    shipperRequestBatchId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
+    shipperRequestBatchUniqueId VARCHAR(36) NOT NULL,  -- Batch ID for grouping requests
     vehicleTypeUniqueId VARCHAR(36) NOT NULL,              -- Foreign key to VehicleType
     journeyStatusId INT NOT NULL,                          -- Foreign key to JourneyStatus
 
@@ -1548,15 +1548,15 @@ CREATE TABLE IF NOT EXISTS CompanyVehicle (
 -- CompanyBidRequest: A company's bid on a shipper's batch request.
 -- When requestMode = 'company_target', only the targeted company can see and bid.
 -- No partial bids: numberOfVehiclesOffered MUST equal the shipper's batch size.
--- One company submits one bid per batch (UNIQUE on companyUniqueId + shipperRequestBatchId).
+-- One company submits one bid per batch (UNIQUE on companyUniqueId + shipperRequestBatchUniqueId).
 -- Commission for company bids is tracked in CompanyCommission (not the per-journey Commission table).
 
 CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     companyBidRequestId INT AUTO_INCREMENT PRIMARY KEY,
     companyBidRequestUniqueId VARCHAR(36) UNIQUE NOT NULL,
 
-    -- The shipper's batch being bid on (links to ShipperRequest.shipperRequestBatchId)
-    shipperRequestBatchId VARCHAR(36) NOT NULL,
+    -- The shipper's batch being bid on (links to ShipperRequest.shipperRequestBatchUniqueId)
+    shipperRequestBatchUniqueId VARCHAR(36) NOT NULL,
 
     -- Who is bidding
     companyUniqueId VARCHAR(36) NOT NULL,                  -- FK → TransportCompany
@@ -1599,8 +1599,8 @@ CREATE TABLE IF NOT EXISTS CompanyBidRequest (
     companyBidRequestDeletedAt DATETIME NULL,
     companyBidRequestDeletedBy VARCHAR(36) NULL,
 
-    UNIQUE KEY uq_company_batch_bid (companyUniqueId, shipperRequestBatchId),  -- One bid per company per batch
-    INDEX idx_companyBid_batchId (shipperRequestBatchId),
+    UNIQUE KEY uq_company_batch_bid (companyUniqueId, shipperRequestBatchUniqueId),  -- One bid per company per batch
+    INDEX idx_companyBid_batchId (shipperRequestBatchUniqueId),
     INDEX idx_companyBid_company (companyUniqueId),
     INDEX idx_companyBid_status (bidStatus),
     FOREIGN KEY (companyUniqueId) REFERENCES TransportCompany(companyUniqueId),

@@ -97,7 +97,7 @@ exports.createBulkAssignments = async (data) => {
     // Check if slot belongs to the batch — uses the dedicated service function
     const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
-      bid.shipperRequestBatchId,
+      bid.shipperRequestBatchUniqueId,
     );
 
     // Prevent duplicate assignment
@@ -170,7 +170,7 @@ exports.createBulkAssignments = async (data) => {
   // ── Notify shipper about all assigned drivers ─────────────────────────────
   notifyShipperOnAssignment({
     companyBidRequestUniqueId,
-    shipperRequestBatchId: bid.shipperRequestBatchId,
+    shipperRequestBatchUniqueId: bid.shipperRequestBatchUniqueId,
     results: results.map((r) => ({
       assignmentUniqueId: r.assignmentUniqueId,
       shipperRequestUniqueId: r.shipperRequestUniqueId,
@@ -1018,8 +1018,8 @@ exports.updateAssignmentStatus = async (
     const [[{ totalSlots }]] = await db().query(
       `SELECT COUNT(*) AS totalSlots
        FROM ShipperRequest
-       WHERE shipperRequestBatchId = (
-         SELECT shipperRequestBatchId FROM CompanyBidRequest
+       WHERE shipperRequestBatchUniqueId = (
+         SELECT shipperRequestBatchUniqueId FROM CompanyBidRequest
          WHERE companyBidRequestUniqueId = ? LIMIT 1
        )
          AND shipperRequestDeletedAt IS NULL`,

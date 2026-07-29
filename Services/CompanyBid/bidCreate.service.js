@@ -37,7 +37,7 @@ const { sendFCMNotificationToUser } = require("../Firebase.service");
  * > 4. Use `numberOfVehiclesOffered` as the `finalCount` in the INSERT query.
  *
  * @param {Object} data - The payload containing bid details.
- * @param {string} data.shipperRequestBatchId - The UUID that groups the shipper's requests.
+ * @param {string} data.shipperRequestBatchUniqueId - The UUID that groups the shipper's requests.
  * @param {string} data.companyUniqueId - The ID of the bidding fleet.
  * @param {string} data.bidSubmittedByUserUniqueId - The User ID of the dispatcher.
  * @param {number} [data.numberOfVehiclesOffered] - Optional; defaults to batch total.
@@ -46,7 +46,7 @@ const { sendFCMNotificationToUser } = require("../Firebase.service");
  */
 const submitBid = async (data) => {
   const {
-    shipperRequestBatchId,
+    shipperRequestBatchUniqueId,
     companyUniqueId,
     bidSubmittedByUserUniqueId,
     vehicleTypeUniqueId,
@@ -94,7 +94,7 @@ const submitBid = async (data) => {
     `SELECT totalVehicles, vehicleTypeUniqueId, requestMode, targetCompanyUniqueId, shipperUserUniqueId 
      FROM ShipperRequestBatch 
      WHERE batchUniqueId = ? AND batchDeletedAt IS NULL LIMIT 1`,
-    [shipperRequestBatchId],
+    [shipperRequestBatchUniqueId],
   );
   if (!batchRows || batchRows.length === 0) {
     throw new AppError("Shipper request batch not found", 404);
@@ -124,11 +124,11 @@ const submitBid = async (data) => {
   const [acceptedBids] = await db().query(
     `SELECT companyBidRequestUniqueId, companyUniqueId
      FROM CompanyBidRequest
-     WHERE shipperRequestBatchId = ?
+     WHERE shipperRequestBatchUniqueId = ?
        AND bidStatus = 'accepted_by_shipper'
        AND companyBidRequestDeletedAt IS NULL
      LIMIT 1`,
-    [shipperRequestBatchId],
+    [shipperRequestBatchUniqueId],
   );
   if (acceptedBids.length > 0) {
     throw new AppError(
@@ -144,8 +144,8 @@ const submitBid = async (data) => {
     const [countRows] = await db().query(
       `SELECT COUNT(*) AS batchCount
        FROM ShipperRequest
-       WHERE shipperRequestBatchId = ? AND shipperRequestDeletedAt IS NULL`,
-      [shipperRequestBatchId],
+       WHERE shipperRequestBatchUniqueId = ? AND shipperRequestDeletedAt IS NULL`,
+      [shipperRequestBatchUniqueId],
     );
     const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
     if (actualRequestCount === 0) {
@@ -167,8 +167,8 @@ const submitBid = async (data) => {
 
   // One bid per company per batch
   const [existing] = await db().query(
-    "SELECT companyBidRequestId FROM CompanyBidRequest WHERE companyUniqueId = ? AND shipperRequestBatchId = ? AND companyBidRequestDeletedAt IS NULL",
-    [companyUniqueId, shipperRequestBatchId],
+    "SELECT companyBidRequestId FROM CompanyBidRequest WHERE companyUniqueId = ? AND shipperRequestBatchUniqueId = ? AND companyBidRequestDeletedAt IS NULL",
+    [companyUniqueId, shipperRequestBatchUniqueId],
   );
   if (existing.length > 0) {
     throw new AppError(
@@ -190,7 +190,7 @@ const submitBid = async (data) => {
 
   await db().query(
     `INSERT INTO CompanyBidRequest
-      (companyBidRequestUniqueId, shipperRequestBatchId, companyUniqueId,
+      (companyBidRequestUniqueId, shipperRequestBatchUniqueId, companyUniqueId,
        bidSubmittedByUserUniqueId, numberOfVehiclesOffered, vehicleTypeUniqueId,
        proposedCostPerVehicle, proposedTotalCost, proposedShippingDate,
        proposedDeliveryDate, bidNotes, bidStatus, journeyStatusId,
@@ -198,7 +198,7 @@ const submitBid = async (data) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', ?, ?, ?)`,
     [
       companyBidRequestUniqueId,
-      shipperRequestBatchId,
+      shipperRequestBatchUniqueId,
       companyUniqueId,
       bidSubmittedByUserUniqueId,
       finalCount,
@@ -218,7 +218,7 @@ const submitBid = async (data) => {
   try {
     const [[batchRecord]] = await db().query(
       `SELECT b.batchUniqueId,
-              b.batchUniqueId AS shipperRequestBatchId,
+              b.batchUniqueId AS shipperRequestBatchUniqueId,
               b.batchId,
               b.originPlace, b.originLatitude, b.originLongitude,
               b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
@@ -236,12 +236,12 @@ const submitBid = async (data) => {
        LEFT JOIN VehicleTypes vt ON b.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
        LEFT JOIN JourneyStatus js ON b.journeyStatusId = js.journeyStatusId
        WHERE b.batchUniqueId = ? LIMIT 1`,
-      [shipperRequestBatchId],
+      [shipperRequestBatchUniqueId],
     );
 
     const [[offerRecord]] = await db().query(
       `SELECT cbr.companyBidRequestUniqueId,
-              cbr.shipperRequestBatchId,
+              cbr.shipperRequestBatchUniqueId,
               cbr.companyUniqueId,
               cbr.bidSubmittedByUserUniqueId,
               cbr.numberOfVehiclesOffered,
@@ -305,7 +305,7 @@ const submitBid = async (data) => {
         data: {
           type: "company_bid_submitted",
           companyBidRequestUniqueId,
-          shipperRequestBatchId,
+          shipperRequestBatchUniqueId,
           companyName: company.companyName,
         },
       }).catch((e) =>
@@ -328,7 +328,7 @@ const submitBid = async (data) => {
           data:
             shipperNotifPayload || {
               companyBidRequestUniqueId,
-              shipperRequestBatchId,
+              shipperRequestBatchUniqueId,
               companyName: company.companyName,
             },
         },

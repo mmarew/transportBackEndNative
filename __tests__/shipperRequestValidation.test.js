@@ -18,7 +18,7 @@ describe("ShipperRequest Validation", () => {
   } = require("../Validations/ShipperRequest.schema");
 
   const validPayload = (overrides = {}) => ({
-    shipperRequestBatchId: uuid(),
+    shipperRequestBatchUniqueId: uuid(),
     numberOfVehicles: 1,
     shippingDate: "2026-06-01",
     deliveryDate: "2026-06-05",

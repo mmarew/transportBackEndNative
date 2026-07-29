@@ -47,7 +47,7 @@ describe("Company-Target Lazy sr Creation", () => {
   afterAll(async () => {
     for (const bid of testBatchIds) {
       await query(
-        `DELETE FROM ShipperRequest WHERE shipperRequestBatchId = ?`,
+        `DELETE FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ?`,
         [bid],
       ).catch(() => {});
       await query(`DELETE FROM ShipperRequestBatch WHERE batchUniqueId = ?`, [
@@ -87,7 +87,7 @@ describe("Company-Target Lazy sr Creation", () => {
 
     // ZERO ShipperRequest rows — that's the whole point
     const [prs] = await query(
-      `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchId = ?`,
+      `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ?`,
       [batchId],
     );
     expect(prs[0].cnt).toBe(0);
@@ -114,7 +114,7 @@ describe("Company-Target Lazy sr Creation", () => {
 
     // Still ZERO sr rows
     const [prs] = await query(
-      `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchId = ?`,
+      `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ?`,
       [batchId],
     );
     expect(prs[0].cnt).toBe(0);
@@ -134,7 +134,7 @@ describe("Company-Target Lazy sr Creation", () => {
     const prId = uuid();
     await query(
       `INSERT INTO ShipperRequest
-        (shipperRequestUniqueId, userUniqueId, shipperRequestBatchId,
+        (shipperRequestUniqueId, userUniqueId, shipperRequestBatchUniqueId,
          vehicleTypeUniqueId, journeyStatusId, requestMode,
          originLatitude, originLongitude, originPlace,
          destinationLatitude, destinationLongitude, destinationPlace,
@@ -178,7 +178,7 @@ describe("Company-Target Lazy sr Creation", () => {
 
     // Only 1 sr exists (not 450,000!)
     const [allPrs] = await query(
-      `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchId = ?`,
+      `SELECT COUNT(*) AS cnt FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ?`,
       [batchId],
     );
     expect(allPrs[0].cnt).toBe(1);
@@ -191,7 +191,7 @@ describe("Company-Target Lazy sr Creation", () => {
     } = require("../Validations/ShipperRequest.schema");
 
     const result = createShipperRequest.validate({
-      shipperRequestBatchId: uuid(),
+      shipperRequestBatchUniqueId: uuid(),
       numberOfVehicles: 450000,
       shippingDate: "2026-06-01",
       deliveryDate: "2026-06-05",
@@ -214,7 +214,7 @@ describe("Company-Target Lazy sr Creation", () => {
     } = require("../Validations/ShipperRequest.schema");
 
     const result = createShipperRequest.validate({
-      shipperRequestBatchId: uuid(),
+      shipperRequestBatchUniqueId: uuid(),
       numberOfVehicles: 10,
       requestMode: "individual_target",
       shippingDate: "2026-06-01",
@@ -238,7 +238,7 @@ describe("Company-Target Lazy sr Creation", () => {
     } = require("../Validations/ShipperRequest.schema");
 
     const result = createShipperRequest.validate({
-      shipperRequestBatchId: uuid(),
+      shipperRequestBatchUniqueId: uuid(),
       numberOfVehicles: 100,
       requestMode: "company_target",
       shippingDate: "2026-06-01",
@@ -262,7 +262,7 @@ describe("Company-Target Lazy sr Creation", () => {
     } = require("../Validations/ShipperRequest.schema");
 
     const result = createShipperRequest.validate({
-      shipperRequestBatchId: uuid(),
+      shipperRequestBatchUniqueId: uuid(),
       numberOfVehicles: 9,
       requestMode: "individual_target",
       shippingDate: "2026-06-01",

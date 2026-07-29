@@ -32,7 +32,7 @@ const testCreateShipperRequest = async (
     deliveryDate.setDate(deliveryDate.getDate() + 3); // 3 days from now
 
     const payload = {
-      shipperRequestBatchId: uuidv4(),
+      shipperRequestBatchUniqueId: uuidv4(),
       numberOfVehicles: 1,
       shippingDate: shippingDate.toISOString(),
       deliveryDate: deliveryDate.toISOString(),
@@ -130,7 +130,7 @@ const testGetShipperRequests = async (token, journeyStatusId) => {
 //   GET_BY_ID_PRIVATE: "/api/shipperRequest/getById/:id",
 //   CANCEL_SHIPPER_REQUEST:
 //     "/api/shipperRequest/cancelShipperRequest/:userUniqueId",
-//   CANCEL_BATCH: "/api/shipperRequest/cancelBatch/:shipperRequestBatchId",
+//   CANCEL_BATCH: "/api/shipperRequest/cancelBatch/:shipperRequestBatchUniqueId",
 //   MARK_JOURNEY_COMPLETION_AS_SEEN:
 //     "/api/shipperRequest/markJourneyCompletionAsSeen",
 //   GET_CANCELLATION_NOTIFICATIONS:
@@ -192,15 +192,15 @@ const testCancelShipperRequest = async ({ uniqueIds }) => {
   }
 };
 
-const testCancelBatch = async (shipperRequestBatchId) => {
+const testCancelBatch = async (shipperRequestBatchUniqueId) => {
   try {
     const token = usersData.shipper.token;
     const auth = authConfig(token);
     const url =
       backendURL +
       SHIPPER_REQUEST_ENDPOINTS.CANCEL_BATCH.replace(
-        ":shipperRequestBatchId",
-        shipperRequestBatchId,
+        ":shipperRequestBatchUniqueId",
+        shipperRequestBatchUniqueId,
       );
     const result = await axios.put(url, {}, auth);
     console.log("Cancel batch success:", result.data);

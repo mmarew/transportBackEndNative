@@ -11,7 +11,7 @@ const logger = require("../Utils/logger");
 const createShipperRequest = async (req, res, next) => {
   try {
     const {
-      shipperRequestBatchId,
+      shipperRequestBatchUniqueId,
       destination,
       vehicle,
       originLocation,
@@ -24,7 +24,7 @@ const createShipperRequest = async (req, res, next) => {
     } = req.body;
 
     if (
-      !shipperRequestBatchId ||
+      !shipperRequestBatchUniqueId ||
       !destination ||
       !vehicle ||
       !originLocation ||
@@ -276,17 +276,17 @@ const cancelShipperRequest = async (req, res, next) => {
 
 /**
  * Cancel an entire shipper request batch in one atomic operation.
- * PUT /api/shipperRequest/cancelBatch/:shipperRequestBatchId
+ * PUT /api/shipperRequest/cancelBatch/:shipperRequestBatchUniqueId
  */
 const cancelShipperRequestBatch = async (req, res, next) => {
   try {
     const { userUniqueId, roleId } = req.user;
-    const { shipperRequestBatchId } = req.params;
+    const { shipperRequestBatchUniqueId } = req.params;
     const { cancellationReasonsTypeId } = req.body;
 
     const result = await executeInTransaction(async () =>
       ShipperService.cancelShipperRequestBatch({
-        shipperRequestBatchId,
+        shipperRequestBatchUniqueId,
         userUniqueId,
         roleId,
         cancellationReasonsTypeId,

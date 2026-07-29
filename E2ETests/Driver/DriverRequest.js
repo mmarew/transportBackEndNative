@@ -99,7 +99,7 @@ const testTakeFromStreet = async ({ token }) => {
       longitude: 38.8661227,
       description: "Diredawa, Ethiopia",
     },
-    shipperRequestBatchId: uuidv4(),
+    shipperRequestBatchUniqueId: uuidv4(),
     shippableItemName: "cement",
     shippableItemQtyInQuintal: 450,
     shippingDate: "2025-10-10:21:19:21",

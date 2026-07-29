@@ -71,7 +71,7 @@ const router = express.Router();
  *
  * Request Body:
  * - phoneNumber: Shipper's phone number (required, used to create/find user)
- * - shipperRequestBatchId: Batch ID for grouping related requests (required)
+ * - shipperRequestBatchUniqueId: Batch ID for grouping related requests (required)
  * - originLocation: {latitude, longitude, description} - Driver's current location (required)
  * - destination: {latitude, longitude, place} - Delivery destination (required)
  * - vehicleTypeUniqueId: Type of vehicle being used (required)

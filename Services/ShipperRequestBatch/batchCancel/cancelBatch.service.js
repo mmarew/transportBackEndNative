@@ -98,7 +98,7 @@ const cancelBatch = async ({
        SUM(journeyStatusId NOT IN (${lockedClause}))                    AS cancellableSlots,
        SUM(journeyStatusId IN (?,?))                                    AS inProgressSlots
      FROM ShipperRequest
-     WHERE shipperRequestBatchId = ?
+     WHERE shipperRequestBatchUniqueId = ?
        AND shipperRequestDeletedAt IS NULL`,
     [
       journeyStatusMap.journeyStarted,
@@ -128,7 +128,7 @@ const cancelBatch = async ({
         `UPDATE CompanyBidRequest
             SET bidStatus = 'expired',
                 isCancellationSeenByCompany = 'not seen by company yet'
-          WHERE shipperRequestBatchId = ?
+          WHERE shipperRequestBatchUniqueId = ?
             AND bidStatus NOT IN ('expired','rejected_by_shipper','cancelled_by_company')`,
         [batchUniqueId],
       ),
@@ -137,7 +137,7 @@ const cancelBatch = async ({
     // Collect notification targets before returning
     const [[companyRows], [shipperRows]] = await Promise.all([
       db().query(
-        `SELECT DISTINCT companyUniqueId FROM CompanyBidRequest WHERE shipperRequestBatchId = ?`,
+        `SELECT DISTINCT companyUniqueId FROM CompanyBidRequest WHERE shipperRequestBatchUniqueId = ?`,
         [batchUniqueId],
       ),
       db().query(
@@ -194,7 +194,7 @@ const cancelBatch = async ({
     db().query(
       `UPDATE ShipperRequest
           SET journeyStatusId = ?
-        WHERE shipperRequestBatchId = ?
+        WHERE shipperRequestBatchUniqueId = ?
           AND journeyStatusId NOT IN (${lockedClause})`,
       [cancelStatusId, batchUniqueId],
     ),
@@ -204,7 +204,7 @@ const cancelBatch = async ({
          INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
           SET jd.journeyStatusId = ?
-        WHERE sr.shipperRequestBatchId = ?
+        WHERE sr.shipperRequestBatchUniqueId = ?
           AND sr.journeyStatusId NOT IN (${lockedClause})
           AND jd.journeyStatusId NOT IN (${lockedClause})`,
       [cancelStatusId, batchUniqueId],
@@ -218,7 +218,7 @@ const cancelBatch = async ({
          INNER JOIN ShipperRequest sr
                  ON jd.shipperRequestId = sr.shipperRequestId
           SET dr.journeyStatusId = ?
-        WHERE sr.shipperRequestBatchId = ?
+        WHERE sr.shipperRequestBatchUniqueId = ?
           AND sr.journeyStatusId NOT IN (${lockedClause})
           AND dr.journeyStatusId IN (1,2,3,4)`,
       [cancelStatusId, batchUniqueId],
@@ -229,7 +229,7 @@ const cancelBatch = async ({
       `UPDATE CompanyBidRequest
           SET bidStatus = 'cancelled_by_company',
               isCancellationSeenByCompany = 'not seen by company yet'
-        WHERE shipperRequestBatchId = ?`,
+        WHERE shipperRequestBatchUniqueId = ?`,
       [batchUniqueId],
     ),
     // 7. Cancel vehicle assignments only for the cancellable slots
@@ -239,7 +239,7 @@ const cancelBatch = async ({
                  ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
           SET cba.assignmentStatus    = 'cancelled_by_shipper',
               cba.assignmentUpdatedAt = ?
-        WHERE sr.shipperRequestBatchId = ?
+        WHERE sr.shipperRequestBatchUniqueId = ?
           AND sr.journeyStatusId NOT IN (${lockedClause})
           AND cba.assignmentStatus IN ('assigned', 'reassigned')`,
       [now, batchUniqueId],
@@ -279,7 +279,7 @@ const cancelBatch = async ({
     db().query(
       `SELECT DISTINCT companyUniqueId
          FROM CompanyBidRequest
-        WHERE shipperRequestBatchId = ?`,
+        WHERE shipperRequestBatchUniqueId = ?`,
       [batchUniqueId],
     ),
     // Drivers who had a JourneyDecision linked to this batch
@@ -292,7 +292,7 @@ const cancelBatch = async ({
                  ON jd.shipperRequestId = sr.shipperRequestId
          INNER JOIN Users u
                  ON dr.userUniqueId = u.userUniqueId
-        WHERE sr.shipperRequestBatchId = ?`,
+        WHERE sr.shipperRequestBatchUniqueId = ?`,
       [batchUniqueId],
     ),
     // Shipper who owns the batch — for real-time confirmation on other devices

@@ -75,7 +75,7 @@ const findTimedOutDriverRequests = async () => {
         ShipperRequest.shippingDate,
         ShipperRequest.deliveryDate,
         ShipperRequest.shippingCost,
-        ShipperRequest.shipperRequestBatchId,
+        ShipperRequest.shipperRequestBatchUniqueId,
         ShipperRequest.shipperRequestCreatedBy,
         ShipperRequest.shipperRequestCreatedByRoleId,
         

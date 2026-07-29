@@ -154,7 +154,7 @@ const testSocketNotifications = async () => {
     deliveryDate.setDate(deliveryDate.getDate() + 3);
 
     const srPayload = {
-      shipperRequestBatchId: require("uuid").v4(),
+      shipperRequestBatchUniqueId: require("uuid").v4(),
       numberOfVehicles: 1,
       shippingDate: shippingDate.toISOString(),
       deliveryDate: deliveryDate.toISOString(),
@@ -396,7 +396,7 @@ const testCompanySocketNotifications = async () => {
     deliveryDate.setDate(deliveryDate.getDate() + 3);
 
     const srPayload = {
-      shipperRequestBatchId: batchId,
+      shipperRequestBatchUniqueId: batchId,
       numberOfVehicles: 1,
       shippingDate: shippingDate.toISOString(),
       deliveryDate: deliveryDate.toISOString(),
@@ -454,7 +454,7 @@ const testCompanySocketNotifications = async () => {
     const bidRes = await axios.post(
       backendURL + COMPANY_BID_ENDPOINTS.CREATE_BID,
       {
-        shipperRequestBatchId: batchId,
+        shipperRequestBatchUniqueId: batchId,
         companyUniqueId,
         numberOfVehiclesOffered: 1,
         proposedCostPerVehicle: 7500,

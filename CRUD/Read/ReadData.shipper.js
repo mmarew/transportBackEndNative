@@ -43,7 +43,7 @@ const checkActiveShipperRequest = async ({
         sr.shipperRequestId,
         sr.shipperRequestUniqueId,
         sr.userUniqueId,
-        sr.shipperRequestBatchId,
+        sr.shipperRequestBatchUniqueId,
         sr.vehicleTypeUniqueId,
         sr.journeyStatusId,
         sr.originLatitude,
@@ -172,7 +172,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         WHEN b.journeyStatusId IN (?, ?)
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+            WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
           )
         THEN b.batchUniqueId
@@ -182,7 +182,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
         WHEN b.journeyStatusId IN (?, ?)
           AND NOT EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+            WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus IN ('accepted_by_shipper', 'submitted')
           )
         THEN b.totalVehicles
@@ -192,7 +192,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE
         WHEN EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+            WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus = 'submitted'
           )
         THEN b.batchUniqueId
@@ -202,7 +202,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COALESCE(SUM(CASE
         WHEN EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+            WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus = 'submitted'
           )
         THEN b.totalVehicles
@@ -212,7 +212,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE
         WHEN EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+            WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus = 'accepted_by_shipper'
           )
         THEN b.batchUniqueId
@@ -221,7 +221,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COALESCE(SUM(CASE
         WHEN EXISTS (
             SELECT 1 FROM CompanyBidRequest cbr
-            WHERE cbr.shipperRequestBatchId = b.batchUniqueId
+            WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus = 'accepted_by_shipper'
           )
         THEN b.totalVehicles

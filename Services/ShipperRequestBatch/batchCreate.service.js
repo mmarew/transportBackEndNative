@@ -93,7 +93,7 @@ exports.upsertBatch = async ({
 
       const [[batch]] = await db().query(
         `SELECT b.batchUniqueId,
-                b.batchUniqueId AS shipperRequestBatchId,
+                b.batchUniqueId AS shipperRequestBatchUniqueId,
                 b.batchId,
                 b.originPlace, b.originLatitude, b.originLongitude,
                 b.destinationPlace, b.destinationLatitude, b.destinationLongitude,

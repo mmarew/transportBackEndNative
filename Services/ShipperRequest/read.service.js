@@ -39,7 +39,7 @@ const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
  *   - userUniqueId: Required - Shipper's userUniqueId (set by caller)
  *   - shipperRequestCreatedBy: Required - userUniqueId of who created this request (audit trail)
  *   - shipperRequestCreatedByRoleId: Required - roleId of who created this request (1=shipper, 2=driver, 3=admin)
- *   - shipperRequestBatchId: Required - Batch ID for grouping related requests
+ *   - shipperRequestBatchUniqueId: Required - Batch ID for grouping related requests
  *   - numberOfVehicles: Optional - Number of   Vehicle needed (default: 1)
  *   - vehicle, destination, originLocation, shippingDate, deliveryDate, shippingCost, etc.
  * @param {number} journeyStatusId - Initial journey status ID
@@ -89,7 +89,7 @@ const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
  *   - userUniqueId: Required - Shipper's userUniqueId (set by caller)
  *   - shipperRequestCreatedBy: Required - userUniqueId of who created this request (audit trail)
  *   - shipperRequestCreatedByRoleId: Required - roleId of who created this request (1=shipper, 2=driver, 3=admin)
- *   - shipperRequestBatchId: Required - Batch ID for grouping related requests
+ *   - shipperRequestBatchUniqueId: Required - Batch ID for grouping related requests
  *   - numberOfVehicles: Optional - Number of   Vehicle needed (default: 1)
  *   - vehicle, destination, originLocation, shippingDate, deliveryDate, shippingCost, etc.
  * @param {number} journeyStatusId - Initial journey status ID
@@ -383,11 +383,11 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
         countParams.push(...filters.journeyStatusIds);
       }
     }
-    if (filters?.shipperRequestBatchId) {
+    if (filters?.shipperRequestBatchUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
-      whereClause += " ShipperRequest.shipperRequestBatchId = ?";
-      queryParams.push(filters.shipperRequestBatchId);
-      countParams.push(filters.shipperRequestBatchId);
+      whereClause += " ShipperRequest.shipperRequestBatchUniqueId = ?";
+      queryParams.push(filters.shipperRequestBatchUniqueId);
+      countParams.push(filters.shipperRequestBatchUniqueId);
     }
     if (filters?.shipperRequestUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
@@ -467,7 +467,7 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       FROM ShipperRequest 
       JOIN Users ON Users.userUniqueId = ShipperRequest.userUniqueId
       JOIN VehicleTypes ON VehicleTypes.vehicleTypeUniqueId = ShipperRequest.vehicleTypeUniqueId
-      LEFT JOIN ShipperRequestBatch ON ShipperRequestBatch.batchUniqueId = ShipperRequest.shipperRequestBatchId
+      LEFT JOIN ShipperRequestBatch ON ShipperRequestBatch.batchUniqueId = ShipperRequest.shipperRequestBatchUniqueId
       ${whereClause}
       ${orderBy}
       LIMIT ? OFFSET ?
@@ -642,12 +642,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
         sr.journeyStatusId === journeyStatusMap.cancelledByDriver
       ) {
         waitingResults.push({
-          shipperRequest: {
-            ...sr,
-            shipperRequestBatchUniqueId: sr.shipperRequestBatchId,
-            batchId: sr.batchId,
-            shipperRequestBatchId: undefined,
-          },
+          shipperRequest: sr,
           driverRequests: [],
           decisions: [],
           journey: {},
@@ -872,12 +867,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
         }
       }
       return {
-        shipperRequest: {
-          ...sr,
-          shipperRequestBatchUniqueId: sr.shipperRequestBatchId,
-          batchId: sr.batchId,
-          shipperRequestBatchId: undefined,
-        },
+        shipperRequest: sr,
         driverRequests,
         decisions,
         journey,
@@ -930,7 +920,7 @@ const getDetailedJourneyData = async (shipperRequests) => {
  * duplicating raw SQL.
  *
  * @param {string} shipperRequestUniqueId  - UUID of the request
- * @param {string} [shipperRequestBatchId] - Optional: also validates batch membership
+ * @param {string} [shipperRequestBatchUniqueId] - Optional: also validates batch membership
  * @returns {Promise<Object>}  The matched row or null if not found
  * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
  */
@@ -944,17 +934,17 @@ const getDetailedJourneyData = async (shipperRequests) => {
  * duplicating raw SQL.
  *
  * @param {string} shipperRequestUniqueId  - UUID of the request
- * @param {string} [shipperRequestBatchId] - Optional: also validates batch membership
+ * @param {string} [shipperRequestBatchUniqueId] - Optional: also validates batch membership
  * @returns {Promise<Object>}  The matched row or null if not found
  * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
  */
 const getShipperRequestByUniqueId = async (
   shipperRequestUniqueId,
-  shipperRequestBatchId = null,
+  shipperRequestBatchUniqueId = null,
 ) => {
   let sql = `SELECT shipperRequestId,
                     shipperRequestUniqueId,
-                    shipperRequestBatchId,
+                    shipperRequestBatchUniqueId,
                     vehicleTypeUniqueId,
                     journeyStatusId,
                     originLatitude,
@@ -965,14 +955,14 @@ const getShipperRequestByUniqueId = async (
              WHERE shipperRequestUniqueId = ?
                AND shipperRequestDeletedAt IS NULL`;
   const params = [shipperRequestUniqueId];
-  if (shipperRequestBatchId) {
-    sql += " AND shipperRequestBatchId = ?";
-    params.push(shipperRequestBatchId);
+  if (shipperRequestBatchUniqueId) {
+    sql += " AND shipperRequestBatchUniqueId = ?";
+    params.push(shipperRequestBatchUniqueId);
   }
   sql += " LIMIT 1";
   const [rows] = await pool.query(sql, params);
   if (!rows || rows.length === 0) {
-    if (shipperRequestBatchId) {
+    if (shipperRequestBatchUniqueId) {
       throw new AppError(
         "Shipper request does not belong to this bid's batch",
         400,

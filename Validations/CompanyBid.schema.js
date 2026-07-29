@@ -5,7 +5,7 @@ const { uuidSchema } = require("../Middleware/Validator");
 // ── CompanyBidRequest ─────────────────────────────────────────────────────────
 
 exports.submitBid = Joi.object({
-  shipperRequestBatchId: uuidSchema.required(),
+  shipperRequestBatchUniqueId: uuidSchema.required(),
   companyUniqueId: uuidSchema.required(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
@@ -33,7 +33,7 @@ exports.bidParams = Joi.object({
 
 exports.getBidsQuery = Joi.object({
   companyBidRequestUniqueId: uuidSchema.optional(),
-  shipperRequestBatchId: uuidSchema.optional(),
+  shipperRequestBatchUniqueId: uuidSchema.optional(),
   companyUniqueId: uuidSchema.optional(),
   bidSubmittedByUserUniqueId: uuidSchema.optional(),
   numberOfVehiclesOffered: Joi.number().integer().min(1).optional(),

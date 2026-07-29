@@ -57,7 +57,7 @@ exports.createBulkAssignments = async (data) => {
     // Check if slot belongs to the batch — uses the dedicated service function
     const sr = await getShipperRequestByUniqueId(
       shipperRequestUniqueId,
-      bid.shipperRequestBatchId,
+      bid.shipperRequestBatchUniqueId,
     );
 
     // Prevent duplicate assignment

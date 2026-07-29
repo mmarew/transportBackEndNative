@@ -9,7 +9,7 @@ const locationSchema = Joi.object({
 }).required();
 
 exports.createShipperRequest = Joi.object({
-  shipperRequestBatchId: uuidSchema.required(),
+  shipperRequestBatchUniqueId: uuidSchema.required(),
   numberOfVehicles: Joi.number().integer().min(1).max(100).default(1),
   shippingDate: Joi.date().iso().required(),
   deliveryDate: Joi.date().iso().required(),
@@ -108,7 +108,7 @@ exports.getShipperRequestQuery = Joi.object({
     .try(uuidSchema, Joi.string().valid("self"))
     .optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
-  shipperRequestBatchId: uuidSchema.optional(),
+  shipperRequestBatchUniqueId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.acceptDriverRequestBody = Joi.object({

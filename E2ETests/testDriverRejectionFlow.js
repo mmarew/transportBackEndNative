@@ -101,7 +101,7 @@ const createIndividualShipperRequest = async () => {
   deliveryDate.setDate(deliveryDate.getDate() + 3);
 
   const payload = {
-    shipperRequestBatchId: require("uuid").v4(),
+    shipperRequestBatchUniqueId: require("uuid").v4(),
     numberOfVehicles: 1,
     shippingDate: shippingDate.toISOString(),
     deliveryDate: deliveryDate.toISOString(),
@@ -137,7 +137,7 @@ const createCompanyShipperRequest = async (companyUniqueId) => {
   deliveryDate.setDate(deliveryDate.getDate() + 3);
 
   const payload = {
-    shipperRequestBatchId: require("uuid").v4(),
+    shipperRequestBatchUniqueId: require("uuid").v4(),
     numberOfVehicles: 1,
     shippingDate: shippingDate.toISOString(),
     deliveryDate: deliveryDate.toISOString(),

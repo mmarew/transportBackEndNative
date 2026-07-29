@@ -85,7 +85,7 @@ const takeFromStreet = async (body, user) => {
     const requestedFrom = "street";
     const phoneNumber = body?.phoneNumber;
     const data = {
-      shipperRequestBatchId: body.shipperRequestBatchId,
+      shipperRequestBatchUniqueId: body.shipperRequestBatchUniqueId,
       phoneNumber,
       requestedFrom,
       fullName: null,
@@ -313,7 +313,7 @@ const takeFromStreet = async (body, user) => {
       userUniqueId: user?.userUniqueId,
       body: {
         phoneNumber: body?.phoneNumber,
-        shipperRequestBatchId: body?.shipperRequestBatchId,
+        shipperRequestBatchUniqueId: body?.shipperRequestBatchUniqueId,
         shippableItemName: body?.shippableItemName,
       },
     });

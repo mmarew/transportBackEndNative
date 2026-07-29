@@ -44,7 +44,7 @@ const getAvailableRequests = async (companyUniqueId, filters = {}) => {
     "b.journeyStatusId IN (?)",
     `NOT EXISTS (
       SELECT 1 FROM CompanyBidRequest cbr 
-      WHERE cbr.shipperRequestBatchId = b.batchUniqueId 
+      WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId 
       AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
     )`,
   ];
@@ -54,7 +54,7 @@ const getAvailableRequests = async (companyUniqueId, filters = {}) => {
   // baseSql: No subqueries, no Group By! Pure performance.
   const baseSql = `
     SELECT b.*, 
-           b.batchUniqueId AS shipperRequestBatchId, -- backwards compatibility
+           b.batchUniqueId AS shipperRequestBatchUniqueId, -- backwards compatibility
            u.fullName AS shipperName,
            u.phoneNumber AS shipperPhone,
            vt.vehicleTypeName, js.journeyStatusName
@@ -91,7 +91,7 @@ const getAvailableRequests = async (companyUniqueId, filters = {}) => {
  *   and only that company's offers are shown.
  *
  * @param {Object} scope - { shipperUserUniqueId, companyUniqueId } (both optional)
- * @param {Object} filters - Pagination and optional bidStatus/shipperRequestBatchId/isCancellationSeenByCompany
+ * @param {Object} filters - Pagination and optional bidStatus/shipperRequestBatchUniqueId/isCancellationSeenByCompany
  * @returns {Promise<Object>} Paginated list of batches with nested offers.
  */
 const getGroupedBids = async (scope = {}, filters = {}) => {
@@ -114,7 +114,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   // We must only return batches that have at least one bid matching the
   // offer-level filters (companyUniqueId / bidStatus / isCancellationSeenByCompany).
   const existsClauses = [
-    "cbr.shipperRequestBatchId = b.batchUniqueId",
+    "cbr.shipperRequestBatchUniqueId = b.batchUniqueId",
     "cbr.companyBidRequestDeletedAt IS NULL",
   ];
 
@@ -157,7 +157,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     batchClauses.push(
       `NOT EXISTS (
         SELECT 1 FROM CompanyBidRequest cbr_exclude
-        WHERE cbr_exclude.shipperRequestBatchId = b.batchUniqueId
+        WHERE cbr_exclude.shipperRequestBatchUniqueId = b.batchUniqueId
         AND cbr_exclude.bidStatus IN (?)
         AND cbr_exclude.companyBidRequestDeletedAt IS NULL
       )`,
@@ -165,16 +165,16 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
     batchParams.push(excludeStatuses);
   }
 
-  if (filters.shipperRequestBatchId) {
+  if (filters.shipperRequestBatchUniqueId) {
     batchClauses.push("b.batchUniqueId = ?");
-    batchParams.push(filters.shipperRequestBatchId);
+    batchParams.push(filters.shipperRequestBatchUniqueId);
   }
 
   const batchWhere = `WHERE ${batchClauses.join(" AND ")}`;
 
   const [batches] = await db().query(
     `SELECT b.batchUniqueId,
-            b.batchUniqueId AS shipperRequestBatchId,
+            b.batchUniqueId AS shipperRequestBatchUniqueId,
             b.batchId,
             b.originPlace, b.originLatitude, b.originLongitude,
             b.destinationPlace, b.destinationLatitude, b.destinationLongitude,
@@ -211,7 +211,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   const batchIds = batches.map((b) => b.batchUniqueId);
 
   const offerClauses = [
-    "cbr.shipperRequestBatchId IN (?)",
+    "cbr.shipperRequestBatchUniqueId IN (?)",
     "cbr.companyBidRequestDeletedAt IS NULL",
   ];
   const offerParams = [batchIds];
@@ -235,7 +235,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
 
   const [offers] = await db().query(
     `SELECT cbr.companyBidRequestUniqueId,
-            cbr.shipperRequestBatchId,
+            cbr.shipperRequestBatchUniqueId,
             cbr.companyUniqueId,
             cbr.bidSubmittedByUserUniqueId,
             cbr.numberOfVehiclesOffered,
@@ -268,10 +268,10 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   // ── 3. Group offers under each batch ─────────────────────────────────────
   const offersByBatchId = new Map();
   for (const offer of offers) {
-    if (!offersByBatchId.has(offer.shipperRequestBatchId)) {
-      offersByBatchId.set(offer.shipperRequestBatchId, []);
+    if (!offersByBatchId.has(offer.shipperRequestBatchUniqueId)) {
+      offersByBatchId.set(offer.shipperRequestBatchUniqueId, []);
     }
-    offersByBatchId.get(offer.shipperRequestBatchId).push(offer);
+    offersByBatchId.get(offer.shipperRequestBatchUniqueId).push(offer);
   }
 
   const grouped = batches.map((batch) => {
@@ -350,7 +350,7 @@ const getBidsSummary = async (companyUniqueId) => {
        AND b.journeyStatusId IN (?)
        AND NOT EXISTS (
          SELECT 1 FROM CompanyBidRequest cbr 
-         WHERE cbr.shipperRequestBatchId = b.batchUniqueId 
+         WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId 
          AND cbr.companyUniqueId = ? AND cbr.companyBidRequestDeletedAt IS NULL
        )`,
     [companyUniqueId, activeStatusIds, companyUniqueId],

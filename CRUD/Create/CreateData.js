@@ -43,7 +43,7 @@ const createNewShipperRequest = async (
     shippingDate = formatDateToReadable(body?.shippingDate),
     deliveryDate = formatDateToReadable(body?.deliveryDate),
     shippingCost = body?.shippingCost,
-    shipperRequestBatchId = body?.shipperRequestBatchId,
+    shipperRequestBatchUniqueId = body?.shipperRequestBatchUniqueId,
     shipperRequestCreatedBy = body?.shipperRequestCreatedBy,
     shipperRequestCreatedByRoleId = body?.shipperRequestCreatedByRoleId;
 
@@ -104,7 +104,7 @@ const createNewShipperRequest = async (
     shippingDate,
     deliveryDate,
     shippingCost,
-    shipperRequestBatchId,
+    shipperRequestBatchUniqueId,
     // Bidding mode: 'individual_target' (open to all drivers) or 'company_target'
     // Falls back to schema default ('individual_target') if not provided.
     ...(body?.requestMode && { requestMode: body.requestMode }),

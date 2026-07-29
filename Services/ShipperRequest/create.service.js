@@ -41,7 +41,7 @@ const {
  *   - userUniqueId: Required - Shipper's userUniqueId (set by caller)
  *   - shipperRequestCreatedBy: Required - userUniqueId of who created this request (audit trail)
  *   - shipperRequestCreatedByRoleId: Required - roleId of who created this request (1=shipper, 2=driver, 3=admin)
- *   - shipperRequestBatchId: Required - Batch ID for grouping related requests
+ *   - shipperRequestBatchUniqueId: Required - Batch ID for grouping related requests
  *   - numberOfVehicles: Optional - Number of   Vehicle needed (default: 1)
  *   - vehicle, destination, originLocation, shippingDate, deliveryDate, shippingCost, etc.
  * @param {number} journeyStatusId - Initial journey status ID
@@ -82,7 +82,7 @@ const {
  *   - userUniqueId: Required - Shipper's userUniqueId (set by caller)
  *   - shipperRequestCreatedBy: Required - userUniqueId of who created this request (audit trail)
  *   - shipperRequestCreatedByRoleId: Required - roleId of who created this request (1=shipper, 2=driver, 3=admin)
- *   - shipperRequestBatchId: Required - Batch ID for grouping related requests
+ *   - shipperRequestBatchUniqueId: Required - Batch ID for grouping related requests
  *   - numberOfVehicles: Optional - Number of   Vehicle needed (default: 1)
  *   - vehicle, destination, originLocation, shippingDate, deliveryDate, shippingCost, etc.
  * @param {number} journeyStatusId - Initial journey status ID
@@ -107,17 +107,17 @@ const createShipperRequest = async (body, journeyStatusId) => {
       throw new AppError("userUniqueId is required", 400);
     }
     const numberOfVehicles = body?.numberOfVehicles || 1;
-    // First check if the user has an active request based on shipperRequestBatchId
-    const shipperRequestBatchId = body?.shipperRequestBatchId;
-    if (!shipperRequestBatchId) {
+    // First check if the user has an active request based on shipperRequestBatchUniqueId
+    const shipperRequestBatchUniqueId = body?.shipperRequestBatchUniqueId;
+    if (!shipperRequestBatchUniqueId) {
       throw new AppError("Batch uniqueId Can't be null", 400);
     }
 
     // Use context-aware executor for raw query with locking
     const executor = transactionStorage.getStore() || pool;
-    const batchCheckSql = `SELECT * FROM ShipperRequest WHERE shipperRequestBatchId = ? AND userUniqueId = ? FOR UPDATE`;
+    const batchCheckSql = `SELECT * FROM ShipperRequest WHERE shipperRequestBatchUniqueId = ? AND userUniqueId = ? FOR UPDATE`;
     const [dataByBatchId] = await executor.query(batchCheckSql, [
-      shipperRequestBatchId,
+      shipperRequestBatchUniqueId,
       userUniqueId,
     ]);
     if (dataByBatchId?.length >= numberOfVehicles) {
@@ -141,7 +141,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       // If this runs inside Promise.all, every concurrent call does SELECT → sees nothing
       // → all try to INSERT the same batchUniqueId → duplicate key crash.
       await batchService.upsertBatch({
-        batchUniqueId: shipperRequestBatchId,
+        batchUniqueId: shipperRequestBatchUniqueId,
         shipperUserUniqueId: userUniqueId,
         vehicleTypeUniqueId: body.vehicle?.vehicleTypeUniqueId,
         totalVehicles: body.numberOfVehicles || 1,
@@ -175,7 +175,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
         logger.info(
           "company_target batch created (PR rows deferred to bid acceptance)",
           {
-            shipperRequestBatchId,
+            shipperRequestBatchUniqueId,
             totalVehicles: body.numberOfVehicles || 1,
             userUniqueId,
           },
@@ -262,7 +262,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       name: error.name,
       userUniqueId: body?.userUniqueId,
       shipperRequestCreatedByRoleId: body?.shipperRequestCreatedByRoleId,
-      shipperRequestBatchId: body?.shipperRequestBatchId,
+      shipperRequestBatchUniqueId: body?.shipperRequestBatchUniqueId,
       vehicleTypeUniqueId: body?.vehicle?.vehicleTypeUniqueId,
     });
     throw new AppError(

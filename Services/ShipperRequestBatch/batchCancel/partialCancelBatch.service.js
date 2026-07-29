@@ -77,7 +77,7 @@ const partialCancelBatch = async ({
     `SELECT shipperRequestUniqueId, shipperRequestId, journeyStatusId
        FROM ShipperRequest
       WHERE shipperRequestUniqueId IN (${placeholders})
-        AND shipperRequestBatchId = ?
+        AND shipperRequestBatchUniqueId = ?
         AND shipperRequestDeletedAt IS NULL`,
     [...slotIds, batchUniqueId],
   );
@@ -169,7 +169,7 @@ const partialCancelBatch = async ({
   const [remaining] = await db().query(
     `SELECT COUNT(*) AS activeCount
        FROM ShipperRequest
-      WHERE shipperRequestBatchId = ?
+      WHERE shipperRequestBatchUniqueId = ?
         AND journeyStatusId NOT IN (${inClause})
         AND shipperRequestDeletedAt IS NULL`,
     [batchUniqueId],

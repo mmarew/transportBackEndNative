@@ -35,7 +35,7 @@ const logger = require("../../Utils/logger");
  *   - userUniqueId: Required - Shipper's userUniqueId (set by caller)
  *   - shipperRequestCreatedBy: Required - userUniqueId of who created this request (audit trail)
  *   - shipperRequestCreatedByRoleId: Required - roleId of who created this request (1=shipper, 2=driver, 3=admin)
- *   - shipperRequestBatchId: Required - Batch ID for grouping related requests
+ *   - shipperRequestBatchUniqueId: Required - Batch ID for grouping related requests
  *   - numberOfVehicles: Optional - Number of   Vehicle needed (default: 1)
  *   - vehicle, destination, originLocation, shippingDate, deliveryDate, shippingCost, etc.
  * @param {number} journeyStatusId - Initial journey status ID
@@ -256,7 +256,7 @@ const getAllActiveRequests = async (filters = {}) => {
  * duplicating raw SQL.
  *
  * @param {string} shipperRequestUniqueId  - UUID of the request
- * @param {string} [shipperRequestBatchId] - Optional: also validates batch membership
+ * @param {string} [shipperRequestBatchUniqueId] - Optional: also validates batch membership
  * @returns {Promise<Object>}  The matched row or null if not found
  * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
  */
@@ -270,7 +270,7 @@ const getAllActiveRequests = async (filters = {}) => {
  * duplicating raw SQL.
  *
  * @param {string} shipperRequestUniqueId  - UUID of the request
- * @param {string} [shipperRequestBatchId] - Optional: also validates batch membership
+ * @param {string} [shipperRequestBatchUniqueId] - Optional: also validates batch membership
  * @returns {Promise<Object>}  The matched row or null if not found
  * @throws {AppError} 404 if not found, 400 if batchId provided but does not match
  */

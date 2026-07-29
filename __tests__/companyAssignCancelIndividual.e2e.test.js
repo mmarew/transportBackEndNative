@@ -155,7 +155,7 @@ maybeDescribe("Company Auto-Assign cancels individual connection (Option B)", ()
         .post("/api/shipperRequest/createRequest")
         .set("Authorization", `Bearer ${shipperToken}`)
         .send({
-          shipperRequestBatchId: batchId, numberOfVehicles: 1, requestMode: "individual_target",
+          shipperRequestBatchUniqueId: batchId, numberOfVehicles: 1, requestMode: "individual_target",
           originLocation: { latitude: 9.0205, longitude: 38.8025, description: "Kombolcha, Ethiopia" },
           destination: { latitude: 11.1333, longitude: 39.6333, description: "Dessie, Ethiopia" },
           vehicle: { vehicleTypeUniqueId },
@@ -168,7 +168,7 @@ maybeDescribe("Company Auto-Assign cancels individual connection (Option B)", ()
       const getRes = await request(app)
         .get("/api/user/getShipperRequest4allOrSingleUser")
         .set("Authorization", `Bearer ${shipperToken}`)
-        .query({ shipperRequestBatchId: batchId })
+        .query({ shipperRequestBatchUniqueId: batchId })
         .expect(200);
       const row = getRes.body?.formattedData?.[0];
       const created = row?.shipperRequest || row;
@@ -185,7 +185,7 @@ maybeDescribe("Company Auto-Assign cancels individual connection (Option B)", ()
         .post("/api/shipperRequest/createRequest")
         .set("Authorization", `Bearer ${shipperToken}`)
         .send({
-          shipperRequestBatchId: batchId, numberOfVehicles: 1, requestMode: "company_target",
+          shipperRequestBatchUniqueId: batchId, numberOfVehicles: 1, requestMode: "company_target",
           targetCompanyUniqueId: companyUniqueId,
           originLocation: { latitude: 9.0205, longitude: 38.8025, description: "Kombolcha, Ethiopia" },
           destination: { latitude: 11.1333, longitude: 39.6333, description: "Dessie, Ethiopia" },
@@ -196,7 +196,7 @@ maybeDescribe("Company Auto-Assign cancels individual connection (Option B)", ()
         });
       expect([200, 201]).toContain(res.status);
       const created = res.body?.newRequests?.[0] || res.body?.data?.[0] || res.body?.data;
-      companyShipperBatchId = created?.shipperRequestBatchId || batchId;
+      companyShipperBatchId = created?.shipperRequestBatchUniqueId || batchId;
       expect(companyShipperBatchId).toBeTruthy();
     });
   });
@@ -207,7 +207,7 @@ maybeDescribe("Company Auto-Assign cancels individual connection (Option B)", ()
         .post("/api/company/bids")
         .set("Authorization", `Bearer ${companyToken}`)
         .send({
-          shipperRequestBatchId: companyShipperBatchId, companyUniqueId,
+          shipperRequestBatchUniqueId: companyShipperBatchId, companyUniqueId,
           numberOfVehiclesOffered: 1, proposedCostPerVehicle: 11000, bidNote: "E2E test bid",
         });
       expect([200, 201]).toContain(res.status);
