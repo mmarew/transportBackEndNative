@@ -257,6 +257,7 @@ exports.getAssignments = async (filters = {}) => {
     },
     driverRequests: [
       {
+        driverRequestId: r.driverRequestId,
         driverRequestUniqueId: r.drUniqueId,
         vehicleUniqueId: r.vehicleUniqueId,
         fullName: r.fullName,
