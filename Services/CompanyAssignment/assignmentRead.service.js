@@ -185,6 +185,7 @@ exports.getAssignments = async (filters = {}) => {
     vt.vehicleTypeUniqueId,
     vt.vehicleTypeName,
     -- DriverRequest
+    dr.driverRequestId,
     dr.driverRequestUniqueId   AS drUniqueId,
     cba.vehicleUniqueId,
     dr.originLatitude,
@@ -276,6 +277,7 @@ exports.getAssignments = async (filters = {}) => {
     decisions: [
       {
         journeyDecisionUniqueId: r.journeyDecisionUniqueId,
+        driverRequestId: r.driverRequestId,
         journeyStatusId: r.jdJourneyStatusId,
         decisionTime: r.decisionTime,
         decisionBy: r.decisionBy,
