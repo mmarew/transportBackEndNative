@@ -204,7 +204,8 @@ exports.getAssignments = async (filters = {}) => {
     sr.shippableItemName,
     sr.shippingCost,
     sr.vehicleTypeUniqueId     AS srVehicleTypeUniqueId,
-    sr.batchId,
+    sr.shipperRequestBatchUniqueId,
+    srb.batchId,
     sr.requestMode,
     sr.journeyStatusId         AS srJourneyStatusId,
     -- JourneyDecisions
@@ -224,6 +225,7 @@ exports.getAssignments = async (filters = {}) => {
     LEFT JOIN VehicleTypes vt   ON v.vehicleTypeUniqueId      = vt.vehicleTypeUniqueId
     LEFT JOIN DriverRequest dr  ON cba.driverRequestUniqueId  = dr.driverRequestUniqueId
     LEFT JOIN ShipperRequest sr ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
+    LEFT JOIN ShipperRequestBatch srb ON sr.shipperRequestBatchUniqueId = srb.batchUniqueId
     LEFT JOIN JourneyDecisions jd ON cba.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
     LEFT JOIN Journey j         ON cba.journeyDecisionUniqueId = j.journeyDecisionUniqueId
     ${where}
@@ -253,6 +255,7 @@ exports.getAssignments = async (filters = {}) => {
       shippableItemName: r.shippableItemName,
       shippingCost: r.shippingCost,
       vehicleTypeUniqueId: r.srVehicleTypeUniqueId,
+      shipperRequestBatchUniqueId: r.shipperRequestBatchUniqueId,
       batchId: r.batchId,
       requestMode: r.requestMode,
       journeyStatusId: r.srJourneyStatusId,
