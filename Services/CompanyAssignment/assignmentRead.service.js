@@ -204,6 +204,7 @@ exports.getAssignments = async (filters = {}) => {
     sr.shippableItemName,
     sr.shippingCost,
     sr.vehicleTypeUniqueId     AS srVehicleTypeUniqueId,
+    sr.batchId,
     sr.requestMode,
     sr.journeyStatusId         AS srJourneyStatusId,
     -- JourneyDecisions
@@ -252,6 +253,7 @@ exports.getAssignments = async (filters = {}) => {
       shippableItemName: r.shippableItemName,
       shippingCost: r.shippingCost,
       vehicleTypeUniqueId: r.srVehicleTypeUniqueId,
+      batchId: r.batchId,
       requestMode: r.requestMode,
       journeyStatusId: r.srJourneyStatusId,
     },
