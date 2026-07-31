@@ -138,7 +138,7 @@ exports.autoAssignBatch = async (data) => {
   // 4. Handle Case: Fleet is busy but slots need assignment
   if (availableFleet.length === 0) {
     return {
-      message: "No unassigned slots available",
+      message: "No available fleet for assignment",
       data: {
         summary: `Successfully auto-assigned 0 slots. ${unassignedSlots.length} slots remain unassigned due to limited fleet availability.`,
         assignedCount: 0,
