@@ -22,13 +22,13 @@
 
 Founded with the mission to modernize Ethiopia's logistics sector, Dynamics Route provides a comprehensive suite of applications:
 
-| Application               | Type    | Purpose                                                  |
-| ------------------------- | ------- | -------------------------------------------------------- |
-| **Dynamics Driver**       | Mobile  | Transport drivers find, accept, and complete cargo jobs  |
-| **Dynamics Shipper**      | Mobile  | Cargo owners create transport requests and track shipments |
-| **Transport Company**     | Web     | Freight companies manage fleets, bids, and assignments   |
-| **Admin Dashboard**       | Web     | Platform administrators manage users, compliance, operations |
-| **Backend API**           | Server  | Central business logic, real-time comms, data management |
+| Application           | Type   | Purpose                                                      |
+| --------------------- | ------ | ------------------------------------------------------------ |
+| **Dynamics Driver**   | Mobile | Transport drivers find, accept, and complete cargo jobs      |
+| **Dynamics Shipper**  | Mobile | Cargo owners create transport requests and track shipments   |
+| **Transport Company** | Web    | Freight companies manage fleets, bids, and assignments       |
+| **Admin Dashboard**   | Web    | Platform administrators manage users, compliance, operations |
+| **Backend API**       | Server | Central business logic, real-time comms, data management     |
 
 The platform serves as a digital marketplace connecting cargo owners with transport providers, handling the entire lifecycle from request creation through job completion, payment processing, and compliance management.
 
@@ -954,6 +954,7 @@ AttachedDocuments ── polymorphic FK → Users(userUniqueId) OR TransportComp
 #### 4. Native Applications
 
 - **Driver App (Dynamics Driver):**
+
   - Package: `com.driverloadnow`
   - Android: minSdk 24, targetSdk 36, compileSdk 36
   - iOS: Deployment target (configured via Podfile)
@@ -962,6 +963,7 @@ AttachedDocuments ── polymorphic FK → Users(userUniqueId) OR TransportComp
   - React Native 0.84.0 (New Architecture / Bridgeless mode)
 
 - **Shipper App (Dynamics Shipper):**
+
   - Package: `com.shipperloadnow`
   - Android: SDK 35 (Android 15, 16KB page alignment)
   - iOS: 14.0+ deployment target
@@ -1210,6 +1212,7 @@ Per INSA's submission instructions, the following will be delivered:
 **Authentication Mechanisms:**
 
 1. **Primary: Phone/Email + OTP**
+
    - User enters phone number (+251) or email
    - Server generates 6-digit OTP using `crypto.randomInt(100000, 999999)` (cryptographically secure — replaced legacy `Math.random()`)
    - OTP sent via SMS (AfroMessage) only (Telegram OTP delivery disabled in production)
@@ -1218,6 +1221,7 @@ Per INSA's submission instructions, the following will be delivered:
    - On success: JWT token issued (24h expiry), stored in mobile Keychain/Keystore
 
 2. **JWT Bearer Token**
+
    - Format: `Authorization: Bearer <token>`
    - Payload: `{ data: { userUniqueId, phoneNumber, roleId } }`
    - Algorithm: HMAC-SHA256
@@ -1226,11 +1230,13 @@ Per INSA's submission instructions, the following will be delivered:
    - Tokens delivered via Socket.IO `auth` handshake (never in URL query parameters)
 
 3. **Password-based Auth (Web Apps)**
+
    - Company Web App: Uses same OTP flow
    - Admin Panel: JWT with admin role validation
    - All passwords bcrypt-hashed
 
 4. **Social Login (Configured, Not Active)**
+
    - Google Sign-In configured in Driver app (commented out in UI)
    - OAuth web client IDs remain in source code (public identifiers, not secrets)
    - OAuth client secret (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) was in a source comment — now removed
@@ -1247,6 +1253,7 @@ Per INSA's submission instructions, the following will be delivered:
 **Authorization Model:**
 
 - **Backend:** Middleware-based RBAC with 5 levels:
+
   1. `verifyTokenOfAxios` - Valid JWT + user exists + not deleted
   2. `verifyIfUserIsSupperAdmin` - roleId === 6
   3. `verifyIfUserIsAdminOrSupperAdmin` - roleId === 3 or 6
@@ -1474,47 +1481,47 @@ See Section 3.1.14 (Authentication & Authorization Details) above.
 
 The following items were identified during the initial audit and have been fully remediated:
 
-| #   | Vulnerability                            | Resolution                                                                                           | Status                                                                            |
-| --- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | JWT tokens had no expiration             | `expiresIn: '24h'` added to `jwt.sign()`                                                             | ✅ Fixed                                                                          |
-| 2   | `rejectUnauthorized: false` in WebSocket | Removed from all socket.io clients (Driver + Shipper + Web apps)                                     | ✅ Fixed                                                                          |
-| 3   | `Math.random()` for OTP generation       | Replaced with `crypto.randomInt(100000, 999999)`                                                     | ✅ Fixed                                                                          |
-| 4   | JWT token in WebSocket URL query param   | Moved to Socket.IO `auth` handshake option across all apps                                           | ✅ Fixed                                                                          |
-| 5   | CORS wildcard (`*`) in production        | REST API CORS restricted to specific origins; Socket.IO CORS also restricted                         | ✅ Fixed                                                                          |
-| 6   | `.env` files committed to git history    | `.gitignore` updated across all repos; `.env` files now untracked (historical commits remain)        | ⚡ Git history not scrubbed                                                        |
-| 7   | Hardcoded API keys in Android manifests  | Changed to `@string/google_maps_key` resource ref (both apps)                                        | ✅ Fixed                                                                          |
-| 8   | Comments with production URLs in `.env`  | Removed                                                                                              | ✅ Fixed                                                                          |
-| 9   | Demo OTP `101010` in production code     | Removed from translations; backend `TEST_OTP` fallback set to empty string                           | ✅ Fixed                                                                          |
-| 10  | Real user credentials in documentation   | Stripped from `Documents.md`                                                                         | ✅ Fixed                                                                          |
-| 11  | Release keystore passwords in VCS        | Commented out in DriverLoadNow; shipperLoadNow now uses env vars only                                | ⚡ Partially fixed — commented-out passwords remain in DriverLoadNow build.gradle |
-| 12  | AsyncStorage JWT fallback (plaintext)    | Removed in Driver app; shipper falls back to AsyncStorage only if Keychain unavailable               | ⚡ Partial — shipper falls back on older devices without Keychain                  |
-| 13  | No brute-force protection on OTP         | Rate limiting added (5 req/15min)                                                                    | ✅ Fixed                                                                          |
-| 14  | Debug keystore default credentials       | Still uses default `android`/`android` credentials in both mobile apps                               | ❌ Not fixed                                                                      |
-| 15  | Redux DevTools enabled in production     | `devTools: false` in production builds (all apps)                                                    | ✅ Fixed                                                                          |
-| 16  | No CSP on web applications               | CSP meta tags added to both web apps                                                                 | ✅ Fixed                                                                          |
-| 17  | `console.log` leaking in production      | Stripped via babel-plugin (Driver + Shipper) + esbuild.pure (Company + Admin)                        | ✅ Fixed                                                                          |
-| 18  | Backend error messages exposed to users  | Replaced with generic messages                                                                       | ✅ Fixed                                                                          |
-| 19  | OAuth client secret in source code       | Moved from hardcoded `Key.js` (shipper + Driver) to environment variables                            | ✅ Fixed                                                                          |
-| 20  | Internal IPs hardcoded in source         | Replaced with env-backed HTTPS URLs across all repos                                                 | ✅ Fixed                                                                          |
-| 21  | WebSocket auth scoping bug (Driver)      | `phoneNumber`/`token` out of scope in `initSocket`; now passed via `getSocketCredentials()`           | ✅ Fixed                                                                          |
-| 22  | Hermes disabled on shipper app           | Shipper used JSC (Hermes commented out); `hermesEnabled=true` set in `build.gradle`                  | ✅ Fixed                                                                          |
-| 23  | Android cleartext traffic (shipper)      | `usesCleartextTraffic=true`; disabled + `network_security_config.xml` added                          | ✅ Fixed                                                                          |
-| 24  | OTP stored in plaintext in DB            | `otpPlain` column removed from `login.service.js`; dev endpoint no longer exposes OTP                | ✅ Fixed                                                                          |
-| 25  | Super admin fallback password `123456`   | Hardcoded fallback in `Config.js` removed — must be set via env var only                             | ✅ Fixed                                                                          |
-| 26  | Backend Validator.js logs full body      | `console.error` printed full request body on validation failure; moved to sanitized `logger.warn`    | ✅ Fixed                                                                          |
-| 27  | Personal emails & internal IP (Driver)   | Fallback emails `mmarew@gmail.com`/`abatemarew@gmail.com` + IP `31.97.179.144` removed               | ✅ Fixed                                                                          |
-| 28  | Self-hosted Nominatim HTTP-only (shipper)| Hardcoded `http://31.97.179.144:8081`; moved to env var with HTTPS default                          | ✅ Fixed                                                                          |
-| 29  | Debug keystore default credentials       | Both apps now read debug signing passwords from env vars with no insecure fallback                  | ✅ Fixed                                                                          |
-| 30  | Commented Redis connection string in code | Removed hardcoded `upstash.io` URL with embedded password from `Constants.js`                       | ✅ Fixed                                                                          |
-| 31  | Hardcoded server filesystem path         | `REDIS_SOCKET_PATH` moved from hardcoded absolute path to `process.env`                              | ✅ Fixed                                                                          |
-| 32  | Hardcoded system/super admin credentials | User seed credentials (`+251922112480`, `+251983222221`, emails) now read from Config env vars      | ✅ Fixed                                                                          |
-| 33  | Hardcoded E2E test passwords             | `TestPassword123!` / `UpdatedPassword123!` replaced with env var reference                          | ✅ Fixed                                                                          |
-| 34  | Hardcoded Config fallback phone numbers  | Removed `SUPPORT_PHONE_NUMBER` and `TEST_PHONE` fallback values from `Config.js`                    | ✅ Fixed                                                                          |
-| 35  | `console.error` in service files         | 11 instances replaced with structured `logger.error()` across 5 service files                       | ✅ Fixed                                                                          |
-| 36  | Hardcoded IP in Postman collection       | `http://31.97.179.144:8081` replaced with example domain placeholder                                | ✅ Fixed                                                                          |
-| 37  | Example emails in code comments/docs     | Personal email `mmarew71@gmail.com` and other examples replaced with `@example.com` placeholders    | ✅ Fixed                                                                          |
-| 38  | Hardcoded support contact in admin Help  | Fallback email/phone in `Help.jsx` replaced with generic message when env vars unset                | ✅ Fixed                                                                          |
-| 39  | Hardcoded example emails in API docs     | `support@transportapp.com` / `admin@example.com` replaced with placeholders in `api-docs.json`       | ✅ Fixed                                                                          |
+| #   | Vulnerability                             | Resolution                                                                                        | Status                                                                            |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | JWT tokens had no expiration              | `expiresIn: '24h'` added to `jwt.sign()`                                                          | ✅ Fixed                                                                          |
+| 2   | `rejectUnauthorized: false` in WebSocket  | Removed from all socket.io clients (Driver + Shipper + Web apps)                                  | ✅ Fixed                                                                          |
+| 3   | `Math.random()` for OTP generation        | Replaced with`crypto.randomInt(100000, 999999)`                                                   | ✅ Fixed                                                                          |
+| 4   | JWT token in WebSocket URL query param    | Moved to Socket.IO`auth` handshake option across all apps                                         | ✅ Fixed                                                                          |
+| 5   | CORS wildcard (`*`) in production         | REST API CORS restricted to specific origins; Socket.IO CORS also restricted                      | ✅ Fixed                                                                          |
+| 6   | `.env` files committed to git history     | `.gitignore` updated across all repos; `.env` files now untracked (historical commits remain)     | ⚡ Git history not scrubbed                                                       |
+| 7   | Hardcoded API keys in Android manifests   | Changed to`@string/google_maps_key` resource ref (both apps)                                      | ✅ Fixed                                                                          |
+| 8   | Comments with production URLs in`.env`    | Removed                                                                                           | ✅ Fixed                                                                          |
+| 9   | Demo OTP`101010` in production code       | Removed from translations; backend`TEST_OTP` fallback set to empty string                         | ✅ Fixed                                                                          |
+| 10  | Real user credentials in documentation    | Stripped from`Documents.md`                                                                       | ✅ Fixed                                                                          |
+| 11  | Release keystore passwords in VCS         | Commented out in DriverLoadNow; shipperLoadNow now uses env vars only                             | ⚡ Partially fixed — commented-out passwords remain in DriverLoadNow build.gradle |
+| 12  | AsyncStorage JWT fallback (plaintext)     | Removed in Driver app; shipper falls back to AsyncStorage only if Keychain unavailable            | ⚡ Partial — shipper falls back on older devices without Keychain                 |
+| 13  | No brute-force protection on OTP          | Rate limiting added (5 req/15min)                                                                 | ✅ Fixed                                                                          |
+| 14  | Debug keystore default credentials        | Still uses default`android`/`android` credentials in both mobile apps                             | ❌ Not fixed                                                                      |
+| 15  | Redux DevTools enabled in production      | `devTools: false` in production builds (all apps)                                                 | ✅ Fixed                                                                          |
+| 16  | No CSP on web applications                | CSP meta tags added to both web apps                                                              | ✅ Fixed                                                                          |
+| 17  | `console.log` leaking in production       | Stripped via babel-plugin (Driver + Shipper) + esbuild.pure (Company + Admin)                     | ✅ Fixed                                                                          |
+| 18  | Backend error messages exposed to users   | Replaced with generic messages                                                                    | ✅ Fixed                                                                          |
+| 19  | OAuth client secret in source code        | Moved from hardcoded`Key.js` (shipper + Driver) to environment variables                          | ✅ Fixed                                                                          |
+| 20  | Internal IPs hardcoded in source          | Replaced with env-backed HTTPS URLs across all repos                                              | ✅ Fixed                                                                          |
+| 21  | WebSocket auth scoping bug (Driver)       | `phoneNumber`/`token` out of scope in `initSocket`; now passed via `getSocketCredentials()`       | ✅ Fixed                                                                          |
+| 22  | Hermes disabled on shipper app            | Shipper used JSC (Hermes commented out);`hermesEnabled=true` set in `build.gradle`                | ✅ Fixed                                                                          |
+| 23  | Android cleartext traffic (shipper)       | `usesCleartextTraffic=true`; disabled + `network_security_config.xml` added                       | ✅ Fixed                                                                          |
+| 24  | OTP stored in plaintext in DB             | `otpPlain` column removed from `login.service.js`; dev endpoint no longer exposes OTP             | ✅ Fixed                                                                          |
+| 25  | Super admin fallback password`123456`     | Hardcoded fallback in`Config.js` removed — must be set via env var only                           | ✅ Fixed                                                                          |
+| 26  | Backend Validator.js logs full body       | `console.error` printed full request body on validation failure; moved to sanitized `logger.warn` | ✅ Fixed                                                                          |
+| 27  | Personal emails & internal IP (Driver)    | Fallback emails`mmarew@gmail.com`/`abatemarew@gmail.com` + IP `31.97.179.144` removed             | ✅ Fixed                                                                          |
+| 28  | Self-hosted Nominatim HTTP-only (shipper) | Hardcoded`http://31.97.179.144:8081`; moved to env var with HTTPS default                         | ✅ Fixed                                                                          |
+| 29  | Debug keystore default credentials        | Both apps now read debug signing passwords from env vars with no insecure fallback                | ✅ Fixed                                                                          |
+| 30  | Commented Redis connection string in code | Removed hardcoded`upstash.io` URL with embedded password from `Constants.js`                      | ✅ Fixed                                                                          |
+| 31  | Hardcoded server filesystem path          | `REDIS_SOCKET_PATH` moved from hardcoded absolute path to `process.env`                           | ✅ Fixed                                                                          |
+| 32  | Hardcoded system/super admin credentials  | User seed credentials (`+251922112480`, `+251983222221`, emails) now read from Config env vars    | ✅ Fixed                                                                          |
+| 33  | Hardcoded E2E test passwords              | `TestPassword123!` / `UpdatedPassword123!` replaced with env var reference                        | ✅ Fixed                                                                          |
+| 34  | Hardcoded Config fallback phone numbers   | Removed`SUPPORT_PHONE_NUMBER` and `TEST_PHONE` fallback values from `Config.js`                   | ✅ Fixed                                                                          |
+| 35  | `console.error` in service files          | 11 instances replaced with structured`logger.error()` across 5 service files                      | ✅ Fixed                                                                          |
+| 36  | Hardcoded IP in Postman collection        | `http://31.97.179.144:8081` replaced with example domain placeholder                              | ✅ Fixed                                                                          |
+| 37  | Example emails in code comments/docs      | Personal email`mmarew71@gmail.com` and other examples replaced with `@example.com` placeholders   | ✅ Fixed                                                                          |
+| 38  | Hardcoded support contact in admin Help   | Fallback email/phone in`Help.jsx` replaced with generic message when env vars unset               | ✅ Fixed                                                                          |
+| 39  | Hardcoded example emails in API docs      | `support@transportapp.com` / `admin@example.com` replaced with placeholders in `api-docs.json`    | ✅ Fixed                                                                          |
 
 **Further Hardening (Optional — No Known Vulnerabilities Remain):**
 
@@ -1613,14 +1620,14 @@ All code-level and configuration-level security fixes applied:
 
 ### 7.3 Per-Project Security Posture
 
-| Project                    | Type                                  | Findings Resolved | Security Status                                                                                                                                                                    |
-| -------------------------- | ------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project                    | Type                                  | Findings Resolved | Security Status                                                                                                                                                                                                                                              |
+| -------------------------- | ------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **transportBackEndNative** | Backend API (Express/MySQL/Redis/WS)  | 32/32 (100%)      | ✅ SECURE — JWT with expiry, rate-limited auth, CSP/HSTS/Helmet headers, validated file uploads, parameterized SQL, Redis auth, sanitized error handling & logging, OTP bcrypt-only; env-backed system credentials, structured logging, no hardcoded secrets |
-| **DriverLoadNow**          | Mobile App (React Native/Android/iOS) | 31/31 (100%)      | ✅ SECURE — WebSocket TLS + auth handshake, console stripped, env-backed secrets, cleartext disabled, network config pinned, ProGuard + Hermes, SecureStorage-only, debug keystore env-backed |
-| **shipperLoadNow**         | Mobile App (React Native/Android/iOS) | 34/34 (100%)      | ✅ SECURE — WebSocket TLS + auth handshake, OAuth secret env-backed, Hermes + ProGuard, cleartext disabled, network security config, console stripped, debug keystore env-backed    |
-| **transportCompany**       | Web App (React 19/Vite/TypeScript)    | 25/28 (89%)       | ✅ SECURE — CSP meta tag, Redux DevTools disabled, console stripped, error messages sanitized, file uploads validated, example data sanitized in docs                                |
-| **transportAdmin**         | Web App (React 18/Vite/MUI)           | 19/19 (100%)      | ✅ SECURE — WebSocket auth handshake, CSP added, Redux DevTools disabled, console stripped, E2E config sanitized, HTTPS/WSS URLs, no hardcoded fallback contacts                    |
-| **Total**                  | **5 Applications**                    | **142/144 (99%)** | ✅ All critical and high-severity items resolved (1 remaining is cloud console API key restrictions)                                                                                |
+| **DriverLoadNow**          | Mobile App (React Native/Android/iOS) | 31/31 (100%)      | ✅ SECURE — WebSocket TLS + auth handshake, console stripped, env-backed secrets, cleartext disabled, network config pinned, ProGuard + Hermes, SecureStorage-only, debug keystore env-backed                                                                |
+| **shipperLoadNow**         | Mobile App (React Native/Android/iOS) | 34/34 (100%)      | ✅ SECURE — WebSocket TLS + auth handshake, OAuth secret env-backed, Hermes + ProGuard, cleartext disabled, network security config, console stripped, debug keystore env-backed                                                                             |
+| **transportCompany**       | Web App (React 19/Vite/TypeScript)    | 25/28 (89%)       | ✅ SECURE — CSP meta tag, Redux DevTools disabled, console stripped, error messages sanitized, file uploads validated, example data sanitized in docs                                                                                                        |
+| **transportAdmin**         | Web App (React 18/Vite/MUI)           | 19/19 (100%)      | ✅ SECURE — WebSocket auth handshake, CSP added, Redux DevTools disabled, console stripped, E2E config sanitized, HTTPS/WSS URLs, no hardcoded fallback contacts                                                                                             |
+| **Total**                  | **5 Applications**                    | **142/144 (99%)** | ✅ All critical and high-severity items resolved (1 remaining is cloud console API key restrictions)                                                                                                                                                         |
 
 ### 7.4 Compliance Coverage
 
@@ -1647,7 +1654,6 @@ These are optional cloud-console enhancements that do not affect the current sec
 | 6   | Migrate web app JWT storage from`sessionStorage` to httpOnly cookies | Defense-in-depth against XSS token theft              | 2 days |
 | 7   | Add SSL certificate pinning to mobile API clients                    | Protects against CA compromise scenarios              | 1 day  |
 | 8   | Enable automated dependency scanning in CI pipeline                  | Early detection of vulnerable dependencies            | 1 day  |
-
 
 ---
 

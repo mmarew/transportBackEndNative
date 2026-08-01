@@ -6,6 +6,7 @@ module.exports = {
       env: {
         PORT: 3000,
         NODE_ENV: "production",
+        USE_TEST_OTP: "true",
       },
       autorestart: true, // Enable auto-restart
       watch: false, // Disable file watching (for production)
@@ -20,6 +21,7 @@ module.exports = {
       env: {
         PORT: 3001,
         NODE_ENV: "production",
+        USE_TEST_OTP: "true",
       },
       autorestart: true,
       watch: false,
@@ -34,6 +36,7 @@ module.exports = {
       env: {
         PORT: 3002,
         NODE_ENV: "production",
+        USE_TEST_OTP: "true",
       },
       autorestart: true,
       watch: false,

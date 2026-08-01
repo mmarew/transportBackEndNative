@@ -65,7 +65,7 @@ app.use(limiter); // Apply to all requests
 // Auth-specific rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: Config.NODE_ENV === "production" ? 5 : 200,
+  max: 200,
   message: { error: "Too many attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
