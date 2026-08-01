@@ -340,7 +340,18 @@ const upsertDriverRequest = async ({
           type: "individual_replaced_by_company",
           cancelledDriverRequestUniqueId: existingUniqueId,
           cancelledShipperRequests: [],
-          journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+          status: journeyStatusMap.replacedByCompanyAssignment,
+          driver: null,
+          shipper: null,
+          journey: null,
+          decision: null,
+          companyAssignment: null,
+          uniqueIds: {
+            driverRequestUniqueId: existingUniqueId,
+            shipperRequestUniqueId: null,
+            journeyDecisionUniqueId: null,
+            journeyUniqueId: null,
+          },
         };
 
         // 1. FCM — wakes app even in background
@@ -522,7 +533,18 @@ const upsertDriverRequest = async ({
             type: "individual_replaced_by_company",
             cancelledDriverRequestUniqueId: existingUniqueId,
             cancelledShipperRequests,
-            journeyStatusId: journeyStatusMap.replacedByCompanyAssignment,
+            status: journeyStatusMap.replacedByCompanyAssignment,
+            driver: null,
+            shipper: null,
+            journey: null,
+            decision: null,
+            companyAssignment: null,
+            uniqueIds: {
+              driverRequestUniqueId: existingUniqueId,
+              shipperRequestUniqueId: cancelledShipperRequests?.[0] || null,
+              journeyDecisionUniqueId: null,
+              journeyUniqueId: null,
+            },
           };
 
           // 1. FCM — wakes app even in background
