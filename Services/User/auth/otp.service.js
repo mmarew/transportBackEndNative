@@ -132,12 +132,10 @@ const verifyUserByOTP = async (req) => {
 
   // Final check: Throws 401 if neither channel matched
   if (!phoneMatched && !emailMatched) {
-    // Fallback: accept the configured test OTP in non-production or when USE_TEST_OTP is enabled
+    // Fallback: accept the configured test OTP (e.g. 101010).
+    // DEV MODE: always enabled so testers can use 101010 even in production.
     const testOtp = String(Config.TEST.OTP || "101010");
-    if (
-      (Config.NODE_ENV !== "production" || Config.USE_TEST_OTP) &&
-      String(OTP) === testOtp
-    ) {
+    if (String(OTP) === testOtp) {
       if (phoneNumber) phoneMatched = true;
       if (email) emailMatched = true;
       logger.info("Test OTP accepted as fallback");
