@@ -85,7 +85,7 @@ const sendBatchCancelNotifications = async ({
   const promises = [];
 
   // ── Notify each company (WebSocket to all active members + FCM push) ─────
-  for (const companyUniqueId of companies) {
+  for (const companyUniqueId of companies || []) {
     // WebSocket
     promises.push(sendSocketIONotificationToCompany({
       companyUniqueId,
@@ -99,19 +99,101 @@ const sendBatchCancelNotifications = async ({
   // ── Notify each driver that had a decision on this batch ───────────────
   for (const {
     phoneNumber,
-    userUniqueId
-  } of drivers) {
+    userUniqueId,
+    driverRequestId
+  } of drivers || []) {
+    // Build the standard journey-message shape (top-level `status` plus
+    // shipper / driver / journey / decision / companyAssignment / uniqueIds)
+    // so the driver client can render the cancellation screen and the
+    // "seen" action.  Falls back to a minimal payload if the join fails.
+    let row = null;
+    try {
+      if (driverRequestId) {
+        const [[result]] = await db().query(
+          `SELECT dr.driverRequestId,
+                  dr.driverRequestUniqueId,
+                  dr.journeyStatusId        AS drJourneyStatusId,
+                  sr.shipperRequestUniqueId,
+                  sr.shipperRequestId,
+                  sr.journeyStatusId        AS srJourneyStatusId,
+                  sr.originPlace, sr.originLatitude, sr.originLongitude,
+                  sr.destinationPlace, sr.destinationLatitude, sr.destinationLongitude,
+                  sr.shippableItemName, sr.shippableItemQtyInQuintal, sr.shippingCost,
+                  jd.journeyDecisionUniqueId,
+                  j.journeyUniqueId
+             FROM DriverRequest dr
+             LEFT JOIN JourneyDecisions jd ON dr.driverRequestId = jd.driverRequestId
+             LEFT JOIN ShipperRequest sr   ON jd.shipperRequestId = sr.shipperRequestId
+             LEFT JOIN Journey j           ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+            WHERE dr.driverRequestId = ?
+            LIMIT 1`,
+          [driverRequestId],
+        );
+        row = result || null;
+      }
+    } catch (e) {
+      logger.warn("cancelBatch: failed to fetch driver journey data", {
+        userUniqueId,
+        error: e.message,
+      });
+    }
+
+    const driverRequest = row
+      ? {
+          driverRequestId: row.driverRequestId,
+          driverRequestUniqueId: row.driverRequestUniqueId,
+          journeyStatusId: row.drJourneyStatusId,
+          userUniqueId,
+        }
+      : null;
+    const shipperRequest = row
+      ? {
+          shipperRequestUniqueId: row.shipperRequestUniqueId,
+          shipperRequestId: row.shipperRequestId,
+          journeyStatusId: row.srJourneyStatusId,
+          originPlace: row.originPlace,
+          originLatitude: row.originLatitude,
+          originLongitude: row.originLongitude,
+          destinationPlace: row.destinationPlace,
+          destinationLatitude: row.destinationLatitude,
+          destinationLongitude: row.destinationLongitude,
+          shippableItemName: row.shippableItemName,
+          shippableItemQtyInQuintal: row.shippableItemQtyInQuintal,
+          shippingCost: row.shippingCost,
+        }
+      : null;
+    const journeyDecision = row?.journeyDecisionUniqueId
+      ? {
+          journeyDecisionUniqueId: row.journeyDecisionUniqueId,
+          journeyStatusId: cancelStatusId,
+        }
+      : null;
+    const journey = row?.journeyUniqueId
+      ? { journeyUniqueId: row.journeyUniqueId }
+      : null;
+
     const driverPayload = {
       messageTypes: cancelMsg,
       message: "Batch request cancelled",
+      status: cancelStatusId,
+      driver: {
+        driver: driverRequest,
+        vehicle: null,
+      },
+      shipper: shipperRequest,
+      journey,
+      decision: journeyDecision,
+      companyAssignment: null,
+      uniqueIds: {
+        driverRequestUniqueId: driverRequest?.driverRequestUniqueId || null,
+        shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId || null,
+        journeyDecisionUniqueId: journeyDecision?.journeyDecisionUniqueId || null,
+        journeyUniqueId: journey?.journeyUniqueId || null,
+      },
       notification: {
         title: "Request cancelled",
         body: "The freight batch has been cancelled."
       },
-      data: {
-        status: cancelStatusId,
-        batchUniqueId
-      }
     };
 
     // WebSocket

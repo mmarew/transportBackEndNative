@@ -212,7 +212,7 @@ const partialCancelBatch = async ({
   // 8. Collect notification targets
   const [[driverRows], [shipperRows]] = await Promise.all([
     db().query(
-      `SELECT DISTINCT u.phoneNumber, u.userUniqueId
+      `SELECT DISTINCT u.phoneNumber, u.userUniqueId, dr.driverRequestId
          FROM DriverRequest dr
          INNER JOIN JourneyDecisions jd ON dr.driverRequestId = jd.driverRequestId
          INNER JOIN ShipperRequest sr   ON jd.shipperRequestId = sr.shipperRequestId

@@ -272,10 +272,11 @@ const handleExistingJourney = async (driverRequest, vehicle
           messageTypes: messageTypes?.driver_not_selected_in_bid,
           message: "Driver not selected in bid",
           status: journeyStatusId,
-          shipper: shipper ? [shipper] : null,
-          drivers: [driver],
-          decisions: journeyDecisionData ? [journeyDecisionData] : null,
+          driver,
+          shipper: shipper || null,
+          decision: journeyDecisionData || null,
           journey: journey || null,
+          companyAssignment: null,
           uniqueIds
         },
         phoneNumber: driverPhoneNumber
@@ -312,10 +313,11 @@ const handleExistingJourney = async (driverRequest, vehicle
           messageTypes: cancellationMessageType,
           message: "Journey cancelled",
           status: journeyStatusId,
-          shipper: shipper ? [shipper] : null,
-          drivers: [driver],
-          decisions: journeyDecisionData ? [journeyDecisionData] : null,
+          driver,
+          shipper: shipper || null,
+          decision: journeyDecisionData || null,
           journey: journey || null,
+          companyAssignment: null,
           uniqueIds
         },
         phoneNumber: driverPhoneNumber
