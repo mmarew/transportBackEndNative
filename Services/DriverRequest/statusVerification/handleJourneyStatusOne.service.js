@@ -201,6 +201,27 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
         ...nonRejectedShipper,
         journeyStatusId: journeyStatusMap?.requested
       };
+      // Resolve the human-readable batchId (INT) so the shipper app can render
+      // "Order #batchId / shipperRequestId" for driver-found notifications too.
+      let batchId = null;
+      const batchUniqueId = shipperRequest?.shipperRequestBatchUniqueId;
+      if (batchUniqueId) {
+        try {
+          const [[batchRow]] = await pool.query(
+            `SELECT batchId FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+            [batchUniqueId],
+          );
+          batchId = batchRow?.batchId ?? null;
+        } catch (e) {
+          logger.warn("@handleJourneyStatusOne: failed to resolve batchId", {
+            error: e.message,
+            batchUniqueId,
+          });
+        }
+      }
+      if (batchId !== null) {
+        shipperRequest.batchId = batchId;
+      }
       const driverRequestWithVehicle = {
         ...driverRequest,
         driverProfilePhoto,
@@ -217,6 +238,7 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
           status: journeyStatusMap.requested,
           formattedData: [{
             shipperRequest,
+            batchId,
             driverRequests: [driverRequestWithVehicle],
             decisions: [journeyDecisionPayload],
             journey: {}

@@ -565,6 +565,27 @@ const sendShipperNotification = async ({
     vehicleOfDriver: driverInfo.vehicleOfDriver,
   };
 
+  // Resolve the human-readable batchId (INT) from the batch unique id so the
+  // shipper app can render "Order #batchId / shipperRequestId".
+  let batchId = null;
+  const batchUniqueId = shipperRequest?.shipperRequestBatchUniqueId;
+  if (batchUniqueId) {
+    try {
+      const [[batchRow]] = await pool.query(
+        `SELECT batchId FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+        [batchUniqueId],
+      );
+      batchId = batchRow?.batchId ?? null;
+    } catch (e) {
+      logger.warn("@sendShipperNotification: failed to resolve batchId", {
+        error: e.message,
+        batchUniqueId,
+      });
+    }
+  }
+  const shipperRequestWithBatch =
+    batchId !== null ? { ...shipperRequest, batchId } : shipperRequest;
+
   // Build structured message for shipper notification with formattedData
   const shipperMessage = {
     messageTypes: messageType,
@@ -572,7 +593,8 @@ const sendShipperNotification = async ({
     status: status,
     formattedData: [
       {
-        shipperRequest, // Single object, not array
+        shipperRequest: shipperRequestWithBatch, // Single object, not array
+        batchId, // Human-readable batch id at item top level too
         driverRequests: [driverRequestWithVehicle], // Array with vehicleOfDriver
         decisions: journeyDecision ? [journeyDecision] : [],
         journey: journeyData || {}, // Object, not array

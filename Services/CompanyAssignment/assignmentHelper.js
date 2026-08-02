@@ -723,35 +723,39 @@ async function getFullAssignmentData(assignmentUniqueId) {
        sr.destinationLatitude,
        sr.destinationLongitude,
        sr.destinationPlace,
-       sr.shippableItemName,
-       sr.shippingCost,
-       sr.vehicleTypeUniqueId     AS srVehicleTypeUniqueId,
-       sr.requestMode,
-       sr.journeyStatusId         AS srJourneyStatusId,
-       jd.decisionTime,
-       jd.decisionBy,
-       jd.journeyStatusId         AS jdJourneyStatusId,
-       j.startTime AS journeyStartedAt,
-       j.endTime AS journeyCompletedAt
-     FROM CompanyBidVehicleAssignment cba
-     LEFT JOIN Users u           ON cba.driverUserUniqueId     = u.userUniqueId
-     LEFT JOIN Vehicle v         ON cba.vehicleUniqueId        = v.vehicleUniqueId
-     LEFT JOIN VehicleTypes vt   ON v.vehicleTypeUniqueId      = vt.vehicleTypeUniqueId
-     LEFT JOIN DriverRequest dr  ON cba.driverRequestUniqueId  = dr.driverRequestUniqueId
-     LEFT JOIN ShipperRequest sr ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
-     LEFT JOIN JourneyDecisions jd ON cba.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
-     LEFT JOIN Journey j         ON cba.journeyDecisionUniqueId = j.journeyDecisionUniqueId
-     WHERE cba.assignmentUniqueId = ?
-     LIMIT 1`,
+        sr.shippableItemName,
+        sr.shippingCost,
+        sr.vehicleTypeUniqueId     AS srVehicleTypeUniqueId,
+        sr.requestMode,
+        sr.journeyStatusId         AS srJourneyStatusId,
+        srb.batchId                AS srBatchId,
+        jd.decisionTime,
+        jd.decisionBy,
+        jd.journeyStatusId         AS jdJourneyStatusId,
+        j.startTime AS journeyStartedAt,
+        j.endTime AS journeyCompletedAt
+      FROM CompanyBidVehicleAssignment cba
+      LEFT JOIN Users u           ON cba.driverUserUniqueId     = u.userUniqueId
+      LEFT JOIN Vehicle v         ON cba.vehicleUniqueId        = v.vehicleUniqueId
+      LEFT JOIN VehicleTypes vt   ON v.vehicleTypeUniqueId      = vt.vehicleTypeUniqueId
+      LEFT JOIN DriverRequest dr  ON cba.driverRequestUniqueId  = dr.driverRequestUniqueId
+      LEFT JOIN ShipperRequest sr ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
+      LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId    = sr.shipperRequestBatchUniqueId
+      LEFT JOIN JourneyDecisions jd ON cba.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+      LEFT JOIN Journey j         ON cba.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+      WHERE cba.assignmentUniqueId = ?
+      LIMIT 1`,
     [assignmentUniqueId],
   );
   if (!row) return null;
   return {
     assignmentUniqueId: row.assignmentUniqueId,
     assignmentStatus: row.assignmentStatus,
+    batchId: row.srBatchId,
     shipperRequest: {
       shipperRequestUniqueId: row.shipperRequestUniqueId,
       shipperRequestId: row.shipperRequestId,
+      batchId: row.srBatchId,
       originLatitude: row.srOriginLatitude,
       originLongitude: row.srOriginLongitude,
       originPlace: row.srOriginPlace,
@@ -957,26 +961,28 @@ async function getAssignmentsData(assignmentUniqueIds) {
        sr.destinationLatitude,
        sr.destinationLongitude,
        sr.destinationPlace,
-       sr.shippableItemName,
-       sr.shippingCost,
-       sr.vehicleTypeUniqueId     AS srVehicleTypeUniqueId,
-       sr.requestMode,
-       sr.journeyStatusId         AS srJourneyStatusId,
-       jd.decisionTime,
-       jd.decisionBy,
-       jd.journeyStatusId         AS jdJourneyStatusId,
-       j.startTime AS journeyStartedAt,
-       j.endTime AS journeyCompletedAt
-     FROM CompanyBidVehicleAssignment cba
-     LEFT JOIN Users u           ON cba.driverUserUniqueId     = u.userUniqueId
-     LEFT JOIN Vehicle v         ON cba.vehicleUniqueId        = v.vehicleUniqueId
-     LEFT JOIN VehicleTypes vt   ON v.vehicleTypeUniqueId      = vt.vehicleTypeUniqueId
-     LEFT JOIN DriverRequest dr  ON cba.driverRequestUniqueId  = dr.driverRequestUniqueId
-     LEFT JOIN ShipperRequest sr ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
-     LEFT JOIN JourneyDecisions jd ON cba.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
-     LEFT JOIN Journey j         ON cba.journeyDecisionUniqueId = j.journeyDecisionUniqueId
-     WHERE cba.assignmentUniqueId IN (?)
-       AND cba.assignmentDeletedAt IS NULL`,
+        sr.shippableItemName,
+        sr.shippingCost,
+        sr.vehicleTypeUniqueId     AS srVehicleTypeUniqueId,
+        sr.requestMode,
+        sr.journeyStatusId         AS srJourneyStatusId,
+        srb.batchId                AS srBatchId,
+        jd.decisionTime,
+        jd.decisionBy,
+        jd.journeyStatusId         AS jdJourneyStatusId,
+        j.startTime AS journeyStartedAt,
+        j.endTime AS journeyCompletedAt
+      FROM CompanyBidVehicleAssignment cba
+      LEFT JOIN Users u           ON cba.driverUserUniqueId     = u.userUniqueId
+      LEFT JOIN Vehicle v         ON cba.vehicleUniqueId        = v.vehicleUniqueId
+      LEFT JOIN VehicleTypes vt   ON v.vehicleTypeUniqueId      = vt.vehicleTypeUniqueId
+      LEFT JOIN DriverRequest dr  ON cba.driverRequestUniqueId  = dr.driverRequestUniqueId
+      LEFT JOIN ShipperRequest sr ON cba.shipperRequestUniqueId = sr.shipperRequestUniqueId
+      LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId    = sr.shipperRequestBatchUniqueId
+      LEFT JOIN JourneyDecisions jd ON cba.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+      LEFT JOIN Journey j         ON cba.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+      WHERE cba.assignmentUniqueId IN (?)
+        AND cba.assignmentDeletedAt IS NULL`,
     [assignmentUniqueIds],
   );
   const map = {};
@@ -984,9 +990,11 @@ async function getAssignmentsData(assignmentUniqueIds) {
     map[row.assignmentUniqueId] = {
       assignmentUniqueId: row.assignmentUniqueId,
       assignmentStatus: row.assignmentStatus,
+      batchId: row.srBatchId,
       shipperRequest: {
         shipperRequestUniqueId: row.shipperRequestUniqueId,
         shipperRequestId: row.shipperRequestId,
+        batchId: row.srBatchId,
         originLatitude: row.srOriginLatitude,
         originLongitude: row.srOriginLongitude,
         originPlace: row.srOriginPlace,
