@@ -431,7 +431,7 @@ const handleExistingJourney = async (driverRequest, vehicle
     });
   }
   return {
-    message: "Cancellation status fetched",
+    message: "Journey status fetched",
     status: shipper?.journeyStatusId || journeyStatusId,
     ...responseMessage,
     // null  → individual job  → use /api/driver/* endpoints
