@@ -1,11 +1,5 @@
-
 const { cancelDriverRequest } = require("./actionCancelDriverRequest.service");
-const {
-  
-  performJoinSelect,
-  
-  
-} = require("../../CRUD/Read/ReadData");
+const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 
 const { createDriverRequest } = require("../../CRUD/Create/CreateData");
 const { getUserByUserUniqueId, createUser } = require("../User.service");
@@ -19,17 +13,11 @@ const { createJourneyDecision } = require("../JourneyDecisions.service");
 const { currentDate } = require("../../Utils/CurrentDate");
 const { createJourney } = require("../Journey");
 
-
-const {
-  journeyStatusMap,
-  
-  
-} = require("../../Utils/ListOfSeedData");
+const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const { v4: uuidv4 } = require("uuid");
 const logger = require("../../Utils/logger");
-
 
 const AppError = require("../../Utils/AppError");
 
@@ -43,9 +31,7 @@ const AppError = require("../../Utils/AppError");
 const takeFromStreet = async (body, user) => {
   try {
     // first verify if driver has active request
-    const {
-      verifyDriverJourneyStatus,
-    } = require("./statusVerification");
+    const { verifyDriverJourneyStatus } = require("./statusVerification");
     const driverStatus = await verifyDriverJourneyStatus({
       userUniqueId: user?.userUniqueId,
     });
