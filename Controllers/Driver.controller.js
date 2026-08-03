@@ -220,7 +220,7 @@ const cancelDriverRequest = async (req, res, next) => {
     const user = req?.user;
     const userUniqueId = user?.userUniqueId;
     let ownerUserUniqueId = req.query.userUniqueId;
-    const roleId = req.query.roleId;
+    const roleId = req.query.roleId || user?.roleId;
     if (ownerUserUniqueId === "self" || !ownerUserUniqueId) {
       ownerUserUniqueId = userUniqueId;
     }

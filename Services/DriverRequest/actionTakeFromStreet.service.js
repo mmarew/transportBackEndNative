@@ -27,6 +27,7 @@ const {
 } = require("../../Utils/ListOfSeedData");
 
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
+const { v4: uuidv4 } = require("uuid");
 const logger = require("../../Utils/logger");
 
 
@@ -81,6 +82,11 @@ const takeFromStreet = async (body, user) => {
 
     const journeyStatusId = journeyStatusMap.journeyStarted;
     const userUniqueId = user?.userUniqueId;
+    // Street pickups are single-request batches; if the driver app did not
+    // supply a batch id, generate one so createShipperRequest can upsert it.
+    if (!body?.shipperRequestBatchUniqueId) {
+      body.shipperRequestBatchUniqueId = uuidv4();
+    }
     const randNumber = Math.floor(Math.random() * 100000000);
     const requestedFrom = "street";
     const phoneNumber = body?.phoneNumber;
@@ -206,9 +212,18 @@ const takeFromStreet = async (body, user) => {
           );
         }
 
+        // Normalize createJourneyDecision's result: fresh creation returns
+        // data as a single object; "already exists" returns an array.
+        const journeyDecisionData = Array.isArray(journeyDecision?.data)
+          ? journeyDecision.data[0]
+          : journeyDecision?.data;
+        if (!journeyDecisionData?.journeyDecisionUniqueId) {
+          throw new Error("Failed to create journey decision");
+        }
+
         // Create journey (with connection for transaction support)
         const journeyDecisionUniqueId =
-          journeyDecision.data[0].journeyDecisionUniqueId;
+          journeyDecisionData.journeyDecisionUniqueId;
         const journeyData = {
           journeyDecisionUniqueId,
           startTime: currentDate(),
@@ -224,7 +239,12 @@ const takeFromStreet = async (body, user) => {
         );
 
         // Validate journey
-        if (!journeyServices?.data?.[0]) {
+        // Normalize createJourney's result: fresh creation returns data as a
+        // single object; "already exists" returns an array.
+        const journeyDataResult = Array.isArray(journeyServices?.data)
+          ? journeyServices.data[0]
+          : journeyServices?.data;
+        if (!journeyDataResult?.journeyUniqueId) {
           throw new Error("Failed to create journey");
         }
 
@@ -233,7 +253,7 @@ const takeFromStreet = async (body, user) => {
         await createJourneyRoutePoint(
           {
             journeyDecisionUniqueId:
-              journeyDecision.data[0].journeyDecisionUniqueId,
+              journeyDecisionData.journeyDecisionUniqueId,
             latitude: originLocation.latitude,
             longitude: originLocation.longitude,
             userUniqueId: userUniqueId,
@@ -242,8 +262,8 @@ const takeFromStreet = async (body, user) => {
         );
 
         // Store decision and journey in responseData for later use
-        responseData.decision = journeyDecision.data[0];
-        responseData.journey = journeyServices.data[0];
+        responseData.decision = journeyDecisionData;
+        responseData.journey = journeyDataResult;
       },
       {
         timeout: 30000, // 30 seconds - enough for user creation + all database operations
