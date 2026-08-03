@@ -55,15 +55,17 @@ const createJourney = async (data, connection = null) => {
 
   return {
     message: "Journey created successfully",
-    data: {
-      journeyUniqueId,
-      journeyDecisionUniqueId,
-      startTime,
-      endTime,
-      fare,
-      journeyStatusId,
-      journeyId: result.insertId,
-    },
+    data: [
+      {
+        journeyUniqueId,
+        journeyDecisionUniqueId,
+        startTime,
+        endTime,
+        fare,
+        journeyStatusId,
+        journeyId: result.insertId,
+      },
+    ],
   };
 };
 module.exports = {

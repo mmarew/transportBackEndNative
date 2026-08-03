@@ -70,18 +70,20 @@ exports.createJourneyDecision = async (data, connection = null) => {
 
     return {
       message: "Journey decision created successfully",
-      data: {
-        shippingDateByDriver,
-        deliveryDateByDriver,
-        shippingCostByDriver,
-        journeyDecisionUniqueId,
-        shipperRequestId,
-        driverRequestId,
-        journeyStatusId,
-        decisionTime,
-        decisionBy,
-        journeyDecisionId: result.insertId,
-      },
+      data: [
+        {
+          shippingDateByDriver,
+          deliveryDateByDriver,
+          shippingCostByDriver,
+          journeyDecisionUniqueId,
+          shipperRequestId,
+          driverRequestId,
+          journeyStatusId,
+          decisionTime,
+          decisionBy,
+          journeyDecisionId: result.insertId,
+        },
+      ],
     };
   } catch (error) {
     throw new AppError(

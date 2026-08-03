@@ -212,18 +212,9 @@ const takeFromStreet = async (body, user) => {
           );
         }
 
-        // Normalize createJourneyDecision's result: fresh creation returns
-        // data as a single object; "already exists" returns an array.
-        const journeyDecisionData = Array.isArray(journeyDecision?.data)
-          ? journeyDecision.data[0]
-          : journeyDecision?.data;
-        if (!journeyDecisionData?.journeyDecisionUniqueId) {
-          throw new Error("Failed to create journey decision");
-        }
-
         // Create journey (with connection for transaction support)
         const journeyDecisionUniqueId =
-          journeyDecisionData.journeyDecisionUniqueId;
+          journeyDecision.data[0].journeyDecisionUniqueId;
         const journeyData = {
           journeyDecisionUniqueId,
           startTime: currentDate(),
@@ -239,12 +230,7 @@ const takeFromStreet = async (body, user) => {
         );
 
         // Validate journey
-        // Normalize createJourney's result: fresh creation returns data as a
-        // single object; "already exists" returns an array.
-        const journeyDataResult = Array.isArray(journeyServices?.data)
-          ? journeyServices.data[0]
-          : journeyServices?.data;
-        if (!journeyDataResult?.journeyUniqueId) {
+        if (!journeyServices?.data?.[0]) {
           throw new Error("Failed to create journey");
         }
 
@@ -253,7 +239,7 @@ const takeFromStreet = async (body, user) => {
         await createJourneyRoutePoint(
           {
             journeyDecisionUniqueId:
-              journeyDecisionData.journeyDecisionUniqueId,
+              journeyDecision.data[0].journeyDecisionUniqueId,
             latitude: originLocation.latitude,
             longitude: originLocation.longitude,
             userUniqueId: userUniqueId,
@@ -262,8 +248,8 @@ const takeFromStreet = async (body, user) => {
         );
 
         // Store decision and journey in responseData for later use
-        responseData.decision = journeyDecisionData;
-        responseData.journey = journeyDataResult;
+        responseData.decision = journeyDecision.data[0];
+        responseData.journey = journeyServices.data[0];
       },
       {
         timeout: 30000, // 30 seconds - enough for user creation + all database operations
