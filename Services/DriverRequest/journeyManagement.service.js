@@ -3,7 +3,9 @@ const { getData } = require("../../CRUD/Read/ReadData");
 const { insertData } = require("../../CRUD/Create/CreateData");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
-const { notifyCompanyOnDriverAction } = require("../CompanyAssignment/assignmentHelper");
+const {
+  notifyCompanyOnDriverAction,
+} = require("../CompanyAssignment/assignmentHelper");
 const { createJourneyRoutePoint } = require("../JourneyRoutePoints.service");
 const {
   getJourneyDecisionByJourneyDecisionUniqueId,
@@ -18,9 +20,7 @@ const AppError = require("../../Utils/AppError");
 const logger = require("../../Utils/logger");
 const { createCommission } = require("../Commission.service");
 
-const {
-  getUserSubscriptionsWithFilters,
-} = require("../UserSubscription");
+const { getUserSubscriptionsWithFilters } = require("../UserSubscription");
 
 const startJourney = async (body) => {
   return await executeInTransaction(
@@ -99,12 +99,15 @@ const startJourney = async (body) => {
           connection: conn,
         });
 
-        await createJourneyRoutePoint({
-          journeyDecisionUniqueId: body.journeyDecisionUniqueId,
-          latitude,
-          longitude,
-          userUniqueId,
-        }, conn);
+        await createJourneyRoutePoint(
+          {
+            journeyDecisionUniqueId: body.journeyDecisionUniqueId,
+            latitude,
+            longitude,
+            userUniqueId,
+          },
+          conn,
+        );
       } else {
         finalJourneyUniqueId = existingJourneyCheck[0].journeyUniqueId;
       }
@@ -304,19 +307,25 @@ const completeJourney = async (body) => {
             400,
           );
         }
-        await createCommission({
-          journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
-          paymentAmount,
-          commissionCreatedBy: userUniqueId,
-        }, conn);
+        await createCommission(
+          {
+            journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
+            paymentAmount,
+            commissionCreatedBy: userUniqueId,
+          },
+          conn,
+        );
       }
 
-      await createJourneyRoutePoint({
-        journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
-        latitude: body?.latitude,
-        longitude: body?.longitude,
-        userUniqueId,
-      }, conn);
+      await createJourneyRoutePoint(
+        {
+          journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
+          latitude: body?.latitude,
+          longitude: body?.longitude,
+          userUniqueId,
+        },
+        conn,
+      );
 
       return combinedData;
     },

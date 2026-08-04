@@ -11,6 +11,10 @@ killPort(port, "tcp")
     return true;
   })
   .catch((err) => {
-    logger.warn("Error killing port, continuing anyway", { port, error: err.message, stack: err.stack });
+    logger.warn("Error killing port, continuing anyway", {
+      port,
+      error: err.message,
+      stack: err.stack,
+    });
     require("./App.js");
   });
