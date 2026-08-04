@@ -208,6 +208,15 @@ const takeFromStreet = async (body, user) => {
           fare: 0,
           journeyStatusId,
           journeyCreatedBy: userUniqueId,
+          // The driver's actual start GPS (shipper may have placed a wrong pickup)
+          journeyStartingLat:
+            body?.currentLocation?.latitude ??
+            body?.originLocation?.latitude ??
+            null,
+          journeyStartingLng:
+            body?.currentLocation?.longitude ??
+            body?.originLocation?.longitude ??
+            null,
         };
 
         journeyServices = await createJourney(

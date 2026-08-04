@@ -2,7 +2,7 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
-const { resetDatabase, testUpdateTable, testAlterColumn, testDropColumn, testDropSpecificTable } = require("./DataBaseManagement");
+const { resetDatabase, ensureJourneyLocationColumns } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
@@ -73,6 +73,7 @@ const { report } = require("./Reporter");
 
 const { runReferenceCRUD } = require("./Phases/runReferenceCRUD");
 const { runIndividualFlow } = require("./Phases/runIndividualFlow");
+const { runTakeFromStreetFlow } = require("./Phases/runTakeFromStreetFlow");
 const { runCompanyFlow } = require("./Phases/runCompanyFlow");
 const { runPostJourneyCRUD } = require("./Phases/runPostJourneyCRUD");
 const { runDelinquencyTests } = require("./Phases/runDelinquencyTests");
@@ -95,12 +96,12 @@ const initiateTest = async () => {
     if (!usersData?.supperAdmin?.token)
       throw new Error("SuperAdmin token not set");
 
-    // ── Phase 0b: Database admin ops (schema mutations) ───────────────────────
-    console.log("\n── Database Admin Ops ──");
-    await safe("testUpdateTable", testUpdateTable)();
-    await safe("testAlterColumn", testAlterColumn)();
-    await safe("testDropColumn", testDropColumn)();
-    await safe("testDropSpecificTable", testDropSpecificTable)();
+    // ── Phase 0b: Non-destructive schema verification ─────────────────────────
+    // Drop-table operations are permanently disabled — the suite never wipes data.
+    // New columns (e.g. Journey.journeyStartingLat/Lng) are added via
+    // PUT /api/admin/updateTable/:tableName when missing.
+    console.log("\n── Non-destructive Schema Check ──");
+    await safe("ensureJourneyLocationColumns", ensureJourneyLocationColumns)();
 
     // ── Phase 1: Core users ───────────────────────────────────────────────────
     await testCreateAdminFlow({});
@@ -199,6 +200,7 @@ const initiateTest = async () => {
     await safe("runSantimPayTests", runSantimPayTests)();
     await safe("runReferenceCRUD", runReferenceCRUD)();
     await safe("runIndividualFlow", runIndividualFlow)();
+    await safe("runTakeFromStreetFlow", runTakeFromStreetFlow)();
     await safe("testUpdateUserWithFileUpload", testUpdateUserWithFileUpload)();
     await safe("runCompanyFlow", runCompanyFlow)();
     await safe("runPostJourneyCRUD", runPostJourneyCRUD)();

@@ -66,6 +66,7 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
       SELECT
         Journey.journeyId, Journey.journeyUniqueId, Journey.journeyDecisionUniqueId,
         Journey.startTime, Journey.endTime, Journey.fare, Journey.journeyStatusId,
+        Journey.journeyStartingLat, Journey.journeyStartingLng,
         Journey.journeyCreatedBy, Journey.journeyUpdatedAt,
         Journey.journeyCreatedAt,
         JourneyDecisions.journeyDecisionId, JourneyDecisions.shipperRequestId,
@@ -105,6 +106,8 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
         endTime: item.endTime,
         fare: item.fare,
         journeyStatusId: item.journeyStatusId,
+        journeyStartingLat: item.journeyStartingLat,
+        journeyStartingLng: item.journeyStartingLng,
         journeyCreatedAt: item.journeyCreatedAt,
       };
       const decision = {

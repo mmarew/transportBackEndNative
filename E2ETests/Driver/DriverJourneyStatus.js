@@ -256,6 +256,19 @@ const startJourney = async ({
   try {
     const res = await axios.put(url, payload, config);
     console.log("✅ Journey started. Status:", res.data?.status);
+    const storedLat = res.data?.journey?.journeyStartingLat;
+    const storedLng = res.data?.journey?.journeyStartingLng;
+    const latMatches = storedLat != null && Number(storedLat) === Number(latitude);
+    const lngMatches = storedLng != null && Number(storedLng) === Number(longitude);
+    if (latMatches && lngMatches) {
+      console.log(
+        `✅ journeyStartingLat/Lng persisted (${storedLat}, ${storedLng})`,
+      );
+    } else {
+      console.log(
+        `❌ journeyStartingLat/Lng mismatch: expected (${latitude}, ${longitude}), got (${storedLat}, ${storedLng})`,
+      );
+    }
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;
   } catch (error) {

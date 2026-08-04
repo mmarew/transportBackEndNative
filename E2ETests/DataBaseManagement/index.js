@@ -67,19 +67,6 @@ const getAllTables = async () => {
 };
 
 /**
- * DELETE /api/admin/dropAllTables
- * Drops every table in the database. Destructive — use only in test environments.
- */
-const dropTables = async () => {
-  const url = backendURL + DATABASE_ENDPOINTS.DROP_ALL_TABLES;
-  try {
-    await axios.delete(url, devConfig());
-  } catch (error) {
-    console.warn("dropTables warning:", error.response?.data?.error || error.message);
-  }
-};
-
-/**
  * GET /api/admin/installPreDefinedData
  * Seeds the database with predefined lookup data (roles, statuses, vehicle types, etc.).
  * Requires admin token.
@@ -238,6 +225,45 @@ const testUpdateTable = async () => {
 };
 
 /**
+ * PUT /api/admin/updateTable/:tableName
+ * Adds the Journey.journeyStartingLat / journeyStartingLng columns when missing.
+ * Uses the non-destructive updateTable endpoint (never drops data).
+ */
+const ensureJourneyLocationColumns = async () => {
+  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
+  if (!token) {
+    console.log("⏩ ensureJourneyLocationColumns skipped — no admin token");
+    return;
+  }
+  const tableName = "Journey";
+  const config = authConfig(token);
+  const columnsUrl =
+    backendURL + DATABASE_ENDPOINTS.GET_TABLE_COLUMNS.replace(":tableName", tableName);
+  const updateUrl =
+    backendURL + DATABASE_ENDPOINTS.UPDATE_TABLE.replace(":tableName", tableName);
+  const columnsToAdd = [
+    { columnName: "journeyStartingLat", columnType: "DECIMAL(10,8)", defaultValue: "NULL" },
+    { columnName: "journeyStartingLng", columnType: "DECIMAL(11,8)", defaultValue: "NULL" },
+  ];
+  try {
+    const res = await axios.get(columnsUrl, config);
+    const existing = new Set(
+      (res.data?.data || []).map((col) => col?.Field || col?.COLUMN_NAME || col?.columnName),
+    );
+    for (const column of columnsToAdd) {
+      if (existing.has(column.columnName)) {
+        console.log(`✅ Journey.${column.columnName} already exists`);
+        continue;
+      }
+      await axios.put(updateUrl, column, config);
+      console.log(`✅ Journey.${column.columnName} added`);
+    }
+  } catch (error) {
+    console.warn("⚠ ensureJourneyLocationColumns:", error.response?.data?.error || error.message);
+  }
+};
+
+/**
  * PUT /api/admin/alterColumn/:tableName
  * Changes a column's properties.
  */
@@ -254,51 +280,14 @@ const testAlterColumn = async () => {
   }
 };
 
-/**
- * DELETE /api/admin/dropColumn/:tableName/:columnName
- * Drops a column from a table.
- */
-const testDropColumn = async () => {
-  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
-  if (!token) { console.log("⏩ testDropColumn skipped — no admin token"); return; }
-  const tableName = "User";
-  const columnName = "e2e_test_column";
-  const url = backendURL + DATABASE_ENDPOINTS.DROP_COLUMN.replace(":tableName", tableName).replace(":columnName", columnName);
-  try {
-    const res = await axios.delete(url, authConfig(token));
-    console.log("✅ Column dropped:", res.data?.message || "ok");
-  } catch (error) {
-    console.warn("⚠ testDropColumn:", error.response?.data?.error || error.message);
-  }
-};
-
-/**
- * DELETE /api/admin/dropTables?tableName=xxx
- * Drops a specific table by name (requires query param).
- */
-const testDropSpecificTable = async () => {
-  const token = usersData?.supperAdmin?.token || usersData?.admin?.token;
-  if (!token) { console.log("⏩ testDropSpecificTable skipped — no admin token"); return; }
-  // Use a throwaway temp table name — endpoint validates JWT so this is safe
-  const url = backendURL + DATABASE_ENDPOINTS.DROP_TABLES + "?tableName=NonExistentTestTable";
-  try {
-    const res = await axios.delete(url, authConfig(token));
-    console.log("✅ Drop table responded:", res.data?.message || "ok");
-  } catch (error) {
-    console.warn("⚠ testDropSpecificTable:", error.response?.data?.error || error.message);
-  }
-};
-
 module.exports = {
   createTables,
   getAllTables,
-  dropTables,
   installPredefinedData,
   getUserOtp,
   seedTestDocument,
   resetDatabase,
   testUpdateTable,
   testAlterColumn,
-  testDropColumn,
-  testDropSpecificTable,
+  ensureJourneyLocationColumns,
 };

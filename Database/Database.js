@@ -532,6 +532,8 @@ CREATE TABLE IF NOT EXISTS Journey (
     endTime TIMESTAMP NULL,  -- Journey end time
     fare DECIMAL(10, 2) DEFAULT 0,  -- Fare for the journey
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
+    journeyStartingLat DECIMAL(10, 8) NULL,  -- Latitude where the journey started
+    journeyStartingLng DECIMAL(11, 8) NULL,  -- Longitude where the journey started
     journeyCreatedBy VARCHAR(36) NOT NULL,  -- Who created the journey
     journeyUpdatedBy VARCHAR(36) NULL,  -- Who updated the journey
     journeyDeletedBy VARCHAR(36) NULL,  -- Who deleted the journey

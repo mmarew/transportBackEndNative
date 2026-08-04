@@ -93,6 +93,8 @@ const startJourney = async (body) => {
             journeyDecisionUniqueId: body.journeyDecisionUniqueId,
             journeyStatusId: body.journeyStatusId,
             startTime: currentDate(),
+            journeyStartingLat: latitude,
+            journeyStartingLng: longitude,
             journeyCreatedBy: userUniqueId,
             journeyCreatedAt: currentDate(),
           },
