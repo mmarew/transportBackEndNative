@@ -130,11 +130,13 @@ const getAllActiveRequests = async (filters = {}) => {
       u.email,
       u.userCreatedAt as userCreatedAt,
       vt.vehicleTypeName,
-      js.journeyStatusName  
+      js.journeyStatusName,
+      srb.batchId
     FROM ShipperRequest sr
     JOIN Users u ON u.userUniqueId = sr.userUniqueId 
     LEFT JOIN VehicleTypes vt ON sr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
     LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
+    LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
     WHERE sr.journeyStatusId IN (?)
   `;
   let whereConditions = [];

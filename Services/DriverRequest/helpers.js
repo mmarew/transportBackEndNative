@@ -25,6 +25,8 @@ const {
 const { getVehicleDrivers } = require("../VehicleDriver.service");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { currentDate } = require("../../Utils/CurrentDate");
+const { pool } = require("../../Middleware/Database.config");
+const { transactionStorage } = require("../../Utils/TransactionContext");
 const AppError = require("../../Utils/AppError");
 
 /**
@@ -219,6 +221,35 @@ const sendShipperNotification = async (shipper) => {
 };
 
 /**
+ * Resolves the numeric batchId (INT) for a given shipperRequestBatchUniqueId.
+ * Reuses the same pattern as sendShipperNotification / handleJourneyStatusOne so
+ * payloads can render "Order #batchId / shipperRequestId".
+ * @param {string|null} batchUniqueId - ShipperRequestBatch.batchUniqueId
+ * @param {string} context - Logging context (caller name)
+ * @returns {Promise<number|null>} The numeric batchId, or null if unresolvable
+ */
+const resolveBatchId = async (batchUniqueId, context = "resolveBatchId") => {
+  if (!batchUniqueId) {
+    return null;
+  }
+  try {
+    const executor = transactionStorage.getStore() || pool;
+    const [[batchRow]] = await executor.query(
+      `SELECT batchId FROM ShipperRequestBatch WHERE batchUniqueId = ? LIMIT 1`,
+      [batchUniqueId],
+    );
+    return batchRow?.batchId ?? null;
+  } catch (e) {
+    const logger = require("../../Utils/logger");
+    logger.warn(`@${context}: failed to resolve batchId`, {
+      error: e.message,
+      batchUniqueId,
+    });
+    return null;
+  }
+};
+
+/**
  * Fetches all data needed for sending journey notifications to shippers
  * Optimized to accept already-fetched data to avoid redundant database queries
  * @param {string} journeyDecisionUniqueId - Journey decision unique identifier
@@ -283,6 +314,16 @@ const fetchJourneyNotificationData = async (
     }
 
     const shipperRequest = shipperRequestData[0];
+
+    // Resolve the human-readable batchId (INT) so the driver app can render
+    // "Order #batchId / shipperRequestId" in the journey/notification payloads.
+    const batchId = await resolveBatchId(
+      shipperRequest?.shipperRequestBatchUniqueId,
+      "fetchJourneyNotificationData",
+    );
+    if (batchId !== null) {
+      shipperRequest.batchId = batchId;
+    }
 
     // Fetch driver request data with user info
     let driverRequestData = null;
@@ -403,4 +444,5 @@ module.exports = {
   executeStatusUpdates,
   sendShipperNotification,
   fetchJourneyNotificationData,
+  resolveBatchId,
 };

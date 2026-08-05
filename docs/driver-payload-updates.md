@@ -66,3 +66,41 @@ Journey objects now include:
 Note: DECIMAL values come back as strings. Affected reads:
 `getCompletedJourneys` / `searchCompletedJourney`, `getAllCompletedJourneys`,
 `getJourneys`, `getOngoingJourney`, and driver status responses.
+
+## 4. Batch ID (`batchId`) on shipper request records
+
+Every payload that carries a `shipper` / `shipperRequest` object now includes the
+numeric `batchId` (`ShipperRequestBatch.batchId`, an INT) so the app can render
+`formatOrderId` → `batchId/534`. The `batchUniqueId` (UUID) stays as-is.
+
+Sources updated (all return `batchId` inside the shipper record):
+
+| # | Endpoint / Event | Field |
+|---|---|---|
+| 1 | `GET /api/driver/verifyDriverJourneyStatus` | `response.shipper.batchId` |
+| 2 | `GET /api/shippingRequest/getAllActiveRequests` | `data[].shipperRequest.batchId` |
+| 3 | `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=6` (History) | `data[].shipperRequest.batchId` |
+| 4 | `GET /api/user/getShipperRequest4allOrSingleUser?journeyStatusId=6` (Recent Completed) | `data[].shipperRequest.batchId` |
+| 5 | `POST /api/driver/createAndAcceptNewRequest` | `response.shipper.batchId` |
+| 6 | `PUT /api/driver/acceptShipperRequest` | `response.shipper.batchId` |
+| 7 | `POST /api/driver/takeFromStreet` | `response.shipper.batchId` |
+| 8 | `PATCH /api/company/assignments/:assignmentUniqueId/status` | `data.shipperRequest.batchId` (company) |
+| 9 | WebSocket `messages` | `message.shipper.batchId` |
+
+```json
+{
+  "shipper": {
+    "shipperRequestUniqueId": "...",
+    "shipperRequestId": 534,
+    "batchId": 131,
+    "shipperRequestBatchUniqueId": "e17d7f10-..."
+  }
+}
+```
+
+Notes:
+- `batchId` is resolved from `ShipperRequestBatch.batchId` via
+  `shipperRequestBatchUniqueId`; it is `null`/absent only if the batch row is missing.
+- Company assignment payloads (`getFullAssignmentData` / `assignmentHelper.js`) already
+  carried `batchId`; the driver/shipper sources were the gap.
+

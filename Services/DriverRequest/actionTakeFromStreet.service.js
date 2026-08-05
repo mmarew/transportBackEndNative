@@ -1,5 +1,6 @@
 const { cancelDriverRequest } = require("./actionCancelDriverRequest.service");
 const { performJoinSelect } = require("../../CRUD/Read/ReadData");
+const { resolveBatchId } = require("./helpers");
 
 const { createDriverRequest } = require("../../CRUD/Create/CreateData");
 const { getUserByUserUniqueId, createUser } = require("../User.service");
@@ -302,6 +303,13 @@ const takeFromStreet = async (body, user) => {
       ...userShipper?.dataOfShipper,
       ...targetRequest,
     };
+    const batchId = await resolveBatchId(
+      responseData.shipper?.shipperRequestBatchUniqueId,
+      "takeFromStreet",
+    );
+    if (batchId !== null) {
+      responseData.shipper.batchId = batchId;
+    }
     responseData.driver = driverData;
     responseData.status = journeyStatusId;
     return responseData;
