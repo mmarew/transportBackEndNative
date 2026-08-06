@@ -244,6 +244,56 @@ async function initSocket({ httpServer }) {
       socket.emit("response", "Message received");
     });
 
+    // ── Queue dispatch rooms ────────────────────────────────────────────────
+    // Subscribe to a queue organization's real-time updates.
+    //   payload: { queueOrganizationUniqueId, queueDate? }
+    // Joins the org-wide room (all dates) and, when a queueDate is given, the
+    // org+day room (drivers after check-in, admins while managing the queue).
+    socket.on("queue:subscribe", (payload = {}) => {
+      try {
+        const { queueOrganizationUniqueId, queueDate } = payload || {};
+        if (!queueOrganizationUniqueId) {
+          return sendError(socket, "queueOrganizationUniqueId is required", "BAD_REQUEST", "queue");
+        }
+        if (queueDate) {
+          socket.join(`queueOrg:${queueOrganizationUniqueId}:${queueDate}`);
+          logger.debug("Socket joined queue day room", {
+            socketId: socket.id,
+            queueOrganizationUniqueId,
+            queueDate,
+          });
+        }
+        socket.join(`queueOrg:${queueOrganizationUniqueId}`);
+        socket.emit("queue:subscribed", {
+          status: "success",
+          message: "success",
+          data: { queueOrganizationUniqueId, queueDate },
+        });
+      } catch (error) {
+        logger.error("queue:subscribe error", {
+          socketId: socket.id,
+          error: error.message,
+        });
+        sendError(socket, "Failed to subscribe to queue", "INTERNAL_SERVER_ERROR", "queue");
+      }
+    });
+
+    socket.on("queue:unsubscribe", (payload = {}) => {
+      try {
+        const { queueOrganizationUniqueId, queueDate } = payload || {};
+        if (queueOrganizationUniqueId) {
+          socket.leave(`queueOrg:${queueOrganizationUniqueId}`);
+          if (queueDate) socket.leave(`queueOrg:${queueOrganizationUniqueId}:${queueDate}`);
+        }
+        socket.emit("queue:unsubscribed", { status: "success", message: "success" });
+      } catch (error) {
+        logger.error("queue:unsubscribe error", {
+          socketId: socket.id,
+          error: error.message,
+        });
+      }
+    });
+
     socket.on("locationUpdateToShipper", async (data) => {
       try {
         let phoneNumberOfShipper = data?.shipperPhoneNumber;

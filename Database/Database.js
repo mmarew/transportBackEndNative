@@ -2032,6 +2032,28 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     FOREIGN KEY (queueUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (queueDeletedBy) REFERENCES Users(userUniqueId)
 );
+
+-- QueueAuditLog: immutable audit trail for queue supervisor overrides and removals.
+-- Every reorder/removal/forced checkout is logged with actor + reason so position
+-- disputes can be traced back to who changed what and when.
+
+CREATE TABLE IF NOT EXISTS QueueAuditLog (
+    queueAuditId INT AUTO_INCREMENT PRIMARY KEY,
+    queueAuditUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    queueOrganizationUniqueId VARCHAR(36) NOT NULL,             -- FK → QueueOrganization
+    queueDate DATE NOT NULL,                                    -- which day's queue was changed
+    queueUniqueId VARCHAR(36) NULL,                             -- FK → DriverQueue (entry affected)
+    action ENUM('override','remove','manual_checkin','dispatch') NOT NULL,
+    beforeValue VARCHAR(500) NULL,                              -- JSON snapshot before the change
+    afterValue VARCHAR(500) NULL,                               -- JSON snapshot after the change
+    reason VARCHAR(500) NULL,                                   -- supervisor note
+    performedBy VARCHAR(36) NOT NULL,                           -- FK → Users (who did it)
+    performedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_queueAudit_org_date (queueOrganizationUniqueId, queueDate),
+    INDEX idx_queueAudit_entry (queueUniqueId),
+    FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId),
+    FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
+);
 `;
 
 module.exports = { sqlQuery };

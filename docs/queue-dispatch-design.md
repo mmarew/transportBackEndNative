@@ -1,6 +1,8 @@
 # Queue Dispatch Design — Fixed-Price Ordering (e.g. Mojo Customs)
 
 > Status: **DRAFT** — actively being updated. This is a design document, not an implementation.
+> Backend scaffold (schema, routes, controllers, services, socket events) landed
+> on branch `feature/queue-dispatch` — see [queue-tables-access.md](queue-tables-access.md) §5.
 
 ## 1. Problem
 
@@ -256,9 +258,32 @@ QueueOrgAdmin (assign & manage the queue):
 | ------ | ---------------------------------------------------- | ---------------------------------------------------------------- |
 | GET    | `/api/queue/status?queueOrganizationUniqueId=&date=` | Full queue, per vehicle type, with`joinedAt`                     |
 | POST   | `/api/queue/manualCheckin`                           | Manually check a driver/vehicle in                               |
-| PATCH  | `/api/queue/entry/:queueId/override`                 | Reorder / swap positions — supervisor override, audit logged     |
-| DELETE | `/api/queue/entry/:queueId`                          | Remove an entry (checkout / no-show / override)                  |
+| PATCH | `/api/queue/entry/:queueUniqueId/override`                 | Reorder / swap positions — supervisor override, audit logged     |
+| DELETE | `/api/queue/entry/:queueUniqueId`                          | Remove an entry (checkout / no-show / override)                  |
 | POST   | `/api/queue/dispatch`                                | Manually trigger dispatch of a waiting order to the front driver |
+
+> Implemented on `feature/queue-dispatch` (paths under `/api/queue` and
+> `/api/queueOrganization`, see `Routes/queue/`).
+
+### Real-time updates (socket.io — avoids data latency)
+
+Queue state changes are **pushed** over socket.io, not polled:
+
+- Clients join rooms: `queueOrg:<orgUniqueId>` (admins, all dates) and
+  `queueOrg:<orgUniqueId>:<queueDate>` (drivers after check-in, admins per day).
+- Socket events: `queue:subscribe` / `queue:unsubscribe` (client→server) and
+  `queue` (server→client, JSON payload with `messageTypes` +
+  `data` = full queue snapshot or event payload).
+- Every queue write calls `emitQueueSnapshot()` (broadcast the authoritative
+  queue to the day room) and `notifyQueueOrgAdmins()` (role-11 sockets).
+- Message types: `queue_checkin_confirmed`, `queue_position_changed`,
+  `queue_order_offered`, `queue_order_rejected`, `queue_order_assigned`,
+  `queue_removed`, `queue_org_approved`, `queue_org_updated`.
+- New socket user type `queueOrgAdmin` registered in `Utils/WSPusher.js`.
+
+REST stays the **source of truth** (`joinedAt` + `queueNumber`); socket is a
+read-model push. On reconnection a client should re-fetch
+`GET /api/queue/status` and resubscribe.
 
 ## 9. How it plugs into existing code
 

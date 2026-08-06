@@ -68,6 +68,7 @@ exports.loginUser = Joi.object({
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
       usersRoles.companyAdminRoleId,
+      usersRoles.queueOrgAdminRoleId,
     )
     .required(),
 }).or("phoneNumber", "email"); // Login still allows either since they are in the DB
@@ -86,6 +87,7 @@ exports.verifyUserByOTP = Joi.object({
       usersRoles.vehicleOwnerRoleId,
       usersRoles.systemRoleId,
       usersRoles.companyAdminRoleId,
+      usersRoles.queueOrgAdminRoleId,
     )
     .optional(),
 })

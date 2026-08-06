@@ -95,6 +95,9 @@ const routesArray = [
   require("./Account.routes"),
   // Modular Company Routes
   { path: "/api/company", handler: require("./company") },
+  // Modular Queue Dispatch Routes
+  { path: "/api/queueOrganization", handler: require("./queue").queueOrganizationRoutes },
+  { path: "/api/queue", handler: require("./queue").driverQueueRoutes },
   { path: "/", handler: require("./auth") },
 ];
 

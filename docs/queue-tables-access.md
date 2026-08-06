@@ -1,13 +1,15 @@
 # Queue Dispatch — Backend Database Access Guide
 
 How the backend accesses the queue-dispatch tables added in
-`Database/Database.js` (schema defined at `Database/Database.js:1930-2077`).
+`Database/Database.js` (schema defined at `Database/Database.js:1930`).
 Design/semantics live in [queue-dispatch-design.md](queue-dispatch-design.md);
 this doc is the concrete access reference (columns, FK paths, indexes, and the
 query/transaction patterns to use).
 
-> Status: schema landed on branch `feature/queue-dispatch`. Backend services are
-> NOT yet implemented — see [§6](#6-implementation-checklist).
+> Status: **schema + backend scaffold landed** on branch `feature/queue-dispatch`
+> (services, controllers, routes, socket events). Auto-dispatch branch inside
+> `ShipperRequest/create.service.js` (`handleQueueDispatch`) is still pending —
+> see [§6](#6-implementation-checklist).
 
 ## 1. Tables added
 
@@ -16,6 +18,7 @@ query/transaction patterns to use).
 | `QueueOrganization` | `1935-1967` | A client that hosts a virtual dispatch queue (Mojo Kaliy, National Cement, …) |
 | `QueueOrganizationMembership` | `1969-2003` | Links users (role 11 QueueOrgAdmin / role 1 shipper) to a queue org |
 | `DriverQueue` | `2005-2077` | The waiting line: one entry per vehicle per org per day |
+| `QueueAuditLog` | `2079-2108` | Immutable audit trail for overrides / removals / manual check-ins / dispatches |
 
 All FKs reference tables that already existed (`Users`, `Roles`,
 `VehicleDriver`, `ShipperRequest`). No forward FK references; the whole schema
@@ -80,6 +83,23 @@ user per queue org (mirrors `CompanyMembership`).
 `UNIQUE (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate)` — one
 entry per vehicle/day. Dispatch index:
 `(queueOrganizationUniqueId, queueDate, queueNumber)`.
+
+### `QueueAuditLog`
+
+| Column | Type | Notes |
+|---|---|---|
+| `queueAuditId` | INT AUTO_INCREMENT PK | |
+| `queueAuditUniqueId` | VARCHAR(36) UNIQUE | |
+| `queueOrganizationUniqueId` | VARCHAR(36) → `QueueOrganization.queueOrganizationUniqueId` | |
+| `queueDate` | DATE | Which day's queue changed |
+| `queueUniqueId` | VARCHAR(36) NULL → `DriverQueue.queueUniqueId` | Affected entry |
+| `action` | ENUM('override','remove','manual_checkin','dispatch') | |
+| `beforeValue` / `afterValue` | VARCHAR(500) NULL | JSON snapshots |
+| `reason` | VARCHAR(500) NULL | Supervisor note |
+| `performedBy` | VARCHAR(36) → `Users.userUniqueId` | Who did it |
+| `performedAt` | DATETIME DEFAULT CURRENT_TIMESTAMP | |
+
+Indexes: `(queueOrganizationUniqueId, queueDate)`, `queueUniqueId`.
 
 ## 3. Derived fields — do NOT store
 
@@ -166,30 +186,84 @@ const [agg] = await connection.query(
 Vehicle type is resolved per entry via the §3 join; if numbering must be
 per-type, include the derived type in the `WHERE`/partition.
 
-## 5. Role 11 (`queueOrgAdmin`) — pending seed
+## 5. REST + socket API (implemented)
 
-Role id **11** must be seeded before membership rows can reference it:
+All queue REST endpoints are on `Routes/queue/` (mounted in `Routes/index.js`)
+and authenticated via `verifyTokenOfAxios`. Writes that change the queue also
+push a real-time update over socket.io, so clients do **not** poll.
 
-- `Utils/ListOfSeedData.js` → add `queueOrgAdminRoleId: 11` to the roles seed
-  (existing ids run 1–10).
-- `Roles` table gets a row `(11, 'queueOrgAdmin', …)`.
+### REST endpoints
 
-Not yet done — part of the backend implementation task.
+| Method | Endpoint | Access | Service |
+|---|---|---|---|
+| POST | `/api/queueOrganization` | Admin / SuperAdmin / CompanyAdmin | `Services/QueueOrganization.service.js:createQueueOrganization` |
+| GET | `/api/queueOrganization?type=&approvalStatus=&queueEnabled=` | Authenticated | `getQueueOrganizations` |
+| PATCH | `/api/queueOrganization/:id` | QueueOrgAdmin / Admin | `updateQueueOrganization` |
+| PATCH | `/api/queueOrganization/:id/approve` | Admin / SuperAdmin | `approveQueueOrganization` |
+| DELETE | `/api/queueOrganization/:id` | Admin / SuperAdmin | `deleteQueueOrganization` |
+| POST | `/api/queueOrganization/:id/members/:userUniqueId` | QueueOrgAdmin / Admin | `addMember` (role 11 or 1) |
+| GET | `/api/queueOrganization/:id/members` | QueueOrgAdmin / Admin | `getMembers` |
+| POST | `/api/queue/driver/checkin` | Driver | `Services/DriverQueue.service.js:checkin` |
+| GET | `/api/queue/driver/myPosition?queueOrganizationUniqueId=` | Driver | `myPosition` |
+| DELETE | `/api/queue/driver/checkout` | Driver | `checkout` |
+| GET | `/api/queue/status?queueOrganizationUniqueId=&date=` | QueueOrgAdmin / Admin | `getQueueStatus` |
+| POST | `/api/queue/manualCheckin` | QueueOrgAdmin | `manualCheckin` |
+| PATCH | `/api/queue/entry/:queueUniqueId/override` | QueueOrgAdmin | `overrideEntry` (audit logged) |
+| DELETE | `/api/queue/entry/:queueUniqueId` | QueueOrgAdmin | `removeEntry` (audit logged) |
+| POST | `/api/queue/dispatch` | QueueOrgAdmin | `dispatch` (offer front driver) |
+
+### Socket events (Utils/QueueSocket.js + SocketAdapter.config.js)
+
+Connection: same `io()` handshake as existing clients (`user` ∈ driver / shipper /
+admin / company / **queueOrgAdmin**). Register `queueOrgAdmin` in
+`Utils/WSPusher.js` valid user types (done).
+
+| Event | Direction | Purpose |
+|---|---|---|
+| `queue:subscribe` | client → server | Join `queueOrg:<orgUniqueId>` (all dates) and `queueOrg:<orgUniqueId>:<queueDate>` (that day). Body `{ queueOrganizationUniqueId, queueDate? }` |
+| `queue:subscribed` | server → client | Ack on join |
+| `queue:unsubscribe` | client → server | Leave rooms |
+| `queue:unsubscribed` | server → client | Ack on leave |
+| `queue` | server → client | Live push: check-in / loaded / removed / offered. Payload = `JSON.stringify({ message:"success", messageTypes, data })` |
+
+Writes call `emitQueueSnapshot()` (broadcast full queue to the day room) and
+`notifyQueueOrgAdmins()` (push to role-11 sockets). `messageTypes` keys:
+`queue_checkin_confirmed`, `queue_position_changed`, `queue_order_offered`,
+`queue_order_rejected`, `queue_order_assigned`, `queue_removed`,
+`queue_org_approved`, `queue_org_updated`.
+
+### Example socket client (frontend)
+
+```js
+// driver app — after checkin, subscribe to live updates
+import { io } from "socket.io-client";
+const socket = io(API_URL, { auth: { user: "driver", phoneNumber, token: `Bearer ${token}` } });
+socket.emit("queue:subscribe", { queueOrganizationUniqueId, queueDate: "2026-08-06" });
+socket.on("queue", (msg) => {
+  const { data, messageTypes } = JSON.parse(msg);
+  console.log("queue changed", messageTypes, data);
+});
+```
 
 ## 6. Implementation checklist
 
-Not started (design-only so far). Order:
+Scaffold done on `feature/queue-dispatch` (role 11 seed, guard, message types,
+socket events, schema, validations, services, controllers, routes). Remaining:
 
-1. [ ] Seed role 11 (`Utils/ListOfSeedData.js` + `Roles`).
-2. [ ] `QueueOrganization` CRUD + admin approve/`queueEnabled` routes (§8 endpoints in the design doc).
-3. [ ] `QueueOrganizationMembership` (role-gated by 11 / shipper 1).
-4. [ ] `DriverQueue` check-in / position / checkout (ticket-machine numbering).
-5. [ ] `handleQueueDispatch` branch in `Services/ShipperRequest/create.service.js` (offer to front driver via JourneyDecision; reuse `automaticTimeout.service.js` for the offer timer).
-6. [ ] QueueOrgAdmin manage/override endpoints (audit-logged).
+1. [x] Seed role 11 (`Utils/ListOfSeedData.js` + `Roles`).
+2. [x] `QueueOrganization` CRUD + admin approve/`queueEnabled` routes.
+3. [x] `QueueOrganizationMembership` (role-gated by 11 / shipper 1).
+4. [x] `DriverQueue` check-in / position / checkout / status / override / remove / dispatch (ticket-machine numbering).
+5. [ ] `handleQueueDispatch` branch in `Services/ShipperRequest/create.service.js` — auto-offer to the front driver when a queue-enabled org places an order (reuses `automaticTimeout.service.js` for the offer timer; on reject/timeout advance to next in line).
+6. [x] QueueOrgAdmin manage/override endpoints (audit-logged via `QueueAuditLog`).
+7. [x] Schema applied to a live DB (`transportCompanyTest`) and end-to-end check-in → dispatch → accept test passed; `loginUser`/`verifyUserByOTP` schemas updated to accept `roleId: 11`.
 
 ## 7. Related docs
 
+- `docs/queadmin-operations.md` — operator guide for the QueueOrgAdmin role (daily queue flow).
+- `docs/queadmin-frontend.md` — React/TS frontend spec: all APIs, payloads, socket contract, components.
 - `docs/queue-dispatch-design.md` — full design, endpoints, dispatch rules, open questions.
 - `docs/setup.md` — `npm run db:create` / `db:seed`.
 - `Middleware/Database.config.js` — pool + `getConnection` + `ping`.
 - `Utils/DatabaseTransaction.js` / `Utils/TransactionContext.js` — transaction helpers.
+- `Utils/QueueSocket.js` — real-time queue push helpers.

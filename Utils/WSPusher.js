@@ -60,6 +60,7 @@ async function WSPusher({ socket }) {
       "SMSSender",
       "admin",
       "company",
+      "queueOrgAdmin",
     ];
     if (!validUserTypes.includes(user)) {
       return sendError(socket, "Invalid user type", "BAD_REQUEST");
