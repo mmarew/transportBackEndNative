@@ -279,6 +279,30 @@ const cancelDriverRequest = async (data) => {
       },
     );
 
+    // Queue-dispatch orders: a driver rejecting BEFORE accepting keeps their
+    // queue position, and the ORDER advances to the next driver in line.
+    if (
+      shipperRequestUniqueId &&
+      userUniqueId === ownerUserUniqueId &&
+      journeyStatusId === journeyStatusMap.rejectedByDriver &&
+      shipper?.[0]?.queueOrganizationUniqueId
+    ) {
+      const { rejectOffer } = require("../DriverQueue.service");
+      try {
+        await rejectOffer({
+          queueOrganizationUniqueId: shipper[0].queueOrganizationUniqueId,
+          shipperRequestUniqueId,
+          user,
+          driverUserUniqueId: ownerUserUniqueId,
+        });
+      } catch (error) {
+        logger.error("Error advancing queue order after driver reject", {
+          error: error.message,
+          shipperRequestUniqueId,
+        });
+      }
+    }
+
     // After successful transaction commit, handle notifications and audit logging
     // Initialize notificationData at function scope to ensure it's always available
     let notificationData = null;

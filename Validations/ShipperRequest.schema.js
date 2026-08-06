@@ -30,6 +30,11 @@ exports.createShipperRequest = Joi.object({
   // Required when requestMode = 'company_target'; identifies which company to target
   targetCompanyUniqueId: Joi.string().uuid().optional(),
 
+  // Queue dispatch: when set, the order is offered to the FRONT waiting driver of
+  // the queue organization's queue (per vehicle type) instead of distance-based
+  // matching. The queue org must be approved + queueEnabled=1.
+  queueOrganizationUniqueId: Joi.string().uuid().optional(),
+
   // Nested objects used by service
   originLocation: locationSchema,
   destination: locationSchema,

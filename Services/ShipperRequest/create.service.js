@@ -1,6 +1,7 @@
 "use strict";
 
 const { createNewShipperRequest } = require("../../CRUD/Create/CreateData");
+const { handleQueueDispatch } = require("../DriverQueue.service");
 const batchService = require("../ShipperRequestBatch");
 const { pool } = require("../../Middleware/Database.config");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
@@ -218,7 +219,32 @@ const createShipperRequest = async (body, journeyStatusId) => {
         req?.journeyStatusId === journeyStatusMap.waiting &&
         req?.requestMode !== "company_target",
     );
-    if (waitingRequests.length > 0) {
+
+    // Queue-dispatch orders (body.queueOrganizationUniqueId set) are matched by
+    // QUEUE POSITION — the front waiting driver of the order's vehicle type is
+    // offered the order (see DriverQueue.service.handleQueueDispatch). These are
+    // NOT matched by distance, so they skip the handleWaitingRequest pass below.
+    const queueRequests = waitingRequests.filter((req) => req?.queueOrganizationUniqueId);
+    const distanceRequests = waitingRequests.filter((req) => !req?.queueOrganizationUniqueId);
+
+    // Step 2a: Auto-offer each queue order to the FRONT waiting driver of its type.
+    // An empty queue leaves the order waiting (offered:false) — the QueueOrgAdmin
+    // can still dispatch it manually, or the order retries on the next driver check-in.
+    if (queueRequests.length > 0) {
+      await Promise.all(
+        queueRequests.map((createdRequest) =>
+          handleQueueDispatch({
+            queueOrganizationUniqueId: createdRequest.queueOrganizationUniqueId,
+            vehicleTypeUniqueId: createdRequest.vehicleTypeUniqueId,
+            shipperRequestUniqueId: createdRequest.shipperRequestUniqueId,
+            user: { userUniqueId },
+          }),
+        ),
+      );
+    }
+
+    // Step 2b: distance-based driver finding for non-queue orders.
+    if (distanceRequests.length > 0) {
       // Shared Set for notification deduplication across parallel requests
       // Note: There's a small window where duplicate notifications could occur if
       // the same driver is found by multiple requests simultaneously, but this is rare
@@ -227,7 +253,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
 
       // Process all waiting requests in parallel for better performance
       await Promise.all(
-        waitingRequests.map(async (createdRequest) => {
+        distanceRequests.map(async (createdRequest) => {
           // Local arrays per request to avoid race conditions on shared arrays
           const localDriversData = [];
           const localDrivers = [];

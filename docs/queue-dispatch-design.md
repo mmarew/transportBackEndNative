@@ -1,8 +1,10 @@
 # Queue Dispatch Design — Fixed-Price Ordering (e.g. Mojo Customs)
 
-> Status: **DRAFT** — actively being updated. This is a design document, not an implementation.
-> Backend scaffold (schema, routes, controllers, services, socket events) landed
-> on branch `feature/queue-dispatch` — see [queue-tables-access.md](queue-tables-access.md) §5.
+> Status: **IMPLEMENTED** on branch `feature/queue-dispatch` (backend + queue admin
+> dashboard). Auto-offer (`handleQueueDispatch`), the full offer lifecycle (accept /
+> reject / timeout), and the queue-org manage page are live. Exact schema and
+> access patterns: [queue-tables-access.md](queue-tables-access.md). Operator docs
+> live in the frontend repo: `queadmin-frontend/docs/queadmin-operations.md`.
 
 ## 1. Problem
 
@@ -76,7 +78,7 @@ disputes (7).**
 | ------------------- | ------------------------------------------------------------------ |
 | Rejection behavior  | Driver**keeps position**; the _order_ advances to the next driver  |
 | Queue scope / reset | Per**queue organization**, resets daily (`queueDate`)              |
-| Offer timeout       | **Fixed timeout (2–5 min)**, auto-advance the order on no response |
+| Offer timeout       | **3 minutes** by default (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable), auto-advance the order on no response |
 | On accept / load    | Driver is**removed from the queue** (marked `loaded`)              |
 
 ## 4. Core mechanic
@@ -230,9 +232,9 @@ any ──checkout/override──> removed      (audit logged)
 4. The front driver always matches the order's vehicle type (each type has its own
    queue), so a mismatch can only occur if a driver's entry is stale — skip to the
    next matching driver in that type's queue.
-5. If the type's queue is empty or every driver rejected → order stays `waiting`
-   and retries on the next check-in (or falls back to current distance-based
-   matching — **decision pending**, see §10).
+5. If the type's queue is empty or every driver rejected → the order stays
+   `waiting`. It is **not** auto-retried on the next check-in; the QueueOrgAdmin
+   re-offers it manually via `POST /api/queue/dispatch`.
 
 ## 8. Proposed endpoints (new)
 
@@ -287,18 +289,21 @@ read-model push. On reconnection a client should re-fetch
 
 ## 9. How it plugs into existing code
 
-- **Reuse the existing order API** — no new "create order" endpoint. Add an optional
-  `queueOrganizationUniqueId` field to `POST /api/shipperRequest`
-  (`Controllers/ShipperRequest.controller.js` + Joi). The `ShipperRequest` record is
-  identical whether the order comes from a queue, a call-in, or `takeFromStreet`;
-  only dispatch differs.
+- **Reuse the existing order API** — no new "create order" endpoint. `POST
+  /api/shipperRequest` accepts an optional `queueOrganizationUniqueId`
+  (Joi + `ShipperRequest.queueOrganizationUniqueId` column). The `ShipperRequest`
+  record is identical whether the order comes from a queue, a call-in, or
+  `takeFromStreet`; only dispatch differs.
 - In `Services/ShipperRequest/create.service.js`, after the ShipperRequest rows are
-  created, branch the auto-match:
-  - no `queueOrganizationUniqueId` → current `handleWaitingRequest` (top-10 nearest);
-  - present → new `handleQueueDispatch`: offer to the **front** of that org's queue
-    (lowest `queueNumber`, type via `VehicleDriver`), link the entry via
-    `shipperRequestUniqueId`, create one JourneyDecision, notify that driver.
-    On reject/timeout → next in line.
+  created, the waiting requests are split:
+  - `queueOrganizationUniqueId` set → `handleQueueDispatch` (per row): offer to the
+    **front** of that org's queue (lowest `queueNumber`, type via `VehicleDriver`),
+    link the entry via `shipperRequestUniqueId`, create one JourneyDecision
+    (`requested`, `decisionBy='shipper'`), move ShipperRequest + DriverRequest to
+    `requested`, notify that driver. No waiting driver → order stays `waiting`
+    (manual `dispatch` later).
+  - no `queueOrganizationUniqueId` → current `handleWaitingRequest` (top-10 nearest).
+  - `company_target` requests are skipped by both paths.
 - `numberOfVehicles: N` → the org's N ShipperRequest rows are each dispatched to the
   next front driver in the queue.
 - Current auto-match (`Services/ShipperRequest/statusVerification.service.js`,
@@ -336,15 +341,22 @@ DriverQueue (vehicleDriverUniqueId)
 
 ## 10. Open questions / pending decisions
 
-- **Timer UX:** on timeout, push the silent driver a "you lost order X" notice, or
-  silently skip?
-- **Empty / all-reject:** retry-on-check-in only, or fallback to distance-based
-  matching?
+Resolved during implementation:
+
+- **Empty / all-reject queue:** order stays `waiting`; re-offered manually via
+  `POST /api/queue/dispatch` (no auto-retry on check-in yet).
+- **Fixed price source:** the order's `shippingCost` is used (queue orders skip the
+  counter-bid step — accept does not require `shippingCostByDriver`).
+- **Offer window:** fixed 3 minutes (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable);
+  `releaseExpiredOffers()` in `automaticTimeout.service.js` advances expired offers.
+
+Still open:
+
+- **Timer UX:** on timeout the order advances and the entry returns to `waiting`; the
+  silent driver is not pushed a dedicated "you lost order X" notice yet.
 - **Daily reset:** confirm reset at midnight _local time at the queue org's site_.
 - **Re-entry:** a driver who loaded may re-check-in the same day → new number at
   the back. Confirm allowed.
-- **Fixed price source:** is `shippingCost` set by the queue org or negotiated once
-  per queue organization (queue-org-level tariff)?
 - **Supervisor override:** scope of reorder/removal powers + audit requirements.
 - **Multiple sites:** can one queue organization host more than one queue (e.g.
   National Cement with two plant gates)? If yes, add a `QueueOrganizationSite`

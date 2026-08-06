@@ -28,6 +28,59 @@ const { createStatus } = require("../Status.service");
 const { createRole } = require("../Role.service");
 const { createRole: createCompanyRole } = require("../CompanyRole.service");
 
+/**
+ * Idempotently add ShipperRequest.queueOrganizationUniqueId + its index + FK.
+ *
+ * The column lives in the ShipperRequest CREATE TABLE (fresh DBs get it for free),
+ * but an existing database created before that change has the table WITHOUT the
+ * column — so `CREATE TABLE IF NOT EXISTS` is a no-op and a bare ALTER in the DDL
+ * fails with ER_KEY_COLUMN_DOES_NOT_EXITS. This runs after the schema inside
+ * createTable() and applies only the missing pieces, checked via information_schema.
+ */
+const ensureQueueOrgReferences = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [colRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'ShipperRequest' AND column_name = 'queueOrganizationUniqueId'`,
+    [dbName],
+  );
+  if (colRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE ShipperRequest
+       ADD COLUMN queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL`,
+    );
+    logger.info("Migration: added ShipperRequest.queueOrganizationUniqueId column");
+  }
+
+  const [idxRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'ShipperRequest' AND index_name = 'idx_shipperRequest_queueOrg'`,
+    [dbName],
+  );
+  if (idxRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE ShipperRequest
+       ADD INDEX idx_shipperRequest_queueOrg (queueOrganizationUniqueId)`,
+    );
+    logger.info("Migration: added index idx_shipperRequest_queueOrg");
+  }
+
+  const [fkRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.referential_constraints
+     WHERE constraint_schema = ? AND constraint_name = 'fk_shipperRequest_queueOrg'`,
+    [dbName],
+  );
+  if (fkRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE ShipperRequest
+       ADD CONSTRAINT fk_shipperRequest_queueOrg
+       FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId)`,
+    );
+    logger.info("Migration: added FK fk_shipperRequest_queueOrg");
+  }
+};
+
 const createTable = async () => {
   // Connect WITHOUT specifying the database so we can create it if it doesn't exist.
   const { database: dbName, ...configWithoutDb } = dbConfig;
@@ -47,6 +100,10 @@ const createTable = async () => {
 
     // Run the full schema (all CREATE TABLE IF NOT EXISTS statements)
     await adminConnection.query(sqlQuery);
+
+    // Idempotently add ShipperRequest.queueOrganizationUniqueId index + FK (see
+    // ensureQueueOrgReferences). Must run while this connection still has the DB selected.
+    await ensureQueueOrgReferences(adminConnection);
   } finally {
     await adminConnection.end();
   }

@@ -6,10 +6,10 @@ Design/semantics live in [queue-dispatch-design.md](queue-dispatch-design.md);
 this doc is the concrete access reference (columns, FK paths, indexes, and the
 query/transaction patterns to use).
 
-> Status: **schema + backend scaffold landed** on branch `feature/queue-dispatch`
-> (services, controllers, routes, socket events). Auto-dispatch branch inside
-> `ShipperRequest/create.service.js` (`handleQueueDispatch`) is still pending —
-> see [§6](#6-implementation-checklist).
+> Status: **implemented** on branch `feature/queue-dispatch` — schema, services,
+> controllers, routes, socket events, the auto-offer branch
+> (`handleQueueDispatch`), and the offer lifecycle (accept / reject / timeout) are
+> all live. See [§6](#6-implementation-checklist).
 
 ## 1. Tables added
 
@@ -23,6 +23,13 @@ query/transaction patterns to use).
 All FKs reference tables that already existed (`Users`, `Roles`,
 `VehicleDriver`, `ShipperRequest`). No forward FK references; the whole schema
 can be recreated in one pass via `npm run db:create`.
+
+One alteration to an **existing** table: `ShipperRequest` gains a
+`queueOrganizationUniqueId` column (see §2.5). It is defined in the
+`ShipperRequest` CREATE TABLE, and its index + FK are added **idempotently** by
+`ensureQueueOrgReferences()` in `Services/Database/tableManage.service.js` (which
+runs inside `createTable()` after the schema and checks `information_schema`), so
+the schema can be re-run on an already-migrated database.
 
 ## 2. Column reference
 
@@ -100,6 +107,24 @@ entry per vehicle/day. Dispatch index:
 | `performedAt` | DATETIME DEFAULT CURRENT_TIMESTAMP | |
 
 Indexes: `(queueOrganizationUniqueId, queueDate)`, `queueUniqueId`.
+
+### 2.5 Alteration to `ShipperRequest` (existing table)
+
+| Column | Type | Notes |
+|---|---|---|
+| `queueOrganizationUniqueId` | VARCHAR(36) NULL → `QueueOrganization.queueOrganizationUniqueId` | Set when the order is placed against a queue-enabled org |
+
+Defined in the `ShipperRequest` CREATE TABLE (near `Database/Database.js:378`);
+the index + FK are added idempotently after the schema runs, by
+`ensureQueueOrgReferences()` in `Services/Database/tableManage.service.js`:
+
+- Column missing → `ALTER TABLE ShipperRequest ADD COLUMN queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL`
+- Index `idx_shipperRequest_queueOrg` missing → added on `(queueOrganizationUniqueId)`
+- Constraint `fk_shipperRequest_queueOrg` missing → FK to `QueueOrganization(queueOrganizationUniqueId)`
+
+Each step is guarded by an `information_schema` check, so running the full schema
+init (`npm run db:create`) on an existing database is safe — an older database
+that already has `ShipperRequest` without the column gets migrated in place.
 
 ## 3. Derived fields — do NOT store
 
@@ -211,6 +236,7 @@ push a real-time update over socket.io, so clients do **not** poll.
 | PATCH | `/api/queue/entry/:queueUniqueId/override` | QueueOrgAdmin | `overrideEntry` (audit logged) |
 | DELETE | `/api/queue/entry/:queueUniqueId` | QueueOrgAdmin | `removeEntry` (audit logged) |
 | POST | `/api/queue/dispatch` | QueueOrgAdmin | `dispatch` (offer front driver) |
+| POST | `/api/shipperRequest` (+ optional `queueOrganizationUniqueId`) | Shipper | queue-enabled org order → `handleQueueDispatch` auto-offers the front driver |
 
 ### Socket events (Utils/QueueSocket.js + SocketAdapter.config.js)
 
@@ -247,21 +273,21 @@ socket.on("queue", (msg) => {
 
 ## 6. Implementation checklist
 
-Scaffold done on `feature/queue-dispatch` (role 11 seed, guard, message types,
-socket events, schema, validations, services, controllers, routes). Remaining:
+Scaffold + engine landed on `feature/queue-dispatch` (role 11 seed, guard, message
+types, socket events, schema, validations, services, controllers, routes):
 
 1. [x] Seed role 11 (`Utils/ListOfSeedData.js` + `Roles`).
 2. [x] `QueueOrganization` CRUD + admin approve/`queueEnabled` routes.
 3. [x] `QueueOrganizationMembership` (role-gated by 11 / shipper 1).
 4. [x] `DriverQueue` check-in / position / checkout / status / override / remove / dispatch (ticket-machine numbering).
-5. [ ] `handleQueueDispatch` branch in `Services/ShipperRequest/create.service.js` — auto-offer to the front driver when a queue-enabled org places an order (reuses `automaticTimeout.service.js` for the offer timer; on reject/timeout advance to next in line).
+5. [x] `handleQueueDispatch` branch in `Services/ShipperRequest/create.service.js` — auto-offer to the front driver when a queue-enabled org places an order. Offer window handled by `releaseExpiredOffers` in `automaticTimeout.service.js`; on reject/timeout advance the order to the next driver (`rejectOffer` / `offerToNextDriver`).
 6. [x] QueueOrgAdmin manage/override endpoints (audit-logged via `QueueAuditLog`).
-7. [x] Schema applied to a live DB (`transportCompanyTest`) and end-to-end check-in → dispatch → accept test passed; `loginUser`/`verifyUserByOTP` schemas updated to accept `roleId: 11`.
+7. [x] Schema applied to `transportCompanyTest`; the `ShipperRequest.queueOrganizationUniqueId` column/index/FK are applied idempotently via `ensureQueueOrgReferences()` in `createTable` — `npm run db:create` is safe to re-run.
+8. [ ] End-to-end accept flow still to be exercised against a live DB (engine verified via `node --check` + eslint; check-in → dispatch verified; accept → `markEntryLoaded` → journey path pending a DB run).
 
 ## 7. Related docs
 
-- `docs/queadmin-operations.md` — operator guide for the QueueOrgAdmin role (daily queue flow).
-- `docs/queadmin-frontend.md` — React/TS frontend spec: all APIs, payloads, socket contract, components.
+- `docs/queadmin-operations.md` and `docs/queadmin-frontend.md` — moved to the frontend repo: `queadmin-frontend/docs/`.
 - `docs/queue-dispatch-design.md` — full design, endpoints, dispatch rules, open questions.
 - `docs/setup.md` — `npm run db:create` / `db:seed`.
 - `Middleware/Database.config.js` — pool + `getConnection` + `ping`.

@@ -388,6 +388,9 @@ CREATE TABLE IF NOT EXISTS ShipperRequest (
     requestMode ENUM('individual_target', 'company_target') NOT NULL DEFAULT 'individual_target',
     -- Only set when requestMode = 'company_target'; the specific company the shipper is targeting
     targetCompanyUniqueId VARCHAR(36) NULL DEFAULT NULL,
+    -- Queue dispatch: set when the order was placed against a queue-enabled QueueOrganization.
+    -- Queue dispatch replaces distance-based auto-match with front-of-queue offering.
+    queueOrganizationUniqueId VARCHAR(36) NULL DEFAULT NULL, -- FK → QueueOrganization (null if not a queue order)
 
     originLatitude DECIMAL(10, 8) NOT NULL,                -- Latitude of origin
     originLongitude DECIMAL(11, 8) NOT NULL,               -- Longitude of origin
@@ -1961,6 +1964,14 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
     FOREIGN KEY (queueOrganizationDeletedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
 );
+
+-- ShipperRequest.queueOrganizationUniqueId — column is defined in the ShipperRequest
+-- CREATE TABLE above (fresh databases get it there). The INDEX + FK are NOT declared
+-- here because: (a) QueueOrganization is created AFTER ShipperRequest in this file,
+-- and (b) an ALTER here breaks re-running the schema on an existing database
+-- (ER_KEY_COLUMN_DOES_NOT_EXITS / duplicate index+FK). They are added idempotently
+-- by ensureQueueOrgReferences() in Services/Database/tableManage.service.js, which
+-- runs after this schema inside createTable() and checks information_schema.
 
 -- QueueOrganizationMembership: Links users (QueueOrgAdmin role 11, shipper role 1)
 -- to a QueueOrganization, mirroring TransportCompany/CompanyMembership.

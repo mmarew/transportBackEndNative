@@ -103,6 +103,14 @@ const findTimedOutDriverRequests = async () => {
         AND JourneyDecisions.decisionTime < ?
         AND (JourneyDecisions.decisionBy = 'driver' OR JourneyDecisions.decisionBy IS NULL)
         -- Include records where decisionBy is 'driver' (auto-matched) or NULL (legacy records)
+        -- Queue-dispatch offers (decisionBy = 'shipper', order placed against a
+        -- queue organization) are NOT processed here — they advance through
+        -- releaseExpiredOffers (see checkAndProcessTimeouts).
+        AND NOT EXISTS (
+          SELECT 1 FROM DriverQueue dq
+          WHERE dq.shipperRequestUniqueId = ShipperRequest.shipperRequestUniqueId
+            AND dq.status = 'offered' AND dq.queueDeletedAt IS NULL
+        )
         
       ORDER BY JourneyDecisions.decisionTime ASC
     `;
@@ -301,6 +309,22 @@ const checkAndProcessTimeouts = async () => {
       timeoutMinutes: DRIVER_RESPONSE_TIMEOUT_MINUTES,
       timestamp: currentDate(),
     });
+
+    // Queue-dispatch offers have their own shorter window — release expired
+    // offers and advance each order to the next driver in line.
+    const { releaseExpiredOffers } = require("../DriverQueue.service");
+    try {
+      const released = await releaseExpiredOffers();
+      const releasedCount = released?.data?.released || 0;
+      if (releasedCount > 0) {
+        logger.info("Expired queue offers released", { released: releasedCount });
+      }
+    } catch (error) {
+      logger.error("Error releasing expired queue offers", {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
 
     // Find all timed-out requests
     const timedOutRequests = await findTimedOutDriverRequests();

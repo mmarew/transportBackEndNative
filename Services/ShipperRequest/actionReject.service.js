@@ -114,6 +114,33 @@ const rejectDriverOffer = async body => {
       throw new Error(negativeStatusUpdateResult.error || "One or more updates failed");
     }
 
+    // Queue-dispatch orders: the rejected driver keeps their queue position,
+    // and the ORDER advances to the next driver in line.
+    const [shipperRequestRow] = await getData({
+      tableName: "ShipperRequest",
+      conditions: {
+        shipperRequestUniqueId: body.shipperRequestUniqueId
+      }
+    });
+    if (shipperRequestRow?.[0]?.queueOrganizationUniqueId) {
+      const { rejectOffer } = require("../DriverQueue.service");
+      try {
+        await rejectOffer({
+          queueOrganizationUniqueId: shipperRequestRow[0].queueOrganizationUniqueId,
+          shipperRequestUniqueId: body.shipperRequestUniqueId,
+          user: {
+            userUniqueId:
+              body.userUniqueId || shipperRequestRow[0].shipperRequestCreatedBy,
+          },
+        });
+      } catch (error) {
+        logger.error("Error advancing queue order after shipper reject", {
+          error: error.message,
+          shipperRequestUniqueId: body.shipperRequestUniqueId,
+        });
+      }
+    }
+
     // Fetch driver and shipper data for notification
     const [driverRequestData, shipperRequestData, journeyDecisionData] = await Promise.all([performJoinSelect({
       baseTable: "DriverRequest",

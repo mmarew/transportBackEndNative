@@ -112,6 +112,11 @@ const createNewShipperRequest = async (
     ...(body?.targetCompanyUniqueId && {
       targetCompanyUniqueId: body.targetCompanyUniqueId,
     }),
+    // Queue dispatch: the queue org this order is placed against (if any). When set,
+    // create.service.js routes to handleQueueDispatch instead of distance-based matching.
+    ...(body?.queueOrganizationUniqueId && {
+      queueOrganizationUniqueId: body.queueOrganizationUniqueId,
+    }),
   };
 
   // Insert the new request into the database

@@ -32,9 +32,6 @@ const acceptShipperRequest = async (body) => {
     if (!userUniqueId) {
       throw new AppError("User authentication required", 401);
     }
-    if (!shippingCostByDriver) {
-      throw new AppError("Shipping cost by driver is required", 400);
-    }
     if (!journeyDecisionUniqueId) {
       throw new AppError("Journey decision unique id is required", 400);
     }
@@ -44,7 +41,7 @@ const acceptShipperRequest = async (body) => {
     if (!shipperRequestUniqueId) {
       throw new AppError("Shipper request unique id is required", 400);
     }
-    if (shippingCostByDriver <= 0) {
+    if (shippingCostByDriver !== undefined && shippingCostByDriver <= 0) {
       throw new AppError("Shipping cost by driver must be greater than 0", 400);
     }
     // check if the driver request is already exists
@@ -76,6 +73,13 @@ const acceptShipperRequest = async (body) => {
     }
 
     const requestData = existingRequest[0];
+
+    // Queue-dispatch orders are FIXED PRICE — the price is set by the queue
+    // organization at order creation, so no driver counter-bid is required.
+    const isQueueOrder = Boolean(requestData.queueOrganizationUniqueId);
+    if (!isQueueOrder && !shippingCostByDriver) {
+      throw new AppError("Shipping cost by driver is required", 400);
+    }
 
     // Validate that the userUniqueId from token matches the driver who owns this request
     if (requestData.userUniqueId !== userUniqueId) {
@@ -118,7 +122,20 @@ const acceptShipperRequest = async (body) => {
       );
     }
 
-    await updateJourneyStatus(body);
+    await updateJourneyStatus({
+      ...body,
+      // Queue orders are fixed price — record the queue org's price on the decision.
+      ...(isQueueOrder && !body.shippingCostByDriver && requestData.shippingCost
+        ? { shippingCostByDriver: requestData.shippingCost }
+        : {}),
+    });
+
+    // Queue-dispatch orders: driver accepted → the queue entry leaves the
+    // dispatch line (marked loaded).
+    if (isQueueOrder) {
+      const { markEntryLoaded } = require("../DriverQueue.service");
+      await markEntryLoaded({ shipperRequestUniqueId, userUniqueId });
+    }
 
     // Send notification directly to shipper without processing all requests
     // This is more efficient - only processes the ONE request that changed
