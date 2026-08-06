@@ -169,10 +169,40 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
   }
 };
 
+const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
+  const authHeader = req?.headers?.authorization;
+  if (!authHeader) {
+    return next();
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, secretKey);
+    const data = decoded?.data;
+    const roleId = data?.roleId;
+    if (
+      roleId !== usersRoles.queueOrgAdminRoleId &&
+      roleId !== usersRoles.adminRoleId &&
+      roleId !== usersRoles.supperAdminRoleId
+    ) {
+      return next(new AppError("You are not allowed to do this action", 401));
+    }
+    next();
+  } catch {
+    next(
+      new AppError(
+        "Sorry, unexpected error happened, you are not allowed to do this action",
+        401,
+      ),
+    );
+  }
+};
+
 module.exports = {
   verifyTokenOfAxios,
   verifyTokenOfWS,
   verifyIfUserIsSupperAdmin,
   verifyIfUserIsAdminOrSupperAdmin,
   verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
+  verifyIfUserIsQueueOrgAdmin,
 };

@@ -110,8 +110,8 @@ queueOrganizationPhone         VARCHAR(20)
 queueOrganizationAddress       VARCHAR(500)
 latitude / longitude           DECIMAL          -- site reference / order pickup point (NOT a check-in gate)
 approvalStatus                 ENUM('pending','approved','rejected','suspended')
-queueEnabled                   BOOLEAN          -- opts into queue dispatch
-approvedBy / approvedAt / isDeleted / timestamps
+queueEnabled                   BOOLEAN          -- opts into queue dispatch (default FALSE)
+approvedBy / approvedAt / isDeleted / timestamps (…CreatedAt/CreatedBy/Updated/Deleted)
 ```
 
 Shippers place orders on behalf of the queue organization (a shipper user linked to
@@ -137,16 +137,19 @@ Responsibilities:
 
 ```
 queueOrganizationMembershipId    PK
+queueOrganizationMembershipUniqueId  VARCHAR(36) UNIQUE
 queueOrganizationUniqueId        FK -> QueueOrganization
 userUniqueId                     FK -> Users      (QueueOrgAdmin / shipper of the org)
-roleId                           FK -> UserRoles  (11 = queueOrgAdmin, 1 = shipper)
-permissions / isPrimary / status / timestamps
+roleId                           FK -> Roles      (11 = queueOrgAdmin, 1 = shipper)
+isActive / membershipStartDate / membershipEndDate / timestamps
+UNIQUE (queueOrganizationUniqueId, userUniqueId)
 ```
 
 ### `DriverQueue`
 
 ```
 queueId                    PK
+queueUniqueId              VARCHAR(36) UNIQUE
 queueOrganizationUniqueId  FK -> QueueOrganization      -- which org's queue
 queueDate                  DATE        -- daily reset
 queueNumber                INT         -- 1,2,3… per (queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId)
@@ -155,6 +158,7 @@ shipperRequestUniqueId     FK -> ShipperRequest         -- the order assigned to
 joinedAt                  DATETIME    -- server-stamped check-in; dispute truth
 status                     ENUM('waiting','offered','loaded','removed')
 offeredAt / loadedAt       DATETIME
+timestamps (…CreatedAt/CreatedBy/Updated/Deleted)
 
 UNIQUE (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate)  -- one entry per vehicle/day
 ```

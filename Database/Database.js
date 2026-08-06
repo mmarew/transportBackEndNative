@@ -1926,6 +1926,112 @@ CREATE TABLE IF NOT EXISTS CompanyRating (
     INDEX idx_company_rating_company (companyUniqueId),
     INDEX idx_company_rating_job (companyBidRequestUniqueId)
 );
+
+-- QueueOrganization: a client that needs fixed-price freight and hosts a virtual
+-- dispatch queue (e.g. Mojo Kaliy customs, Diredawa customs, National Cement).
+-- A queue only exists for a registered queue organization (record must exist first).
+-- latitude/longitude is the site reference / order pickup point, NOT a check-in gate.
+
+CREATE TABLE IF NOT EXISTS QueueOrganization (
+    queueOrganizationId INT AUTO_INCREMENT PRIMARY KEY,
+    queueOrganizationUniqueId VARCHAR(36) UNIQUE NOT NULL,       -- UUID
+    queueOrganizationName VARCHAR(255) NOT NULL,                 -- "Mojo Kaliy", "National Cement", ...
+    queueOrganizationType ENUM('customs','factory','cement','depot','other') NOT NULL,
+    queueOrganizationPhone VARCHAR(20) NULL,
+    queueOrganizationAddress VARCHAR(500) NULL,
+    latitude DECIMAL(10, 8) NULL,                                -- site reference / order pickup point (NOT a check-in gate)
+    longitude DECIMAL(11, 8) NULL,
+    approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
+    approvalReason VARCHAR(500) NULL,                            -- Admin note when approving or rejecting
+    queueEnabled BOOLEAN NOT NULL DEFAULT FALSE,                 -- opts into queue dispatch
+    approvedBy VARCHAR(36) NULL,                                 -- Admin who approved/rejected
+    approvedAt DATETIME NULL,
+    queueOrganizationCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    queueOrganizationCreatedBy VARCHAR(36) NOT NULL,
+    queueOrganizationUpdatedAt DATETIME NULL,
+    queueOrganizationUpdatedBy VARCHAR(36) NULL,
+    queueOrganizationDeletedAt DATETIME NULL,
+    queueOrganizationDeletedBy VARCHAR(36) NULL,
+    isDeleted BOOLEAN NOT NULL DEFAULT FALSE,
+    INDEX idx_queueOrg_type (queueOrganizationType),
+    INDEX idx_queueOrg_approvalStatus (approvalStatus),
+    INDEX idx_queueOrg_isDeleted (isDeleted),
+    FOREIGN KEY (queueOrganizationCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (queueOrganizationUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (queueOrganizationDeletedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (approvedBy) REFERENCES Users(userUniqueId)
+);
+
+-- QueueOrganizationMembership: Links users (QueueOrgAdmin role 11, shipper role 1)
+-- to a QueueOrganization, mirroring TransportCompany/CompanyMembership.
+-- One user can have one active membership per queue organization.
+
+CREATE TABLE IF NOT EXISTS QueueOrganizationMembership (
+    queueOrganizationMembershipId INT AUTO_INCREMENT PRIMARY KEY,
+    queueOrganizationMembershipUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    queueOrganizationUniqueId VARCHAR(36) NOT NULL,             -- FK → QueueOrganization
+    userUniqueId VARCHAR(36) NOT NULL,                          -- FK → Users (QueueOrgAdmin / shipper of the org)
+    roleId INT NOT NULL,                                        -- FK → Roles (11 = queueOrgAdmin, 1 = shipper)
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    membershipStartDate DATETIME NOT NULL,
+    membershipEndDate DATETIME NULL,
+    membershipCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    membershipCreatedBy VARCHAR(36) NOT NULL,
+    membershipUpdatedAt DATETIME NULL,
+    membershipUpdatedBy VARCHAR(36) NULL,
+    membershipDeletedAt DATETIME NULL,
+    membershipDeletedBy VARCHAR(36) NULL,
+    UNIQUE KEY uq_queueOrg_user (queueOrganizationUniqueId, userUniqueId),  -- One active membership per user per queue org
+    INDEX idx_queueOrgMembership_org (queueOrganizationUniqueId),
+    INDEX idx_queueOrgMembership_user (userUniqueId),
+    INDEX idx_queueOrgMembership_role (roleId),
+    FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId),
+    FOREIGN KEY (userUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (roleId) REFERENCES Roles(roleId),
+    FOREIGN KEY (membershipCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (membershipDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+-- DriverQueue: the virtual waiting line for a queue organization's drivers.
+-- One entry per vehicle (VehicleDriver) per queue org per day.
+-- queueNumber is issued per (queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId)
+-- and (with joinedAt) is the server-stamped dispatch order / dispute truth.
+-- Driver/vehicle type are NOT stored here: driver via VehicleDriver.driverUserUniqueId,
+-- type via VehicleDriver.vehicleUniqueId → Vehicle.vehicleTypeUniqueId.
+-- shipperRequestUniqueId links the order assigned to this entry (same record type
+-- as takeFromStreet / call-in orders, continuing the JourneyDecision → Journey lifecycle).
+
+CREATE TABLE IF NOT EXISTS DriverQueue (
+    queueId INT AUTO_INCREMENT PRIMARY KEY,
+    queueUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    queueOrganizationUniqueId VARCHAR(36) NOT NULL,             -- FK → QueueOrganization
+    queueDate DATE NOT NULL,                                    -- daily reset
+    queueNumber INT NOT NULL,                                   -- 1,2,3… per (org, date, vehicleTypeUniqueId)
+    vehicleDriverUniqueId VARCHAR(36) NOT NULL,                 -- FK → VehicleDriver (truck+driver unit in line)
+    shipperRequestUniqueId VARCHAR(36) NULL,                    -- FK → ShipperRequest (order assigned to this entry)
+    joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth
+    status ENUM('waiting','offered','loaded','removed') NOT NULL DEFAULT 'waiting',
+    offeredAt DATETIME NULL,
+    loadedAt DATETIME NULL,
+    queueCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    queueCreatedBy VARCHAR(36) NOT NULL,
+    queueUpdatedAt DATETIME NULL,
+    queueUpdatedBy VARCHAR(36) NULL,
+    queueDeletedAt DATETIME NULL,
+    queueDeletedBy VARCHAR(36) NULL,
+    UNIQUE KEY uq_queue_vehicle_day (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate),  -- One entry per vehicle/day
+    INDEX idx_queue_org_date_number (queueOrganizationUniqueId, queueDate, queueNumber),
+    INDEX idx_queue_status (status),
+    INDEX idx_queue_vehicle (vehicleDriverUniqueId),
+    INDEX idx_queue_shipperRequest (shipperRequestUniqueId),
+    FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId),
+    FOREIGN KEY (vehicleDriverUniqueId) REFERENCES VehicleDriver(vehicleDriverUniqueId),
+    FOREIGN KEY (shipperRequestUniqueId) REFERENCES ShipperRequest(shipperRequestUniqueId),
+    FOREIGN KEY (queueCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (queueUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (queueDeletedBy) REFERENCES Users(userUniqueId)
+);
 `;
 
 module.exports = { sqlQuery };

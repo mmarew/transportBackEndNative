@@ -227,5 +227,44 @@ const messageTypes = {
     details:
       "Your company has assigned you to a fleet freight job. Your previous individual shipper match has been released back to the open pool and is available for other drivers.",
   },
+  queue_checkin_confirmed: {
+    message: "Checked into queue",
+    details:
+      "Driver successfully joined the queue. Payload carries queueNumber, position, queueDate.",
+  },
+  queue_position_changed: {
+    message: "Queue position updated",
+    details:
+      "The queue changed (new check-in, loaded, or removal). Sent to drivers in the queue and queue org admins.",
+  },
+  queue_order_offered: {
+    message: "New order from the queue",
+    details:
+      "A fixed-price order is offered to the front driver of a queue. The driver must accept or reject within the offer window.",
+  },
+  queue_order_rejected: {
+    message: "Order passed to next driver",
+    details:
+      "The front driver rejected or timed out; the order advances to the next driver in line.",
+  },
+  queue_order_assigned: {
+    message: "Order assigned from queue",
+    details:
+      "A driver accepted a queue order and left the queue (status loaded).",
+  },
+  queue_removed: {
+    message: "Removed from queue",
+    details:
+      "A driver's queue entry was removed by checkout, no-show, or supervisor override.",
+  },
+  queue_org_approved: {
+    message: "Queue organization approved",
+    details:
+      "Admin approved/rejected a QueueOrganization; queueEnabled toggled.",
+  },
+  queue_org_updated: {
+    message: "Queue organization updated",
+    details: "Queue organization profile was updated by its admin.",
+  },
 };
 module.exports = messageTypes;
