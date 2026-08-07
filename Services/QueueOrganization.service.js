@@ -75,32 +75,48 @@ exports.createQueueOrganization = async (data) => {
 
 /**
  * List queue organizations with filters + pagination.
+ * QueueOrgAdmin (11) and CompanyAdmin (7) only see the orgs they are a member
+ * of; Admin (3) / SuperAdmin (6) see all.
  */
-exports.getQueueOrganizations = async (query) => {
+exports.getQueueOrganizations = async (query, user) => {
   const { page, limit, offset } = paginate(query);
-  const conditions = ["isDeleted = 0"];
+  const conditions = ["q.isDeleted = 0"];
   const params = [];
 
+  let fromSql = `FROM QueueOrganization q`;
+  if (
+    user &&
+    (user.roleId === usersRoles.queueOrgAdminRoleId ||
+      user.roleId === usersRoles.companyAdminRoleId)
+  ) {
+    fromSql +=
+      ` JOIN QueueOrganizationMembership qom` +
+      ` ON qom.queueOrganizationUniqueId = q.queueOrganizationUniqueId`;
+    conditions.push("qom.userUniqueId = ?");
+    params.push(user.userUniqueId);
+    conditions.push("qom.isActive = 1");
+  }
+
   if (query.queueOrganizationUniqueId) {
-    conditions.push("queueOrganizationUniqueId = ?");
+    conditions.push("q.queueOrganizationUniqueId = ?");
     params.push(query.queueOrganizationUniqueId);
   }
   if (query.queueOrganizationType) {
-    conditions.push("queueOrganizationType = ?");
+    conditions.push("q.queueOrganizationType = ?");
     params.push(query.queueOrganizationType);
   }
   if (query.approvalStatus) {
-    conditions.push("approvalStatus = ?");
+    conditions.push("q.approvalStatus = ?");
     params.push(query.approvalStatus);
   }
   if (typeof query.queueEnabled !== "undefined") {
-    conditions.push("queueEnabled = ?");
+    conditions.push("q.queueEnabled = ?");
     params.push(query.queueEnabled ? 1 : 0);
   }
 
   const where = `WHERE ${conditions.join(" AND ")}`;
-  const baseSql = `SELECT * FROM QueueOrganization ${where} ORDER BY queueOrganizationCreatedAt DESC`;
-  const countSql = `SELECT COUNT(*) AS total FROM QueueOrganization ${where}`;
+  const baseSql = `SELECT q.* ${fromSql} ${where} GROUP BY q.queueOrganizationUniqueId ORDER BY q.queueOrganizationCreatedAt DESC`;
+  const countSql = `SELECT COUNT(DISTINCT q.queueOrganizationUniqueId) AS total ${fromSql} ${where}`;
   return paginatedQuery(baseSql, countSql, params, page, limit, offset);
 };
 

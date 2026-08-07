@@ -10,7 +10,7 @@ exports.checkin = Joi.object({
 }).unknown(true);
 
 exports.myPositionQuery = Joi.object({
-  queueOrganizationUniqueId: uuidSchema.required(),
+  queueOrganizationUniqueId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.statusQuery = Joi.object({

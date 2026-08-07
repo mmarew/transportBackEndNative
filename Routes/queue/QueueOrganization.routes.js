@@ -8,8 +8,8 @@ const { validator } = require("../../Middleware/Validator");
 const {
   verifyTokenOfAxios,
   verifyIfUserIsAdminOrSupperAdmin,
-  verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
   verifyIfUserIsQueueOrgAdmin,
+  verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin,
 } = require("../../Middleware/VerifyToken");
 
 router.use(verifyTokenOfAxios);
@@ -21,7 +21,7 @@ router.use(verifyTokenOfAxios);
  */
 router.post(
   "/",
-  verifyIfUserIsAdminSuperAdminOrCompanyAdmin,
+  verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin,
   validator(schema.createQueueOrganization),
   controller.createQueueOrganization,
 );

@@ -19,7 +19,7 @@ exports.createQueueOrganization = async (req, res, next) => {
 
 exports.getQueueOrganizations = async (req, res, next) => {
   try {
-    ServerResponder(res, await service.getQueueOrganizations(req.query));
+    ServerResponder(res, await service.getQueueOrganizations(req.query, req.user));
   } catch (e) {
     next(e);
   }

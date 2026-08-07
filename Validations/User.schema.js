@@ -24,6 +24,7 @@ exports.createUser = Joi.object({
       usersRoles.shipperRoleId,
       usersRoles.driverRoleId,
       usersRoles.companyAdminRoleId,
+      usersRoles.queueOrgAdminRoleId,
     )
     .required(),
   statusId: Joi.number().integer().default(USER_STATUS.ACTIVE),
@@ -50,6 +51,7 @@ exports.createUserByAdmin = Joi.object({
       usersRoles.vehicleOwnerRoleId,
       usersRoles.adminRoleId,
       usersRoles.companyAdminRoleId,
+      usersRoles.queueOrgAdminRoleId,
     )
     .required(),
   // ... other fields

@@ -92,6 +92,24 @@ exports.checkin = async (data) => {
 
   const vehicleDriver = await getVehicleDriverType(executor, vehicleDriverUniqueId);
   const queueDate = today();
+
+  // FENCE: driver can only be in ONE queue system-wide per day
+  const [existing] = await executor.query(
+    `SELECT dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueNumber, o.queueOrganizationName
+     FROM DriverQueue dq
+     JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
+     LIMIT 1`,
+    [queueDate, vehicleDriver.driverUserUniqueId],
+  );
+  if (existing.length > 0) {
+    throw new AppError(
+      `Driver already checked in to "${existing[0].queueOrganizationName}" (queue #${existing[0].queueNumber}). Remove from that queue first.`,
+      409,
+    );
+  }
+
   const queueNumber = await nextQueueNumber(
     executor,
     queueOrganizationUniqueId,
@@ -144,25 +162,49 @@ exports.checkin = async (data) => {
 
 /**
  * Driver's current position + how many are waiting ahead (per their type).
+ * If queueOrganizationUniqueId is provided, search only that org.
+ * If omitted, search across all orgs (fence: driver can only be in one queue system-wide).
  */
 exports.myPosition = async (queueOrganizationUniqueId, user) => {
   const executor = db();
   const queueDate = today();
 
-  const [rows] = await executor.query(
-    `SELECT dq.*, vd.driverUserUniqueId, v.vehicleTypeUniqueId
-     FROM DriverQueue dq
-     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
-     WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-       AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
-     ORDER BY dq.queueNumber DESC LIMIT 1`,
-    [queueOrganizationUniqueId, queueDate, user.userUniqueId],
-  );
+  let rows;
+  if (queueOrganizationUniqueId) {
+    [rows] = await executor.query(
+      `SELECT dq.*, vd.driverUserUniqueId, v.vehicleTypeUniqueId, dq.queueOrganizationUniqueId
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
+       WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
+         AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1`,
+      [queueOrganizationUniqueId, queueDate, user.userUniqueId],
+    );
+  } else {
+    // FENCE: driver can only be in one queue system-wide — search all orgs
+    [rows] = await executor.query(
+      `SELECT dq.*, vd.driverUserUniqueId, v.vehicleTypeUniqueId, dq.queueOrganizationUniqueId
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
+       WHERE dq.queueDate = ?
+         AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1`,
+      [queueDate, user.userUniqueId],
+    );
+  }
 
   if (rows.length === 0) {
-    throw new AppError("Driver is not in the queue for today", 404);
+    return {
+      message: "success",
+      data: [],
+    };
   }
+
+  const orgId = rows[0].queueOrganizationUniqueId;
+  const vehicleType = rows[0].vehicleTypeUniqueId;
+  const queueNum = rows[0].queueNumber;
 
   const [ahead] = await executor.query(
     `SELECT COUNT(*) AS total
@@ -172,12 +214,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
      WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
        AND v.vehicleTypeUniqueId = ? AND dq.status = 'waiting'
        AND dq.queueNumber < ? AND dq.queueDeletedAt IS NULL`,
-    [
-      queueOrganizationUniqueId,
-      queueDate,
-      rows[0].vehicleTypeUniqueId,
-      rows[0].queueNumber,
-    ],
+    [orgId, queueDate, vehicleType, queueNum],
   );
 
   return {
@@ -234,10 +271,12 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
             dq.offeredAt, dq.loadedAt, dq.vehicleDriverUniqueId,
             dq.shipperRequestUniqueId,
             vd.driverUserUniqueId, v.vehicleTypeUniqueId,
+            vt.vehicleTypeName,
             u.fullName, u.phoneNumber
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
+     JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId   = v.vehicleTypeUniqueId
      JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
      WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
        AND dq.queueDeletedAt IS NULL
@@ -247,9 +286,9 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
 
   const byType = {};
   for (const row of rows) {
-    const type = row.vehicleTypeUniqueId || "unknown";
-    if (!byType[type]) byType[type] = [];
-    byType[type].push(publicEntry(row));
+    const typeName = row.vehicleTypeName || row.vehicleTypeUniqueId || "Unknown";
+    if (!byType[typeName]) byType[typeName] = [];
+    byType[typeName].push(publicEntry(row));
   }
 
   return {
@@ -273,6 +312,23 @@ exports.manualCheckin = async (data) => {
   await queueOrgReady(executor, queueOrganizationUniqueId);
   const vehicleDriver = await getVehicleDriverType(executor, vehicleDriverUniqueId);
   const queueDate = today();
+
+  // FENCE: driver can only be in ONE queue system-wide per day
+  const [existing] = await executor.query(
+    `SELECT dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueNumber, o.queueOrganizationName
+     FROM DriverQueue dq
+     JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.queueDeletedAt IS NULL
+     LIMIT 1`,
+    [queueDate, vehicleDriver.driverUserUniqueId],
+  );
+  if (existing.length > 0) {
+    throw new AppError(
+      `Driver already checked in to "${existing[0].queueOrganizationName}" (queue #${existing[0].queueNumber}). Remove from that queue first.`,
+      409,
+    );
+  }
 
   const assignedNumber =
     queueNumber ||
