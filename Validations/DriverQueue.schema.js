@@ -33,6 +33,10 @@ exports.manualCheckin = Joi.object({
   queueNumber: Joi.number().integer().min(1).optional(),
 }).unknown(true);
 
+exports.checkout = Joi.object({
+  queueOrganizationUniqueId: uuidSchema.optional(),
+}).unknown(true);
+
 exports.dispatchBody = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
   vehicleTypeUniqueId: uuidSchema.required(),

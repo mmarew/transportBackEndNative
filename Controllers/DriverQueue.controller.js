@@ -28,7 +28,7 @@ exports.myPosition = async (req, res, next) => {
 exports.checkout = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
-      service.checkout(req.body.queueOrganizationUniqueId, req.user),
+      service.checkout(req.body.queueOrganizationUniqueId || req.query.queueOrganizationUniqueId, req.user),
     );
     ServerResponder(res, result);
   } catch (e) {

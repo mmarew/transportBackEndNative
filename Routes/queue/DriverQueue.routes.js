@@ -41,7 +41,7 @@ router.get(
  */
 router.delete(
   "/driver/checkout",
-  validator(schema.checkin),
+  validator(schema.checkout),
   controller.checkout,
 );
 

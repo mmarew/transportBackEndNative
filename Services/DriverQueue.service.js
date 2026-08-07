@@ -228,33 +228,49 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
 
 /**
  * Driver leaves the queue (checkout / no-show) — entry marked 'removed'.
+ * If queueOrganizationUniqueId provided, scope to that org; otherwise find via fence.
  */
 exports.checkout = async (queueOrganizationUniqueId, user) => {
   const executor = db();
   const queueDate = today();
 
-  const [rows] = await executor.query(
-    `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate
-     FROM DriverQueue dq
-     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-     WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
-       AND vd.driverUserUniqueId = ? AND dq.status != 'removed'
-       AND dq.queueDeletedAt IS NULL
-     ORDER BY dq.queueNumber DESC LIMIT 1`,
-    [queueOrganizationUniqueId, queueDate, user.userUniqueId],
-  );
+  let rows;
+  if (queueOrganizationUniqueId) {
+    [rows] = await executor.query(
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
+         AND vd.driverUserUniqueId = ? AND dq.status != 'removed'
+         AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1`,
+      [queueOrganizationUniqueId, queueDate, user.userUniqueId],
+    );
+  } else {
+    // FENCE: find driver's active queue across all orgs
+    [rows] = await executor.query(
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate
+       FROM DriverQueue dq
+       JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+       WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.status != 'removed'
+         AND dq.queueDeletedAt IS NULL
+       ORDER BY dq.queueNumber DESC LIMIT 1`,
+      [queueDate, user.userUniqueId],
+    );
+  }
   if (rows.length === 0) {
     throw new AppError("Driver is not in the queue for today", 404);
   }
 
+  const orgId = rows[0].queueOrganizationUniqueId;
   await executor.query(
     `UPDATE DriverQueue SET status = 'removed', queueUpdatedAt = ?, queueUpdatedBy = ?
      WHERE queueId = ?`,
     [currentDate(), user.userUniqueId, rows[0].queueId],
   );
 
-  await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
-  notifyQueueOrgAdmins({ queueOrganizationUniqueId, messageType: "queue_removed" });
+  await emitQueueSnapshot({ queueOrganizationUniqueId: orgId, queueDate });
+  notifyQueueOrgAdmins({ queueOrganizationUniqueId: orgId, messageType: "queue_removed" });
 
   return { message: "success", data: { queueUniqueId: rows[0].queueUniqueId, status: "removed" } };
 };
@@ -265,6 +281,21 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
 exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
   const executor = db();
   const queueDate = query.queueDate || today();
+
+  // Get queue organization details
+  const [orgRows] = await executor.query(
+    `SELECT queueOrganizationUniqueId, queueOrganizationName, queueOrganizationType,
+            queueOrganizationPhone, queueOrganizationAddress, latitude, longitude,
+            approvalStatus, queueEnabled, approvedBy, approvedAt
+     FROM QueueOrganization
+     WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
+    [queueOrganizationUniqueId],
+  );
+
+  if (orgRows.length === 0) {
+    throw new AppError("Queue organization not found", 404);
+  }
+  const org = orgRows[0];
 
   const [rows] = await executor.query(
     `SELECT dq.queueUniqueId, dq.queueNumber, dq.joinedAt, dq.status,
@@ -294,7 +325,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
   return {
     message: "Query results fetched",
     data: {
-      queueOrganizationUniqueId,
+      queueOrganization: org,
       queueDate,
       totalWaiting: rows.filter((r) => r.status === "waiting").length,
       queues: byType,
