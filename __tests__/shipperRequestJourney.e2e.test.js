@@ -4,17 +4,18 @@ jest.setTimeout(30000);
 const request = require("supertest");
 const app = require("../Config/Express.config");
 const { getAuthToken } = require("./helpers/authHelper");
+const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 
 let TEST_TOKEN = null;
 let completedRequests;
 
 beforeAll(async () => {
-  TEST_TOKEN = await getAuthToken({ roleId: 1 });
+  TEST_TOKEN = await getAuthToken({ roleId: usersRoles.shipperRoleId });
   if (!TEST_TOKEN) return;
 
   const res = await request(app)
     .get("/api/user/getShipperRequest4allOrSingleUser")
-    .query({ journeyStatusId: 6 })
+    .query({ journeyStatusId: journeyStatusMap.journeyCompleted })
     .set("Authorization", `Bearer ${TEST_TOKEN}`);
 
   if (res.status !== 200) return;
@@ -41,7 +42,9 @@ describe("GET /api/user/getShipperRequest4allOrSingleUser - Journey Population",
   maybeIt("every completed request (journeyStatusId=6) must have a non-empty journey object", () => {
     for (const item of completedRequests) {
       const { shipperRequest, journey } = item;
-      expect(shipperRequest.journeyStatusId).toBe(6);
+      expect(shipperRequest.journeyStatusId).toBe(
+        journeyStatusMap.journeyCompleted,
+      );
       expect(Object.keys(journey).length).toBeGreaterThan(0);
       expect(journey).toHaveProperty("journeyId");
     }
@@ -51,7 +54,9 @@ describe("GET /api/user/getShipperRequest4allOrSingleUser - Journey Population",
     for (const item of completedRequests) {
       const { decisions, journey } = item;
       expect(Array.isArray(decisions)).toBe(true);
-      const completedDecision = decisions.find((d) => d.journeyStatusId === 6);
+      const completedDecision = decisions.find(
+      (d) => d.journeyStatusId === journeyStatusMap.journeyCompleted,
+    );
       if (completedDecision) {
         expect(journey.journeyDecisionUniqueId).toBe(completedDecision.journeyDecisionUniqueId);
       }
@@ -69,7 +74,9 @@ describe("GET /api/user/getShipperRequest4allOrSingleUser - Journey Population",
     expect(Object.keys(journey).length).toBeGreaterThan(0);
     expect(journey).toHaveProperty("journeyId");
 
-    const completedDecision = decisions.find((d) => d.journeyStatusId === 6);
+    const completedDecision = decisions.find(
+      (d) => d.journeyStatusId === journeyStatusMap.journeyCompleted,
+    );
     expect(completedDecision).toBeDefined();
     expect(journey.journeyDecisionUniqueId).toBe(
       completedDecision.journeyDecisionUniqueId,

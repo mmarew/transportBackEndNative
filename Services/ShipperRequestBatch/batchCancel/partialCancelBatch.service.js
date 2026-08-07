@@ -54,7 +54,9 @@ const partialCancelBatch = async ({
     conditions: { batchUniqueId },
   });
   if (!batch) throw new AppError("Batch not found", 404);
-  const isAdmin = roleId === 3 || roleId === 6;
+  const isAdmin =
+    roleId === usersRoles.adminRoleId ||
+    roleId === usersRoles.supperAdminRoleId;
   if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
     throw new AppError("Unauthorized: batch does not belong to you", 403);
   }
