@@ -7,8 +7,10 @@ const secretKey = Config.SECRET_KEY;
 
 const verifyTokenOfAxios = async (req, res, next) => {
   const authHeader = req?.headers?.authorization;
+  console.log('[VerifyToken] Request:', { method: req.method, url: req.url, hasAuth: !!authHeader });
 
   if (!authHeader) {
+    console.log('[VerifyToken] No auth header');
     return next(new AppError("Authorization header missing", 401));
   }
 
@@ -17,6 +19,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
     const decoded = jwt.verify(token, secretKey);
     const data = decoded?.data;
     const userUniqueId = data?.userUniqueId;
+    console.log('[VerifyToken] Token decoded:', { userUniqueId, phoneNumber: data?.phoneNumber, roleId: data?.roleId, iat: decoded?.iat });
 
     const user = await getData({
       tableName: "Users",
@@ -24,11 +27,13 @@ const verifyTokenOfAxios = async (req, res, next) => {
     });
 
     if (user.length === 0) {
+      console.log('[VerifyToken] User not found in DB:', userUniqueId);
       return next(new AppError("Invalid token", 401));
     }
 
     const userRow = user[0];
     if (userRow.isDeleted || userRow.userDeletedAt) {
+      console.log('[VerifyToken] User deleted:', userUniqueId);
       return next(
         new AppError(
           "Account has been deleted and can no longer access the service",
@@ -38,8 +43,10 @@ const verifyTokenOfAxios = async (req, res, next) => {
     }
 
     req.user = { ...userRow, ...data };
+    console.log('[VerifyToken] User authenticated:', { userUniqueId, phoneNumber: userRow.phoneNumber, roleId: userRow.roleId });
     next();
   } catch (error) {
+    console.error('[VerifyToken] Error:', error.name, error.message);
     if (error instanceof AppError) {
       return next(error);
     }

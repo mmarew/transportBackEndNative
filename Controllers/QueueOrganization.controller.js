@@ -25,6 +25,14 @@ exports.getQueueOrganizations = async (req, res, next) => {
   }
 };
 
+exports.getQueueOrganization = async (req, res, next) => {
+  try {
+    ServerResponder(res, await service.getQueueOrganization(req.params.queueOrganizationUniqueId, req.user));
+  } catch (e) {
+    next(e);
+  }
+};
+
 exports.updateQueueOrganization = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>

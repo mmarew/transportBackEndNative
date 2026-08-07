@@ -38,6 +38,18 @@ router.get(
 );
 
 /**
+ * @route   GET /api/queueOrganization/:queueOrganizationUniqueId
+ * @desc    Get a single queue organization by ID
+ * @access  Private (Admin / SuperAdmin / QueueOrgAdmin / CompanyAdmin)
+ */
+router.get(
+  "/:queueOrganizationUniqueId",
+  verifyIfUserIsQueueOrgAdmin,
+  validator(schema.queueOrgParams, "params"),
+  controller.getQueueOrganization,
+);
+
+/**
  * @route   PATCH /api/queueOrganization/:queueOrganizationUniqueId
  * @desc    Update queue organization profile
  * @access  Private (Admin / SuperAdmin / QueueOrgAdmin)

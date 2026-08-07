@@ -83,7 +83,8 @@ exports.getQueueOrganizations = async (query, user) => {
   const conditions = ["q.isDeleted = 0"];
   const params = [];
 
-  let fromSql = `FROM QueueOrganization q`;
+  let fromSql = `FROM QueueOrganization q
+    LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
   if (
     user &&
     (user.roleId === usersRoles.queueOrgAdminRoleId ||
@@ -115,9 +116,86 @@ exports.getQueueOrganizations = async (query, user) => {
   }
 
   const where = `WHERE ${conditions.join(" AND ")}`;
-  const baseSql = `SELECT q.* ${fromSql} ${where} GROUP BY q.queueOrganizationUniqueId ORDER BY q.queueOrganizationCreatedAt DESC`;
+  const baseSql = `SELECT q.*,
+    u_creator.userUniqueId as creatorUserUniqueId,
+    u_creator.fullName as creatorFullName,
+    u_creator.phoneNumber as creatorPhoneNumber,
+    u_creator.email as creatorEmail
+    ${fromSql} ${where} GROUP BY q.queueOrganizationUniqueId ORDER BY q.queueOrganizationCreatedAt DESC`;
   const countSql = `SELECT COUNT(DISTINCT q.queueOrganizationUniqueId) AS total ${fromSql} ${where}`;
-  return paginatedQuery(baseSql, countSql, params, page, limit, offset);
+  const result = await paginatedQuery(baseSql, countSql, params, page, limit, offset);
+
+  // Reshape: nest creator fields under `creator` object
+  if (result.data && Array.isArray(result.data)) {
+    result.data = result.data.map(row => {
+      const { creatorUserUniqueId, creatorFullName, creatorPhoneNumber, creatorEmail, ...org } = row;
+      return {
+        organization: org,
+        creator: creatorUserUniqueId ? {
+          userUniqueId: creatorUserUniqueId,
+          fullName: creatorFullName,
+          phoneNumber: creatorPhoneNumber,
+          email: creatorEmail,
+        } : null,
+      };
+    });
+  }
+  return result;
+};
+
+/**
+ * Get a single queue organization by ID with creator info.
+ */
+exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
+  const executor = db();
+  
+  // Check access: QueueOrgAdmin/CompanyAdmin can only see orgs they're a member of
+  let conditions = ["q.isDeleted = 0", "q.queueOrganizationUniqueId = ?"];
+  let params = [queueOrganizationUniqueId];
+  let fromSql = `FROM QueueOrganization q
+    LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
+  
+  if (
+    user &&
+    (user.roleId === usersRoles.queueOrgAdminRoleId ||
+      user.roleId === usersRoles.companyAdminRoleId)
+  ) {
+    fromSql +=
+      ` JOIN QueueOrganizationMembership qom` +
+      ` ON qom.queueOrganizationUniqueId = q.queueOrganizationUniqueId`;
+    conditions.push("qom.userUniqueId = ?");
+    params.push(user.userUniqueId);
+    conditions.push("qom.isActive = 1");
+  }
+
+  const where = `WHERE ${conditions.join(" AND ")}`;
+  const baseSql = `SELECT q.*,
+    u_creator.userUniqueId as creatorUserUniqueId,
+    u_creator.fullName as creatorFullName,
+    u_creator.phoneNumber as creatorPhoneNumber,
+    u_creator.email as creatorEmail
+    ${fromSql} ${where} LIMIT 1`;
+  
+  const [rows] = await executor.query(baseSql, params);
+  
+  if (rows.length === 0) {
+    throw new AppError("Queue organization not found", 404);
+  }
+
+  const row = rows[0];
+  const { creatorUserUniqueId, creatorFullName, creatorPhoneNumber, creatorEmail, ...org } = row;
+  
+  return {
+    data: {
+      organization: org,
+      creator: creatorUserUniqueId ? {
+        userUniqueId: creatorUserUniqueId,
+        fullName: creatorFullName,
+        phoneNumber: creatorPhoneNumber,
+        email: creatorEmail,
+      } : null,
+    },
+  };
 };
 
 /**
