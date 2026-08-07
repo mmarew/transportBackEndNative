@@ -42,9 +42,9 @@ const takeFromStreet = async (body, user) => {
     if (driverStatus) {
       const journeyStatusId = driverStatus?.driver?.driver?.journeyStatusId;
       // if driver accepted request return driverStatus
-      if (journeyStatusId >= 3) {
+      if (journeyStatusId >= journeyStatusMap.acceptedByDriver) {
         return driverStatus;
-      } else if (journeyStatusId >= 1) {
+      } else if (journeyStatusId >= journeyStatusMap.waiting) {
         // if journeyStatusId is one or two, cancel current request
         const cancelResult = await cancelDriverRequest({
           ownerUserUniqueId: user.userUniqueId,

@@ -252,7 +252,7 @@ const AppError = require("../../../Utils/AppError");
 const {
   assertCompanyCancellationReason,
 } = require("../../ShipperRequestBatch/batchHelper");
-const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../../Utils/ListOfSeedData");
 const { currentDate } = require("../../../Utils/CurrentDate");
 const { getData } = require("../../../CRUD/Read/ReadData");
 const {

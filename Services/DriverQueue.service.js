@@ -10,14 +10,25 @@ const {
 } = require("../Utils/QueueSocket");
 const {
   sendSocketIONotificationToDriver,
+  sendSocketIONotificationToShipper,
 } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const { journeyStatusMap } = require("../Utils/ListOfSeedData");
+const logger = require("../Utils/logger");
 
 const today = () => new Date().toISOString().slice(0, 10);
 const QUEUE_OFFER_WINDOW_MINUTES = 3;
 
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
+/**
+ * Verify a QueueOrganization exists and is not soft-deleted.
+ * Used as a lightweight guard before queue mutations (offer/dispatch/advance).
+ * Does NOT re-check approvalStatus/queueEnabled — those are validated at order creation.
+ * @param {object} executor - DB executor (connection or transaction)
+ * @param {string} queueOrganizationUniqueId
+ * @returns {Promise<object>} the org row
+ * @throws {AppError} 404 if not found or deleted
+ */
 const queueOrgReady = async (executor, queueOrganizationUniqueId) => {
   const [org] = await executor.query(
     `SELECT queueOrganizationUniqueId, approvalStatus, queueEnabled
@@ -48,7 +59,12 @@ const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
   return rows[0];
 };
 
-const nextQueueNumber = async (executor, queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId) => {
+const nextQueueNumber = async (
+  executor,
+  queueOrganizationUniqueId,
+  queueDate,
+  vehicleTypeUniqueId,
+) => {
   const [agg] = await executor.query(
     `SELECT COALESCE(MAX(dq.queueNumber), 0) + 1 AS nextNumber
      FROM DriverQueue dq
@@ -89,7 +105,12 @@ const IN_QUEUE_STATUSES = ["waiting", "offered"];
  *   (vehicleDriverUniqueId, queueOrganizationUniqueId, queueDate) unique key is
  *   reused instead of colliding), or null
  */
-const getDriverQueueState = async (executor, driverUserUniqueId, queueDate, targetOrgId) => {
+const getDriverQueueState = async (
+  executor,
+  driverUserUniqueId,
+  queueDate,
+  targetOrgId,
+) => {
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueNumber, dq.status,
             o.queueOrganizationName
@@ -100,7 +121,8 @@ const getDriverQueueState = async (executor, driverUserUniqueId, queueDate, targ
     [queueDate, driverUserUniqueId],
   );
   const active = rows.find((r) => IN_QUEUE_STATUSES.includes(r.status)) || null;
-  const atOrg = rows.find((r) => r.queueOrganizationUniqueId === targetOrgId) || null;
+  const atOrg =
+    rows.find((r) => r.queueOrganizationUniqueId === targetOrgId) || null;
   return { active, atOrg, rows };
 };
 
@@ -117,7 +139,10 @@ exports.checkin = async (data) => {
     throw new AppError("Queue organization is not enabled for dispatch", 403);
   }
 
-  const vehicleDriver = await getVehicleDriverType(executor, vehicleDriverUniqueId);
+  const vehicleDriver = await getVehicleDriverType(
+    executor,
+    vehicleDriverUniqueId,
+  );
   const queueDate = today();
 
   // FENCE: driver can only be in ONE queue system-wide per day. Removed/loaded
@@ -161,7 +186,13 @@ exports.checkin = async (data) => {
            offeredAt = NULL, loadedAt = NULL, shipperRequestUniqueId = NULL,
            queueUpdatedAt = ?, queueUpdatedBy = ?
        WHERE queueId = ?`,
-      [queueNumber, currentDate(), currentDate(), user.userUniqueId, atOrg.queueId],
+      [
+        queueNumber,
+        currentDate(),
+        currentDate(),
+        user.userUniqueId,
+        atOrg.queueId,
+      ],
     );
   } else {
     queueNumber = await nextQueueNumber(
@@ -288,7 +319,10 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
  * If queueOrganizationUniqueId provided, scope to that org; otherwise find via fence.
  */
 exports.checkout = async (queueOrganizationUniqueId, user) => {
-  console.log('[Service checkout] Called with:', { queueOrganizationUniqueId, userUniqueId: user?.userUniqueId });
+  console.log("[Service checkout] Called with:", {
+    queueOrganizationUniqueId,
+    userUniqueId: user?.userUniqueId,
+  });
   const executor = db();
   const queueDate = today();
 
@@ -316,7 +350,10 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
       [queueDate, user.userUniqueId],
     );
   }
-  console.log('[Service checkout] Query result:', { rowsCount: rows.length, rows });
+  console.log("[Service checkout] Query result:", {
+    rowsCount: rows.length,
+    rows,
+  });
   if (rows.length === 0) {
     throw new AppError("Driver is not in the queue for today", 404);
   }
@@ -329,9 +366,15 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   );
 
   await emitQueueSnapshot({ queueOrganizationUniqueId: orgId, queueDate });
-  notifyQueueOrgAdmins({ queueOrganizationUniqueId: orgId, messageType: "queue_removed" });
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId: orgId,
+    messageType: "queue_removed",
+  });
 
-  return { message: "success", data: { queueUniqueId: rows[0].queueUniqueId, status: "removed" } };
+  return {
+    message: "success",
+    data: { queueUniqueId: rows[0].queueUniqueId, status: "removed" },
+  };
 };
 
 /**
@@ -376,7 +419,8 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
 
   const byType = {};
   for (const row of rows) {
-    const typeName = row.vehicleTypeName || row.vehicleTypeUniqueId || "Unknown";
+    const typeName =
+      row.vehicleTypeName || row.vehicleTypeUniqueId || "Unknown";
     if (!byType[typeName]) byType[typeName] = [];
     byType[typeName].push(publicEntry(row));
   }
@@ -396,11 +440,19 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
  * QueueOrgAdmin manually checks a driver/vehicle into the queue.
  */
 exports.manualCheckin = async (data) => {
-  const { queueOrganizationUniqueId, vehicleDriverUniqueId, queueNumber, user } = data;
+  const {
+    queueOrganizationUniqueId,
+    vehicleDriverUniqueId,
+    queueNumber,
+    user,
+  } = data;
   const executor = db();
 
   await queueOrgReady(executor, queueOrganizationUniqueId);
-  const vehicleDriver = await getVehicleDriverType(executor, vehicleDriverUniqueId);
+  const vehicleDriver = await getVehicleDriverType(
+    executor,
+    vehicleDriverUniqueId,
+  );
   const queueDate = today();
 
   // FENCE: driver can only be in ONE queue system-wide per day. Removed/loaded
@@ -416,7 +468,11 @@ exports.manualCheckin = async (data) => {
     // Idempotent: already in a queue today — return the existing entry.
     return {
       message: "success",
-      data: { queueUniqueId: active.queueUniqueId, queueNumber: active.queueNumber, status: active.status },
+      data: {
+        queueUniqueId: active.queueUniqueId,
+        queueNumber: active.queueNumber,
+        status: active.status,
+      },
     };
   }
 
@@ -439,7 +495,13 @@ exports.manualCheckin = async (data) => {
            offeredAt = NULL, loadedAt = NULL, shipperRequestUniqueId = NULL,
            queueUpdatedAt = ?, queueUpdatedBy = ?
        WHERE queueId = ?`,
-      [assignedNumber, currentDate(), currentDate(), user.userUniqueId, atOrg.queueId],
+      [
+        assignedNumber,
+        currentDate(),
+        currentDate(),
+        user.userUniqueId,
+        atOrg.queueId,
+      ],
     );
   } else {
     assignedNumber =
@@ -668,7 +730,10 @@ const ensureWaitingDriverRequest = async (
  * driver request into `requested` so the existing accept/reject/timeout engine
  * takes over from here.
  */
-const createQueueOffer = async (executor, { shipperRequest, driverRequest, user }) => {
+const createQueueOffer = async (
+  executor,
+  { shipperRequest, driverRequest, user },
+) => {
   const journeyDecisionUniqueId = uuidv4();
   const now = currentDate();
   await executor.query(
@@ -689,12 +754,22 @@ const createQueueOffer = async (executor, { shipperRequest, driverRequest, user 
   await executor.query(
     `UPDATE ShipperRequest SET journeyStatusId = ?, shipperRequestUpdatedAt = ?, shipperRequestUpdatedBy = ?
      WHERE shipperRequestId = ?`,
-    [journeyStatusMap.requested, now, user.userUniqueId, shipperRequest.shipperRequestId],
+    [
+      journeyStatusMap.requested,
+      now,
+      user.userUniqueId,
+      shipperRequest.shipperRequestId,
+    ],
   );
   await executor.query(
     `UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?, driverRequestUpdatedBy = ?
      WHERE driverRequestId = ?`,
-    [journeyStatusMap.requested, now, user.userUniqueId, driverRequest.driverRequestId],
+    [
+      journeyStatusMap.requested,
+      now,
+      user.userUniqueId,
+      driverRequest.driverRequestId,
+    ],
   );
   return {
     journeyDecisionUniqueId,
@@ -745,6 +820,53 @@ const notifyDriverOfQueueOffer = async ({
 };
 
 /**
+ * Push a `queue` socket event to the SHIPPER who owns a queue order. The
+ * shipper is resolved via `ShipperRequest.shipperRequestCreatedBy → Users`.
+ * Mirrors `notifyDriverOfQueueOffer`; the bid flow already uses this helper
+ * (`sendSocketIONotificationToShipper`). Best-effort: offline shipper or an
+ * order created by a queue admin (no `shipper` socket) is skipped silently —
+ * the QueueOrgAdmin rooms still get the snapshot push.
+ */
+const notifyShipperOfQueueEvent = async ({
+  executor,
+  shipperRequestUniqueId,
+  messageType,
+  message,
+  data = {},
+}) => {
+  try {
+    const [rows] = await executor.query(
+      `SELECT u.phoneNumber, u.fullName
+       FROM ShipperRequest sr
+       JOIN Users u ON u.userUniqueId = sr.shipperRequestCreatedBy
+       WHERE sr.shipperRequestUniqueId = ? AND sr.shipperRequestDeletedAt IS NULL`,
+      [shipperRequestUniqueId],
+    );
+    const shipper = rows[0];
+    if (!shipper?.phoneNumber) return;
+    await sendSocketIONotificationToShipper({
+      phoneNumber: shipper.phoneNumber,
+      eventName: "queue",
+      message: {
+        messageTypes: messageTypes[messageType],
+        message,
+        shipperRequestUniqueId,
+        shipper: {
+          fullName: shipper.fullName,
+          phoneNumber: shipper.phoneNumber,
+        },
+        ...data,
+      },
+    });
+  } catch (error) {
+    logger.error("notifyShipperOfQueueEvent failed", {
+      error: error.message,
+      shipperRequestUniqueId,
+    });
+  }
+};
+
+/**
  * Core offer primitive — mark the FRONT waiting driver of an order's vehicle
  * type as `offered`, link the order, create the JourneyDecision, and notify
  * only that driver over socket. Drivers already holding an active offer
@@ -765,16 +887,28 @@ const offerToDriver = async ({
   throwIfNone = true,
 }) => {
   await queueOrgReady(executor, queueOrganizationUniqueId);
-  const shipperRequest = await getShipperRequest(executor, shipperRequestUniqueId);
+  const shipperRequest = await getShipperRequest(
+    executor,
+    shipperRequestUniqueId,
+  );
 
   let after = afterQueueNumber || null;
   while (true) {
+    /**
+     * Find the front waiting driver for a vehicle type in a queue org.
+     * Joins: DriverQueue → VehicleDriver → Vehicle (for vehicleTypeUniqueId filter)
+     *        → Users (for driver phone/name in socket notification).
+     * Uses FOR UPDATE to lock the row while we create the offer, preventing
+     * concurrent dispatches from offering the same driver twice.
+     * If `afterQueueNumber` is provided, skips drivers up to that position
+     * (used by advance/reject/timeout to move to the next driver).
+     */
     const [front] = await executor.query(
       `SELECT dq.*, vd.driverUserUniqueId, u.phoneNumber, u.fullName
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
-       JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
-       JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
+       JOIN Vehicle v ON v.vehicleUniqueId = vd.vehicleUniqueId
+       JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
        WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
          AND dq.status = 'waiting' AND dq.queueDeletedAt IS NULL
          AND v.vehicleTypeUniqueId = ?
@@ -788,7 +922,10 @@ const offerToDriver = async ({
 
     if (front.length === 0) {
       if (throwIfNone) {
-        throw new AppError("No waiting driver in this vehicle type's queue", 404);
+        throw new AppError(
+          "No waiting driver in this vehicle type's queue",
+          404,
+        );
       }
       return { offered: false, data: null };
     }
@@ -814,13 +951,46 @@ const offerToDriver = async ({
       `UPDATE DriverQueue SET status = 'offered', offeredAt = ?, shipperRequestUniqueId = ?,
               queueUpdatedAt = ?, queueUpdatedBy = ?
        WHERE queueId = ?`,
-      [currentDate(), shipperRequestUniqueId, currentDate(), user.userUniqueId, entry.queueId],
+      [
+        currentDate(),
+        shipperRequestUniqueId,
+        currentDate(),
+        user.userUniqueId,
+        entry.queueId,
+      ],
     );
 
     await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
 
     const vehicle = await getDriverVehicle(executor, entry.driverUserUniqueId);
-    await notifyDriverOfQueueOffer({ front: entry, shipperRequest, vehicle, offerResult });
+    await notifyDriverOfQueueOffer({
+      front: entry,
+      shipperRequest,
+      vehicle,
+      offerResult,
+    });
+    await notifyShipperOfQueueEvent({
+      executor,
+      shipperRequestUniqueId,
+      messageType: "queue_order_offered",
+      message: "New queue order offered to a driver",
+      data: {
+        driver: {
+          driver: {
+            ...entry,
+            driverRequestUniqueId: offerResult.decision.driverRequestUniqueId,
+          },
+          vehicle,
+        },
+        decisions: offerResult.decision,
+        queue: {
+          queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+          queueUniqueId: entry.queueUniqueId,
+          queueNumber: entry.queueNumber,
+          offerWindowMinutes: QUEUE_OFFER_WINDOW_MINUTES,
+        },
+      },
+    });
 
     return {
       offered: true,
@@ -840,7 +1010,12 @@ const offerToDriver = async ({
  * order. This is the MANUAL trigger (QueueOrgAdmin) for a waiting order.
  */
 exports.dispatch = async (data) => {
-  const { queueOrganizationUniqueId, vehicleTypeUniqueId, shipperRequestUniqueId, user } = data;
+  const {
+    queueOrganizationUniqueId,
+    vehicleTypeUniqueId,
+    shipperRequestUniqueId,
+    user,
+  } = data;
   const result = await offerToDriver({
     executor: db(),
     queueOrganizationUniqueId,
@@ -972,9 +1147,15 @@ exports.rejectOffer = async (data) => {
 exports.markEntryLoaded = async ({ shipperRequestUniqueId, userUniqueId }) => {
   const executor = db();
   const [rows] = await executor.query(
-    `SELECT queueId, queueOrganizationUniqueId, queueDate
-     FROM DriverQueue
-     WHERE shipperRequestUniqueId = ? AND status = 'offered' AND queueDeletedAt IS NULL
+    `SELECT dq.queueId, dq.queueOrganizationUniqueId, dq.queueDate,
+            u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,
+            v.licensePlate, vt.vehicleTypeName
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     JOIN Users u            ON u.userUniqueId           = vd.driverUserUniqueId
+     JOIN Vehicle v          ON v.vehicleUniqueId         = vd.vehicleUniqueId
+     JOIN VehicleTypes vt    ON vt.vehicleTypeUniqueId    = v.vehicleTypeUniqueId
+     WHERE dq.shipperRequestUniqueId = ? AND dq.status = 'offered' AND dq.queueDeletedAt IS NULL
      LIMIT 1`,
     [shipperRequestUniqueId],
   );
@@ -994,6 +1175,28 @@ exports.markEntryLoaded = async ({ shipperRequestUniqueId, userUniqueId }) => {
     queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
     messageType: "queue_order_assigned",
   });
+  await notifyShipperOfQueueEvent({
+    executor,
+    shipperRequestUniqueId,
+    messageType: "queue_order_assigned",
+    message: "Driver assigned to your queue order",
+    data: {
+      driver: {
+        driver: {
+          driverName: rows[0].driverName,
+          driverPhoneNumber: rows[0].driverPhoneNumber,
+        },
+        vehicle: {
+          licensePlate: rows[0].licensePlate,
+          vehicleTypeName: rows[0].vehicleTypeName,
+        },
+      },
+      queue: {
+        queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
+        queueDate: rows[0].queueDate,
+      },
+    },
+  });
   return { updated: true };
 };
 
@@ -1004,7 +1207,9 @@ exports.markEntryLoaded = async ({ shipperRequestUniqueId, userUniqueId }) => {
  * advance the order. Called by the background automatic-timeout scan. `actor`
  * is the user stamped on the audit trail (the order's creator).
  */
-exports.releaseExpiredOffers = async ({ windowMinutes = QUEUE_OFFER_WINDOW_MINUTES } = {}) => {
+exports.releaseExpiredOffers = async ({
+  windowMinutes = QUEUE_OFFER_WINDOW_MINUTES,
+} = {}) => {
   const executor = db();
   const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
 
@@ -1037,12 +1242,22 @@ exports.releaseExpiredOffers = async ({ windowMinutes = QUEUE_OFFER_WINDOW_MINUT
       `UPDATE JourneyDecisions SET journeyStatusId = ?, journeyDecisionUpdatedAt = ?, journeyDecisionUpdatedBy = ?,
               isCancellationByDriverSeenByShipper = 'no need to see it'
        WHERE journeyDecisionUniqueId = ?`,
-      [journeyStatusMap.rejectedByDriver, now, actor.userUniqueId, entry.journeyDecisionUniqueId],
+      [
+        journeyStatusMap.rejectedByDriver,
+        now,
+        actor.userUniqueId,
+        entry.journeyDecisionUniqueId,
+      ],
     );
     await executor.query(
       `UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?, driverRequestUpdatedBy = ?
        WHERE driverRequestId = ?`,
-      [journeyStatusMap.waiting, now, actor.userUniqueId, entry.driverRequestId],
+      [
+        journeyStatusMap.waiting,
+        now,
+        actor.userUniqueId,
+        entry.driverRequestId,
+      ],
     );
     await executor.query(
       `UPDATE DriverQueue SET status = 'waiting', offeredAt = NULL, shipperRequestUniqueId = NULL,

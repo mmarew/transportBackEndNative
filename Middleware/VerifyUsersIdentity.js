@@ -1,7 +1,7 @@
 const { getData, performJoinSelect } = require("../CRUD/Read/ReadData");
 const { pool } = require("./Database.config");
 const AppError = require("../Utils/AppError");
-const { usersRolesList } = require("../Utils/ListOfSeedData");
+const { usersRolesList, USER_STATUS } = require("../Utils/ListOfSeedData");
 const logger = require("../Utils/logger");
 
 // Verify if the user is an Admin and is in an active status
@@ -45,7 +45,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
 
     // Step 4: Check if the Admin is in Active status
     const statusId = userRoleStatus[0]?.statusId;
-    if (statusId !== 1) {
+    if (statusId !== USER_STATUS.ACTIVE) {
       throw new AppError("Admin in inactive status", 403);
     }
 
@@ -97,7 +97,7 @@ const verifyDriversIdentity = async (req, res, next) => {
         userRoleStatus[0],
       );
     }
-    if (statusId !== 1) {
+    if (statusId !== USER_STATUS.ACTIVE) {
       throw new AppError("Driver in inactive status", 403);
     }
 
@@ -182,7 +182,7 @@ const verifyShippersIdentity = async (req, res, next) => {
     }
     req.userRoleStatus = userRoleStatus;
     const statusId = userRoleStatus[0]?.statusId;
-    if (statusId !== 1) {
+    if (statusId !== USER_STATUS.ACTIVE) {
       throw new AppError(
         `Shipper in inactive status (statusId: ${statusId}). Shippers should have statusId 1 (active).`,
         403,

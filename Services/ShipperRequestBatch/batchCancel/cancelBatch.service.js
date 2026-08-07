@@ -52,7 +52,9 @@ const cancelBatch = async ({
     conditions: { batchUniqueId },
   });
   if (!batch) throw new AppError("Batch not found", 404);
-  const isAdmin = roleId === 3 || roleId === 6; // admin / super-admin
+  const isAdmin =
+    roleId === usersRoles.adminRoleId ||
+    roleId === usersRoles.supperAdminRoleId; // admin / super-admin
 
   if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
     throw new AppError("Unauthorized: batch does not belong to you", 403);
@@ -341,7 +343,7 @@ const AppError = require("../../../Utils/AppError");
 const {
   assertCompanyCancellationReason,
 } = require("../../ShipperRequestBatch/batchHelper");
-const { journeyStatusMap } = require("../../../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../../../Utils/ListOfSeedData");
 const { currentDate } = require("../../../Utils/CurrentDate");
 const { getData } = require("../../../CRUD/Read/ReadData");
 const {

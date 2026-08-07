@@ -77,8 +77,12 @@ const noAnswerFromDriver = async (body) => {
     throw new AppError("Driver request not found", 404);
   }
 
-  // Check if driver already responded (status > 2 and < 5 means acceptedByDriver or acceptedByShipper)
-  if (shipperData.journeyStatusId > 2 && shipperData.journeyStatusId < 5) {
+  // Check if driver already responded (acceptedByDriver or acceptedByShipper)
+  const respondedStatuses = [
+    journeyStatusMap.acceptedByDriver,
+    journeyStatusMap.acceptedByShipper,
+  ];
+  if (respondedStatuses.includes(shipperData.journeyStatusId)) {
     return {
       message: "Driver timeout processed",
       data: messageTypes.driver_answered_calls,

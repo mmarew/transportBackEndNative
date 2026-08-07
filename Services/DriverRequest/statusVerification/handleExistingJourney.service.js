@@ -76,7 +76,7 @@ const handleExistingJourney = async (driverRequest, vehicle
   //     We must NOT reset status-2 company drivers to status 1 — they are waiting
   //     for the driver to confirm the assignment via PATCH /api/company/assignments/:id/status.
   if (!journeyDecisionUniqueId) {
-    if (driverRequest?.journeyStatusId > 1) {
+    if (driverRequest?.journeyStatusId > journeyStatusMap.waiting) {
       // Check for an active company assignment before resetting.
       // If one exists, this driver is in the company flow and the missing
       // JourneyDecision is expected — do NOT reset to waiting.

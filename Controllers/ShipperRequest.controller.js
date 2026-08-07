@@ -45,7 +45,10 @@ const createShipperRequest = async (req, res, next) => {
     logger.debug("createShipperRequest roleId", { roleId });
     let userUniqueId = req.user.userUniqueId;
     // return;
-    if (roleId === 1) {
+    if (
+      roleId === usersRoles.shipperRoleId ||
+      roleId === usersRoles.queueOrgAdminRoleId
+    ) {
       req.body.userUniqueId = userUniqueId;
     }
 

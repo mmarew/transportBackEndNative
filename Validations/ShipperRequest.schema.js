@@ -43,11 +43,17 @@ exports.createShipperRequest = Joi.object({
   }).required(),
 })
   .custom((value, helpers) => {
-    // Cross-field rule: individual drivers can't handle 10+ vehicles
+    // Cross-field rule: individual drivers can't handle 10+ vehicles.
+    // Queue-dispatch orders (queueOrganizationUniqueId set) are exempt: each of
+    // the N rows is offered to its own FRONT waiting driver, so N can exceed 9.
     const mode = value.requestMode || "individual_target";
     const count = value.numberOfVehicles || 1;
 
-    if (count > 9 && mode === "individual_target") {
+    if (
+      count > 9 &&
+      mode === "individual_target" &&
+      !value.queueOrganizationUniqueId
+    ) {
       return helpers.message(
         "Requests for more than 9 vehicles require company target mode. " +
           "Please set requestMode to 'company target' to proceed.",

@@ -4,6 +4,7 @@ const service = require("../Services/ShipperRequestBatch");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 
 /**
  * GET /api/shipperRequestBatch
@@ -15,7 +16,10 @@ exports.getBatches = async (req, res, next) => {
     const filters = { ...req.query };
     const { userUniqueId, roleId } = req.user;
 
-    if (roleId === 3 || roleId === 6) {
+    if (
+      roleId === usersRoles.adminRoleId ||
+      roleId === usersRoles.supperAdminRoleId
+    ) {
       if (
         !filters.shipperUserUniqueId ||
         filters.shipperUserUniqueId === "self"

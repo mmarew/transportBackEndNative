@@ -220,12 +220,23 @@ const createShipperRequest = async (body, journeyStatusId) => {
         req?.requestMode !== "company_target",
     );
 
-    // Queue-dispatch orders (body.queueOrganizationUniqueId set) are matched by
-    // QUEUE POSITION — the front waiting driver of the order's vehicle type is
-    // offered the order (see DriverQueue.service.handleQueueDispatch). These are
-    // NOT matched by distance, so they skip the handleWaitingRequest pass below.
-    const queueRequests = waitingRequests.filter((req) => req?.queueOrganizationUniqueId);
-    const distanceRequests = waitingRequests.filter((req) => !req?.queueOrganizationUniqueId);
+    /**
+     * Queue-dispatch orders (body.queueOrganizationUniqueId set) are matched by
+     * QUEUE POSITION (FIFO) — the front waiting driver of the order's vehicle type
+     * is offered the order (see DriverQueue.service.handleQueueDispatch).
+     * These are NOT matched by distance, so they skip the handleWaitingRequest pass below.
+     */
+    const queueRequests = waitingRequests.filter(
+      (req) => req?.queueOrganizationUniqueId,
+    );
+
+    /**
+     * Non-queue orders (no queueOrganizationUniqueId) — matched by GEOLOCATION/DISTANCE
+     * via handleWaitingRequest (radius-based driver search).
+     */
+    const distanceRequests = waitingRequests.filter(
+      (req) => !req?.queueOrganizationUniqueId,
+    );
 
     // Step 2a: Auto-offer each queue order to the FRONT waiting driver of its type.
     // An empty queue leaves the order waiting (offered:false) — the QueueOrgAdmin
