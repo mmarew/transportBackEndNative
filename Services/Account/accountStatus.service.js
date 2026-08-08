@@ -222,7 +222,7 @@ const accountStatus = async ({
     logger.debug("@accountStatus resolved context", {
       roleId,
       requestedRoleId: body?.roleId,
-      resolvedUserUniqueId: resolvedUserUniqueId?.slice(0, 8) // eslint-disable-line no-magic-numbers -- truncate unique id + "...",
+      resolvedUserUniqueId: resolvedUserUniqueId?.slice(0, 8) + "...", // eslint-disable-line no-magic-numbers -- truncate unique id
       storedStatusId: statusId
     });
 

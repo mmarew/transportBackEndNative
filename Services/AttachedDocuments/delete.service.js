@@ -35,6 +35,7 @@ const deleteAttachedDocument = async attachedDocumentUniqueId => {
     });
   }
   await deleteData({
+    tableName: "AttachedDocuments",
     conditions: {
       attachedDocumentUniqueId
     }

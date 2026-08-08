@@ -233,12 +233,14 @@ async function getAllCommissions(filters = {}) {
       if (start) {
         conditions.push(`${field} >= ?`);
         values.push(
-          new Date(start).toISOString().slice(0, 19) // eslint-disable-line no-magic-numbers -- ISO datetime without ms.replace("T", " "),
+          new Date(start).toISOString().slice(0, 19).replace("T", " "), // eslint-disable-line no-magic-numbers -- ISO datetime without ms
         );
       }
       if (end) {
         conditions.push(`${field} <= ?`);
-        values.push(new Date(end).toISOString().slice(0, 19) // eslint-disable-line no-magic-numbers -- ISO datetime without ms.replace("T", " "));
+        values.push(
+          new Date(end).toISOString().slice(0, 19).replace("T", " "), // eslint-disable-line no-magic-numbers -- ISO datetime without ms
+        );
       }
     };
 

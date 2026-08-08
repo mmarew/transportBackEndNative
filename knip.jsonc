@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["preStart.js", "Config/Express.config.js", "__tests__/**/*.js", "tests/**/*.js"],
+  "project": ["**/*.js", "!node_modules/**", "!logs/**", "!uploads/**", "!var/**", "!*.log"],
+  // Intentionally kept (verified unused but may serve future/documented flows):
+  "ignore": [
+    "docs/DelinquencyLifecycle.js",
+    "E2ETests/Queue/**",
+    "E2ETests/Vehicles/**",
+    "Utils/socketService.js" // ESM React Native shared file
+  ],
+  // Exports analysis is excluded: this codebase reads CJS exports via
+  // `const X = require(...); X.foo`, which knip treats as a default import and
+  // would flag ~1000 false positives. See https://knip.dev/guides/working-with-commonjs
+  "exclude": ["exports", "nsExports", "types", "nsTypes", "enumMembers", "namespaceMembers", "duplicates"],
+  "ignoreBinaries": ["tail", "awk"]
+}

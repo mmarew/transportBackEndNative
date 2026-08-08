@@ -46,10 +46,7 @@ const createShipperRequest = async (req, res, next) => {
     logger.debug("createShipperRequest roleId", { roleId });
     let userUniqueId = req.user.userUniqueId;
     // return;
-    if (
-      roleId === usersRoles.shipperRoleId ||
-      roleId === usersRoles.queueOrgAdminRoleId
-    ) {
+    if (roleId === usersRoles.shipperRoleId) {
       req.body.userUniqueId = userUniqueId;
     }
 
@@ -60,15 +57,18 @@ const createShipperRequest = async (req, res, next) => {
 
     const result = await executeInTransaction(
       async () => {
-        if (shipperRequestCreatedByRoleId === usersRoles.adminRoleId) {
+        if (
+          shipperRequestCreatedByRoleId === usersRoles.adminRoleId ||
+          shipperRequestCreatedByRoleId === usersRoles.queueOrgAdminRoleId
+        ) {
           const { shipperPhoneNumber } = req.body;
           if (!shipperPhoneNumber) {
             throw new AppError(
-              "shipperPhoneNumber is required when an admin creates request for shipper",
+              "shipperPhoneNumber is required when creating request on behalf of a shipper",
               AppError.BAD_REQUEST,
             );
           }
-          const randNumber = Math.floor(1000 + Math.random() * 900000) // eslint-disable-line no-magic-numbers -- 4-digit verification code;
+          const randNumber = Math.floor(1000 + Math.random() * 900000); // eslint-disable-line no-magic-numbers -- 4-digit verification code
           const createdUser = await createUser({
             phoneNumber: shipperPhoneNumber,
             fullName: null,
@@ -86,7 +86,7 @@ const createShipperRequest = async (req, res, next) => {
             );
           }
 
-          const dataOfShipper = createdUser?.dataOfShipper;
+          const dataOfShipper = createdUser?.data;
           userUniqueId = dataOfShipper?.userUniqueId;
 
           if (!userUniqueId) {

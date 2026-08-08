@@ -1,6 +1,7 @@
 const mysql = require("mysql2/promise");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
+const { TIME } = require("../Utils/Constants");
 
 /**
  * Database Connection Pool Configuration
@@ -60,7 +61,7 @@ const config = {
   enableKeepAlive: true, // Keep connections alive
   keepAliveInitialDelay: 0, // Start keep-alive immediately
   // Shared hosting optimizations
-  idleTimeout: 60000, // Close idle connections after 60s to free resources
+  idleTimeout: TIME.MINUTE_MS, // Close idle connections after 60s to free resources
   maxIdle: 2, // Keep max 2 idle connections (shared hosting has limits)
 };
 // if in development and socket path is provided, use it

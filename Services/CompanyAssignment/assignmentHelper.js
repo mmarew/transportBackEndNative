@@ -57,7 +57,7 @@ async function createJourneyDecisionForAssignment(
 ) {
   // Resolve numeric PKs
   const [[prRow]] = await db().query(
-    "SELECT shipperRequestId FROM ShipperRequest WHERE shipperRequestUniqueId = ? LIMIT 1",
+    "SELECT shipperRequestId, shippingCost FROM ShipperRequest WHERE shipperRequestUniqueId = ? LIMIT 1",
 
     [shipperRequestUniqueId],
   );
@@ -95,14 +95,15 @@ async function createJourneyDecisionForAssignment(
     `INSERT INTO JourneyDecisions
       (journeyDecisionUniqueId, shipperRequestId, driverRequestId,
        journeyStatusId, decisionTime, decisionBy,
-       journeyDecisionCreatedBy, journeyDecisionCreatedAt)
-     VALUES (?, ?, ?, ?, ?, 'company', ?, ?)`,
+       shippingCostByDriver, journeyDecisionCreatedBy, journeyDecisionCreatedAt)
+     VALUES (?, ?, ?, ?, ?, 'company', ?, ?, ?)`,
     [
       journeyDecisionUniqueId,
       prRow.shipperRequestId,
       drRow.driverRequestId,
       journeyStatusMap.requested, // status 2 — company has requested this driver
       currentDate(),
+      prRow.shippingCost || 0,
       createdByUserUniqueId,
       currentDate(),
     ],

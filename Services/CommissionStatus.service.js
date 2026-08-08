@@ -16,16 +16,19 @@ const createCommissionStatus = async ({
   const commissionStatusUniqueId = uuidv4();
   const createdBy = user?.userUniqueId || commissionStatusUniqueId;
 
-  // Check if exists by name
+  // Check if exists by name (active rows only)
   const [existing] = await executor.query(
-    "SELECT commissionStatusId FROM CommissionStatus WHERE statusName = ?",
+    "SELECT commissionStatusUniqueId, statusName FROM CommissionStatus WHERE statusName = ? AND commissionStatusDeletedAt IS NULL LIMIT 1",
     [statusName],
   );
 
   if (existing.length > 0) {
     return {
       message: "Commission status already exists",
-      data: null,
+      data: {
+        commissionStatusUniqueId: existing[0].commissionStatusUniqueId,
+        statusName: existing[0].statusName,
+      },
     };
   }
 

@@ -27,7 +27,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
 
     const byName = await getData({
       tableName: "DocumentTypes",
-      conditions: { documentTypeName },
+      conditions: { documentTypeName, isDocumentTypeDeleted: 0 },
     });
 
     if (byName?.length > 0) {
@@ -36,7 +36,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
 
     const byUploadedName = await getData({
       tableName: "DocumentTypes",
-      conditions: { uploadedDocumentName },
+      conditions: { uploadedDocumentName, isDocumentTypeDeleted: 0 },
     });
 
     if (byUploadedName?.length > 0) {
@@ -45,7 +45,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
 
     const byUploadedTypeId = await getData({
       tableName: "DocumentTypes",
-      conditions: { uploadedDocumentTypeId },
+      conditions: { uploadedDocumentTypeId, isDocumentTypeDeleted: 0 },
     });
 
     if (byUploadedTypeId?.length > 0) {

@@ -267,7 +267,7 @@ const reportWrongEmail = async (req, res) => {
 
 const verifyPhone = async (req, res, next) => {
   try {
-    const token = req.query.token || req.body.token;
+    const token = req.query.token || req.body?.token;
     const response = await services.verifyPhoneByToken(token);
 
     if (req.headers.accept?.includes("application/json") || req.method === "POST") {

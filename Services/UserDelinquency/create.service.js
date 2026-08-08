@@ -76,7 +76,7 @@ const createUserDelinquency = async data => {
     };
 
     // Calculate time window for duplicate check
-    const duplicateWindowHours = defaultType?.duplicateCheckWindowHours || 24 // eslint-disable-line no-magic-numbers -- default 24h window;
+    const duplicateWindowHours = defaultType?.duplicateCheckWindowHours || 24; // eslint-disable-line no-magic-numbers -- default 24h window
     // Use standard date helper, but convert to Date for arithmetic
     const nowStr = currentDate();
     const now = new Date(nowStr);

@@ -16,7 +16,8 @@ exports.userDelinquencyParams = Joi.object({
 });
 
 exports.userRoleParams = Joi.object({
-  userRoleUniqueId: uuidSchema.required(),
+  userUniqueId: uuidSchema.required(),
+  roleId: Joi.number().required(),
 });
 
 exports.updateDelinquencyBody = Joi.object({

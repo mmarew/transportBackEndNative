@@ -35,7 +35,7 @@ const sendEmail = async (to, subject, body, html = null) => {
     if (!HOST || !USER || !PASS) {
       const bodyPreview =
         body && typeof body === "string"
-          ? body.substring(0, 50) // eslint-disable-line no-magic-numbers -- truncate preview + "..."
+          ? body.substring(0, 50) + "..." // eslint-disable-line no-magic-numbers -- truncate preview
           : "No body content provided";
 
       logger.warn("📧 [EMAIL LOGGED (NOT CONFIGURED)]", {
@@ -53,7 +53,7 @@ const sendEmail = async (to, subject, body, html = null) => {
     const transporter = nodemailer.createTransport({
       host: HOST,
       port: PORT,
-      secure: parseInt(PORT) === 465 // eslint-disable-line no-magic-numbers -- implicit-TLS SMTP port, // true for 465, false for other ports
+      secure: parseInt(PORT) === 465, // eslint-disable-line no-magic-numbers -- implicit-TLS SMTP port; true for 465, false for other ports
       auth: {
         user: USER,
         pass: PASS,

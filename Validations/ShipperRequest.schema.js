@@ -17,7 +17,7 @@ exports.createShipperRequest = Joi.object({
   shippingCost: Joi.number().required(),
   shippableItemQtyInQuintal: Joi.number().required(),
   shippableItemName: Joi.string().required(),
-  shipperPhoneNumber: Joi.string().optional(), // required only when admin creates on behalf
+  shipperPhoneNumber: Joi.string().optional(), // required for admin/queue-org-admin when creating request on behalf of a shipper
   // requestType: Joi.string().valid("PASSENGER", "CARGO").optional(),
 
   // Bidding mode:

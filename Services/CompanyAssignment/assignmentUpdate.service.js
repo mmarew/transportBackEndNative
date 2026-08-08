@@ -642,14 +642,15 @@ exports.updateAssignmentStatus = async (
         `INSERT INTO JourneyDecisions
           (journeyDecisionUniqueId, shipperRequestId, driverRequestId,
            journeyStatusId, decisionTime, decisionBy,
-           journeyDecisionCreatedBy, journeyDecisionCreatedAt)
-         VALUES (?, ?, ?, ?, ?, 'company', ?, ?)`,
+           shippingCostByDriver, journeyDecisionCreatedBy, journeyDecisionCreatedAt)
+         VALUES (?, ?, ?, ?, ?, 'company', ?, ?, ?)`,
         [
           journeyDecisionUniqueId,
           prRow.shipperRequestId,
           drRows[0].driverRequestId,
           jStatusId,
           currentDate(),
+          prRow.shippingCost || 0,
           updatedBy,
           currentDate(),
         ],

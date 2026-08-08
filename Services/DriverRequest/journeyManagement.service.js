@@ -243,6 +243,9 @@ const completeJourney = async (body) => {
         DriverRequest.userUniqueId,
         ShipperRequest.shipperRequestUniqueId,
         ShipperRequest.userUniqueId as shipperUserUniqueId,
+        ShipperRequest.shippingCost,
+        ShipperRequest.requestMode,
+        ShipperRequest.targetCompanyUniqueId,
         Journey.journeyUniqueId,
         Journey.startTime, Journey.endTime,
         Users.fullName,
@@ -301,9 +304,33 @@ const completeJourney = async (body) => {
         connection: conn,
       });
 
-      const paymentAmount = combinedData?.shippingCostByDriver;
+      const paymentAmount =
+        combinedData?.shippingCostByDriver ?? combinedData?.shippingCost;
 
-      if (!subscriptionData) {
+      // Company-assignment journeys are billed to the transport company, not the
+      // driver — skip commission deduction for those flows.
+      // A journey is a company flow when the JourneyDecision was created by the
+      // company OR the ShipperRequest is company-targeted OR an active company
+      // assignment links this shipper request + driver + decision.
+      const [companyAssignRows] = await conn.query(
+        `SELECT 1 FROM CompanyBidVehicleAssignment
+         WHERE shipperRequestUniqueId = ?
+           AND driverUserUniqueId = ?
+           AND journeyDecisionUniqueId = ?
+           AND assignmentDeletedAt IS NULL
+           AND assignmentStatus NOT IN
+             ('completed', 'rejected_by_driver', 'cancelled_by_company',
+              'cancelled_by_shipper', 'cancelled_by_driver')
+         LIMIT 1`,
+        [shipperRequestUniqueId, userUniqueId, journeyDecisionUniqueId],
+      );
+      const isCompanyFlow =
+        combinedData?.decisionBy === "company" ||
+        combinedData?.requestMode === "company_target" ||
+        Boolean(combinedData?.targetCompanyUniqueId) ||
+        companyAssignRows?.length > 0;
+
+      if (!subscriptionData && !isCompanyFlow) {
         if (!paymentAmount || paymentAmount <= 0) {
           throw new AppError(
             "Invalid payment amount from journey decision",

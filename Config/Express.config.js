@@ -5,6 +5,7 @@ const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const Config = require("../Utils/Config");
+const { TIME } = require("../Utils/Constants");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("../api-docs.json");
 
@@ -54,7 +55,7 @@ app.use(cors(corsOptions));
 
 // 3. Rate Limiting - Protect against brute-force/DoS attacks
 const limiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: TIME.HOUR_MS, // 1 hour
   max: 20000, // Limit each IP to 20,000 requests per windowMs
   message: "Too many requests from this IP, please try again in an hour!",
   standardHeaders: true,
@@ -64,7 +65,7 @@ app.use(limiter); // Apply to all requests
 
 // Auth-specific rate limiting
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: TIME.FIFTEEN_MINUTES_MS,
   max: 200,
   message: { error: "Too many attempts, please try again later" },
   standardHeaders: true,

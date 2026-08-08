@@ -209,9 +209,9 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - shippingCost: Estimated shipping cost (required, number)
  * - shippableItemQtyInQuintal: Quantity of goods in quintals (required, number)
  * - shippableItemName: Name/description of goods being shipped (required, string)
- * - shipperPhoneNumber: Shipper's phone number (optional, required only when admin creates on behalf)
- *   - Used to create user account when admin creates request
- *   - Must be provided if shipperRequestCreatedByRoleId ===adminRoleId
+ * - shipperPhoneNumber: Shipper's phone number (optional, required when admin/queue-org-admin creates on behalf)
+ *   - Used to create/resolve the shipper user account when admin/queue-org-admin creates request
+ *   - Must be provided if shipperRequestCreatedByRoleId ===adminRoleId or ===queueOrgAdminRoleId
  * - requestType: Type of request (optional, "PASSENGER" | "CARGO")
  *   - Currently not enforced in database, kept for future use
  *
@@ -257,7 +257,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - message: "error"
  * - error: "Missing required fields to create shipper request" (if validation fails in controller)
  * - error: "Batch uniqueId Can't be null" (if shipperRequestBatchUniqueId missing)
- * - error: "shipperPhoneNumber is required when admin creates request for shipper" (if admin but no phone)
+ * - error: "shipperPhoneNumber is required when creating request on behalf of a shipper" (if admin/queue-org-admin but no phone)
  * - error: "Failed to create user for shipper" (if user creation fails for admin)
  * - error: "Failed to get userUniqueId from created user" (if user creation returns invalid data)
  * - error: "userUniqueId is required" (if userUniqueId not available after admin user creation)
@@ -296,7 +296,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  *   - originLocation: object with latitude, longitude, description (all required)
  *   - destination: object with latitude, longitude, description (latitude/longitude optional, description optional)
  *   - vehicle: object with vehicleTypeUniqueId (UUID, required)
- *   - shipperPhoneNumber: string, optional (required only for admin)
+ *   - shipperPhoneNumber: string, optional (required for admin/queue-org-admin)
  *   - requestType: "PASSENGER" | "CARGO", optional
  * - Validates shipperRequestBatchUniqueId is not null (service level)
  * - Validates userUniqueId is available (after admin user creation if applicable)
@@ -310,15 +310,15 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
  * - "Batch uniqueId Can't be null": shipperRequestBatchUniqueId missing
  *   - Status: 400 Bad Request
  *   - Cause: shipperRequestBatchUniqueId not provided or null
- * - "shipperPhoneNumber is required when admin creates request for shipper": Admin creating but no phone
+ * - "shipperPhoneNumber is required when creating request on behalf of a shipper": Admin/queue-org-admin creating but no phone
  *   - Status: 400 Bad Request
- *   - Cause: Admin role but shipperPhoneNumber not provided
+ *   - Cause: Admin/queue-org-admin role but shipperPhoneNumber not provided
  * - "Failed to create user for shipper": User creation failed for admin
  *   - Status: 500 Internal Server Error
  *   - Cause: createUser returned error (phone already exists with different user, database error, etc.)
  * - "Failed to get userUniqueId from created user": User creation succeeded but no userUniqueId returned
  *   - Status: 500 Internal Server Error
- *   - Cause: createUser returned success but dataOfShipper.userUniqueId is missing
+ *   - Cause: createUser returned success but data.userUniqueId is missing
  * - "All required requests have already been created for this batch": Batch limit exceeded
  *   - Status: 409 Conflict (should be, but currently returns error message)
  *   - Cause: Existing requests count >= numberOfVehicles
@@ -529,7 +529,7 @@ const { SHIPPER_REQUEST_ENDPOINTS } = require("./EndPoints/shipperRequest.endpoi
 router.post(
   SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
   verifyTokenOfAxios,
-  validator(createShipperRequest), // Validates request body: shipperRequestBatchUniqueId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional), requestType (optional)
+  validator(createShipperRequest), // Validates request body: shipperRequestBatchUniqueId, destination, vehicle, originLocation, numberOfVehicles, shippingDate, deliveryDate, shippingCost, shippableItemQtyInQuintal, shippableItemName, shipperPhoneNumber (optional, required for admin/queue-org-admin on-behalf), requestType (optional)
   controller.createShipperRequest,
 );
 /**

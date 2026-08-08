@@ -33,15 +33,6 @@ module.exports = [
       "ecosystem.config.js",
       "vercel.json",
       "Utils/socketService.js", // ESM syntax (React Native file)
-      "scratch/**", // Ignore temp scripts
-      // One-time refactor/migration scripts
-      "refactor_endpoints.js",
-      "refactor_routes_batch2.js",
-      "refactor_routes_batch3.js",
-      "industry_refactor.js",
-      "fix_lint.js",
-      "fix_requires.js",
-      "split_company_bid.js",
     ],
   },
 
@@ -156,8 +147,6 @@ module.exports = [
     files: [
       "Utils/CurrentDate.js",
       "Utils/FormatDateToReadable.js",
-      "Utils/adjustDateTime.js",
-      "Utils/PaymentCalculator.js",
       "Utils/logger.js",
       "Utils/DatabaseTransaction.js",
       "Middleware/QueryPerformance.js",
@@ -208,22 +197,11 @@ module.exports = [
     }
   },
 
-  // 7.6 Standalone utility scripts (not part of the server)
-  {
-    files: ["merge-pdfs.js", "parse_postman.js", "scan_routes.js"],
-    rules: {
-      "no-console": "off",
-      "security/detect-non-literal-fs-filename": "off",
-      "max-lines": "off",
-    },
-  },
-
   // 8. Seed scripts and error handlers
   {
     files: [
       "seed*.js",
       "**/ProcessErrorHandlers.js",
-      "**/Worker.config.js",
       "App.js",
     ],
     rules: {

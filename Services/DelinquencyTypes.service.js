@@ -407,7 +407,7 @@ const toggleDelinquencyTypeActive = async (delinquencyTypeUniqueId) => {
 
   if (result.affectedRows > 0) {
     // Get updated status
-    const [updated] = await query(
+    const updated = await query(
       "SELECT isActive FROM DelinquencyTypes WHERE delinquencyTypeUniqueId = ?",
       [delinquencyTypeUniqueId],
     );

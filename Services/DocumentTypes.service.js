@@ -39,14 +39,17 @@ const createDocumentType = async ({ body }) => {
   if (userExists.length === 0) {
     throw new AppError("User not found to create document type", AppError.BAD_REQUEST);
   }
-  // Check if the document type already exists
+  // Check if the document type already exists (active rows only)
   const existingDocumentType = await getData({
     tableName: "DocumentTypes",
-    conditions: { documentTypeName },
+    conditions: { documentTypeName, isDocumentTypeDeleted: 0 },
   });
 
   if (existingDocumentType.length > 0) {
-    return { message: "Document type created", data: null };
+    return {
+      message: "Document type created",
+      data: { documentTypeUniqueId: existingDocumentType[0].documentTypeUniqueId },
+    };
   }
 
   // Create a new document type
@@ -64,8 +67,53 @@ const createDocumentType = async ({ body }) => {
     documentTypeCreatedAt: currentDate(),
   };
 
+  // The derived camelCase fields (e.g. uploadedDocumentName) are UNIQUE columns.
+  // If a soft-deleted row already holds one of those values, resurrect that row
+  // instead of failing the INSERT on a duplicate-key error.
+  const collidingSoftDeleted = await getData({
+    tableName: "DocumentTypes",
+    conditions: { uploadedDocumentName, isDocumentTypeDeleted: 1 },
+  });
+
+  if (collidingSoftDeleted.length > 0) {
+    const { updateData } = require("../CRUD/Update/Data.update");
+    await updateData({
+      tableName: "DocumentTypes",
+      updateValues: {
+        documentTypeName,
+        documentTypeDescription,
+        documentTypeCurrentVersion: 1,
+        documentTypeDeletedAt: null,
+        documentTypeDeletedBy: null,
+        isDocumentTypeDeleted: 0,
+        documentTypeUpdatedBy: userUniqueId,
+        documentTypeUpdatedAt: currentDate(),
+      },
+      conditions: { documentTypeUniqueId: collidingSoftDeleted[0].documentTypeUniqueId },
+    });
+    return {
+      message: "Document type created",
+      data: {
+        documentTypeUniqueId: collidingSoftDeleted[0].documentTypeUniqueId,
+        documentTypeName,
+        documentTypeDescription,
+        uploadedDocumentTypeId,
+        uploadedDocumentName,
+      },
+    };
+  }
+
   await insertData({ tableName: "DocumentTypes", colAndVal: newDocumentType });
-  return { message: "Document type created", data: null };
+  return {
+    message: "Document type created",
+    data: {
+      documentTypeUniqueId,
+      documentTypeName,
+      documentTypeDescription,
+      uploadedDocumentTypeId,
+      uploadedDocumentName,
+    },
+  };
 };
 
 const getAllDocumentTypes = async (filters = {}) => {

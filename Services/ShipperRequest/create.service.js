@@ -128,6 +128,34 @@ const createShipperRequest = async (body, journeyStatusId) => {
         AppError.BAD_REQUEST,
       );
     }
+
+    // A batch unique ID must stay "one for all": it is bound to ONE shipper and
+    // ONE requestMode. The batch header is the single source of truth for this.
+    // company_target batches defer individual ShipperRequest rows until a bid is
+    // accepted, so the row-count check above alone cannot catch a second create
+    // call that reuses the batch ID with a different mode (e.g. company_target
+    // header followed by an individual_target create would silently mint rows
+    // under the company_target batch). Reject any reuse that mismatches the
+    // existing header.
+    const [batchHeaderRows] = await executor.query(
+      `SELECT shipperUserUniqueId, requestMode
+         FROM ShipperRequestBatch
+        WHERE batchUniqueId = ? LIMIT 1`,
+      [shipperRequestBatchUniqueId],
+    );
+    if (batchHeaderRows.length > 0) {
+      const header = batchHeaderRows[0];
+      const incomingMode = body.requestMode || "individual_target";
+      if (
+        header.shipperUserUniqueId !== userUniqueId ||
+        (header.requestMode && header.requestMode !== incomingMode)
+      ) {
+        throw new AppError(
+          `shipperRequestBatchUniqueId is already in use and cannot be reused with a different shipper or request mode.`,
+          AppError.BAD_REQUEST,
+        );
+      }
+    }
     const newRequests = [];
     const noOfRecords = numberOfVehicles - dataByBatchId?.length;
 

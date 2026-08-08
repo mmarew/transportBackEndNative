@@ -1,7 +1,7 @@
 const databaseService = require("../Services/Database");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
-const { HTTP_STATUS } = require("../Utils/Constants");
+const { HTTP_STATUS, TIME } = require("../Utils/Constants");
 
 const createTableController = async (req, res, next) => {
   try {
@@ -102,7 +102,7 @@ const installPreDefinedDataController = async (req, res, next) => {
       async () => {
         return await databaseService.installPreDefinedData(req);
       },
-      { timeout: 300000 }, // 5 minutes
+      { timeout: TIME.FIVE_MINUTES_MS }, // 5 minutes
     );
     res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {

@@ -1,6 +1,7 @@
 const { pool, getPoolMetrics, ping } = require("../Middleware/Database.config");
 const { currentDate } = require("./CurrentDate");
 const logger = require("./logger");
+const { TIME } = require("./Constants");
 
 const POOL_WARNING_THRESHOLD = 90;
 const PERCENTAGE_MULTIPLIER = 100;
@@ -277,21 +278,21 @@ const getDatabaseStats = async () => {
  *
  * @param {Function} callback - Callback function called with health status object on each check.
  *                              Receives the same object structure as checkDatabaseHealth().
- * @param {number} interval - Monitoring interval in milliseconds (default: 60000 = 1 minute)
- * @returns {Function} Function to stop monitoring. Call this function to stop the monitoring loop.
- *
- * @example
- * const stopMonitoring = startHealthMonitoring((health) => {
- *   if (health.status === 'unhealthy') {
- *     sendAlert('Database is unhealthy!', health);
- *   }
- *   logger.info('Database health check', health);
- * }, 60000); // Check every minute
- *
- * // Later, stop monitoring
- * stopMonitoring();
- */
-const startHealthMonitoring = (callback, interval = 60000) => {
+  * @param {number} interval - Monitoring interval in milliseconds (default: TIME.MINUTE_MS = 1 minute)
+  * @returns {Function} Function to stop monitoring. Call this function to stop the monitoring loop.
+  *
+  * @example
+  * const stopMonitoring = startHealthMonitoring((health) => {
+  *   if (health.status === 'unhealthy') {
+  *     sendAlert('Database is unhealthy!', health);
+  *   }
+  *   logger.info('Database health check', health);
+  * }, TIME.MINUTE_MS); // Check every minute
+  *
+  * // Later, stop monitoring
+  * stopMonitoring();
+  */
+ const startHealthMonitoring = (callback, interval = TIME.MINUTE_MS) => {
   let monitoring = true;
 
   const monitor = async () => {

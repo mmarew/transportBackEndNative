@@ -487,7 +487,8 @@ function validateAndFormatDate(dateValue) {
         const month = parseInt(parts[1], 10);
         const day = parseInt(parts[2], 10);
 
-        if (month < 1 || month > 12 || day < 1 || day > 31) // eslint-disable-line no-magic-numbers -- calendar bounds {
+        if (month < 1 || month > 12 || day < 1 || day > 31) {
+          // eslint-disable-line no-magic-numbers -- calendar bounds
           return false;
         }
 

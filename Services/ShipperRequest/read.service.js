@@ -950,6 +950,7 @@ const getShipperRequestByUniqueId = async (
                     originLatitude,
                     originLongitude,
                     originPlace,
+                    shippingCost,
                     userUniqueId
              FROM ShipperRequest
              WHERE shipperRequestUniqueId = ?

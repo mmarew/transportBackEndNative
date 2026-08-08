@@ -21,9 +21,10 @@ const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { transactionStorage } = require("../Utils/TransactionContext");
 
-const today = () => new Date().toISOString().slice(0, 10) // eslint-disable-line no-magic-numbers -- YYYY-MM-DD;
+const today = () => new Date().toISOString().slice(0, 10); // eslint-disable-line no-magic-numbers -- YYYY-MM-DD;
 const QUEUE_OFFER_WINDOW_MINUTES = 3;
-const QUEUE_REFUSAL_LIMIT = Number(process.env.QUEUE_REFUSAL_LIMIT) || DOMAIN.DEFAULT_QUEUE_REFUSAL_LIMIT;
+const QUEUE_REFUSAL_LIMIT =
+  Number(process.env.QUEUE_REFUSAL_LIMIT) || DOMAIN.DEFAULT_QUEUE_REFUSAL_LIMIT;
 
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
@@ -60,7 +61,10 @@ const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
     [vehicleDriverUniqueId],
   );
   if (rows.length === 0) {
-    throw new AppError("Active vehicle-driver assignment not found", AppError.NOT_FOUND);
+    throw new AppError(
+      "Active vehicle-driver assignment not found",
+      AppError.NOT_FOUND,
+    );
   }
   return rows[0];
 };
@@ -142,7 +146,10 @@ exports.checkin = async (data) => {
 
   const org = await queueOrgReady(executor, queueOrganizationUniqueId);
   if (org.approvalStatus !== "approved" || !org.queueEnabled) {
-    throw new AppError("Queue organization is not enabled for dispatch", AppError.FORBIDDEN);
+    throw new AppError(
+      "Queue organization is not enabled for dispatch",
+      AppError.FORBIDDEN,
+    );
   }
 
   const vehicleDriver = await getVehicleDriverType(
@@ -235,7 +242,10 @@ exports.checkin = async (data) => {
       });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
-        throw new AppError("Driver is already in the queue for this day", AppError.CONFLICT);
+        throw new AppError(
+          "Driver is already in the queue for this day",
+          AppError.CONFLICT,
+        );
       }
       throw error;
     }
@@ -361,7 +371,10 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
     );
   }
   if (rows.length === 0) {
-    throw new AppError("Driver is not in the queue for today", AppError.NOT_FOUND);
+    throw new AppError(
+      "Driver is not in the queue for today",
+      AppError.NOT_FOUND,
+    );
   }
 
   const orgId = rows[0].queueOrganizationUniqueId;
@@ -547,7 +560,10 @@ exports.manualCheckin = async (data) => {
       });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
-        throw new AppError("Driver is already in the queue for this day", AppError.CONFLICT);
+        throw new AppError(
+          "Driver is already in the queue for this day",
+          AppError.CONFLICT,
+        );
       }
       throw error;
     }
@@ -996,7 +1012,10 @@ const offerToDriver = async ({
 
     await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
 
-    const vehicle = await getDriverVehicle(txExecutor, entry.driverUserUniqueId);
+    const vehicle = await getDriverVehicle(
+      txExecutor,
+      entry.driverUserUniqueId,
+    );
     await notifyDriverOfQueueOffer({
       front: entry,
       shipperRequest,
@@ -1043,7 +1062,7 @@ const offerToDriver = async ({
  * Dispatch — offer the front waiting driver (of the order's vehicle type) the
  * order. This is the MANUAL trigger (QueueOrgAdmin) for a waiting order.
  */
- exports.dispatch = async (data) => {
+exports.dispatch = async (data) => {
   const {
     queueOrganizationUniqueId,
     vehicleTypeUniqueId,
@@ -1201,7 +1220,10 @@ exports.rejectOffer = async (data) => {
  * is no next driver — the order is gone). No-op for non-queue orders and for
  * entries already `waiting`/`loaded`. Idempotent.
  */
-exports.releaseEntryOnOrderCancel = async ({ shipperRequestUniqueId, user }) => {
+exports.releaseEntryOnOrderCancel = async ({
+  shipperRequestUniqueId,
+  user,
+}) => {
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,

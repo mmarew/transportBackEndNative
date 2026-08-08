@@ -23,7 +23,13 @@ const createCommissionRate = async ({
   ]);
 
   if (existingById.length > 0) {
-    return { message: "Commission rate already exists", data: null };
+    return {
+      message: "Commission rate already exists",
+      data: {
+        commissionRateUniqueId: existingById[0].commissionRateUniqueId,
+        commissionRate: existingById[0].commissionRate,
+      },
+    };
   }
 
   const sqlCheckDuplicate = `
@@ -38,7 +44,14 @@ const createCommissionRate = async ({
   ]);
 
   if (existingRate.length > 0) {
-    return { message: "Commission rate already exists", data: null };
+    return {
+      message: "Commission rate already exists",
+      data: {
+        commissionRateUniqueId: existingRate[0].commissionRateUniqueId,
+        commissionRate: existingRate[0].commissionRate,
+        commissionRateEffectiveDate: existingRate[0].commissionRateEffectiveDate,
+      },
+    };
   }
 
   // Insert new commission rate

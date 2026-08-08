@@ -63,9 +63,9 @@ const deleteUserDelinquency = async (req, res, next) => {
 
 const checkAutomaticBan = async (req, res, next) => {
   try {
-    const { userRoleUniqueId } = req.params;
+    const { userUniqueId, roleId } = req.params;
     const result =
-      await userDelinquencyService.checkAutomaticBan(userRoleUniqueId);
+      await userDelinquencyService.checkAutomaticBan(userUniqueId, roleId);
     ServerResponder(res, result);
   } catch (error) {
     next(error);

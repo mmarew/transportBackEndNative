@@ -46,7 +46,7 @@ const routes = [
     handler: userDelinquencyController.deleteUserDelinquency,
   },
   {
-    path: "/api/admin/check-automatic-ban/:userRoleUniqueId",
+    path: "/check-automatic-ban/:userUniqueId/:roleId",
     method: "get",
     middleware: [verifyTokenOfAxios, validator(userRoleParams, "params")],
     handler: userDelinquencyController.checkAutomaticBan,

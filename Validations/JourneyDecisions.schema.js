@@ -36,7 +36,9 @@ exports.updateJourneyDecision = Joi.object({
 
 exports.journeyDecisionParams = Joi.object({
   journeyDecisionUniqueId: uuidSchema.optional(),
-  id: uuidSchema.optional(), // Route uses :id in some places
+  id: Joi.alternatives()
+    .try(uuidSchema, Joi.number().integer().min(1)) // Route uses :id (numeric PK)
+    .optional(),
   driverRequestUniqueId: uuidSchema.optional(),
   shipperRequestUniqueId: uuidSchema.optional(),
 }).unknown(true);
