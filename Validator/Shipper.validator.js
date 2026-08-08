@@ -8,7 +8,7 @@ const verifyExistanceOfPassangerInWaitingStage = async (userUniqueId) => {
   const [shipperResult] = await pool.query(shipperSql, shipperValues);
 
   if (shipperResult.length === 0) {
-    throw new AppError("shipper not found", 404);
+    throw new AppError("shipper not found", AppError.NOT_FOUND);
   }
 
   // Query to check existence in the ShipperRequest table

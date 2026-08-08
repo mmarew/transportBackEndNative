@@ -201,7 +201,17 @@ const createDriverRequest = async (
     };
 };
 
+const createData = async ({ tableName, insertValues = {}, connection = null }) => {
+  const result = await insertData({
+    tableName,
+    colAndVal: insertValues,
+    connection,
+  });
+  return result;
+};
+
 module.exports = {
+  createData,
   createDriverRequest,
   createNewShipperRequest,
   insertData,

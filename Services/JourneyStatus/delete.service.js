@@ -33,10 +33,10 @@ const deleteJourneyStatusByUniqueId = async (journeyStatusUniqueId, user) => {
     }
   });
   if (!existing || existing.length === 0) {
-    throw new AppError("Journey status not found", 404);
+    throw new AppError("Journey status not found", AppError.NOT_FOUND);
   }
   if (existing[0]?.journeyStatusDeletedAt) {
-    throw new AppError("Journey status already deleted", 400);
+    throw new AppError("Journey status already deleted", AppError.BAD_REQUEST);
   }
 
   // Execute pure SQL soft delete to avoid NULL handling issues in updateData
@@ -54,7 +54,7 @@ const deleteJourneyStatusByUniqueId = async (journeyStatusUniqueId, user) => {
       data: null
     };
   }
-  throw new AppError("Journey status delete failed", 500);
+  throw new AppError("Journey status delete failed", AppError.INTERNAL_SERVER_ERROR);
 };
 
 // Get all journey statuses
@@ -73,7 +73,7 @@ const deleteJourneyStatus = async journeyStatusUniqueId => {
       data: null
     };
   } else {
-    throw new AppError("Failed to delete journey status", 500);
+    throw new AppError("Failed to delete journey status", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

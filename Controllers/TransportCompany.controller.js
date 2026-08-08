@@ -3,6 +3,7 @@ const service = require("../Services/TransportCompany.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { getHistory } = require("../Utils/CompanyProfileHistory");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.createCompany = async (req, res, next) => {
   try {
@@ -13,7 +14,7 @@ exports.createCompany = async (req, res, next) => {
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

@@ -30,7 +30,7 @@ const AppError = require("../../Utils/AppError");
 // }) => {
 //   const allowedStatuses = ["approved", "rejected"];
 //   if (!allowedStatuses.includes(newStatus)) {
-//     throw new AppError("Invalid deposit status", 400);
+//     throw new AppError("Invalid deposit status", AppError.BAD_REQUEST);
 //   }
 
 //   // Load deposit using consolidated getter
@@ -43,7 +43,7 @@ const AppError = require("../../Utils/AppError");
 //     : depositFetch?.data;
 
 //   if (!depositData) {
-//     throw new AppError("Deposit not found", 404);
+//     throw new AppError("Deposit not found", AppError.NOT_FOUND);
 //   }
 //   const depositStatus = depositData?.depositStatus;
 //   if (newStatus === depositStatus && depositStatus === "approved") {
@@ -75,7 +75,7 @@ const AppError = require("../../Utils/AppError");
 //     ]);
 
 //     if (updateResult.affectedRows === 0) {
-//       throw new AppError("Deposit not found or already updated", 404);
+//       throw new AppError("Deposit not found or already updated", AppError.NOT_FOUND);
 //     }
 //   });
 
@@ -99,7 +99,7 @@ async function fetchDepositData(userDepositUniqueId) {
   });
   const depositData = Array.isArray(depositFetch?.data) ? depositFetch.data[0] : depositFetch?.data;
   if (!depositData) {
-    throw new AppError("Deposit not found", 404);
+    throw new AppError("Deposit not found", AppError.NOT_FOUND);
   }
   return depositData;
 }
@@ -115,7 +115,7 @@ function getUpdateFields(data) {
   const excludedFields = ["userDepositUniqueId", "userDepositId", "userDepositCreatedBy", "userDepositCreatedAt"];
   const allowedFields = Object.keys(data).filter(key => !excludedFields.includes(key));
   if (allowedFields.length === 0) {
-    throw new AppError("No valid fields to update", 400);
+    throw new AppError("No valid fields to update", AppError.BAD_REQUEST);
   }
   const setClause = allowedFields.map(field => `${field} = ?`).join(", ");
   const values = allowedFields.map(field => data[field]);

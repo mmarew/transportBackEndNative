@@ -15,7 +15,7 @@ const { query } = require("./journeyHelper");
  */
 const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }) => {
   if (!journeyUniqueId) {
-    throw new AppError("journeyUniqueId is required", 400);
+    throw new AppError("journeyUniqueId is required", AppError.BAD_REQUEST);
   }
 
   // Build dynamic SET clause
@@ -36,7 +36,7 @@ const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }
   }
 
   if (updates.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   const sql = `UPDATE Journey SET ${updates.join(", ")} WHERE journeyUniqueId = ?`;
@@ -47,7 +47,7 @@ const updateJourney = async ({ journeyUniqueId, endTime, fare, journeyStatusId }
   const result = await query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Journey not found or no changes made", 404);
+    throw new AppError("Journey not found or no changes made", AppError.NOT_FOUND);
   }
 
   return {

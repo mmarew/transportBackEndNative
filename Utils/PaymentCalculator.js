@@ -38,7 +38,7 @@ const calculateDistances = (journeyRoutePoints) => {
 async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
   try {
     if (!vehicleTypeUniqueId || !journeyUniqueId) {
-      throw new AppError("Missing required parameters", 400);
+      throw new AppError("Missing required parameters", AppError.BAD_REQUEST);
     }
 
     const TariffRateForVehicleTypes = await performJoinSelect({
@@ -53,14 +53,14 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
     });
 
     if (TariffRateForVehicleTypes.length === 0) {
-      throw new AppError("No tariff rate found for this vehicle type", 404);
+      throw new AppError("No tariff rate found for this vehicle type", AppError.NOT_FOUND);
     }
 
     const { standingTariffRate, journeyTariffRate, timingTariffRate } =
       TariffRateForVehicleTypes[0];
 
     if (!standingTariffRate || !journeyTariffRate || !timingTariffRate) {
-      throw new AppError("Missing required tariff rate columns", 500);
+      throw new AppError("Missing required tariff rate columns", AppError.INTERNAL_SERVER_ERROR);
     }
 
     const JourneyRoutePoints = await getData({
@@ -69,7 +69,7 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
     });
 
     if (!JourneyRoutePoints.length) {
-      throw new AppError("No journey route points found for this journey", 404);
+      throw new AppError("No journey route points found for this journey", AppError.NOT_FOUND);
     }
 
     const totalDistance = Math.round(calculateDistances(JourneyRoutePoints));
@@ -102,7 +102,7 @@ async function PaymentCalculator({ vehicleTypeUniqueId, journeyUniqueId }) {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("Something went wrong during payment calculation", 500);
+    throw new AppError("Something went wrong during payment calculation", AppError.INTERNAL_SERVER_ERROR);
   }
 }
 module.exports = PaymentCalculator;

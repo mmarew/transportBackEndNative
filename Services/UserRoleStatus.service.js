@@ -24,7 +24,7 @@ const createUserRoleStatus = async (body) => {
   });
 
   if (existingUserRoleStatus.length > 0) {
-    throw new AppError("Active UserRoleStatus already exists", 400);
+    throw new AppError("Active UserRoleStatus already exists", AppError.BAD_REQUEST);
   }
 
   // Insert new UserRoleStatus into the current table
@@ -56,7 +56,7 @@ const updateUserRoleStatus = async (updateDataValues) => {
   const updaterUserUniqueId = user?.userUniqueId;
 
   if (!newStatusId || !phoneNumber || !roleId) {
-    throw new AppError("Missing required fields", 400);
+    throw new AppError("Missing required fields", AppError.BAD_REQUEST);
   }
   const sql = `SELECT UserRoleStatusCurrent.* FROM UserRoleStatusCurrent,Statuses, UserRole,Users WHERE  UserRoleStatusCurrent.statusId = Statuses.statusId AND UserRole.userRoleId = UserRoleStatusCurrent.userRoleId AND Users.userUniqueId  = UserRole.userUniqueId AND Users.phoneNumber = ?  AND UserRole.roleId = ?`;
 
@@ -64,7 +64,7 @@ const updateUserRoleStatus = async (updateDataValues) => {
   const [existingUserRoleStatus] = await executor.query(sql, [phoneNumber, roleId]);
 
   if (existingUserRoleStatus.length === 0) {
-    throw new AppError("Active user role status not found", 404);
+    throw new AppError("Active user role status not found", AppError.NOT_FOUND);
   }
   const userRoleStatusUniqueId =
     existingUserRoleStatus[0].userRoleStatusUniqueId;
@@ -170,7 +170,7 @@ const deleteUserRoleStatus = async (userRoleStatusUniqueId) => {
   });
 
   if (existingUserRoleStatus.length === 0) {
-    throw new AppError("UserRoleStatus not found", 404);
+    throw new AppError("UserRoleStatus not found", AppError.NOT_FOUND);
   }
 
   // Move current status to history before deletion

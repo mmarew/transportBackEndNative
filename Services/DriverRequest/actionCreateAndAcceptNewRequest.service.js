@@ -46,14 +46,14 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
     const shipperRequestId = shipperRequest?.shipperRequestId;
     // check if the shipper request is already accepted by driver
     if (shipperJourneyStatusId > journeyStatusMap.acceptedByDriver) {
-      throw new AppError("Shipper request already accepted by driver", 400);
+      throw new AppError("Shipper request already accepted by driver", AppError.BAD_REQUEST);
     }
     if (!shipperJourneyStatusId) {
-      throw new AppError("Shipper request not found", 404);
+      throw new AppError("Shipper request not found", AppError.NOT_FOUND);
     }
     // validate if the request exists
     if (shipperRequest?.message === "error") {
-      throw new AppError(shipperRequest.error || "Shipper request error", 400);
+      throw new AppError(shipperRequest.error || "Shipper request error", AppError.BAD_REQUEST);
     }
     // verify if there was any shipper-driver relation/decision before
     // Only match ACTIVE decisions (statuses 1-5) — ignore completed, cancelled, etc.
@@ -243,7 +243,7 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
     });
     throw new AppError(
       error.message || "Unable to create and accept request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

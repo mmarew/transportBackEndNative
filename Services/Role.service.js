@@ -39,11 +39,11 @@ const createRole = async (body) => {
         }
       };
     }
-    throw new AppError("Role creation failed", 500);
+    throw new AppError("Role creation failed", AppError.INTERNAL_SERVER_ERROR);
   } catch (error) {
     throw new AppError(
       error.message || "An error occurred during role creation",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -57,11 +57,11 @@ const getRole = async (roleUniqueId) => {
     if (rows.length > 0) {
       return { message: "Role fetched successfully", data: rows[0] };
     }
-    throw new AppError("Role not found", 404);
+    throw new AppError("Role not found", AppError.NOT_FOUND);
   } catch (error) {
     throw new AppError(
       error.message || "An error occurred while retrieving the role",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -84,7 +84,7 @@ const updateRole = async (roleUniqueId, body) => {
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Add audit columns
@@ -102,14 +102,14 @@ const updateRole = async (roleUniqueId, body) => {
     if (result.affectedRows > 0) {
       return { message: "Role updated successfully", data: null };
     }
-    throw new AppError("Role update failed", 500);
+    throw new AppError("Role update failed", AppError.INTERNAL_SERVER_ERROR);
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
       return { message: "Role already exists", data: null };
     }
     throw new AppError(
       error.message || "An error occurred during role update",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -128,11 +128,11 @@ const deleteRole = async (roleUniqueId, user) => {
     if (result.affectedRows > 0) {
       return { message: "Role deleted successfully", data: null };
     }
-    throw new AppError("Role deletion failed", 500);
+    throw new AppError("Role deletion failed", AppError.INTERNAL_SERVER_ERROR);
   } catch (error) {
     throw new AppError(
       error.message || "An error occurred during role deletion",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -225,7 +225,7 @@ const getAllRoles = async (filters = {}) => {
     const total = countRows?.[0]?.total || 0;
 
     if (!dataRows || dataRows.length === 0) {
-      throw new AppError("No roles found", 404);
+      throw new AppError("No roles found", AppError.NOT_FOUND);
     }
 
     return {
@@ -241,7 +241,7 @@ const getAllRoles = async (filters = {}) => {
   } catch (error) {
     throw new AppError(
       error.message || "An error occurred while retrieving the roles",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

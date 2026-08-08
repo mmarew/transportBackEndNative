@@ -1,4 +1,5 @@
 const Config = require("../Utils/Config");
+const { HTTP_STATUS } = require("../Utils/Constants");
 const API_KEY = Config.API_KEY || "your-secret-api-key"; // Fallback for safety
 // Public paths that should not require an API key (e.g., health checks)
 const PUBLIC_PATHS = new Set(["/", "/crash"]);
@@ -12,7 +13,7 @@ const apiKeyAuth = (req, res, next) => {
   const apiKey = req.get("X-API-Key");
 
   if (!apiKey || apiKey !== API_KEY) {
-    return res.status(401).json({ message: "Unauthorized: Invalid API Key" });
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "Unauthorized: Invalid API Key" });
   }
 
   next();

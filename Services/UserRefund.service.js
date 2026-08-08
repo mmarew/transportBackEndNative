@@ -82,7 +82,7 @@ const createUserRefund = async ({
   ]);
 
   if (insertResult.affectedRows === 0) {
-    throw new AppError("Failed to create refund request", 500);
+    throw new AppError("Failed to create refund request", AppError.INTERNAL_SERVER_ERROR);
   }
 
   const result = {
@@ -156,7 +156,7 @@ const getUserRefunds = async ({
     const executor = transactionStorage.getStore() || pool;
     const [result] = await executor.query(sql, params);
     if (result.length === 0) {
-      throw new AppError("Refund not found", 404);
+      throw new AppError("Refund not found", AppError.NOT_FOUND);
     }
     return result[0];
   }
@@ -198,7 +198,7 @@ const deleteRefundByUniqueId = async (userRefundUniqueId) => {
   const [result] = await executor.query(sql, [userRefundUniqueId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete refund", 404);
+    throw new AppError("Failed to delete refund", AppError.NOT_FOUND);
   }
 
   return `Refund ${userRefundUniqueId} deleted successfully`;
@@ -214,7 +214,7 @@ const deleteRefundByUniqueId = async (userRefundUniqueId) => {
  */
 const updateUserRefundByUniqueId = async (userRefundUniqueId, data) => {
   if (!userRefundUniqueId || !data || Object.keys(data).length === 0) {
-    throw new AppError("Missing refund ID or update data", 400);
+    throw new AppError("Missing refund ID or update data", AppError.BAD_REQUEST);
   }
 
   // Check if refundStatus is being changed to 'approved'
@@ -276,7 +276,7 @@ const updateUserRefundByUniqueId = async (userRefundUniqueId, data) => {
     ]);
 
     if (updateResult.affectedRows === 0) {
-      throw new AppError("Refund not found or not updated", 404);
+      throw new AppError("Refund not found or not updated", AppError.NOT_FOUND);
     }
 
     // Send notification after successful transaction
@@ -306,7 +306,7 @@ const updateUserRefundByUniqueId = async (userRefundUniqueId, data) => {
     ]);
 
     if (result.affectedRows === 0) {
-      throw new AppError("Refund not found or not updated", 404);
+      throw new AppError("Refund not found or not updated", AppError.NOT_FOUND);
     }
 
     return { updated: true, userRefundUniqueId };

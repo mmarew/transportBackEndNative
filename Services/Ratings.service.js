@@ -73,7 +73,7 @@ exports.createRating = async ({
     }
     throw new AppError(
       error.message || "Unable to create rating",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -182,7 +182,7 @@ exports.getRatingById = async (ratingId) => {
   if (result.length > 0) {
     return { message: "Rating fetched successfully", data: result[0] };
   }
-  throw new AppError("Rating not found", 404);
+  throw new AppError("Rating not found", AppError.NOT_FOUND);
 };
 
 // Update a specific rating by ID (partial update — only sets provided fields)
@@ -204,7 +204,7 @@ exports.updateRating = async (ratingId, rating, comment, updatedBy) => {
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   setParts.push("ratingUpdatedAt = ?");
@@ -216,7 +216,7 @@ exports.updateRating = async (ratingId, rating, comment, updatedBy) => {
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update rating", 500);
+    throw new AppError("Failed to update rating", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {
@@ -238,6 +238,6 @@ exports.deleteRating = async (ratingId, deletedBy) => {
       data: null,
     };
   } else {
-    throw new AppError("Failed to delete rating", 500);
+    throw new AppError("Failed to delete rating", AppError.INTERNAL_SERVER_ERROR);
   }
 };

@@ -23,11 +23,11 @@ const createDelinquencyType = async (data) => {
   const userUniqueId = user?.userUniqueId;
   // validations
   if (!delinquencyTypeName) {
-    throw new AppError("Delinquency type name is required", 400);
+    throw new AppError("Delinquency type name is required", AppError.BAD_REQUEST);
   }
 
   if (!applicableRoles) {
-    throw new AppError("Applicable roles is required", 400);
+    throw new AppError("Applicable roles is required", AppError.BAD_REQUEST);
   }
 
   // resolve applicableRoles to roleUniqueId if a role name is provided
@@ -227,7 +227,7 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
       [delinquencyTypeUniqueId],
     );
     if (!existing || existing.length === 0) {
-      throw new AppError("Delinquency type not found", 404);
+      throw new AppError("Delinquency type not found", AppError.NOT_FOUND);
     }
 
     // Resolve applicableRoles (if provided) before building SET clause
@@ -290,7 +290,7 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
     }
 
     if (setParts.length === 0) {
-      throw new AppError("No fields provided to update", 400);
+      throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
     }
 
     // Add audit columns
@@ -310,7 +310,7 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
         data: null,
       };
     } else {
-      throw new AppError("Delinquency type update failed", 500);
+      throw new AppError("Delinquency type update failed", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
     logger.debug("updateDelinquencyType ~ error:", error);
@@ -327,7 +327,7 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
     [delinquencyTypeUniqueId],
   );
   if (!existing || existing.length === 0) {
-    throw new AppError("Delinquency type not found", 404);
+    throw new AppError("Delinquency type not found", AppError.NOT_FOUND);
   }
 
   const checkSql =
@@ -356,7 +356,7 @@ const deleteDelinquencyType = async (delinquencyTypeUniqueId, user) => {
       data: null,
     };
   } else {
-    throw new AppError("Delinquency type delete failed", 500);
+    throw new AppError("Delinquency type delete failed", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -419,7 +419,7 @@ const toggleDelinquencyTypeActive = async (delinquencyTypeUniqueId) => {
     };
   }
 
-  throw new AppError("Failed to toggle delinquency type status", 500);
+  throw new AppError("Failed to toggle delinquency type status", AppError.INTERNAL_SERVER_ERROR);
 };
 
 module.exports = {

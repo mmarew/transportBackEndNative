@@ -20,7 +20,7 @@ const deleteBid = async (companyBidRequestUniqueId, deletedBy) => {
     [currentDate(), deletedBy, companyBidRequestUniqueId],
   );
   if (res.affectedRows === 0) {
-    throw new AppError("Bid not found or already deleted", 404);
+    throw new AppError("Bid not found or already deleted", AppError.NOT_FOUND);
   }
   return { message: "Bid deleted successfully", data: null };
 };

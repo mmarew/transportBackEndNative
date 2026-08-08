@@ -1,6 +1,7 @@
 const commissionStatusService = require("../Services/CommissionStatus.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.createCommissionStatus = async (req, res, next) => {
   try {
@@ -10,7 +11,7 @@ exports.createCommissionStatus = async (req, res, next) => {
         user: req.user,
       });
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }

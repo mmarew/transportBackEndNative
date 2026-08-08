@@ -58,7 +58,7 @@ const getAllJourneys = async (page = 1, limit = 10) => {
 const getJourneyByJourneyUniqueId = async journeyUniqueId => {
   const result = await query("SELECT * FROM Journey WHERE journeyUniqueId = ?", [journeyUniqueId]);
   if (result.length === 0) {
-    throw new AppError("Journey not found", 404);
+    throw new AppError("Journey not found", AppError.NOT_FOUND);
   }
   return {
     message: "Request list fetched",

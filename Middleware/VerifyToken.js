@@ -11,7 +11,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
 
   if (!authHeader) {
     console.log('[VerifyToken] No auth header');
-    return next(new AppError("Authorization header missing", 401));
+    return next(new AppError("Authorization header missing", AppError.UNAUTHORIZED));
   }
 
   const token = authHeader.split(" ")[1];
@@ -28,7 +28,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
 
     if (user.length === 0) {
       console.log('[VerifyToken] User not found in DB:', userUniqueId);
-      return next(new AppError("Invalid token", 401));
+      return next(new AppError("Invalid token", AppError.UNAUTHORIZED));
     }
 
     const userRow = user[0];
@@ -52,19 +52,19 @@ const verifyTokenOfAxios = async (req, res, next) => {
     }
 
     if (error.name === "JsonWebTokenError") {
-      return next(new AppError("Invalid token", 401));
+      return next(new AppError("Invalid token", AppError.UNAUTHORIZED));
     }
     if (error.name === "NotBeforeError") {
-      return next(new AppError("Token not active", 401));
+      return next(new AppError("Token not active", AppError.UNAUTHORIZED));
     }
 
     if (error.code === "ETIMEDOUT") {
       return next(
-        new AppError("Connection timeout. Please try again later.", 503),
+        new AppError("Connection timeout. Please try again later.", AppError.SERVICE_UNAVAILABLE),
       );
     }
 
-    next(new AppError(error.message || "Token verification failed", 401));
+    next(new AppError(error.message || "Token verification failed", AppError.UNAUTHORIZED));
   }
 };
 
@@ -106,7 +106,7 @@ const verifyIfUserIsSupperAdmin = async (req, res, next) => {
     const data = decoded?.data;
     const roleId = data?.roleId;
     if (roleId !== usersRoles.supperAdminRoleId) {
-      return next(new AppError("You are not allowed to do this action", 401));
+      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
     }
     next();
   } catch {
@@ -134,7 +134,7 @@ const verifyIfUserIsAdminOrSupperAdmin = async (req, res, next) => {
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", 401));
+      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
     }
     next();
   } catch {
@@ -163,7 +163,7 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
       roleId !== usersRoles.supperAdminRoleId &&
       roleId !== usersRoles.companyAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", 401));
+      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
     }
     next();
   } catch {
@@ -192,7 +192,7 @@ const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", 401));
+      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
     }
     next();
   } catch {
@@ -226,7 +226,7 @@ const verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin = async (
       roleId !== usersRoles.companyAdminRoleId &&
       roleId !== usersRoles.queueOrgAdminRoleId
     ) {
-      return next(new AppError("You are not allowed to do this action", 401));
+      return next(new AppError("You are not allowed to do this action", AppError.UNAUTHORIZED));
     }
     next();
   } catch {

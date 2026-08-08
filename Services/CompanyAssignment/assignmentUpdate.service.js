@@ -75,7 +75,7 @@ exports.createBulkAssignments = async (data) => {
     tableName: "CompanyBidRequest",
     conditions: { companyBidRequestUniqueId },
   });
-  if (!bidRow) throw new AppError("Bid not found", 404);
+  if (!bidRow) throw new AppError("Bid not found", AppError.NOT_FOUND);
   const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
@@ -352,13 +352,13 @@ exports.updateAssignmentStatus = async (
   );
 
   if (!rows || rows.length === 0) {
-    throw new AppError("Assignment not found", 404);
+    throw new AppError("Assignment not found", AppError.NOT_FOUND);
   }
 
   const assignment = rows[0];
 
   if (assignment.assignmentDeletedAt) {
-    throw new AppError("Assignment has been deleted", 400);
+    throw new AppError("Assignment has been deleted", AppError.BAD_REQUEST);
   }
 
   // Fetch full assignment with joins — matches GET /api/company/assignments shape
@@ -588,7 +588,7 @@ exports.updateAssignmentStatus = async (
 
   if (assignmentStatus === "confirmed_by_driver") {
     if (assignment.assignmentStatus === "completed") {
-      throw new AppError("Cannot confirm a completed assignment", 400);
+      throw new AppError("Cannot confirm a completed assignment", AppError.BAD_REQUEST);
     }
     if (assignment.assignmentStatus === "confirmed_by_driver") {
       return {
@@ -600,7 +600,7 @@ exports.updateAssignmentStatus = async (
       };
     }
     if (!assignment.driverRequestUniqueId) {
-      throw new AppError("No DriverRequest linked to this assignment", 500);
+      throw new AppError("No DriverRequest linked to this assignment", AppError.INTERNAL_SERVER_ERROR);
     }
 
     // Uses the dedicated ShipperRequest service instead of raw SQL
@@ -613,7 +613,7 @@ exports.updateAssignmentStatus = async (
       [assignment.driverRequestUniqueId],
     );
     if (!drRows || drRows.length === 0) {
-      throw new AppError("Driver request not found", 404);
+      throw new AppError("Driver request not found", AppError.NOT_FOUND);
     }
 
     const jStatusId = journeyStatusMap.acceptedByShipper;
@@ -828,7 +828,7 @@ exports.updateAssignmentStatus = async (
     assignmentStatus === "completed"
   ) {
     if (!assignment.driverRequestUniqueId) {
-      throw new AppError("No DriverRequest linked to this assignment", 500);
+      throw new AppError("No DriverRequest linked to this assignment", AppError.INTERNAL_SERVER_ERROR);
     }
 
     const [drRows] = await db().query(
@@ -836,7 +836,7 @@ exports.updateAssignmentStatus = async (
       [assignment.driverRequestUniqueId],
     );
     if (!drRows || drRows.length === 0) {
-      throw new AppError("Driver request not found", 404);
+      throw new AppError("Driver request not found", AppError.NOT_FOUND);
     }
 
     const syncStatusId =

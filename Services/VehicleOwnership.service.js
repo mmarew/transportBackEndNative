@@ -23,7 +23,7 @@ const createVehicleOwnership = async (body) => {
   } = body;
 
   if (!vehicleUniqueId || !roleId || !ownershipStartDate) {
-    throw new AppError("All fields are required for vehicle ownership", 400);
+    throw new AppError("All fields are required for vehicle ownership", AppError.BAD_REQUEST);
   }
 
   // Verify vehicle status
@@ -41,7 +41,7 @@ const createVehicleOwnership = async (body) => {
       connection,
     });
   } else if (statusData.VehicleStatusTypeId !== VEHICLE_STATUS_TYPES.ACTIVE) {
-    throw new AppError("Vehicle is not active", 400);
+    throw new AppError("Vehicle is not active", AppError.BAD_REQUEST);
   }
 
   // Check if ownership already exists (using filter function)
@@ -57,7 +57,7 @@ const createVehicleOwnership = async (body) => {
     // connection, // Pass if supported or needed
   });
   if (existingOwnership.data && existingOwnership.data.length) {
-    throw new AppError("Vehicle ownership already exists", 400);
+    throw new AppError("Vehicle ownership already exists", AppError.BAD_REQUEST);
   }
 
   // validate not by existingOwnership only but also by VehicleOwnership.ownershipEndDate
@@ -77,7 +77,7 @@ const createVehicleOwnership = async (body) => {
     ownershipStartDate,
   ]);
   if (overlaps.length) {
-    throw new AppError("Vehicle is already reserved by other user", 400);
+    throw new AppError("Vehicle is already reserved by other user", AppError.BAD_REQUEST);
   }
 
   // Create new ownership
@@ -116,7 +116,7 @@ const updateVehicleOwnership = async (body) => {
   ];
   const ownershipUniqueId = body?.ownershipUniqueId;
   if (!ownershipUniqueId) {
-    throw new AppError("ownershipUniqueId is required for update", 400);
+    throw new AppError("ownershipUniqueId is required for update", AppError.BAD_REQUEST);
   }
 
   const updates = [];
@@ -137,7 +137,7 @@ const updateVehicleOwnership = async (body) => {
   }
 
   if (updates.length === 0) {
-    throw new AppError("No valid fields provided for update", 400);
+    throw new AppError("No valid fields provided for update", AppError.BAD_REQUEST);
   }
 
   values.push(ownershipUniqueId);
@@ -149,7 +149,7 @@ const updateVehicleOwnership = async (body) => {
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Vehicle ownership not found or update failed", 404);
+    throw new AppError("Vehicle ownership not found or update failed", AppError.NOT_FOUND);
   }
 
   return {
@@ -168,7 +168,7 @@ const deleteVehicleOwnership = async (ownershipUniqueId) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Vehicle ownership not found", 404);
+    throw new AppError("Vehicle ownership not found", AppError.NOT_FOUND);
   }
 
   return {

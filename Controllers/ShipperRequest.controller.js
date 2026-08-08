@@ -7,6 +7,7 @@ const { createUser } = require("../Services/User.service");
 const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createShipperRequest = async (req, res, next) => {
   try {
@@ -159,7 +160,7 @@ const getShipperRequestByShipperRequestUniqueId = async (req, res, next) => {
     if (shipperRequest) {
       ServerResponder(res, { message: "success", data: shipperRequest });
     } else {
-      throw new AppError("Request not found", 404);
+      throw new AppError("Request not found", AppError.NOT_FOUND);
     }
   } catch (error) {
     next(error);
@@ -237,7 +238,7 @@ const verifyShipperStatus = async (req, res, next) => {
       page,
       sendNotificationsToDrivers: true,
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -271,7 +272,7 @@ const cancelShipperRequest = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await ShipperService.cancelShipperRequest(req.body);
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -296,7 +297,7 @@ const cancelShipperRequestBatch = async (req, res, next) => {
       }),
     );
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -310,7 +311,7 @@ const markJourneyCompletionAsSeenController = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await ShipperService.seenByShipper(req.body);
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -322,7 +323,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
     const { seenStatus, page, limit } = req.query;
 
     if (!userUniqueId) {
-      throw new AppError("User not authenticated", 401);
+      throw new AppError("User not authenticated", AppError.UNAUTHORIZED);
     }
 
     const result = await ShipperService.getCancellationNotifications({
@@ -332,7 +333,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
       limit: limit || 10,
     });
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -350,7 +351,7 @@ const markCancellationAsSeenController = async (req, res, next) => {
         journeyDecisionUniqueId,
       });
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }

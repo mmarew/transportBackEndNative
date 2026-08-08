@@ -30,7 +30,7 @@ const updateUserDelinquency = async (userDelinquencyUniqueId, data) => {
       data: null
     };
   }
-  throw new AppError("Failed to update user delinquency record", 500);
+  throw new AppError("Failed to update user delinquency record", AppError.INTERNAL_SERVER_ERROR);
 };
 
 module.exports = {

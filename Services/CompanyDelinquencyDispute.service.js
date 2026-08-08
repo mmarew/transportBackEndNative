@@ -37,7 +37,7 @@ const createDelinquencyResponse = async ({
     [companyDelinquencyUniqueId],
   );
   if (!delinquency) {
-    throw new AppError("Delinquency not found", 404);
+    throw new AppError("Delinquency not found", AppError.NOT_FOUND);
   }
 
   // Prevent duplicate responses to the same delinquency

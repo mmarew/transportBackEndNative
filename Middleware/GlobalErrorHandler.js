@@ -5,27 +5,27 @@ const Config = require("../Utils/Config");
 
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}.`;
-  return new AppError(message, 400);
+  return new AppError(message, AppError.BAD_REQUEST);
 };
 
 const handleDuplicateFieldsDB = (err) => {
   // eslint-disable-next-line security/detect-unsafe-regex
   const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
   const message = `Duplicate field value: ${value}. Please use another value!`;
-  return new AppError(message, 400);
+  return new AppError(message, AppError.BAD_REQUEST);
 };
 
 const handleValidationErrorDB = (err) => {
   const errors = Object.values(err.errors).map((el) => el.message);
   const message = `Invalid input data. ${errors.join(". ")}`;
-  return new AppError(message, 400);
+  return new AppError(message, AppError.BAD_REQUEST);
 };
 
 const handleJWTError = () =>
-  new AppError("Invalid token. Please log in again!", 401);
+  new AppError("Invalid token. Please log in again!", AppError.UNAUTHORIZED);
 
 const handleJWTExpiredError = () =>
-  new AppError("Your token has expired! Please log in again.", 401);
+  new AppError("Your token has expired! Please log in again.", AppError.UNAUTHORIZED);
 
 const sendErrorDev = (err, req, res) => {
   // Log error in development
@@ -64,7 +64,7 @@ const sendErrorProd = (err, req, res) => {
       status: "error",
       error: isClientError ? err.message : "Internal server error",
     },
-    err.statusCode || 500,
+    err.statusCode || AppError.INTERNAL_SERVER_ERROR,
   );
 };
 
@@ -89,7 +89,7 @@ module.exports = (err, req, res, next) => {
     return;
   }
 
-  err.statusCode = err.statusCode || 500;
+  err.statusCode = err.statusCode || AppError.INTERNAL_SERVER_ERROR;
   err.status = err.status || "error";
 
   if (Config.NODE_ENV === "development") {

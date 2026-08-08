@@ -27,7 +27,7 @@ const handleExistingUser = async ({
   }
   const userUniqueId = user.userUniqueId;
   if (!userUniqueId) {
-    throw new AppError("wrong user data", 400);
+    throw new AppError("wrong user data", AppError.BAD_REQUEST);
   }
 
   // 3. Separate Identity Verification (OTP or Link Generation)
@@ -174,12 +174,12 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
     manageService = require("../manage");
   }
   if (!roleId) {
-    throw new AppError("Role ID is required.", 400);
+    throw new AppError("Role ID is required.", AppError.BAD_REQUEST);
   }
 
   // Check if at least one identity is provided
   if (!phoneNumber?.trim() && !email?.trim()) {
-    throw new AppError("Phone number or email address is required.", 400);
+    throw new AppError("Phone number or email address is required.", AppError.BAD_REQUEST);
   }
 
   // PERFORMANCE FIX: Use exact match on indexed columns instead of wildcard search
@@ -219,7 +219,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   // Group roles for the found user
   const userData = userDataResult[0]; // Core user info is same for all rows
   if (userData?.isDeleted || userData?.userDeletedAt) {
-    throw new AppError("Account has been deleted", 403);
+    throw new AppError("Account has been deleted", AppError.FORBIDDEN);
   }
 
   // Find the specific role the user is trying to log into

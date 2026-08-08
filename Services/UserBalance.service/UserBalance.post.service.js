@@ -17,7 +17,7 @@ const getDriverLastBalance = async (driverUniqueId, connection = null) => {
   const [result] = await executor.query(sql, [driverUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("No balance record found", 404);
+    throw new AppError("No balance record found", AppError.NOT_FOUND);
   }
 
   return result[0];
@@ -41,7 +41,7 @@ const prepareAndCreateNewBalance = async ({
     !transactionUniqueId ||
     !transactionType
   ) {
-    throw new AppError("All balance inputs are required", 400);
+    throw new AppError("All balance inputs are required", AppError.BAD_REQUEST);
   }
 
   let netBalance = 0;
@@ -59,7 +59,7 @@ const prepareAndCreateNewBalance = async ({
   // check if there is enough balance to be deducted before deduct if addOrDeduct is deduct and not free
   if (addOrDeduct === "deduct" && !isFree) {
     if (netBalance < Number(amount) || netBalance === 0) {
-      throw new AppError("Insufficient balance", 400);
+      throw new AppError("Insufficient balance", AppError.BAD_REQUEST);
     }
   }
 
@@ -69,7 +69,7 @@ const prepareAndCreateNewBalance = async ({
       : netBalance - Number(amount);
 
   if (addOrDeduct === "add" && newBalance <= 0 && Number(amount) > 0) {
-    throw new AppError("User balance overflow or incorrect addition", 400);
+    throw new AppError("User balance overflow or incorrect addition", AppError.BAD_REQUEST);
   }
 
   const newNetBalanceData = {

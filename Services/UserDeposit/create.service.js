@@ -35,7 +35,7 @@ const createUserDeposit = async (data) => {
 
   // Check if required fields are provided
   if (!driverUniqueId || !depositAmount || !depositSourceUniqueId) {
-    throw new AppError("Missing required fields to create deposit", 400);
+    throw new AppError("Missing required fields to create deposit", AppError.BAD_REQUEST);
   }
 
   // For manual deposits: accountUniqueId and depositTime are REQUIRED
@@ -47,40 +47,40 @@ const createUserDeposit = async (data) => {
       );
     }
     if (!depositTime) {
-      throw new AppError("depositTime is required for manual deposits", 400);
+      throw new AppError("depositTime is required for manual deposits", AppError.BAD_REQUEST);
     }
   }
 
   // Validate depositAmount
   if (isNaN(depositAmount) || depositAmount <= 0) {
-    throw new AppError("Invalid deposit amount", 400);
+    throw new AppError("Invalid deposit amount", AppError.BAD_REQUEST);
   }
 
   // Validate depositTime (required for manual, optional for automatic)
   if (depositTime && isNaN(new Date(depositTime).getTime())) {
-    throw new AppError("Invalid deposit time", 400);
+    throw new AppError("Invalid deposit time", AppError.BAD_REQUEST);
   }
   // Validate depositURL
   if (depositURL && typeof depositURL !== "string") {
-    throw new AppError("Invalid deposit URL", 400);
+    throw new AppError("Invalid deposit URL", AppError.BAD_REQUEST);
   }
   // Validate driverUniqueId
   if (typeof driverUniqueId !== "string" || driverUniqueId.length === 0) {
-    throw new AppError("Invalid driver unique ID", 400);
+    throw new AppError("Invalid driver unique ID", AppError.BAD_REQUEST);
   }
   // Validate depositSourceUniqueId
   if (
     typeof depositSourceUniqueId !== "string" ||
     depositSourceUniqueId.length === 0
   ) {
-    throw new AppError("Invalid deposit source unique ID", 400);
+    throw new AppError("Invalid deposit source unique ID", AppError.BAD_REQUEST);
   }
   // Validate accountUniqueId
   if (
     accountUniqueId &&
     (typeof accountUniqueId !== "string" || accountUniqueId.length === 0)
   ) {
-    throw new AppError("Invalid account unique ID", 400);
+    throw new AppError("Invalid account unique ID", AppError.BAD_REQUEST);
   }
 
   // check if depositURL existed before
@@ -93,7 +93,7 @@ const createUserDeposit = async (data) => {
     });
     if (existedURL?.length > 0) {
       return { message: "Deposit URL already exists", data: null };
-      // throw new AppError("Deposit URL already exists", 400);
+      // throw new AppError("Deposit URL already exists", AppError.BAD_REQUEST);
     }
   }
 
@@ -133,7 +133,7 @@ const createUserDeposit = async (data) => {
     userDepositCreatedBy || driverUniqueId,
   ]);
   if (!insertResult.affectedRows) {
-    throw new AppError("Failed to insert deposit data", 500);
+    throw new AppError("Failed to insert deposit data", AppError.INTERNAL_SERVER_ERROR);
   }
 
   // Fetch inserted row via consolidated getter

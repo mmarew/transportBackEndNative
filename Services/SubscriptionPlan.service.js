@@ -16,7 +16,7 @@ const createSubscriptionPlan = async ({
   const executor = transactionStorage.getStore() || pool;
   const [existing] = await executor.query(checkSql, [planName]);
   if (existing.length > 0) {
-    throw new AppError("Plan name already exists", 400);
+    throw new AppError("Plan name already exists", AppError.BAD_REQUEST);
   }
 
   const subscriptionPlanUniqueId = uuidv4();
@@ -92,7 +92,7 @@ const getSubscriptionPlans = async (filters = {}) => {
     const [result] = await executor.query(sql, queryParams);
 
     if (result.length === 0) {
-      throw new AppError("Subscription plan not found", 404);
+      throw new AppError("Subscription plan not found", AppError.NOT_FOUND);
     }
 
     return {
@@ -142,7 +142,7 @@ const updateSubscriptionPlan = async (
 ) => {
   // Validate that uniqueId is provided
   if (!uniqueId) {
-    throw new AppError("SubscriptionPlanUniqueId is required", 400);
+    throw new AppError("SubscriptionPlanUniqueId is required", AppError.BAD_REQUEST);
   }
   const updateData = {
     planName,
@@ -153,7 +153,7 @@ const updateSubscriptionPlan = async (
   };
   // Validate that updateData is provided and not empty
   if (!updateData || Object.keys(updateData).length === 0) {
-    throw new AppError("At least one field to update must be provided", 400);
+    throw new AppError("At least one field to update must be provided", AppError.BAD_REQUEST);
   }
 
   // List of allowed fields that can be updated (all fields except IDs/UUIDs)
@@ -242,7 +242,7 @@ const deleteSubscriptionPlan = async (uniqueId) => {
   const [result] = await executor.query(sql, [uniqueId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete subscription plan or not found", 404);
+    throw new AppError("Failed to delete subscription plan or not found", AppError.NOT_FOUND);
   }
 
   return {

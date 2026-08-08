@@ -69,12 +69,12 @@ const noAnswerFromDriver = async (body) => {
 
   // Validate shipper data exists
   if (!shipperData) {
-    throw new AppError("Shipper request not found", 404);
+    throw new AppError("Shipper request not found", AppError.NOT_FOUND);
   }
 
   // Validate driver data exists
   if (!driverData) {
-    throw new AppError("Driver request not found", 404);
+    throw new AppError("Driver request not found", AppError.NOT_FOUND);
   }
 
   // Check if driver already responded (acceptedByDriver or acceptedByShipper)

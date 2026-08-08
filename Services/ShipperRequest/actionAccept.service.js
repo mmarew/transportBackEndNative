@@ -100,7 +100,7 @@ const acceptDriverRequest = async (body) => {
         },
       });
       if (!connectedDrivers?.length) {
-        throw new AppError("No driver requests found to accept", 404);
+        throw new AppError("No driver requests found to accept", AppError.NOT_FOUND);
       }
       for (let i = 0; i < connectedDrivers?.length; i++) {
         const driver = connectedDrivers[i];
@@ -176,7 +176,7 @@ const acceptDriverRequest = async (body) => {
     });
     throw new AppError(
       error.message || "Unable to accept driver request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

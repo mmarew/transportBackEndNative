@@ -22,12 +22,12 @@ const deleteUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, userUn
   });
   const existingSubscription = existingSubscriptionRes?.data?.[0];
   if (!existingSubscription) {
-    throw new AppError("Subscription not found", 404);
+    throw new AppError("Subscription not found", AppError.NOT_FOUND);
   }
 
   // Check if already soft deleted
   if (existingSubscription.userSubscriptionDeletedAt) {
-    throw new AppError("Subscription is already deleted", 400);
+    throw new AppError("Subscription is already deleted", AppError.BAD_REQUEST);
   }
 
   // Use the existing update method to perform soft delete

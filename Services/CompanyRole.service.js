@@ -45,7 +45,7 @@ exports.createRole = async (body) => {
   if (result.affectedRows > 0) {
     return { message: "Company role created successfully", data: { companyRoleUniqueId } };
   }
-  throw new AppError("Failed to create company role", 500);
+  throw new AppError("Failed to create company role", AppError.INTERNAL_SERVER_ERROR);
 };
 
 /**
@@ -82,7 +82,7 @@ exports.getRoleByUniqueId = async (uniqueId) => {
     tableName: "CompanyRoles",
     conditions: { companyRoleUniqueId: uniqueId, companyRoleDeletedAt: null },
   });
-  if (!role) throw new AppError("Company role not found", 404);
+  if (!role) throw new AppError("Company role not found", AppError.NOT_FOUND);
   return { message: "Company role fetched successfully", data: role };
 };
 
@@ -108,7 +108,7 @@ exports.updateRole = async (uniqueId, body) => {
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided for update", 400);
+    throw new AppError("No fields provided for update", AppError.BAD_REQUEST);
   }
 
   setParts.push("companyRoleUpdatedBy = ?");
@@ -125,7 +125,7 @@ exports.updateRole = async (uniqueId, body) => {
     if (result.affectedRows > 0) {
       return { message: "Company role updated successfully", data: null };
     }
-    throw new AppError("Failed to update company role or role not found", 404);
+    throw new AppError("Failed to update company role or role not found", AppError.NOT_FOUND);
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
       return { message: "Company role already exists", data: null };
@@ -153,5 +153,5 @@ exports.deleteRole = async (uniqueId, userUniqueId) => {
   if (result.affectedRows > 0) {
     return { message: "Company role deleted successfully", data: null };
   }
-  throw new AppError("Failed to delete company role or role not found", 404);
+  throw new AppError("Failed to delete company role or role not found", AppError.NOT_FOUND);
 };

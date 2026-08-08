@@ -37,7 +37,7 @@ const createDelinquencyResponse = async ({
     [userDelinquencyUniqueId],
   );
   if (!delinquency) {
-    throw new AppError("Delinquency not found", 404);
+    throw new AppError("Delinquency not found", AppError.NOT_FOUND);
   }
 
   // Prevent duplicate responses
@@ -221,10 +221,10 @@ const updateDelinquencyResponse = async ({
     [userDelinquencyResponseUniqueId],
   );
   if (!existing) {
-    throw new AppError("Response not found", 404);
+    throw new AppError("Response not found", AppError.NOT_FOUND);
   }
   if (existing.userDelinquencyResponseCreatedBy !== updatedBy) {
-    throw new AppError("You can only edit your own response", 403);
+    throw new AppError("You can only edit your own response", AppError.FORBIDDEN);
   }
 
   // Block edit if admin has already issued a decision
@@ -275,10 +275,10 @@ const deleteDelinquencyResponse = async ({
     [userDelinquencyResponseUniqueId],
   );
   if (!existing) {
-    throw new AppError("Response not found", 404);
+    throw new AppError("Response not found", AppError.NOT_FOUND);
   }
   if (existing.userDelinquencyResponseCreatedBy !== deletedBy) {
-    throw new AppError("You can only delete your own response", 403);
+    throw new AppError("You can only delete your own response", AppError.FORBIDDEN);
   }
 
   await exec().query(

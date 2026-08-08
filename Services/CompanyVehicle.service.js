@@ -87,7 +87,7 @@ exports.assignVehicle = async (data) => {
     tableName: "TransportCompany",
     conditions: { companyUniqueId, isDeleted: 0 },
   });
-  if (!companyCheck) throw new AppError("Company not found", 404);
+  if (!companyCheck) throw new AppError("Company not found", AppError.NOT_FOUND);
 
   // A vehicle can only be in ONE company's active fleet
   const [dup] = await db().query(
@@ -107,7 +107,7 @@ exports.assignVehicle = async (data) => {
     const existing = dup[0].companyName
       ? `"${dup[0].companyName}"`
       : "another company";
-    throw new AppError(`Vehicle is already assigned to ${existing}`, 409);
+    throw new AppError(`Vehicle is already assigned to ${existing}`, AppError.CONFLICT);
   }
 
   const companyVehicleUniqueId = uuidv4();
@@ -148,7 +148,7 @@ exports.moveVehicle = async (data) => {
     tableName: "TransportCompany",
     conditions: { companyUniqueId, isDeleted: 0 },
   });
-  if (!companyCheck) throw new AppError("Company not found", 404);
+  if (!companyCheck) throw new AppError("Company not found", AppError.NOT_FOUND);
 
   const [existing] = await db().query(
     `SELECT cv.companyVehicleUniqueId, cv.companyUniqueId, tc.companyName
@@ -305,6 +305,6 @@ exports.removeVehicle = async (companyVehicleUniqueId, deletedBy) => {
      WHERE companyVehicleUniqueId = ? AND companyVehicleDeletedAt IS NULL`,
     [currentDate(), deletedBy, companyVehicleUniqueId],
   );
-  if (res.affectedRows === 0) {throw new AppError("Fleet assignment not found or already removed", 404);}
+  if (res.affectedRows === 0) {throw new AppError("Fleet assignment not found or already removed", AppError.NOT_FOUND);}
   return { message: "Company vehicles list fetched", data: null };
 };

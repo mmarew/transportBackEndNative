@@ -11,7 +11,7 @@ exports.getDriverEarningsByFilter = async ({
   limit = 10,
 }) => {
   if (!driverUniqueId) {
-    throw new AppError("Missing required parameters: driverUniqueId", 400);
+    throw new AppError("Missing required parameters: driverUniqueId", AppError.BAD_REQUEST);
   }
 
   const whereConditions = [

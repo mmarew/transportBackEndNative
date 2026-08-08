@@ -18,7 +18,7 @@ exports.createTariffRateForVehicleType = async (data) => {
   );
 
   if (existedData.length > 0) {
-    throw new AppError("Tariff rate for vehicle type already exists", 400);
+    throw new AppError("Tariff rate for vehicle type already exists", AppError.BAD_REQUEST);
   }
 
   const sql = `
@@ -188,7 +188,7 @@ exports.updateTariffRateForVehicleType = async (
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Always update audit fields
@@ -237,7 +237,7 @@ exports.deleteTariffRateForVehicleType = async (
   ]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Tariff rate for vehicle type not found", 404);
+    throw new AppError("Tariff rate for vehicle type not found", AppError.NOT_FOUND);
   }
 
   return {

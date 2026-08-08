@@ -57,7 +57,7 @@ const createTransfer = async (
     ]);
 
     if (insertResult.affectedRows <= 0) {
-      throw new AppError("Failed to insert transfer record", 500);
+      throw new AppError("Failed to insert transfer record", AppError.INTERNAL_SERVER_ERROR);
     }
 
     return {
@@ -146,7 +146,7 @@ const getTransferByUniqueId = async (depositTransferUniqueId) => {
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [depositTransferUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("Transfer not found", 404);
+    throw new AppError("Transfer not found", AppError.NOT_FOUND);
   }
 
   return result[0];
@@ -230,7 +230,7 @@ const updateTransferByUniqueId = async (
   const [result] = await (transactionStorage.getStore() || pool).query(sql, finalValues);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update transfer", 500);
+    throw new AppError("Failed to update transfer", AppError.INTERNAL_SERVER_ERROR);
   }
 
   // Get updated data
@@ -243,7 +243,7 @@ const deleteTransferByUniqueId = async (depositTransferUniqueId) => {
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [depositTransferUniqueId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete transfer", 404);
+    throw new AppError("Failed to delete transfer", AppError.NOT_FOUND);
   }
 
   return `Transfer ${depositTransferUniqueId} deleted successfully`;

@@ -139,7 +139,7 @@ const searchCompletedJourneyByUserData = async (phoneOrEmail, roleId, page = 1, 
       }
     };
   } catch (error) {
-    throw new AppError(error.message || "Failed to search completed journeys", error.statusCode || 500);
+    throw new AppError(error.message || "Failed to search completed journeys", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

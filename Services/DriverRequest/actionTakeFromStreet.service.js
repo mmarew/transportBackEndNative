@@ -57,7 +57,7 @@ const takeFromStreet = async (body, user) => {
         if (cancelResult.message === "error") {
           throw new AppError(
             cancelResult.error || "Failed to cancel current request",
-            400,
+            AppError.BAD_REQUEST,
           );
         }
 
@@ -328,7 +328,7 @@ const takeFromStreet = async (body, user) => {
     });
     throw new AppError(
       error.message || "Unable to create request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

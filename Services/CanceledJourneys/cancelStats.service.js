@@ -112,7 +112,7 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
       }
     };
   } catch {
-    throw new AppError("Failed to retrieve canceled journey counts", 500);
+    throw new AppError("Failed to retrieve canceled journey counts", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -289,7 +289,7 @@ const getCanceledJourneyCountsByReason = async (filters = {}) => {
       }
     };
   } catch {
-    throw new AppError("Failed to retrieve canceled journey counts by reason", 500);
+    throw new AppError("Failed to retrieve canceled journey counts by reason", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

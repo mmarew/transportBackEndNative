@@ -4,6 +4,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 const fs = require("fs");
 const path = require("path");
 const Config = require("../Utils/Config");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const AdminController = {
   getDashboardStats: async (req, res, next) => {
@@ -69,7 +70,7 @@ const AdminController = {
 
       // eslint-disable-next-line security/detect-non-literal-fs-filename
       if (!fs.existsSync(logFilePath)) {
-        return res.status(404).send(`
+        return res.status(HTTP_STATUS.NOT_FOUND).send(`
           <html>
             <body style="font-family: sans-serif; background: #e2e3e5; padding: 20px; color: #383d41;">
               <h1>Not Found</h1>
@@ -86,7 +87,7 @@ const AdminController = {
       const lastLines = lines.slice(-500).reverse();
 
       // 4. Return as HTML
-      return res.status(200).send(`
+      return res.status(HTTP_STATUS.OK).send(`
         <html>
           <head>
             <title>System Logs: ${filename}</title>
@@ -139,7 +140,7 @@ const AdminController = {
       const uploadsDir = path.join(__dirname, "../uploads");
 
       if (!fs.existsSync(uploadsDir)) {
-        return res.status(404).send("<h1>Uploads directory not found</h1>");
+        return res.status(HTTP_STATUS.NOT_FOUND).send("<h1>Uploads directory not found</h1>");
       }
 
       // 3. Read Files
@@ -159,7 +160,7 @@ const AdminController = {
         .sort((a, b) => b.mtime - a.mtime); // Newest first
 
       // 4. Return as HTML
-      return res.status(200).send(`
+      return res.status(HTTP_STATUS.OK).send(`
         <html>
           <head>
             <title>User Uploads</title>

@@ -42,7 +42,7 @@ const createJourneyStatus = async (body, user) => {
     }
   });
   if (existingJourneyStatus.length > 0) {
-    throw new AppError("Journey status already exists", 400);
+    throw new AppError("Journey status already exists", AppError.BAD_REQUEST);
   }
   const newJourneyStatus = {
     journeyStatusUniqueId,
@@ -64,7 +64,7 @@ const createJourneyStatus = async (body, user) => {
       data: null
     };
   } else {
-    throw new AppError("Failed to create journey status", 500);
+    throw new AppError("Failed to create journey status", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

@@ -25,7 +25,7 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
 
   licensePlate = removeWhiteSpace(licensePlate);
   if (!vehicleTypeUniqueId || !licensePlate || !color) {
-    throw new AppError("All fields are required", 400);
+    throw new AppError("All fields are required", AppError.BAD_REQUEST);
   }
 
   // Verify if VehicleType exists
@@ -35,7 +35,7 @@ const createVehicle = async (data, user, driverUserUniqueId) => {
   });
 
   if (!vehicleTypeExists.length) {
-    throw new AppError("Vehicle type does not exist", 400);
+    throw new AppError("Vehicle type does not exist", AppError.BAD_REQUEST);
   }
 
   // Check if vehicle with the same license plate exists
@@ -167,7 +167,7 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
     );
 
     if (!verification[0].length) {
-      throw new AppError("Unauthorized: You do not own or drive this vehicle", 403);
+      throw new AppError("Unauthorized: You do not own or drive this vehicle", AppError.FORBIDDEN);
     }
   }
 
@@ -178,7 +178,7 @@ const updateVehicle = async (vehicleUniqueId, updateValues, user) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update vehicle or vehicle not found", 404);
+    throw new AppError("Failed to update vehicle or vehicle not found", AppError.NOT_FOUND);
   }
 
   return { message: "Vehicles list fetched", data: null };
@@ -204,7 +204,7 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
     );
 
     if (!verification[0].length) {
-      throw new AppError("Unauthorized: You do not own or drive this vehicle", 403);
+      throw new AppError("Unauthorized: You do not own or drive this vehicle", AppError.FORBIDDEN);
     }
   }
 
@@ -217,7 +217,7 @@ const deleteVehicle = async (vehicleUniqueId, user) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete vehicle or vehicle not found", 404);
+    throw new AppError("Failed to delete vehicle or vehicle not found", AppError.NOT_FOUND);
   }
 
   return { message: "Vehicles list fetched", data: null };

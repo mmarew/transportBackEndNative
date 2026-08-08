@@ -20,6 +20,7 @@ const {
 const { DATABASE_ENDPOINTS } = require("./EndPoints/database.endpoints");
 const AppError = require("../Utils/AppError");
 const Config = require("../Utils/Config");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 // Accept either a valid JWT (Bearer token) or the dev API key (x-api-key header).
 // Useful for bootstrapping (createTable / dropAllTables) when no users exist yet.
@@ -32,7 +33,7 @@ const jwtOrApiKey = (req, res, next) => {
   if (apiKey && apiKey === Config.API_KEY) {
     return next();
   }
-  return next(new AppError("Authorization header missing", 401));
+  return next(new AppError("Authorization header missing", AppError.UNAUTHORIZED));
 };
 
 // Route to create all tables (no body required - creates all tables from predefined SQL)
@@ -121,7 +122,7 @@ if (Config.NODE_ENV !== "production") {
   const devApiKeyMiddleware = (req, res, next) => {
     const key = req.headers["x-api-key"] || req.query.apiKey;
     if (!key || key !== Config.API_KEY) {
-      return res.status(401).json({ message: "error", error: "Unauthorized" });
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "error", error: "Unauthorized" });
     }
     next();
   };

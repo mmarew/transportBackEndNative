@@ -133,7 +133,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("unable to get data", 500);
+    throw new AppError("unable to get data", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -509,7 +509,7 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
     });
     throw new AppError(
       "Unable to get shipper requests",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -968,7 +968,7 @@ const getShipperRequestByUniqueId = async (
         400,
       );
     }
-    throw new AppError("Shipper request not found", 404);
+    throw new AppError("Shipper request not found", AppError.NOT_FOUND);
   }
   return rows[0];
 };

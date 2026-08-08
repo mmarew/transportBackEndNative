@@ -23,6 +23,7 @@ const {
   executeInTransaction
 } = require("../../Utils/DatabaseTransaction");
 const logger = require("../../Utils/logger");
+const { HTTP_STATUS } = require("../../Utils/Constants");
 
 
 
@@ -159,7 +160,7 @@ const verifyEmail = async (req, res) => {
     res.send(getSuccessEmailVerificationHtml());
   } catch (error) {
     // Show a user-friendly error page instead of raw JSON
-    res.status(error.statusCode || 500).send(`
+    res.status(error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR).send(`
       <div style="font-family: sans-serif; text-align: center; padding: 50px;">
         <h1 style="color: #e53e3e;">❌ Verification Failed</h1>
         <p style="color: #4a5568; font-size: 18px;">${error.message}</p>
@@ -206,7 +207,7 @@ const reportWrongEmail = async (req, res) => {
       </div>
     `);
   } catch (error) {
-    res.status(error.statusCode || 500).send(`
+    res.status(error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR).send(`
       <div style="font-family: sans-serif; text-align: center; padding: 50px;">
         <h1 style="color: #e53e3e;">Report Error</h1>
         <p style="color: #4a5568; font-size: 18px;">${error.message}</p>
@@ -250,7 +251,7 @@ const verifyPhone = async (req, res, next) => {
       return next(error);
     }
     // Browser error view
-    res.status(error.statusCode || 500).send(`
+    res.status(error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR).send(`
       <div style="font-family: sans-serif; text-align: center; padding: 50px;">
         <h1 style="color: #e53e3e;">📱 Verification Failed</h1>
         <p style="color: #4a5568; font-size: 18px;">${error.message}</p>

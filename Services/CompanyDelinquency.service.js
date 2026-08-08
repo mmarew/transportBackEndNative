@@ -68,7 +68,7 @@ const createCompanyDelinquency = async (data) => {
     [companyUniqueId],
   );
   if (!company) {
-    throw new AppError("Company not found", 404);
+    throw new AppError("Company not found", AppError.NOT_FOUND);
   }
 
   // Fetch delinquency type defaults
@@ -78,7 +78,7 @@ const createCompanyDelinquency = async (data) => {
     [delinquencyTypeUniqueId],
   );
   if (!delinquencyType) {
-    throw new AppError("Invalid or inactive delinquency type", 404);
+    throw new AppError("Invalid or inactive delinquency type", AppError.NOT_FOUND);
   }
 
   const { defaultPoints, defaultSeverity } = delinquencyType;
@@ -339,7 +339,7 @@ const deleteCompanyDelinquency = async (
     [deletedBy, companyDelinquencyUniqueId],
   );
   if (result.affectedRows === 0) {
-    throw new AppError("Delinquency not found or already deleted", 404);
+    throw new AppError("Delinquency not found or already deleted", AppError.NOT_FOUND);
   }
   return {
     message: "Company delinquency deleted",
@@ -354,7 +354,7 @@ const getPendingDelinquencies = async (filters = {}) => {
   const { companyUniqueId, page = 1, limit = 10 } = filters;
 
   if (!companyUniqueId) {
-    throw new AppError("companyUniqueId is required", 400);
+    throw new AppError("companyUniqueId is required", AppError.BAD_REQUEST);
   }
 
   const offset = (page - 1) * limit;

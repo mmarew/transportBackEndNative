@@ -54,7 +54,7 @@ const getDepositSourceByUniqueId = async (depositSourceUniqueId) => {
   const [result] = await executor.query(sql, [depositSourceUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("Deposit source not found", 404);
+    throw new AppError("Deposit source not found", AppError.NOT_FOUND);
   }
 
   return { message: "Deposit source fetched successfully", data: result[0] };
@@ -82,7 +82,7 @@ const updateDepositSourceByUniqueId = async (
 
   // Check if any fields were provided to update
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Always update audit fields
@@ -98,7 +98,7 @@ const updateDepositSourceByUniqueId = async (
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update deposit source", 500);
+    throw new AppError("Failed to update deposit source", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {
@@ -115,11 +115,11 @@ const deleteDepositSourceByUniqueId = async (depositSourceUniqueId, user) => {
   const [existing] = await executor.query(checkDeletedSql, [depositSourceUniqueId]);
 
   if (existing.length === 0) {
-    throw new AppError("Deposit source not found", 404);
+    throw new AppError("Deposit source not found", AppError.NOT_FOUND);
   }
 
   if (existing[0].depositSourceDeletedAt) {
-    throw new AppError("Deposit source is already deleted", 400);
+    throw new AppError("Deposit source is already deleted", AppError.BAD_REQUEST);
   }
 
   const userUniqueId = user?.userUniqueId;
@@ -131,7 +131,7 @@ const deleteDepositSourceByUniqueId = async (depositSourceUniqueId, user) => {
   ]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete deposit source", 500);
+    throw new AppError("Failed to delete deposit source", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return { message: `Deleted: ${depositSourceUniqueId}`, data: null };

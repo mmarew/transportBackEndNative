@@ -2,6 +2,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const service = require("../Services/UserDeposit");
 const { currentDate } = require("../Utils/CurrentDate");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 // Create
 exports.createUserDeposit = async (req, res, next) => {
@@ -93,7 +94,7 @@ exports.initiateSantimPayPayment = async (req, res, next) => {
 
       if (!depositAmount || depositAmount <= 0) {
         const AppError = require("../Utils/AppError");
-        throw new AppError("Valid deposit amount is required", 400);
+        throw new AppError("Valid deposit amount is required", AppError.BAD_REQUEST);
       }
 
       if (!phoneNumber) {
@@ -131,7 +132,7 @@ exports.handleSantimPayWebhook = async (req, res) => {
     });
 
     // Always return 200 to SantimPay to acknowledge receipt
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     // Still return 200 to prevent SantimPay from retrying, but log it locally if needed
     // or just return a controlled error response with 200

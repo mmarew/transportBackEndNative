@@ -9,7 +9,7 @@ exports.createPricing = async (req, res, next) => {
     const createdBy = req?.user?.userUniqueId;
     if (!createdBy) {
       const AppError = require("../Utils/AppError");
-      throw new AppError("User not authenticated", 401);
+      throw new AppError("User not authenticated", AppError.UNAUTHORIZED);
     }
     const {
       subscriptionPlanUniqueId,

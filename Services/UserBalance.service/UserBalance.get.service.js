@@ -116,7 +116,7 @@ const getuserBalanceById = async (userBalanceUniqueId) => {
   const [result] = await executor.query(sql, [userBalanceUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("Driver balance not found", 404);
+    throw new AppError("Driver balance not found", AppError.NOT_FOUND);
   }
 
   return { message: "User balance fetched successfully", data: result[0] };
@@ -134,7 +134,7 @@ const getDriverLastBalanceByUserUniqueId = async (userUniqueId) => {
   const [results] = await executor.query(sql, [userUniqueId]);
 
   if (results.length === 0) {
-    throw new AppError("Driver balance not found", 404);
+    throw new AppError("Driver balance not found", AppError.NOT_FOUND);
   }
 
   // Enrich the last balance record using the same logic as getuserBalanceByDateRange

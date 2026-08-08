@@ -30,7 +30,7 @@ const createVehicleStatus = async (data) => {
   });
 
   if (existingStatus.length) {
-    // throw new AppError("VehicleStatus already exists", 400);
+    // throw new AppError("VehicleStatus already exists", AppError.BAD_REQUEST);
   }
 
   const vehicleStatusUniqueId = uuidv4();
@@ -134,7 +134,7 @@ const updateVehicleStatus = async (vehicleStatusUniqueId, data) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Update failed or VehicleStatus not found", 404);
+    throw new AppError("Update failed or VehicleStatus not found", AppError.NOT_FOUND);
   }
 
   return { message: "Vehicle status updated successfully", data: result };
@@ -150,7 +150,7 @@ const deleteVehicleStatus = async (vehicleStatusUniqueId) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Delete failed or VehicleStatus not found", 404);
+    throw new AppError("Delete failed or VehicleStatus not found", AppError.NOT_FOUND);
   }
 
   return {

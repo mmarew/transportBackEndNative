@@ -33,7 +33,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     });
     const vehicle = vdResult?.data?.[0];
     if (!vehicle) {
-      throw new AppError("No vehicle found for this driver", 404);
+      throw new AppError("No vehicle found for this driver", AppError.NOT_FOUND);
     }
     const vehicleTypeUniqueId = vehicle?.vehicleTypeUniqueId;
 
@@ -88,7 +88,7 @@ const verifyDriverJourneyStatus = async ({ userUniqueId, activeRequest }) => {
     });
     throw new AppError(
       error.message || "Unable to verify driver status",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

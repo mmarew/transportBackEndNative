@@ -215,7 +215,7 @@ const sendShipperNotification = async (shipper) => {
   } catch (error) {
     throw new AppError(
       error.message || "Error in sendShipperNotification",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -290,7 +290,7 @@ const fetchJourneyNotificationData = async (
     }
 
     if (!journeyDecision?.data?.length) {
-      throw new AppError("Journey decision not found", 404);
+      throw new AppError("Journey decision not found", AppError.NOT_FOUND);
     }
 
     const journeyDecisionDataNormalized = journeyDecision.data[0];
@@ -310,7 +310,7 @@ const fetchJourneyNotificationData = async (
     });
 
     if (!shipperRequestData?.length) {
-      throw new AppError("Shipper request not found", 404);
+      throw new AppError("Shipper request not found", AppError.NOT_FOUND);
     }
 
     const shipperRequest = shipperRequestData[0];
@@ -343,7 +343,7 @@ const fetchJourneyNotificationData = async (
     }
 
     if (!driverRequestData?.length) {
-      throw new AppError("Driver request not found", 404);
+      throw new AppError("Driver request not found", AppError.NOT_FOUND);
     }
 
     const driver = driverRequestData[0];
@@ -431,7 +431,7 @@ const fetchJourneyNotificationData = async (
     });
     throw new AppError(
       error.message || "Unable to fetch journey notification data",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

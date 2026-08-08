@@ -206,7 +206,7 @@ const getAllCommissionRates = async (filters = {}) => {
   const [rows] = await pool.query(dataSql, [...params, limit, offset]);
 
   if (!rows || rows.length === 0) {
-    throw new AppError("No commission rates found", 404);
+    throw new AppError("No commission rates found", AppError.NOT_FOUND);
   }
 
   return {
@@ -235,7 +235,7 @@ const updateCommissionRateByUniqueId = async ({
     [commissionRateUniqueId],
   );
   if (!existingRows || existingRows.length === 0) {
-    throw new AppError("Commission rate not found", 404);
+    throw new AppError("Commission rate not found", AppError.NOT_FOUND);
   }
   if (existingRows[0]?.commissionRateDeletedAt) {
     await executor.query(
@@ -268,7 +268,7 @@ const updateCommissionRateByUniqueId = async ({
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   setParts.push("commissionRateUpdatedAt = CURRENT_TIMESTAMP");
@@ -277,7 +277,7 @@ const updateCommissionRateByUniqueId = async ({
 
   const [result] = await executor.query(sqlQuery, values);
   if (result.affectedRows === 0) {
-    throw new AppError("Commission rate update failed", 500);
+    throw new AppError("Commission rate update failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return { message: "Commission rate deleted", data: null };
@@ -294,7 +294,7 @@ const deleteCommissionRateByUniqueId = async ({
     [commissionRateUniqueId],
   );
   if (!existingRows || existingRows.length === 0) {
-    throw new AppError("Commission rate not found", 404);
+    throw new AppError("Commission rate not found", AppError.NOT_FOUND);
   }
   if (existingRows[0]?.commissionRateDeletedAt) {
     return { message: "Commission rate deleted", data: null };
@@ -316,7 +316,7 @@ const deleteCommissionRateByUniqueId = async ({
 
   const [result] = await executor.query(sqlDelete, values);
   if (result.affectedRows === 0) {
-    throw new AppError("Commission rate delete failed", 500);
+    throw new AppError("Commission rate delete failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return { message: "Commission rate deleted", data: null };

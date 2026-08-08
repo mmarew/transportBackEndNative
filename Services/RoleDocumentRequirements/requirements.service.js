@@ -209,7 +209,7 @@ WHERE ad.ownerType = 'vehicle'
         hasActiveSubscription
       });
       if (resultOfStatus?.message === "error") {
-        throw new AppError(resultOfStatus?.data || "Error determining status", 400);
+        throw new AppError(resultOfStatus?.data || "Error determining status", AppError.BAD_REQUEST);
       }
       finalStatusId = resultOfStatus?.finalStatusId;
     }
@@ -248,7 +248,7 @@ WHERE ad.ownerType = 'vehicle'
       unAttachedDocumentTypes // Documents that are required but not attached
     };
   } catch (error) {
-    throw new AppError(error.message || "An error occurred during driver document vehicle requirement", error.statusCode || 500);
+    throw new AppError(error.message || "An error occurred during driver document vehicle requirement", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -310,7 +310,7 @@ const entityDocumentRequirement = async ({
   };
   const roleId = OWNER_ROLE_MAP[ownerType];
   if (!roleId) {
-    throw new AppError(`Unknown ownerType: ${ownerType}`, 400);
+    throw new AppError(`Unknown ownerType: ${ownerType}`, AppError.BAD_REQUEST);
   }
 
   // 1. Fetch what documents this entity type is required to have

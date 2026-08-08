@@ -57,7 +57,7 @@ const updateAttachedDocument = async ({
       }
     });
     if (existingDocs.length === 0) {
-      throw new AppError(`No existing document found`, 404);
+      throw new AppError(`No existing document found`, AppError.NOT_FOUND);
     }
     const existingDoc = existingDocs[0];
 
@@ -92,14 +92,14 @@ const updateAttachedDocument = async ({
 
     // Expiration date enforcement (only if requirement specifies it)
     if (documentType?.isExpirationDateRequired && !documentExpirationDate) {
-      throw new AppError(`Document expiration date is required`, 400);
+      throw new AppError(`Document expiration date is required`, AppError.BAD_REQUEST);
     }
 
     // Reject if the supplied expiration date is already in the past
     if (documentExpirationDate) {
       const isExpired = new Date(documentExpirationDate) < new Date();
       if (isExpired) {
-        throw new AppError(`Document expiration date cannot be in the past`, 400);
+        throw new AppError(`Document expiration date cannot be in the past`, AppError.BAD_REQUEST);
       }
     }
 
@@ -167,7 +167,7 @@ const updateAttachedDocument = async ({
         data: null
       };
     } else {
-      throw new AppError("Failed to update document", 500);
+      throw new AppError("Failed to update document", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
     if (error instanceof AppError) {
@@ -177,7 +177,7 @@ const updateAttachedDocument = async ({
       error: error.message,
       stack: error.stack
     });
-    throw new AppError("An error occurred while updating the document", 500);
+    throw new AppError("An error occurred while updating the document", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -210,12 +210,12 @@ const acceptRejectAttachedDocuments = async body => {
 
   // Ensure that all required fields are provided
   if (!userUniqueId || !attachedDocumentUniqueId || !action) {
-    throw new AppError("Missing required fields to accept/reject document", 400);
+    throw new AppError("Missing required fields to accept/reject document", AppError.BAD_REQUEST);
   }
 
   // Ensure action is either 'ACCEPTED' or 'REJECTED'
   if (action !== "ACCEPTED" && action !== "REJECTED") {
-    throw new AppError("Invalid action. Must be 'ACCEPTED' or 'REJECTED'", 400);
+    throw new AppError("Invalid action. Must be 'ACCEPTED' or 'REJECTED'", AppError.BAD_REQUEST);
   }
 
   // Fetch the document to get owner info (no longer joins Users since owner may be a company)
@@ -226,7 +226,7 @@ const acceptRejectAttachedDocuments = async body => {
     }
   });
   if (!attachedDocument || attachedDocument.length === 0) {
-    throw new AppError("Document not found", 404);
+    throw new AppError("Document not found", AppError.NOT_FOUND);
   }
 
   // Extract polymorphic owner info
@@ -241,7 +241,7 @@ const acceptRejectAttachedDocuments = async body => {
     phoneNumber = userRows?.[0]?.phoneNumber ?? null;
   }
   if (!ownerUniqueId) {
-    throw new AppError("Document owner information not found", 400);
+    throw new AppError("Document owner information not found", AppError.BAD_REQUEST);
   }
 
   // ── Snapshot current state to history BEFORE changing acceptance status ──
@@ -279,7 +279,7 @@ const acceptRejectAttachedDocuments = async body => {
     }
   });
   if (updatedDocument.affectedRows === 0) {
-    throw new AppError("Failed to update the document status", 500);
+    throw new AppError("Failed to update the document status", AppError.INTERNAL_SERVER_ERROR);
   }
   const message = {
     attachedDocument,

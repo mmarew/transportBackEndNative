@@ -86,7 +86,7 @@ const seenByShipper = async (body) => {
     });
 
     if (!journeyDecision || journeyDecision.length === 0) {
-      throw new AppError("Journey decision not found", 404);
+      throw new AppError("Journey decision not found", AppError.NOT_FOUND);
     }
 
     // Mark the request as seen — always do this, even if rating already exists
@@ -128,7 +128,7 @@ const seenByShipper = async (body) => {
     }
     throw new AppError(
       `Unable to seen by shipper: ${error.message}`,
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -752,7 +752,7 @@ const verifyShipperStatus = async ({
     });
     throw new AppError(
       "Unable to verify shipper status",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

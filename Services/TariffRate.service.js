@@ -33,7 +33,7 @@ exports.createTariffRate = async (data) => {
     [tariffRateName],
   );
   if (existedTariffRate?.length > 0) {
-    throw new AppError("Tariff rate already exists", 400);
+    throw new AppError("Tariff rate already exists", AppError.BAD_REQUEST);
   }
   const sql = `
     INSERT INTO TariffRate (
@@ -191,7 +191,7 @@ exports.updateTariffRate = async (tariffRateUniqueId, data) => {
 
   // Check if any fields were provided to update
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Always update audit fields
@@ -205,7 +205,7 @@ exports.updateTariffRate = async (tariffRateUniqueId, data) => {
 
   const [result] = await (transactionStorage.getStore() || pool).query(sql, values);
   if (result.affectedRows === 0) {
-    throw new AppError("Tariff rate not found or update failed", 404);
+    throw new AppError("Tariff rate not found or update failed", AppError.NOT_FOUND);
   }
   return { message: "Tariff rate deleted", data: null };
 };
@@ -216,7 +216,7 @@ exports.deleteTariffRate = async (tariffRateUniqueId, user) => {
   const sql = `UPDATE TariffRate SET tariffRateDeletedAt = ?, tariffRateDeletedBy = ? WHERE tariffRateUniqueId = ? AND tariffRateDeletedAt IS NULL`;
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [currentDate(), userUniqueId, tariffRateUniqueId]);
   if (result.affectedRows === 0) {
-    throw new AppError("Tariff rate not found or delete failed", 404);
+    throw new AppError("Tariff rate not found or delete failed", AppError.NOT_FOUND);
   }
   return { message: "Tariff rate deleted", data: null };
 };

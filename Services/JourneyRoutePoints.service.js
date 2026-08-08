@@ -13,7 +13,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
   try {
     // Input validation
     if (!body || typeof body !== "object") {
-      throw new AppError("Invalid request body", 400);
+      throw new AppError("Invalid request body", AppError.BAD_REQUEST);
     }
     const {
       journeyDecisionUniqueId,
@@ -51,7 +51,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
       longitude < -180 ||
       longitude > 180
     ) {
-      throw new AppError("Invalid coordinates provided", 400);
+      throw new AppError("Invalid coordinates provided", AppError.BAD_REQUEST);
     }
 
     // Use transaction storage for transaction support, or fall back to provided connection or pool
@@ -108,7 +108,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
   } catch (error) {
     throw new AppError(
       error.message || "Failed to create journey route point",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -124,7 +124,7 @@ exports.getJourneyRoutePoints = async (journeyDecisionUniqueId) => {
   } catch (error) {
     throw new AppError(
       error.message || "Error getting Journey Route Points",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -145,7 +145,7 @@ exports.updateJourneyRoutePoint = async (pointId, latitude, longitude) => {
     }
 
     if (setParts.length === 0) {
-      throw new AppError("No fields provided to update", 400);
+      throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
     }
 
     values.push(pointId);
@@ -156,12 +156,12 @@ exports.updateJourneyRoutePoint = async (pointId, latitude, longitude) => {
     if (result.affectedRows > 0) {
       return { message: "Journey route point updated successfully", data: { pointId, latitude, longitude } };
     } else {
-      throw new AppError("Failed to update journey route point", 404);
+      throw new AppError("Failed to update journey route point", AppError.NOT_FOUND);
     }
   } catch (error) {
     throw new AppError(
       error.message || "Failed to update journey route point",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -179,12 +179,12 @@ exports.deleteJourneyRoutePoint = async (pointId) => {
         data: null,
       };
     } else {
-      throw new AppError("Failed to delete journey route point", 404);
+      throw new AppError("Failed to delete journey route point", AppError.NOT_FOUND);
     }
   } catch (error) {
     throw new AppError(
       error.message || "Failed to delete journey route point",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

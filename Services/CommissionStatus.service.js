@@ -126,7 +126,7 @@ const getAllCommissionStatuses = async (filters = {}) => {
     };
   } catch (error) {
     logger.application.databaseError(error, "getAllCommissionStatuses");
-    throw new AppError("Failed to retrieve commission statuses", 500);
+    throw new AppError("Failed to retrieve commission statuses", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -153,7 +153,7 @@ const updateCommissionStatus = async (id, data) => {
   }
 
   if (fields.length === 0) {
-    throw new AppError("No fields to update", 400);
+    throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
   // Add audit columns
@@ -172,7 +172,7 @@ const updateCommissionStatus = async (id, data) => {
     const executor = transactionStorage.getStore() || pool;
     const [result] = await executor.query(query, values);
     if (result.affectedRows === 0) {
-      throw new AppError("Commission status not found", 404);
+      throw new AppError("Commission status not found", AppError.NOT_FOUND);
     }
     return { message: "Commission Status updated successfully", data: result };
   } catch (error) {
@@ -212,7 +212,7 @@ const deleteCommissionStatus = async (id, deletedBy) => {
     ]);
 
     if (result.affectedRows === 0) {
-      throw new AppError("Commission status not found or already deleted", 404);
+      throw new AppError("Commission status not found or already deleted", AppError.NOT_FOUND);
     }
     return { message: "Commission Status deleted successfully" };
   } catch (error) {
@@ -220,7 +220,7 @@ const deleteCommissionStatus = async (id, deletedBy) => {
       throw error;
     }
     logger.application.databaseError(error, "deleteCommissionStatus");
-    throw new AppError("Failed to delete commission status", 500);
+    throw new AppError("Failed to delete commission status", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

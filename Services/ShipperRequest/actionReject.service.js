@@ -122,15 +122,15 @@ const rejectDriverOffer = async body => {
         shipperRequestUniqueId: body.shipperRequestUniqueId
       }
     });
-    if (shipperRequestRow?.[0]?.queueOrganizationUniqueId) {
+    if (shipperRequestRow?.queueOrganizationUniqueId) {
       const { rejectOffer } = require("../DriverQueue.service");
       try {
         await rejectOffer({
-          queueOrganizationUniqueId: shipperRequestRow[0].queueOrganizationUniqueId,
+          queueOrganizationUniqueId: shipperRequestRow.queueOrganizationUniqueId,
           shipperRequestUniqueId: body.shipperRequestUniqueId,
           user: {
             userUniqueId:
-              body.userUniqueId || shipperRequestRow[0].shipperRequestCreatedBy,
+              body.userUniqueId || shipperRequestRow.shipperRequestCreatedBy,
           },
         });
       } catch (error) {
@@ -232,7 +232,7 @@ const rejectDriverOffer = async body => {
       data: null
     };
   } catch (error) {
-    throw new AppError(error.message || "Unable to reject driver offer", error.statusCode || 500);
+    throw new AppError(error.message || "Unable to reject driver offer", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

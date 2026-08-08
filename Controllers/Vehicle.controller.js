@@ -10,6 +10,7 @@ const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { assignVehicle } = require("../Services/CompanyVehicle.service");
 const { currentDate } = require("../Utils/CurrentDate");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createVehicleController = async (req, res, next) => {
   try {
@@ -28,7 +29,7 @@ const createVehicleController = async (req, res, next) => {
     } else if (roleId === usersRoles.driverRoleId) {
       if (driverUserUniqueId !== req?.user?.userUniqueId) {
         return next(
-          new AppError("You can't register vehicle for another driver", 403),
+          new AppError("You can't register vehicle for another driver", AppError.FORBIDDEN),
         );
       }
     }
@@ -57,7 +58,7 @@ const createVehicleController = async (req, res, next) => {
 
       return vehicleResponse;
     }, { timeout: 90000 }); // 90s — createVehicle chains 5+ DB calls on remote server
-    ServerResponder(res, response, 201);
+    ServerResponder(res, response, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -105,7 +106,7 @@ const getVehiclesController = async (req, res, next) => {
     } else if (roleId === usersRoles.driverRoleId) {
       if (ownerUserUniqueId !== user?.userUniqueId) {
         return next(
-          new AppError("You can't get vehicles for another driver", 403),
+          new AppError("You can't get vehicles for another driver", AppError.FORBIDDEN),
         );
       }
     }

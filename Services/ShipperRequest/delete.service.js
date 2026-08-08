@@ -75,7 +75,7 @@ const deleteRequest = async requestId => {
       }
     });
     if (result.affectedRows === 0) {
-      throw new AppError("Request not found", 404);
+      throw new AppError("Request not found", AppError.NOT_FOUND);
     }
     return {
       message: "Shipper request deleted successfully",
@@ -87,7 +87,7 @@ const deleteRequest = async requestId => {
       error: error.message,
       stack: error.stack
     });
-    throw new AppError("Unable to delete request", error.statusCode || 500);
+    throw new AppError("Unable to delete request", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

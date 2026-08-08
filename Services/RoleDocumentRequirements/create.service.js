@@ -45,7 +45,7 @@ const createMapping = async ({
       }
     });
     if (dt.length === 0) {
-      throw new AppError("Document type not found by UUID", 404);
+      throw new AppError("Document type not found by UUID", AppError.NOT_FOUND);
     }
     resolvedDocumentTypeId = dt[0].documentTypeId;
   }
@@ -62,7 +62,7 @@ const createMapping = async ({
     }
   });
   if (roleExists.length === 0) {
-    throw new AppError("Role not found", 404);
+    throw new AppError("Role not found", AppError.NOT_FOUND);
   }
   //  verify existence of documentTypeId
   let documentTypeExists = await getData({
@@ -86,7 +86,7 @@ const createMapping = async ({
     }
   }
   if (documentTypeExists.length === 0) {
-    throw new AppError(`Document type not found for ID: ${numericDocumentTypeId}${body.documentTypeName ? " or Name: " + body.documentTypeName : ""}. Please ensure DocumentTypes are seeded first.`, 404);
+    throw new AppError(`Document type not found for ID: ${numericDocumentTypeId}${body.documentTypeName ? " or Name: " + body.documentTypeName : ""}. Please ensure DocumentTypes are seeded first.`, AppError.NOT_FOUND);
   }
   const executor = transactionStorage.getStore() || pool;
   const existingMapping = await executor.query("SELECT * FROM RoleDocumentRequirements WHERE roleId = ? AND documentTypeId = ?", [numericRoleId, numericDocumentTypeId]);
@@ -113,7 +113,7 @@ const createMapping = async ({
       }
     };
   } else {
-    throw new AppError("Failed to create mapping", 500);
+    throw new AppError("Failed to create mapping", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 // Consolidated, secure, paginated GET with filters across columns

@@ -7,7 +7,7 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 exports.createJourneyRoutePoint = async (req, res, next) => {
   try {
     if (!req.user || !req.user.userUniqueId) {
-      return next(new AppError("Unauthorized", 401));
+      return next(new AppError("Unauthorized", AppError.UNAUTHORIZED));
     }
     const userUniqueId = req.query.userUniqueId;
     if (userUniqueId === "self") {

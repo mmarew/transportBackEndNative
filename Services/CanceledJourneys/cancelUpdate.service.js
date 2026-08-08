@@ -32,7 +32,7 @@ const updateSeenByAdmin = async canceledJourneyUniqueId => {
       }
     };
   } catch {
-    throw new AppError("Failed to update seen status", 500);
+    throw new AppError("Failed to update seen status", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -51,7 +51,7 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
       }
     });
     if (updates.length === 0) {
-      throw new AppError("No valid fields to update", 400);
+      throw new AppError("No valid fields to update", AppError.BAD_REQUEST);
     }
     values.push(currentDate());
     values.push(canceledJourneyUniqueId);
@@ -73,7 +73,7 @@ const updateCanceledJourney = async (canceledJourneyUniqueId, data) => {
       }
     };
   } catch {
-    throw new AppError("Failed to update canceled journey", 500);
+    throw new AppError("Failed to update canceled journey", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

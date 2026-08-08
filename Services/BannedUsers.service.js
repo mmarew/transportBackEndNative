@@ -34,7 +34,7 @@ const banUser = async (data) => {
     );
     
     if (userRoleRows.length === 0) {
-      throw new AppError("Invalid userRoleUniqueId - user role not found", 400);
+      throw new AppError("Invalid userRoleUniqueId - user role not found", AppError.BAD_REQUEST);
     }
     
     targetUserUniqueId = userRoleRows[0].userUniqueId;
@@ -43,16 +43,16 @@ const banUser = async (data) => {
 
   // Validate we have required fields
   if (!targetUserUniqueId) {
-    throw new AppError("userUniqueId or userRoleUniqueId is required", 400);
+    throw new AppError("userUniqueId or userRoleUniqueId is required", AppError.BAD_REQUEST);
   }
   if (!targetRoleId) {
-    throw new AppError("roleId is required or must be derived from userRoleUniqueId", 400);
+    throw new AppError("roleId is required or must be derived from userRoleUniqueId", AppError.BAD_REQUEST);
   }
   if (!finalBanReason) {
-    throw new AppError("banReason or reason is required", 400);
+    throw new AppError("banReason or reason is required", AppError.BAD_REQUEST);
   }
   if (!finalBanDuration) {
-    throw new AppError("banDurationDays or banDuration is required", 400);
+    throw new AppError("banDurationDays or banDuration is required", AppError.BAD_REQUEST);
   }
 
   // Validate user exists
@@ -63,7 +63,7 @@ const banUser = async (data) => {
     [targetUserUniqueId],
   );
   if (userInfoRows.length === 0) {
-    throw new AppError("Invalid userUniqueId", 400);
+    throw new AppError("Invalid userUniqueId", AppError.BAD_REQUEST);
   }
   const { phoneNumber } = userInfoRows[0];
 
@@ -308,7 +308,7 @@ const updateBannedUser = async (banUniqueId, data) => {
   }
 
   if (setFields.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Add banUniqueId at the end for WHERE clause
@@ -328,7 +328,7 @@ const updateBannedUser = async (banUniqueId, data) => {
       data: null,
     };
   } else {
-    throw new AppError("Failed to update banned user record", 500);
+    throw new AppError("Failed to update banned user record", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -337,7 +337,7 @@ const unbanUser = async (query) => {
     const { banUniqueId, phoneNumber, roleId, newStatusId } = query;
     // validate all query
     if (!banUniqueId || !phoneNumber || !roleId || !newStatusId) {
-      throw new AppError("all fields are required", 400);
+      throw new AppError("all fields are required", AppError.BAD_REQUEST);
     }
     const sql = "update   BannedUsers set isActive=? WHERE banUniqueId = ?";
     const executor = transactionStorage.getStore() || pool;
@@ -353,7 +353,7 @@ const unbanUser = async (query) => {
     if (updatedBanResult.affectedRows > 0) {
       return { message: "User banned successfully", data: null };
     } else {
-      throw new AppError("Failed to unBan user", 500);
+      throw new AppError("Failed to unBan user", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
     const logger = require("../Utils/logger");
@@ -361,7 +361,7 @@ const unbanUser = async (query) => {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("Failed to unBan user", 500);
+    throw new AppError("Failed to unBan user", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -371,7 +371,7 @@ const deactivateBan = async (banUniqueId) => {
   if (result.affectedRows > 0) {
     return { message: "User banned successfully", data: null };
   } else {
-    throw new AppError("Failed to deactivate ban", 500);
+    throw new AppError("Failed to deactivate ban", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

@@ -24,9 +24,9 @@ exports.updateBatch = async (batchUniqueId, fields) => {
     tableName: "ShipperRequestBatch",
     conditions: { batchUniqueId },
   });
-  if (!batch) throw new AppError("Shipper request batch not found", 404);
+  if (!batch) throw new AppError("Shipper request batch not found", AppError.NOT_FOUND);
   if (batch.batchDeletedAt) {
-    throw new AppError("Batch has already been deleted", 400);
+    throw new AppError("Batch has already been deleted", AppError.BAD_REQUEST);
   }
 
   // 2. Build the SET clause from whitelisted keys only
@@ -42,7 +42,7 @@ exports.updateBatch = async (batchUniqueId, fields) => {
 
   // Defensive guard (schema.min(1) should already prevent this)
   if (setClauses.length === 0) {
-    throw new AppError("No valid fields supplied for update", 400);
+    throw new AppError("No valid fields supplied for update", AppError.BAD_REQUEST);
   }
 
   // Always stamp the audit columns
@@ -56,7 +56,7 @@ exports.updateBatch = async (batchUniqueId, fields) => {
   );
 
   if (res.affectedRows === 0) {
-    throw new AppError("Batch update failed", 500);
+    throw new AppError("Batch update failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return { message: "Batch updated", data: { batchUniqueId, updated: fields } };

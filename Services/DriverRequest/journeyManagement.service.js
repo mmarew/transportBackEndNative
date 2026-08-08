@@ -32,10 +32,10 @@ const startJourney = async (body) => {
         longitude = body?.longitude;
 
       if (!userUniqueId) {
-        throw new AppError("User authentication required", 401);
+        throw new AppError("User authentication required", AppError.UNAUTHORIZED);
       }
       if (!latitude || !longitude) {
-        throw new AppError("Latitude and longitude are required", 400);
+        throw new AppError("Latitude and longitude are required", AppError.BAD_REQUEST);
       }
 
       const validateQuery = `
@@ -60,22 +60,22 @@ const startJourney = async (body) => {
       ]);
 
       if (!journeyDecisionDriverData?.length) {
-        throw new AppError("Journey decision not found", 404);
+        throw new AppError("Journey decision not found", AppError.NOT_FOUND);
       }
 
       const combinedData = journeyDecisionDriverData[0];
 
       if (combinedData.journeyStatusId === journeyStatusMap.journeyStarted) {
-        throw new AppError("This journey has already been started", 400);
+        throw new AppError("This journey has already been started", AppError.BAD_REQUEST);
       }
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
-        throw new AppError("This journey has already been completed", 400);
+        throw new AppError("This journey has already been completed", AppError.BAD_REQUEST);
       }
       if (combinedData.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
-        throw new AppError("This journey is not accepted by shipper", 400);
+        throw new AppError("This journey is not accepted by shipper", AppError.BAD_REQUEST);
       }
       if (combinedData.userUniqueId !== userUniqueId) {
-        throw new AppError("Driver user does not match journey decision", 403);
+        throw new AppError("Driver user does not match journey decision", AppError.FORBIDDEN);
       }
 
       const checkJourneySql = `SELECT * FROM Journey WHERE journeyDecisionUniqueId = ? LIMIT 1`;
@@ -234,7 +234,7 @@ const completeJourney = async (body) => {
         !journeyUniqueId ||
         !userUniqueId
       ) {
-        throw new AppError("Missing required unique IDs", 400);
+        throw new AppError("Missing required unique IDs", AppError.BAD_REQUEST);
       }
 
       const validateQuery = `
@@ -265,20 +265,20 @@ const completeJourney = async (body) => {
       ]);
 
       if (!journeyDecisionDriverData?.length) {
-        throw new AppError("Journey data not found or UUIDs mismatch", 404);
+        throw new AppError("Journey data not found or UUIDs mismatch", AppError.NOT_FOUND);
       }
 
       const combinedData = journeyDecisionDriverData[0];
 
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
-        throw new AppError("This journey has already been completed", 400);
+        throw new AppError("This journey has already been completed", AppError.BAD_REQUEST);
       }
 
       const isAdmin =
         body.roleId === usersRoles?.adminRoleId ||
         body.roleId === usersRoles?.supperAdminRoleId;
       if (!isAdmin && combinedData?.userUniqueId !== userUniqueId) {
-        throw new AppError("Driver user does not match journey decision", 403);
+        throw new AppError("Driver user does not match journey decision", AppError.FORBIDDEN);
       }
 
       const subscriptionInfo = await getUserSubscriptionsWithFilters({
@@ -428,24 +428,24 @@ const sendUpdatedLocation = async (body) => {
 
     // Validate required fields
     if (!journeyDecisionUniqueId) {
-      throw new AppError("journeyDecisionUniqueId is required", 400);
+      throw new AppError("journeyDecisionUniqueId is required", AppError.BAD_REQUEST);
     }
 
     if (latitude === undefined || latitude === null) {
-      throw new AppError("latitude is required", 400);
+      throw new AppError("latitude is required", AppError.BAD_REQUEST);
     }
 
     if (longitude === undefined || longitude === null) {
-      throw new AppError("longitude is required", 400);
+      throw new AppError("longitude is required", AppError.BAD_REQUEST);
     }
 
     if (userUniqueId === undefined || userUniqueId === null) {
-      throw new AppError("userUniqueId is required", 400);
+      throw new AppError("userUniqueId is required", AppError.BAD_REQUEST);
     }
 
     // Validate coordinate ranges
     if (latitude < -90 || latitude > 90) {
-      throw new AppError("Invalid latitude. Must be between -90 and 90", 400);
+      throw new AppError("Invalid latitude. Must be between -90 and 90", AppError.BAD_REQUEST);
     }
 
     if (longitude < -180 || longitude > 180) {
@@ -461,7 +461,7 @@ const sendUpdatedLocation = async (body) => {
     );
 
     if (!journeyDecision?.data || journeyDecision.data.length === 0) {
-      throw new AppError("Journey decision not found", 404);
+      throw new AppError("Journey decision not found", AppError.NOT_FOUND);
     }
 
     const journeyDecisionData = journeyDecision.data[0];
@@ -523,7 +523,7 @@ const sendUpdatedLocation = async (body) => {
       shipperPhoneNumber = notificationData.shipperRequest?.phoneNumber || null;
 
       if (!shipperPhoneNumber) {
-        throw new AppError("Shipper phone number not found", 404);
+        throw new AppError("Shipper phone number not found", AppError.NOT_FOUND);
       }
     }
 
@@ -566,7 +566,7 @@ const sendUpdatedLocation = async (body) => {
     logger.error("@sendUpdatedLocation error:", error);
     throw new AppError(
       error.message || "Unable to send updated location",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

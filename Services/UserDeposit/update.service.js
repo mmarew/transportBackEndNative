@@ -33,7 +33,7 @@ const {
  */
 const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
   if (!userDepositUniqueId || !data || Object.keys(data).length === 0) {
-    throw new AppError("Missing deposit ID or update data", 400);
+    throw new AppError("Missing deposit ID or update data", AppError.BAD_REQUEST);
   }
 
   // Check if depositStatus is being changed to 'approved', it shows if user need to approve the deposit
@@ -46,7 +46,7 @@ const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
   });
   const depositData = Array.isArray(depositFetch?.data) ? depositFetch?.data?.[0] : depositFetch?.data;
   if (!depositData) {
-    throw new AppError("Deposit not found", 404);
+    throw new AppError("Deposit not found", AppError.NOT_FOUND);
   }
   const oldDepositAmount = depositData?.depositAmount;
   const driverUniqueId = depositData?.driverUniqueId;
@@ -56,14 +56,14 @@ const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
     ];
     const allowedFields = Object.keys(updateData).filter(key => !excludedFields.includes(key));
     if (allowedFields.length === 0) {
-      throw new AppError("No valid fields to update", 400);
+      throw new AppError("No valid fields to update", AppError.BAD_REQUEST);
     }
     const setClause = allowedFields.map(field => `${field} = ?`).join(", ");
     const values = allowedFields.map(field => updateData[field]);
     const sql = `UPDATE UserDeposit SET ${setClause}, userDepositUpdatedAt = ? WHERE userDepositUniqueId = ?`;
     const [result] = await executor.query(sql, [...values, currentDate(), uniqueId]);
     if (result.affectedRows === 0) {
-      throw new AppError("Deposit not found or update failed", 404);
+      throw new AppError("Deposit not found or update failed", AppError.NOT_FOUND);
     }
     return result;
   };
@@ -138,10 +138,10 @@ const updateUserDepositByUniqueId = async (userDepositUniqueId, data) => {
 
 const updateUserDepositStatusService = async (userDepositUniqueId, data) => {
   if (!userDepositUniqueId || !data || Object.keys(data).length === 0) {
-    throw new AppError("Missing deposit ID or update data", 400);
+    throw new AppError("Missing deposit ID or update data", AppError.BAD_REQUEST);
   }
   if (data.depositAmount !== undefined && data.depositAmount < 0) {
-    throw new AppError("Deposit amount cannot be negative", 400);
+    throw new AppError("Deposit amount cannot be negative", AppError.BAD_REQUEST);
   }
   const oldDepositData = await fetchDepositData(userDepositUniqueId);
   const {
@@ -168,7 +168,7 @@ const updateUserDepositStatusService = async (userDepositUniqueId, data) => {
   const updateSql = `UPDATE UserDeposit SET ${setClause}, userDepositUpdatedAt = ? WHERE userDepositUniqueId = ?`;
   const [updateResult] = await executor.query(updateSql, [...values, currentDate(), userDepositUniqueId]);
   if (updateResult.affectedRows === 0) {
-    throw new AppError("Deposit not found or update failed", 404);
+    throw new AppError("Deposit not found or update failed", AppError.NOT_FOUND);
   }
   const newDepositAmount = Number(data.depositAmount);
   if (isApproving) {

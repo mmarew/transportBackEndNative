@@ -45,7 +45,7 @@ const createSMSSender = async ({
           token: token.token,
         };
       } else {
-        throw new AppError("Invalid password", 401);
+        throw new AppError("Invalid password", AppError.UNAUTHORIZED);
       }
     }
 
@@ -61,7 +61,7 @@ const createSMSSender = async ({
     ]);
 
     if (result.affectedRows === 0) {
-      throw new AppError("Failed to create SMSSender record", 500);
+      throw new AppError("Failed to create SMSSender record", AppError.INTERNAL_SERVER_ERROR);
     }
 
     // Generate a token for the new user
@@ -83,7 +83,7 @@ const createSMSSender = async ({
   } catch (error) {
     throw new AppError(
       error.message || "Failed to process SMS sender registration",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

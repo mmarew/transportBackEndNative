@@ -52,10 +52,10 @@ const handleExistingJourney = async (driverRequest, vehicle
 // vehicleTariffRate
 ) => {
   if (!driverRequest?.driverRequestId) {
-    throw new AppError("Driver request not found", 404);
+    throw new AppError("Driver request not found", AppError.NOT_FOUND);
   }
   if (!vehicle?.vehicleUniqueId) {
-    throw new AppError("Vehicle not found", 404);
+    throw new AppError("Vehicle not found", AppError.NOT_FOUND);
   }
   const journeyDecisionArray = await getData({
     tableName: "JourneyDecisions",

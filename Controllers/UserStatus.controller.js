@@ -1,13 +1,14 @@
 const userStatusesService = require("../Services/UserStatus.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createUserStatus = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async () => {
       return await userStatusesService.createUserStatus(req.body);
     });
-    ServerResponder(res, result, 201); // Respond with 201 Created
+    ServerResponder(res, result, HTTP_STATUS.CREATED); // Respond with 201 Created
   } catch (error) {
     next(error);
   }

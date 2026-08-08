@@ -35,7 +35,7 @@ exports.createBulkAssignments = async (data) => {
     tableName: "CompanyBidRequest",
     conditions: { companyBidRequestUniqueId },
   });
-  if (!bidRow) throw new AppError("Bid not found", 404);
+  if (!bidRow) throw new AppError("Bid not found", AppError.NOT_FOUND);
   const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(

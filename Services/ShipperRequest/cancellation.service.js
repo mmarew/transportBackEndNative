@@ -233,7 +233,7 @@ const getCancellationNotifications = async ({
     });
     throw new AppError(
       error.message || "Unable to get cancellation notifications",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -264,7 +264,7 @@ const markCancellationAsSeen = async ({
     });
 
     if (!journeyDecision || journeyDecision.length === 0) {
-      throw new AppError("Journey decision not found", 404);
+      throw new AppError("Journey decision not found", AppError.NOT_FOUND);
     }
 
     const shipperRequestId = journeyDecision?.[0]?.shipperRequestId;
@@ -300,7 +300,7 @@ const markCancellationAsSeen = async ({
     });
 
     if (result.affectedRows === 0) {
-      throw new AppError("Unable to update cancellation status", 400);
+      throw new AppError("Unable to update cancellation status", AppError.BAD_REQUEST);
     }
 
     return {
@@ -310,7 +310,7 @@ const markCancellationAsSeen = async ({
   } catch (error) {
     throw new AppError(
       error.message || "Unable to mark cancellation as seen",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

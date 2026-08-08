@@ -77,7 +77,7 @@ const updateRequestById = async (requestId, updates) => {
       updateValues: updates
     });
     if (result.affectedRows === 0) {
-      throw new AppError("Request not found or no changes made", 404);
+      throw new AppError("Request not found or no changes made", AppError.NOT_FOUND);
     }
     return {
       message: "Shipper request updated successfully",
@@ -89,7 +89,7 @@ const updateRequestById = async (requestId, updates) => {
       error: error.message,
       stack: error.stack
     });
-    throw new AppError("Unable to update request", error.statusCode || 500);
+    throw new AppError("Unable to update request", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

@@ -248,7 +248,7 @@ const getUnassignedFreePlans = async (filters = {}, connection) => {
     sortOrder = "ASC"
   } = filters;
   if (!driverUniqueId) {
-    throw new AppError("driverUniqueId is required to check unassigned free plans", 400);
+    throw new AppError("driverUniqueId is required to check unassigned free plans", AppError.BAD_REQUEST);
   }
   const safeLimit = Math.max(1, parseInt(limit));
   const offset = (page - 1) * safeLimit;

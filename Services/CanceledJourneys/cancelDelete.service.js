@@ -30,7 +30,7 @@ const deleteCanceledJourney = async canceledJourneyUniqueId => {
       }
     };
   } catch {
-    throw new AppError("Failed to delete canceled journey", 500);
+    throw new AppError("Failed to delete canceled journey", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

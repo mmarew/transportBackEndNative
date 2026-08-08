@@ -36,7 +36,7 @@ const createDocumentType = async ({ body }) => {
     conditions: { userUniqueId },
   });
   if (userExists.length === 0) {
-    throw new AppError("User not found to create document type", 400);
+    throw new AppError("User not found to create document type", AppError.BAD_REQUEST);
   }
   // Check if the document type already exists
   const existingDocumentType = await getData({
@@ -188,7 +188,7 @@ const getAllDocumentTypes = async (filters = {}) => {
     const total = countRows?.[0]?.total || 0;
 
     if (!dataRows || dataRows.length === 0) {
-      throw new AppError("No document types found", 404);
+      throw new AppError("No document types found", AppError.NOT_FOUND);
     }
 
     return {
@@ -206,7 +206,7 @@ const getAllDocumentTypes = async (filters = {}) => {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("Failed to retrieve document types", 500);
+    throw new AppError("Failed to retrieve document types", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -222,7 +222,7 @@ const updateDocumentType = async ({
   const { documentTypeName, documentTypeDescription, user } = updateDataValues;
   const userUniqueId = user?.userUniqueId;
   if (existingDocumentType.length === 0) {
-    throw new AppError("Document type not existed", 404);
+    throw new AppError("Document type not existed", AppError.NOT_FOUND);
   }
   const documentTypeId = existingDocumentType[0].documentTypeId;
   const changeType = "update";
@@ -277,7 +277,7 @@ const updateDocumentType = async ({
   }
 
   if (Object.keys(updateValues).length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   updateValues.documentTypeUpdatedBy = userUniqueId;
@@ -300,11 +300,11 @@ const deleteDocumentType = async ({ documentTypeUniqueId, user }) => {
   });
 
   if (!existingDocumentType || existingDocumentType.length === 0) {
-    throw new AppError("Document type not found", 404);
+    throw new AppError("Document type not found", AppError.NOT_FOUND);
   }
 
   if (existingDocumentType?.[0]?.isDocumentTypeDeleted) {
-    throw new AppError("Document type already deleted", 409);
+    throw new AppError("Document type already deleted", AppError.CONFLICT);
   }
   const updateValues = {
     isDocumentTypeDeleted: true,
@@ -332,7 +332,7 @@ const insertDocumentTypeHistory = async ({
   });
 
   if (documentType.length === 0) {
-    throw new AppError("Document Type not found for history record", 404);
+    throw new AppError("Document Type not found for history record", AppError.NOT_FOUND);
   }
 
   const currentDocumentType = documentType[0];

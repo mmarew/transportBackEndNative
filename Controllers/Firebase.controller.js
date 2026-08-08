@@ -90,15 +90,15 @@ const firebaseController = {
         req.body || {};
 
       if (!userUniqueId) {
-        return next(new AppError("userUniqueId required", 400));
+        return next(new AppError("userUniqueId required", AppError.BAD_REQUEST));
       }
       if (!roleId) {
-        return next(new AppError("roleId required", 400));
+        return next(new AppError("roleId required", AppError.BAD_REQUEST));
       }
       // notification must contain title and body
       if (!notification?.title || !notification?.body) {
         return next(
-          new AppError("notification must contain title and body", 400),
+          new AppError("notification must contain title and body", AppError.BAD_REQUEST),
         );
       }
       const result = await executeInTransaction(async () => {

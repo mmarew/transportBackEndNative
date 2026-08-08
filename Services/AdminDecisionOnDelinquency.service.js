@@ -53,7 +53,7 @@ const createAdminDecision = async ({
     [companyDelinquencyUniqueId],
   );
   if (!delinquency) {
-    throw new AppError("Delinquency not found", 404);
+    throw new AppError("Delinquency not found", AppError.NOT_FOUND);
   }
 
   // Validate that response exists if provided
@@ -305,7 +305,7 @@ const getAdminDecisionById = async (adminDecisionOnDelinquencyUniqueId) => {
   );
 
   if (!row) {
-    throw new AppError("Admin decision not found", 404);
+    throw new AppError("Admin decision not found", AppError.NOT_FOUND);
   }
 
   return { message: "Admin decision fetched successfully", data: row };
@@ -327,7 +327,7 @@ const updateAdminDecision = async (
     [adminDecisionOnDelinquencyUniqueId],
   );
   if (!existing) {
-    throw new AppError("Admin decision not found", 404);
+    throw new AppError("Admin decision not found", AppError.NOT_FOUND);
   }
 
   const [result] = await exec().query(
@@ -374,7 +374,7 @@ const deleteAdminDecision = async (
     [adminDecisionOnDelinquencyUniqueId],
   );
   if (!existing) {
-    throw new AppError("Admin decision not found or already deleted", 404);
+    throw new AppError("Admin decision not found or already deleted", AppError.NOT_FOUND);
   }
 
   const [result] = await exec().query(
@@ -386,7 +386,7 @@ const deleteAdminDecision = async (
   );
 
   if (result.affectedRows === 0) {
-    throw new AppError("Delete failed", 500);
+    throw new AppError("Delete failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   logger.info("Admin decision soft-deleted", {

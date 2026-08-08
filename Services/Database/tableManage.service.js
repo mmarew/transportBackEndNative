@@ -266,7 +266,7 @@ const dropAllTables = async () => {
         break;
       }
       if (attempt === maxRetries && remainingTables.length > 0) {
-        throw new AppError("Failed to drop all tables after 3 attempts", 500);
+        throw new AppError("Failed to drop all tables after 3 attempts", AppError.INTERNAL_SERVER_ERROR);
       }
     }
     return {

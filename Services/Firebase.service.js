@@ -15,7 +15,7 @@ const upsertDeviceToken = async ({
   locale = null,
 }) => {
   if (!token) {
-    throw new AppError("token required", 400);
+    throw new AppError("token required", AppError.BAD_REQUEST);
   }
 
   const now = currentDate();
@@ -182,12 +182,12 @@ const upsertDeviceToken = async ({
     }
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      throw new AppError("Token already exists. Please try again.", 400);
+      throw new AppError("Token already exists. Please try again.", AppError.BAD_REQUEST);
     }
 
     throw new AppError(
       error.message || "Failed to register/update device token",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -199,7 +199,7 @@ const getDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
     [deviceTokenUniqueId],
   );
   if (rows.length === 0) {
-    throw new AppError("Device token not found", 404);
+    throw new AppError("Device token not found", AppError.NOT_FOUND);
   }
   return { message: "Device token fetched successfully", data: rows[0] };
 };
@@ -232,7 +232,7 @@ const updateDeviceTokenByUniqueId = async (
   params.push(currentDate());
 
   if (fields.length === 0) {
-    throw new AppError("No fields to update", 400);
+    throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
   const sql = `UPDATE DeviceTokens SET ${fields.join(
@@ -243,7 +243,7 @@ const updateDeviceTokenByUniqueId = async (
   const [result] = await executor.query(sql, params);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Device token not found or not updated", 404);
+    throw new AppError("Device token not found or not updated", AppError.NOT_FOUND);
   }
 
   return { message: "Device token updated successfully", data: { deviceTokenUniqueId } };
@@ -256,7 +256,7 @@ const deleteDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
     [deviceTokenUniqueId],
   );
   if (result.affectedRows === 0) {
-    throw new AppError("Device token not found", 404);
+    throw new AppError("Device token not found", AppError.NOT_FOUND);
   }
   return {
     message: `Device token ${deviceTokenUniqueId} deleted`,
@@ -284,7 +284,7 @@ const sendNotificationToTokens = async ({
 }) => {
   try {
     if (!Array.isArray(tokens) || tokens.length === 0) {
-      throw new AppError("tokens array required", 400);
+      throw new AppError("tokens array required", AppError.BAD_REQUEST);
     }
 
     const message = {
@@ -313,7 +313,7 @@ const sendNotificationToTokens = async ({
   } catch (error) {
     throw new AppError(
       error?.message || "FCM send failed",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -330,10 +330,10 @@ const sendFCMNotificationToUser = async ({
 }) => {
   try {
     if (!userUniqueId) {
-      throw new AppError("userUniqueId required", 400);
+      throw new AppError("userUniqueId required", AppError.BAD_REQUEST);
     }
     if (!roleId) {
-      throw new AppError("roleId required", 400);
+      throw new AppError("roleId required", AppError.BAD_REQUEST);
     }
     const tokensResult = await getActiveTokensByUser(userUniqueId, roleId);
     if (tokensResult.message === "error") {
@@ -366,7 +366,7 @@ const sendFCMNotificationToUser = async ({
   } catch (error) {
     throw new AppError(
       error?.message || "FCM send failed",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

@@ -110,7 +110,7 @@ exports.updatePaymentStatus = async (
   );
 
   if (!existing || existing.length === 0) {
-    throw new AppError("Payment status not found", 404);
+    throw new AppError("Payment status not found", AppError.NOT_FOUND);
   }
 
   const setParts = [];
@@ -122,7 +122,7 @@ exports.updatePaymentStatus = async (
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Add audit columns for tracking updates
@@ -136,7 +136,7 @@ exports.updatePaymentStatus = async (
   try {
     const [result] = await executor.query(sql, values);
     if (result.affectedRows === 0) {
-      throw new AppError("Failed to update payment status", 500);
+      throw new AppError("Failed to update payment status", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
@@ -161,7 +161,7 @@ exports.deletePaymentStatus = async (paymentStatusUniqueId, user) => {
   );
 
   if (!existing || existing.length === 0) {
-    throw new AppError("Payment status not found", 404);
+    throw new AppError("Payment status not found", AppError.NOT_FOUND);
   }
 
   if (existing[0]?.paymentStatusDeletedAt) {
@@ -177,7 +177,7 @@ exports.deletePaymentStatus = async (paymentStatusUniqueId, user) => {
   ]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete payment status", 500);
+    throw new AppError("Failed to delete payment status", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {

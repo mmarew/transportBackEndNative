@@ -64,11 +64,11 @@ const updateBidStatus = async (
     tableName: "CompanyBidRequest",
     conditions: { companyBidRequestUniqueId },
   });
-  if (!bidRow) throw new AppError("Bid not found", 404);
+  if (!bidRow) throw new AppError("Bid not found", AppError.NOT_FOUND);
   const bid = bidRow;
   logger.debug("updateBidStatus ~ bid:", bid)
   if (bid.companyBidRequestDeletedAt) {
-    throw new AppError("Bid has been deleted", 400);
+    throw new AppError("Bid has been deleted", AppError.BAD_REQUEST);
   } 
     
   //update bidStatus to accepted_by_shipper if it was submitted, to 
@@ -93,7 +93,7 @@ const updateBidStatus = async (
  
   logger.debug("updateBidStatus ~ res.affectedRows:", res.affectedRows)
   if (res.affectedRows === 0) {
-    throw new AppError("Bid update failed", 500);
+    throw new AppError("Bid update failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   let newPRStatus = null;
@@ -129,7 +129,7 @@ const updateBidStatus = async (
         [bid.shipperRequestBatchUniqueId],
       );
       if (!batch) {
-        throw new AppError("Batch not found during acceptance", 409);
+        throw new AppError("Batch not found during acceptance", AppError.CONFLICT);
       }
 
       const { v4: uuidv4 } = require("uuid");
@@ -453,7 +453,7 @@ const markCancellationAsSeen = async ({
   );
 
   if (!bid) {
-    throw new AppError("Bid not found", 404);
+    throw new AppError("Bid not found", AppError.NOT_FOUND);
   }
 
   // 2. Verify the caller belongs to the company that owns the bid

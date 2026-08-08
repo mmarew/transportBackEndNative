@@ -3,13 +3,14 @@ const { usersRoles } = require("../Utils/ListOfSeedData");
 const ServerResponder = require("../Utils/ServerResponder"); // Helper to handle responses
 const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createUserRoleStatus = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async () => {
       return await userRoleStatusService.createUserRoleStatus(req.body);
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -28,7 +29,7 @@ const getUserRoleStatusCurrent = async (req, res, next) => {
       userUniqueId !== "self"
     ) {
       return next(
-        new AppError("You are not authorized to access this resource", 401),
+        new AppError("You are not authorized to access this resource", AppError.UNAUTHORIZED),
       );
     }
     if (userUniqueId === "self") {
@@ -37,7 +38,7 @@ const getUserRoleStatusCurrent = async (req, res, next) => {
     const result = await userRoleStatusService.getUserRoleStatusCurrent({
       data: req.query,
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -51,7 +52,7 @@ const updateUserRoleStatus = async (req, res, next) => {
 
       return await userRoleStatusService.updateUserRoleStatus(req.body);
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -65,7 +66,7 @@ const deleteUserRoleStatus = async (req, res, next) => {
         userRoleStatusUniqueId,
       );
     });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -75,7 +76,7 @@ const userRoleStatusByPhone = async (req, res, next) => {
     const phoneNumber = req.query.phoneNumber || req.query.phone;
     const result =
       await userRoleStatusService.userRoleStatusByPhone(phoneNumber);
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }

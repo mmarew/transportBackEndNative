@@ -19,7 +19,7 @@ exports.deleteBatch = async (batchUniqueId) => {
   );
 
   if (res.affectedRows === 0) {
-    throw new AppError("Batch not found or already deleted", 404);
+    throw new AppError("Batch not found or already deleted", AppError.NOT_FOUND);
   }
 
   return { message: "Batch deleted", data: null };

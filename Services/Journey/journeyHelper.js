@@ -34,7 +34,7 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
       conditions: { driverRequestId }});
 
     if (result?.length === 0) {
-      throw new AppError("Request not found", 404);
+      throw new AppError("Request not found", AppError.NOT_FOUND);
     }
 
     return { message: "Journey data fetched", data: result[0] };
@@ -45,7 +45,7 @@ const getDriverRequestByRequestId = async (driverRequestId) => {
       stack: error.stack});
     throw new AppError(
       error.message || "Unable to retrieve request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -63,7 +63,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
       conditions: { shipperRequestId }});
 
     if (result?.length === 0) {
-      throw new AppError("Request not found", 404);
+      throw new AppError("Request not found", AppError.NOT_FOUND);
     }
 
     return { message: "Journey data fetched", data: result[0] };
@@ -75,7 +75,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
       stack: error.stack});
     throw new AppError(
       error.message || "Unable to retrieve request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -206,7 +206,7 @@ const getCompletedJourneyCountsByDate = async (filters = {}) => {
   } catch (error) {
     throw new AppError(
       error.message || "Failed to get completed journey counts",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

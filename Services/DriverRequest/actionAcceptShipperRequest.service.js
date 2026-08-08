@@ -30,19 +30,19 @@ const acceptShipperRequest = async (body) => {
 
     // Validate that the userUniqueId from token is provided
     if (!userUniqueId) {
-      throw new AppError("User authentication required", 401);
+      throw new AppError("User authentication required", AppError.UNAUTHORIZED);
     }
     if (!journeyDecisionUniqueId) {
-      throw new AppError("Journey decision unique id is required", 400);
+      throw new AppError("Journey decision unique id is required", AppError.BAD_REQUEST);
     }
     if (!driverRequestUniqueId) {
-      throw new AppError("Driver request unique id is required", 400);
+      throw new AppError("Driver request unique id is required", AppError.BAD_REQUEST);
     }
     if (!shipperRequestUniqueId) {
-      throw new AppError("Shipper request unique id is required", 400);
+      throw new AppError("Shipper request unique id is required", AppError.BAD_REQUEST);
     }
     if (shippingCostByDriver !== undefined && shippingCostByDriver <= 0) {
-      throw new AppError("Shipping cost by driver must be greater than 0", 400);
+      throw new AppError("Shipping cost by driver must be greater than 0", AppError.BAD_REQUEST);
     }
     // check if the driver request is already exists
     // Include Users join to get userUniqueId for validation
@@ -69,7 +69,7 @@ const acceptShipperRequest = async (body) => {
 
     // if the request is not found, return error
     if (!existingRequest?.length) {
-      throw new AppError("Request not found", 404);
+      throw new AppError("Request not found", AppError.NOT_FOUND);
     }
 
     const requestData = existingRequest[0];
@@ -78,12 +78,12 @@ const acceptShipperRequest = async (body) => {
     // organization at order creation, so no driver counter-bid is required.
     const isQueueOrder = Boolean(requestData.queueOrganizationUniqueId);
     if (!isQueueOrder && !shippingCostByDriver) {
-      throw new AppError("Shipping cost by driver is required", 400);
+      throw new AppError("Shipping cost by driver is required", AppError.BAD_REQUEST);
     }
 
     // Validate that the userUniqueId from token matches the driver who owns this request
     if (requestData.userUniqueId !== userUniqueId) {
-      throw new AppError("Driver user does not match driver request", 403);
+      throw new AppError("Driver user does not match driver request", AppError.FORBIDDEN);
     }
 
     // if the request is found, check if the request is valid to accept
@@ -93,7 +93,7 @@ const acceptShipperRequest = async (body) => {
       requestData.shipperRequestUniqueId !== shipperRequestUniqueId ||
       requestData.driverRequestUniqueId !== driverRequestUniqueId
     ) {
-      throw new AppError("Request found is not valid to accept", 400);
+      throw new AppError("Request found is not valid to accept", AppError.BAD_REQUEST);
     }
 
     // Block company_target requests — they must go through the company assignment flow
@@ -158,7 +158,7 @@ const acceptShipperRequest = async (body) => {
 
     // Add error handling if helper returns error
     if (!shipperRequest || !journeyDecisionData || !driverInfo) {
-      throw new AppError("Unable to fetch journey data", 404);
+      throw new AppError("Unable to fetch journey data", AppError.NOT_FOUND);
     }
 
     // Send notification directly - no need to process all shipper requests
@@ -217,7 +217,7 @@ const acceptShipperRequest = async (body) => {
     });
     throw new AppError(
       error.message || "Unable to accept shipper request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

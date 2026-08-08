@@ -165,7 +165,7 @@ const updateFinancialInstitutionAccountByUniqueId = async (
 
   // Check if any fields were provided to update
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Always update audit fields
@@ -181,7 +181,7 @@ const updateFinancialInstitutionAccountByUniqueId = async (
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Update failed or account not found", 404);
+    throw new AppError("Update failed or account not found", AppError.NOT_FOUND);
   }
 
   return { message: "Financial institution account updated successfully", data: { accountUniqueId, ...updates } };
@@ -194,7 +194,7 @@ const deleteFinancialInstitutionAccountByUniqueId = async (accountUniqueId) => {
   const [result] = await executor.query(sql, [accountUniqueId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Deletion failed or account not found", 404);
+    throw new AppError("Deletion failed or account not found", AppError.NOT_FOUND);
   }
 
   return { message: `Deleted: ${accountUniqueId}`, data: null };

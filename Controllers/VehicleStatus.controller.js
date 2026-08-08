@@ -1,6 +1,7 @@
 const vehicleStatusService = require("../Services/VehicleStatus.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createVehicleStatus = async (req, res, next) => {
   try {
@@ -11,7 +12,7 @@ const createVehicleStatus = async (req, res, next) => {
         vehicleStatusCreatedBy,
       });
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }

@@ -20,12 +20,12 @@ const createVehicleDriver = async (data) => {
 
   // Basic validation
   if (!vehicleUniqueId || !driverUserUniqueId || !assignmentStartDate) {
-    throw new AppError("Missing required fields", 400);
+    throw new AppError("Missing required fields", AppError.BAD_REQUEST);
   }
   // validate assignmentStatus
   const allowedStatuses = ["active", "inactive"];
   if (!allowedStatuses.includes(assignmentStatus)) {
-    throw new AppError("Invalid assignmentStatus", 400);
+    throw new AppError("Invalid assignmentStatus", AppError.BAD_REQUEST);
   }
   // first check if this vehicle is reserved by another user driver
 
@@ -40,12 +40,12 @@ const createVehicleDriver = async (data) => {
       data.driverUserUniqueId === driverUserUniqueId &&
       data.assignmentStatus === "active"
     ) {
-      throw new AppError("Vehicle is already reserved by you", 400);
+      throw new AppError("Vehicle is already reserved by you", AppError.BAD_REQUEST);
     }
   }
   // if vehicle is reserved by another user driver
   if (vehicleDriver.length) {
-    throw new AppError("Vehicle is already reserved by another user", 400);
+    throw new AppError("Vehicle is already reserved by another user", AppError.BAD_REQUEST);
   }
 
   const vehicleDriverUniqueId = uuidv4();
@@ -75,7 +75,7 @@ const createVehicleDriver = async (data) => {
   ]);
 
   if (!result.affectedRows) {
-    throw new AppError("Insert failed", 500);
+    throw new AppError("Insert failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return { message: "Vehicle driver assigned", data: { vehicleDriverUniqueId } };
@@ -120,7 +120,7 @@ const getVehicleDrivers = async (filters = {}) => {
   if (assignmentStatus) {
     const allowed = ["active", "inactive"];
     if (!allowed.includes(assignmentStatus)) {
-      throw new AppError("Invalid assignmentStatus", 400);
+      throw new AppError("Invalid assignmentStatus", AppError.BAD_REQUEST);
     }
     where.push("vd.assignmentStatus = ?");
     params.push(assignmentStatus);
@@ -217,7 +217,7 @@ const updateVehicleDriverByUniqueId = async (
   data = {},
 ) => {
   if (!vehicleDriverUniqueId) {
-    throw new AppError("Missing ID", 400);
+    throw new AppError("Missing ID", AppError.BAD_REQUEST);
   }
 
   const fields = [];
@@ -238,7 +238,7 @@ const updateVehicleDriverByUniqueId = async (
   }
   if (data.assignmentStatus) {
     if (!allowedStatuses.includes(data.assignmentStatus)) {
-      throw new AppError("Invalid assignmentStatus", 400);
+      throw new AppError("Invalid assignmentStatus", AppError.BAD_REQUEST);
     }
     fields.push("assignmentStatus = ?");
     params.push(data.assignmentStatus);
@@ -253,7 +253,7 @@ const updateVehicleDriverByUniqueId = async (
   }
 
   if (!fields.length) {
-    throw new AppError("No fields to update", 400);
+    throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
   const sql = `UPDATE VehicleDriver SET ${fields.join(
@@ -264,7 +264,7 @@ const updateVehicleDriverByUniqueId = async (
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, params);
   if (!result.affectedRows) {
-    throw new AppError("Update failed or assignment not found", 404);
+    throw new AppError("Update failed or assignment not found", AppError.NOT_FOUND);
   }
 
   // Fetch driverUserUniqueId so controller can refresh status post-commit.
@@ -283,7 +283,7 @@ const updateVehicleDriverByUniqueId = async (
 // Delete assignment
 const deleteVehicleDriverByUniqueId = async (vehicleDriverUniqueId) => {
   if (!vehicleDriverUniqueId) {
-    throw new AppError("Missing ID", 400);
+    throw new AppError("Missing ID", AppError.BAD_REQUEST);
   }
 
   // Get the record before deletion to get driverUserUniqueId
@@ -294,7 +294,7 @@ const deleteVehicleDriverByUniqueId = async (vehicleDriverUniqueId) => {
   );
 
   if (existingRecord.length === 0) {
-    throw new AppError("Assignment not found", 404);
+    throw new AppError("Assignment not found", AppError.NOT_FOUND);
   }
 
   const driverUserUniqueId = existingRecord[0].driverUserUniqueId;
@@ -304,7 +304,7 @@ const deleteVehicleDriverByUniqueId = async (vehicleDriverUniqueId) => {
     [vehicleDriverUniqueId],
   );
   if (!result.affectedRows) {
-    throw new AppError("Delete failed or assignment not found", 404);
+    throw new AppError("Delete failed or assignment not found", AppError.NOT_FOUND);
   }
 
   return { message: "Vehicle driver assigned", data: { deleted: true, driverUserUniqueId } };

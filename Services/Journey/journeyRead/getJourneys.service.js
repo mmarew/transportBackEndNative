@@ -345,7 +345,7 @@ const getJourneys = async (filters = {}) => {
       }
     };
   } catch (error) {
-    throw new AppError(error.message || "Failed to get journeys", error.statusCode || 500);
+    throw new AppError(error.message || "Failed to get journeys", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

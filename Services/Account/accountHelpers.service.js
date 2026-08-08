@@ -89,55 +89,55 @@ const validateAccountStatusParams = ({
   // Check if at least one user identifier is provided
   const hasUserIdentifier = ownerUserUniqueId || phoneNumber || email || user?.userUniqueId;
   if (!hasUserIdentifier) {
-    throw new AppError("At least one user identifier is required: ownerUserUniqueId, phoneNumber, email, or user.userUniqueId", 400);
+    throw new AppError("At least one user identifier is required: ownerUserUniqueId, phoneNumber, email, or user.userUniqueId", AppError.BAD_REQUEST);
   }
 
   // Validate ownerUserUniqueId if provided (not null/undefined)
   if (ownerUserUniqueId !== undefined && ownerUserUniqueId !== null && (typeof ownerUserUniqueId !== "string" || ownerUserUniqueId.trim() === "")) {
-    throw new AppError("ownerUserUniqueId must be a non-empty string", 400);
+    throw new AppError("ownerUserUniqueId must be a non-empty string", AppError.BAD_REQUEST);
   }
 
   // If ownerUserUniqueId is not provided, require phoneNumber or email
   if (!ownerUserUniqueId && !phoneNumber && !email) {
-    throw new AppError("Either ownerUserUniqueId, phoneNumber, or email must be provided to identify the user", 400);
+    throw new AppError("Either ownerUserUniqueId, phoneNumber, or email must be provided to identify the user", AppError.BAD_REQUEST);
   }
 
   // Validate phoneNumber if provided
   if (phoneNumber !== undefined && (typeof phoneNumber !== "string" || phoneNumber.trim() === "")) {
-    throw new AppError("phoneNumber must be a non-empty string", 400);
+    throw new AppError("phoneNumber must be a non-empty string", AppError.BAD_REQUEST);
   }
 
   // Validate email if provided
   if (email !== undefined) {
     if (typeof email !== "string" || email.trim() === "") {
-      throw new AppError("email must be a non-empty string", 400);
+      throw new AppError("email must be a non-empty string", AppError.BAD_REQUEST);
     }
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new AppError("email must be a valid email address", 400);
+      throw new AppError("email must be a valid email address", AppError.BAD_REQUEST);
     }
   }
 
   // Validate user object if provided (allow null for phone/email lookups)
   if (user !== undefined && user !== null) {
     if (typeof user !== "object") {
-      throw new AppError("user must be an object", 400);
+      throw new AppError("user must be an object", AppError.BAD_REQUEST);
     }
     if (user.userUniqueId && (typeof user.userUniqueId !== "string" || user.userUniqueId.trim() === "")) {
-      throw new AppError("user.userUniqueId must be a non-empty string", 400);
+      throw new AppError("user.userUniqueId must be a non-empty string", AppError.BAD_REQUEST);
     }
   }
 
   // Validate that roleId is available (from body/query or user)
   const hasRoleId = body && body.roleId || user && user.roleId;
   if (!hasRoleId) {
-    throw new AppError("roleId is required and must be provided in body.roleId or user.roleId", 400);
+    throw new AppError("roleId is required and must be provided in body.roleId or user.roleId", AppError.BAD_REQUEST);
   }
 
   // Validate enableDocumentChecks
   if (typeof enableDocumentChecks !== "boolean") {
-    throw new AppError("enableDocumentChecks must be a boolean", 400);
+    throw new AppError("enableDocumentChecks must be a boolean", AppError.BAD_REQUEST);
   }
 };
 
@@ -209,7 +209,7 @@ async function checkAndGrantUserSubscription(driverUniqueId) {
       error: error.message,
       stack: error.stack
     });
-    throw new AppError("Failed to check subscription status", 500);
+    throw new AppError("Failed to check subscription status", AppError.INTERNAL_SERVER_ERROR);
   }
 }
 

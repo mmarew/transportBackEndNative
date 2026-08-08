@@ -78,7 +78,7 @@ const getDriverRequestByRequestUniqueId = async (driverRequestUniqueId) => {
   });
 
   if (!result?.length) {
-    throw new AppError("Request not found", 404);
+    throw new AppError("Request not found", AppError.NOT_FOUND);
   }
 
   return result[0];

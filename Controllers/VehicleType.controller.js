@@ -5,11 +5,12 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { uploadToFTP } = require("../Utils/FTPHandler");
 const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.createVehicleType = async (req, res, next) => {
   try {
     if (!req.file) {
-      return next(new AppError("Please attach vehicle type icon", 400));
+      return next(new AppError("Please attach vehicle type icon", AppError.BAD_REQUEST));
     }
 
     const user = req.user;
@@ -35,7 +36,7 @@ exports.createVehicleType = async (req, res, next) => {
       return await vehicleTypeService.createVehicleType(data);
     });
 
-    return ServerResponder(res, result, 201);
+    return ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }

@@ -36,12 +36,12 @@ exports.addMember = async (data) => {
     tableName: "TransportCompany",
     conditions: { companyUniqueId, isDeleted: 0 },
   });
-  if (!companyRow) throw new AppError("Company not found", 404);
+  if (!companyRow) throw new AppError("Company not found", AppError.NOT_FOUND);
   const company = companyRow;
 
   // Status check (unless skipped for initial creation)
   if (!skipApprovalCheck && company.approvalStatus !== "approved") {
-    throw new AppError("Company is not approved yet", 400);
+    throw new AppError("Company is not approved yet", AppError.BAD_REQUEST);
   }
 
   const [existing] = await db().query(
@@ -140,7 +140,7 @@ exports.activateMember = async (membershipUniqueId, updatedBy) => {
     "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
     [membershipUniqueId],
   );
-  if (existing.length === 0) {throw new AppError("Membership not found", 404);}
+  if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
 
   await db().query(
     `UPDATE CompanyMembership
@@ -156,7 +156,7 @@ exports.deactivateMember = async (membershipUniqueId, updatedBy) => {
     "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
     [membershipUniqueId],
   );
-  if (existing.length === 0) {throw new AppError("Membership not found", 404);}
+  if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
 
   await db().query(
     `UPDATE CompanyMembership
@@ -172,7 +172,7 @@ exports.deleteMember = async (membershipUniqueId, deletedBy) => {
     "SELECT membershipUniqueId FROM CompanyMembership WHERE membershipUniqueId = ?",
     [membershipUniqueId],
   );
-  if (existing.length === 0) {throw new AppError("Membership not found", 404);}
+  if (existing.length === 0) {throw new AppError("Membership not found", AppError.NOT_FOUND);}
 
   await db().query(
     `UPDATE CompanyMembership

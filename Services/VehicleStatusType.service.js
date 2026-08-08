@@ -12,10 +12,10 @@ const logger = require("../Utils/logger");
 const createVehicleStatusType = async (data) => {
   const statusTypeName = data.VehicleStatusTypeName || data.typeName;
   if (!statusTypeName) {
-    throw new AppError("Vehicle Status Type name is required", 400);
+    throw new AppError("Vehicle Status Type name is required", AppError.BAD_REQUEST);
   }
   if (statusTypeName.length > 50) {
-    throw new AppError("Vehicle Status Type name is too long", 400);
+    throw new AppError("Vehicle Status Type name is too long", AppError.BAD_REQUEST);
   }
 
   const registeredType = await getData({
@@ -114,7 +114,7 @@ const updateVehicleStatusType = async (vehicleStatusTypeUniqueId, data) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Update failed or Vehicle Status Type not found", 404);
+    throw new AppError("Update failed or Vehicle Status Type not found", AppError.NOT_FOUND);
   }
 
   return {
@@ -134,7 +134,7 @@ const deleteVehicleStatusType = async (vehicleStatusTypeUniqueId) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Delete failed or Vehicle Status Type not found", 404);
+    throw new AppError("Delete failed or Vehicle Status Type not found", AppError.NOT_FOUND);
   }
 
   return {

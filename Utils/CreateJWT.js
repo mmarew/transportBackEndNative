@@ -7,7 +7,7 @@ const createJWT = (userData) => {
   const { userUniqueId, phoneNumber, roleId } = userData;
   if (!userUniqueId || !phoneNumber || !roleId) {
     const AppError = require("./AppError");
-    throw new AppError("All fields are required to create jwt", 400);
+    throw new AppError("All fields are required to create jwt", AppError.BAD_REQUEST);
   }
   // Create the token
   const token = jwt.sign(

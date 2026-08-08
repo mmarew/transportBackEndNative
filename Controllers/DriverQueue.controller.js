@@ -2,13 +2,14 @@
 const service = require("../Services/DriverQueue.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.checkin = async (req, res, next) => {
   try {
     const result = await executeInTransaction(() =>
       service.checkin({ ...req.body, user: req.user }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }
@@ -62,7 +63,7 @@ exports.manualCheckin = async (req, res, next) => {
     const result = await executeInTransaction(() =>
       service.manualCheckin({ ...req.body, user: req.user }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

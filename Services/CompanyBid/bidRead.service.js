@@ -334,7 +334,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
  */
 const getBidsSummary = async (companyUniqueId) => {
   if (!companyUniqueId) {
-    throw new AppError("companyUniqueId is required", 400);
+    throw new AppError("companyUniqueId is required", AppError.BAD_REQUEST);
   }
   // 2. Count Available (matching discovery boards filters)
   const activeStatusIds = [
@@ -413,7 +413,7 @@ const getBidsSummary = async (companyUniqueId) => {
  */
 const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
   if (!userUniqueId) {
-    throw new AppError("Authentication required", 401);
+    throw new AppError("Authentication required", AppError.UNAUTHORIZED);
   }
   const isAdmin =
     roleId === usersRoles.adminRoleId ||
@@ -475,14 +475,14 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
 
   if (filters?.target === "summary") {
     if (!resolvedCompanyUniqueId) {
-      throw new AppError("companyUniqueId is required for summary mode", 400);
+      throw new AppError("companyUniqueId is required for summary mode", AppError.BAD_REQUEST);
     }
     return getBidsSummary(resolvedCompanyUniqueId);
   }
   // if filters.target is available, get available requests, get biddable requests only when target is company and
   if (filters?.target === "available") {
     if (!resolvedCompanyUniqueId) {
-      throw new AppError("companyUniqueId is required for available mode", 400);
+      throw new AppError("companyUniqueId is required for available mode", AppError.BAD_REQUEST);
     }
     return getAvailableRequests(resolvedCompanyUniqueId, filters);
   }

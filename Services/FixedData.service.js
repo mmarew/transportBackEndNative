@@ -47,7 +47,7 @@ async function getCommissionRateData() {
     const result = await getAllCommissionRates({ limit: 1, page: 1 });
     const row = result?.data?.[0];
     if (!row) {
-      throw new AppError("Commission rate not found", 404);
+      throw new AppError("Commission rate not found", AppError.NOT_FOUND);
     }
     return {
       commissionRateUniqueId: row.commissionRateUniqueId,
@@ -68,7 +68,7 @@ async function getCommissionStatusPaidId() {
       [],
     );
     if (!rows || rows.length === 0) {
-      throw new AppError("Commission status 'PAID' not found", 404);
+      throw new AppError("Commission status 'PAID' not found", AppError.NOT_FOUND);
     }
     return rows[0].commissionStatusUniqueId;
   });

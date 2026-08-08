@@ -16,7 +16,7 @@ const checkVehicleTypeDuplicate = async ({
     conditions: { vehicleTypeName },
   });
   if (existedByName.length > 0) {
-    throw new AppError("Vehicle type already exists", 400);
+    throw new AppError("Vehicle type already exists", AppError.BAD_REQUEST);
   }
 
   // Check by icon
@@ -25,7 +25,7 @@ const checkVehicleTypeDuplicate = async ({
     conditions: { vehicleTypeIconName },
   });
   if (existedByIcon.length > 0) {
-    throw new AppError("Vehicle type icon already exists", 400);
+    throw new AppError("Vehicle type icon already exists", AppError.BAD_REQUEST);
   }
 
   return { message: "ok" };
@@ -50,7 +50,7 @@ const createVehicleType = async (data) => {
     },
   });
   if (existedData.length > 0) {
-    throw new AppError("Vehicle type already exists", 400);
+    throw new AppError("Vehicle type already exists", AppError.BAD_REQUEST);
   }
   const query = `
     INSERT INTO VehicleTypes (
@@ -179,7 +179,7 @@ const getVehicleTypesByfilter = async (filters = {}) => {
   const total = countRows?.[0]?.total || 0;
 
   if (!dataRows || dataRows.length === 0) {
-    throw new AppError("No vehicle types found", 404);
+    throw new AppError("No vehicle types found", AppError.NOT_FOUND);
   }
 
   return {
@@ -235,7 +235,7 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   setParts.push("vehicleTypeUpdatedAt = ?");
@@ -255,7 +255,7 @@ const updateVehicleType = async (vehicleTypeUniqueId, data, file) => {
   }
 
   if (result.affectedRows === 0) {
-    throw new AppError("Vehicle type not found or update failed", 404);
+    throw new AppError("Vehicle type not found or update failed", AppError.NOT_FOUND);
   }
 
   return { message: "Vehicle type deleted", data: null };
@@ -278,7 +278,7 @@ const deleteVehicleType = async (vehicleTypeUniqueId, deletedBy) => {
     vehicleTypeUniqueId,
   ]);
   if (result.affectedRows === 0) {
-    throw new AppError("Vehicle type not found or already deleted", 404);
+    throw new AppError("Vehicle type not found or already deleted", AppError.NOT_FOUND);
   }
   return { message: "Vehicle type deleted", data: null };
 };

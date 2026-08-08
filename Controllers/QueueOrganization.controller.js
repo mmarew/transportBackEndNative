@@ -2,6 +2,7 @@
 const service = require("../Services/QueueOrganization.service");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.createQueueOrganization = async (req, res, next) => {
   try {
@@ -11,7 +12,7 @@ exports.createQueueOrganization = async (req, res, next) => {
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }
@@ -89,7 +90,7 @@ exports.addMember = async (req, res, next) => {
         req.user.userUniqueId,
       ),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

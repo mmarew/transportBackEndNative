@@ -59,7 +59,7 @@ const deleteUser = async (req, res, next) => {
     // User must be admin, super admin, or deleting their own account
     const isAdminOrSuperAdmin = roleId === usersRoles.adminRoleId || roleId === usersRoles.supperAdminRoleId;
     if (!isAdminOrSuperAdmin && deletedBy !== userUniqueId) {
-      throw new AppError("you can't delete this user", 403);
+      throw new AppError("you can't delete this user", AppError.FORBIDDEN);
     }
     const retainFiles = req.query?.retainFiles !== "false" && req.query?.retainFiles !== false;
     const response = await executeInTransaction(async () => {
@@ -119,7 +119,7 @@ const updateUser = async (req, res, next) => {
           ProfilePhotoExpirationDate
         };
       } catch (err) {
-        throw new AppError(`Failed to upload profile image to server: ${err.message}`, 500);
+        throw new AppError(`Failed to upload profile image to server: ${err.message}`, AppError.INTERNAL_SERVER_ERROR);
       }
     }
     let oldFileUrl = null;

@@ -61,7 +61,7 @@ const submitBid = async (data) => {
     tableName: "TransportCompany",
     conditions: { companyUniqueId, isDeleted: 0 },
   });
-  if (!companyRow) throw new AppError("Company not found", 404);
+  if (!companyRow) throw new AppError("Company not found", AppError.NOT_FOUND);
   const company = companyRow;
   if (company.approvalStatus !== "approved") {
     throw new AppError(
@@ -97,7 +97,7 @@ const submitBid = async (data) => {
     [shipperRequestBatchUniqueId],
   );
   if (!batchRows || batchRows.length === 0) {
-    throw new AppError("Shipper request batch not found", 404);
+    throw new AppError("Shipper request batch not found", AppError.NOT_FOUND);
   }
 
   const {
@@ -116,7 +116,7 @@ const submitBid = async (data) => {
     targetCompanyUniqueId !== null &&
     targetCompanyUniqueId !== companyUniqueId
   ) {
-    throw new AppError("This batch is targeted at a different company", 403);
+    throw new AppError("This batch is targeted at a different company", AppError.FORBIDDEN);
   }
 
   // 2b. Reject new bids if a bid has already been accepted for this batch.
@@ -149,7 +149,7 @@ const submitBid = async (data) => {
     );
     const actualRequestCount = Number(countRows?.[0]?.batchCount ?? 0);
     if (actualRequestCount === 0) {
-      throw new AppError("This batch contains no individual requests", 400);
+      throw new AppError("This batch contains no individual requests", AppError.BAD_REQUEST);
     }
   }
 
@@ -160,7 +160,7 @@ const submitBid = async (data) => {
   /* 
   // PARTIAL BID RESTORATION LOGIC:
   if (numberOfVehiclesOffered > totalVehicles) {
-     throw new AppError(`Cannot bid for ${numberOfVehiclesOffered} when batch only needs ${totalVehicles}`, 400);
+     throw new AppError(`Cannot bid for ${numberOfVehiclesOffered} when batch only needs ${totalVehicles}`, AppError.BAD_REQUEST);
   }
   const finalCount = numberOfVehiclesOffered; 
   */

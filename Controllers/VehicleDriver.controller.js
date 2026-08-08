@@ -9,6 +9,7 @@ const { accountStatus } = require("../Services/Account");
 const { usersRoles } = require("../Utils/ListOfSeedData");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 // Shared helper — recalculates driver status on pool AFTER transaction is done.
 // Must be called outside executeInTransaction to avoid holding write locks.
@@ -41,7 +42,7 @@ const createVehicleDriverController = async (req, res, next) => {
     // ── 2. Status recalc AFTER commit — uses a fresh pool connection, no locks
     await refreshDriverStatus(body.driverUserUniqueId);
 
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -62,7 +63,7 @@ const getVehicleDriversController = async (req, res, next) => {
     // Note: if driverUserUniqueId is not provided at all, we keep the filters as is (which might include it from req.query)
     logger.info("@getVehicleDriversController filters", filters);
     const result = await getVehicleDrivers(filters);
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -82,7 +83,7 @@ const updateVehicleDriverController = async (req, res, next) => {
     // ── 2. Status recalc after commit using driverUserUniqueId returned by service
     await refreshDriverStatus(result?.data?.driverUserUniqueId);
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -101,7 +102,7 @@ const deleteVehicleDriverController = async (req, res, next) => {
     // ── 2. Status recalc after commit
     await refreshDriverStatus(result?.data?.driverUserUniqueId);
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }

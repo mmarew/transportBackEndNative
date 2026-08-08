@@ -12,7 +12,7 @@ exports.createPaymentMethod = async ({ paymentMethod, user }) => {
     conditions: { paymentMethod },
   });
   if (existedPaymentMethodes.length > 0) {
-    throw new AppError("Payment method already exists", 400);
+    throw new AppError("Payment method already exists", AppError.BAD_REQUEST);
   }
   const paymentMethodUniqueId = uuidv4();
   const createdBy = user?.userUniqueId;
@@ -122,7 +122,7 @@ exports.updatePaymentMethod = async (
   );
 
   if (!existing || existing.length === 0) {
-    throw new AppError("Payment method not found", 404);
+    throw new AppError("Payment method not found", AppError.NOT_FOUND);
   }
 
   const setParts = [];
@@ -134,7 +134,7 @@ exports.updatePaymentMethod = async (
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Add audit columns
@@ -148,7 +148,7 @@ exports.updatePaymentMethod = async (
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update payment method", 500);
+    throw new AppError("Failed to update payment method", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {
@@ -167,7 +167,7 @@ exports.deletePaymentMethod = async (paymentMethodUniqueId, user) => {
   );
 
   if (!existing || existing.length === 0) {
-    throw new AppError("Payment method not found", 404);
+    throw new AppError("Payment method not found", AppError.NOT_FOUND);
   }
 
   const sql = `UPDATE PaymentMethod SET paymentMethodDeletedAt = ?, paymentMethodDeletedBy = ? WHERE paymentMethodUniqueId = ?`;
@@ -178,7 +178,7 @@ exports.deletePaymentMethod = async (paymentMethodUniqueId, user) => {
   ]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete payment method", 500);
+    throw new AppError("Failed to delete payment method", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {

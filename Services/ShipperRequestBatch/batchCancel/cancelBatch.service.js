@@ -40,7 +40,7 @@ const cancelBatch = async ({
   cancellationReasonsTypeId,
 }) => {
   if (!batchUniqueId || !userUniqueId) {
-    throw new AppError("batchUniqueId and userUniqueId are required", 400);
+    throw new AppError("batchUniqueId and userUniqueId are required", AppError.BAD_REQUEST);
   }
 
   // 1a. Validate cancellation reason is appropriate for company context
@@ -51,13 +51,13 @@ const cancelBatch = async ({
     tableName: "ShipperRequestBatch",
     conditions: { batchUniqueId },
   });
-  if (!batch) throw new AppError("Batch not found", 404);
+  if (!batch) throw new AppError("Batch not found", AppError.NOT_FOUND);
   const isAdmin =
     roleId === usersRoles.adminRoleId ||
     roleId === usersRoles.supperAdminRoleId; // admin / super-admin
 
   if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
-    throw new AppError("Unauthorized: batch does not belong to you", 403);
+    throw new AppError("Unauthorized: batch does not belong to you", AppError.FORBIDDEN);
   }
   const terminalStatuses = [
     journeyStatusMap.cancelledByShipper,
@@ -70,7 +70,7 @@ const cancelBatch = async ({
   ].filter(Boolean); // remove undefined if any key is missing
 
   if (terminalStatuses.includes(batch.journeyStatusId)) {
-    throw new AppError("Batch is already cancelled", 400);
+    throw new AppError("Batch is already cancelled", AppError.BAD_REQUEST);
   }
   const cancelStatusId = isAdmin
     ? journeyStatusMap.cancelledByAdmin // 10

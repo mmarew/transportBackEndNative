@@ -22,7 +22,7 @@ let authService;
 
 const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   if (!userUniqueId) {
-    throw new AppError("userUniqueId required", 400);
+    throw new AppError("userUniqueId required", AppError.BAD_REQUEST);
   }
   const OTP = rawPassword || generateOTP();
   const phoneOTP = rawPassword || generateOTP();
@@ -76,7 +76,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
       conditions: { userUniqueId },
     });
     if (upd?.affectedRows === 0) {
-      throw new AppError("Unable to update credential", 500);
+      throw new AppError("Unable to update credential", AppError.INTERNAL_SERVER_ERROR);
     }
     return { message: "User operation completed" };
   }
@@ -101,7 +101,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   });
 
   if (ins?.affectedRows === 0) {
-    throw new AppError("Unable to create credential", 500);
+    throw new AppError("Unable to create credential", AppError.INTERNAL_SERVER_ERROR);
   }
   return { message: "User operation completed" };
 };
@@ -192,7 +192,7 @@ const registerNewUser = async ({
   );
 
   if (userIns.affectedRows === 0) {
-    throw new AppError("User registration failed", 500);
+    throw new AppError("User registration failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   // OPTIMIZATION: Construct userData locally using insertId to avoid a redundant SELECT query
@@ -238,7 +238,7 @@ const createUser = async (body) => {
 
   // 1. Enforce   phoneNumber
   if (!phoneNumber?.trim()) {
-    throw new AppError("Phone number is mandatory for registration.", 400);
+    throw new AppError("Phone number is mandatory for registration.", AppError.BAD_REQUEST);
   }
 
   const cleanPhone = String(phoneNumber).trim().replace(/\s/g, "");
@@ -308,7 +308,7 @@ const createUser = async (body) => {
     }
     //check if user is deleted
     if (user?.isDeleted || user?.userDeletedAt) {
-      throw new AppError("Account has been deleted", 403);
+      throw new AppError("Account has been deleted", AppError.FORBIDDEN);
     }
     // User already has an account, handle OTP login
     if (!authService) {
@@ -370,7 +370,7 @@ const createUserByAdminOrSuperAdmin = async ({
       phoneNumber &&
       userDataByEmail[0].phoneNumber !== phoneNumber
     ) {
-      throw new AppError("There is a difference in phone number", 409);
+      throw new AppError("There is a difference in phone number", AppError.CONFLICT);
     }
     if (!isPlaceholderEmail(email)) {
       return {
@@ -439,7 +439,7 @@ const createUserByAdminOrSuperAdmin = async ({
       existingUser.email &&
       existingUser.email !== email
     ) {
-      throw new AppError("There is a difference in email address", 409);
+      throw new AppError("There is a difference in email address", AppError.CONFLICT);
     }
 
     return {

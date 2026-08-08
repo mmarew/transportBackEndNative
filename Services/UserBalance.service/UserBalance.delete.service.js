@@ -7,7 +7,7 @@ const deleteUserBalance = async (userBalanceUniqueId) => {
   const sql = `DELETE FROM UserBalance WHERE userBalanceUniqueId = ?`;
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [userBalanceUniqueId]);
   if (result.affectedRows === 0) {
-    throw new AppError("Driver balance not found", 404);
+    throw new AppError("Driver balance not found", AppError.NOT_FOUND);
   }
 
   return "Balance record deleted successfully";
@@ -19,7 +19,7 @@ const deleteUserBalanceByTransactionUniqueId = async ({
   const [result] = await (transactionStorage.getStore() || pool).query(sql, [transactionUniqueId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Driver balance not found", 404);
+    throw new AppError("Driver balance not found", AppError.NOT_FOUND);
   }
   return "Balance record deleted successfully";
 };

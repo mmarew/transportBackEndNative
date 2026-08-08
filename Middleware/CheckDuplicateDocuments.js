@@ -16,7 +16,7 @@ const checkDuplicateDocuments = async (req, res, next) => {
 
     if (userUniqueId === "self") {
       if (!user?.userUniqueId) {
-        return next(new AppError("User not authenticated", 401));
+        return next(new AppError("User not authenticated", AppError.UNAUTHORIZED));
       }
       userUniqueId = user.userUniqueId;
     }

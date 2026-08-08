@@ -47,7 +47,7 @@ const messageTypes = require("../../../Utils/MessageTypes");
  */
 const verifyEmailByToken = async token => {
   if (!token) {
-    throw new AppError("Invalid or missing token", 400);
+    throw new AppError("Invalid or missing token", AppError.BAD_REQUEST);
   }
   const [credential] = await getData({
     tableName: "usersCredential",
@@ -56,14 +56,14 @@ const verifyEmailByToken = async token => {
     }
   });
   if (!credential) {
-    throw new AppError("Verification link is invalid or has expired.", 400);
+    throw new AppError("Verification link is invalid or has expired.", AppError.BAD_REQUEST);
   }
   // Use the EAT string from currentDate() and parse it as a local date (without "Z")
   // to ensure it is on the same scale as the database values.
   const now = new Date(currentDate().replace(" ", "T"));
   const expiry = typeof credential.emailVerificationExpiresAt === "string" ? new Date(credential.emailVerificationExpiresAt.replace(" ", "T")) : new Date(credential.emailVerificationExpiresAt);
   if (now > expiry) {
-    throw new AppError("Verification link has expired. Please log in again to receive a new one.", 400);
+    throw new AppError("Verification link has expired. Please log in again to receive a new one.", AppError.BAD_REQUEST);
   }
   const userUniqueId = credential.userUniqueId;
 
@@ -183,7 +183,7 @@ const verifyEmailByToken = async token => {
  */
 const reportMisdirectedEmail = async token => {
   if (!token) {
-    throw new AppError("Token is required.", 400);
+    throw new AppError("Token is required.", AppError.BAD_REQUEST);
   }
 
   // Find the credential by token
@@ -194,7 +194,7 @@ const reportMisdirectedEmail = async token => {
     }
   });
   if (!credential) {
-    throw new AppError("This report link has already been processed or is invalid.", 400);
+    throw new AppError("This report link has already been processed or is invalid.", AppError.BAD_REQUEST);
   }
   const {
     userUniqueId

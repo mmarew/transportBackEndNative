@@ -43,7 +43,7 @@ const {
 const verifyUserByOTP = async (req) => {
   const { phoneNumber, email, OTP, roleId } = req.body;
   if (!OTP || (!phoneNumber && !email)) {
-    throw new AppError("OTP and identity (phone/email) are required", 400);
+    throw new AppError("OTP and identity (phone/email) are required", AppError.BAD_REQUEST);
   }
   const conditions = {};
   if (phoneNumber) {
@@ -64,21 +64,21 @@ const verifyUserByOTP = async (req) => {
     limit: 1,
   });
   if (!verifyUserExistence || verifyUserExistence.length === 0) {
-    throw new AppError("user not found", 404);
+    throw new AppError("user not found", AppError.NOT_FOUND);
   }
   const userRow = verifyUserExistence?.[0];
   if (userRow?.isDeleted || userRow?.userDeletedAt) {
-    throw new AppError("Account has been deleted", 403);
+    throw new AppError("Account has been deleted", AppError.FORBIDDEN);
   }
 
   //check if phone from user and phone from database is same
   if (phoneNumber && userRow?.phoneNumber !== phoneNumber) {
-    throw new AppError("Phone number does not match", 401);
+    throw new AppError("Phone number does not match", AppError.UNAUTHORIZED);
   }
 
   //check if email from user and email from database is same
   if (email && userRow?.email !== email) {
-    throw new AppError("Email does not match", 401);
+    throw new AppError("Email does not match", AppError.UNAUTHORIZED);
   }
   const isPhoneVerified = userRow?.isPhoneVerified;
   const isEmailVerified = userRow?.isEmailVerified;
@@ -172,7 +172,7 @@ const verifyUserByOTP = async (req) => {
     },
   });
   if (userInRoleId.length === 0) {
-    throw new AppError("user not found in this role", 401);
+    throw new AppError("user not found in this role", AppError.UNAUTHORIZED);
   }
   const tokenData = createJWT({
     userUniqueId: userRow.userUniqueId,
@@ -210,7 +210,7 @@ const verifyUserByOTP = async (req) => {
       user: userRow,
     });
     if (docReq?.message === "error") {
-      throw new AppError(docReq.error || "Failed to check requirements", 500);
+      throw new AppError(docReq.error || "Failed to check requirements", AppError.INTERNAL_SERVER_ERROR);
     }
     const { unAttachedDocumentTypes, attachedDocumentsByStatus } = docReq;
     if (

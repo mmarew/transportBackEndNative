@@ -13,7 +13,7 @@ const validateAndUpload = (req, res, next) => {
   // Parse multipart data
   upload.any()(req, res, async (err) => {
     if (err) {
-      return next(new AppError("File upload parsing error", 400));
+      return next(new AppError("File upload parsing error", AppError.BAD_REQUEST));
     }
 
     try {
@@ -29,7 +29,7 @@ const validateAndUpload = (req, res, next) => {
 
       const files = req?.files;
       if (!files || files.length === 0) {
-        return next(new AppError("No files uploaded", 400));
+        return next(new AppError("No files uploaded", AppError.BAD_REQUEST));
       }
 
       // Process each uploaded file for validation
@@ -87,7 +87,7 @@ const validateAndUpload = (req, res, next) => {
             new Date(documentExpirationDate) < new Date(currentDate());
           if (isExpired) {
             return next(
-              new AppError(`Document is expired for ${file.fieldname}`, 400),
+              new AppError(`Document is expired for ${file.fieldname}`, AppError.BAD_REQUEST),
             );
           }
         }
@@ -115,7 +115,7 @@ const validateAndUpload = (req, res, next) => {
       // All validations passed, proceed
       next();
     } catch {
-      next(new AppError("Validation failed during document upload", 500));
+      next(new AppError("Validation failed during document upload", AppError.INTERNAL_SERVER_ERROR));
     }
   });
 };

@@ -2,6 +2,7 @@
 const service = require("../Services/CompanyAssignment");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.createAssignment = async (req, res, next) => {
   try {
@@ -11,7 +12,7 @@ exports.createAssignment = async (req, res, next) => {
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }
@@ -25,7 +26,7 @@ exports.createBulkAssignments = async (req, res, next) => {
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }
@@ -39,7 +40,7 @@ exports.autoAssignBatch = async (req, res, next) => {
         createdByUserUniqueId: req.user.userUniqueId,
       }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

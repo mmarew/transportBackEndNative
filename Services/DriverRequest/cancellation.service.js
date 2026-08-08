@@ -194,7 +194,7 @@ const getCancellationNotifications = async ({ userUniqueId, seenStatus }) => {
     });
     throw new AppError(
       error.message || "Unable to get cancellation notifications",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -210,7 +210,7 @@ const markNegativeStatusAsSeenByDriver = async ({
     });
 
     if (!driverRequest || driverRequest.length === 0) {
-      throw new AppError("Driver request not found", 404);
+      throw new AppError("Driver request not found", AppError.NOT_FOUND);
     }
 
     const requestData = driverRequest[0];
@@ -327,7 +327,7 @@ const markNegativeStatusAsSeenByDriver = async ({
       });
 
       if (result.affectedRows === 0) {
-        throw new AppError("Failed to update seen status", 500);
+        throw new AppError("Failed to update seen status", AppError.INTERNAL_SERVER_ERROR);
       }
 
       return {
@@ -343,7 +343,7 @@ const markNegativeStatusAsSeenByDriver = async ({
     });
     throw new AppError(
       error.message || "Unable to mark negative status as seen",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

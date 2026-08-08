@@ -113,7 +113,7 @@ const getAttachedDocumentsByFilter = async ({
       const executor = transactionStorage.getStore() || pool;
       const [document] = await executor.query(sql, [attachedDocumentUniqueId]);
       if (!document || document.length === 0) {
-        throw new AppError("Document not found", 404);
+        throw new AppError("Document not found", AppError.NOT_FOUND);
       }
       const doc = document[0];
       doc.attachedDocumentName = resolveDocumentUrl(doc.attachedDocumentName);
@@ -199,7 +199,7 @@ const getAttachedDocumentsByFilter = async ({
     if (error instanceof AppError) {
       throw error;
     }
-    throw new AppError("Unable to retrieve documents", 500);
+    throw new AppError("Unable to retrieve documents", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -280,7 +280,7 @@ const getDocumentHistory = async ({
     if (error instanceof AppError) {
       throw error;
     }
-    throw new AppError("Unable to retrieve document history", 500);
+    throw new AppError("Unable to retrieve document history", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

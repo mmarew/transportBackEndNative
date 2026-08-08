@@ -43,7 +43,7 @@ exports.autoAssignBatch = async (data) => {
     tableName: "CompanyBidRequest",
     conditions: { companyBidRequestUniqueId },
   });
-  if (!bidRow) throw new AppError("Bid not found", 404);
+  if (!bidRow) throw new AppError("Bid not found", AppError.NOT_FOUND);
   const bid = bidRow;
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
@@ -238,7 +238,7 @@ exports.deleteAssignment = async (assignmentUniqueId, deletedBy) => {
     [currentDate(), deletedBy, assignmentUniqueId],
   );
   if (res.affectedRows === 0) {
-    throw new AppError("Assignment not found or already deleted", 404);
+    throw new AppError("Assignment not found or already deleted", AppError.NOT_FOUND);
   }
   return { message: "Auto-assignment completed", data: null };
 };

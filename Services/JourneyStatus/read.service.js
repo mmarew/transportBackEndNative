@@ -70,7 +70,7 @@ const getAllJourneyStatuses = async (filters = {}) => {
   const [countRows] = await executor.query(countSql, params);
   const total = countRows?.[0]?.total || 0;
   if (!rows || rows.length === 0) {
-    throw new AppError("No journey statuses found", 404);
+    throw new AppError("No journey statuses found", AppError.NOT_FOUND);
   }
   return {
     message: "Journey statuses fetched successfully",
@@ -100,7 +100,7 @@ const getJourneyStatusById = async journeyStatusUniqueId => {
       data: result[0]
     };
   } else {
-    throw new AppError("Journey status not found", 404);
+    throw new AppError("Journey status not found", AppError.NOT_FOUND);
   }
 };
 

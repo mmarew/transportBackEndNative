@@ -5,6 +5,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const logger = require("../Utils/logger");
 const { usersRoles } = require("../Utils/ListOfSeedData");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 /**
  * GET /api/shipperRequestBatch
@@ -107,7 +108,7 @@ exports.cancelBatch = async (req, res, next) => {
     delete result._notificationTargets;
 
     // ── Respond immediately — don't hold the HTTP connection for notifications ──
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
 
     // ── Fire notifications after commit (fire-and-forget) ─────────────────
     // Errors here must never bubble up — the DB is already committed.
@@ -174,7 +175,7 @@ exports.partialCancelBatch = async (req, res, next) => {
     const notificationTargets = result._notificationTargets;
     delete result._notificationTargets;
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
 
     if (notificationTargets) {
       service.sendBatchCancelNotifications(notificationTargets).catch((err) =>

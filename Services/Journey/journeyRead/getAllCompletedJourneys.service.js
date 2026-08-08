@@ -175,7 +175,7 @@ const getAllCompletedJourneys = async ({
       }
     };
   } catch (error) {
-    throw new AppError(error.message || "Failed to get all completed journeys", error.statusCode || 500);
+    throw new AppError(error.message || "Failed to get all completed journeys", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 // In your journey service - replace all existing GET methods with this single one

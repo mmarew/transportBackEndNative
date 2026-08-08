@@ -50,7 +50,7 @@ const createPricing = async (
   );
 
   if (planExists.length === 0) {
-    throw new AppError("Invalid Subscription Plan ID. Plan not found.", 404);
+    throw new AppError("Invalid Subscription Plan ID. Plan not found.", AppError.NOT_FOUND);
   }
 
   const planRow = planExists[0];
@@ -312,7 +312,7 @@ const updatePricingByUniqueId = async (
 ) => {
   // Validate inputs
   if (!subscriptionPlanPricingUniqueId) {
-    throw new AppError("subscriptionPlanPricingUniqueId is required", 400);
+    throw new AppError("subscriptionPlanPricingUniqueId is required", AppError.BAD_REQUEST);
   }
 
   const allowedFields = [
@@ -433,7 +433,7 @@ const updatePricingByUniqueId = async (
     const [result] = await executor.query(sql, values);
 
     if (result.affectedRows === 0) {
-      throw new AppError("Pricing record not found or no changes made", 404);
+      throw new AppError("Pricing record not found or no changes made", AppError.NOT_FOUND);
     }
 
     // Get the updated record
@@ -460,7 +460,7 @@ const updatePricingByUniqueId = async (
       ER_DUP_ENTRY: "Duplicate entry found.",
     };
 
-    throw new AppError(errorMap[error.code] || "Failed to update pricing", 400);
+    throw new AppError(errorMap[error.code] || "Failed to update pricing", AppError.BAD_REQUEST);
   }
 };
 
@@ -517,14 +517,14 @@ const deletePricingByUniqueId = async (subscriptionPlanPricingUniqueId) => {
   );
 
   if (!existing || existing.length === 0) {
-    throw new AppError("Pricing record not found", 404);
+    throw new AppError("Pricing record not found", AppError.NOT_FOUND);
   }
 
   const sql = `DELETE FROM SubscriptionPlanPricing WHERE subscriptionPlanPricingUniqueId = ?`;
   const [result] = await executor.query(sql, [subscriptionPlanPricingUniqueId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete pricing", 500);
+    throw new AppError("Failed to delete pricing", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {

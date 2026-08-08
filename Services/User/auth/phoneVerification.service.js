@@ -66,12 +66,12 @@ const generatePhoneVerificationToken = (userUniqueId, phoneNumber) => {
  */
 const verifyPhoneByToken = async token => {
   if (!token) {
-    throw new AppError("Verification token is required", 400);
+    throw new AppError("Verification token is required", AppError.BAD_REQUEST);
   }
   try {
     const decoded = jwt.verify(token, Config.SECRET_KEY);
     if (decoded.purpose !== "phone_verification") {
-      throw new AppError("Invalid token purpose", 400);
+      throw new AppError("Invalid token purpose", AppError.BAD_REQUEST);
     }
     const {
       userUniqueId,
@@ -114,7 +114,7 @@ const verifyPhoneByToken = async token => {
       }
     });
     if (!userDataRows || userDataRows.length === 0) {
-      throw new AppError("User not found after verification", 404);
+      throw new AppError("User not found after verification", AppError.NOT_FOUND);
     }
     const userData = userDataRows[0];
     const {
@@ -131,9 +131,9 @@ const verifyPhoneByToken = async token => {
     };
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      throw new AppError("Verification link has expired. Please try again.", 400);
+      throw new AppError("Verification link has expired. Please try again.", AppError.BAD_REQUEST);
     }
-    throw new AppError("Invalid verification link.", 400);
+    throw new AppError("Invalid verification link.", AppError.BAD_REQUEST);
   }
 };
 

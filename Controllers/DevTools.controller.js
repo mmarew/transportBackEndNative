@@ -5,6 +5,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { createAttachedDocument } = require("../Services/AttachedDocuments");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 /**
  * GET /api/admin/dev/getUserOtp?phoneNumber=xxx
@@ -13,12 +14,12 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const getUserOtp = async (req, res, next) => {
   try {
     if (process.env.NODE_ENV === "production") {
-      return res.status(403).json({ message: "error", error: "Not available in production" });
+      return res.status(HTTP_STATUS.FORBIDDEN).json({ message: "error", error: "Not available in production" });
     }
 
     const { phoneNumber } = req.query;
     if (!phoneNumber) {
-      return res.status(400).json({ message: "error", error: "phoneNumber query param is required" });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "error", error: "phoneNumber query param is required" });
     }
 
     const [rows] = await pool.query(
@@ -32,10 +33,10 @@ const getUserOtp = async (req, res, next) => {
     );
 
     if (!rows || rows.length === 0) {
-      return res.status(404).json({ message: "error", error: "No OTP found for this phone number" });
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "error", error: "No OTP found for this phone number" });
     }
 
-    return res.status(200).json({ message: "success", data: rows[0] });
+    return res.status(HTTP_STATUS.OK).json({ message: "success", data: rows[0] });
   } catch (error) {
     next(error);
   }
@@ -50,7 +51,7 @@ const seedTestDocument = async (req, res, next) => {
   try {
     const { userUniqueId, documentTypeId, roleId, documentExpirationDate } = req.body;
     if (!userUniqueId || !documentTypeId || !roleId) {
-      return res.status(400).json({ message: "error", error: "userUniqueId, documentTypeId and roleId are required" });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "error", error: "userUniqueId, documentTypeId and roleId are required" });
     }
 
     const result = await executeInTransaction(async () => {
@@ -65,7 +66,7 @@ const seedTestDocument = async (req, res, next) => {
       });
     });
 
-    return res.status(200).json(result);
+    return res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }

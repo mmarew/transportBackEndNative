@@ -175,7 +175,7 @@ const getOngoingJourney = async ({
       }
     };
   } catch (error) {
-    throw new AppError(error.message || "Failed to get ongoing journeys", error.statusCode || 500);
+    throw new AppError(error.message || "Failed to get ongoing journeys", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

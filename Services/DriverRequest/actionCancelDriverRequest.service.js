@@ -58,7 +58,7 @@ const cancelDriverRequest = async (data) => {
     const getActiveRequest = await checkActiveDriverRequest(ownerUserUniqueId);
     // return { message: "success", data: getActiveRequest };
     if (getActiveRequest.length === 0) {
-      throw new AppError("No active driver requests found for this user", 404);
+      throw new AppError("No active driver requests found for this user", AppError.NOT_FOUND);
     }
     const activeData = getActiveRequest?.[0];
     const driverRequestId = activeData?.driverRequestId;
@@ -499,7 +499,7 @@ const cancelDriverRequest = async (data) => {
     });
     throw new AppError(
       error.message || "Unable to cancel driver request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

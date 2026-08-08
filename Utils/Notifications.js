@@ -29,7 +29,7 @@ const sendSocketIONotificationToDriver = async ({
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
 
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      throw new AppError("Invalid phone number format", 400);
+      throw new AppError("Invalid phone number format", AppError.BAD_REQUEST);
     }
 
     const socketId = await getSocket(userType, cleanedPhoneNumber);
@@ -82,7 +82,7 @@ const sendSocketIONotificationToShipper = async ({
     });
     const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
     if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      throw new AppError("Invalid phone number format", 400);
+      throw new AppError("Invalid phone number format", AppError.BAD_REQUEST);
     }
 
     const socketId = await getSocket(userType, cleanedPhoneNumber);

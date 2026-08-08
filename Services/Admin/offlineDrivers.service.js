@@ -168,7 +168,7 @@ const getOfflineDrivers = async req => {
       data
     };
   } catch {
-    throw new AppError("Failed to fetch offline drivers", 500);
+    throw new AppError("Failed to fetch offline drivers", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

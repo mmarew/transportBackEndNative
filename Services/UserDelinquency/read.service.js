@@ -244,7 +244,7 @@ const _getUserDelinquencySummary = async (userUniqueId, roleId) => {
 const getPendingUserDelinquencies = async (filters = {}) => {
   const { userUniqueId, roleId, page = 1, limit = 10 } = filters;
   if (!userUniqueId || !roleId) {
-    throw new AppError("userUniqueId and roleId are required", 400);
+    throw new AppError("userUniqueId and roleId are required", AppError.BAD_REQUEST);
   }
   const offset = (page - 1) * limit;
   const whereClause = `

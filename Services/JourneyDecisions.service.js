@@ -88,7 +88,7 @@ exports.createJourneyDecision = async (data, connection = null) => {
   } catch (error) {
     throw new AppError(
       error.message || "Error creating journey decision",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -357,7 +357,7 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
     });
     throw new AppError(
       error.message || "Unable to get journey decisions",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -371,7 +371,7 @@ exports.getJourneyDecisionByJourneyDecisionUniqueId = async (
   const [result] = await executor.query(sql, [journeyDecisionUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("Journey decision not found", 404);
+    throw new AppError("Journey decision not found", AppError.NOT_FOUND);
   }
   return { message: "Journey decision fetched successfully", data: result };
 };
@@ -385,7 +385,7 @@ exports.getJourneyDecisionByJDriverRequestUniqueId = async (
   const [result] = await executor.query(sql, [driverRequestUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("Journey decision not found", 404);
+    throw new AppError("Journey decision not found", AppError.NOT_FOUND);
   }
   return { message: "Journey decision fetched successfully", data: result };
 };
@@ -399,7 +399,7 @@ exports.getJourneyDecisionByShipperRequestUniqueId = async (
   const [result] = await executor.query(sql, [shipperRequestUniqueId]);
 
   if (result.length === 0) {
-    throw new AppError("Journey decision not found", 404);
+    throw new AppError("Journey decision not found", AppError.NOT_FOUND);
   }
   return { message: "Journey decision fetched successfully", data: result };
 };
@@ -451,12 +451,12 @@ exports.updateJourneyDecision = async ({
         );
 
       if (!journeyDecision || journeyDecision.message === "error") {
-        throw new AppError("Journey decision not found", 404);
+        throw new AppError("Journey decision not found", AppError.NOT_FOUND);
       }
 
       const decisionDataArray = journeyDecision.data;
       if (!decisionDataArray || !decisionDataArray.length) {
-        throw new AppError("Journey decision data not found", 404);
+        throw new AppError("Journey decision data not found", AppError.NOT_FOUND);
       }
 
       const decisionData = decisionDataArray[0];
@@ -474,7 +474,7 @@ exports.updateJourneyDecision = async ({
       });
 
       if (!driverRequestArray || !driverRequestArray.length) {
-        throw new AppError("Driver request not found", 404);
+        throw new AppError("Driver request not found", AppError.NOT_FOUND);
       }
 
       const driverRequestData = driverRequestArray[0];
@@ -538,7 +538,7 @@ exports.updateJourneyDecision = async ({
   } catch (error) {
     throw new AppError(
       error.message || "Failed to update journey decision",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -555,6 +555,6 @@ exports.deleteJourneyDecision = async (journeyDecisionId) => {
       data: null,
     };
   } else {
-    throw new AppError("Failed to delete journey decision", 500);
+    throw new AppError("Failed to delete journey decision", AppError.INTERNAL_SERVER_ERROR);
   }
 };

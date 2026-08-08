@@ -453,7 +453,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
       } : null
     };
   } catch {
-    throw new AppError("Failed to retrieve canceled journeys", 500);
+    throw new AppError("Failed to retrieve canceled journeys", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

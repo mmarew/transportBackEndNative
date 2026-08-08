@@ -25,18 +25,18 @@ const sendOtpViaWebSocket = async (phoneNumber, OTP) => {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("Error in sending OTP", 500);
+    throw new AppError("Error in sending OTP", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 const emitMessage = ({ socketId, eventName, messageDetails }) => {
   const io = socketIO.io;
   if (!io) {
     const AppError = require("./AppError");
-    throw new AppError("message can't be sent successfully", 500);
+    throw new AppError("message can't be sent successfully", AppError.INTERNAL_SERVER_ERROR);
   }
   if (!socketId) {
     const AppError = require("./AppError");
-    throw new AppError("message can't be sent successfully", 500);
+    throw new AppError("message can't be sent successfully", AppError.INTERNAL_SERVER_ERROR);
   }
   io.to(socketId).emit(eventName, messageDetails);
 

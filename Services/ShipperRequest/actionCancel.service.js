@@ -87,7 +87,7 @@ const cancelShipperRequest = async body => {
       roleId
     } = user;
     if (!userUniqueId || !roleId || !shipperRequestUniqueId) {
-      throw new AppError("Missing required fields to cancel shipper request", 400);
+      throw new AppError("Missing required fields to cancel shipper request", AppError.BAD_REQUEST);
     }
 
     // Optimized: Fetch shipper request with User join AND journey decisions in a single query
@@ -125,7 +125,7 @@ const cancelShipperRequest = async body => {
       combinedResults
     });
     if (!combinedResults || combinedResults.length === 0) {
-      throw new AppError("Shipper request not found", 404);
+      throw new AppError("Shipper request not found", AppError.NOT_FOUND);
     }
 
     // Extract shipper request data from first row (all rows have same shipper data)
@@ -166,11 +166,15 @@ const cancelShipperRequest = async body => {
     //   };
     // }
 
-    // Verify authorization: user must own the request OR be admin/super admin
+    // Verify authorization: user must own the request OR be admin/super admin,
+    // OR a queue org admin (role 11) cancelling a queue-dispatch order.
     const isOwner = requestOwnerUserUniqueId === userUniqueId;
-    const isAdmin = roleId === usersRolesList.admin.roleId || roleId === usersRolesList.supperAdmin.roleId;
+    const isAdmin =
+      roleId === usersRolesList.admin.roleId ||
+      roleId === usersRolesList.supperAdmin.roleId ||
+      roleId === usersRolesList.queueOrgAdmin.roleId;
     if (!isOwner && !isAdmin) {
-      throw new AppError("Unauthorized: You can only cancel your own requests or must be an admin/super admin", 403);
+      throw new AppError("Unauthorized: You can only cancel your own requests or must be an admin/super admin", AppError.FORBIDDEN);
     }
 
     // Extract journey decisions from all rows (filter out rows where journeyDecisionId is NULL)
@@ -419,7 +423,7 @@ const cancelShipperRequest = async body => {
       },
     };
   } catch (error) {
-    throw new AppError(error.message || "Unable to cancel shipper request", error.statusCode || 500);
+    throw new AppError(error.message || "Unable to cancel shipper request", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

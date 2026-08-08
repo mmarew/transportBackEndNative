@@ -41,7 +41,7 @@ exports.updatePaymentMethod = async (req, res, next) => {
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
-      throw new AppError("Unauthorized", 403);
+      throw new AppError("Unauthorized", AppError.FORBIDDEN);
     }
     const { paymentMethodUniqueId } = req.params;
     const { paymentMethod } = req.body;
@@ -67,7 +67,7 @@ exports.deletePaymentMethod = async (req, res, next) => {
       roleId !== usersRoles.adminRoleId &&
       roleId !== usersRoles.supperAdminRoleId
     ) {
-      throw new AppError("Unauthorized", 403);
+      throw new AppError("Unauthorized", AppError.FORBIDDEN);
     }
     const { paymentMethodUniqueId } = req.params;
     const result = await executeInTransaction(async () => {

@@ -13,7 +13,7 @@ const findStatusByVehicleAndDocuments = (data) => {
   // Validate essential input
   if (typeof vehicleRegistered !== "boolean") {
     const AppError = require("./AppError");
-    throw new AppError("Invalid input: vehicleRegistered.", 400);
+    throw new AppError("Invalid input: vehicleRegistered.", AppError.BAD_REQUEST);
   }
   //
   const requiredCount = requiredDocuments?.length || 0;

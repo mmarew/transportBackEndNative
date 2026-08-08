@@ -104,6 +104,24 @@ module.exports = [
 
       // Code quality rules
       "max-lines": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
+
+      // Magic numbers: keep status/role/threshold ids as named constants
+      // (journeyStatusMap, usersRoles, USER_STATUS in Utils/ListOfSeedData.js).
+      // Set to "warn" while the existing ~732 occurrences are migrated; flip to
+      // "error" once the backlog is clean.
+      // - ignore: [0, 1, -1] — length checks, counters, defaults stay readable
+      // - ignoreArrayIndexes: rows[0], drivers[1] etc. are allowed
+      // - ignoreDefaultValues: default parameter values (e.g. pageSize = 10) allowed
+      // - detectObjects: false (default) — object literals NOT inspected; enable
+      //   later to also catch insertValues: { journeyStatusId: 3 } style payloads
+      "no-magic-numbers": [
+        "warn",
+        {
+          ignore: [0, 1, -1],
+          ignoreArrayIndexes: true,
+          ignoreDefaultValues: true,
+        },
+      ],
       
       // Security overrides if needed
       "security/detect-object-injection": "off", // Sometimes noisy in legacy backends
@@ -137,6 +155,7 @@ module.exports = [
     files: ["**/*.test.js", "**/tests/**/*.js", "E2ETests/**/*.js"],
     rules: {
       "no-console": "off",
+      "no-magic-numbers": "off", // tests use raw fixture values
       "max-lines-per-function": "off",
       complexity: "off",
       "max-params": "off",

@@ -49,7 +49,7 @@ const updateUser = async body => {
 
   // Validate required field
   if (!userUniqueId) {
-    throw new AppError("userUniqueId is required", 400);
+    throw new AppError("userUniqueId is required", AppError.BAD_REQUEST);
   }
   // 1. Security Check: Block drivers from self-updating (INSA Compliance)
   const userRoles = await getData({
@@ -61,7 +61,7 @@ const updateUser = async body => {
   const isDriver = userRoles?.some(role => role.roleId === usersRolesList?.driver?.roleId);
   const isRequesterAdmin = [usersRolesList?.admin?.roleId, usersRolesList?.supperAdmin?.roleId].includes(roleIdFromToken);
   if (isDriver && !isRequesterAdmin) {
-    throw new AppError("Dear user, you are a driver and cannot update your own profile for security reasons. Please contact an admin for assistance.", 403);
+    throw new AppError("Dear user, you are a driver and cannot update your own profile for security reasons. Please contact an admin for assistance.", AppError.FORBIDDEN);
   }
 
   // Fetch current user details to compare contact info
@@ -72,7 +72,7 @@ const updateUser = async body => {
     }
   });
   if (!currentUser) {
-    throw new AppError("User not found", 404);
+    throw new AppError("User not found", AppError.NOT_FOUND);
   }
   const updateValues = {};
   const errors = [];
@@ -155,7 +155,7 @@ const updateUser = async body => {
 
   // Return errors if any
   if (errors.length > 0) {
-    throw new AppError(errors.join(", "), 409);
+    throw new AppError(errors.join(", "), AppError.CONFLICT);
   }
 
   // Optional fields for update
@@ -210,7 +210,7 @@ const updateUser = async body => {
       }
     });
     if (updateUserResult.affectedRows <= 0) {
-      throw new AppError("Failed to update user details", 500);
+      throw new AppError("Failed to update user details", AppError.INTERNAL_SERVER_ERROR);
     }
 
     // Write one history row per field that actually changed
@@ -254,7 +254,7 @@ const updateUser = async body => {
     isEmailVerified: !!updatedUser?.isEmailVerified
   });
   if (tokenData.message === "error") {
-    throw new AppError(tokenData.error || "Token creation failed", 500);
+    throw new AppError(tokenData.error || "Token creation failed", AppError.INTERNAL_SERVER_ERROR);
   }
   return {
     token: tokenData.token,

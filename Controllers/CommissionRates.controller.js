@@ -2,6 +2,7 @@ const commissionRateService = require("../Services/CommissionRates.service");
 const { v4: uuidv4 } = require("uuid");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 // Create a new commission rate
 const createCommissionRate = async (req, res, next) => {
@@ -24,7 +25,7 @@ const createCommissionRate = async (req, res, next) => {
         commissionRateCreatedBy: userUniqueId,
       });
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }

@@ -77,7 +77,7 @@ const getAttachedDocumentsByFilter = async (req, res, next) => {
         }
 
         if (!allowed) {
-          return next(new AppError("Forbidden: you do not own this document.", 403));
+          return next(new AppError("Forbidden: you do not own this document.", AppError.FORBIDDEN));
         }
       }
 
@@ -159,7 +159,7 @@ const createAttachedDocuments = async (req, res, next) => {
     }
     const files = req?.files;
     if (!files || files.length === 0) {
-      return next(new AppError("No files uploaded", 400));
+      return next(new AppError("No files uploaded", AppError.BAD_REQUEST));
     }
 
     const uploadResults = [];
@@ -452,7 +452,7 @@ const updateAttachedDocument = async (req, res, next) => {
     });
 
     if (result.message === "error") {
-      return next(new AppError(result.error, 400));
+      return next(new AppError(result.error, AppError.BAD_REQUEST));
     }
 
     ServerResponder(res, {

@@ -64,7 +64,7 @@ const initiateSantimPayPaymentService = async ({
   // Handle older format if still exists, but transition to data directly
   const depositSourceUniqueId = depositSourceResult?.data ? depositSourceResult.data.depositSourceUniqueId : depositSourceResult.depositSourceUniqueId;
   if (!depositSourceUniqueId) {
-    throw new AppError("Failed to get deposit source", 500);
+    throw new AppError("Failed to get deposit source", AppError.INTERNAL_SERVER_ERROR);
   }
   const userDepositUniqueId = uuidv4();
   const paymentReason = `Driver Deposit - ${depositAmount} ETB`;
@@ -135,10 +135,10 @@ const handleSantimPayWebhookService = async ({
 
   // 1. Verify the webhook token for security
   if (!signedToken) {
-    throw new AppError("Missing Signed-Token header", 401);
+    throw new AppError("Missing Signed-Token header", AppError.UNAUTHORIZED);
   }
   if (!verifyWebhookToken(signedToken, webhookData)) {
-    throw new AppError("Invalid webhook signature", 401);
+    throw new AppError("Invalid webhook signature", AppError.UNAUTHORIZED);
   }
   const {
     txnId,
@@ -149,7 +149,7 @@ const handleSantimPayWebhookService = async ({
     message
   } = webhookData;
   if (!txnId || !thirdPartyId || !Status) {
-    throw new AppError("Missing required webhook fields: txnId, thirdPartyId, or status", 400);
+    throw new AppError("Missing required webhook fields: txnId, thirdPartyId, or status", AppError.BAD_REQUEST);
   }
   const depositResult = await getUserDeposit({
     userDepositUniqueId: thirdPartyId,
@@ -157,7 +157,7 @@ const handleSantimPayWebhookService = async ({
   });
   const deposit = depositResult.data && Array.isArray(depositResult.data) ? depositResult.data[0] : null;
   if (!deposit) {
-    throw new AppError(`Deposit not found for userDepositUniqueId: ${thirdPartyId}`, 404);
+    throw new AppError(`Deposit not found for userDepositUniqueId: ${thirdPartyId}`, AppError.NOT_FOUND);
   }
   if (deposit.depositStatus === "COMPLETED" && deposit.depositURL === txnId) {
     return "Webhook already processed";
@@ -194,7 +194,7 @@ const handleSantimPayWebhookService = async ({
   const reasonMessage = JSON.stringify(reasonData);
   const [updateResult] = await pool.query(updateSql, [newStatus, txnId, depositTime, reasonMessage, thirdPartyId]);
   if (updateResult.affectedRows === 0) {
-    throw new AppError("Failed to update deposit", 500);
+    throw new AppError("Failed to update deposit", AppError.INTERNAL_SERVER_ERROR);
   }
   if (newStatus === "COMPLETED") {
     // Note: prepareAndCreateNewBalance now throws AppError

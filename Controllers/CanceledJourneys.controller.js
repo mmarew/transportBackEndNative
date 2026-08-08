@@ -162,7 +162,7 @@ const getCanceledJourneyCountsByDate = async (req, res, next) => {
 
     // Validate required parameters
     if (!fromDate || !toDate) {
-      return next(new AppError("fromDate and toDate are required", 400));
+      return next(new AppError("fromDate and toDate are required", AppError.BAD_REQUEST));
     }
 
     let ownerUserUniqueId = req?.query?.ownerUserUniqueId || "all";
@@ -216,7 +216,7 @@ const getCanceledJourneyCountsByReason = async (req, res, next) => {
 
     // Validate required parameters
     // if (!startDate || !endDate) {
-    //   return next(new AppError("startDate and endDate are required", 400));
+    //   return next(new AppError("startDate and endDate are required", AppError.BAD_REQUEST));
     // }
 
     const filters = {

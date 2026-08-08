@@ -38,7 +38,7 @@ const getSMSSenderById = async (req, res, next) => {
     const { id } = req.params;
     const result = await smsSenderService.getSMSSenderById(id);
     if (!result) {
-      return next(new AppError("SMS sender not found", 404));
+      return next(new AppError("SMS sender not found", AppError.NOT_FOUND));
     }
     ServerResponder(res, result);
   } catch (error) {
@@ -57,7 +57,7 @@ const updateSMSSender = async (req, res, next) => {
       });
     });
     if (result.affectedRows === 0) {
-      return next(new AppError("SMS sender not found", 404));
+      return next(new AppError("SMS sender not found", AppError.NOT_FOUND));
     }
     ServerResponder(res, { message: "SMS sender updated successfully" });
   } catch (error) {
@@ -72,7 +72,7 @@ const deleteSMSSender = async (req, res, next) => {
       return await smsSenderService.deleteSMSSender(id);
     });
     if (result.affectedRows === 0) {
-      return next(new AppError("SMS sender not found", 404));
+      return next(new AppError("SMS sender not found", AppError.NOT_FOUND));
     }
     ServerResponder(res, { message: "SMS sender deleted successfully" });
   } catch (error) {

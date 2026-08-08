@@ -8,7 +8,7 @@ const verifySMSSenderReality = async (phoneNumber, password) => {
   });
   if (result.length === 0) {
     const AppError = require("./AppError");
-    throw new AppError("This phone number is not found", 404);
+    throw new AppError("This phone number is not found", AppError.NOT_FOUND);
   }
   const smssender = result[0];
 
@@ -20,7 +20,7 @@ const verifySMSSenderReality = async (phoneNumber, password) => {
 
   if (message === "error") {
     const AppError = require("./AppError");
-    throw new AppError(data, 401);
+    throw new AppError(data, AppError.UNAUTHORIZED);
   }
 
   return { message, data };

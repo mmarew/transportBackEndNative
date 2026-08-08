@@ -53,12 +53,12 @@ const partialCancelBatch = async ({
     tableName: "ShipperRequestBatch",
     conditions: { batchUniqueId },
   });
-  if (!batch) throw new AppError("Batch not found", 404);
+  if (!batch) throw new AppError("Batch not found", AppError.NOT_FOUND);
   const isAdmin =
     roleId === usersRoles.adminRoleId ||
     roleId === usersRoles.supperAdminRoleId;
   if (batch.shipperUserUniqueId !== userUniqueId && !isAdmin) {
-    throw new AppError("Unauthorized: batch does not belong to you", 403);
+    throw new AppError("Unauthorized: batch does not belong to you", AppError.FORBIDDEN);
   }
 
   // 2. Batch-level terminal guard
@@ -70,7 +70,7 @@ const partialCancelBatch = async ({
     journeyStatusMap.cancelledBySystem, // 12
   ].filter(Boolean);
   if (batchTerminal.includes(batch.journeyStatusId)) {
-    throw new AppError("Batch is already fully cancelled", 400);
+    throw new AppError("Batch is already fully cancelled", AppError.BAD_REQUEST);
   }
 
   // 3. Fetch the requested slots and verify they all belong to this batch

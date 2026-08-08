@@ -4,18 +4,19 @@ const { journeyStatusMap } = require("../Utils/ListOfSeedData");
 const ServerResponder = require("../Utils/ServerResponder");
 const AppError = require("../Utils/AppError");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createRequest = async (req, res, next) => {
   try {
     const userUniqueId = req?.user?.userUniqueId;
     if (!userUniqueId) {
-      throw new AppError("User not authenticated", 401);
+      throw new AppError("User not authenticated", AppError.UNAUTHORIZED);
     }
     req.body.userUniqueId = userUniqueId;
     const result = await executeInTransaction(async () => {
       return await services.createRequest({ body: req.body });
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -31,7 +32,7 @@ const takeFromStreet = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await services.takeFromStreet({ ...req.body }, req.user);
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -43,7 +44,7 @@ const createAndAcceptNewRequest = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await services.createAndAcceptNewRequest(req.body);
     });
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (error) {
     next(error);
   }
@@ -60,7 +61,7 @@ const acceptShipperRequest = async (req, res, next) => {
     // updating multiple tables. Wrapping again would create a nested
     // transaction (second connection) that deadlocks against the inner one.
     const result = await services.acceptShipperRequest(req.body);
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -72,11 +73,11 @@ const deleteRequestController = async (req, res, next) => {
     const { userUniqueId } = req?.user || {};
 
     if (!driverRequestUniqueId) {
-      throw new AppError("Driver request unique ID is required", 400);
+      throw new AppError("Driver request unique ID is required", AppError.BAD_REQUEST);
     }
 
     if (!userUniqueId) {
-      throw new AppError("User not authenticated", 401);
+      throw new AppError("User not authenticated", AppError.UNAUTHORIZED);
     }
 
     const result = await executeInTransaction(async () => {
@@ -86,7 +87,7 @@ const deleteRequestController = async (req, res, next) => {
       });
     });
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -99,7 +100,7 @@ const verifyDriverJourneyStatusController = async (req, res, next) => {
       userUniqueId,
     });
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -169,7 +170,7 @@ const getDriverRequestController = async (req, res, next) => {
     };
 
     const result = await services.getDriverRequest({ data });
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -271,7 +272,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
     const { seenStatus } = req.query;
 
     if (!userUniqueId) {
-      throw new AppError("Missing user information", 400);
+      throw new AppError("Missing user information", AppError.BAD_REQUEST);
     }
 
     const result = await services.getCancellationNotifications({
@@ -279,7 +280,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
       seenStatus,
     });
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -295,7 +296,7 @@ const markNegativeStatusAsSeenController = async (req, res, next) => {
     const { driverRequestUniqueId } = req.body;
 
     if (!userUniqueId || !driverRequestUniqueId) {
-      throw new AppError("Missing required fields", 400);
+      throw new AppError("Missing required fields", AppError.BAD_REQUEST);
     }
 
     const result = await executeInTransaction(async () => {
@@ -305,7 +306,7 @@ const markNegativeStatusAsSeenController = async (req, res, next) => {
       });
     });
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }
@@ -317,10 +318,10 @@ const updateDriverRequestController = async (req, res, next) => {
     const updateValues = req.body || {};
 
     if (!driverRequestUniqueId) {
-      throw new AppError("driverRequestUniqueId is required", 400);
+      throw new AppError("driverRequestUniqueId is required", AppError.BAD_REQUEST);
     }
     if (Object.keys(updateValues).length === 0) {
-      throw new AppError("No update fields provided", 400);
+      throw new AppError("No update fields provided", AppError.BAD_REQUEST);
     }
 
     const result = await executeInTransaction(async () => {
@@ -330,7 +331,7 @@ const updateDriverRequestController = async (req, res, next) => {
       });
     });
 
-    ServerResponder(res, result, 200);
+    ServerResponder(res, result, HTTP_STATUS.OK);
   } catch (error) {
     next(error);
   }

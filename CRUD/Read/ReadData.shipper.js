@@ -18,7 +18,7 @@ const getShipperRequestByRequestUniqueId = async (shipperRequestUniqueId) => {
   });
 
   if (!result?.length) {
-    throw new AppError("Request not found", 404);
+    throw new AppError("Request not found", AppError.NOT_FOUND);
   }
   return result[0];
 };

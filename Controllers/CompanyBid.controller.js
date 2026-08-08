@@ -2,6 +2,7 @@
 const service = require("../Services/CompanyBid");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.submitBid = async (req, res, next) => {
   try {
@@ -11,7 +12,7 @@ exports.submitBid = async (req, res, next) => {
         bidSubmittedByUserUniqueId: req.user.userUniqueId,
       }),
     );
-    ServerResponder(res, result, 201);
+    ServerResponder(res, result, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

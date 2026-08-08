@@ -16,7 +16,7 @@ const verifyAdminsIdentity = async (req, res, next) => {
       usersRolesList.supperAdmin.roleId,
     ]);
     if (!userRole?.length) {
-      throw new AppError("User admin role not found", 401);
+      throw new AppError("User admin role not found", AppError.UNAUTHORIZED);
     }
     req.userRole = userRole;
 
@@ -39,14 +39,14 @@ const verifyAdminsIdentity = async (req, res, next) => {
     });
 
     if (userRoleStatus.length === 0) {
-      throw new AppError("Admin's user role status not found", 401);
+      throw new AppError("Admin's user role status not found", AppError.UNAUTHORIZED);
     }
     req.userRoleStatus = userRoleStatus;
 
     // Step 4: Check if the Admin is in Active status
     const statusId = userRoleStatus[0]?.statusId;
     if (statusId !== USER_STATUS.ACTIVE) {
-      throw new AppError("Admin in inactive status", 403);
+      throw new AppError("Admin in inactive status", AppError.FORBIDDEN);
     }
 
     next();
@@ -66,7 +66,7 @@ const verifyDriversIdentity = async (req, res, next) => {
     });
 
     if (!userRoles?.length) {
-      throw new AppError("Sorry, you are not a valid driver.", 401);
+      throw new AppError("Sorry, you are not a valid driver.", AppError.UNAUTHORIZED);
     }
     req.userRole = userRoles[0];
 
@@ -85,7 +85,7 @@ const verifyDriversIdentity = async (req, res, next) => {
       },
     });
     if (userRoleStatus.length === 0) {
-      throw new AppError("User role status of driver not found", 401);
+      throw new AppError("User role status of driver not found", AppError.UNAUTHORIZED);
     }
     req.userRoleStatus = userRoleStatus[0];
     const statusId = userRoleStatus[0]?.statusId;
@@ -98,7 +98,7 @@ const verifyDriversIdentity = async (req, res, next) => {
       );
     }
     if (statusId !== USER_STATUS.ACTIVE) {
-      throw new AppError("Driver in inactive status", 403);
+      throw new AppError("Driver in inactive status", AppError.FORBIDDEN);
     }
 
     next();
@@ -127,7 +127,7 @@ const verifyIfOperationIsAllowedByUserDriver = async (req, res, next) => {
         if (!user?.fullName || !user?.email) {
           return next();
         }
-        throw new AppError("This action is not allowed for drivers.", 403);
+        throw new AppError("This action is not allowed for drivers.", AppError.FORBIDDEN);
       }
     }
 
@@ -149,7 +149,7 @@ const verifyShippersIdentity = async (req, res, next) => {
     });
 
     if (!userRole?.length) {
-      throw new AppError("User shipper role not found", 401);
+      throw new AppError("User shipper role not found", AppError.UNAUTHORIZED);
     }
     req.userRole = userRole;
 
@@ -178,7 +178,7 @@ const verifyShippersIdentity = async (req, res, next) => {
     logger.debug("@userRoleStatus", userRoleStatus);
 
     if (userRoleStatus.length === 0) {
-      throw new AppError("User shipper role status not found", 401);
+      throw new AppError("User shipper role status not found", AppError.UNAUTHORIZED);
     }
     req.userRoleStatus = userRoleStatus;
     const statusId = userRoleStatus[0]?.statusId;
@@ -202,11 +202,11 @@ const verifyCancelShipperRequestAuthorization = async (req, res, next) => {
     let targetUserUniqueId = req?.params?.userUniqueId;
 
     if (!requestingUserUniqueId) {
-      throw new AppError("User not authenticated", 401);
+      throw new AppError("User not authenticated", AppError.UNAUTHORIZED);
     }
 
     if (!targetUserUniqueId) {
-      throw new AppError("userUniqueId parameter is required", 400);
+      throw new AppError("userUniqueId parameter is required", AppError.BAD_REQUEST);
     }
 
     // Handle "self" - replace with actual userUniqueId from token
@@ -219,10 +219,13 @@ const verifyCancelShipperRequestAuthorization = async (req, res, next) => {
       return next();
     }
 
-    // Check if user is admin (role 3) or super admin (role 6) from token
+    // Check if user is admin (role 3), super admin (role 6), or queue org
+    // admin (role 11) from token. Queue org admins cancel queue-dispatch
+    // orders through the same whole-job cancel path (→ cancelledByAdmin).
     const isAdmin =
       roleId === usersRolesList.admin.roleId ||
-      roleId === usersRolesList.supperAdmin.roleId;
+      roleId === usersRolesList.supperAdmin.roleId ||
+      roleId === usersRolesList.queueOrgAdmin.roleId;
     if (isAdmin) {
       return next();
     }

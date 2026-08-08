@@ -11,7 +11,7 @@ const { pool } = require("../Middleware/Database.config");
 const createUserRole = async (body, user) => {
   const { userUniqueId, roleId } = body;
   if (!userUniqueId || !roleId) {
-    throw new AppError("Missing required fields", 400);
+    throw new AppError("Missing required fields", AppError.BAD_REQUEST);
   }
   // Check if user role already exists to prevent redundancy
   const existingUserRole = await getData({
@@ -20,7 +20,7 @@ const createUserRole = async (body, user) => {
   });
 
   if (existingUserRole.length) {
-    throw new AppError("User role already exists", 400);
+    throw new AppError("User role already exists", AppError.BAD_REQUEST);
   }
 
   const userRoleUniqueId = uuidv4();
@@ -132,7 +132,7 @@ const getUserRoleListByFilter = async ({
   const [rows] = await executor.query(dataSql, dataParams);
 
   if (rows.length === 0 && pageNum > 1) {
-    throw new AppError("No data found for this page", 404);
+    throw new AppError("No data found for this page", AppError.NOT_FOUND);
   }
 
   return {
@@ -158,7 +158,7 @@ const updateUserRole = async (userRoleUniqueId, updateValues) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update UserRole or UserRole not found", 404);
+    throw new AppError("Failed to update UserRole or UserRole not found", AppError.NOT_FOUND);
   }
 
   return { message: "User role updated successfully", data: null };
@@ -173,7 +173,7 @@ const deleteUserRole = async (userRoleUniqueId) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete UserRole or UserRole not found", 404);
+    throw new AppError("Failed to delete UserRole or UserRole not found", AppError.NOT_FOUND);
   }
 
   return { message: "User role deleted successfully", data: null };

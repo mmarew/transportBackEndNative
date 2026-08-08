@@ -25,7 +25,7 @@ const createRequest = async ({
     const userUniqueId = body?.userUniqueId;
     const isDriverHealthy = await checkIfDriverIsHealthy(userUniqueId);
     if (!isDriverHealthy) {
-      throw new AppError("you can't create requests", 403);
+      throw new AppError("you can't create requests", AppError.FORBIDDEN);
     }
 
     // Check if the driver already has an active request
@@ -60,7 +60,7 @@ const createRequest = async ({
     });
     throw new AppError(
       error.message || "Unable to create request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -78,7 +78,7 @@ const deleteDriverRequest = async (requestId) => {
     });
 
     if (result.affectedRows === 0) {
-      throw new AppError("Request not found", 404);
+      throw new AppError("Request not found", AppError.NOT_FOUND);
     }
 
     return { message: "Driver request deleted", data: null };
@@ -90,7 +90,7 @@ const deleteDriverRequest = async (requestId) => {
     });
     throw new AppError(
       error.message || "Unable to delete request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -261,7 +261,7 @@ const getDriverRequest = async ({ data }, connection = null) => {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("Unable to get driver request", 500);
+    throw new AppError("Unable to get driver request", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -306,10 +306,10 @@ const updateDriverRequest = async ({ conditions, updateValues }) => {
   try {
     // Validate conditions: use driverRequestUniqueId only (not driverRequestId)
     if (conditions.driverRequestId) {
-      throw new AppError("driverRequestId is not allowed", 400);
+      throw new AppError("driverRequestId is not allowed", AppError.BAD_REQUEST);
     }
     if (!conditions.driverRequestUniqueId) {
-      throw new AppError("driverRequestUniqueId is required", 400);
+      throw new AppError("driverRequestUniqueId is required", AppError.BAD_REQUEST);
     }
     const result = await updateData({
       tableName: "DriverRequest",
@@ -318,14 +318,14 @@ const updateDriverRequest = async ({ conditions, updateValues }) => {
     });
 
     if (result.affectedRows === 0) {
-      throw new AppError("Driver request not found or no changes made", 404);
+      throw new AppError("Driver request not found or no changes made", AppError.NOT_FOUND);
     }
 
     return { message: "Driver request updated", data: null };
   } catch (error) {
     throw new AppError(
       error.message || "Unable to update driver request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

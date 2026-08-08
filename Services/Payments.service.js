@@ -19,7 +19,7 @@ exports.createPayment = async (
     conditions: { journeyDecisionUniqueId },
   });
   if (existedPayment.length > 0) {
-    throw new AppError("Payment already exists for this journey", 400);
+    throw new AppError("Payment already exists for this journey", AppError.BAD_REQUEST);
   }
   const paymentUniqueId = uuidv4();
   const journeyPaymentCreatedBy = user?.userUniqueId || "system";
@@ -68,7 +68,7 @@ exports.getPaymentById = async (paymentId) => {
   const [result] = await executor.query(sql, [paymentId]);
 
   if (result.length === 0) {
-    throw new AppError("Payment not found", 404);
+    throw new AppError("Payment not found", AppError.NOT_FOUND);
   }
 
   return { message: "Payment fetched successfully", data: result[0] };
@@ -142,7 +142,7 @@ exports.updatePayment = async (
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields to update", 400);
+    throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
   values.push(paymentId);
@@ -151,7 +151,7 @@ exports.updatePayment = async (
   const [result] = await executor.query(sql, values);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to update payment or payment not found", 404);
+    throw new AppError("Failed to update payment or payment not found", AppError.NOT_FOUND);
   }
 
   return {
@@ -173,7 +173,7 @@ exports.deletePayment = async (paymentId) => {
   const [result] = await executor.query(sql, [paymentId]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete payment or payment not found", 404);
+    throw new AppError("Failed to delete payment or payment not found", AppError.NOT_FOUND);
   }
 
   return {

@@ -194,7 +194,7 @@ exports.updateJourneyDecision = async (req, res, next) => {
 
     // If no update values provided, return error
     if (Object.keys(updateData).length === 0) {
-      return next(new AppError("Update values are required", 400));
+      return next(new AppError("Update values are required", AppError.BAD_REQUEST));
     }
 
     const result = await executeInTransaction(async () => {

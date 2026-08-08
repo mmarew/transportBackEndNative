@@ -15,7 +15,7 @@ const createStatus = async (body) => {
     conditions: { statusName },
   });
   if (verifyResult.length > 0) {
-    throw new AppError("Status already exists", 400);
+    throw new AppError("Status already exists", AppError.BAD_REQUEST);
   }
 
   const colAndVal = {
@@ -37,7 +37,7 @@ const createStatus = async (body) => {
   });
 
   if (result.affectedRows === 0) {
-    throw new AppError("Status creation failed", 500);
+    throw new AppError("Status creation failed", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return { 
@@ -67,7 +67,7 @@ const updateStatus = async (statusUniqueId, body) => {
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Add audit columns
@@ -82,7 +82,7 @@ const updateStatus = async (statusUniqueId, body) => {
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
   if (result.affectedRows === 0) {
-    throw new AppError("Status update failed or status not found", 404);
+    throw new AppError("Status update failed or status not found", AppError.NOT_FOUND);
   }
   return { message: "Status updated", data: null };
 };
@@ -94,7 +94,7 @@ const deleteStatus = async (id, user) => {
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, [currentDate(), userUniqueId, id]);
   if (result.affectedRows === 0) {
-    throw new AppError("Status deletion failed or status not found", 404);
+    throw new AppError("Status deletion failed or status not found", AppError.NOT_FOUND);
   }
   return { message: "Status updated", data: null };
 };

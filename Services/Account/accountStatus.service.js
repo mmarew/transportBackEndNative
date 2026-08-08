@@ -148,9 +148,9 @@ const accountStatus = async ({
         const roleEntry = requestedRoleId ? rolesAndStatuses.find(rs => Number(rs?.userRoles?.roleId) === Number(requestedRoleId)) : rolesAndStatuses[0];
         if (!roleEntry) {
           if (requestedRoleId) {
-            throw new AppError(`User found but does not have role ID ${requestedRoleId}`, 404);
+            throw new AppError(`User found but does not have role ID ${requestedRoleId}`, AppError.NOT_FOUND);
           }
-          throw new AppError("User found but has no role assignment", 404);
+          throw new AppError("User found but has no role assignment", AppError.NOT_FOUND);
         }
         const rs = roleEntry.userRoleStatuses || {};
         effectiveUser = {
@@ -168,7 +168,7 @@ const accountStatus = async ({
         };
       } else {
         // User not found by phone/email
-        throw new AppError("User not found with the provided phone number or email", 404);
+        throw new AppError("User not found with the provided phone number or email", AppError.NOT_FOUND);
       }
     } else if (!effectiveUser || resolvedUserUniqueId && resolvedUserUniqueId !== user?.userUniqueId) {
       // Resolve by ownerUserUniqueId if provided
@@ -184,7 +184,7 @@ const accountStatus = async ({
       effectiveUser = userData?.data?.[0];
     }
     if (!effectiveUser) {
-      throw new AppError("User not found", 404);
+      throw new AppError("User not found", AppError.NOT_FOUND);
     }
 
     // Update resolvedUserUniqueId from effectiveUser if not already set
@@ -195,7 +195,7 @@ const accountStatus = async ({
     const effectivePhoneNumber = effectiveUser?.phoneNumber || phoneNumber;
     const userRoleStatusDescription = body?.userRoleStatusDescription;
     if (!roleId) {
-      throw new AppError("Role ID is required", 400);
+      throw new AppError("Role ID is required", AppError.BAD_REQUEST);
     }
 
     // ========== STEP 1: FETCH USER ROLE STATUS (Once) ==========
@@ -212,7 +212,7 @@ const accountStatus = async ({
       data: userRoleStatusParams
     });
     if (!userRoleStatus || userRoleStatus?.data?.length === 0) {
-      throw new AppError("User role status not found", 404);
+      throw new AppError("User role status not found", AppError.NOT_FOUND);
     }
     const {
       userRoleStatusUniqueId,
@@ -487,7 +487,7 @@ const accountStatus = async ({
         body
       }
     });
-    throw new AppError(`An error occurred during account status evaluation: ${error.message}`, 500);
+    throw new AppError(`An error occurred during account status evaluation: ${error.message}`, AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

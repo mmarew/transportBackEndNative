@@ -88,7 +88,7 @@ const createAttachedDocument = async ({
 
       // Enforce expiration date only when a requirement explicitly demands it
       if (requirement && requirement.isExpirationDateRequired && !documentExpirationDate) {
-        throw new AppError(`Document expiration date is required`, 400);
+        throw new AppError(`Document expiration date is required`, AppError.BAD_REQUEST);
       }
       // No matching requirement anywhere → still allow upload (valid documentTypeId is enough)
     }
@@ -112,7 +112,7 @@ const createAttachedDocument = async ({
     // Expiry check
     const isExpired = documentExpirationDate ? new Date(documentExpirationDate) < new Date(currentDate()) : false;
     if (isExpired) {
-      throw new AppError(`Document is expired`, 400);
+      throw new AppError(`Document is expired`, AppError.BAD_REQUEST);
     }
     const newDocument = {
       attachedDocumentUniqueId: uuidv4(),
@@ -154,7 +154,7 @@ const createAttachedDocument = async ({
         data: null,
       };
     } else {
-      throw new AppError("Failed to create document", 500);
+      throw new AppError("Failed to create document", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
     logger.error("Error creating attached document", {
@@ -164,7 +164,7 @@ const createAttachedDocument = async ({
     if (error instanceof AppError) {
       throw error;
     }
-    throw new AppError("An error occurred while creating the document", 500);
+    throw new AppError("An error occurred while creating the document", AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

@@ -105,13 +105,13 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // userUniqueId must be set by the caller (controller handles admin case)
     const userUniqueId = body?.userUniqueId;
     if (!userUniqueId) {
-      throw new AppError("userUniqueId is required", 400);
+      throw new AppError("userUniqueId is required", AppError.BAD_REQUEST);
     }
     const numberOfVehicles = body?.numberOfVehicles || 1;
     // First check if the user has an active request based on shipperRequestBatchUniqueId
     const shipperRequestBatchUniqueId = body?.shipperRequestBatchUniqueId;
     if (!shipperRequestBatchUniqueId) {
-      throw new AppError("Batch uniqueId Can't be null", 400);
+      throw new AppError("Batch uniqueId Can't be null", AppError.BAD_REQUEST);
     }
 
     // Use context-aware executor for raw query with locking
@@ -241,17 +241,20 @@ const createShipperRequest = async (body, journeyStatusId) => {
     // Step 2a: Auto-offer each queue order to the FRONT waiting driver of its type.
     // An empty queue leaves the order waiting (offered:false) — the QueueOrgAdmin
     // can still dispatch it manually, or the order retries on the next driver check-in.
+    // Sequential (NOT Promise.all): the create flow already runs inside an outer
+    // transaction, so parallel dispatch calls would share ONE connection and their
+    // FOR UPDATE locks would not serialize each other — both orders could be offered
+    // to the SAME front driver. Dispatching one at a time lets each offer advance the
+    // queue (offered drivers are skipped) so a batch of N orders fills N distinct slots.
     if (queueRequests.length > 0) {
-      await Promise.all(
-        queueRequests.map((createdRequest) =>
-          handleQueueDispatch({
-            queueOrganizationUniqueId: createdRequest.queueOrganizationUniqueId,
-            vehicleTypeUniqueId: createdRequest.vehicleTypeUniqueId,
-            shipperRequestUniqueId: createdRequest.shipperRequestUniqueId,
-            user: { userUniqueId },
-          }),
-        ),
-      );
+      for (const createdRequest of queueRequests) {
+        await handleQueueDispatch({
+          queueOrganizationUniqueId: createdRequest.queueOrganizationUniqueId,
+          vehicleTypeUniqueId: createdRequest.vehicleTypeUniqueId,
+          shipperRequestUniqueId: createdRequest.shipperRequestUniqueId,
+          user: { userUniqueId },
+        });
+      }
     }
 
     // Step 2b: distance-based driver finding for non-queue orders.
@@ -304,7 +307,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
     });
     throw new AppError(
       error.message || "Unable to create request",
-      error.statusCode || 500,
+      error.statusCode || AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };

@@ -35,7 +35,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
   const executor = transactionStorage.getStore() || pool;
   const [currentRows] = await executor.query("SELECT * FROM RoleDocumentRequirements WHERE roleDocumentRequirementUniqueId = ?", [roleDocumentRequirementUniqueId]);
   if (!currentRows || currentRows.length === 0) {
-    throw new AppError("Mapping not found", 404);
+    throw new AppError("Mapping not found", AppError.NOT_FOUND);
   }
   if (currentRows[0]?.roleDocumentRequirementDeletedAt) {
     const undeleteUpdatedBy = roleDocumentRequirementUpdatedBy || currentRows[0].roleDocumentRequirementCreatedBy;
@@ -50,7 +50,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
       }
     });
     if (dt.length === 0) {
-      throw new AppError("Document type not found", 404);
+      throw new AppError("Document type not found", AppError.NOT_FOUND);
     }
     resolvedDocumentTypeId = dt[0].documentTypeId;
   }
@@ -58,7 +58,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
   const nextDocumentTypeId = resolvedDocumentTypeId !== undefined ? resolvedDocumentTypeId : currentRows[0].documentTypeId;
   const [dupRows] = await executor.query("SELECT * FROM RoleDocumentRequirements WHERE roleId = ? AND documentTypeId = ? AND roleDocumentRequirementUniqueId != ? AND roleDocumentRequirementDeletedAt IS NULL", [nextRoleId, nextDocumentTypeId, roleDocumentRequirementUniqueId]);
   if (dupRows.length > 0) {
-    throw new AppError("Mapping already exists", 400);
+    throw new AppError("Mapping already exists", AppError.BAD_REQUEST);
   }
   const setParts = [];
   const values = [];
@@ -91,7 +91,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
     values.push(roleDocumentRequirementUpdatedBy);
   }
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
   setParts.push("roleDocumentRequirementUpdatedAt = ?");
   values.push(currentDate());
@@ -99,7 +99,7 @@ const updateMapping = async (roleDocumentRequirementUniqueId, data) => {
   values.push(roleDocumentRequirementUniqueId);
   const result = await executor.query(sql, values);
   if (result[0].affectedRows === 0) {
-    throw new AppError("Failed to update mapping", 500);
+    throw new AppError("Failed to update mapping", AppError.INTERNAL_SERVER_ERROR);
   }
   return {
     message: "Document requirement updated",

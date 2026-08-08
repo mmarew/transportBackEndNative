@@ -31,7 +31,10 @@ const createUserSubscription = async ({
     subscriptionPlanPricingUniqueId,
   });
   if (!activePricingData) {
-    throw new AppError("There is no such kind of plan pricing.", 400);
+    throw new AppError(
+      "There is no such kind of plan pricing.",
+      AppError.BAD_REQUEST,
+    );
   }
   const isFree = activePricingData?.isFree;
   const price = activePricingData?.price;
@@ -64,7 +67,7 @@ const createUserSubscription = async ({
     if (hasFreeBefore) {
       throw new AppError(
         "You have already used your free trial.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
   }
@@ -114,7 +117,10 @@ const createUserSubscription = async ({
   ];
   const [insertResult] = await executor.query(sql, values);
   if (insertResult.affectedRows === 0) {
-    throw new AppError("Failed to create subscription", 500);
+    throw new AppError(
+      "Failed to create subscription",
+      AppError.INTERNAL_SERVER_ERROR,
+    );
   }
   const result = {
     userSubscriptionUniqueId,

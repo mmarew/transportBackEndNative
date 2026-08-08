@@ -16,6 +16,7 @@ const queueState = {
     d4: { userUniqueId: null, vehicleDriverUniqueId: null, vehicleTypeUniqueId: null },
   },
   shipper: { userUniqueId: null },
+  adminOps: { d1QueueUniqueId: null, d1QueueNumberBefore: null },
 };
 
 module.exports = { queueState };

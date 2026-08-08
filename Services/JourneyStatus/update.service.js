@@ -33,7 +33,7 @@ const {
 const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayload, user) => {
   const userUniqueId = user?.userUniqueId;
   if (!userUniqueId) {
-    throw new AppError("User authentication required", 401);
+    throw new AppError("User authentication required", AppError.UNAUTHORIZED);
   }
 
   // Check if journey status exists and is not deleted
@@ -45,7 +45,7 @@ const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayloa
     }
   });
   if (!existingStatus || existingStatus.length === 0) {
-    throw new AppError("Journey status not found or already deleted", 404);
+    throw new AppError("Journey status not found or already deleted", AppError.NOT_FOUND);
   }
   const updateDataValues = {
     ...updatePayload
@@ -55,7 +55,7 @@ const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayloa
     journeyStatusDescription: updateDataValues.journeyStatusDescription
   };
   if (Object.keys(updateValues).length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Execute pure SQL update to avoid NULL handling issues in updateData
@@ -73,7 +73,7 @@ const updateJourneyStatusByUniqueId = async (journeyStatusUniqueId, updatePayloa
       data: null
     };
   }
-  throw new AppError("Journey status update failed", 500);
+  throw new AppError("Journey status update failed", AppError.INTERNAL_SERVER_ERROR);
 };
 
 // Soft delete a journey status by unique ID
@@ -123,12 +123,12 @@ const updateNegativeJourneyStatus = async ({
       journeyStatusMap.cancelledBySystem // 12
     ];
     if (!negativeStatuses.includes(newStatusId)) {
-      throw new AppError("Invalid request data: unsupported new status ID", 400);
+      throw new AppError("Invalid request data: unsupported new status ID", AppError.BAD_REQUEST);
     }
 
     // Validate that at least one identifier is provided
     if (!driverRequestId && !driverRequestUniqueId) {
-      throw new AppError("Invalid request: missing driver request identifier", 400);
+      throw new AppError("Invalid request: missing driver request identifier", AppError.BAD_REQUEST);
     }
 
     // Safeguard: Only update if current status is acceptedByDriver or requested
@@ -275,7 +275,7 @@ const updateNegativeJourneyStatus = async ({
       results
     };
   } catch (error) {
-    throw new AppError(error.message || "Unable to process negative journey status update", error.statusCode || 500);
+    throw new AppError(error.message || "Unable to process negative journey status update", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 
@@ -501,7 +501,7 @@ const updateJourneyStatus = async body => {
       data: null
     };
   } catch (error) {
-    throw new AppError(error.message || "Failed to update journey status", error.statusCode || 500);
+    throw new AppError(error.message || "Failed to update journey status", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

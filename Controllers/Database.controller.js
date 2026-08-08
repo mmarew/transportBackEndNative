@@ -1,6 +1,7 @@
 const databaseService = require("../Services/Database");
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const createTableController = async (req, res, next) => {
   try {
@@ -9,7 +10,7 @@ const createTableController = async (req, res, next) => {
     // the database to already exist. createTable() creates the database itself
     // using its own dedicated connection before touching the pool.
     const result = await databaseService.createTable();
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }
@@ -28,12 +29,12 @@ const dropTableController = async (req, res, next) => {
   try {
     const tables = req.body.tables;
     if (!tables) {
-      return res.status(400).json({ message: "Table name is required" });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Table name is required" });
     }
     const result = await executeInTransaction(async () => {
       return await databaseService.dropTable(tables);
     });
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }
@@ -42,7 +43,7 @@ const dropTableController = async (req, res, next) => {
 const dropAllTablesController = async (req, res, next) => {
   try {
     const result = await databaseService.dropAllTables();
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }
@@ -53,7 +54,7 @@ const updateTableController = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await databaseService.updateTable(req.params.tableName, req.body);
     });
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }
@@ -65,7 +66,7 @@ const changeColumnPropertyController = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await databaseService.changeColumnProperty(tableName, req.body);
     });
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }
@@ -77,7 +78,7 @@ const dropColumnController = async (req, res, next) => {
     const result = await executeInTransaction(async () => {
       return await databaseService.dropColumn(tableName, columnName);
     });
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }
@@ -103,7 +104,7 @@ const installPreDefinedDataController = async (req, res, next) => {
       },
       { timeout: 300000 }, // 5 minutes
     );
-    res.status(200).json(result);
+    res.status(HTTP_STATUS.OK).json(result);
   } catch (error) {
     next(error);
   }

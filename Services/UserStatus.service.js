@@ -16,7 +16,7 @@ const createUserStatus = async (body) => {
   });
 
   if (existingUserStatus.length) {
-    throw new AppError("User status already exists", 400);
+    throw new AppError("User status already exists", AppError.BAD_REQUEST);
   }
 
   const userStatusUniqueId = uuidv4();
@@ -45,7 +45,7 @@ const getUserStatusById = async (userStatusUniqueId) => {
   });
 
   if (!results.length) {
-    throw new AppError("UserStatus not found", 404);
+    throw new AppError("UserStatus not found", AppError.NOT_FOUND);
   }
 
   return { message: "Statuses list fetched", data: results[0] };

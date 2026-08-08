@@ -21,7 +21,7 @@ const addCancellationReason = async (body, user) => {
       conditions: { cancellationReason, roleId },
     });
     if (isAvailable.length > 0) {
-      throw new AppError("Cancellation reason already exists", 409);
+      throw new AppError("Cancellation reason already exists", AppError.CONFLICT);
     }
 
     const sqlToAddReason = `
@@ -50,7 +50,7 @@ const addCancellationReason = async (body, user) => {
         },
       };
     } else {
-      throw new AppError("Cancellation reason registration failed", 500);
+      throw new AppError("Cancellation reason registration failed", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
     logger.error("Error adding cancellation reason", {
@@ -76,7 +76,7 @@ const deleteCancellationReason = async (req) => {
     [cancellationReasonTypeUniqueId],
   );
   if (!existing || existing.length === 0) {
-    throw new AppError("Cancellation reason not found", 404);
+    throw new AppError("Cancellation reason not found", AppError.NOT_FOUND);
   }
 
   const sqlToDeleteReason = `UPDATE CancellationReasonsType SET cancellationReasonTypeDeletedAt = ?, cancellationReasonTypeDeletedBy = ? WHERE cancellationReasonTypeUniqueId = ?`;
@@ -92,7 +92,7 @@ const deleteCancellationReason = async (req) => {
       data: null,
     };
   }
-  throw new AppError("Cancellation reason delete failed", 500);
+  throw new AppError("Cancellation reason delete failed", AppError.INTERNAL_SERVER_ERROR);
 };
 
 // Function to update a cancellation reason by unique ID
@@ -107,7 +107,7 @@ const updateCancellationReason = async (req) => {
     [cancellationReasonTypeUniqueId],
   );
   if (!existing || existing.length === 0) {
-    throw new AppError("Cancellation reason not found", 404);
+    throw new AppError("Cancellation reason not found", AppError.NOT_FOUND);
   }
 
   const setParts = [];
@@ -136,7 +136,7 @@ const updateCancellationReason = async (req) => {
   }
 
   if (setParts.length === 0) {
-    throw new AppError("No fields provided to update", 400);
+    throw new AppError("No fields provided to update", AppError.BAD_REQUEST);
   }
 
   // Add audit columns
@@ -155,7 +155,7 @@ const updateCancellationReason = async (req) => {
       data: null,
     };
   }
-  throw new AppError("Cancellation reason update failed", 500);
+  throw new AppError("Cancellation reason update failed", AppError.INTERNAL_SERVER_ERROR);
 };
 const getAllCancellationReasons = async (filters = {}) => {
   const page = Number(filters.page) || 1;

@@ -10,6 +10,7 @@ const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
 const { HEALTH_ENDPOINTS } = require("./EndPoints/health.endpoints");
 const { clearCache } = require("../Services/FixedData.service");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 // Simple health check with DB reachability indicator
 router.get(HEALTH_ENDPOINTS.HEALTH_CHECK, async (req, res, next) => {
@@ -48,7 +49,7 @@ router.get(HEALTH_ENDPOINTS.DATABASE_HEALTH, async (req, res) => {
           : 503;
     res.status(statusCode).json(health);
   } catch {
-    res.status(500).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       message: "error",
       error: "Health check failed",
     });
@@ -62,7 +63,7 @@ router.get(HEALTH_ENDPOINTS.DATABASE_STATS, async (req, res, next) => {
     const queryStats = getQueryStats();
     const poolMetrics = getPoolMetrics();
 
-    res.status(200).json({
+    res.status(HTTP_STATUS.OK).json({
       message: "success",
       data: {
         pool: poolMetrics,
@@ -72,7 +73,7 @@ router.get(HEALTH_ENDPOINTS.DATABASE_STATS, async (req, res, next) => {
       },
     });
   } catch {
-    next(new AppError("Failed to retrieve database statistics", 500));
+    next(new AppError("Failed to retrieve database statistics", AppError.INTERNAL_SERVER_ERROR));
   }
 });
 

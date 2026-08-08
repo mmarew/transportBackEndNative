@@ -18,6 +18,10 @@ const {
 const {
   DRIVER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/driverRequest.endpoints");
+const {
+  getDriverJourneyStatus,
+  acceptShipperRequest,
+} = require("../Driver/DriverJourneyStatus");
 
 // ── Auth tokens ────────────────────────────────────────────────────────────────
 
@@ -111,6 +115,43 @@ const registerQueueDrivers = async () => {
     await testAuthWorkFlow({ userType: def.driverKey });
     await onboardQueueDriver(def);
   }
+  await activateQueueDrivers(defs.map((d) => d.driverKey));
+};
+
+/**
+ * The account-status evaluation downgrades freshly registered drivers to
+ * INACTIVE_REQUIRED_DOCUMENTS_MISSING (statusId 3) because they have no
+ * documents/vehicle on file. Queue tests exercise the accept/reject/dispatch
+ * engine, which guards on USER_STATUS.ACTIVE via verifyDriversIdentity, so we
+ * move the driver to ACTIVE through the admin user-role-status endpoint.
+ */
+const activateQueueDriver = async (driverKey) => {
+  const userUniqueId = queueState.drivers[driverKey]?.userUniqueId;
+  if (!userUniqueId) {
+    throw new Error(`No userUniqueId recorded for ${driverKey}`);
+  }
+  const res = await axios.put(
+    backendURL + `/api/admin/userRoleStatus/${userUniqueId}`,
+    {
+      roleId: 2,
+      newStatusId: 1,
+      phoneNumber: usersData[driverKey].phoneNumber,
+      userRoleStatusDescription: "Activated for queue E2E",
+    },
+    authConfig(superAdminToken()),
+  );
+  return res.data;
+};
+
+const activateQueueDrivers = async (driverKeys) => {
+  for (const driverKey of driverKeys) {
+    await activateQueueDriver(driverKey);
+  }
+};
+
+const registerQueueOrgAdmin = async () => {
+  if (usersData.queueOrgAdmin?.token) return;
+  await testAuthWorkFlow({ userType: "queueOrgAdmin" });
 };
 
 const ensureShipper = async () => {
@@ -302,13 +343,15 @@ const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId
   return res.data;
 };
 
-const rejectDriverOffer = async ({ shipperRequestUniqueId, driverRequestUniqueId, journeyDecisionUniqueId }) => {
+const rejectDriverOffer = async ({ shipperRequestUniqueId, driverRequestUniqueId, journeyDecisionUniqueId, shipperRequestId, journeyStatusId = 2 }) => {
   const res = await axios.put(
     backendURL + SHIPPER_REQUEST_ENDPOINTS.REJECT_DRIVER_OFFER,
     {
       shipperRequestUniqueId,
       driverRequestUniqueId,
       journeyDecisionUniqueId,
+      shipperRequestId,
+      journeyStatusId,
     },
     authConfig(shipperToken()),
   );
@@ -394,9 +437,9 @@ const getLatestOrders = async (count = 1) => {
 
 const getOrderByUniqueId = async (orderUniqueId) => {
   const [rows] = await pool.query(
-    `SELECT sr.*, srn.journeyStatusName
+    `SELECT sr.*, js.journeyStatusName
      FROM ShipperRequest sr
-     LEFT JOIN StatusOfShipperRequest srn ON srn.journeyStatusId = sr.journeyStatusId
+     LEFT JOIN JourneyStatus js ON js.journeyStatusId = sr.journeyStatusId
      WHERE sr.shipperRequestUniqueId = ?`,
     [orderUniqueId],
   );
@@ -415,9 +458,11 @@ const getJourneyDecisionCount = async (orderUniqueId) => {
 };
 
 const getCanceledJourneysForOrder = async (orderUniqueId) => {
+  const order = await getOrderByUniqueId(orderUniqueId);
   const [rows] = await pool.query(
-    `SELECT * FROM CanceledJourneys WHERE shipperRequestUniqueId = ?`,
-    [orderUniqueId],
+    `SELECT * FROM CanceledJourneys
+     WHERE contextId = ? AND contextType = 'ShipperRequest'`,
+    [order.shipperRequestId],
   );
   return rows;
 };
@@ -470,7 +515,9 @@ module.exports = {
   ensureAdminTokens,
   getVehicleTypes,
   registerQueueDrivers,
+  registerQueueOrgAdmin,
   ensureShipper,
+  activateQueueDriver,
   createQueueOrganization,
   approveQueueOrganization,
   deleteQueueOrganization,

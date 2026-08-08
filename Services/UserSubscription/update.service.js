@@ -18,7 +18,7 @@ const {
 // Update by UUID - Dynamic update (only updates provided fields)
 const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) => {
   if (!userSubscriptionUniqueId || !data || Object.keys(data).length === 0) {
-    throw new AppError("Missing subscription ID or update data", 400);
+    throw new AppError("Missing subscription ID or update data", AppError.BAD_REQUEST);
   }
 
   // Exclude fields that should never be updated
@@ -34,7 +34,7 @@ const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) 
     }
   });
   if (updates.length === 0) {
-    throw new AppError("No valid fields to update", 400);
+    throw new AppError("No valid fields to update", AppError.BAD_REQUEST);
   }
 
   // Add userSubscriptionUpdatedAt timestamp
@@ -50,7 +50,7 @@ const updateUserSubscriptionByUniqueId = async (userSubscriptionUniqueId, data) 
   const executor = transactionStorage.getStore() || pool;
   const [result] = await executor.query(sql, values);
   if (result.affectedRows === 0) {
-    throw new AppError("Subscription not found or no changes made", 404);
+    throw new AppError("Subscription not found or no changes made", AppError.NOT_FOUND);
   }
 
   // Fetch updated subscription to return full data

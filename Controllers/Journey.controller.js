@@ -84,7 +84,7 @@ exports.getCompletedJourneyCountsByDate = async (req, res, next) => {
 
     // Validate required parameters
     if (!fromDate || !toDate) {
-      return next(new AppError("fromDate and toDate are required", 400));
+      return next(new AppError("fromDate and toDate are required", AppError.BAD_REQUEST));
     }
 
     let ownerUserUniqueId = req?.query?.ownerUserUniqueId || "all";
@@ -167,7 +167,7 @@ exports.getOngoingJourney = async (req, res, next) => {
         userRoleId === usersRolesList.admin.roleId ||
         userRoleId === usersRolesList.supperAdmin.roleId;
       if (!isAdmin) {
-        return next(new AppError("Unauthorized access", 403));
+        return next(new AppError("Unauthorized access", AppError.FORBIDDEN));
       }
     }
 

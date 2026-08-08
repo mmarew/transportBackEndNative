@@ -25,15 +25,15 @@ const allowedSortFields = {
 
 function validateCommissionData(data) {
   if (!data.commissionAmount) {
-    throw new AppError("Commission amount is required", 400);
+    throw new AppError("Commission amount is required", AppError.BAD_REQUEST);
   }
   // Additional business logic validation
   if (data.commissionAmount <= 0) {
-    throw new AppError("Commission amount must be greater than 0", 400);
+    throw new AppError("Commission amount must be greater than 0", AppError.BAD_REQUEST);
   }
 
   if (data.commissionAmount > 999999.99) {
-    throw new AppError("Commission amount exceeds maximum limit", 400);
+    throw new AppError("Commission amount exceeds maximum limit", AppError.BAD_REQUEST);
   }
   return true;
 }
@@ -47,10 +47,10 @@ async function createCommission(
   validateCommissionData({ commissionAmount: paymentAmount }); // Basic validation on payment amount
 
   if (!journeyDecisionUniqueId) {
-    throw new AppError("Journey decision unique id is required", 400);
+    throw new AppError("Journey decision unique id is required", AppError.BAD_REQUEST);
   }
   if (!commissionCreatedBy) {
-    throw new AppError("Commission created by is required", 400);
+    throw new AppError("Commission created by is required", AppError.BAD_REQUEST);
   }
 
   // Fetch commission rate once (cached)
@@ -58,7 +58,7 @@ async function createCommission(
     await getCommissionRateData();
 
   if (!commissionRateUniqueId || !commissionRateValue) {
-    throw new AppError("Commission rate is not configured properly", 400);
+    throw new AppError("Commission rate is not configured properly", AppError.BAD_REQUEST);
   }
 
   // Calculate commission amount
@@ -143,7 +143,7 @@ async function createCommission(
   );
 
   if (statusExists.length === 0) {
-    throw new AppError("Invalid Commission Status Unique ID", 400);
+    throw new AppError("Invalid Commission Status Unique ID", AppError.BAD_REQUEST);
   }
 
   // 5. Create commission
@@ -376,7 +376,7 @@ async function updateCommission(id, data, updatedBy) {
   }
 
   if (fields.length === 0) {
-    throw new AppError("No fields to update", 400);
+    throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
   const amountOrDriverChanged =
@@ -418,7 +418,7 @@ async function updateCommission(id, data, updatedBy) {
     const [updateResult] = await executor.query(sql, values);
 
     if (updateResult.affectedRows === 0) {
-      throw new AppError("Commission not found or could not be updated", 404);
+      throw new AppError("Commission not found or could not be updated", AppError.NOT_FOUND);
     }
 
     // Reconcile UserBalance when amount or driver changes: reverse old, deduct new
@@ -491,7 +491,7 @@ async function deleteCommission(id, deletedBy) {
   );
 
   if (commissionRows.length === 0) {
-    throw new AppError("Commission not found or already deleted", 404);
+    throw new AppError("Commission not found or already deleted", AppError.NOT_FOUND);
   }
 
   const { commissionAmount, driverUniqueId } = commissionRows[0];
@@ -511,7 +511,7 @@ async function deleteCommission(id, deletedBy) {
     ]);
 
     if (result.affectedRows === 0) {
-      throw new AppError("Commission not found or already deleted", 404);
+      throw new AppError("Commission not found or already deleted", AppError.NOT_FOUND);
     }
 
     await prepareAndCreateNewBalance({
@@ -535,7 +535,7 @@ async function deleteCommission(id, deletedBy) {
       throw error;
     }
     logger.application.databaseError(error, updateSql, [deletedBy, id]);
-    throw new AppError("Failed to delete commission", 500);
+    throw new AppError("Failed to delete commission", AppError.INTERNAL_SERVER_ERROR);
   }
 }
 

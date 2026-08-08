@@ -189,7 +189,7 @@ const authorizeDocumentAccess = () => {
       }
 
       // ── 6. Fallback deny ─────────────────────────────────────────────────────
-      throw new AppError("Forbidden: unknown owner type.", 403);
+      throw new AppError("Forbidden: unknown owner type.", AppError.FORBIDDEN);
     } catch (error) {
       next(error);
     }

@@ -47,7 +47,7 @@ const createUserDelinquency = async data => {
   `;
   const [userResult] = await (transactionStorage.getStore() || pool).query(userCheckQuery, [userUniqueId]);
   if (userResult.length === 0) {
-    throw new AppError(`Invalid userUniqueId: ${userUniqueId} does not exist in Users table`, 400);
+    throw new AppError(`Invalid userUniqueId: ${userUniqueId} does not exist in Users table`, AppError.BAD_REQUEST);
   }
 
   // Get default values from delinquency type if not provided
@@ -58,7 +58,7 @@ const createUserDelinquency = async data => {
   `;
   const [typeResult] = await (transactionStorage.getStore() || pool).query(typeQuery, [delinquencyTypeUniqueId]);
   if (typeResult.length === 0) {
-    throw new AppError("Invalid delinquency type", 404);
+    throw new AppError("Invalid delinquency type", AppError.NOT_FOUND);
   }
   const defaultType = typeResult[0];
 
@@ -119,7 +119,7 @@ const createUserDelinquency = async data => {
     `;
     const [journeyResult] = await (transactionStorage.getStore() || pool).query(journeyCheckQuery, [journeyDecisionUniqueId]);
     if (journeyResult.length === 0) {
-      throw new AppError(`Invalid journeyDecisionUniqueId: ${journeyDecisionUniqueId} does not exist in JourneyDecisions table`, 400);
+      throw new AppError(`Invalid journeyDecisionUniqueId: ${journeyDecisionUniqueId} does not exist in JourneyDecisions table`, AppError.BAD_REQUEST);
     }
     columns += `, journeyDecisionUniqueId`;
     placeholders += `, ?`;
@@ -158,7 +158,7 @@ const createUserDelinquency = async data => {
         userDelinquencyUniqueId: duplicateCheckResult.data?.[0]?.userDelinquencyUniqueId,
       };
     }
-    throw new AppError(error.message || "Failed to create user delinquency record", error.statusCode || 500);
+    throw new AppError(error.message || "Failed to create user delinquency record", error.statusCode || AppError.INTERNAL_SERVER_ERROR);
   }
 };
 

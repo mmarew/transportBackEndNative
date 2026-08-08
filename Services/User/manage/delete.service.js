@@ -37,7 +37,7 @@ const deleteUser = async ({
   retainFiles = true
 }, connection = null) => {
   if (!userUniqueId) {
-    throw new AppError("userUniqueId is required to delete user", 400);
+    throw new AppError("userUniqueId is required to delete user", AppError.BAD_REQUEST);
   }
   const userDeletedAt = currentDate();
   const isDeleted = true;
@@ -46,7 +46,7 @@ const deleteUser = async ({
   const executor = transactionStorage.getStore() || connection || pool;
   const [deleteResults] = await executor.query(sql, values);
   if (deleteResults.affectedRows === 0) {
-    throw new AppError("User not found or already deleted", 404);
+    throw new AppError("User not found or already deleted", AppError.NOT_FOUND);
   }
 
   // Ensure status 8 (ACCOUNT_DELETED) exists for FK, then set all this user's role statuses to it

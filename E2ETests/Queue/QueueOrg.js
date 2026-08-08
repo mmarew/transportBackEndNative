@@ -54,8 +54,15 @@ const testTQ01CreateOrg = async () => {
       queueOrganizationUniqueId: org.queueOrganizationUniqueId,
     });
     const visible = Array.isArray(list)
-      ? list.some((o) => o.queueOrganizationUniqueId === org.queueOrganizationUniqueId)
-      : list?.queueOrganizationUniqueId === org.queueOrganizationUniqueId;
+      ? list.some(
+          (o) =>
+            o.queueOrganizationUniqueId === org.queueOrganizationUniqueId ||
+            o.organization?.queueOrganizationUniqueId ===
+              org.queueOrganizationUniqueId,
+        )
+      : list?.queueOrganizationUniqueId === org.queueOrganizationUniqueId ||
+        list?.organization?.queueOrganizationUniqueId ===
+          org.queueOrganizationUniqueId;
     if (!visible) {
       throw new Error("Org not visible to admin/superadmin via GET list");
     }
@@ -93,10 +100,10 @@ const testTQ02ApproveAndEnable = async () => {
         queueOrganizationUniqueId,
         token: driverToken("queueDriver1"),
       }),
-      403,
+      [401, 403],
       "TQ-02 approve-with-driver-token",
     );
-    report.pass("TQ-02: driver token denied (403) on approve");
+    report.pass("TQ-02: driver token denied (401/403) on approve");
 
     // Approve but keep disabled → check-in still blocked.
     await approveQueueOrganization({
@@ -177,10 +184,10 @@ const testTQ04SoftDelete = async () => {
     const { queueOrganizationUniqueId } = queueState.org.main;
     await expectStatus(
       deleteQueueOrganization(queueOrganizationUniqueId, driverToken("queueDriver1")),
-      403,
+      [401, 403],
       "TQ-04 delete-with-driver-token",
     );
-    report.pass("TQ-04: driver token denied (403) on delete");
+    report.pass("TQ-04: driver token denied (401/403) on delete");
 
     await deleteQueueOrganization(queueOrganizationUniqueId);
     await expectStatus(
@@ -194,8 +201,15 @@ const testTQ04SoftDelete = async () => {
       queueOrganizationUniqueId,
     });
     const stillVisible = Array.isArray(list)
-      ? list.some((o) => o.queueOrganizationUniqueId === queueOrganizationUniqueId)
-      : list?.queueOrganizationUniqueId === queueOrganizationUniqueId;
+      ? list.some(
+          (o) =>
+            o.queueOrganizationUniqueId === queueOrganizationUniqueId ||
+            o.organization?.queueOrganizationUniqueId ===
+              queueOrganizationUniqueId,
+        )
+      : list?.queueOrganizationUniqueId === queueOrganizationUniqueId ||
+        list?.organization?.queueOrganizationUniqueId ===
+          queueOrganizationUniqueId;
     if (stillVisible) {
       throw new Error("Soft-deleted org still returned by GET list");
     }

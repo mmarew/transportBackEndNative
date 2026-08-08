@@ -19,7 +19,7 @@ const deleteUserDepositByUniqueId = async (
   userDepositDeletedBy,
 ) => {
   if (!userDepositUniqueId || !userDepositDeletedBy) {
-    throw new AppError("Missing deposit ID or deleted by", 400);
+    throw new AppError("Missing deposit ID or deleted by", AppError.BAD_REQUEST);
   }
   const depositData = await fetchDepositData(userDepositUniqueId);
   const { depositAmount, driverUniqueId, depositStatus } = depositData;
@@ -33,7 +33,7 @@ const deleteUserDepositByUniqueId = async (
     userDepositUniqueId,
   ]);
   if (result.affectedRows === 0) {
-    throw new AppError("Delete failed or deposit not found", 404);
+    throw new AppError("Delete failed or deposit not found", AppError.NOT_FOUND);
   }
   //update the balance, by deduct the deposit amount if the deposit is approved before like depositStatus === "approved"
   if (depositStatus === "approved") {
@@ -68,7 +68,7 @@ const deleteUserDepositByUniqueId = async (
 // }) => {
 //   const allowedStatuses = ["approved", "rejected"];
 //   if (!allowedStatuses.includes(newStatus)) {
-//     throw new AppError("Invalid deposit status", 400);
+//     throw new AppError("Invalid deposit status", AppError.BAD_REQUEST);
 //   }
 
 //   // Load deposit using consolidated getter
@@ -81,7 +81,7 @@ const deleteUserDepositByUniqueId = async (
 //     : depositFetch?.data;
 
 //   if (!depositData) {
-//     throw new AppError("Deposit not found", 404);
+//     throw new AppError("Deposit not found", AppError.NOT_FOUND);
 //   }
 //   const depositStatus = depositData?.depositStatus;
 //   if (newStatus === depositStatus && depositStatus === "approved") {
@@ -113,7 +113,7 @@ const deleteUserDepositByUniqueId = async (
 //     ]);
 
 //     if (updateResult.affectedRows === 0) {
-//       throw new AppError("Deposit not found or already updated", 404);
+//       throw new AppError("Deposit not found or already updated", AppError.NOT_FOUND);
 //     }
 //   });
 

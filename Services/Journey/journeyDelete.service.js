@@ -18,7 +18,7 @@ const deleteJourney = async (journeyId) => {
   ]);
 
   if (result.affectedRows === 0) {
-    throw new AppError("Failed to delete journey", 500);
+    throw new AppError("Failed to delete journey", AppError.INTERNAL_SERVER_ERROR);
   }
 
   return {

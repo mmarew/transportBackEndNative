@@ -30,7 +30,7 @@ exports.createQueueOrganization = async (data) => {
     [queueOrganizationName],
   );
   if (existing.length > 0) {
-    throw new AppError("A queue organization with this name already exists", 409);
+    throw new AppError("A queue organization with this name already exists", AppError.CONFLICT);
   }
 
   const queueOrganizationUniqueId = uuidv4();
@@ -179,7 +179,7 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
   const [rows] = await executor.query(baseSql, params);
   
   if (rows.length === 0) {
-    throw new AppError("Queue organization not found", 404);
+    throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   const row = rows[0];
@@ -208,7 +208,7 @@ exports.updateQueueOrganization = async (queueOrganizationUniqueId, body, userId
     [queueOrganizationUniqueId],
   );
   if (org.length === 0) {
-    throw new AppError("Queue organization not found", 404);
+    throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   const allowed = [
@@ -228,7 +228,7 @@ exports.updateQueueOrganization = async (queueOrganizationUniqueId, body, userId
     }
   }
   if (sets.length === 0) {
-    throw new AppError("No valid fields provided for update", 400);
+    throw new AppError("No valid fields provided for update", AppError.BAD_REQUEST);
   }
   sets.push("queueOrganizationUpdatedAt = ?", "queueOrganizationUpdatedBy = ?");
   params.push(currentDate(), userId, queueOrganizationUniqueId);
@@ -265,7 +265,7 @@ exports.approveQueueOrganization = async (
     [queueOrganizationUniqueId],
   );
   if (org.length === 0) {
-    throw new AppError("Queue organization not found", 404);
+    throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   await db().query(
@@ -305,7 +305,7 @@ exports.deleteQueueOrganization = async (queueOrganizationUniqueId, userId) => {
     [queueOrganizationUniqueId],
   );
   if (org.length === 0) {
-    throw new AppError("Queue organization not found", 404);
+    throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   await db().query(
@@ -329,12 +329,12 @@ exports.addMember = async (queueOrganizationUniqueId, userUniqueId, body, userId
     [queueOrganizationUniqueId],
   );
   if (org.length === 0) {
-    throw new AppError("Queue organization not found", 404);
+    throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   const [user] = await getData({ tableName: "Users", conditions: { userUniqueId } });
   if (user.length === 0) {
-    throw new AppError("User not found", 404);
+    throw new AppError("User not found", AppError.NOT_FOUND);
   }
 
   const [existing] = await db().query(
@@ -343,7 +343,7 @@ exports.addMember = async (queueOrganizationUniqueId, userUniqueId, body, userId
     [queueOrganizationUniqueId, userUniqueId],
   );
   if (existing.length > 0) {
-    throw new AppError("User is already a member of this queue organization", 409);
+    throw new AppError("User is already a member of this queue organization", AppError.CONFLICT);
   }
 
   const { roleId, isActive } = body;

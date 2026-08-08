@@ -391,7 +391,7 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     }
   }
   if (setParts.length === 0) {
-    throw new AppError("No fields to update", 400);
+    throw new AppError("No fields to update", AppError.BAD_REQUEST);
   }
 
   // Fetch current values BEFORE the update so we can diff them for history
@@ -401,7 +401,7 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     [companyUniqueId],
   );
   if (!currentRow) {
-    throw new AppError("Company not found", 404);
+    throw new AppError("Company not found", AppError.NOT_FOUND);
   }
 
   setParts.push("companyUpdatedBy = ?", "companyUpdatedAt = ?");
@@ -412,7 +412,7 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
     vals,
   );
   if (res.affectedRows === 0) {
-    throw new AppError("Company not found", 404);
+    throw new AppError("Company not found", AppError.NOT_FOUND);
   }
 
   // Write one history row per field that actually changed
@@ -437,7 +437,7 @@ exports.approveCompany = async (
     tableName: "TransportCompany",
     conditions: { companyUniqueId, isDeleted: 0 },
   });
-  if (!companyRow) throw new AppError("Company not found", 404);
+  if (!companyRow) throw new AppError("Company not found", AppError.NOT_FOUND);
   const company = companyRow;
 
   // ── Guard 2: Valid status transitions ─────────────────────────────────────
@@ -456,7 +456,7 @@ exports.approveCompany = async (
 
   // ── Guard 3: Rejection must include a reason ──────────────────────────────
   if (approvalStatus === "rejected" && !approvalReason?.trim()) {
-    throw new AppError("A reason is required when rejecting a company", 422);
+    throw new AppError("A reason is required when rejecting a company", AppError.UNPROCESSABLE_ENTITY);
   }
 
   // ── Guard 4: Document compliance — only when approving ───────────────────
@@ -544,7 +544,7 @@ exports.approveCompany = async (
     ],
   );
   if (res.affectedRows === 0) {
-    throw new AppError("Company not found", 404);
+    throw new AppError("Company not found", AppError.NOT_FOUND);
   }
 
   // Record status transition in the append-only audit log
@@ -568,7 +568,7 @@ exports.deleteCompany = async (companyUniqueId, deletedBy) => {
     [currentDate(), deletedBy, companyUniqueId],
   );
   if (res.affectedRows === 0) {
-    throw new AppError("Company not found or already deleted", 404);
+    throw new AppError("Company not found or already deleted", AppError.NOT_FOUND);
   }
   return { message: "Company deleted successfully", data: null };
 };

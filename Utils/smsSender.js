@@ -24,19 +24,19 @@ const sendSms = async (
     });
     // Validate required fields
     if (!token) {
-      throw new AppError("SMS_TOKEN is not configured", 500);
+      throw new AppError("SMS_TOKEN is not configured", AppError.INTERNAL_SERVER_ERROR);
     }
 
     if (!baseUrl) {
-      throw new AppError("AFRO_BASE_URL is not configured", 500);
+      throw new AppError("AFRO_BASE_URL is not configured", AppError.INTERNAL_SERVER_ERROR);
     }
 
     if (!sender) {
-      throw new AppError("SMS_SENDER is not configured", 500);
+      throw new AppError("SMS_SENDER is not configured", AppError.INTERNAL_SERVER_ERROR);
     }
 
     if (!receiverPhoneNumber) {
-      throw new AppError("Receiver Phone Number is required", 400);
+      throw new AppError("Receiver Phone Number is required", AppError.BAD_REQUEST);
     }
 
     // Determine the message to send and track if it's OTP
@@ -52,7 +52,7 @@ const sendSms = async (
     else if (otp !== null && otp !== undefined) {
       isOtpMessage = true;
       if (!otpTemplate) {
-        throw new AppError("OTP_TEMPLATE is not configured", 500);
+        throw new AppError("OTP_TEMPLATE is not configured", AppError.INTERNAL_SERVER_ERROR);
       }
 
       const otpString = String(otp);
@@ -64,7 +64,7 @@ const sendSms = async (
         message = otpTemplate.trim() + " " + otpString;
       }
     } else {
-      throw new AppError("Either OTP or custom message is required", 400);
+      throw new AppError("Either OTP or custom message is required", AppError.BAD_REQUEST);
     }
 
     const postfields = {
@@ -117,7 +117,7 @@ const sendSms = async (
         );
       }
     } else {
-      throw new AppError(`SMS API HTTP Error: ${status}`, 502);
+      throw new AppError(`SMS API HTTP Error: ${status}`, AppError.BAD_GATEWAY);
     }
   } catch (error) {
     logger.error("SMS API Request Error Details:", {
@@ -135,9 +135,9 @@ const sendSms = async (
         502,
       );
     } else if (error.request) {
-      throw new AppError("SMS API: No response received from server", 503);
+      throw new AppError("SMS API: No response received from server", AppError.SERVICE_UNAVAILABLE);
     } else {
-      throw new AppError("SMS API request error: " + error.message, 500);
+      throw new AppError("SMS API request error: " + error.message, AppError.INTERNAL_SERVER_ERROR);
     }
   }
 };
