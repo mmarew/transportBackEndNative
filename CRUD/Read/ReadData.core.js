@@ -96,6 +96,7 @@ const performJoinSelect = async ({
       ? `WHERE ${columns
         .map((col) => {
           const value = conditions[col];
+          // eslint-disable-next-line no-magic-numbers -- exactly 2 values for BETWEEN ? AND ?
           if (Array.isArray(value) && value.length === 2) {
             return `${col} BETWEEN ? AND ?`;
           } else if (Array.isArray(value)) {

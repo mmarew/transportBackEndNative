@@ -105,7 +105,7 @@ module.exports = (err, req, res, next) => {
     if (error.name === "CastError") {
       error = handleCastErrorDB(error);
     }
-    if (error.code === 11000) {
+    if (error.code === 11000) // eslint-disable-line no-magic-numbers -- MongoDB duplicate key error code {
       error = handleDuplicateFieldsDB(error);
     }
     if (error.name === "ValidationError") {

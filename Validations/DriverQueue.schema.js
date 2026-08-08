@@ -1,12 +1,13 @@
 "use strict";
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { DOMAIN } = require("../Utils/Constants");
 
 exports.checkin = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
   vehicleDriverUniqueId: uuidSchema.required(),
-  latitude: Joi.number().min(-90).max(90).optional().allow(null),
-  longitude: Joi.number().min(-180).max(180).optional().allow(null),
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).optional().allow(null),
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).optional().allow(null),
 }).unknown(true);
 
 exports.myPositionQuery = Joi.object({
@@ -24,7 +25,7 @@ exports.entryParams = Joi.object({
 
 exports.overrideBody = Joi.object({
   queueNumber: Joi.number().integer().min(1).required(),
-  reason: Joi.string().max(500).optional().allow("", null),
+  reason: Joi.string().max(DOMAIN.MAX_COMMENT_LENGTH).optional().allow("", null),
 }).unknown(true);
 
 exports.manualCheckin = Joi.object({

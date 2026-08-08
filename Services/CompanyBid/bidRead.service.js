@@ -132,6 +132,7 @@ const getGroupedBids = async (scope = {}, filters = {}) => {
   }
 
   // Only add the EXISTS clause when at least one offer-level filter is active
+  // eslint-disable-next-line no-magic-numbers -- 2 base clauses (cbr fields) + offer-level filters
   if (existsClauses.length > 2) {
     batchClauses.push(
       `EXISTS (

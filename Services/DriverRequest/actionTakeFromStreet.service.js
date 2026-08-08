@@ -74,7 +74,7 @@ const takeFromStreet = async (body, user) => {
     if (!body?.shipperRequestBatchUniqueId) {
       body.shipperRequestBatchUniqueId = uuidv4();
     }
-    const randNumber = Math.floor(Math.random() * 100000000);
+    const randNumber = Math.floor(Math.random() * 100000000) // eslint-disable-line no-magic-numbers -- 8-digit reference code;
     const requestedFrom = "street";
     const phoneNumber = body?.phoneNumber;
     const data = {

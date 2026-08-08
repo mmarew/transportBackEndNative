@@ -102,6 +102,7 @@ exports.getDriverEarningsByFilter = async ({
   const executor = transactionStorage.getStore() || pool;
   const [rows] = await executor.query(sql, params);
 
+  // eslint-disable-next-line no-magic-numbers -- drop LIMIT/OFFSET values for count query
   const countParams = params.slice(0, -2);
   const countSql = `
     SELECT COUNT(*) AS total

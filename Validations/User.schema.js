@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
+const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 
 // Helper schemas
 const phoneNumberSchema = Joi.string()
@@ -9,7 +10,7 @@ const emailSchema = Joi.string().email().allow("", null).optional();
 const OTPSchema = Joi.alternatives()
   .try(
     Joi.string()
-      .length(6)
+      .length(DOMAIN.OTP_LENGTH)
       .pattern(/^[0-9]+$/),
     Joi.number().integer(),
   )
@@ -123,7 +124,7 @@ exports.ownerUserIdParams = Joi.object({
 
 exports.getUserFilter = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   search: Joi.string().optional().allow(""),
   userUniqueId: Joi.string().optional(),
   phoneNumber: Joi.string().optional(),

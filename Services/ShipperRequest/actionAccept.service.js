@@ -35,6 +35,7 @@ const { verifyDriverJourneyStatus } = require("../DriverRequest");
 
 // Lazy require or internal check
 // const { verifyDriverJourneyStatus } = require("../DriverRequest.service");
+const { PAGINATION } = require("../../Utils/Constants");
 
 /**
  * Accepts a driver's request/offer
@@ -165,7 +166,7 @@ const acceptDriverRequest = async (body) => {
         },
         pagination: {
           currentPage: statusResult?.pagination?.currentPage || 1,
-          limit: statusResult?.pagination?.limit || 10,
+          limit: statusResult?.pagination?.limit || PAGINATION.DEFAULT_PAGE_SIZE,
         },
       };
     });

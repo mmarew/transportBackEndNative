@@ -15,6 +15,7 @@ const {
 const {
   getVehicles
 } = require("../../Vehicle.service");
+const { PAGINATION } = require("../../../Utils/Constants");
 
 
 // Get all journeys with pagination
@@ -68,7 +69,7 @@ const getJourneys = async (filters = {}) => {
       userField
     } = roleConfig[roleId];
     const safePage = Math.max(1, parseInt(page) || 1);
-    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || PAGINATION.DEFAULT_PAGE_SIZE), PAGINATION.MAX_PAGE_SIZE);
     const offset = (safePage - 1) * safeLimit;
 
     // Build query conditions
@@ -240,6 +241,7 @@ const getJourneys = async (filters = {}) => {
       INNER JOIN JourneyStatus ON JourneyStatus.journeyStatusId = Journey.journeyStatusId
       ${whereClause}
     `;
+    // eslint-disable-next-line no-magic-numbers -- drop LIMIT/OFFSET values for count query
     const [countRows] = await executor.query(countSql, queryParams.slice(0, -2));
     const totalCount = countRows[0]?.total || 0;
     const totalPages = Math.ceil(totalCount / safeLimit);

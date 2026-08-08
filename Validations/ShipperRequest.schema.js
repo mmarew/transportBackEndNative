@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 const { uuidSchema } = require("../Middleware/Validator");
 
 // Nested location schema expected by createNewShipperRequest
@@ -10,7 +11,7 @@ const locationSchema = Joi.object({
 
 exports.createShipperRequest = Joi.object({
   shipperRequestBatchUniqueId: uuidSchema.required(),
-  numberOfVehicles: Joi.number().integer().min(1).max(100).default(1),
+  numberOfVehicles: Joi.number().integer().min(1).max(DOMAIN.MAX_REQUEST_VEHICLES).default(1),
   shippingDate: Joi.date().iso().required(),
   deliveryDate: Joi.date().iso().required(),
   shippingCost: Joi.number().required(),
@@ -50,12 +51,12 @@ exports.createShipperRequest = Joi.object({
     const count = value.numberOfVehicles || 1;
 
     if (
-      count > 9 &&
+      count > DOMAIN.MAX_INDIVIDUAL_TARGET_VEHICLES &&
       mode === "individual_target" &&
       !value.queueOrganizationUniqueId
     ) {
       return helpers.message(
-        "Requests for more than 9 vehicles require company target mode. " +
+        "Requests for more than DOMAIN.MAX_INDIVIDUAL_TARGET_VEHICLES vehicles require company target mode. " +
           "Please set requestMode to 'company target' to proceed.",
       );
     }
@@ -88,7 +89,7 @@ exports.getCancellationNotificationsQuery = Joi.object({
     .valid("no need to see it", "not seen by shipper yet", "seen by shipper")
     .optional(),
   page: Joi.number().integer().min(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
 }).unknown(true);
 
 exports.markCancellationAsSeen = Joi.object({
@@ -101,18 +102,18 @@ exports.markCancellationAsSeen = Joi.object({
 exports.markJourneyCompletionAsSeen = Joi.object({
   journeyDecisionUniqueId: uuidSchema.required(),
   shipperRequestUniqueId: uuidSchema.required(),
-  rating: Joi.number().integer().min(1).max(5).required(),
+  rating: Joi.number().integer().min(1).max(DOMAIN.MAX_RATING).required(),
 }).unknown(true); // Allow additional fields for future extensibility
 
 exports.verifyShipperStatusQuery = Joi.object({
-  pageSize: Joi.number().integer().min(1).max(100).optional(),
+  pageSize: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   page: Joi.number().integer().min(1).optional(),
 }).unknown(true);
 
 exports.getShipperRequestQuery = Joi.object({
   target: Joi.string().valid("all", "single").optional(),
   journeyStatusId: Joi.string().optional(), // single or comma-separated IDs
-  limit: Joi.number().integer().min(1).max(100).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   page: Joi.number().integer().min(1).optional(),
   shipperRequestUniqueId: uuidSchema.optional(),
   shipperUserUniqueId: Joi.alternatives()
@@ -151,7 +152,7 @@ exports.getAllActiveRequestsQuery = Joi.object({
   shippingDate: Joi.date().iso().optional(),
   deliveryDate: Joi.date().iso().optional(),
   page: Joi.number().integer().min(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   sortBy: Joi.string().optional(),
   sortOrder: Joi.string().valid("ASC", "DESC", "asc", "desc").optional(),
   requestMode: Joi.string()

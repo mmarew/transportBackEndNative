@@ -2,6 +2,10 @@ const { pool, getPoolMetrics, ping } = require("../Middleware/Database.config");
 const { currentDate } = require("./CurrentDate");
 const logger = require("./logger");
 
+const POOL_WARNING_THRESHOLD = 90;
+const PERCENTAGE_MULTIPLIER = 100;
+const PERCENTAGE_DECIMAL_PLACES = 1;
+
 /**
  * Database Health Monitoring Utility
  *
@@ -97,19 +101,19 @@ const checkDatabaseHealth = async (options = {}) => {
           poolMetrics.config.connectionLimit > 0
             ? (poolMetrics.activeConnections /
                 poolMetrics.config.connectionLimit) *
-              100
+              PERCENTAGE_MULTIPLIER
             : 0;
 
         health.checks.pool = {
-          status: poolUtilization > 90 ? "warning" : "healthy",
-          utilization: `${poolUtilization.toFixed(1)}%`,
+          status: poolUtilization > POOL_WARNING_THRESHOLD ? "warning" : "healthy",
+          utilization: `${poolUtilization.toFixed(PERCENTAGE_DECIMAL_PLACES)}%`,
           activeConnections: poolMetrics.activeConnections,
           freeConnections: poolMetrics.freeConnections,
           totalConnections: poolMetrics.totalConnections,
           queuedRequests: poolMetrics.queuedRequests,
         };
 
-        if (poolUtilization > 90) {
+        if (poolUtilization > POOL_WARNING_THRESHOLD) {
           health.status = "degraded";
         }
       } else {

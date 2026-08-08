@@ -7,6 +7,12 @@ const Config = require("../Utils/Config");
 const SLOW_QUERY_THRESHOLD = Config.DB.SLOW_QUERY_THRESHOLD; // milliseconds
 const ENABLE_QUERY_LOGGING = Config.DB.ENABLE_QUERY_LOGGING;
 
+// Logging metrics configuration
+const SLOW_QUERY_SQL_TRUNCATE_LENGTH = 500;
+const DEBUG_QUERY_SQL_TRUNCATE_LENGTH = 200;
+const SLOW_QUERY_LOG_CAP = 100;
+const PERCENTAGE_DECIMAL_PLACES = 2;
+
 // Query performance statistics
 const queryStats = {
   totalQueries: 0,
@@ -78,7 +84,7 @@ const wrapPoolQuery = () => {
         const slowQueryInfo = {
           executionTime: `${executionTime}ms`,
           sql:
-            sqlText.length > 500 ? sqlText.substring(0, 500) + "..." : sqlText,
+            sqlText.length > SLOW_QUERY_SQL_TRUNCATE_LENGTH ? sqlText.substring(0, SLOW_QUERY_SQL_TRUNCATE_LENGTH) + "..." : sqlText,
           params: params
             ? Array.isArray(params)
               ? params.length
@@ -91,7 +97,7 @@ const wrapPoolQuery = () => {
         queryStats.slowQueriesList.push(slowQueryInfo);
 
         // Keep only last 100 slow queries
-        if (queryStats.slowQueriesList.length > 100) {
+        if (queryStats.slowQueriesList.length > SLOW_QUERY_LOG_CAP) {
           queryStats.slowQueriesList.shift();
         }
 
@@ -114,7 +120,7 @@ const wrapPoolQuery = () => {
           executionTime: `${executionTime}ms`,
           table: tableName,
           sql:
-            sqlText.length > 200 ? sqlText.substring(0, 200) + "..." : sqlText,
+            sqlText.length > DEBUG_QUERY_SQL_TRUNCATE_LENGTH ? sqlText.substring(0, DEBUG_QUERY_SQL_TRUNCATE_LENGTH) + "..." : sqlText,
         });
       }
 
@@ -125,7 +131,7 @@ const wrapPoolQuery = () => {
         executionTime: `${executionTime}ms`,
         error: error.message,
         code: error.code,
-        sql: sqlText.length > 500 ? sqlText.substring(0, 500) + "..." : sqlText,
+        sql: sqlText.length > SLOW_QUERY_SQL_TRUNCATE_LENGTH ? sqlText.substring(0, SLOW_QUERY_SQL_TRUNCATE_LENGTH) + "..." : sqlText,
       });
       throw error;
     }
@@ -218,8 +224,8 @@ const getQueryStats = () => {
   return {
     totalQueries: queryStats.totalQueries,
     slowQueries: queryStats.slowQueries,
-    slowQueryPercentage: slowQueryPercentage.toFixed(2),
-    avgExecutionTime: avgExecutionTime.toFixed(2),
+    slowQueryPercentage: slowQueryPercentage.toFixed(PERCENTAGE_DECIMAL_PLACES),
+    avgExecutionTime: avgExecutionTime.toFixed(PERCENTAGE_DECIMAL_PLACES),
     totalExecutionTime: queryStats.totalExecutionTime,
     tableStats,
     recentSlowQueries: queryStats.slowQueriesList.slice(-10), // Last 10 slow queries

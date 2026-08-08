@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.adminDriverParams = Joi.object({
   search: Joi.string().allow("").optional(),
@@ -13,7 +14,7 @@ exports.adminDriverParams = Joi.object({
     Joi.array().items(Joi.string())
   ).optional(),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   licensePlate: Joi.string().allow("").optional(),
   sortBy: Joi.string().optional(),
   sortOrder: Joi.string().valid("ASC", "DESC").optional(),

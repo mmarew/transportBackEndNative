@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { insertData } = require("../../CRUD/Create/CreateData");
+const { DOMAIN } = require("../../Utils/Constants");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const {
@@ -444,11 +445,11 @@ const sendUpdatedLocation = async (body) => {
     }
 
     // Validate coordinate ranges
-    if (latitude < -90 || latitude > 90) {
+    if (latitude < DOMAIN.LATITUDE_MIN || latitude > DOMAIN.LATITUDE_MAX) {
       throw new AppError("Invalid latitude. Must be between -90 and 90", AppError.BAD_REQUEST);
     }
 
-    if (longitude < -180 || longitude > 180) {
+    if (longitude < DOMAIN.LONGITUDE_MIN || longitude > DOMAIN.LONGITUDE_MAX) {
       throw new AppError(
         "Invalid longitude. Must be between -180 and 180",
         AppError.BAD_REQUEST,

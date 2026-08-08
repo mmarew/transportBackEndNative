@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 // POST /api/admin/company-delinquency
 exports.createCompanyDelinquency = Joi.object({
@@ -22,7 +23,7 @@ exports.getCompanyDelinquenciesQuery = Joi.object({
   startDate:                  Joi.string().optional(),
   endDate:                    Joi.string().optional(),
   page:                       Joi.number().integer().min(1).optional(),
-  limit:                      Joi.number().integer().min(1).max(100).optional(),
+  limit:                      Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   sortBy:                     Joi.string().optional(),
   sortOrder:                  Joi.string().valid("ASC","DESC").optional(),
 }).unknown(true);
@@ -36,7 +37,7 @@ exports.companyDelinquencyParams = Joi.object({
 exports.pendingDelinquenciesQuery = Joi.object({
   companyUniqueId: uuidSchema.required(),
   page:  Joi.number().integer().min(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
 }).unknown(true);
 
 // POST /api/admin/company-ban
@@ -55,7 +56,7 @@ exports.getCompanyBansQuery = Joi.object({
   startDate:         Joi.string().optional(),
   endDate:           Joi.string().optional(),
   page:              Joi.number().integer().min(1).optional(),
-  limit:             Joi.number().integer().min(1).max(100).optional(),
+  limit:             Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   sortOrder:         Joi.string().valid("ASC","DESC").optional(),
 }).unknown(true);
 

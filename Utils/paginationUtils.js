@@ -1,3 +1,4 @@
+const { PAGINATION } = require("../Utils/Constants");
 /**
  * Validates pagination parameters
  * @param {Number} page - Page number
@@ -7,7 +8,7 @@
  */
 const validatePagination = (page, limit, maxLimit = 100) => {
   let validatedPage = parseInt(page) || 1;
-  let validatedLimit = parseInt(limit) || 10;
+  let validatedLimit = parseInt(limit) || PAGINATION.DEFAULT_PAGE_SIZE;
 
   // Ensure page is at least 1
   validatedPage = Math.max(1, validatedPage);

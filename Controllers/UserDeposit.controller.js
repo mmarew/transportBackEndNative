@@ -2,7 +2,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const service = require("../Services/UserDeposit");
 const { currentDate } = require("../Utils/CurrentDate");
-const { HTTP_STATUS } = require("../Utils/Constants");
+const { HTTP_STATUS, PAGINATION } = require("../Utils/Constants");
 
 // Create
 exports.createUserDeposit = async (req, res, next) => {
@@ -33,7 +33,7 @@ exports.getUserDeposit = async (req, res, next) => {
       ...query,
       driverUniqueId,
       page: parseInt(query?.page) || 1,
-      limit: parseInt(query?.limit) || 10,
+      limit: parseInt(query?.limit) || PAGINATION.DEFAULT_PAGE_SIZE,
       sortBy: query?.sortBy || "depositTime",
       sortOrder: query?.sortOrder || "DESC",
     };

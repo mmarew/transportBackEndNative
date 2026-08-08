@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.createUserDeposit = Joi.object({
   depositAmount: Joi.number().min(0).required(),
@@ -52,7 +53,7 @@ exports.getSignedToken = Joi.object({
 
 exports.getDepositQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   driverUniqueId: Joi.alternatives()
     .try(Joi.string().valid("self"), uuidSchema)
     .optional(),

@@ -16,6 +16,7 @@ const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const { currentDate } = require("../Utils/CurrentDate");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { DOMAIN } = require("../Utils/Constants");
 const { v4: uuidv4 } = require("uuid");
 
 const exec = () => transactionStorage.getStore() || pool;
@@ -158,7 +159,7 @@ exports.getCompanyAverageRating = async (companyUniqueId) => {
     message: "Company average rating fetched",
     data: {
       companyUniqueId,
-      averageRating: result.averageRating ? Number(result.averageRating).toFixed(2) : null,
+      averageRating: result.averageRating ? Number(result.averageRating).toFixed(DOMAIN.DECIMAL_PLACES) : null,
       totalRatings: result.totalRatings,
       breakdown: {
         5: result.fiveStar,

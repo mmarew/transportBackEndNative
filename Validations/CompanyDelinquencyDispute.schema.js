@@ -2,13 +2,14 @@
 
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 
 // ── CompanyDelinquencyResponse ───────────────────────────────────────────────
 
 // POST /api/company/delinquency-response
 exports.createDelinquencyResponse = Joi.object({
   companyDelinquencyUniqueId: uuidSchema.required(),
-  companyDelinquencyResponse: Joi.string().min(10).required()
+  companyDelinquencyResponse: Joi.string().min(DOMAIN.MIN_RESPONSE_LENGTH).required()
     .messages({ "string.min": "Response must be at least 10 characters" }),
 }).unknown(true);
 
@@ -17,7 +18,7 @@ exports.getDelinquencyResponsesQuery = Joi.object({
   companyDelinquencyUniqueId:         uuidSchema.optional(),
   companyDelinquencyResponseUniqueId: uuidSchema.optional(),
   page:       Joi.number().integer().min(1).optional(),
-  limit:      Joi.number().integer().min(1).max(100).optional(),
+  limit:      Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   sortOrder:  Joi.string().valid("ASC", "DESC").optional(),
 }).unknown(true);
 
@@ -35,7 +36,7 @@ exports.createAdminDecision = Joi.object({
   decisionOutcome: Joi.string()
     .valid("EXONERATED", "UPHELD", "REDUCED", "DISMISSED")
     .required(),
-  adminDecisionText:      Joi.string().min(10).required(),
+  adminDecisionText:      Joi.string().min(DOMAIN.MIN_RESPONSE_LENGTH).required(),
   delinquencyPointsAfter: Joi.number().integer().min(0).optional(), // required when REDUCED
 }).unknown(true);
 
@@ -47,7 +48,7 @@ exports.getAdminDecisionsQuery = Joi.object({
     .valid("EXONERATED", "UPHELD", "REDUCED", "DISMISSED")
     .optional(),
   page:      Joi.number().integer().min(1).optional(),
-  limit:     Joi.number().integer().min(1).max(100).optional(),
+  limit:     Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   sortOrder: Joi.string().valid("ASC", "DESC").optional(),
 }).unknown(true);
 

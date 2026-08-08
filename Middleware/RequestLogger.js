@@ -1,6 +1,8 @@
 const logger = require("../Utils/logger");
 const { currentDate } = require("../Utils/CurrentDate");
 
+const SLOW_REQUEST_THRESHOLD_MS = 1000;
+
 /**
  * RequestLogger Middleware
  *
@@ -37,7 +39,7 @@ const requestLogger = (req, res, next) => {
     logger.application.apiRequest(req, res, responseTime);
 
     // Log slow requests
-    if (responseTime > 1000) {
+    if (responseTime > SLOW_REQUEST_THRESHOLD_MS) {
       logger.warn("Slow Request", {
         type: "SLOW_REQUEST",
         method: req.method,

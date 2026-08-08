@@ -2,6 +2,7 @@ const { pool } = require("../Middleware/Database.config");
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
+const { DOMAIN } = require("../Utils/Constants");
 const { transactionStorage } = require("../Utils/TransactionContext");
 
 // Helper function to add days to a date
@@ -345,7 +346,7 @@ const updatePricingByUniqueId = async (
           validationErrors.push("price cannot be negative");
         } else {
           setClauses.push("price = ?");
-          values.push(price.toFixed(2));
+          values.push(price.toFixed(DOMAIN.DECIMAL_PLACES));
         }
         break;
       }
@@ -486,7 +487,7 @@ function validateAndFormatDate(dateValue) {
         const month = parseInt(parts[1], 10);
         const day = parseInt(parts[2], 10);
 
-        if (month < 1 || month > 12 || day < 1 || day > 31) {
+        if (month < 1 || month > 12 || day < 1 || day > 31) // eslint-disable-line no-magic-numbers -- calendar bounds {
           return false;
         }
 

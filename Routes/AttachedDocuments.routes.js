@@ -10,6 +10,8 @@ const {
   authorizeDocumentAccess,
 } = require("../Middleware/AuthorizeDocumentAccess");
 
+const MAX_FILE_SIZE_BYTES = 10485760; // 10 * 1024 * 1024
+
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
   const allowedMimes = ["image/jpeg", "image/png", "application/pdf"];
@@ -22,7 +24,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: MAX_FILE_SIZE_BYTES },
 });
 
 const { validator } = require("../Middleware/Validator");

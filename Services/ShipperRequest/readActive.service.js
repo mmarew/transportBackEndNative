@@ -218,6 +218,7 @@ const getAllActiveRequests = async (filters = {}) => {
   values.push(parseInt(limit), parseInt(offset));
   try {
     // Execute both queries
+    // eslint-disable-next-line no-magic-numbers -- drop LIMIT/OFFSET values for count query
     const [countResults] = await pool.query(countQuery, values.slice(0, -2)); // Remove LIMIT and OFFSET values for count
     const [results] = await pool.query(baseQuery, values);
     const totalCount = countResults[0]?.totalCount || 0;

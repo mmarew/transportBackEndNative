@@ -2,6 +2,7 @@
 
 const { v4: uuidv4 } = require("uuid");
 const Config = require("../../Utils/Config");
+const { DOMAIN } = require("../../Utils/Constants");
 const { pool } = require("../../Middleware/Database.config");
 const { getData } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
@@ -31,9 +32,9 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
   // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
   const [hashedOTP, hashedPhoneVerificationOTP, hashedEmailVerificationOTP] =
     await Promise.all([
-      bcrypt.hash(String(OTP), 10),
-      bcrypt.hash(String(phoneOTP), 10),
-      bcrypt.hash(String(emailOTP), 10),
+      bcrypt.hash(String(OTP), DOMAIN.BCRYPT_SALT_ROUNDS),
+      bcrypt.hash(String(phoneOTP), DOMAIN.BCRYPT_SALT_ROUNDS),
+      bcrypt.hash(String(emailOTP), DOMAIN.BCRYPT_SALT_ROUNDS),
     ]);
 
   const conditions = { userUniqueId };
@@ -44,7 +45,7 @@ const ensureCredentialForUser = async ({ userUniqueId, rawPassword }) => {
 
   const emailVerificationToken = uuidv4();
   // SECURITY: Standardize expiry to 2 hours as per docs and auth service
-  const emailVerificationExpiresAt = addHours(currentDate(), 2);
+  const emailVerificationExpiresAt = addHours(currentDate(), DOMAIN.EMAIL_VERIFICATION_EXPIRY_HOURS);
 
   if (existing && existing.length > 0) {
     const credentialColAndValues = {
@@ -384,6 +385,7 @@ const createUserByAdminOrSuperAdmin = async ({
       // we generate a unique one for the NEW user we are about to create.
       if (userDataByEmail[0].phoneNumber !== phoneNumber) {
         email = getPlaceholderEmail(
+          // eslint-disable-next-line no-magic-numbers -- random 6-digit suffix for placeholder
           phoneNumber + Math.floor(Math.random() * 1000000),
         );
       } else {
@@ -477,6 +479,7 @@ const createUserSystem = async () => {
       statusId,
       userRoleStatusDescription:
         "this can manage things by itself based on written programs",
+      rawPassword: Config.SUPER_ADMIN.TEMP_PASSWORD,
     },
     userUniqueId: "system",
   });

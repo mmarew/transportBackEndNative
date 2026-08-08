@@ -301,7 +301,7 @@ const updateTable = async (tableName, updateData) => {
    */
   if (foreignKey && foreignKey.references) {
     const { references } = foreignKey;
-    const constraintName = `fk_${tableName}_${columnName}`.substring(0, 64);
+    const constraintName = `fk_${tableName}_${columnName}`.substring(0, 64) // eslint-disable-line no-magic-numbers -- MySQL identifier max length;
     const addFkSql = `ALTER TABLE \`${tableName}\`
       ADD CONSTRAINT \`${constraintName}\`
       FOREIGN KEY (\`${columnName}\`)

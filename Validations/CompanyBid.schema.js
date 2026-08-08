@@ -1,6 +1,7 @@
 "use strict";
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION, DOMAIN } = require("../Utils/Constants");
 
 // ── CompanyBidRequest ─────────────────────────────────────────────────────────
 
@@ -13,7 +14,7 @@ exports.submitBid = Joi.object({
   proposedTotalCost: Joi.number().min(0).optional().allow(null),
   proposedShippingDate: Joi.date().iso().optional().allow(null),
   proposedDeliveryDate: Joi.date().iso().optional().allow(null),
-  bidNotes: Joi.string().max(2000).optional().allow("", null),
+  bidNotes: Joi.string().max(DOMAIN.MAX_LONG_TEXT_LENGTH).optional().allow("", null),
 }).unknown(true);
 
 exports.updateBidStatus = Joi.object({
@@ -62,5 +63,5 @@ exports.getBidsQuery = Joi.object({
     .default("grouped")
     .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).default(10).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE).optional(),
 }).unknown(true);

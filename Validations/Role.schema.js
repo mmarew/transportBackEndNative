@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { PAGINATION } = require("../Utils/Constants");
 
 const uuidSchema = Joi.string().pattern(
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
@@ -34,5 +35,5 @@ exports.getAllRolesQuery = Joi.object({
     .try(Joi.date().iso(), nullTokenSchema)
     .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).default(10).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE).optional(),
 }).unknown(true);

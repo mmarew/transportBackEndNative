@@ -20,8 +20,11 @@ const { pool } = require("../../Middleware/Database.config");
 const Config = require("../../Utils/Config");
 const { currentDate } = require("../../Utils/CurrentDate");
 const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
+const { DOMAIN, TIME } = require("../../Utils/Constants");
 const logger = require("../../Utils/logger");
 const { noAnswerFromDriver } = require("../DriverRequest");
+
+const DB_BATCH_DELAY_MS = 500;
 
 // Configuration
 const DRIVER_RESPONSE_TIMEOUT_MINUTES = parseInt(
@@ -47,7 +50,7 @@ const CHECK_INTERVAL_SECONDS = parseInt(
 const findTimedOutDriverRequests = async () => {
   try {
     const timeoutMinutesAgo = new Date(
-      currentDate() - DRIVER_RESPONSE_TIMEOUT_MINUTES * 60 * 1000,
+      currentDate() - DRIVER_RESPONSE_TIMEOUT_MINUTES * TIME.MINUTE_MS,
     );
 
     const sql = `
@@ -204,15 +207,15 @@ const processAutomaticTimeout = async (timedOutRequest) => {
           driverPhoneNumber: driverPhoneNumber
             ? `${driverPhoneNumber.substring(
               0,
-              3,
-            )}***${driverPhoneNumber.substring(driverPhoneNumber.length - 2)}`
+              DOMAIN.PHONE_MASK_KEEP_FIRST,
+            )}***${driverPhoneNumber.substring(driverPhoneNumber.length - DOMAIN.PHONE_MASK_KEEP_LAST)}`
             : null, // Mask phone for privacy
           shipperPhoneNumber: shipperPhoneNumber
             ? `${shipperPhoneNumber.substring(
               0,
-              3,
+              DOMAIN.PHONE_MASK_KEEP_FIRST,
             )}***${shipperPhoneNumber.substring(
-              shipperPhoneNumber.length - 2,
+              shipperPhoneNumber.length - DOMAIN.PHONE_MASK_KEEP_LAST,
             )}`
             : null,
           driverFullName,
@@ -370,7 +373,7 @@ const checkAndProcessTimeouts = async () => {
         }
 
         // Add a small delay between processing to avoid overwhelming the database
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, DB_BATCH_DELAY_MS));
       } catch (error) {
         errorCount++;
         errors.push({
@@ -458,7 +461,7 @@ const startAutomaticTimeoutService = (options = {}) => {
         stack: error.stack,
       });
     });
-  }, intervalSeconds * 1000);
+  }, intervalSeconds * TIME.MILLISECONDS_PER_SECOND);
 
   // Return control object
   return {

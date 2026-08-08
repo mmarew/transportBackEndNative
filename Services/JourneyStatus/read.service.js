@@ -18,13 +18,14 @@ const AppError = require("../../Utils/AppError");
 const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
+const { PAGINATION } = require("../../Utils/Constants");
 
 // Create a new journey status
 
 // Get all journey statuses
 const getAllJourneyStatuses = async (filters = {}) => {
   const page = Number(filters.page) || 1;
-  const limit = Math.min(Number(filters.limit) || 100, 1000);
+  const limit = Math.min(Number(filters.limit) || PAGINATION.MAX_PAGE_SIZE, PAGINATION.ABSOLUTE_MAX_LIMIT);
   const offset = (page - 1) * limit;
   const clauses = [];
   const params = [];

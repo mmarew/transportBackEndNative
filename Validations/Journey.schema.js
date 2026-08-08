@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.createJourney = Joi.object({
   // Add required fields based on Logic (often created via request acceptance, but if manual:)
@@ -19,7 +20,7 @@ exports.journeyParams = Joi.object({
 
 exports.getJourneysQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   
   journeyStatusId: Joi.number().integer().optional(),
   journeyUniqueId: uuidSchema.optional(),
@@ -51,20 +52,20 @@ exports.searchCompletedJourneyByUserDataQuery = Joi.object({
   phoneOrEmail: Joi.string().required(),
   roleId: Joi.number().integer().optional(),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
 }).unknown(true);
 
 exports.getAllCompletedJourneysQuery = Joi.object({
   roleId: Joi.number().integer().optional(),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
 }).unknown(true);
 
 exports.getOngoingJourneyQuery = Joi.object({
   ownerUserUniqueId: Joi.string().optional(), // 'all', 'self', or UUID
   roleId: Joi.number().integer().optional(),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   // Additional filters that might be passed
   fullName: Joi.string().optional(),
   phone: Joi.string().optional(),

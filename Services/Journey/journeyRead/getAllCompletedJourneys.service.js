@@ -12,6 +12,7 @@ const {
   journeyStatusMap,
   
 } = require("../../../Utils/ListOfSeedData");
+const { PAGINATION } = require("../../../Utils/Constants");
 
 
 
@@ -27,7 +28,7 @@ const getAllCompletedJourneys = async ({
   const executor = transactionStorage.getStore() || pool;
   try {
     const safePage = Math.max(1, parseInt(page) || 1);
-    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || PAGINATION.DEFAULT_PAGE_SIZE), PAGINATION.MAX_PAGE_SIZE);
     const offset = (safePage - 1) * safeLimit;
 
     // OPTIMIZED: Single query with JOINs instead of N+1 queries

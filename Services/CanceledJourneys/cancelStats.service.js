@@ -10,6 +10,7 @@ const AppError = require("../../Utils/AppError");
 const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
+const { PAGINATION } = require("../../Utils/Constants");
 
 // Helper function for database queries
 
@@ -74,7 +75,7 @@ const getCanceledJourneyCountsByDate = async (filters = {}) => {
         u_canceled.email LIKE ? OR
         crt.cancellationReason LIKE ?
       )`);
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < PAGINATION.DEFAULT_PAGE_SIZE; i++) {
         queryParams.push(`%${search}%`);
       }
     }

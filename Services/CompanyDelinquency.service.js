@@ -22,6 +22,7 @@
 
 const { v4: uuidv4 } = require("uuid");
 const AppError = require("../Utils/AppError");
+const { DOMAIN, TIME, usersRoles } = require("../Utils/Constants");
 const logger = require("../Utils/logger");
 
 const { pool } = require("../Middleware/Database.config");
@@ -120,12 +121,12 @@ const createCompanyDelinquency = async (data) => {
 
   // Calculate response deadline based on severity
   const severity = data.delinquencySeverity || defaultSeverity;
-  const deadlineDays = RESPONSE_DEADLINE_DAYS[severity] || 5;
+  const deadlineDays = RESPONSE_DEADLINE_DAYS[severity] || DOMAIN.RESPONSE_DEADLINE_DEFAULT_DAYS;
   const responseDeadline = new Date(
-    Date.now() + deadlineDays * 24 * 60 * 60 * 1000,
+    Date.now() + deadlineDays * TIME.DAY_MS,
   )
     .toISOString()
-    .slice(0, 19)
+    .slice(0, 19) // eslint-disable-line no-magic-numbers -- ISO datetime without ms
     .replace("T", " ");
 
   await exec().query(
@@ -170,7 +171,7 @@ const createCompanyDelinquency = async (data) => {
 
       const { data: tokens } = await getActiveTokensByUser(
         companyOwner.companyCreatedBy,
-        4, // companyOwner roleId
+        usersRoles.companyOwnerRoleId, // companyOwner roleId
       );
 
       if (tokens.length > 0) {

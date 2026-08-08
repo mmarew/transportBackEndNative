@@ -1,11 +1,12 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { DOMAIN } = require("../Utils/Constants");
 
 exports.createJourneyRoutePoint = Joi.object({
   // Controller/service expect journeyDecisionUniqueId, not journeyUniqueId
   journeyDecisionUniqueId: uuidSchema.required(),
-  latitude: Joi.number().min(-90).max(90).required(),
-  longitude: Joi.number().min(-180).max(180).required(),
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required(),
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required(),
   userUniqueId: Joi.alternatives()
     .try(uuidSchema, Joi.string().valid("self"))
     .optional(),
@@ -13,8 +14,8 @@ exports.createJourneyRoutePoint = Joi.object({
 }).unknown(true);
 
 exports.updateJourneyRoutePoint = Joi.object({
-  latitude: Joi.number().min(-90).max(90).optional(),
-  longitude: Joi.number().min(-180).max(180).optional(),
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).optional(),
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).optional(),
 }).unknown(true);
 
 exports.journeyRoutePointParams = Joi.object({

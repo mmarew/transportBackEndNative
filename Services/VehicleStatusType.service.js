@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const logger = require("../Utils/logger");
+const { PAGINATION, DOMAIN } = require("../Utils/Constants");
 
 // Create a new VehicleStatusType
 const createVehicleStatusType = async (data) => {
@@ -14,7 +15,7 @@ const createVehicleStatusType = async (data) => {
   if (!statusTypeName) {
     throw new AppError("Vehicle Status Type name is required", AppError.BAD_REQUEST);
   }
-  if (statusTypeName.length > 50) {
+  if (statusTypeName.length > DOMAIN.MAX_SHORT_TEXT_LENGTH) {
     throw new AppError("Vehicle Status Type name is too long", AppError.BAD_REQUEST);
   }
 
@@ -63,7 +64,7 @@ const createVehicleStatusType = async (data) => {
 const getAllVehicleStatusTypes = async (filters = {}) => {
   const { page = 1, limit = 10, typeName, vehicleStatusTypeUniqueId } = filters;
   const pageNum = Number(page) || 1;
-  const limitNum = Number(limit) || 10;
+  const limitNum = Number(limit) || PAGINATION.DEFAULT_PAGE_SIZE;
   const offset = (pageNum - 1) * limitNum;
 
   const where = ["VehicleStatusTypeDeletedAt IS NULL"];

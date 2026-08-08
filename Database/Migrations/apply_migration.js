@@ -20,7 +20,7 @@ async function applyMigration() {
     await connection.beginTransaction();
 
     for (const query of queries) {
-      console.warn(`📝 Executing: ${query.substring(0, 50)}...`);
+      console.warn(`📝 Executing: ${query.substring(0, 50) // eslint-disable-line no-magic-numbers -- truncate log output}...`);
       await connection.query(query);
     }
 

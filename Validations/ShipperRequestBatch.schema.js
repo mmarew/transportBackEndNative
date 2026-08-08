@@ -1,5 +1,6 @@
 "use strict";
 const Joi = require("joi");
+const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 const { uuidSchema } = require("../Middleware/Validator");
 
 // ── ShipperRequestBatch ──────────────────────────────────────────────────────
@@ -81,9 +82,9 @@ exports.getBatchesQuery = Joi.object({
   totalVehicles: Joi.number().integer().min(1).optional(),
 
   // ── Text search ──
-  originPlace: Joi.string().max(255).optional(),
-  destinationPlace: Joi.string().max(255).optional(),
-  shippableItemName: Joi.string().max(100).optional(),
+  originPlace: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).optional(),
+  destinationPlace: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).optional(),
+  shippableItemName: Joi.string().max(DOMAIN.MAX_NAME_LENGTH).optional(),
 
   // ── Date ranges ──
   shippingDateFrom: Joi.date().iso().optional(),
@@ -102,7 +103,7 @@ exports.getBatchesQuery = Joi.object({
 
   // ── Pagination ──
   page: Joi.number().integer().min(1).default(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).default(10).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE).optional(),
 }).unknown(false);
 
 /**
@@ -115,9 +116,9 @@ exports.updateBatch = Joi.object({
     .valid("individual_target", "company_target")
     .optional(),
   targetCompanyUniqueId: uuidSchema.optional().allow(null),
-  originPlace: Joi.string().max(255).optional(),
-  destinationPlace: Joi.string().max(255).optional(),
-  shippableItemName: Joi.string().max(100).optional().allow(null, ""),
+  originPlace: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).optional(),
+  destinationPlace: Joi.string().max(DOMAIN.MAX_VARCHAR_LENGTH).optional(),
+  shippableItemName: Joi.string().max(DOMAIN.MAX_NAME_LENGTH).optional().allow(null, ""),
   shippableItemQtyInQuintal: Joi.number().min(0).optional().allow(null),
   shippingDate: Joi.date().iso().optional().allow(null),
   deliveryDate: Joi.date().iso().optional().allow(null),
@@ -231,5 +232,5 @@ exports.batchSlotsQuery = Joi.object({
     .valid("notAssigned", "needsReassignment", "assigned", "driverConfirmed")
     .optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).default(20).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.BATCH_DEFAULT_PAGE_SIZE).optional(),
 }).unknown(false);

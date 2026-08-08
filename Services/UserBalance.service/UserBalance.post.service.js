@@ -98,6 +98,7 @@ const createUserBalance = async (data, connection = null) => {
   ]);
 
   if (targetedTransactionType === "Transfer") {
+    // eslint-disable-next-line no-magic-numbers -- transfer matching requires both records
     if (existingRecords.length >= 2) {
       return existingRecords[0];
     }

@@ -12,6 +12,8 @@ const { createServer: createHTTPServer } = require("http");
 
 // import process error handlers
 const { setupProcessErrorHandlers } = require("./Config/ProcessErrorHandlers");
+
+const FORCE_SHUTDOWN_TIMEOUT_MS = 10000;
 const { currentDate } = require("./Utils/CurrentDate.js");
 
 const onStartUp = async () => {
@@ -93,7 +95,7 @@ const startServer = async () => {
       setTimeout(() => {
         logger.error("Forced shutdown after timeout");
         process.exit(1);
-      }, 10000);
+      }, FORCE_SHUTDOWN_TIMEOUT_MS);
     };
 
     process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));

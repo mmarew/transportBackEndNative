@@ -7,6 +7,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const { getData } = require("../CRUD/Read/ReadData");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
+const { DOMAIN } = require("../Utils/Constants");
 
 // Create a new journey route point
 exports.createJourneyRoutePoint = async (body, connection = null) => {
@@ -46,10 +47,10 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
 
     // Validate coordinate ranges
     if (
-      latitude < -90 ||
-      latitude > 90 ||
-      longitude < -180 ||
-      longitude > 180
+      latitude < DOMAIN.LATITUDE_MIN ||
+      latitude > DOMAIN.LATITUDE_MAX ||
+      longitude < DOMAIN.LONGITUDE_MIN ||
+      longitude > DOMAIN.LONGITUDE_MAX
     ) {
       throw new AppError("Invalid coordinates provided", AppError.BAD_REQUEST);
     }

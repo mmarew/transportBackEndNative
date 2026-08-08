@@ -9,13 +9,14 @@ const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const AppError = require("../Utils/AppError");
 const { usersRolesList } = require("../Utils/ListOfSeedData");
 const { journeyStatusMap } = require("../Utils/ListOfSeedData");
+const { TIME } = require("../Utils/Constants");
 
 // System cancellation process
 const cancelJourneyBySystem = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async (connection) => {
       const now = currentDate();
-      const cutoffTime = new Date(now.getTime() - 5 * 60 * 1000);
+      const cutoffTime = new Date(now.getTime() - TIME.FIVE_MINUTES_MS);
 
       const sqlQuery = `
         SELECT ShipperRequest.*, Users.phoneNumber

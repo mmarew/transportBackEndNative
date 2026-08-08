@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { DOMAIN } = require("../Utils/Constants");
 
 // Driver request expects a nested currentLocation, not flat originLatitude/originLongitude
 const locationSchema = Joi.object({
@@ -25,8 +26,8 @@ exports.requestIdParams = Joi.object({
 exports.updateDriverRequest = Joi.object({
   journeyStatusId: Joi.number().integer().optional(),
   originPlace: Joi.string().optional(),
-  originLatitude: Joi.number().min(-90).max(90).optional(),
-  originLongitude: Joi.number().min(-180).max(180).optional(),
+  originLatitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).optional(),
+  originLongitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).optional(),
   driverRequestUpdatedBy: Joi.string().uuid().optional(),
 }).unknown(true);
 
@@ -73,12 +74,12 @@ exports.sendUpdatedLocation = Joi.object({
     "any.required": "journeyDecisionUniqueId is required",
     "string.guid": "journeyDecisionUniqueId must be a valid UUID",
   }),
-  latitude: Joi.number().min(-90).max(90).required().messages({
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
     "any.required": "latitude is required",
     "number.min": "latitude must be between -90 and 90",
     "number.max": "latitude must be between -90 and 90",
   }),
-  longitude: Joi.number().min(-180).max(180).required().messages({
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
     "any.required": "longitude is required",
     "number.min": "longitude must be between -180 and 180",
     "number.max": "longitude must be between -180 and 180",
@@ -105,12 +106,12 @@ exports.completeJourney = Joi.object({
     "any.required": "journeyUniqueId is required",
     "string.guid": "journeyUniqueId must be a valid UUID",
   }),
-  latitude: Joi.number().min(-90).max(90).required().messages({
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
     "any.required": "latitude is required",
     "number.min": "latitude must be between -90 and 90",
     "number.max": "latitude must be between -90 and 90",
   }),
-  longitude: Joi.number().min(-180).max(180).required().messages({
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
     "any.required": "longitude is required",
     "number.min": "longitude must be between -180 and 180",
     "number.max": "longitude must be between -180 and 180",
@@ -137,12 +138,12 @@ exports.startJourney = Joi.object({
     "any.required": "journeyDecisionUniqueId is required",
     "string.guid": "journeyDecisionUniqueId must be a valid UUID",
   }),
-  latitude: Joi.number().min(-90).max(90).required().messages({
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
     "any.required": "latitude is required",
     "number.min": "latitude must be between -90 and 90",
     "number.max": "latitude must be between -90 and 90",
   }),
-  longitude: Joi.number().min(-180).max(180).required().messages({
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
     "any.required": "longitude is required",
     "number.min": "longitude must be between -180 and 180",
     "number.max": "longitude must be between -180 and 180",

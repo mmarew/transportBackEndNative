@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 const { uuidSchema } = require("../Middleware/Validator");
 
 exports.createCommission = Joi.object({
@@ -9,8 +10,8 @@ exports.createCommission = Joi.object({
 
   commissionAmount: Joi.number()
     .positive()
-    .precision(2)
-    .max(999999.99)
+    .precision(DOMAIN.DECIMAL_PLACES)
+    .max(DOMAIN.MAX_MONEY_AMOUNT)
     .required()
     .messages({
       "number.base": "commissionAmount must be a number",
@@ -25,8 +26,8 @@ exports.updateCommission = Joi.object({
   commissionRateUniqueId: uuidSchema.optional(),
   commissionAmount: Joi.number()
     .positive()
-    .precision(2)
-    .max(999999.99)
+    .precision(DOMAIN.DECIMAL_PLACES)
+    .max(DOMAIN.MAX_MONEY_AMOUNT)
     .optional(),
   commissionStatusUniqueId: uuidSchema.optional(),
 })
@@ -35,7 +36,7 @@ exports.updateCommission = Joi.object({
 
 exports.getAllCommissions = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   sortBy: Joi.string()
     .valid(
       "commissionId",
@@ -53,13 +54,13 @@ exports.getAllCommissions = Joi.object({
   paymentUniqueId: uuidSchema.optional(),
   journeyDecisionUniqueId: uuidSchema.optional(),
   commissionRateUniqueId: uuidSchema.optional(),
-  driverName: Joi.string().max(100),
-  driverPhone: Joi.string().max(20),
-  driverEmail: Joi.string().email().max(100),
+  driverName: Joi.string().max(DOMAIN.MAX_NAME_LENGTH),
+  driverPhone: Joi.string().max(DOMAIN.MAX_PHONE_LENGTH),
+  driverEmail: Joi.string().email().max(DOMAIN.MAX_NAME_LENGTH),
   driverUniqueId: uuidSchema.optional(),
-  shipperName: Joi.string().max(100),
-  shipperPhone: Joi.string().max(20),
-  shipperEmail: Joi.string().email().max(100),
+  shipperName: Joi.string().max(DOMAIN.MAX_NAME_LENGTH),
+  shipperPhone: Joi.string().max(DOMAIN.MAX_PHONE_LENGTH),
+  shipperEmail: Joi.string().email().max(DOMAIN.MAX_NAME_LENGTH),
   shipperUniqueId: uuidSchema.optional(),
   commissionStatusUniqueId: uuidSchema.optional(),
   startDate: Joi.date().iso(),

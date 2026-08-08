@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.createCanceledJourney = Joi.object({
   journeyUniqueId: uuidSchema.required(),
@@ -24,7 +25,7 @@ exports.canceledJourneyParams = Joi.object({
 
 exports.getCanceledJourneyQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   roleId: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
   isSeenByAdmin: Joi.boolean().optional(),
   startDate: Joi.date().iso().optional(),

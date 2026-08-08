@@ -14,6 +14,7 @@ const AppError = require("../../../Utils/AppError");
 const {
   transactionStorage
 } = require("../../../Utils/TransactionContext");
+const { PAGINATION } = require("../../../Utils/Constants");
 
 
 
@@ -98,7 +99,7 @@ const getUsersByRoleUniqueId = async (roleUniqueId, page = 1, limit = 10, search
 const getUserByFilterDetailed = async (filters = {}, page = 1, limit = 10, connection = null) => {
   // Normalize pagination
   page = Math.max(1, parseInt(page) || 1);
-  limit = Math.max(1, Math.min(100, parseInt(limit) || 10));
+  limit = Math.max(1, Math.min(PAGINATION.MAX_PAGE_SIZE, parseInt(limit) || PAGINATION.DEFAULT_PAGE_SIZE));
   const offset = (page - 1) * limit;
 
   // Build WHERE conditions

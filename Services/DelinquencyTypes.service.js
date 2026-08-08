@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { PAGINATION } = require("../Utils/Constants");
 
 const query = async (sql, values = []) => {
   const executor = transactionStorage.getStore() || pool;
@@ -98,7 +99,7 @@ const createDelinquencyType = async (data) => {
 };
 const getDelinquencyTypes = async (filters = {}) => {
   const page = Number(filters.page) || 1;
-  const limit = Math.min(Number(filters.limit) || 10, 100);
+  const limit = Math.min(Number(filters.limit) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE);
   const offset = (page - 1) * limit;
 
   const clauses = [];

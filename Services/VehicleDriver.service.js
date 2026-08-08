@@ -5,6 +5,7 @@ const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { PAGINATION } = require("../Utils/Constants");
 
 // Create a new VehicleDriver assignment
 const createVehicleDriver = async (data) => {
@@ -161,7 +162,7 @@ const getVehicleDrivers = async (filters = {}) => {
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const numPage = Math.max(1, Number(page) || 1);
-  const numLimit = Math.max(1, Math.min(Number(limit) || 10, 100));
+  const numLimit = Math.max(1, Math.min(Number(limit) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE));
   const offset = (numPage - 1) * numLimit;
 
   const sortableMap = {

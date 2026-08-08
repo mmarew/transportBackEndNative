@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.createUserRoleStatus = Joi.object({
   userUniqueId: uuidSchema.required(),
@@ -19,7 +20,7 @@ exports.userRoleStatusParams = Joi.object({
 
 exports.getUserRoleStatusQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   userUniqueId: uuidSchema.optional(),
   roleId: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
   statusId: Joi.number().integer().optional(),

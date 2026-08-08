@@ -7,6 +7,7 @@ const logger = require("../Utils/logger");
 const uuidv4 = require("uuid").v4;
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { PAGINATION } = require("../Utils/Constants");
 
 const createDocumentType = async ({ body }) => {
   const { documentTypeName, documentTypeDescription, user } = body;
@@ -70,7 +71,7 @@ const createDocumentType = async ({ body }) => {
 const getAllDocumentTypes = async (filters = {}) => {
   try {
     const page = Number(filters.page) || 1;
-    const limit = Math.min(Number(filters.limit) || 10, 100);
+    const limit = Math.min(Number(filters.limit) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE);
     const offset = (page - 1) * limit;
 
     const clauses = [];

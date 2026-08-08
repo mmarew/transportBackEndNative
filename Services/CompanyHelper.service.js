@@ -2,15 +2,16 @@
 
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { pool } = require("../Middleware/Database.config");
+const { PAGINATION } = require("../Utils/Constants");
 
 const db = () => transactionStorage.getStore() || pool;
 
 function paginate(filters) {
   const page = Math.max(1, Number(filters.page) || 1);
-  const defaultLimit = Number(filters.defaultLimit) || 10;
+  const defaultLimit = Number(filters.defaultLimit) || PAGINATION.DEFAULT_PAGE_SIZE;
   const limit = Math.min(
     Math.max(1, Number(filters.limit) || defaultLimit),
-    100,
+    PAGINATION.MAX_PAGE_SIZE,
   );
   return { page, limit, offset: (page - 1) * limit };
 }

@@ -83,7 +83,7 @@ const updateAttachedDocument = async ({
       }
     } else {
       // Company or vehicle doc — check entity role directly
-      const entityRoleId = existingDoc.ownerType === "company" ? 8 : 9;
+      const entityRoleId = existingDoc.ownerType === "company" ? usersRoles.companyRoleId : usersRoles.vehicleRoleId;
       const [entityReqs] = await executor.query(`SELECT * FROM RoleDocumentRequirements WHERE documentTypeId = ? AND roleId = ? AND roleDocumentRequirementDeletedAt IS NULL LIMIT 1`, [existingDoc.documentTypeId, entityRoleId]);
       if (entityReqs.length > 0) {
         documentType = entityReqs[0];

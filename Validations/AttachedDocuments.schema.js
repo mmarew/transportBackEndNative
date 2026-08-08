@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 // Note: Create/Update uses multipart/form-data. Validator checks properties but file presence is handled by Multer. 
 // However, req.body fields can still be validated.
@@ -17,7 +18,7 @@ exports.getAttachedDocumentsQuery = Joi.object({
   phoneNumber: Joi.string().optional().allow("all", ""),
   fullName: Joi.string().optional().allow("all", ""),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   sortBy: Joi.string().optional(),
   sortOrder: Joi.string().valid("ASC", "DESC").optional(),
 }).unknown(true);

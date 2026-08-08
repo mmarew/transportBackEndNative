@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const logger = require("./logger");
 const Config = require("./Config");
-const { HTTP_STATUS } = require("./Constants");
+const { DOMAIN, HTTP_STATUS } = require("./Constants");
+const { TIME } = require("../Utils/Constants");
 
 /**
  * Formats a phone number for SantimPay requirements (+2519...).
@@ -28,11 +29,11 @@ const formatPhoneNumberForSantim = (phoneNumber) => {
   }
 
   if (clean.startsWith("251")) {
-    clean = clean.substring(3);
+    clean = clean.substring(DOMAIN.PHONE_COUNTRY_CODE_LENGTH);
   }
 
   // Ensure it's now a 9-digit number starting with 9 or 7 (Ethiopian mobile standards)
-  if (clean.length === 9) {
+  if (clean.length === DOMAIN.PHONE_NUMBER_LENGTH) {
     return `+251${clean}`;
   }
 
@@ -97,7 +98,7 @@ function generateSignedTokenForInitiatePayment(amount, reason, client) {
     amount: parseFloat(amount),
     paymentReason: reason,
     merchantId: client.merchantId,
-    generated: Math.floor(Date.now() / 1000),
+    generated: Math.floor(Date.now() / TIME.MILLISECONDS_PER_SECOND),
   };
   return signES256(payload, client.privateKey);
 }
@@ -106,7 +107,7 @@ function generateSignedTokenForInitiatePayment(amount, reason, client) {
  * Generate signed token for get transaction
  */
 function generateSignedTokenForGetTransaction(id, client) {
-  const time = Math.floor(Date.now() / 1000);
+  const time = Math.floor(Date.now() / TIME.MILLISECONDS_PER_SECOND);
   const payload = {
     id,
     merId: client.merchantId,

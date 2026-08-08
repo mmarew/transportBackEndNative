@@ -7,7 +7,7 @@ const { createUser } = require("../Services/User.service");
 const { usersRoles, USER_STATUS } = require("../Utils/ListOfSeedData");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
-const { HTTP_STATUS } = require("../Utils/Constants");
+const { HTTP_STATUS, PAGINATION } = require("../Utils/Constants");
 
 const createShipperRequest = async (req, res, next) => {
   try {
@@ -68,7 +68,7 @@ const createShipperRequest = async (req, res, next) => {
               AppError.BAD_REQUEST,
             );
           }
-          const randNumber = Math.floor(1000 + Math.random() * 900000);
+          const randNumber = Math.floor(1000 + Math.random() * 900000) // eslint-disable-line no-magic-numbers -- 4-digit verification code;
           const createdUser = await createUser({
             phoneNumber: shipperPhoneNumber,
             fullName: null,
@@ -330,7 +330,7 @@ const getCancellationNotificationsController = async (req, res, next) => {
       userUniqueId,
       seenStatus,
       page: page || 1,
-      limit: limit || 10,
+      limit: limit || PAGINATION.DEFAULT_PAGE_SIZE,
     });
 
     ServerResponder(res, result, HTTP_STATUS.OK);
@@ -374,7 +374,7 @@ const getAllActiveRequestsController = async (req, res, next) => {
       shippingDate: req.query.shippingDate,
       deliveryDate: req.query.deliveryDate,
       page: req.query.page ? parseInt(req.query.page) : 1,
-      limit: req.query.limit ? parseInt(req.query.limit) : 10,
+      limit: req.query.limit ? parseInt(req.query.limit) : PAGINATION.DEFAULT_PAGE_SIZE,
       sortBy: req.query.sortBy || "shipperRequestCreatedAt",
       sortOrder: req.query.sortOrder || "DESC",
     };

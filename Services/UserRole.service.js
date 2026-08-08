@@ -6,6 +6,7 @@ const { updateData } = require("../CRUD/Update/Data.update");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { pool } = require("../Middleware/Database.config");
+const { PAGINATION } = require("../Utils/Constants");
 
 // Service to create UserRole
 const createUserRole = async (body, user) => {
@@ -61,7 +62,7 @@ const getUserRoleListByFilter = async ({
 
   // Sanitize and coerce pagination
   const pageNum = Math.max(parseInt(page, 10) || 1, 1);
-  const pageSize = Math.max(Math.min(parseInt(limit, 10) || 10, 100), 1);
+  const pageSize = Math.max(Math.min(parseInt(limit, 10) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE), 1);
   const offset = (pageNum - 1) * pageSize;
 
   // Sanitize sorting

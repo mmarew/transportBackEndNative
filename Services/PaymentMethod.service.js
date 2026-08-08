@@ -4,6 +4,7 @@ const { getData } = require("../CRUD/Read/ReadData");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { PAGINATION } = require("../Utils/Constants");
 
 // Create a new payment method
 exports.createPaymentMethod = async ({ paymentMethod, user }) => {
@@ -31,7 +32,7 @@ exports.createPaymentMethod = async ({ paymentMethod, user }) => {
 // Get all payment methods
 exports.getAllPaymentMethods = async (filters = {}) => {
   const page = Number(filters.page) || 1;
-  const limit = Math.min(Number(filters.limit) || 10, 100);
+  const limit = Math.min(Number(filters.limit) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE);
   const offset = (page - 1) * limit;
 
   const clauses = [];

@@ -15,13 +15,14 @@ const {
   
   
 } = require("../journeyHelper");
+const { PAGINATION } = require("../../../Utils/Constants");
 
 // Get all journeys with pagination
 
 // Get all journeys with pagination
 const getAllJourneys = async (page = 1, limit = 10) => {
   const safePage = Math.max(1, parseInt(page) || 1);
-  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || PAGINATION.DEFAULT_PAGE_SIZE), PAGINATION.MAX_PAGE_SIZE);
   const offset = (safePage - 1) * safeLimit;
   const dataSql = `
     SELECT Journey.*, JourneyDecisions.*

@@ -16,6 +16,7 @@ const {
 
 
 const AppError = require("../../../Utils/AppError");
+const { DOMAIN } = require("../../../Utils/Constants");
 
 const {
   
@@ -168,7 +169,7 @@ const updateUser = async body => {
   if (updateValues.email && updateValues.email !== currentUser.email) {
     updateValues.isEmailVerified = 0;
     const emailVerificationToken = uuidv4();
-    const emailVerificationExpiresAt = addHours(currentDate(), 2); // 2 hours expiry
+    const emailVerificationExpiresAt = addHours(currentDate(), DOMAIN.EMAIL_VERIFICATION_EXPIRY_HOURS); // 2 hours expiry
     deferredOTP.emailVerificationToken = emailVerificationToken;
     await updateData({
       tableName: "usersCredential",
@@ -185,7 +186,7 @@ const updateUser = async body => {
   if (updateValues.phoneNumber && updateValues.phoneNumber !== currentUser.phoneNumber) {
     updateValues.isPhoneVerified = 0;
     const phoneVerificationOTP = generateOTP();
-    const hashedPhoneVerificationOTP = await bcrypt.hash(String(phoneVerificationOTP), 10);
+    const hashedPhoneVerificationOTP = await bcrypt.hash(String(phoneVerificationOTP), DOMAIN.BCRYPT_SALT_ROUNDS);
     deferredOTP.phoneVerificationOTP = phoneVerificationOTP;
     await updateData({
       tableName: "usersCredential",

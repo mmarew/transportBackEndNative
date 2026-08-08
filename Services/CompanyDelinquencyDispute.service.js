@@ -16,6 +16,7 @@ const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { sendNotificationToTokens, getActiveTokensByUser } = require("./Firebase.service");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 
 const exec = () => transactionStorage.getStore() || pool;
 
@@ -99,9 +100,9 @@ const createDelinquencyResponse = async ({
         [delinquency.companyUniqueId],
       );
 
-      // Try both admin (roleId=3) and superAdmin (roleId=6) tokens
-      const { data: adminTokens } = await getActiveTokensByUser(adminUniqueId, 3);
-      const { data: superTokens } = await getActiveTokensByUser(adminUniqueId, 6);
+      // Try both admin and superAdmin tokens
+      const { data: adminTokens } = await getActiveTokensByUser(adminUniqueId, usersRoles.adminRoleId);
+      const { data: superTokens } = await getActiveTokensByUser(adminUniqueId, usersRoles.supperAdminRoleId);
       const allTokens = [...adminTokens, ...superTokens];
 
       if (allTokens.length > 0) {

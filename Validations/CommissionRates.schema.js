@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { DOMAIN, PAGINATION } = require("../Utils/Constants");
 const { uuidSchema } = require("../Middleware/Validator");
 
 const nullTokenSchema = Joi.string().valid("null", "notNull");
@@ -16,8 +17,8 @@ const expDateIsoOrYMD = Joi.alternatives().try(
 exports.createCommissionRate = Joi.object({
   commissionRate: Joi.number()
     .positive()
-    .precision(2)
-    .max(100) // Assuming percentage, adjust if flat rate allowed to exceed 100
+    .precision(DOMAIN.DECIMAL_PLACES)
+    .max(DOMAIN.MAX_PERCENTAGE) // Assuming percentage, adjust if flat rate allowed to exceed 100
     .required()
     .messages({
       "number.base": "Commission rate must be a number",
@@ -29,7 +30,7 @@ exports.createCommissionRate = Joi.object({
 }).strict();
 
 exports.updateCommissionRate = Joi.object({
-  commissionRate: Joi.number().positive().precision(2).optional(),
+  commissionRate: Joi.number().positive().precision(DOMAIN.DECIMAL_PLACES).optional(),
   commissionRateEffectiveDate: dateIsoOrYMD.optional(),
   commissionRateExpirationDate: expDateIsoOrYMD.optional(),
   isActive: Joi.boolean().optional(),
@@ -39,7 +40,7 @@ exports.updateCommissionRate = Joi.object({
 
 exports.getAllCommissionRates = Joi.object({
   commissionRateUniqueId: uuidSchema.optional(),
-  commissionRate: Joi.number().positive().precision(2).optional(),
+  commissionRate: Joi.number().positive().precision(DOMAIN.DECIMAL_PLACES).optional(),
   commissionRateMin: Joi.number().optional(),
   commissionRateMax: Joi.number().optional(),
   commissionRateEffectiveDate: Joi.date().iso().optional(),
@@ -65,7 +66,7 @@ exports.getAllCommissionRates = Joi.object({
   commissionRateUpdatedBy: uuidSchema.optional(),
   commissionRateDeletedBy: uuidSchema.optional(),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
   sortBy: Joi.string()
     .valid(
       "commissionRateCreatedAt",

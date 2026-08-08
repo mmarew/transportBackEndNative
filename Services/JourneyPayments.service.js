@@ -4,6 +4,7 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const { getData } = require("../CRUD/Read/ReadData");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
+const { PAGINATION } = require("../Utils/Constants");
 
 // Create a new journey payment
 exports.createJourneyPayment = async ({
@@ -81,7 +82,7 @@ exports.getAllJourneyPayments = async ({
 } = {}) => {
   // Validate pagination
   const validatedPage = Math.max(1, parseInt(page));
-  const validatedLimit = Math.max(1, Math.min(parseInt(limit), 100));
+  const validatedLimit = Math.max(1, Math.min(parseInt(limit), PAGINATION.MAX_PAGE_SIZE));
   const offset = (validatedPage - 1) * validatedLimit;
 
   // Build WHERE clause

@@ -363,6 +363,7 @@ const getUserRoleStatusCurrent = async ({ data }) => {
 
   // Execute queries
   const executor = transactionStorage.getStore() || pool;
+  // eslint-disable-next-line no-magic-numbers -- drop LIMIT/OFFSET values for count query
   const [countResult] = await executor.query(countQuery, queryParams.slice(0, -2));
   const [results] = await executor.query(dataQuery, queryParams);
 

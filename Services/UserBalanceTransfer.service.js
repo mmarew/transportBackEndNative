@@ -214,6 +214,7 @@ const updateTransferByUniqueId = async (
   updateFields.push("userBalanceTransferUpdatedAt = CURRENT_TIMESTAMP");
 
   // If no fields to update, return existing data
+  // eslint-disable-next-line no-magic-numbers -- only timestamp and updater fields
   if (updateFields.length === 2) {
     // Only timestamp and updater
     return await getTransferByUniqueId(depositTransferUniqueId);

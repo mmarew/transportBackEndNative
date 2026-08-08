@@ -14,6 +14,7 @@ const {
 const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
+const { TIME } = require("../../Utils/Constants");
 
 const checkAndApplyAutomaticBan = async (userUniqueId, roleId) => {
   // Calculate total points for this user with specific role (last 30 days)
@@ -90,7 +91,7 @@ const checkAndApplyAutomaticBan = async (userUniqueId, roleId) => {
   // Apply automatic ban
   const banUniqueId = uuidv4();
   const banAt = new Date();
-  const banExpiresAt = new Date(banAt.getTime() + applicableRule.duration * 24 * 60 * 60 * 1000);
+  const banExpiresAt = new Date(banAt.getTime() + applicableRule.duration * TIME.DAY_MS);
   const banSql = `
     INSERT INTO BannedUsers (
       banUniqueId, userUniqueId, roleId,

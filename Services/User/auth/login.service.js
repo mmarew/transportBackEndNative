@@ -3,6 +3,7 @@
 const generateOTP = require("../../../Utils/GenerateOTP");
 
 const { currentDate, addHours } = require("../../../Utils/CurrentDate");
+const { DOMAIN } = require("../../../Utils/Constants");
 const bcrypt = require("bcryptjs");
 
 const AppError = require("../../../Utils/AppError");
@@ -102,14 +103,14 @@ const handleExistingUser = async ({
       parseDate(emailVerificationExpiresAt) < parseDate(currentDate());
     if (!emailVerificationToken || isExpired) {
       emailVerificationToken = uuidv4();
-      emailVerificationExpiresAt = addHours(currentDate(), 2);
+      emailVerificationExpiresAt = addHours(currentDate(), DOMAIN.EMAIL_VERIFICATION_EXPIRY_HOURS);
     }
   }
 
   // OPTIMIZATION: Parallelize CPU-intensive bcrypt hashing to unblock the event loop
-  const hashingPromises = [bcrypt.hash(String(OTP), 10)];
+  const hashingPromises = [bcrypt.hash(String(OTP), DOMAIN.BCRYPT_SALT_ROUNDS)];
   if (!isPhoneVerified) {
-    hashingPromises.push(bcrypt.hash(String(phoneVerificationOTP), 10));
+    hashingPromises.push(bcrypt.hash(String(phoneVerificationOTP), DOMAIN.BCRYPT_SALT_ROUNDS));
   }
   const hashedResults = await Promise.all(hashingPromises);
   const hashedOTP = hashedResults[0];

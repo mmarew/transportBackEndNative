@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.createSubscriptionPlan = Joi.object({
   planName: Joi.string().required(),
@@ -23,5 +24,5 @@ exports.subscriptionPlanParams = Joi.object({
 
 exports.getSubscriptionPlansQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
 }).unknown(true);

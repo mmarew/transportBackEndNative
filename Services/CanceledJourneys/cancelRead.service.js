@@ -7,6 +7,7 @@ const {
 
 
 const AppError = require("../../Utils/AppError");
+const { DOMAIN, PAGINATION } = require("../../Utils/Constants");
 const {
   transactionStorage
 } = require("../../Utils/TransactionContext");
@@ -37,7 +38,7 @@ const {  getJourneyDataByContextType} = require("./cancelHelper");
 
 //     // Sanitize inputs
 //     const safePage = Math.max(1, parseInt(page));
-//     const safeLimit = Math.min(Math.max(1, parseInt(limit)), 100);
+//     const safeLimit = Math.min(Math.max(1, parseInt(limit)), PAGINATION.MAX_PAGE_SIZE);
 //     const offset = (safePage - 1) * safeLimit;
 
 //     // Allowed sort columns
@@ -269,7 +270,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
 
     // Sanitize inputs
     const safePage = Math.max(1, parseInt(page));
-    const safeLimit = Math.min(Math.max(1, parseInt(limit)), 100);
+    const safeLimit = Math.min(Math.max(1, parseInt(limit)), PAGINATION.MAX_PAGE_SIZE);
     const offset = (safePage - 1) * safeLimit;
 
     // Allowed sort columns
@@ -339,7 +340,7 @@ const getCanceledJourneyByFilter = async (filters = {}) => {
       `);
       const searchTerm = `%${search}%`;
       // Add 9 search terms for all user fields
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < DOMAIN.USER_SEARCH_FIELD_COUNT; i++) {
         queryParams.push(searchTerm);
       }
     }

@@ -2,6 +2,7 @@
 
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
+const { DOMAIN, TIME } = require("../Utils/Constants");
 const AppError = require("../Utils/AppError");
 const { db } = require("./CompanyHelper.service");
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -20,9 +21,9 @@ const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { transactionStorage } = require("../Utils/TransactionContext");
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toISOString().slice(0, 10) // eslint-disable-line no-magic-numbers -- YYYY-MM-DD;
 const QUEUE_OFFER_WINDOW_MINUTES = 3;
-const QUEUE_REFUSAL_LIMIT = Number(process.env.QUEUE_REFUSAL_LIMIT) || 3;
+const QUEUE_REFUSAL_LIMIT = Number(process.env.QUEUE_REFUSAL_LIMIT) || DOMAIN.DEFAULT_QUEUE_REFUSAL_LIMIT;
 
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
@@ -1374,7 +1375,7 @@ exports.releaseExpiredOffers = async ({
   windowMinutes = QUEUE_OFFER_WINDOW_MINUTES,
 } = {}) => {
   const executor = db();
-  const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
+  const cutoff = new Date(Date.now() - windowMinutes * TIME.MINUTE_MS);
 
   const [expired] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,

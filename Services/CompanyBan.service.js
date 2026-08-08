@@ -6,6 +6,7 @@ const logger = require("../Utils/logger");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { recordStatusChange } = require("../Utils/CompanyProfileHistory");
+const { TIME } = require("../Utils/Constants");
 
 const exec = () => transactionStorage.getStore() || pool;
 
@@ -61,7 +62,7 @@ const checkAndApplyAutomaticCompanyBan = async ({
   const companyBanUniqueId = uuidv4();
   const banAt = new Date();
   const banExpiresAt = new Date(
-    banAt.getTime() + rule.duration * 24 * 60 * 60 * 1000,
+    banAt.getTime() + rule.duration * TIME.DAY_MS,
   );
   const banReason = `Auto-ban: ${totalPoints} pts — ${rule.severity} threshold reached`;
 
@@ -290,7 +291,7 @@ const banCompany = async ({
   const companyBanUniqueId = uuidv4();
   const banAt = new Date();
   const banExpiresAt = new Date(
-    banAt.getTime() + banDurationDays * 24 * 60 * 60 * 1000,
+    banAt.getTime() + banDurationDays * TIME.DAY_MS,
   );
   /**
    * 2. RECORD THE BAN

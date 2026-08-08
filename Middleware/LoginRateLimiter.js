@@ -1,15 +1,17 @@
 const rateLimit = require("express-rate-limit");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
-const { HTTP_STATUS } = require("../Utils/Constants");
+const { HTTP_STATUS, TIME } = require("../Utils/Constants");
+
+const DEFAULT_REQUESTS_PER_WINDOW = 10;
 
 /**
  * Enhanced Rate Limiter for Login and OTP
  * Protects against brute-force attacks on sensitive endpoints.
  */
 const loginRateLimiter = (options = {}) => {
-  const windowMs = options.windowMs || 15 * 60 * 1000; // 15 minutes
-  const max = options.limit || 10; // Limit each IP/Phone combo to 10 requests per window
+  const windowMs = options.windowMs || TIME.FIFTEEN_MINUTES_MS; // 15 minutes
+  const max = options.limit || DEFAULT_REQUESTS_PER_WINDOW;
 
   return rateLimit({
     windowMs,

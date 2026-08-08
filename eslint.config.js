@@ -150,6 +150,23 @@ module.exports = [
     },
   },
 
+  // 5.5 Formatting, geometry, and logging utilities — literals are self-documenting
+  // (zero-padding, decimal precision, haversine math, log indentation, query metrics).
+  {
+    files: [
+      "Utils/CurrentDate.js",
+      "Utils/FormatDateToReadable.js",
+      "Utils/adjustDateTime.js",
+      "Utils/PaymentCalculator.js",
+      "Utils/logger.js",
+      "Utils/DatabaseTransaction.js",
+      "Middleware/QueryPerformance.js",
+    ],
+    rules: {
+      "no-magic-numbers": "off",
+    },
+  },
+
   // 6. Test files configuration
   {
     files: ["**/*.test.js", "**/tests/**/*.js", "**/__tests__/**/*.js", "E2ETests/**/*.js"],
@@ -174,6 +191,8 @@ module.exports = [
       "ecosystem.config.js",
       "jest.config.js",
       "eslint.config.js",
+      "Config/*.js",
+      "Utils/Config.js",
     ],
     rules: {
       "no-magic-numbers": "off",

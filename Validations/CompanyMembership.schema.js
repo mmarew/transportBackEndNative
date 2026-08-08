@@ -1,6 +1,7 @@
 "use strict";
 const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
+const { PAGINATION } = require("../Utils/Constants");
 
 exports.addMember = Joi.object({
   companyUniqueId: uuidSchema.required(),
@@ -30,5 +31,5 @@ exports.getMembersQuery = Joi.object({
   companyRoleUniqueId: uuidSchema.optional(),
   isActive: Joi.boolean().optional(),
   page: Joi.number().integer().min(1).default(1).optional(),
-  limit: Joi.number().integer().min(1).max(100).default(10).optional(),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE).optional(),
 }).unknown(true);

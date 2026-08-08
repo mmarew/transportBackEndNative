@@ -76,12 +76,12 @@ const createUserDelinquency = async data => {
     };
 
     // Calculate time window for duplicate check
-    const duplicateWindowHours = defaultType?.duplicateCheckWindowHours || 24;
+    const duplicateWindowHours = defaultType?.duplicateCheckWindowHours || 24 // eslint-disable-line no-magic-numbers -- default 24h window;
     // Use standard date helper, but convert to Date for arithmetic
     const nowStr = currentDate();
     const now = new Date(nowStr);
     const safeNow = Number.isNaN(now.getTime()) ? new Date() : now;
-    const startDate = new Date(safeNow.getTime() - duplicateWindowHours * 60 * 60 * 1000);
+    const startDate = new Date(safeNow.getTime() - duplicateWindowHours * TIME.HOUR_MS);
     duplicateFilters.startDate = startDate.toISOString().split("T")[0] + " 00:00:00";
     duplicateFilters.endDate = safeNow.toISOString().split("T")[0] + " 23:59:59";
 
@@ -169,3 +169,4 @@ module.exports = {
 
 const { getUserDelinquencies } = require("./read.service");
 const { checkAndApplyAutomaticBan } = require("./ban.service");
+const { TIME } = require("../../Utils/Constants");

@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { PAGINATION } = require("../Utils/Constants");
 
 const createVehicleStatus = async (data) => {
   const {
@@ -63,7 +64,7 @@ const getVehicleStatuses = async (filters = {}) => {
   } = filters;
 
   const pageNum = Number(page) || 1;
-  const limitNum = Number(limit) || 10;
+  const limitNum = Number(limit) || PAGINATION.DEFAULT_PAGE_SIZE;
   const offset = (pageNum - 1) * limitNum;
 
   const where = ["vs.vehicleStatusDeletedAt IS NULL"];

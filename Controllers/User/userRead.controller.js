@@ -31,7 +31,7 @@ const getUserByFilterDetailed = async (req, res, next) => {
     // Accept filters via query string, and optional pagination
     const filters = req.query || {};
     const page = req.query.page || 1;
-    const limit = req.query.limit || 10;
+    const limit = req.query.limit || PAGINATION.DEFAULT_PAGE_SIZE;
     // include role/status information by default (do not expect includeRoles from client)
     const response = await services.getUserByFilterDetailed(filters, page, limit);
     ServerResponder(res, response);
@@ -45,6 +45,7 @@ module.exports = {
 };
 
 const { getUserHistory } = require("../../Utils/UserProfileHistory");
+const { PAGINATION } = require("../../Utils/Constants");
 
 const getUserProfileHistory = async (req, res, next) => {
   try {

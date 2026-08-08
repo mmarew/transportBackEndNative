@@ -5,6 +5,7 @@ const { accountStatus } = require("./Account");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { TIME } = require("../Utils/Constants");
 
 const query = async (sql, values = []) => {
   const executor = transactionStorage.getStore() || pool;
@@ -88,7 +89,7 @@ const banUser = async (data) => {
   const banAtDate = currentDate(); // Get timezone-aware date string
   const banAtTimestamp = new Date(banAtDate); // Convert to Date for calculation
   const banExpiresAt = new Date(
-    banAtTimestamp.getTime() + finalBanDuration * 24 * 60 * 60 * 1000,
+    banAtTimestamp.getTime() + finalBanDuration * TIME.DAY_MS,
   );
 
   const sql = `
@@ -427,7 +428,7 @@ const checkAndApplyAutomaticUserBan = async ({
   const banUniqueId = uuidv4();
   const banAt = new Date();
   const banExpiresAt = new Date(
-    banAt.getTime() + rule.duration * 24 * 60 * 60 * 1000,
+    banAt.getTime() + rule.duration * TIME.DAY_MS,
   );
   const banReason = `Auto-ban: ${totalPoints} pts — ${rule.severity} threshold reached`;
 

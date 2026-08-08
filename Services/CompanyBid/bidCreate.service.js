@@ -3,6 +3,7 @@
 const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
+const { PAGINATION } = require("../../Utils/Constants");
 const {
   db} = require("../CompanyHelper.service");
 const { getData } = require("../../CRUD/Read/ReadData");
@@ -82,7 +83,7 @@ const submitBid = async (data) => {
   if (activeBan) {
     const expiresOn = new Date(activeBan.banExpiresAt)
       .toISOString()
-      .slice(0, 10);
+      .slice(0, PAGINATION.DEFAULT_PAGE_SIZE);
     throw new AppError(
       `Company is currently suspended from bidding until ${expiresOn}. Reason: ${activeBan.banReason}`,
       AppError.FORBIDDEN,

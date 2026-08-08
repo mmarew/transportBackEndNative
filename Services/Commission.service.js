@@ -13,6 +13,7 @@ const {
   getCommissionStatusPaidId,
 } = require("./FixedData.service");
 const { transactionStorage } = require("../Utils/TransactionContext");
+const { PAGINATION, DOMAIN } = require("../Utils/Constants");
 
 const allowedSortFields = {
   commissionId: "c.commissionId",
@@ -32,7 +33,7 @@ function validateCommissionData(data) {
     throw new AppError("Commission amount must be greater than 0", AppError.BAD_REQUEST);
   }
 
-  if (data.commissionAmount > 999999.99) {
+  if (data.commissionAmount > DOMAIN.MAX_MONEY_AMOUNT) {
     throw new AppError("Commission amount exceeds maximum limit", AppError.BAD_REQUEST);
   }
   return true;
@@ -232,12 +233,12 @@ async function getAllCommissions(filters = {}) {
       if (start) {
         conditions.push(`${field} >= ?`);
         values.push(
-          new Date(start).toISOString().slice(0, 19).replace("T", " "),
+          new Date(start).toISOString().slice(0, 19) // eslint-disable-line no-magic-numbers -- ISO datetime without ms.replace("T", " "),
         );
       }
       if (end) {
         conditions.push(`${field} <= ?`);
-        values.push(new Date(end).toISOString().slice(0, 19).replace("T", " "));
+        values.push(new Date(end).toISOString().slice(0, 19) // eslint-disable-line no-magic-numbers -- ISO datetime without ms.replace("T", " "));
       }
     };
 
@@ -282,7 +283,7 @@ async function getAllCommissions(filters = {}) {
 
     // Pagination
     const page = Math.max(1, parseInt(filters.page) || 1);
-    const limit = Math.min(Math.max(1, parseInt(filters.limit) || 10), 100);
+    const limit = Math.min(Math.max(1, parseInt(filters.limit) || PAGINATION.DEFAULT_PAGE_SIZE), PAGINATION.MAX_PAGE_SIZE);
     const offset = (page - 1) * limit;
 
     // Get total count and paginated data in single query using SQL_CALC_FOUND_ROWS

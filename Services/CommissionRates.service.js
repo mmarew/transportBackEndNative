@@ -1,5 +1,6 @@
 const { pool } = require("../Middleware/Database.config");
 const { currentDate } = require("../Utils/CurrentDate");
+const { PAGINATION } = require("../Utils/Constants");
 
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
@@ -82,7 +83,7 @@ const getAllCommissionRates = async (filters = {}) => {
     });
   }
   const page = Number(filters.page) || 1;
-  const limit = Math.min(Number(filters.limit) || 10, 100);
+  const limit = Math.min(Number(filters.limit) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE);
   const offset = (page - 1) * limit;
 
   const clauses = [];

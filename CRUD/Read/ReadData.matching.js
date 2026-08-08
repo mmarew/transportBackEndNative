@@ -7,7 +7,7 @@ const { VerifyIfShipperRequestWasNotRejected } = require("../../Utils/RejectedRe
 const MAX_RADIUS_KM = 10;
 // Bounding-box pre-filter in degrees (1° lat ≈ 111 km → 10 km ≈ 0.09°).
 // Slightly enlarged to avoid clipping true great-circle matches near the edge.
-const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // ≈ 0.10°
+const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // eslint-disable-line no-magic-numbers -- km-per-degree and buffer padding // ≈ 0.10°
 
 const findNearbyDrivers = async ({ shipperRequest }) => {
   // Destructure the relevant data from the shipperRequest
@@ -74,6 +74,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
     });
     if (message === "success") {
       // push 5 drivers only
+      // eslint-disable-next-line no-magic-numbers -- max drivers to offer per request
       if (listOfDrivers.length >= 5) {
         break;
       }

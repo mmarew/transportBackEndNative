@@ -6,6 +6,7 @@ const verifyPassword = require("../Utils/VerifyPassword");
 const AppError = require("../Utils/AppError");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { currentDate } = require("../Utils/CurrentDate");
+const { DOMAIN } = require("../Utils/Constants");
 // Create a new SMS sender
 const createSMSSender = async ({
   phoneNumber,
@@ -50,7 +51,7 @@ const createSMSSender = async ({
     }
 
     // If user does not exist, hash the password and create a new record
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, DOMAIN.BCRYPT_SALT_ROUNDS);
     const sql = `INSERT INTO SMSSender (phoneNumber, password, SMSSenderCreatedBy, SMSSenderCreatedAt) VALUES (?, ?, ?,?)`;
     const executor = transactionStorage.getStore() || pool;
     const [result] = await executor.query(sql, [

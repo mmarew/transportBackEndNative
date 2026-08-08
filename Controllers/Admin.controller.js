@@ -1,7 +1,10 @@
 const adminServices = require("../Services/Admin");
 const dashboardService = require("../Services/AdminDashboard.service");
 const ServerResponder = require("../Utils/ServerResponder");
+const { DOMAIN } = require("../Utils/Constants");
 const fs = require("fs");
+
+const BYTES_PER_KB = 1024;
 const path = require("path");
 const Config = require("../Utils/Config");
 const { HTTP_STATUS } = require("../Utils/Constants");
@@ -84,7 +87,7 @@ const AdminController = {
       // eslint-disable-next-line security/detect-non-literal-fs-filename
       const data = fs.readFileSync(logFilePath, "utf8");
       const lines = data.split("\n").filter((l) => l.trim().length > 0);
-      const lastLines = lines.slice(-500).reverse();
+      const lastLines = lines.slice(-500).reverse(); // eslint-disable-line no-magic-numbers -- last 500 log lines
 
       // 4. Return as HTML
       return res.status(HTTP_STATUS.OK).send(`
@@ -152,7 +155,7 @@ const AdminController = {
           const stats = fs.statSync(path.join(uploadsDir, file));
           return {
             name: file,
-            size: (stats.size / 1024).toFixed(2) + " KB",
+            size: (stats.size / BYTES_PER_KB).toFixed(DOMAIN.DECIMAL_PLACES) + " KB",
             mtime: stats.mtime,
             url: `${Config.APP_API_URL}/uploads/${file}`,
           };

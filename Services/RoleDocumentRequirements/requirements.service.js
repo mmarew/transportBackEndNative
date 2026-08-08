@@ -18,7 +18,8 @@ const {
 const AppError = require("../../Utils/AppError");
 
 const {
-  usersRoles
+  usersRoles,
+  USER_STATUS,
 } = require("../../Utils/ListOfSeedData");
 const {
   transactionStorage
@@ -195,8 +196,7 @@ WHERE ad.ownerType = 'vehicle'
     // Determine the final status
     let finalStatusId;
     if (isBanned) {
-      // 6 => banned (as per updated status list)
-      finalStatusId = 6;
+      finalStatusId = USER_STATUS.INACTIVE_USER_IS_BANNED_BY_ADMIN;
     } else {
       // Based on documents and vehicle status
       const resultOfStatus = findStatusByVehicleAndDocuments({
