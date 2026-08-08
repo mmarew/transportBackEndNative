@@ -8,6 +8,13 @@
 > Flow map of the code that runs: `Services/ShipperRequest/create.service.js`
 > (Step 2a → `handleQueueDispatch`) → `Services/DriverQueue.service.js`
 > (`offerToDriver` → `ensureWaitingDriverRequest` → `createQueueOffer`).
+> Check-in retry: `DriverQueue.service.js` `checkin` → `rescanPendingQueueOrder`
+> → `handleQueueDispatch` (re-offers the oldest pending order to the front
+> waiting driver of the checked-in driver's vehicle type).
+>
+> Status: creation-time dispatch is **live**. The check-in auto-offer for orders
+> that outlived an empty queue (§5, agreed design) is **implemented**
+> (`checkin` → `rescanPendingQueueOrder` → `handleQueueDispatch`).
 
 ## 1. The scenario
 
@@ -129,11 +136,21 @@ Key behaviors:
 - **Accept** → `markEntryLoaded`: entry becomes `loaded` and leaves the queue.
 - **Driver loaded may re-check-in** the same day → new number at the back.
 - **Empty queue / everyone rejected** → the order stays `waiting`, `offered:false`.
+  It is **auto-offered on the next check-in** of a matching-type driver — see §5.
 
-## 5. Manual fallback
+## 5. Order recovery: auto-offer on check-in + manual fallback
 
-If an order is still `waiting` (empty queue, all rejected), the queue admin can
-re-offer it to the front driver at any time:
+If an order is `waiting` because the queue was empty or every driver rejected:
+
+- **Auto (primary):** when a driver checks in
+  (`POST /api/driver/queue/checkin`), the backend rescans pending `waiting`
+  queue orders for the same `queueOrganizationUniqueId` + `vehicleTypeUniqueId`,
+  picks the **oldest** (`shipperRequestCreatedAt ASC`), and offers it to the
+  **front** waiting driver of that type via `offerToDriver` — the same primitive
+  used at order creation. One order per check-in; N pending orders pair with N
+  matching-type check-ins.
+- **Manual (fallback):** the queue admin can re-offer it to the front driver at
+  any time:
 
 ```
 POST /api/queue/dispatch
@@ -168,7 +185,8 @@ POST /api/queue/dispatch
    origin/destination.
 4. Watch `GET /api/queue/status` — the front driver(s) of the matching type flip
    to `offered`, then `loaded` on accept; queue order holds for rejects.
-5. If an order is stuck `waiting` (empty queue), re-offer via
+5. If an order is stuck `waiting` (empty queue), it will be auto-offered on the
+   next matching-type check-in; or re-offer it now via
    `POST /api/queue/dispatch`.
 
 ## 8. Comparison: the three driver-assignment engines
@@ -184,7 +202,7 @@ the third; it is important not to confuse it with the other two.
 | Driver availability rule   | Must have no active request; a waiting/requested one is cancelled first                                                                | Two-layer: (1) no active assignment**anywhere** (`NOT IN completed/cancelled/rejected`), (2) driver must not have **already rejected this batch** | Must not be holding an active offer elsewhere —`ensureWaitingDriverRequest` returns null for a driver with a live offer, and the loop **skips to the next** |
 | Records created            | `ShipperRequest` + `DriverRequest` + `JourneyDecisions` (`decisionBy='driver'`) + `Journey` + route points, all in **one transaction** | `DriverRequest` (upsert, requested) + `JourneyDecisions` + **`CompanyBidVehicleAssignment`** (`'assigned'`)                                       | N`ShipperRequest` rows + reuse-or-create `DriverRequest` + `JourneyDecisions` (`decisionBy='shipper'`); `DriverQueue` entry `waiting→offered→loaded`        |
 | Dedicated assignment table | No —`JourneyDecisions` is the junction                                                                                                 | Yes —`CompanyBidVehicleAssignment`                                                                                                                | No —`DriverQueue.shipperRequestUniqueId` + `JourneyDecisions` (design decision, `queue-dispatch-design.md` §9)                                              |
-| Partial assignment         | n/a (1 driver = 1 load)                                                                                                                | Assigns as many slots as the fleet allows, returns a summary of the remainder                                                                     | Each of the N orders dispatches independently; an order with an empty/short queue stays`waiting` (re-offer via `POST /api/queue/dispatch`)                  |
+| Partial assignment         | n/a (1 driver = 1 load)                                                                                                                | Assigns as many slots as the fleet allows, returns a summary of the remainder                                                                     | Each of the N orders dispatches independently; an order with an empty/short queue stays`waiting`, auto-offered on the next matching-type check-in (or re-offered via `POST /api/queue/dispatch`) |
 | Confirmation model         | None — driver self-assigns, journey starts immediately                                                                                 | Offer held as`requested` until the driver explicitly confirms (→ status 4)                                                                        | Offer held as`requested`/`offered` for the **3-min window**; driver accepts/rejects/times out                                                               |
 | Notifications              | SMS to the shipper                                                                                                                     | FCM + WebSocket to the driver and the shipper                                                                                                     | Offer to the front driver (SMS/push) + socket`queue` events to the queue-org admins                                                                         |
 

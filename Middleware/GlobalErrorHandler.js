@@ -2,7 +2,7 @@ const AppError = require("../Utils/AppError");
 const ServerResponder = require("../Utils/ServerResponder");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
-const { HTTP_STATUS } = require("../Utils/Constants");
+const { HTTP_STATUS, MONGO_ERROR } = require("../Utils/Constants");
 
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}.`;
@@ -105,8 +105,7 @@ module.exports = (err, req, res, next) => {
     if (error.name === "CastError") {
       error = handleCastErrorDB(error);
     }
-    if (error.code === 11000) {
-      // eslint-disable-line no-magic-numbers -- MongoDB duplicate key error code
+    if (error.code === MONGO_ERROR.DUPLICATE_KEY) {
       error = handleDuplicateFieldsDB(error);
     }
     if (error.name === "ValidationError") {

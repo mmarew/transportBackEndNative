@@ -235,6 +235,7 @@ company admin = 7, queue org admin = 11.
 | Queue admin manual operations               | TQ-33 … TQ-36 |
 | Notifications & audit                       | TQ-37 … TQ-38 |
 | Regression (non-queue)                      | TQ-39         |
+| Check-in auto-offer recovery                | TQ-40 … TQ-42 |
 
 ---
 
@@ -572,6 +573,45 @@ Legend — **P**: priority (High/Med/Low). **Auth**: who executes. **Pre**: prec
 
 - **Steps:** create order **without** `queueOrganizationUniqueId`.
 - **Expected:** follows legacy distance-matching path; no `JourneyDecisions` with `decisionBy='queue'`; no `DriverQueue` changes; no queue socket events.
+
+---
+
+### 7.13 Check-in Auto-Offer Recovery
+
+> Behavior: an order that outlived the queue — created (or advanced) while no
+> driver of its type was waiting, or refused by every waiting driver — is
+> **auto-offered on the next check-in** of a matching-type driver. `checkin` →
+> `rescanPendingQueueOrder` (oldest pending order FIFO) → `offerToDriver` (front
+> waiting driver). One order per check-in; a driver who already refused the order
+> is skipped.
+
+#### TQ-40 · Empty queue at creation → auto-offer on next matching-type check-in — **High**
+
+- **Pre:** org approved+enabled; **no** truck drivers checked in. Order O created with `vehicleTypeUniqueId: truck` (TQ-12 state — O stays `waiting`).
+- **Steps:** driver01 (truck) checks in.
+- **Expected:**
+  - Check-in 200 with `queueNumber=1`.
+  - O auto-offers driver01 (`queue_order_offered`); shipper notified.
+- **DB:**
+  - `DriverQueue.driver01.status='offered'`, `shipperRequestUniqueId=O`.
+  - `JourneyDecisions` for O with `decisionBy='queue'`, `journeyStatus='requested'`; `ShipperRequest.journeyStatus='requested'`.
+
+#### TQ-41 · All-rejected order → auto-offer on next check-in, rejector skipped — **High**
+
+- **Pre:** driver01 is the only truck driver; O offered to driver01 then rejected (TQ-18 state — O has no active offer, `journeyStatus='requested'`). driver01 remains waiting in queue.
+- **Steps:** driver02 (truck) checks in.
+- **Expected:**
+  - O auto-offers **driver02**, not driver01 (driver01 already refused O — no re-offer).
+  - driver01 keeps `queueNumber`; `queue_order_offered` to driver02 only.
+- **DB:**
+  - `DriverQueue.driver02.status='offered'`, `shipperRequestUniqueId=O`.
+  - `JourneyDecisions` for O: no decision for driver01 after the original reject.
+
+#### TQ-42 · Concurrent check-ins never double-offer one order — **High**
+
+- **Pre:** order O `waiting` (empty queue at creation). driver01 and driver02 (both truck) check in near-simultaneously.
+- **Expected:** exactly **one** `queue_order_offered` for O; the other driver gets nothing (O is already `offered`/`requested`, excluded by `NOT EXISTS`).
+- **DB:** one `DriverQueue` entry `offered` linked to O; one `JourneyDecisions` for O.
 
 ---
 

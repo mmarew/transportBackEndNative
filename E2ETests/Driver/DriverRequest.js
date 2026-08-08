@@ -1,5 +1,12 @@
 const axios = require("axios");
-const { backendURL, usersData } = require("../constants");
+const {
+  backendURL,
+  usersData,
+  usersRoles,
+  journeyStatusMap,
+  cancellationReasonsType,
+  seenStatusNotSeenByDriver,
+} = require("../constants");
 const { authConfig } = require("../Utils");
 const { v4: uuidv4 } = require("uuid");
 const {
@@ -133,7 +140,7 @@ const testCreateAndAcceptNewRequest = async ({
       "Shipper token is not available after OTP verification for CREATE_AND_ACCEPT_NEW_REQUEST",
     );
   }
-  let journeyStatusId = "1,2";
+  let journeyStatusId = `${journeyStatusMap.waiting},${journeyStatusMap.requested}`;
   const activeShipperRequest = await testGetShipperRequests(
     tokenOfShipper,
     journeyStatusId,
@@ -204,7 +211,7 @@ const testCancelDriverRequest = async (token) => {
   await axios.put(
     backendURL +
       DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
-      "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
+      `?ownerUserUniqueId=self&roleId=${usersRoles.driverRoleId}&cancellationReasonsTypeId=${cancellationReasonsType.driverCancel}`,
     payload,
     config,
   );
@@ -289,7 +296,9 @@ const testSendUpdatedLocation = async ({ token, uniqueIds }) => {
 const testGetCancellationNotifications = async (token) => {
   const config = { ...authConfig(token) };
   await axios.get(
-    backendURL + DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS + "?seenStatus=not%20seen%20by%20driver%20yet",
+    backendURL +
+      DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS +
+      `?seenStatus=${encodeURIComponent(seenStatusNotSeenByDriver)}`,
     config,
   );
 };
@@ -336,45 +345,45 @@ const testDriverRequestWorkFlows = async ({ jobStyle }) => {
     driverStatus = await testVerifyDriverJourneyStatus({ token });
   }
   //protect recreation of shipper requests
-  if (jobStyle === "createAndAcceptNewRequest" && status === 1) {
+  if (jobStyle === "createAndAcceptNewRequest" && status === journeyStatusMap.waiting) {
     await testShipperOnboardingFlow({});
   }
   // if ((jobStyle = "cancel driver request")) {
   //   return testCancelDriverRequest(token);
   // }
   if (jobStyle === "createAndAcceptNewRequest") {
-    if (status === 1 || status === 2) {
+    if (status === journeyStatusMap.waiting || status === journeyStatusMap.requested) {
       await await testCreateAndAcceptNewRequest({ tokenOfDriver: token });
       driverStatus = await testVerifyDriverJourneyStatus({ token });
       status = driverStatus?.status;
       uniqueIds = driverStatus?.uniqueIds;
       return;
-    } else if (status === 3) {
+    } else if (status === journeyStatusMap.acceptedByDriver) {
       await testAcceptDriverRequest({ token: null, uniqueIds });
-    } else if (status === 4) {
+    } else if (status === journeyStatusMap.acceptedByShipper) {
       await testStartJourney({ token, uniqueIds });
-    } else if (status === 5) {
+    } else if (status === journeyStatusMap.journeyStarted) {
       await testCompleteJourney({ token, uniqueIds });
-    } else if (status === 14) {
+    } else if (status === journeyStatusMap.notSelectedInBid) {
       await testMarkNegativeStatusAsSeen({ token, uniqueIds });
     }
   }
-  if (status === 4 || status === 5)
+  if (status === journeyStatusMap.acceptedByShipper || status === journeyStatusMap.journeyStarted)
     await testSendUpdatedLocation({ token, uniqueIds });
-  if (status === 1) {
+  if (status === journeyStatusMap.waiting) {
     // create shipper request
     await testShipperOnboardingFlow({});
-  } else if (status === 2) {
+  } else if (status === journeyStatusMap.requested) {
     // accept shipper request
 
     await testAcceptShipperRequest({ token, uniqueIds });
-  } else if (status === 3) {
+  } else if (status === journeyStatusMap.acceptedByDriver) {
     //shipper accept drivers offer
     await testAcceptDriverRequest({ token: null, uniqueIds });
-  } else if (status === 4) {
+  } else if (status === journeyStatusMap.acceptedByShipper) {
     //start journey
     await testStartJourney({ token, uniqueIds });
-  } else if (status === 5) {
+  } else if (status === journeyStatusMap.journeyStarted) {
     //complete journey
     await testCompleteJourney({ token, uniqueIds });
   }

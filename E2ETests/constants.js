@@ -15,6 +15,56 @@ const usersRoles = {
   queueOrgAdminRoleId: 11,
 };
 
+// Journey status IDs — mirror of Utils/ListOfSeedData.js journeyStatusMap.
+// Inlined here for the same reason as usersRoles (see comment at top of this
+// file) so E2E flows can drive/assert the journey state machine by name.
+// Reference: E2ETests/MAGIC_NUMBERS.md §1.
+const journeyStatusMap = {
+  waiting: 1,
+  requested: 2,
+  acceptedByDriver: 3,
+  acceptedByShipper: 4,
+  journeyStarted: 5,
+  journeyCompleted: 6,
+  cancelledByShipper: 7,
+  rejectedByShipper: 8,
+  cancelledByDriver: 9,
+  cancelledByAdmin: 10,
+  completedByAdmin: 11,
+  cancelledBySystem: 12,
+  noAnswerFromDriver: 13,
+  notSelectedInBid: 14,
+  rejectedByDriver: 15,
+  replacedByCompanyAssignment: 16,
+  partiallyCancelled: 17,
+};
+
+// Cancellation reason type IDs (CancellationReasonsType.cancellationReasonsTypeId).
+// Auto-increment — values depend on seed order of Utils/ListOfSeedData.js
+// cancellationReasons, so treat as fragile. Names describe the E2E flow.
+// Reference: E2ETests/MAGIC_NUMBERS.md §3.
+const cancellationReasonsType = {
+  driverCancel: 2,
+  shipperWholeJobCancel: 6,
+};
+
+// Query value for "mark seen / list driver cancellation notifications".
+// Reference: E2ETests/MAGIC_NUMBERS.md §5.
+const seenStatusNotSeenByDriver = "not seen by driver yet";
+
+// User status IDs — mirror of Utils/ListOfSeedData.js USER_STATUS.
+// Reference: E2ETests/MAGIC_NUMBERS.md §4.
+const USER_STATUS = {
+  ACTIVE: 1,
+  INACTIVE_VEHICLE_NOT_REGISTERED: 2,
+  INACTIVE_REQUIRED_DOCUMENTS_MISSING: 3,
+  INACTIVE_DOCUMENTS_REJECTED: 4,
+  INACTIVE_DOCUMENTS_PENDING: 5,
+  INACTIVE_USER_IS_BANNED_BY_ADMIN: 6,
+  INACTIVE_DRIVER_DOESN_T_HAVE_A_SUBSCRIPTION: 7,
+  ACCOUNT_DELETED: 8,
+};
+
 const backendURL = "http://127.0.0.1:3000";
 
 // Unique run identifier — makes phone numbers and emails unique per test run
@@ -123,4 +173,9 @@ module.exports = {
   unAuthorizedDriver,
   shipperRequestStatusData,
   runId,
+  usersRoles,
+  journeyStatusMap,
+  cancellationReasonsType,
+  seenStatusNotSeenByDriver,
+  USER_STATUS,
 };

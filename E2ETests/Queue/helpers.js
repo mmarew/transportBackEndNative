@@ -6,7 +6,7 @@
 
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
-const { backendURL, usersData } = require("../constants");
+const { backendURL, usersData, usersRoles, journeyStatusMap, cancellationReasonsType, USER_STATUS } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
 const { ensureUser } = require("../Auth/ensureUser");
@@ -132,8 +132,8 @@ const activateQueueDriver = async (driverKey) => {
   const res = await axios.put(
     backendURL + `/api/admin/userRoleStatus/${userUniqueId}`,
     {
-      roleId: 2,
-      newStatusId: 1,
+      roleId: usersRoles.driverRoleId,
+      newStatusId: USER_STATUS.ACTIVE,
       phoneNumber: usersData[driverKey].phoneNumber,
       userRoleStatusDescription: "Activated for queue E2E",
     },
@@ -339,7 +339,7 @@ const createQueueOrder = async ({ queueOrganizationUniqueId, vehicleTypeUniqueId
   return res.data;
 };
 
-const rejectDriverOffer = async ({ shipperRequestUniqueId, driverRequestUniqueId, journeyDecisionUniqueId, shipperRequestId, journeyStatusId = 2 }) => {
+const rejectDriverOffer = async ({ shipperRequestUniqueId, driverRequestUniqueId, journeyDecisionUniqueId, shipperRequestId, journeyStatusId = journeyStatusMap.requested }) => {
   const res = await axios.put(
     backendURL + SHIPPER_REQUEST_ENDPOINTS.REJECT_DRIVER_OFFER,
     {
@@ -364,7 +364,7 @@ const cancelOrder = async ({ orderUniqueId, cancelAs = "shipper" }) => {
         ":userUniqueId",
         owner,
       ),
-    { shipperRequestUniqueId: orderUniqueId, cancellationReasonsTypeId: 6 },
+    { shipperRequestUniqueId: orderUniqueId, cancellationReasonsTypeId: cancellationReasonsType.shipperWholeJobCancel },
     authConfig(token),
   );
   return res.data;
@@ -382,7 +382,7 @@ const rejectOrderByDriver = async (driverKey) => {
   const res = await axios.put(
     backendURL +
       DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
-      "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
+      `?ownerUserUniqueId=self&roleId=${usersRoles.driverRoleId}&cancellationReasonsTypeId=${cancellationReasonsType.driverCancel}`,
     {},
     authConfig(driverToken(driverKey)),
   );

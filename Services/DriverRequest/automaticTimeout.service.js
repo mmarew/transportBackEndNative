@@ -329,6 +329,26 @@ const checkAndProcessTimeouts = async () => {
       });
     }
 
+    // Periodic queue re-dispatch sweep — re-offer pending queue orders
+    // (waiting/requested with no active offer) to any waiting drivers, so an
+    // order that outlived an empty or all-refusing queue is matched even
+    // without a fresh check-in event.
+    const { rescanPendingQueueOrders } = require("../DriverQueue.service");
+    try {
+      const swept = await rescanPendingQueueOrders();
+      const sweptCount = swept?.data?.offered || 0;
+      if (sweptCount > 0) {
+        logger.info("Queue pending-order sweep matched orders", {
+          offered: sweptCount,
+        });
+      }
+    } catch (error) {
+      logger.error("Error in queue pending-order sweep", {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+
     // Find all timed-out requests
     const timedOutRequests = await findTimedOutDriverRequests();
 

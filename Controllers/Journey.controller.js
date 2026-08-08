@@ -63,12 +63,12 @@ exports.updateJourney = async (req, res, next) => {
   );
 };
 
-// Delete a specific journey by ID
+// Delete a specific journey by unique ID
 exports.deleteJourney = async (req, res, next) => {
-  const { id } = req.params;
+  const { journeyUniqueId } = req.params;
   await handleServiceResponse(
     executeInTransaction(async () => {
-      return await journeyService.deleteJourney(id);
+      return await journeyService.deleteJourney(journeyUniqueId);
     }),
     res,
     next,

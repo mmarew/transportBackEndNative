@@ -108,6 +108,29 @@ const publicEntry = (row) => ({
 // free to check back in.
 const IN_QUEUE_STATUSES = ["waiting", "offered"];
 
+// Journey statuses that mean the driver is still in flight on an order.
+// Accepting a queue offer only marks the queue entry `loaded` (which is NOT in
+// IN_QUEUE_STATUSES), so without this fence a dispatched driver could re-check
+// in and be offered a SECOND order while their first journey is still active.
+const ACTIVE_JOURNEY_STATUSES = [
+  journeyStatusMap.acceptedByShipper,
+  journeyStatusMap.acceptedByDriver,
+  journeyStatusMap.journeyStarted,
+];
+
+const hasActiveJourney = async (executor, driverUserUniqueId) => {
+  const [rows] = await executor.query(
+    `SELECT jd.journeyDecisionUniqueId
+     FROM JourneyDecisions jd
+     JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+     WHERE dr.userUniqueId = ?
+       AND jd.journeyStatusId IN (?, ?, ?)
+     LIMIT 1`,
+    [driverUserUniqueId, ...ACTIVE_JOURNEY_STATUSES],
+  );
+  return rows.length > 0;
+};
+
 /**
  * Driver's queue entries for today (across all orgs — fence). Returns:
  * - `active`: first entry still in the queue (blocks re-checkin), or null
@@ -158,6 +181,17 @@ exports.checkin = async (data) => {
   );
   const queueDate = today();
 
+  // FENCE: a driver holding an ACTIVE journey (accepted/started, not yet
+  // completed or cancelled) cannot join the queue. Accepting a queue offer
+  // marks the entry `loaded` but that alone doesn't block re-checkin, so this
+  // guard is what prevents double-dispatch while the first order is in flight.
+  if (await hasActiveJourney(executor, vehicleDriver.driverUserUniqueId)) {
+    throw new AppError(
+      "Driver has an active journey — finish or cancel it before joining the queue",
+      AppError.CONFLICT,
+    );
+  }
+
   // FENCE: driver can only be in ONE queue system-wide per day. Removed/loaded
   // entries are free, so re-checkin revives the same-org entry instead of
   // colliding with the (vehicleDriverUniqueId, org, date) unique key.
@@ -178,6 +212,13 @@ exports.checkin = async (data) => {
       );
     }
     // Idempotent: already in THIS queue today — return the existing entry.
+    // Still rescan: the front-driver of this type may be waiting on an order
+    // that outlived the queue (empty at creation / all rejected).
+    await rescanPendingQueueOrder({
+      queueOrganizationUniqueId,
+      vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+      user,
+    });
     return {
       message: "success",
       data: {
@@ -250,6 +291,16 @@ exports.checkin = async (data) => {
       throw error;
     }
   }
+
+  // Check-in auto-offer: pair the oldest pending queue order of this driver's
+  // vehicle type with the FRONT waiting driver (FIFO, one order per check-in).
+  // Runs inside the check-in transaction — the FOR UPDATE lock serializes
+  // concurrent check-ins, so one order is never double-offered.
+  await rescanPendingQueueOrder({
+    queueOrganizationUniqueId,
+    vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+    user,
+  });
 
   await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
   notifyQueueOrgAdmins({
@@ -477,6 +528,16 @@ exports.manualCheckin = async (data) => {
     vehicleDriverUniqueId,
   );
   const queueDate = today();
+
+  // FENCE: a driver holding an ACTIVE journey (accepted/started, not yet
+  // completed or cancelled) cannot be force-checked in — their previous queue
+  // order is still in flight.
+  if (await hasActiveJourney(executor, vehicleDriver.driverUserUniqueId)) {
+    throw new AppError(
+      "Driver has an active journey — finish or cancel it before joining the queue",
+      AppError.CONFLICT,
+    );
+  }
 
   // FENCE: driver can only be in ONE queue system-wide per day. Removed/loaded
   // entries are free, so re-checkin revives the same-org entry instead of
@@ -903,6 +964,10 @@ const notifyShipperOfQueueEvent = async ({
  * With `throwIfNone` (manual dispatch) an empty queue is a 404; with the auto
  * path (handleQueueDispatch / advance) an empty queue just means the order
  * stays waiting — the call returns `{ offered: false }` instead.
+ *
+ * A driver who has already rejected (or cancelled, or had admin-cancelled)
+ * this exact order is skipped by the front-driver query — the order advances
+ * to the next waiting driver who hasn't refused it.
  */
 const offerToDriver = async ({
   executor,
@@ -927,6 +992,17 @@ const offerToDriver = async ({
   // same driver). Falls back to the caller-provided executor.
   const txExecutor = transactionStorage.getStore() || executor;
 
+  // Drivers who have already rejected (or cancelled, or had admin-cancelled)
+  // THIS exact order are never re-offered it — the order advances past them to
+  // the next waiting driver, or stays waiting when the whole queue has refused.
+  const skipRejectedParams = [
+    shipperRequest.shipperRequestId,
+    journeyStatusMap.cancelledByDriver,
+    journeyStatusMap.rejectedByShipper,
+    journeyStatusMap.rejectedByDriver,
+    journeyStatusMap.cancelledByAdmin,
+  ];
+
   let after = afterQueueNumber || null;
   while (true) {
     /**
@@ -949,6 +1025,13 @@ const offerToDriver = async ({
          AND v.vehicleTypeUniqueId = ?
          ${after ? "AND dq.queueNumber > ?" : ""}
          ${excludeVehicleDriverUniqueId ? "AND dq.vehicleDriverUniqueId <> ?" : ""}
+         AND NOT EXISTS (
+           SELECT 1 FROM JourneyDecisions jd
+           JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+           WHERE jd.shipperRequestId = ?
+             AND dr.userUniqueId = vd.driverUserUniqueId
+             AND jd.journeyStatusId IN (?, ?, ?, ?)
+         )
        ORDER BY dq.queueNumber ASC LIMIT 1
        FOR UPDATE`,
       after
@@ -959,16 +1042,29 @@ const offerToDriver = async ({
               vehicleTypeUniqueId,
               after,
               excludeVehicleDriverUniqueId,
+              ...skipRejectedParams,
             ]
-          : [queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId, after]
+          : [
+              queueOrganizationUniqueId,
+              queueDate,
+              vehicleTypeUniqueId,
+              after,
+              ...skipRejectedParams,
+            ]
         : excludeVehicleDriverUniqueId
           ? [
               queueOrganizationUniqueId,
               queueDate,
               vehicleTypeUniqueId,
               excludeVehicleDriverUniqueId,
+              ...skipRejectedParams,
             ]
-          : [queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId],
+          : [
+              queueOrganizationUniqueId,
+              queueDate,
+              vehicleTypeUniqueId,
+              ...skipRejectedParams,
+            ],
     );
 
     if (front.length === 0) {
@@ -1088,7 +1184,9 @@ exports.dispatch = async (data) => {
 
 /**
  * AUTO-dispatch — called from the ShipperRequest create flow when an order is
- * placed against a queue-enabled QueueOrganization (body.queueOrganizationUniqueId).
+ * placed against a queue-enabled QueueOrganization (body.queueOrganizationUniqueId),
+ * and from the check-in rescan (rescanPendingQueueOrder) to retry an order that
+ * outlived an empty (or all-refusing) queue.
  * Offers the order to the FRONT waiting driver of the order's vehicle type.
  * If the queue is empty, the order stays waiting (a driver can claim it later
  * via manual dispatch, or the order retries on the next check-in).
@@ -1113,6 +1211,118 @@ exports.handleQueueDispatch = async ({
       }),
     { timeout: 15000, logging: false },
   );
+
+/**
+ * Check-in auto-dispatch — after a driver checks in, rescan for the OLDEST
+ * pending queue order of the driver's vehicle type that has NO active offer
+ * and offer it to the FRONT waiting driver (FIFO, one order per check-in).
+ *
+ * Covers the two cases where an order outlives its creation-time dispatch:
+ *   1. queue was empty at creation → order stayed `waiting`
+ *   2. every driver rejected → order stayed `requested` with no active offer
+ *      (see queue-refusal-policy: no re-offer to a driver who already refused)
+ *
+ * Runs inside the check-in's transaction: `executeInTransaction` reuses the
+ * outer connection, so the front-driver `FOR UPDATE` lock serializes concurrent
+ * check-ins and the same order cannot be double-offered.
+ * Best-effort — returns `{ offered: false, data: null }` when nothing pending.
+ */
+const rescanPendingQueueOrder = async ({
+  queueOrganizationUniqueId,
+  vehicleTypeUniqueId,
+  user,
+}) => {
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT sr.shipperRequestUniqueId
+     FROM ShipperRequest sr
+     WHERE sr.queueOrganizationUniqueId = ?
+       AND sr.vehicleTypeUniqueId = ?
+       AND sr.requestMode <> 'company_target'
+       AND sr.journeyStatusId IN (?, ?)
+       AND sr.shipperRequestDeletedAt IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM DriverQueue dq
+         WHERE dq.shipperRequestUniqueId = sr.shipperRequestUniqueId
+           AND dq.status = 'offered'
+           AND dq.queueDeletedAt IS NULL
+       )
+     ORDER BY sr.shipperRequestCreatedAt ASC
+     LIMIT 1`,
+    [
+      queueOrganizationUniqueId,
+      vehicleTypeUniqueId,
+      journeyStatusMap.waiting,
+      journeyStatusMap.requested,
+    ],
+  );
+  if (rows.length === 0) {
+    return { offered: false, data: null };
+  }
+  return exports.handleQueueDispatch({
+    queueOrganizationUniqueId,
+    vehicleTypeUniqueId,
+    shipperRequestUniqueId: rows[0].shipperRequestUniqueId,
+    user,
+  });
+};
+
+// Safety cap per sweep so a pathological backlog can never loop forever.
+const MAX_OFFERS_PER_SWEEP = 50;
+
+/**
+ * Periodic re-dispatch sweep — safety net for pending queue orders.
+ *
+ * Orders that outlive their creation-time dispatch (queue empty at creation,
+ * or every driver refused) sit in `waiting`/`requested` with no active offer
+ * and only retried on the next check-in. This sweep re-runs the same rescan
+ * for every (org, vehicle type) pair that currently has at least one waiting
+ * driver, and keeps offering until the backlog is drained (each offer marks
+ * the front driver `offered`, so the next iteration advances to the next
+ * waiting driver). Invoked periodically from automaticTimeout.service so a
+ * fresh check-in event is not required to match an order.
+ *
+ * @returns {Promise<{ message: string, data: { offered: number, advanced: Array } }>}
+ */
+exports.rescanPendingQueueOrders = async () => {
+  const executor = db();
+  const queueDate = today();
+
+  const [pairs] = await executor.query(
+    `SELECT DISTINCT dq.queueOrganizationUniqueId, v.vehicleTypeUniqueId
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
+     JOIN QueueOrganization o ON o.queueOrganizationUniqueId = dq.queueOrganizationUniqueId
+     WHERE dq.queueDate = ? AND dq.status = 'waiting' AND dq.queueDeletedAt IS NULL
+       AND o.approvalStatus = 'approved' AND o.queueEnabled = 1 AND o.isDeleted = 0`,
+    [queueDate],
+  );
+
+  const advanced = [];
+  let offered = 0;
+  for (const pair of pairs) {
+    let guard = 0;
+    while (guard++ < MAX_OFFERS_PER_SWEEP) {
+      const res = await rescanPendingQueueOrder({
+        queueOrganizationUniqueId: pair.queueOrganizationUniqueId,
+        vehicleTypeUniqueId: pair.vehicleTypeUniqueId,
+        user: { userUniqueId: "system-queue-sweep" },
+      });
+      if (!res?.offered) break;
+      offered += 1;
+      advanced.push(res);
+    }
+  }
+
+  if (offered > 0) {
+    logger.info("Queue sweep matched pending orders", {
+      offered,
+      orgTypePairs: pairs.length,
+    });
+  }
+  return { message: "success", data: { offered, advanced } };
+};
 
 /**
  * Advance the offer — offer the order to the NEXT waiting driver in line

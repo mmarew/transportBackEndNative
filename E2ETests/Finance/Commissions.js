@@ -187,11 +187,15 @@ const testDeleteCommissionStatus = async ({ user, uniqueId }) => {
 const testCommissionStatusWorkflow = async ({ user = usersData.admin } = {}) => {
   console.log("\n── CommissionStatus Workflow ──");
   await testGetCommissionStatuses({ user });
-  const created = await testCreateCommissionStatus({ user, payload: { statusName: "TEST_STATUS", description: "test description" } });
+  // statusName must be unique per run: CommissionStatus.statusName has a
+  // physical unique index, so reusing "TEST_STATUS" across runs collides with
+  // the soft-deleted rows from previous runs and makes the INSERT throw.
+  const stamp = String(Date.now()).slice(-6);
+  const created = await testCreateCommissionStatus({ user, payload: { statusName: "TEST_STATUS_" + stamp, description: "test description" } });
   const uniqueId = created?.commissionStatusUniqueId;
   if (!uniqueId) { console.warn("⚠️  No ID returned"); return { skipped: true }; }
   await testGetCommissionStatuses({ user });
-  await testUpdateCommissionStatus({ user, uniqueId, payload: { statusName: "UPDATED_TEST_STATUS", description: "updated description" } });
+  await testUpdateCommissionStatus({ user, uniqueId, payload: { statusName: "UPDATED_" + stamp, description: "updated description" } });
   await testGetCommissionStatuses({ user });
   await testDeleteCommissionStatus({ user, uniqueId });
   await testGetCommissionStatuses({ user });

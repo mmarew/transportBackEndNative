@@ -80,6 +80,7 @@ disputes (7).**
 | Queue scope / reset | Per**queue organization**, resets daily (`queueDate`)              |
 | Offer timeout       | **3 minutes** by default (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable), auto-advance the order on no response |
 | On accept / load    | Driver is**removed from the queue** (marked `loaded`)              |
+| Order outlives the queue | Order created (or advanced to the end of the line) while no driver is waiting stays `waiting`; it is **auto-offered on the next driver check-in** (FIFO), not just via manual `POST /api/queue/dispatch` |
 
 ## 4. Core mechanic
 
@@ -233,8 +234,13 @@ any ──checkout/override──> removed      (audit logged)
    queue), so a mismatch can only occur if a driver's entry is stale — skip to the
    next matching driver in that type's queue.
 5. If the type's queue is empty or every driver rejected → the order stays
-   `waiting`. It is **not** auto-retried on the next check-in; the QueueOrgAdmin
-   re-offers it manually via `POST /api/queue/dispatch`.
+   `waiting`. It is **auto-offered on the next check-in** of a matching-type
+   driver: after `checkin` creates/revives the queue entry, it rescans pending
+   `waiting` queue orders for that `(queueOrganizationUniqueId, vehicleTypeUniqueId)`
+   and offers the oldest (`shipperRequestCreatedAt ASC`) to the FRONT driver of
+   that type via `offerToDriver` (same primitive as creation-time dispatch).
+   The QueueOrgAdmin can always still re-offer manually via
+   `POST /api/queue/dispatch`.
 
 ## 8. Proposed endpoints (new)
 
@@ -300,8 +306,8 @@ read-model push. On reconnection a client should re-fetch
     **front** of that org's queue (lowest `queueNumber`, type via `VehicleDriver`),
     link the entry via `shipperRequestUniqueId`, create one JourneyDecision
     (`requested`, `decisionBy='shipper'`), move ShipperRequest + DriverRequest to
-    `requested`, notify that driver. No waiting driver → order stays `waiting`
-    (manual `dispatch` later).
+    `requested`, notify that driver. No waiting driver → order stays `waiting`,
+    auto-offered on the next matching-type check-in (or manual `dispatch`).
   - no `queueOrganizationUniqueId` → current `handleWaitingRequest` (top-10 nearest).
   - `company_target` requests are skipped by both paths.
 - `numberOfVehicles: N` → the org's N ShipperRequest rows are each dispatched to the
@@ -343,8 +349,10 @@ DriverQueue (vehicleDriverUniqueId)
 
 Resolved during implementation:
 
-- **Empty / all-reject queue:** order stays `waiting`; re-offered manually via
-  `POST /api/queue/dispatch` (no auto-retry on check-in yet).
+- **Empty / all-reject queue:** order stays `waiting`; **auto-offered on the
+  next matching-type check-in** (`checkin` rescans pending `waiting` queue
+  orders FIFO → `offerToDriver`), with manual `POST /api/queue/dispatch` kept
+  as a fallback.
 - **Fixed price source:** the order's `shippingCost` is used (queue orders skip the
   counter-bid step — accept does not require `shippingCostByDriver`).
 - **Offer window:** fixed 3 minutes (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable);

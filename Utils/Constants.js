@@ -68,6 +68,11 @@ const PAGINATION = {
   ABSOLUTE_MAX_LIMIT: 1000,
 };
 
+// MongoDB driver error codes
+const MONGO_ERROR = {
+  DUPLICATE_KEY: 11000,
+};
+
 // Time durations in milliseconds
 const TIME = {
   MINUTE_MS: 60000, // 60 * 1000
@@ -85,4 +90,5 @@ module.exports = {
   DOMAIN,
   PAGINATION,
   TIME,
+  MONGO_ERROR,
 };

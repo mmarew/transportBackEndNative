@@ -1,7 +1,7 @@
 "use strict";
 
 const { io } = require("socket.io-client");
-const { backendURL, usersData } = require("../constants");
+const { backendURL, usersData, usersRoles, journeyStatusMap, USER_STATUS } = require("../constants");
 const { report } = require("../Reporter");
 const axios = require("axios");
 const { authConfig } = require("../Utils");
@@ -92,9 +92,9 @@ const testSocketNotifications = async () => {
     await pool.query(
       `UPDATE UserRoleStatusCurrent urs
        JOIN UserRole ur ON urs.userRoleId = ur.userRoleId
-       SET urs.statusId = 1
+       SET urs.statusId = ${USER_STATUS.ACTIVE}
        WHERE ur.userUniqueId = ? AND ur.roleId = ?`,
-      [driver.accountData?.userData?.userUniqueId, 2],
+      [driver.accountData?.userData?.userUniqueId, usersRoles.driverRoleId],
     );
     // Close any existing active driver requests so a fresh one is created
     await pool.query(
@@ -104,17 +104,17 @@ const testSocketNotifications = async () => {
          AND journeyStatusId IN (?, ?, ?, ?, ?, ?, ?, ?, ?)
          AND driverRequestDeletedAt IS NULL`,
       [
-        9, /* cancelledByDriver */
+        journeyStatusMap.cancelledByDriver,
         driver.accountData?.userData?.userUniqueId,
-        1, /* waiting */
-        2, /* requested */
-        3, /* acceptedByDriver */
-        4, /* acceptedByShipper */
-        5, /* journeyStarted */
-        13, /* noAnswerFromDriver */
-        14, /* notSelectedInBid */
-        15, /* rejectedByDriver */
-        16, /* replacedByCompanyAssignment */
+        journeyStatusMap.waiting,
+        journeyStatusMap.requested,
+        journeyStatusMap.acceptedByDriver,
+        journeyStatusMap.acceptedByShipper,
+        journeyStatusMap.journeyStarted,
+        journeyStatusMap.noAnswerFromDriver,
+        journeyStatusMap.notSelectedInBid,
+        journeyStatusMap.rejectedByDriver,
+        journeyStatusMap.replacedByCompanyAssignment,
       ],
     );
 
@@ -125,7 +125,14 @@ const testSocketNotifications = async () => {
        SET journeyStatusId = ?
        WHERE journeyStatusId IN (?, ?, ?, ?, ?)
          AND shipperRequestDeletedAt IS NULL`,
-      [9, /* cancelledByDriver */ 1, /* waiting */ 2, /* requested */ 3, /* acceptedByDriver */ 4, /* acceptedByShipper */ 5, /* journeyStarted */],
+      [
+        journeyStatusMap.cancelledByDriver,
+        journeyStatusMap.waiting,
+        journeyStatusMap.requested,
+        journeyStatusMap.acceptedByDriver,
+        journeyStatusMap.acceptedByShipper,
+        journeyStatusMap.journeyStarted,
+      ],
     );
 
     // Step 0c: Cancel any pending company assignment for this driver
@@ -272,7 +279,7 @@ const testSocketNotifications = async () => {
     );
     console.log("── Shipper accepting driver ──");
     const activeRes = await axios.get(
-      backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER + "?journeyStatusId=3",
+      backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER + `?journeyStatusId=${journeyStatusMap.acceptedByDriver}`,
       authConfig(shipper.token),
     );
     const formattedData = activeRes.data?.data || activeRes.data?.formattedData || [];
@@ -343,9 +350,9 @@ const testCompanySocketNotifications = async () => {
     await pool.query(
       `UPDATE UserRoleStatusCurrent urs
        JOIN UserRole ur ON urs.userRoleId = ur.userRoleId
-       SET urs.statusId = 1
+       SET urs.statusId = ${USER_STATUS.ACTIVE}
        WHERE ur.userUniqueId = ? AND ur.roleId = ?`,
-      [driver.accountData?.userData?.userUniqueId, 2],
+      [driver.accountData?.userData?.userUniqueId, usersRoles.driverRoleId],
     );
 
     // Complete any active journey for this driver so startJourney works
@@ -353,9 +360,9 @@ const testCompanySocketNotifications = async () => {
       `UPDATE Journey j
        JOIN JourneyDecisions jd ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
        JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
-       JOIN UserRole ur ON ur.userUniqueId = dr.userUniqueId AND ur.roleId = 2
-       SET j.journeyStatusId = 6
-       WHERE ur.userUniqueId = ? AND j.journeyStatusId = 5`,
+       JOIN UserRole ur ON ur.userUniqueId = dr.userUniqueId AND ur.roleId = ${usersRoles.driverRoleId}
+       SET j.journeyStatusId = ${journeyStatusMap.journeyCompleted}
+       WHERE ur.userUniqueId = ? AND j.journeyStatusId = ${journeyStatusMap.journeyStarted}`,
       [driver.accountData?.userData?.userUniqueId],
     );
 
@@ -613,7 +620,7 @@ const testCompanySocketNotifications = async () => {
         authConfig(driver.token),
       );
       const journeyIds = statusRes.data?.uniqueIds || {};
-      const alreadyStarted = statusRes.data?.status === 5;
+      const alreadyStarted = statusRes.data?.status === journeyStatusMap.journeyStarted;
 
       if (journeyIds.journeyDecisionUniqueId) {
         if (!alreadyStarted) {

@@ -20,6 +20,9 @@ const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const logger = require("../../Utils/logger");
 const { createCommission } = require("../Commission.service");
+const {
+  prepareAndCreateNewBalance,
+} = require("../UserBalance.service/UserBalance.post.service");
 
 const { getUserSubscriptionsWithFilters } = require("../UserSubscription");
 
@@ -319,7 +322,7 @@ const completeJourney = async (body) => {
            AND journeyDecisionUniqueId = ?
            AND assignmentDeletedAt IS NULL
            AND assignmentStatus NOT IN
-             ('completed', 'rejected_by_driver', 'cancelled_by_company',
+             ('rejected_by_driver', 'cancelled_by_company',
               'cancelled_by_shipper', 'cancelled_by_driver')
          LIMIT 1`,
         [shipperRequestUniqueId, userUniqueId, journeyDecisionUniqueId],
@@ -337,6 +340,17 @@ const completeJourney = async (body) => {
             AppError.BAD_REQUEST,
           );
         }
+        // Credit the driver with the earned fare BEFORE deducting the platform
+        // commission. The driver's fare funds the commission, so completing a
+        // journey must never fail due to a pre-existing zero balance.
+        await prepareAndCreateNewBalance({
+          addOrDeduct: "add",
+          amount: paymentAmount,
+          driverUniqueId: userUniqueId,
+          transactionUniqueId: body?.journeyDecisionUniqueId,
+          transactionType: "Deposit",
+          userBalanceCreatedBy: userUniqueId,
+        });
         await createCommission(
           {
             journeyDecisionUniqueId: body?.journeyDecisionUniqueId,

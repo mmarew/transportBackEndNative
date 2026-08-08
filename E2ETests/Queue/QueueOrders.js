@@ -5,7 +5,7 @@
 // refusal policy, whole-job cancellation, batch orders, concurrency.
 
 const axios = require("axios");
-const { backendURL, usersData } = require("../constants");
+const { backendURL, usersData, usersRoles, journeyStatusMap, cancellationReasonsType } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
 const { report } = require("../Reporter");
@@ -25,8 +25,8 @@ const {
   rejectDriverOffer,
   cancelOrder,
   acceptOrder,
-  rejectOrderByDriver,
   checkin,
+  manualCheckin,
   getLatestOrders,
   getOrderByUniqueId,
   getJourneyDecisionCount,
@@ -35,7 +35,6 @@ const {
   getActiveQueueCountForDriver,
   driverToken,
   shipperToken,
-  dbToday,
   expectStatus,
 } = require("./helpers");
 
@@ -68,7 +67,7 @@ const rawDriverReject = async (driverKey) => {
   const res = await axios.put(
     backendURL +
       DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
-      "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
+      `?ownerUserUniqueId=self&roleId=${usersRoles.driverRoleId}&cancellationReasonsTypeId=${cancellationReasonsType.driverCancel}`,
     {},
     authConfig(driverToken(driverKey)),
   );
@@ -111,7 +110,7 @@ const testTQ11AutoOfferFront = async () => {
 const testTQ15AcceptLeavesQueue = async () => {
   try {
     const accepted = await acceptOrder("queueDriver2", 6000);
-    if (!accepted || accepted.status !== 3) {
+    if (!accepted || accepted.status !== journeyStatusMap.acceptedByDriver) {
       throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
     }
     const e2 = await entryOf("queueDriver2");
@@ -119,7 +118,7 @@ const testTQ15AcceptLeavesQueue = async () => {
       throw new Error(`d2 entry should be loaded: ${JSON.stringify(e2)}`);
     }
     const order = await getOrderByUniqueId(orders.O_A);
-    if (order.journeyStatusId !== 3) {
+    if (order.journeyStatusId !== journeyStatusMap.acceptedByDriver) {
       throw new Error(`O_A should be acceptedByDriver(3), got ${order.journeyStatusId}`);
     }
     report.pass("TQ-15: driver accepts → entry loaded, order acceptedByDriver");
@@ -157,6 +156,26 @@ const testTQ17NonOfferedDriverDenied = async () => {
     report.pass("TQ-17: non-offered driver accept denied (4xx)");
   } catch (error) {
     report.fail("TQ-17: non-offered driver accept denied", error);
+  }
+};
+
+// ── TQ-33 · Active-journey fence — driver in flight cannot re-join queue ──────
+
+const testTQ33ActiveJourneyFence = async () => {
+  try {
+    await expectStatus(
+      checkin("queueDriver2", ORG()),
+      409,
+      "TQ-33 active-journey check-in fence",
+    );
+    await expectStatus(
+      manualCheckin(ORG(), "queueDriver2"),
+      409,
+      "TQ-33 active-journey manual check-in fence",
+    );
+    report.pass("TQ-33: driver with active journey denied check-in (409)");
+  } catch (error) {
+    report.fail("TQ-33: active-journey fence", error);
   }
 };
 
@@ -201,7 +220,7 @@ const testTQ12NoMatchingTypeStaysWaiting = async () => {
     orders.O_C = await (await getLatestOrders(1))[0].shipperRequestUniqueId;
 
     const order = await getOrderByUniqueId(orders.O_C);
-    if (order.journeyStatusId !== 1) {
+    if (order.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`O_C should be waiting(1), got ${order.journeyStatusId}`);
     }
     if ((await getJourneyDecisionCount(orders.O_C)) !== 0) {
@@ -233,7 +252,7 @@ const testTQ19ShipperPriceReject = async () => {
       driverRequestUniqueId: ids.driverRequestUniqueId,
       journeyDecisionUniqueId: ids.journeyDecisionUniqueId,
       shipperRequestId: order.shipperRequestId,
-      journeyStatusId: 2,
+      journeyStatusId: journeyStatusMap.requested,
     });
     if (!res || res.message !== "Driver offer rejected successfully") {
       throw new Error(`shipper reject failed: ${JSON.stringify(res)}`);
@@ -247,7 +266,7 @@ const testTQ19ShipperPriceReject = async () => {
       throw new Error(`d3 should keep position ${d3.queueNumber}, got ${after.queueNumber}`);
     }
     const o = await getOrderByUniqueId(orders.O_B);
-    if (o.journeyStatusId !== 1) {
+    if (o.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`O_B should be waiting(1) — no next driver, got ${o.journeyStatusId}`);
     }
     report.pass("TQ-19: shipper price-reject → refusalCount 1, position kept, order waits");
@@ -306,7 +325,7 @@ const testTQ21EmptyQueueStaysWaiting = async () => {
       throw new Error(`d2 refusal state wrong: ${JSON.stringify(e2)}`);
     }
     const o = await getOrderByUniqueId(orders.O_D);
-    if (o.journeyStatusId !== 1) {
+    if (o.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`O_D should stay waiting(1), got ${o.journeyStatusId}`);
     }
     const [offeredRows] = await pool.query(
@@ -367,7 +386,7 @@ const testTQ22RepeatedRejectNoop = async () => {
       throw new Error("repeated reject added a CanceledJourneys row");
     }
     const o = await getOrderByUniqueId(orders.O_D);
-    if (o.journeyStatusId !== 1) {
+    if (o.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`O_D changed state on repeated reject: ${o.journeyStatusId}`);
     }
     report.pass("TQ-22: repeated reject → 4xx, no refusal/advance side effects");
@@ -429,7 +448,7 @@ const testTQ23RefusalLimitMovesToBack = async () => {
       throw new Error(`d4 should stay in queue (waiting), got ${after.status}`);
     }
     const o = await getOrderByUniqueId(orders.O_E3);
-    if (o.journeyStatusId !== 1) {
+    if (o.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`O_E3 should stay waiting, got ${o.journeyStatusId}`);
     }
     report.pass("TQ-23: 3rd refusal → moved to back, counter reset, stays in queue");
@@ -464,7 +483,7 @@ const testTQ25ShipperCancelReleases = async () => {
       throw new Error("whole-job cancel must NOT count a refusal");
     }
     const o = await getOrderByUniqueId(orders.O_F);
-    if (o.journeyStatusId !== 7) {
+    if (o.journeyStatusId !== journeyStatusMap.cancelledByShipper) {
       throw new Error(`O_F should be cancelledByShipper(7), got ${o.journeyStatusId}`);
     }
     report.pass("TQ-25: shipper cancel releases entry, no refusal count");
@@ -483,7 +502,7 @@ const testTQ26QueueAdminCancel = async () => {
           ":userUniqueId",
           queueState.shipper.userUniqueId,
         ),
-      { shipperRequestUniqueId: orders.O_D, cancellationReasonsTypeId: 6 },
+      { shipperRequestUniqueId: orders.O_D, cancellationReasonsTypeId: cancellationReasonsType.shipperWholeJobCancel },
       authConfig(usersData.queueOrgAdmin?.token),
     );
     if (res.status !== 200) {
@@ -514,11 +533,11 @@ const testTQ27PlatformAdminCancel = async () => {
     await cancelOrder({ orderUniqueId, cancelAs: "admin" });
 
     const o = await getOrderByUniqueId(orderUniqueId);
-    if (o.journeyStatusId !== 10) {
+    if (o.journeyStatusId !== journeyStatusMap.cancelledByAdmin) {
       throw new Error(`order should be cancelledByAdmin(10), got ${o.journeyStatusId}`);
     }
     const canceled = await getCanceledJourneysForOrder(orderUniqueId);
-    const adminCancel = canceled.find((c) => Number(c.roleId) === 3);
+    const adminCancel = canceled.find((c) => Number(c.roleId) === usersRoles.adminRoleId);
     if (!adminCancel) {
       throw new Error(`expected a CanceledJourneys row with roleId 3, got ${JSON.stringify(canceled)}`);
     }
@@ -598,7 +617,7 @@ const testTQ30ConcurrentDispatch = async () => {
       throw new Error("loser order must not be offered (no decision)");
     }
     const loserOrder = await getOrderByUniqueId(orders.O_L);
-    if (loserOrder.journeyStatusId !== 1) {
+    if (loserOrder.journeyStatusId !== journeyStatusMap.waiting) {
       throw new Error(`loser should stay waiting(1), got ${loserOrder.journeyStatusId}`);
     }
     const [countRows] = await pool.query(
@@ -647,7 +666,7 @@ const testTQ31ConcurrentAccept = async () => {
        WHERE sr.shipperRequestUniqueId = ?`,
       [orders.O_W],
     );
-    if (!decRows.every((r) => r.journeyStatusId === 3)) {
+    if (!decRows.every((r) => r.journeyStatusId === journeyStatusMap.acceptedByDriver)) {
       throw new Error("decision should end acceptedByDriver(3) exactly once");
     }
     report.pass("TQ-31: concurrent accept → final state consistent (entry loaded once)");
@@ -692,7 +711,7 @@ const testTQ28NonQueueCancelNoQueueEffect = async () => {
     await cancelOrder({ orderUniqueId, cancelAs: "shipper" });
 
     const o = await getOrderByUniqueId(orderUniqueId);
-    if (o.journeyStatusId !== 7) {
+    if (o.journeyStatusId !== journeyStatusMap.cancelledByShipper) {
       throw new Error(`non-queue order should be cancelled(7), got ${o.journeyStatusId}`);
     }
     const [rows] = await pool.query(
@@ -719,6 +738,7 @@ const runQueueOrderTests = async () => {
   await testTQ15AcceptLeavesQueue();
   await testTQ16RepeatAcceptDenied();
   await testTQ17NonOfferedDriverDenied();
+  await testTQ33ActiveJourneyFence();
   await testTQ13SkipHoldingDriver();
   await testTQ12NoMatchingTypeStaysWaiting();
   await testTQ19ShipperPriceReject();

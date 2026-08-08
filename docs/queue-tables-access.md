@@ -283,7 +283,9 @@ types, socket events, schema, validations, services, controllers, routes):
 5. [x] `handleQueueDispatch` branch in `Services/ShipperRequest/create.service.js` — auto-offer to the front driver when a queue-enabled org places an order. Offer window handled by `releaseExpiredOffers` in `automaticTimeout.service.js`; on reject/timeout advance the order to the next driver (`rejectOffer` / `offerToNextDriver`).
 6. [x] QueueOrgAdmin manage/override endpoints (audit-logged via `QueueAuditLog`).
 7. [x] Schema applied to `transportCompanyTest`; the `ShipperRequest.queueOrganizationUniqueId` column/index/FK are applied idempotently via `ensureQueueOrgReferences()` in `createTable` — `npm run db:create` is safe to re-run.
-8. [ ] End-to-end accept flow still to be exercised against a live DB (engine verified via `node --check` + eslint; check-in → dispatch verified; accept → `markEntryLoaded` → journey path pending a DB run).
+8. [x] Accept flow covered by the E2E suite (`E2ETests/Queue/QueueOrders.js`): TQ-15 accept → entry `loaded` / order `acceptedByDriver`, TQ-16 repeat accept denied, TQ-17 non-offered driver denied, TQ-29 batch accept, TQ-31 concurrent accept, TQ-33 active-journey check-in fence. Full end-to-end run against a live DB (accept → `markEntryLoaded` → journey start/complete) is the remaining verification step.
+9. [x] Active-journey fence: `checkin`/`manualCheckin` reject (409) a driver holding an in-flight journey (`acceptedByShipper`/`acceptedByDriver`/`journeyStarted`), preventing double-dispatch after an accept marks the entry `loaded`.
+10. [x] Periodic re-dispatch sweep: `rescanPendingQueueOrders` in `DriverQueue.service.js` runs from `automaticTimeout.service.js` alongside `releaseExpiredOffers`, re-offering pending orders (`waiting`/`requested`, no active offer) to any waiting drivers without needing a fresh check-in event.
 
 ## 7. Related docs
 
