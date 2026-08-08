@@ -22,7 +22,8 @@
 
 const { v4: uuidv4 } = require("uuid");
 const AppError = require("../Utils/AppError");
-const { DOMAIN, TIME, usersRoles } = require("../Utils/Constants");
+const { DOMAIN, TIME } = require("../Utils/Constants");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 const logger = require("../Utils/logger");
 
 const { pool } = require("../Middleware/Database.config");
@@ -171,7 +172,7 @@ const createCompanyDelinquency = async (data) => {
 
       const { data: tokens } = await getActiveTokensByUser(
         companyOwner.companyCreatedBy,
-        usersRoles.companyOwnerRoleId, // companyOwner roleId
+        usersRoles.vehicleOwnerRoleId, // vehicle owner (company owner) roleId
       );
 
       if (tokens.length > 0) {

@@ -4,18 +4,12 @@
 // org lifecycle (TQ-01..04, TQ-08), check-in (TQ-05..10), order lifecycle
 // (TQ-11..32), admin ops (TQ-33..36, TQ-39), then cleanup.
 
-const axios = require("axios");
-const { backendURL, usersData, runId } = require("../constants");
-const { authConfig } = require("../Utils");
-const { report } = require("../Reporter");
-const { testAuthWorkFlow, testVerifyAndLoginUser } = require("../Auth");
+const { ensureCoreUsers, ensureQueueDrivers } = require("../Auth/bootstrap");
 const { queueState } = require("./state");
-const { AUTH_ENDPOINTS } = require("../../Routes/auth/APIEndPoints");
+const { report } = require("../Reporter");
 const {
-  superAdminToken,
   getVehicleTypes,
   registerQueueDrivers,
-  registerQueueOrgAdmin,
   ensureShipper,
   deleteQueueOrganization,
 } = require("./helpers");
@@ -25,51 +19,6 @@ const { runQueueOrderTests } = require("./QueueOrders");
 const { runQueueAdminTests } = require("./QueueAdminOps");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
-
-const seedQueueUsers = () => {
-  const makeDriver = (n) => ({
-    fullName: `Queue Driver ${n}`,
-    email: `queuedriver${n}+${runId}@test.com`,
-    phoneNumber: `+2519${runId}${String(n).padStart(2, "0")}`,
-    roleId: 2,
-    OTP: 101010,
-    token: null,
-    accountData: null,
-  });
-  usersData.queueDriver1 = makeDriver(1);
-  usersData.queueDriver2 = makeDriver(2);
-  usersData.queueDriver3 = makeDriver(3);
-  usersData.queueDriver4 = makeDriver(4);
-  usersData.queueOrgAdmin = {
-    fullName: "Queue Org Admin",
-    email: `queueorgadmin+${runId}@test.com`,
-    phoneNumber: `+25194${runId}9`,
-    roleId: 11,
-    OTP: 101010,
-    token: null,
-  };
-};
-
-const ensureSuperAdminAndAdmin = async () => {
-  await testVerifyAndLoginUser({ userType: "supperAdmin" });
-  if (!usersData.admin?.token) {
-    try {
-      await axios.post(
-        backendURL + AUTH_ENDPOINTS.CREATE_USER_BY_ADMIN,
-        usersData.admin,
-        authConfig(superAdminToken()),
-      );
-    } catch (error) {
-      // Already exists from an earlier run — verify/login below still works.
-      if (error?.response?.status === 409) {
-        console.log("  ⚠ admin already exists — reusing");
-      } else {
-        throw error;
-      }
-    }
-    await testVerifyAndLoginUser({ userType: "admin" });
-  }
-};
 
 const initVehicleTypes = async () => {
   const types = await getVehicleTypes();
@@ -98,10 +47,9 @@ const runQueueTests = async () => {
   console.log("  QUEUE E2E SUITE —", new Date().toISOString());
   console.log("═══════════════════════════════════════════════════\n");
 
-  seedQueueUsers();
-  await ensureSuperAdminAndAdmin();
+  await ensureCoreUsers({ fetchAccount: false });
+  await ensureQueueDrivers({ count: 4 });
   await registerQueueDrivers();
-  await registerQueueOrgAdmin();
   await ensureShipper();
   await initVehicleTypes();
 

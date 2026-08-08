@@ -32,6 +32,9 @@ const ACCOUNT_FETCH_ROLES = new Set(["driver", "shipper", "companyAdmin"]);
 const provisioning = { created: 0, verified: 0, loggedIn: 0, reused: 0 };
 
 const ensureCreate = async (userType) => {
+  if (SEED_ONLY_ROLES.has(userType)) {
+    return; // Pre-seeded by the backend — never create via API.
+  }
   if (PUBLIC_CREATE_ROLES.has(userType)) {
     await apiCreateUser(userType);
     provisioning.created++;
@@ -40,7 +43,6 @@ const ensureCreate = async (userType) => {
     await apiCreateUserByAdmin(userType, superAdmin.token);
     provisioning.created++;
   }
-  // SEED_ONLY_ROLES — nothing to create.
 };
 
 const ensureVerifyAndLogin = async (userType) => {

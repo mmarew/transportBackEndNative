@@ -25,7 +25,7 @@ const {
   sendNotificationToTokens,
   getActiveTokensByUser,
 } = require("./Firebase.service");
-const { usersRoles } = require("../Utils/Constants");
+const { usersRoles } = require("../Utils/ListOfSeedData");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CREATE — Admin issues a formal ruling on a delinquency dispute
@@ -177,7 +177,7 @@ const createAdminDecision = async ({
     if (companyOwner?.companyCreatedBy) {
       const { data: tokens } = await getActiveTokensByUser(
         companyOwner.companyCreatedBy,
-        usersRoles.companyOwnerRoleId, // companyOwner roleId
+        usersRoles.vehicleOwnerRoleId, // vehicle owner (company owner) roleId
       );
 
       if (tokens.length > 0) {

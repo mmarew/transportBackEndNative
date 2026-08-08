@@ -12,6 +12,7 @@ const usersRoles = {
   companyRoleId: 8,
   vehicleRoleId: 9,
   dispatcherRoleId: 10,
+  queueOrgAdminRoleId: 11,
 };
 
 const backendURL = "http://127.0.0.1:3000";
@@ -64,6 +65,26 @@ const usersData = {
       rejected_by_shipper: null,
       cancelled_by_company: null,
     },
+  },
+  // System (role 5) — pre-seeded by the backend (createTables → createUserSystem)
+  // for programmatic jobs (automated rejections, expiry warnings, etc.).
+  // Never created via API; verified + logged in like supperAdmin.
+  systemAdmin: {
+    fullName: "System",
+    email: "system@system.com",
+    phoneNumber: "+251922112480",
+    roleId: usersRoles.systemRoleId,
+    OTP: 101010,
+    token: null,
+  },
+  // Queue organization admin (role 11) — manages the dispatch queue.
+  queueOrgAdmin: {
+    fullName: "Queue Org Admin",
+    email: `queueorgadmin+${runId}@test.com`,
+    phoneNumber: `+25194${runId}9`,
+    roleId: usersRoles.queueOrgAdminRoleId,
+    OTP: 101010,
+    token: null,
   },
   supperAdmin: {
     fullName: "Test Supper Admin",

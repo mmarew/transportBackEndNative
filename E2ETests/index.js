@@ -70,6 +70,7 @@ const {
 } = require("./Auth/User");
 const { usersData } = require("./constants");
 const { report } = require("./Reporter");
+const { ensureCoreUsers } = require("./Auth/bootstrap");
 
 const { runReferenceCRUD } = require("./Phases/runReferenceCRUD");
 const { runIndividualFlow } = require("./Phases/runIndividualFlow");
@@ -102,6 +103,12 @@ const initiateTest = async () => {
     // PUT /api/admin/updateTable/:tableName when missing.
     console.log("\n── Non-destructive Schema Check ──");
     await safe("ensureJourneyLocationColumns", ensureJourneyLocationColumns)();
+
+    // ── Phase 0c: Provision ALL canonical users once ──────────────────────────
+    // driver / shipper / systemAdmin / companyAdmin / queueAdmin / supperAdmin
+    // / admin are created from the beginning and then REUSED by every suite
+    // (see Auth/ensureUser.js). Never re-create a user mid-run.
+    await ensureCoreUsers({ fetchAccount: false });
 
     // ── Phase 1: Core users ───────────────────────────────────────────────────
     await testCreateAdminFlow({});

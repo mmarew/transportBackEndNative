@@ -9,9 +9,8 @@ const { v4: uuidv4 } = require("uuid");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { pool } = require("../../Middleware/Database.config");
-const { testAuthWorkFlow, testVerifyAndLoginUser } = require("../Auth");
+const { ensureUser } = require("../Auth/ensureUser");
 const { queueState } = require("./state");
-const { report } = require("../Reporter");
 const {
   SHIPPER_REQUEST_ENDPOINTS,
 } = require("../../Routes/EndPoints/shipperRequest.endpoints");
@@ -31,8 +30,8 @@ const shipperToken = () => usersData.shipper?.token;
 const driverToken = (driverKey) => usersData[driverKey]?.token;
 
 const ensureAdminTokens = async () => {
-  if (!superAdminToken()) await testVerifyAndLoginUser({ userType: "supperAdmin" });
-  if (!adminToken()) await testVerifyAndLoginUser({ userType: "admin" });
+  await ensureUser({ userType: "supperAdmin", options: { skipCreate: true } });
+  await ensureUser({ userType: "admin" });
 };
 
 // ── Vehicle types ──────────────────────────────────────────────────────────────
@@ -112,7 +111,7 @@ const registerQueueDrivers = async () => {
     { driverKey: "queueDriver4", vehicleTypeIndex: 1 },
   ];
   for (const def of defs) {
-    await testAuthWorkFlow({ userType: def.driverKey });
+    await ensureUser({ userType: def.driverKey, options: { fetchAccount: false } });
     await onboardQueueDriver(def);
   }
   await activateQueueDrivers(defs.map((d) => d.driverKey));
@@ -150,14 +149,11 @@ const activateQueueDrivers = async (driverKeys) => {
 };
 
 const registerQueueOrgAdmin = async () => {
-  if (usersData.queueOrgAdmin?.token) return;
-  await testAuthWorkFlow({ userType: "queueOrgAdmin" });
+  await ensureUser({ userType: "queueOrgAdmin", options: { fetchAccount: false } });
 };
 
 const ensureShipper = async () => {
-  if (!usersData.shipper?.token) {
-    await testAuthWorkFlow({ userType: "shipper" });
-  }
+  await ensureUser({ userType: "shipper" });
   const account = await axios.get(
     backendURL + "/api/shipper/account",
     authConfig(shipperToken()),

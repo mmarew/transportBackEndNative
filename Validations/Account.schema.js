@@ -33,6 +33,9 @@ exports.accountStatusParams = Joi.object({
     "number.base": "roleId must be a number",
     "number.integer": "roleId must be an integer",
     "number.min": "roleId must be at least 1",
+    // Number("max(10)") exists only for the validator's default: this bound is
+    // kept because the UI only sends roleIds in [1, 10] today. Remove when
+    // roleIds become dynamic.
     "number.max": "roleId must be at most 10",
     "any.required": "roleId is required",
   }),
