@@ -737,6 +737,7 @@ const activeJourneyStatuses = [
 //   1 = Shipper  (the one who posted the cargo request)
 //   2 = Driver   (the one who accepts the trip)
 //   3 = Admin    (system / call-center override)
+//  11 = Queue Organization Admin (dispatch queue supervisor)
 const cancellationReasons = [
   // ══════════════════════════════════════════════════════════════════════════
   //  SHIPPER reasons (roleId: 1)
@@ -1107,6 +1108,17 @@ const cancellationReasons = [
     cancellationReason:
       "Individual request replaced by company fleet assignment — driver reassigned to company-managed freight job",
     roleId: 3,
+    requestMode: "both",
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  QUEUE ORG ADMIN reasons (roleId: 11)
+  //  Distinct from platform/system admin (roleId: 3) — the queue admin
+  //  supervises a dispatch queue and cancels a queue order at the job level.
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    cancellationReason: "Cancelled by queue admin",
+    roleId: 11,
     requestMode: "both",
   },
 ];

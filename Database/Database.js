@@ -502,7 +502,7 @@ CREATE TABLE IF NOT EXISTS JourneyDecisions (
     driverRequestId INT UNIQUE NOT NULL,  -- Foreign key to DriverRequest
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
     decisionTime TIMESTAMP NOT NULL,  -- Time of the decision
-    decisionBy ENUM('shipper', 'driver', 'admin') NOT NULL,  -- Who made the decision
+    decisionBy ENUM('shipper', 'driver', 'admin', 'queue', 'company') NOT NULL,  -- Who made the decision (queue = queue-dispatch offer, company = company assignment)
 
     shippingDateByDriver DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDateByDriver DATETIME DEFAULT NULL,                        -- Date of delivery
@@ -2019,6 +2019,7 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     queueOrganizationUniqueId VARCHAR(36) NOT NULL,             -- FK → QueueOrganization
     queueDate DATE NOT NULL,                                    -- daily reset
     queueNumber INT NOT NULL,                                   -- 1,2,3… per (org, date, vehicleTypeUniqueId)
+    queueRefusalCount INT NOT NULL DEFAULT 0,                   -- consecutive front-position refusals today; at QUEUE_REFUSAL_LIMIT → move to back
     vehicleDriverUniqueId VARCHAR(36) NOT NULL,                 -- FK → VehicleDriver (truck+driver unit in line)
     shipperRequestUniqueId VARCHAR(36) NULL,                    -- FK → ShipperRequest (order assigned to this entry)
     joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth

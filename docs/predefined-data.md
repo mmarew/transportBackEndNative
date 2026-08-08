@@ -394,9 +394,18 @@ The predefined data is installed through the `installPreDefinedData` service fun
     "roleId": 3
   },
   { "cancellationReason": "Route unavailable", "roleId": 3 },
-  { "cancellationReason": "Driver no longer available", "roleId": 3 }
+  { "cancellationReason": "Driver no longer available", "roleId": 3 },
+  {
+    "cancellationReason": "Cancelled by queue admin",
+    "roleId": 11
+  }
 ]
 ```
+
+> `roleId` key: 1 = Shipper, 2 = Driver, 3 = Admin (system / call-center), 11 =
+> Queue Organization Admin. The queue-admin reason is **distinct from the system
+> admin** (roleId 3) — a queue admin cancelling a queue order at the job level
+> records `roleId = 11` with the reason above, so the audit trail is unambiguous.
 
 ## 9. Payment Status
 

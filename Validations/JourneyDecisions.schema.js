@@ -6,7 +6,7 @@ exports.createJourneyDecision = Joi.object({
   driverRequestId: Joi.number().integer().required(),
   journeyStatusId: Joi.number().integer().required(),
   decisionTime: Joi.date().required(),
-  decisionBy: Joi.string().valid("shipper", "driver", "admin").required(),
+  decisionBy: Joi.string().valid("shipper", "driver", "admin", "queue", "company").required(),
   shippingDateByDriver: Joi.date().optional().allow(null),
   deliveryDateByDriver: Joi.date().optional().allow(null),
   shippingCostByDriver: Joi.number().optional().allow(null),
@@ -20,7 +20,7 @@ exports.updateJourneyDecision = Joi.object({
   // Legacy fields for backward compatibility
   journeyStatusId: Joi.number().integer().optional(),
   decisionTime: Joi.date().optional(),
-  decisionBy: Joi.string().valid("shipper", "driver", "admin").optional(),
+  decisionBy: Joi.string().valid("shipper", "driver", "admin", "queue", "company").optional(),
   shippingDateByDriver: Joi.date().optional(),
   deliveryDateByDriver: Joi.date().optional(),
   shippingCostByDriver: Joi.number().optional(),
@@ -55,11 +55,11 @@ exports.getJourneyDecisionsQuery = Joi.object({
   journeyStatusIds: Joi.alternatives()
     .try(Joi.string(), Joi.array().items(Joi.number().integer()))
     .optional(),
-  decisionBy: Joi.string().valid("shipper", "driver", "admin").optional(),
+  decisionBy: Joi.string().valid("shipper", "driver", "admin", "queue", "company").optional(),
   decisionBys: Joi.alternatives()
     .try(
       Joi.string(),
-      Joi.array().items(Joi.string().valid("shipper", "driver", "admin")),
+      Joi.array().items(Joi.string().valid("shipper", "driver", "admin", "queue", "company")),
     )
     .optional(),
   startDate: Joi.date().optional(),

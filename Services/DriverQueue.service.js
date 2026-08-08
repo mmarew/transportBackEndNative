@@ -20,6 +20,7 @@ const logger = require("../Utils/logger");
 
 const today = () => new Date().toISOString().slice(0, 10);
 const QUEUE_OFFER_WINDOW_MINUTES = 3;
+const QUEUE_REFUSAL_LIMIT = Number(process.env.QUEUE_REFUSAL_LIMIT) || 3;
 
 // Shared resolver: org → vehicle type via VehicleDriver → Vehicle
 /**
@@ -187,6 +188,7 @@ exports.checkin = async (data) => {
       updateValues: {
         status: "waiting",
         queueNumber,
+        queueRefusalCount: 0,
         joinedAt: currentDate(),
         offeredAt: null,
         loadedAt: null,
@@ -747,7 +749,7 @@ const createQueueOffer = async (
       driverRequestId: driverRequest.driverRequestId,
       journeyStatusId: journeyStatusMap.requested,
       decisionTime: now,
-      decisionBy: "shipper",
+      decisionBy: "queue",
       journeyDecisionCreatedBy: user.userUniqueId,
       journeyDecisionCreatedAt: now,
     },
@@ -779,7 +781,7 @@ const createQueueOffer = async (
       driverRequestUniqueId: driverRequest.driverRequestUniqueId,
       journeyStatusId: journeyStatusMap.requested,
       decisionTime: now,
-      decisionBy: "shipper",
+      decisionBy: "queue",
     },
   };
 };
@@ -1078,19 +1080,21 @@ const offerToNextDriver = ({
   });
 
 /**
- * Driver (or shipper, for a queue order) rejects the offer currently held on
- * the order → the entry returns to `waiting` (keeps position) and the ORDER
- * advances to the next driver of the same vehicle type. Pass `driverUserUniqueId`
- * to restrict to a specific driver (driver-side reject); omit it to clear
- * whichever entry holds the order (shipper-side reject).
+ * Any rejection of a queue order's offer — driver-side or shipper-side (shipper
+ * rejects the driver's quoted price) — returns the entry to `waiting` (keeps
+ * position), advances the ORDER to the next driver of the same vehicle type, and
+ * counts one penalty point toward the driver's refusal limit
+ * (applyRefusalPolicy). Pass `driverUserUniqueId` to restrict to a specific
+ * driver (driver-side reject); omit it to clear whichever entry holds the order
+ * (shipper-side price rejection).
  */
 exports.rejectOffer = async (data) => {
   const { shipperRequestUniqueId, user, driverUserUniqueId } = data;
   const executor = db();
 
   const [rows] = await executor.query(
-    `SELECT dq.queueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
-            dq.vehicleDriverUniqueId, v.vehicleTypeUniqueId
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
+            dq.queueRefusalCount, dq.vehicleDriverUniqueId, vd.driverUserUniqueId, v.vehicleTypeUniqueId
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
@@ -1120,6 +1124,8 @@ exports.rejectOffer = async (data) => {
     conditions: { queueId: entry.queueId },
   });
 
+  await applyRefusalPolicy({ executor, entry, user });
+
   await emitQueueSnapshot({
     queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
     queueDate: entry.queueDate,
@@ -1140,6 +1146,111 @@ exports.rejectOffer = async (data) => {
   });
 
   return { message: "success", ...next };
+};
+
+/**
+ * Whole-job cancellation of a queue order (Docs/queue-order-cancellation.md).
+ * If an entry is currently holding the cancelled order's offer (`offered`),
+ * release it back to `waiting` in place (position preserved, `queueNumber`
+ * untouched) without counting a refusal and without advancing the order (there
+ * is no next driver — the order is gone). No-op for non-queue orders and for
+ * entries already `waiting`/`loaded`. Idempotent.
+ */
+exports.releaseEntryOnOrderCancel = async ({ shipperRequestUniqueId, user }) => {
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
+            dq.vehicleDriverUniqueId, vd.driverUserUniqueId
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE dq.shipperRequestUniqueId = ? AND dq.status = 'offered'
+       AND dq.queueDeletedAt IS NULL
+     ORDER BY dq.queueNumber ASC LIMIT 1
+     FOR UPDATE`,
+    [shipperRequestUniqueId],
+  );
+  if (rows.length === 0) {
+    return { released: false };
+  }
+
+  const entry = rows[0];
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: "waiting",
+      offeredAt: null,
+      shipperRequestUniqueId: null,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: user?.userUniqueId || null,
+    },
+    conditions: { queueId: entry.queueId },
+  });
+
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    messageType: "queue_order_cancelled",
+    message: {
+      queueUniqueId: entry.queueUniqueId,
+      driverUserUniqueId: entry.driverUserUniqueId,
+    },
+  });
+
+  return { released: true, queueUniqueId: entry.queueUniqueId };
+};
+
+/**
+ * Consecutive-refusal policy (Docs/queue-refusal-policy.md). A driver who
+ * refuses an offer keeps their position for the next order, but after
+ * `QUEUE_REFUSAL_LIMIT` consecutive front-position refusals this queue day they
+ * are moved to the back of the line. `entry` must carry `queueId`, `queueNumber`,
+ * `queueOrganizationUniqueId`, `queueDate`, `vehicleTypeUniqueId` and
+ * `queueRefusalCount`. Returns `{ movedToBack, refusalCount }`.
+ */
+const applyRefusalPolicy = async ({ executor, entry, user }) => {
+  const refusalCount = (entry.queueRefusalCount || 0) + 1;
+  const movedToBack = refusalCount >= QUEUE_REFUSAL_LIMIT;
+
+  const updateValues = {
+    queueRefusalCount: movedToBack ? 0 : refusalCount,
+    queueUpdatedAt: currentDate(),
+    queueUpdatedBy: user.userUniqueId,
+  };
+  if (movedToBack) {
+    updateValues.queueNumber = await nextQueueNumber(
+      executor,
+      entry.queueOrganizationUniqueId,
+      entry.queueDate,
+      entry.vehicleTypeUniqueId,
+    );
+  }
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues,
+    conditions: { queueId: entry.queueId },
+  });
+
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+  if (movedToBack) {
+    notifyQueueOrgAdmins({
+      queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+      messageType: "queue_refusal_moved_to_back",
+      message: {
+        queueUniqueId: entry.queueUniqueId,
+        driverUserUniqueId: entry.driverUserUniqueId,
+        refusalCount,
+        refusalLimit: QUEUE_REFUSAL_LIMIT,
+      },
+    });
+  }
+
+  return { movedToBack, refusalCount };
 };
 
 /**
@@ -1222,8 +1333,9 @@ exports.releaseExpiredOffers = async ({
   const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
 
   const [expired] = await executor.query(
-    `SELECT dq.queueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
-            dq.vehicleDriverUniqueId, dq.shipperRequestUniqueId, v.vehicleTypeUniqueId,
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
+            dq.queueRefusalCount, dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.shipperRequestUniqueId,
+            v.vehicleTypeUniqueId,
             sr.shipperRequestId, sr.shipperRequestCreatedBy,
             dr.driverRequestId, dr.driverRequestUniqueId, jd.journeyDecisionUniqueId
      FROM DriverQueue dq
@@ -1276,6 +1388,8 @@ exports.releaseExpiredOffers = async ({
       },
       conditions: { queueId: entry.queueId },
     });
+
+    await applyRefusalPolicy({ executor, entry, user: actor });
 
     await emitQueueSnapshot({
       queueOrganizationUniqueId: entry.queueOrganizationUniqueId,

@@ -100,7 +100,8 @@ const updateNegativeJourneyStatus = async ({
   driverRequestId,
   driverRequestUniqueId,
   journeyDecisionUniqueId,
-  newStatusId
+  newStatusId,
+  skipQueueRelease = false
 }) => {
   try {
     logger.debug("@updateNegativeJourneyStatus", {
@@ -222,6 +223,52 @@ const updateNegativeJourneyStatus = async ({
     logger.debug("@resultsOfUpdates", {
       resultsOfUpdates
     });
+
+    // Whole-job cancellation of a queue order: release any driver queue entry
+    // holding this order's offer back to waiting (position kept, no refusal
+    // counted). Skipped by cancelShipperRequest, which releases itself AFTER
+    // its transaction commits. No-op for non-queue orders and no-offer states.
+    const cancelStatuses = [
+      journeyStatusMap.cancelledByShipper,
+      journeyStatusMap.cancelledByAdmin,
+      journeyStatusMap.cancelledBySystem
+    ];
+    if (!skipQueueRelease && cancelStatuses.includes(newStatusId) && journeyDecisionUniqueId) {
+      try {
+        const [decisionRow] = await getData({
+          tableName: "JourneyDecisions",
+          conditions: {
+            journeyDecisionUniqueId
+          }
+        });
+        const shipperRequestId = decisionRow?.[0]?.shipperRequestId;
+        if (shipperRequestId) {
+          const [shipperRequestRow] = await getData({
+            tableName: "ShipperRequest",
+            conditions: {
+              shipperRequestId
+            }
+          });
+          const order = shipperRequestRow?.[0];
+          if (order?.queueOrganizationUniqueId) {
+            const { releaseEntryOnOrderCancel } = require("../DriverQueue.service");
+            await releaseEntryOnOrderCancel({
+              shipperRequestUniqueId: order.shipperRequestUniqueId,
+              user: {
+                userUniqueId: order.shipperRequestCreatedBy
+              }
+            });
+          }
+        }
+      } catch (error) {
+        logger.error("Error releasing queue entry after negative status update", {
+          error: error.message,
+          journeyDecisionUniqueId,
+          newStatusId
+        });
+      }
+    }
+
     return {
       message: "Journey status updated successfully",
       data: null,

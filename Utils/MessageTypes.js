@@ -247,10 +247,20 @@ const messageTypes = {
     details:
       "The front driver rejected or timed out; the order advances to the next driver in line.",
   },
+  queue_refusal_moved_to_back: {
+    message: "Driver moved to back of queue",
+    details:
+      "A driver reached the consecutive-refusal limit and was moved to the back of the line; the order still advances to the next driver.",
+  },
   queue_order_assigned: {
     message: "Order assigned from queue",
     details:
       "A driver accepted a queue order and left the queue (status loaded).",
+  },
+  queue_order_cancelled: {
+    message: "Queue order cancelled",
+    details:
+      "A queue order was cancelled at the job level; the holding driver entry is released back to waiting without a refusal count.",
   },
   queue_removed: {
     message: "Removed from queue",

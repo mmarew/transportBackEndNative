@@ -96,7 +96,7 @@ async function createJourneyDecisionForAssignment(
       (journeyDecisionUniqueId, shipperRequestId, driverRequestId,
        journeyStatusId, decisionTime, decisionBy,
        journeyDecisionCreatedBy, journeyDecisionCreatedAt)
-     VALUES (?, ?, ?, ?, ?, 'admin', ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, 'company', ?, ?)`,
     [
       journeyDecisionUniqueId,
       prRow.shipperRequestId,

@@ -76,7 +76,7 @@ disputes (7).**
 
 | Decision            | Choice                                                             |
 | ------------------- | ------------------------------------------------------------------ |
-| Rejection behavior  | Driver**keeps position**; the _order_ advances to the next driver  |
+| Rejection behavior  | Driver **keeps position**; the _order_ advances to the next driver. Escalation: after **N** consecutive front-position refusals (default 3, `QUEUE_REFUSAL_LIMIT`) the driver moves to the back of the line — see [queue-refusal-policy.md](queue-refusal-policy.md) |
 | Queue scope / reset | Per**queue organization**, resets daily (`queueDate`)              |
 | Offer timeout       | **3 minutes** by default (`QUEUE_OFFER_WINDOW_MINUTES`, env-configurable), auto-advance the order on no response |
 | On accept / load    | Driver is**removed from the queue** (marked `loaded`)              |

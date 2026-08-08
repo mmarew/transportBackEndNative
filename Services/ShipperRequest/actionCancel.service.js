@@ -236,7 +236,9 @@ const cancelShipperRequest = async body => {
           await updateNegativeJourneyStatus({
             driverRequestId,
             journeyDecisionUniqueId,
-            newStatusId: cancellationJourneyStatusId
+            newStatusId: cancellationJourneyStatusId,
+            // Queue release happens once, after this transaction commits.
+            skipQueueRelease: true
           });
 
           // Store driverRequestId and journeyDecision for notification after transaction
@@ -252,6 +254,24 @@ const cancelShipperRequest = async body => {
       // 20 second timeout for critical cancellation operation
       logging: true // Log transaction operations
     });
+
+    // 3. Queue-dispatch order cancelled at the job level: release any driver
+    //    entry still holding this order's offer back to waiting (position kept,
+    //    no refusal counted). No-op for non-queue orders and no-offer states.
+    if (shipperRequest?.queueOrganizationUniqueId) {
+      try {
+        const { releaseEntryOnOrderCancel } = require("../DriverQueue.service");
+        await releaseEntryOnOrderCancel({
+          shipperRequestUniqueId,
+          user: { userUniqueId },
+        });
+      } catch (error) {
+        logger.error("Error releasing queue entry on order cancel", {
+          error: error.message,
+          shipperRequestUniqueId,
+        });
+      }
+    }
 
     // After transaction commits successfully, send notifications
     if (journeyDecisions.length && driverNotificationData.length) {
