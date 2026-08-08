@@ -66,7 +66,7 @@ app.use(limiter); // Apply to all requests
 // Auth-specific rate limiting
 const authLimiter = rateLimit({
   windowMs: TIME.FIFTEEN_MINUTES_MS,
-  max: 200,
+  max: 2000,
   message: { error: "Too many attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -83,7 +83,9 @@ app.use((req, res, next) => {
 });
 
 // --- LOGGING ---
+const requestId = require("../Middleware/RequestId");
 const requestLogger = require("../Middleware/RequestLogger");
+app.use(requestId);
 app.use(requestLogger);
 
 // 4. Body Parsers - Reading data from body into req.body

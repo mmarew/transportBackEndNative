@@ -41,17 +41,24 @@ const sendErrorDev = (err, req, res) => {
 };
 
 const sendErrorProd = (err, req, res) => {
-  // Log all errors server-side for debugging
+  // Log all errors server-side for debugging (4xx and 5xx) into the same
+  // error log so E2E-to-backend correlation is complete.
   if (err.statusCode >= HTTP_STATUS.BAD_REQUEST && err.statusCode < HTTP_STATUS.INTERNAL_SERVER_ERROR) {
-    logger.warn("Client Error", {
+    logger.error("Client Error", {
       type: "CLIENT_ERROR",
       message: err.message,
       code: err.code,
       statusCode: err.statusCode,
+      stack: err.stack,
       path: req.originalUrl,
       method: req.method,
       ip: req.ip,
+      requestId: req.requestId,
       userId: req.user?.userId,
+      userUniqueId: req.user?.userUniqueId,
+      body: logger.application.sanitizeData(req.body),
+      params: req.params,
+      query: req.query,
     });
   } else {
     logger.application.apiError(err, req);
@@ -92,6 +99,7 @@ module.exports = (err, req, res, next) => {
 
   err.statusCode = err.statusCode || AppError.INTERNAL_SERVER_ERROR;
   err.status = err.status || "error";
+  res.locals.apiErrorLogged = true;
 
   if (Config.NODE_ENV === "development") {
     sendErrorDev(err, req, res);

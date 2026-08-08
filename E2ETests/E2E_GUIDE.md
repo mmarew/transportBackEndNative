@@ -83,8 +83,7 @@ E2ETests/
 │   └── SMSSender.js              ← testSMSSenderWorkflow (CRUD for SMS sender config)
 │
 ├── Roles/
-│   ├── index.js                  ← testGetRoles, testCreateRoles, testRolesWorkFlows
-│   └── UserStatus.js             ← testUserStatusWorkflow (Status CRUD)
+│   └── index.js                  ← testGetRoles, testCreateRoles, testRolesWorkFlows
 │
 ├── Driver/
 │   ├── index.js                  ← testDriverOnboardingFlow

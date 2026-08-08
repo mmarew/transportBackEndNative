@@ -38,6 +38,26 @@ const requestLogger = (req, res, next) => {
     // Log the completed request
     logger.application.apiRequest(req, res, responseTime);
 
+    // Any >=400 response that wasn't routed through the global error handler
+    // (e.g. a direct res.status(...).json(...)) must still reach the error log
+    // so backend errors are captured in one place.
+    if (
+      res.statusCode >= 400 &&
+      !res.locals.apiErrorLogged
+    ) {
+      logger.error("Client Error", {
+        type: "CLIENT_ERROR",
+        message: `HTTP ${res.statusCode}`,
+        statusCode: res.statusCode,
+        path: req.originalUrl,
+        method: req.method,
+        ip: req.ip,
+        requestId: req.requestId,
+        userId: req.user?.userId,
+        userUniqueId: req.user?.userUniqueId,
+      });
+    }
+
     // Log slow requests
     if (responseTime > SLOW_REQUEST_THRESHOLD_MS) {
       logger.warn("Slow Request", {

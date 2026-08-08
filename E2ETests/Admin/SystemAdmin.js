@@ -184,22 +184,6 @@ const testSendNotificationToTokens = async () => {
   }
 };
 
-const testGetUserStatusById = async () => {
-  const token = usersData?.admin?.token;
-  if (!token) return report.skip("GET /api/admin/userStatuses/:id", "no admin token");
-  console.log("\n── GET /api/admin/userStatuses/:id ──");
-  try {
-    const res = await axios.get(backendURL + "/api/admin/userStatuses/1", authConfig(token));
-    report.pass(`GET /api/admin/userStatuses/:id — ${res.data?.message || "ok"}`);
-  } catch (err) {
-    const msg = errMsg(err);
-    if (msg.includes("ER_NO_SUCH_TABLE")) {
-      return report.skip("GET /api/admin/userStatuses/:id", "DB table mismatch — 'UserStatuses' vs 'userstatuses'");
-    }
-    report.fail("GET /api/admin/userStatuses/:id", msg);
-  }
-};
-
 const testGetUserRoleStatusByPhone = async () => {
   const token = usersData?.admin?.token;
   if (!token) return report.skip("GET /api/admin/userRoleStatus/byPhone", "no admin token");
@@ -311,7 +295,6 @@ const runSystemAdminTests = async () => {
   await testSendNotificationToTokens();
 
   console.log("\n── System Admin: Roles & DB ──");
-  await testGetUserStatusById();
   await testGetUserRoleStatusByPhone();
   await testGetUserRoleStatusCurrent();
   await testGetTableColumns();
@@ -348,7 +331,6 @@ module.exports = {
   testCreateUserByAdmin,
   testSendNotificationToUser,
   testSendNotificationToTokens,
-  testGetUserStatusById,
   testGetUserRoleStatusByPhone,
   testGetTableColumns,
   testAcceptRejectAttachedDocuments,

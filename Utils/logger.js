@@ -220,6 +220,7 @@ class ApplicationLogger {
       path: req.originalUrl,
       method: req.method,
       ip: req.ip,
+      requestId: req.requestId,
       userId: req.user?.userId,
       userUniqueId: req.user?.userUniqueId,
       body: this.sanitizeData(req.body),

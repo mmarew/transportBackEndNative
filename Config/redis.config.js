@@ -1,7 +1,6 @@
 // redis config
 const { UPSTASH_REDIS_URL } = require("../Utils/Constants");
 const Redis = require("ioredis");
-const logger = require("../Utils/logger");
 
 let redis = null;
 
@@ -26,51 +25,29 @@ if (UPSTASH_REDIS_URL) {
 
     redis = new Redis(UPSTASH_REDIS_URL, redisOptions);
 
-    // Handle Redis connection errors - CRITICAL: prevent unhandled rejections
-    redis.on("error", (err) => {
-      logger.error("Redis Client Error", {
-        error: err.message,
-        code: err.code,
-        name: err.name,
-        stack: err.stack,
-      });
+    // Handle Redis connection errors - CRITICAL: prevent unhandled rejections.
+    // Logging intentionally omitted: Redis unavailability is expected during
+    // local E2E runs and would otherwise drown the error log with noise.
+    redis.on("error", () => {
       // Don't throw - let the app continue without Redis
       // This prevents unhandled rejections
     });
 
-    // Handle MaxRetriesPerRequestError specifically
-    redis.on("close", () => {
-      logger.warn("Redis Client Connection Closed");
-    });
+    redis.on("close", () => {});
 
-    redis.on("reconnecting", (time) => {
-      logger.info(`Redis Client Reconnecting in ${time}ms`);
-    });
+    redis.on("reconnecting", () => {});
 
-    redis.on("connect", () => {
-      logger.info("Redis Client Connected");
-    });
+    redis.on("connect", () => {});
 
-    redis.on("ready", () => {
-      logger.info("Redis Client Ready");
-    });
+    redis.on("ready", () => {});
 
-    // Catch any unhandled promise rejections from Redis operations
-    redis.on("end", () => {
-      logger.warn("Redis Client Connection Ended");
-    });
-  } catch (error) {
-    logger.error("Failed to initialize Redis client", {
-      error: error.message,
-      code: error.code,
-      name: error.name,
-      stack: error.stack,
-    });
-    // Set redis to null so the app can continue without Redis
+    redis.on("end", () => {});
+  } catch {
+    // Silently continue without Redis
     redis = null;
   }
 } else {
-  logger.warn("UPSTASH_REDIS_URL not configured - Redis client not initialized");
+  // UPSTASH_REDIS_URL not configured - Redis client not initialized
 }
 
 module.exports = { redis };

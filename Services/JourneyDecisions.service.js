@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { pool } = require("../Middleware/Database.config");
 const { transactionStorage } = require("../Utils/TransactionContext");
 const { getData } = require("../CRUD/Read/ReadData");
+const { updateData } = require("../CRUD/Update/Data.update");
 const logger = require("../Utils/logger");
 const AppError = require("../Utils/AppError");
 const { journeyStatusMap } = require("../Utils/ListOfSeedData");
@@ -494,34 +495,12 @@ exports.updateJourneyDecision = async ({
       }
     }
 
-    // Build the SET clause dynamically based on the updateValues object
-    const setColumns = Object.keys(updateValues);
-    const setValues = Object.values(updateValues);
-    const setClause = setColumns.map((col) => `${col} = ?`).join(", ");
-
-    // Build the WHERE clause dynamically based on the conditions object
-    const conditionClauses = [];
-    const conditionValues = [];
-
-    Object.entries(conditions).forEach(([col, value]) => {
-      if (Array.isArray(value)) {
-        // If value is an array, use the SQL IN clause
-        conditionClauses.push(`${col} IN (${value.map(() => "?").join(", ")})`);
-        conditionValues.push(...value);
-      } else {
-        conditionClauses.push(`${col} = ?`);
-        conditionValues.push(value);
-      }
+    // Build the SET/WHERE clauses via the shared updateData helper.
+    const result = await updateData({
+      tableName: "JourneyDecisions",
+      updateValues,
+      conditions,
     });
-
-    const whereClause = conditionClauses.join(" AND ");
-    const sqlQuery = `UPDATE JourneyDecisions SET ${setClause} WHERE ${whereClause}`;
-
-    const executor = transactionStorage.getStore() || pool;
-    const [result] = await executor.query(sqlQuery, [
-      ...setValues,
-      ...conditionValues,
-    ]);
 
     if (result.affectedRows > 0) {
       return {
@@ -529,12 +508,26 @@ exports.updateJourneyDecision = async ({
         data: null,
         affectedRows: result.affectedRows,
       };
-    } else {
-      throw new AppError(
-        "No journey decision found matching the conditions",
-        AppError.NOT_FOUND,
-      );
     }
+
+    // MySQL reports affectedRows = 0 when the UPDATE matched a row but every
+    // value was already identical (a no-op). Distinguish that from "no row
+    // matched the conditions" before reporting NOT_FOUND.
+    const existing = await getData({
+      tableName: "JourneyDecisions",
+      conditions,
+    });
+    if (existing.length > 0) {
+      return {
+        message: "Journey decision updated successfully",
+        data: null,
+        affectedRows: 0,
+      };
+    }
+    throw new AppError(
+      "No journey decision found matching the conditions",
+      AppError.NOT_FOUND,
+    );
   } catch (error) {
     throw new AppError(
       error.message || "Failed to update journey decision",

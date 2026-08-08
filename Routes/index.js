@@ -25,7 +25,6 @@ const routesArray = [
     path: "/api/admin/userRoleStatus",
     handler: require("./UserRoleStatus.routes"),
   },
-  { path: "/api/admin/userStatuses", handler: require("./UserStatus.routes") },
   { path: "/api/admin/userRole", handler: require("./UserRole.routes") },
   { path: "/api/admin/vehicleTypes", handler: require("./VehicleType.routes") },
   { path: "/api/vehicleDriver", handler: require("./VehicleDriver.routes") },

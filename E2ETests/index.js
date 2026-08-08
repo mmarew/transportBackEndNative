@@ -1,5 +1,7 @@
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+const { initLogCapture } = require("./logCapture");
+initLogCapture();
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
 const { resetDatabase, ensureJourneyLocationColumns } = require("./DataBaseManagement");
@@ -7,6 +9,7 @@ const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
 const { testUpdateUserWithFileUpload } = require("./Auth/User");
+const { testGetAccountData } = require("./Auth/Account");
 const {
   testDeleteUser,
   testUpdateCompany,
@@ -24,7 +27,6 @@ const { runSystemAdminTests } = require("./Admin");
 const { runShipperSupplementaryTests } = require("./Shipper");
 const { runCompanySupplementaryTests } = require("./Company");
 const { runUserBalanceTests } = require("./Finance");
-const { runStatusSupplementaryTests } = require("./Status");
 const { runDelinquencySupplementaryTests } = require("./Delinquency");
 const {
   testGetAttachedDocuments,
@@ -68,7 +70,7 @@ const {
   testVerifyPhoneGet,
   testVerifyPhonePost,
 } = require("./Auth/User");
-const { usersData } = require("./constants");
+const { usersData, USER_STATUS } = require("./constants");
 const { report } = require("./Reporter");
 const { ensureCoreUsers } = require("./Auth/bootstrap");
 
@@ -123,6 +125,20 @@ const initiateTest = async () => {
     await fetchUnAuthorizedDrivers({});
     await authorizeDriversDocuments({});
     console.log("✅ Driver documents authorized\n");
+
+    // The driver MUST be ACTIVE after document approval. Concurrent approvals
+    // used to race their account-status recalcs, so the stored status could be
+    // left PENDING even when every document was accepted. Re-fetch account data
+    // (which recomputes against the final committed state) and fail loudly if
+    // the driver is not ACTIVE.
+    const driverAccount = await testGetAccountData({ userType: "driver" });
+    const driverStatus = driverAccount?.data?.status ?? driverAccount?.status;
+    if (driverStatus !== USER_STATUS.ACTIVE) {
+      throw new Error(
+        `Driver must be ACTIVE after document approval, got status ${driverStatus} (expected ${USER_STATUS.ACTIVE})`,
+      );
+    }
+    console.log(`✅ Driver is ACTIVE (status ${USER_STATUS.ACTIVE}) after document approval\n`);
 
     // ── Document Endpoint Tests ────────────────────────────────────────────────
     const runDocumentTests = async () => {
@@ -198,9 +214,12 @@ const initiateTest = async () => {
     };
 
     // ── Phase A-F ─────────────────────────────────────────────────────────────
-    await safe("runDocumentTests", runDocumentTests)();
+    // Ordering rule: the driver must stay ACTIVE through all journey-creating
+    // flows (individual, take-from-street, company, post-journey). Document
+    // endpoint tests delete a driver document, which recalculates the account
+    // status, so they run only AFTER all journey flows complete. Company
+    // endpoint tests need the company membership created in runCompanyFlow.
     await safe("runFCMTokenTests", runFCMTokenTests)();
-    await safe("runCompanyEndpointTests", runCompanyEndpointTests)();
     await safe("runUserBalanceTransferTests", runUserBalanceTransferTests)();
     await safe("runUserDepositTests", runUserDepositTests)();
     await safe("runUserSubscriptionTests", runUserSubscriptionTests)();
@@ -210,7 +229,9 @@ const initiateTest = async () => {
     await safe("runTakeFromStreetFlow", runTakeFromStreetFlow)();
     await safe("testUpdateUserWithFileUpload", testUpdateUserWithFileUpload)();
     await safe("runCompanyFlow", runCompanyFlow)();
+    await safe("runCompanyEndpointTests", runCompanyEndpointTests)();
     await safe("runPostJourneyCRUD", runPostJourneyCRUD)();
+    await safe("runDocumentTests", runDocumentTests)();
     await safe("runDelinquencyTests", runDelinquencyTests)();
     await safe("runAnalyticsAndAdminTests", runAnalyticsAndAdminTests)();
 
@@ -259,7 +280,6 @@ const initiateTest = async () => {
     await safe("runShipperSupplementaryTests", runShipperSupplementaryTests)();
     await safe("runCompanySupplementaryTests", runCompanySupplementaryTests)();
     await safe("runUserBalanceTests", runUserBalanceTests)();
-    await safe("runStatusSupplementaryTests", runStatusSupplementaryTests)();
     await safe("runDelinquencySupplementaryTests", runDelinquencySupplementaryTests)();
     await safe("testReportWrongEmail", testReportWrongEmail)();
     await safe("testVerifyEmail", testVerifyEmail)();
@@ -283,6 +303,7 @@ const initiateTest = async () => {
       console.log(
         "\n✅ ========== E2E TEST COMPLETED SUCCESSFULLY ==========\n",
       );
+      process.exit(0);
     } else {
       console.error("\n❌ ========== E2E TEST FAILED ==========\n");
       process.exit(1);

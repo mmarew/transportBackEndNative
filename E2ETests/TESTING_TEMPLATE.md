@@ -207,7 +207,6 @@ For each route/table, ensure:
 
 7. **Status Management**
    - [ ] Status
-   - [ ] UserStatus
    - [ ] UserRoleStatus
 
 8. **Miscellaneous**

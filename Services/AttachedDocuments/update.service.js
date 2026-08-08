@@ -38,6 +38,51 @@ const {
 } = require("../../Utils/TransactionContext");
 const messageTypes = require("../../Utils/MessageTypes");
 
+// ── Per-target-user status recalculation queue ────────────────────────────
+// Concurrent document approvals used to fire one async accountStatus per doc.
+// Those reads+writes raced: a recalc that started early could read a stale
+// snapshot (documents still PENDING) and overwrite the correct ACTIVE status.
+// Serializing recalcs per resolved user guarantees the final recalc runs
+// against the committed, final document state.
+const recalcQueues = new Map();
+
+const enqueueRecalc = (key, fn) => {
+  const prev = recalcQueues.get(key) || Promise.resolve();
+  const next = prev.then(fn, fn);
+  recalcQueues.set(key, next);
+  next.finally(() => {
+    if (recalcQueues.get(key) === next) {
+      recalcQueues.delete(key);
+    }
+  });
+  return next;
+};
+
+// Resolve the user(s) whose account status must be recalculated after a
+// document acceptance/rejection:
+//  - user docs    → the owning user, with the role the document belongs to
+//  - vehicle docs → the active driver(s) assigned to that vehicle (role = driver)
+const resolveRecalcTargets = async ({ ownerType, ownerUniqueId, roleId }) => {
+  const executor = transactionStorage.getStore() || pool;
+  if (ownerType === "user") {
+    return [{ ownerUserUniqueId: ownerUniqueId, roleId }];
+  }
+  if (ownerType === "vehicle") {
+    const [rows] = await executor.query(
+      `SELECT driverUserUniqueId FROM VehicleDriver
+        WHERE vehicleUniqueId = ?
+          AND assignmentStatus = 'active'
+          AND vehicleDriverDeletedAt IS NULL`,
+      [ownerUniqueId]
+    );
+    return rows.map((row) => ({
+      ownerUserUniqueId: row.driverUserUniqueId,
+      roleId: usersRoles.driverRoleId
+    }));
+  }
+  return [];
+};
+
 const updateAttachedDocument = async ({
   attachedDocumentUniqueId,
   roleId,
@@ -291,50 +336,73 @@ const acceptRejectAttachedDocuments = async body => {
   // Run AFTER the transaction closes to avoid deadlocking the connection pool.
   // accountStatus calls getUserByFilterDetailed which uses pool directly —
   // calling it inside a transaction starves the pool and causes a timeout.
-  if (ownerType === "user") {
+  if (ownerType === "user" || ownerType === "vehicle") {
     setImmediate(async () => {
+      let targets;
       try {
-        await accountStatus({
-          ownerUserUniqueId: ownerUniqueId,
-          body: {
-            roleId
-          }
+        targets = await resolveRecalcTargets({
+          ownerType,
+          ownerUniqueId,
+          roleId
         });
-      } catch (statusError) {
-        logger.error("Post-commit: failed to update user status after document action", {
-          error: statusError.message,
+      } catch (resolveError) {
+        logger.error("Post-commit: failed to resolve status recalculation targets", {
+          error: resolveError.message,
+          ownerType,
           ownerUniqueId,
           roleId,
           action
         });
+        return;
       }
-      try {
-        if (Number(roleId) === usersRoles.adminRoleId) {
-          message.messageType = messageTypes?.accept_reject_driver_document;
-          sendSocketIONotificationToAdmin({
-            message,
-            phoneNumber
-          });
-        }
-        if (Number(roleId) === usersRoles.driverRoleId) {
-          message.messageType = "acceptOrRejectDriverDocument";
-          sendSocketIONotificationToDriver({
-            message,
-            phoneNumber
-          });
-        }
-        if (Number(roleId) === usersRoles.shipperRoleId) {
-          sendSocketIONotificationToShipper({
-            message,
-            phoneNumber
-          });
-        }
-      } catch (notifError) {
-        logger.error("Post-commit: socket notification failed", {
-          error: notifError.message,
-          ownerUniqueId,
-          roleId
+      for (const target of targets) {
+        await enqueueRecalc(target.ownerUserUniqueId, async () => {
+          try {
+            await accountStatus({
+              ownerUserUniqueId: target.ownerUserUniqueId,
+              body: {
+                roleId: target.roleId
+              }
+            });
+          } catch (statusError) {
+            logger.error("Post-commit: failed to update user status after document action", {
+              error: statusError.message,
+              ownerUserUniqueId: target.ownerUserUniqueId,
+              roleId: target.roleId,
+              action
+            });
+          }
         });
+      }
+      if (ownerType === "user") {
+        try {
+          if (Number(roleId) === usersRoles.adminRoleId) {
+            message.messageType = messageTypes?.accept_reject_driver_document;
+            sendSocketIONotificationToAdmin({
+              message,
+              phoneNumber
+            });
+          }
+          if (Number(roleId) === usersRoles.driverRoleId) {
+            message.messageType = "acceptOrRejectDriverDocument";
+            sendSocketIONotificationToDriver({
+              message,
+              phoneNumber
+            });
+          }
+          if (Number(roleId) === usersRoles.shipperRoleId) {
+            sendSocketIONotificationToShipper({
+              message,
+              phoneNumber
+            });
+          }
+        } catch (notifError) {
+          logger.error("Post-commit: socket notification failed", {
+            error: notifError.message,
+            ownerUniqueId,
+            roleId
+          });
+        }
       }
     });
   }

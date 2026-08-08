@@ -40,7 +40,9 @@ const testGetBatchSlots = async ({ user, batchUniqueId } = {}) => {
     }
     const url = BASE_URL + `/${id}/slots`;
     const result = await axios.get(backendURL + url, authConfig(token));
-    console.log("✅ Batch slots fetched:", result.data?.data?.length ?? 0);
+    const slots = result.data?.data || [];
+    cache.slots = Array.isArray(slots) ? slots : [];
+    console.log("✅ Batch slots fetched:", cache.slots.length);
     return result.data;
   } catch (error) {
     console.error("❌ testGetBatchSlots:", error.response?.data?.error || error.message);
@@ -59,8 +61,9 @@ const testCancelBatch = async ({ user, batchUniqueId } = {}) => {
       return { skipped: true };
     }
     const url = BASE_URL + `/${id}/cancel`;
-    // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — use seeded reason ID 1
-    const result = await axios.put(backendURL + url, { cancellationReasonsTypeId: 1 }, authConfig(token));
+    // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — reason 12 has
+    // requestMode 'company' and is valid for company freight batches (reasons 1-11 are 'individual').
+    const result = await axios.put(backendURL + url, { cancellationReasonsTypeId: 12 }, authConfig(token));
     console.log("✅ Batch canceled:", id);
     return result.data;
   } catch (error) {
@@ -86,7 +89,19 @@ const testPartialCancelBatch = async ({ user, batchUniqueId, payload } = {}) => 
       return { skipped: true };
     }
     const url = BASE_URL + `/${id}/partialCancel`;
-    const defaultPayload = { cancelCount: 1, ...payload };
+    // Backend expects slotIds: array of the slots' shipperRequestUniqueId
+    // (NOT a cancelCount). Use the first slot from the previously fetched
+    // /slots response, with a company-valid cancellation reason (id 12).
+    const slot = (cache.slots || []).find((s) => s?.shipperRequestUniqueId);
+    if (!slot?.shipperRequestUniqueId) {
+      console.log("⏩ testPartialCancelBatch skipped — no slots to cancel");
+      return { skipped: true };
+    }
+    const defaultPayload = {
+      slotIds: [slot.shipperRequestUniqueId],
+      cancellationReasonsTypeId: 12,
+      ...payload,
+    };
     const result = await axios.put(backendURL + url, defaultPayload, authConfig(token));
     console.log("✅ Batch partially canceled:", id);
     return result.data;
