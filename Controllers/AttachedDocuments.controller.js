@@ -388,7 +388,7 @@ const createAttachedDocuments = async (req, res, next) => {
           hasDuplicates
             ? `All new documents failed to upload. ${duplicateCount} duplicate(s) were skipped.`
             : "All documents failed to upload",
-          500,
+          AppError.INTERNAL_SERVER_ERROR,
         ),
       );
     }

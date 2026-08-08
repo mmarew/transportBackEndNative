@@ -185,7 +185,7 @@ const verifyShippersIdentity = async (req, res, next) => {
     if (statusId !== USER_STATUS.ACTIVE) {
       throw new AppError(
         `Shipper in inactive status (statusId: ${statusId}). Shippers should have statusId 1 (active).`,
-        403,
+        AppError.FORBIDDEN,
       );
     }
 
@@ -233,7 +233,7 @@ const verifyCancelShipperRequestAuthorization = async (req, res, next) => {
     // If we reach here, user is not owner and not admin - deny access
     throw new AppError(
       "Unauthorized: You can only cancel your own requests or must be an admin/super admin",
-      403,
+      AppError.FORBIDDEN,
     );
   } catch (error) {
     next(error);

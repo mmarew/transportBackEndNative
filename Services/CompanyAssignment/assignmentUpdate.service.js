@@ -80,7 +80,7 @@ exports.createBulkAssignments = async (data) => {
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
       "Bid must be accepted_by_shipper before creating assignments",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -108,7 +108,7 @@ exports.createBulkAssignments = async (data) => {
     if (existingAssignment) {
       throw new AppError(
         `Slot ${shipperRequestUniqueId} already has an active assignment`,
-        409,
+        AppError.CONFLICT,
       );
     }
 

@@ -443,7 +443,7 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
     if (!membership || membership.length === 0) {
       throw new AppError(
         "User is not an active member of any transport company",
-        403,
+        AppError.FORBIDDEN,
       );
     }
     //if filters.companyUniqueId is provided, check if the user is a member of that company
@@ -454,7 +454,7 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
       if (!isMember) {
         throw new AppError(
           "Access Denied: You are not an active member of the specified company",
-          403,
+          AppError.FORBIDDEN,
         );
       }
       resolvedCompanyUniqueId = filters?.companyUniqueId;
@@ -466,7 +466,7 @@ const getBids = async (filters = {}, userUniqueId = null, roleId = null) => {
         //if the user is a member of multiple companies, throw an error
         throw new AppError(
           "You belong to multiple companies. Please provide companyUniqueId in your query to specify which company you are fetching data for.",
-          400,
+          AppError.BAD_REQUEST,
         );
       }
     }

@@ -38,7 +38,7 @@ const createShipperRequest = async (req, res, next) => {
     ) {
       throw new AppError(
         "Missing required fields to create shipper request",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -65,7 +65,7 @@ const createShipperRequest = async (req, res, next) => {
           if (!shipperPhoneNumber) {
             throw new AppError(
               "shipperPhoneNumber is required when an admin creates request for shipper",
-              400,
+              AppError.BAD_REQUEST,
             );
           }
           const randNumber = Math.floor(1000 + Math.random() * 900000);
@@ -82,7 +82,7 @@ const createShipperRequest = async (req, res, next) => {
           if (createdUser?.message === "error") {
             throw new AppError(
               createdUser.error || "Failed to create user for shipper",
-              400,
+              AppError.BAD_REQUEST,
             );
           }
 
@@ -92,7 +92,7 @@ const createShipperRequest = async (req, res, next) => {
           if (!userUniqueId) {
             throw new AppError(
               "Failed to get userUniqueId from created user",
-              500,
+              AppError.INTERNAL_SERVER_ERROR,
             );
           }
 
@@ -252,7 +252,7 @@ const cancelShipperRequest = async (req, res, next) => {
     if (!shipperRequestUniqueId || !userUniqueId || !roleId) {
       throw new AppError(
         "shipperRequestUniqueId is required in request body",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 

@@ -43,7 +43,7 @@ const createUserDeposit = async (data) => {
     if (!accountUniqueId) {
       throw new AppError(
         "accountUniqueId is required for manual deposits",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     if (!depositTime) {

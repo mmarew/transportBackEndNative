@@ -117,7 +117,7 @@ const checkDuplicateDocuments = async (req, res, next) => {
         // If all files were duplicates, return error
         if (filteredFiles.length === 0) {
           return next(
-            new AppError("All documents are already uploaded", 400, {
+            new AppError("All documents are already uploaded", AppError.BAD_REQUEST, {
               duplicateTypes: duplicateFieldNames,
               documentTypeIds: duplicates.map((d) => d.documentTypeId),
             }),

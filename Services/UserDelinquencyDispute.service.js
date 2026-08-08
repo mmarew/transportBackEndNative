@@ -52,7 +52,7 @@ const createDelinquencyResponse = async ({
   if (existing) {
     throw new AppError(
       "A response already exists for this delinquency. You cannot submit more than one.",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -239,7 +239,7 @@ const updateDelinquencyResponse = async ({
   if (decision) {
     throw new AppError(
       "Cannot edit response — an admin decision has already been issued",
-      409,
+      AppError.CONFLICT,
     );
   }
 

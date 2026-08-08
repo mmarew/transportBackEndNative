@@ -128,7 +128,7 @@ const findStatusByVehicleAndDocuments = (data) => {
   const AppError = require("./AppError");
   throw new AppError(
     "Unable to determine driver's status with provided data.",
-    400,
+    AppError.BAD_REQUEST,
   );
 };
 module.exports = { findStatusByVehicleAndDocuments };

@@ -23,7 +23,7 @@ router.get(HEALTH_ENDPOINTS.HEALTH_CHECK, async (req, res, next) => {
       db = "down";
     }
 
-    const statusCode = db === "up" ? 200 : 503;
+    const statusCode = db === "up" ? HTTP_STATUS.OK : HTTP_STATUS.SERVICE_UNAVAILABLE;
     return res.status(statusCode).json({
       message: "success",
       status: "ok",
@@ -43,10 +43,10 @@ router.get(HEALTH_ENDPOINTS.DATABASE_HEALTH, async (req, res) => {
     const health = await checkDatabaseHealth();
     const statusCode =
       health.status === "healthy"
-        ? 200
+        ? HTTP_STATUS.OK
         : health.status === "degraded"
-          ? 200
-          : 503;
+          ? HTTP_STATUS.OK
+          : HTTP_STATUS.SERVICE_UNAVAILABLE;
     res.status(statusCode).json(health);
   } catch {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({

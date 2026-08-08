@@ -2,6 +2,7 @@ const AppError = require("../Utils/AppError");
 const ServerResponder = require("../Utils/ServerResponder");
 const logger = require("../Utils/logger");
 const Config = require("../Utils/Config");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}.`;
@@ -41,7 +42,7 @@ const sendErrorDev = (err, req, res) => {
 
 const sendErrorProd = (err, req, res) => {
   // Log all errors server-side for debugging
-  if (err.statusCode >= 400 && err.statusCode < 500) {
+  if (err.statusCode >= HTTP_STATUS.BAD_REQUEST && err.statusCode < HTTP_STATUS.INTERNAL_SERVER_ERROR) {
     logger.warn("Client Error", {
       type: "CLIENT_ERROR",
       message: err.message,
@@ -57,7 +58,7 @@ const sendErrorProd = (err, req, res) => {
   }
 
   // 4xx = client mistake (safe to expose), 5xx = server fault (mask internals)
-  const isClientError = err.statusCode >= 400 && err.statusCode < 500;
+  const isClientError = err.statusCode >= HTTP_STATUS.BAD_REQUEST && err.statusCode < HTTP_STATUS.INTERNAL_SERVER_ERROR;
   ServerResponder(
     res,
     {

@@ -62,7 +62,7 @@ const updateUserStatus = async (userStatusUniqueId, updateValues) => {
   if (result.affectedRows === 0) {
     throw new AppError(
       "Failed to update UserStatus or UserStatus not found",
-      404,
+      AppError.NOT_FOUND,
     );
   }
 
@@ -79,7 +79,7 @@ const deleteUserStatus = async (userStatusUniqueId) => {
   if (result.affectedRows === 0) {
     throw new AppError(
       "Failed to delete UserStatus or UserStatus not found",
-      404,
+      AppError.NOT_FOUND,
     );
   }
 

@@ -339,7 +339,7 @@ const sendFCMNotificationToUser = async ({
     if (tokensResult.message === "error") {
       throw new AppError(
         tokensResult.error || "FCM send failed",
-        tokensResult.statusCode || 500,
+        tokensResult.statusCode || AppError.INTERNAL_SERVER_ERROR,
       );
     }
     const tokens = tokensResult?.data?.filter(Boolean) || [];

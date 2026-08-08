@@ -137,7 +137,7 @@ const cancelDriverRequest = async (data) => {
       if (!shipper || shipper.length === 0 || !shipper[0]?.phoneNumber) {
         throw new AppError(
           "Unable to fetch shipper details or phone number",
-          404,
+          AppError.NOT_FOUND,
         );
       }
 

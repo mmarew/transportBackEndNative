@@ -207,7 +207,7 @@ exports.updateTariffRateForVehicleType = async (
   if (result.affectedRows === 0) {
     throw new AppError(
       "Tariff rate for vehicle type not found or no changes made",
-      404,
+      AppError.NOT_FOUND,
     );
   }
 

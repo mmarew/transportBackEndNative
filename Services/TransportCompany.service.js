@@ -67,7 +67,7 @@ exports.createCompany = async (data) => {
         if (data[field] && existing.some((e) => e[field] === data[field])) {
           throw new AppError(
             `A company with this ${dupCheckFields[field]} already exists`,
-            409,
+            AppError.CONFLICT,
           );
         }
       }
@@ -374,7 +374,7 @@ exports.updateCompany = async (companyUniqueId, data, updatedBy) => {
         if (data[field] && existing.some((e) => e[field] === data[field])) {
           throw new AppError(
             `A company with this ${dupCheckFields[field]} already exists`,
-            409,
+            AppError.CONFLICT,
           );
         }
       }
@@ -508,7 +508,7 @@ exports.approveCompany = async (
         .join(", ");
       throw new AppError(
         `Cannot approve: the following mandatory documents are not yet accepted — ${names}`,
-        422,
+        AppError.UNPROCESSABLE_ENTITY,
       );
     }
 
@@ -522,7 +522,7 @@ exports.approveCompany = async (
     if (Number(memberCount) === 0) {
       throw new AppError(
         "Cannot approve a company with no members. At least one member (owner/admin) must be registered.",
-        422,
+        AppError.UNPROCESSABLE_ENTITY,
       );
     }
   }

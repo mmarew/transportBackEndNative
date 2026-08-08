@@ -55,7 +55,7 @@ exports.autoAssignBatch = async (data) => {
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
       "Bid must be accepted_by_shipper before creating assignments",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

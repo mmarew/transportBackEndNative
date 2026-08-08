@@ -100,7 +100,7 @@ const acceptShipperRequest = async (body) => {
     if (requestData.requestMode === "company_target") {
       throw new AppError(
         "This is a company batch request. Use PATCH /api/company/assignments/:assignmentUniqueId/status with assignmentStatus: 'confirmed_by_driver' instead.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -118,7 +118,7 @@ const acceptShipperRequest = async (body) => {
     if (currentStatusId !== journeyStatusMap.requested) {
       throw new AppError(
         "This request cannot be accepted at this time. The request may have already been processed or is no longer available for acceptance.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 

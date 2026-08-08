@@ -38,7 +38,7 @@ const assertCompanyCancellationReason = async (cancellationReasonsTypeId) => {
   if (!rows || rows.length === 0) {
     throw new AppError(
       `Cancellation reason ID ${cancellationReasonsTypeId} not found`,
-      404,
+      AppError.NOT_FOUND,
     );
   }
 
@@ -47,7 +47,7 @@ const assertCompanyCancellationReason = async (cancellationReasonsTypeId) => {
     throw new AppError(
       `Cancellation reason "${reason.cancellationReason}" is only valid for individual requests, not company freight batches. ` +
         `Please choose a reason with requestMode 'company' or 'both'.`,
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 };

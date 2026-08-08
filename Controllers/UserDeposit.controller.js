@@ -101,7 +101,7 @@ exports.initiateSantimPayPayment = async (req, res, next) => {
         const AppError = require("../Utils/AppError");
         throw new AppError(
           "Phone number not found in user profile. Please update your profile.",
-          400,
+          AppError.BAD_REQUEST,
         );
       }
 
@@ -142,10 +142,12 @@ exports.handleSantimPayWebhook = async (req, res) => {
         status: "error",
         error: error.message || "Webhook processing failed",
       },
-      200,
+      HTTP_STATUS.OK,
     );
   }
 };
+
+// Webhook handler
 
 exports.getSignedToken = async (req, res, next) => {
   try {

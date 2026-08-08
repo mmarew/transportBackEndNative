@@ -40,7 +40,7 @@ const createAdminDecision = async ({
   if (decisionOutcome === "REDUCED" && delinquencyPointsAfter === null) {
     throw new AppError(
       "delinquencyPointsAfter is required when decisionOutcome is REDUCED",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -66,7 +66,7 @@ const createAdminDecision = async ({
     if (!response) {
       throw new AppError(
         "Response not found or does not belong to this delinquency",
-        404,
+        AppError.NOT_FOUND,
       );
     }
   }
@@ -82,7 +82,7 @@ const createAdminDecision = async ({
   if (existingDecision) {
     throw new AppError(
       "An admin decision already exists for this delinquency",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

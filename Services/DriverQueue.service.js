@@ -166,7 +166,7 @@ exports.checkin = async (data) => {
       // another org's entry.
       throw new AppError(
         "Driver is already in a queue for today — one queue per day",
-        409,
+        AppError.CONFLICT,
       );
     }
     // Idempotent: already in THIS queue today — return the existing entry.
@@ -478,7 +478,7 @@ exports.manualCheckin = async (data) => {
       // FENCE: driver already active in another org today.
       throw new AppError(
         "Driver is already in a queue for today — one queue per day",
-        409,
+        AppError.CONFLICT,
       );
     }
     // Idempotent: already in THIS queue today — return the existing entry.
@@ -958,7 +958,7 @@ const offerToDriver = async ({
       if (throwIfNone) {
         throw new AppError(
           "No waiting driver in this vehicle type's queue",
-          404,
+          AppError.NOT_FOUND,
         );
       }
       return { offered: false, data: null };

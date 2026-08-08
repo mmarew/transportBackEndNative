@@ -152,7 +152,7 @@ module.exports = [
 
   // 6. Test files configuration
   {
-    files: ["**/*.test.js", "**/tests/**/*.js", "E2ETests/**/*.js"],
+    files: ["**/*.test.js", "**/tests/**/*.js", "**/__tests__/**/*.js", "E2ETests/**/*.js"],
     rules: {
       "no-console": "off",
       "no-magic-numbers": "off", // tests use raw fixture values

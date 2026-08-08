@@ -69,7 +69,7 @@ const authorizeDocumentAccess = () => {
         // If target differs, only admins (handled above) are allowed.
         throw new AppError(
           "Forbidden: you can only access your own documents.",
-          403,
+          AppError.FORBIDDEN,
         );
       }
 
@@ -83,7 +83,7 @@ const authorizeDocumentAccess = () => {
         if (!canAccessCompany) {
           throw new AppError(
             "Forbidden: drivers and shippers cannot access company documents.",
-            403,
+            AppError.FORBIDDEN,
           );
         }
 
@@ -103,7 +103,7 @@ const authorizeDocumentAccess = () => {
         if (!membershipRows.length) {
           throw new AppError(
             "Forbidden: you are not a member of this company.",
-            403,
+            AppError.FORBIDDEN,
           );
         }
 
@@ -119,7 +119,7 @@ const authorizeDocumentAccess = () => {
         if (!allowedCompanyRoles.has(memberCompanyRoleUniqueId)) {
           throw new AppError(
             "Forbidden: your company role does not permit access to company documents.",
-            403,
+            AppError.FORBIDDEN,
           );
         }
 
@@ -143,7 +143,7 @@ const authorizeDocumentAccess = () => {
           if (!assignmentRows.length) {
             throw new AppError(
               "Forbidden: you are not assigned to this vehicle.",
-              403,
+              AppError.FORBIDDEN,
             );
           }
 
@@ -174,7 +174,7 @@ const authorizeDocumentAccess = () => {
           if (!companyVehicleRows.length) {
             throw new AppError(
               "Forbidden: this vehicle does not belong to your company.",
-              403,
+              AppError.FORBIDDEN,
             );
           }
 
@@ -184,7 +184,7 @@ const authorizeDocumentAccess = () => {
         // All other roles (shipper, etc.) are denied vehicle doc access.
         throw new AppError(
           "Forbidden: you do not have permission to access vehicle documents.",
-          403,
+          AppError.FORBIDDEN,
         );
       }
 

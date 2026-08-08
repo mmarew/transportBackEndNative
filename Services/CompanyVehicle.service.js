@@ -218,7 +218,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
     if (!membership || membership.length === 0) {
       throw new AppError(
         "User is not an active member of any transport company",
-        403,
+        AppError.FORBIDDEN,
       );
     }
 
@@ -229,7 +229,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
       if (!isMember) {
         throw new AppError(
           "Access Denied: You are not an active member of the specified company",
-          403,
+          AppError.FORBIDDEN,
         );
       }
       resolvedCompanyUniqueId = filters.companyUniqueId;
@@ -239,7 +239,7 @@ exports.getCompanyVehicles = async (filters = {}, user = {}) => {
       } else {
         throw new AppError(
           "You belong to multiple companies. Please provide companyUniqueId in your query to specify which company you are fetching data for.",
-          400,
+          AppError.BAD_REQUEST,
         );
       }
     }

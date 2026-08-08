@@ -2,6 +2,7 @@ const axios = require("axios");
 const AppError = require("./AppError");
 const Config = require("./Config");
 const logger = require("./logger");
+const { HTTP_STATUS } = require("./Constants");
 
 const sendSms = async (
   receiverPhoneNumber,
@@ -104,7 +105,7 @@ const sendSms = async (
     });
     const { status, data } = apiResponse;
 
-    if (status === 200) {
+    if (status === HTTP_STATUS.OK) {
       if (data && data.acknowledge === "success") {
         const successMessage = isOtpMessage
           ? "OTP sent successfully"
@@ -113,7 +114,7 @@ const sendSms = async (
       } else {
         throw new AppError(
           "SMS API returned error: " + data?.response?.errors?.[0],
-          502,
+          AppError.BAD_GATEWAY,
         );
       }
     } else {
@@ -132,7 +133,7 @@ const sendSms = async (
     if (error.response) {
       throw new AppError(
         `SMS API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
-        502,
+        AppError.BAD_GATEWAY,
       );
     } else if (error.request) {
       throw new AppError("SMS API: No response received from server", AppError.SERVICE_UNAVAILABLE);

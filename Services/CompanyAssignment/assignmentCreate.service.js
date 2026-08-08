@@ -56,7 +56,7 @@ exports.createAssignment = async (data) => {
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
       "Vehicles can only be assigned after the shipper accepts the bid",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -95,7 +95,7 @@ exports.createAssignment = async (data) => {
     if (!freeSlot) {
       throw new AppError(
         `All ${bid.numberOfVehiclesOffered} vehicle slots for this batch have already been assigned.`,
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -119,7 +119,7 @@ exports.createAssignment = async (data) => {
   if (existingAssignment) {
     throw new AppError(
       "This shipper request slot already has an active assignment",
-      409,
+      AppError.CONFLICT,
     );
   }
 
@@ -217,7 +217,7 @@ exports.createBulkAssignments = async (data) => {
   if (bid.bidStatus !== "accepted_by_shipper") {
     throw new AppError(
       "Vehicles can only be assigned after the shipper accepts the bid",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -245,7 +245,7 @@ exports.createBulkAssignments = async (data) => {
     if (existingAssignment) {
       throw new AppError(
         `Slot ${shipperRequestUniqueId} already has an active assignment`,
-        409,
+        AppError.CONFLICT,
       );
     }
 

@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const logger = require("./logger");
 const Config = require("./Config");
+const { HTTP_STATUS } = require("./Constants");
 
 /**
  * Formats a phone number for SantimPay requirements (+2519...).
@@ -178,7 +179,7 @@ async function generatePaymentUrl(id, amount, paymentReason, phoneNumber = "") {
       );
 
 
-      if (response.status === 200 && response.data.url) {
+      if (response.status === HTTP_STATUS.OK && response.data.url) {
         return response.data.url;
       } else {
         throw new Error("Failed to initiate payment: Invalid response");
@@ -224,7 +225,7 @@ async function checkTransactionStatus(id) {
       },
     );
 
-    if (response.status === 200) {
+    if (response.status === HTTP_STATUS.OK) {
       return response.data;
     } else {
       throw new Error("Failed to check transaction status");

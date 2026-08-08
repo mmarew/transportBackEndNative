@@ -1,6 +1,7 @@
 const AppError = require("../Utils/AppError");
 const { getData } = require("../CRUD/Read/ReadData");
 const ServerResponder = require("../Utils/ServerResponder");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 const toCamelCase = (str) => {
   return String(str)
@@ -30,7 +31,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
     });
 
     if (byName?.length > 0) {
-      return ServerResponder(res, byName[0], 200);
+      return ServerResponder(res, byName[0], HTTP_STATUS.OK);
     }
 
     const byUploadedName = await getData({
@@ -39,7 +40,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
     });
 
     if (byUploadedName?.length > 0) {
-      return ServerResponder(res, byUploadedName[0], 200);
+      return ServerResponder(res, byUploadedName[0], HTTP_STATUS.OK);
     }
 
     const byUploadedTypeId = await getData({
@@ -48,7 +49,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
     });
 
     if (byUploadedTypeId?.length > 0) {
-      return ServerResponder(res, byUploadedTypeId[0], 200);
+      return ServerResponder(res, byUploadedTypeId[0], HTTP_STATUS.OK);
     }
 
     return next();
@@ -60,7 +61,7 @@ const checkDocumentTypeExists = async (req, res, next) => {
           code: "DOCUMENT_TYPE_CHECK_FAILED",
           details: { error: error?.message },
         },
-        500,
+        AppError.INTERNAL_SERVER_ERROR,
       ),
     );
   }

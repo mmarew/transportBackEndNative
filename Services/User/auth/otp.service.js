@@ -142,7 +142,7 @@ const verifyUserByOTP = async (req) => {
     } else {
       throw new AppError(
         "Invalid OTP. Please check the code and try again.",
-        401,
+        AppError.UNAUTHORIZED,
       );
     }
   }

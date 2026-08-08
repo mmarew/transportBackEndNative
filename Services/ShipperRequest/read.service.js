@@ -965,7 +965,7 @@ const getShipperRequestByUniqueId = async (
     if (shipperRequestBatchUniqueId) {
       throw new AppError(
         "Shipper request does not belong to this bid's batch",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     throw new AppError("Shipper request not found", AppError.NOT_FOUND);

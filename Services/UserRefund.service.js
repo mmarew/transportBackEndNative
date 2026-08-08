@@ -4,6 +4,7 @@ const { getDriverLastBalanceByUserUniqueId } = require("./UserBalance.service/Us
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
 const messageTypes = require("../Utils/MessageTypes");
 const { v4: uuidv4 } = require("uuid");
+const { HTTP_STATUS } = require("../Utils/Constants");
 const { prepareAndCreateNewBalance } = require("./UserBalance.service/UserBalance.post.service");
 const { currentDate } = require("../Utils/CurrentDate");
 const { getUserByUserUniqueId } = require("./User.service");
@@ -61,7 +62,7 @@ const createUserRefund = async ({
   if (Number(currentBalance) < Number(refundAmount)) {
     throw new AppError(
       `Insufficient balance. Cannot request refund for amount greater than current balance. Current balance: ${currentBalance}, Requested amount: ${refundAmount}`,
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -249,7 +250,7 @@ const updateUserRefundByUniqueId = async (userRefundUniqueId, data) => {
       });
     } catch (error) {
       // If insufficient balance, update status to rejected
-      if (error.message === "no enough balance" || error.statusCode === 400) {
+      if (error.message === "no enough balance" || error.statusCode === HTTP_STATUS.BAD_REQUEST) {
         await executor.query(
           "UPDATE UserRefund SET refundStatus = ?, rejectReason = ?, updatedAt = ? WHERE userRefundUniqueId = ?",
           [

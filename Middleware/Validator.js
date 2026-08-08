@@ -24,7 +24,7 @@ const validator = (schema, source = "body") => {
       return next(
         new AppError(
           `Request body cannot be empty for ${req.method} requests to ${path}`,
-          400,
+          AppError.BAD_REQUEST,
         ),
       );
     }
@@ -55,7 +55,7 @@ const validator = (schema, source = "body") => {
             code: "VALIDATION_ERROR",
             details,
           },
-          400,
+          AppError.BAD_REQUEST,
         ),
       );
     }

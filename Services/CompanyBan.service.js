@@ -272,7 +272,7 @@ const banCompany = async ({
   ) {
     throw new AppError(
       "companyUniqueId, companyDelinquencyUniqueId, bannedBy, banReason, banDurationDays are required",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
   /**

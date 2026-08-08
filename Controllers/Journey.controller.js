@@ -281,7 +281,7 @@ exports.getJourneys = async (req, res, next) => {
         return next(
           new AppError(
             "Unauthorized access. Only admin can view all journeys",
-            403,
+            AppError.FORBIDDEN,
           ),
         );
       }

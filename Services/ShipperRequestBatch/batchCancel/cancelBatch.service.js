@@ -167,7 +167,7 @@ const cancelBatch = async ({
       `Cannot fully cancel this batch — all ${lockedSlots} slot(s) are either ` +
         `in transit (journeyStarted) or already completed/cancelled. ` +
         `No cancellable slots remain.`,
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

@@ -37,7 +37,7 @@ const verifyTokenOfAxios = async (req, res, next) => {
       return next(
         new AppError(
           "Account has been deleted and can no longer access the service",
-          403,
+          AppError.FORBIDDEN,
         ),
       );
     }
@@ -113,7 +113,7 @@ const verifyIfUserIsSupperAdmin = async (req, res, next) => {
     next(
       new AppError(
         "Sorry, unexpected error happened, you are not allowed to do this action",
-        401,
+        AppError.UNAUTHORIZED,
       ),
     );
   }
@@ -141,7 +141,7 @@ const verifyIfUserIsAdminOrSupperAdmin = async (req, res, next) => {
     next(
       new AppError(
         "Sorry, unexpected error happened, you are not allowed to do this action",
-        401,
+        AppError.UNAUTHORIZED,
       ),
     );
   }
@@ -170,7 +170,7 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
     next(
       new AppError(
         "Sorry, unexpected error happened, you are not allowed to do this action",
-        401,
+        AppError.UNAUTHORIZED,
       ),
     );
   }
@@ -199,7 +199,7 @@ const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
     next(
       new AppError(
         "Sorry, unexpected error happened, you are not allowed to do this action",
-        401,
+        AppError.UNAUTHORIZED,
       ),
     );
   }
@@ -233,7 +233,7 @@ const verifyIfUserIsAdminSuperAdminCompanyAdminOrQueueOrgAdmin = async (
     next(
       new AppError(
         "Sorry, unexpected error happened, you are not allowed to do this action",
-        401,
+        AppError.UNAUTHORIZED,
       ),
     );
   }

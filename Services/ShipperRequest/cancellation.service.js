@@ -253,7 +253,7 @@ const markCancellationAsSeen = async ({
     if (!userUniqueId || !journeyDecisionUniqueId) {
       throw new AppError(
         "userUniqueId and journeyDecisionUniqueId are required",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -286,7 +286,7 @@ const markCancellationAsSeen = async ({
     if (!shipperRequest || shipperRequest.length === 0) {
       throw new AppError(
         "Unauthorized: This cancellation does not belong to you",
-        403,
+        AppError.FORBIDDEN,
       );
     }
 

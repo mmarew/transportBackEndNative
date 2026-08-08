@@ -27,7 +27,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
     if (!journeyDecisionUniqueId || !latitude || !longitude || !userUniqueId) {
       throw new AppError(
         "Missing required fields: journeyDecisionUniqueId, latitude, longitude, and userUniqueId are required",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -40,7 +40,7 @@ exports.createJourneyRoutePoint = async (body, connection = null) => {
     if (!existingDecision || existingDecision.length === 0) {
       throw new AppError(
         "Invalid journeyDecisionUniqueId: Journey decision does not exist",
-        404,
+        AppError.NOT_FOUND,
       );
     }
 

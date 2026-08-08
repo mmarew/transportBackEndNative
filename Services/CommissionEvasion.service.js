@@ -62,7 +62,7 @@ const _getDelinquencyTypeUniqueId = async (delinquencyTypeId) => {
   if (!row) {
     throw new AppError(
       `DelinquencyType ${delinquencyTypeId} not found. Run installPreDefinedData.`,
-      500,
+      AppError.INTERNAL_SERVER_ERROR,
     );
   }
   return row;

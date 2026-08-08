@@ -10,7 +10,7 @@ const checkAdminAccess = (user) => {
   if (!user || !allowedRoles.includes(user.roleId)) {
     throw new AppError(
       "Access denied. you are not allowed to perform this action.",
-      403,
+      AppError.FORBIDDEN,
     );
   }
 };

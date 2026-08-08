@@ -106,7 +106,7 @@ const getUserDelinquencies = async (filters = {}) => {
     if (!userUniqueId || !roleId) {
       throw new AppError(
         "userUniqueId and roleId are required for summary",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     return await _getUserDelinquencySummary(userUniqueId, roleId);

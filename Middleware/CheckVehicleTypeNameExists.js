@@ -22,7 +22,7 @@ const checkVehicleTypeNameExists = async (req, res, next) => {
             code: "VEHICLE_TYPE_ALREADY_EXISTS",
             details: [{ field: "vehicleTypeName", message: "Already exists" }],
           },
-          400,
+          AppError.BAD_REQUEST,
         ),
       );
     }
@@ -36,7 +36,7 @@ const checkVehicleTypeNameExists = async (req, res, next) => {
           code: "VEHICLE_TYPE_NAME_CHECK_FAILED",
           details: { error: error?.message },
         },
-        500,
+        AppError.INTERNAL_SERVER_ERROR,
       ),
     );
   }

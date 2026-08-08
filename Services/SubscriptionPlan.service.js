@@ -178,7 +178,7 @@ const updateSubscriptionPlan = async (
   if (Object.keys(fieldsToUpdate).length === 0) {
     throw new AppError(
       "No valid fields provided for update. Allowed fields: planName, description, isFree",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -212,7 +212,7 @@ const updateSubscriptionPlan = async (
     if (result.affectedRows === 0) {
       throw new AppError(
         "No record found with the provided uniqueId or no changes made",
-        404,
+        AppError.NOT_FOUND,
       );
     }
 
@@ -228,7 +228,7 @@ const updateSubscriptionPlan = async (
     if (error.code === "ER_DUP_ENTRY") {
       throw new AppError(
         "Plan name must be unique. Another plan with this name already exists.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     throw error;

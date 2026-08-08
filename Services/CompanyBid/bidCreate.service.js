@@ -66,7 +66,7 @@ const submitBid = async (data) => {
   if (company.approvalStatus !== "approved") {
     throw new AppError(
       `Company is not eligible to bid. Registration status: ${company.approvalStatus}`,
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -85,7 +85,7 @@ const submitBid = async (data) => {
       .slice(0, 10);
     throw new AppError(
       `Company is currently suspended from bidding until ${expiresOn}. Reason: ${activeBan.banReason}`,
-      403,
+      AppError.FORBIDDEN,
     );
   }
 
@@ -133,7 +133,7 @@ const submitBid = async (data) => {
   if (acceptedBids.length > 0) {
     throw new AppError(
       "Bidding is closed for this batch — a bid has already been accepted by the shipper",
-      409,
+      AppError.CONFLICT,
     );
   }
 
@@ -173,7 +173,7 @@ const submitBid = async (data) => {
   if (existing.length > 0) {
     throw new AppError(
       "This company has already submitted a bid for this batch",
-      409,
+      AppError.CONFLICT,
     );
   }
 

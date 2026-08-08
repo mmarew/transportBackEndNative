@@ -306,7 +306,7 @@ const completeJourney = async (body) => {
         if (!paymentAmount || paymentAmount <= 0) {
           throw new AppError(
             "Invalid payment amount from journey decision",
-            400,
+            AppError.BAD_REQUEST,
           );
         }
         await createCommission(
@@ -451,7 +451,7 @@ const sendUpdatedLocation = async (body) => {
     if (longitude < -180 || longitude > 180) {
       throw new AppError(
         "Invalid longitude. Must be between -180 and 180",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -480,7 +480,7 @@ const sendUpdatedLocation = async (body) => {
     if (!driverRequest || driverRequest.length === 0) {
       throw new AppError(
         "Driver request not found or you don't have permission to update location for this journey",
-        403,
+        AppError.FORBIDDEN,
       );
     }
 
@@ -495,7 +495,7 @@ const sendUpdatedLocation = async (body) => {
     if (!activeStatuses.includes(journeyStatusId)) {
       throw new AppError(
         "Location updates can only be sent for active journeys (accepted or started)",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -516,7 +516,7 @@ const sendUpdatedLocation = async (body) => {
       ) {
         throw new AppError(
           "Unable to fetch shipper information for location update",
-          404,
+          AppError.NOT_FOUND,
         );
       }
 
@@ -544,7 +544,7 @@ const sendUpdatedLocation = async (body) => {
     if (!routePointResult.success) {
       throw new AppError(
         routePointResult.message || "Failed to store location",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 

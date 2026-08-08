@@ -217,7 +217,7 @@ const markNegativeStatusAsSeenByDriver = async ({
     if (requestData.userUniqueId !== userUniqueId) {
       throw new AppError(
         "Unauthorized: Driver request does not belong to this user",
-        403,
+        AppError.FORBIDDEN,
       );
     }
 
@@ -284,7 +284,7 @@ const markNegativeStatusAsSeenByDriver = async ({
       if (!journeyDecisions || journeyDecisions.length === 0) {
         throw new AppError(
           "Journey decision not found for this driver request",
-          404,
+          AppError.NOT_FOUND,
         );
       }
 
@@ -295,7 +295,7 @@ const markNegativeStatusAsSeenByDriver = async ({
       if (journeyDecision.journeyStatusId !== currentStatusId) {
         throw new AppError(
           `Journey decision status does not match driver request status`,
-          400,
+          AppError.BAD_REQUEST,
         );
       }
 

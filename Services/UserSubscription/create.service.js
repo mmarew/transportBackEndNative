@@ -53,7 +53,7 @@ const createUserSubscription = async ({
     } else {
       throw new AppError(
         "durationInDays is missing for this pricing configuration.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
   }

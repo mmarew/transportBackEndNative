@@ -45,7 +45,7 @@ const validateAndUpload = (req, res, next) => {
           return next(
             new AppError(
               `Document type ID is required for ${file.fieldname}`,
-              400,
+              AppError.BAD_REQUEST,
             ),
           );
         }
@@ -65,7 +65,7 @@ const validateAndUpload = (req, res, next) => {
           return next(
             new AppError(
               `Role Document requirement not found for ${file.fieldname}`,
-              400,
+              AppError.BAD_REQUEST,
             ),
           );
         }
@@ -76,7 +76,7 @@ const validateAndUpload = (req, res, next) => {
           return next(
             new AppError(
               `Document expiration date is required for ${file.fieldname}`,
-              400,
+              AppError.BAD_REQUEST,
             ),
           );
         }
@@ -106,7 +106,7 @@ const validateAndUpload = (req, res, next) => {
           return next(
             new AppError(
               `Document of this type is already uploaded for ${file.fieldname}`,
-              409,
+              AppError.CONFLICT,
             ),
           );
         }

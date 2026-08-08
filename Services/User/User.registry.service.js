@@ -296,14 +296,14 @@ const createUser = async (body) => {
     ) {
       throw new AppError(
         "This phone number is already registered with a different email address.",
-        403,
+        AppError.FORBIDDEN,
       );
     }
     //phone dont have placeholder
     if (user?.phoneNumber && user?.phoneNumber !== cleanPhone) {
       throw new AppError(
         "This email address is already registered with a different phone number.",
-        403,
+        AppError.FORBIDDEN,
       );
     }
     //check if user is deleted

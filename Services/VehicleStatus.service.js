@@ -18,7 +18,7 @@ const createVehicleStatus = async (data) => {
   if (!vehicleUniqueId || !VehicleStatusTypeId) {
     throw new AppError(
       "VehicleUniqueId and VehicleStatusTypeId are required",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

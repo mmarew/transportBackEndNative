@@ -66,7 +66,7 @@ const createPricing = async (
     if (!effectiveTo) {
       throw new AppError(
         "effectiveTo is required for free subscription plans.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
   } else {
@@ -91,7 +91,7 @@ const createPricing = async (
   if (duplicates.length > 0) {
     throw new AppError(
       "This pricing configuration already exists for this plan.",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -119,7 +119,7 @@ const createPricing = async (
     if (hasOverlap) {
       throw new AppError(
         "There is already an active pricing for this date range.",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
   }
@@ -129,7 +129,7 @@ const createPricing = async (
   if (!createdBy || createdBy === subscriptionPlanPricingUniqueId) {
     throw new AppError(
       "subscriptionPlanPricingCreatedBy must be a valid user UUID (authenticated user).",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -403,7 +403,7 @@ const updatePricingByUniqueId = async (
   if (validationErrors.length > 0) {
     throw new AppError(
       `Validation failed: ${validationErrors.join(", ")}`,
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -411,7 +411,7 @@ const updatePricingByUniqueId = async (
   if (setClauses.length === 0) {
     throw new AppError(
       "No valid fields to update. Provide at least one of: price, durationInDays, effectiveFrom, effectiveTo, subscriptionPlanUniqueId, isFree",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

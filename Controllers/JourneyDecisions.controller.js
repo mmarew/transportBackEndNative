@@ -161,7 +161,7 @@ exports.updateJourneyDecision = async (req, res, next) => {
       return next(
         new AppError(
           "Either id or journeyDecisionUniqueId must be provided in params, or conditions in body",
-          400,
+          AppError.BAD_REQUEST,
         ),
       );
     }

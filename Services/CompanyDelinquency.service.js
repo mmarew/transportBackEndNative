@@ -58,7 +58,7 @@ const createCompanyDelinquency = async (data) => {
   if (!companyUniqueId || !delinquencyTypeUniqueId || !delinquencyCreatedBy) {
     throw new AppError(
       "companyUniqueId, delinquencyTypeUniqueId, delinquencyCreatedBy are required",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -109,7 +109,7 @@ const createCompanyDelinquency = async (data) => {
     if (dup) {
       const err = new AppError(
         `Duplicate: a similar delinquency was recorded within the last ${windowHours}h`,
-        400,
+        AppError.BAD_REQUEST,
       );
       err.duplicateId = dup.companyDelinquencyUniqueId;
       throw err;
@@ -328,7 +328,7 @@ const deleteCompanyDelinquency = async (
   if (cnt > 0) {
     throw new AppError(
       "Cannot delete: delinquency is linked to a ban record",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

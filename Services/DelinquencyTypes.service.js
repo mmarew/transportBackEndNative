@@ -44,7 +44,7 @@ const createDelinquencyType = async (data) => {
     if (roleRows.length === 0) {
       throw new AppError(
         "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     applicableRoleUniqueId = roleRows[0].roleUniqueId;
@@ -242,7 +242,7 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
         if (roleRows.length === 0) {
           throw new AppError(
             "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
-            400,
+            AppError.BAD_REQUEST,
           );
         }
         applicableRoleUniqueId = roleRows[0].roleUniqueId;
@@ -254,7 +254,7 @@ const updateDelinquencyType = async (delinquencyTypeUniqueId, data) => {
         if (roleRows.length === 0) {
           throw new AppError(
             "Invalid applicableRoles: role not found. Provide a valid role name or roleUniqueId",
-            400,
+            AppError.BAD_REQUEST,
           );
         }
         applicableRoleUniqueId = roleRows?.[0].roleUniqueId;

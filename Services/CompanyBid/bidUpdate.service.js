@@ -231,7 +231,7 @@ const updateBidStatus = async (
           `Partial conflict: ${alreadyClaimed} of ${bid.numberOfVehiclesOffered} vehicle slots already have drivers assigned. ` +
           `Only ${freeRequests.length} slot(s) are still open. ` +
           `The company bid cannot be accepted while the batch is partially committed.`,
-          409,
+          AppError.CONFLICT,
         );
       }
 
@@ -470,7 +470,7 @@ const markCancellationAsSeen = async ({
   if (!membership) {
     throw new AppError(
       "Unauthorized: you are not a member of this company",
-      403,
+      AppError.FORBIDDEN,
     );
   }
 
@@ -478,7 +478,7 @@ const markCancellationAsSeen = async ({
   if (bid.bidStatus !== "cancelled_by_company") {
     throw new AppError(
       "This bid has not been cancelled — nothing to mark as seen",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
   if (bid.isCancellationSeenByCompany === "seen by company") {

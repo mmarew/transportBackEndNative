@@ -27,7 +27,7 @@ const createFinancialInstitutionAccount = async (data) => {
   if (checkResult[0].count > 0) {
     throw new AppError(
       "Account already exists with this institution and account number",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 

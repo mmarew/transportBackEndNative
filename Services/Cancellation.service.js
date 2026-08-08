@@ -59,7 +59,7 @@ const addCancellationReason = async (body, user) => {
     });
     throw new AppError(
       `Cancellation reason registration failed: ${error.message}`,
-      500,
+      AppError.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -128,7 +128,7 @@ const updateCancellationReason = async (req) => {
     if (!validModes.includes(req.body.requestMode)) {
       throw new AppError(
         `Invalid requestMode. Allowed values: ${validModes.join(", ")}`,
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     setParts.push("requestMode = ?");

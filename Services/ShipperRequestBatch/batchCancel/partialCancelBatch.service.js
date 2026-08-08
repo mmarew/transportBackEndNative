@@ -41,7 +41,7 @@ const partialCancelBatch = async ({
   if (!batchUniqueId || !userUniqueId || !slotIds?.length) {
     throw new AppError(
       "batchUniqueId, userUniqueId and slotIds are required",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -86,7 +86,7 @@ const partialCancelBatch = async ({
   if (slots.length !== slotIds.length) {
     throw new AppError(
       "One or more slotIds do not belong to this batch or do not exist",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -107,7 +107,7 @@ const partialCancelBatch = async ({
     throw new AppError(
       `The following slots cannot be cancelled (already in transit or terminal): ` +
         notCancellable.map((s) => s.shipperRequestUniqueId).join(", "),
-      400,
+      AppError.BAD_REQUEST,
     );
   }
   const cancelStatusId = isAdmin

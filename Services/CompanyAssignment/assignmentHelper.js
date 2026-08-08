@@ -64,7 +64,7 @@ async function createJourneyDecisionForAssignment(
   if (!prRow) {
     throw new AppError(
       "Shipper request not found while creating JourneyDecision",
-      404,
+      AppError.NOT_FOUND,
     );
   }
 
@@ -75,7 +75,7 @@ async function createJourneyDecisionForAssignment(
   if (!drRow) {
     throw new AppError(
       "Driver request not found while creating JourneyDecision",
-      404,
+      AppError.NOT_FOUND,
     );
   }
 

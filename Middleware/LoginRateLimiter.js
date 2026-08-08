@@ -1,6 +1,7 @@
 const rateLimit = require("express-rate-limit");
 const AppError = require("../Utils/AppError");
 const logger = require("../Utils/logger");
+const { HTTP_STATUS } = require("../Utils/Constants");
 
 /**
  * Enhanced Rate Limiter for Login and OTP
@@ -30,7 +31,7 @@ const loginRateLimiter = (options = {}) => {
       next(new AppError(options.message, options.statusCode));
     },
     message: "Too many attempts, please try again after 15 minutes.",
-    statusCode: 429,
+    statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
   });
 };
 

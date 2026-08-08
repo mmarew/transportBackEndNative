@@ -65,7 +65,7 @@ const acceptDriverRequest = async (body) => {
     ) {
       throw new AppError(
         "shipperRequestUniqueId, driverRequestUniqueId, journeyDecisionUniqueId, and userUniqueId are required",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     return await executeInTransaction(async () => {

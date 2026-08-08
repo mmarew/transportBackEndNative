@@ -85,7 +85,7 @@ async function createCommission(
         message: "Journey Decision not found",
         code: "JOURNEY_NOT_FOUND",
       },
-      404,
+      AppError.NOT_FOUND,
     );
   }
 
@@ -97,7 +97,7 @@ async function createCommission(
         code: "INVALID_JOURNEY_STATUS",
         details: `Current status is ${journeyData[0].journeyStatusId}`,
       },
-      400,
+      AppError.BAD_REQUEST,
     );
   }
 
@@ -116,7 +116,7 @@ async function createCommission(
         message: "Commission already exists for this journey",
         code: "DUPLICATE_COMMISSION",
       },
-      409,
+      AppError.CONFLICT,
     );
   }
 
@@ -132,7 +132,7 @@ async function createCommission(
         message: "Active commission rate not found",
         code: "RATE_NOT_FOUND",
       },
-      404,
+      AppError.NOT_FOUND,
     );
   }
 
@@ -348,7 +348,7 @@ async function getAllCommissions(filters = {}) {
         code: "DATABASE_ERROR",
         details: Config.NODE_ENV === "development" ? error.message : undefined,
       },
-      500,
+      AppError.INTERNAL_SERVER_ERROR,
     );
   }
 }

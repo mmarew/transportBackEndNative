@@ -29,7 +29,7 @@ exports.createJourneyDecision = async (data, connection = null) => {
   ) {
     throw new AppError(
       "Missing required fields in create journey decision",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
   // Use transaction storage for transaction support, or fall back to provided connection or pool
@@ -415,14 +415,14 @@ exports.updateJourneyDecision = async ({
     if (!conditions || Object.keys(conditions).length === 0) {
       throw new AppError(
         "Conditions are required for updating journey decision",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
     if (!updateValues || Object.keys(updateValues).length === 0) {
       throw new AppError(
         "Update values are required for updating journey decision",
-        400,
+        AppError.BAD_REQUEST,
       );
     }
 
@@ -431,7 +431,7 @@ exports.updateJourneyDecision = async ({
       if (!userUniqueId) {
         throw new AppError(
           "userUniqueId is required when updating isNotSelectedSeenByDriver",
-          400,
+          AppError.BAD_REQUEST,
         );
       }
 
@@ -440,7 +440,7 @@ exports.updateJourneyDecision = async ({
       if (!journeyDecisionUniqueId) {
         throw new AppError(
           "journeyDecisionUniqueId is required in conditions when updating isNotSelectedSeenByDriver",
-          400,
+          AppError.BAD_REQUEST,
         );
       }
 
@@ -481,7 +481,7 @@ exports.updateJourneyDecision = async ({
       if (driverRequestData?.userUniqueId !== userUniqueId) {
         throw new AppError(
           "Unauthorized: This journey decision does not belong to you",
-          403,
+          AppError.FORBIDDEN,
         );
       }
 
@@ -489,7 +489,7 @@ exports.updateJourneyDecision = async ({
       if (decisionData.journeyStatusId !== journeyStatusMap.notSelectedInBid) {
         throw new AppError(
           "This journey decision is not in 'not selected in bid' status",
-          400,
+          AppError.BAD_REQUEST,
         );
       }
     }
@@ -532,7 +532,7 @@ exports.updateJourneyDecision = async ({
     } else {
       throw new AppError(
         "No journey decision found matching the conditions",
-        404,
+        AppError.NOT_FOUND,
       );
     }
   } catch (error) {

@@ -125,7 +125,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
       // User has already created all required requests for this batch
       throw new AppError(
         `All required requests have already been created for this batch.`,
-        400,
+        AppError.BAD_REQUEST,
       );
     }
     const newRequests = [];

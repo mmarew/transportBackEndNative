@@ -212,7 +212,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
         : email
           ? "User not found with this email address. Please register first."
           : "Invalid credentials",
-      404,
+      AppError.NOT_FOUND,
     );
   }
 
@@ -227,7 +227,7 @@ const loginUser = async (phoneNumber, roleId, email = null) => {
   if (!roleEntry) {
     throw new AppError(
       `User exists but not registered as the requested role. Please register first.`,
-      404,
+      AppError.NOT_FOUND,
     );
   }
   return await handleExistingUser({

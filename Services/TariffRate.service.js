@@ -24,7 +24,7 @@ exports.createTariffRate = async (data) => {
   ) {
     throw new AppError(
       "Tariff rate name and all tariff rates are required",
-      400,
+      AppError.BAD_REQUEST,
     );
   }
   const executor = transactionStorage.getStore() || pool;
