@@ -4,6 +4,8 @@ const { v4: uuidv4 } = require("uuid");
 const { currentDate } = require("../Utils/CurrentDate");
 const AppError = require("../Utils/AppError");
 const { db } = require("./CompanyHelper.service");
+const { updateData } = require("../CRUD/Update/Data.update");
+const { createData } = require("../CRUD/Create/CreateData");
 const {
   emitQueueSnapshot,
   notifyQueueOrgAdmins,
@@ -180,20 +182,20 @@ exports.checkin = async (data) => {
       vehicleDriver.vehicleTypeUniqueId,
     );
     queueUniqueId = atOrg.queueUniqueId;
-    await executor.query(
-      `UPDATE DriverQueue
-       SET status = 'waiting', queueNumber = ?, joinedAt = ?,
-           offeredAt = NULL, loadedAt = NULL, shipperRequestUniqueId = NULL,
-           queueUpdatedAt = ?, queueUpdatedBy = ?
-       WHERE queueId = ?`,
-      [
+    await updateData({
+      tableName: "DriverQueue",
+      updateValues: {
+        status: "waiting",
         queueNumber,
-        currentDate(),
-        currentDate(),
-        user.userUniqueId,
-        atOrg.queueId,
-      ],
-    );
+        joinedAt: currentDate(),
+        offeredAt: null,
+        loadedAt: null,
+        shipperRequestUniqueId: null,
+        queueUpdatedAt: currentDate(),
+        queueUpdatedBy: user.userUniqueId,
+      },
+      conditions: { queueId: atOrg.queueId },
+    });
   } else {
     queueNumber = await nextQueueNumber(
       executor,
@@ -204,21 +206,19 @@ exports.checkin = async (data) => {
 
     queueUniqueId = uuidv4();
     try {
-      await executor.query(
-        `INSERT INTO DriverQueue
-          (queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
-           vehicleDriverUniqueId, joinedAt, status, queueCreatedBy)
-         VALUES (?, ?, ?, ?, ?, ?, 'waiting', ?)`,
-        [
+      await createData({
+        tableName: "DriverQueue",
+        insertValues: {
           queueUniqueId,
           queueOrganizationUniqueId,
           queueDate,
           queueNumber,
           vehicleDriverUniqueId,
-          currentDate(),
-          user.userUniqueId,
-        ],
-      );
+          joinedAt: currentDate(),
+          status: "waiting",
+          queueCreatedBy: user.userUniqueId,
+        },
+      });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
         throw new AppError("Driver is already in the queue for this day", 409);
@@ -359,11 +359,15 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   }
 
   const orgId = rows[0].queueOrganizationUniqueId;
-  await executor.query(
-    `UPDATE DriverQueue SET status = 'removed', queueUpdatedAt = ?, queueUpdatedBy = ?
-     WHERE queueId = ?`,
-    [currentDate(), user.userUniqueId, rows[0].queueId],
-  );
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: "removed",
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: user.userUniqueId,
+    },
+    conditions: { queueId: rows[0].queueId },
+  });
 
   await emitQueueSnapshot({ queueOrganizationUniqueId: orgId, queueDate });
   notifyQueueOrgAdmins({
@@ -489,20 +493,20 @@ exports.manualCheckin = async (data) => {
         vehicleDriver.vehicleTypeUniqueId,
       ));
     queueUniqueId = atOrg.queueUniqueId;
-    await executor.query(
-      `UPDATE DriverQueue
-       SET status = 'waiting', queueNumber = ?, joinedAt = ?,
-           offeredAt = NULL, loadedAt = NULL, shipperRequestUniqueId = NULL,
-           queueUpdatedAt = ?, queueUpdatedBy = ?
-       WHERE queueId = ?`,
-      [
-        assignedNumber,
-        currentDate(),
-        currentDate(),
-        user.userUniqueId,
-        atOrg.queueId,
-      ],
-    );
+    await updateData({
+      tableName: "DriverQueue",
+      updateValues: {
+        status: "waiting",
+        queueNumber: assignedNumber,
+        joinedAt: currentDate(),
+        offeredAt: null,
+        loadedAt: null,
+        shipperRequestUniqueId: null,
+        queueUpdatedAt: currentDate(),
+        queueUpdatedBy: user.userUniqueId,
+      },
+      conditions: { queueId: atOrg.queueId },
+    });
   } else {
     assignedNumber =
       queueNumber ||
@@ -515,21 +519,19 @@ exports.manualCheckin = async (data) => {
 
     queueUniqueId = uuidv4();
     try {
-      await executor.query(
-        `INSERT INTO DriverQueue
-          (queueUniqueId, queueOrganizationUniqueId, queueDate, queueNumber,
-           vehicleDriverUniqueId, joinedAt, status, queueCreatedBy)
-         VALUES (?, ?, ?, ?, ?, ?, 'waiting', ?)`,
-        [
+      await createData({
+        tableName: "DriverQueue",
+        insertValues: {
           queueUniqueId,
           queueOrganizationUniqueId,
           queueDate,
-          assignedNumber,
+          queueNumber: assignedNumber,
           vehicleDriverUniqueId,
-          currentDate(),
-          user.userUniqueId,
-        ],
-      );
+          joinedAt: currentDate(),
+          status: "waiting",
+          queueCreatedBy: user.userUniqueId,
+        },
+      });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
         throw new AppError("Driver is already in the queue for this day", 409);
@@ -563,28 +565,30 @@ exports.overrideEntry = async (queueUniqueId, body, user) => {
     throw new AppError("Queue entry not found", 404);
   }
 
-  await executor.query(
-    `UPDATE DriverQueue SET queueNumber = ?, queueUpdatedAt = ?, queueUpdatedBy = ?
-     WHERE queueId = ?`,
-    [queueNumber, currentDate(), user.userUniqueId, rows[0].queueId],
-  );
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      queueNumber,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: user.userUniqueId,
+    },
+    conditions: { queueId: rows[0].queueId },
+  });
 
-  await executor.query(
-    `INSERT INTO QueueAuditLog
-      (queueAuditUniqueId, queueOrganizationUniqueId, queueDate, queueUniqueId,
-       action, beforeValue, afterValue, reason, performedBy)
-     VALUES (?, ?, ?, ?, 'override', ?, ?, ?, ?)`,
-    [
-      uuidv4(),
-      rows[0].queueOrganizationUniqueId,
-      rows[0].queueDate,
-      rows[0].queueUniqueId,
-      JSON.stringify({ queueNumber: rows[0].queueNumber }),
-      JSON.stringify({ queueNumber }),
-      reason || null,
-      user.userUniqueId,
-    ],
-  );
+  await createData({
+    tableName: "QueueAuditLog",
+    insertValues: {
+      queueAuditUniqueId: uuidv4(),
+      queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
+      queueDate: rows[0].queueDate,
+      queueUniqueId: rows[0].queueUniqueId,
+      action: "override",
+      beforeValue: JSON.stringify({ queueNumber: rows[0].queueNumber }),
+      afterValue: JSON.stringify({ queueNumber }),
+      reason: reason || null,
+      performedBy: user.userUniqueId,
+    },
+  });
 
   await emitQueueSnapshot({
     queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
@@ -609,26 +613,28 @@ exports.removeEntry = async (queueUniqueId, user) => {
     throw new AppError("Queue entry not found", 404);
   }
 
-  await executor.query(
-    `UPDATE DriverQueue SET status = 'removed', queueUpdatedAt = ?, queueUpdatedBy = ?
-     WHERE queueId = ?`,
-    [currentDate(), user.userUniqueId, rows[0].queueId],
-  );
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: "removed",
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: user.userUniqueId,
+    },
+    conditions: { queueId: rows[0].queueId },
+  });
 
-  await executor.query(
-    `INSERT INTO QueueAuditLog
-      (queueAuditUniqueId, queueOrganizationUniqueId, queueDate, queueUniqueId,
-       action, afterValue, performedBy)
-     VALUES (?, ?, ?, ?, 'remove', ?, ?)`,
-    [
-      uuidv4(),
-      rows[0].queueOrganizationUniqueId,
-      rows[0].queueDate,
-      rows[0].queueUniqueId,
-      JSON.stringify({ status: "removed" }),
-      user.userUniqueId,
-    ],
-  );
+  await createData({
+    tableName: "QueueAuditLog",
+    insertValues: {
+      queueAuditUniqueId: uuidv4(),
+      queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
+      queueDate: rows[0].queueDate,
+      queueUniqueId: rows[0].queueUniqueId,
+      action: "remove",
+      afterValue: JSON.stringify({ status: "removed" }),
+      performedBy: user.userUniqueId,
+    },
+  });
 
   await emitQueueSnapshot({
     queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
@@ -706,21 +712,18 @@ const ensureWaitingDriverRequest = async (
   );
   const org = orgRows[0] || {};
   const driverRequestUniqueId = uuidv4();
-  const [inserted] = await executor.query(
-    `INSERT INTO DriverRequest
-      (driverRequestUniqueId, userUniqueId, originLatitude, originLongitude,
-       originPlace, journeyStatusId, driverRequestCreatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
+  const inserted = await createData({
+    tableName: "DriverRequest",
+    insertValues: {
       driverRequestUniqueId,
-      driverUserUniqueId,
-      org.latitude ?? 0,
-      org.longitude ?? 0,
-      org.queueOrganizationName || "Queue organization",
-      journeyStatusMap.waiting,
-      currentDate(),
-    ],
-  );
+      userUniqueId: driverUserUniqueId,
+      originLatitude: org.latitude ?? 0,
+      originLongitude: org.longitude ?? 0,
+      originPlace: org.queueOrganizationName || "Queue organization",
+      journeyStatusId: journeyStatusMap.waiting,
+      driverRequestCreatedAt: currentDate(),
+    },
+  });
   return { driverRequestId: inserted.insertId, driverRequestUniqueId };
 };
 
@@ -736,41 +739,37 @@ const createQueueOffer = async (
 ) => {
   const journeyDecisionUniqueId = uuidv4();
   const now = currentDate();
-  await executor.query(
-    `INSERT INTO JourneyDecisions
-      (journeyDecisionUniqueId, shipperRequestId, driverRequestId, journeyStatusId,
-       decisionTime, decisionBy, journeyDecisionCreatedBy, journeyDecisionCreatedAt)
-     VALUES (?, ?, ?, ?, ?, 'shipper', ?, ?)`,
-    [
+  await createData({
+    tableName: "JourneyDecisions",
+    insertValues: {
       journeyDecisionUniqueId,
-      shipperRequest.shipperRequestId,
-      driverRequest.driverRequestId,
-      journeyStatusMap.requested,
-      now,
-      user.userUniqueId,
-      now,
-    ],
-  );
-  await executor.query(
-    `UPDATE ShipperRequest SET journeyStatusId = ?, shipperRequestUpdatedAt = ?, shipperRequestUpdatedBy = ?
-     WHERE shipperRequestId = ?`,
-    [
-      journeyStatusMap.requested,
-      now,
-      user.userUniqueId,
-      shipperRequest.shipperRequestId,
-    ],
-  );
-  await executor.query(
-    `UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?, driverRequestUpdatedBy = ?
-     WHERE driverRequestId = ?`,
-    [
-      journeyStatusMap.requested,
-      now,
-      user.userUniqueId,
-      driverRequest.driverRequestId,
-    ],
-  );
+      shipperRequestId: shipperRequest.shipperRequestId,
+      driverRequestId: driverRequest.driverRequestId,
+      journeyStatusId: journeyStatusMap.requested,
+      decisionTime: now,
+      decisionBy: "shipper",
+      journeyDecisionCreatedBy: user.userUniqueId,
+      journeyDecisionCreatedAt: now,
+    },
+  });
+  await updateData({
+    tableName: "ShipperRequest",
+    updateValues: {
+      journeyStatusId: journeyStatusMap.requested,
+      shipperRequestUpdatedAt: now,
+      shipperRequestUpdatedBy: user.userUniqueId,
+    },
+    conditions: { shipperRequestId: shipperRequest.shipperRequestId },
+  });
+  await updateData({
+    tableName: "DriverRequest",
+    updateValues: {
+      journeyStatusId: journeyStatusMap.requested,
+      driverRequestUpdatedAt: now,
+      driverRequestUpdatedBy: user.userUniqueId,
+    },
+    conditions: { driverRequestId: driverRequest.driverRequestId },
+  });
   return {
     journeyDecisionUniqueId,
     decision: {
@@ -947,18 +946,17 @@ const offerToDriver = async ({
       user,
     });
 
-    await executor.query(
-      `UPDATE DriverQueue SET status = 'offered', offeredAt = ?, shipperRequestUniqueId = ?,
-              queueUpdatedAt = ?, queueUpdatedBy = ?
-       WHERE queueId = ?`,
-      [
-        currentDate(),
+    await updateData({
+      tableName: "DriverQueue",
+      updateValues: {
+        status: "offered",
+        offeredAt: currentDate(),
         shipperRequestUniqueId,
-        currentDate(),
-        user.userUniqueId,
-        entry.queueId,
-      ],
-    );
+        queueUpdatedAt: currentDate(),
+        queueUpdatedBy: user.userUniqueId,
+      },
+      conditions: { queueId: entry.queueId },
+    });
 
     await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
 
@@ -1110,12 +1108,17 @@ exports.rejectOffer = async (data) => {
   }
 
   const entry = rows[0];
-  await executor.query(
-    `UPDATE DriverQueue SET status = 'waiting', offeredAt = NULL, shipperRequestUniqueId = NULL,
-            queueUpdatedAt = ?, queueUpdatedBy = ?
-     WHERE queueId = ?`,
-    [currentDate(), user.userUniqueId, entry.queueId],
-  );
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: "waiting",
+      offeredAt: null,
+      shipperRequestUniqueId: null,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: user.userUniqueId,
+    },
+    conditions: { queueId: entry.queueId },
+  });
 
   await emitQueueSnapshot({
     queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
@@ -1162,11 +1165,16 @@ exports.markEntryLoaded = async ({ shipperRequestUniqueId, userUniqueId }) => {
   if (rows.length === 0) {
     return { updated: false };
   }
-  await executor.query(
-    `UPDATE DriverQueue SET status = 'loaded', loadedAt = ?, queueUpdatedAt = ?, queueUpdatedBy = ?
-     WHERE queueId = ?`,
-    [currentDate(), currentDate(), userUniqueId || null, rows[0].queueId],
-  );
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: "loaded",
+      loadedAt: currentDate(),
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: userUniqueId || null,
+    },
+    conditions: { queueId: rows[0].queueId },
+  });
   await emitQueueSnapshot({
     queueOrganizationUniqueId: rows[0].queueOrganizationUniqueId,
     queueDate: rows[0].queueDate,
@@ -1238,33 +1246,36 @@ exports.releaseExpiredOffers = async ({
     const actor = { userUniqueId: entry.shipperRequestCreatedBy };
     const now = currentDate();
 
-    await executor.query(
-      `UPDATE JourneyDecisions SET journeyStatusId = ?, journeyDecisionUpdatedAt = ?, journeyDecisionUpdatedBy = ?,
-              isCancellationByDriverSeenByShipper = 'no need to see it'
-       WHERE journeyDecisionUniqueId = ?`,
-      [
-        journeyStatusMap.rejectedByDriver,
-        now,
-        actor.userUniqueId,
-        entry.journeyDecisionUniqueId,
-      ],
-    );
-    await executor.query(
-      `UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?, driverRequestUpdatedBy = ?
-       WHERE driverRequestId = ?`,
-      [
-        journeyStatusMap.waiting,
-        now,
-        actor.userUniqueId,
-        entry.driverRequestId,
-      ],
-    );
-    await executor.query(
-      `UPDATE DriverQueue SET status = 'waiting', offeredAt = NULL, shipperRequestUniqueId = NULL,
-              queueUpdatedAt = ?, queueUpdatedBy = ?
-       WHERE queueId = ?`,
-      [now, actor.userUniqueId, entry.queueId],
-    );
+    await updateData({
+      tableName: "JourneyDecisions",
+      updateValues: {
+        journeyStatusId: journeyStatusMap.rejectedByDriver,
+        journeyDecisionUpdatedAt: now,
+        journeyDecisionUpdatedBy: actor.userUniqueId,
+        isCancellationByDriverSeenByShipper: "no need to see it",
+      },
+      conditions: { journeyDecisionUniqueId: entry.journeyDecisionUniqueId },
+    });
+    await updateData({
+      tableName: "DriverRequest",
+      updateValues: {
+        journeyStatusId: journeyStatusMap.waiting,
+        driverRequestUpdatedAt: now,
+        driverRequestUpdatedBy: actor.userUniqueId,
+      },
+      conditions: { driverRequestId: entry.driverRequestId },
+    });
+    await updateData({
+      tableName: "DriverQueue",
+      updateValues: {
+        status: "waiting",
+        offeredAt: null,
+        shipperRequestUniqueId: null,
+        queueUpdatedAt: now,
+        queueUpdatedBy: actor.userUniqueId,
+      },
+      conditions: { queueId: entry.queueId },
+    });
 
     await emitQueueSnapshot({
       queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
