@@ -1,6 +1,9 @@
 {
   "name": "transportwithnative",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=20"
+  },
   "main": "App.js",
   "scripts": {
     "test": "jest",
