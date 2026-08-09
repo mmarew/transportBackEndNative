@@ -606,12 +606,23 @@ const testBatchDriverRejection = async () => {
     }
     report.pass("batchReject: journeyStarted");
 
-    await completeJourney({ userType: "driver" });
-    status = await getDriverJourneyStatus({ userType: "driver" });
-    if (status?.status !== 6) {
-      throw new Error(`Expected status 6 (journeyCompleted), got ${status?.status}`);
+    const completeRes = await completeJourney({ userType: "driver" });
+    if (completeRes?.status !== 6) {
+      throw new Error(
+        `Expected status 6 (journeyCompleted), got ${completeRes?.status}`,
+      );
     }
     report.pass("batchReject: journeyCompleted");
+
+    // Status 6 is terminal — a fresh verifyDriverJourneyStatus returns null
+    // (no active request), which is the expected post-completion state.
+    const statusAfterComplete = await getDriverJourneyStatus({ userType: "driver" });
+    if (statusAfterComplete?.status != null) {
+      throw new Error(
+        `Expected null (terminal) after completion, got ${statusAfterComplete?.status}`,
+      );
+    }
+    report.pass("batchReject: terminalAfterComplete");
 
     console.log("✅ Batch-scoped driver rejection test PASSED\n");
 

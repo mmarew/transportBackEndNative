@@ -1,19 +1,19 @@
-◇ injected env (40) from .env // tip: ⌘ suppress logs { quiet: true }
-◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
-16:41:50 [[32minfo[39m]: MySQL pool created
+◇ injected env (38) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+17:45:02 [[32minfo[39m]: MySQL pool created
 {
   "service": "ride-hailing-api",
   "environment": "development",
-  "host": "localhost",
-  "database": "transportCompanyTest",
-  "port": 8889,
-  "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
+  "host": "31.97.179.144",
+  "database": "transport",
+  "port": 3306,
+  "socketPath": null
 }
 
 ✅ ========== DATABASE VERIFICATION STARTED ==========
 
 🔄 Ensuring tables exist and predefined data is installed...
-16:41:50 [[32minfo[39m]: MySQL connectivity check succeeded
+17:45:03 [[32minfo[39m]: MySQL connectivity check succeeded
 {
   "service": "ride-hailing-api",
   "environment": "development"
@@ -30,8 +30,8 @@
 ── Non-destructive Schema Check ──
 ✅ Journey.journeyStartingLat already exists
 ✅ Journey.journeyStartingLng already exists
-✅ Journey.journeyCompletingLat already exists
-✅ Journey.journeyCompletingLng already exists
+✅ Journey.journeyCompletingLat added
+✅ Journey.journeyCompletingLng added
 
 ═══ PROVISIONING ALL CORE USERS (once per run) ═══
 
@@ -63,15 +63,15 @@
 ✅ Account data fetched (driver)
 ✅ Success! Vehicle Types:
 payload {
-  licensePlate: '914048',
+  licensePlate: '762392',
   color: 'white color',
-  vehicleTypeUniqueId: '55060ed0-88e8-42ba-b29a-fe4b3d713b84',
+  vehicleTypeUniqueId: '9b2e8446-e1b7-4659-89bd-3bbc4c0a6742',
   isDriverOwnerOfVehicle: false
 }
 ✅ Success! Vehicle Created:
 {
   message: 'Vehicle created successfully',
-  data: { vehicleUniqueId: 'b3f9d341-e393-43f5-b6fb-f02d5bdfd676' }
+  data: { vehicleUniqueId: '89f413f5-b909-44d7-9594-5d9f69390569' }
 }
 ✅ Account data fetched (driver)
 ✅ Uploaded User Document: Driver’s License
@@ -94,10 +94,10 @@ payload {
 ✅ ========== AUTHORIZE DRIVERS DOCUMENTS STARTED ==========
 
 📋 Found 4 pending documents to authorize
-✅ Approved: Driver’s License
 ✅ Approved:  Vehicle Registration (librea)
-✅ Approved: Profile Photo
 ✅ Approved: Insurance Document
+✅ Approved: Driver’s License
+✅ Approved: Profile Photo
 ✅ All pending documents authorized
 
 ✅ ========== AUTHORIZE DRIVERS DOCUMENTS COMPLETED SUCCESSFULLY ==========
@@ -123,7 +123,7 @@ payload {
   ✅ PASS: PUT /api/user/updateFCMToken — Device token updated successfully
 
 ── DELETE /api/user/deleteFCMToken/:id ──
-  ✅ PASS: DELETE /api/user/deleteFCMToken — Device token b6e33752-239a-473d-98c3-76512a7a6ba4 deleted
+  ✅ PASS: DELETE /api/user/deleteFCMToken — Device token 2e75c4d7-1e85-4b83-a6a6-3000a7a36bc2 deleted
 
 ✅ FCM token tests complete
 
@@ -157,21 +157,18 @@ payload {
   ✅ PASS: PUT /api/finance/userDeposit — Deposit updated successfully
 
 ── DELETE /api/finance/userDeposit/:id ──
-  ✅ PASS: DELETE /api/finance/userDeposit — Deleted: d7aaedd8-893a-422d-a98b-0605f0cadd28
+  ✅ PASS: DELETE /api/finance/userDeposit — Deleted: 9973a02d-896c-4782-be72-41851126dfa2
 
 ── Finance: UserSubscription CRUD ──
 
 ── POST /api/finance/userSubscription/:driverUniqueId ──
-  ✅ PASS: POST /api/finance/userSubscription — Subscription created successfully
+  🟡 BACKEND 400 [reqid=54090397-b64e-4950-88f5-346678a0d3c9] POST http://127.0.0.1:3000/api/finance/userSubscription/1287bd8a-0064-4a84-840e-bb2ed33cc499 (fail)
+  ⏩ SKIP: POST /api/finance/userSubscription/:driverUniqueId — endpoint reachable — data precondition not met ({"statusCode":400,"status":"fail","isOperational":true})
 
 ── GET /api/finance/userSubscription ──
   ✅ PASS: GET /api/finance/userSubscription — User subscriptions fetched successfully
-
-── PUT /api/finance/userSubscription/:userSubscriptionUniqueId ──
-  ✅ PASS: PUT /api/finance/userSubscription — User subscription updated successfully
-
-── DELETE /api/finance/userSubscription/:userSubscriptionUniqueId ──
-  ✅ PASS: DELETE /api/finance/userSubscription — Subscription 8909ec58-95f1-450c-828a-83805c9f09b3 marked as deleted successfully
+  ⏩ SKIP: PUT /api/finance/userSubscription/:userSubscriptionUniqueId — no test-created subscription (POST was skipped)
+  ⏩ SKIP: DELETE /api/finance/userSubscription/:userSubscriptionUniqueId — no test-created subscription (POST was skipped)
 
 ── Finance: UserDeposit SantimPay ──
   ⏩ SKIP: POST /api/finance/userDeposit/initiateSantimPay — SantimPay gateway not configured (SANTIMPAY_MERCHANT_ID/API_KEY missing)
@@ -185,44 +182,44 @@ payload {
 ── VehicleType Workflow ──
 ✅ VehicleTypes fetched: 8
 ✅ VehicleTypes fetched: 9
-✅ VehicleType created: e50231db-a879-4e9e-ad48-97f570447502
+✅ VehicleType created: cedd52d2-0096-47a3-8067-ce27b9e7caf2
 ✅ VehicleTypes fetched: 9
-✅ VehicleType updated: e50231db-a879-4e9e-ad48-97f570447502
+✅ VehicleType updated: cedd52d2-0096-47a3-8067-ce27b9e7caf2
 ✅ VehicleTypes fetched: 9
-✅ VehicleType deleted: e50231db-a879-4e9e-ad48-97f570447502
+✅ VehicleType deleted: cedd52d2-0096-47a3-8067-ce27b9e7caf2
 ✅ VehicleTypes fetched: 8
 ── VehicleType Workflow complete ──
 
 
 ── VehicleStatusType Workflow ──
+✅ VehicleStatusTypes fetched: 6
+✅ VehicleStatusType created: 9e8c4889-15a9-4bd0-9399-dc924b246ac2
 ✅ VehicleStatusTypes fetched: 7
-✅ VehicleStatusType created: c26e1bc7-0eb2-49d8-b9a9-11960732fffd
-✅ VehicleStatusTypes fetched: 8
-✅ VehicleStatusType updated: c26e1bc7-0eb2-49d8-b9a9-11960732fffd
-✅ VehicleStatusTypes fetched: 8
-✅ VehicleStatusType deleted: c26e1bc7-0eb2-49d8-b9a9-11960732fffd
+✅ VehicleStatusType updated: 9e8c4889-15a9-4bd0-9399-dc924b246ac2
 ✅ VehicleStatusTypes fetched: 7
+✅ VehicleStatusType deleted: 9e8c4889-15a9-4bd0-9399-dc924b246ac2
+✅ VehicleStatusTypes fetched: 6
 ── VehicleStatusType Workflow complete ──
 
 
 ── Journey Status Workflow ──
 ✅ Journey statuses fetched: 17
 ✅ Journey statuses fetched: 18
-✅ Journey status created: cdde7565-35f5-4b1a-95fe-11a81dde50ee
-✅ Journey status updated: cdde7565-35f5-4b1a-95fe-11a81dde50ee
+✅ Journey status created: 253dc99e-8b2a-43c8-b1f5-82e553cbdf23
+✅ Journey status updated: 253dc99e-8b2a-43c8-b1f5-82e553cbdf23
 ✅ Journey statuses fetched: 18
-✅ Journey status deleted: cdde7565-35f5-4b1a-95fe-11a81dde50ee
+✅ Journey status deleted: 253dc99e-8b2a-43c8-b1f5-82e553cbdf23
 ✅ Journey statuses fetched: 17
 ── Journey Status Workflow complete ──
 
 
 ── CancellationReasonsType Workflow ──
 ✅ CancellationReasonTypes fetched: 10
-✅ CancellationReasonType created: 4325cabb-0b9f-4c0c-8960-5907023f3871
+✅ CancellationReasonType created: 2b4f8efe-e578-4598-b9a6-edd0a6321661
 ✅ CancellationReasonTypes fetched: 10
-✅ CancellationReasonType updated: 4325cabb-0b9f-4c0c-8960-5907023f3871
+✅ CancellationReasonType updated: 2b4f8efe-e578-4598-b9a6-edd0a6321661
 ✅ CancellationReasonTypes fetched: 10
-✅ CancellationReasonType deleted: 4325cabb-0b9f-4c0c-8960-5907023f3871
+✅ CancellationReasonType deleted: 2b4f8efe-e578-4598-b9a6-edd0a6321661
 ✅ CancellationReasonTypes fetched: 10
 ── CancellationReasonsType Workflow complete ──
 
@@ -230,149 +227,155 @@ payload {
 ── Document Types Workflow ──
 ✅ Document types fetched: 10
 ✅ Document types fetched: 10
-✅ Document type created: undefined
-⚠️  No ID returned - cannot continue workflow
+✅ Document type created: 77dcaaa8-24c0-4326-a99b-827333693f1d
+✅ Document types fetched: 10
+✅ Document type updated: 77dcaaa8-24c0-4326-a99b-827333693f1d
+✅ Document types fetched: 10
+✅ Document type deleted: 77dcaaa8-24c0-4326-a99b-827333693f1d
+✅ Document types fetched: 10
+── Document Types Workflow complete ──
+
 
 ── RoleDocumentRequirements Workflow ──
 ✅ RoleDocumentRequirements fetched: 10
 ✅ RoleDocumentRequirements fetched: 2
-✅ RoleDocumentRequirement created: 456a1746-2857-4016-9b9f-7c331ae9c8d0
+✅ RoleDocumentRequirement created: 62b8971e-7423-44eb-8b7d-1d5ebee5949e
 ✅ RoleDocumentRequirements fetched: 10
-✅ RoleDocumentRequirement updated: 456a1746-2857-4016-9b9f-7c331ae9c8d0
+✅ RoleDocumentRequirement updated: 62b8971e-7423-44eb-8b7d-1d5ebee5949e
 ✅ RoleDocumentRequirements fetched: 10
-✅ RoleDocumentRequirement deleted: 456a1746-2857-4016-9b9f-7c331ae9c8d0
+✅ RoleDocumentRequirement deleted: 62b8971e-7423-44eb-8b7d-1d5ebee5949e
 ✅ RoleDocumentRequirements fetched: 10
 ── RoleDocumentRequirements Workflow complete ──
 
 
 ── Status Workflow ──
 ✅ Statuses fetched: 8
-✅ Status created: 1b2796f5-571c-4287-b332-ea117bc5e9c1
+✅ Status created: 39769a6b-a86b-4ae4-acb6-6a3a1d939be4
 ✅ Statuses fetched: 9
-✅ Status updated: 1b2796f5-571c-4287-b332-ea117bc5e9c1
+✅ Status updated: 39769a6b-a86b-4ae4-acb6-6a3a1d939be4
 ✅ Statuses fetched: 9
-✅ Status deleted: 1b2796f5-571c-4287-b332-ea117bc5e9c1
+✅ Status deleted: 39769a6b-a86b-4ae4-acb6-6a3a1d939be4
 ✅ Statuses fetched: 8
 ── Status Workflow complete ──
 
 
 ── TariffRate Workflow ──
 ✅ TariffRates fetched: 2
-✅ TariffRate created: f65e8a83-b220-4796-a583-6d68477882f8
+✅ TariffRate created: e7f0d55c-6252-462c-82f3-f5e4e81ec75b
 ✅ TariffRates fetched: 3
-✅ TariffRate updated: f65e8a83-b220-4796-a583-6d68477882f8
+✅ TariffRate updated: e7f0d55c-6252-462c-82f3-f5e4e81ec75b
 ✅ TariffRates fetched: 3
-✅ TariffRate deleted: f65e8a83-b220-4796-a583-6d68477882f8
+✅ TariffRate deleted: e7f0d55c-6252-462c-82f3-f5e4e81ec75b
 ✅ TariffRates fetched: 2
 ── TariffRate Workflow complete ──
 
 
 ── DepositSource Workflow ──
-✅ DepositSources fetched: 209
-✅ DepositSource created: f0d7a542-d522-4ec3-aa58-509cd0d8c323
-✅ DepositSources fetched: 210
-✅ DepositSource fetched by ID: f0d7a542-d522-4ec3-aa58-509cd0d8c323
-✅ DepositSource updated: f0d7a542-d522-4ec3-aa58-509cd0d8c323
-✅ DepositSources fetched: 210
-✅ DepositSource deleted: f0d7a542-d522-4ec3-aa58-509cd0d8c323
-✅ DepositSources fetched: 210
+✅ DepositSources fetched: 12
+✅ DepositSource created: 719a43e4-d601-4f52-8556-0ebc23c53152
+✅ DepositSources fetched: 13
+✅ DepositSource fetched by ID: 719a43e4-d601-4f52-8556-0ebc23c53152
+✅ DepositSource updated: 719a43e4-d601-4f52-8556-0ebc23c53152
+✅ DepositSources fetched: 13
+✅ DepositSource deleted: 719a43e4-d601-4f52-8556-0ebc23c53152
+✅ DepositSources fetched: 13
 ── DepositSource Workflow complete ──
 
 
 ── FinancialInstitutionAccount Workflow ──
 ✅ FinancialInstitutionAccounts fetched: 2
-✅ FinancialInstitutionAccount created: 35b1c604-6827-4a50-b619-43b07b772ba4
+✅ FinancialInstitutionAccount created: 109868e6-758e-47a5-84ff-9edb7ed8208e
 ✅ FinancialInstitutionAccounts fetched: 3
-✅ FinancialInstitutionAccount updated: 35b1c604-6827-4a50-b619-43b07b772ba4
+✅ FinancialInstitutionAccount updated: 109868e6-758e-47a5-84ff-9edb7ed8208e
 ✅ FinancialInstitutionAccounts fetched: 3
-✅ FinancialInstitutionAccount deleted: 35b1c604-6827-4a50-b619-43b07b772ba4
+✅ FinancialInstitutionAccount deleted: 109868e6-758e-47a5-84ff-9edb7ed8208e
 ✅ FinancialInstitutionAccounts fetched: 2
 ── FinancialInstitutionAccount Workflow complete ──
 
 
 ── CommissionStatus Workflow ──
 ✅ CommissionStatuses fetched: 5
-✅ CommissionStatus created: 44dd02e2-c269-4a98-b27b-0d4837ae17f5
+✅ CommissionStatus created: 824c15f4-497f-4e3c-bd09-808be140e1df
 ✅ CommissionStatuses fetched: 6
-✅ CommissionStatus updated: 44dd02e2-c269-4a98-b27b-0d4837ae17f5
+✅ CommissionStatus updated: 824c15f4-497f-4e3c-bd09-808be140e1df
 ✅ CommissionStatuses fetched: 6
-✅ CommissionStatus deleted: 44dd02e2-c269-4a98-b27b-0d4837ae17f5
+✅ CommissionStatus deleted: 824c15f4-497f-4e3c-bd09-808be140e1df
 ✅ CommissionStatuses fetched: 5
 ── CommissionStatus Workflow complete ──
 
 
 ── PaymentStatus Workflow ──
-✅ PaymentStatuses fetched: 3
-✅ PaymentStatus created: 84c26fd7-4813-422c-88be-63bce5c13405
 ✅ PaymentStatuses fetched: 4
-✅ PaymentStatus updated: 84c26fd7-4813-422c-88be-63bce5c13405
+✅ PaymentStatus created: 1751bc8e-84e3-4f35-915a-2b716a31156d
+✅ PaymentStatuses fetched: 5
+✅ PaymentStatus updated: 1751bc8e-84e3-4f35-915a-2b716a31156d
+✅ PaymentStatuses fetched: 5
+✅ PaymentStatus deleted: 1751bc8e-84e3-4f35-915a-2b716a31156d
 ✅ PaymentStatuses fetched: 4
-✅ PaymentStatus deleted: 84c26fd7-4813-422c-88be-63bce5c13405
-✅ PaymentStatuses fetched: 3
 ── PaymentStatus Workflow complete ──
 
 
 ── PaymentMethod Workflow ──
 ✅ PaymentMethods fetched: 10
-✅ PaymentMethod created: ea56e63c-1daf-4ca0-8694-f4e30737929e
+✅ PaymentMethod created: f3cb3112-7672-428d-bac8-ab11f4bccb44
 ✅ PaymentMethods fetched: 10
-✅ PaymentMethod updated: ea56e63c-1daf-4ca0-8694-f4e30737929e
+✅ PaymentMethod updated: f3cb3112-7672-428d-bac8-ab11f4bccb44
 ✅ PaymentMethods fetched: 10
-✅ PaymentMethod deleted: ea56e63c-1daf-4ca0-8694-f4e30737929e
+✅ PaymentMethod deleted: f3cb3112-7672-428d-bac8-ab11f4bccb44
 ✅ PaymentMethods fetched: 10
 ── PaymentMethod Workflow complete ──
 
 
 ── CommissionRates Workflow ──
 ✅ CommissionRates fetched: 2
-✅ CommissionRate created: 813d0128-426f-47f9-920f-7bce0e4ed162
+✅ CommissionRate created: a162d5de-cd5e-4e92-92f9-746fc587920b
 ✅ CommissionRates fetched: 2
-✅ CommissionRate updated: 813d0128-426f-47f9-920f-7bce0e4ed162
+✅ CommissionRate updated: a162d5de-cd5e-4e92-92f9-746fc587920b
 ✅ CommissionRates fetched: 2
-✅ CommissionRate deleted: 813d0128-426f-47f9-920f-7bce0e4ed162
+✅ CommissionRate deleted: a162d5de-cd5e-4e92-92f9-746fc587920b
 ✅ CommissionRates fetched: 1
-✅ CommissionRate created: 4651d406-4eb0-49df-85b4-1b67f1aa16b6
+✅ CommissionRate created: 385ab98f-425c-41e2-a334-55f440804898
 ── CommissionRates Workflow complete ──
 
 
 ── SubscriptionPlan Workflow ──
 ✅ SubscriptionPlans fetched: 10
-✅ SubscriptionPlan created: e63e7839-1b99-4ad6-97f7-0af8f820fbc7
+✅ SubscriptionPlan created: 163918d7-d16b-4fa7-b10c-2fd656ac25f4
 ✅ SubscriptionPlans fetched: 10
-✅ SubscriptionPlan updated: e63e7839-1b99-4ad6-97f7-0af8f820fbc7
+✅ SubscriptionPlan updated: 163918d7-d16b-4fa7-b10c-2fd656ac25f4
 ✅ SubscriptionPlans fetched: 10
-✅ SubscriptionPlan deleted: e63e7839-1b99-4ad6-97f7-0af8f820fbc7
+✅ SubscriptionPlan deleted: 163918d7-d16b-4fa7-b10c-2fd656ac25f4
 ✅ SubscriptionPlans fetched: 10
 ── SubscriptionPlan Workflow complete ──
 
 
 ── SubscriptionPlanPricing Workflow ──
-✅ SubscriptionPlan created: 72fbfb3e-c5c9-4389-9d1f-710528fa0010
-✅ SubscriptionPlanPricing created: 69872110-daf0-47af-b8e6-13ef1cfd8ee9
+✅ SubscriptionPlan created: 2f08e13d-0bb0-490f-b0d6-bc901fee045a
+✅ SubscriptionPlanPricing created: 278cc73f-d6fa-47db-b245-e989d1396e2d
 ✅ SubscriptionPlanPricings fetched: 5
-✅ SubscriptionPlanPricing updated: 69872110-daf0-47af-b8e6-13ef1cfd8ee9
+✅ SubscriptionPlanPricing updated: 278cc73f-d6fa-47db-b245-e989d1396e2d
 ✅ SubscriptionPlanPricings fetched: 5
-✅ SubscriptionPlanPricing deleted: 69872110-daf0-47af-b8e6-13ef1cfd8ee9
+✅ SubscriptionPlanPricing deleted: 278cc73f-d6fa-47db-b245-e989d1396e2d
 ✅ SubscriptionPlanPricings fetched: 4
 ── SubscriptionPlanPricing Workflow complete ──
 
 
 ── TariffRateForVehicleType Workflow ──
 ✅ TariffRateForVehicleTypes fetched: 0
-✅ TariffRateForVehicleType created: 5aef7e0c-0518-425c-bf6f-a0b2e8295525
+✅ TariffRateForVehicleType created: 805f342c-53bf-494b-88ee-500093d9854c
 ✅ TariffRateForVehicleTypes fetched: 1
-✅ TariffRateForVehicleType updated: 5aef7e0c-0518-425c-bf6f-a0b2e8295525
+✅ TariffRateForVehicleType updated: 805f342c-53bf-494b-88ee-500093d9854c
 ✅ TariffRateForVehicleTypes fetched: 1
-✅ TariffRateForVehicleType deleted: 5aef7e0c-0518-425c-bf6f-a0b2e8295525
+✅ TariffRateForVehicleType deleted: 805f342c-53bf-494b-88ee-500093d9854c
 ✅ TariffRateForVehicleTypes fetched: 0
 ── TariffRateForVehicleType Workflow complete ──
 
 
 ── Roles Workflow ──
 ✅ Roles fetched: 10
-✅ Role created: edad0d88-cd0e-4658-b9e7-7c57cccb4e9b
-✅ Role updated: edad0d88-cd0e-4658-b9e7-7c57cccb4e9b
-✅ Role deleted: edad0d88-cd0e-4658-b9e7-7c57cccb4e9b
+✅ Role created: dd2970e1-0a9a-4e18-868f-4f8a267194d5
+✅ Role updated: dd2970e1-0a9a-4e18-868f-4f8a267194d5
+✅ Role deleted: dd2970e1-0a9a-4e18-868f-4f8a267194d5
 ✅ Roles fetched: 10
 ── Roles Workflow complete ──
 
@@ -381,44 +384,44 @@ payload {
 ✅ SMSSenders fetched: 0
 ✅ SMSSender created: (no id returned)
 ✅ SMSSenders fetched: 1
-✅ SMSSender fetched by ID: 201
-✅ SMSSender updated: 201
+✅ SMSSender fetched by ID: 9
+✅ SMSSender updated: 9
 ✅ SMSSenders fetched: 1
-✅ SMSSender deleted: 201
+✅ SMSSender deleted: 9
 ✅ SMSSenders fetched: 0
 ── SMSSender Workflow complete ──
 
 
 ── CompanyRole Workflow ──
 ✅ CompanyRoles fetched: 4
-✅ CompanyRole created: 00ff4dbe-99aa-4a5f-8446-d9d2d41e8735
+✅ CompanyRole created: 25d8f0d0-37c9-4633-8081-577780c1165a
 ✅ CompanyRoles fetched: 5
-✅ CompanyRole fetched by ID: 00ff4dbe-99aa-4a5f-8446-d9d2d41e8735
-✅ CompanyRole updated: 00ff4dbe-99aa-4a5f-8446-d9d2d41e8735
+✅ CompanyRole fetched by ID: 25d8f0d0-37c9-4633-8081-577780c1165a
+✅ CompanyRole updated: 25d8f0d0-37c9-4633-8081-577780c1165a
 ✅ CompanyRoles fetched: 5
-✅ CompanyRole deleted: 00ff4dbe-99aa-4a5f-8446-d9d2d41e8735
+✅ CompanyRole deleted: 25d8f0d0-37c9-4633-8081-577780c1165a
 ✅ CompanyRoles fetched: 4
 ── CompanyRole Workflow complete ──
 
 
 ── VehicleStatus Workflow ──
 ✅ VehicleStatuses fetched: 10
-✅ VehicleStatus created: 8a4791ef-8ded-4cad-8a5b-68fb9d7494a4
+✅ VehicleStatus created: 0b5a3be2-ef0a-49b8-8ac2-9ef91ddf7285
 ✅ VehicleStatuses fetched: 10
-✅ VehicleStatus updated: 8a4791ef-8ded-4cad-8a5b-68fb9d7494a4
+✅ VehicleStatus updated: 0b5a3be2-ef0a-49b8-8ac2-9ef91ddf7285
 ✅ VehicleStatuses fetched: 10
-✅ VehicleStatus deleted: 8a4791ef-8ded-4cad-8a5b-68fb9d7494a4
+✅ VehicleStatus deleted: 0b5a3be2-ef0a-49b8-8ac2-9ef91ddf7285
 ✅ VehicleStatuses fetched: 10
 ── VehicleStatus Workflow complete ──
 
 
 ── UserRefund Workflow ──
 ✅ UserRefunds fetched: 0
-✅ UserRefund created: f41a2616-1285-4811-88fc-ca7fc8c1a216
+✅ UserRefund created: 555b9a62-af6b-4385-9172-5819c5ecc943
 ✅ UserRefunds fetched: 1
-✅ UserRefund updated: f41a2616-1285-4811-88fc-ca7fc8c1a216
+✅ UserRefund updated: 555b9a62-af6b-4385-9172-5819c5ecc943
 ✅ UserRefunds fetched: 1
-✅ UserRefund deleted: f41a2616-1285-4811-88fc-ca7fc8c1a216
+✅ UserRefund deleted: 555b9a62-af6b-4385-9172-5819c5ecc943
 ✅ UserRefunds fetched: 0
 ── UserRefund Workflow complete ──
 
@@ -431,11 +434,11 @@ payload {
 
 ── UserRole Workflow ──
 ✅ UserRoles fetched: 10
-✅ UserRole created: ac127762-479c-41da-a250-cf7e69023d32
+✅ UserRole created: ad01005e-66d8-4463-9905-1d61a05f79cc
 ✅ UserRoles fetched: 10
-✅ UserRole updated: ac127762-479c-41da-a250-cf7e69023d32
+✅ UserRole updated: ad01005e-66d8-4463-9905-1d61a05f79cc
 ✅ UserRoles fetched: 10
-✅ UserRole deleted: ac127762-479c-41da-a250-cf7e69023d32
+✅ UserRole deleted: ad01005e-66d8-4463-9905-1d61a05f79cc
 ✅ UserRoles fetched: 10
 ── UserRole Workflow complete ──
 
@@ -462,19 +465,19 @@ payload {
 ✅ Success! Driver Request Created (Auto-matching):
 Status: 2
 Message: Driver status fetched
-Matched Shipper Request ID: 03ad15cd-ac6d-470f-a8e7-e0944ad1ff26
+Matched Shipper Request ID: 2ea51962-c6b4-4566-ade8-9fd73b7f25cd
 
 ✅ ========== CREATE DRIVER REQUEST FLOW COMPLETED SUCCESSFULLY ==========
 
 ✅ Driver journey status fetched. Status: 2
-   ↪ Matched stale request 03ad15cd-ac6d-470f-a8e7-e0944ad1ff26 — rejecting for real...
+   ↪ Matched stale request 2ea51962-c6b4-4566-ade8-9fd73b7f25cd — rejecting for real...
 
 ✅ ========== CREATE DRIVER REQUEST FLOW STARTED ==========
 
 ✅ Success! Driver Request Created (Auto-matching):
 Status: 2
 Message: Driver status fetched
-Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
+Matched Shipper Request ID: 2584419c-2ac3-4660-b290-4e61c9862e7d
 
 ✅ ========== CREATE DRIVER REQUEST FLOW COMPLETED SUCCESSFULLY ==========
 
@@ -556,12 +559,12 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 
 ── Journey Workflow ──
 ✅ Journeys fetched: 2
-✅ Ongoing journey fetched: 10
-📋 Found journey to test with: 8b82cb0c-fcc9-4ad7-9cdc-3c39b46438da
-✅ Journey fetched by ID: 8b82cb0c-fcc9-4ad7-9cdc-3c39b46438da
-✅ Journey updated: 8b82cb0c-fcc9-4ad7-9cdc-3c39b46438da
+✅ Ongoing journey fetched: 2
+📋 Found journey to test with: cfc75f07-786b-4e38-a4bc-91282a8758b4
+✅ Journey fetched by ID: cfc75f07-786b-4e38-a4bc-91282a8758b4
+✅ Journey updated: cfc75f07-786b-4e38-a4bc-91282a8758b4
 ✅ Journeys fetched: 2
-✅ Journey deleted: 8b82cb0c-fcc9-4ad7-9cdc-3c39b46438da
+✅ Journey deleted: cfc75f07-786b-4e38-a4bc-91282a8758b4
 🗑️  Journey deleted during workflow test
 ✅ Completed journeys fetched: 10
 ── Journey Workflow complete ──
@@ -570,29 +573,29 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 ── JourneyDecisions Workflow ──
 ✅ JourneyDecisions fetched: 10
 ✅ JourneyDecisions fetched: 10
-✅ JourneyDecision updated: 5758f654-8b21-4376-a96a-bc045d86b207
-✅ JourneyDecision deleted: 6625
+✅ JourneyDecision updated: 7b0a1d83-86ed-4e2d-baa2-61fa4e013f1f
+✅ JourneyDecision deleted: 491
 🗑️  JourneyDecision deleted during workflow test
 ── JourneyDecisions Workflow complete ──
 
 
 ── CanceledJourneys Workflow ──
 ✅ CanceledJourneys fetched: 10
-📋 Found canceled journey to test: 4123c8bc-cedd-4ef1-b146-2486dd3377f8
-✅ CanceledJourney updated: 4123c8bc-cedd-4ef1-b146-2486dd3377f8
-✅ CanceledJourney marked seen by admin: 4123c8bc-cedd-4ef1-b146-2486dd3377f8
-✅ CanceledJourney deleted: 4123c8bc-cedd-4ef1-b146-2486dd3377f8
+📋 Found canceled journey to test: dce7af4c-fda6-430f-9fcb-3c75c30642fa
+✅ CanceledJourney updated: dce7af4c-fda6-430f-9fcb-3c75c30642fa
+✅ CanceledJourney marked seen by admin: dce7af4c-fda6-430f-9fcb-3c75c30642fa
+✅ CanceledJourney deleted: dce7af4c-fda6-430f-9fcb-3c75c30642fa
 ✅ CanceledJourneys fetched: 10
 ── CanceledJourneys Workflow complete ──
 
 
 ── JourneyRoutePoints Workflow ──
 ✅ JourneyRoutePoints fetched: 0
-✅ JourneyRoutePoint created: 28e9f396-d0bb-4637-b9f7-dfb7dc25dda9
+✅ JourneyRoutePoint created: 2e39e6d1-fa9d-4335-a20e-30fe7823138e
 ✅ JourneyRoutePoints fetched: 0
-✅ JourneyRoutePoint updated: 28e9f396-d0bb-4637-b9f7-dfb7dc25dda9
+✅ JourneyRoutePoint updated: 2e39e6d1-fa9d-4335-a20e-30fe7823138e
 ✅ JourneyRoutePoints fetched: 0
-✅ JourneyRoutePoint deleted: 28e9f396-d0bb-4637-b9f7-dfb7dc25dda9
+✅ JourneyRoutePoint deleted: 2e39e6d1-fa9d-4335-a20e-30fe7823138e
 ✅ JourneyRoutePoints fetched: 0
 ── JourneyRoutePoints Workflow complete ──
 
@@ -600,35 +603,35 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 ── Ratings Workflow ──
 ✅ Ratings fetched: 10
 ✅ Ratings fetched: 10
-✅ Rating created: 148
+✅ Rating created: 121
 ✅ Ratings fetched: 10
-✅ Rating updated: 148
+✅ Rating updated: 121
 ✅ Ratings fetched: 10
-✅ Rating deleted: 148
+✅ Rating deleted: 121
 ✅ Ratings fetched: 10
 ── Ratings Workflow complete ──
 
 
 ── VehicleProfile Workflow ──
 ✅ Vehicles fetched: 1
-📋 Using existing vehicle from driver onboarding: b3f9d341-e393-43f5-b6fb-f02d5bdfd676
-✅ Vehicle updated: b3f9d341-e393-43f5-b6fb-f02d5bdfd676
+📋 Using existing vehicle from driver onboarding: 89f413f5-b909-44d7-9594-5d9f69390569
+✅ Vehicle updated: 89f413f5-b909-44d7-9594-5d9f69390569
 ✅ Vehicles fetched: 1
 ── VehicleProfile Workflow complete ──
 
 
 ── VehicleDriver Workflow ──
 ✅ VehicleDrivers fetched: 10
-📋 Using existing vehicle-driver link: 0e3da80c-2712-479e-862f-5fe0c0611259
-✅ VehicleDriver updated: 0e3da80c-2712-479e-862f-5fe0c0611259
+📋 Using existing vehicle-driver link: 72be748b-9c16-4850-b27e-c9909a9012c2
+✅ VehicleDriver updated: 72be748b-9c16-4850-b27e-c9909a9012c2
 ✅ VehicleDrivers fetched: 10
 ── VehicleDriver Workflow complete ──
 
 
 ── VehicleOwnership Workflow ──
 ✅ VehicleOwnerships fetched: 10
-📋 Using existing ownership: bb9e6060-aaf0-433a-83c3-aff077093bc5
-✅ VehicleOwnership updated: bb9e6060-aaf0-433a-83c3-aff077093bc5
+📋 Using existing ownership: edf90299-779b-4643-b9c6-87b51f58c98f
+✅ VehicleOwnership updated: edf90299-779b-4643-b9c6-87b51f58c98f
 ✅ VehicleOwnerships fetched: 10
 ── VehicleOwnership Workflow complete ──
 
@@ -636,7 +639,7 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 ── UserRoleStatus Workflow ──
 ✅ UserRoleStatus current fetched: 10
 ✅ UserRoleStatus by phone fetched
-✅ UserRoleStatus updated for user: 44f2fd70-6409-43ad-a1a8-faefa4de8813
+✅ UserRoleStatus updated for user: 1287bd8a-0064-4a84-840e-bb2ed33cc499
 ✅ UserRoleStatus current fetched: 10
 ── UserRoleStatus Workflow complete ──
 
@@ -644,7 +647,7 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 ── ShipperRequestBatch Workflow ──
 ✅ ShipperRequestBatches fetched: 3
 ✅ Batch slots fetched: 1
-✅ Batch partially canceled: 185d3c5c-d481-4a55-a980-6811d9da615c
+✅ Batch partially canceled: b624191c-7e1f-4fb6-922f-c823dc4e5c41
 ⏩ testCancelBatch skipped — no cancellable (owned, non-terminal) batch available
 ✅ ShipperRequestBatches fetched: 3
 ── ShipperRequestBatch Workflow complete ──
@@ -669,13 +672,13 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 
 
 ── Commission Workflow ──
-✅ Commissions fetched: 10
-✅ Commission created: 7d56167e-ff62-49f5-b6cf-76cdd8bfaa11
-✅ Commissions fetched: 10
-✅ Commission updated: 7d56167e-ff62-49f5-b6cf-76cdd8bfaa11
-✅ Commissions fetched: 10
-✅ Commission deleted: 7d56167e-ff62-49f5-b6cf-76cdd8bfaa11
-✅ Commissions fetched: 10
+✅ Commissions fetched: 0
+✅ Commission created: 86d834c7-ca68-4e6a-9a62-dd14f70a9802
+✅ Commissions fetched: 1
+✅ Commission updated: 86d834c7-ca68-4e6a-9a62-dd14f70a9802
+✅ Commissions fetched: 1
+✅ Commission deleted: 86d834c7-ca68-4e6a-9a62-dd14f70a9802
+✅ Commissions fetched: 0
 ── Commission Workflow complete ──
 
 
@@ -692,26 +695,26 @@ Matched Shipper Request ID: 2daac31c-61dd-4e0f-b7f4-360d8cf92715
 
 ── JourneyPayments Workflow ──
 ✅ JourneyPayments fetched: 0
-✅ JourneyPayment created: 19cb4748-0c06-40d6-9a89-b555e5940711
+✅ JourneyPayment created: 87e0affd-a38f-4437-b85a-f0a5eec1295b
 ✅ JourneyPayments fetched: 1
-✅ JourneyPayment fetched by ID: 19cb4748-0c06-40d6-9a89-b555e5940711
-✅ JourneyPayment updated: 19cb4748-0c06-40d6-9a89-b555e5940711
+✅ JourneyPayment fetched by ID: 87e0affd-a38f-4437-b85a-f0a5eec1295b
+✅ JourneyPayment updated: 87e0affd-a38f-4437-b85a-f0a5eec1295b
 ✅ JourneyPayments fetched: 1
-✅ JourneyPayment deleted: 19cb4748-0c06-40d6-9a89-b555e5940711
+✅ JourneyPayment deleted: 87e0affd-a38f-4437-b85a-f0a5eec1295b
 ✅ JourneyPayments fetched: 0
 ── JourneyPayments Workflow complete ──
 
 
 ── CompanyMembership Workflow ──
 ✅ CompanyMemberships fetched: 1
-✅ CompanyMembership created: e1db531b-6377-40f7-b8e6-af58a82f8a9b
+✅ CompanyMembership created: 2f79f82e-3797-4a3a-9208-34e1f1b8d96f
 ✅ CompanyMemberships fetched: 2
 ✅ CompanyMemberships fetched: 2
-✅ CompanyMembership deactivated: e1db531b-6377-40f7-b8e6-af58a82f8a9b
+✅ CompanyMembership deactivated: 2f79f82e-3797-4a3a-9208-34e1f1b8d96f
 ✅ CompanyMemberships fetched: 2
-✅ CompanyMembership reactivated: e1db531b-6377-40f7-b8e6-af58a82f8a9b
+✅ CompanyMembership reactivated: 2f79f82e-3797-4a3a-9208-34e1f1b8d96f
 ✅ CompanyMemberships fetched: 2
-✅ CompanyMembership deleted: e1db531b-6377-40f7-b8e6-af58a82f8a9b
+✅ CompanyMembership deleted: 2f79f82e-3797-4a3a-9208-34e1f1b8d96f
 ✅ CompanyMemberships fetched: 1
 ── CompanyMembership Workflow complete ──
 
@@ -786,7 +789,7 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
 
 ── Delinquency Workflow ──
 ✅ Delinquencies fetched: 10
-✅ Delinquency created: 74ce0a5c-ff74-4d25-8780-95a0f2c7849f
+✅ Delinquency created: 55958b53-1801-406b-8328-e95c37187072
 ✅ Delinquencies fetched: 10
 ✅ Delinquency updated: null
 ✅ Delinquencies fetched: 10
@@ -797,24 +800,24 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
 
 ── Delinquency Response Workflow ──
 📝 Creating fresh delinquency for response workflow
-✅ Delinquency created: 3bd384ea-ce47-4133-8178-d07e9a7fadb0
-✅ Created delinquency: 3bd384ea-ce47-4133-8178-d07e9a7fadb0
+✅ Delinquency created: dc696192-40d5-4521-8340-e1a98ebceef6
+✅ Created delinquency: dc696192-40d5-4521-8340-e1a98ebceef6
 ✅ Delinquency responses fetched: 0
-✅ Delinquency response created: 15124d76-1a67-4fae-988d-0e7f89b958d5
-✅ Created response: 15124d76-1a67-4fae-988d-0e7f89b958d5
-✅ Delinquency response updated: 15124d76-1a67-4fae-988d-0e7f89b958d5
+✅ Delinquency response created: 3a9c95d8-c357-4649-9a5e-aedee443e2d2
+✅ Created response: 3a9c95d8-c357-4649-9a5e-aedee443e2d2
+✅ Delinquency response updated: 3a9c95d8-c357-4649-9a5e-aedee443e2d2
 ✅ Delinquency responses fetched: 1
-✅ Delinquency response deleted: 15124d76-1a67-4fae-988d-0e7f89b958d5
+✅ Delinquency response deleted: 3a9c95d8-c357-4649-9a5e-aedee443e2d2
 ✅ Delinquency responses fetched: 0
 ── Delinquency Response Workflow complete ──
 
 
 ── Admin Decision Workflow ──
 📝 No delinquency provided — creating fresh one for decision workflow
-✅ Delinquency created: ced3fb5d-721f-4237-ba3e-0f3ce23c69ed
-✅ Created delinquency: ced3fb5d-721f-4237-ba3e-0f3ce23c69ed
+✅ Delinquency created: 40354ee7-1ae4-461f-b654-27b8a6340d89
+✅ Created delinquency: 40354ee7-1ae4-461f-b654-27b8a6340d89
 ✅ Admin decisions fetched: 0
-✅ Admin decision created [UPHELD]: 04edde62-ebc9-4b73-b154-1a2c5a0bba59
+✅ Admin decision created [UPHELD]: 53af8db8-26a7-41c4-a43f-2a15015ca78a
 ⏩ Update admin decision: not supported (decisions are immutable)
 ⏩ Delete admin decision: not supported (use new decision to override)
 ✅ Admin decisions fetched: 1
@@ -822,22 +825,22 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
 
 
 ── Ban Workflow ──
-📋 Using userRoleUniqueId from driver accountData: 77dfc4a2-26d8-4241-b635-33600a41b189
-✅ User banned: 97a8bfe3-d8fa-4e2c-a535-00a78835014f
-✅ Ban updated: 97a8bfe3-d8fa-4e2c-a535-00a78835014f
-✅ Ban deactivated: 97a8bfe3-d8fa-4e2c-a535-00a78835014f
+📋 Using userRoleUniqueId from driver accountData: 243d9e76-9f78-4de9-83df-f5d38bd8265a
+✅ User banned: ea10720b-1971-4801-9f64-acff9f529ccc
+✅ Ban updated: ea10720b-1971-4801-9f64-acff9f529ccc
+✅ Ban deactivated: ea10720b-1971-4801-9f64-acff9f529ccc
 ── Ban Workflow complete ──
 
 
 ── Company Delinquency Workflow ──
-✅ Company delinquencies fetched: 10
+✅ Company delinquencies fetched: 1
 ✅ Pending company delinquencies fetched: 1
-✅ Company delinquency created: aae5c028-928b-49ec-a11f-88a3d59ea242
-✅ Company delinquencies fetched: 10
+✅ Company delinquency created: 8d74421d-b1d5-47ea-b4bc-69e0544559e9
+✅ Company delinquencies fetched: 2
 ✅ Company delinquency response created
-✅ Company delinquency responses fetched: 10
-✅ Company delinquency deleted: aae5c028-928b-49ec-a11f-88a3d59ea242
-✅ Company delinquencies fetched: 10
+✅ Company delinquency responses fetched: 7
+✅ Company delinquency deleted: 8d74421d-b1d5-47ea-b4bc-69e0544559e9
+✅ Company delinquencies fetched: 1
 ── Company Delinquency Workflow complete ──
 
 
@@ -851,21 +854,30 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
 
 ── Analytics & Filter Workflow ──
 ✅ Canceled journey counts by date fetched: {
-  '2026-07-20': 11,
-  '2026-07-22': 2,
-  '2026-07-25': 7,
-  '2026-07-26': 30,
-  '2026-07-27': 18,
-  '2026-07-28': 49,
-  '2026-07-29': 15,
-  '2026-08-08': 110,
-  '2026-08-09': 57
+  '2026-07-20': 26,
+  '2026-07-21': 3,
+  '2026-07-22': 20,
+  '2026-07-23': 22,
+  '2026-07-24': 9,
+  '2026-07-25': 10,
+  '2026-07-26': 2,
+  '2026-07-27': 35,
+  '2026-07-28': 2,
+  '2026-07-29': 4,
+  '2026-07-30': 7,
+  '2026-07-31': 38,
+  '2026-08-01': 17,
+  '2026-08-03': 5,
+  '2026-08-04': 6,
+  '2026-08-05': 11,
+  '2026-08-06': 10,
+  '2026-08-09': 1
 }
-✅ Canceled journey counts by reason fetched: 8
+✅ Canceled journey counts by reason fetched: 12
 ✅ Canceled journeys (admin filter) fetched: 10
-✅ Users (detailed filter) fetched: 10
-✅ Online drivers fetched: 10
-✅ Offline drivers fetched: 10
+✅ Users (detailed filter) fetched: 9
+✅ Online drivers fetched: 9
+✅ Offline drivers fetched: 7
 ✅ All active drivers fetched: 10
 ── Analytics & Filter Workflow complete ──
 
@@ -1034,33 +1046,67 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
 ── Company bidding ──
   ✅ PASS: companyReject: companyBid
   ✅ PASS: companyReject: shipperAcceptedBid
-  ✅ PASS: companyReject: autoAssign
-✅ Driver journey status fetched. Status: 2
-   Status before reject: 2 assignment: assigned
-  ✅ PASS: companyReject: assignmentCreated
-  ✅ PASS: companyReject: socketsConnected
-── Driver rejecting company assignment ──
-  ✅ PASS: companyReject: driverRejected
-   Assignment status after reject: rejected_by_driver
-  ✅ PASS: companyReject: assignmentRejected
-  ✅ PASS: companyReject: companyReceivedRejection
-✅ Driver journey status fetched. Status: 1
-   Driver status after both rejects: 1
-  ⏩ SKIP: companyReject: individualRequestStillActive — no active individual request from Test 1 (expected when same shipper can't re-match)
-✅ Company assignment rejection test PASSED
+  🔴 BACKEND ERROR [reqid=94623924-ac46-4f8f-b074-c1b0adb78a10] POST http://127.0.0.1:3000/api/company/assignments/auto -> 500 (error)
 
+❌ Company assignment rejection test FAILED: Request failed with status code 500
+API error: {
+  status: 'error',
+  message: 'error',
+  error: {
+    code: 'WARN_DATA_TRUNCATED',
+    errno: 1265,
+    sqlState: '01000',
+    sqlMessage: "Data truncated for column 'decisionBy' at row 1",
+    sql: 'INSERT INTO JourneyDecisions\n' +
+      '      (journeyDecisionUniqueId, shipperRequestId, driverRequestId,\n' +
+      '       journeyStatusId, decisionTime, decisionBy,\n' +
+      '       shippingCostByDriver, journeyDecisionCreatedBy, journeyDecisionCreatedAt)\n' +
+      "     VALUES ('103d7b53-4d6f-4e10-822a-87dcf0d5e6a1', 573, 621, 2, '2026-08-09 14:51:40', 'company', '8000.00', 'c378b922-9945-472e-8584-2ab0d788f76c', '2026-08-09 14:51:40')",
+    statusCode: 500,
+    status: 'error'
+  },
+  stack: "Error: Data truncated for column 'decisionBy' at row 1\n" +
+    '    at createJourneyDecisionForAssignment (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyAssignment/assignmentHelper.js:94:14)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n' +
+    '    at async exports.autoAssignBatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/Services/CompanyAssignment/assignmentAuto.service.js:185:37)\n' +
+    '    at async /Users/zewedu/Desktop/Projects/transportBackEndNative/Utils/DatabaseTransaction.js:101:14\n' +
+    '    at async executeInTransaction (/Users/zewedu/Desktop/Projects/transportBackEndNative/Utils/DatabaseTransaction.js:99:20)\n' +
+    '    at async exports.autoAssignBatch (/Users/zewedu/Desktop/Projects/transportBackEndNative/Controllers/CompanyAssignment.controller.js:37:20)'
+}
+  ❌ FAIL: companyAssignmentRejection — Request failed with status code 500
 ── Creating 2-request shipper batch ──
   ✅ PASS: batchReject: createBatch
   ✅ PASS: batchReject: resolvedJobIds
 ── Driver creating request (should match job1) ──
+✅ Driver journey status fetched. Status: 2
+  ✅ PASS: batchReject: matchedJob1
+── Driver rejecting job1 for real ──
+  ✅ PASS: batchReject: rejectedJob1
+── Creating new driver request (job2 must stay un-matched) ──
 ✅ Driver journey status fetched. Status: 1
+   Status after reject + recreate: 1 matched: undefined
+  ✅ PASS: batchReject: job2NotAutoMatched
+  ✅ PASS: batchReject: noDecisionForJob2
+── Driver explicitly picking job2 (createAndAcceptNewRequest) ──
+✅ Driver journey status fetched. Status: 3
+  ✅ PASS: batchReject: explicitlyPickedJob2
+✅ Driver journey status fetched. Status: 4
+  ✅ PASS: batchReject: shipperAccepted
+✅ Journey started. Status: 5
+✅ journeyStartingLat/Lng persisted (9.02050000, 38.80250000)
+✅ Driver journey status fetched. Status: 5
+  ✅ PASS: batchReject: journeyStarted
+✅ Journey completed. Status: 6
+✅ journeyCompletingLat/Lng persisted (9.02050000, 38.80250000)
+  ✅ PASS: batchReject: journeyCompleted
+✅ Driver journey status fetched. Status: null
+  ✅ PASS: batchReject: terminalAfterComplete
+✅ Batch-scoped driver rejection test PASSED
 
-❌ Batch-scoped driver rejection test FAILED: Expected match to job1, got status 1
-  ❌ FAIL: batchDriverRejection — Expected match to job1, got status 1
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Results:  ✅ 77 passed  |  ❌ 1 failed  |  ⏩ 4 skipped
-  Total:    82 tests
+  Results:  ✅ 77 passed  |  ❌ 1 failed  |  ⏩ 6 skipped
+  Total:    84 tests
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
@@ -1181,7 +1227,8 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
   ✅ PASS: GET /api/user/delinquencyResponse/pending — User delinquencies list fetched
 
 ── GET /api/user/report-wrong-email ──
-  ✅ PASS: GET /api/user/report-wrong-email — link revoked (status 200)
+  🔴 BACKEND ERROR [reqid=2d2a8301-9086-48b4-bc6a-0c829cd1885a] GET http://127.0.0.1:3000/api/user/report-wrong-email?token=4f95b414-64f3-4719-814e-17ae0c410bdd -> 500
+  ❌ FAIL: GET /api/user/report-wrong-email — Request failed with status code 500
 
 ── GET /api/user/verify-email ──
   ✅ PASS: GET /api/user/verify-email — email verified via real link
@@ -1216,8 +1263,8 @@ DriversAssignmentError: Missing required IDs for assignment creation undefined
 ✅ deleteUser: User deleted
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Results:  ✅ 111 passed  |  ❌ 1 failed  |  ⏩ 6 skipped
-  Total:    118 tests
+  Results:  ✅ 110 passed  |  ❌ 2 failed  |  ⏩ 8 skipped
+  Total:    120 tests
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 

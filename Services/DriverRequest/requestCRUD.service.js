@@ -31,6 +31,33 @@ const createRequest = async ({
     // Check if the driver already has an active request
     let activeRequest = await checkActiveDriverRequest(userUniqueId);
 
+    // If the driver only has an UNMATCHED (waiting, status 1) request and posts a
+    // new currentLocation, move that request to the new location so distance
+    // matching searches around the driver's current position. Without this, the
+    // stale request keeps searching from its old coordinates and the driver
+    // appears to be elsewhere (e.g. after a rejected company assignment leaves a
+    // status-1 request behind).
+    const { currentLocation } = body;
+    const waitingRequest = (activeRequest || []).find(
+      (req) => Number(req?.journeyStatusId) === journeyStatusMap.waiting,
+    );
+    if (waitingRequest && currentLocation?.latitude && currentLocation?.longitude) {
+      await updateData({
+        tableName: "DriverRequest",
+        conditions: {
+          driverRequestUniqueId: waitingRequest.driverRequestUniqueId,
+        },
+        updateValues: {
+          originLatitude: currentLocation.latitude,
+          originLongitude: currentLocation.longitude,
+          originPlace: currentLocation.description || waitingRequest.originPlace,
+          driverRequestUpdatedAt: new Date(),
+        },
+      });
+      // Recheck active request so downstream code sees the moved request
+      activeRequest = await checkActiveDriverRequest(userUniqueId);
+    }
+
     // Create a new driver request if none exists
     if (activeRequest?.length === 0) {
       await createDriverRequest(body, userUniqueId, journeyStatusId);
