@@ -91,6 +91,7 @@ const findNonRejectedShipper = async (shippers, userUniqueId) => {
   for (const shipper of shippers) {
     const rejectedResult = await VerifyIfShipperRequestWasNotRejected({
       shipperRequestId: shipper.shipperRequestId,
+      shipperRequestBatchUniqueId: shipper.shipperRequestBatchUniqueId,
       driverUserUniqueId: userUniqueId,
     });
     if (rejectedResult?.message === "success") {

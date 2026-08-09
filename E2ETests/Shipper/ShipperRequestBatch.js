@@ -52,9 +52,14 @@ const testGetBatchSlots = async ({ user, batchUniqueId } = {}) => {
 
 // ── CANCEL batch ───────────────────────────────────────────────────────────────
 const TERMINAL_STATUSES = [7, 9, 10, 12];
-const cancelCandidateBatches = () => {
+
+// Filter to batches that actually have at least one cancellable slot, so we
+// never probe a batch the backend would reject with 400. Uses the slots
+// endpoint's `cancellable` flag (statuses 1-4 = waiting/requested/
+// acceptedByDriver/acceptedByShipper).
+const cancelCandidateBatches = async (token) => {
   const currentShipperId = usersData?.shipper?.accountData?.userData?.userUniqueId;
-  return (cache.data || []).filter((b) => {
+  const owned = (cache.data || []).filter((b) => {
     const id = b?.batchUniqueId || b?.shipperRequestBatchUniqueId;
     if (!id) return false;
     if (TERMINAL_STATUSES.includes(Number(b?.journeyStatusId))) return false;
@@ -62,41 +67,59 @@ const cancelCandidateBatches = () => {
     if (currentShipperId && b?.shipperUserUniqueId && b.shipperUserUniqueId !== currentShipperId) return false;
     return true;
   });
+  const cancellable = [];
+  for (const b of owned) {
+    const id = b?.batchUniqueId || b?.shipperRequestBatchUniqueId;
+    try {
+      const res = await axios.get(
+        backendURL + `${BASE_URL}/${id}/slots?cancellable=true&limit=1`,
+        authConfig(token),
+      );
+      const slots = res.data?.data || [];
+      if (Array.isArray(slots) && slots.length > 0) cancellable.push(b);
+    } catch {
+      // Skip batches whose slots can't be fetched — don't probe with cancel.
+    }
+  }
+  return cancellable;
 };
 
 const testCancelBatch = async ({ user, batchUniqueId } = {}) => {
   const token = user?.token || usersData.shipper?.token;
   if (!token) throw new Error("token not found");
-  const candidates = batchUniqueId ? [{ batchUniqueId }] : cancelCandidateBatches();
+  const candidates = batchUniqueId
+    ? [{ batchUniqueId }]
+    : await cancelCandidateBatches(token);
   if (candidates.length === 0) {
     console.log("⏩ testCancelBatch skipped — no cancellable (owned, non-terminal) batch available");
     return { skipped: true };
   }
-  const url = BASE_URL + `/${candidates[0].batchUniqueId || candidates[0].shipperRequestBatchUniqueId}/cancel`;
-  try {
-    // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — reason 12 has
-    // requestMode 'company' and is valid for company freight batches (reasons 1-11 are 'individual').
-    const result = await axios.put(backendURL + url, { cancellationReasonsTypeId: 12 }, authConfig(token));
-    console.log("✅ Batch canceled:", candidates[0].batchUniqueId || candidates[0].shipperRequestBatchUniqueId);
-    return result.data;
-  } catch (error) {
-    const status = error.response?.status;
-    // 400 = batch already canceled or can't be canceled, 403 = not owned by this shipper
-    if (status === 400 || status === 403) {
-      const id = candidates[0].batchUniqueId || candidates[0].shipperRequestBatchUniqueId;
-      console.log(`⏩ testCancelBatch: batch ${id} not cancellable (${status} — expected), trying next candidate…`);
-      const next = candidates.slice(1);
-      if (next.length === 0) {
-        console.log("⏩ testCancelBatch: no cancellable batch remaining (expected)");
-        return { skipped: true };
-      }
+  let cancelled = 0;
+  for (const candidate of candidates) {
+    const id = candidate.batchUniqueId || candidate.shipperRequestBatchUniqueId;
+    try {
+      // cancellationReasonsTypeId is NOT NULL in CanceledJourneys — reason 12 has
+      // requestMode 'company' and is valid for company freight batches (reasons 1-11 are 'individual').
+      await axios.put(backendURL + `${BASE_URL}/${id}/cancel`, { cancellationReasonsTypeId: 12 }, authConfig(token));
+      cancelled++;
+      console.log("✅ Batch canceled:", id);
       cache.partialCanceledId = id;
-      cache.data = next;
-      return testCancelBatch({ user });
+    } catch (error) {
+      const status = error.response?.status;
+      // 400 = batch already canceled or can't be canceled, 403 = not owned by this shipper
+      if (status === 400 || status === 403) {
+        console.log(`⏩ testCancelBatch: batch ${id} not cancellable (${status} — expected), trying next candidate…`);
+        continue;
+      }
+      console.error("❌ testCancelBatch:", error.response?.data?.error || error.message);
+      throw error;
     }
-    console.error("❌ testCancelBatch:", error.response?.data?.error || error.message);
-    throw error;
   }
+  if (cancelled === 0) {
+    console.log("⏩ testCancelBatch: no cancellable batch remaining (expected)");
+    return { skipped: true };
+  }
+  return { cancelled };
 };
 
 // ── PARTIAL CANCEL ─────────────────────────────────────────────────────────────

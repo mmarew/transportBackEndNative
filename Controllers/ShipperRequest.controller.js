@@ -379,6 +379,26 @@ const getAllActiveRequestsController = async (req, res, next) => {
       sortOrder: req.query.sortOrder || "DESC",
     };
 
+    // When the caller is a driver, resolve their most recent location so the
+    // active-requests list can be sorted by distance (nearest first).
+    if (req.user?.userUniqueId && req.user?.roleId === usersRoles.driverRoleId) {
+      const { pool } = require("../Middleware/Database.config");
+      const [[latest]] = await pool.query(
+        `SELECT originLatitude, originLongitude
+         FROM DriverRequest
+         WHERE userUniqueId = ?
+           AND originLatitude IS NOT NULL
+           AND originLongitude IS NOT NULL
+         ORDER BY driverRequestId DESC
+         LIMIT 1`,
+        [req.user.userUniqueId],
+      );
+      if (latest) {
+        filters.driverLatitude = latest.originLatitude;
+        filters.driverLongitude = latest.originLongitude;
+      }
+    }
+
     const result = await ShipperService.getAllActiveRequests(filters);
 
     return ServerResponder(res, result);

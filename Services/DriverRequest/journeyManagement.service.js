@@ -307,6 +307,18 @@ const completeJourney = async (body) => {
         connection: conn,
       });
 
+      // Record the driver's actual completion GPS so the platform can verify
+      // that the job really ended at the delivered location (mirrors
+      // journeyStartingLat/Lng captured in startJourney).
+      await conn.query(
+        `UPDATE Journey
+            SET journeyCompletingLat = ?,
+                journeyCompletingLng = ?,
+                journeyUpdatedAt      = ?
+          WHERE journeyUniqueId = ?`,
+        [body.latitude ?? null, body.longitude ?? null, currentDate(), journeyUniqueId],
+      );
+
       const paymentAmount =
         combinedData?.shippingCostByDriver ?? combinedData?.shippingCost;
 

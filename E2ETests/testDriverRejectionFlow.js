@@ -24,7 +24,13 @@ const {
 const { assignVehicleToCompany } = require("./Company/CompanyVehicle");
 const {
   getDriverJourneyStatus,
+  startJourney,
+  completeJourney,
 } = require("./Driver/DriverJourneyStatus");
+const {
+  testAcceptDriverRequest,
+} = require("./Shipper/ShipperRequest");
+const { testCancelDriverRequest } = require("./Driver/DriverRequest");
 
 // ── Socket helpers ───────────────────────────────────────────────────────────
 
@@ -84,6 +90,9 @@ const waitForSocketMessage = (socket, eventName, timeoutMs = 10000, predicate) =
 };
 
 const cleanPhone = (phone) => phone?.replace(/\D/g, "");
+
+// Cap on how many stale leftovers the driver will reject for real before giving up.
+const MAX_REJECT_ATTEMPTS = 15;
 
 // ── Helper: create a shipper request (individual) ────────────────────────────
 
@@ -156,6 +165,78 @@ const createCompanyShipperRequest = async (companyUniqueId) => {
     payload,
     authConfig(shipper.token),
   );
+};
+
+// ── Helper: create a multi-vehicle batch of individual shipper requests ───────
+
+const createBatchShipperRequest = async (numberOfVehicles) => {
+  const { shipper } = usersData;
+  const vtRes = await axios.get(
+    backendURL + "/api/admin/vehicleTypes",
+    authConfig(shipper.token),
+  );
+  const vehicleTypeUniqueId = vtRes.data.data[0].vehicleTypeUniqueId;
+
+  const shippingDate = new Date();
+  shippingDate.setDate(shippingDate.getDate() + 1);
+  const deliveryDate = new Date();
+  deliveryDate.setDate(deliveryDate.getDate() + 3);
+
+  const batchUniqueId = require("uuid").v4();
+  const payload = {
+    shipperRequestBatchUniqueId: batchUniqueId,
+    numberOfVehicles,
+    shippingDate: shippingDate.toISOString(),
+    deliveryDate: deliveryDate.toISOString(),
+    shippingCost: 6500,
+    shippableItemQtyInQuintal: 90,
+    shippableItemName: "Batch Reject Test Cargo",
+    requestMode: "individual_target",
+    originLocation: { latitude: 9.6, longitude: 39.5, description: "Batch Test Origin" },
+    destination: { latitude: 8.54, longitude: 39.27, description: "Adama" },
+    vehicle: { vehicleTypeUniqueId },
+  };
+
+  await axios.post(
+    backendURL + SHIPPER_REQUEST_ENDPOINTS.CREATE_REQUEST,
+    payload,
+    authConfig(shipper.token),
+  );
+  return batchUniqueId;
+};
+
+// ── Helper: create a driver request at an explicit location ───────────────────
+
+const createDriverRequestAt = async ({ latitude, longitude, description }) => {
+  const res = await axios.post(
+    backendURL + DRIVER_REQUEST_ENDPOINTS.DRIVER_REQUEST,
+    { currentLocation: { latitude, longitude, description } },
+    authConfig(usersData.driver.token),
+  );
+  return res.data;
+};
+
+// ── Helper: create DR and reject-for-real until the expected request is matched ──
+
+const createDriverRequestUntilMatched = async (expectedUniqueId, coords) => {
+  let attempts = 0;
+  await createDriverRequestAt(coords);
+  let status = await getDriverJourneyStatus({ userType: "driver" });
+  while (
+    status?.status === 2 &&
+    status?.uniqueIds?.shipperRequestUniqueId &&
+    status.uniqueIds.shipperRequestUniqueId !== expectedUniqueId &&
+    attempts < MAX_REJECT_ATTEMPTS
+  ) {
+    console.log(
+      `   ↪ Matched ${status.uniqueIds.shipperRequestUniqueId} — rejecting for real...`,
+    );
+    await testCancelDriverRequest(usersData.driver.token);
+    await createDriverRequestAt(coords);
+    status = await getDriverJourneyStatus({ userType: "driver" });
+    attempts += 1;
+  }
+  return status;
 };
 
 // ── Helper: reactivate driver status ─────────────────────────────────────────
@@ -410,6 +491,138 @@ const testCompanyAssignmentRejection = async () => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  TEST 3: Batch-scoped driver rejection
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const testBatchDriverRejection = async () => {
+  const driver = usersData.driver;
+  const BATCH_COORDS = { latitude: 9.6, longitude: 39.5, description: "Batch Test Origin" };
+
+  try {
+    // 1. Reactivate driver
+    await reactivateDriver();
+
+    // 2. Create a 2-request shipper batch (same shipperRequestBatchUniqueId)
+    console.log("── Creating 2-request shipper batch ──");
+    const batchUniqueId = await createBatchShipperRequest(2);
+    report.pass("batchReject: createBatch");
+
+    // 3. Resolve the two batch requests (job1 = oldest id → auto-matched first)
+    const [batchRows] = await pool.query(
+      `SELECT shipperRequestUniqueId, shipperRequestId
+         FROM ShipperRequest
+        WHERE shipperRequestBatchUniqueId = ?
+        ORDER BY shipperRequestId ASC`,
+      [batchUniqueId],
+    );
+    if (batchRows.length !== 2) {
+      throw new Error(`Expected 2 batch rows, got ${batchRows.length}`);
+    }
+    const job1UniqueId = batchRows[0].shipperRequestUniqueId;
+    const job2UniqueId = batchRows[1].shipperRequestUniqueId;
+    report.pass("batchReject: resolvedJobIds");
+
+    // 4. Driver creates request → must auto-match job1 (oldest, FIFO)
+    console.log("── Driver creating request (should match job1) ──");
+    let status = await createDriverRequestUntilMatched(job1UniqueId, BATCH_COORDS);
+    if (status?.status !== 2 || status?.uniqueIds?.shipperRequestUniqueId !== job1UniqueId) {
+      throw new Error(`Expected match to job1, got status ${status?.status}`);
+    }
+    report.pass("batchReject: matchedJob1");
+
+    // 5. Driver rejects job1 for real (pre-accept → rejectedByDriver = 15)
+    console.log("── Driver rejecting job1 for real ──");
+    await axios.put(
+      backendURL + DRIVER_REQUEST_ENDPOINTS.CANCEL_DRIVER_REQUEST +
+        "?ownerUserUniqueId=self&roleId=2&cancellationReasonsTypeId=2",
+      {},
+      authConfig(driver.token),
+    );
+    report.pass("batchReject: rejectedJob1");
+
+    // 6. Create a NEW driver request → job2 must NOT be auto-matched
+    //    (VerifyIfShipperRequestWasNotRejected is batch-scoped: job1's rejection
+    //    blocks the whole batch).
+    console.log("── Creating new driver request (job2 must stay un-matched) ──");
+    const newDrRes = await createDriverRequestAt(BATCH_COORDS);
+    status = await getDriverJourneyStatus({ userType: "driver" });
+    const matchedAfterReject =
+      newDrRes?.shipper?.shipperRequestUniqueId ||
+      status?.uniqueIds?.shipperRequestUniqueId;
+    console.log("   Status after reject + recreate:", status?.status, "matched:", matchedAfterReject);
+    if (matchedAfterReject === job2UniqueId) {
+      throw new Error("FAIL: driver auto-matched job2 despite batch-scoped rejection");
+    }
+    if (status?.status === 2) {
+      throw new Error("FAIL: driver matched another request, expected waiting (batch blocked)");
+    }
+    report.pass("batchReject: job2NotAutoMatched");
+
+    // 7. DB check: no JourneyDecision links this driver to job2
+    const driverUid = driver.accountData?.userData?.userUniqueId;
+    const [jdRows] = await pool.query(
+      `SELECT jd.journeyDecisionUniqueId
+         FROM JourneyDecisions jd
+         JOIN DriverRequest dr ON jd.driverRequestId = dr.driverRequestId
+         JOIN ShipperRequest sr ON jd.shipperRequestId = sr.shipperRequestId
+        WHERE dr.userUniqueId = ? AND sr.shipperRequestUniqueId = ?`,
+      [driverUid, job2UniqueId],
+    );
+    if (jdRows.length > 0) {
+      throw new Error("FAIL: JourneyDecision links driver to job2");
+    }
+    report.pass("batchReject: noDecisionForJob2");
+
+    // 8. Driver explicitly picks job2 from the list → acceptedByDriver (3)
+    console.log("── Driver explicitly picking job2 (createAndAcceptNewRequest) ──");
+    await axios.post(
+      backendURL + DRIVER_REQUEST_ENDPOINTS.CREATE_AND_ACCEPT_NEW_REQUEST,
+      {
+        shipperRequestUniqueId: job2UniqueId,
+        shippingCostByDriver: "58000.00",
+        currentLocation: BATCH_COORDS,
+      },
+      authConfig(driver.token),
+    );
+    status = await getDriverJourneyStatus({ userType: "driver" });
+    if (status?.status !== 3) {
+      throw new Error(`Expected status 3 (acceptedByDriver) after explicit pick, got ${status?.status}`);
+    }
+    report.pass("batchReject: explicitlyPickedJob2");
+
+    // 9. Shipper accepts the driver offer → acceptedByShipper (4)
+    await testAcceptDriverRequest({ uniqueIds: status?.uniqueIds });
+    status = await getDriverJourneyStatus({ userType: "driver" });
+    if (status?.status !== 4) {
+      throw new Error(`Expected status 4 (acceptedByShipper), got ${status?.status}`);
+    }
+    report.pass("batchReject: shipperAccepted");
+
+    // 10. Start journey (5) → complete journey (6)
+    await startJourney({ userType: "driver" });
+    status = await getDriverJourneyStatus({ userType: "driver" });
+    if (status?.status !== 5) {
+      throw new Error(`Expected status 5 (journeyStarted), got ${status?.status}`);
+    }
+    report.pass("batchReject: journeyStarted");
+
+    await completeJourney({ userType: "driver" });
+    status = await getDriverJourneyStatus({ userType: "driver" });
+    if (status?.status !== 6) {
+      throw new Error(`Expected status 6 (journeyCompleted), got ${status?.status}`);
+    }
+    report.pass("batchReject: journeyCompleted");
+
+    console.log("✅ Batch-scoped driver rejection test PASSED\n");
+
+  } catch (error) {
+    console.error("\n❌ Batch-scoped driver rejection test FAILED:", error.message);
+    if (error.response) console.error("API error:", error.response.data);
+    report.fail("batchDriverRejection", error);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  ENTRY POINT
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -431,6 +644,9 @@ const runDriverRejectionTests = async () => {
 
   // --- Test 2: Company assignment rejection ---
   await testCompanyAssignmentRejection();
+
+  // --- Test 3: Batch-scoped driver rejection ---
+  await testBatchDriverRejection();
 
   report.summary();
 };

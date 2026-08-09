@@ -103,6 +103,9 @@ const getAllActiveRequests = async (filters = {}) => {
     // Location filters
     originPlace,
     destinationPlace,
+    // Driver proximity (optional): when provided the list is sorted by distance
+    driverLatitude,
+    driverLongitude,
     // Date filters
     startDate,
     endDate,
@@ -121,6 +124,11 @@ const getAllActiveRequests = async (filters = {}) => {
     journeyStatusMap.acceptedByDriver,
   ];
 
+  const driverLat = Number.parseFloat(driverLatitude);
+  const driverLng = Number.parseFloat(driverLongitude);
+  const sortByDistance =
+    Number.isFinite(driverLat) && Number.isFinite(driverLng);
+
   // Base query
   let baseQuery = `
     SELECT 
@@ -132,6 +140,16 @@ const getAllActiveRequests = async (filters = {}) => {
       vt.vehicleTypeName,
       js.journeyStatusName,
       srb.batchId
+      ${
+        sortByDistance
+          ? `,
+      (6371 * 2 * ASIN(SQRT(
+        POWER(SIN(RADIANS(sr.originLatitude - ${driverLat}) / 2), 2) +
+        COS(RADIANS(${driverLat})) * COS(RADIANS(sr.originLatitude)) *
+        POWER(SIN(RADIANS(sr.originLongitude - ${driverLng}) / 2), 2)
+      ))) AS distanceKm`
+          : ""
+      }
     FROM ShipperRequest sr
     JOIN Users u ON u.userUniqueId = sr.userUniqueId 
     LEFT JOIN VehicleTypes vt ON sr.vehicleTypeUniqueId = vt.vehicleTypeUniqueId
@@ -214,7 +232,9 @@ const getAllActiveRequests = async (filters = {}) => {
 
   // Add sorting and pagination to main query
   const offset = (page - 1) * limit;
-  baseQuery += ` ORDER BY sr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+  baseQuery += sortByDistance
+    ? ` ORDER BY distanceKm ASC, sr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`
+    : ` ORDER BY sr.${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
   values.push(parseInt(limit), parseInt(offset));
   try {
     // Execute both queries

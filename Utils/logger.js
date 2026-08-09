@@ -108,6 +108,7 @@ const logger = winston.createLogger({
       // Combined logs (all levels)
       new winston.transports.File({
         filename: path.join(logDir, "combined.log"),
+        level: "silly", // capture every level — inherits the logger default otherwise
         maxsize: 5242880,
         maxFiles: 10,
         tailable: true,

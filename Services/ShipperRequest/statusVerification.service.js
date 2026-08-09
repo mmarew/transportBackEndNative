@@ -5,6 +5,7 @@ const {
   performJoinSelect,
   getAttachedDocumentsByUserUniqueIdAndDocumentTypeId,
   checkActiveShipperRequest,
+  findNearbyDrivers,
 } = require("../../CRUD/Read/ReadData");
 const { updateData } = require("../../CRUD/Update/Data.update");
 const { insertData } = require("../../CRUD/Create/CreateData");
@@ -163,36 +164,8 @@ async function handleWaitingRequest({
 }) {
   void driversData; // avoid no-unused-vars
   // Find available drivers near the shipper's location (READ-ONLY - outside transaction)
-  const sql = `
-    SELECT
-      DriverRequest.*,
-      Users.fullName,
-      Users.phoneNumber,
-      Users.email,
-      Users.userUniqueId as driverUserUniqueId,
-      Vehicle.vehicleUniqueId,
-      Vehicle.licensePlate,
-      Vehicle.color,
-      VehicleTypes.vehicleTypeName,
-      VehicleTypes.vehicleTypeUniqueId
-    FROM DriverRequest
-    JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
-    JOIN VehicleDriver vd ON vd.driverUserUniqueId = Users.userUniqueId
-    JOIN Vehicle ON Vehicle.vehicleUniqueId = vd.vehicleUniqueId
-    JOIN VehicleTypes ON Vehicle.vehicleTypeUniqueId = VehicleTypes.vehicleTypeUniqueId
-    WHERE DriverRequest.journeyStatusId = ?
-      AND VehicleTypes.vehicleTypeUniqueId = ?
-    ORDER BY DriverRequest.driverRequestId ASC
-    LIMIT 10
-  `;
-
-  const driverParams = [
-    journeyStatusMap.waiting,
-    shipperRequest.vehicleTypeUniqueId,
-  ];
-
-  const executor = transactionStorage.getStore() || pool;
-  const [driverResults] = await executor.query(sql, driverParams);
+  // Uses radius-based search with distance ordering + FIFO tiebreaker (see ReadData.matching.js).
+  const driverResults = await findNearbyDrivers({ shipperRequest });
 
   if (driverResults.length === 0) {
     return false;

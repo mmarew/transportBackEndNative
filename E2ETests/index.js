@@ -4,7 +4,10 @@ const { initLogCapture } = require("./logCapture");
 initLogCapture();
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
-const { resetDatabase, cancelLeftoverShipperRequests, ensureJourneyLocationColumns } = require("./DataBaseManagement");
+const {
+  resetDatabase,
+  ensureJourneyLocationColumns,
+} = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
@@ -99,12 +102,6 @@ const initiateTest = async () => {
     if (!usersData?.supperAdmin?.token)
       throw new Error("SuperAdmin token not set");
 
-    // ── Phase 0a: Cancel stacked leftover shipper requests ────────────────────
-    // Requests stranded at waiting/requested/acceptedByDriver by previously
-    // interrupted runs otherwise tie with this run's fresh request at the same
-    // coordinates and can win the driver auto-match (→ acceptDriverRequest 404).
-    await cancelLeftoverShipperRequests();
-
     // ── Phase 0b: Non-destructive schema verification ─────────────────────────
     // Drop-table operations are permanently disabled — the suite never wipes data.
     // New columns (e.g. Journey.journeyStartingLat/Lng) are added via
@@ -144,7 +141,9 @@ const initiateTest = async () => {
         `Driver must be ACTIVE after document approval, got status ${driverStatus} (expected ${USER_STATUS.ACTIVE})`,
       );
     }
-    console.log(`✅ Driver is ACTIVE (status ${USER_STATUS.ACTIVE}) after document approval\n`);
+    console.log(
+      `✅ Driver is ACTIVE (status ${USER_STATUS.ACTIVE}) after document approval\n`,
+    );
 
     // ── Document Endpoint Tests ────────────────────────────────────────────────
     const runDocumentTests = async () => {
@@ -264,11 +263,18 @@ const initiateTest = async () => {
       console.log("   🔌 TESTING COMPANY SOCKET NOTIFICATIONS");
       console.log("=======================================================\n");
 
-      await safe("testCompanySocketNotifications", testCompanySocketNotifications)();
+      await safe(
+        "testCompanySocketNotifications",
+        testCompanySocketNotifications,
+      )();
     }
 
     // ── Phase H2: Driver rejection flow tests ─────────────────────────
-    if (!usersData?.driver?.token || !usersData?.shipper?.token || !usersData?.companyAdmin?.token) {
+    if (
+      !usersData?.driver?.token ||
+      !usersData?.shipper?.token ||
+      !usersData?.companyAdmin?.token
+    ) {
       console.warn(
         "⚠️  Missing user tokens for rejection tests — skipping Phase H2",
       );
@@ -286,7 +292,10 @@ const initiateTest = async () => {
     await safe("runShipperSupplementaryTests", runShipperSupplementaryTests)();
     await safe("runCompanySupplementaryTests", runCompanySupplementaryTests)();
     await safe("runUserBalanceTests", runUserBalanceTests)();
-    await safe("runDelinquencySupplementaryTests", runDelinquencySupplementaryTests)();
+    await safe(
+      "runDelinquencySupplementaryTests",
+      runDelinquencySupplementaryTests,
+    )();
     await safe("testReportWrongEmail", testReportWrongEmail)();
     await safe("testVerifyEmail", testVerifyEmail)();
     await safe("testVerifyPhoneGet", testVerifyPhoneGet)();

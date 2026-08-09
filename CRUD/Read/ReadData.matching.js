@@ -26,6 +26,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
   const sqlQuery = `
       SELECT
          *,
+         Users.userUniqueId AS driverUserUniqueId,
          (
            6371 * 2 * ASIN(SQRT(
              POWER(SIN(RADIANS(DriverRequest.originLatitude - ?) / 2), 2) +
@@ -45,7 +46,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
         AND vd.assignmentStatus = 'active'
         AND Vehicle.vehicleTypeUniqueId = ?
       HAVING distanceKm <= ?
-      ORDER BY distanceKm ASC
+      ORDER BY distanceKm ASC, DriverRequest.driverRequestId ASC
       LIMIT 10
     `;
 
@@ -70,6 +71,7 @@ const findNearbyDrivers = async ({ shipperRequest }) => {
   for (const driver of drivers) {
     const { message } = await VerifyIfShipperRequestWasNotRejected({
       shipperRequestId,
+      shipperRequestBatchUniqueId: shipperRequest?.shipperRequestBatchUniqueId,
       driverUserUniqueId: driver?.userUniqueId,
     });
     if (message === "success") {
@@ -118,7 +120,7 @@ const findNearbyShippers = async ({
       AND ShipperRequest.originLongitude BETWEEN ? AND ?
       AND ShipperRequest.journeyStatusId IN (?, ?, ?)
     HAVING distanceKm <= ?
-    ORDER BY distanceKm ASC
+    ORDER BY distanceKm ASC, ShipperRequest.shipperRequestId ASC
   `;
 
   const values = [

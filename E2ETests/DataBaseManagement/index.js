@@ -1,11 +1,10 @@
 const axios = require("axios");
-const { backendURL, usersData, journeyStatusMap } = require("../constants");
+const { backendURL, usersData } = require("../constants");
 const {
   DATABASE_ENDPOINTS,
 } = require("../../Routes/EndPoints/database.endpoints");
 const { testVerifyAndLoginUser } = require("../Auth");
 const { authConfig } = require("../Utils");
-const { pool } = require("../../Middleware/Database.config");
 
 // Dev-only API key — must match API_KEY in your .env
 const DEV_API_KEY = process.env.API_KEY || "dev-api-key";
@@ -210,36 +209,12 @@ const resetDatabase = async () => {
 /**
  * Cancel shipper requests left over from previously interrupted runs.
  *
- * resetDatabase never truncates tables, so a failed run can leave requests
- * sitting at waiting/requested/acceptedByDriver on the same coordinates as
- * every other request. Those leftovers then "stack": when a fresh driver
- * auto-matches, MySQL picks among equal-distance rows arbitrarily, so the
- * driver can be bound to an old request owned by a different shipper and the
- * current shipper's accept call 404s.
- *
- * Runs before any flow creates requests, so every non-terminal request here
- * belongs to an older run and can be safely cancelled.
+ * REMOVED: superseded by the deterministic reject-for-real flow in
+ * runIndividualFlow.js (rejectLeftoversUntilFresh) and the batch-rejection
+ * test in testDriverRejectionFlow.js. Those exercise the real batch-scoped
+ * rejection path instead of a blanket DB status sweep.
  */
-const cancelLeftoverShipperRequests = async () => {
-  const [result] = await pool.query(
-    `UPDATE ShipperRequest
-        SET journeyStatusId = ?
-      WHERE journeyStatusId IN (?, ?, ?)
-        AND shipperRequestDeletedAt IS NULL`,
-    [
-      journeyStatusMap.cancelledBySystem,
-      journeyStatusMap.waiting,
-      journeyStatusMap.requested,
-      journeyStatusMap.acceptedByDriver,
-    ],
-  );
-  const cancelled = result?.affectedRows ?? 0;
-  console.log(
-    cancelled > 0
-      ? `✅ Cancelled ${cancelled} leftover shipper request(s) from previous runs`
-      : "✅ No leftover shipper requests to cancel",
-  );
-};
+
 // ── Table maintenance ───────────────────────────────────────────────────────
 
 /**
@@ -261,7 +236,8 @@ const testUpdateTable = async () => {
 
 /**
  * PUT /api/admin/updateTable/:tableName
- * Adds the Journey.journeyStartingLat / journeyStartingLng columns when missing.
+ * Adds the Journey.journeyStartingLat / journeyStartingLng / journeyCompletingLat /
+ * journeyCompletingLng columns when missing.
  * Uses the non-destructive updateTable endpoint (never drops data).
  */
 const ensureJourneyLocationColumns = async () => {
@@ -279,6 +255,8 @@ const ensureJourneyLocationColumns = async () => {
   const columnsToAdd = [
     { columnName: "journeyStartingLat", columnType: "DECIMAL(10,8)", defaultValue: "NULL" },
     { columnName: "journeyStartingLng", columnType: "DECIMAL(11,8)", defaultValue: "NULL" },
+    { columnName: "journeyCompletingLat", columnType: "DECIMAL(10,8)", defaultValue: "NULL" },
+    { columnName: "journeyCompletingLng", columnType: "DECIMAL(11,8)", defaultValue: "NULL" },
   ];
   try {
     const res = await axios.get(columnsUrl, config);
@@ -322,7 +300,6 @@ module.exports = {
   getUserOtp,
   seedTestDocument,
   resetDatabase,
-  cancelLeftoverShipperRequests,
   testUpdateTable,
   testAlterColumn,
   ensureJourneyLocationColumns,

@@ -44,6 +44,8 @@ const getAllCompletedJourneys = async ({
         Journey.journeyStatusId,
         Journey.journeyStartingLat,
         Journey.journeyStartingLng,
+        Journey.journeyCompletingLat,
+        Journey.journeyCompletingLng,
         
         -- JourneyDecisions data
         JourneyDecisions.journeyDecisionId,
@@ -122,7 +124,9 @@ const getAllCompletedJourneys = async ({
         fare: row.fare,
         journeyStatusId: row.journeyStatusId,
         journeyStartingLat: row.journeyStartingLat,
-        journeyStartingLng: row.journeyStartingLng
+        journeyStartingLng: row.journeyStartingLng,
+        journeyCompletingLat: row.journeyCompletingLat,
+        journeyCompletingLng: row.journeyCompletingLng
       },
       shipper: {
         shipperRequestUniqueId: row.shipperRequestUniqueId,

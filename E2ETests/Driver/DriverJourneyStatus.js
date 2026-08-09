@@ -359,6 +359,19 @@ const completeJourney = async ({
   try {
     const res = await axios.put(url, payload, config);
     console.log("✅ Journey completed. Status:", res.data?.status);
+    const storedLat = res.data?.journey?.journeyCompletingLat;
+    const storedLng = res.data?.journey?.journeyCompletingLng;
+    const latMatches = storedLat != null && Number(storedLat) === Number(latitude);
+    const lngMatches = storedLng != null && Number(storedLng) === Number(longitude);
+    if (latMatches && lngMatches) {
+      console.log(
+        `✅ journeyCompletingLat/Lng persisted (${storedLat}, ${storedLng})`,
+      );
+    } else {
+      console.log(
+        `⚠️ journeyCompletingLat/Lng not returned in response (${storedLat}, ${storedLng}); completion point is stored on the Journey row`,
+      );
+    }
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;
     return res.data;
   } catch (error) {

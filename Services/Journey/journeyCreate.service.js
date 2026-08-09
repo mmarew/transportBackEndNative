@@ -21,7 +21,9 @@ const createJourney = async (data, connection = null) => {
     journeyStatusId,
     journeyCreatedBy,
     journeyStartingLat,
-    journeyStartingLng } = data;
+    journeyStartingLng,
+    journeyCompletingLat,
+    journeyCompletingLng } = data;
 
   // Use transaction storage for transaction support, or fall back to provided connection or pool
   const queryExecutor = transactionStorage.getStore() || connection || pool;
@@ -38,8 +40,8 @@ const createJourney = async (data, connection = null) => {
 
   const journeyUniqueId = uuidv4();
   const sql = `
-    INSERT INTO Journey (journeyUniqueId, journeyDecisionUniqueId, startTime, endTime, fare, journeyStatusId, journeyStartingLat, journeyStartingLng, journeyCreatedBy, journeyCreatedAt) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO Journey (journeyUniqueId, journeyDecisionUniqueId, startTime, endTime, fare, journeyStatusId, journeyStartingLat, journeyStartingLng, journeyCompletingLat, journeyCompletingLng, journeyCreatedBy, journeyCreatedAt) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
@@ -51,6 +53,8 @@ const createJourney = async (data, connection = null) => {
     journeyStatusId,
     journeyStartingLat ?? null,
     journeyStartingLng ?? null,
+    journeyCompletingLat ?? null,
+    journeyCompletingLng ?? null,
     journeyCreatedBy,
     currentDate(),
   ];
@@ -69,6 +73,8 @@ const createJourney = async (data, connection = null) => {
         journeyStatusId,
         journeyStartingLat: journeyStartingLat ?? null,
         journeyStartingLng: journeyStartingLng ?? null,
+        journeyCompletingLat: journeyCompletingLat ?? null,
+        journeyCompletingLng: journeyCompletingLng ?? null,
         journeyId: result.insertId,
       },
     ],
