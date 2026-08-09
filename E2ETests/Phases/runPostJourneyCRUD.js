@@ -37,6 +37,7 @@ const {
   testMarkJourneyCancellationAsSeen,
 } = require("../Shipper/ShipperRequest");
 const { usersData } = require("../constants");
+const { getAnyJourneyDecision } = require("../Utils");
 
 const runPostJourneyCRUD = async () => {
   console.log("\n=======================================================");
@@ -76,7 +77,8 @@ const runPostJourneyCRUD = async () => {
   await testGetCancellationNotification();
   await testVerifyShipperStatus();
   await testGetAllActiveRequest();
-  const jdId = usersData.driver.lastJourneyDecisionUniqueId || driverUniqueIds.journeyDecisionUniqueId;
+  const cachedJdId = usersData.driver.lastJourneyDecisionUniqueId || driverUniqueIds.journeyDecisionUniqueId;
+  const jdId = (await getAnyJourneyDecision({ token: usersData.shipper.token })) || cachedJdId;
   if (jdId) {
     await testMarkCancellationAsSeen({ journeyDecisionUniqueId: jdId });
   } else {

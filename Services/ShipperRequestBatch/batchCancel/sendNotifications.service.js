@@ -281,5 +281,5 @@ const messageTypes = require("../../../Utils/MessageTypes");
 const { sendSocketIONotificationToCompany } = require("../../../Utils/Notifications");
 const logger = require("../../../Utils/logger");
 const { sendSocketIONotificationToDriver } = require("../../../Utils/Notifications");
-const { sendFCMNotificationToUser } = require("../../../Utils/Notifications");
+const { sendFCMNotificationToUser } = require("../../Firebase.service");
 const { sendSocketIONotificationToShipper } = require("../../../Utils/Notifications");

@@ -119,8 +119,12 @@ const executeInTransaction = async (callback, options = {}) => {
     try {
       await connection.rollback();
       const duration = currentDate() - startTime;
+      // 4xx AppErrors are expected business rejections (e.g. validation,
+      // auth) — warn level. Real 5xx / unexpected errors stay at error.
+      const isClientError =
+        error?.statusCode >= 400 && error?.statusCode < 500;
       if (logging) {
-        logger.error("Transaction rolled back", {
+        logger[isClientError ? "warn" : "error"]("Transaction rolled back", {
           transactionId,
           duration: `${duration}ms`,
           error: error.message,

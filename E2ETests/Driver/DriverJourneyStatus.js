@@ -264,9 +264,16 @@ const startJourney = async ({
       console.log(
         `✅ journeyStartingLat/Lng persisted (${storedLat}, ${storedLng})`,
       );
+    } else if (storedLat != null && storedLng != null) {
+      // The journey was already created by another flow (e.g. takeFromStreet /
+      // company assignment) with its own starting location, so startJourney
+      // returned the existing row without overwriting it — informational only.
+      console.log(
+        `⚠️ journeyStartingLat/Lng pre-existing (${storedLat}, ${storedLng}); request location (${latitude}, ${longitude}) not overwritten`,
+      );
     } else {
       console.log(
-        `❌ journeyStartingLat/Lng mismatch: expected (${latitude}, ${longitude}), got (${storedLat}, ${storedLng})`,
+        `❌ journeyStartingLat/Lng not persisted: expected (${latitude}, ${longitude}), got (${storedLat}, ${storedLng})`,
       );
     }
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;

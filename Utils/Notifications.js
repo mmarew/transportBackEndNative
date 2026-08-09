@@ -20,17 +20,23 @@ const sendSocketIONotificationToDriver = async ({
   eventName,
   userType = "driver",
 }) => {
+  const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
+  if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
+    logger.warn("Skipping driver notification: invalid or missing phone number", {
+      phoneNumber: cleanedPhoneNumber,
+    });
+    return {
+      status: "error",
+      message: "Invalid phone number format",
+      skipped: true,
+    };
+  }
+
   try {
     logger.debug("@sendSocketIONotificationToDriver", {
       messageTypes: message.messageTypes,
       phoneNumber,
     });
-
-    const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
-
-    if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      throw new AppError("Invalid phone number format", AppError.BAD_REQUEST);
-    }
 
     const socketId = await getSocket(userType, cleanedPhoneNumber);
     if (!socketId) {
@@ -57,7 +63,7 @@ const sendSocketIONotificationToDriver = async ({
       return { status: "error", message: "Failed to send message to driver" };
     }
   } catch (error) {
-    logger.error("Error sending notification to driver", {
+    logger.warn("Error sending notification to driver", {
       error: error.message,
       stack: error.stack,
     });
@@ -75,16 +81,23 @@ const sendSocketIONotificationToShipper = async ({
   eventName,
   userType = "shipper",
 }) => {
+  const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
+  if (!cleanedPhoneNumber || !phoneNumberRegex.test(cleanedPhoneNumber)) {
+    logger.warn("Skipping shipper notification: invalid or missing phone number", {
+      phoneNumber: cleanedPhoneNumber,
+    });
+    return {
+      status: "error",
+      message: "Invalid phone number format",
+      skipped: true,
+    };
+  }
+
   try {
     logger.debug("@sendSocketIONotificationToShipper", {
       phoneNumber,
       eventName: eventName || "messages",
     });
-    const cleanedPhoneNumber = cleanPhoneNumber(phoneNumber);
-    if (!phoneNumberRegex.test(cleanedPhoneNumber)) {
-      throw new AppError("Invalid phone number format", AppError.BAD_REQUEST);
-    }
-
     const socketId = await getSocket(userType, cleanedPhoneNumber);
     if (!socketId) {
       logger.warn("No active shipper socket found for notification", {
@@ -116,7 +129,7 @@ const sendSocketIONotificationToShipper = async ({
       };
     }
   } catch (error) {
-    logger.error("Error sending notification to shipper", {
+    logger.warn("Error sending notification to shipper", {
       error: error.message,
       stack: error.stack,
     });

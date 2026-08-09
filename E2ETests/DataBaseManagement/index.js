@@ -1,10 +1,11 @@
 const axios = require("axios");
-const { backendURL, usersData } = require("../constants");
+const { backendURL, usersData, journeyStatusMap } = require("../constants");
 const {
   DATABASE_ENDPOINTS,
 } = require("../../Routes/EndPoints/database.endpoints");
 const { testVerifyAndLoginUser } = require("../Auth");
 const { authConfig } = require("../Utils");
+const { pool } = require("../../Middleware/Database.config");
 
 // Dev-only API key — must match API_KEY in your .env
 const DEV_API_KEY = process.env.API_KEY || "dev-api-key";
@@ -205,6 +206,40 @@ const resetDatabase = async () => {
     "\n✅ ========== DATABASE VERIFICATION COMPLETED SUCCESSFULLY ==========\n",
   );
 };
+
+/**
+ * Cancel shipper requests left over from previously interrupted runs.
+ *
+ * resetDatabase never truncates tables, so a failed run can leave requests
+ * sitting at waiting/requested/acceptedByDriver on the same coordinates as
+ * every other request. Those leftovers then "stack": when a fresh driver
+ * auto-matches, MySQL picks among equal-distance rows arbitrarily, so the
+ * driver can be bound to an old request owned by a different shipper and the
+ * current shipper's accept call 404s.
+ *
+ * Runs before any flow creates requests, so every non-terminal request here
+ * belongs to an older run and can be safely cancelled.
+ */
+const cancelLeftoverShipperRequests = async () => {
+  const [result] = await pool.query(
+    `UPDATE ShipperRequest
+        SET journeyStatusId = ?
+      WHERE journeyStatusId IN (?, ?, ?)
+        AND shipperRequestDeletedAt IS NULL`,
+    [
+      journeyStatusMap.cancelledBySystem,
+      journeyStatusMap.waiting,
+      journeyStatusMap.requested,
+      journeyStatusMap.acceptedByDriver,
+    ],
+  );
+  const cancelled = result?.affectedRows ?? 0;
+  console.log(
+    cancelled > 0
+      ? `✅ Cancelled ${cancelled} leftover shipper request(s) from previous runs`
+      : "✅ No leftover shipper requests to cancel",
+  );
+};
 // ── Table maintenance ───────────────────────────────────────────────────────
 
 /**
@@ -287,6 +322,7 @@ module.exports = {
   getUserOtp,
   seedTestDocument,
   resetDatabase,
+  cancelLeftoverShipperRequests,
   testUpdateTable,
   testAlterColumn,
   ensureJourneyLocationColumns,

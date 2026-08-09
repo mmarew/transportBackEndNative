@@ -14,6 +14,8 @@ const {
 
 // ── PUT: /api/driver/markNegativeStatusAsSeen ─────────────────────────────────
 // Driver calls this to clear a "rejected" or "cancelled" notification badge.
+// The backend requires a valid driverRequestUniqueId owned by the driver; the
+// service is idempotent — if the status is no longer negative it returns success.
 const testMarkNegativeStatusAsSeen = async ({ userType = "driver" } = {}) => {
   try {
     const token = usersData?.[userType]?.token;
@@ -21,15 +23,31 @@ const testMarkNegativeStatusAsSeen = async ({ userType = "driver" } = {}) => {
       console.log("⏩ testMarkNegativeStatusAsSeen skipped — no driver token");
       return { skipped: true };
     }
+    let driverRequestUniqueId = null;
+    try {
+      const notif = await axios.get(backendURL + DRIVER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS, authConfig(token));
+      const items = notif?.data?.data || [];
+      driverRequestUniqueId = items?.[0]?.driverRequestUniqueId || null;
+    } catch { /* ignore */ }
+    if (!driverRequestUniqueId) {
+      try {
+        const reqs = await axios.get(backendURL + "/api/user/getDriverRequest", authConfig(token));
+        const data = reqs?.data?.data || [];
+        driverRequestUniqueId = data?.[0]?.driverRequestUniqueId || null;
+      } catch { /* ignore */ }
+    }
+    if (!driverRequestUniqueId) {
+      console.log("⏩ testMarkNegativeStatusAsSeen skipped — no driverRequestUniqueId available");
+      return { skipped: true };
+    }
     const result = await axios.put(
       backendURL + DRIVER_REQUEST_ENDPOINTS.MARK_NEGATIVE_STATUS_AS_SEEN,
-      {},
+      { driverRequestUniqueId },
       authConfig(token),
     );
     console.log("✅ Driver negative status marked as seen:", result.data?.message || "OK");
     return result.data;
   } catch (error) {
-    // 400/404 is acceptable — no pending negative status to clear
     const status = error.response?.status;
     if (status === 400 || status === 404) {
       console.log("⏩ markNegativeStatusAsSeen: no pending notification to clear (expected)");
@@ -42,6 +60,7 @@ const testMarkNegativeStatusAsSeen = async ({ userType = "driver" } = {}) => {
 
 // ── PUT: /api/shipperRequest/markJourneyCompletionAsSeen ──────────────────────
 // Shipper calls this to acknowledge the "journey completed" notification.
+// Requires a completed (journeyStatusId=6) shipper request + its journey decision.
 const testMarkJourneyCompletionAsSeen = async ({ userType = "shipper" } = {}) => {
   try {
     const token = usersData?.[userType]?.token;
@@ -49,9 +68,22 @@ const testMarkJourneyCompletionAsSeen = async ({ userType = "shipper" } = {}) =>
       console.log("⏩ testMarkJourneyCompletionAsSeen skipped — no shipper token");
       return { skipped: true };
     }
+    let journeyDecisionUniqueId = null;
+    let shipperRequestUniqueId = null;
+    try {
+      const reqs = await axios.get(backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER + "?journeyStatusId=6", authConfig(token));
+      const items = reqs?.data?.data || [];
+      const match = items.find((r) => r?.journeyDecisionUniqueId && r?.shipperRequestUniqueId);
+      journeyDecisionUniqueId = match?.journeyDecisionUniqueId || null;
+      shipperRequestUniqueId = match?.shipperRequestUniqueId || null;
+    } catch { /* ignore */ }
+    if (!journeyDecisionUniqueId || !shipperRequestUniqueId) {
+      console.log("⏩ testMarkJourneyCompletionAsSeen skipped — no completed shipper request with journey decision");
+      return { skipped: true };
+    }
     const result = await axios.put(
       backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_JOURNEY_COMPLETION_AS_SEEN,
-      {},
+      { journeyDecisionUniqueId, shipperRequestUniqueId, rating: 5 },
       authConfig(token),
     );
     console.log("✅ Shipper journey completion marked as seen:", result.data?.message || "OK");
@@ -76,9 +108,19 @@ const testMarkCancellationAsSeen = async ({ userType = "shipper" } = {}) => {
       console.log("⏩ testMarkCancellationAsSeen skipped — no shipper token");
       return { skipped: true };
     }
+    let journeyDecisionUniqueId = null;
+    try {
+      const notif = await axios.get(backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_CANCELLATION_NOTIFICATIONS, authConfig(token));
+      const items = notif?.data?.data || [];
+      journeyDecisionUniqueId = items?.[0]?.journeyDecisionUniqueId || null;
+    } catch { /* ignore */ }
+    if (!journeyDecisionUniqueId) {
+      console.log("⏩ testMarkCancellationAsSeen skipped — no cancellation notification available");
+      return { skipped: true };
+    }
     const result = await axios.put(
       backendURL + SHIPPER_REQUEST_ENDPOINTS.MARK_CANCELLATION_AS_SEEN,
-      {},
+      { journeyDecisionUniqueId },
       authConfig(token),
     );
     console.log("✅ Shipper cancellation marked as seen:", result.data?.message || "OK");

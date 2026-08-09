@@ -63,7 +63,7 @@ const AppError = require("../../Utils/AppError");
 
 /**
  * Deletes a shipper request by ID
- * @param {number} requestId - Shipper request ID
+ * @param {string} requestId - shipperRequestUniqueId (UUID) of the request
  * @returns {Promise<Object>} Success or error response
  */
 const deleteRequest = async requestId => {
@@ -71,7 +71,7 @@ const deleteRequest = async requestId => {
     const result = await deleteData({
       tableName: "ShipperRequest",
       conditions: {
-        shipperRequestId: requestId
+        shipperRequestUniqueId: requestId
       }
     });
     if (result.affectedRows === 0) {

@@ -1,7 +1,8 @@
 // CRUD for UserDelinquency
 
-const { default: axios } = require("axios");
+const axios = require("axios");
 const { backendURL, usersData, listOfDelinquencyTypes } = require("../constants");
+const { getActiveDelinquencyType } = require("../Utils");
 const delinquencies = { data: null };
 
 const url = "/api/admin/userDelinquency/";
@@ -29,13 +30,24 @@ const testCreateDelinquency = async ({
 }) => {
   try {
     const userDriver = usersData.driver.accountData;
+    // The DelinquencyTypes workflow deletes its created type, leaving the cached
+    // list's first entry soft-deleted/inactive — prefer an active type from the
+    // DB (source of truth), falling back to the cached list only if needed.
     const delinquencyType = listOfDelinquencyTypes.data?.[delinquencyTypeIndex];
     const token = user?.token;
     if (!token) throw new Error("token not found");
+    let delinquencyTypeUniqueId = null;
+    try {
+      delinquencyTypeUniqueId = await getActiveDelinquencyType({ token });
+    } catch {
+      /* ignore */
+    }
+    delinquencyTypeUniqueId =
+      delinquencyTypeUniqueId || delinquencyType?.delinquencyTypeUniqueId;
 
     const payload = {
       userUniqueId: userDriver.userData.userUniqueId,
-      delinquencyTypeUniqueId: delinquencyType?.delinquencyTypeUniqueId,
+      delinquencyTypeUniqueId,
       delinquencyDescription: "user has made some mistakes mistakes",
       roleId: 2,
       skipDuplicateCheck,

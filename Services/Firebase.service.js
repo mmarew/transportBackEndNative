@@ -264,6 +264,34 @@ const deleteDeviceTokenByUniqueId = async (deviceTokenUniqueId) => {
   };
 };
 
+const getDeviceTokensByFilter = async ({ userUniqueId, roleId, active }) => {
+  const executor = transactionStorage.getStore() || pool;
+  const whereClauses = [];
+  const params = [];
+  if (userUniqueId) {
+    whereClauses.push("userUniqueId = ?");
+    params.push(userUniqueId);
+  }
+  if (roleId !== undefined && roleId !== null && roleId !== "") {
+    whereClauses.push("roleId = ?");
+    params.push(parseInt(roleId));
+  }
+  if (active !== undefined) {
+    if (active) {
+      whereClauses.push("revokedAt IS NULL");
+    } else {
+      whereClauses.push("revokedAt IS NOT NULL");
+    }
+  }
+  const whereClause =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const [rows] = await executor.query(
+    `SELECT * FROM DeviceTokens ${whereClause} ORDER BY deviceTokenCreatedAt DESC LIMIT 50`,
+    params,
+  );
+  return { message: "Device tokens fetched successfully", data: rows };
+};
+
 const getActiveTokensByUser = async (userUniqueId, roleId) => {
   const executor = transactionStorage.getStore() || pool;
   const [rows] = await executor.query(
@@ -376,6 +404,7 @@ module.exports = {
   getDeviceTokenByUniqueId,
   updateDeviceTokenByUniqueId,
   deleteDeviceTokenByUniqueId,
+  getDeviceTokensByFilter,
   getActiveTokensByUser,
   sendNotificationToTokens,
   sendFCMNotificationToUser,

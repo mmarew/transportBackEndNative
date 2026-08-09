@@ -3,7 +3,7 @@
 
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const { authConfig } = require("../Utils");
+const { authConfig, getAnyJourneyDecision } = require("../Utils");
 
 const BASE_URL = "/api/journeyRoutePoints";
 const cache = { data: null };
@@ -43,8 +43,11 @@ const testCreateJourneyRoutePoint = async ({ user, payload } = {}) => {
     const token = user?.token || usersData.driver?.token;
     if (!token) throw new Error("token not found");
 
-    // Requires a real journeyDecisionUniqueId — skip if not available
+    // Requires a real journeyDecisionUniqueId — resolve one from the DB (source
+    // of truth) first so a stale cached id from a cascade-deleted journey does
+    // not 404 the service's existence check.
     const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId ||
+      (await getAnyJourneyDecision({ token })) ||
       usersData?.driver?.lastJourneyDecisionUniqueId ||
       usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
     if (!journeyDecisionUniqueId) {

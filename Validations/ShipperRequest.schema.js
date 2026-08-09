@@ -121,6 +121,9 @@ exports.getShipperRequestQuery = Joi.object({
     .optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
   shipperRequestBatchUniqueId: uuidSchema.optional(),
+  hasUnansweredDriverRequest: Joi.alternatives()
+    .try(Joi.boolean(), Joi.string())
+    .optional(),
 }).unknown(true);
 
 exports.acceptDriverRequestBody = Joi.object({

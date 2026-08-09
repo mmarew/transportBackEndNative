@@ -62,10 +62,20 @@ const enqueueRecalc = (key, fn) => {
 // document acceptance/rejection:
 //  - user docs    → the owning user, with the role the document belongs to
 //  - vehicle docs → the active driver(s) assigned to that vehicle (role = driver)
-const resolveRecalcTargets = async ({ ownerType, ownerUniqueId, roleId }) => {
+const resolveRecalcTargets = async ({ ownerType, ownerUniqueId, roleId, documentTypeId }) => {
   const executor = transactionStorage.getStore() || pool;
   if (ownerType === "user") {
-    return [{ ownerUserUniqueId: ownerUniqueId, roleId }];
+    let resolvedRoleId = roleId;
+    if (!resolvedRoleId && documentTypeId) {
+      const [reqs] = await executor.query(
+        `SELECT roleId FROM RoleDocumentRequirements
+          WHERE documentTypeId = ? AND roleDocumentRequirementDeletedAt IS NULL
+          ORDER BY roleId ASC LIMIT 1`,
+        [documentTypeId]
+      );
+      resolvedRoleId = reqs?.[0]?.roleId ?? null;
+    }
+    return [{ ownerUserUniqueId: ownerUniqueId, roleId: resolvedRoleId }];
   }
   if (ownerType === "vehicle") {
     const [rows] = await executor.query(
@@ -336,74 +346,82 @@ const acceptRejectAttachedDocuments = async body => {
   // Run AFTER the transaction closes to avoid deadlocking the connection pool.
   // accountStatus calls getUserByFilterDetailed which uses pool directly —
   // calling it inside a transaction starves the pool and causes a timeout.
+  //
+  // setImmediate inherits the AsyncLocalStorage context, so the committed/
+  // released transaction connection would still be picked up by
+  // transactionStorage.getStore(). Run the work with a cleared store so every
+  // query falls back to the pool instead of the closed connection.
   if (ownerType === "user" || ownerType === "vehicle") {
-    setImmediate(async () => {
-      let targets;
-      try {
-        targets = await resolveRecalcTargets({
-          ownerType,
-          ownerUniqueId,
-          roleId
-        });
-      } catch (resolveError) {
-        logger.error("Post-commit: failed to resolve status recalculation targets", {
-          error: resolveError.message,
-          ownerType,
-          ownerUniqueId,
-          roleId,
-          action
-        });
-        return;
-      }
-      for (const target of targets) {
-        await enqueueRecalc(target.ownerUserUniqueId, async () => {
-          try {
-            await accountStatus({
-              ownerUserUniqueId: target.ownerUserUniqueId,
-              body: {
-                roleId: target.roleId
-              }
-            });
-          } catch (statusError) {
-            logger.error("Post-commit: failed to update user status after document action", {
-              error: statusError.message,
-              ownerUserUniqueId: target.ownerUserUniqueId,
-              roleId: target.roleId,
-              action
-            });
-          }
-        });
-      }
-      if (ownerType === "user") {
+    transactionStorage.run(undefined, () => {
+      setImmediate(async () => {
+        let targets;
         try {
-          if (Number(roleId) === usersRoles.adminRoleId) {
-            message.messageType = messageTypes?.accept_reject_driver_document;
-            sendSocketIONotificationToAdmin({
-              message,
-              phoneNumber
-            });
-          }
-          if (Number(roleId) === usersRoles.driverRoleId) {
-            message.messageType = "acceptOrRejectDriverDocument";
-            sendSocketIONotificationToDriver({
-              message,
-              phoneNumber
-            });
-          }
-          if (Number(roleId) === usersRoles.shipperRoleId) {
-            sendSocketIONotificationToShipper({
-              message,
-              phoneNumber
-            });
-          }
-        } catch (notifError) {
-          logger.error("Post-commit: socket notification failed", {
-            error: notifError.message,
+          targets = await resolveRecalcTargets({
+            ownerType,
             ownerUniqueId,
-            roleId
+            roleId,
+            documentTypeId: attachedDocument?.[0]?.documentTypeId
+          });
+        } catch (resolveError) {
+          logger.error("Post-commit: failed to resolve status recalculation targets", {
+            error: resolveError.message,
+            ownerType,
+            ownerUniqueId,
+            roleId,
+            action
+          });
+          return;
+        }
+        for (const target of targets) {
+          await enqueueRecalc(target.ownerUserUniqueId, async () => {
+            try {
+              await accountStatus({
+                ownerUserUniqueId: target.ownerUserUniqueId,
+                body: {
+                  roleId: target.roleId
+                }
+              });
+            } catch (statusError) {
+              logger.error("Post-commit: failed to update user status after document action", {
+                error: statusError.message,
+                ownerUserUniqueId: target.ownerUserUniqueId,
+                roleId: target.roleId,
+                action
+              });
+            }
           });
         }
-      }
+        if (ownerType === "user") {
+          try {
+            if (Number(roleId) === usersRoles.adminRoleId) {
+              message.messageType = messageTypes?.accept_reject_driver_document;
+              sendSocketIONotificationToAdmin({
+                message,
+                phoneNumber
+              });
+            }
+            if (Number(roleId) === usersRoles.driverRoleId) {
+              message.messageType = "acceptOrRejectDriverDocument";
+              sendSocketIONotificationToDriver({
+                message,
+                phoneNumber
+              });
+            }
+            if (Number(roleId) === usersRoles.shipperRoleId) {
+              sendSocketIONotificationToShipper({
+                message,
+                phoneNumber
+              });
+            }
+          } catch (notifError) {
+            logger.error("Post-commit: socket notification failed", {
+              error: notifError.message,
+              ownerUniqueId,
+              roleId
+            });
+          }
+        }
+      });
     });
   }
   return message;

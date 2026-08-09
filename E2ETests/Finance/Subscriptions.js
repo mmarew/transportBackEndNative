@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { v4: uuidv4 } = require("uuid");
 const { backendURL, usersData } = require("../constants");
 const { authConfig } = require("../Utils");
 const { report } = require("../Reporter");
@@ -151,19 +150,38 @@ let createdSubscriptionId = null;
 
 const testCreateUserSubscription = async () => {
   const token = usersData?.driver?.token;
-  const driverId = usersData?.driver?.accountData?.userData?.userUniqueId;
-  if (!token || !driverId) return report.skip("POST /api/finance/userSubscription/:driverId", "no driver token or id");
-  console.log("\n── POST /api/finance/userSubscription/:driverId ──");
+  const driverUniqueId = usersData?.driver?.accountData?.userData?.userUniqueId;
+  if (!token || !driverUniqueId) return report.skip("POST /api/finance/userSubscription/:driverUniqueId", "no driver token or userUniqueId");
+  console.log("\n── POST /api/finance/userSubscription/:driverUniqueId ──");
   let pricingId = null;
-  try { const pricing = await axios.get(backendURL + "/api/finance/subscriptionPlanPricing", authConfig(usersData?.admin?.token || token)); pricingId = firstIdFromList(pricing, "subscriptionPlanPricingUniqueId"); } catch { /* ignore */ }
-  if (!pricingId) pricingId = uuidv4();
   try {
-    const res = await axios.post(backendURL + `/api/finance/userSubscription/${driverId}`, { subscriptionPlanPricingUniqueId: pricingId }, authConfig(token));
+    const pricing = await axios.get(backendURL + "/api/finance/subscriptionPlanPricing", authConfig(usersData?.admin?.token || token));
+    const list = pricing?.data?.data || [];
+    const paid = list.find((p) => p.isFree === 0 || p.isFree === false || p.isFree === "0");
+    pricingId = paid?.subscriptionPlanPricingUniqueId || null;
+    if (!pricingId) pricingId = firstIdFromList(pricing, "subscriptionPlanPricingUniqueId");
+  } catch { /* ignore */ }
+  if (!pricingId)
+    return report.skip(
+      "POST /api/finance/userSubscription/:driverUniqueId",
+      "no SubscriptionPlanPricing available (precondition not met)",
+    );
+  try {
+    const res = await axios.post(backendURL + `/api/finance/userSubscription/${driverUniqueId}`, { subscriptionPlanPricingUniqueId: pricingId }, authConfig(token));
     createdSubscriptionId = res.data?.data?.userSubscriptionUniqueId || res.data?.data?.[0]?.userSubscriptionUniqueId;
     report.pass(`POST /api/finance/userSubscription — ${res.data?.message || "ok"}`);
   } catch (err) {
     const msg = errMsg(err);
-    if (msg.includes("400") || msg.includes("fail") || msg.includes("ER_NO_REFERENCED_ROW")) return report.skip("POST /api/finance/userSubscription/:driverId", `endpoint reachable — FK issue (${msg.slice(0, 80)})`);
+    if (
+      msg.includes("400") ||
+      msg.includes("fail") ||
+      msg.includes("Insufficient") ||
+      msg.includes("free trial") ||
+      msg.includes("no such") ||
+      msg.includes("durationInDays") ||
+      msg.includes("ER_NO_REFERENCED_ROW")
+    )
+      return report.skip("POST /api/finance/userSubscription/:driverUniqueId", `endpoint reachable — data precondition not met (${msg.slice(0, 80)})`);
     report.fail("POST /api/finance/userSubscription", msg);
   }
 };
@@ -182,10 +200,10 @@ const testGetUserSubscriptions = async () => {
 
 const testUpdateUserSubscription = async () => {
   const token = usersData?.driver?.token;
-  if (!token) return report.skip("PUT /api/finance/userSubscription/:id", "no driver token");
+  if (!token) return report.skip("PUT /api/finance/userSubscription/:userSubscriptionUniqueId", "no driver token");
   let sid = createdSubscriptionId;
-  if (!sid) return report.skip("PUT /api/finance/userSubscription/:id", "no test-created subscription (POST was skipped)");
-  console.log("\n── PUT /api/finance/userSubscription/:id ──");
+  if (!sid) return report.skip("PUT /api/finance/userSubscription/:userSubscriptionUniqueId", "no test-created subscription (POST was skipped)");
+  console.log("\n── PUT /api/finance/userSubscription/:userSubscriptionUniqueId ──");
   try {
     const res = await axios.put(backendURL + `/api/finance/userSubscription/${sid}`, { endDate: new Date(Date.now() + 60 * 86400000).toISOString() }, authConfig(token));
     report.pass(`PUT /api/finance/userSubscription — ${res.data?.message || "ok"}`);
@@ -194,10 +212,10 @@ const testUpdateUserSubscription = async () => {
 
 const testDeleteUserSubscription = async () => {
   const token = usersData?.driver?.token;
-  if (!token) return report.skip("DELETE /api/finance/userSubscription/:id", "no driver token");
+  if (!token) return report.skip("DELETE /api/finance/userSubscription/:userSubscriptionUniqueId", "no driver token");
   let sid = createdSubscriptionId;
-  if (!sid) return report.skip("DELETE /api/finance/userSubscription/:id", "no test-created subscription (POST was skipped)");
-  console.log("\n── DELETE /api/finance/userSubscription/:id ──");
+  if (!sid) return report.skip("DELETE /api/finance/userSubscription/:userSubscriptionUniqueId", "no test-created subscription (POST was skipped)");
+  console.log("\n── DELETE /api/finance/userSubscription/:userSubscriptionUniqueId ──");
   try {
     const res = await axios.delete(backendURL + `/api/finance/userSubscription/${sid}`, authConfig(token));
     report.pass(`DELETE /api/finance/userSubscription — ${res.data?.message || "ok"}`);

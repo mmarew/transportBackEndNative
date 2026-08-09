@@ -3,6 +3,7 @@ const AppError = require("../Utils/AppError");
 const {
   upsertDeviceToken,
   getDeviceTokenByUniqueId,
+  getDeviceTokensByFilter,
   updateDeviceTokenByUniqueId,
   deleteDeviceTokenByUniqueId,
   sendNotificationToTokens,
@@ -38,6 +39,21 @@ const firebaseController = {
     try {
       const { deviceTokenUniqueId } = req.params;
       const result = await getDeviceTokenByUniqueId(deviceTokenUniqueId);
+      return ServerResponder(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // GET /api/user/getFCMTokens?userUniqueId=&roleId=&active=
+  getFirebaseByFilter: async (req, res, next) => {
+    try {
+      const { userUniqueId, roleId, active } = req.query;
+      const result = await getDeviceTokensByFilter({
+        userUniqueId,
+        roleId,
+        active: active === "true" || active === true,
+      });
       return ServerResponder(res, result);
     } catch (error) {
       next(error);

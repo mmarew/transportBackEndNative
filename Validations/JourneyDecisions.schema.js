@@ -74,6 +74,7 @@ exports.getJourneyDecisionsQuery = Joi.object({
   hasShippingCost: Joi.alternatives()
     .try(Joi.boolean(), Joi.string())
     .optional(),
+  unreferenced: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
   sortBy: Joi.string().optional(),
   sortOrder: Joi.string().valid("ASC", "DESC").optional(),
 }).unknown(true);

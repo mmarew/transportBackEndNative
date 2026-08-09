@@ -63,7 +63,7 @@ const AppError = require("../../Utils/AppError");
 
 /**
  * Updates a shipper request by ID
- * @param {number} requestId - Shipper request ID
+ * @param {string} requestId - shipperRequestUniqueId (UUID) of the request
  * @param {Object} updates - Update values
  * @returns {Promise<Object>} Success or error response
  */
@@ -72,7 +72,7 @@ const updateRequestById = async (requestId, updates) => {
     const result = await updateData({
       tableName: "ShipperRequest",
       conditions: {
-        shipperRequestId: requestId
+        shipperRequestUniqueId: requestId
       },
       updateValues: updates
     });

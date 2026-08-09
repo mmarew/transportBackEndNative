@@ -56,6 +56,7 @@ exports.getJourneyDecision4AllOrSingleUser = async (req, res, next) => {
       minShippingCost,
       maxShippingCost,
       hasShippingCost,
+      unreferenced,
       sortBy,
       sortOrder,
     } = req.query;
@@ -110,6 +111,9 @@ exports.getJourneyDecision4AllOrSingleUser = async (req, res, next) => {
     if (hasShippingCost !== undefined) {
       filters.hasShippingCost =
         hasShippingCost === "true" || hasShippingCost === true;
+    }
+    if (unreferenced !== undefined) {
+      filters.unreferenced = unreferenced === "true" || unreferenced === true;
     }
     if (sortBy) {
       filters.sortBy = sortBy;

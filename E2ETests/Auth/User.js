@@ -104,49 +104,132 @@ const testGetSelf = async () => {
   }
 };
 
+const getVerificationLinks = async (token) => {
+  const res = await axios.get(backendURL + "/api/user/verification-link", authConfig(token));
+  return res.data?.data || {};
+};
+
+const verificationLinkUnavailable = (endpoint) => (err) => {
+  const status = err?.response?.status;
+  if (status === 404) {
+    return report.skip(endpoint, "verification-link endpoint not enabled (EXPOSE_VERIFICATION_LINKS off)");
+  }
+  return report.skip(endpoint, "could not fetch verification links — " + errMsg(err).slice(0, 80));
+};
+
 const testReportWrongEmail = async () => {
-  return report.skip("GET /api/user/report-wrong-email", "browser-only endpoint — requires a report-specific ?token= param, not an auth token");
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("GET /api/user/report-wrong-email", "no shipper token");
+  if (process.env.EXPOSE_VERIFICATION_LINKS !== "true") {
+    return report.skip("GET /api/user/report-wrong-email", "verification-link endpoint not enabled (EXPOSE_VERIFICATION_LINKS off)");
+  }
+
+  console.log("\n── GET /api/user/report-wrong-email ──");
+  let links;
+  try {
+    links = await getVerificationLinks(token);
+  } catch (err) {
+    return verificationLinkUnavailable("GET /api/user/report-wrong-email")(err);
+  }
+  if (!links?.emailVerificationToken) {
+    return report.skip("GET /api/user/report-wrong-email", "no email verification token returned");
+  }
+  try {
+    const res = await axios.get(backendURL + "/api/user/report-wrong-email?token=" + links.emailVerificationToken);
+    report.pass(`GET /api/user/report-wrong-email — link revoked (status ${res.status})`);
+  } catch (err) {
+    report.fail("GET /api/user/report-wrong-email", errMsg(err));
+  }
 };
 
 const testVerifyEmail = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("GET /api/user/verify-email", "no shipper token");
+  if (process.env.EXPOSE_VERIFICATION_LINKS !== "true") {
+    return report.skip("GET /api/user/verify-email", "verification-link endpoint not enabled (EXPOSE_VERIFICATION_LINKS off)");
+  }
+
   console.log("\n── GET /api/user/verify-email ──");
+  let links;
   try {
-    const res = await axios.get(backendURL + "/api/user/verify-email?token=e2e-test-token");
-    report.pass(`GET /api/user/verify-email — ${res.data?.message || "ok"}`);
+    links = await getVerificationLinks(token);
   } catch (err) {
-    const msg = errMsg(err);
-    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("400")) {
-      return report.skip("GET /api/user/verify-email", "endpoint reachable — needs valid email token");
+    return verificationLinkUnavailable("GET /api/user/verify-email")(err);
+  }
+  if (!links?.emailVerificationToken) {
+    return report.skip("GET /api/user/verify-email", "no email verification token returned");
+  }
+  try {
+    const res = await axios.get(backendURL + "/api/user/verify-email?token=" + links.emailVerificationToken);
+    if (res.status === 200) {
+      report.pass("GET /api/user/verify-email — email verified via real link");
+    } else {
+      report.fail("GET /api/user/verify-email", `unexpected status ${res.status}`);
     }
-    report.fail("GET /api/user/verify-email", msg);
+  } catch (err) {
+    report.fail("GET /api/user/verify-email", errMsg(err));
   }
 };
 
 const testVerifyPhoneGet = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("GET /api/user/verify-phone", "no shipper token");
+  if (process.env.EXPOSE_VERIFICATION_LINKS !== "true") {
+    return report.skip("GET /api/user/verify-phone", "verification-link endpoint not enabled (EXPOSE_VERIFICATION_LINKS off)");
+  }
+
   console.log("\n── GET /api/user/verify-phone ──");
+  let links;
   try {
-    const res = await axios.get(backendURL + "/api/user/verify-phone?phone=%2B251910000000&code=101010");
-    report.pass(`GET /api/user/verify-phone — ${res.data?.message || "ok"}`);
+    links = await getVerificationLinks(token);
   } catch (err) {
-    const msg = errMsg(err);
-    return report.skip("GET /api/user/verify-phone", `endpoint reachable — needs valid phone+code (${msg.slice(0, 60)})`);
+    return verificationLinkUnavailable("GET /api/user/verify-phone")(err);
+  }
+  if (!links?.phoneVerificationToken) {
+    return report.skip("GET /api/user/verify-phone", "no phone verification token returned");
+  }
+  try {
+    const res = await axios.get(backendURL + "/api/user/verify-phone?token=" + links.phoneVerificationToken, {
+      headers: { Accept: "application/json" },
+    });
+    if (res.status === 200 && res.data?.data?.isPhoneVerified === true) {
+      report.pass("GET /api/user/verify-phone — phone verified via real link");
+    } else {
+      report.fail("GET /api/user/verify-phone", `unexpected response (status ${res.status})`);
+    }
+  } catch (err) {
+    report.fail("GET /api/user/verify-phone", errMsg(err));
   }
 };
 
 const testVerifyPhonePost = async () => {
+  const token = usersData?.shipper?.token;
+  if (!token) return report.skip("POST /api/user/verify-phone", "no shipper token");
+  if (process.env.EXPOSE_VERIFICATION_LINKS !== "true") {
+    return report.skip("POST /api/user/verify-phone", "verification-link endpoint not enabled (EXPOSE_VERIFICATION_LINKS off)");
+  }
+
   console.log("\n── POST /api/user/verify-phone ──");
+  let links;
+  try {
+    links = await getVerificationLinks(token);
+  } catch (err) {
+    return verificationLinkUnavailable("POST /api/user/verify-phone")(err);
+  }
+  if (!links?.phoneVerificationToken) {
+    return report.skip("POST /api/user/verify-phone", "no phone verification token returned");
+  }
   try {
     const res = await axios.post(backendURL + "/api/user/verify-phone", {
-      phone: usersData?.driver?.phoneNumber || "+251910000000",
-      code: 101010,
+      token: links.phoneVerificationToken,
     });
-    report.pass(`POST /api/user/verify-phone — ${res.data?.message || "ok"}`);
-  } catch (err) {
-    const msg = errMsg(err);
-    if (msg.includes("invalid") || msg.includes("not found") || msg.includes("400")) {
-      return report.skip("POST /api/user/verify-phone", "endpoint reachable — needs valid phone+code");
+    if (res.status === 200 && res.data?.data?.isPhoneVerified === true) {
+      report.pass("POST /api/user/verify-phone — phone verified via real link");
+    } else {
+      report.fail("POST /api/user/verify-phone", `unexpected response (status ${res.status})`);
     }
-    report.fail("POST /api/user/verify-phone", msg);
+  } catch (err) {
+    report.fail("POST /api/user/verify-phone", errMsg(err));
   }
 };
 

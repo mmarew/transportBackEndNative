@@ -3,6 +3,7 @@
 const authService = require("./User/auth");
 const registryService = require("./User/User.registry.service");
 const manageService = require("./User/manage");
+const verificationLinkService = require("./User/auth/verificationLink.service");
 
 module.exports = {
   // Auth
@@ -28,4 +29,5 @@ module.exports = {
   reportMisdirectedEmail: authService.reportMisdirectedEmail,
   generatePhoneVerificationToken: authService.generatePhoneVerificationToken,
   verifyPhoneByToken: authService.verifyPhoneByToken,
+  getVerificationLinks: verificationLinkService.getVerificationLinks,
 };

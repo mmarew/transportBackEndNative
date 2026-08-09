@@ -10,6 +10,7 @@ const {
   upsertFCMToken,
   updateFCMToken,
   firebaseParams,
+  getFCMTokensQuery,
   sendNotification,
 } = require("../Validations/Firebase.schema");
 const { FIREBASE_ENDPOINTS } = require("./EndPoints/firebase.endpoints");
@@ -20,6 +21,12 @@ router.post(
   verifyTokenOfAxios,
   validator(upsertFCMToken),
   firebaseController.createFirebase,
+);
+router.get(
+  FIREBASE_ENDPOINTS.GET_FCM_TOKENS,
+  verifyTokenOfAxios,
+  validator(getFCMTokensQuery, "query"),
+  firebaseController.getFirebaseByFilter,
 );
 router.get(
   FIREBASE_ENDPOINTS.GET_FCM_TOKEN,

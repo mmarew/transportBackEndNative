@@ -17,6 +17,9 @@ const Config = {
   ).replace(/\/+$/, ""),
   SECRET_KEY: process.env.SECRET_KEY,
   API_KEY: process.env.API_KEY,
+  // TEST/DEV ONLY: When true, GET /api/user/verification-link returns the
+  // real email/phone verification tokens to the caller. MUST stay off in production.
+  EXPOSE_VERIFICATION_LINKS: process.env.EXPOSE_VERIFICATION_LINKS === "true",
 
   // Database Configuration
   DB: {

@@ -39,13 +39,15 @@ const requestLogger = (req, res, next) => {
     logger.application.apiRequest(req, res, responseTime);
 
     // Any >=400 response that wasn't routed through the global error handler
-    // (e.g. a direct res.status(...).json(...)) must still reach the error log
-    // so backend errors are captured in one place.
+    // (e.g. a direct res.status(...).json(...)) must still reach the log so
+    // backend errors are captured in one place. 4xx = client mistake (warn),
+    // 5xx = server fault (error).
     if (
       res.statusCode >= 400 &&
       !res.locals.apiErrorLogged
     ) {
-      logger.error("Client Error", {
+      const isClientError = res.statusCode >= 400 && res.statusCode < 500;
+      logger[isClientError ? "warn" : "error"]("Client Error", {
         type: "CLIENT_ERROR",
         message: `HTTP ${res.statusCode}`,
         statusCode: res.statusCode,

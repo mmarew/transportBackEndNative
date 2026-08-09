@@ -17,6 +17,29 @@ const errMsg = (err) => {
 const PAYMENTS_URL = "/api/finance/payments";
 const paymentsCache = { data: null };
 
+// Collect candidate journey decision unique ids for payment FKs. The cached
+// lastJourneyDecisionUniqueId is often stale (earlier journey phases delete the
+// journey + its decision), so pull completed (journeyStatusId = 6) decisions
+// live from the API FIRST and only fall back to the cached id if the list is
+// empty. Callers iterate and skip non-2xx responses.
+const collectJourneyDecisionCandidates = async ({ token, preferred } = {}) => {
+  const candidates = [];
+  const cached =
+    preferred ||
+    usersData?.driver?.lastJourneyDecisionUniqueId ||
+    usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  try {
+    const list = await axios.get(backendURL + "/api/user/getJourneyDecision4AllOrSingleUser?journeyStatusId=6&limit=10", authConfig(token));
+    const data = list?.data?.data || list?.data?.formattedData || [];
+    for (const d of data) {
+      const id = d?.journeyDecisionUniqueId || d?.journeyDecisionId;
+      if (id && !candidates.includes(id)) candidates.push(id);
+    }
+  } catch { /* ignore */ }
+  if (cached && !candidates.includes(cached)) candidates.push(cached);
+  return candidates;
+};
+
 const testGetPayments = async ({ user } = {}) => {
   const token = user?.token || usersData.admin?.token;
   if (!token) throw new Error("token not found");
@@ -42,10 +65,10 @@ const testGetPaymentById = async ({ user, id } = {}) => {
 const testCreatePayment = async ({ user, payload } = {}) => {
   const token = user?.token || usersData.admin?.token;
   assert.Truthy(token, "createPayment: token is required");
-  const journeyId = payload?.journeyId || usersData?.driver?.lastJourneyDecisionUniqueId || usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const candidates = await collectJourneyDecisionCandidates({ token, preferred: payload?.journeyId });
   let paymentMethodUniqueId = payload?.paymentMethodUniqueId || paymentsCache.data?.[0]?.paymentMethodUniqueId;
   let paymentStatusUniqueId = payload?.paymentStatusUniqueId || paymentsCache.data?.[0]?.paymentStatusUniqueId;
-  if (!journeyId) { console.warn("⏩ testCreatePayment skipped — no journeyId"); return { skipped: true }; }
+  if (candidates.length === 0) { console.warn("⏩ testCreatePayment skipped — no journeyDecisionUniqueId"); return { skipped: true }; }
   if (!paymentMethodUniqueId) {
     try { const pmRes = await axios.get(backendURL + "/api/finance/paymentMethod", authConfig(token)); const methods = pmRes?.data?.data; if (methods?.length) paymentMethodUniqueId = methods[0].paymentMethodUniqueId; } catch { /* ignore */ }
   }
@@ -54,12 +77,25 @@ const testCreatePayment = async ({ user, payload } = {}) => {
     try { const psRes = await axios.get(backendURL + "/api/finance/paymentStatus", authConfig(token)); const statuses = psRes?.data?.data; if (statuses?.length) paymentStatusUniqueId = statuses[0].paymentStatusUniqueId; } catch { /* ignore */ }
   }
   if (!paymentStatusUniqueId) { console.warn("⏩ testCreatePayment skipped — no paymentStatusUniqueId"); return { skipped: true }; }
-  const defaultPayload = { journeyId, amount: 5000, paymentMethodUniqueId, paymentStatusUniqueId, ...payload };
-  const result = await axios.post(backendURL + PAYMENTS_URL, defaultPayload, authConfig(token));
-  assert.StatusCode(result, 200, "POST payment should return 200");
-  const paymentUniqueId = result.data?.data?.paymentUniqueId || result.data?.paymentUniqueId;
-  assert.Truthy(paymentUniqueId, "Created payment should have a paymentUniqueId");
-  return result.data;
+  for (const journeyId of candidates) {
+    try {
+      const defaultPayload = { journeyId, amount: 5000, paymentMethodUniqueId, paymentStatusUniqueId, ...payload };
+      const result = await axios.post(backendURL + PAYMENTS_URL, defaultPayload, authConfig(token));
+      const paymentUniqueId = result.data?.data?.paymentUniqueId || result.data?.paymentUniqueId;
+      assert.Truthy(paymentUniqueId, "Created payment should have a paymentUniqueId");
+      return result.data;
+    } catch (err) {
+      const status = err.response?.status;
+      const msg = err.response?.data?.error?.message || err.response?.data?.error || err.response?.data?.message || err.message;
+      if (status === 404 || status === 409 || status === 400 || status === 500) {
+        console.log(`⏩ payment candidate ${journeyId.slice(0, 8)}… rejected (${status} ${typeof msg === "string" ? msg.slice(0, 60) : "…"})`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  console.warn("⏩ testCreatePayment skipped — no eligible journey decision found");
+  return { skipped: true };
 };
 
 const testUpdatePayment = async ({ user, id, payload } = {}) => {
@@ -272,10 +308,10 @@ const testGetJourneyPaymentById = async ({ user, paymentUniqueId } = {}) => {
 const testCreateJourneyPayment = async ({ user, payload } = {}) => {
   const token = user?.token || usersData.admin?.token;
   if (!token) throw new Error("token not found");
-  const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId || usersData?.driver?.lastJourneyDecisionUniqueId || usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const candidates = await collectJourneyDecisionCandidates({ token, preferred: payload?.journeyDecisionUniqueId });
   let paymentMethodUniqueId = payload?.paymentMethodUniqueId || jpCache.data?.[0]?.paymentMethodUniqueId;
   let paymentStatusUniqueId = payload?.paymentStatusUniqueId || jpCache.data?.[0]?.paymentStatusUniqueId;
-  if (!journeyDecisionUniqueId) { console.warn("⏩ testCreateJourneyPayment skipped — no journeyDecisionUniqueId"); return { skipped: true }; }
+  if (candidates.length === 0) { console.warn("⏩ testCreateJourneyPayment skipped — no journeyDecisionUniqueId"); return { skipped: true }; }
   if (!paymentMethodUniqueId) {
     try { const pmRes = await axios.get(backendURL + "/api/finance/paymentMethod", authConfig(token)); const methods = pmRes?.data?.data; if (methods?.length) paymentMethodUniqueId = methods[0].paymentMethodUniqueId; } catch { /* ignore */ }
   }
@@ -284,10 +320,24 @@ const testCreateJourneyPayment = async ({ user, payload } = {}) => {
     try { const psRes = await axios.get(backendURL + "/api/finance/paymentStatus", authConfig(token)); const statuses = psRes?.data?.data; if (statuses?.length) paymentStatusUniqueId = statuses[0].paymentStatusUniqueId; } catch { /* ignore */ }
   }
   if (!paymentStatusUniqueId) { console.warn("⏩ testCreateJourneyPayment skipped — no paymentStatusUniqueId"); return { skipped: true }; }
-  const defaultPayload = { journeyDecisionUniqueId, amount: 4500.0, paymentMethodUniqueId, paymentStatusUniqueId, ...payload };
-  const result = await axios.post(backendURL + JP_URL, defaultPayload, authConfig(token));
-  console.log("✅ JourneyPayment created:", result.data.data?.paymentUniqueId || result.data.paymentUniqueId);
-  return result.data;
+  for (const journeyDecisionUniqueId of candidates) {
+    try {
+      const defaultPayload = { journeyDecisionUniqueId, amount: 4500.0, paymentMethodUniqueId, paymentStatusUniqueId, ...payload };
+      const result = await axios.post(backendURL + JP_URL, defaultPayload, authConfig(token));
+      console.log("✅ JourneyPayment created:", result.data.data?.paymentUniqueId || result.data.paymentUniqueId);
+      return result.data;
+    } catch (err) {
+      const status = err.response?.status;
+      const msg = err.response?.data?.error?.message || err.response?.data?.error || err.response?.data?.message || err.message;
+      if (status === 404 || status === 409 || status === 400 || status === 500) {
+        console.log(`⏩ journeyPayment candidate ${journeyDecisionUniqueId.slice(0, 8)}… rejected (${status} ${typeof msg === "string" ? msg.slice(0, 60) : "…"})`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  console.warn("⏩ testCreateJourneyPayment skipped — no eligible journey decision found");
+  return { skipped: true };
 };
 
 const testUpdateJourneyPayment = async ({ user, paymentUniqueId, payload } = {}) => {

@@ -71,9 +71,16 @@ const initLogCapture = () => {
         writeFile(
           `[${stamp()}] [reqid=${reqId}] ${method} ${url} -> ${res.status}${msg ? ` (${msg})` : ""}\n`,
         );
-        console.log(
-          `  🔴 BACKEND ERROR [reqid=${reqId}] ${method} ${url} -> ${res.status}${msg ? ` (${msg})` : ""}`,
-        );
+        // 4xx = expected client error (tests probe for these), 5xx = real server fault.
+        if (res.status >= 500) {
+          console.log(
+            `  🔴 BACKEND ERROR [reqid=${reqId}] ${method} ${url} -> ${res.status}${msg ? ` (${msg})` : ""}`,
+          );
+        } else {
+          console.log(
+            `  🟡 BACKEND ${res.status} [reqid=${reqId}] ${method} ${url}${msg ? ` (${msg})` : ""}`,
+          );
+        }
       }
       return Promise.reject(error);
     },

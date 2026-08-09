@@ -141,6 +141,10 @@ const createTable = async () => {
   };
 
   // Seed Statuses first to satisfy FK constraints for UserRoleStatusCurrent
+  const isSeedSkip = (error) => {
+    const message = error?.message || "";
+    return /already exists|duplicate entry/i.test(message);
+  };
   for (const status of statusList) {
     try {
       await createStatus({
@@ -148,7 +152,7 @@ const createTable = async () => {
         user: adminUser,
       });
     } catch (error) {
-      if (!error.message || !error.message.includes("already exists")) {
+      if (!isSeedSkip(error)) {
         logger.error(`Error seeding status ${status.statusName}:`, error);
       }
     }
@@ -162,7 +166,7 @@ const createTable = async () => {
         user: adminUser,
       });
     } catch (error) {
-      if (!error.message || !error.message.includes("already exists")) {
+      if (!isSeedSkip(error)) {
         logger.error(`Error seeding role ${role.roleName}:`, error);
       }
     }
@@ -176,7 +180,7 @@ const createTable = async () => {
         user: adminUser,
       });
     } catch (error) {
-      if (!error.message || !error.message.includes("already exists")) {
+      if (!isSeedSkip(error)) {
         logger.error(
           `Error seeding vehicle status type ${vehicleStatusType.VehicleStatusTypeName}:`,
           error,
@@ -193,7 +197,7 @@ const createTable = async () => {
         userUniqueId: effectiveSuperAdminId,
       });
     } catch (error) {
-      if (!error.message || !error.message.includes("already exists")) {
+      if (!isSeedSkip(error)) {
         logger.error(
           `Error seeding company role ${companyRole.companyRoleName}:`,
           error,

@@ -1,7 +1,6 @@
 const axios = require("axios");
-const { v4: uuidv4 } = require("uuid");
 const { backendURL, usersData } = require("../constants");
-const { authConfig } = require("../Utils");
+const { authConfig, getNoAnswerDriverPair } = require("../Utils");
 const { report } = require("../Reporter");
 
 const errMsg = (err) => {
@@ -16,11 +15,18 @@ const errMsg = (err) => {
 const testNoAnswerFromDriver = async () => {
   const token = usersData?.shipper?.token;
   if (!token) return report.skip("PUT /api/shipper/noAnswerFromDriver", "no shipper token");
+  const pair = await getNoAnswerDriverPair({ token });
+  if (!pair) {
+    return report.skip(
+      "PUT /api/shipper/noAnswerFromDriver",
+      "no waiting/requested shipper request with an unanswered driver request (precondition not met)",
+    );
+  }
   console.log("\n── PUT /api/shipper/noAnswerFromDriver ──");
   try {
     const res = await axios.put(
       backendURL + "/api/shipper/noAnswerFromDriver",
-      { shipperRequestUniqueId: uuidv4() },
+      { shipperRequestUniqueId: pair.shipperRequestUniqueId, driverRequestUniqueId: pair.driverRequestUniqueId },
       authConfig(token),
     );
     report.pass(`PUT /api/shipper/noAnswerFromDriver — ${res.data?.message || "ok"}`);
@@ -30,42 +36,31 @@ const testNoAnswerFromDriver = async () => {
   }
 };
 
-const testGetShipperRequestById = async () => {
+const testGetCancellationNotifications = async () => {
   const token = usersData?.shipper?.token;
-  if (!token) return report.skip("PUT /api/shipperRequest/getById/:id", "no shipper token");
-  console.log("\n── PUT /api/shipperRequest/getById/:id ──");
+  if (!token) return report.skip("GET /api/shipperRequest/getCancellationNotifications", "no shipper token");
+  console.log("\n── GET /api/shipperRequest/getCancellationNotifications ──");
   try {
-    const res = await axios.put(backendURL + "/api/shipperRequest/getById/" + uuidv4(), {}, authConfig(token));
-    report.pass(`PUT /api/shipperRequest/getById/:id — ${res.data?.message || "ok"}`);
+    const res = await axios.get(
+      backendURL + "/api/shipperRequest/getCancellationNotifications",
+      authConfig(token),
+    );
+    report.pass(
+      `GET /api/shipperRequest/getCancellationNotifications — ${res.data?.message || "ok"}`,
+    );
   } catch (err) {
-    const msg = errMsg(err);
-    return report.skip("PUT /api/shipperRequest/getById/:id", `endpoint reachable — ${msg.slice(0, 80)}`);
-  }
-};
-
-const testDeleteShipperRequestById = async () => {
-  const token = usersData?.shipper?.token;
-  if (!token) return report.skip("DELETE /api/shipperRequest/getById/:id", "no shipper token");
-  console.log("\n── DELETE /api/shipperRequest/getById/:id ──");
-  try {
-    const res = await axios.delete(backendURL + "/api/shipperRequest/getById/" + uuidv4(), authConfig(token));
-    report.pass(`DELETE /api/shipperRequest/getById/:id — ${res.data?.message || "ok"}`);
-  } catch (err) {
-    const msg = errMsg(err);
-    return report.skip("DELETE /api/shipperRequest/getById/:id", `endpoint reachable — ${msg.slice(0, 80)}`);
+    report.skip("GET /api/shipperRequest/getCancellationNotifications", errMsg(err));
   }
 };
 
 const runShipperSupplementaryTests = async () => {
   console.log("\n── Shipper Supplementary ──");
   await testNoAnswerFromDriver();
-  await testGetShipperRequestById();
-  await testDeleteShipperRequestById();
+  await testGetCancellationNotifications();
 };
 
 module.exports = {
   testNoAnswerFromDriver,
-  testGetShipperRequestById,
-  testDeleteShipperRequestById,
+  testGetCancellationNotifications,
   runShipperSupplementaryTests,
 };

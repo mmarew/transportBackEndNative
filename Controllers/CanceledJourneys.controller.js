@@ -15,8 +15,9 @@ const { TIME } = require("../Utils/Constants");
 const cancelJourneyBySystem = async (req, res, next) => {
   try {
     const result = await executeInTransaction(async (connection) => {
-      const now = currentDate();
-      const cutoffTime = new Date(now.getTime() - TIME.FIVE_MINUTES_MS);
+      const nowStr = currentDate().replace(" ", "T");
+      const parsedTime = Date.parse(nowStr);
+      const cutoffTime = new Date(parsedTime - TIME.FIVE_MINUTES_MS);
 
       const sqlQuery = `
         SELECT ShipperRequest.*, Users.phoneNumber
@@ -30,7 +31,9 @@ const cancelJourneyBySystem = async (req, res, next) => {
 
       for (const request of activeRequests) {
         await cancelShipperRequest({
-          ownerUserUniqueId: request.userUniqueId,
+          user: req.user,
+          shipperRequestUniqueId: request.shipperRequestUniqueId,
+          cancellationJourneyStatusId: journeyStatusMap.cancelledBySystem,
           cancellationReasonsTypeId: 1,
         });
 

@@ -16,6 +16,7 @@ const {
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const logger = require("../../Utils/logger");
 const { HTTP_STATUS } = require("../../Utils/Constants");
+const AppError = require("../../Utils/AppError");
 
 const createUser = async (req, res, next) => {
   try {
@@ -289,6 +290,26 @@ const verifyPhone = async (req, res, next) => {
   }
 };
 
+/**
+ * TEST/DEV ONLY — guarded by Config.EXPOSE_VERIFICATION_LINKS.
+ * Returns fresh real email/phone verification links for the authenticated user
+ * so out-of-app link flows can be exercised by the E2E suite.
+ */
+const getVerificationLinks = async (req, res, next) => {
+  try {
+    if (!Config.EXPOSE_VERIFICATION_LINKS) {
+      return next(new AppError("Not found", AppError.NOT_FOUND));
+    }
+    const links = await services.getVerificationLinks(req.user.userUniqueId);
+    return ServerResponder(res, {
+      message: "Verification links generated",
+      data: links,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   createUser,
   createUserByAdminOrSuperAdmin,
@@ -296,5 +317,6 @@ module.exports = {
   verifyUserByOTP,
   verifyEmail,
   reportWrongEmail,
-  verifyPhone
+  verifyPhone,
+  getVerificationLinks
 };

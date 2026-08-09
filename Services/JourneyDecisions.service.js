@@ -274,6 +274,22 @@ exports.getJourneyDecision4AllOrSingleUser = async ({ data }) => {
       }
     }
 
+    // Add filter for decisions NOT referenced by any child FK table
+    // (Journey, CompanyBidVehicleAssignment, JourneyPayments, JourneyRoutePoints,
+    // Ratings, UserDelinquency, Commission) — safe to delete.
+    if (filters.unreferenced) {
+      whereClause += whereClause ? " AND " : "WHERE ";
+      whereClause += `
+        NOT EXISTS (SELECT 1 FROM Journey j WHERE j.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+        AND NOT EXISTS (SELECT 1 FROM CompanyBidVehicleAssignment cba WHERE cba.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+        AND NOT EXISTS (SELECT 1 FROM JourneyPayments jp WHERE jp.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+        AND NOT EXISTS (SELECT 1 FROM JourneyRoutePoints jrp WHERE jrp.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+        AND NOT EXISTS (SELECT 1 FROM Ratings r WHERE r.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+        AND NOT EXISTS (SELECT 1 FROM UserDelinquency ud WHERE ud.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+        AND NOT EXISTS (SELECT 1 FROM Commission c WHERE c.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId)
+      `;
+    }
+
     // Add filter by isCompletionSeen (from ShipperRequest table)
     if (filters.isCompletionSeen !== undefined) {
       whereClause += whereClause ? " AND " : "WHERE ";

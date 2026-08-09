@@ -42,9 +42,11 @@ const sendErrorDev = (err, req, res) => {
 
 const sendErrorProd = (err, req, res) => {
   // Log all errors server-side for debugging (4xx and 5xx) into the same
-  // error log so E2E-to-backend correlation is complete.
-  if (err.statusCode >= HTTP_STATUS.BAD_REQUEST && err.statusCode < HTTP_STATUS.INTERNAL_SERVER_ERROR) {
-    logger.error("Client Error", {
+  // log so E2E-to-backend correlation is complete. 4xx = client mistakes
+  // (expected), 5xx = server faults — only 5xx hits the error log.
+  const isClientError = err.statusCode >= HTTP_STATUS.BAD_REQUEST && err.statusCode < HTTP_STATUS.INTERNAL_SERVER_ERROR;
+  if (isClientError) {
+    logger.warn("Client Error", {
       type: "CLIENT_ERROR",
       message: err.message,
       code: err.code,
@@ -65,7 +67,6 @@ const sendErrorProd = (err, req, res) => {
   }
 
   // 4xx = client mistake (safe to expose), 5xx = server fault (mask internals)
-  const isClientError = err.statusCode >= HTTP_STATUS.BAD_REQUEST && err.statusCode < HTTP_STATUS.INTERNAL_SERVER_ERROR;
   ServerResponder(
     res,
     {

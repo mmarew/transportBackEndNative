@@ -1,6 +1,6 @@
 const axios = require("axios");
 const { backendURL, usersData } = require("../constants");
-const { authConfig } = require("../Utils");
+const { authConfig, getAnyJourneyDecision } = require("../Utils");
 
 // ── DepositSource ───────────────────────────────────────────────────────────────
 const DS_URL = "/api/finance/depositSource";
@@ -147,7 +147,7 @@ const testGetRatings = async ({ user, filters = {} } = {}) => {
 const testCreateRating = async ({ user, payload } = {}) => {
   const token = user?.token || usersData.shipper?.token;
   if (!token) throw new Error("token not found");
-  const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId || usersData?.driver?.lastJourneyDecisionUniqueId || usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId || (await getAnyJourneyDecision({ token })) || usersData?.driver?.lastJourneyDecisionUniqueId || usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
   if (!journeyDecisionUniqueId) { console.warn("⏩ testCreateRating skipped — no journeyDecisionUniqueId"); return { skipped: true }; }
   const ratedUserUniqueId = payload?.ratedUserUniqueId || usersData?.driver?.accountData?.userData?.userUniqueId || usersData?.driver?.accountData?.driver?.userUniqueId;
   if (!ratedUserUniqueId) { console.warn("⏩ testCreateRating skipped — no ratedUserUniqueId"); return { skipped: true }; }

@@ -45,9 +45,20 @@ const testGetDelinquencyTypesByRole = async () => {
 const testGetPendingDelinquencyResponses = async () => {
   const token = usersData?.driver?.token;
   if (!token) return report.skip("GET /api/user/delinquencyResponse/pending", "no driver token");
+  const userUniqueId = usersData?.driver?.accountData?.userData?.userUniqueId;
+  const roleId = usersData?.driver?.roleId || 2;
+  if (!userUniqueId) {
+    return report.skip(
+      "GET /api/user/delinquencyResponse/pending",
+      "no driver userUniqueId (precondition not met)",
+    );
+  }
   console.log("\n── GET /api/user/delinquencyResponse/pending ──");
   try {
-    const res = await axios.get(backendURL + "/api/user/delinquencyResponse/pending", authConfig(token));
+    const res = await axios.get(
+      backendURL + `/api/user/delinquencyResponse/pending?userUniqueId=${userUniqueId}&roleId=${roleId}`,
+      authConfig(token),
+    );
     report.pass(`GET /api/user/delinquencyResponse/pending — ${res.data?.message || "ok"}`);
   } catch (err) {
     report.skip("GET /api/user/delinquencyResponse/pending", errMsg(err));

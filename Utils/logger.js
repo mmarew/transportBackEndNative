@@ -211,7 +211,10 @@ class ApplicationLogger {
 
   // API Error logging
   static apiError(error, req) {
-    logger.error("API Error", {
+    // 4xx = client mistakes (expected in normal operation), 5xx = server faults.
+    // Only 5xx belongs in the error log; 4xx is downgraded to warn.
+    const isClientError = error?.statusCode >= 400 && error?.statusCode < 500;
+    logger[isClientError ? "warn" : "error"]("API Error", {
       type: "API_ERROR",
       message: error.message,
       code: error.code,

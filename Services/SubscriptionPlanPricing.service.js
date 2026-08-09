@@ -23,12 +23,12 @@ const createPricing = async (
 ) => {
   let subscriptionPlanUniqueId;
   let user;
+  const isSeederCall =
+    typeof subscriptionPlanUniqueIdOrObj === "object" &&
+    subscriptionPlanUniqueIdOrObj !== null;
 
   // Handle polymorphic arguments (object vs individual args)
-  if (
-    typeof subscriptionPlanUniqueIdOrObj === "object" &&
-    subscriptionPlanUniqueIdOrObj !== null
-  ) {
+  if (isSeederCall) {
     // Called with an object (e.g., from seeder)
     ({
       subscriptionPlanUniqueId,
@@ -90,6 +90,15 @@ const createPricing = async (
   ]);
 
   if (duplicates.length > 0) {
+    if (isSeederCall) {
+      return {
+        message: "Subscription plan pricing already exists",
+        data: {
+          subscriptionPlanPricingUniqueId: duplicates[0].subscriptionPlanPricingUniqueId,
+        },
+        existed: true,
+      };
+    }
     throw new AppError(
       "This pricing configuration already exists for this plan.",
       AppError.BAD_REQUEST,
@@ -118,6 +127,16 @@ const createPricing = async (
     });
 
     if (hasOverlap) {
+      if (isSeederCall) {
+        return {
+          message: "Subscription plan pricing already exists",
+          data: {
+            subscriptionPlanPricingUniqueId:
+              existingPricings.data[0].subscriptionPlanPricingUniqueId,
+          },
+          existed: true,
+        };
+      }
       throw new AppError(
         "There is already an active pricing for this date range.",
         AppError.BAD_REQUEST,

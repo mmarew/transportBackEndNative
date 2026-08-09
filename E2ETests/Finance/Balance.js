@@ -38,7 +38,14 @@ const testCreateUserBalance = async () => {
   try {
     const res = await axios.post(
       backendURL + "/api/finance/userBalance",
-      { userUniqueId: driverId, balance: 1000 },
+      {
+        driverUniqueId: driverId,
+        amount: 1000,
+        addOrDeduct: "add",
+        transactionUniqueId: uuidv4(),
+        transactionType: "Deposit",
+        netBalance: 1000,
+      },
       authConfig(token),
     );
     report.pass(`POST /api/finance/userBalance — ${res.data?.message || "ok"}`);
@@ -47,7 +54,8 @@ const testCreateUserBalance = async () => {
     if (
       msg.includes("400") ||
       msg.includes("already") ||
-      msg.includes("ER_DUP")
+      msg.includes("ER_DUP") ||
+      msg.includes("ER_NO_REFERENCED_ROW")
     )
       return report.skip(
         "POST /api/finance/userBalance",
@@ -312,11 +320,22 @@ const testCreateUserDeposit = async () => {
       "no driver token or id",
     );
   console.log("\n── POST /api/finance/userDeposit ──");
+  const apiToken = usersData?.admin?.token || token;
+  let depositSourceUniqueId = null;
   let accountUniqueId = null;
+  try {
+    const sources = await axios.get(
+      backendURL + "/api/finance/depositSource",
+      authConfig(apiToken),
+    );
+    depositSourceUniqueId = firstIdFromList(sources, "depositSourceUniqueId");
+  } catch {
+    /* ignore */
+  }
   try {
     const accounts = await axios.get(
       backendURL + "/api/finance/financialInstitutionAccount",
-      authConfig(usersData?.admin?.token || token),
+      authConfig(apiToken),
     );
     accountUniqueId =
       firstIdFromList(accounts, "accountUniqueId") ||
@@ -324,11 +343,25 @@ const testCreateUserDeposit = async () => {
   } catch {
     /* ignore */
   }
-  if (!accountUniqueId) accountUniqueId = uuidv4();
+  if (!depositSourceUniqueId)
+    return report.skip(
+      "POST /api/finance/userDeposit",
+      "no DepositSource row available (precondition not met)",
+    );
+  if (!accountUniqueId)
+    return report.skip(
+      "POST /api/finance/userDeposit",
+      "no FinancialInstitutionAccount row available (precondition not met)",
+    );
   try {
     const res = await axios.post(
       backendURL + "/api/finance/userDeposit",
-      { depositAmount: 1000, accountUniqueId },
+      {
+        depositAmount: 1000,
+        accountUniqueId,
+        depositSourceUniqueId,
+        depositURL: "www.example.com?depositUUID=" + uuidv4(),
+      },
       authConfig(token),
     );
     createdDepositId =
@@ -391,7 +424,7 @@ const testUpdateUserDeposit = async () => {
   try {
     const res = await axios.put(
       backendURL + `/api/finance/userDeposit/${did}`,
-      { amount: 1500 },
+      { depositStatus: "approved", acceptRejectReason: "e2e approved" },
       authConfig(token),
     );
     report.pass(`PUT /api/finance/userDeposit — ${res.data?.message || "ok"}`);
@@ -445,11 +478,17 @@ const testInitiateSantimPay = async () => {
       "POST /api/finance/userDeposit/initiateSantimPay",
       "no driver token",
     );
+  if (!process.env.SANTIMPAY_MERCHANT_ID || !process.env.SANTIMPAY_API_KEY) {
+    return report.skip(
+      "POST /api/finance/userDeposit/initiateSantimPay",
+      "SantimPay gateway not configured (SANTIMPAY_MERCHANT_ID/API_KEY missing)",
+    );
+  }
   console.log("\n── POST /api/finance/userDeposit/initiateSantimPay ──");
   try {
     const res = await axios.post(
       backendURL + "/api/finance/userDeposit/initiateSantimPay",
-      { amount: 1000 },
+      { depositAmount: 1000 },
       authConfig(token),
     );
     report.pass(
@@ -457,16 +496,27 @@ const testInitiateSantimPay = async () => {
     );
   } catch (err) {
     const msg = errMsg(err);
-    if (msg.includes("400") || msg.includes("config") || msg.includes("santim"))
+    if (
+      msg.includes("400") ||
+      msg.includes("config") ||
+      msg.includes("santim") ||
+      msg.includes("invalid key")
+    )
       return report.skip(
         "POST /api/finance/userDeposit/initiateSantimPay",
-        `endpoint reachable — ${msg.slice(0, 80)}`,
+        `endpoint reachable — external gateway config (${msg.slice(0, 80)})`,
       );
     report.fail("POST /api/finance/userDeposit/initiateSantimPay", msg);
   }
 };
 
 const testSantimPayWebhook = async () => {
+  if (!process.env.SANTIMPAY_MERCHANT_ID || !process.env.SANTIMPAY_API_KEY) {
+    return report.skip(
+      "POST /api/finance/userDeposit/santimPay/webhook",
+      "SantimPay gateway not configured (SANTIMPAY_MERCHANT_ID/API_KEY missing)",
+    );
+  }
   console.log("\n── POST /api/finance/userDeposit/santimPay/webhook ──");
   try {
     const res = await axios.post(

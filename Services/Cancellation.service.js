@@ -8,10 +8,10 @@ const { transactionStorage } = require("../Utils/TransactionContext");
 const { PAGINATION } = require("../Utils/Constants");
 // Function to add a cancellation reason
 const addCancellationReason = async (body, user) => {
+  const roleId = body?.roleId;
+  const cancellationReason = body?.cancellationReason;
   try {
     const cancellationReasonTypeUniqueId = uuidv4();
-    const roleId = body.roleId;
-    const cancellationReason = body.cancellationReason;
     // requestMode: 'individual' | 'company' | 'both' — defaults to 'both' if not provided
     const requestMode = body.requestMode || "both";
     const createdBy = user?.userUniqueId;
@@ -54,6 +54,14 @@ const addCancellationReason = async (body, user) => {
       throw new AppError("Cancellation reason registration failed", AppError.INTERNAL_SERVER_ERROR);
     }
   } catch (error) {
+    if (error?.message && /already exists/i.test(error.message)) {
+      logger.info("Cancellation reason already exists — skipping", {
+        error: error.message,
+        cancellationReason,
+        roleId
+      });
+      throw new AppError(error.message, AppError.CONFLICT);
+    }
     logger.error("Error adding cancellation reason", {
       error: error.message,
       stack: error.stack,

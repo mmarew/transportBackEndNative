@@ -2,6 +2,7 @@
 const { pool } = require("../Middleware/Database.config");
 const { getDriverLastBalanceByUserUniqueId } = require("./UserBalance.service/UserBalance.get.service");
 const { sendSocketIONotificationToAdmin } = require("../Utils/Notifications");
+const logger = require("../Utils/logger");
 const messageTypes = require("../Utils/MessageTypes");
 const { v4: uuidv4 } = require("uuid");
 const { HTTP_STATUS } = require("../Utils/Constants");
@@ -283,13 +284,20 @@ const updateUserRefundByUniqueId = async (userRefundUniqueId, data) => {
     // Send notification after successful transaction
     const userData = await getUserByUserUniqueId(userUniqueId);
     const phoneNumber = userData?.phoneNumber;
-    sendSocketIONotificationToDriver({
-      phoneNumber,
-      message: {
-        message: "Refund approved by admin",
-        messageType: messageTypes?.refund_approved_by_admin,
-      },
-    });
+    try {
+      await sendSocketIONotificationToDriver({
+        phoneNumber,
+        message: {
+          message: "Refund approved by admin",
+          messageType: messageTypes?.refund_approved_by_admin,
+        },
+      });
+    } catch (notifError) {
+      logger.warn("Refund approved but notification to driver failed", {
+        error: notifError.message,
+        phoneNumber,
+      });
+    }
 
     return { updated: true, userRefundUniqueId, balanceDeducted: true };
   } else {

@@ -37,14 +37,46 @@ const testGetCommissions = async ({ user, filters = {} } = {}) => {
 const testCreateCommission = async ({ user, payload } = {}) => {
   const token = user?.token || usersData.admin?.token;
   if (!token) throw new Error("token not found");
-  const journeyDecisionUniqueId = payload?.journeyDecisionUniqueId || usersData?.driver?.lastJourneyDecisionUniqueId || usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
-  if (!journeyDecisionUniqueId) { console.warn("⏩ testCreateCommission skipped — no journeyDecisionUniqueId"); return { skipped: true }; }
+
+  // Collect candidate journey decisions that could still be eligible.
+  // Prefer live completed (journeyStatusId = 6) decisions from the API; the
+  // cached lastJourneyDecisionUniqueId is usually stale (later phases delete
+  // the journey + its decision) and is only a fallback when the list is empty.
+  const candidates = [];
+  const cached = payload?.journeyDecisionUniqueId || usersData?.driver?.lastJourneyDecisionUniqueId || usersData?.driver?.journeyStatus?.uniqueIds?.journeyDecisionUniqueId;
+  try {
+    const list = await axios.get(backendURL + "/api/user/getJourneyDecision4AllOrSingleUser?journeyStatusId=6&limit=10", authConfig(token));
+    const data = list?.data?.data || list?.data?.formattedData || [];
+    for (const d of data) {
+      const id = d?.journeyDecisionUniqueId || d?.journeyDecisionId;
+      if (id && !candidates.includes(id)) candidates.push(id);
+    }
+  } catch { /* ignore */ }
+  if (cached && !candidates.includes(cached)) candidates.push(cached);
+
+  if (candidates.length === 0) { console.warn("⏩ testCreateCommission skipped — no journeyDecisionUniqueId"); return { skipped: true }; }
+
   await seedDriverBalance();
   try { await axios.get(backendURL + "/api/utils/clear-cache"); } catch { /* ignore */ }
-  const defaultPayload = { journeyDecisionUniqueId, commissionAmount: 250.0, ...payload };
-  const result = await axios.post(backendURL + COMM_URL, defaultPayload, authConfig(token));
-  console.log("✅ Commission created:", result.data.data?.commissionUniqueId || result.data.commissionUniqueId);
-  return result.data;
+
+  for (const journeyDecisionUniqueId of candidates) {
+    try {
+      const defaultPayload = { journeyDecisionUniqueId, commissionAmount: 250.0, ...payload };
+      const result = await axios.post(backendURL + COMM_URL, defaultPayload, authConfig(token));
+      console.log("✅ Commission created:", result.data.data?.commissionUniqueId || result.data.commissionUniqueId);
+      return result.data;
+    } catch (err) {
+      const status = err.response?.status;
+      const msg = err.response?.data?.error?.message || err.response?.data?.error || err.response?.data?.message || err.message;
+      if (status === 404 || status === 409 || status === 400) {
+        console.log(`⏩ commission candidate ${journeyDecisionUniqueId.slice(0, 8)}… rejected (${status} ${typeof msg === "string" ? msg.slice(0, 50) : "…"})`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  console.warn("⏩ testCreateCommission skipped — no eligible completed journey decision found");
+  return { skipped: true };
 };
 
 const testUpdateCommission = async ({ user, id, payload } = {}) => {

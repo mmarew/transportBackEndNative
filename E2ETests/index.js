@@ -4,7 +4,7 @@ const { initLogCapture } = require("./logCapture");
 initLogCapture();
 const { testDriverOnboardingFlow } = require("./Driver");
 const { testCreateAdminFlow } = require("./Admin");
-const { resetDatabase, ensureJourneyLocationColumns } = require("./DataBaseManagement");
+const { resetDatabase, cancelLeftoverShipperRequests, ensureJourneyLocationColumns } = require("./DataBaseManagement");
 const { fetchUnAuthorizedDrivers } = require("./Admin/fetchData");
 const { authorizeDriversDocuments } = require("./Admin/AuthorizeDocs");
 const { testGetRoles } = require("./Roles");
@@ -98,6 +98,12 @@ const initiateTest = async () => {
     await resetDatabase();
     if (!usersData?.supperAdmin?.token)
       throw new Error("SuperAdmin token not set");
+
+    // ── Phase 0a: Cancel stacked leftover shipper requests ────────────────────
+    // Requests stranded at waiting/requested/acceptedByDriver by previously
+    // interrupted runs otherwise tie with this run's fresh request at the same
+    // coordinates and can win the driver auto-match (→ acceptDriverRequest 404).
+    await cancelLeftoverShipperRequests();
 
     // ── Phase 0b: Non-destructive schema verification ─────────────────────────
     // Drop-table operations are permanently disabled — the suite never wipes data.

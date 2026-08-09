@@ -127,7 +127,7 @@ const installPreDefinedData = async req => {
         logger.info(`Seeded ${label}:`, {
           item: item.statusName || item.roleName || item.VehicleStatusTypeName || item.journeyStatusName
         });
-        if (result.message === "success") {
+        if (!result.error) {
           successArray.push({
             label,
             item
@@ -136,19 +136,32 @@ const installPreDefinedData = async req => {
           errorArray.push({
             label,
             item,
-            error: result.error || "Failed to create item"
+            error: result.error
           });
         }
       } catch (error) {
+        const errorMessage = error?.message || "Unknown error during seeding";
+        if (/already exists|duplicate entry/i.test(errorMessage)) {
+          logger.info("Skipped existing item in predefined data", {
+            label,
+            item,
+            error: errorMessage
+          });
+          successArray.push({
+            label,
+            item
+          });
+          continue;
+        }
         logger.error("Error creating item in predefined data", {
           label,
           item,
-          error: error.message
+          error: errorMessage
         });
         errorArray.push({
           label,
           item,
-          error: error.message || "Failed to create item due to server error"
+          error: errorMessage || "Failed to create item due to server error"
         });
       }
     }
@@ -324,19 +337,18 @@ const installPreDefinedData = async req => {
     ...status,
     user
   }), commissionStatusSuccess, commissionStatusErrors, "commissionStatusList");
-  const plansResult = await getSubscriptionPlans({
-    limit: 100
-  });
-  const savedSubscriptionPlanLists = plansResult?.data?.plans || plansResult?.data || [];
   const planMapping = ["One month Free", "One month", "Three Months", "One Year"];
-  const updatedSubscriptionPlanPricingLists = subscriptionPlanPricingLists?.map((item, index) => {
+  const updatedSubscriptionPlanPricingLists = [];
+  for (let index = 0; index < (subscriptionPlanPricingLists?.length || 0); index += 1) {
+    const item = subscriptionPlanPricingLists[index];
     const planName = planMapping[index];
-    const matchedPlan = savedSubscriptionPlanLists?.find(p => p.planName === planName);
-    return {
+    const plansResult = await getSubscriptionPlans({ planName });
+    const matchedPlan = (plansResult?.data || []).find(p => p.planName === planName);
+    updatedSubscriptionPlanPricingLists.push({
       ...item,
       subscriptionPlanUniqueId: matchedPlan?.subscriptionPlanUniqueId
-    };
-  });
+    });
+  }
   await processDataSequentially(updatedSubscriptionPlanPricingLists, pricing => createPricing({
     ...pricing,
     user

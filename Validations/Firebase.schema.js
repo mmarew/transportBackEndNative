@@ -25,6 +25,12 @@ exports.firebaseParams = Joi.object({
   deviceTokenUniqueId: uuidSchema.required(),
 });
 
+exports.getFCMTokensQuery = Joi.object({
+  userUniqueId: uuidSchema.optional(),
+  roleId: Joi.alternatives().try(Joi.number().integer(), Joi.string()).optional(),
+  active: Joi.alternatives().try(Joi.boolean(), Joi.string()).optional(),
+}).unknown(true);
+
 exports.sendNotification = Joi.object({
   title: Joi.string().required(),
   body: Joi.string().required(),

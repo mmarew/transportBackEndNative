@@ -389,6 +389,18 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       queryParams.push(filters.shipperRequestBatchUniqueId);
       countParams.push(filters.shipperRequestBatchUniqueId);
     }
+    // Only shipper requests that still have a driver request awaiting an
+    // answer (DriverRequest.journeyStatusId = 2). Links via JourneyDecisions,
+    // which holds both shipperRequestId and driverRequestId.
+    if (filters?.hasUnansweredDriverRequest) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += ` EXISTS (
+        SELECT 1 FROM JourneyDecisions jd
+        INNER JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+        WHERE jd.shipperRequestId = ShipperRequest.shipperRequestId
+          AND dr.journeyStatusId = 2
+      )`;
+    }
     if (filters?.shipperRequestUniqueId) {
       whereClause += whereClause ? " AND " : " WHERE ";
       whereClause += " ShipperRequest.shipperRequestUniqueId = ?";

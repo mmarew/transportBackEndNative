@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { backendURL, usersData, runId } = require("../constants");
-const { authConfig } = require("../Utils");
+const { authConfig, getPendingAttachedDocument, getCancellableJourney, getDriverDeviceToken } = require("../Utils");
 const { report } = require("../Reporter");
 
 const errMsg = (err) => {
@@ -150,11 +150,30 @@ const testCreateUserByAdmin = async () => {
 const testSendNotificationToUser = async () => {
   const token = usersData?.admin?.token;
   if (!token) return report.skip("POST /api/notifications/send-to-user", "no admin token");
+  const driverUid = usersData?.driver?.accountData?.userData?.userUniqueId;
+  const driverRoleId = usersData?.driver?.roleId || 2;
+  let hasDevice = null;
+  try {
+    hasDevice = await getDriverDeviceToken({ token, userUniqueId: driverUid, roleId: driverRoleId });
+  } catch {
+    /* ignore */
+  }
+  if (!driverUid || !hasDevice) {
+    return report.skip(
+      "POST /api/notifications/send-to-user",
+      "no registered device token for the test driver (precondition not met)",
+    );
+  }
   console.log("\n── POST /api/notifications/send-to-user ──");
   try {
     const res = await axios.post(
       backendURL + "/api/notifications/send-to-user",
-      { title: "E2E Test", body: "Test notification", userUniqueId: uuidv4() },
+      {
+        userUniqueId: driverUid,
+        title: "E2E Test",
+        body: "Test notification",
+        notification: { title: "E2E Test", body: "Test notification" },
+      },
       authConfig(token),
     );
     report.pass(`POST /api/notifications/send-to-user — ${res.data?.message || "ok"}`);
@@ -215,11 +234,24 @@ const testGetTableColumns = async () => {
 const testAcceptRejectAttachedDocuments = async () => {
   const token = usersData?.admin?.token;
   if (!token) return report.skip("PUT /api/admin/acceptRejectAttachedDocuments", "no admin token");
+  let attachedDocumentUniqueId = null;
+  try {
+    const driverUid = usersData?.driver?.accountData?.userData?.userUniqueId;
+    attachedDocumentUniqueId = await getPendingAttachedDocument({ token, ownerUserUniqueId: driverUid });
+  } catch {
+    /* ignore */
+  }
+  if (!attachedDocumentUniqueId) {
+    return report.skip(
+      "PUT /api/admin/acceptRejectAttachedDocuments",
+      "no PENDING attached document to accept/reject (precondition not met)",
+    );
+  }
   console.log("\n── PUT /api/admin/acceptRejectAttachedDocuments ──");
   try {
     const res = await axios.put(
       backendURL + "/api/admin/acceptRejectAttachedDocuments",
-      { attachedDocumentUniqueId: uuidv4(), status: "approved" },
+      { attachedDocumentUniqueId, action: "ACCEPTED" },
       authConfig(token),
     );
     report.pass(`PUT /api/admin/acceptRejectAttachedDocuments — ${res.data?.message || "ok"}`);
@@ -232,11 +264,23 @@ const testAcceptRejectAttachedDocuments = async () => {
 const testCanceledJourneyBySystem = async () => {
   const token = usersData?.admin?.token;
   if (!token) return report.skip("POST /api/admin/canceledJourneyBySystem", "no admin token");
+  let journeyUniqueId = null;
+  try {
+    journeyUniqueId = await getCancellableJourney({ token });
+  } catch {
+    /* ignore */
+  }
+  if (!journeyUniqueId) {
+    return report.skip(
+      "POST /api/admin/canceledJourneyBySystem",
+      "no cancellable journey found (precondition not met)",
+    );
+  }
   console.log("\n── POST /api/admin/canceledJourneyBySystem ──");
   try {
     const res = await axios.post(
       backendURL + "/api/admin/canceledJourneyBySystem",
-      { journeyUniqueId: uuidv4() },
+      { journeyUniqueId, reason: `E2E system cancellation ${runId}` },
       authConfig(token),
     );
     report.pass(`POST /api/admin/canceledJourneyBySystem — ${res.data?.message || "ok"}`);
@@ -248,14 +292,15 @@ const testCanceledJourneyBySystem = async () => {
 
 const testCheckAutomaticBan = async () => {
   const token = usersData?.admin?.token;
-  const roleUid = usersData?.driver?.accountData?.userData?.userRoleUniqueId;
-  if (!token || !roleUid) return report.skip("GET /api/admin/check-automatic-ban/:id", "no admin token or userRoleUniqueId");
-  console.log("\n── GET /api/admin/check-automatic-ban/:id ──");
+  const userUniqueId = usersData?.driver?.accountData?.userData?.userUniqueId;
+  const roleId = usersData?.driver?.roleId || 2;
+  if (!token || !userUniqueId) return report.skip("GET /api/admin/userDelinquency/check-automatic-ban/:userUniqueId/:roleId", "no admin token or driver userUniqueId");
+  console.log("\n── GET /api/admin/userDelinquency/check-automatic-ban/:userUniqueId/:roleId ──");
   try {
-    const res = await axios.get(backendURL + `/api/admin/check-automatic-ban/${roleUid}`, authConfig(token));
-    report.pass(`GET /api/admin/check-automatic-ban/:id — ${res.data?.message || "ok"}`);
+    const res = await axios.get(backendURL + `/api/admin/userDelinquency/check-automatic-ban/${userUniqueId}/${roleId}`, authConfig(token));
+    report.pass(`GET /api/admin/userDelinquency/check-automatic-ban — ${res.data?.message || "ok"}`);
   } catch (err) {
-    report.skip("GET /api/admin/check-automatic-ban/:id", errMsg(err));
+    report.skip("GET /api/admin/userDelinquency/check-automatic-ban", errMsg(err));
   }
 };
 

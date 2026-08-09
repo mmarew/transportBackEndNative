@@ -4,7 +4,7 @@
 
 const axios = require("axios");
 const { backendURL, usersData, listOfDelinquencyTypes } = require("../constants");
-const { authConfig } = require("../Utils");
+const { authConfig, getActiveDelinquencyType } = require("../Utils");
 
 const BASE_URL = "/api/company/admin/delinquency";
 const cache = { data: null };
@@ -55,7 +55,19 @@ const testCreateCompanyDelinquency = async ({ user, payload } = {}) => {
     if (!token) throw new Error("token not found");
 
     const companyUniqueId = payload?.companyUniqueId || usersData?.companyAdmin?.companies?.[0]?.companyUniqueId;
-    const delinquencyTypeUniqueId = payload?.delinquencyTypeUniqueId || listOfDelinquencyTypes?.data?.[0]?.delinquencyTypeUniqueId;
+    // The DelinquencyTypes workflow deletes its created type, leaving the cached
+    // list's first entry soft-deleted/inactive — prefer an active type from the
+    // API (source of truth), falling back to the cached list only if needed.
+    let delinquencyTypeUniqueId = null;
+    try {
+      delinquencyTypeUniqueId = await getActiveDelinquencyType({ token });
+    } catch {
+      /* ignore */
+    }
+    delinquencyTypeUniqueId =
+      delinquencyTypeUniqueId ||
+      payload?.delinquencyTypeUniqueId ||
+      listOfDelinquencyTypes?.data?.[0]?.delinquencyTypeUniqueId;
 
     if (!companyUniqueId || !delinquencyTypeUniqueId) {
       console.warn("⏩ testCreateCompanyDelinquency skipped — company or delinquency type not available");

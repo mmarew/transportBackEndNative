@@ -121,7 +121,9 @@ const sendSms = async (
       throw new AppError(`SMS API HTTP Error: ${status}`, AppError.BAD_GATEWAY);
     }
   } catch (error) {
-    logger.error("SMS API Request Error Details:", {
+    // External SMS gateway failures (unverified beta contacts, network,
+    // provider errors) are environmental, not code faults — warn level.
+    logger.warn("SMS API Request Error Details:", {
       message: error.message,
       response: error.response?.data,
       receiverPhoneNumber,
