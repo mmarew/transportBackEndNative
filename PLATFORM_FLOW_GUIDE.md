@@ -27,19 +27,19 @@ Complete end-to-end lifecycle of all platform roles — from registration to jou
 
 ## 1. Roles Overview
 
-| Role ID | Role Name             | Description |
-|---------|-----------------------|-------------|
-| 1       | **Shipper**           | Posts cargo requests; accepts driver offers or company bids |
-| 2       | **Driver**            | Individual truck operator; receives and fulfills trips |
-| 3       | **Admin**             | Platform moderator; reviews documents, manages users |
-| 4       | **Vehicle Owner**     | Owns vehicles that drivers can use (delegation flow) |
-| 5       | **System**            | Automated background processes |
-| 6       | **Super Admin**       | Full platform control; manages admins via API/Postman |
-| 7       | **Company Admin**     | Manages their company, fleet, bids, and assignments |
-| 8       | **Company** (entity)  | Entity role for company-level document requirements |
-| 9       | **Vehicle** (entity)  | Entity role for vehicle-level document requirements |
-| 10      | **Dispatcher**        | Company dispatcher who manages fleet day-to-day |
-| 11      | **Queue Org Admin**   | Manages driver dispatch queues at loading stations |
+| Role ID | Role Name            | Description                                                 |
+| ------- | -------------------- | ----------------------------------------------------------- |
+| 1       | **Shipper**          | Posts cargo requests; accepts driver offers or company bids |
+| 2       | **Driver**           | Individual truck operator; receives and fulfills trips      |
+| 3       | **Admin**            | Platform moderator; reviews documents, manages users        |
+| 4       | **Vehicle Owner**    | Owns vehicles that drivers can use (delegation flow)        |
+| 5       | **System**           | Automated background processes                              |
+| 6       | **Super Admin**      | Full platform control; manages admins via API/Postman       |
+| 7       | **Company Admin**    | Manages their company, fleet, bids, and assignments         |
+| 8       | **Company** (entity) | Entity role for company-level document requirements         |
+| 9       | **Vehicle** (entity) | Entity role for vehicle-level document requirements         |
+| 10      | **Dispatcher**       | Company dispatcher who manages fleet day-to-day             |
+| 11      | **Queue Org Admin**  | Manages driver dispatch queues at loading stations          |
 
 ---
 
@@ -108,15 +108,15 @@ Super Admin sets tariff rates per vehicle type: POST /api/admin/tariffRateForVeh
 
 ### Super Admin Actions
 
-| Action | Endpoint |
-|--------|----------|
-| Create Admin users | POST /api/auth/createUserByAdmin |
-| Manage user statuses | GET/PATCH /api/admin/userRoleStatus |
-| Manage vehicle types | GET/POST/PATCH /api/admin/vehicleTypes |
-| Set tariff rates | POST /api/admin/tariffRateForVehicleType |
-| Ban/unban any user | POST /api/admin/bannedUsers |
+| Action                          | Endpoint                                 |
+| ------------------------------- | ---------------------------------------- |
+| Create Admin users              | POST /api/auth/createUserByAdmin         |
+| Manage user statuses            | GET/PATCH /api/admin/userRoleStatus      |
+| Manage vehicle types            | GET/POST/PATCH /api/admin/vehicleTypes   |
+| Set tariff rates                | POST /api/admin/tariffRateForVehicleType |
+| Ban/unban any user              | POST /api/admin/bannedUsers              |
 | Review and decide delinquencies | POST /api/admin/userDelinquencyDecisions |
-| Seed the database | POST /api/database/seed |
+| Seed the database               | POST /api/database/seed                  |
 
 ---
 
@@ -142,27 +142,27 @@ Driver status -> ACTIVE    Driver status -> INACTIVE (rejected)
 
 ### Admin Actions
 
-| Action | Endpoint |
-|--------|----------|
-| Review all documents | GET /api/attachedDocuments |
-| Approve or reject document | PATCH /api/attachedDocuments/:id |
-| Ban a user | POST /api/admin/bannedUsers |
-| Unban a user | DELETE /api/admin/bannedUsers/:id |
-| Create delinquency case | POST /api/admin/userDelinquency |
+| Action                      | Endpoint                                 |
+| --------------------------- | ---------------------------------------- |
+| Review all documents        | GET /api/attachedDocuments               |
+| Approve or reject document  | PATCH /api/attachedDocuments/:id         |
+| Ban a user                  | POST /api/admin/bannedUsers              |
+| Unban a user                | DELETE /api/admin/bannedUsers/:id        |
+| Create delinquency case     | POST /api/admin/userDelinquency          |
 | Rule on delinquency dispute | POST /api/admin/userDelinquencyDecisions |
 
 ### User Account Status Values
 
-| ID | Meaning |
-|----|---------|
-| 1  | Active — all documents approved |
-| 2  | Inactive — vehicle not registered |
-| 3  | Inactive — required documents missing |
-| 4  | Inactive — documents rejected |
-| 5  | Inactive — documents pending review |
-| 6  | Inactive — banned by admin |
-| 7  | Inactive — no active subscription |
-| 8  | Account deleted |
+| ID  | Meaning                               |
+| --- | ------------------------------------- |
+| 1   | Active — all documents approved       |
+| 2   | Inactive — vehicle not registered     |
+| 3   | Inactive — required documents missing |
+| 4   | Inactive — documents rejected         |
+| 5   | Inactive — documents pending review   |
+| 6   | Inactive — banned by admin            |
+| 7   | Inactive — no active subscription     |
+| 8   | Account deleted                       |
 
 ---
 
@@ -262,13 +262,13 @@ Each slot: journeyStarted (5) --> journeyCompleted (6)
 
 ### 5.5 Other Shipper Actions
 
-| Action | Endpoint |
-|--------|----------|
+| Action                     | Endpoint                                    |
+| -------------------------- | ------------------------------------------- |
 | View active request status | GET /api/shipper/verifyShipperJourneyStatus |
-| Cancel a request | POST /api/canceledJourneys |
-| Rate a completed journey | POST /api/ratings |
-| View wallet balance | GET /api/finance/balance |
-| Deposit funds | POST /api/finance/userDeposit/santimPay |
+| Cancel a request           | POST /api/canceledJourneys                  |
+| Rate a completed journey   | POST /api/ratings                           |
+| View wallet balance        | GET /api/finance/balance                    |
+| Deposit funds              | POST /api/finance/userDeposit/santimPay     |
 
 ---
 
@@ -379,13 +379,13 @@ Driver receives FCM: "You have been assigned to a freight job"
 
 ### 6.6 Other Driver Actions
 
-| Action | Endpoint |
-|--------|----------|
+| Action                       | Endpoint                                  |
+| ---------------------------- | ----------------------------------------- |
 | Check current journey status | GET /api/driver/verifyDriverJourneyStatus |
-| Cancel a trip | POST /api/canceledJourneys |
-| Upload/update documents | POST /api/attachedDocuments |
-| Check-in to a queue | POST /api/queue/checkIn |
-| Rate a shipper | POST /api/ratings |
+| Cancel a trip                | POST /api/canceledJourneys                |
+| Upload/update documents      | POST /api/attachedDocuments               |
+| Check-in to a queue          | POST /api/queue/checkIn                   |
+| Rate a shipper               | POST /api/ratings                         |
 
 ---
 
@@ -449,12 +449,12 @@ Company is VERIFIED and active -- ready for bidding
 
 ### 7.3 Company Roles within the Company
 
-| Role | Description |
-|------|-------------|
-| owner | Full company access — same as Company Admin user |
-| manager | Manages members and fleet |
-| dispatcher | Manages assignments and bids day-to-day |
-| driver | A driver who is also a company member |
+| Role       | Description                                      |
+| ---------- | ------------------------------------------------ |
+| owner      | Full company access — same as Company Admin user |
+| manager    | Manages members and fleet                        |
+| dispatcher | Manages assignments and bids day-to-day          |
+| driver     | A driver who is also a company member            |
 
 ### 7.4 Bid on a Shipper Batch Request
 
@@ -498,17 +498,17 @@ Company is VERIFIED and active -- ready for bidding
 
 ### 7.5 Other Company Admin Actions
 
-| Action | Endpoint |
-|--------|----------|
-| Edit a bid | PATCH /api/company/bids/:bidId |
-| Cancel a bid | DELETE /api/company/bids/:bidId |
-| View fleet status | GET /api/company/fleet?companyUniqueId=uuid |
-| View all assignments | GET /api/company/assignments |
-| Cancel an assignment | DELETE /api/company/assignments/:id |
-| Add or remove members | POST/DELETE /api/company/memberships |
-| View company bids | GET /api/company/bids |
-| Respond to delinquency | POST /api/company/delinquency-response |
-| View company ratings | GET /api/company/ratings |
+| Action                 | Endpoint                                    |
+| ---------------------- | ------------------------------------------- |
+| Edit a bid             | PATCH /api/company/bids/:bidId              |
+| Cancel a bid           | DELETE /api/company/bids/:bidId             |
+| View fleet status      | GET /api/company/fleet?companyUniqueId=uuid |
+| View all assignments   | GET /api/company/assignments                |
+| Cancel an assignment   | DELETE /api/company/assignments/:id         |
+| Add or remove members  | POST/DELETE /api/company/memberships        |
+| View company bids      | GET /api/company/bids                       |
+| Respond to delinquency | POST /api/company/delinquency-response      |
+| View company ratings   | GET /api/company/ratings                    |
 
 ---
 
@@ -619,30 +619,30 @@ All journeys — individual or company-batch — share the same journeyStatusId 
 
 ### Active Statuses
 
-| ID | Status Name | Description |
-|----|-------------|-------------|
-| 1 | waiting | Request created, looking for a driver |
-| 2 | requested | Request sent to a specific driver |
-| 3 | acceptedByDriver | Driver accepted and bid submitted; JourneyDecision created |
-| 4 | acceptedByShipper | Shipper accepted driver offer (or company bid accepted) |
-| 5 | journeyStarted | Driver physically started the trip |
-| 6 | journeyCompleted | Trip delivered; earnings calculated |
+| ID  | Status Name       | Description                                                |
+| --- | ----------------- | ---------------------------------------------------------- |
+| 1   | waiting           | Request created, looking for a driver                      |
+| 2   | requested         | Request sent to a specific driver                          |
+| 3   | acceptedByDriver  | Driver accepted and bid submitted; JourneyDecision created |
+| 4   | acceptedByShipper | Shipper accepted driver offer (or company bid accepted)    |
+| 5   | journeyStarted    | Driver physically started the trip                         |
+| 6   | journeyCompleted  | Trip delivered; earnings calculated                        |
 
 ### Terminal and Exception Statuses
 
-| ID | Status Name | Description |
-|----|-------------|-------------|
-| 7 | cancelledByShipper | Shipper cancelled the entire request |
-| 8 | rejectedByShipper | Shipper rejected this specific driver |
-| 9 | cancelledByDriver | Driver cancelled after accepting |
-| 10 | cancelledByAdmin | Admin forcefully cancelled |
-| 11 | completedByAdmin | Admin manually marked complete |
-| 12 | cancelledBySystem | System auto-cancelled (timeout, etc.) |
-| 13 | noAnswerFromDriver | Driver did not respond; system re-queues |
-| 14 | notSelectedInBid | Driver's offer not chosen by shipper |
-| 15 | rejectedByDriver | Driver rejected incoming request upfront |
-| 16 | replacedByCompanyAssignment | Individual match replaced by company job |
-| 17 | partiallyCancelled | Batch partially cancelled by shipper |
+| ID  | Status Name                 | Description                              |
+| --- | --------------------------- | ---------------------------------------- |
+| 7   | cancelledByShipper          | Shipper cancelled the entire request     |
+| 8   | rejectedByShipper           | Shipper rejected this specific driver    |
+| 9   | cancelledByDriver           | Driver cancelled after accepting         |
+| 10  | cancelledByAdmin            | Admin forcefully cancelled               |
+| 11  | completedByAdmin            | Admin manually marked complete           |
+| 12  | cancelledBySystem           | System auto-cancelled (timeout, etc.)    |
+| 13  | noAnswerFromDriver          | Driver did not respond; system re-queues |
+| 14  | notSelectedInBid            | Driver's offer not chosen by shipper     |
+| 15  | rejectedByDriver            | Driver rejected incoming request upfront |
+| 16  | replacedByCompanyAssignment | Individual match replaced by company job |
+| 17  | partiallyCancelled          | Batch partially cancelled by shipper     |
 
 ---
 
@@ -723,15 +723,15 @@ SHIPPER                    COMPANY ADMIN / DISPATCHER            DRIVERS
 
 ### Company Assignment Status Values
 
-| Status | Meaning |
-|--------|---------|
-| assigned | Company assigned driver; awaiting driver response |
-| accepted | Driver accepted the company assignment |
-| rejected_by_driver | Driver rejected; slot needs re-assignment |
-| cancelled_by_company | Company cancelled this assignment |
-| cancelled_by_shipper | Shipper cancelled this slot |
-| cancelled_by_driver | Driver cancelled after accepting |
-| completed | Journey for this slot is finished |
+| Status               | Meaning                                           |
+| -------------------- | ------------------------------------------------- |
+| assigned             | Company assigned driver; awaiting driver response |
+| accepted             | Driver accepted the company assignment            |
+| rejected_by_driver   | Driver rejected; slot needs re-assignment         |
+| cancelled_by_company | Company cancelled this assignment                 |
+| cancelled_by_shipper | Shipper cancelled this slot                       |
+| cancelled_by_driver  | Driver cancelled after accepting                  |
+| completed            | Journey for this slot is finished                 |
 
 > **Auto-Assignment Business Rule:** The system only auto-assigns a driver if their vehicle type EXACTLY matches the vehicle type requested in the bid. This ensures shippers always receive the truck capacity they paid for. Mismatched vehicles must be assigned manually by a dispatcher with the shipper's awareness.
 
@@ -743,10 +743,10 @@ SHIPPER                    COMPANY ADMIN / DISPATCHER            DRIVERS
 
 Controlled by the `DRIVERS_PAYMENT_SYSTEM` environment variable.
 
-| Mode | How it works |
-|------|-------------|
-| COMMISSION | Platform deducts a percentage of each trip. Driver earns the remainder. |
-| SUBSCRIPTION | Driver pays a flat monthly fee. Keeps 100% of each trip payment. |
+| Mode         | How it works                                                            |
+| ------------ | ----------------------------------------------------------------------- |
+| COMMISSION   | Platform deducts a percentage of each trip. Driver earns the remainder. |
+| SUBSCRIPTION | Driver pays a flat monthly fee. Keeps 100% of each trip payment.        |
 
 ### Finance Flow
 
@@ -772,12 +772,12 @@ Driver uses balance for subscription renewal or future withdrawals
 
 ### Finance Endpoints
 
-| Action | Endpoint |
-|--------|----------|
-| Check balance | GET /api/finance/balance |
-| Deposit via SantimPay | POST /api/finance/userDeposit/santimPay |
-| SantimPay webhook | POST /api/finance/userDeposit/santimPay/webhook |
-| View transactions | GET /api/finance/* |
+| Action                | Endpoint                                        |
+| --------------------- | ----------------------------------------------- |
+| Check balance         | GET /api/finance/balance                        |
+| Deposit via SantimPay | POST /api/finance/userDeposit/santimPay         |
+| SantimPay webhook     | POST /api/finance/userDeposit/santimPay/webhook |
+| View transactions     | GET /api/finance/\*                             |
 
 ---
 
@@ -789,29 +789,30 @@ The platform uses two parallel notification channels for every significant event
 
 Out-of-app alerts. Flat key-value payloads (Firebase platform limitation).
 
-| Event | Who receives it |
-|-------|----------------|
-| New trip request sent | Driver |
-| Driver accepted offer | Shipper |
-| Shipper accepted driver | Driver |
-| Journey started | Shipper |
-| Journey completed | Shipper |
-| Company assigned driver to slot | Driver |
-| Batch auto-assigned (all slots) | Shipper |
-| Document approved or rejected | User |
+| Event                           | Who receives it |
+| ------------------------------- | --------------- |
+| New trip request sent           | Driver          |
+| Driver accepted offer           | Shipper         |
+| Shipper accepted driver         | Driver          |
+| Journey started                 | Shipper         |
+| Journey completed               | Shipper         |
+| Company assigned driver to slot | Driver          |
+| Batch auto-assigned (all slots) | Shipper         |
+| Document approved or rejected   | User            |
 
 ### WebSocket (Socket.IO) — Real-Time In-App Events
 
 Full JSON payloads for live in-app updates.
 
-| Message Type | Description |
-|-------------|-------------|
+| Message Type              | Description                             |
+| ------------------------- | --------------------------------------- |
 | company_driver_assignment | Driver assigned to company freight slot |
-| journey_status_update | Any journey status change |
-| bid_status_update | Company bid status changed |
-| driver_request_update | Driver request status changed |
+| journey_status_update     | Any journey status change               |
+| bid_status_update         | Company bid status changed              |
+| driver_request_update     | Driver request status changed           |
 
 **Connection Model:**
+
 - Shippers connect to a WebSocket room keyed by their phone number
 - Drivers connect via their user unique ID
 - The server pushes events to the correct room on every status change
@@ -822,74 +823,74 @@ Full JSON payloads for live in-app updates.
 
 ### Auth
 
-| Method | Endpoint | Who |
-|--------|----------|-----|
-| POST | /register | All new users |
-| POST | /verifyUserByOTP | All new users |
-| POST | /login | All users |
-| GET | /verifyEmail | All users |
+| Method | Endpoint         | Who           |
+| ------ | ---------------- | ------------- |
+| POST   | /register        | All new users |
+| POST   | /verifyUserByOTP | All new users |
+| POST   | /login           | All users     |
+| GET    | /verifyEmail     | All users     |
 
 ### Driver
 
-| Method | Endpoint | Action |
-|--------|----------|--------|
-| POST | /api/driver/request/create | Go online / signal availability |
-| GET | /api/driver/verifyDriverJourneyStatus | Check current journey status |
-| POST | /api/driver/acceptRequest | Accept an incoming trip |
-| POST | /api/driver/rejectRequest | Reject an incoming trip |
-| POST | /api/driver/startJourney | Start the physical trip |
-| POST | /api/driver/completeJourney | Mark trip as complete |
+| Method | Endpoint                              | Action                          |
+| ------ | ------------------------------------- | ------------------------------- |
+| POST   | /api/driver/request/create            | Go online / signal availability |
+| GET    | /api/driver/verifyDriverJourneyStatus | Check current journey status    |
+| POST   | /api/driver/acceptRequest             | Accept an incoming trip         |
+| POST   | /api/driver/rejectRequest             | Reject an incoming trip         |
+| POST   | /api/driver/startJourney              | Start the physical trip         |
+| POST   | /api/driver/completeJourney           | Mark trip as complete           |
 
 ### Shipper
 
-| Method | Endpoint | Action |
-|--------|----------|--------|
-| POST | /api/shipper/request/create | Post a cargo request |
-| GET | /api/shipper/verifyShipperJourneyStatus | Check request status |
-| POST | /api/shipper/acceptDriver | Accept a driver offer |
-| POST | /api/shipper/rejectDriver | Reject a driver offer |
-| POST | /api/canceledJourneys | Cancel a request |
+| Method | Endpoint                                | Action                |
+| ------ | --------------------------------------- | --------------------- |
+| POST   | /api/shipper/request/create             | Post a cargo request  |
+| GET    | /api/shipper/verifyShipperJourneyStatus | Check request status  |
+| POST   | /api/shipper/acceptDriver               | Accept a driver offer |
+| POST   | /api/shipper/rejectDriver               | Reject a driver offer |
+| POST   | /api/canceledJourneys                   | Cancel a request      |
 
 ### Company
 
-| Method | Endpoint | Action |
-|--------|----------|--------|
-| POST | /api/company/companies | Register transport company |
-| GET | /api/company/fleet | View fleet and driver availability |
-| POST | /api/company/bids | Submit bid on freight batch |
-| GET | /api/company/bids | View all company bids |
-| PATCH | /api/company/bids/:bidId | Edit a bid |
-| DELETE | /api/company/bids/:bidId | Cancel a bid |
-| POST | /api/company/assignments | Manually assign driver to slot |
-| POST | /api/company/assignments/auto | Auto-assign all available slots |
-| GET | /api/company/assignments | View all assignments |
-| DELETE | /api/company/assignments/:id | Cancel an assignment |
-| POST | /api/company/memberships | Add a member to company |
-| DELETE | /api/company/memberships/:id | Remove a member |
+| Method | Endpoint                      | Action                             |
+| ------ | ----------------------------- | ---------------------------------- |
+| POST   | /api/company/companies        | Register transport company         |
+| GET    | /api/company/fleet            | View fleet and driver availability |
+| POST   | /api/company/bids             | Submit bid on freight batch        |
+| GET    | /api/company/bids             | View all company bids              |
+| PATCH  | /api/company/bids/:bidId      | Edit a bid                         |
+| DELETE | /api/company/bids/:bidId      | Cancel a bid                       |
+| POST   | /api/company/assignments      | Manually assign driver to slot     |
+| POST   | /api/company/assignments/auto | Auto-assign all available slots    |
+| GET    | /api/company/assignments      | View all assignments               |
+| DELETE | /api/company/assignments/:id  | Cancel an assignment               |
+| POST   | /api/company/memberships      | Add a member to company            |
+| DELETE | /api/company/memberships/:id  | Remove a member                    |
 
 ### Admin
 
-| Method | Endpoint | Action |
-|--------|----------|--------|
-| GET | /api/attachedDocuments | View uploaded documents |
-| PATCH | /api/attachedDocuments/:id | Approve or reject a document |
-| POST | /api/admin/bannedUsers | Ban a user |
-| DELETE | /api/admin/bannedUsers/:id | Unban a user |
-| POST | /api/admin/userDelinquency | Open a delinquency case |
-| POST | /api/admin/userDelinquencyDecisions | Rule on a delinquency case |
-| POST | /api/auth/createUserByAdmin | Create a user account |
+| Method | Endpoint                            | Action                       |
+| ------ | ----------------------------------- | ---------------------------- |
+| GET    | /api/attachedDocuments              | View uploaded documents      |
+| PATCH  | /api/attachedDocuments/:id          | Approve or reject a document |
+| POST   | /api/admin/bannedUsers              | Ban a user                   |
+| DELETE | /api/admin/bannedUsers/:id          | Unban a user                 |
+| POST   | /api/admin/userDelinquency          | Open a delinquency case      |
+| POST   | /api/admin/userDelinquencyDecisions | Rule on a delinquency case   |
+| POST   | /api/auth/createUserByAdmin         | Create a user account        |
 
 ### Queue
 
-| Method | Endpoint | Action |
-|--------|----------|--------|
-| POST | /api/queueOrganization | Create a queue organization |
-| GET | /api/queueOrganization/:id/queue | View current queue |
-| POST | /api/queue/checkIn | Driver check-in to queue |
-| DELETE | /api/queue/checkOut | Driver check-out of queue |
-| PATCH | /api/queue/position | Override queue position (audit logged) |
+| Method | Endpoint                         | Action                                 |
+| ------ | -------------------------------- | -------------------------------------- |
+| POST   | /api/queueOrganization           | Create a queue organization            |
+| GET    | /api/queueOrganization/:id/queue | View current queue                     |
+| POST   | /api/queue/checkIn               | Driver check-in to queue               |
+| DELETE | /api/queue/checkOut              | Driver check-out of queue              |
+| PATCH  | /api/queue/position              | Override queue position (audit logged) |
 
 ---
 
-*This document reflects the actual backend implementation of the Dynamics Transport platform.
-For any discrepancies, refer to the source code in `Routes/`, `Services/`, and `Utils/ListOfSeedData.js`.*
+_This document reflects the actual backend implementation of the Dynamics Transport platform.
+For any discrepancies, refer to the source code in `Routes/`, `Services/`, and `Utils/ListOfSeedData.js`._

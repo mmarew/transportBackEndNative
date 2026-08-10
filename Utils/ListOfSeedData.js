@@ -688,8 +688,11 @@ const journeyStatus = [
   },
 ];
 const journeyStatusMap = {
+  //request created but no driver for shipper and no shipper for driver connected.
   waiting: 1,
+  //driver connected but not yet accepted the request
   requested: 2,
+  //driver accepted the request and provided their bidding price
   acceptedByDriver: 3,
   // accept oly one driver request but others are not selected so they will have notSelectedInBid status
   acceptedByShipper: 4,

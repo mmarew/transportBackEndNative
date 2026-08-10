@@ -44,7 +44,23 @@ const checkActiveDriverRequest = async (userUniqueId) => {
           AND JourneyDecisions.isRejectionByShipperSeenByDriver = 'not seen by driver yet'
         )
       )
-      ORDER BY DriverRequest.driverRequestId DESC
+      ORDER BY 
+        CASE 
+          WHEN DriverRequest.journeyStatusId = ${journeyStatusMap.journeyStarted} THEN 100
+          WHEN DriverRequest.journeyStatusId = ${journeyStatusMap.acceptedByShipper} THEN 90
+          WHEN DriverRequest.journeyStatusId IN (
+            ${journeyStatusMap.cancelledByShipper}, 
+            ${journeyStatusMap.cancelledByAdmin}, 
+            ${journeyStatusMap.cancelledBySystem}, 
+            ${journeyStatusMap.notSelectedInBid}, 
+            ${journeyStatusMap.rejectedByShipper}
+          ) THEN 80
+          WHEN DriverRequest.journeyStatusId = ${journeyStatusMap.acceptedByDriver} THEN 70
+          WHEN DriverRequest.journeyStatusId = ${journeyStatusMap.requested} THEN 60
+          WHEN DriverRequest.journeyStatusId = ${journeyStatusMap.waiting} THEN 10
+          ELSE 0
+        END DESC,
+        DriverRequest.driverRequestId DESC
       LIMIT 1
     `;
 
