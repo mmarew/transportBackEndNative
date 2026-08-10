@@ -73,9 +73,15 @@ const testMarkJourneyCompletionAsSeen = async ({ userType = "shipper" } = {}) =>
     try {
       const reqs = await axios.get(backendURL + SHIPPER_REQUEST_ENDPOINTS.GET_SHIPPER_REQUEST_4_ALL_OR_SINGLE_USER + "?journeyStatusId=6", authConfig(token));
       const items = reqs?.data?.data || [];
-      const match = items.find((r) => r?.journeyDecisionUniqueId && r?.shipperRequestUniqueId);
-      journeyDecisionUniqueId = match?.journeyDecisionUniqueId || null;
-      shipperRequestUniqueId = match?.shipperRequestUniqueId || null;
+      // Each item is { shipperRequest, driverRequests, decisions, journey } — the
+      // IDs are nested, not top-level.
+      const match = items.find(
+        (r) =>
+          r?.journey?.journeyDecisionUniqueId &&
+          r?.shipperRequest?.shipperRequestUniqueId,
+      );
+      journeyDecisionUniqueId = match?.journey?.journeyDecisionUniqueId || null;
+      shipperRequestUniqueId = match?.shipperRequest?.shipperRequestUniqueId || null;
     } catch { /* ignore */ }
     if (!journeyDecisionUniqueId || !shipperRequestUniqueId) {
       console.log("⏩ testMarkJourneyCompletionAsSeen skipped — no completed shipper request with journey decision");

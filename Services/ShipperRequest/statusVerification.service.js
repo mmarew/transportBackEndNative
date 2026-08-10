@@ -117,7 +117,7 @@ const seenByShipper = async (body) => {
       });
     }
 
-    return { message: "No active shipper request", data: null };
+    return { message: "Journey completion marked as seen", data: null };
   } catch (error) {
     const logger = require("../../Utils/logger");
     logger.error("Unable to mark data as seen by shipper", {
