@@ -2068,6 +2068,53 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
     FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId),
     FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
 );
+
+-- DeliveryConfirmations: confirms that goods were actually delivered once a
+-- journey is completed. One confirmation per journey (UNIQUE on journeyUniqueId).
+-- Lifecycle: PENDING (receiver submitted) → CONFIRMED (accepted) | DISPUTED.
+-- The receiverUserUniqueId is the party who received the goods; confirmedByUserUniqueId
+-- is whoever settled the confirmation (driver/admin/company), and stays NULL while
+-- the confirmation is still PENDING.
+CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
+    deliveryConfirmationId INT AUTO_INCREMENT PRIMARY KEY,
+    deliveryConfirmationUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the confirmation
+
+    journeyUniqueId VARCHAR(36) NOT NULL,                      -- FK → Journey (completed journey)
+    receiverUserUniqueId VARCHAR(36) NOT NULL,                 -- FK → Users (who received the goods)
+    confirmedByUserUniqueId VARCHAR(36) NULL,                  -- FK → Users (who settled it; NULL while PENDING)
+
+    deliveryConfirmationStatus ENUM('PENDING','CONFIRMED','DISPUTED') NOT NULL DEFAULT 'PENDING',
+    deliveryConfirmationDeliveredQuantity DECIMAL(14, 3) NULL, -- Delivered quantity
+    deliveryConfirmationQuantityUnit VARCHAR(30) NULL,         -- e.g. 'quintal', 'kg', 'piece'
+
+    deliveryConfirmationCondition ENUM('GOOD','DAMAGED','PARTIAL') NOT NULL DEFAULT 'GOOD',
+    deliveryConfirmationReceiverSignature TEXT NULL,           -- Signature (base64 or URL)
+    deliveryConfirmationPhotoUrl VARCHAR(500) NULL,            -- Proof-of-delivery photo (relative /uploads/... URL)
+    deliveryConfirmationNotes TEXT NULL,                       -- Free-text notes
+
+    deliveryConfirmationLatitude DECIMAL(10, 8) NULL,          -- GPS of the confirmation point
+    deliveryConfirmationLongitude DECIMAL(11, 8) NULL,
+
+    deliveryConfirmationSubmittedAt DATETIME NULL,             -- When the receiver submitted
+    deliveryConfirmationConfirmedAt DATETIME NULL,             -- When the confirmation was settled
+
+    deliveryConfirmationCreatedBy VARCHAR(36) NOT NULL,        -- FK → Users (who created the record)
+    deliveryConfirmationUpdatedBy VARCHAR(36) NULL,            -- FK → Users
+    deliveryConfirmationDeletedBy VARCHAR(36) NULL,            -- FK → Users
+    deliveryConfirmationCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deliveryConfirmationUpdatedAt DATETIME NULL,
+    deliveryConfirmationDeletedAt DATETIME NULL,
+
+    UNIQUE KEY uqDeliveryConfirmationJourney (journeyUniqueId),
+    INDEX idx_deliveryConfirmation_receiver (receiverUserUniqueId),
+    INDEX idx_deliveryConfirmation_status (deliveryConfirmationStatus),
+    FOREIGN KEY (journeyUniqueId) REFERENCES Journey(journeyUniqueId),
+    FOREIGN KEY (receiverUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (confirmedByUserUniqueId) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (deliveryConfirmationCreatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (deliveryConfirmationUpdatedBy) REFERENCES Users(userUniqueId),
+    FOREIGN KEY (deliveryConfirmationDeletedBy) REFERENCES Users(userUniqueId)
+);
 `;
 
 module.exports = { sqlQuery };

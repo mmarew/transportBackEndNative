@@ -136,6 +136,7 @@ E2ETests/
 │   ├── JourneyDecisions.js       ← testJourneyDecisionsWorkflow, testGetJourneyDecisions,
 │   │                                testUpdateJourneyDecision (CREATE is system-driven)
 │   ├── JourneyRoutePoints.js     ← testJourneyRoutePointsWorkflow (full CRUD, needs active journey)
+│   ├── DeliveryConfirmation.js   ← testDeliveryConfirmationWorkflow (full CRUD after journey completion)
 │   ├── CanceledJourneys.js       ← testCanceledJourneysWorkflow (GET/UPDATE/mark seen,
 │   │                                system-populated on cancellations)
 │   ├── CancellationReasonsType.js ← testCancellationReasonsTypeWorkflow (full CRUD)
@@ -617,6 +618,7 @@ Tests entities that can only be meaningfully exercised after journey data exists
 | `testCompanyMembershipWorkflow` | GET/POST/PATCH/DELETE company memberships (needs company data)     |
 | `testCompanyRatingWorkflow`     | GET/POST/PUT/DELETE company ratings (needs company bid data)       |
 | `testJourneyRoutePointsWorkflow`| Full CRUD on route points (needs active/completed journey)         |
+| `testDeliveryConfirmationWorkflow` | Full CRUD on delivery confirmations (after journey completion)  |
 | `testVehicleDriverWorkflow`     | CRUD for vehicle-driver assignments                               |
 | `testVehicleOwnershipWorkflow`  | CRUD for vehicle ownership records                                |
 | `testShipperRequestBatchWorkflow` | CRUD for shipper request batches                                |

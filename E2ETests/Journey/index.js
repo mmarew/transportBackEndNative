@@ -4,6 +4,7 @@ const { testJourneyStatusWorkflow, testGetJourneyStatuses } = require("./Journey
 const { testCancellationReasonsTypeWorkflow, testGetCancellationReasonTypes } = require("./CancellationReasonsType");
 const { testCanceledJourneysWorkflow, testGetCanceledJourneys } = require("./CanceledJourneys");
 const { testJourneyRoutePointsWorkflow, testGetJourneyRoutePoints } = require("./JourneyRoutePoints");
+const { testDeliveryConfirmationWorkflow, testGetDeliveryConfirmations } = require("./DeliveryConfirmation");
 const { testJourneyWorkflow, testGetJourneys, testGetOngoingJourney, testGetCompletedJourneys } = require("./Journey");
 const { testJourneyDecisionsWorkflow, testGetJourneyDecisions } = require("./JourneyDecisions");
 const {
@@ -24,6 +25,8 @@ module.exports = {
   testGetCanceledJourneys,
   testJourneyRoutePointsWorkflow,
   testGetJourneyRoutePoints,
+  testDeliveryConfirmationWorkflow,
+  testGetDeliveryConfirmations,
   testJourneyWorkflow,
   testGetJourneys,
   testGetOngoingJourney,

@@ -9,6 +9,10 @@ const routesArray = [
   },
   { path: "/api/ratings", handler: require("./Ratings.routes") },
   {
+    path: "/api/deliveryConfirmations",
+    handler: require("./DeliveryConfirmation.routes"),
+  },
+  {
     path: "/api/journeyRoutePoints",
     handler: require("./JourneyRoutePoints.routes"),
   },

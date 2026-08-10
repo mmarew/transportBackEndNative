@@ -3,6 +3,7 @@ const {
   testJourneyDecisionsWorkflow,
   testCanceledJourneysWorkflow,
   testJourneyRoutePointsWorkflow,
+  testDeliveryConfirmationWorkflow,
 } = require("../Journey");
 const {
   testRatingsWorkflow,
@@ -44,6 +45,9 @@ const runPostJourneyCRUD = async () => {
   console.log("   📊 POST-JOURNEY CRUD TESTS");
   console.log("=======================================================\n");
 
+  // Delivery confirmation FIRST — the just-completed journey must still be
+  // alive (not soft-deleted) when we confirm the delivery against it.
+  await testDeliveryConfirmationWorkflow({ user: usersData.driver });
   await testJourneyWorkflow({});
   await testJourneyDecisionsWorkflow({});
   await testCanceledJourneysWorkflow({});

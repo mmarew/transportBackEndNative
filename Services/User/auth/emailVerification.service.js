@@ -214,7 +214,7 @@ const reportMisdirectedEmail = async token => {
 
   // 2. Notify the originator via WebSocket if they are online
   const [user] = await getData({
-    tableName: "users",
+    tableName: "Users",
     conditions: {
       userUniqueId
     }
