@@ -57,10 +57,14 @@ const testCreateCompanyRating = async ({ user, payload } = {}) => {
   try {
     const token = user?.token || usersData.shipper?.token;
     if (!token) throw new Error("token not found");
+    // GET /api/company/bids returns batches with nested offers, so the accepted
+    // bid lives at accepted_by_shipper[0].offers[0].companyBidRequestUniqueId.
+    const acceptedBid =
+      usersData?.companyAdmin?.bids?.accepted_by_shipper?.[0];
     const companyBidRequestUniqueId =
       payload?.companyBidRequestUniqueId ||
-      usersData?.companyAdmin?.bids?.accepted_by_shipper?.[0]
-        ?.companyBidRequestUniqueId;
+      acceptedBid?.offers?.[0]?.companyBidRequestUniqueId ||
+      acceptedBid?.companyBidRequestUniqueId;
     if (!companyBidRequestUniqueId) {
       console.warn(
         "⏩ testCreateCompanyRating skipped — no companyBidRequestUniqueId (run company journey flow first)",
