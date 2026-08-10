@@ -126,7 +126,18 @@ const createAndAcceptNewRequest = async (body, connection = null) => {
             SELECT * FROM DriverRequest 
             WHERE userUniqueId = ? 
             AND journeyStatusId IN (${activeJourneyStatuses.join(", ")})
+            ORDER BY 
+              CASE 
+                WHEN journeyStatusId = ${journeyStatusMap.journeyStarted} THEN 100
+                WHEN journeyStatusId = ${journeyStatusMap.acceptedByShipper} THEN 90
+                WHEN journeyStatusId = ${journeyStatusMap.acceptedByDriver} THEN 70
+                WHEN journeyStatusId = ${journeyStatusMap.requested} THEN 60
+                WHEN journeyStatusId = ${journeyStatusMap.waiting} THEN 10
+                ELSE 0
+              END DESC,
+              driverRequestId DESC
             LIMIT 1
+            FOR UPDATE
           `;
           const [existingActiveRequests] = await connection.query(
             sqlToCheckActiveRequest,

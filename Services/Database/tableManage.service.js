@@ -15,6 +15,8 @@ const {
   listOfVehicleStatusTypes,
 
   companyRoleList,
+  journeyStatusMap,
+  activeJourneyStatuses,
 } = require("../../Utils/ListOfSeedData");
 
 const { createVehicleStatusType } = require("../VehicleStatusType.service");
@@ -81,6 +83,98 @@ const ensureQueueOrgReferences = async (connection) => {
   }
 };
 
+/**
+ * Idempotently enforce "one active request per driver" at the DB level.
+ *
+ * Adds a STORED generated column `activeRequestGuard` to DriverRequest that is
+ * 1 while the request is active (statuses 1-5) and NULL once terminal, plus a
+ * UNIQUE index on (userUniqueId, activeRequestGuard). Since NULLs never collide
+ * in a unique index, a driver can NEVER hold two active requests — even when two
+ * API calls (e.g. go-online + accept) race at the exact same millisecond.
+ *
+ * Before adding the index, any pre-existing duplicate active requests are
+ * neutralised by keeping the highest-priority one per driver and cancelling the
+ * rest, so the ALTER TABLE cannot fail on historical bad data.
+ */
+const ensureDriverActiveRequestGuard = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [idxRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = ? AND table_name = 'DriverRequest' AND index_name = 'uq_driver_active_request'`,
+    [dbName],
+  );
+  if (idxRows[0].cnt > 0) {
+    return; // Already enforced — nothing to do
+  }
+
+  const activeStatuses = activeJourneyStatuses.join(", ");
+
+  // 1) Neutralise existing duplicate active requests before creating the index.
+  //    Keep the highest-priority request per driver, cancel the rest.
+  const [rows] = await connection.query(
+    `SELECT userUniqueId, driverRequestId, journeyStatusId
+     FROM DriverRequest
+     WHERE journeyStatusId IN (${activeStatuses})
+     ORDER BY userUniqueId,
+       CASE journeyStatusId
+         WHEN ${journeyStatusMap.journeyStarted} THEN 100
+         WHEN ${journeyStatusMap.acceptedByShipper} THEN 90
+         WHEN ${journeyStatusMap.acceptedByDriver} THEN 70
+         WHEN ${journeyStatusMap.requested} THEN 60
+         WHEN ${journeyStatusMap.waiting} THEN 10
+         ELSE 0
+       END DESC,
+       driverRequestId DESC`,
+  );
+
+  const seen = new Set();
+  const toCancel = [];
+  for (const row of rows) {
+    if (seen.has(row.userUniqueId)) {
+      toCancel.push(row.driverRequestId);
+    } else {
+      seen.add(row.userUniqueId);
+    }
+  }
+
+  if (toCancel.length > 0) {
+    const placeholders = toCancel.map(() => "?").join(", ");
+    await connection.query(
+      `UPDATE DriverRequest
+       SET journeyStatusId = ?, driverRequestUpdatedAt = ?
+       WHERE driverRequestId IN (${placeholders})`,
+      [journeyStatusMap.cancelledBySystem, currentDate(), ...toCancel],
+    );
+    logger.info(
+      `Migration: cancelled ${toCancel.length} duplicate active driver request(s)`,
+    );
+  }
+
+  // 2) Add the generated guard column (if not already present).
+  const [colRows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DriverRequest' AND column_name = 'activeRequestGuard'`,
+    [dbName],
+  );
+  if (colRows[0].cnt === 0) {
+    await connection.query(
+      `ALTER TABLE DriverRequest
+       ADD COLUMN activeRequestGuard TINYINT GENERATED ALWAYS AS (
+         IF(journeyStatusId IN (${activeStatuses}), 1, NULL)
+       ) STORED`,
+    );
+    logger.info("Migration: added DriverRequest.activeRequestGuard column");
+  }
+
+  // 3) Add the unique index enforcing one active request per driver.
+  await connection.query(
+    `ALTER TABLE DriverRequest
+     ADD UNIQUE INDEX uq_driver_active_request (userUniqueId, activeRequestGuard)`,
+  );
+  logger.info("Migration: added unique index uq_driver_active_request");
+};
+
 const createTable = async () => {
   // Connect WITHOUT specifying the database so we can create it if it doesn't exist.
   const { database: dbName, ...configWithoutDb } = dbConfig;
@@ -104,6 +198,11 @@ const createTable = async () => {
     // Idempotently add ShipperRequest.queueOrganizationUniqueId index + FK (see
     // ensureQueueOrgReferences). Must run while this connection still has the DB selected.
     await ensureQueueOrgReferences(adminConnection);
+
+    // Idempotently enforce "one active request per driver" at the DB level
+    // (see ensureDriverActiveRequestGuard). Must run while this connection still
+    // has the DB selected.
+    await ensureDriverActiveRequestGuard(adminConnection);
   } finally {
     await adminConnection.end();
   }
@@ -335,4 +434,5 @@ module.exports = {
   dropAllTables,
   updateTable,
   checkTableExists,
+  ensureDriverActiveRequestGuard,
 };

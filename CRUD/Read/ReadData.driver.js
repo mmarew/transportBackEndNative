@@ -4,7 +4,7 @@ const { pool } = require("../../Middleware/Database.config");
 const { journeyStatusMap, activeJourneyStatuses } = require("../../Utils/ListOfSeedData");
 const { performJoinSelect } = require("./ReadData.core");
 
-const checkActiveDriverRequest = async (userUniqueId) => {
+const checkActiveDriverRequest = async (userUniqueId, forUpdate = false) => {
     // Build placeholders for IN clause
     const activeStatusPlaceholders = activeJourneyStatuses
       .map(() => "?")
@@ -62,6 +62,7 @@ const checkActiveDriverRequest = async (userUniqueId) => {
         END DESC,
         DriverRequest.driverRequestId DESC
       LIMIT 1
+      ${forUpdate ? "FOR UPDATE" : ""}
     `;
 
     const queryExecutor = transactionStorage.getStore() || pool;

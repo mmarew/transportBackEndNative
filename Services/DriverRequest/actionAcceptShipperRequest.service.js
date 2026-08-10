@@ -1,4 +1,4 @@
-const { getData, performJoinSelect } = require("../../CRUD/Read/ReadData");
+const { performJoinSelect } = require("../../CRUD/Read/ReadData");
 
 const messageTypes = require("../../Utils/MessageTypes");
 const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
@@ -7,6 +7,7 @@ const { updateJourneyStatus } = require("../JourneyStatus");
 const logger = require("../../Utils/logger");
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const { fetchJourneyNotificationData } = require("./helpers");
+const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const AppError = require("../../Utils/AppError");
 const {
   releaseConflictingOffers,
@@ -107,28 +108,41 @@ const acceptShipperRequest = async (body) => {
     // Validate current status allows accepting
     // Driver can only accept when JourneyDecisions status is 2 (requested)
     // If status is already 3 (acceptedByDriver) or higher, driver has already accepted or shipper has accepted
-    // Fetch JourneyDecisions status explicitly to avoid ambiguity from join result
-    const journeyDecisionStatus = await getData({
-      tableName: "JourneyDecisions",
-      conditions: { journeyDecisionUniqueId },
-      limit: 1,
-    });
+    //
+    // The status check + status write are wrapped in a transaction with a
+    // FOR UPDATE lock on the JourneyDecisions row so two concurrent accepts
+    // cannot both pass the `currentStatusId !== requested` check (check-then-act
+    // race). The first accept's lock serialises the second until commit, and the
+    // second then reads status 3 (acceptedByDriver) and is rejected.
+    await executeInTransaction(
+      async (connection) => {
+        const [lockedDecision] = await connection.query(
+          `SELECT journeyStatusId
+             FROM JourneyDecisions
+            WHERE journeyDecisionUniqueId = ?
+            LIMIT 1
+            FOR UPDATE`,
+          [journeyDecisionUniqueId],
+        );
 
-    const currentStatusId = journeyDecisionStatus?.[0]?.journeyStatusId;
-    if (currentStatusId !== journeyStatusMap.requested) {
-      throw new AppError(
-        "This request cannot be accepted at this time. The request may have already been processed or is no longer available for acceptance.",
-        AppError.BAD_REQUEST,
-      );
-    }
+        const currentStatusId = lockedDecision?.[0]?.journeyStatusId;
+        if (currentStatusId !== journeyStatusMap.requested) {
+          throw new AppError(
+            "This request cannot be accepted at this time. The request may have already been processed or is no longer available for acceptance.",
+            AppError.BAD_REQUEST,
+          );
+        }
 
-    await updateJourneyStatus({
-      ...body,
-      // Queue orders are fixed price — record the queue org's price on the decision.
-      ...(isQueueOrder && !body.shippingCostByDriver && requestData.shippingCost
-        ? { shippingCostByDriver: requestData.shippingCost }
-        : {}),
-    });
+        await updateJourneyStatus({
+          ...body,
+          // Queue orders are fixed price — record the queue org's price on the decision.
+          ...(isQueueOrder && !body.shippingCostByDriver && requestData.shippingCost
+            ? { shippingCostByDriver: requestData.shippingCost }
+            : {}),
+        });
+      },
+      { timeout: 10000, logging: true },
+    );
 
     // Queue-dispatch orders: driver accepted → the queue entry leaves the
     // dispatch line (marked loaded).

@@ -479,6 +479,12 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
     originPlace VARCHAR(255) NOT NULL,  -- Origin place
    --   TIMESTAMP NOT NULL,  -- Time of the request
     journeyStatusId INT NOT NULL,  -- Foreign key to JourneyStatus
+    -- DB-level guard: 1 while the request is active (statuses 1-5), NULL once terminal.
+    -- Combined with UNIQUE (userUniqueId, activeRequestGuard) this makes it IMPOSSIBLE
+    -- for a driver to hold two active requests, even under concurrent API calls.
+    activeRequestGuard TINYINT GENERATED ALWAYS AS (
+        IF(journeyStatusId IN (1, 2, 3, 4, 5), 1, NULL)
+    ) STORED,
     isCancellationByShipperSeenByDriver ENUM('no need to see it', 'not seen by driver yet', 'seen by driver') DEFAULT 'no need to see it',  -- Track if driver has seen cancellation notification
    -- driverRequestCreatedBy VARCHAR(36) NOT NULL,  -- Who created the driver request
     driverRequestUpdatedBy VARCHAR(36) NULL,  -- Who updated the driver request
@@ -490,7 +496,8 @@ CREATE TABLE IF NOT EXISTS DriverRequest (
     FOREIGN KEY (journeyStatusId) REFERENCES JourneyStatus(journeyStatusId),
     -- FOREIGN KEY (driverRequestCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (driverRequestUpdatedBy) REFERENCES Users(userUniqueId),
-    FOREIGN KEY (driverRequestDeletedBy) REFERENCES Users(userUniqueId)
+    FOREIGN KEY (driverRequestDeletedBy) REFERENCES Users(userUniqueId),
+    UNIQUE INDEX uq_driver_active_request (userUniqueId, activeRequestGuard)
 ) ;
 
 -- Create the JourneyDecisions table

@@ -6,6 +6,7 @@ const { pool } = require("../../Middleware/Database.config");
 const { journeyStatusMap } = require("../../Utils/ListOfSeedData");
 const { checkIfDriverIsHealthy } = require("./helpers");
 const { verifyDriverJourneyStatus } = require("./statusVerification");
+const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const AppError = require("../../Utils/AppError");
 
 /**
@@ -28,56 +29,54 @@ const createRequest = async ({
       throw new AppError("you can't create requests", AppError.FORBIDDEN);
     }
 
-    // Check if the driver already has an active request
-    let activeRequest = await checkActiveDriverRequest(userUniqueId);
-
-    // If the driver only has an UNMATCHED (waiting, status 1) request and posts a
-    // new currentLocation, move that request to the new location so distance
-    // matching searches around the driver's current position. Without this, the
-    // stale request keeps searching from its old coordinates and the driver
-    // appears to be elsewhere (e.g. after a rejected company assignment leaves a
-    // status-1 request behind).
     const { currentLocation } = body;
-    const waitingRequest = (activeRequest || []).find(
-      (req) => Number(req?.journeyStatusId) === journeyStatusMap.waiting,
-    );
-    if (waitingRequest && currentLocation?.latitude && currentLocation?.longitude) {
-      await updateData({
-        tableName: "DriverRequest",
-        conditions: {
-          driverRequestUniqueId: waitingRequest.driverRequestUniqueId,
-        },
-        updateValues: {
-          originLatitude: currentLocation.latitude,
-          originLongitude: currentLocation.longitude,
-          originPlace: currentLocation.description || waitingRequest.originPlace,
-          driverRequestUpdatedAt: new Date(),
-        },
-      });
-      // Recheck active request so downstream code sees the moved request
-      activeRequest = await checkActiveDriverRequest(userUniqueId);
-    }
 
-    // Create a new driver request if none exists
-    if (activeRequest?.length === 0) {
-      await createDriverRequest(body, userUniqueId, journeyStatusId);
-      // Recheck active request
-      activeRequest = await checkActiveDriverRequest(userUniqueId);
-    }
+    // Use a transaction to prevent race conditions (duplicate status 1 requests)
+    return await executeInTransaction(async (connection) => {
+      // Check if the driver already has an active request, passing true for FOR UPDATE
+      let activeRequest = await checkActiveDriverRequest(userUniqueId, true);
 
-    if (!findNewRequest) {
-      // When findNewRequest is false, still return standardized format using verifyDriverJourneyStatus
+      const waitingRequest = (activeRequest || []).find(
+        (req) => Number(req?.journeyStatusId) === journeyStatusMap.waiting,
+      );
+      if (waitingRequest && currentLocation?.latitude && currentLocation?.longitude) {
+        await updateData({
+          tableName: "DriverRequest",
+          conditions: {
+            driverRequestUniqueId: waitingRequest.driverRequestUniqueId,
+          },
+          updateValues: {
+            originLatitude: currentLocation.latitude,
+            originLongitude: currentLocation.longitude,
+            originPlace: currentLocation.description || waitingRequest.originPlace,
+            driverRequestUpdatedAt: new Date(),
+          },
+          connection,
+        });
+        // Recheck active request so downstream code sees the moved request
+        activeRequest = await checkActiveDriverRequest(userUniqueId, true);
+      }
+
+      // Create a new driver request if none exists
+      if (activeRequest?.length === 0) {
+        await createDriverRequest(body, userUniqueId, journeyStatusId, connection);
+        // Recheck active request
+        activeRequest = await checkActiveDriverRequest(userUniqueId, true);
+      }
+
+      if (!findNewRequest) {
+        // When findNewRequest is false, still return standardized format using verifyDriverJourneyStatus
+        return await verifyDriverJourneyStatus({
+          userUniqueId,
+          activeRequest,
+        });
+      }
+
+      // Find matching shippers and update status
       return await verifyDriverJourneyStatus({
         userUniqueId,
         activeRequest,
       });
-    }
-
-    // Find matching shippers and update status
-    // This returns the standardized format matching verifyDriverJourneyStatus endpoint
-    return await verifyDriverJourneyStatus({
-      userUniqueId,
-      activeRequest,
     });
   } catch (error) {
     const logger = require("../../Utils/logger");

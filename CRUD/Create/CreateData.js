@@ -141,6 +141,7 @@ const createDriverRequest = async (
   journeyStatusId,
   connection = null,
 ) => {
+  try {
     if (!body || !userUniqueId) {
       throw new Error("Invalid input parameters to create driver request");
     }
@@ -199,6 +200,25 @@ const createDriverRequest = async (
       message: "success",
       data: [{ ...requestPayload, driverRequestId: result.insertId }],
     };
+  } catch (error) {
+    // DB-level guard: the unique index (userUniqueId, activeRequestGuard) makes a
+    // second active request per driver IMPOSSIBLE. If two concurrent calls (e.g.
+    // go-online + accept) race, one INSERT hits ER_DUP_ENTRY — return the existing
+    // active request instead of failing, so the losing call simply sees the journey.
+    if (error?.code === "ER_DUP_ENTRY" || error?.errno === 1062) { // eslint-disable-line no-magic-numbers -- MySQL duplicate-key errno
+      const queryExecutor = transactionStorage.getStore() || connection || pool;
+      const [existingRequest] = await queryExecutor.query(
+        `SELECT * FROM DriverRequest
+         WHERE userUniqueId = ?
+         AND journeyStatusId IN (${activeJourneyStatuses.join(", ")})`,
+        [userUniqueId],
+      );
+      if (existingRequest?.length > 0) {
+        return { message: "success", data: existingRequest };
+      }
+    }
+    throw error;
+  }
 };
 
 const createData = async ({ tableName, insertValues = {}, connection = null }) => {
