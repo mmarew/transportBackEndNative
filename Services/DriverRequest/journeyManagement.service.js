@@ -32,14 +32,17 @@ const startJourney = async (body) => {
       const journeyUniqueId = uuidv4();
       const journeyDecisionUniqueId = body?.journeyDecisionUniqueId;
       const userUniqueId = body?.userUniqueId;
-      const latitude = body?.latitude,
-        longitude = body?.longitude;
+      const journeyStartingLat = body?.journeyStartingLat;
+      const journeyStartingLng = body?.journeyStartingLng;
 
       if (!userUniqueId) {
         throw new AppError("User authentication required", AppError.UNAUTHORIZED);
       }
-      if (!latitude || !longitude) {
-        throw new AppError("Latitude and longitude are required", AppError.BAD_REQUEST);
+      if (journeyStartingLat == null || journeyStartingLng == null) {
+        throw new AppError(
+          "journeyStartingLat and journeyStartingLng are required",
+          AppError.BAD_REQUEST,
+        );
       }
 
       const validateQuery = `
@@ -97,8 +100,8 @@ const startJourney = async (body) => {
             journeyDecisionUniqueId: body.journeyDecisionUniqueId,
             journeyStatusId: body.journeyStatusId,
             startTime: currentDate(),
-            journeyStartingLat: latitude,
-            journeyStartingLng: longitude,
+            journeyStartingLat,
+            journeyStartingLng,
             journeyCreatedBy: userUniqueId,
             journeyCreatedAt: currentDate(),
           },
@@ -108,8 +111,8 @@ const startJourney = async (body) => {
         await createJourneyRoutePoint(
           {
             journeyDecisionUniqueId: body.journeyDecisionUniqueId,
-            latitude,
-            longitude,
+            latitude: journeyStartingLat,
+            longitude: journeyStartingLng,
             userUniqueId,
           },
           conn,
@@ -200,7 +203,7 @@ const startJourney = async (body) => {
     });
 
     return {
-      message: "Journey operation completed",
+      message: "Journey started successfully",
       status: journeyStatusMap.journeyStarted,
       uniqueIds: {
         driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
@@ -239,6 +242,13 @@ const completeJourney = async (body) => {
         !userUniqueId
       ) {
         throw new AppError("Missing required unique IDs", AppError.BAD_REQUEST);
+      }
+
+      if (body?.journeyCompletingLat == null || body?.journeyCompletingLng == null) {
+        throw new AppError(
+          "journeyCompletingLat and journeyCompletingLng are required",
+          AppError.BAD_REQUEST,
+        );
       }
 
       const validateQuery = `
@@ -316,7 +326,7 @@ const completeJourney = async (body) => {
                 journeyCompletingLng = ?,
                 journeyUpdatedAt      = ?
           WHERE journeyUniqueId = ?`,
-        [body.latitude ?? null, body.longitude ?? null, currentDate(), journeyUniqueId],
+        [body.journeyCompletingLat ?? null, body.journeyCompletingLng ?? null, currentDate(), journeyUniqueId],
       );
 
       const paymentAmount =
@@ -376,8 +386,8 @@ const completeJourney = async (body) => {
       await createJourneyRoutePoint(
         {
           journeyDecisionUniqueId: body?.journeyDecisionUniqueId,
-          latitude: body?.latitude,
-          longitude: body?.longitude,
+          latitude: body?.journeyCompletingLat,
+          longitude: body?.journeyCompletingLng,
           userUniqueId,
         },
         conn,
@@ -457,7 +467,7 @@ const completeJourney = async (body) => {
     });
 
     return {
-      message: "Journey operation completed",
+      message: "Journey completed successfully",
       status: journeyStatusMap.journeyCompleted,
       uniqueIds: {
         driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
@@ -607,7 +617,7 @@ const sendUpdatedLocation = async (body) => {
     // No need to send duplicate notification here
 
     return {
-      message: "Journey operation completed",
+      message: "Location updated successfully",
       data: null,
       journeyRoutePointsUniqueId:
         routePointResult.data?.journeyRoutePointsUniqueId,

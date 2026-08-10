@@ -106,15 +106,17 @@ exports.completeJourney = Joi.object({
     "any.required": "journeyUniqueId is required",
     "string.guid": "journeyUniqueId must be a valid UUID",
   }),
-  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
-    "any.required": "latitude is required",
-    "number.min": "latitude must be between -90 and 90",
-    "number.max": "latitude must be between -90 and 90",
+  journeyCompletingLat: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
+    "any.required": "journeyCompletingLat is required",
+    "number.base": "journeyCompletingLat must be a number",
+    "number.min": "journeyCompletingLat must be between -90 and 90",
+    "number.max": "journeyCompletingLat must be between -90 and 90",
   }),
-  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
-    "any.required": "longitude is required",
-    "number.min": "longitude must be between -180 and 180",
-    "number.max": "longitude must be between -180 and 180",
+  journeyCompletingLng: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
+    "any.required": "journeyCompletingLng is required",
+    "number.base": "journeyCompletingLng must be a number",
+    "number.min": "journeyCompletingLng must be between -180 and 180",
+    "number.max": "journeyCompletingLng must be between -180 and 180",
   }),
   paymentMethodUniqueId: uuidSchema.optional().messages({
     "string.guid": "paymentMethodUniqueId must be a valid UUID",
@@ -138,15 +140,17 @@ exports.startJourney = Joi.object({
     "any.required": "journeyDecisionUniqueId is required",
     "string.guid": "journeyDecisionUniqueId must be a valid UUID",
   }),
-  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
-    "any.required": "latitude is required",
-    "number.min": "latitude must be between -90 and 90",
-    "number.max": "latitude must be between -90 and 90",
+  journeyStartingLat: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
+    "any.required": "journeyStartingLat is required",
+    "number.base": "journeyStartingLat must be a number",
+    "number.min": "journeyStartingLat must be between -90 and 90",
+    "number.max": "journeyStartingLat must be between -90 and 90",
   }),
-  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
-    "any.required": "longitude is required",
-    "number.min": "longitude must be between -180 and 180",
-    "number.max": "longitude must be between -180 and 180",
+  journeyStartingLng: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
+    "any.required": "journeyStartingLng is required",
+    "number.base": "journeyStartingLng must be a number",
+    "number.min": "journeyStartingLng must be between -180 and 180",
+    "number.max": "journeyStartingLng must be between -180 and 180",
   }),
 }).unknown(true); // Allow additional fields
 // Create and accept new request - driver finds a shipper request and accepts it directly

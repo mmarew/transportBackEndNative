@@ -182,8 +182,8 @@ const testStartJourney = async ({ token, uniqueIds }) => {
   const config = { ...authConfig(token) };
   const payload = {
     ...uniqueIds,
-    latitude: "11.12260400",
-    longitude: "39.63498200",
+    journeyStartingLat: "11.12260400",
+    journeyStartingLng: "39.63498200",
   };
   const resultOfStartJourney = await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.START_JOURNEY,
@@ -221,8 +221,8 @@ const testCompleteJourney = async ({ token, uniqueIds }) => {
   const config = { ...authConfig(token) };
   const payload = {
     ...uniqueIds,
-    latitude: "11.12260400",
-    longitude: "39.63498200",
+    journeyCompletingLat: "11.12260400",
+    journeyCompletingLng: "39.63498200",
   };
   await axios.put(
     backendURL + DRIVER_REQUEST_ENDPOINTS.COMPLETE_JOURNEY,

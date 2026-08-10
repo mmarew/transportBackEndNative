@@ -207,8 +207,8 @@ const acceptCompanyAssignment = async ({
  */
 const startJourney = async ({
   userType = "driver",
-  latitude = 9.0205,
-  longitude = 38.8025,
+  journeyStartingLat = 9.0205,
+  journeyStartingLng = 38.8025,
 } = {}) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
@@ -248,8 +248,8 @@ const startJourney = async ({
     driverRequestUniqueId,
     shipperRequestUniqueId,
     journeyDecisionUniqueId,
-    latitude,
-    longitude,
+    journeyStartingLat,
+    journeyStartingLng,
   };
   const config = authConfig(token);
 
@@ -258,8 +258,8 @@ const startJourney = async ({
     console.log("✅ Journey started. Status:", res.data?.status);
     const storedLat = res.data?.journey?.journeyStartingLat;
     const storedLng = res.data?.journey?.journeyStartingLng;
-    const latMatches = storedLat != null && Number(storedLat) === Number(latitude);
-    const lngMatches = storedLng != null && Number(storedLng) === Number(longitude);
+    const latMatches = storedLat != null && Number(storedLat) === Number(journeyStartingLat);
+    const lngMatches = storedLng != null && Number(storedLng) === Number(journeyStartingLng);
     if (latMatches && lngMatches) {
       console.log(
         `✅ journeyStartingLat/Lng persisted (${storedLat}, ${storedLng})`,
@@ -269,11 +269,11 @@ const startJourney = async ({
       // company assignment) with its own starting location, so startJourney
       // returned the existing row without overwriting it — informational only.
       console.log(
-        `⚠️ journeyStartingLat/Lng pre-existing (${storedLat}, ${storedLng}); request location (${latitude}, ${longitude}) not overwritten`,
+        `⚠️ journeyStartingLat/Lng pre-existing (${storedLat}, ${storedLng}); request starting location (${journeyStartingLat}, ${journeyStartingLng}) not overwritten`,
       );
     } else {
       console.log(
-        `❌ journeyStartingLat/Lng not persisted: expected (${latitude}, ${longitude}), got (${storedLat}, ${storedLng})`,
+        `❌ journeyStartingLat/Lng not persisted: expected (${journeyStartingLat}, ${journeyStartingLng}), got (${storedLat}, ${storedLng})`,
       );
     }
     if (usersData[userType]) usersData[userType].journeyStatus = res.data;
@@ -301,8 +301,8 @@ const startJourney = async ({
  */
 const completeJourney = async ({
   userType = "driver",
-  latitude = 9.0205,
-  longitude = 38.8025,
+  journeyCompletingLat = 8.54,
+  journeyCompletingLng = 39.27,
 } = {}) => {
   const token = usersData?.[userType]?.token;
   if (!token) {
@@ -351,8 +351,8 @@ const completeJourney = async ({
     shipperRequestUniqueId,
     journeyDecisionUniqueId,
     journeyUniqueId,
-    latitude,
-    longitude,
+    journeyCompletingLat,
+    journeyCompletingLng,
   };
   const config = authConfig(token);
 
@@ -361,8 +361,8 @@ const completeJourney = async ({
     console.log("✅ Journey completed. Status:", res.data?.status);
     const storedLat = res.data?.journey?.journeyCompletingLat;
     const storedLng = res.data?.journey?.journeyCompletingLng;
-    const latMatches = storedLat != null && Number(storedLat) === Number(latitude);
-    const lngMatches = storedLng != null && Number(storedLng) === Number(longitude);
+    const latMatches = storedLat != null && Number(storedLat) === Number(journeyCompletingLat);
+    const lngMatches = storedLng != null && Number(storedLng) === Number(journeyCompletingLng);
     if (latMatches && lngMatches) {
       console.log(
         `✅ journeyCompletingLat/Lng persisted (${storedLat}, ${storedLng})`,

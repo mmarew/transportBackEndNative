@@ -631,8 +631,8 @@ const testCompanySocketNotifications = async () => {
               driverRequestUniqueId: journeyIds.driverRequestUniqueId,
               shipperRequestUniqueId: journeyIds.shipperRequestUniqueId,
               journeyDecisionUniqueId: journeyIds.journeyDecisionUniqueId,
-              latitude: 9.03,
-              longitude: 38.74,
+              journeyStartingLat: 9.03,
+              journeyStartingLng: 38.74,
             },
             authConfig(driver.token),
           );
@@ -668,8 +668,8 @@ const testCompanySocketNotifications = async () => {
               shipperRequestUniqueId: completedIds.shipperRequestUniqueId,
               journeyDecisionUniqueId: completedIds.journeyDecisionUniqueId,
               journeyUniqueId: completedIds.journeyUniqueId,
-              latitude: 8.54,
-              longitude: 39.27,
+              journeyCompletingLat: 8.54,
+              journeyCompletingLng: 39.27,
             },
             authConfig(driver.token),
           );
