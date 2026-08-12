@@ -119,6 +119,18 @@ const startJourney = async (body) => {
         );
       } else {
         finalJourneyUniqueId = existingJourneyCheck[0].journeyUniqueId;
+        // The Journey row already exists (queue/company orders create it at
+        // accept/confirm, status 4). Still record the driver's start GPS as
+        // the first route point — startJourney is the moment the trip begins.
+        await createJourneyRoutePoint(
+          {
+            journeyDecisionUniqueId: body.journeyDecisionUniqueId,
+            latitude: journeyStartingLat,
+            longitude: journeyStartingLng,
+            userUniqueId,
+          },
+          conn,
+        );
       }
 
       await updateJourneyStatus({

@@ -395,11 +395,12 @@ const fetchJourneyNotificationData = async (
       driver: { ...driver, driverProfilePhoto },
     };
 
-    // Fetch journey data if journey has started
+    // Fetch journey data if the journey exists (created at accept for queue
+    // orders — status 4 — and at startJourney — status 5 — for nearby matches).
     let journeyData = {};
     if (
       journeyDecisionDataNormalized.journeyStatusId >=
-      journeyStatusMap.journeyStarted
+      journeyStatusMap.acceptedByShipper
     ) {
       try {
         const journeyResult = await getData({

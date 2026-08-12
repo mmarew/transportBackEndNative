@@ -13,6 +13,9 @@ const { getData } = require("../../CRUD/Read/ReadData");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
+const {
+  promoteToAcceptedByShipperAndCreateJourney,
+} = require("../Journey");
 
 const logger = require("../../Utils/logger");
 const messageTypes = require("../../Utils/MessageTypes");
@@ -585,6 +588,9 @@ exports.updateAssignmentStatus = async (
 
   // On driver confirmation → create JourneyDecision
   let journeyDecisionUniqueId = assignment.journeyDecisionUniqueId;
+  // Set by the shared promote helper when the driver confirms; surfaced in the
+  // response so the driver app can jump straight to the created Journey.
+  let promotedJourneyUniqueId = null;
 
   if (assignmentStatus === "confirmed_by_driver") {
     if (assignment.assignmentStatus === "completed") {
@@ -618,11 +624,13 @@ exports.updateAssignmentStatus = async (
 
     const jStatusId = journeyStatusMap.acceptedByShipper;
 
-    // ── Advance the existing JourneyDecision to status 4 ───────────────────
+    // ── Ensure the JourneyDecision exists ──────────────────────────────────
     // JourneyDecision is created at assignment time (status 2) by
-    // createJourneyDecisionForAssignment(). Here we just promote it to
-    // status 4 (acceptedByShipper = all parties agreed).
-    // If for any reason it doesn't exist yet (legacy record), create it now.
+    // createJourneyDecisionForAssignment(). The shared helper below promotes
+    // it to status 4 (acceptedByShipper = all parties agreed) AND creates the
+    // Journey immediately — same as queue-dispatch accepts, because the price
+    // is already agreed. If the decision doesn't exist yet (legacy record),
+    // create it first.
     const [existingDecision] = await db().query(
       "SELECT journeyDecisionUniqueId FROM JourneyDecisions WHERE driverRequestId = ? LIMIT 1",
       [drRows[0].driverRequestId],
@@ -630,11 +638,6 @@ exports.updateAssignmentStatus = async (
 
     if (existingDecision && existingDecision.length > 0) {
       journeyDecisionUniqueId = existingDecision[0].journeyDecisionUniqueId;
-      // Update status from 2 (requested) → 4 (acceptedByShipper)
-      await db().query(
-        "UPDATE JourneyDecisions SET journeyStatusId = ?, decisionTime = ? WHERE journeyDecisionUniqueId = ?",
-        [jStatusId, currentDate(), journeyDecisionUniqueId],
-      );
     } else {
       // Fallback: create fresh (handles legacy assignments made before this fix)
       journeyDecisionUniqueId = uuidv4();
@@ -657,11 +660,31 @@ exports.updateAssignmentStatus = async (
       );
     }
 
-    // ── Sync DriverRequest status and location ──────────────────────────────
+    // ── Promote to status 4 + create the Journey (shared with queue) ──────
+    // Price is agreed up front (company bid) → skip the 1→2→3→4→5
+    // negotiation flow; the Journey is born at acceptedByShipper.
+    const promotedJourney = await promoteToAcceptedByShipperAndCreateJourney({
+      journeyDecisionUniqueId,
+      driverRequestUniqueId: assignment.driverRequestUniqueId,
+      shipperRequestUniqueId: assignment.shipperRequestUniqueId,
+      shippingCostByDriver: prRow.shippingCost || 0,
+      journeyCreatedBy: updatedBy,
+    });
+    promotedJourneyUniqueId =
+      promotedJourney?.data?.[0]?.journeyUniqueId || null;
+
+    // Refresh decisionTime to the confirm instant (updateJourneyStatus does
+    // not touch it) — preserves the pre-refactor behavior.
+    await db().query(
+      "UPDATE JourneyDecisions SET decisionTime = ? WHERE journeyDecisionUniqueId = ?",
+      [currentDate(), journeyDecisionUniqueId],
+    );
+
+    // ── Sync DriverRequest location (status already set by the helper) ─────
     const { originLatitude, originLongitude, originPlace } = payload;
     let drUpdateQuery =
-      "UPDATE DriverRequest SET journeyStatusId = ?, driverRequestUpdatedAt = ?";
-    let drUpdateVals = [jStatusId, currentDate()];
+      "UPDATE DriverRequest SET driverRequestUpdatedAt = ?";
+    let drUpdateVals = [currentDate()];
 
     if (originLatitude !== undefined) {
       drUpdateQuery += ", originLatitude = ?";
@@ -1057,6 +1080,13 @@ exports.updateAssignmentStatus = async (
       assignmentStatus,
       journeyDecisionUniqueId:
         journeyDecisionUniqueId || assignment.journeyDecisionUniqueId,
+      // When the driver confirms (price already agreed), the shared helper
+      // promotes to acceptedByShipper (4) and creates the Journey — surface
+      // both like the queue accept flow does.
+      ...(assignmentStatus === "confirmed_by_driver" && {
+        status: journeyStatusMap.acceptedByShipper,
+        journeyUniqueId: promotedJourneyUniqueId,
+      }),
     },
   };
 };

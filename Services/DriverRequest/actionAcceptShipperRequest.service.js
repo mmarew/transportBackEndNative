@@ -10,6 +10,9 @@ const { fetchJourneyNotificationData } = require("./helpers");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const AppError = require("../../Utils/AppError");
 const {
+  promoteToAcceptedByShipperAndCreateJourney,
+} = require("../Journey");
+const {
   releaseConflictingOffers,
 } = require("./actionReleaseConflictingOffers.service");
 
@@ -77,10 +80,16 @@ const acceptShipperRequest = async (body) => {
 
     // Queue-dispatch orders are FIXED PRICE — the price is set by the queue
     // organization at order creation, so no driver counter-bid is required.
+    // They also SKIP the 1→2→3→4→5 negotiation flow: the price is already
+    // agreed, so accepting jumps straight to acceptedByShipper (4) and creates
+    // the Journey immediately. The 2→3→4→5 flow stays for nearby-matching only.
     const isQueueOrder = Boolean(requestData.queueOrganizationUniqueId);
     if (!isQueueOrder && !shippingCostByDriver) {
       throw new AppError("Shipping cost by driver is required", AppError.BAD_REQUEST);
     }
+    const targetStatusId = isQueueOrder
+      ? journeyStatusMap.acceptedByShipper
+      : journeyStatusMap.acceptedByDriver;
 
     // Validate that the userUniqueId from token matches the driver who owns this request
     if (requestData.userUniqueId !== userUniqueId) {
@@ -114,6 +123,7 @@ const acceptShipperRequest = async (body) => {
     // cannot both pass the `currentStatusId !== requested` check (check-then-act
     // race). The first accept's lock serialises the second until commit, and the
     // second then reads status 3 (acceptedByDriver) and is rejected.
+    let createdJourney = null;
     await executeInTransaction(
       async (connection) => {
         const [lockedDecision] = await connection.query(
@@ -133,13 +143,25 @@ const acceptShipperRequest = async (body) => {
           );
         }
 
-        await updateJourneyStatus({
-          ...body,
-          // Queue orders are fixed price — record the queue org's price on the decision.
-          ...(isQueueOrder && !body.shippingCostByDriver && requestData.shippingCost
-            ? { shippingCostByDriver: requestData.shippingCost }
-            : {}),
-        });
+        // Queue orders: price is agreed up front, so accepting lands straight
+        // on acceptedByShipper (4) AND creates the Journey immediately (fare =
+        // the fixed queue price) — skipping the 1→2→3→4→5 negotiation flow
+        // used by nearby matching. Shared with the company assignment confirm
+        // flow — see promoteAcceptedJourney.service.js.
+        if (isQueueOrder) {
+          createdJourney = await promoteToAcceptedByShipperAndCreateJourney({
+            journeyDecisionUniqueId,
+            driverRequestUniqueId,
+            shipperRequestUniqueId,
+            shippingCostByDriver: requestData.shippingCost ?? 0,
+            journeyCreatedBy: userUniqueId,
+          });
+        } else {
+          await updateJourneyStatus({
+            ...body,
+            journeyStatusId: targetStatusId,
+          });
+        }
       },
       { timeout: 10000, logging: true },
     );
@@ -180,42 +202,49 @@ const acceptShipperRequest = async (body) => {
       shipperRequest,
       journeyDecision: journeyDecisionData,
       driverInfo,
-      journeyData,
-      messageType: messageTypes.driver_accepted_shipper_request,
-      status: journeyStatusMap.acceptedByDriver,
+      journeyData:
+        createdJourney?.data?.[0] || journeyData,
+      messageType: isQueueOrder
+        ? messageTypes.queue_order_assigned
+        : messageTypes.driver_accepted_shipper_request,
+      status: targetStatusId,
     });
 
     // Send FCM notification
     if (shipperRequest?.userUniqueId) {
+      const notificationType = isQueueOrder
+        ? messageTypes.queue_order_assigned
+        : messageTypes.driver_accepted_shipper_request;
       sendFCMNotificationToUser({
         userUniqueId: shipperRequest.userUniqueId,
         roleId: 1,
         notification: {
-          title: messageTypes.driver_accepted_shipper_request.message,
-          body: messageTypes.driver_accepted_shipper_request.details,
+          title: notificationType.message,
+          body: notificationType.details,
         },
       });
     }
 
     // Build response structure matching verifyDriverJourneyStatus/handleExistingJourney format
     // Use data we already have instead of calling verifyDriverJourneyStatus
+    const journeyResponse = createdJourney?.data?.[0] || journeyData || null;
     const uniqueIds = {
       driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
       shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
       journeyDecisionUniqueId: journeyDecisionData?.journeyDecisionUniqueId,
-      journeyUniqueId: journeyData?.journeyUniqueId || null,
+      journeyUniqueId: journeyResponse?.journeyUniqueId || null,
     };
 
     const response = {
       message: "Shipper request accepted",
-      status: journeyStatusMap.acceptedByDriver,
+      status: targetStatusId,
       uniqueIds,
       driver: {
         driver: driverInfo?.driver || null,
         vehicle: driverInfo?.vehicleOfDriver || null,
       },
       shipper: shipperRequest || null,
-      journey: journeyData || null,
+      journey: journeyResponse,
       decision: journeyDecisionData || null,
     };
 

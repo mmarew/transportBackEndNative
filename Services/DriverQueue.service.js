@@ -1,8 +1,8 @@
 "use strict";
 
 const { v4: uuidv4 } = require("uuid");
-const { currentDate } = require("../Utils/CurrentDate");
-const { DOMAIN, TIME } = require("../Utils/Constants");
+const { currentDate, minutesAgo } = require("../Utils/CurrentDate");
+const { DOMAIN } = require("../Utils/Constants");
 const AppError = require("../Utils/AppError");
 const { db } = require("./CompanyHelper.service");
 const { updateData } = require("../CRUD/Update/Data.update");
@@ -380,11 +380,25 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
     [orgId, queueDate, vehicleType, queueNum],
   );
 
+  // Organization details for the queue the driver is currently in (same fields
+  // as GET /api/queue/status so both endpoints agree on the org shape).
+  const [orgRows] = await executor.query(
+    `SELECT queueOrganizationUniqueId, queueOrganizationName, queueOrganizationType,
+            queueOrganizationPhone, queueOrganizationAddress, latitude, longitude,
+            approvalStatus, queueEnabled, approvedBy, approvedAt
+     FROM QueueOrganization
+     WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
+    [orgId],
+  );
+
   return {
     message: "success",
     data: {
-      ...publicEntry(rows[0]),
-      waitingAhead: ahead[0].total,
+      queue: {
+        ...publicEntry(rows[0]),
+        waitingAhead: ahead[0].total,
+      },
+      organization: orgRows[0] || null,
     },
   };
 };
@@ -792,6 +806,32 @@ const ensureWaitingDriverRequest = async (
   );
   if (rows.length > 0) {
     return rows[0];
+  }
+
+  // Leftover state from before the expired-offer release fix: a `waiting`
+  // DriverRequest that already has a JourneyDecision attached. It can't be
+  // reused (JourneyDecisions.driverRequestId is UNIQUE) and the active-request
+  // unique index blocks inserting a fresh one, so every offer for this driver
+  // died with ER_DUP_ENTRY. Release it to a terminal status first, then create
+  // a clean waiting request below.
+  const [staleRows] = await executor.query(
+    `SELECT dr.driverRequestId
+     FROM DriverRequest dr
+     JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+     WHERE dr.userUniqueId = ? AND dr.journeyStatusId = ?
+       AND dr.driverRequestDeletedAt IS NULL
+     ORDER BY dr.driverRequestId DESC LIMIT 1`,
+    [driverUserUniqueId, journeyStatusMap.waiting],
+  );
+  if (staleRows.length > 0) {
+    await updateData({
+      tableName: "DriverRequest",
+      updateValues: {
+        journeyStatusId: journeyStatusMap.rejectedByDriver,
+        driverRequestUpdatedAt: currentDate(),
+      },
+      conditions: { driverRequestId: staleRows[0].driverRequestId },
+    });
   }
 
   const [orgRows] = await executor.query(
@@ -1288,6 +1328,24 @@ exports.rescanPendingQueueOrders = async () => {
   const executor = db();
   const queueDate = today();
 
+  // The sweep's offers are stamped on JourneyDecisions.journeyDecisionCreatedBy
+  // (FK → Users), so the actor must be a REAL user — the seeded platform
+  // "system" user. A fake id makes every sweep offer die on the foreign key
+  // and roll back.
+  const [systemRows] = await executor.query(
+    `SELECT userUniqueId FROM Users
+     WHERE email = 'system@system.com' OR phoneNumber = '+251922112480'
+     LIMIT 1`,
+  );
+  const systemUserUniqueId = systemRows[0]?.userUniqueId;
+  if (!systemUserUniqueId) {
+    logger.warn(
+      "Queue sweep: seeded system user not found — sweep offers will be skipped",
+    );
+    return { message: "success", data: { offered: 0, advanced: [] } };
+  }
+  const sweepActor = { userUniqueId: systemUserUniqueId };
+
   const [pairs] = await executor.query(
     `SELECT DISTINCT dq.queueOrganizationUniqueId, v.vehicleTypeUniqueId
      FROM DriverQueue dq
@@ -1307,7 +1365,7 @@ exports.rescanPendingQueueOrders = async () => {
       const res = await rescanPendingQueueOrder({
         queueOrganizationUniqueId: pair.queueOrganizationUniqueId,
         vehicleTypeUniqueId: pair.vehicleTypeUniqueId,
-        user: { userUniqueId: "system-queue-sweep" },
+        user: sweepActor,
       });
       if (!res?.offered) break;
       offered += 1;
@@ -1607,7 +1665,12 @@ exports.releaseExpiredOffers = async ({
   windowMinutes = QUEUE_OFFER_WINDOW_MINUTES,
 } = {}) => {
   const executor = db();
-  const cutoff = new Date(Date.now() - windowMinutes * TIME.MINUTE_MS);
+  // `offeredAt` is written by `currentDate()` as EAT wall-clock; compare against
+  // a cutoff computed in the SAME domain. A UTC `Date` here gets serialized by
+  // mysql2 in the process timezone, skewing the comparison by the offset — a
+  // 3-hour skew made every fresh offer look already-expired (releasing offers
+  // seconds after they were made).
+  const cutoff = minutesAgo(windowMinutes);
 
   const [expired] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
@@ -1645,10 +1708,15 @@ exports.releaseExpiredOffers = async ({
       },
       conditions: { journeyDecisionUniqueId: entry.journeyDecisionUniqueId },
     });
+    // Move the driver request to a TERMINAL status (rejectedByDriver, matching
+    // the decision above), NOT back to `waiting`. A `waiting` request that still
+    // carries a decision can never be reused (JourneyDecisions.driverRequestId
+    // is UNIQUE) and keeps `activeRequestGuard = 1`, so the next offer for this
+    // driver dies on the uq_driver_active_request insert.
     await updateData({
       tableName: "DriverRequest",
       updateValues: {
-        journeyStatusId: journeyStatusMap.waiting,
+        journeyStatusId: journeyStatusMap.rejectedByDriver,
         driverRequestUpdatedAt: now,
         driverRequestUpdatedBy: actor.userUniqueId,
       },

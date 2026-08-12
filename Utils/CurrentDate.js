@@ -29,10 +29,26 @@ const addHours = (dateStr, h) => {
   date.setUTCHours(date.getUTCHours() + h);
   return formatDateTime(date);
 };
+
+/**
+ * Current time in East African Time (UTC+3) minus `minutes`, as a MySQL
+ * DATETIME string. Same wall-clock domain as `currentDate()`, so it can be
+ * compared directly against stored DATETIME columns (e.g. `offeredAt < ?`)
+ * regardless of the machine/DB session timezone. Using a raw `Date` here would
+ * be serialized by mysql2 in the process timezone and skew the comparison.
+ */
+const minutesAgo = (minutes) => {
+  const now = new Date();
+  // EAT is always UTC+3 (no DST in Ethiopia)
+  const eatOffset = 3 * 60; // 3 hours in minutes
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+  const eatTime = new Date(utcTime + eatOffset * 60000 - minutes * 60000);
+  return formatDateTime(eatTime);
+};
 const toDateOnly = (dateStr) => {
   if (!dateStr) return null;
   if (dateStr instanceof Date) return dateStr.toISOString().slice(0, 10);
   if (typeof dateStr === "string") return dateStr.trim().slice(0, 10);
   return null;
 };
-module.exports = { currentDate, formatDateTime, toDateOnly, addHours };
+module.exports = { currentDate, formatDateTime, toDateOnly, addHours, minutesAgo };

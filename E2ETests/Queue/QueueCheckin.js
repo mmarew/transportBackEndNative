@@ -140,16 +140,21 @@ const testTQ09MyPosition = async () => {
   const { queueOrganizationUniqueId } = queueState.org.main;
   try {
     const pos = await myPosition("queueDriver2", queueOrganizationUniqueId);
-    if (Array.isArray(pos) || pos.queueNumber !== 2) {
+    const entry = pos?.queue || pos;
+    if (Array.isArray(pos) || entry.queueNumber !== 2) {
       throw new Error(`driver02 myPosition expected queueNumber 2, got ${JSON.stringify(pos)}`);
     }
-    if (pos.waitingAhead !== 1) {
-      throw new Error(`driver02 waitingAhead expected 1, got ${pos.waitingAhead}`);
+    if (entry.waitingAhead !== 1) {
+      throw new Error(`driver02 waitingAhead expected 1, got ${entry.waitingAhead}`);
     }
-    report.pass("TQ-09: myPosition returns queueNumber=2, waitingAhead=1");
+    if (!pos?.organization?.queueOrganizationUniqueId) {
+      throw new Error(`driver02 myPosition missing organization, got ${JSON.stringify(pos)}`);
+    }
+    report.pass("TQ-09: myPosition returns queue + organization");
 
     const d4Pos = await myPosition("queueDriver4", queueOrganizationUniqueId);
-    if (Array.isArray(d4Pos) || d4Pos.waitingAhead !== 0) {
+    const d4Entry = d4Pos?.queue || d4Pos;
+    if (Array.isArray(d4Pos) || d4Entry.waitingAhead !== 0) {
       throw new Error(`driver04 (typeB) waitingAhead expected 0, got ${JSON.stringify(d4Pos)}`);
     }
     report.pass("TQ-09: myPosition per-type (typeB driver sees 0 ahead)");

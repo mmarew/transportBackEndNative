@@ -110,18 +110,23 @@ const testTQ11AutoOfferFront = async () => {
 const testTQ15AcceptLeavesQueue = async () => {
   try {
     const accepted = await acceptOrder("queueDriver2", 6000);
-    if (!accepted || accepted.status !== journeyStatusMap.acceptedByDriver) {
+    // Queue orders skip the 1→2→3→4→5 negotiation flow: price is already
+    // agreed, so accept lands on acceptedByShipper (4) and creates a Journey.
+    if (!accepted || accepted.status !== journeyStatusMap.acceptedByShipper) {
       throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
+    }
+    if (!accepted?.uniqueIds?.journeyUniqueId) {
+      throw new Error(`accept should create a Journey: ${JSON.stringify(accepted?.uniqueIds)}`);
     }
     const e2 = await entryOf("queueDriver2");
     if (!e2 || e2.status !== "loaded") {
       throw new Error(`d2 entry should be loaded: ${JSON.stringify(e2)}`);
     }
     const order = await getOrderByUniqueId(orders.O_A);
-    if (order.journeyStatusId !== journeyStatusMap.acceptedByDriver) {
-      throw new Error(`O_A should be acceptedByDriver(3), got ${order.journeyStatusId}`);
+    if (order.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
+      throw new Error(`O_A should be acceptedByShipper(4), got ${order.journeyStatusId}`);
     }
-    report.pass("TQ-15: driver accepts → entry loaded, order acceptedByDriver");
+    report.pass("TQ-15: driver accepts → entry loaded, order acceptedByShipper + Journey created");
   } catch (error) {
     report.fail("TQ-15: driver accept leaves queue", error);
   }
@@ -666,10 +671,10 @@ const testTQ31ConcurrentAccept = async () => {
        WHERE sr.shipperRequestUniqueId = ?`,
       [orders.O_W],
     );
-    if (!decRows.every((r) => r.journeyStatusId === journeyStatusMap.acceptedByDriver)) {
-      throw new Error("decision should end acceptedByDriver(3) exactly once");
+    if (!decRows.every((r) => r.journeyStatusId === journeyStatusMap.acceptedByShipper)) {
+      throw new Error("decision should end acceptedByShipper(4) exactly once");
     }
-    report.pass("TQ-31: concurrent accept → final state consistent (entry loaded once)");
+    report.pass("TQ-31: concurrent accept → final state consistent (entry loaded once, status 4)");
   } catch (error) {
     report.fail("TQ-31: concurrent accept", error);
   }
