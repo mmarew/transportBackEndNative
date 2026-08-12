@@ -1677,7 +1677,8 @@ exports.releaseExpiredOffers = async ({
             dq.queueRefusalCount, dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.shipperRequestUniqueId,
             v.vehicleTypeUniqueId,
             sr.shipperRequestId, sr.shipperRequestCreatedBy,
-            dr.driverRequestId, dr.driverRequestUniqueId, jd.journeyDecisionUniqueId
+            dr.driverRequestId, dr.driverRequestUniqueId, jd.journeyDecisionUniqueId,
+            u.phoneNumber AS driverPhoneNumber
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      JOIN Vehicle v          ON v.vehicleUniqueId        = vd.vehicleUniqueId
@@ -1686,6 +1687,7 @@ exports.releaseExpiredOffers = async ({
        AND dr.journeyStatusId = ?
      JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
        AND jd.shipperRequestId = sr.shipperRequestId
+     JOIN Users u ON u.userUniqueId = vd.driverUserUniqueId
      WHERE dq.status = 'offered' AND dq.queueDeletedAt IS NULL
        AND dq.offeredAt IS NOT NULL AND dq.offeredAt < ?
        AND sr.journeyStatusId = ?
@@ -1735,6 +1737,32 @@ exports.releaseExpiredOffers = async ({
     });
 
     await applyRefusalPolicy({ executor, entry, user: actor });
+
+    // Tell the released driver their offer window expired and the order moved
+    // on — without this the app keeps showing the offer card (or silently
+    // drops it on the next poll) with no explanation. Best-effort: offline
+    // driver is covered by the REST poll fallback.
+    if (entry.driverPhoneNumber) {
+      await sendSocketIONotificationToDriver({
+        phoneNumber: entry.driverPhoneNumber,
+        eventName: "queue",
+        message: {
+          messageTypes: messageTypes.queue_order_rejected,
+          message: "Order passed to next driver",
+          status: null,
+          queue: {
+            queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+            queueUniqueId: entry.queueUniqueId,
+            queueNumber: entry.queueNumber,
+            status: "waiting",
+          },
+          shipper: null,
+          driver: null,
+          journey: null,
+          decision: null,
+        },
+      });
+    }
 
     await emitQueueSnapshot({
       queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
