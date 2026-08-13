@@ -657,7 +657,8 @@ const sendUpdatedLocation = async (body) => {
 //   7 loaded            — loading completed, ready to depart
 // Each stage records the driver's GPS + a route point (like startJourney) and
 // notifies the shipper + company/queue admin. Proof-of-loading attachments
-// (photos, signed docs) are optional and merged into Journey.journeyProofOfLoading.
+// (photos, signed docs) are accepted only on the final stage (loaded) and are
+// optional - merged into Journey.journeyProofOfLoading.
 const LOADING_STAGE_CONFIG = {
   goToLoadingPlace: {
     expectedStatus: journeyStatusMap.acceptedByShipper,
@@ -688,6 +689,7 @@ const LOADING_STAGE_CONFIG = {
     messageType: messageTypes.driver_completed_loading,
     companyAction: "completed_loading",
     successMessage: "Driver completed loading",
+    acceptsProof: true,
   },
 };
 
@@ -711,7 +713,16 @@ const transitionLoadingStage = (stage) => async (body) => {
   if (!config) {
     throw new AppError("Unknown loading stage", AppError.BAD_REQUEST);
   }
-  const { journeyDecisionUniqueId, userUniqueId, latitude, longitude, proofOfLoading } = body;
+  const {
+    journeyDecisionUniqueId,
+    userUniqueId,
+    latitude,
+    longitude,
+    proofOfLoading: incomingProof,
+  } = body;
+  // Proof-of-loading attachments are accepted on the final stage (loaded) only;
+  // stray proof sent on earlier stages is ignored.
+  const proofOfLoading = config.acceptsProof ? incomingProof : undefined;
 
   return await executeInTransaction(
     async (conn) => {

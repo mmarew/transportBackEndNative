@@ -622,11 +622,12 @@ router.put(
  *
  * Inserted between acceptedByShipper (4) and journeyStarted (5):
  * - goToLoadingPlace: Driver confirms heading to the loading place → 18, GPS recorded
- * - startLoading:     Driver arrived, loading in progress → 19, GPS + optional proof
+ * - startLoading:     Driver arrived, loading in progress → 19, GPS recorded
  * - loadCompleted:    Driver finished loading → 20, GPS + optional proof stored
  *
  * Each records the driver's GPS + a route point (like startJourney) and notifies
- * the shipper + company/queue admin.
+ * the shipper + company/queue admin. Proof-of-loading attachments are accepted
+ * only on loadCompleted (optional).
  */
 router.put(
   DRIVER_REQUEST_ENDPOINTS.GO_TO_LOADING_PLACE,
