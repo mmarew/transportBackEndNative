@@ -241,7 +241,16 @@ const updateBidStatus = async (
          SET journeyStatusId = ?
          WHERE shipperRequestBatchUniqueId = ? AND shipperRequestDeletedAt IS NULL`,
         [journeyStatusMap.acceptedByShipper, bid.shipperRequestBatchUniqueId],
-      ); 
+      );
+
+      // Keep the batch header in sync so the Ongoing tab (journeyStatusId=4)
+      // and the ongoingVehicles badge agree.
+      await db().query(
+        `UPDATE ShipperRequestBatch
+         SET journeyStatusId = ?, batchUpdatedAt = ?
+         WHERE batchUniqueId = ?`,
+        [journeyStatusMap.acceptedByShipper, currentDate(), bid.shipperRequestBatchUniqueId],
+      );
     }
 
     newPRStatus = null; // Already handled above — skip the generic UPDATE below
@@ -288,6 +297,27 @@ const updateBidStatus = async (
        SET journeyStatusId = ?
        WHERE shipperRequestBatchUniqueId = ? AND shipperRequestDeletedAt IS NULL`,
       [newPRStatus, bid.shipperRequestBatchUniqueId],
+    );
+  }
+
+  // A cancelled/rejected/expired bid returns the batch to waiting (1) so other
+  // companies can bid again — unless the shipper already cancelled it. Driver
+  // and company cancellations must never kill a company_target batch.
+  if (
+    bidStatus === "cancelled_by_company" ||
+    bidStatus === "rejected_by_shipper" ||
+    bidStatus === "expired"
+  ) {
+    await db().query(
+      `UPDATE ShipperRequestBatch
+       SET journeyStatusId = ?, batchUpdatedAt = ?
+       WHERE batchUniqueId = ? AND journeyStatusId = ?`,
+      [
+        journeyStatusMap.waiting,
+        currentDate(),
+        bid.shipperRequestBatchUniqueId,
+        journeyStatusMap.acceptedByShipper,
+      ],
     );
   }
 

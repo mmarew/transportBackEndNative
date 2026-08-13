@@ -227,6 +227,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
             WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus = 'accepted_by_shipper'
           )
+          AND b.journeyStatusId = ?
         THEN b.batchUniqueId
       END) as companyOngoingCount,
 
@@ -236,6 +237,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
             WHERE cbr.shipperRequestBatchUniqueId = b.batchUniqueId
               AND cbr.bidStatus = 'accepted_by_shipper'
           )
+          AND b.journeyStatusId = ?
         THEN b.totalVehicles
         ELSE 0
       END), 0) as companyOngoingVehicles
@@ -251,6 +253,8 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.requested,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
+    journeyStatusMap.acceptedByShipper,
+    journeyStatusMap.acceptedByShipper,
     userUniqueId,
   ];
 
