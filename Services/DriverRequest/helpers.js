@@ -438,6 +438,29 @@ const fetchJourneyNotificationData = async (
   }
 };
 
+// Build the driverRequest-formal structure expected by fetchJourneyNotificationData
+const buildDriverRequestData = (combinedData) => ({
+  driverRequestId: combinedData.driverRequestId,
+  driverRequestUniqueId: combinedData.driverRequestUniqueId,
+  userUniqueId: combinedData.userUniqueId,
+  fullName: combinedData.fullName,
+  email: combinedData.email,
+  phoneNumber: combinedData.phoneNumber,
+});
+
+// Build the journeyDecision-formal structure expected by fetchJourneyNotificationData
+const buildJourneyDecisionFromJoin = (combinedData, journeyStatusId) => ({
+  journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
+  shipperRequestId: combinedData.shipperRequestId,
+  driverRequestId: combinedData.driverRequestId,
+  journeyStatusId,
+  decisionTime: combinedData.decisionTime,
+  decisionBy: combinedData.decisionBy,
+  shippingCostByDriver: combinedData.shippingCostByDriver,
+  shippingDateByDriver: combinedData.shippingDateByDriver,
+  deliveryDateByDriver: combinedData.deliveryDateByDriver,
+});
+
 module.exports = {
   checkIfDriverIsHealthy,
   createResponse,
@@ -447,4 +470,6 @@ module.exports = {
   sendShipperNotification,
   fetchJourneyNotificationData,
   resolveBatchId,
+  buildDriverRequestData,
+  buildJourneyDecisionFromJoin,
 };

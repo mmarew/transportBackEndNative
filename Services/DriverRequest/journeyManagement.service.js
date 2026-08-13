@@ -15,7 +15,11 @@ const { updateJourneyStatus } = require("../JourneyStatus");
 const { executeInTransaction } = require("../../Utils/DatabaseTransaction");
 const { journeyStatusMap, usersRoles } = require("../../Utils/ListOfSeedData");
 const messageTypes = require("../../Utils/MessageTypes");
-const { fetchJourneyNotificationData } = require("./helpers");
+const {
+  fetchJourneyNotificationData,
+  buildDriverRequestData,
+  buildJourneyDecisionFromJoin,
+} = require("./helpers");
 const { currentDate } = require("../../Utils/CurrentDate");
 const AppError = require("../../Utils/AppError");
 const logger = require("../../Utils/logger");
@@ -175,26 +179,12 @@ const startJourney = async (body) => {
       sendShipperNotification,
     } = require("../ShipperRequest/statusVerification.service");
 
-    const journeyDecisionFromJoin = {
-      journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
-      shipperRequestId: combinedData.shipperRequestId,
-      driverRequestId: combinedData.driverRequestId,
-      journeyStatusId: journeyStatusMap.journeyStarted, // Use updated status, not combinedData.journeyStatusId
-      decisionTime: combinedData.decisionTime,
-      decisionBy: combinedData.decisionBy,
-      shippingCostByDriver: combinedData.shippingCostByDriver,
-      shippingDateByDriver: combinedData.shippingDateByDriver,
-      deliveryDateByDriver: combinedData.deliveryDateByDriver,
-    };
+    const journeyDecisionFromJoin = buildJourneyDecisionFromJoin(
+      combinedData,
+      journeyStatusMap.journeyStarted, // Use updated status, not combinedData.journeyStatusId
+    );
 
-    // Filter combinedData into driverRequest formal structure
-    const driverRequestData = {
-      driverRequestUniqueId: combinedData.driverRequestUniqueId,
-      userUniqueId: combinedData.userUniqueId,
-      fullName: combinedData.fullName,
-      email: combinedData.email,
-      phoneNumber: combinedData.phoneNumber,
-    };
+    const driverRequestData = buildDriverRequestData(combinedData);
 
     const {
       shipperRequest,
@@ -437,25 +427,12 @@ const completeJourney = async (body) => {
       sendShipperNotification,
     } = require("../ShipperRequest/statusVerification.service");
 
-    const journeyDecisionFromJoin = {
-      journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
-      shipperRequestId: combinedData.shipperRequestId,
-      driverRequestId: combinedData.driverRequestId,
-      journeyStatusId: journeyStatusMap.journeyCompleted, // Use updated status, not combinedData.journeyStatusId
-      decisionTime: combinedData.decisionTime,
-      decisionBy: combinedData.decisionBy,
-      shippingCostByDriver: combinedData.shippingCostByDriver,
-      shippingDateByDriver: combinedData.shippingDateByDriver,
-      deliveryDateByDriver: combinedData.deliveryDateByDriver,
-    };
+    const journeyDecisionFromJoin = buildJourneyDecisionFromJoin(
+      combinedData,
+      journeyStatusMap.journeyCompleted, // Use updated status, not combinedData.journeyStatusId
+    );
 
-    // Filter combinedData into driverRequest formal structure
-    const driverRequestData = {
-      driverRequestUniqueId: combinedData.driverRequestUniqueId,
-      userUniqueId: combinedData.userUniqueId,
-      fullName: combinedData.fullName,
-      phoneNumber: combinedData.phoneNumber,
-    };
+    const driverRequestData = buildDriverRequestData(combinedData);
 
     const notificationDataResult = await fetchJourneyNotificationData(
       body.journeyDecisionUniqueId,
@@ -858,25 +835,12 @@ const transitionLoadingStage = (stage) => async (body) => {
       sendShipperNotification,
     } = require("../ShipperRequest/statusVerification.service");
 
-    const journeyDecisionFromJoin = {
-      journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
-      shipperRequestId: combinedData.shipperRequestId,
-      driverRequestId: combinedData.driverRequestId,
-      journeyStatusId: config.targetStatus,
-      decisionTime: combinedData.decisionTime,
-      decisionBy: combinedData.decisionBy,
-      shippingCostByDriver: combinedData.shippingCostByDriver,
-      shippingDateByDriver: combinedData.shippingDateByDriver,
-      deliveryDateByDriver: combinedData.deliveryDateByDriver,
-    };
+    const journeyDecisionFromJoin = buildJourneyDecisionFromJoin(
+      combinedData,
+      config.targetStatus,
+    );
 
-    const driverRequestData = {
-      driverRequestUniqueId: combinedData.driverRequestUniqueId,
-      userUniqueId: combinedData.userUniqueId,
-      fullName: combinedData.fullName,
-      email: combinedData.email,
-      phoneNumber: combinedData.phoneNumber,
-    };
+    const driverRequestData = buildDriverRequestData(combinedData);
 
     const {
       shipperRequest,

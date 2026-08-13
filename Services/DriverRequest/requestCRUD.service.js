@@ -39,7 +39,11 @@ const createRequest = async ({
       const waitingRequest = (activeRequest || []).find(
         (req) => Number(req?.journeyStatusId) === journeyStatusMap.waiting,
       );
-      if (waitingRequest && currentLocation?.latitude && currentLocation?.longitude) {
+      if (
+        waitingRequest &&
+        currentLocation?.latitude &&
+        currentLocation?.longitude
+      ) {
         await updateData({
           tableName: "DriverRequest",
           conditions: {
@@ -48,7 +52,8 @@ const createRequest = async ({
           updateValues: {
             originLatitude: currentLocation.latitude,
             originLongitude: currentLocation.longitude,
-            originPlace: currentLocation.description || waitingRequest.originPlace,
+            originPlace:
+              currentLocation.description || waitingRequest.originPlace,
             driverRequestUpdatedAt: new Date(),
           },
           connection,
@@ -59,7 +64,12 @@ const createRequest = async ({
 
       // Create a new driver request if none exists
       if (activeRequest?.length === 0) {
-        await createDriverRequest(body, userUniqueId, journeyStatusId, connection);
+        await createDriverRequest(
+          body,
+          userUniqueId,
+          journeyStatusId,
+          connection,
+        );
         // Recheck active request
         activeRequest = await checkActiveDriverRequest(userUniqueId, true);
       }
@@ -287,7 +297,10 @@ const getDriverRequest = async ({ data }, connection = null) => {
       error: error.message,
       stack: error.stack,
     });
-    throw new AppError("Unable to get driver request", AppError.INTERNAL_SERVER_ERROR);
+    throw new AppError(
+      "Unable to get driver request",
+      AppError.INTERNAL_SERVER_ERROR,
+    );
   }
 };
 
@@ -332,10 +345,16 @@ const updateDriverRequest = async ({ conditions, updateValues }) => {
   try {
     // Validate conditions: use driverRequestUniqueId only (not driverRequestId)
     if (conditions.driverRequestId) {
-      throw new AppError("driverRequestId is not allowed", AppError.BAD_REQUEST);
+      throw new AppError(
+        "driverRequestId is not allowed",
+        AppError.BAD_REQUEST,
+      );
     }
     if (!conditions.driverRequestUniqueId) {
-      throw new AppError("driverRequestUniqueId is required", AppError.BAD_REQUEST);
+      throw new AppError(
+        "driverRequestUniqueId is required",
+        AppError.BAD_REQUEST,
+      );
     }
     const result = await updateData({
       tableName: "DriverRequest",
@@ -344,7 +363,10 @@ const updateDriverRequest = async ({ conditions, updateValues }) => {
     });
 
     if (result.affectedRows === 0) {
-      throw new AppError("Driver request not found or no changes made", AppError.NOT_FOUND);
+      throw new AppError(
+        "Driver request not found or no changes made",
+        AppError.NOT_FOUND,
+      );
     }
 
     return { message: "Driver request updated", data: null };
