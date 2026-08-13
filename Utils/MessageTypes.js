@@ -94,6 +94,18 @@ const messageTypes = {
     message: "Driver completed journey.",
     details: "Driver completed journey to destination, follow on map .",
   },
+  driver_going_to_loading_place: {
+    message: "Driver is on the way to the loading place.",
+    details: "Driver confirmed heading to the loading place to pick up the cargo.",
+  },
+  driver_started_loading: {
+    message: "Driver started loading.",
+    details: "Driver arrived at the loading place and started loading the cargo.",
+  },
+  driver_completed_loading: {
+    message: "Driver completed loading.",
+    details: "Driver finished loading the cargo and is ready to depart.",
+  },
   online_driver_not_found: {
     message: "Online driver not found.",
     details:
@@ -170,6 +182,16 @@ const messageTypes = {
     message: "Driver going to loading point",
     details:
       "When a driver starts heading to the loading point for a company freight assignment.",
+  },
+  company_driver_started_loading: {
+    message: "Driver started loading",
+    details:
+      "When a driver starts loading cargo for a company freight assignment.",
+  },
+  company_driver_completed_loading: {
+    message: "Driver completed loading",
+    details:
+      "When a driver finishes loading cargo for a company freight assignment.",
   },
   company_driver_journey_started: {
     message: "Driver started journey",

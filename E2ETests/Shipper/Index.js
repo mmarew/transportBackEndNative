@@ -50,8 +50,10 @@ const {
   testGetCancellationNotifications,
   runShipperSupplementaryTests,
 } = require("./ShipperSupplementary");
+const { runShipperLoadingStagesTests } = require("./LoadingStages.shipper");
 
 module.exports = {
+  runShipperLoadingStagesTests,
   testShipperAcceptDriversOffer,
   testShipperOnboardingFlow,
   getShipperAccountData,

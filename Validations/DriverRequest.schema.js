@@ -153,6 +153,36 @@ exports.startJourney = Joi.object({
     "number.max": "journeyStartingLng must be between -180 and 180",
   }),
 }).unknown(true); // Allow additional fields
+
+// Shared shape for the loading stages (5/6/7).
+// latitude/longitude = driver GPS at the stage moment (recorded like startJourney's
+// journeyStartingLat/Lng). proofOfLoading = optional array of uploaded file URLs
+// (photos, signed docs).
+const loadingStageSchema = Joi.object({
+  journeyDecisionUniqueId: uuidSchema.required().messages({
+    "any.required": "journeyDecisionUniqueId is required",
+    "string.guid": "journeyDecisionUniqueId must be a valid UUID",
+  }),
+  latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).required().messages({
+    "any.required": "latitude is required",
+    "number.base": "latitude must be a number",
+    "number.min": "latitude must be between -90 and 90",
+    "number.max": "latitude must be between -90 and 90",
+  }),
+  longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).required().messages({
+    "any.required": "longitude is required",
+    "number.base": "longitude must be a number",
+    "number.min": "longitude must be between -180 and 180",
+    "number.max": "longitude must be between -180 and 180",
+  }),
+  proofOfLoading: Joi.array().items(Joi.string()).optional().messages({
+    "array.base": "proofOfLoading must be an array of file URLs",
+  }),
+}).unknown(true); // Allow additional fields
+
+exports.goToLoadingPlace = loadingStageSchema;
+exports.startLoading = loadingStageSchema;
+exports.loadCompleted = loadingStageSchema;
 // Create and accept new request - driver finds a shipper request and accepts it directly
 exports.createAndAcceptNewRequest = Joi.object({
   shipperRequestUniqueId: uuidSchema.required().messages({

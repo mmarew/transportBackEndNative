@@ -115,6 +115,9 @@ const IN_QUEUE_STATUSES = ["waiting", "offered"];
 const ACTIVE_JOURNEY_STATUSES = [
   journeyStatusMap.acceptedByShipper,
   journeyStatusMap.acceptedByDriver,
+  journeyStatusMap.goToLoadingPlace,
+  journeyStatusMap.loading,
+  journeyStatusMap.loaded,
   journeyStatusMap.journeyStarted,
 ];
 

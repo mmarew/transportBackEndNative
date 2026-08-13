@@ -669,10 +669,15 @@ const getDetailedJourneyData = async (shipperRequests) => {
 
     // --- Step 2: Batch fetch all active/positive decisions for all active PRs (1 query) ---
     const srIds = activeSRs.map((sr) => sr.shipperRequestId);
+    // Loading stages (5/6/7) are active decisions too — without them a request
+    // mid-loading would look decision-less and get auto-corrected to waiting.
     const positiveStatuses = [
       journeyStatusMap.requested,
       journeyStatusMap.acceptedByDriver,
       journeyStatusMap.acceptedByShipper,
+      journeyStatusMap.goToLoadingPlace,
+      journeyStatusMap.loading,
+      journeyStatusMap.loaded,
       journeyStatusMap.journeyStarted,
       journeyStatusMap.journeyCompleted,
     ];
@@ -816,8 +821,12 @@ const getDetailedJourneyData = async (shipperRequests) => {
     }
 
     // --- Step 7: Batch fetch journey data if needed (1 query) ---
-    //if the journeyStatusId is journeyStarted or journeyCompleted, then fetch the journey data
+    // Loading stages (5/6/7) record GPS + proof on the Journey row, so the
+    // shipper list must carry it too (map/blue-line + proof display).
     const journeyStatuses = [
+      journeyStatusMap.goToLoadingPlace,
+      journeyStatusMap.loading,
+      journeyStatusMap.loaded,
       journeyStatusMap.journeyStarted,
       journeyStatusMap.journeyCompleted,
     ];

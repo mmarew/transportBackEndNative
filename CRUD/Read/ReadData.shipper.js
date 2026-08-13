@@ -30,12 +30,18 @@ const checkActiveShipperRequest = async ({
   connection = null,
 }) => {
   const offset = (page - 1) * pageSize;
+  // Active pipeline: waiting → requested → acceptedByDriver → acceptedByShipper
+  // → loading stages (5/6/7) → journeyStarted (8). The loading stages were
+  // inserted between 4 and 8, so they must be part of the active fetch.
   const activeJourneyStatuses = [
     journeyStatusMap.waiting, //1
     journeyStatusMap.requested, //2
     journeyStatusMap.acceptedByDriver, //3
     journeyStatusMap.acceptedByShipper, //4
-    journeyStatusMap.journeyStarted, //5
+    journeyStatusMap.goToLoadingPlace, //5
+    journeyStatusMap.loading, //6
+    journeyStatusMap.loaded, //7
+    journeyStatusMap.journeyStarted, //8
   ];
 
   const query = `
@@ -74,7 +80,7 @@ const checkActiveShipperRequest = async ({
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
     WHERE sr.userUniqueId = ?
     AND (
-      sr.journeyStatusId IN (?,?,?,?,?) 
+      sr.journeyStatusId IN (?,?,?,?,?,?,?,?) 
       OR (sr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
       OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?)
     )
@@ -119,7 +125,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId IN (?, ?) THEN sr.shipperRequestId END) as waitingCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as requestedCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as biddingCount,
-      COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as acceptedByShipperCount,
+      COUNT(DISTINCT CASE WHEN sr.journeyStatusId IN (?, ?, ?, ?) THEN sr.shipperRequestId END) as acceptedByShipperCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? THEN sr.shipperRequestId END) as journeyStartedCount,
       COUNT(DISTINCT CASE WHEN sr.journeyStatusId = ? AND sr.isCompletionSeen = ? THEN sr.shipperRequestId END) as notSeenCompletedCount,
       COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN sr.shipperRequestId END) as notSeenCancelledByDriverCount
@@ -129,7 +135,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     AND sr.shipperRequestDeletedAt IS NULL
     AND (sr.requestMode IS NULL OR sr.requestMode != 'company_target')
     AND (
-      sr.journeyStatusId IN (?,?,?,?,?)
+      sr.journeyStatusId IN (?,?,?,?,?,?,?,?)
       OR (sr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
       OR (jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ?)
     )
@@ -139,10 +145,13 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     // waitingCount
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
-    // requestedCount, biddingCount, acceptedByShipperCount, journeyStartedCount
+    // requestedCount, biddingCount, acceptedByShipperCount (4/5/6/7), journeyStartedCount
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
     journeyStatusMap.acceptedByShipper,
+    journeyStatusMap.goToLoadingPlace,
+    journeyStatusMap.loading,
+    journeyStatusMap.loaded,
     journeyStatusMap.journeyStarted,
     // notSeenCompletedCount
     journeyStatusMap.journeyCompleted,
@@ -156,6 +165,9 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,
     journeyStatusMap.acceptedByShipper,
+    journeyStatusMap.goToLoadingPlace,
+    journeyStatusMap.loading,
+    journeyStatusMap.loaded,
     journeyStatusMap.journeyStarted,
     false,
     journeyStatusMap.journeyCompleted,

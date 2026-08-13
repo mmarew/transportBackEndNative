@@ -189,6 +189,39 @@ const startJourney = async (req, res, next) => {
     next(error);
   }
 };
+const goToLoadingPlace = async (req, res, next) => {
+  try {
+    const { userUniqueId } = req?.user || {};
+    req.body.userUniqueId = userUniqueId;
+    // Service validates previous status (acceptedByShipper) internally
+    const result = await services.goToLoadingPlace(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+const startLoading = async (req, res, next) => {
+  try {
+    const { userUniqueId } = req?.user || {};
+    req.body.userUniqueId = userUniqueId;
+    // Service validates previous status (goToLoadingPlace) internally
+    const result = await services.startLoading(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+const loadCompleted = async (req, res, next) => {
+  try {
+    const { userUniqueId } = req?.user || {};
+    req.body.userUniqueId = userUniqueId;
+    // Service validates previous status (loading) internally
+    const result = await services.loadCompleted(req.body);
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
 const noAnswerFromDriver = async (req, res, next) => {
   try {
     const { userUniqueId } = req?.user || {};
@@ -344,6 +377,9 @@ module.exports = {
   completeJourney,
   noAnswerFromDriver,
   startJourney,
+  goToLoadingPlace,
+  startLoading,
+  loadCompleted,
   createRequest,
   acceptShipperRequest,
   deleteRequestController,

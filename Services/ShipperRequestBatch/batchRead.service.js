@@ -163,9 +163,10 @@ exports.getBatches = async (filters = {}) => {
  * Cancellable states (can be cancelled):
  *   1=waiting, 2=requested, 3=acceptedByDriver, 4=acceptedByShipper
  *
- * Non-cancellable states (already terminal or in-transit):
- *   5=journeyStarted, 6=journeyCompleted, 7=cancelledByShipper,
- *   9=cancelledByDriver, 10=cancelledByAdmin, 12=cancelledBySystem
+ * Non-cancellable states (loading/work already started or terminal):
+ *   5=goToLoadingPlace, 6=loading, 7=loaded, 8=journeyStarted,
+ *   9=journeyCompleted, 10=cancelledByShipper, 12=cancelledByDriver,
+ *   13=cancelledByAdmin, 15=cancelledBySystem
  *
  * @param {string}  batchUniqueId
  * @param {Object}  filters

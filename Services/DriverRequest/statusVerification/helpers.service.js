@@ -29,6 +29,8 @@ const shouldHandleNotificationStatus = (journeyStatusId, notificationStatuses) =
   return notificationStatuses.includes(journeyStatusId);
 };
 
+// Loading stages (5/6/7) sit below journeyCompleted (9), so they are naturally
+// NOT terminal — no special-casing needed after the status renumber.
 const isTerminalStatus = journeyStatusId => {
   return journeyStatusId > journeyStatusMap.journeyCompleted;
 };

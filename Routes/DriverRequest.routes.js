@@ -5,6 +5,9 @@ const {
   createRequest,
   acceptShipperRequest,
   startJourney,
+  goToLoadingPlace,
+  startLoading,
+  loadCompleted,
   noAnswerFromDriver,
   completeJourney,
   cancelDriverRequest,
@@ -34,6 +37,9 @@ const {
   sendUpdatedLocation: sendUpdatedLocationSchema,
   completeJourney: completeJourneySchema,
   startJourney: startJourneySchema,
+  goToLoadingPlace: goToLoadingPlaceSchema,
+  startLoading: startLoadingSchema,
+  loadCompleted: loadCompletedSchema,
   updateDriverRequest: updateDriverRequestSchema,
   requestIdParams: requestIdParamsSchema,
 } = require("../Validations/DriverRequest.schema");
@@ -610,6 +616,38 @@ router.put(
   verifyDriversIdentity,
   validator(startJourneySchema),
   startJourney,
+);
+/**
+ * Loading Stages Endpoints (4.1 / 4.2 / 4.3)
+ *
+ * Inserted between acceptedByShipper (4) and journeyStarted (5):
+ * - goToLoadingPlace: Driver confirms heading to the loading place → 18, GPS recorded
+ * - startLoading:     Driver arrived, loading in progress → 19, GPS + optional proof
+ * - loadCompleted:    Driver finished loading → 20, GPS + optional proof stored
+ *
+ * Each records the driver's GPS + a route point (like startJourney) and notifies
+ * the shipper + company/queue admin.
+ */
+router.put(
+  DRIVER_REQUEST_ENDPOINTS.GO_TO_LOADING_PLACE,
+  verifyTokenOfAxios,
+  verifyDriversIdentity,
+  validator(goToLoadingPlaceSchema),
+  goToLoadingPlace,
+);
+router.put(
+  DRIVER_REQUEST_ENDPOINTS.START_LOADING,
+  verifyTokenOfAxios,
+  verifyDriversIdentity,
+  validator(startLoadingSchema),
+  startLoading,
+);
+router.put(
+  DRIVER_REQUEST_ENDPOINTS.LOAD_COMPLETED,
+  verifyTokenOfAxios,
+  verifyDriversIdentity,
+  validator(loadCompletedSchema),
+  loadCompleted,
 );
 /**
  * Shipper "No Answer From Driver" Endpoint

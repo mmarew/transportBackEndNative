@@ -42,6 +42,9 @@ module.exports = {
   startJourney: journeyManagement.startJourney,
   completeJourney: journeyManagement.completeJourney,
   sendUpdatedLocation: journeyManagement.sendUpdatedLocation,
+  goToLoadingPlace: journeyManagement.goToLoadingPlace,
+  startLoading: journeyManagement.startLoading,
+  loadCompleted: journeyManagement.loadCompleted,
 
   // Status Verification
   verifyDriverJourneyStatus: statusVerification.verifyDriverJourneyStatus,

@@ -610,78 +610,96 @@ const journeyStatus = [
   },
   {
     journeyStatusId: 5,
-    journeyStatusName: "journeyStarted",
+    journeyStatusName: "goToLoadingPlace",
     journeyStatusDescription:
-      "The actual journey has been initiated by the driver. This occurs after the shipper has accepted the driver (status 4), and the driver begins the transportation.",
+      "The shipper has accepted the driver (status 4) and the driver has confirmed they are heading to the loading place. The driver's GPS is recorded at this moment. This is the first of the loading stages (4.1).",
   },
   {
     journeyStatusId: 6,
+    journeyStatusName: "loading",
+    journeyStatusDescription:
+      "The driver has arrived at the loading place and started loading the cargo. The driver's GPS is recorded at this moment. This is the second loading stage (4.2); proof-of-loading attachments (photos, signed docs) are optional and can be uploaded here.",
+  },
+  {
+    journeyStatusId: 7,
+    journeyStatusName: "loaded",
+    journeyStatusDescription:
+      "The driver has finished loading the cargo and it is secured, ready to depart. The driver's GPS is recorded at this moment. This is the final loading stage (4.3); proof-of-loading attachments are stored on the journey here.",
+  },
+  {
+    journeyStatusId: 8,
+    journeyStatusName: "journeyStarted",
+    journeyStatusDescription:
+      "The actual journey has been initiated by the driver. This occurs after the loading stages (status 7 - loaded) are complete, and the driver begins the transportation.",
+  },
+  {
+    journeyStatusId: 9,
     journeyStatusName: "journeyCompleted",
     journeyStatusDescription:
       "The journey has been successfully completed by the driver. The transportation service has been fully delivered.",
   },
   {
-    journeyStatusId: 7,
+    journeyStatusId: 10,
     journeyStatusName: "cancelledByShipper",
     journeyStatusDescription:
       "Shipper has cancelled the entire transport request. This cancellation affects all drivers who were involved, and the entire shipment is cancelled.",
   },
   {
-    journeyStatusId: 8,
+    journeyStatusId: 11,
     journeyStatusName: "rejectedByShipper",
     journeyStatusDescription:
       "Shipper has rejected a specific driver's offer after the driver accepted the request (status 3). This rejection only affects the specific driver that was rejected, and the shipper can still select other drivers who accepted the request.",
   },
   {
-    journeyStatusId: 9,
+    journeyStatusId: 12,
     journeyStatusName: "cancelledByDriver",
     journeyStatusDescription:
       "Driver canceled the request after accepting it and providing their bidding price. This occurs after the driver has committed to participate in the bid (status 3 - acceptedByDriver), meaning a JourneyDecision record exists. The driver withdraws their commitment, which can happen at any point after acceptance, including before or after the shipper selects a driver, or even after the journey has started.",
   },
   {
-    journeyStatusId: 10,
+    journeyStatusId: 13,
     journeyStatusName: "cancelledByAdmin",
     journeyStatusDescription:
       "Admin has cancelled the request. This administrative cancellation can occur at various stages of the journey lifecycle.",
   },
   {
-    journeyStatusId: 11,
+    journeyStatusId: 14,
     journeyStatusName: "completedByAdmin",
     journeyStatusDescription:
       "Admin has manually marked the journey as completed. This administrative action is used when a journey needs to be marked as completed through administrative intervention.",
   },
   {
-    journeyStatusId: 12,
+    journeyStatusId: 15,
     journeyStatusName: "cancelledBySystem",
     journeyStatusDescription:
       "System has automatically cancelled the request. This can occur due to system-level rules, timeout conditions, or other automated cancellation scenarios.",
   },
   {
-    journeyStatusId: 13,
+    journeyStatusId: 16,
     journeyStatusName: "noAnswerFromDriver",
     journeyStatusDescription:
       "Driver did not respond to the incoming request within the expected time. The request is then automatically forwarded to another available driver.",
   },
   {
-    journeyStatusId: 14,
+    journeyStatusId: 17,
     journeyStatusName: "notSelectedInBid",
     journeyStatusDescription:
       "Driver had accepted the shipper request (status 3) and participated in the bid process, but the shipper selected a different driver. The driver's offer was not chosen during the bid selection.",
   },
   {
-    journeyStatusId: 15,
+    journeyStatusId: 18,
     journeyStatusName: "rejectedByDriver",
     journeyStatusDescription:
       "Driver rejected the incoming shipper request before accepting it. This occurs at the initial request stage (status 2 - requested), meaning the driver never accepted the request, did not provide a bidding price, and no JourneyDecision record was created. The driver declined participation in the bid process from the start.",
   },
   {
-    journeyStatusId: 16,
+    journeyStatusId: 19,
     journeyStatusName: "replacedByCompanyAssignment",
     journeyStatusDescription:
       "The individual driver-shipper connection was automatically replaced because a transport company assigned this driver to a company-managed freight job. The individual ShipperRequest is returned to the waiting pool and the driver's new JourneyDecision is linked to the company assignment. This is a system-level status with clear intent — company assignments take priority over individual matches.",
   },
   {
-    journeyStatusId: 17,
+    journeyStatusId: 20,
     journeyStatusName: "partiallyCancelled",
     journeyStatusDescription:
       "A company freight batch was partially cancelled by the shipper. One or more vehicle slots were cancelled while others had already completed their journey or are still in transit. The batch remains open for the active/completed slots. This status applies only to ShipperRequestBatch records — individual ShipperRequest rows within the batch keep their own terminal status (journeyCompleted or cancelledByShipper).",
@@ -696,30 +714,34 @@ const journeyStatusMap = {
   acceptedByDriver: 3,
   // accept oly one driver request but others are not selected so they will have notSelectedInBid status
   acceptedByShipper: 4,
-  journeyStarted: 5,
-  journeyCompleted: 6,
+  // loading stages (4.1/4.2/4.3) — inserted between acceptedByShipper (4) and journeyStarted (8)
+  goToLoadingPlace: 5,
+  loading: 6,
+  loaded: 7,
+  journeyStarted: 8,
+  journeyCompleted: 9,
   // cancel all shipment
-  cancelledByShipper: 7,
+  cancelledByShipper: 10,
   // reject one driver request but others are not selected so they will have either acceptedByShipper if they willbe selected or   notSelectedInBid status or rejectedByDriver if they will be rejected too
-  rejectedByShipper: 8,
+  rejectedByShipper: 11,
   // driver cancelled the request after accepting it and providing their bidding price
-  cancelledByDriver: 9,
+  cancelledByDriver: 12,
   // admin cancelled the request
-  cancelledByAdmin: 10,
+  cancelledByAdmin: 13,
   // admin manually marked the journey as completed
-  completedByAdmin: 11,
+  completedByAdmin: 14,
   // system cancelled the request
-  cancelledBySystem: 12,
+  cancelledBySystem: 15,
   // driver did not respond to the incoming request within the expected time. The request is then automatically forwarded to another available driver.
-  noAnswerFromDriver: 13,
+  noAnswerFromDriver: 16,
   //driver accepted the request and provided bidding price but not selected during bid selection process
-  notSelectedInBid: 14,
+  notSelectedInBid: 17,
   // driver rejected incoming call before accepting it
-  rejectedByDriver: 15,
+  rejectedByDriver: 18,
   // individual link replaced because company assigned this driver to a company freight job
-  replacedByCompanyAssignment: 16,
+  replacedByCompanyAssignment: 19,
   // batch partially cancelled — some slots cancelled, others completed or still active
-  partiallyCancelled: 17,
+  partiallyCancelled: 20,
 };
 // these are active because they can be used to check if it is active or not
 const activeJourneyStatuses = [
@@ -727,6 +749,9 @@ const activeJourneyStatuses = [
   journeyStatusMap.requested,
   journeyStatusMap.acceptedByDriver,
   journeyStatusMap.acceptedByShipper,
+  journeyStatusMap.goToLoadingPlace,
+  journeyStatusMap.loading,
+  journeyStatusMap.loaded,
   journeyStatusMap.journeyStarted,
 ];
 

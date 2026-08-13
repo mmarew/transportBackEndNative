@@ -848,6 +848,24 @@ const notifyCompanyOnDriverAction = async ({
     const fullAssignment = await getFullAssignmentData(assignment.assignmentUniqueId);
 
     const actionConfig = {
+      going_to_loading_place: {
+        title: "Driver going to loading point",
+        body: `Driver ${driverName} is on the way to the loading place.`,
+        type: "driver_going_to_loading_place",
+        messageType: messageTypes.company_driver_going_to_loading,
+      },
+      started_loading: {
+        title: "Driver started loading",
+        body: `Driver ${driverName} started loading at the loading place.`,
+        type: "driver_started_loading",
+        messageType: messageTypes.company_driver_started_loading,
+      },
+      completed_loading: {
+        title: "Driver completed loading",
+        body: `Driver ${driverName} completed loading and is ready to depart.`,
+        type: "driver_completed_loading",
+        messageType: messageTypes.company_driver_completed_loading,
+      },
       started_journey: {
         title: "Driver started journey",
         body: `Driver ${driverName} has started the journey.`,

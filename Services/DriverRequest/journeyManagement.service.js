@@ -78,7 +78,15 @@ const startJourney = async (body) => {
       if (combinedData.journeyStatusId === journeyStatusMap.journeyCompleted) {
         throw new AppError("This journey has already been completed", AppError.BAD_REQUEST);
       }
-      if (combinedData.journeyStatusId !== journeyStatusMap.acceptedByShipper) {
+      // The journey can be started from acceptedByShipper (4) or from any of the
+      // loading stages (5 goToLoadingPlace / 6 loading / 7 loaded).
+      const startableStatuses = [
+        journeyStatusMap.acceptedByShipper,
+        journeyStatusMap.goToLoadingPlace,
+        journeyStatusMap.loading,
+        journeyStatusMap.loaded,
+      ];
+      if (!startableStatuses.includes(combinedData.journeyStatusId)) {
         throw new AppError("This journey is not accepted by shipper", AppError.BAD_REQUEST);
       }
       if (combinedData.userUniqueId !== userUniqueId) {
@@ -120,8 +128,23 @@ const startJourney = async (body) => {
       } else {
         finalJourneyUniqueId = existingJourneyCheck[0].journeyUniqueId;
         // The Journey row already exists (queue/company orders create it at
-        // accept/confirm, status 4). Still record the driver's start GPS as
-        // the first route point — startJourney is the moment the trip begins.
+        // accept/confirm, status 4, and the loading stages 5/6/7 keep it).
+        // Record the driver's start GPS on the row itself (like the insert
+        // branch above) AND as the first route point — startJourney is the
+        // moment the trip begins, and the shipper map uses
+        // journeyStartingLat/Lng as the blue-line start point.
+        await conn.query(
+          `UPDATE Journey SET journeyStartingLat = ?, journeyStartingLng = ?,
+             journeyUpdatedBy = ?, journeyUpdatedAt = ?
+           WHERE journeyUniqueId = ?`,
+          [
+            journeyStartingLat,
+            journeyStartingLng,
+            userUniqueId,
+            currentDate(),
+            finalJourneyUniqueId,
+          ],
+        );
         await createJourneyRoutePoint(
           {
             journeyDecisionUniqueId: body.journeyDecisionUniqueId,
@@ -565,12 +588,15 @@ const sendUpdatedLocation = async (body) => {
     const activeStatuses = [
       journeyStatusMap.acceptedByDriver,
       journeyStatusMap.acceptedByShipper,
+      journeyStatusMap.goToLoadingPlace,
+      journeyStatusMap.loading,
+      journeyStatusMap.loaded,
       journeyStatusMap.journeyStarted,
     ];
 
     if (!activeStatuses.includes(journeyStatusId)) {
       throw new AppError(
-        "Location updates can only be sent for active journeys (accepted or started)",
+        "Location updates can only be sent for active journeys (accepted, loading, or started)",
         AppError.BAD_REQUEST,
       );
     }
@@ -647,8 +673,281 @@ const sendUpdatedLocation = async (body) => {
   }
 };
 
+// ── Loading stages (4.1 / 4.2 / 4.3) ─────────────────────────────────────────
+// Inserted between acceptedByShipper (4) and journeyStarted (8):
+//   5 goToLoadingPlace  — driver confirmed heading to the loading place
+//   6 loading           — driver arrived, loading in progress
+//   7 loaded            — loading completed, ready to depart
+// Each stage records the driver's GPS + a route point (like startJourney) and
+// notifies the shipper + company/queue admin. Proof-of-loading attachments
+// (photos, signed docs) are optional and merged into Journey.journeyProofOfLoading.
+const LOADING_STAGE_CONFIG = {
+  goToLoadingPlace: {
+    expectedStatus: journeyStatusMap.acceptedByShipper,
+    targetStatus: journeyStatusMap.goToLoadingPlace,
+    latColumn: "journeyGoingToLoadingLat",
+    lngColumn: "journeyGoingToLoadingLng",
+    timeColumn: null,
+    messageType: messageTypes.driver_going_to_loading_place,
+    companyAction: "going_to_loading_place",
+    successMessage: "Driver confirmed going to loading place",
+  },
+  loading: {
+    expectedStatus: journeyStatusMap.goToLoadingPlace,
+    targetStatus: journeyStatusMap.loading,
+    latColumn: "journeyLoadingStartedLat",
+    lngColumn: "journeyLoadingStartedLng",
+    timeColumn: "loadingStartedAt",
+    messageType: messageTypes.driver_started_loading,
+    companyAction: "started_loading",
+    successMessage: "Driver started loading",
+  },
+  loaded: {
+    expectedStatus: journeyStatusMap.loading,
+    targetStatus: journeyStatusMap.loaded,
+    latColumn: "journeyLoadingCompletedLat",
+    lngColumn: "journeyLoadingCompletedLng",
+    timeColumn: "loadingCompletedAt",
+    messageType: messageTypes.driver_completed_loading,
+    companyAction: "completed_loading",
+    successMessage: "Driver completed loading",
+  },
+};
+
+const mergeProofOfLoading = (existing, incoming) => {
+  const base = Array.isArray(existing)
+    ? existing
+    : existing
+      ? [existing]
+      : [];
+  const add = Array.isArray(incoming)
+    ? incoming
+    : incoming
+      ? [incoming]
+      : [];
+  const merged = [...base, ...add];
+  return merged.length ? JSON.stringify(merged) : null;
+};
+
+const transitionLoadingStage = (stage) => async (body) => {
+  const config = LOADING_STAGE_CONFIG[stage];
+  if (!config) {
+    throw new AppError("Unknown loading stage", AppError.BAD_REQUEST);
+  }
+  const { journeyDecisionUniqueId, userUniqueId, latitude, longitude, proofOfLoading } = body;
+
+  return await executeInTransaction(
+    async (conn) => {
+      if (!journeyDecisionUniqueId || !userUniqueId) {
+        throw new AppError(
+          "journeyDecisionUniqueId and userUniqueId are required",
+          AppError.BAD_REQUEST,
+        );
+      }
+      if (latitude === null || latitude === undefined || longitude === null || longitude === undefined) {
+        throw new AppError(
+          "latitude and longitude are required",
+          AppError.BAD_REQUEST,
+        );
+      }
+
+      const validateQuery = `
+        SELECT
+          JourneyDecisions.*,
+          DriverRequest.driverRequestUniqueId,
+          DriverRequest.userUniqueId,
+          ShipperRequest.shipperRequestUniqueId,
+          Journey.journeyUniqueId,
+          Journey.journeyProofOfLoading,
+          Users.fullName,
+          Users.email,
+          Users.phoneNumber
+        FROM JourneyDecisions
+        JOIN DriverRequest ON JourneyDecisions.driverRequestId = DriverRequest.driverRequestId
+        JOIN ShipperRequest ON JourneyDecisions.shipperRequestId = ShipperRequest.shipperRequestId
+        JOIN Users ON DriverRequest.userUniqueId = Users.userUniqueId
+        LEFT JOIN Journey ON Journey.journeyDecisionUniqueId = JourneyDecisions.journeyDecisionUniqueId
+        WHERE JourneyDecisions.journeyDecisionUniqueId = ?
+        LIMIT 1
+      `;
+
+      const [journeyDecisionDriverData] = await conn.query(validateQuery, [
+        journeyDecisionUniqueId,
+      ]);
+      if (!journeyDecisionDriverData?.length) {
+        throw new AppError("Journey decision not found", AppError.NOT_FOUND);
+      }
+
+      const combinedData = journeyDecisionDriverData[0];
+
+      if (combinedData.userUniqueId !== userUniqueId) {
+        throw new AppError("Driver user does not match journey decision", AppError.FORBIDDEN);
+      }
+      if (combinedData.journeyStatusId !== config.expectedStatus) {
+        throw new AppError(
+          `This journey must be in the expected stage before ${config.successMessage}`,
+          AppError.BAD_REQUEST,
+        );
+      }
+
+      const existingProof = combinedData.journeyProofOfLoading
+        ? JSON.parse(combinedData.journeyProofOfLoading)
+        : [];
+      const proof = mergeProofOfLoading(existingProof, proofOfLoading);
+
+      const journeyUniqueId = combinedData.journeyUniqueId || uuidv4();
+      const stageUpdate = {
+        journeyStatusId: config.targetStatus,
+        [config.latColumn]: latitude,
+        [config.lngColumn]: longitude,
+        ...(config.timeColumn ? { [config.timeColumn]: currentDate() } : {}),
+        ...(proof ? { journeyProofOfLoading: proof } : {}),
+        journeyUpdatedBy: userUniqueId,
+        journeyUpdatedAt: currentDate(),
+      };
+
+      if (combinedData.journeyUniqueId) {
+        await conn.query(
+          `UPDATE Journey SET ${Object.keys(stageUpdate)
+            .map((col) => `${col} = ?`)
+            .join(", ")} WHERE journeyUniqueId = ?`,
+          [...Object.values(stageUpdate), combinedData.journeyUniqueId],
+        );
+      } else {
+        // Nearby-match journeys create the Journey row only at startJourney;
+        // the loading stages are the first tracked moment, so create it here.
+        await insertData({
+          tableName: "Journey",
+          colAndVal: {
+            journeyUniqueId,
+            journeyDecisionUniqueId,
+            journeyStatusId: config.targetStatus,
+            startTime: currentDate(),
+            ...stageUpdate,
+            journeyCreatedBy: userUniqueId,
+            journeyCreatedAt: currentDate(),
+          },
+          connection: conn,
+        });
+      }
+
+      await updateJourneyStatus({
+        journeyDecisionUniqueId,
+        shipperRequestUniqueId: combinedData.shipperRequestUniqueId,
+        driverRequestUniqueId: combinedData.driverRequestUniqueId,
+        journeyUniqueId,
+        journeyStatusId: config.targetStatus,
+        connection: conn,
+      });
+
+      await createJourneyRoutePoint(
+        {
+          journeyDecisionUniqueId,
+          latitude,
+          longitude,
+          userUniqueId,
+        },
+        conn,
+      );
+
+      return { combinedData, journeyUniqueId };
+    },
+    { timeout: 15000 },
+  ).then(async ({ combinedData, journeyUniqueId }) => {
+    const {
+      sendShipperNotification,
+    } = require("../ShipperRequest/statusVerification.service");
+
+    const journeyDecisionFromJoin = {
+      journeyDecisionUniqueId: combinedData.journeyDecisionUniqueId,
+      shipperRequestId: combinedData.shipperRequestId,
+      driverRequestId: combinedData.driverRequestId,
+      journeyStatusId: config.targetStatus,
+      decisionTime: combinedData.decisionTime,
+      decisionBy: combinedData.decisionBy,
+      shippingCostByDriver: combinedData.shippingCostByDriver,
+      shippingDateByDriver: combinedData.shippingDateByDriver,
+      deliveryDateByDriver: combinedData.deliveryDateByDriver,
+    };
+
+    const driverRequestData = {
+      driverRequestUniqueId: combinedData.driverRequestUniqueId,
+      userUniqueId: combinedData.userUniqueId,
+      fullName: combinedData.fullName,
+      email: combinedData.email,
+      phoneNumber: combinedData.phoneNumber,
+    };
+
+    const {
+      shipperRequest,
+      journeyDecision: journeyDecisionData,
+      driverInfo,
+      journeyData,
+    } = await fetchJourneyNotificationData(
+      body.journeyDecisionUniqueId,
+      [driverRequestData],
+      null,
+      [journeyDecisionFromJoin],
+    );
+
+    if (shipperRequest && journeyDecisionData && driverInfo) {
+      await sendShipperNotification({
+        shipperRequest,
+        journeyDecision: journeyDecisionData,
+        driverInfo,
+        journeyData,
+        messageType: config.messageType,
+        status: config.targetStatus,
+      });
+
+      if (shipperRequest?.userUniqueId) {
+        sendFCMNotificationToUser({
+          userUniqueId: shipperRequest.userUniqueId,
+          roleId: 1,
+          notification: {
+            title: config.messageType.message,
+            body: config.messageType.details,
+          },
+        });
+      }
+    }
+
+    // 🔔 Notify company dispatcher + queue admin if this is a company/queue assignment
+    notifyCompanyOnDriverAction({
+      shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+      driverName: driverInfo?.driver?.fullName || "",
+      action: config.companyAction,
+    });
+
+    return {
+      message: config.successMessage,
+      status: config.targetStatus,
+      uniqueIds: {
+        driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
+        shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+        journeyDecisionUniqueId: journeyDecisionData?.journeyDecisionUniqueId,
+        journeyUniqueId: journeyData?.journeyUniqueId || journeyUniqueId,
+      },
+      driver: {
+        driver: driverInfo?.driver || null,
+        vehicle: driverInfo?.vehicleOfDriver || null,
+      },
+      shipper: shipperRequest || null,
+      journey: journeyData || null,
+      decision: journeyDecisionData || null,
+    };
+  });
+};
+
+const goToLoadingPlace = transitionLoadingStage("goToLoadingPlace");
+const startLoading = transitionLoadingStage("loading");
+const loadCompleted = transitionLoadingStage("loaded");
+
 module.exports = {
   startJourney,
   completeJourney,
   sendUpdatedLocation,
+  goToLoadingPlace,
+  startLoading,
+  loadCompleted,
 };
