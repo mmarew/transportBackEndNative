@@ -10,6 +10,11 @@ const MAX_RADIUS_KM = 10;
 const DEGREE_BUFFER = MAX_RADIUS_KM / 111 + 0.01; // eslint-disable-line no-magic-numbers -- km-per-degree and buffer padding // ≈ 0.10°
 
 const findNearbyDrivers = async ({ shipperRequest }) => {
+  // Queue orders are dispatched exclusively via queue FIFO (handleQueueDispatch)
+  // — never by distance, even if a caller routes one here by mistake.
+  if (shipperRequest?.queueOrganizationUniqueId) {
+    return [];
+  }
   // Destructure the relevant data from the shipperRequest
   const {
     originLatitude,
@@ -113,6 +118,10 @@ const findNearbyShippers = async ({
     JOIN ShipperRequest
       ON ShipperRequest.userUniqueId = Users.userUniqueId
       AND (ShipperRequest.requestMode IS NULL OR ShipperRequest.requestMode != 'company_target')
+      -- Queue orders are dispatched ONLY by queue FIFO (handleQueueDispatch) —
+      -- they must never reach the nearby/distance match, or a driver who is
+      -- merely online (status 1) gets queue placements without re-registering.
+      AND ShipperRequest.queueOrganizationUniqueId IS NULL
       AND ShipperRequest.shipperRequestDeletedAt IS NULL
     WHERE
       ShipperRequest.vehicleTypeUniqueId = ?

@@ -93,7 +93,14 @@ const handleJourneyStatusOne = async (driverRequest, vehicle, vehicleTypeUniqueI
     });
 
     // Defence-in-depth: drop any company_target slips through (e.g. NULL edge case)
-    const individualShippers = (nearbyShippers || []).filter(p => !p.requestMode || p.requestMode !== "company_target");
+    // and any QUEUE orders — queue orders are dispatched only by queue FIFO, so
+    // a driver who is merely online must never be distance-matched to one (they
+    // get re-offered only after re-registering in the queue).
+    const individualShippers = (nearbyShippers || []).filter(
+      p =>
+        (!p.requestMode || p.requestMode !== "company_target") &&
+        !p.queueOrganizationUniqueId,
+    );
 
     // 2. If no individual shippers found, check if a company assignment
     //    is pending — if so, surface status 2 with the real shipper + decision.

@@ -156,6 +156,10 @@ const getAllActiveRequests = async (filters = {}) => {
     LEFT JOIN JourneyStatus js ON sr.journeyStatusId = js.journeyStatusId
     LEFT JOIN ShipperRequestBatch srb ON srb.batchUniqueId = sr.shipperRequestBatchUniqueId
     WHERE sr.journeyStatusId IN (?)
+      -- Queue orders are dispatched ONLY by queue FIFO (offer → accept) — they
+      -- must never be listed as manually-acceptable online jobs, or a driver
+      -- can grab queue placements outside the queue system.
+      AND sr.queueOrganizationUniqueId IS NULL
   `;
   let whereConditions = [];
   let values = [activeStatusIds];

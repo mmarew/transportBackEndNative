@@ -287,6 +287,7 @@ const completeJourney = async (body) => {
         ShipperRequest.shippingCost,
         ShipperRequest.requestMode,
         ShipperRequest.targetCompanyUniqueId,
+        ShipperRequest.queueOrganizationUniqueId,
         Journey.journeyUniqueId,
         Journey.startTime, Journey.endTime,
         Users.fullName,
@@ -480,6 +481,26 @@ const completeJourney = async (body) => {
       driverName: driverInfo?.driver?.fullName || "",
       action: "completed_journey",
     });
+
+    // Close the queue slot: a COMPLETED queue order consumes the driver's slot.
+    // Mark the entry 'removed' (same closed state as checkout/leave) so the
+    // driver is out of the queue and MUST re-register for the next placement.
+    // Best-effort + idempotent — only touches entries still 'loaded' and
+    // holding this order; non-queue journeys are untouched.
+    if (combinedData?.queueOrganizationUniqueId) {
+      const { closeEntryOnJourneyCompletion } = require("../DriverQueue.service");
+      try {
+        await closeEntryOnJourneyCompletion({
+          shipperRequestUniqueId: body.shipperRequestUniqueId,
+          userUniqueId: body.userUniqueId,
+        });
+      } catch (closeError) {
+        logger.error("Error closing queue slot after journey completion", {
+          error: closeError.message,
+          shipperRequestUniqueId: body.shipperRequestUniqueId,
+        });
+      }
+    }
 
     return {
       message: "Journey completed successfully",

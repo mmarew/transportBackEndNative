@@ -1514,6 +1514,55 @@ exports.rejectOffer = async (data) => {
 };
 
 /**
+ * Close a queue slot once the driver COMPLETED its queue order's journey.
+ * The entry is marked 'removed' — the same closed state as checkout/leave — so
+ * the driver is out of the queue and MUST re-register for the next placement
+ * (re-checkin revives the entry with a fresh queue number at the back of the
+ * line). Idempotent: no-op unless the entry is still 'loaded' and holding the
+ * completed order. Called from completeJourney after the transaction commits.
+ */
+exports.closeEntryOnJourneyCompletion = async ({
+  shipperRequestUniqueId,
+  userUniqueId,
+}) => {
+  const executor = db();
+  const [rows] = await executor.query(
+    `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate
+     FROM DriverQueue
+     WHERE shipperRequestUniqueId = ? AND status = 'loaded'
+       AND queueDeletedAt IS NULL
+     LIMIT 1`,
+    [shipperRequestUniqueId],
+  );
+  if (rows.length === 0) {
+    return { closed: false };
+  }
+
+  const entry = rows[0];
+  await updateData({
+    tableName: "DriverQueue",
+    updateValues: {
+      status: "removed",
+      shipperRequestUniqueId: null,
+      queueUpdatedAt: currentDate(),
+      queueUpdatedBy: userUniqueId || null,
+    },
+    conditions: { queueId: entry.queueId },
+  });
+
+  await emitQueueSnapshot({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    queueDate: entry.queueDate,
+  });
+  notifyQueueOrgAdmins({
+    queueOrganizationUniqueId: entry.queueOrganizationUniqueId,
+    messageType: "queue_removed",
+  });
+
+  return { closed: true, queueUniqueId: entry.queueUniqueId };
+};
+
+/**
  * Whole-job cancellation of a queue order (Docs/queue-order-cancellation.md).
  * If an entry is currently holding the cancelled order's offer (`offered`),
  * release it back to `waiting` in place (position preserved, `queueNumber`
