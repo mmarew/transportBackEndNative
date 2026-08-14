@@ -5,6 +5,9 @@ const { DOMAIN } = require("../../Utils/Constants");
 
 const { sendFCMNotificationToUser } = require("../Firebase.service");
 const {
+  sendSocketIONotificationToShipper,
+} = require("../../Utils/Notifications");
+const {
   notifyCompanyOnDriverAction,
 } = require("../CompanyAssignment/assignmentHelper");
 const { createJourneyRoutePoint } = require("../JourneyRoutePoints.service");
@@ -883,6 +886,35 @@ const transitionLoadingStage = (stage) => async (body) => {
             title: config.messageType.message,
             body: config.messageType.details,
           },
+        });
+      }
+    }
+
+    // 🔴 Live mirror: push the driver's position to the shipper at the exact
+    // moment of this loading stage, so the shipper's map shows the driver move
+    // (same event the driver's LocationTracker streams continuously between
+    // stages). Payload shape matches the driver app's locationUpdateToShipper
+    // event so the shipper's socketHandler keys it by driverRequestUniqueId.
+    if (shipperRequest?.phoneNumber) {
+      try {
+        await sendSocketIONotificationToShipper({
+          eventName: "locationUpdateToShipper",
+          phoneNumber: shipperRequest.phoneNumber,
+          message: {
+            latitude,
+            longitude,
+            driverRequestUniqueId: driverInfo?.driver?.driverRequestUniqueId,
+            shipperRequestUniqueId: shipperRequest?.shipperRequestUniqueId,
+            journeyDecisionUniqueId: body.journeyDecisionUniqueId,
+            journeyUniqueId: journeyData?.journeyUniqueId || journeyUniqueId,
+            message: "Driver location updated",
+            messageTypes: messageTypes.update_drivers_location_to_shipper,
+          },
+        });
+      } catch (locationError) {
+        logger.error("Error pushing loading-stage location to shipper", {
+          error: locationError.message,
+          stack: locationError.stack,
         });
       }
     }

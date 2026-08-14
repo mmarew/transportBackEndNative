@@ -24,6 +24,11 @@ const {
   statusList,
   
 } = require("../../../Utils/ListOfSeedData");
+const Config = require("../../../Utils/Config");
+
+// The system super-admin account is non-deletable. Phone is read from env
+// (SUPER_ADMIN_PHONE) with the same default the seeding code uses.
+const SUPER_ADMIN_PHONE_DIGITS = (Config.SUPER_ADMIN.PHONE || "+251983222221").replace(/\D/g, "");
 
 
 
@@ -39,11 +44,25 @@ const deleteUser = async ({
   if (!userUniqueId) {
     throw new AppError("userUniqueId is required to delete user", AppError.BAD_REQUEST);
   }
+  const executor = transactionStorage.getStore() || connection || pool;
+
+  // Never allow deleting the system super-admin account (e.g. +251983222221).
+  const [targetRows] = await executor.query(
+    "SELECT userUniqueId, phoneNumber FROM Users WHERE userUniqueId = ? AND userDeletedAt IS NULL LIMIT 1",
+    [userUniqueId]
+  );
+  if (!targetRows || targetRows.length === 0) {
+    throw new AppError("User not found or already deleted", AppError.NOT_FOUND);
+  }
+  const targetPhoneDigits = (targetRows[0]?.phoneNumber || "").replace(/\D/g, "");
+  if (targetPhoneDigits && targetPhoneDigits === SUPER_ADMIN_PHONE_DIGITS) {
+    throw new AppError("The system super admin account cannot be deleted", AppError.FORBIDDEN);
+  }
+
   const userDeletedAt = currentDate();
   const isDeleted = true;
   const sql = "UPDATE Users SET userDeletedAt = ?, userDeletedBy = ?, isDeleted = ? WHERE userUniqueId = ?";
   const values = [userDeletedAt, deletedBy, isDeleted, userUniqueId];
-  const executor = transactionStorage.getStore() || connection || pool;
   const [deleteResults] = await executor.query(sql, values);
   if (deleteResults.affectedRows === 0) {
     throw new AppError("User not found or already deleted", AppError.NOT_FOUND);

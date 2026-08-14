@@ -9,6 +9,7 @@ const {
   sendSocketIONotificationToShipper,
   sendSocketIONotificationToDriver,
 } = require("../Utils/Notifications");
+const { saveLastLocation } = require("../Utils/LastLocationStore");
 const messageTypes = require("../Utils/MessageTypes");
 
 const logger = require("../Utils/logger");
@@ -294,7 +295,7 @@ async function initSocket({ httpServer }) {
       }
     });
 
-    socket.on("locationUpdateToShipper", async (data) => {
+    socket.on("locationUpdateToShipper", async (data, ack) => {
       try {
         let phoneNumberOfShipper = data?.shipperPhoneNumber;
 
@@ -316,8 +317,15 @@ async function initSocket({ httpServer }) {
           }
         }
 
+        let delivered = false;
         if (phoneNumberOfShipper) {
-          await sendSocketIONotificationToShipper({
+          // Keep the latest fix so it can be replayed when the shipper's
+          // socket (re)connects — the shipper's map shows it instantly.
+          await saveLastLocation({
+            payload: data,
+            shipperPhoneNumber: phoneNumberOfShipper,
+          });
+          const result = await sendSocketIONotificationToShipper({
             eventName: "locationUpdateToShipper",
             phoneNumber: phoneNumberOfShipper,
             message: {
@@ -326,17 +334,35 @@ async function initSocket({ httpServer }) {
               messageTypes: messageTypes.update_drivers_location_to_shipper,
             },
           });
+          delivered =
+            result?.status === "success" &&
+            !String(result?.data || "").includes("skipped");
           logger.debug("Location update notification sent to shipper", {
             phoneNumber: phoneNumberOfShipper,
+            delivered,
           });
         }
 
         socket.emit("locationUpdateToShipper", data);
+        // Ack lets the driver keep the fix queued for replay when the shipper
+        // was offline (delivered: false) or drop it otherwise.
+        if (typeof ack === "function") {
+          ack({
+            status: "success",
+            delivered,
+            message: delivered
+              ? "delivered"
+              : "shipper offline — kept for replay",
+          });
+        }
       } catch (error) {
         logger.error("locationUpdateToShipper error", {
           socketId: socket.id,
           error: error.message,
         });
+        if (typeof ack === "function") {
+          ack({ status: "error", delivered: false, message: error.message });
+        }
       }
     });
 

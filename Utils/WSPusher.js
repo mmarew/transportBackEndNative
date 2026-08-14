@@ -7,6 +7,8 @@ const { setSocket } = require("./WsConnectionStore");
 const { getShipperJourneyStatus } = require("../Services/ShipperRequest");
 const { getDriverJourneyStatus } = require("../Services/DriverRequest");
 const messageTypes = require("./MessageTypes");
+const logger = require("./logger");
+const { getLastLocationsForShipper } = require("./LastLocationStore");
 
 const phoneNumberRegex = /^[0-9]{9,15}$/;
 
@@ -105,6 +107,33 @@ async function WSPusher({ socket }) {
     await setSocket(user, cleanedPhoneNumber, socketId);
     socket.userType = user;
     socket.identifier = cleanedPhoneNumber;
+
+    // Replay the driver's last known position(s) to a shipper that just
+    // connected/reconnected so the map shows the truck immediately (no waiting
+    // for the next tracker tick or the 30s REST poll). Emits right here, in the
+    // same connection flow as connection_established, so the client listener is
+    // already attached.
+    if (user === "shipper") {
+      try {
+        const lastLocations = await getLastLocationsForShipper(
+          cleanedPhoneNumber,
+        );
+        if (lastLocations.length) {
+          for (const loc of lastLocations) {
+            socket.emit("locationUpdateToShipper", { ...loc, replayed: true });
+          }
+          logger.debug("Replayed last known locations to shipper", {
+            phoneNumber: cleanedPhoneNumber,
+            count: lastLocations.length,
+          });
+        }
+      } catch (replayError) {
+        logger.warn("Replay last locations failed", {
+          error: replayError.message,
+        });
+      }
+    }
+
     // Get status if shipper or driver
     let status = null;
     if (user === "shipper") {

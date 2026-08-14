@@ -2,12 +2,19 @@ const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
 const { DOMAIN } = require("../Utils/Constants");
 
-// Driver request expects a nested currentLocation, not flat originLatitude/originLongitude
+// Driver request expects a nested currentLocation, not flat originLatitude/originLongitude.
+// description is optional: the app reverse-geocodes when it can, but a raw GPS fix
+// (no place name yet) is still a valid request — the services fall back to the
+// existing originPlace / coordinates string when it's missing.
+// unknown(true): the app sends the whole GPS Position.coords object (speed,
+// heading, altitude, accuracy, altitudeAccuracy, timestamp, ...) — never reject it.
 const locationSchema = Joi.object({
   latitude: Joi.number().required(),
   longitude: Joi.number().required(),
-  description: Joi.string().required(),
-}).required();
+  description: Joi.string().optional(),
+})
+  .unknown(true)
+  .required();
 
 exports.createRequest = Joi.object({
   currentLocation: locationSchema,

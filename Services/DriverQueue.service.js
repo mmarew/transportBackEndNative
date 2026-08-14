@@ -15,8 +15,9 @@ const {
   sendSocketIONotificationToDriver,
   sendSocketIONotificationToShipper,
 } = require("../Utils/Notifications");
+const { sendFCMNotificationToUser } = require("./Firebase.service");
 const messageTypes = require("../Utils/MessageTypes");
-const { journeyStatusMap } = require("../Utils/ListOfSeedData");
+const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { transactionStorage } = require("../Utils/TransactionContext");
@@ -924,6 +925,35 @@ const notifyDriverOfQueueOffer = async ({
   offerResult,
 }) => {
   if (!front?.phoneNumber) return;
+  // FCM — wakes the driver's phone even when the app is backgrounded, so a
+  // queue placement rings like a company assignment / nearby-match offer
+  // instead of being silently missed. Best-effort: the socket is the primary
+  // path, and the driver app's REST myPosition poll recovers the offer anyway.
+  sendFCMNotificationToUser({
+    userUniqueId: front.driverUserUniqueId,
+    roleId: usersRoles.driverRoleId,
+    notification: {
+      title: "New queue order offered",
+      body: shipperRequest?.originPlace
+        ? `You have a new queue order from ${shipperRequest.originPlace}. Please accept or reject.`
+        : "You have a new queue order. Please accept or reject.",
+    },
+    data: {
+      type: "queue_order_offered",
+      queueOrganizationUniqueId: front.queueOrganizationUniqueId,
+      queueUniqueId: front.queueUniqueId,
+      queueNumber: String(front.queueNumber ?? ""),
+      shipperRequestUniqueId: shipperRequest.shipperRequestUniqueId,
+      journeyDecisionUniqueId: offerResult.decision.journeyDecisionUniqueId,
+    },
+  }).catch((e) =>
+    logger.error("FCM failed for queue offer notification", {
+      error: e.message,
+      driverUserUniqueId: front.driverUserUniqueId,
+      queueUniqueId: front.queueUniqueId,
+    }),
+  );
+
   await sendSocketIONotificationToDriver({
     phoneNumber: front.phoneNumber,
     eventName: "queue",
