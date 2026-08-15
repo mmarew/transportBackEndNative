@@ -2095,15 +2095,29 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     deliveryConfirmationQuantityUnit VARCHAR(30) NULL,         -- e.g. 'quintal', 'kg', 'piece'
 
     deliveryConfirmationCondition ENUM('GOOD','DAMAGED','PARTIAL') NOT NULL DEFAULT 'GOOD',
-    deliveryConfirmationReceiverSignature TEXT NULL,           -- Signature (base64 or URL)
-    deliveryConfirmationPhotoUrl VARCHAR(500) NULL,            -- Proof-of-delivery photo (relative /uploads/... URL)
+    deliveryConfirmationReceiverSignature TEXT NULL,           -- Tier A: on-road receiver signature (base64 PNG)
+    deliveryConfirmationShipperSignature TEXT NULL,            -- Tier B: shipper's settle signature (base64 PNG; never overwrites receiver's)
+    deliveryConfirmationPhotoUrl VARCHAR(500) NULL,            -- Primary/cover proof photo (relative /uploads/... URL); full set in DeliveryConfirmationPhotos
     deliveryConfirmationNotes TEXT NULL,                       -- Free-text notes
 
     deliveryConfirmationLatitude DECIMAL(10, 8) NULL,          -- GPS of the confirmation point
     deliveryConfirmationLongitude DECIMAL(11, 8) NULL,
 
+    deliveryConfirmationSignatureHash VARCHAR(64) NULL,        -- SHA-256, computed ONCE at settle, never recomputed in place
+    deliveryConfirmationPreviousHash VARCHAR(64) NULL,         -- prior hash, moved here on admin amendment (audit)
+    deliveryConfirmationStatement TEXT NULL,                   -- declaration text displayed at signing time
+
     deliveryConfirmationSubmittedAt DATETIME NULL,             -- When the receiver submitted
+    deliveryConfirmationReceiverSignedAt DATETIME NULL,        -- When the on-road receiver signature was captured
     deliveryConfirmationConfirmedAt DATETIME NULL,             -- When the confirmation was settled
+    deliveryConfirmationShipperSignedAt DATETIME NULL,         -- = deliveryConfirmationConfirmedAt for Tier B
+
+    deliveryConfirmationOtpHash VARCHAR(100) NULL,             -- Tier A: bcrypt hash of the OTP (NOT plain SHA-256 — 6-digit codes are brute-forceable)
+    deliveryConfirmationOtpExpiresAt DATETIME NULL,            -- Tier A: short expiry (5–10 min)
+    deliveryConfirmationOtpAttempts INT NOT NULL DEFAULT 0,    -- Tier A: max 3–5 attempts, then invalidate
+    deliveryConfirmationOtpVerifiedAt DATETIME NULL,           -- Tier A: set when the OTP was verified
+    deliveryConfirmationOtpRequestCount INT NOT NULL DEFAULT 0,-- Tier A: requests in the current hourly window
+    deliveryConfirmationOtpWindowStartAt DATETIME NULL,        -- Tier A: start of the hourly request window
 
     deliveryConfirmationCreatedBy VARCHAR(36) NOT NULL,        -- FK → Users (who created the record)
     deliveryConfirmationUpdatedBy VARCHAR(36) NULL,            -- FK → Users
@@ -2121,6 +2135,22 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     FOREIGN KEY (deliveryConfirmationCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (deliveryConfirmationUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (deliveryConfirmationDeletedBy) REFERENCES Users(userUniqueId)
+);
+
+-- DeliveryConfirmationPhotos: the proof-of-delivery photo set for a confirmation.
+-- The parent DeliveryConfirmations.deliveryConfirmationPhotoUrl stores the FIRST
+-- photo (primary/cover) for backward compatibility; this table holds the full set.
+-- Photos are evidence: rows are append-only in normal operation (soft delete only).
+CREATE TABLE IF NOT EXISTS DeliveryConfirmationPhotos (
+    deliveryConfirmationPhotoId INT AUTO_INCREMENT PRIMARY KEY,
+    deliveryConfirmationPhotoUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID
+    deliveryConfirmationUniqueId VARCHAR(36) NOT NULL,               -- FK → DeliveryConfirmations
+    deliveryConfirmationPhotoUrl VARCHAR(500) NOT NULL,              -- relative /uploads/... path
+    deliveryConfirmationPhotoCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deliveryConfirmationPhotoDeletedBy VARCHAR(36) NULL,             -- FK → Users
+    deliveryConfirmationPhotoDeletedAt DATETIME NULL,
+    INDEX idx_dcPhoto_confirmation (deliveryConfirmationUniqueId),
+    FOREIGN KEY (deliveryConfirmationUniqueId) REFERENCES DeliveryConfirmations(deliveryConfirmationUniqueId)
 );
 `;
 

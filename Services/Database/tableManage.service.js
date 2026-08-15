@@ -175,6 +175,47 @@ const ensureDriverActiveRequestGuard = async (connection) => {
   logger.info("Migration: added unique index uq_driver_active_request");
 };
 
+// Enforcement columns added to DeliveryConfirmations for the POD credibility
+// flow (settle hash, two signatures, declaration statement, Tier-A OTP). They
+// live in the CREATE TABLE so fresh DBs get them for free, but an existing
+// database created before this change lacks them — `CREATE TABLE IF NOT EXISTS`
+// is a no-op there, so each missing column is ALTERed in after checking
+// information_schema (same pattern as ensureQueueOrgReferences).
+const DELIVERY_CONFIRMATION_COLUMNS = [
+  { name: "deliveryConfirmationSignatureHash", ddl: "VARCHAR(64) NULL" },
+  { name: "deliveryConfirmationPreviousHash", ddl: "VARCHAR(64) NULL" },
+  { name: "deliveryConfirmationStatement", ddl: "TEXT NULL" },
+  { name: "deliveryConfirmationShipperSignature", ddl: "TEXT NULL" },
+  { name: "deliveryConfirmationShipperSignedAt", ddl: "DATETIME NULL" },
+  { name: "deliveryConfirmationReceiverSignedAt", ddl: "DATETIME NULL" },
+  { name: "deliveryConfirmationOtpHash", ddl: "VARCHAR(100) NULL" },
+  { name: "deliveryConfirmationOtpExpiresAt", ddl: "DATETIME NULL" },
+  { name: "deliveryConfirmationOtpAttempts", ddl: "INT NOT NULL DEFAULT 0" },
+  { name: "deliveryConfirmationOtpVerifiedAt", ddl: "DATETIME NULL" },
+  { name: "deliveryConfirmationOtpRequestCount", ddl: "INT NOT NULL DEFAULT 0" },
+  { name: "deliveryConfirmationOtpWindowStartAt", ddl: "DATETIME NULL" },
+];
+
+const ensureDeliveryConfirmationColumns = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [existingRows] = await connection.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DeliveryConfirmations'`,
+    [dbName],
+  );
+  const existing = new Set(existingRows.map((r) => r.column_name));
+
+  for (const col of DELIVERY_CONFIRMATION_COLUMNS) {
+    if (!existing.has(col.name)) {
+      await connection.query(
+        `ALTER TABLE DeliveryConfirmations ADD COLUMN \`${col.name}\` ${col.ddl}`,
+      );
+      logger.info(`Migration: added DeliveryConfirmations.${col.name} column`);
+    }
+  }
+};
+
 const createTable = async () => {
   // Connect WITHOUT specifying the database so we can create it if it doesn't exist.
   const { database: dbName, ...configWithoutDb } = dbConfig;
@@ -203,6 +244,12 @@ const createTable = async () => {
     // (see ensureDriverActiveRequestGuard). Must run while this connection still
     // has the DB selected.
     await ensureDriverActiveRequestGuard(adminConnection);
+
+    // Idempotently add the DeliveryConfirmations enforcement columns (settle
+    // hash, two signatures, statement, Tier-A OTP) — see
+    // ensureDeliveryConfirmationColumns. Must run while this connection still has
+    // the DB selected.
+    await ensureDeliveryConfirmationColumns(adminConnection);
   } finally {
     await adminConnection.end();
   }

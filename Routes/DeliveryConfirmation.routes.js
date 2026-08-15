@@ -15,11 +15,15 @@ const {
   DELIVERY_CONFIRMATION_ENDPOINTS,
 } = require("./EndPoints/deliveryConfirmation.endpoints");
 
-// Create a new delivery confirmation (multipart: optional "photo" file + fields)
+// Create a new delivery confirmation (multipart: optional "photos" file array +
+// fields; legacy single "photo" field still accepted and becomes the primary).
 router.post(
   DELIVERY_CONFIRMATION_ENDPOINTS.CREATE_DELIVERY_CONFIRMATION,
   verifyTokenOfAxios,
-  upload.single("photo"),
+  upload.fields([
+    { name: "photos", maxCount: 10 },
+    { name: "photo", maxCount: 1 },
+  ]),
   validator(createDeliveryConfirmation),
   deliveryConfirmationController.createDeliveryConfirmation,
 );
@@ -32,11 +36,15 @@ router.get(
   deliveryConfirmationController.getDeliveryConfirmations,
 );
 
-// Update a delivery confirmation by deliveryConfirmationUniqueId (multipart optional "photo")
+// Update a delivery confirmation by deliveryConfirmationUniqueId (multipart:
+// optional "photos" file array; legacy single "photo" field still accepted).
 router.put(
   DELIVERY_CONFIRMATION_ENDPOINTS.UPDATE_DELIVERY_CONFIRMATION,
   verifyTokenOfAxios,
-  upload.single("photo"),
+  upload.fields([
+    { name: "photos", maxCount: 10 },
+    { name: "photo", maxCount: 1 },
+  ]),
   validator(deliveryConfirmationParams, "params"),
   validator(updateDeliveryConfirmation),
   deliveryConfirmationController.updateDeliveryConfirmation,
@@ -48,6 +56,23 @@ router.delete(
   verifyTokenOfAxios,
   validator(deliveryConfirmationParams, "params"),
   deliveryConfirmationController.deleteDeliveryConfirmation,
+);
+
+// Tier A: request a time-limited OTP for the on-road receiver signature.
+// Only while the confirmation is PENDING; at most one active code at a time.
+router.post(
+  DELIVERY_CONFIRMATION_ENDPOINTS.REQUEST_SIGN_OTP,
+  verifyTokenOfAxios,
+  validator(deliveryConfirmationParams, "params"),
+  deliveryConfirmationController.requestSignOtp,
+);
+
+// Admin tool: recompute the settle hash and compare with the stored hash
+router.get(
+  DELIVERY_CONFIRMATION_ENDPOINTS.VERIFY_HASH,
+  verifyTokenOfAxios,
+  validator(deliveryConfirmationParams, "params"),
+  deliveryConfirmationController.verifyDeliveryConfirmationHash,
 );
 
 module.exports = router;

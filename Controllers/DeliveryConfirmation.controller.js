@@ -5,7 +5,7 @@ const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { uploadToFTP } = require("../Utils/FTPHandler");
 
-// Upload the optional proof-of-delivery photo and return its public URL.
+// Upload a single proof-of-delivery photo and return its stored (relative) path.
 const saveDeliveryPhoto = (file) => {
   if (!file?.buffer) {
     return null;
@@ -13,6 +13,29 @@ const saveDeliveryPhoto = (file) => {
   const fileExtension = path.extname(file.originalname || "");
   const uniqueFilename = `delivery_${uuidv4()}${fileExtension}`;
   return uploadToFTP(file.buffer, uniqueFilename);
+};
+
+// Collect every uploaded proof photo — req.files.photos[] plus the legacy single
+// "photo" field (req.files.photo[0] or req.file) — and upload each. Returns the
+// list of stored relative paths; the first entry is the primary/cover photo.
+const saveDeliveryPhotos = (req) => {
+  const allFiles = [];
+  if (req.file) {
+    allFiles.push(req.file);
+  }
+  for (const group of Object.values(req.files || {})) {
+    for (const file of group || []) {
+      allFiles.push(file);
+    }
+  }
+  const photoUrls = [];
+  for (const file of allFiles) {
+    const url = saveDeliveryPhoto(file);
+    if (url) {
+      photoUrls.push(url);
+    }
+  }
+  return photoUrls;
 };
 
 // Create a new delivery confirmation
@@ -34,7 +57,7 @@ exports.createDeliveryConfirmation = async (req, res, next) => {
     } = req.body;
     const createdBy = req.user.userUniqueId;
 
-    const photoUrl = await saveDeliveryPhoto(req.file);
+    const photoUrls = saveDeliveryPhotos(req);
 
     const result = await executeInTransaction(async () => {
       return await deliveryConfirmationService.createDeliveryConfirmation({
@@ -48,12 +71,15 @@ exports.createDeliveryConfirmation = async (req, res, next) => {
         quantityUnit,
         condition,
         receiverSignature,
-        photoUrl,
+        photoUrls,
         notes,
         latitude,
         longitude,
       });
     });
+    // Best-effort push so the shipper can review & sign without polling.
+    // Never fails the request — failures are logged inside the service.
+    await deliveryConfirmationService.notifyShipperOfPodSubmit(journeyUniqueId);
     ServerResponder(res, result);
   } catch (error) {
     next(error);
@@ -95,13 +121,17 @@ exports.updateDeliveryConfirmation = async (req, res, next) => {
       quantityUnit,
       condition,
       receiverSignature,
+      shipperSignature,
+      statement,
       notes,
       latitude,
       longitude,
+      otpCode,
     } = req.body;
     const updatedBy = req.user.userUniqueId;
+    const roleId = req.user.roleId;
 
-    const photoUrl = await saveDeliveryPhoto(req.file);
+    const photoUrls = saveDeliveryPhotos(req);
 
     const result = await executeInTransaction(async () => {
       return await deliveryConfirmationService.updateDeliveryConfirmation(
@@ -112,12 +142,31 @@ exports.updateDeliveryConfirmation = async (req, res, next) => {
           quantityUnit,
           condition,
           receiverSignature,
-          photoUrl,
+          shipperSignature,
+          statement,
+          photoUrls,
           notes,
           latitude,
           longitude,
+          otpCode,
         },
         updatedBy,
+        roleId,
+      );
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Tier A: request an OTP for the on-road receiver signature
+exports.requestSignOtp = async (req, res, next) => {
+  try {
+    const { deliveryConfirmationUniqueId } = req.params;
+    const result = await executeInTransaction(async () => {
+      return await deliveryConfirmationService.requestSignOtp(
+        deliveryConfirmationUniqueId,
       );
     });
     ServerResponder(res, result);
@@ -131,10 +180,28 @@ exports.deleteDeliveryConfirmation = async (req, res, next) => {
   try {
     const { deliveryConfirmationUniqueId } = req.params;
     const deletedBy = req.user.userUniqueId;
+    const roleId = req.user.roleId;
     const result = await executeInTransaction(async () => {
       return await deliveryConfirmationService.deleteDeliveryConfirmation(
         deliveryConfirmationUniqueId,
         deletedBy,
+        roleId,
+      );
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin tool: recompute the settle hash and compare with the stored hash
+exports.verifyDeliveryConfirmationHash = async (req, res, next) => {
+  try {
+    const { deliveryConfirmationUniqueId } = req.params;
+    const result = await executeInTransaction(async () => {
+      return await deliveryConfirmationService.verifyDeliveryConfirmationHash(
+        deliveryConfirmationUniqueId,
+        req.user.roleId,
       );
     });
     ServerResponder(res, result);
