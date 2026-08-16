@@ -314,3 +314,54 @@ exports.getJourneys = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET /api/journey/pod-status — deliveries with their single proof-of-delivery
+// status. Filter-based + paginated. Scoped by role: driver/shipper only see
+// their own (userUniqueId=self), company admins/dispatchers see deliveries
+// assigned to their company, admins see everything.
+exports.getJourneysWithPodStatus = async (req, res, next) => {
+  try {
+    const { userUniqueId: callerUserUniqueId, roleId: callerRoleId } = req.user;
+    const {
+      journeyStatusId,
+      podStatus,
+      ownerUserUniqueId,
+      userUniqueId,
+      fromDate,
+      toDate,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const { page: validatedPage, limit: validatedLimit } = validatePagination(
+      page,
+      limit,
+    );
+
+    // 'self' (or absent) → the caller themselves; used by driver/shipper.
+    const isSelf = !userUniqueId || userUniqueId === "self";
+    const finalViewerUserUniqueId = isSelf ? callerUserUniqueId : userUniqueId;
+    // For admins, an explicit owner filter narrows the view to that user.
+    const finalOwnerUserUniqueId =
+      ownerUserUniqueId || (isSelf ? undefined : userUniqueId);
+
+    const filters = {
+      journeyStatusId: journeyStatusId ? parseInt(journeyStatusId) : undefined,
+      podStatus,
+      ownerUserUniqueId: finalOwnerUserUniqueId,
+      viewerUserUniqueId: finalViewerUserUniqueId,
+      roleId: callerRoleId,
+      fromDate,
+      toDate,
+      page: validatedPage,
+      limit: validatedLimit,
+    };
+    await handleServiceResponse(
+      journeyService.getJourneysWithPodStatus(filters),
+      res,
+      next,
+    );
+  } catch (error) {
+    next(error);
+  }
+};

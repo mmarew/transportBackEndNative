@@ -8,6 +8,7 @@ const JOURNEY_ENDPOINTS = {
   GET_ALL_COMPLETED_JOURNEY: "/api/driver/getAllCompletedJourney",
   GET_ONGOING_JOURNEY: "/api/user/getOngoingJourney",
   GET_JOURNEYS: "/api/journey",
+  GET_JOURNEYS_WITH_POD_STATUS: "/api/journey/pod-status",
 };
 
 module.exports = {

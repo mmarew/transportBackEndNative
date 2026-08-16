@@ -51,11 +51,14 @@ exports.createDeliveryConfirmation = async (req, res, next) => {
       quantityUnit,
       condition,
       receiverSignature,
+      shipperSignature,
       notes,
       latitude,
       longitude,
+      status,
     } = req.body;
     const createdBy = req.user.userUniqueId;
+    const roleId = req.user.roleId;
 
     const photoUrls = saveDeliveryPhotos(req);
 
@@ -67,19 +70,30 @@ exports.createDeliveryConfirmation = async (req, res, next) => {
         receiverFullName,
         receiverEmail,
         createdBy,
+        roleId,
         deliveredQuantity,
         quantityUnit,
         condition,
         receiverSignature,
+        shipperSignature,
         photoUrls,
         notes,
         latitude,
         longitude,
+        status,
       });
     });
     // Best-effort push so the shipper can review & sign without polling.
+    // Skipped when the shipper submitted & self-confirmed directly (they are the
+    // creator; driver notified instead — inside the service) and when the record
+    // already existed (idempotent create — don't re-notify on a retry).
     // Never fails the request — failures are logged inside the service.
-    await deliveryConfirmationService.notifyShipperOfPodSubmit(journeyUniqueId);
+    if (status !== "CONFIRMED" && !result?.isExisting) {
+      await deliveryConfirmationService.notifyShipperOfPodSubmit(
+        journeyUniqueId,
+        result?.data?.deliveryConfirmationUniqueId,
+      );
+    }
     ServerResponder(res, result);
   } catch (error) {
     next(error);

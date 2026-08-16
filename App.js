@@ -45,6 +45,25 @@ const onStartUp = async () => {
     // Store control object for graceful shutdown
     global.timeoutServiceControl = timeoutServiceControl;
 
+    // Ensure the DeliveryConfirmations enforcement columns exist on a
+    // pre-existing database (idempotent, information_schema-checked). CREATE
+    // TABLE IF NOT EXISTS alone is a no-op on an old table, so missing columns
+    // would break GET /deliveryConfirmations with ER_BAD_FIELD_ERROR.
+    try {
+      const {
+        ensureDeliveryConfirmationColumns,
+        ensureDeliveryConfirmationPhotoAttachedBy,
+      } = require("./Services/Database/tableManage.service");
+      const { pool } = require("./Middleware/Database.config");
+      await ensureDeliveryConfirmationColumns(pool);
+      await ensureDeliveryConfirmationPhotoAttachedBy(pool);
+      logger.info("DeliveryConfirmations schema migration ensured");
+    } catch (migrationError) {
+      logger.warn("DeliveryConfirmations schema migration failed", {
+        error: migrationError.message,
+      });
+    }
+
     // Add your startup logic here (e.g., DB connection)
     // createTable();
   } catch (error) {

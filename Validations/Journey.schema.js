@@ -72,3 +72,16 @@ exports.getOngoingJourneyQuery = Joi.object({
   email: Joi.string().optional(),
   search: Joi.string().optional(),
 }).unknown(true);
+
+exports.getJourneysWithPodStatusQuery = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
+  journeyStatusId: Joi.number().integer().optional(),
+  podStatus: Joi.string()
+    .valid("NONE", "PENDING", "CONFIRMED", "DISPUTED")
+    .optional(),
+  ownerUserUniqueId: Joi.string().optional(), // driver/shipper UUID (admin views)
+  userUniqueId: Joi.string().optional(), // 'self' convenience → becomes the caller
+  fromDate: Joi.date().optional(),
+  toDate: Joi.date().optional(),
+}).unknown(true);

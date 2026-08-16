@@ -16,11 +16,24 @@ const {
   searchCompletedJourneyByUserDataQuery,
   getAllCompletedJourneysQuery,
   getOngoingJourneyQuery,
+  getJourneysWithPodStatusQuery,
 } = require("../Validations/Journey.schema");
 const { JOURNEY_ENDPOINTS } = require("./EndPoints/journey.endpoints");
 
 // Route configuration
 const routes = [
+  // NOTE: static GET paths (e.g. /api/journey/pod-status) MUST be registered
+  // BEFORE /api/journey/:journeyUniqueId, otherwise Express matches the param
+  // route first and "pod-status" is validated as a journey GUID.
+  {
+    method: "get",
+    path: JOURNEY_ENDPOINTS.GET_JOURNEYS_WITH_POD_STATUS,
+    middleware: [
+      verifyTokenOfAxios,
+      validator(getJourneysWithPodStatusQuery, "query"),
+    ],
+    handler: journeyController.getJourneysWithPodStatus,
+  },
   {
     method: "post",
     path: JOURNEY_ENDPOINTS.CREATE_JOURNEY,

@@ -22,6 +22,7 @@ module.exports = {
   getOngoingJourney: journeyRead.getOngoingJourney,
   getAllCompletedJourneys: journeyRead.getAllCompletedJourneys,
   getJourneys: journeyRead.getJourneys,
+  getJourneysWithPodStatus: journeyRead.getJourneysWithPodStatus,
   getDriverRequestByRequestId: journeyHelper.getDriverRequestByRequestId,
   getShipperRequestByShipperRequestId:
     journeyHelper.getShipperRequestByShipperRequestId,

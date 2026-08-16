@@ -43,6 +43,11 @@ jest.mock("../Services/Firebase.service", () => ({
   sendFCMNotificationToUser: jest.fn(),
 }));
 
+jest.mock("../Utils/Notifications", () => ({
+  sendSocketIONotificationToShipper: jest.fn(),
+  sendSocketIONotificationToDriver: jest.fn(),
+}));
+
 jest.mock("../Utils/ListOfSeedData", () => ({
   usersRoles: {
     shipperRoleId: 1,
@@ -62,8 +67,11 @@ const {
   notifyShipperOfPodSubmit,
 } = require("../Services/DeliveryConfirmation.service");
 const AppError = require("../Utils/AppError");
+const Config = require("../Utils/Config");
 const { sendSms } = require("../Utils/smsSender");
 const { sendFCMNotificationToUser } = require("../Services/Firebase.service");
+const { sendSocketIONotificationToShipper } = require("../Utils/Notifications");
+const { sendSocketIONotificationToDriver } = require("../Utils/Notifications");
 const { getData } = require("../CRUD/Read/ReadData");
 
 const NOW = "2026-08-15 14:00:00";
@@ -130,45 +138,6 @@ describe("updateDeliveryConfirmation — settle-time evidence validation", () =>
     ).rejects.toMatchObject({
       statusCode: AppError.BAD_REQUEST,
       message: expect.stringContaining("signature"),
-    });
-  });
-
-  it("rejects settle without at least one proof photo", async () => {
-    mockPool.query.mockResolvedValueOnce([
-      [baseRow({ deliveryConfirmationPhotoUrl: null })],
-    ]);
-    await expect(
-      updateDeliveryConfirmation(
-        "dc-123",
-        { status: "CONFIRMED", shipperSignature: "sig-b64" },
-        "u-shipper",
-        1,
-      ),
-    ).rejects.toMatchObject({
-      statusCode: AppError.BAD_REQUEST,
-      message: expect.stringContaining("photo"),
-    });
-  });
-
-  it("rejects settle without GPS coordinates", async () => {
-    mockPool.query.mockResolvedValueOnce([
-      [
-        baseRow({
-          deliveryConfirmationLatitude: null,
-          deliveryConfirmationLongitude: null,
-        }),
-      ],
-    ]);
-    await expect(
-      updateDeliveryConfirmation(
-        "dc-123",
-        { status: "CONFIRMED", shipperSignature: "sig-b64" },
-        "u-shipper",
-        1,
-      ),
-    ).rejects.toMatchObject({
-      statusCode: AppError.BAD_REQUEST,
-      message: expect.stringContaining("GPS"),
     });
   });
 
@@ -434,6 +403,21 @@ describe("updateDeliveryConfirmation — Tier-A OTP", () => {
     });
   });
 
+  it("accepts the test code without a prior OTP request (dev create→sign flow)", async () => {
+    mockPool.query
+      .mockResolvedValueOnce([[baseRow()]]) // no OTP hash at all
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // verifiedAt
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // main UPDATE
+    await updateDeliveryConfirmation(
+      "dc-123",
+      { otpCode: "101010", receiverSignature: "sig" },
+      "u-driver",
+      2,
+    );
+    const [sql] = updateCalls().at(-1);
+    expect(sql).toContain("deliveryConfirmationReceiverSignature = ?");
+  });
+
   it("accepts a valid OTP and binds the receiver signature with a timestamp", async () => {
     mockPool.query
       .mockResolvedValueOnce([
@@ -481,25 +465,110 @@ describe("updateDeliveryConfirmation — photo append", () => {
 });
 
 describe("createDeliveryConfirmation — one per journey", () => {
-  it("maps ER_DUP_ENTRY to a 409 conflict", async () => {
+  it("hands back the existing record when the journey already has one (idempotent)", async () => {
     getData
       .mockResolvedValueOnce([{ journeyUniqueId: "j-1" }]) // journey exists
       .mockResolvedValueOnce([{ userUniqueId: "u-receiver" }]); // receiver exists
-    mockPool.query.mockRejectedValueOnce(
-      Object.assign(new Error("duplicate"), { code: "ER_DUP_ENTRY" }),
-    );
-    await expect(
-      createDeliveryConfirmation({
-        journeyUniqueId: "j-1",
-        receiverUserUniqueId: "u-receiver",
-        createdBy: "u-driver",
-        condition: "GOOD",
-        photoUrls: [],
-      }),
-    ).rejects.toMatchObject({
-      statusCode: AppError.CONFLICT,
-      message: expect.stringContaining("already exists"),
+    mockPool.query
+      .mockRejectedValueOnce(
+        Object.assign(new Error("duplicate"), { code: "ER_DUP_ENTRY" }),
+      )
+      // getDeliveryConfirmations: count, data, photos
+      .mockResolvedValueOnce([[{ total: 1 }]])
+      .mockResolvedValueOnce([
+        [
+          {
+            deliveryConfirmationUniqueId: "dc-existing",
+            journeyUniqueId: "j-1",
+            receiverUserUniqueId: "u-receiver",
+            deliveryConfirmationStatus: "PENDING",
+            deliveryConfirmationDeliveredQuantity: "10.000",
+            deliveryConfirmationQuantityUnit: "quintal",
+            deliveryConfirmationCondition: "GOOD",
+            deliveryConfirmationPhotoUrl: null,
+          },
+        ],
+      ])
+      .mockResolvedValueOnce([[]]); // no photos
+    const result = await createDeliveryConfirmation({
+      journeyUniqueId: "j-1",
+      receiverUserUniqueId: "u-receiver",
+      createdBy: "u-driver",
+      condition: "GOOD",
+      photoUrls: ["/uploads/a.jpg"],
+      latitude: 9.0108,
+      longitude: 38.7612,
     });
+    expect(result).toMatchObject({
+      isExisting: true,
+      message: expect.stringContaining("already exists"),
+      data: {
+        deliveryConfirmationUniqueId: "dc-existing",
+        deliveryConfirmationStatus: "PENDING",
+      },
+    });
+  });
+
+  it("settles the driver's PENDING record when the shipper self-confirms (idempotent)", async () => {
+    getData.mockResolvedValueOnce([
+      { journeyUniqueId: "j-1", journeyStatusId: 9 },
+    ]); // journey exists + completed
+    mockPool.query
+      // createShipperDirectConfirmation: journey→shipper, receiver, INSERT(dup)
+      .mockResolvedValueOnce([[{ shipperUserUniqueId: "u-shipper" }]])
+      .mockResolvedValueOnce([
+        [{ fullName: "Marta Bekele", phoneNumber: "+251900000000" }],
+      ])
+      .mockRejectedValueOnce(
+        Object.assign(new Error("duplicate"), { code: "ER_DUP_ENTRY" }),
+      )
+      // getDeliveryConfirmations: count, data, photos
+      .mockResolvedValueOnce([[{ total: 1 }]])
+      .mockResolvedValueOnce([
+        [
+          {
+            deliveryConfirmationUniqueId: "dc-existing",
+            journeyUniqueId: "j-1",
+            receiverUserUniqueId: "u-shipper",
+            deliveryConfirmationStatus: "PENDING",
+            deliveryConfirmationPhotoUrl: null,
+          },
+        ],
+      ])
+      .mockResolvedValueOnce([[]])
+      // updateDeliveryConfirmation (settle): current, journey, receiver, photos, UPDATE
+      .mockResolvedValueOnce([
+        [
+          baseRow({
+            deliveryConfirmationUniqueId: "dc-existing",
+            receiverUserUniqueId: "u-shipper",
+          }),
+        ],
+      ])
+      .mockResolvedValueOnce([[{ journeyStatusId: 9 }]])
+      .mockResolvedValueOnce([
+        [{ fullName: "Marta Bekele", phoneNumber: "+251900000000" }],
+      ])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const result = await createDeliveryConfirmation({
+      journeyUniqueId: "j-1",
+      createdBy: "u-shipper",
+      roleId: 1,
+      shipperSignature: "sig",
+      status: "CONFIRMED",
+      photoUrls: [],
+    });
+
+    expect(result).toMatchObject({
+      isExisting: true,
+      message: expect.stringContaining("confirmed by the shipper"),
+      data: { deliveryConfirmationUniqueId: "dc-existing" },
+    });
+    const [updateSql] = updateCalls().at(-1);
+    expect(updateSql).toContain("deliveryConfirmationShipperSignature = ?");
+    expect(updateSql).toContain("confirmedByUserUniqueId = ?");
   });
 });
 
@@ -562,7 +631,9 @@ describe("createDeliveryConfirmation — receiverSignedAt at create", () => {
       createdBy: "u-driver",
       receiverSignature: "sig",
       condition: "GOOD",
-      photoUrls: [],
+      photoUrls: ["/uploads/a.jpg"],
+      latitude: 9.0108,
+      longitude: 38.7612,
     });
     // INSERT values: [uniqueId, journey, receiver, qty, unit, condition,
     //                 signature, receiverSignedAt, photo, ...]
@@ -578,11 +649,244 @@ describe("createDeliveryConfirmation — receiverSignedAt at create", () => {
       receiverUserUniqueId: "u-receiver",
       createdBy: "u-driver",
       condition: "GOOD",
-      photoUrls: [],
+      photoUrls: ["/uploads/a.jpg"],
+      latitude: 9.0108,
+      longitude: 38.7612,
     });
     const [, values] = mockPool.query.mock.calls[0];
     expect(values[6]).toBeNull();
     expect(values[7]).toBeNull();
+  });
+});
+
+describe("createDeliveryConfirmation — proof photo required at submission", () => {
+  it("rejects a PENDING submission without at least one proof photo", async () => {
+    getData.mockResolvedValueOnce([{ journeyUniqueId: "j-1" }]); // journey exists
+    await expect(
+      createDeliveryConfirmation({
+        journeyUniqueId: "j-1",
+        receiverUserUniqueId: "u-receiver",
+        createdBy: "u-driver",
+        condition: "GOOD",
+        photoUrls: [],
+        latitude: 9.0108,
+        longitude: 38.7612,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: AppError.BAD_REQUEST,
+      message: expect.stringContaining("proof photo"),
+    });
+  });
+
+  it("rejects a PENDING submission without GPS coordinates", async () => {
+    getData.mockResolvedValueOnce([{ journeyUniqueId: "j-1" }]); // journey exists
+    await expect(
+      createDeliveryConfirmation({
+        journeyUniqueId: "j-1",
+        receiverUserUniqueId: "u-receiver",
+        createdBy: "u-driver",
+        condition: "GOOD",
+        photoUrls: ["/uploads/a.jpg"],
+      }),
+    ).rejects.toMatchObject({
+      statusCode: AppError.BAD_REQUEST,
+      message: expect.stringContaining("GPS"),
+    });
+  });
+
+  it("accepts a PENDING submission when a photo is present", async () => {
+    getData
+      .mockResolvedValueOnce([{ journeyUniqueId: "j-1", journeyStatusId: 9 }]) // journey
+      .mockResolvedValueOnce([{ userUniqueId: "u-receiver" }]); // receiver exists
+    mockPool.query.mockResolvedValueOnce([{ affectedRows: 1 }]); // INSERT
+    const result = await createDeliveryConfirmation({
+      journeyUniqueId: "j-1",
+      receiverUserUniqueId: "u-receiver",
+      createdBy: "u-driver",
+      condition: "GOOD",
+      photoUrls: ["/uploads/a.jpg"],
+      latitude: 9.0108,
+      longitude: 38.7612,
+    });
+    expect(result).toMatchObject({
+      data: { deliveryConfirmationStatus: "PENDING" },
+    });
+  });
+});
+
+describe("createDeliveryConfirmation — shipper-initiated direct POD (status CONFIRMED)", () => {
+  const directQueries = ({
+    journeyStatusId = 9,
+    journeyShipperId = "u-shipper",
+    receiverName = "Marta Bekele",
+  } = {}) => {
+    getData.mockResolvedValueOnce([
+      { journeyUniqueId: "j-1", journeyStatusId },
+    ]); // journey exists
+    mockPool.query
+      .mockResolvedValueOnce([[{ shipperUserUniqueId: journeyShipperId }]]) // journey→shipper
+      .mockResolvedValueOnce([
+        [{ fullName: receiverName, phoneNumber: "+251900000000" }],
+      ]) // receiver (shipper default)
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // INSERT
+  };
+
+  it("creates a CONFIRMED record for the journey's shipper (no photo/GPS required)", async () => {
+    directQueries();
+    const result = await createDeliveryConfirmation({
+      journeyUniqueId: "j-1",
+      createdBy: "u-shipper",
+      shipperSignature: "sig-b64",
+      deliveredQuantity: 20,
+      quantityUnit: "kg",
+      condition: "GOOD",
+      notes: "Left with the gatehouse.",
+      status: "CONFIRMED",
+      photoUrls: [],
+    });
+
+    expect(result).toMatchObject({
+      message: "Delivery confirmation created successfully",
+      data: {
+        receiverUserUniqueId: "u-shipper",
+        deliveryConfirmationStatus: "CONFIRMED",
+      },
+    });
+
+    const [sql, values] = mockPool.query.mock.calls[2];
+    expect(String(sql)).toContain("'CONFIRMED'");
+    expect(String(sql)).toContain("deliveryConfirmationShipperSignature");
+    expect(String(sql)).toContain("deliveryConfirmationSignatureHash");
+    expect(String(sql)).toContain("confirmedByUserUniqueId");
+    expect(String(sql)).toContain("deliveryConfirmationShipperSignedAt");
+    expect(values).toContain("u-shipper"); // receiver defaults to shipper
+    expect(values).toContain("sig-b64");
+    expect(values.some((v) => typeof v === "string" && v.includes("Marta Bekele"))).toBe(
+      true,
+    );
+    // Immutable SHA-256 settle hash computed at insert (no photo/GPS → empty/blank).
+    // INSERT values: [uniqueId, journey, receiver, qty, unit, condition, sig,
+    //                 signedAt, statement, HASH, photo, notes, submittedAt,
+    //                 createdBy, confirmedBy, confirmedAt, createdAt, updatedAt]
+    const storedHash = values[9];
+    expect(storedHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(storedHash).toBe(
+      expectedHash({
+        journeyUniqueId: "j-1",
+        receiverSignature: "",
+        shipperSignature: "sig-b64",
+        photoUrls: [],
+        deliveredQuantity: 20,
+        quantityUnit: "kg",
+        condition: "GOOD",
+        latitude: "",
+        longitude: "",
+        confirmedAt: NOW,
+      }),
+    );
+  });
+
+  it("attributes shipper-attached photos and notifies the driver", async () => {
+    directQueries();
+    mockPool.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }]) // photos INSERT
+      .mockResolvedValueOnce([
+        // notifyDriverOfPodConfirmed: journey→driver JOIN
+        [{ driverUserUniqueId: "u-driver", driverPhoneNumber: "+251911111111" }],
+      ]);
+    sendSocketIONotificationToDriver.mockResolvedValueOnce({ status: "success" });
+    sendFCMNotificationToUser.mockResolvedValueOnce({ status: "success" });
+    await createDeliveryConfirmation({
+      journeyUniqueId: "j-1",
+      createdBy: "u-shipper",
+      shipperSignature: "sig",
+      status: "CONFIRMED",
+      photoUrls: ["/uploads/d.jpg"],
+    });
+
+    // INSERT into DeliveryConfirmationPhotos stamps the attaching user.
+    const photosInsert = mockPool.query.mock.calls.find(([sql]) =>
+      String(sql).includes("INSERT INTO DeliveryConfirmationPhotos"),
+    );
+    expect(photosInsert).toBeTruthy();
+    expect(photosInsert[1]).toEqual([
+      expect.any(String), // deliveryConfirmationPhotoUniqueId
+      expect.any(String), // deliveryConfirmationUniqueId
+      "/uploads/d.jpg",
+      "u-shipper",
+    ]);
+    expect(sendSocketIONotificationToDriver).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phoneNumber: expect.any(String),
+        message: expect.objectContaining({ message: "POD confirmed." }),
+      }),
+    );
+  });
+
+  it("403 when a non-shipper (e.g. the driver) tries to self-confirm", async () => {
+    directQueries({ journeyShipperId: "u-real-shipper" });
+    await expect(
+      createDeliveryConfirmation({
+        journeyUniqueId: "j-1",
+        createdBy: "u-driver",
+        receiverSignature: "driver-sig",
+        status: "CONFIRMED",
+        photoUrls: [],
+      }),
+    ).rejects.toMatchObject({
+      statusCode: AppError.FORBIDDEN,
+      message: expect.stringContaining("Only the shipper"),
+    });
+  });
+
+  it("400 when the journey is not completed yet", async () => {
+    directQueries({ journeyStatusId: 5 }); // journeyStarted
+    await expect(
+      createDeliveryConfirmation({
+        journeyUniqueId: "j-1",
+        createdBy: "u-shipper",
+        shipperSignature: "sig",
+        status: "CONFIRMED",
+        photoUrls: [],
+      }),
+    ).rejects.toMatchObject({
+      statusCode: AppError.BAD_REQUEST,
+      message: expect.stringContaining("completed journey"),
+    });
+  });
+
+  it("400 when no shipper signature is provided", async () => {
+    directQueries();
+    await expect(
+      createDeliveryConfirmation({
+        journeyUniqueId: "j-1",
+        createdBy: "u-shipper",
+        status: "CONFIRMED",
+        photoUrls: [],
+      }),
+    ).rejects.toMatchObject({
+      statusCode: AppError.BAD_REQUEST,
+      message: expect.stringContaining("shipper signature"),
+    });
+  });
+
+  it("driver-initiated create without CONFIRMED status still creates a PENDING record", async () => {
+    getData
+      .mockResolvedValueOnce([{ journeyUniqueId: "j-1", journeyStatusId: 9 }]) // journey
+      .mockResolvedValueOnce([{ userUniqueId: "u-receiver" }]); // receiver exists
+    mockPool.query.mockResolvedValueOnce([{ affectedRows: 1 }]); // INSERT
+    const result = await createDeliveryConfirmation({
+      journeyUniqueId: "j-1",
+      receiverUserUniqueId: "u-receiver",
+      createdBy: "u-driver",
+      condition: "GOOD",
+      photoUrls: ["/uploads/a.jpg"],
+      latitude: 9.0108,
+      longitude: 38.7612,
+    });
+    expect(result).toMatchObject({
+      data: { deliveryConfirmationStatus: "PENDING" },
+    });
   });
 });
 
@@ -713,6 +1017,34 @@ describe("notifyShipperOfPodSubmit — FCM push", () => {
     );
   });
 
+  it("pushes a WebSocket message to the shipper when a phone number is known", async () => {
+    mockPool.query.mockResolvedValueOnce([
+      [
+        {
+          shipperUserUniqueId: "u-shipper",
+          shipperRequestId: 42,
+          shipperPhoneNumber: "+251911000000",
+        },
+      ],
+    ]);
+    sendSocketIONotificationToShipper.mockResolvedValueOnce({
+      status: "success",
+    });
+    await notifyShipperOfPodSubmit("j-1", "dc-9");
+    expect(sendSocketIONotificationToShipper).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phoneNumber: "+251911000000",
+        message: expect.objectContaining({
+          message: "POD submitted.",
+          data: expect.objectContaining({
+            journeyUniqueId: "j-1",
+            deliveryConfirmationUniqueId: "dc-9",
+          }),
+        }),
+      }),
+    );
+  });
+
   it("skips quietly when the journey has no shipper", async () => {
     mockPool.query.mockResolvedValueOnce([[]]);
     const result = await notifyShipperOfPodSubmit("j-1");
@@ -731,7 +1063,38 @@ describe("notifyShipperOfPodSubmit — FCM push", () => {
 });
 
 describe("requestSignOtp — Tier-A OTP issuance", () => {
-  it("sends a 6-digit OTP to the receiver and stores a bcrypt hash", async () => {
+  const originalNodeEnv = Config.NODE_ENV;
+  const originalUseTestOtp = Config.USE_TEST_OTP;
+
+  afterEach(() => {
+    Config.NODE_ENV = originalNodeEnv;
+    Config.USE_TEST_OTP = originalUseTestOtp;
+  });
+
+  it("skips SMS and issues the fixed test OTP (101010) outside production", async () => {
+    Config.NODE_ENV = "development";
+    Config.USE_TEST_OTP = false;
+    sendSms.mockClear();
+    mockPool.query
+      .mockResolvedValueOnce([[baseRow()]])
+      .mockResolvedValueOnce([
+        [{ fullName: "Abebe Kebede", phoneNumber: "+251911234567" }],
+      ])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]); // OTP fields UPDATE
+    const result = await requestSignOtp("dc-123");
+    expect(result.message).toBe("OTP sent to the receiver");
+    expect(sendSms).not.toHaveBeenCalled();
+    const [, values] = mockPool.query.mock.calls.find(([q]) =>
+      String(q).includes("deliveryConfirmationOtpHash"),
+    );
+    expect(String(values[0])).not.toBe("101010"); // stored hashed, not plaintext
+    expect(await bcrypt.compare("101010", String(values[0]))).toBe(true);
+  });
+
+  it("sends a random 6-digit OTP via SMS in production", async () => {
+    Config.NODE_ENV = "production";
+    Config.USE_TEST_OTP = false;
+    sendSms.mockClear();
     mockPool.query
       .mockResolvedValueOnce([[baseRow()]])
       .mockResolvedValueOnce([

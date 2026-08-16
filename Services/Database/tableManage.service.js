@@ -204,15 +204,53 @@ const ensureDeliveryConfirmationColumns = async (connection) => {
      WHERE table_schema = ? AND table_name = 'DeliveryConfirmations'`,
     [dbName],
   );
-  const existing = new Set(existingRows.map((r) => r.column_name));
+  // MySQL may return the column label as `column_name` or `COLUMN_NAME`
+  // depending on the server/client — compare case-insensitively so an existing
+  // table is detected correctly and ALTERs are skipped (no ER_DUP_FIELDNAME).
+  const existing = new Set(
+    existingRows.map((r) =>
+      String(r.column_name ?? r.COLUMN_NAME ?? "").toLowerCase(),
+    ),
+  );
 
   for (const col of DELIVERY_CONFIRMATION_COLUMNS) {
-    if (!existing.has(col.name)) {
+    if (!existing.has(col.name.toLowerCase())) {
       await connection.query(
         `ALTER TABLE DeliveryConfirmations ADD COLUMN \`${col.name}\` ${col.ddl}`,
       );
       logger.info(`Migration: added DeliveryConfirmations.${col.name} column`);
     }
+  }
+};
+
+// Who attached each POD photo (the driver, the shipper, or a shipper delegate).
+// Tracking this lets the review cards show "photo added by …". Idempotent,
+// case-insensitive information_schema check — same pattern as
+// ensureDeliveryConfirmationColumns.
+const DELIVERY_CONFIRMATION_PHOTO_ATTACHED_BY_COLUMN = {
+  name: "deliveryConfirmationPhotoAttachedByUserUniqueId",
+  ddl: "VARCHAR(36) NULL",
+};
+
+const ensureDeliveryConfirmationPhotoAttachedBy = async (connection) => {
+  const dbName = dbConfig.database;
+
+  const [existingRows] = await connection.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'DeliveryConfirmationPhotos'`,
+    [dbName],
+  );
+  const existing = new Set(
+    existingRows.map((r) =>
+      String(r.column_name ?? r.COLUMN_NAME ?? "").toLowerCase(),
+    ),
+  );
+  const col = DELIVERY_CONFIRMATION_PHOTO_ATTACHED_BY_COLUMN;
+  if (!existing.has(col.name.toLowerCase())) {
+    await connection.query(
+      `ALTER TABLE DeliveryConfirmationPhotos ADD COLUMN \`${col.name}\` ${col.ddl}`,
+    );
+    logger.info(`Migration: added DeliveryConfirmationPhotos.${col.name} column`);
   }
 };
 
@@ -250,6 +288,11 @@ const createTable = async () => {
     // ensureDeliveryConfirmationColumns. Must run while this connection still has
     // the DB selected.
     await ensureDeliveryConfirmationColumns(adminConnection);
+
+    // Idempotently add who-attached attribution on POD photos — see
+    // ensureDeliveryConfirmationPhotoAttachedBy. Must run while this connection
+    // still has the DB selected.
+    await ensureDeliveryConfirmationPhotoAttachedBy(adminConnection);
   } finally {
     await adminConnection.end();
   }
@@ -482,4 +525,7 @@ module.exports = {
   updateTable,
   checkTableExists,
   ensureDriverActiveRequestGuard,
+  ensureDeliveryConfirmationColumns,
+  ensureDeliveryConfirmationPhotoAttachedBy,
+  DELIVERY_CONFIRMATION_COLUMNS,
 };

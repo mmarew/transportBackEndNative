@@ -2079,9 +2079,8 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
 -- DeliveryConfirmations: confirms that goods were actually delivered once a
 -- journey is completed. One confirmation per journey (UNIQUE on journeyUniqueId).
 -- Lifecycle: PENDING (receiver submitted) → CONFIRMED (accepted) | DISPUTED.
--- The receiverUserUniqueId is the party who received the goods; confirmedByUserUniqueId
--- is whoever settled the confirmation (driver/admin/company), and stays NULL while
--- the confirmation is still PENDING.
+-- The receiverUserUniqueId is the party who received the goods;
+-- confirmedByUserUniqueId is whoever settled the confirmation (driver/admin/company), and stays NULL while the confirmation is still PENDING.
 CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     deliveryConfirmationId INT AUTO_INCREMENT PRIMARY KEY,
     deliveryConfirmationUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the confirmation

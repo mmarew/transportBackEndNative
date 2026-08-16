@@ -11,7 +11,7 @@
 | Multi-photo (`DeliveryConfirmationPhotos` + `photos[]` upload, append-only, `resolveDocumentUrl`) | ✅ implemented |
 | `quantityUnit` Joi enum (`quintal|kg|piece`) | ✅ implemented |
 | 12-column migration (two signatures + timestamps, statement, hash + previous-hash, OTP incl. hourly-cap window) | ✅ implemented (CREATE TABLE + idempotent `ensureDeliveryConfirmationColumns` in `Services/Database/tableManage.service.js`) |
-| Settle-time evidence validation (signature + ≥1 photo + GPS + completed journey) | ✅ implemented |
+| Settle-time validation (signature + GPS required for CONFIRMED; **photo required at submit (create)** + completed journey) | ✅ implemented |
 | Immutable SHA-256 signature hash (photo-order independent) | ✅ implemented |
 | Signed-field immutability + admin re-settle (`DISPUTED → CONFIRMED`) | ✅ implemented (roleId ∈ {3, 6}) |
 | Tier-A OTP: `POST /:id/request-sign-otp` + bcrypt verify (expiry 410, attempt cap, resend block) | ✅ implemented |
@@ -244,7 +244,7 @@ ALTER TABLE DeliveryConfirmations
 
 | Rule | Where | Behavior |
 |---|---|---|
-| Settle requires evidence | `updateDeliveryConfirmation` when `status === 'CONFIRMED'` | Reject `BAD_REQUEST` unless signature present, **≥ 1 photo** (parent or `photos[]`), `latitude`, `longitude` |
+| Settle requires evidence | `updateDeliveryConfirmation` when `status === 'CONFIRMED'` | Reject `BAD_REQUEST` unless signature present, `latitude`, `longitude`. Photo is enforced at **create** (PENDING submit) — not at settle. |
 | Signature hash at settle | same | Compute `SHA-256` **once** and store; **never recomputed in place** |
 | Statement snapshot at settle | same | Store the declaration text that was displayed at signing time |
 | Signed fields immutable post-settle | `updateDeliveryConfirmation` | Reject updates to quantity/condition/signatures/photos/GPS after `CONFIRMED` (`400` → actually `403`) unless caller is admin (roleId ∈ {3 admin, 6 super admin} from `req.user`) |
