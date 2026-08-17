@@ -24,13 +24,20 @@ exports.createQueueOrganization = async (data) => {
   } = data;
 
   const [existing] = await db().query(
-    `SELECT queueOrganizationName
+    `SELECT queueOrganizationUniqueId, queueOrganizationName, approvalStatus
      FROM QueueOrganization
      WHERE queueOrganizationName = ? AND isDeleted = 0`,
     [queueOrganizationName],
   );
   if (existing.length > 0) {
-    throw new AppError("A queue organization with this name already exists", AppError.CONFLICT);
+    return {
+      message: "success",
+      data: {
+        queueOrganizationUniqueId: existing[0].queueOrganizationUniqueId,
+        approvalStatus: existing[0].approvalStatus,
+        alreadyExisted: true,
+      },
+    };
   }
 
   const queueOrganizationUniqueId = uuidv4();
@@ -69,7 +76,7 @@ exports.createQueueOrganization = async (data) => {
 
   return {
     message: "success",
-    data: { queueOrganizationUniqueId, approvalStatus: "pending" },
+    data: { queueOrganizationUniqueId, approvalStatus: "pending", alreadyExisted: false },
   };
 };
 

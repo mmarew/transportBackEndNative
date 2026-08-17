@@ -408,6 +408,15 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
       countParams.push(filters.shipperRequestUniqueId);
     }
 
+    // Filter by queue organization: lets a QueueOrgAdmin list/filter the jobs
+    // created under their queue org (on-behalf-of shipper requests).
+    if (filters?.queueOrganizationUniqueId) {
+      whereClause += whereClause ? " AND " : " WHERE ";
+      whereClause += " ShipperRequest.queueOrganizationUniqueId = ?";
+      queryParams.push(filters.queueOrganizationUniqueId);
+      countParams.push(filters.queueOrganizationUniqueId);
+    }
+
     // Filter by requestMode: 'open' (visible to all drivers) or 'company_target' (visible only to targeted company)
     if (filters?.requestMode) {
       whereClause += whereClause ? " AND " : " WHERE ";

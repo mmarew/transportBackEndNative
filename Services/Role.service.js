@@ -140,7 +140,8 @@ const deleteRole = async (roleUniqueId, user) => {
 
 const getAllRoles = async (filters = {}) => {
   const page = Number(filters.page) || 1;
-  const limit = Math.min(Number(filters.limit) || PAGINATION.DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE);
+  const ROLE_DEFAULT_PAGE_SIZE = 20;
+  const limit = Math.min(Number(filters.limit) || ROLE_DEFAULT_PAGE_SIZE, PAGINATION.MAX_PAGE_SIZE);
   const offset = (page - 1) * limit;
 
   const clauses = [];

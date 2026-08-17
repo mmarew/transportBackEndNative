@@ -28,6 +28,7 @@ const checkActiveShipperRequest = async ({
   page = 1,
   pageSize = 10,
   connection = null,
+  queueOrganizationUniqueId = null,
 }) => {
   const offset = (page - 1) * pageSize;
   // Active pipeline: waiting → requested → acceptedByDriver → acceptedByShipper
@@ -78,7 +79,7 @@ const checkActiveShipperRequest = async ({
     FROM ShipperRequest sr
     INNER JOIN Users u ON sr.userUniqueId = u.userUniqueId
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
-    WHERE sr.userUniqueId = ?
+    WHERE ${queueOrganizationUniqueId ? "sr.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
     AND (
       sr.journeyStatusId IN (?,?,?,?,?,?,?,?) 
       OR (sr.isCompletionSeen = ? AND sr.journeyStatusId = ?)
@@ -96,7 +97,7 @@ const checkActiveShipperRequest = async ({
     journeyStatusMap?.journeyCompleted, // for CASE
     journeyStatusMap?.cancelledByDriver, // for CASE
     "not seen by shipper yet", // for CASE
-    userUniqueId,
+    queueOrganizationUniqueId || userUniqueId,
     ...activeJourneyStatuses,
     false,
     journeyStatusMap?.journeyCompleted,
@@ -109,13 +110,17 @@ const checkActiveShipperRequest = async ({
   const queryExecutor = transactionStorage.getStore() || connection || pool;
   const [activeRequests, totalRecords] = await Promise.all([
     queryExecutor?.query?.(query, values),
-    getActiveRequestsCount(userUniqueId, connection),
+    getActiveRequestsCount(userUniqueId, connection, queueOrganizationUniqueId),
   ]);
 
   return { activeRequests: activeRequests?.[0], totalRecords };
 };
 
-const getActiveRequestsCount = async (userUniqueId, connection = null) => {
+const getActiveRequestsCount = async (
+  userUniqueId,
+  connection = null,
+  queueOrganizationUniqueId = null,
+) => {
   // ── Part 1: Individual-level counts from ShipperRequest ────────────────
   // Only count INDIVIDUAL (non-company_target) requests here.
   // Company counts come entirely from the ShipperRequestBatch query (Part 2).
@@ -131,7 +136,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
       COUNT(DISTINCT CASE WHEN jd.journeyStatusId = ? AND jd.isCancellationByDriverSeenByShipper = ? THEN sr.shipperRequestId END) as notSeenCancelledByDriverCount
     FROM ShipperRequest sr
     LEFT JOIN JourneyDecisions jd ON sr.shipperRequestId = jd.shipperRequestId
-    WHERE sr.userUniqueId = ?
+    WHERE ${queueOrganizationUniqueId ? "sr.queueOrganizationUniqueId = ?" : "sr.userUniqueId = ?"}
     AND sr.shipperRequestDeletedAt IS NULL
     AND (sr.requestMode IS NULL OR sr.requestMode != 'company_target')
     AND (
@@ -160,7 +165,7 @@ const getActiveRequestsCount = async (userUniqueId, connection = null) => {
     journeyStatusMap.cancelledByDriver,
     "not seen by shipper yet",
     // WHERE clause
-    userUniqueId,
+    queueOrganizationUniqueId || userUniqueId,
     journeyStatusMap.waiting,
     journeyStatusMap.requested,
     journeyStatusMap.acceptedByDriver,

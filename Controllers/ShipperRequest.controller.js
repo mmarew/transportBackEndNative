@@ -230,12 +230,13 @@ const deleteRequest = async (req, res, next) => {
 };
 const verifyShipperStatus = async (req, res, next) => {
   try {
-    const { pageSize, page } = req?.query || {};
+    const { pageSize, page, queueOrganizationUniqueId } = req?.query || {};
     const { userUniqueId } = req?.user ?? {};
     const result = await ShipperService.verifyShipperStatus({
       userUniqueId,
       pageSize,
       page,
+      queueOrganizationUniqueId,
       sendNotificationsToDrivers: true,
     });
     ServerResponder(res, result, HTTP_STATUS.OK);

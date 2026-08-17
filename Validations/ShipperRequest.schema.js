@@ -108,6 +108,7 @@ exports.markJourneyCompletionAsSeen = Joi.object({
 exports.verifyShipperStatusQuery = Joi.object({
   pageSize: Joi.number().integer().min(1).max(PAGINATION.MAX_PAGE_SIZE).optional(),
   page: Joi.number().integer().min(1).optional(),
+  queueOrganizationUniqueId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.getShipperRequestQuery = Joi.object({
@@ -121,6 +122,7 @@ exports.getShipperRequestQuery = Joi.object({
     .optional(),
   vehicleTypeUniqueId: uuidSchema.optional(),
   shipperRequestBatchUniqueId: uuidSchema.optional(),
+  queueOrganizationUniqueId: uuidSchema.optional(),
   hasUnansweredDriverRequest: Joi.alternatives()
     .try(Joi.boolean(), Joi.string())
     .optional(),
