@@ -1287,13 +1287,21 @@ exports.handleQueueDispatch = async ({
 
 /**
  * Check-in auto-dispatch — after a driver checks in, rescan for the OLDEST
- * pending queue order of the driver's vehicle type that has NO active offer
- * and offer it to the FRONT waiting driver (FIFO, one order per check-in).
+ * pending queue orders of the driver's vehicle type that have NO active offer
+ * and offer them to the FRONT waiting driver(s) (FIFO, one offer per check-in).
  *
  * Covers the two cases where an order outlives its creation-time dispatch:
  *   1. queue was empty at creation → order stayed `waiting`
  *   2. every driver rejected → order stayed `requested` with no active offer
  *      (see queue-refusal-policy: no re-offer to a driver who already refused)
+ *
+ * The scan is NOT limited to one order: the FRONT waiting driver may have
+ * already rejected the OLDEST pending order (e.g. an order they were offered
+ * earlier but refused), so we keep walking the queue of pending orders and
+ * attempt each one in FIFO order until an offer actually lands. Each
+ * `handleQueueDispatch` marks the front driver `offered`, so the next iteration
+ * advances to the next driver — a single check-in can therefore fill several
+ * free slots when the org has a backlog.
  *
  * Runs inside the check-in's transaction: `executeInTransaction` reuses the
  * outer connection, so the front-driver `FOR UPDATE` lock serializes concurrent
@@ -1321,7 +1329,7 @@ const rescanPendingQueueOrder = async ({
            AND dq.queueDeletedAt IS NULL
        )
      ORDER BY sr.shipperRequestCreatedAt ASC
-     LIMIT 1`,
+     LIMIT ${MAX_OFFERS_PER_SWEEP}`,
     [
       queueOrganizationUniqueId,
       vehicleTypeUniqueId,
@@ -1332,12 +1340,18 @@ const rescanPendingQueueOrder = async ({
   if (rows.length === 0) {
     return { offered: false, data: null };
   }
-  return exports.handleQueueDispatch({
-    queueOrganizationUniqueId,
-    vehicleTypeUniqueId,
-    shipperRequestUniqueId: rows[0].shipperRequestUniqueId,
-    user,
-  });
+  for (const row of rows) {
+    const result = await exports.handleQueueDispatch({
+      queueOrganizationUniqueId,
+      vehicleTypeUniqueId,
+      shipperRequestUniqueId: row.shipperRequestUniqueId,
+      user,
+    });
+    if (result?.offered) {
+      return result;
+    }
+  }
+  return { offered: false, data: null };
 };
 
 // Safety cap per sweep so a pathological backlog can never loop forever.
