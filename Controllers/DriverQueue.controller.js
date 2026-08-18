@@ -6,10 +6,16 @@ const { HTTP_STATUS } = require("../Utils/Constants");
 
 exports.checkin = async (req, res, next) => {
   try {
-    const result = await executeInTransaction(() =>
+    await executeInTransaction(() =>
       service.checkin({ ...req.body, user: req.user }),
     );
-    ServerResponder(res, result, HTTP_STATUS.CREATED);
+    // Return the canonical queue position shape (same as myPosition)
+    // so the driver app always gets { queue: {...}, organization: {...} }.
+    const position = await service.myPosition(
+      req.body.queueOrganizationUniqueId,
+      req.user,
+    );
+    ServerResponder(res, position, HTTP_STATUS.CREATED);
   } catch (e) {
     next(e);
   }

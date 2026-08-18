@@ -18,6 +18,7 @@ const {
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const messageTypes = require("../Utils/MessageTypes");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
+const { createUser } = require("./User.service");
 const logger = require("../Utils/logger");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { transactionStorage } = require("../Utils/TransactionContext");
@@ -48,6 +49,37 @@ const queueOrgReady = async (executor, queueOrganizationUniqueId) => {
     throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
   return org[0];
+};
+
+/**
+ * Resolve a shipper's phone number to a userUniqueId. Reuses the existing
+ * createUser registry (same path as takeFromStreet): if the phone is already
+ * registered the existing user is returned; otherwise a minimal user is created.
+ * Uses requestedFrom "street" so handleExistingUser skips OTP generation.
+ */
+const resolveShipperUserByPhone = async (phoneNumber, createdBy) => {
+  const cleanPhone = String(phoneNumber).trim().replace(/\s/g, "");
+  if (!cleanPhone) {
+    throw new AppError("Shipper phone number is invalid", AppError.BAD_REQUEST);
+  }
+  const result = await createUser({
+    phoneNumber: cleanPhone,
+    fullName: null,
+    email: null,
+    roleId: 1,
+    statusId: 1,
+    userRoleStatusDescription: "queue shipper",
+    requestedFrom: "street",
+    createdBy,
+  });
+  if (result.message === "error") {
+    throw new AppError(result.error || "Failed to resolve shipper from phone", AppError.BAD_REQUEST);
+  }
+  const userUniqueId = result?.data?.userUniqueId;
+  if (!userUniqueId) {
+    throw new AppError("Failed to resolve shipper from phone", AppError.BAD_REQUEST);
+  }
+  return userUniqueId;
 };
 
 const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
@@ -102,6 +134,7 @@ const publicEntry = (row) => ({
   driverPhoneNumber: row.phoneNumber,
   vehicleTypeUniqueId: row.vehicleTypeUniqueId,
   shipperRequestUniqueId: row.shipperRequestUniqueId,
+  targetedShipperUserUUID: row.targetedShipperUserUUID || null,
 });
 
 // A driver is still "in queue" while waiting or holding a dispatch offer.
@@ -124,15 +157,21 @@ const ACTIVE_JOURNEY_STATUSES = [
 
 const hasActiveJourney = async (executor, driverUserUniqueId) => {
   const [rows] = await executor.query(
-    `SELECT jd.journeyDecisionUniqueId
+    `SELECT jd.journeyDecisionUniqueId, jd.journeyStatusId,
+            jd.journeyDecisionCreatedAt,
+            dr.driverRequestUniqueId, sr.shipperRequestUniqueId,
+            sr.queueOrganizationUniqueId, o.queueOrganizationName
      FROM JourneyDecisions jd
      JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+     LEFT JOIN ShipperRequest sr ON sr.shipperRequestId = jd.shipperRequestId
+     LEFT JOIN QueueOrganization o
+       ON o.queueOrganizationUniqueId = sr.queueOrganizationUniqueId
      WHERE dr.userUniqueId = ?
-       AND jd.journeyStatusId IN (?, ?, ?)
+       AND jd.journeyStatusId IN (?, ?, ?, ?, ?, ?)
      LIMIT 1`,
     [driverUserUniqueId, ...ACTIVE_JOURNEY_STATUSES],
   );
-  return rows.length > 0;
+  return rows[0] || null;
 };
 
 /**
@@ -171,6 +210,13 @@ exports.checkin = async (data) => {
   const { queueOrganizationUniqueId, vehicleDriverUniqueId, user } = data;
   const executor = db();
 
+  let targetedShipperUserUUID = null;
+  if (data.shipperPhoneNumber) {
+    targetedShipperUserUUID = await resolveShipperUserByPhone(
+      data.shipperPhoneNumber, user.userUniqueId,
+    );
+  }
+
   const org = await queueOrgReady(executor, queueOrganizationUniqueId);
   if (org.approvalStatus !== "approved" || !org.queueEnabled) {
     throw new AppError(
@@ -189,11 +235,26 @@ exports.checkin = async (data) => {
   // completed or cancelled) cannot join the queue. Accepting a queue offer
   // marks the entry `loaded` but that alone doesn't block re-checkin, so this
   // guard is what prevents double-dispatch while the first order is in flight.
-  if (await hasActiveJourney(executor, vehicleDriver.driverUserUniqueId)) {
-    throw new AppError(
-      "Driver has an active journey — finish or cancel it before joining the queue",
-      AppError.CONFLICT,
-    );
+  // Idempotent — instead of failing a re-check-in, report the journey already
+  // in flight so the driver app can surface the existing order.
+  const activeJourney = await hasActiveJourney(
+    executor,
+    vehicleDriver.driverUserUniqueId,
+  );
+  if (activeJourney) {
+    return {
+      message: "success",
+      data: {
+        alreadyInJourney: true,
+        journeyStatusId: activeJourney.journeyStatusId,
+        shipperRequestUniqueId: activeJourney.shipperRequestUniqueId,
+        queueOrganizationUniqueId: activeJourney.queueOrganizationUniqueId,
+        queueOrganizationName: activeJourney.queueOrganizationName,
+        journeyDecisionUniqueId: activeJourney.journeyDecisionUniqueId,
+        driverRequestUniqueId: activeJourney.driverRequestUniqueId,
+        offeredAt: activeJourney.journeyDecisionCreatedAt,
+      },
+    };
   }
 
   // FENCE: driver can only be in ONE queue system-wide per day. Removed/loaded
@@ -257,6 +318,7 @@ exports.checkin = async (data) => {
         offeredAt: null,
         loadedAt: null,
         shipperRequestUniqueId: null,
+        targetedShipperUserUUID: targetedShipperUserUUID || null,
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: user.userUniqueId,
       },
@@ -280,6 +342,7 @@ exports.checkin = async (data) => {
           queueDate,
           queueNumber,
           vehicleDriverUniqueId,
+          targetedShipperUserUUID,
           joinedAt: currentDate(),
           status: "waiting",
           queueCreatedBy: user.userUniqueId,
@@ -494,7 +557,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
   const [rows] = await executor.query(
     `SELECT dq.queueUniqueId, dq.queueNumber, dq.joinedAt, dq.status,
             dq.offeredAt, dq.loadedAt, dq.vehicleDriverUniqueId,
-            dq.shipperRequestUniqueId,
+            dq.shipperRequestUniqueId, dq.targetedShipperUserUUID,
             vd.driverUserUniqueId, v.vehicleTypeUniqueId,
             vt.vehicleTypeName,
             u.fullName, u.phoneNumber
@@ -539,6 +602,13 @@ exports.manualCheckin = async (data) => {
     user,
   } = data;
   const executor = db();
+
+  let targetedShipperUserUUID = null;
+  if (data.shipperPhoneNumber) {
+    targetedShipperUserUUID = await resolveShipperUserByPhone(
+      data.shipperPhoneNumber, user.userUniqueId,
+    );
+  }
 
   await queueOrgReady(executor, queueOrganizationUniqueId);
   const vehicleDriver = await getVehicleDriverType(
@@ -607,6 +677,7 @@ exports.manualCheckin = async (data) => {
         offeredAt: null,
         loadedAt: null,
         shipperRequestUniqueId: null,
+        targetedShipperUserUUID: targetedShipperUserUUID || null,
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: user.userUniqueId,
       },
@@ -632,6 +703,7 @@ exports.manualCheckin = async (data) => {
           queueDate,
           queueNumber: assignedNumber,
           vehicleDriverUniqueId,
+          targetedShipperUserUUID,
           joinedAt: currentDate(),
           status: "waiting",
           queueCreatedBy: user.userUniqueId,
@@ -798,6 +870,39 @@ const ensureWaitingDriverRequest = async (
   driverUserUniqueId,
   queueOrganizationUniqueId,
 ) => {
+  // The unique index `uq_driver_active_request` means at most ONE non-terminal
+  // request exists per driver (activeRequestGuard = 1 for statuses 1-5). Branch
+  // on what that request is:
+  //   - no decision attached  → a reusable `waiting` request → return it
+  //   - `waiting` + decision   → stale leftover from the expired-offer release
+  //                              fix → fall through to release + fresh insert
+  //   - requested/accepted/… + decision → a REAL pending offer or in-flight
+  //                              journey → return null so the caller advances
+  //                              to the next waiting driver (never a second
+  //                              order while the driver holds an active one).
+  const [activeRows] = await executor.query(
+    `SELECT dr.driverRequestId, dr.driverRequestUniqueId, dr.journeyStatusId,
+            jd.driverRequestId AS decisionDriverRequestId
+     FROM DriverRequest dr
+     LEFT JOIN JourneyDecisions jd ON jd.driverRequestId = dr.driverRequestId
+     WHERE dr.userUniqueId = ? AND dr.activeRequestGuard = 1
+       AND dr.driverRequestDeletedAt IS NULL
+     ORDER BY dr.driverRequestId DESC LIMIT 1`,
+    [driverUserUniqueId],
+  );
+  if (activeRows.length > 0) {
+    const latest = activeRows[0];
+    if (latest.decisionDriverRequestId === null) {
+      return {
+        driverRequestId: latest.driverRequestId,
+        driverRequestUniqueId: latest.driverRequestUniqueId,
+      };
+    }
+    if (latest.journeyStatusId !== journeyStatusMap.waiting) {
+      return null;
+    }
+  }
+
   const [rows] = await executor.query(
     `SELECT dr.driverRequestId, dr.driverRequestUniqueId
      FROM DriverRequest dr
@@ -1151,6 +1256,18 @@ const offerToDriver = async ({
     }
 
     const entry = front[0];
+
+    // EXCLUSIVE RESERVATION: if this driver targeted a specific shipper via
+    // phone at check-in, only offer them orders from that shipper. Skip to
+    // the next driver in FIFO otherwise.
+    if (
+      entry.targetedShipperUserUUID &&
+      shipperRequest.userUniqueId !== entry.targetedShipperUserUUID
+    ) {
+      after = entry.queueNumber;
+      continue;
+    }
+
     const driverRequest = await ensureWaitingDriverRequest(
       txExecutor,
       entry.driverUserUniqueId,

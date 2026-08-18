@@ -2031,6 +2031,7 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     queueRefusalCount INT NOT NULL DEFAULT 0,                   -- consecutive front-position refusals today; at QUEUE_REFUSAL_LIMIT → move to back
     vehicleDriverUniqueId VARCHAR(36) NOT NULL,                 -- FK → VehicleDriver (truck+driver unit in line)
     shipperRequestUniqueId VARCHAR(36) NULL,                    -- FK → ShipperRequest (order assigned to this entry)
+    targetedShipperUserUUID VARCHAR(36) NULL DEFAULT NULL,       -- FK → Users (shipper phone target; reserves this position exclusively)
     joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth
     status ENUM('waiting','offered','loaded','removed') NOT NULL DEFAULT 'waiting',
     offeredAt DATETIME NULL,
@@ -2046,9 +2047,11 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     INDEX idx_queue_status (status),
     INDEX idx_queue_vehicle (vehicleDriverUniqueId),
     INDEX idx_queue_shipperRequest (shipperRequestUniqueId),
+    INDEX idx_queue_targeted_shipper (targetedShipperUserUUID),
     FOREIGN KEY (queueOrganizationUniqueId) REFERENCES QueueOrganization(queueOrganizationUniqueId),
     FOREIGN KEY (vehicleDriverUniqueId) REFERENCES VehicleDriver(vehicleDriverUniqueId),
     FOREIGN KEY (shipperRequestUniqueId) REFERENCES ShipperRequest(shipperRequestUniqueId),
+    FOREIGN KEY (targetedShipperUserUUID) REFERENCES Users(userUniqueId),
     FOREIGN KEY (queueCreatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (queueUpdatedBy) REFERENCES Users(userUniqueId),
     FOREIGN KEY (queueDeletedBy) REFERENCES Users(userUniqueId)

@@ -8,6 +8,7 @@ exports.checkin = Joi.object({
   vehicleDriverUniqueId: uuidSchema.required(),
   latitude: Joi.number().min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX).optional().allow(null),
   longitude: Joi.number().min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX).optional().allow(null),
+  shipperPhoneNumber: Joi.string().min(8).max(20).optional().allow("", null),
 }).unknown(true);
 
 exports.myPositionQuery = Joi.object({
@@ -32,6 +33,7 @@ exports.manualCheckin = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
   vehicleDriverUniqueId: uuidSchema.required(),
   queueNumber: Joi.number().integer().min(1).optional(),
+  shipperPhoneNumber: Joi.string().min(8).max(20).optional().allow("", null),
 }).unknown(true);
 
 exports.checkout = Joi.object({
