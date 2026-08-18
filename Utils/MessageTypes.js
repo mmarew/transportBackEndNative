@@ -284,6 +284,11 @@ const messageTypes = {
     details:
       "A queue order was cancelled at the job level; the holding driver entry is released back to waiting without a refusal count.",
   },
+  queue_position_reserved: {
+    message: "Queue position reserved for you",
+    details:
+      "A driver checked in and reserved their queue position exclusively for your orders.",
+  },
   queue_removed: {
     message: "Removed from queue",
     details:

@@ -16,6 +16,7 @@ const {
   sendSocketIONotificationToShipper,
 } = require("../Utils/Notifications");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
+const { sendSms } = require("../Utils/smsSender");
 const messageTypes = require("../Utils/MessageTypes");
 const { journeyStatusMap, usersRoles } = require("../Utils/ListOfSeedData");
 const { createUser } = require("./User.service");
@@ -85,7 +86,7 @@ const resolveShipperUserByPhone = async (phoneNumber, createdBy) => {
 const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
   const [rows] = await executor.query(
     `SELECT vd.driverUserUniqueId, vd.vehicleUniqueId, v.vehicleTypeUniqueId,
-            u.phoneNumber
+            u.phoneNumber, u.fullName
      FROM VehicleDriver vd
      JOIN Vehicle v ON v.vehicleUniqueId = vd.vehicleUniqueId
      JOIN Users u   ON u.userUniqueId   = vd.driverUserUniqueId
@@ -289,6 +290,17 @@ exports.checkin = async (data) => {
         conditions: { queueId: active.queueId },
       });
     }
+    // Notify shipper if a target was set
+    if (targetedShipperUserUUID) {
+      notifyShipperOfQueueReservation({
+        executor,
+        targetedShipperUserUUID,
+        driverFullName: vehicleDriver.fullName,
+        driverPhoneNumber: vehicleDriver.phoneNumber,
+        queueOrganizationUniqueId,
+        queueNumber: active.queueNumber,
+      });
+    }
     // Still rescan: the front-driver of this type may be waiting on an order
     // that outlived the queue (empty at creation / all rejected).
     await rescanPendingQueueOrder({
@@ -383,6 +395,18 @@ exports.checkin = async (data) => {
     messageType: "queue_position_changed",
   });
 
+  // Notify shipper if a target was set
+  if (targetedShipperUserUUID) {
+    notifyShipperOfQueueReservation({
+      executor,
+      targetedShipperUserUUID,
+      driverFullName: vehicleDriver.fullName,
+      driverPhoneNumber: vehicleDriver.phoneNumber,
+      queueOrganizationUniqueId,
+      queueNumber,
+    });
+  }
+
   return {
     message: "success",
     data: {
@@ -466,6 +490,18 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
     [orgId],
   );
 
+  // If the driver targeted a shipper, fetch shipper details for the response.
+  let shipper = null;
+  const targetedId = rows[0].targetedShipperUserUUID;
+  if (targetedId) {
+    const [shipperRows] = await executor.query(
+      `SELECT userUniqueId, fullName, phoneNumber
+       FROM Users WHERE userUniqueId = ? AND isDeleted = 0 LIMIT 1`,
+      [targetedId],
+    );
+    shipper = shipperRows[0] || null;
+  }
+
   return {
     message: "success",
     data: {
@@ -473,6 +509,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
         ...publicEntry(rows[0]),
         waitingAhead: ahead[0].total,
       },
+      shipper,
       organization: orgRows[0] || null,
     },
   };
@@ -1137,6 +1174,94 @@ const notifyShipperOfQueueEvent = async ({
     logger.error("notifyShipperOfQueueEvent failed", {
       error: error.message,
       shipperRequestUniqueId,
+    });
+  }
+};
+
+/**
+ * Notify a shipper that a driver has reserved their queue position exclusively
+ * for the shipper's orders. Best-effort: socket + FCM + SMS, failures are
+ * logged but never block the checkin.
+ */
+const notifyShipperOfQueueReservation = async ({
+  executor,
+  targetedShipperUserUUID,
+  driverFullName,
+  driverPhoneNumber,
+  queueOrganizationUniqueId,
+  queueNumber,
+}) => {
+  if (!targetedShipperUserUUID) return;
+  try {
+    const [rows] = await executor.query(
+      `SELECT phoneNumber, fullName FROM Users WHERE userUniqueId = ? AND isDeleted = 0 LIMIT 1`,
+      [targetedShipperUserUUID],
+    );
+    const shipper = rows[0];
+    if (!shipper?.phoneNumber) return;
+
+    // Socket notification
+    sendSocketIONotificationToShipper({
+      phoneNumber: shipper.phoneNumber,
+      eventName: "queue",
+      message: {
+        messageTypes: messageTypes.queue_position_reserved,
+        message: "A driver has reserved their queue position for your orders",
+        data: {
+          targetedShipperUserUUID,
+          driverFullName,
+          driverPhoneNumber,
+          queueOrganizationUniqueId,
+          queueNumber,
+        },
+      },
+    }).catch((e) =>
+      logger.error("Socket notification failed for queue reservation", {
+        error: e.message,
+        targetedShipperUserUUID,
+      }),
+    );
+
+    // FCM notification
+    sendFCMNotificationToUser({
+      userUniqueId: targetedShipperUserUUID,
+      roleId: usersRoles.shipperRoleId,
+      notification: {
+        title: "Queue position reserved",
+        body: driverFullName
+          ? `Driver ${driverFullName} has reserved their queue position for your orders.`
+          : "A driver has reserved their queue position for your orders.",
+      },
+      data: {
+        type: "queue_position_reserved",
+        targetedShipperUserUUID,
+        driverFullName,
+        driverPhoneNumber,
+        queueOrganizationUniqueId,
+        queueNumber: String(queueNumber ?? ""),
+      },
+    }).catch((e) =>
+      logger.error("FCM failed for queue reservation notification", {
+        error: e.message,
+        targetedShipperUserUUID,
+      }),
+    );
+
+    // SMS notification
+    sendSms(
+      shipper.phoneNumber,
+      null,
+      `A driver has reserved their queue position for your orders. Driver: ${driverFullName || "N/A"}, Phone: ${driverPhoneNumber || "N/A"}.`,
+    ).catch((e) =>
+      logger.error("SMS failed for queue reservation notification", {
+        error: e.message,
+        targetedShipperUserUUID,
+      }),
+    );
+  } catch (error) {
+    logger.error("notifyShipperOfQueueReservation failed", {
+      error: error.message,
+      targetedShipperUserUUID,
     });
   }
 };
