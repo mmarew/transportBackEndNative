@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["preStart.js", "Config/Express.config.js", "__tests__/**/*.js", "tests/**/*.js"],
+  "entry": ["preStart.js", "Config/Express.config.js", "tests/**/*.js"],
   "project": ["**/*.js", "!node_modules/**", "!logs/**", "!uploads/**", "!var/**", "!*.log"],
   // Intentionally kept (verified unused but may serve future/documented flows):
   "ignore": [

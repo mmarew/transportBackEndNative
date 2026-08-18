@@ -88,6 +88,29 @@ const {
   runAnalyticsAndAdminTests,
 } = require("./Phases/runAnalyticsAndAdminTests");
 
+// ── Newly integrated tests (converted from __tests__/) ─────────────────────
+const {
+  testDeliveryConfirmationRules,
+} = require("./Journey/DeliveryConfirmationRules");
+const {
+  testDocumentUrlWorkflow,
+} = require("./Documents/DocumentUrl");
+const {
+  testCurrentDateWorkflow,
+} = require("./Utils/CurrentDateE2E");
+const {
+  testShipperRequestValidationWorkflow,
+} = require("./Shipper/ShipperRequestValidation");
+const {
+  testCompanyTargetLazyCreationWorkflow,
+} = require("./Company/CompanyTargetLazyCreation");
+const {
+  testShipperRequestJourneyWorkflow,
+} = require("./Shipper/ShipperRequestJourney");
+const {
+  testJourneyPodStatusWorkflow,
+} = require("./Journey/JourneyPodStatus");
+
 const safe = (label, fn) => async () => {
   try {
     await fn();
@@ -230,15 +253,22 @@ const initiateTest = async () => {
     await safe("runUserDepositTests", runUserDepositTests)();
     await safe("runUserSubscriptionTests", runUserSubscriptionTests)();
     await safe("runSantimPayTests", runSantimPayTests)();
+    await safe("testCurrentDateWorkflow", testCurrentDateWorkflow)();
     await safe("runReferenceCRUD", runReferenceCRUD)();
+    await safe("testShipperRequestValidationWorkflow", testShipperRequestValidationWorkflow)();
     await safe("runIndividualFlow", runIndividualFlow)();
     await safe("runTakeFromStreetFlow", runTakeFromStreetFlow)();
     await safe("testUpdateUserWithFileUpload", testUpdateUserWithFileUpload)();
     await safe("runCompanyFlow", runCompanyFlow)();
     await safe("runCompanyEndpointTests", runCompanyEndpointTests)();
+    await safe("testCompanyTargetLazyCreationWorkflow", testCompanyTargetLazyCreationWorkflow)();
     await safe("runCancelRulesTests", runCancelRulesTests)();
     await safe("runPostJourneyCRUD", runPostJourneyCRUD)();
+    await safe("testShipperRequestJourneyWorkflow", testShipperRequestJourneyWorkflow)();
+    await safe("testDeliveryConfirmationRules", testDeliveryConfirmationRules)();
+    await safe("testJourneyPodStatusWorkflow", testJourneyPodStatusWorkflow)();
     await safe("runDocumentTests", runDocumentTests)();
+    await safe("testDocumentUrlWorkflow", testDocumentUrlWorkflow)();
     await safe("runDelinquencyTests", runDelinquencyTests)();
     await safe("runAnalyticsAndAdminTests", runAnalyticsAndAdminTests)();
 

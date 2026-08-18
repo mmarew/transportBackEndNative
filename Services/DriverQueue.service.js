@@ -277,6 +277,18 @@ exports.checkin = async (data) => {
       );
     }
     // Idempotent: already in THIS queue today — return the existing entry.
+    // Update targetedShipperUserUUID if a new phone number was provided.
+    if (targetedShipperUserUUID !== undefined) {
+      await updateData({
+        tableName: "DriverQueue",
+        updateValues: {
+          targetedShipperUserUUID: targetedShipperUserUUID || null,
+          queueUpdatedAt: currentDate(),
+          queueUpdatedBy: user.userUniqueId,
+        },
+        conditions: { queueId: active.queueId },
+      });
+    }
     // Still rescan: the front-driver of this type may be waiting on an order
     // that outlived the queue (empty at creation / all rejected).
     await rescanPendingQueueOrder({
@@ -301,12 +313,8 @@ exports.checkin = async (data) => {
   let queueNumber;
   if (atOrg) {
     // Re-check-in: revive the previous entry for the same org + day.
-    queueNumber = await nextQueueNumber(
-      executor,
-      queueOrganizationUniqueId,
-      queueDate,
-      vehicleDriver.vehicleTypeUniqueId,
-    );
+    // Keep the existing queueNumber so the driver doesn't lose their position.
+    queueNumber = atOrg.queueNumber;
     queueUniqueId = atOrg.queueUniqueId;
     await updateData({
       tableName: "DriverQueue",
