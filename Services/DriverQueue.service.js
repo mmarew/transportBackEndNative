@@ -83,6 +83,28 @@ const resolveShipperUserByPhone = async (phoneNumber, createdBy) => {
   return userUniqueId;
 };
 
+/**
+ * Column-level audit trail for DriverQueue. Logs a single column change.
+ * Only stores oldValue — current value is always in DriverQueue itself.
+ * No-op if oldValue === newValue (no actual change).
+ */
+const logQueueHistory = async (
+  executor,
+  { queueUniqueId, columnName, oldValue, newValue, performedBy },
+) => {
+  if (oldValue === newValue) return;
+  await createData({
+    tableName: "DriverQueueHistory",
+    insertValues: {
+      historyUniqueId: uuidv4(),
+      queueUniqueId,
+      columnName,
+      oldValue: oldValue != null ? String(oldValue) : null,
+      performedBy,
+    },
+  }, executor);
+};
+
 const getVehicleDriverType = async (executor, vehicleDriverUniqueId) => {
   const [rows] = await executor.query(
     `SELECT vd.driverUserUniqueId, vd.vehicleUniqueId, v.vehicleTypeUniqueId,

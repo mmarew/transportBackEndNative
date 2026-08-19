@@ -2079,6 +2079,25 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
     FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
 );
 
+-- DriverQueueHistory: column-level audit trail for DriverQueue mutations.
+-- Each row records ONE column change on ONE queue entry. The current value
+-- is always readable from DriverQueue itself; oldValue tells you what it was
+-- BEFORE this change. Walk history backwards + read DriverQueue for full timeline.
+
+CREATE TABLE IF NOT EXISTS DriverQueueHistory (
+    historyId INT AUTO_INCREMENT PRIMARY KEY,
+    historyUniqueId VARCHAR(36) UNIQUE NOT NULL,
+    queueUniqueId VARCHAR(36) NOT NULL,                         -- FK → DriverQueue (entry affected)
+    columnName VARCHAR(50) NOT NULL,                            -- which column changed
+    oldValue VARCHAR(500) NULL,                                 -- value BEFORE this change
+    performedBy VARCHAR(36) NOT NULL,                           -- FK → Users (who made the change)
+    performedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_dqh_queue (queueUniqueId),
+    INDEX idx_dqh_column (columnName),
+    FOREIGN KEY (queueUniqueId) REFERENCES DriverQueue(queueUniqueId),
+    FOREIGN KEY (performedBy) REFERENCES Users(userUniqueId)
+);
+
 -- DeliveryConfirmations: confirms that goods were actually delivered once a
 -- journey is completed. One confirmation per journey (UNIQUE on journeyUniqueId).
 -- Lifecycle: PENDING (receiver submitted) → CONFIRMED (accepted) | DISPUTED.
