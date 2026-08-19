@@ -48,6 +48,7 @@ const getCancellationNotifications = async ({
         -- ShipperRequest data
         ShipperRequest.shipperRequestId,
         ShipperRequest.shipperRequestUniqueId,
+        ShipperRequest.shipperRequestBatchUniqueId,
         ShipperRequest.userUniqueId as shipperUserUniqueId,
         ShipperRequest.vehicleTypeUniqueId,
         ShipperRequest.originLatitude as shipperOriginLatitude,
@@ -159,6 +160,7 @@ const getCancellationNotifications = async ({
             shipper: {
               shipperRequestId: request.shipperRequestId,
               shipperRequestUniqueId: request.shipperRequestUniqueId,
+              batchUniqueId: request.shipperRequestBatchUniqueId,
               shipperUserUniqueId: request.shipperUserUniqueId,
               vehicleTypeUniqueId: request.vehicleTypeUniqueId,
               originLatitude: request.shipperOriginLatitude,

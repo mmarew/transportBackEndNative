@@ -103,11 +103,12 @@ router.get(
 
 /**
  * @route   DELETE /api/queue/driver/checkout
- * @summary Remove driver from the queue (soft delete)
+ * @summary Remove driver from the queue
  *
  * @description
- * Sets `queueDeletedAt` on the driver's queue entry for the given org+day.
- * The driver is removed from the FIFO and their position is freed.
+ * Sets `status: 'removed'` on the driver's queue entry for the given org+day.
+ * If the driver has an active offer, the linked order is released back to the
+ * queue. The driver is removed from the FIFO and their position is freed.
  * Pass `queueOrganizationUniqueId` in body or query.
  *
  * @access  Private (driver)
@@ -234,7 +235,7 @@ router.patch(
  * @summary Remove a queue entry (admin checkout / no-show)
  *
  * @description
- * Soft-deletes a queue entry by setting `queueDeletedAt`. Audit-logged.
+ * Sets `status: 'removed'` on a queue entry. Audit-logged to QueueAuditLog.
  * Use this when a driver is a no-show, leaves early, or is removed by
  * admin decision.
  *
@@ -292,6 +293,35 @@ router.post(
   verifyIfUserIsQueueOrgAdmin,
   validator(schema.dispatchBody),
   controller.dispatch,
+);
+
+// ===========================================================================
+// HISTORY
+// ===========================================================================
+
+/**
+ * @route   GET /api/queue/entry/:queueUniqueId/history
+ * @summary Column-level change history for a queue entry
+ *
+ * @description
+ * Returns the full DriverQueueHistory for a given entry: every column change
+ * (status, targetedShipperUserUUID, queueNumber, shipperRequestUniqueId,
+ * queueRefusalCount) with oldValue, who did it, and when.
+ *
+ * Sorted by most recent first. Current value is always in DriverQueue itself;
+ * history shows what each column was BEFORE each change.
+ *
+ * @access  Private (driver: own entry / QueueOrgAdmin: any entry)
+ * @params  {string}  queueUniqueId  UUID of the queue entry (required)
+ *
+ * @returns {Object}  { message: "success", data: [{ columnName, oldValue, performedBy, performedAt }] }
+ *
+ * @example GET /api/queue/entry/a1b2c3d4-.../history
+ */
+router.get(
+  "/entry/:queueUniqueId/history",
+  validator(schema.entryParams, "params"),
+  controller.getEntryHistory,
 );
 
 module.exports = router;

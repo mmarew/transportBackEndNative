@@ -34,21 +34,12 @@ exports.myPosition = async (req, res, next) => {
 
 exports.checkout = async (req, res, next) => {
   try {
-    console.log('[Checkout] Request received:', {
-      method: req.method,
-      url: req.url,
-      query: req.query,
-      body: req.body,
-      user: req.user ? { userUniqueId: req.user.userUniqueId, phoneNumber: req.user.phoneNumber, roleId: req.user.roleId } : null
-    });
     const queueOrgId = (req.body && req.body.queueOrganizationUniqueId) || req.query.queueOrganizationUniqueId;
-    console.log('[Checkout] queueOrgId:', queueOrgId);
     const result = await executeInTransaction(() =>
       service.checkout(queueOrgId, req.user),
     );
     ServerResponder(res, result);
   } catch (e) {
-    console.error('[Checkout] Error:', e.message, e.stack);
     next(e);
   }
 };
@@ -103,6 +94,17 @@ exports.dispatch = async (req, res, next) => {
       service.dispatch({ ...req.body, user: req.user }),
     );
     ServerResponder(res, result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+exports.getEntryHistory = async (req, res, next) => {
+  try {
+    ServerResponder(
+      res,
+      await service.getEntryHistory(req.params.queueUniqueId, req.user),
+    );
   } catch (e) {
     next(e);
   }

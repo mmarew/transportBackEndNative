@@ -249,11 +249,6 @@ const messageTypes = {
     details:
       "Your company has assigned you to a fleet freight job. Your previous individual shipper match has been released back to the open pool and is available for other drivers.",
   },
-  queue_checkin_confirmed: {
-    message: "Checked into queue",
-    details:
-      "Driver successfully joined the queue. Payload carries queueNumber, position, queueDate.",
-  },
   queue_position_changed: {
     message: "Queue position updated",
     details:

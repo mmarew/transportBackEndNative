@@ -99,7 +99,7 @@ const logQueueHistory = async (
       historyUniqueId: uuidv4(),
       queueUniqueId,
       columnName,
-      oldValue: oldValue != null ? String(oldValue) : null,
+      oldValue: oldValue !== null && oldValue !== undefined ? String(oldValue) : null,
       performedBy,
     },
   }, executor);
@@ -300,8 +300,16 @@ exports.checkin = async (data) => {
       );
     }
     // Idempotent: already in THIS queue today — return the existing entry.
-    // Update targetedShipperUserUUID if a new phone number was provided.
-    if (targetedShipperUserUUID !== undefined) {
+    // Update targetedShipperUserUUID ONLY if a new phone number was explicitly provided.
+    // Without this guard, re-checking in without a phone silently clears the reservation.
+    if (data.shipperPhoneNumber !== undefined) {
+      await logQueueHistory(executor, {
+        queueUniqueId: active.queueUniqueId,
+        columnName: "targetedShipperUserUUID",
+        oldValue: active.targetedShipperUserUUID,
+        newValue: targetedShipperUserUUID || null,
+        performedBy: user.userUniqueId,
+      });
       await updateData({
         tableName: "DriverQueue",
         updateValues: {
@@ -350,6 +358,27 @@ exports.checkin = async (data) => {
     // Keep the existing queueNumber so the driver doesn't lose their position.
     queueNumber = atOrg.queueNumber;
     queueUniqueId = atOrg.queueUniqueId;
+
+    // Only update targetedShipperUserUUID if phone was explicitly provided.
+    // Preserve existing reservation otherwise.
+    const newTarget = data.shipperPhoneNumber !== undefined
+      ? targetedShipperUserUUID || null
+      : atOrg.targetedShipperUserUUID;
+
+    await logQueueHistory(executor, {
+      queueUniqueId: atOrg.queueUniqueId,
+      columnName: "status",
+      oldValue: atOrg.status,
+      newValue: "waiting",
+      performedBy: user.userUniqueId,
+    });
+    await logQueueHistory(executor, {
+      queueUniqueId: atOrg.queueUniqueId,
+      columnName: "targetedShipperUserUUID",
+      oldValue: atOrg.targetedShipperUserUUID,
+      newValue: newTarget,
+      performedBy: user.userUniqueId,
+    });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
@@ -360,7 +389,7 @@ exports.checkin = async (data) => {
         offeredAt: null,
         loadedAt: null,
         shipperRequestUniqueId: null,
-        targetedShipperUserUUID: targetedShipperUserUUID || null,
+        targetedShipperUserUUID: newTarget,
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: user.userUniqueId,
       },
@@ -524,6 +553,14 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
     shipper = shipperRows[0] || null;
   }
 
+  const [shipperHistory] = await executor.query(
+    `SELECT oldValue, performedAt
+     FROM DriverQueueHistory
+     WHERE queueUniqueId = ? AND columnName = 'targetedShipperUserUUID'
+     ORDER BY performedAt DESC LIMIT 10`,
+    [rows[0].queueUniqueId],
+  );
+
   return {
     message: "success",
     data: {
@@ -532,6 +569,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
         waitingAhead: ahead[0].total,
       },
       shipper,
+      shipperHistory,
       organization: orgRows[0] || null,
     },
   };
@@ -548,7 +586,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   let rows;
   if (queueOrganizationUniqueId) {
     [rows] = await executor.query(
-      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status, dq.shipperRequestUniqueId
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
        WHERE dq.queueOrganizationUniqueId = ? AND dq.queueDate = ?
@@ -560,7 +598,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   } else {
     // FENCE: find driver's active queue across all orgs
     [rows] = await executor.query(
-      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate
+      `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status, dq.shipperRequestUniqueId
        FROM DriverQueue dq
        JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
        WHERE dq.queueDate = ? AND vd.driverUserUniqueId = ? AND dq.status != 'removed'
@@ -577,15 +615,49 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
   }
 
   const orgId = rows[0].queueOrganizationUniqueId;
+  const isOffered = rows[0].status === "offered";
+  const releasedOrder = isOffered ? rows[0].shipperRequestUniqueId : null;
+
+  await logQueueHistory(executor, {
+    queueUniqueId: rows[0].queueUniqueId,
+    columnName: "status",
+    oldValue: rows[0].status,
+    newValue: "removed",
+    performedBy: user.userUniqueId,
+  });
+  if (isOffered) {
+    await logQueueHistory(executor, {
+      queueUniqueId: rows[0].queueUniqueId,
+      columnName: "shipperRequestUniqueId",
+      oldValue: rows[0].shipperRequestUniqueId,
+      newValue: null,
+      performedBy: user.userUniqueId,
+    });
+  }
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
       status: "removed",
+      shipperRequestUniqueId: null,
       queueUpdatedAt: currentDate(),
       queueUpdatedBy: user.userUniqueId,
     },
     conditions: { queueId: rows[0].queueId },
   });
+
+  await createData({
+    tableName: "QueueAuditLog",
+    insertValues: {
+      queueAuditUniqueId: uuidv4(),
+      queueOrganizationUniqueId: orgId,
+      queueDate,
+      queueUniqueId: rows[0].queueUniqueId,
+      action: "remove",
+      beforeValue: JSON.stringify({ status: rows[0].status }),
+      afterValue: JSON.stringify({ status: "removed" }),
+      performedBy: user.userUniqueId,
+    },
+  }, executor);
 
   await emitQueueSnapshot({ queueOrganizationUniqueId: orgId, queueDate });
   notifyQueueOrgAdmins({
@@ -595,7 +667,7 @@ exports.checkout = async (queueOrganizationUniqueId, user) => {
 
   return {
     message: "success",
-    data: { queueUniqueId: rows[0].queueUniqueId, status: "removed" },
+    data: { queueUniqueId: rows[0].queueUniqueId, status: "removed", releasedOrder },
   };
 };
 
@@ -735,6 +807,20 @@ exports.manualCheckin = async (data) => {
         vehicleDriver.vehicleTypeUniqueId,
       ));
     queueUniqueId = atOrg.queueUniqueId;
+    await logQueueHistory(executor, {
+      queueUniqueId: atOrg.queueUniqueId,
+      columnName: "status",
+      oldValue: atOrg.status,
+      newValue: "waiting",
+      performedBy: user.userUniqueId,
+    });
+    await logQueueHistory(executor, {
+      queueUniqueId: atOrg.queueUniqueId,
+      columnName: "targetedShipperUserUUID",
+      oldValue: atOrg.targetedShipperUserUUID,
+      newValue: targetedShipperUserUUID || null,
+      performedBy: user.userUniqueId,
+    });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
@@ -790,6 +876,27 @@ exports.manualCheckin = async (data) => {
   await emitQueueSnapshot({ queueOrganizationUniqueId, queueDate });
   notifyQueueOrgAdmins({ queueOrganizationUniqueId });
 
+  // Audit log for manual checkin
+  await createData({
+    tableName: "QueueAuditLog",
+    insertValues: {
+      queueAuditUniqueId: uuidv4(),
+      queueOrganizationUniqueId,
+      queueDate,
+      queueUniqueId,
+      action: "manual_checkin",
+      afterValue: JSON.stringify({ queueNumber: assignedNumber, status: "waiting" }),
+      performedBy: user.userUniqueId,
+    },
+  }, executor);
+
+  // Auto-dispatch pending orders to this newly available driver
+  await rescanPendingQueueOrder({
+    queueOrganizationUniqueId,
+    vehicleTypeUniqueId: vehicleDriver.vehicleTypeUniqueId,
+    executor,
+  });
+
   return {
     message: "success",
     data: { queueUniqueId, queueNumber: assignedNumber, status: "waiting" },
@@ -811,6 +918,14 @@ exports.overrideEntry = async (queueUniqueId, body, user) => {
   if (rows.length === 0) {
     throw new AppError("Queue entry not found", AppError.NOT_FOUND);
   }
+
+  await logQueueHistory(executor, {
+    queueUniqueId: rows[0].queueUniqueId,
+    columnName: "queueNumber",
+    oldValue: rows[0].queueNumber,
+    newValue: queueNumber,
+    performedBy: user.userUniqueId,
+  });
 
   await updateData({
     tableName: "DriverQueue",
@@ -852,7 +967,7 @@ exports.removeEntry = async (queueUniqueId, user) => {
   const executor = db();
 
   const [rows] = await executor.query(
-    `SELECT queueId, queueOrganizationUniqueId, queueDate, vehicleDriverUniqueId, queueUniqueId
+    `SELECT queueId, queueOrganizationUniqueId, queueDate, vehicleDriverUniqueId, queueUniqueId, status
      FROM DriverQueue WHERE queueUniqueId = ? AND queueDeletedAt IS NULL`,
     [queueUniqueId],
   );
@@ -860,6 +975,13 @@ exports.removeEntry = async (queueUniqueId, user) => {
     throw new AppError("Queue entry not found", AppError.NOT_FOUND);
   }
 
+  await logQueueHistory(executor, {
+    queueUniqueId: rows[0].queueUniqueId,
+    columnName: "status",
+    oldValue: rows[0].status,
+    newValue: "removed",
+    performedBy: user.userUniqueId,
+  });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
@@ -1126,31 +1248,39 @@ const notifyDriverOfQueueOffer = async ({
     }),
   );
 
-  await sendSocketIONotificationToDriver({
-    phoneNumber: front.phoneNumber,
-    eventName: "queue",
-    message: {
-      messageTypes: messageTypes.queue_order_offered,
-      message: "New queue order offered",
-      status: journeyStatusMap.requested,
-      shipper: shipperRequest,
-      driver: {
+  try {
+    await sendSocketIONotificationToDriver({
+      phoneNumber: front.phoneNumber,
+      eventName: "queue",
+      message: {
+        messageTypes: messageTypes.queue_order_offered,
+        message: "New queue order offered",
+        status: journeyStatusMap.requested,
+        shipper: shipperRequest,
         driver: {
-          ...front,
-          driverRequestUniqueId: offerResult.decision.driverRequestUniqueId,
+          driver: {
+            ...front,
+            driverRequestUniqueId: offerResult.decision.driverRequestUniqueId,
+          },
+          vehicle,
         },
-        vehicle,
+        journey: null,
+        decisions: offerResult.decision,
+        queue: {
+          queueOrganizationUniqueId: front.queueOrganizationUniqueId,
+          queueUniqueId: front.queueUniqueId,
+          queueNumber: front.queueNumber,
+          offerWindowMinutes: QUEUE_OFFER_WINDOW_MINUTES,
+        },
       },
-      journey: null,
-      decisions: offerResult.decision,
-      queue: {
-        queueOrganizationUniqueId: front.queueOrganizationUniqueId,
-        queueUniqueId: front.queueUniqueId,
-        queueNumber: front.queueNumber,
-        offerWindowMinutes: QUEUE_OFFER_WINDOW_MINUTES,
-      },
-    },
-  });
+    });
+  } catch (socketErr) {
+    logger.error("Socket notification failed for queue offer", {
+      error: socketErr.message,
+      driverUserUniqueId: front.driverUserUniqueId,
+      queueUniqueId: front.queueUniqueId,
+    });
+  }
 };
 
 /**
@@ -1437,6 +1567,21 @@ const offerToDriver = async ({
       shipperRequest,
       driverRequest,
       user,
+    });
+
+    await logQueueHistory(txExecutor, {
+      queueUniqueId: entry.queueUniqueId,
+      columnName: "status",
+      oldValue: entry.status,
+      newValue: "offered",
+      performedBy: user.userUniqueId,
+    });
+    await logQueueHistory(txExecutor, {
+      queueUniqueId: entry.queueUniqueId,
+      columnName: "shipperRequestUniqueId",
+      oldValue: entry.shipperRequestUniqueId,
+      newValue: shipperRequestUniqueId,
+      performedBy: user.userUniqueId,
     });
 
     await updateData({
@@ -1762,6 +1907,20 @@ exports.rejectOffer = async (data) => {
   }
 
   const entry = rows[0];
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "status",
+    oldValue: entry.status,
+    newValue: "waiting",
+    performedBy: user.userUniqueId,
+  });
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "shipperRequestUniqueId",
+    oldValue: entry.shipperRequestUniqueId,
+    newValue: null,
+    performedBy: user.userUniqueId,
+  });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
@@ -1813,7 +1972,7 @@ exports.closeEntryOnJourneyCompletion = async ({
 }) => {
   const executor = db();
   const [rows] = await executor.query(
-    `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate
+    `SELECT queueId, queueUniqueId, queueOrganizationUniqueId, queueDate, status
      FROM DriverQueue
      WHERE shipperRequestUniqueId = ? AND status = 'loaded'
        AND queueDeletedAt IS NULL
@@ -1825,6 +1984,20 @@ exports.closeEntryOnJourneyCompletion = async ({
   }
 
   const entry = rows[0];
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "status",
+    oldValue: entry.status,
+    newValue: "removed",
+    performedBy: userUniqueId || null,
+  });
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "shipperRequestUniqueId",
+    oldValue: shipperRequestUniqueId,
+    newValue: null,
+    performedBy: userUniqueId || null,
+  });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
@@ -1863,7 +2036,7 @@ exports.releaseEntryOnOrderCancel = async ({
   const executor = db();
   const [rows] = await executor.query(
     `SELECT dq.queueId, dq.queueUniqueId, dq.queueNumber, dq.queueOrganizationUniqueId, dq.queueDate,
-            dq.vehicleDriverUniqueId, vd.driverUserUniqueId
+            dq.vehicleDriverUniqueId, vd.driverUserUniqueId, dq.status
      FROM DriverQueue dq
      JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
      WHERE dq.shipperRequestUniqueId = ? AND dq.status = 'offered'
@@ -1877,6 +2050,20 @@ exports.releaseEntryOnOrderCancel = async ({
   }
 
   const entry = rows[0];
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "status",
+    oldValue: entry.status,
+    newValue: "waiting",
+    performedBy: user?.userUniqueId || null,
+  });
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "shipperRequestUniqueId",
+    oldValue: entry.shipperRequestUniqueId,
+    newValue: null,
+    performedBy: user?.userUniqueId || null,
+  });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
@@ -1930,6 +2117,24 @@ const applyRefusalPolicy = async ({ executor, entry, user }) => {
       entry.vehicleTypeUniqueId,
     );
   }
+
+  await logQueueHistory(executor, {
+    queueUniqueId: entry.queueUniqueId,
+    columnName: "queueRefusalCount",
+    oldValue: entry.queueRefusalCount,
+    newValue: movedToBack ? 0 : refusalCount,
+    performedBy: user.userUniqueId,
+  });
+  if (movedToBack) {
+    await logQueueHistory(executor, {
+      queueUniqueId: entry.queueUniqueId,
+      columnName: "queueNumber",
+      oldValue: entry.queueNumber,
+      newValue: updateValues.queueNumber,
+      performedBy: user.userUniqueId,
+    });
+  }
+
   await updateData({
     tableName: "DriverQueue",
     updateValues,
@@ -1964,7 +2169,7 @@ const applyRefusalPolicy = async ({ executor, entry, user }) => {
 exports.markEntryLoaded = async ({ shipperRequestUniqueId, userUniqueId }) => {
   const executor = db();
   const [rows] = await executor.query(
-    `SELECT dq.queueId, dq.queueOrganizationUniqueId, dq.queueDate,
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.queueDate, dq.status,
             u.fullName AS driverName, u.phoneNumber AS driverPhoneNumber,
             v.licensePlate, vt.vehicleTypeName
      FROM DriverQueue dq
@@ -1979,6 +2184,13 @@ exports.markEntryLoaded = async ({ shipperRequestUniqueId, userUniqueId }) => {
   if (rows.length === 0) {
     return { updated: false };
   }
+  await logQueueHistory(executor, {
+    queueUniqueId: rows[0].queueUniqueId,
+    columnName: "status",
+    oldValue: rows[0].status,
+    newValue: "loaded",
+    performedBy: userUniqueId || null,
+  });
   await updateData({
     tableName: "DriverQueue",
     updateValues: {
@@ -2092,6 +2304,20 @@ exports.releaseExpiredOffers = async ({
       },
       conditions: { driverRequestId: entry.driverRequestId },
     });
+    await logQueueHistory(executor, {
+      queueUniqueId: entry.queueUniqueId,
+      columnName: "status",
+      oldValue: entry.status,
+      newValue: "waiting",
+      performedBy: actor.userUniqueId,
+    });
+    await logQueueHistory(executor, {
+      queueUniqueId: entry.queueUniqueId,
+      columnName: "shipperRequestUniqueId",
+      oldValue: entry.shipperRequestUniqueId,
+      newValue: null,
+      performedBy: actor.userUniqueId,
+    });
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
@@ -2155,6 +2381,45 @@ exports.releaseExpiredOffers = async ({
   }
 
   return { message: "success", data: { released: advanced.length, advanced } };
+};
+
+/**
+ * Get the column-level change history for a queue entry.
+ * Returns DriverQueueHistory rows sorted by most recent first.
+ * Driver can view own entry; QueueOrgAdmin can view any entry.
+ */
+exports.getEntryHistory = async (queueUniqueId, user) => {
+  const executor = db();
+
+  const [entry] = await executor.query(
+    `SELECT dq.queueId, dq.queueUniqueId, dq.queueOrganizationUniqueId, dq.vehicleDriverUniqueId,
+            vd.driverUserUniqueId
+     FROM DriverQueue dq
+     JOIN VehicleDriver vd ON vd.vehicleDriverUniqueId = dq.vehicleDriverUniqueId
+     WHERE dq.queueUniqueId = ? AND dq.queueDeletedAt IS NULL`,
+    [queueUniqueId],
+  );
+  if (entry.length === 0) {
+    throw new AppError("Queue entry not found", AppError.NOT_FOUND);
+  }
+
+  // Ownership check: driver can only view own entry's history; admins bypass
+  const isAdmin = user.roleId === usersRoles.adminRoleId
+    || user.roleId === usersRoles.supperAdminRoleId
+    || user.roleId === usersRoles.queueOrgAdminRoleId;
+  if (!isAdmin && entry[0].driverUserUniqueId !== user.userUniqueId) {
+    throw new AppError("Not authorized to view this entry's history", AppError.FORBIDDEN);
+  }
+
+  const [history] = await executor.query(
+    `SELECT historyUniqueId, columnName, oldValue, performedBy, performedAt
+     FROM DriverQueueHistory
+     WHERE queueUniqueId = ?
+     ORDER BY performedAt DESC`,
+    [queueUniqueId],
+  );
+
+  return { message: "success", data: history };
 };
 
 module.exports = exports;

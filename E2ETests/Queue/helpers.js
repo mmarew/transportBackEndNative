@@ -231,6 +231,22 @@ const checkin = async (driverKey, queueOrganizationUniqueId) => {
   return res.data?.data || res.data;
 };
 
+const checkinWithShipper = async (driverKey, queueOrganizationUniqueId, shipperPhoneNumber) => {
+  const d = queueState.drivers[driverKey];
+  const res = await axios.post(
+    backendURL + "/api/queue/driver/checkin",
+    {
+      queueOrganizationUniqueId,
+      vehicleDriverUniqueId: d.vehicleDriverUniqueId,
+      latitude: 9.03,
+      longitude: 38.74,
+      shipperPhoneNumber,
+    },
+    authConfig(driverToken(driverKey)),
+  );
+  return res.data?.data || res.data;
+};
+
 const checkout = async (driverKey, queueOrganizationUniqueId) => {
   const res = await axios.delete(
     backendURL +
@@ -264,6 +280,24 @@ const manualCheckin = async (queueOrganizationUniqueId, driverKey, token = super
   const res = await axios.post(
     backendURL + "/api/queue/manualCheckin",
     { queueOrganizationUniqueId, vehicleDriverUniqueId: d.vehicleDriverUniqueId },
+    authConfig(token),
+  );
+  return res.data?.data || res.data;
+};
+
+const manualCheckinWithShipper = async (queueOrganizationUniqueId, driverKey, shipperPhoneNumber, token = superAdminToken()) => {
+  const d = queueState.drivers[driverKey];
+  const res = await axios.post(
+    backendURL + "/api/queue/manualCheckin",
+    { queueOrganizationUniqueId, vehicleDriverUniqueId: d.vehicleDriverUniqueId, shipperPhoneNumber },
+    authConfig(token),
+  );
+  return res.data?.data || res.data;
+};
+
+const getEntryHistory = async (queueUniqueId, token) => {
+  const res = await axios.get(
+    backendURL + `/api/queue/entry/${queueUniqueId}/history`,
     authConfig(token),
   );
   return res.data?.data || res.data;
@@ -519,13 +553,16 @@ module.exports = {
   deleteQueueOrganization,
   getQueueOrganizations,
   checkin,
+  checkinWithShipper,
   checkout,
   myPosition,
   getQueueStatus,
   manualCheckin,
+  manualCheckinWithShipper,
   overrideEntry,
   removeEntry,
   manualDispatch,
+  getEntryHistory,
   buildQueueOrderPayload,
   createQueueOrder,
   rejectDriverOffer,
