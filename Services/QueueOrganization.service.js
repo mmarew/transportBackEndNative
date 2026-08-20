@@ -11,6 +11,17 @@ const { notifyQueueOrgAdmins } = require("../Utils/QueueSocket");
 /**
  * Create a QueueOrganization and auto-assign the creator as its QueueOrgAdmin
  * (role 11), mirroring TransportCompany → owner.
+ *
+ * @param {object} data
+ * @param {string} data.queueOrganizationName - Display name (e.g., "Mojo Kaliy")
+ * @param {string} [data.queueOrganizationType='other'] - One of: customs, factory, cement, depot, other
+ * @param {string} [data.queueOrganizationPhone] - Contact phone for the org
+ * @param {string} [data.queueOrganizationAddress] - Physical address
+ * @param {number|null} [data.latitude] - Site reference latitude (DECIMAL 10,8)
+ * @param {number|null} [data.longitude] - Site reference longitude (DECIMAL 11,8)
+ * @param {number|null} [data.checkinRadiusKm] - Max distance (km) for driver check-in; NULL = no limit
+ * @param {string} data.createdByUserUniqueId - FK → Users (creator, auto-assigned as queueOrgAdmin)
+ * @returns {Promise<object>} { message, data: { queueOrganizationUniqueId, approvalStatus, alreadyExisted? } }
  */
 exports.createQueueOrganization = async (data) => {
   const {
@@ -20,6 +31,7 @@ exports.createQueueOrganization = async (data) => {
     queueOrganizationAddress,
     latitude,
     longitude,
+    checkinRadiusKm,
     createdByUserUniqueId,
   } = data;
 
@@ -45,8 +57,8 @@ exports.createQueueOrganization = async (data) => {
     `INSERT INTO QueueOrganization
       (queueOrganizationUniqueId, queueOrganizationName, queueOrganizationType,
        queueOrganizationPhone, queueOrganizationAddress, latitude, longitude,
-       approvalStatus, queueEnabled, queueOrganizationCreatedBy)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)`,
+       checkinRadiusKm, approvalStatus, queueEnabled, queueOrganizationCreatedBy)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)`,
     [
       queueOrganizationUniqueId,
       queueOrganizationName,
@@ -55,6 +67,7 @@ exports.createQueueOrganization = async (data) => {
       queueOrganizationAddress || null,
       latitude ?? null,
       longitude ?? null,
+      checkinRadiusKm ?? null,
       createdByUserUniqueId,
     ],
   );
@@ -92,11 +105,7 @@ exports.getQueueOrganizations = async (query, user) => {
 
   let fromSql = `FROM QueueOrganization q
     LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
-  if (
-    user &&
-    (user.roleId === usersRoles.queueOrgAdminRoleId ||
-      user.roleId === usersRoles.companyAdminRoleId)
-  ) {
+  if (user && user.roleId === usersRoles.queueOrgAdminRoleId) {
     fromSql +=
       ` JOIN QueueOrganizationMembership qom` +
       ` ON qom.queueOrganizationUniqueId = q.queueOrganizationUniqueId`;
@@ -162,11 +171,7 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
   let fromSql = `FROM QueueOrganization q
     LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
   
-  if (
-    user &&
-    (user.roleId === usersRoles.queueOrgAdminRoleId ||
-      user.roleId === usersRoles.companyAdminRoleId)
-  ) {
+  if (user && user.roleId === usersRoles.queueOrgAdminRoleId) {
     fromSql +=
       ` JOIN QueueOrganizationMembership qom` +
       ` ON qom.queueOrganizationUniqueId = q.queueOrganizationUniqueId`;
@@ -206,7 +211,18 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
 };
 
 /**
- * Update a QueueOrganization profile (name, type, contact, site reference).
+ * Update a QueueOrganization profile (name, type, contact, site reference, check-in radius).
+ *
+ * Allowed fields: queueOrganizationName, queueOrganizationType, queueOrganizationPhone,
+ * queueOrganizationAddress, latitude, longitude, checkinRadiusKm.
+ *
+ * @param {string} queueOrganizationUniqueId - FK → QueueOrganization
+ * @param {object} body - Request body with fields to update
+ * @param {number|null} [body.checkinRadiusKm] - Max distance (km) for driver check-in; NULL = no limit
+ * @param {string} userId - FK → Users (who performed the update)
+ * @returns {Promise<object>} { message, data: { queueOrganizationUniqueId } }
+ * @throws {AppError} 404 if org not found
+ * @throws {AppError} 400 if no valid fields provided
  */
 exports.updateQueueOrganization = async (queueOrganizationUniqueId, body, userId) => {
   const [org] = await db().query(
@@ -225,6 +241,7 @@ exports.updateQueueOrganization = async (queueOrganizationUniqueId, body, userId
     "queueOrganizationAddress",
     "latitude",
     "longitude",
+    "checkinRadiusKm",
   ];
   const sets = [];
   const params = [];

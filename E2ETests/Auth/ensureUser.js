@@ -31,11 +31,22 @@ const ACCOUNT_FETCH_ROLES = new Set(["driver", "shipper", "companyAdmin"]);
 // Acceptance counters — lets CI assert each step fires once per role per run.
 const provisioning = { created: 0, verified: 0, loggedIn: 0, reused: 0 };
 
+/**
+ * Create a user via the appropriate API endpoint based on role type.
+ *
+ * - SEED_ONLY_ROLES (supperAdmin, systemAdmin): pre-seeded by backend, skip creation
+ * - PUBLIC_CREATE_ROLES (driver, shipper, companyAdmin, queueOrgAdmin): create via public endpoint
+ * - queueDriver* (queueDriver1..N): dynamic driver types for queue E2E tests, create via public endpoint
+ * - ADMIN_CREATE_ROLES (admin): create via admin endpoint (requires superAdmin token)
+ *
+ * @param {string} userType - Canonical key in usersData (e.g., 'driver', 'queueDriver1')
+ * @throws {Error} If API call fails with non-409 status
+ */
 const ensureCreate = async (userType) => {
   if (SEED_ONLY_ROLES.has(userType)) {
     return; // Pre-seeded by the backend — never create via API.
   }
-  if (PUBLIC_CREATE_ROLES.has(userType)) {
+  if (PUBLIC_CREATE_ROLES.has(userType) || userType.startsWith("queueDriver")) {
     await apiCreateUser(userType);
     provisioning.created++;
   } else if (ADMIN_CREATE_ROLES.has(userType)) {

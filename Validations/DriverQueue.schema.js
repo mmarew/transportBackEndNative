@@ -3,6 +3,14 @@ const Joi = require("joi");
 const { uuidSchema } = require("../Middleware/Validator");
 const { DOMAIN } = require("../Utils/Constants");
 
+/**
+ * Schema for POST /api/queue/driver/checkin.
+ *
+ * latitude/longitude are validated here as optional, but the service layer
+ * enforces them as required when the target org has checkinRadiusKm set.
+ * This two-tier approach keeps the schema reusable while the runtime logic
+ * handles the conditional requirement.
+ */
 exports.checkin = Joi.object({
   queueOrganizationUniqueId: uuidSchema.required(),
   vehicleDriverUniqueId: uuidSchema.required(),

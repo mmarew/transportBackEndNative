@@ -1953,6 +1953,7 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
     queueOrganizationAddress VARCHAR(500) NULL,
     latitude DECIMAL(10, 8) NULL,                                -- site reference / order pickup point (NOT a check-in gate)
     longitude DECIMAL(11, 8) NULL,
+    checkinRadiusKm INT NULL,                                     -- max distance (km) for driver check-in; NULL = no limit
     approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
     approvalReason VARCHAR(500) NULL,                            -- Admin note when approving or rejecting
     queueEnabled BOOLEAN NOT NULL DEFAULT FALSE,                 -- opts into queue dispatch
@@ -2032,6 +2033,8 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     vehicleDriverUniqueId VARCHAR(36) NOT NULL,                 -- FK → VehicleDriver (truck+driver unit in line)
     shipperRequestUniqueId VARCHAR(36) NULL,                    -- FK → ShipperRequest (order assigned to this entry)
     targetedShipperUserUUID VARCHAR(36) NULL DEFAULT NULL,       -- FK → Users (shipper phone target; reserves this position exclusively)
+    driverLatitude DECIMAL(10, 8) NULL,                          -- driver's lat at check-in time (for proximity audit)
+    driverLongitude DECIMAL(11, 8) NULL,                         -- driver's lng at check-in time (for proximity audit)
     joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth
     status ENUM('waiting','offered','loaded','removed') NOT NULL DEFAULT 'waiting',
     offeredAt DATETIME NULL,

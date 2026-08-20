@@ -1,9 +1,32 @@
-"use strict";
-
-// DriverQueueHistory E2E tests — verifies column-level audit trail, shipper
-// reservation, bug fixes, and all queue API improvements.
-//
-// Test IDs: TQ-H01..TQ-H15
+/**
+ * DriverQueueHistory E2E tests — verifies column-level audit trail, shipper
+ * reservation, bug fixes, and all queue API improvements.
+ *
+ * These tests run AFTER the core queue suite (QueueOrg, QueueCheckin, QueueOrders,
+ * QueueAdminOps) and assume the test environment is already provisioned with:
+ * - 4 queue drivers (queueDriver1..4) with active vehicle assignments
+ * - 1 queue organization (queueState.org.main) approved and enabled
+ * - 1 super admin, 1 queue org admin, 1 shipper
+ *
+ * Test matrix:
+ * - TQ-H01: checkin with shipperPhoneNumber → targetedShipperUserUUID + history logged
+ * - TQ-H02: re-checkin WITHOUT phone preserves reservation (P0 fix verification)
+ * - TQ-H03: re-checkin WITH new phone updates reservation + 2 history entries
+ * - TQ-H04: checkout clears orphaned shipperRequestUniqueId (P0 fix verification)
+ * - TQ-H05: GET /entry/:queueUniqueId/history returns full audit trail for admin
+ * - TQ-H06: driver can view own entry history
+ * - TQ-H07: driver gets 403 on other driver's history
+ * - TQ-H08: myPosition returns shipperHistory array
+ * - TQ-H09: override entry logs queueNumber change
+ * - TQ-H10: remove entry logs status change
+ * - TQ-H11: manualCheckin with shipper → history + QueueAuditLog
+ * - TQ-H12: checkout logs QueueAuditLog entry
+ * - TQ-H13: re-checkin revive logs status history chain
+ * - TQ-H14: all history entries have valid performedBy UUIDs
+ * - TQ-H15: history endpoint returns 404 for nonexistent entry
+ *
+ * @module QueueHistory
+ */
 
 const { pool } = require("../../Middleware/Database.config");
 const { report } = require("../Reporter");
@@ -22,15 +45,21 @@ const {
   expectStatus,
 } = require("./helpers");
 
+/** @returns {string} Current test org's queueOrganizationUniqueId */
 const ORG = () => queueState.org.main.queueOrganizationUniqueId;
+/** @returns {string} Queue org admin's auth token */
 const qadminToken = () => usersData.queueOrgAdmin?.token;
+/** @returns {string} Driver's auth token by key (e.g., 'queueDriver1') */
 const driverTokenOf = (key) => usersData[key]?.token;
 
 const entryOf = (driverKey) =>
   getQueueEntryByDriver({ queueOrganizationUniqueId: ORG(), driverKey });
 
-// ── TQ-H01 · Checkin with shipperPhoneNumber → history logged ─────────────────
-
+/**
+ * TQ-H01: Checkin with shipperPhoneNumber → targetedShipperUserUUID set + history logged.
+ * Verifies that when a driver checks in with a shipper phone number, the driver's queue
+ * entry is linked to that shipper and the change is recorded in DriverQueueHistory.
+ */
 const testTQH01CheckinWithShipper = async () => {
   try {
     const shipperPhone = usersData.shipper.phoneNumber;
@@ -61,8 +90,11 @@ const testTQH01CheckinWithShipper = async () => {
   }
 };
 
-// ── TQ-H02 · Re-checkin WITHOUT phone preserves reservation ───────────────────
-
+/**
+ * TQ-H02: Re-checkin WITHOUT phone preserves reservation.
+ * P0 bug fix verification — previously, re-checking in without a phone number
+ * would silently clear the targetedShipperUserUUID. Now it should preserve it.
+ */
 const testTQH02RecheckinPreservesReservation = async () => {
   try {
     const before = await entryOf("queueDriver1");
@@ -87,8 +119,11 @@ const testTQH02RecheckinPreservesReservation = async () => {
   }
 };
 
-// ── TQ-H03 · Re-checkin WITH different phone updates reservation ──────────────
-
+/**
+ * TQ-H03: Re-checkin WITH different phone updates reservation.
+ * Verifies that re-checking in with a new shipper phone number updates the
+ * targetedShipperUserUUID and creates a second history entry for the column.
+ */
 const testTQH03RecheckinUpdatesReservation = async () => {
   try {
     const before = await entryOf("queueDriver1");
@@ -119,8 +154,12 @@ const testTQH03RecheckinUpdatesReservation = async () => {
   }
 };
 
-// ── TQ-H04 · Checkout releases orphaned order (P0 fix) ───────────────────────
-
+/**
+ * TQ-H04: Checkout releases orphaned order.
+ * P0 bug fix verification — previously, checking out while an order was assigned
+ * would leave the ShipperRequest orphaned (still linked to the queue entry).
+ * Now checkout should null out shipperRequestUniqueId and log the status change.
+ */
 const testTQH04CheckoutReleasesOrder = async () => {
   try {
     const before = await entryOf("queueDriver1");
@@ -150,8 +189,11 @@ const testTQH04CheckoutReleasesOrder = async () => {
   }
 };
 
-// ── TQ-H05 · History endpoint returns data for admin ──────────────────────────
-
+/**
+ * TQ-H05: History endpoint returns data for admin.
+ * Verifies that GET /api/queue/entry/:queueUniqueId/history returns a valid
+ * array of column-level audit entries with required fields (columnName, performedAt).
+ */
 const testTQH05HistoryEndpointAdmin = async () => {
   try {
     // Re-checkin driver1 for further tests
@@ -180,8 +222,10 @@ const testTQH05HistoryEndpointAdmin = async () => {
   }
 };
 
-// ── TQ-H06 · History endpoint driver can only view own entry ──────────────────
-
+/**
+ * TQ-H06: History endpoint driver can only view own entry.
+ * Verifies that a driver can successfully retrieve history for their own queue entry.
+ */
 const testTQH06HistoryEndpointDriverOwnEntry = async () => {
   try {
     const row = await entryOf("queueDriver1");
@@ -199,8 +243,11 @@ const testTQH06HistoryEndpointDriverOwnEntry = async () => {
   }
 };
 
-// ── TQ-H07 · History endpoint driver cannot view other's entry ────────────────
-
+/**
+ * TQ-H07: History endpoint driver cannot view other's entry.
+ * Verifies that a driver gets 403 when trying to view history for another
+ * driver's queue entry (ownership enforcement).
+ */
 const testTQH07HistoryEndpointDriverOtherEntry = async () => {
   try {
     const row = await entryOf("queueDriver2");
@@ -219,8 +266,11 @@ const testTQH07HistoryEndpointDriverOtherEntry = async () => {
   }
 };
 
-// ── TQ-H08 · shipperHistory in myPosition response ────────────────────────────
-
+/**
+ * TQ-H08: shipperHistory in myPosition response.
+ * Verifies that GET /api/queue/driver/myPosition includes a shipperHistory
+ * array with the last 10 targetedShipperUserUUID changes (oldValue + performedAt).
+ */
 const testTQH08ShipperHistoryInMyPosition = async () => {
   try {
     const pos = await myPosition("queueDriver1", ORG());
@@ -247,8 +297,11 @@ const testTQH08ShipperHistoryInMyPosition = async () => {
   }
 };
 
-// ── TQ-H09 · Override entry → history logged ──────────────────────────────────
-
+/**
+ * TQ-H09: Override entry → history logged.
+ * Verifies that when an admin overrides a driver's queue number, the change
+ * is recorded in DriverQueueHistory with the correct oldValue.
+ */
 const testTQH09OverrideLogsHistory = async () => {
   try {
     const row = await entryOf("queueDriver1");
@@ -273,8 +326,11 @@ const testTQH09OverrideLogsHistory = async () => {
   }
 };
 
-// ── TQ-H10 · Remove entry → history logged ────────────────────────────────────
-
+/**
+ * TQ-H10: Remove entry → history logged.
+ * Verifies that when an admin removes a driver from the queue, the status
+ * change is recorded in DriverQueueHistory.
+ */
 const testTQH10RemoveLogsHistory = async () => {
   try {
     const row = await entryOf("queueDriver1");
@@ -296,8 +352,12 @@ const testTQH10RemoveLogsHistory = async () => {
   }
 };
 
-// ── TQ-H11 · ManualCheckin with shipper → history + audit log ─────────────────
-
+/**
+ * TQ-H11: ManualCheckin with shipper → history + audit log.
+ * Verifies that when an admin manually checks in a driver with a shipper phone
+ * number, both DriverQueueHistory (column-level) and QueueAuditLog (event-level)
+ * are populated correctly.
+ */
 const testTQH11ManualCheckinWithShipper = async () => {
   try {
     const shipperPhone = usersData.shipper.phoneNumber;
@@ -336,8 +396,11 @@ const testTQH11ManualCheckinWithShipper = async () => {
   }
 };
 
-// ── TQ-H12 · Checkout logs QueueAuditLog ──────────────────────────────────────
-
+/**
+ * TQ-H12: Checkout logs QueueAuditLog.
+ * Verifies that when a driver checks out, a QueueAuditLog entry with
+ * action='remove' is created for traceability.
+ */
 const testTQH12CheckoutLogsAudit = async () => {
   try {
     const row = await entryOf("queueDriver1");
@@ -361,8 +424,11 @@ const testTQH12CheckoutLogsAudit = async () => {
   }
 };
 
-// ── TQ-H13 · Re-checkin revive logs status + shipper history ──────────────────
-
+/**
+ * TQ-H13: Re-checkin revive logs status history.
+ * Verifies that when a driver checks out (status→removed) and then re-checks in
+ * (status→waiting), the full status transition chain is recorded in DriverQueueHistory.
+ */
 const testTQH13RecheckinReviveLogsHistory = async () => {
   try {
     // Checkout first to set up revive scenario
@@ -386,8 +452,11 @@ const testTQH13RecheckinReviveLogsHistory = async () => {
   }
 };
 
-// ── TQ-H14 · History entry has performedBy = correct user ─────────────────────
-
+/**
+ * TQ-H14: History entry has performedBy = correct user.
+ * Verifies that all DriverQueueHistory entries have valid UUIDs in the
+ * performedBy field, ensuring the audit trail correctly tracks who made each change.
+ */
 const testTQH14HistoryPerformedBy = async () => {
   try {
     const row = await entryOf("queueDriver1");
@@ -409,8 +478,11 @@ const testTQH14HistoryPerformedBy = async () => {
   }
 };
 
-// ── TQ-H15 · History endpoint 404 for nonexistent entry ───────────────────────
-
+/**
+ * TQ-H15: History endpoint 404 for nonexistent entry.
+ * Verifies that GET /api/queue/entry/:queueUniqueId/history returns 404
+ * when the queueUniqueId does not exist in DriverQueue.
+ */
 const testTQH15History404 = async () => {
   try {
     await expectStatus(
@@ -425,8 +497,14 @@ const testTQH15History404 = async () => {
   }
 };
 
-// ── Helper: get entry by queueUniqueId directly from DB ────────────────────────
-
+/**
+ * Fetch a DriverQueue entry directly from the database by queueUniqueId.
+ * Used for assertions that need to verify DB state (e.g., checking if
+ * shipperRequestUniqueId was cleared after checkout).
+ *
+ * @param {string} queueUniqueId - The queue entry's unique identifier
+ * @returns {Promise<object|null>} The DriverQueue row, or null if not found
+ */
 const getEntryByQueueUniqueId = async (queueUniqueId) => {
   const [rows] = await pool.query(
     `SELECT * FROM DriverQueue WHERE queueUniqueId = ?`,
@@ -435,8 +513,13 @@ const getEntryByQueueUniqueId = async (queueUniqueId) => {
   return rows[0] || null;
 };
 
-// ── Entry point ───────────────────────────────────────────────────────────────
-
+/**
+ * Run all QueueHistory & improvements tests (TQ-H01..TQ-H15).
+ * Must be called AFTER the core queue suite has provisioned users and created
+ * a test organization with enabled queue dispatch.
+ *
+ * @returns {Promise<void>}
+ */
 const runQueueHistoryTests = async () => {
   console.log("\n═══════════════════════════════════════════════════");
   console.log("  QUEUE HISTORY & IMPROVEMENTS — TQ-H01..TQ-H15");

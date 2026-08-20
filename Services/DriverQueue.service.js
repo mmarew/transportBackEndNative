@@ -34,14 +34,19 @@ const QUEUE_REFUSAL_LIMIT =
  * Verify a QueueOrganization exists and is not soft-deleted.
  * Used as a lightweight guard before queue mutations (offer/dispatch/advance).
  * Does NOT re-check approvalStatus/queueEnabled — those are validated at order creation.
+ *
+ * Also fetches `checkinRadiusKm`, `latitude`, and `longitude` for proximity
+ * validation during driver check-in.
+ *
  * @param {object} executor - DB executor (connection or transaction)
  * @param {string} queueOrganizationUniqueId
- * @returns {Promise<object>} the org row
+ * @returns {Promise<object>} the org row including checkinRadiusKm, latitude, longitude
  * @throws {AppError} 404 if not found or deleted
  */
 const queueOrgReady = async (executor, queueOrganizationUniqueId) => {
   const [org] = await executor.query(
-    `SELECT queueOrganizationUniqueId, approvalStatus, queueEnabled
+    `SELECT queueOrganizationUniqueId, approvalStatus, queueEnabled,
+            checkinRadiusKm, latitude, longitude
      FROM QueueOrganization
      WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
     [queueOrganizationUniqueId],
@@ -50,6 +55,73 @@ const queueOrgReady = async (executor, queueOrganizationUniqueId) => {
     throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
   return org[0];
+};
+
+/**
+ * Validate that a driver is within the organization's configurable check-in radius.
+ *
+ * Uses the Haversine formula (great-circle distance) to calculate the distance
+ * between the driver's GPS coordinates and the organization's site reference
+ * (latitude/longitude). The maximum allowed distance is set per-org via the
+ * `checkinRadiusKm` column on QueueOrganization.
+ *
+ * Behavior:
+ * - If org.checkinRadiusKm is NULL → skip validation (any driver can check in)
+ * - If org.latitude/longitude is NULL → skip validation (no reference point)
+ * - If driver lat/lng is missing but radius is enforced → reject with 400
+ * - If distance exceeds radius → reject with 400
+ *
+ * @param {object} executor - DB executor (connection or transaction)
+ * @param {object} org - The QueueOrganization row (must include checkinRadiusKm, latitude, longitude)
+ * @param {number|null} driverLat - Driver's latitude at check-in time
+ * @param {number|null} driverLng - Driver's longitude at check-in time
+ * @returns {Promise<number|null>} Distance in km, or null if validation is skipped
+ * @throws {AppError} 400 if location is required but not provided
+ * @throws {AppError} 400 if driver exceeds the max allowed distance
+ *
+ * @example
+ * // Org has no radius → skip validation
+ * await validateCheckinDistance(executor, { checkinRadiusKm: null, latitude: 9.03, longitude: 38.74 }, 9.04, 38.75);
+ * // → null
+ *
+ * @example
+ * // Org requires 10km radius, driver is within → returns distance
+ * await validateCheckinDistance(executor, { checkinRadiusKm: 10, latitude: 9.03, longitude: 38.74 }, 9.04, 38.75);
+ * // → 1.5
+ *
+ * @example
+ * // Org requires 5km radius, driver is 15km away → throws 400
+ * await validateCheckinDistance(executor, { checkinRadiusKm: 5, latitude: 9.03, longitude: 38.74 }, 9.15, 38.85);
+ * // → throws AppError "Too far from queue organization"
+ */
+const validateCheckinDistance = async (executor, org, driverLat, driverLng) => {
+  if (!org.checkinRadiusKm || org.latitude === null || org.longitude === null) {
+    return null; // no radius enforced
+  }
+  if (driverLat === null || driverLng === null) {
+    throw new AppError(
+      `Location required — this organization requires check-in within ${org.checkinRadiusKm}km`,
+      AppError.BAD_REQUEST,
+    );
+  }
+  const [[row]] = await executor.query(
+    `SELECT (
+      6371 * 2 * ASIN(SQRT(
+        POWER(SIN(RADIANS(? - ?) / 2), 2) +
+        COS(RADIANS(?)) * COS(RADIANS(?)) *
+        POWER(SIN(RADIANS(? - ?) / 2), 2))
+      )
+    ) AS distanceKm`,
+    [driverLat, org.latitude, org.latitude, org.latitude, driverLng, org.longitude],
+  );
+  const distanceKm = Number(row.distanceKm);
+  if (distanceKm > org.checkinRadiusKm) {
+    throw new AppError(
+      `Too far from queue organization — ${distanceKm.toFixed(1)}km away, max allowed is ${org.checkinRadiusKm}km`,
+      AppError.BAD_REQUEST,
+    );
+  }
+  return distanceKm;
 };
 
 /**
@@ -144,6 +216,29 @@ const nextQueueNumber = async (
   return agg[0].nextNumber;
 };
 
+/**
+ * Shape of a queue entry returned to external callers (drivers, admins, APIs).
+ * Strips internal DB fields (IDs, audit columns) and exposes only the
+ * information needed by the frontend and other services.
+ *
+ * @param {object} row - Raw DB row from DriverQueue JOIN VehicleDriver JOIN Vehicle JOIN Users
+ * @returns {object} Public queue entry shape
+ * @property {string} queueUniqueId - Unique identifier for this queue entry
+ * @property {number} queueNumber - Position in the queue (1 = front)
+ * @property {string} joinedAt - ISO datetime when the driver checked in
+ * @property {string} status - Queue status: 'waiting' | 'offered' | 'loaded' | 'removed'
+ * @property {string|null} offeredAt - ISO datetime when an order was offered (null if not yet offered)
+ * @property {string|null} loadedAt - ISO datetime when the driver accepted the order
+ * @property {string} vehicleDriverUniqueId - FK → VehicleDriver (driver + vehicle pair)
+ * @property {string} driverUserUniqueId - FK → Users (the driver's account)
+ * @property {string} driverName - Driver's full name
+ * @property {string} driverPhoneNumber - Driver's phone number
+ * @property {string} vehicleTypeUniqueId - FK → VehicleTypes
+ * @property {string|null} shipperRequestUniqueId - FK → ShipperRequest (assigned order, if any)
+ * @property {string|null} targetedShipperUserUUID - FK → Users (shipper this position is reserved for)
+ * @property {number|null} driverLatitude - Driver's GPS latitude at check-in (for proximity audit)
+ * @property {number|null} driverLongitude - Driver's GPS longitude at check-in (for proximity audit)
+ */
 const publicEntry = (row) => ({
   queueUniqueId: row.queueUniqueId,
   queueNumber: row.queueNumber,
@@ -158,6 +253,8 @@ const publicEntry = (row) => ({
   vehicleTypeUniqueId: row.vehicleTypeUniqueId,
   shipperRequestUniqueId: row.shipperRequestUniqueId,
   targetedShipperUserUUID: row.targetedShipperUserUUID || null,
+  driverLatitude: row.driverLatitude || null,
+  driverLongitude: row.driverLongitude || null,
 });
 
 // A driver is still "in queue" while waiting or holding a dispatch offer.
@@ -228,9 +325,36 @@ const getDriverQueueState = async (
 /**
  * Driver joins the queue — virtual check-in from anywhere. Server stamps the
  * position per (queueOrganizationUniqueId, queueDate, vehicleTypeUniqueId).
+ *
+ * Flow:
+ * 1. Resolve optional shipperPhoneNumber → targetedShipperUserUUID
+ * 2. Verify org exists, is approved, and queueEnabled
+ * 3. Validate driver proximity to org (if org has checkinRadiusKm set)
+ * 4. Fence: reject if driver has an active journey (status 4,3,5,6,7,8)
+ * 5. Fence: one queue per driver per day system-wide
+ * 6a. If driver already has an entry at this org today → idempotent re-check-in
+ *     (preserves queueNumber, updates status to 'waiting', optionally updates shipper target)
+ * 6b. If driver had a removed entry at this org today → revive (restore queueNumber)
+ * 6c. If no entry today → create new entry with next available queueNumber
+ * 7. Auto-dispatch: try to match oldest pending order of this vehicle type
+ *
+ * @param {object} data
+ * @param {string} data.queueOrganizationUniqueId - FK → QueueOrganization
+ * @param {string} data.vehicleDriverUniqueId - FK → VehicleDriver
+ * @param {object} data.user - Authenticated user from JWT (req.user)
+ * @param {number|null} [data.latitude] - Driver's GPS latitude (required if org has checkinRadiusKm)
+ * @param {number|null} [data.longitude] - Driver's GPS longitude (required if org has checkinRadiusKm)
+ * @param {string|null} [data.shipperPhoneNumber] - Shipper's phone to reserve this position for
+ * @returns {Promise<object>} Queue entry details (queueUniqueId, queueNumber, etc.)
+ * @throws {AppError} 403 if org not approved or not enabled
+ * @throws {AppError} 400 if location required but not provided, or if too far from org
+ * @throws {AppError} 409 if driver is already in another queue today
+ * @throws {AppError} 404 if org not found
  */
 exports.checkin = async (data) => {
   const { queueOrganizationUniqueId, vehicleDriverUniqueId, user } = data;
+  const driverLatitude = data.latitude ?? null;
+  const driverLongitude = data.longitude ?? null;
   const executor = db();
 
   let targetedShipperUserUUID = null;
@@ -247,6 +371,8 @@ exports.checkin = async (data) => {
       AppError.FORBIDDEN,
     );
   }
+
+  await validateCheckinDistance(executor, org, driverLatitude, driverLongitude);
 
   const vehicleDriver = await getVehicleDriverType(
     executor,
@@ -320,6 +446,33 @@ exports.checkin = async (data) => {
         conditions: { queueId: active.queueId },
       });
     }
+    // Update driver location on re-checkin
+    if (driverLatitude !== null && driverLongitude !== null) {
+      await logQueueHistory(executor, {
+        queueUniqueId: active.queueUniqueId,
+        columnName: "driverLatitude",
+        oldValue: active.driverLatitude,
+        newValue: driverLatitude,
+        performedBy: user.userUniqueId,
+      });
+      await logQueueHistory(executor, {
+        queueUniqueId: active.queueUniqueId,
+        columnName: "driverLongitude",
+        oldValue: active.driverLongitude,
+        newValue: driverLongitude,
+        performedBy: user.userUniqueId,
+      });
+      await updateData({
+        tableName: "DriverQueue",
+        updateValues: {
+          driverLatitude,
+          driverLongitude,
+          queueUpdatedAt: currentDate(),
+          queueUpdatedBy: user.userUniqueId,
+        },
+        conditions: { queueId: active.queueId },
+      });
+    }
     // Notify shipper if a target was set
     if (targetedShipperUserUUID) {
       notifyShipperOfQueueReservation({
@@ -379,6 +532,22 @@ exports.checkin = async (data) => {
       newValue: newTarget,
       performedBy: user.userUniqueId,
     });
+    if (driverLatitude !== null && driverLongitude !== null) {
+      await logQueueHistory(executor, {
+        queueUniqueId: atOrg.queueUniqueId,
+        columnName: "driverLatitude",
+        oldValue: atOrg.driverLatitude,
+        newValue: driverLatitude,
+        performedBy: user.userUniqueId,
+      });
+      await logQueueHistory(executor, {
+        queueUniqueId: atOrg.queueUniqueId,
+        columnName: "driverLongitude",
+        oldValue: atOrg.driverLongitude,
+        newValue: driverLongitude,
+        performedBy: user.userUniqueId,
+      });
+    }
     await updateData({
       tableName: "DriverQueue",
       updateValues: {
@@ -390,6 +559,8 @@ exports.checkin = async (data) => {
         loadedAt: null,
         shipperRequestUniqueId: null,
         targetedShipperUserUUID: newTarget,
+        driverLatitude: driverLatitude || atOrg.driverLatitude,
+        driverLongitude: driverLongitude || atOrg.driverLongitude,
         queueUpdatedAt: currentDate(),
         queueUpdatedBy: user.userUniqueId,
       },
@@ -414,6 +585,8 @@ exports.checkin = async (data) => {
           queueNumber,
           vehicleDriverUniqueId,
           targetedShipperUserUUID,
+          driverLatitude,
+          driverLongitude,
           joinedAt: currentDate(),
           status: "waiting",
           queueCreatedBy: user.userUniqueId,
@@ -535,7 +708,7 @@ exports.myPosition = async (queueOrganizationUniqueId, user) => {
   const [orgRows] = await executor.query(
     `SELECT queueOrganizationUniqueId, queueOrganizationName, queueOrganizationType,
             queueOrganizationPhone, queueOrganizationAddress, latitude, longitude,
-            approvalStatus, queueEnabled, approvedBy, approvedAt
+            checkinRadiusKm, approvalStatus, queueEnabled, approvedBy, approvedAt
      FROM QueueOrganization
      WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
     [orgId],
@@ -682,7 +855,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
   const [orgRows] = await executor.query(
     `SELECT queueOrganizationUniqueId, queueOrganizationName, queueOrganizationType,
             queueOrganizationPhone, queueOrganizationAddress, latitude, longitude,
-            approvalStatus, queueEnabled, approvedBy, approvedAt
+            checkinRadiusKm, approvalStatus, queueEnabled, approvedBy, approvedAt
      FROM QueueOrganization
      WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
     [queueOrganizationUniqueId],
@@ -697,6 +870,7 @@ exports.getQueueStatus = async (queueOrganizationUniqueId, query) => {
     `SELECT dq.queueUniqueId, dq.queueNumber, dq.joinedAt, dq.status,
             dq.offeredAt, dq.loadedAt, dq.vehicleDriverUniqueId,
             dq.shipperRequestUniqueId, dq.targetedShipperUserUUID,
+            dq.driverLatitude, dq.driverLongitude,
             vd.driverUserUniqueId, v.vehicleTypeUniqueId,
             vt.vehicleTypeName,
             u.fullName, u.phoneNumber
