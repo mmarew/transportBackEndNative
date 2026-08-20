@@ -250,6 +250,28 @@ const startJourney = async (body) => {
   });
 };
 
+/**
+ * Complete a journey — marks the journey as completed (status 9), calculates
+ * service charges (commission or subscription), closes the queue slot if the
+ * order came from a queue dispatch, and optionally auto-confirms POD.
+ *
+ * Auto-confirm logic (runs after the transaction commits):
+ * - If `isPodRequired=false` on the ShipperRequest, a CONFIRMED
+ *   DeliveryConfirmation is created automatically with source `'AUTO_NO_POD'`.
+ *   No photos or signatures are needed.
+ * - If `isPodRequired=true`, no auto-confirm occurs — the driver must submit
+ *   receipt photos or the shipper must submit a formal POD.
+ *
+ * @param {Object} body - Request body.
+ * @param {string} body.journeyDecisionUniqueId - UUID of the journey decision.
+ * @param {string} body.userUniqueId - UUID of the driver completing the journey.
+ * @param {string} body.shipperRequestUniqueId - UUID of the shipper request.
+ * @param {string} body.journeyUniqueId - UUID of the journey to complete.
+ * @param {string} body.driverRequestUniqueId - UUID of the driver request.
+ * @param {number} [body.journeyCompletingLat] - GPS latitude at completion.
+ * @param {number} [body.journeyCompletingLng] - GPS longitude at completion.
+ * @returns {Promise<{message: string, status: number, data: Object}>}
+ */
 //collect scervice charge from journey completion by commision or allow user to do by subscription if it has an active subscription
 const completeJourney = async (body) => {
   return await executeInTransaction(
@@ -500,6 +522,45 @@ const completeJourney = async (body) => {
           shipperRequestUniqueId: body.shipperRequestUniqueId,
         });
       }
+    }
+
+    /**
+     * Auto-confirm POD based on isPodRequired flag.
+     *
+     * Runs AFTER the main transaction commits (fire-and-forget). When
+     * `isPodRequired=false` on the ShipperRequest, creates a CONFIRMED
+     * DeliveryConfirmation with source `'AUTO_NO_POD'` — no photos or
+     * signatures needed. Errors are logged but do not affect the journey
+     * completion response.
+     *
+     * When `isPodRequired=true`, no action is taken here. The driver must
+     * submit receipt photos (POST /api/deliveryConfirmations/receipt) or
+     * the shipper must submit a formal POD.
+     */
+    try {
+      const isPodRequired = combinedData?.isPodRequired;
+      if (isPodRequired === false || isPodRequired === 0) {
+        const {
+          createReceiptConfirmation,
+        } = require("../DeliveryConfirmation.service");
+        await createReceiptConfirmation({
+          journeyUniqueId: body.journeyUniqueId,
+          driverUserUniqueId: body.userUniqueId,
+          photoUrls: [],
+          source: "AUTO_NO_POD",
+          notes: "Auto-confirmed: POD not required for this shipment",
+          latitude: body.journeyCompletingLat ?? null,
+          longitude: body.journeyCompletingLng ?? null,
+        });
+        logger.info("Auto-confirmed delivery (isPodRequired=false)", {
+          journeyUniqueId: body.journeyUniqueId,
+        });
+      }
+    } catch (autoConfirmError) {
+      logger.error("Failed to auto-confirm delivery on journey completion", {
+        journeyUniqueId: body.journeyUniqueId,
+        error: autoConfirmError.message,
+      });
     }
 
     return {

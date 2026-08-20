@@ -10,6 +10,7 @@ const {
   updateDeliveryConfirmation,
   deliveryConfirmationParams,
   getDeliveryConfirmationsQuery,
+  submitReceiptConfirmation,
 } = require("../Validations/DeliveryConfirmation.schema");
 const {
   DELIVERY_CONFIRMATION_ENDPOINTS,
@@ -73,6 +74,34 @@ router.get(
   verifyTokenOfAxios,
   validator(deliveryConfirmationParams, "params"),
   deliveryConfirmationController.verifyDeliveryConfirmationHash,
+);
+
+/**
+ * POST /receipt
+ *
+ * Submit receipt photos for a receipt-required journey. The confirmation is
+ * auto-confirmed immediately (no shipper review). Placed after static routes
+ * but before param routes to avoid matching "receipt" as a UUID.
+ *
+ * @route POST /api/deliveryConfirmations/receipt
+ * @summary Submit receipt photos (auto-confirmed immediately)
+ * @access Driver (journey owner)
+ * @contentType multipart/form-data
+ * @param {File[]} photos - Receipt images (1–20 files, field name "photos")
+ * @param {string} body.journeyUniqueId - UUID of the completed journey
+ * @param {string} [body.notes] - Free-text delivery notes
+ * @param {number} [body.latitude] - GPS latitude at submission
+ * @param {number} [body.longitude] - GPS longitude at submission
+ * @param {number} [body.deliveredQuantity] - Quantity delivered
+ * @param {string} [body.quantityUnit] - Unit of delivered quantity
+ * @param {string} [body.condition] - Condition of goods (default: GOOD)
+ */
+router.post(
+  DELIVERY_CONFIRMATION_ENDPOINTS.SUBMIT_RECEIPT,
+  verifyTokenOfAxios,
+  upload.fields([{ name: "photos", maxCount: 20 }]),
+  validator(submitReceiptConfirmation),
+  deliveryConfirmationController.submitReceiptPhotos,
 );
 
 module.exports = router;

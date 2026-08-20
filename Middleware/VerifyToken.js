@@ -176,6 +176,22 @@ const verifyIfUserIsAdminSuperAdminOrCompanyAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * Middleware: verify the caller has queue organization admin privileges.
+ *
+ * Checks the JWT's `roleId` against the allowed roles:
+ * - `queueOrgAdmin` (role 11)
+ * - `admin` (role 3)
+ * - `superAdmin` (role 6)
+ *
+ * If no Authorization header is present, calls `next()` without error (allows
+ * unauthenticated requests to pass through for optional auth patterns). If the
+ * token is present but the role is not allowed, returns 401.
+ *
+ * @param {import('express').Request} req - Express request.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Express next.
+ */
 const verifyIfUserIsQueueOrgAdmin = async (req, res, next) => {
   const authHeader = req?.headers?.authorization;
   if (!authHeader) {

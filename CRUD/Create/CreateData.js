@@ -105,6 +105,10 @@ const createNewShipperRequest = async (
     deliveryDate,
     shippingCost,
     shipperRequestBatchUniqueId,
+    // Receipt-based POD: copied from batch header at creation time. When false,
+    // completeJourney auto-confirms with source='AUTO_NO_POD'. When true (default),
+    // the driver must submit receipt photos or the shipper must submit formal POD.
+    isPodRequired: body?.isPodRequired !== undefined ? body.isPodRequired : true,
     // Bidding mode: 'individual_target' (open to all drivers) or 'company_target'
     // Falls back to schema default ('individual_target') if not provided.
     ...(body?.requestMode && { requestMode: body.requestMode }),

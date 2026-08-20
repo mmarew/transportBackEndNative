@@ -409,6 +409,12 @@ CREATE TABLE IF NOT EXISTS ShipperRequest (
     shippingDate DATETIME DEFAULT NULL,                        -- Date of shipping
     deliveryDate DATETIME DEFAULT NULL,                        -- Date of delivery
     shippingCost DECIMAL(10,2) DEFAULT NULL,               -- Cost of the shipment
+    -- Receipt-based POD flag. When FALSE, completeJourney auto-creates a
+    -- CONFIRMED DeliveryConfirmation (source='AUTO_NO_POD') — no photos or
+    -- signatures needed. When TRUE (default), the driver must submit receipt
+    -- photos (POST /receipt) or the shipper must submit formal POD.
+    -- Copied from ShipperRequestBatch.isPodRequired at order creation time.
+    isPodRequired BOOLEAN NOT NULL DEFAULT TRUE,
     isCompletionSeen BOOLEAN DEFAULT FALSE,               -- if it is completed and seen by shipper 
     shipperRequestCreatedBy VARCHAR(36) NOT NULL,          -- Who created the request an admin  from call center, shipper himself or driver take from street
     shipperRequestCreatedByRoleId INT NOT NULL,          -- roleId of the creator when it create this request
@@ -454,6 +460,11 @@ CREATE TABLE IF NOT EXISTS ShipperRequestBatch (
     shippingDate DATETIME NULL,
     deliveryDate DATETIME NULL,
     shippingCost DECIMAL(10,2) NULL,
+    -- Receipt-based POD flag (batch header). Copied to each ShipperRequest
+    -- at creation time. When FALSE, completeJourney auto-confirms with
+    -- source='AUTO_NO_POD'. When TRUE (default), driver submits receipt photos
+    -- or shipper submits formal POD. Set at batch creation, immutable after.
+    isPodRequired BOOLEAN NOT NULL DEFAULT TRUE,
 
     journeyStatusId INT NOT NULL DEFAULT 1,                -- FK → JourneyStatus
     batchCreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1953,7 +1964,11 @@ CREATE TABLE IF NOT EXISTS QueueOrganization (
     queueOrganizationAddress VARCHAR(500) NULL,
     latitude DECIMAL(10, 8) NULL,                                -- site reference / order pickup point (NOT a check-in gate)
     longitude DECIMAL(11, 8) NULL,
-    checkinRadiusKm INT NULL,                                     -- max distance (km) for driver check-in; NULL = no limit
+    -- max distance (km) a driver can be from the org's lat/lng to check in.
+    -- NULL = no distance limit (any driver can check in regardless of location).
+    -- Validated by Haversine formula in validateCheckinDistance(). Manual admin
+    -- checkins (manualCheckin) skip this distance check.
+    checkinRadiusKm INT NULL,
     approvalStatus ENUM('pending','approved','rejected','suspended') NOT NULL DEFAULT 'pending',
     approvalReason VARCHAR(500) NULL,                            -- Admin note when approving or rejecting
     queueEnabled BOOLEAN NOT NULL DEFAULT FALSE,                 -- opts into queue dispatch
@@ -2032,9 +2047,17 @@ CREATE TABLE IF NOT EXISTS DriverQueue (
     queueRefusalCount INT NOT NULL DEFAULT 0,                   -- consecutive front-position refusals today; at QUEUE_REFUSAL_LIMIT → move to back
     vehicleDriverUniqueId VARCHAR(36) NOT NULL,                 -- FK → VehicleDriver (truck+driver unit in line)
     shipperRequestUniqueId VARCHAR(36) NULL,                    -- FK → ShipperRequest (order assigned to this entry)
-    targetedShipperUserUUID VARCHAR(36) NULL DEFAULT NULL,       -- FK → Users (shipper phone target; reserves this position exclusively)
-    driverLatitude DECIMAL(10, 8) NULL,                          -- driver's lat at check-in time (for proximity audit)
-    driverLongitude DECIMAL(11, 8) NULL,                         -- driver's lng at check-in time (for proximity audit)
+    -- FK → Users: shipper phone target. When set, this queue position is
+    -- reserved exclusively for orders from this shipper. Set by driver check-in
+    -- (shipperPhoneNumber param) or admin manual check-in. Cleared when the
+    -- driver checks out or is removed. Prevents dispatch of orders from other
+    -- shippers while the driver is in the queue. Tracked in DriverQueueHistory.
+    targetedShipperUserUUID VARCHAR(36) NULL DEFAULT NULL,
+    -- Driver's GPS coordinates at check-in time. Used for proximity audit when
+    -- checkinRadiusKm is set on the queue organization. Not updated after
+    -- check-in — serves as the "where was the driver when they checked in" record.
+    driverLatitude DECIMAL(10, 8) NULL,
+    driverLongitude DECIMAL(11, 8) NULL,
     joinedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- server-stamped check-in; dispute truth
     status ENUM('waiting','offered','loaded','removed') NOT NULL DEFAULT 'waiting',
     offeredAt DATETIME NULL,
@@ -2086,6 +2109,8 @@ CREATE TABLE IF NOT EXISTS QueueAuditLog (
 -- Each row records ONE column change on ONE queue entry. The current value
 -- is always readable from DriverQueue itself; oldValue tells you what it was
 -- BEFORE this change. Walk history backwards + read DriverQueue for full timeline.
+-- Columns tracked: queueNumber, status, targetedShipperUserUUID, shipperRequestUniqueId,
+-- offeredAt, loadedAt. Created by logQueueHistory() in DriverQueue.service.js.
 
 CREATE TABLE IF NOT EXISTS DriverQueueHistory (
     historyId INT AUTO_INCREMENT PRIMARY KEY,
@@ -2115,6 +2140,12 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     confirmedByUserUniqueId VARCHAR(36) NULL,                  -- FK → Users (who settled it; NULL while PENDING)
 
     deliveryConfirmationStatus ENUM('PENDING','CONFIRMED','DISPUTED') NOT NULL DEFAULT 'PENDING',
+    -- How this confirmation was created:
+    --   FORMAL_POD    — traditional driver-uploaded proof with signatures
+    --   RECEIPT_AUTO  — driver submitted receipt photos, auto-confirmed immediately
+    --   SHIPPER_DIRECT — shipper self-confirmed (Tier B signature, no driver evidence)
+    --   AUTO_NO_POD   — auto-confirmed on journey completion (isPodRequired=false)
+    deliveryConfirmationSource ENUM('FORMAL_POD','RECEIPT_AUTO','SHIPPER_DIRECT','AUTO_NO_POD') NOT NULL DEFAULT 'FORMAL_POD',
     deliveryConfirmationDeliveredQuantity DECIMAL(14, 3) NULL, -- Delivered quantity
     deliveryConfirmationQuantityUnit VARCHAR(30) NULL,         -- e.g. 'quintal', 'kg', 'piece'
 

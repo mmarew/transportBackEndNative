@@ -187,6 +187,7 @@ const createShipperRequest = async (body, journeyStatusId) => {
         shippingDate: body.shippingDate || null,
         deliveryDate: body.deliveryDate || null,
         shippingCost: body.shippingCost || null,
+        isPodRequired: body.isPodRequired !== undefined ? body.isPodRequired : true,
         journeyStatusId,
       });
 

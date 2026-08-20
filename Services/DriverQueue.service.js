@@ -1386,6 +1386,26 @@ const createQueueOffer = async (
   };
 };
 
+/**
+ * Notify a driver of a queue order offer via socket, FCM, and SMS.
+ *
+ * Called after a pending order is matched to the front-of-queue driver. The
+ * notification is sent through three channels:
+ * - **Socket**: real-time push to the driver's connected client.
+ * - **FCM**: wake the driver's phone even when the app is backgrounded.
+ * - **SMS**: fallback if the driver is offline.
+ *
+ * Best-effort: if any channel fails, the error is logged but not thrown.
+ * The driver's `myPosition` poll and socket reconnect will recover the offer
+ * independently.
+ *
+ * @param {Object} params
+ * @param {Object} params.front - The front-of-queue driver entry (DriverQueue row).
+ * @param {Object} params.shipperRequest - The order being offered.
+ * @param {Object} params.vehicle - The driver's vehicle info.
+ * @param {Object} params.offerResult - The offer result from the dispatch logic.
+ * @returns {Promise<void>}
+ */
 const notifyDriverOfQueueOffer = async ({
   front,
   shipperRequest,

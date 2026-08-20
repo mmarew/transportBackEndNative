@@ -19,6 +19,7 @@ const { runQueueOrderTests } = require("./QueueOrders");
 const { runQueueAdminTests } = require("./QueueAdminOps");
 const { runLoadingStagesTests } = require("./verifyLoadingStages");
 const { runQueueHistoryTests } = require("./QueueHistory");
+const { runReceiptPodTests } = require("../ReceiptPod");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ const runQueueTests = async () => {
   await runQueueAdminTests();
   await runLoadingStagesTests();
   await runQueueHistoryTests();
+  await runReceiptPodTests();
 
   await testTQ04SoftDelete();
   await cleanupFenceOrg();

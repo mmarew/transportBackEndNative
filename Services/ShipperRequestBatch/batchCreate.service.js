@@ -24,6 +24,9 @@ const logger = require("../../Utils/logger");
  * certain the row does not yet exist.
  *
  * @param {Object} data - All batch metadata needed for the header row.
+ * @param {boolean} [data.isPodRequired=true] - When false, delivery is
+ *   auto-confirmed on journey completion (no driver receipts or shipper
+ *   signatures needed). Default true preserves the formal-POD flow.
  */
 exports.upsertBatch = async ({
   batchUniqueId,
@@ -43,6 +46,7 @@ exports.upsertBatch = async ({
   shippingDate,
   deliveryDate,
   shippingCost,
+  isPodRequired,
   journeyStatusId,
 }) => {
   // 1. Check existence first — avoids AUTO_INCREMENT wastage
@@ -60,8 +64,8 @@ exports.upsertBatch = async ({
          originLatitude, originLongitude, originPlace,
          destinationLatitude, destinationLongitude, destinationPlace,
          shippableItemName, shippableItemQtyInQuintal, shippingDate, deliveryDate,
-         shippingCost, journeyStatusId, batchCreatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         shippingCost, isPodRequired, journeyStatusId, batchCreatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         batchUniqueId,
         shipperUserUniqueId,
@@ -80,6 +84,7 @@ exports.upsertBatch = async ({
         shippingDate,
         deliveryDate,
         shippingCost,
+        isPodRequired !== undefined ? isPodRequired : true,
         journeyStatusId,
         currentDate(),
       ],

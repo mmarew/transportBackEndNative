@@ -99,6 +99,18 @@ exports.dispatch = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/queue/entry/:queueUniqueId/history
+ *
+ * Returns the column-level audit history for a queue entry. Each row represents
+ * ONE column change on ONE mutation (DriverQueueHistory). The current value is
+ * always readable from DriverQueue itself; `oldValue` tells you what it was
+ * BEFORE the change. Walk history backwards + read DriverQueue for full timeline.
+ *
+ * @param {import('express').Request} req - Express request (params.queueUniqueId).
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Express next.
+ */
 exports.getEntryHistory = async (req, res, next) => {
   try {
     ServerResponder(

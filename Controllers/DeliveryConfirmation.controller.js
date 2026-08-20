@@ -223,3 +223,54 @@ exports.verifyDeliveryConfirmationHash = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * POST /api/deliveryConfirmations/receipt
+ *
+ * Driver submits receipt photos for a receipt-required journey. The confirmation
+ * is auto-confirmed immediately (source='RECEIPT_AUTO') — no shipper review.
+ *
+ * Expects multipart form-data with:
+ * - `photos[]`: receipt image files (1–20, handled by multer)
+ * - Body fields: `journeyUniqueId`, `notes`, `latitude`, `longitude`,
+ *   `deliveredQuantity`, `quantityUnit`, `condition`
+ *
+ * @param {import('express').Request} req - Express request.
+ * @param {import('express').Response} res - Express response.
+ * @param {import('express').NextFunction} next - Express next.
+ */
+exports.submitReceiptPhotos = async (req, res, next) => {
+  try {
+    const {
+      journeyUniqueId,
+      notes,
+      latitude,
+      longitude,
+      deliveredQuantity,
+      quantityUnit,
+      condition,
+    } = req.body;
+    const driverUserUniqueId = req.user.userUniqueId;
+    const driverRoleId = req.user.roleId;
+
+    const photoUrls = saveDeliveryPhotos(req);
+
+    const result = await executeInTransaction(async () => {
+      return await deliveryConfirmationService.submitReceiptPhotos({
+        journeyUniqueId,
+        driverUserUniqueId,
+        driverRoleId,
+        photoUrls,
+        notes,
+        latitude,
+        longitude,
+        deliveredQuantity,
+        quantityUnit,
+        condition,
+      });
+    });
+    ServerResponder(res, result);
+  } catch (error) {
+    next(error);
+  }
+};

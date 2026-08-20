@@ -5,6 +5,7 @@ const DELIVERY_CONFIRMATION_ENDPOINTS = {
   DELETE_DELIVERY_CONFIRMATION: "/:deliveryConfirmationUniqueId",
   REQUEST_SIGN_OTP: "/:deliveryConfirmationUniqueId/request-sign-otp",
   VERIFY_HASH: "/:deliveryConfirmationUniqueId/verify-hash",
+  SUBMIT_RECEIPT: "/receipt",
 };
 
 module.exports = {

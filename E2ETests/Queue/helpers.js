@@ -231,6 +231,19 @@ const checkin = async (driverKey, queueOrganizationUniqueId) => {
   return res.data?.data || res.data;
 };
 
+/**
+ * Check in a driver to a queue organization with an optional shipper phone number.
+ *
+ * Sends a POST to `/api/queue/driver/checkin` with the driver's vehicle,
+ * coordinates, and optionally a `shipperPhoneNumber` to reserve the queue
+ * position exclusively for a specific shipper (prevents dispatch to other
+ * shippers while the driver is in the queue).
+ *
+ * @param {string} driverKey - Key in `queueState.drivers` (e.g. "queueDriver1").
+ * @param {string} queueOrganizationUniqueId - UUID of the queue organization.
+ * @param {string} [shipperPhoneNumber] - Optional shipper phone to reserve for.
+ * @returns {Promise<Object>} Checkin response data.
+ */
 const checkinWithShipper = async (driverKey, queueOrganizationUniqueId, shipperPhoneNumber) => {
   const d = queueState.drivers[driverKey];
   const res = await axios.post(
@@ -285,6 +298,20 @@ const manualCheckin = async (queueOrganizationUniqueId, driverKey, token = super
   return res.data?.data || res.data;
 };
 
+/**
+ * Admin manual check-in with shipper phone number.
+ *
+ * Sends a POST to `/api/queue/manualCheckin` to add a driver to the queue
+ * on behalf of an admin, optionally reserving the position for a specific
+ * shipper via `shipperPhoneNumber`. Used for call-in or walk-in orders where
+ * the driver is not physically present.
+ *
+ * @param {string} queueOrganizationUniqueId - UUID of the queue organization.
+ * @param {string} driverKey - Key in `queueState.drivers`.
+ * @param {string} shipperPhoneNumber - Shipper phone to reserve position for.
+ * @param {string} [token] - Auth token (defaults to super admin).
+ * @returns {Promise<Object>} Manual checkin response data.
+ */
 const manualCheckinWithShipper = async (queueOrganizationUniqueId, driverKey, shipperPhoneNumber, token = superAdminToken()) => {
   const d = queueState.drivers[driverKey];
   const res = await axios.post(
@@ -295,6 +322,16 @@ const manualCheckinWithShipper = async (queueOrganizationUniqueId, driverKey, sh
   return res.data?.data || res.data;
 };
 
+/**
+ * Fetch the column-level audit history for a queue entry.
+ *
+ * Sends a GET to `/api/queue/entry/:queueUniqueId/history`. Each row in the
+ * response represents one column change on one mutation (DriverQueueHistory).
+ *
+ * @param {string} queueUniqueId - UUID of the queue entry.
+ * @param {string} token - Auth token.
+ * @returns {Promise<Object>} History response data.
+ */
 const getEntryHistory = async (queueUniqueId, token) => {
   const res = await axios.get(
     backendURL + `/api/queue/entry/${queueUniqueId}/history`,

@@ -95,3 +95,22 @@ exports.getDeliveryConfirmationsQuery = Joi.object({
   receiverUserUniqueId: uuidSchema.optional().allow(""),
   status: deliveryConfirmationStatus.optional().allow(""),
 }).unknown(true);
+
+/**
+ * Validation schema for submitting receipt photos (receipt-based POD).
+ *
+ * The driver submits this after completing a journey where `isPodRequired=true`.
+ * The confirmation is auto-confirmed immediately (source='RECEIPT_AUTO').
+ * Actual photo files are handled by multer middleware (`photos[]` field).
+ *
+ * @see {@link module:Services/DeliveryConfirmation.service.submitReceiptPhotos}
+ */
+exports.submitReceiptConfirmation = Joi.object({
+  journeyUniqueId: uuidSchema.required(),
+  notes: Joi.string().optional().allow("", null),
+  latitude: optionalNumber.min(DOMAIN.LATITUDE_MIN).max(DOMAIN.LATITUDE_MAX),
+  longitude: optionalNumber.min(DOMAIN.LONGITUDE_MIN).max(DOMAIN.LONGITUDE_MAX),
+  deliveredQuantity: optionalNumber.min(0),
+  quantityUnit,
+  condition: deliveryConfirmationCondition.default("GOOD"),
+}).unknown(true);

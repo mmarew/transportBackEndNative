@@ -36,6 +36,12 @@ exports.createShipperRequest = Joi.object({
   // matching. The queue org must be approved + queueEnabled=1.
   queueOrganizationUniqueId: Joi.string().uuid().optional(),
 
+  // Receipt-based POD: when false, delivery is auto-confirmed on journey completion
+  // (no driver receipts or shipper signatures needed). Default true preserves the
+  // existing formal-POD flow for all legacy and new batches. Persisted on both
+  // ShipperRequestBatch (header) and each ShipperRequest (order) row.
+  isPodRequired: Joi.boolean().default(true).optional(),
+
   // Nested objects used by service
   originLocation: locationSchema,
   destination: locationSchema,
