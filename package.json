@@ -63,6 +63,7 @@
     "mysql2": "^3.22.6",
     "nodemailer": "^9.0.3",
     "pm2": "^7.0.3",
+    "sharp": "^0.35.3",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.1",

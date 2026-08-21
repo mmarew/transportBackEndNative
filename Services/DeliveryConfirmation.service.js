@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const Config = require("../Utils/Config");
+const { compressBase64 } = require("../Utils/compressImage");
 const {
   currentDate,
   formatDateTime,
@@ -141,6 +142,9 @@ const createShipperDirectConfirmation = async ({
   photoUrls,
   notes,
 }) => {
+  // Compress the shipper's base64 signature before storage
+  shipperSignature = await compressBase64(shipperSignature);
+
   // "Goods delivered" = the driver completed the journey (same rule as settle).
   if (
     !journey ||
@@ -624,6 +628,10 @@ exports.createDeliveryConfirmation = async ({
   status,
 }) => {
   try {
+    // Compress base64 signatures before storage
+    receiverSignature = await compressBase64(receiverSignature);
+    shipperSignature = await compressBase64(shipperSignature);
+
     const executor = transactionStorage.getStore() || pool;
     const primaryPhotoUrl =
       Array.isArray(photoUrls) && photoUrls.length > 0 ? photoUrls[0] : null;
@@ -1126,9 +1134,7 @@ exports.updateDeliveryConfirmation = async (
 ) => {
   const executor = transactionStorage.getStore() || pool;
   const isAdmin = ADMIN_ROLE_IDS.has(Number(roleId));
-  const now = currentDate();
-
-  const {
+  const now = currentDate();const {
     status,
     deliveredQuantity,
     quantityUnit,
@@ -1142,6 +1148,11 @@ exports.updateDeliveryConfirmation = async (
     longitude,
     otpCode,
   } = updates;
+
+  // Compress base64 signatures before storage
+  const compressedReceiver = await compressBase64(receiverSignature);
+  const compressedShipper = await compressBase64(shipperSignature);
+
 
   if (status !== undefined && !DELIVERY_CONFIRMATION_STATUSES.includes(status)) {
     throw new AppError(
@@ -1288,7 +1299,7 @@ exports.updateDeliveryConfirmation = async (
   }
   if (receiverSignature !== undefined) {
     setParts.push("deliveryConfirmationReceiverSignature = ?");
-    values.push(receiverSignature);
+    values.push(compressedReceiver);
     // Timestamp the on-road receiver signature once (never overwritten).
     setParts.push(
       "deliveryConfirmationReceiverSignedAt = COALESCE(deliveryConfirmationReceiverSignedAt, ?)",
@@ -1297,7 +1308,7 @@ exports.updateDeliveryConfirmation = async (
   }
   if (shipperSignature !== undefined) {
     setParts.push("deliveryConfirmationShipperSignature = ?");
-    values.push(shipperSignature);
+    values.push(compressedShipper);
   }
   if (photoUrls !== undefined) {
     // Photos are append-only evidence: new uploads extend the set, and the

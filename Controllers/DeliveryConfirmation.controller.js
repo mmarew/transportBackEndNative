@@ -4,21 +4,22 @@ const deliveryConfirmationService = require("../Services/DeliveryConfirmation.se
 const ServerResponder = require("../Utils/ServerResponder");
 const { executeInTransaction } = require("../Utils/DatabaseTransaction");
 const { uploadToFTP } = require("../Utils/FTPHandler");
+const { compressBuffer } = require("../Utils/compressImage");
 
-// Upload a single proof-of-delivery photo and return its stored (relative) path.
-const saveDeliveryPhoto = (file) => {
+// Compress and upload a single proof-of-delivery photo, returning its stored path.
+const saveDeliveryPhoto = async (file) => {
   if (!file?.buffer) {
     return null;
   }
-  const fileExtension = path.extname(file.originalname || "");
-  const uniqueFilename = `delivery_${uuidv4()}${fileExtension}`;
-  return uploadToFTP(file.buffer, uniqueFilename);
+  const compressed = await compressBuffer(file.buffer);
+  const uniqueFilename = `delivery_${uuidv4()}.jpg`;
+  return uploadToFTP(compressed, uniqueFilename);
 };
 
 // Collect every uploaded proof photo — req.files.photos[] plus the legacy single
 // "photo" field (req.files.photo[0] or req.file) — and upload each. Returns the
 // list of stored relative paths; the first entry is the primary/cover photo.
-const saveDeliveryPhotos = (req) => {
+const saveDeliveryPhotos = async (req) => {
   const allFiles = [];
   if (req.file) {
     allFiles.push(req.file);
@@ -30,7 +31,7 @@ const saveDeliveryPhotos = (req) => {
   }
   const photoUrls = [];
   for (const file of allFiles) {
-    const url = saveDeliveryPhoto(file);
+    const url = await saveDeliveryPhoto(file);
     if (url) {
       photoUrls.push(url);
     }
@@ -60,7 +61,7 @@ exports.createDeliveryConfirmation = async (req, res, next) => {
     const createdBy = req.user.userUniqueId;
     const roleId = req.user.roleId;
 
-    const photoUrls = saveDeliveryPhotos(req);
+    const photoUrls = await saveDeliveryPhotos(req);
 
     const result = await executeInTransaction(async () => {
       return await deliveryConfirmationService.createDeliveryConfirmation({
@@ -145,7 +146,7 @@ exports.updateDeliveryConfirmation = async (req, res, next) => {
     const updatedBy = req.user.userUniqueId;
     const roleId = req.user.roleId;
 
-    const photoUrls = saveDeliveryPhotos(req);
+    const photoUrls = await saveDeliveryPhotos(req);
 
     const result = await executeInTransaction(async () => {
       return await deliveryConfirmationService.updateDeliveryConfirmation(
@@ -253,7 +254,7 @@ exports.submitReceiptPhotos = async (req, res, next) => {
     const driverUserUniqueId = req.user.userUniqueId;
     const driverRoleId = req.user.roleId;
 
-    const photoUrls = saveDeliveryPhotos(req);
+    const photoUrls = await saveDeliveryPhotos(req);
 
     const result = await executeInTransaction(async () => {
       return await deliveryConfirmationService.submitReceiptPhotos({

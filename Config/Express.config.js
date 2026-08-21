@@ -89,8 +89,8 @@ app.use(requestId);
 app.use(requestLogger);
 
 // 4. Body Parsers - Reading data from body into req.body
-app.use(express.json({ limit: "10kb" })); // Limit request body size
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(express.json({ limit: "1mb" })); // Increased to support base64-encoded signatures from react-native-signature-canvas
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // 5. Data Sanitization - Handled by Joi and Helmet
 
