@@ -89,7 +89,11 @@ exports.createQueueOrganization = async (data) => {
 
   return {
     message: "success",
-    data: { queueOrganizationUniqueId, approvalStatus: "pending", alreadyExisted: false },
+    data: {
+      queueOrganizationUniqueId,
+      approvalStatus: "pending",
+      alreadyExisted: false,
+    },
   };
 };
 
@@ -139,20 +143,35 @@ exports.getQueueOrganizations = async (query, user) => {
     u_creator.email as creatorEmail
     ${fromSql} ${where} GROUP BY q.queueOrganizationUniqueId ORDER BY q.queueOrganizationCreatedAt DESC`;
   const countSql = `SELECT COUNT(DISTINCT q.queueOrganizationUniqueId) AS total ${fromSql} ${where}`;
-  const result = await paginatedQuery(baseSql, countSql, params, page, limit, offset);
+  const result = await paginatedQuery(
+    baseSql,
+    countSql,
+    params,
+    page,
+    limit,
+    offset,
+  );
 
   // Reshape: nest creator fields under `creator` object
   if (result.data && Array.isArray(result.data)) {
-    result.data = result.data.map(row => {
-      const { creatorUserUniqueId, creatorFullName, creatorPhoneNumber, creatorEmail, ...org } = row;
+    result.data = result.data.map((row) => {
+      const {
+        creatorUserUniqueId,
+        creatorFullName,
+        creatorPhoneNumber,
+        creatorEmail,
+        ...org
+      } = row;
       return {
         organization: org,
-        creator: creatorUserUniqueId ? {
-          userUniqueId: creatorUserUniqueId,
-          fullName: creatorFullName,
-          phoneNumber: creatorPhoneNumber,
-          email: creatorEmail,
-        } : null,
+        creator: creatorUserUniqueId
+          ? {
+              userUniqueId: creatorUserUniqueId,
+              fullName: creatorFullName,
+              phoneNumber: creatorPhoneNumber,
+              email: creatorEmail,
+            }
+          : null,
       };
     });
   }
@@ -164,13 +183,13 @@ exports.getQueueOrganizations = async (query, user) => {
  */
 exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
   const executor = db();
-  
+
   // Check access: QueueOrgAdmin/CompanyAdmin can only see orgs they're a member of
   let conditions = ["q.isDeleted = 0", "q.queueOrganizationUniqueId = ?"];
   let params = [queueOrganizationUniqueId];
   let fromSql = `FROM QueueOrganization q
     LEFT JOIN Users u_creator ON u_creator.userUniqueId = q.queueOrganizationCreatedBy`;
-  
+
   if (user && user.roleId === usersRoles.queueOrgAdminRoleId) {
     fromSql +=
       ` JOIN QueueOrganizationMembership qom` +
@@ -187,25 +206,33 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
     u_creator.phoneNumber as creatorPhoneNumber,
     u_creator.email as creatorEmail
     ${fromSql} ${where} LIMIT 1`;
-  
+
   const [rows] = await executor.query(baseSql, params);
-  
+
   if (rows.length === 0) {
     throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
   const row = rows[0];
-  const { creatorUserUniqueId, creatorFullName, creatorPhoneNumber, creatorEmail, ...org } = row;
-  
+  const {
+    creatorUserUniqueId,
+    creatorFullName,
+    creatorPhoneNumber,
+    creatorEmail,
+    ...org
+  } = row;
+
   return {
     data: {
       organization: org,
-      creator: creatorUserUniqueId ? {
-        userUniqueId: creatorUserUniqueId,
-        fullName: creatorFullName,
-        phoneNumber: creatorPhoneNumber,
-        email: creatorEmail,
-      } : null,
+      creator: creatorUserUniqueId
+        ? {
+            userUniqueId: creatorUserUniqueId,
+            fullName: creatorFullName,
+            phoneNumber: creatorPhoneNumber,
+            email: creatorEmail,
+          }
+        : null,
     },
   };
 };
@@ -224,7 +251,11 @@ exports.getQueueOrganization = async (queueOrganizationUniqueId, user) => {
  * @throws {AppError} 404 if org not found
  * @throws {AppError} 400 if no valid fields provided
  */
-exports.updateQueueOrganization = async (queueOrganizationUniqueId, body, userId) => {
+exports.updateQueueOrganization = async (
+  queueOrganizationUniqueId,
+  body,
+  userId,
+) => {
   const [org] = await db().query(
     `SELECT queueOrganizationUniqueId FROM QueueOrganization
      WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
@@ -252,7 +283,10 @@ exports.updateQueueOrganization = async (queueOrganizationUniqueId, body, userId
     }
   }
   if (sets.length === 0) {
-    throw new AppError("No valid fields provided for update", AppError.BAD_REQUEST);
+    throw new AppError(
+      "No valid fields provided for update",
+      AppError.BAD_REQUEST,
+    );
   }
   sets.push("queueOrganizationUpdatedAt = ?", "queueOrganizationUpdatedBy = ?");
   params.push(currentDate(), userId, queueOrganizationUniqueId);
@@ -303,7 +337,13 @@ exports.approveQueueOrganization = async (
       approvalReason || null,
       userId,
       currentDate(),
-      typeof queueEnabled === "boolean" ? (queueEnabled ? 1 : 0) : approvalStatus === "approved" ? 1 : 0,
+      typeof queueEnabled === "boolean"
+        ? queueEnabled
+          ? 1
+          : 0
+        : approvalStatus === "approved"
+          ? 1
+          : 0,
       currentDate(),
       userId,
       queueOrganizationUniqueId,
@@ -316,7 +356,10 @@ exports.approveQueueOrganization = async (
     message: { queueOrganizationUniqueId, approvalStatus, queueEnabled },
   });
 
-  return { message: "success", data: { queueOrganizationUniqueId, approvalStatus } };
+  return {
+    message: "success",
+    data: { queueOrganizationUniqueId, approvalStatus },
+  };
 };
 
 /**
@@ -346,7 +389,12 @@ exports.deleteQueueOrganization = async (queueOrganizationUniqueId, userId) => {
  * Add a member (role 11 QueueOrgAdmin, or role 1 shipper) to a queue org.
  * Mirrors CompanyMembership.addMember.
  */
-exports.addMember = async (queueOrganizationUniqueId, userUniqueId, body, userId) => {
+exports.addMember = async (
+  queueOrganizationUniqueId,
+  userUniqueId,
+  body,
+  userId,
+) => {
   const [org] = await db().query(
     `SELECT queueOrganizationUniqueId FROM QueueOrganization
      WHERE queueOrganizationUniqueId = ? AND isDeleted = 0`,
@@ -356,7 +404,10 @@ exports.addMember = async (queueOrganizationUniqueId, userUniqueId, body, userId
     throw new AppError("Queue organization not found", AppError.NOT_FOUND);
   }
 
-  const [user] = await getData({ tableName: "Users", conditions: { userUniqueId } });
+  const [user] = await getData({
+    tableName: "Users",
+    conditions: { userUniqueId },
+  });
   if (user.length === 0) {
     throw new AppError("User not found", AppError.NOT_FOUND);
   }
@@ -367,7 +418,10 @@ exports.addMember = async (queueOrganizationUniqueId, userUniqueId, body, userId
     [queueOrganizationUniqueId, userUniqueId],
   );
   if (existing.length > 0) {
-    throw new AppError("User is already a member of this queue organization", AppError.CONFLICT);
+    throw new AppError(
+      "User is already a member of this queue organization",
+      AppError.CONFLICT,
+    );
   }
 
   const { roleId, isActive } = body;
@@ -387,7 +441,10 @@ exports.addMember = async (queueOrganizationUniqueId, userUniqueId, body, userId
     ],
   );
 
-  return { message: "success", data: { queueOrganizationUniqueId, userUniqueId, roleId } };
+  return {
+    message: "success",
+    data: { queueOrganizationUniqueId, userUniqueId, roleId },
+  };
 };
 
 /**
