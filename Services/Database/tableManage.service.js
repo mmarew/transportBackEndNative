@@ -187,7 +187,7 @@ const DELIVERY_CONFIRMATION_COLUMNS = [
   { name: "deliveryConfirmationStatement", ddl: "TEXT NULL" },
   { name: "deliveryConfirmationShipperSignature", ddl: "TEXT NULL" },
   { name: "deliveryConfirmationShipperSignedAt", ddl: "DATETIME NULL" },
-  { name: "deliveryConfirmationReceiverSignedAt", ddl: "DATETIME NULL" },
+  { name: "deliveryConfirmationDriverSignedAt", ddl: "DATETIME NULL" },
   { name: "deliveryConfirmationOtpHash", ddl: "VARCHAR(100) NULL" },
   { name: "deliveryConfirmationOtpExpiresAt", ddl: "DATETIME NULL" },
   { name: "deliveryConfirmationOtpAttempts", ddl: "INT NOT NULL DEFAULT 0" },

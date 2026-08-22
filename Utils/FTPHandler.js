@@ -17,6 +17,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 const logger = require("./logger");
 const Config = require("./Config");
 
@@ -124,4 +125,38 @@ function resolveDocumentUrl(storedPath) {
   return storedPath;
 }
 
-module.exports = { uploadToFTP, deleteFromFTP, resolveDocumentUrl };
+/**
+ * Upload a base64 data-URL string to the local uploads directory.
+ *
+ * Accepts:
+ *   - data-URL:   "data:image/png;base64,iVBOR..."
+ *   - raw base64: "iVBOR..." (treated as PNG)
+ *   - null/undefined → returns null
+ *
+ * @param {string|null} dataUrl  - Base64-encoded image.
+ * @param {string}      prefix   - Filename prefix (e.g. "sig_receiver").
+ * @returns {Promise<string|null>} Relative path like "/uploads/sig_receiver_uuid.jpg" or null.
+ */
+async function uploadBase64ToFTP(dataUrl, prefix = "sig") {
+  if (!dataUrl || typeof dataUrl !== "string") {
+    return null;
+  }
+
+  // Parse data-URL or raw base64
+  const match = dataUrl.match(/^data:[^;]+;base64,(.+)$/s);
+  const base64 = match ? match[1] : dataUrl;
+
+  try {
+    const buffer = Buffer.from(base64, "base64");
+    const filename = `${prefix}_${uuidv4()}.jpg`;
+    return await uploadToFTP(buffer, filename);
+  } catch (error) {
+    logger.error("Failed to upload base64 to filesystem", {
+      prefix,
+      error: error.message,
+    });
+    return null;
+  }
+}
+
+module.exports = { uploadToFTP, deleteFromFTP, resolveDocumentUrl, uploadBase64ToFTP };

@@ -2131,6 +2131,7 @@ CREATE TABLE IF NOT EXISTS DriverQueueHistory (
 -- Lifecycle: PENDING (receiver submitted) → CONFIRMED (accepted) | DISPUTED.
 -- The receiverUserUniqueId is the party who received the goods;
 -- confirmedByUserUniqueId is whoever settled the confirmation (driver/admin/company), and stays NULL while the confirmation is still PENDING.
+
 CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     deliveryConfirmationId INT AUTO_INCREMENT PRIMARY KEY,
     deliveryConfirmationUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID for the confirmation
@@ -2145,14 +2146,14 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     --   RECEIPT_AUTO  — driver submitted receipt photos, auto-confirmed immediately
     --   SHIPPER_DIRECT — shipper self-confirmed (Tier B signature, no driver evidence)
     --   AUTO_NO_POD   — auto-confirmed on journey completion (isPodRequired=false)
+
     deliveryConfirmationSource ENUM('FORMAL_POD','RECEIPT_AUTO','SHIPPER_DIRECT','AUTO_NO_POD') NOT NULL DEFAULT 'FORMAL_POD',
     deliveryConfirmationDeliveredQuantity DECIMAL(14, 3) NULL, -- Delivered quantity
     deliveryConfirmationQuantityUnit VARCHAR(30) NULL,         -- e.g. 'quintal', 'kg', 'piece'
 
     deliveryConfirmationCondition ENUM('GOOD','DAMAGED','PARTIAL') NOT NULL DEFAULT 'GOOD',
-    deliveryConfirmationReceiverSignature TEXT NULL,           -- Tier A: on-road receiver signature (base64 PNG)
-    deliveryConfirmationShipperSignature TEXT NULL,            -- Tier B: shipper's settle signature (base64 PNG; never overwrites receiver's)
-    deliveryConfirmationPhotoUrl VARCHAR(500) NULL,            -- Primary/cover proof photo (relative /uploads/... URL); full set in DeliveryConfirmationPhotos
+    deliveryConfirmationDriverSignature TEXT NULL,            -- Tier A: on-road driver signature (file path / URL)
+    deliveryConfirmationShipperSignature TEXT NULL,            -- the person who recived goods from driver at destination
     deliveryConfirmationNotes TEXT NULL,                       -- Free-text notes
 
     deliveryConfirmationLatitude DECIMAL(10, 8) NULL,          -- GPS of the confirmation point
@@ -2163,7 +2164,7 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     deliveryConfirmationStatement TEXT NULL,                   -- declaration text displayed at signing time
 
     deliveryConfirmationSubmittedAt DATETIME NULL,             -- When the receiver submitted
-    deliveryConfirmationReceiverSignedAt DATETIME NULL,        -- When the on-road receiver signature was captured
+    deliveryConfirmationDriverSignedAt DATETIME NULL,         -- When the on-road driver signature was captured
     deliveryConfirmationConfirmedAt DATETIME NULL,             -- When the confirmation was settled
     deliveryConfirmationShipperSignedAt DATETIME NULL,         -- = deliveryConfirmationConfirmedAt for Tier B
 
@@ -2196,6 +2197,8 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
 -- The parent DeliveryConfirmations.deliveryConfirmationPhotoUrl stores the FIRST
 -- photo (primary/cover) for backward compatibility; this table holds the full set.
 -- Photos are evidence: rows are append-only in normal operation (soft delete only).
+
+
 CREATE TABLE IF NOT EXISTS DeliveryConfirmationPhotos (
     deliveryConfirmationPhotoId INT AUTO_INCREMENT PRIMARY KEY,
     deliveryConfirmationPhotoUniqueId VARCHAR(36) UNIQUE NOT NULL,  -- UUID

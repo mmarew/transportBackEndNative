@@ -67,8 +67,8 @@ const testCreateDeliveryConfirmation = async ({ user, payload = {} } = {}) => {
       "✅ DeliveryConfirmation created:",
       result.data.data?.deliveryConfirmationUniqueId,
     );
-    if (result.data.data?.deliveryConfirmationPhotoUrl) {
-      console.log("✅ Delivery photo stored:", result.data.data.deliveryConfirmationPhotoUrl);
+    if (result.data.data?.deliveryConfirmationPhotos?.length) {
+      console.log("✅ Delivery photos stored:", result.data.data.deliveryConfirmationPhotos.length);
     }
     cache.data = result.data.data;
     return result.data;
@@ -131,7 +131,7 @@ const testUpdateDeliveryConfirmation = async ({ user, id, payload = {} } = {}) =
 
   const form = new FormData();
   form.append("status", payload.status || "CONFIRMED");
-  form.append("receiverSignature", payload.receiverSignature || "digitally-signed");
+  form.append("shipperSignature", payload.shipperSignature || "digitally-signed");
   form.append("condition", payload.condition || "GOOD");
   const photo = photoBlob();
   if (photo) form.append("photo", photo, "receiver_photo.png");

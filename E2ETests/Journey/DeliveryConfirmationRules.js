@@ -74,7 +74,7 @@ const testSettleWithoutSignature = async () => {
   try {
     const settleForm = new FormData();
     settleForm.append("status", "CONFIRMED");
-    // No receiverSignature appended
+    // No shipperSignature appended
     await axios.put(`${backendURL}${BASE_URL}/${dcId}`, settleForm, authConfig(token));
     throw new Error("Expected 400 for settle without signature, but got success");
   } catch (e) {
@@ -207,7 +207,7 @@ const testDriverCantSelfConfirm = async () => {
   try {
     const settleForm = new FormData();
     settleForm.append("status", "CONFIRMED");
-    settleForm.append("receiverSignature", "driver-sig");
+    settleForm.append("shipperSignature", "driver-sig");
     await axios.put(`${backendURL}${BASE_URL}/${dcId}`, settleForm, authConfig(token));
     // If driver can self-confirm, that's a rule violation
     console.warn("⚠️  Rule 3: driver was able to self-confirm (may need rule enforcement)");
@@ -274,7 +274,7 @@ const testNonAdminCantDeleteConfirmed = async () => {
   try {
     const settleForm = new FormData();
     settleForm.append("status", "CONFIRMED");
-    settleForm.append("receiverSignature", "test-sig");
+    settleForm.append("shipperSignature", "test-sig");
     await axios.put(`${backendURL}${BASE_URL}/${dcId}`, settleForm, authConfig(token));
   } catch {
     // Settlement may fail — that's OK, just skip the delete test

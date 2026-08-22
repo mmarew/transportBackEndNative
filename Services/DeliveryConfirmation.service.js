@@ -5,6 +5,7 @@ const { pool } = require("../Middleware/Database.config");
 const AppError = require("../Utils/AppError");
 const Config = require("../Utils/Config");
 const { compressBase64 } = require("../Utils/compressImage");
+const { uploadBase64ToFTP, resolveDocumentUrl } = require("../Utils/FTPHandler");
 const {
   currentDate,
   formatDateTime,
@@ -15,7 +16,6 @@ const { v4: uuidv4 } = require("uuid");
 const { getPlaceholderEmail } = require("../Utils/GetPlaceholderEmail");
 
 const { getData } = require("../CRUD/Read/ReadData");
-const { resolveDocumentUrl } = require("../Utils/FTPHandler");
 const { sendSms } = require("../Utils/smsSender");
 const { usersRoles, journeyStatusMap } = require("../Utils/ListOfSeedData");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
@@ -142,8 +142,8 @@ const createShipperDirectConfirmation = async ({
   photoUrls,
   notes,
 }) => {
-  // Compress the shipper's base64 signature before storage
-  shipperSignature = await compressBase64(shipperSignature);
+  // Compress and upload the shipper's signature to filesystem
+  shipperSignature = await uploadSignature(shipperSignature, "sig_shipper");
 
   // "Goods delivered" = the driver completed the journey (same rule as settle).
   if (
@@ -213,7 +213,7 @@ const createShipperDirectConfirmation = async ({
   const hash = sha256(
     buildSignatureHashInput({
       journeyUniqueId,
-      receiverSignature: null,
+      driverSignature: "",
       shipperSignature,
       photoUrls: photoUrls || [],
       deliveredQuantity: finalQuantity,
@@ -225,9 +225,6 @@ const createShipperDirectConfirmation = async ({
     }),
   );
 
-  const primaryPhotoUrl =
-    Array.isArray(photoUrls) && photoUrls.length > 0 ? photoUrls[0] : null;
-
   await executor.query(
     `INSERT INTO DeliveryConfirmations (
        deliveryConfirmationUniqueId,
@@ -238,12 +235,11 @@ const createShipperDirectConfirmation = async ({
        deliveryConfirmationDeliveredQuantity,
        deliveryConfirmationQuantityUnit,
        deliveryConfirmationCondition,
-       deliveryConfirmationReceiverSignature,
+       deliveryConfirmationDriverSignature,
        deliveryConfirmationShipperSignature,
        deliveryConfirmationShipperSignedAt,
        deliveryConfirmationStatement,
        deliveryConfirmationSignatureHash,
-       deliveryConfirmationPhotoUrl,
        deliveryConfirmationNotes,
        deliveryConfirmationSubmittedAt,
        deliveryConfirmationCreatedBy,
@@ -251,7 +247,7 @@ const createShipperDirectConfirmation = async ({
        deliveryConfirmationConfirmedAt,
        deliveryConfirmationCreatedAt,
        deliveryConfirmationUpdatedAt
-     ) VALUES (?, ?, ?, 'CONFIRMED', 'SHIPPER_DIRECT', ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, 'CONFIRMED', 'SHIPPER_DIRECT', ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       deliveryConfirmationUniqueId,
       journeyUniqueId,
@@ -263,7 +259,6 @@ const createShipperDirectConfirmation = async ({
       now,
       statement,
       hash,
-      primaryPhotoUrl,
       notes ?? null,
       now,
       shipperUserUniqueId,
@@ -300,7 +295,6 @@ const createShipperDirectConfirmation = async ({
       receiverUserUniqueId: finalReceiverUserUniqueId,
       deliveryConfirmationStatus: "CONFIRMED",
       deliveryConfirmationShipperSignature: shipperSignature,
-      deliveryConfirmationPhotoUrl: primaryPhotoUrl,
       deliveryConfirmationPhotos: photoUrls || [],
       deliveryConfirmationSubmittedAt: now,
     },
@@ -403,13 +397,11 @@ exports.createReceiptConfirmation = async ({
   // 4. Build hash input
   const deliveryConfirmationUniqueId = uuidv4();
   const now = currentDate();
-  const primaryPhotoUrl =
-    photoUrls.length > 0 ? photoUrls[0] : null;
 
   const hash = sha256(
     buildSignatureHashInput({
       journeyUniqueId,
-      receiverSignature: null,
+      driverSignature: "",
       shipperSignature: null,
       photoUrls,
       deliveredQuantity: deliveredQuantity ?? null,
@@ -432,7 +424,6 @@ exports.createReceiptConfirmation = async ({
        deliveryConfirmationDeliveredQuantity,
        deliveryConfirmationQuantityUnit,
        deliveryConfirmationCondition,
-       deliveryConfirmationPhotoUrl,
        deliveryConfirmationNotes,
        deliveryConfirmationLatitude,
        deliveryConfirmationLongitude,
@@ -443,7 +434,7 @@ exports.createReceiptConfirmation = async ({
        confirmedByUserUniqueId,
        deliveryConfirmationCreatedAt,
        deliveryConfirmationUpdatedAt
-     ) VALUES (?, ?, ?, 'CONFIRMED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, 'CONFIRMED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       deliveryConfirmationUniqueId,
       journeyUniqueId,
@@ -452,7 +443,6 @@ exports.createReceiptConfirmation = async ({
       deliveredQuantity ?? null,
       quantityUnit || null,
       condition || "GOOD",
-      primaryPhotoUrl,
       notes ?? null,
       latitude ?? null,
       longitude ?? null,
@@ -492,7 +482,6 @@ exports.createReceiptConfirmation = async ({
       journeyUniqueId,
       deliveryConfirmationStatus: "CONFIRMED",
       deliveryConfirmationSource: source,
-      deliveryConfirmationPhotoUrl: primaryPhotoUrl,
     },
   };
 };
@@ -619,7 +608,6 @@ exports.createDeliveryConfirmation = async ({
   deliveredQuantity,
   quantityUnit,
   condition,
-  receiverSignature,
   shipperSignature,
   photoUrls,
   notes,
@@ -628,14 +616,10 @@ exports.createDeliveryConfirmation = async ({
   status,
 }) => {
   try {
-    // Compress base64 signatures before storage
-    receiverSignature = await compressBase64(receiverSignature);
-    shipperSignature = await compressBase64(shipperSignature);
+    // Compress and upload signature to filesystem
+    shipperSignature = await uploadSignature(shipperSignature, "sig_shipper");
 
     const executor = transactionStorage.getStore() || pool;
-    const primaryPhotoUrl =
-      Array.isArray(photoUrls) && photoUrls.length > 0 ? photoUrls[0] : null;
-
     // Verify the journey exists
     const journeyRows = await getData({
       tableName: "Journey",
@@ -721,16 +705,15 @@ exports.createDeliveryConfirmation = async ({
         deliveryConfirmationDeliveredQuantity,
         deliveryConfirmationQuantityUnit,
         deliveryConfirmationCondition,
-        deliveryConfirmationReceiverSignature,
-        deliveryConfirmationReceiverSignedAt,
-        deliveryConfirmationPhotoUrl,
+        deliveryConfirmationDriverSignature,
+        deliveryConfirmationDriverSignedAt,
         deliveryConfirmationNotes,
         deliveryConfirmationLatitude,
         deliveryConfirmationLongitude,
         deliveryConfirmationSubmittedAt,
         deliveryConfirmationCreatedBy,
         deliveryConfirmationCreatedAt
-      ) VALUES (?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       deliveryConfirmationUniqueId,
@@ -739,9 +722,8 @@ exports.createDeliveryConfirmation = async ({
       deliveredQuantity ?? null,
       quantityUnit ?? null,
       condition || "GOOD",
-      receiverSignature ?? null,
-      receiverSignature ? now : null, // timestamp the on-road signature at create too
-      primaryPhotoUrl,
+      null,
+      null, // driver signature removed — shipper signs only
       notes ?? null,
       latitude ?? null,
       longitude ?? null,
@@ -773,7 +755,6 @@ exports.createDeliveryConfirmation = async ({
         journeyUniqueId,
         receiverUserUniqueId: resolvedReceiverUserUniqueId,
         deliveryConfirmationStatus: "PENDING",
-        deliveryConfirmationPhotoUrl: primaryPhotoUrl,
         deliveryConfirmationPhotos: photoUrls || [],
         deliveryConfirmationSubmittedAt: now,
       },
@@ -888,8 +869,7 @@ exports.getDeliveryConfirmations = async ({
       dc.deliveryConfirmationDeliveredQuantity,
       dc.deliveryConfirmationQuantityUnit,
       dc.deliveryConfirmationCondition,
-      dc.deliveryConfirmationReceiverSignature,
-      dc.deliveryConfirmationPhotoUrl,
+      dc.deliveryConfirmationDriverSignature,
       dc.deliveryConfirmationNotes,
       dc.deliveryConfirmationLatitude,
       dc.deliveryConfirmationLongitude,
@@ -899,7 +879,7 @@ exports.getDeliveryConfirmations = async ({
       dc.deliveryConfirmationStatement,
       dc.deliveryConfirmationSignatureHash,
       dc.deliveryConfirmationPreviousHash,
-      dc.deliveryConfirmationReceiverSignedAt,
+      dc.deliveryConfirmationDriverSignedAt,
       dc.deliveryConfirmationShipperSignedAt,
       dc.deliveryConfirmationOtpVerifiedAt,
       r.fullName AS receiverFullName,
@@ -959,9 +939,15 @@ exports.getDeliveryConfirmations = async ({
         );
       row.deliveryConfirmationPhotoDetails =
         photoDetailsByConfirmation[row.deliveryConfirmationUniqueId] || [];
-      if (row.deliveryConfirmationPhotoUrl) {
-        row.deliveryConfirmationPhotoUrl = resolveDocumentUrl(
-          row.deliveryConfirmationPhotoUrl,
+      // Resolve signature file paths to public URLs
+      if (row.deliveryConfirmationDriverSignature) {
+        row.deliveryConfirmationDriverSignature = resolveDocumentUrl(
+          row.deliveryConfirmationDriverSignature,
+        );
+      }
+      if (row.deliveryConfirmationShipperSignature) {
+        row.deliveryConfirmationShipperSignature = resolveDocumentUrl(
+          row.deliveryConfirmationShipperSignature,
         );
       }
     }
@@ -997,7 +983,7 @@ const buildSignatureHashInput = (fields) => {
   const sortedPhotos = [...(fields.photoUrls || [])].sort();
   return [
     fields.journeyUniqueId,
-    fields.receiverSignature || "",
+    fields.driverSignature || "",
     fields.shipperSignature || "",
     sortedPhotos.join(","),
     fields.deliveredQuantity ?? "",
@@ -1010,6 +996,21 @@ const buildSignatureHashInput = (fields) => {
 };
 
 const sha256 = (input) => crypto.createHash("sha256").update(input).digest("hex");
+
+/**
+ * Compress a base64 signature and upload it to the filesystem.
+ * Returns the relative path (e.g. "/uploads/sig_receiver_uuid.jpg").
+ * If the input is already a path/URL, it is returned unchanged.
+ */
+const uploadSignature = async (dataUrl, prefix) => {
+  if (!dataUrl) return null;
+  // Already a path — skip upload
+  if (typeof dataUrl === "string" && (dataUrl.startsWith("/uploads/") || dataUrl.startsWith("http"))) {
+    return dataUrl;
+  }
+  const compressed = await compressBase64(dataUrl);
+  return await uploadBase64ToFTP(compressed, prefix);
+};
 
 // Load the receiver (name/phone) for OTP sending and the signed declaration.
 const getReceiver = async (executor, receiverUserUniqueId) => {
@@ -1072,10 +1073,8 @@ const verifyOtpCode = async (executor, current, otpCode, now) => {
   }
   if (hasStoredOtp) {
     if (current.deliveryConfirmationOtpVerifiedAt) {
-      throw new AppError(
-        "OTP already verified for this delivery confirmation",
-        AppError.BAD_REQUEST,
-      );
+      // Already verified — treat as success for idempotent retries.
+      return;
     }
     if (
       current.deliveryConfirmationOtpExpiresAt &&
@@ -1134,12 +1133,11 @@ exports.updateDeliveryConfirmation = async (
 ) => {
   const executor = transactionStorage.getStore() || pool;
   const isAdmin = ADMIN_ROLE_IDS.has(Number(roleId));
-  const now = currentDate();const {
+  const now = currentDate();  const {
     status,
     deliveredQuantity,
     quantityUnit,
     condition,
-    receiverSignature,
     shipperSignature,
     statement,
     photoUrls,
@@ -1149,9 +1147,8 @@ exports.updateDeliveryConfirmation = async (
     otpCode,
   } = updates;
 
-  // Compress base64 signatures before storage
-  const compressedReceiver = await compressBase64(receiverSignature);
-  const compressedShipper = await compressBase64(shipperSignature);
+  // Compress and upload signature to filesystem
+  const uploadedShipper = await uploadSignature(shipperSignature, "sig_shipper");
 
 
   if (status !== undefined && !DELIVERY_CONFIRMATION_STATUSES.includes(status)) {
@@ -1178,7 +1175,6 @@ exports.updateDeliveryConfirmation = async (
     deliveredQuantity !== undefined ||
     quantityUnit !== undefined ||
     condition !== undefined ||
-    receiverSignature !== undefined ||
     shipperSignature !== undefined ||
     statement !== undefined ||
     (Array.isArray(photoUrls) && photoUrls.length > 0) ||
@@ -1217,7 +1213,6 @@ exports.updateDeliveryConfirmation = async (
   }
 
   // ── Settle-time evidence validation (PENDING/DISPUTED → CONFIRMED) ───────
-  let finalReceiverSignature = receiverSignature ?? current.deliveryConfirmationReceiverSignature;
   let finalShipperSignature = shipperSignature ?? current.deliveryConfirmationShipperSignature;
   let finalStatement = null;
   if (isSettling) {
@@ -1227,9 +1222,9 @@ exports.updateDeliveryConfirmation = async (
     const finalLat = latitude ?? current.deliveryConfirmationLatitude;
     const finalLng = longitude ?? current.deliveryConfirmationLongitude;
 
-    if (!finalReceiverSignature && !finalShipperSignature) {
+    if (!finalShipperSignature) {
       throw new AppError(
-        "A receiver or shipper signature is required to confirm delivery",
+        "A shipper signature is required to confirm delivery",
         AppError.BAD_REQUEST,
       );
     }
@@ -1297,28 +1292,9 @@ exports.updateDeliveryConfirmation = async (
     setParts.push("deliveryConfirmationCondition = ?");
     values.push(condition);
   }
-  if (receiverSignature !== undefined) {
-    setParts.push("deliveryConfirmationReceiverSignature = ?");
-    values.push(compressedReceiver);
-    // Timestamp the on-road receiver signature once (never overwritten).
-    setParts.push(
-      "deliveryConfirmationReceiverSignedAt = COALESCE(deliveryConfirmationReceiverSignedAt, ?)",
-    );
-    values.push(now);
-  }
   if (shipperSignature !== undefined) {
     setParts.push("deliveryConfirmationShipperSignature = ?");
-    values.push(compressedShipper);
-  }
-  if (photoUrls !== undefined) {
-    // Photos are append-only evidence: new uploads extend the set, and the
-    // primary/cover photo (first captured) is never overwritten.
-    if (Array.isArray(photoUrls) && photoUrls.length > 0) {
-      setParts.push(
-        "deliveryConfirmationPhotoUrl = COALESCE(deliveryConfirmationPhotoUrl, ?)",
-      );
-      values.push(photoUrls[0]);
-    }
+    values.push(uploadedShipper);
   }
   if (notes !== undefined) {
     setParts.push("deliveryConfirmationNotes = ?");
@@ -1361,7 +1337,7 @@ exports.updateDeliveryConfirmation = async (
     const hash = sha256(
       buildSignatureHashInput({
         journeyUniqueId: current.journeyUniqueId,
-        receiverSignature: finalReceiverSignature,
+        driverSignature: "",
         shipperSignature: finalShipperSignature,
         photoUrls: allPhotos,
         deliveredQuantity:
@@ -1616,7 +1592,7 @@ exports.verifyDeliveryConfirmationHash = async (
   const computedHash = sha256(
     buildSignatureHashInput({
       journeyUniqueId: current.journeyUniqueId,
-      receiverSignature: current.deliveryConfirmationReceiverSignature,
+      driverSignature: current.deliveryConfirmationDriverSignature,
       shipperSignature: current.deliveryConfirmationShipperSignature,
       photoUrls: storedPhotos,
       deliveredQuantity: current.deliveryConfirmationDeliveredQuantity,

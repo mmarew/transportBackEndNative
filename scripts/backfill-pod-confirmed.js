@@ -32,7 +32,7 @@ const backfillReason = "system-backfill-history";
 const canonicalInput = (f) =>
   [
     f.journeyUniqueId,
-    f.receiverSignature || "",
+    f.driverSignature || "",
     f.shipperSignature || "",
     f.photoUrls ? [...f.photoUrls].sort().join(",") : "",
     f.deliveredQuantity ?? "",
@@ -89,7 +89,7 @@ async function run() {
       const hash = sha256(
         canonicalInput({
           journeyUniqueId: m.journeyUniqueId,
-          receiverSignature: "",
+          driverSignature: "",
           shipperSignature: signature,
           photoUrls: [],
           deliveredQuantity: quantity,

@@ -41,7 +41,6 @@ exports.createDeliveryConfirmation = Joi.object({
   deliveredQuantity: optionalNumber.min(0),
   quantityUnit,
   condition: deliveryConfirmationCondition.default("GOOD"),
-  receiverSignature: Joi.string().optional().allow("", null),
   // Shipper-initiated POD: present ONLY with status CONFIRMED (Tier B self-declaration;
   // the receiver of record defaults to the shipper server-side).
   shipperSignature: Joi.string().max(2000000).optional().allow("", null),
@@ -70,7 +69,6 @@ exports.updateDeliveryConfirmation = Joi.object({
   deliveredQuantity: optionalNumber.min(0),
   quantityUnit,
   condition: deliveryConfirmationCondition.optional(),
-  receiverSignature: signatureSchema,
   shipperSignature: signatureSchema,
   statement: Joi.string().max(2000).optional().allow("", null),
   otpCode: otpCodeSchema,
