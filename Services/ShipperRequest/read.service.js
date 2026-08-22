@@ -864,6 +864,74 @@ const getDetailedJourneyData = async (shipperRequests) => {
       }
     }
 
+    // --- Step 7.5: Batch fetch proof of delivery for completed journeys ---
+    const completedSRs = validSRs.filter(
+      (sr) => sr.journeyStatusId === journeyStatusMap.journeyCompleted,
+    );
+    const podByJourneyUniqueId = new Map();
+    if (completedSRs.length > 0) {
+      const completedJourneyUniqueIds = completedSRs
+        .map((sr) => {
+          const jd =
+            decisionsBySR.get(sr.shipperRequestId)?.find(
+              (d) => d.journeyStatusId === sr.journeyStatusId,
+            ) ||
+            decisionsBySR.get(sr.shipperRequestId)?.[0];
+          const j = journeyByDecisionUniqueId.get(jd?.journeyDecisionUniqueId);
+          return j?.journeyUniqueId;
+        })
+        .filter(Boolean);
+
+      if (completedJourneyUniqueIds.length > 0) {
+        const [allDCs] = await executor.query(
+          `SELECT dc.*,
+                  u.fullName AS receiverFullName,
+                  u.phoneNumber AS receiverPhoneNumber
+           FROM DeliveryConfirmations dc
+           LEFT JOIN Users u ON u.userUniqueId = dc.receiverUserUniqueId
+           WHERE dc.journeyUniqueId IN (?)
+             AND dc.deliveryConfirmationDeletedAt IS NULL`,
+          [completedJourneyUniqueIds],
+        );
+
+        const dcUniqueIds = allDCs.map((dc) => dc.deliveryConfirmationUniqueId);
+        const photosByDC = new Map();
+        if (dcUniqueIds.length > 0) {
+          const [allPhotos] = await executor.query(
+            `SELECT deliveryConfirmationUniqueId, deliveryConfirmationPhotoUrl
+             FROM DeliveryConfirmationPhotos
+             WHERE deliveryConfirmationUniqueId IN (?)
+               AND deliveryConfirmationPhotoDeletedAt IS NULL
+             ORDER BY deliveryConfirmationPhotoId ASC`,
+            [dcUniqueIds],
+          );
+          for (const p of allPhotos) {
+            if (!photosByDC.has(p.deliveryConfirmationUniqueId)) {
+              photosByDC.set(p.deliveryConfirmationUniqueId, []);
+            }
+            photosByDC.get(p.deliveryConfirmationUniqueId).push(p.deliveryConfirmationPhotoUrl);
+          }
+        }
+
+        for (const dc of allDCs) {
+          podByJourneyUniqueId.set(dc.journeyUniqueId, {
+            deliveryConfirmationUniqueId: dc.deliveryConfirmationUniqueId,
+            receiverFullName: dc.receiverFullName,
+            receiverPhoneNumber: dc.receiverPhoneNumber,
+            deliveredQuantity: dc.deliveryConfirmationDeliveredQuantity,
+            quantityUnit: dc.deliveryConfirmationQuantityUnit,
+            condition: dc.deliveryConfirmationCondition,
+            deliveryConfirmationStatus: dc.deliveryConfirmationStatus,
+            deliveryConfirmationSource: dc.deliveryConfirmationSource,
+            photos: photosByDC.get(dc.deliveryConfirmationUniqueId) || [],
+            shipperSignature: dc.deliveryConfirmationShipperSignature,
+            notes: dc.deliveryConfirmationNotes,
+            podSubmittedAt: dc.deliveryConfirmationConfirmedAt,
+          });
+        }
+      }
+    }
+
     // --- Step 8: Assemble results (pure JS, no queries) ---
     const activeResults = validSRs.map((sr) => {
       const decisions = decisionsBySR.get(sr.shipperRequestId) || [];
@@ -883,9 +951,6 @@ const getDetailedJourneyData = async (shipperRequests) => {
       const useJourney = journeyStatuses.includes(sr.journeyStatusId);
       let journey = {};
       if (useJourney) {
-        // Find the specific decision that matches the PR's final status.
-        // A sr can have multiple decisions (e.g. one rejected offer + one completed offer).
-        // Using decisions[0] would pick the wrong one if it's the older, non-journey decision.
         const journeyDecision =
           decisions.find((d) => d.journeyStatusId === sr.journeyStatusId) ||
           decisions[0];
@@ -896,11 +961,16 @@ const getDetailedJourneyData = async (shipperRequests) => {
             ) || {};
         }
       }
+      const proofOfDelivery =
+        useJourney && journey.journeyUniqueId
+          ? podByJourneyUniqueId.get(journey.journeyUniqueId) || null
+          : null;
       return {
         shipperRequest: sr,
         driverRequests,
         decisions,
         journey,
+        proofOfDelivery,
       };
     });
     return [...waitingResults, ...activeResults];
