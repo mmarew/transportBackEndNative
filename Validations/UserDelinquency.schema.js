@@ -8,7 +8,9 @@ exports.createUserDelinquency = Joi.object({
   delinquencyDescription: Joi.string().optional(),
   journeyDecisionUniqueId: uuidSchema.optional(),
   isDelinquencySeenByAdmin: Joi.boolean().optional(),
-  // others
+  // When provided, the linked delivery confirmation is auto-disputed (status → DISPUTED).
+  // Cannot dispute a CONFIRMED delivery — must be PENDING or already DISPUTED.
+  deliveryConfirmationUniqueId: uuidSchema.optional(),
 }).unknown(true);
 
 exports.userDelinquencyParams = Joi.object({

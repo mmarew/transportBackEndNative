@@ -1196,11 +1196,23 @@ exports.updateDeliveryConfirmation = async (
           AppError.FORBIDDEN,
         );
       }
+      // Allow admin OR the journey's driver to re-settle
       if (!isAdmin) {
-        throw new AppError(
-          "Only an admin can re-settle a disputed delivery confirmation",
-          AppError.FORBIDDEN,
+        const [driverRows] = await executor.query(
+          `SELECT dr.userUniqueId
+           FROM Journey j
+           JOIN JourneyDecisions jd ON jd.journeyDecisionUniqueId = j.journeyDecisionUniqueId
+           JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+           WHERE j.journeyUniqueId = ? AND j.journeyDeletedAt IS NULL
+           LIMIT 1`,
+          [current.journeyUniqueId],
         );
+        if (driverRows[0]?.userUniqueId !== updatedBy) {
+          throw new AppError(
+            "Only an admin or the journey driver can re-settle a disputed delivery confirmation",
+            AppError.FORBIDDEN,
+          );
+        }
       }
     }
   }

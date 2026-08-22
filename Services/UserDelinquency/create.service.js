@@ -23,8 +23,23 @@ const createUserDelinquency = async data => {
    * 3) Load delinquency type (must be active) to fetch defaults (severity/points, duplicate window, etc.). Return error if invalid.
    * 4) Unless skipDuplicateCheck=true, build duplicateFilters with ids/role and a 24h (or type-configured) window using currentDate() for time-zone consistency. Optionally scope by journeyDecisionUniqueId. Query existing delinquencies; if found, return a duplicate error with time-ago info.
    * 5) Build INSERT columns/placeholders/values, applying defaults when overrides are absent, and include journeyDecisionUniqueId if provided.
-   * 6) Execute insert; then call checkAndApplyAutomaticBan to enforce point-based bans. Return success with record id and any automatic action.
-   * 7) On errors: log; if MySQL duplicate key, fetch the existing record for context; otherwise return generic failure with details.
+   * 6) Execute insert; then call checkAndApplyAutomaticBan to enforce point-based bans.
+   * 7) If deliveryConfirmationUniqueId is provided, auto-dispute the linked delivery confirmation (status → DISPUTED). Cannot dispute a CONFIRMED delivery.
+   * 8) Return success with record id, any automatic action, and whether a delivery confirmation was disputed.
+   * 9) On errors: log; if MySQL duplicate key, fetch the existing record for context; otherwise return generic failure with details.
+   *
+   * @param {Object} data
+   * @param {string} data.userUniqueId - UUID of the user receiving the delinquency.
+   * @param {string} data.delinquencyTypeUniqueId - UUID of the delinquency type.
+   * @param {number} data.roleId - Role ID of the user.
+   * @param {string} [data.delinquencyDescription] - Free-text description of the violation.
+   * @param {string} [data.delinquencySeverity] - Override severity (LOW/MEDIUM/HIGH/CRITICAL).
+   * @param {number} [data.delinquencyPoints] - Override point value.
+   * @param {string} data.delinquencyCreatedBy - UUID of the admin creating the delinquency.
+   * @param {string} [data.journeyDecisionUniqueId] - Link to the journey decision.
+   * @param {boolean} [data.skipDuplicateCheck=false] - Skip duplicate detection.
+   * @param {string} [data.deliveryConfirmationUniqueId] - When provided, the linked delivery confirmation is auto-disputed (status → DISPUTED).
+   * @returns {Promise<{message: string, data: null, userDelinquencyUniqueId: string, automaticAction: Object, deliveryConfirmationDisputed: boolean}>}
    */
   const {
     userUniqueId,
@@ -35,7 +50,8 @@ const createUserDelinquency = async data => {
     delinquencyCreatedBy,
     journeyDecisionUniqueId,
     roleId,
-    skipDuplicateCheck = false
+    skipDuplicateCheck = false,
+    deliveryConfirmationUniqueId,
   } = data;
   const userDelinquencyUniqueId = uuidv4();
 
@@ -134,11 +150,59 @@ const createUserDelinquency = async data => {
 
     // Check for automatic ban
     const banResult = await checkAndApplyAutomaticBan(userUniqueId, roleId);
+
+    // Auto-dispute linked delivery confirmation (if provided)
+    let deliveryConfirmationDisputed = false;
+    if (deliveryConfirmationUniqueId) {
+      const executor = transactionStorage.getStore() || pool;
+      const [dcRows] = await executor.query(
+        `SELECT deliveryConfirmationUniqueId, deliveryConfirmationStatus
+         FROM DeliveryConfirmations
+         WHERE deliveryConfirmationUniqueId = ? AND deliveryConfirmationDeletedAt IS NULL`,
+        [deliveryConfirmationUniqueId],
+      );
+      if (dcRows.length === 0) {
+        throw new AppError(
+          `Delivery confirmation ${deliveryConfirmationUniqueId} not found`,
+          AppError.NOT_FOUND,
+        );
+      }
+      const dc = dcRows[0];
+      if (dc.deliveryConfirmationStatus === "CONFIRMED") {
+        throw new AppError(
+          "Cannot dispute a confirmed delivery confirmation",
+          AppError.FORBIDDEN,
+        );
+      }
+      if (dc.deliveryConfirmationStatus !== "DISPUTED") {
+        const now = currentDate();
+        await executor.query(
+          `UPDATE DeliveryConfirmations
+           SET deliveryConfirmationStatus = 'DISPUTED',
+               confirmedByUserUniqueId = ?,
+               deliveryConfirmationConfirmedAt = ?,
+               deliveryConfirmationNotes = CONCAT(
+                 COALESCE(deliveryConfirmationNotes, ''),
+                 CHAR(10), '[Dispute] ', ?
+               )
+           WHERE deliveryConfirmationUniqueId = ?`,
+          [
+            delinquencyCreatedBy,
+            now,
+            delinquencyDescription || "Disputed via delinquency",
+            deliveryConfirmationUniqueId,
+          ],
+        );
+        deliveryConfirmationDisputed = true;
+      }
+    }
+
     return {
       message: "User delinquency created",
       data: null,
       userDelinquencyUniqueId,
-      automaticAction: banResult
+      automaticAction: banResult,
+      deliveryConfirmationDisputed,
     };
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
