@@ -24,8 +24,15 @@ const createUserDelinquency = async data => {
    * 4) Unless skipDuplicateCheck=true, build duplicateFilters with ids/role and a 24h (or type-configured) window using currentDate() for time-zone consistency. Optionally scope by journeyDecisionUniqueId. Query existing delinquencies; if found, return a duplicate error with time-ago info.
    * 5) Build INSERT columns/placeholders/values, applying defaults when overrides are absent, and include journeyDecisionUniqueId if provided.
    * 6) Execute insert; then call checkAndApplyAutomaticBan to enforce point-based bans.
-   * 7) If deliveryConfirmationUniqueId is provided, auto-dispute the linked delivery confirmation (status → DISPUTED). Cannot dispute a CONFIRMED delivery.
-   * 8) Return success with record id, any automatic action, and whether a delivery confirmation was disputed.
+   * 7) If deliveryConfirmationUniqueId is provided:
+   *    - If DC exists and is PENDING → dispute it (status → DISPUTED).
+   *    - If DC exists and is CONFIRMED → throw 403 (cannot dispute settled DC).
+   *    - If DC exists and is already DISPUTED → idempotent, no change.
+   *    - If DC does NOT exist (driver never submitted POD) → create a new DISPUTED
+   *      DC with source 'DELINQUENCY_DISPUTE'. Requires journeyDecisionUniqueId
+   *      to resolve the journey. The shipper is set as receiver.
+   * 8) Return success with record id, any automatic action, whether a DC was
+   *    disputed, and whether a new DC was created.
    * 9) On errors: log; if MySQL duplicate key, fetch the existing record for context; otherwise return generic failure with details.
    *
    * @param {Object} data
@@ -38,8 +45,8 @@ const createUserDelinquency = async data => {
    * @param {string} data.delinquencyCreatedBy - UUID of the admin creating the delinquency.
    * @param {string} [data.journeyDecisionUniqueId] - Link to the journey decision.
    * @param {boolean} [data.skipDuplicateCheck=false] - Skip duplicate detection.
-   * @param {string} [data.deliveryConfirmationUniqueId] - When provided, the linked delivery confirmation is auto-disputed (status → DISPUTED).
-   * @returns {Promise<{message: string, data: null, userDelinquencyUniqueId: string, automaticAction: Object, deliveryConfirmationDisputed: boolean}>}
+   * @param {string} [data.deliveryConfirmationUniqueId] - When provided, the linked delivery confirmation is auto-disputed (status → DISPUTED). If the DC does not exist, a new DISPUTED DC is created (requires journeyDecisionUniqueId).
+   * @returns {Promise<{message: string, data: null, userDelinquencyUniqueId: string, automaticAction: Object, deliveryConfirmationDisputed: boolean, deliveryConfirmationCreated: boolean}>}
    */
   const {
     userUniqueId,
@@ -151,8 +158,11 @@ const createUserDelinquency = async data => {
     // Check for automatic ban
     const banResult = await checkAndApplyAutomaticBan(userUniqueId, roleId);
 
-    // Auto-dispute linked delivery confirmation (if provided)
+    // Auto-dispute linked delivery confirmation (if provided).
+    // If the DC exists, dispute it. If it doesn't exist (driver never submitted
+    // POD), create a DISPUTED DC so the shipper's complaint is on record.
     let deliveryConfirmationDisputed = false;
+    let deliveryConfirmationCreated = false;
     if (deliveryConfirmationUniqueId) {
       const executor = transactionStorage.getStore() || pool;
       const [dcRows] = await executor.query(
@@ -161,39 +171,141 @@ const createUserDelinquency = async data => {
          WHERE deliveryConfirmationUniqueId = ? AND deliveryConfirmationDeletedAt IS NULL`,
         [deliveryConfirmationUniqueId],
       );
+
       if (dcRows.length === 0) {
-        throw new AppError(
-          `Delivery confirmation ${deliveryConfirmationUniqueId} not found`,
-          AppError.NOT_FOUND,
+        // DC doesn't exist — driver never submitted POD. Create DISPUTED DC.
+        if (!journeyDecisionUniqueId) {
+          throw new AppError(
+            "journeyDecisionUniqueId is required when creating a delivery confirmation via delinquency",
+            AppError.BAD_REQUEST,
+          );
+        }
+
+        // Resolve journeyUniqueId from JourneyDecisions
+        const [jdRows] = await executor.query(
+          `SELECT j.journeyUniqueId
+           FROM JourneyDecisions jd
+           JOIN Journey j ON j.journeyDecisionUniqueId = jd.journeyDecisionUniqueId
+           WHERE jd.journeyDecisionUniqueId = ? AND j.journeyDeletedAt IS NULL`,
+          [journeyDecisionUniqueId],
         );
-      }
-      const dc = dcRows[0];
-      if (dc.deliveryConfirmationStatus === "CONFIRMED") {
-        throw new AppError(
-          "Cannot dispute a confirmed delivery confirmation",
-          AppError.FORBIDDEN,
+        if (jdRows.length === 0) {
+          throw new AppError(
+            "No journey found for the provided journeyDecisionUniqueId",
+            AppError.NOT_FOUND,
+          );
+        }
+        const journeyUniqueId = jdRows[0].journeyUniqueId;
+
+        // Idempotent: check if a DISPUTED DC already exists for this journey
+        const [existingDc] = await executor.query(
+          `SELECT deliveryConfirmationUniqueId FROM DeliveryConfirmations
+           WHERE journeyUniqueId = ? AND deliveryConfirmationDeletedAt IS NULL`,
+          [journeyUniqueId],
         );
-      }
-      if (dc.deliveryConfirmationStatus !== "DISPUTED") {
-        const now = currentDate();
-        await executor.query(
-          `UPDATE DeliveryConfirmations
-           SET deliveryConfirmationStatus = 'DISPUTED',
-               confirmedByUserUniqueId = ?,
-               deliveryConfirmationConfirmedAt = ?,
-               deliveryConfirmationNotes = CONCAT(
-                 COALESCE(deliveryConfirmationNotes, ''),
-                 CHAR(10), '[Dispute] ', ?
-               )
-           WHERE deliveryConfirmationUniqueId = ?`,
-          [
-            delinquencyCreatedBy,
-            now,
-            delinquencyDescription || "Disputed via delinquency",
-            deliveryConfirmationUniqueId,
-          ],
-        );
-        deliveryConfirmationDisputed = true;
+        if (existingDc.length > 0) {
+          // DC already exists for this journey — dispute it if not already
+          const existing = existingDc[0];
+          const [statusCheck] = await executor.query(
+            `SELECT deliveryConfirmationStatus FROM DeliveryConfirmations
+             WHERE deliveryConfirmationUniqueId = ?`,
+            [existing.deliveryConfirmationUniqueId],
+          );
+          if (statusCheck[0]?.deliveryConfirmationStatus !== "DISPUTED") {
+            const now = currentDate();
+            await executor.query(
+              `UPDATE DeliveryConfirmations
+               SET deliveryConfirmationStatus = 'DISPUTED',
+                   confirmedByUserUniqueId = ?,
+                   deliveryConfirmationConfirmedAt = ?,
+                   deliveryConfirmationNotes = CONCAT(
+                     COALESCE(deliveryConfirmationNotes, ''),
+                     CHAR(10), '[Dispute] ', ?
+                   )
+               WHERE deliveryConfirmationUniqueId = ?`,
+              [
+                delinquencyCreatedBy,
+                now,
+                delinquencyDescription || "Disputed via delinquency",
+                existing.deliveryConfirmationUniqueId,
+              ],
+            );
+          }
+          deliveryConfirmationDisputed = true;
+        } else {
+          // No DC at all — create one as DISPUTED
+          const now = currentDate();
+          // Resolve the shipper as receiver (the aggrieved party)
+          const [srRows] = await executor.query(
+            `SELECT sr.userUniqueId AS shipperUserUniqueId
+             FROM ShipperRequest sr
+             JOIN JourneyDecisions jd ON jd.shipperRequestId = sr.shipperRequestId
+             WHERE jd.journeyDecisionUniqueId = ?`,
+            [journeyDecisionUniqueId],
+          );
+          const receiverUserUniqueId =
+            srRows[0]?.shipperUserUniqueId || delinquencyCreatedBy;
+
+          await executor.query(
+            `INSERT INTO DeliveryConfirmations (
+              deliveryConfirmationUniqueId,
+              journeyUniqueId,
+              receiverUserUniqueId,
+              confirmedByUserUniqueId,
+              deliveryConfirmationStatus,
+              deliveryConfirmationSource,
+              deliveryConfirmationCondition,
+              deliveryConfirmationNotes,
+              deliveryConfirmationSubmittedAt,
+              deliveryConfirmationConfirmedAt,
+              deliveryConfirmationCreatedBy,
+              deliveryConfirmationCreatedAt
+            ) VALUES (?, ?, ?, ?, 'DISPUTED', 'DELINQUENCY_DISPUTE', 'GOOD', ?, ?, ?, ?, ?)`,
+            [
+              deliveryConfirmationUniqueId,
+              journeyUniqueId,
+              receiverUserUniqueId,
+              delinquencyCreatedBy,
+              delinquencyDescription || "Disputed via delinquency — no POD submitted by driver",
+              now,
+              now,
+              delinquencyCreatedBy,
+              now,
+            ],
+          );
+          deliveryConfirmationCreated = true;
+          deliveryConfirmationDisputed = true;
+        }
+      } else {
+        // DC exists — dispute it if not already DISPUTED
+        const dc = dcRows[0];
+        if (dc.deliveryConfirmationStatus === "CONFIRMED") {
+          throw new AppError(
+            "Cannot dispute a confirmed delivery confirmation",
+            AppError.FORBIDDEN,
+          );
+        }
+        if (dc.deliveryConfirmationStatus !== "DISPUTED") {
+          const now = currentDate();
+          await executor.query(
+            `UPDATE DeliveryConfirmations
+             SET deliveryConfirmationStatus = 'DISPUTED',
+                 confirmedByUserUniqueId = ?,
+                 deliveryConfirmationConfirmedAt = ?,
+                 deliveryConfirmationNotes = CONCAT(
+                   COALESCE(deliveryConfirmationNotes, ''),
+                   CHAR(10), '[Dispute] ', ?
+                 )
+             WHERE deliveryConfirmationUniqueId = ?`,
+            [
+              delinquencyCreatedBy,
+              now,
+              delinquencyDescription || "Disputed via delinquency",
+              deliveryConfirmationUniqueId,
+            ],
+          );
+          deliveryConfirmationDisputed = true;
+        }
       }
     }
 
@@ -203,6 +315,7 @@ const createUserDelinquency = async data => {
       userDelinquencyUniqueId,
       automaticAction: banResult,
       deliveryConfirmationDisputed,
+      deliveryConfirmationCreated,
     };
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {

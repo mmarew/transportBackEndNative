@@ -2147,7 +2147,7 @@ CREATE TABLE IF NOT EXISTS DeliveryConfirmations (
     --   SHIPPER_DIRECT — shipper self-confirmed (Tier B signature, no driver evidence)
     --   AUTO_NO_POD   — auto-confirmed on journey completion (isPodRequired=false)
 
-    deliveryConfirmationSource ENUM('FORMAL_POD','RECEIPT_AUTO','SHIPPER_DIRECT','AUTO_NO_POD') NOT NULL DEFAULT 'FORMAL_POD',
+    deliveryConfirmationSource ENUM('FORMAL_POD','RECEIPT_AUTO','SHIPPER_DIRECT','AUTO_NO_POD','DELINQUENCY_DISPUTE') NOT NULL DEFAULT 'FORMAL_POD',
     deliveryConfirmationDeliveredQuantity DECIMAL(14, 3) NULL, -- Delivered quantity
     deliveryConfirmationQuantityUnit VARCHAR(30) NULL,         -- e.g. 'quintal', 'kg', 'piece'
 
