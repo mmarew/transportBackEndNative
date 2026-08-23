@@ -4,7 +4,6 @@ const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const Config = require("../Utils/Config");
 const { TIME } = require("../Utils/Constants");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("../api-docs.json");
@@ -93,6 +92,12 @@ app.use(express.json({ limit: "1mb" })); // Increased to support base64-encoded 
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // 5. Data Sanitization - Handled by Joi and Helmet
+
+// --- SCANNER / BOT BLOCK ---
+// Rejects common vulnerability scanner paths (wp-admin, .env, phpinfo, etc.)
+// before they hit routes or loggers — reduces noise and attack surface.
+const scannerBlock = require("../Middleware/ScannerBlock");
+app.use(scannerBlock);
 
 // --- ROUTES ---
 
