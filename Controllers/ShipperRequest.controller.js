@@ -196,6 +196,7 @@ const getShipperRequest4allOrSingleUser = async (req, res, next) => {
       target,
       limit,
       page,
+      roleId: req.user.roleId,
     };
 
     const result = await ShipperService.getShipperRequest4allOrSingleUser({

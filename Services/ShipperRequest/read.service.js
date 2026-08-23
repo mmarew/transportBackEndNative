@@ -5,6 +5,7 @@ const { pool } = require("../../Middleware/Database.config");
 const {
   journeyStatusMap,
   listOfDocumentsTypeAndId,
+  usersRoles,
 } = require("../../Utils/ListOfSeedData");
 const logger = require("../../Utils/logger");
 const AppError = require("../../Utils/AppError");
@@ -298,7 +299,7 @@ const getShipperRequestByShipperRequestId = async (shipperRequestId) => {
  */
 const getShipperRequest4allOrSingleUser = async ({ data }) => {
   try {
-    const { userUniqueId, target, page = 1, limit = 10, filters = {} } = data;
+    const { userUniqueId, target, page = 1, limit = 10, filters = {}, roleId } = data;
     const offset = (page - 1) * limit;
     let whereClause = "";
     let queryParams = [];
@@ -346,9 +347,22 @@ const getShipperRequest4allOrSingleUser = async ({ data }) => {
 
     // Build WHERE clause based on target and filters
     if (target !== "all" && userUniqueId) {
-      whereClause = " WHERE ShipperRequest.userUniqueId = ?";
-      queryParams = [userUniqueId];
-      countParams = [userUniqueId];
+      if (roleId === usersRoles.driverRoleId) {
+        // Driver: find requests where this driver was assigned via JourneyDecisions → DriverRequest
+        whereClause = ` WHERE EXISTS (
+          SELECT 1 FROM JourneyDecisions jd
+          INNER JOIN DriverRequest dr ON dr.driverRequestId = jd.driverRequestId
+          WHERE jd.shipperRequestId = ShipperRequest.shipperRequestId
+            AND dr.userUniqueId = ?
+        )`;
+        queryParams = [userUniqueId];
+        countParams = [userUniqueId];
+      } else {
+        // Shipper/Admin: filter by ShipperRequest owner
+        whereClause = " WHERE ShipperRequest.userUniqueId = ?";
+        queryParams = [userUniqueId];
+        countParams = [userUniqueId];
+      }
     }
 
     // Add additional filters if provided
