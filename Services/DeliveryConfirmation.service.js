@@ -18,6 +18,7 @@ const { getPlaceholderEmail } = require("../Utils/GetPlaceholderEmail");
 const { getData } = require("../CRUD/Read/ReadData");
 const { sendSms } = require("../Utils/smsSender");
 const { usersRoles, journeyStatusMap } = require("../Utils/ListOfSeedData");
+const messageTypes = require("../Utils/MessageTypes");
 const { sendFCMNotificationToUser } = require("./Firebase.service");
 const {
   sendSocketIONotificationToDriver,
@@ -1663,6 +1664,7 @@ exports.notifyShipperOfPodSubmit = async (
       const wsResult = await sendSocketIONotificationToShipper({
         phoneNumber,
         message: {
+          messageTypes: messageTypes.pod_submitted,
           message: "POD submitted.",
           data: {
             journeyUniqueId,
@@ -1731,6 +1733,7 @@ exports.notifyDriverOfPodConfirmed = async (
       const wsResult = await sendSocketIONotificationToDriver({
         phoneNumber,
         message: {
+          messageTypes: messageTypes.pod_confirmed,
           message: "POD confirmed.",
           data: {
             journeyUniqueId,

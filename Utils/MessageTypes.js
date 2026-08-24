@@ -298,5 +298,15 @@ const messageTypes = {
     message: "Queue organization updated",
     details: "Queue organization profile was updated by its admin.",
   },
+  pod_submitted: {
+    message: "POD submitted.",
+    details:
+      "When a driver submits proof of delivery; the shipper is notified to review and sign.",
+  },
+  pod_confirmed: {
+    message: "POD confirmed.",
+    details:
+      "When the shipper confirms proof of delivery; the driver's POD gate clears.",
+  },
 };
 module.exports = messageTypes;
